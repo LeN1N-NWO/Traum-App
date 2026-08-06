@@ -8,9 +8,24 @@
 //
 // Without deps/key the server still boots and serves the app; /api/generate
 // then returns a clear, actionable error instead of crashing.
+//
+// ⚠ LOCALHOST ONLY as it stands. /api/generate has no auth, no rate limit and
+// no per-user quota — exposing this to the internet lets anyone spend your
+// Higgsfield credits. Real accounts/quotas are blocked on the backend decision
+// still pending in docs/STAND.md; until then, don't bind it to a public
+// interface (or put an authenticating reverse proxy in front).
+
+import { resolve, sep } from "node:path";
 
 const PORT = process.env.PORT || 8100;
 const ROOT = import.meta.dir;
+
+// Reference photos are base64 dataURLs, so bodies are chunky — but not unbounded.
+const MAX_BODY = 12 * 1024 * 1024;
+const MAX_REFERENCES = 6;
+const MAX_STYLE_CONTEXT = 5;
+const MAX_DREAM = 2000;
+const MAX_FRAGMENT = 120; // per pet/place description, mirrors the client-side cap
 
 // Model slugs on the Higgsfield platform SDK. CONFIRM these against your
 // dashboard's model catalog (cloud.higgsfield.ai) — platform slugs can differ
@@ -20,8 +35,73 @@ const MODELS = {
   filmVideo:     process.env.HF_MODEL_VIDEO || "seedance-2/text-to-video",
 };
 
+// ---- prompt hygiene (start) ----
+// Scope note, because "prompt injection" means something narrower here than
+// usual: the dream text is the user's OWN prompt for their OWN image. Someone
+// writing "ignore previous instructions" into it is just using the app — there
+// is no privilege boundary to cross and nothing to escalate to. So a blocklist
+// of suspicious phrases would be theatre: trivially sidestepped by rewording or
+// translating, and badly false-positive-prone (dreams are surreal — "I ignored
+// everything I'd been told" is an ordinary sentence to find in one).
+//
+// What is actually worth defending:
+//   1. PASTED text. A dream copied off a website can carry characters the user
+//      cannot see — zero-width joiners, bidi overrides, Unicode TAG characters
+//      (U+E0000..E007F) — which are invisible to them and fully visible to the
+//      model. That is a genuine untrusted-data path into the prompt.
+//   2. Prompt STRUCTURE. Free text used to be concatenated in raw, so a newline
+//      or a stray ")" could restructure the instruction. Fragments are now
+//      flattened and delimited so they can only ever read as data.
+//   3. What comes next. docs/STAND.md plans an LLM that builds director prompts
+//      from this text; that step is where a real instruction/data boundary
+//      appears. Cleaning at the edge now means it inherits sane input.
+//
+// Note: this also strips ZWJ, so emoji sequences (👨‍👩‍👧) degrade to their parts.
+// Acceptable — they carry nothing for an image model, and ZWJ is a smuggling
+// vector.
+const PROMPT_CONTROL_CHARS =
+  /[\u0000-\u0008\u000B-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u206F\uFEFF\uFFF9-\uFFFB]/g;
+const PROMPT_TAG_CHARS = /[\u{E0000}-\u{E007F}]/gu; // invisible-text smuggling block
+
+// Deliberately does NOT truncate — the caller decides whether an over-long
+// dream is rejected or trimmed, so nobody silently loses half their dream.
+function sanitizePromptText(raw) {
+  let s = String(raw ?? "");
+  try { s = s.normalize("NFKC"); } catch { /* lone surrogates etc. — keep as-is */ }
+  s = s.replace(PROMPT_TAG_CHARS, "").replace(PROMPT_CONTROL_CHARS, "");
+  s = s.replace(/[\r\n\t]+/g, " ");  // single line: only OUR separators shape the prompt
+  return s.replace(/\s{2,}/g, " ").trim();
+}
+
+// Fragments get embedded inside a clause we build, so they also lose the
+// characters that could break out of that clause.
+function sanitizeFragment(raw, maxLen) {
+  return sanitizePromptText(raw).replace(/[()[\]{}<>"“”'`]/g, "").replace(/\s{2,}/g, " ").trim().slice(0, maxLen);
+}
+
+// Pet/place cast entries aren't sent as image data — unverified whether
+// Higgsfield's image_references param handles non-face reference photos
+// sensibly (same kind of unverified-slug gap noted in docs/STAND.md).
+// Safe default: fold their short text description into the prompt instead.
+// Revisit once the Higgsfield dashboard/docs confirm a dedicated non-face
+// reference param.
+//
+// Because sanitizePromptText() guarantees every fragment is single-line, the
+// newline below is the only structural break in the finished prompt — user text
+// cannot forge one.
+function withStyleContext(prompt, styleContext = []) {
+  const clauses = styleContext.slice(0, MAX_STYLE_CONTEXT).map((s) => {
+    const desc = sanitizeFragment(s.desc || s.tag || "", MAX_FRAGMENT);
+    if (!desc) return null;
+    return s.category === "pet" ? `a pet described as: ${desc}` : `a location described as: ${desc}`;
+  }).filter(Boolean);
+  if (!clauses.length) return prompt;
+  return `${prompt}\nAlso present in the scene — ${clauses.join("; ")}.`;
+}
+// ---- prompt hygiene (end) ----
+
 // ---- Higgsfield call (lazy import so the server boots without the dep) ----
-async function higgsfieldGenerate({ prompt, kind, references = [] }) {
+async function higgsfieldGenerate({ prompt, kind, references = [], styleContext = [] }) {
   if (!process.env.HF_CREDENTIALS && !(process.env.HF_API_KEY && process.env.HF_API_SECRET)) {
     throw new Error("NO_CREDENTIALS");
   }
@@ -35,8 +115,8 @@ async function higgsfieldGenerate({ prompt, kind, references = [] }) {
   if (process.env.HF_CREDENTIALS) config({ credentials: process.env.HF_CREDENTIALS });
 
   const model = kind === "film" ? MODELS.filmVideo : MODELS.sequenceImage;
-  const input = { prompt, aspect_ratio: "9:16" };
-  if (references.length) input.image_references = references; // face-consistency refs
+  const input = { prompt: withStyleContext(prompt, styleContext), aspect_ratio: "9:16" };
+  if (references.length) input.image_references = references; // person-category photos only — face-consistency refs
 
   const jobSet = await higgsfield.subscribe(model, { input, withPolling: true });
   if (!jobSet.isCompleted) throw new Error("GENERATION_FAILED");
@@ -44,13 +124,37 @@ async function higgsfieldGenerate({ prompt, kind, references = [] }) {
 }
 
 // ---- static file serving ----
-const TYPES = { html:"text/html", js:"text/javascript", css:"text/css", png:"image/png", mp4:"video/mp4", json:"application/json", svg:"image/svg+xml", webp:"image/webp" };
+// The app directory also holds .env (the Higgsfield key!), .git/, package.json
+// and docs/. Serving it naively hands all of that to anyone who asks, which
+// would defeat the whole point of keeping the key server-side. Everything below
+// exists to make that impossible; scripts/test-static.mjs keeps it that way.
+const TYPES = { html:"text/html", js:"text/javascript", css:"text/css", png:"image/png", jpg:"image/jpeg", jpeg:"image/jpeg", gif:"image/gif", mp4:"video/mp4", webp:"image/webp" };
+const ROOT_ABS = resolve(ROOT);
+// Deny by default. The app is exactly one page plus whatever lives in clips/ —
+// an extension allowlist alone was not enough (it still exposed package.json
+// and scripts/*.js). Adding a new public asset is a deliberate edit here.
+const PUBLIC_FILES = new Set(["/index.html"]);
+const PUBLIC_DIRS = ["/clips/"];
+export function resolveStatic(pathname) {
+  let rel;
+  try { rel = decodeURIComponent(pathname); } catch { return null; } // malformed %-escape
+  if (rel === "/") rel = "/index.html";
+  if (rel.includes("\0")) return null;
+  // blocks .env, .git/config, .gitignore … and any encoded ../ that decoded here
+  if (rel.split("/").some((seg) => seg.startsWith("."))) return null;
+  if (!PUBLIC_FILES.has(rel) && !PUBLIC_DIRS.some((d) => rel.startsWith(d))) return null;
+  const ext = rel.split(".").pop().toLowerCase();
+  if (!Object.hasOwn(TYPES, ext)) return null; // unknown/extension-less → never served
+  const abs = resolve(ROOT_ABS, "." + rel);
+  if (abs !== ROOT_ABS && !abs.startsWith(ROOT_ABS + sep)) return null; // escaped the app dir
+  return { abs, ext };
+}
 async function serveStatic(pathname) {
-  const rel = pathname === "/" ? "/index.html" : pathname;
-  const file = Bun.file(ROOT + rel);
+  const hit = resolveStatic(pathname);
+  if (!hit) return new Response("Not found", { status: 404 });
+  const file = Bun.file(hit.abs);
   if (!(await file.exists())) return new Response("Not found", { status: 404 });
-  const ext = rel.split(".").pop();
-  return new Response(file, { headers: { "content-type": TYPES[ext] || "application/octet-stream" } });
+  return new Response(file, { headers: { "content-type": TYPES[hit.ext] } });
 }
 
 Bun.serve({
@@ -60,16 +164,36 @@ Bun.serve({
 
     if (url.pathname === "/api/generate" && req.method === "POST") {
       try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
         const body = await req.json();
-        const dream = (body.dream || "").trim();
+        // Sanitise before validating, so length limits apply to what actually
+        // reaches the model — not to padding that gets stripped afterwards.
+        const dream = sanitizePromptText(body.dream);
         if (dream.length < 8) return json({ error: "Dream too short." }, 400);
+        if (dream.length > MAX_DREAM) return json({ error: "Dream too long." }, 400);
+        // Everything below crosses into a paid third-party API, so shape and
+        // size are pinned here rather than trusted from the client.
+        const references = (Array.isArray(body.references) ? body.references : [])
+          .filter((r) => typeof r === "string")
+          .slice(0, MAX_REFERENCES);
+        const styleContext = (Array.isArray(body.styleContext) ? body.styleContext : [])
+          .slice(0, MAX_STYLE_CONTEXT)
+          .filter((s) => s && typeof s === "object")
+          .map((s) => ({
+            category: String(s.category || ""),
+            tag: String(s.tag || "").slice(0, 40),
+            desc: String(s.desc || "").slice(0, MAX_FRAGMENT),
+          })); // withStyleContext() sanitises these again at the point of use
         // The dream-sequence-director skill turns `dream` into director-grade
         // prompts. Here we pass it straight through; swap in the skill's
         // Deakins/Seedance prompt builder for production quality.
         const urls = await higgsfieldGenerate({
           prompt: dream,
           kind: body.mode === "film" ? "film" : "sequence",
-          references: Array.isArray(body.references) ? body.references : [],
+          references,
+          styleContext,
         });
         return json({ ok: true, urls });
       } catch (e) {
@@ -78,8 +202,11 @@ Bun.serve({
           NO_SDK:         [503, "SDK not installed. Run `bun install`, then restart."],
           GENERATION_FAILED: [502, "Higgsfield generation did not complete."],
         };
-        const [code, msg] = map[e.message] || [500, "Server error: " + e.message];
-        return json({ error: msg }, code);
+        const hit = map[e.message];
+        if (hit) return json({ error: hit[1] }, hit[0]);
+        // Don't echo internals (paths, SDK internals, key fragments) to the client.
+        console.error("[DreamRushes] /api/generate failed:", e);
+        return json({ error: "Server error." }, 500);
       }
     }
 
