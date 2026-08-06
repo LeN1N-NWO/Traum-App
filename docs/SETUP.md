@@ -16,7 +16,7 @@ Auf github.com → Repository → *Settings* → *Collaborators* → *Add people
 GitHub-Namen eingeben → Rolle **Write** wählen.
 Oder per GitHub CLI:
 
-    gh api --method PUT repos/<dein-github-name>/<projektname>/collaborators/<github-name> -f permission=push
+    gh api --method PUT repos/LeN1N-NWO/Traum-App/collaborators/<github-name> -f permission=push
 
 Berechtigungen: `pull` (nur lesen) · `push` (schreiben — der Normalfall) ·
 `maintain` (plus Einstellungen) · `admin` (alles, inklusive löschen).
@@ -37,10 +37,10 @@ Ab etwa vier Personen: GitHub-Organisation mit Teams statt Einzeleinladungen.
 Diese Dienste synchronisieren den .git-Ordner dateiweise und in beliebiger
 Reihenfolge — das Repository wirkt danach beschädigt. Lokaler Ordner, fertig.
 
-    git clone https://github.com/<dein-github-name>/<projektname>.git
-    cd <projektname>
+    git clone https://github.com/LeN1N-NWO/Traum-App.git
+    cd Traum-App
 
-(Mit `gh`: `gh repo clone <dein-github-name>/<projektname>`)
+(Mit `gh`: `gh repo clone LeN1N-NWO/Traum-App`)
 
 ## 3. Namen setzen (Pflicht — REGEL 0)
 

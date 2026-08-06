@@ -1,0 +1,13 @@
+{
+  "name": "dream-rushes",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun server.js",
+    "dev": "bun server.js"
+  },
+  "dependencies": {
+    "@higgsfield/client": "^2.0.0"
+  }
+}
