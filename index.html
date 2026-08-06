@@ -623,6 +623,26 @@ document.getElementById('summon').onclick=summon;
   mic.onclick=()=>{if(on){rec.stop();return}base=ta.value;on=true;mic.classList.add('rec');lang.textContent='● listening…';try{rec.start()}catch(e){}};
 })();
 
+/* ---------- pasted-text hygiene ---------- */
+// A dream copied off a website can carry characters you cannot see — zero-width
+// joiners, bidi overrides, Unicode tag characters — that still reach the image
+// model. server.js strips them authoritatively; doing it here too means the box
+// shows exactly what gets sent, and you're told when something was removed.
+// (Typed and dictated text can't contain these, so this only fires on paste.)
+const HIDDEN_CHARS=/[\u0000-\u0008\u000B-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u206F\uFEFF\uFFF9-\uFFFB]|[\u{E0000}-\u{E007F}]/gu;
+document.getElementById('dream').addEventListener('paste',e=>{
+  const ta=e.target;
+  const pasted=(e.clipboardData||window.clipboardData).getData('text');
+  const clean=pasted.replace(HIDDEN_CHARS,'');
+  if(clean===pasted)return; // nothing hidden — let the browser paste normally
+  e.preventDefault();
+  const a=ta.selectionStart,b=ta.selectionEnd;
+  ta.value=ta.value.slice(0,a)+clean+ta.value.slice(b);
+  ta.selectionStart=ta.selectionEnd=a+clean.length;
+  const n=[...pasted].length-[...clean].length;
+  toast(`✦ Removed ${n} hidden character${n===1?'':'s'} from the pasted text`);
+});
+
 /* ---------- cast (reference photos: person / pet / place) ---------- */
 let pickTarget=null; // 'me' | {mode:'add',category} | index
 const CAT_EMOJI={pet:'🐾',place:'🏞'};
