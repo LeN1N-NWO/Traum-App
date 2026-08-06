@@ -35,6 +35,12 @@
 - **Verfügbarkeit:** `save()` fängt volles localStorage ab (sperrte sonst den
   Summon-Button dauerhaft), `/api/generate` begrenzt Body-Größe und
   Array-Längen.
+- **Statische Vorschau:** `python3 -m http.server` (in `README.md` und
+  `.claude/launch.json`) hat **keine** Freigabeliste und liefert alles im Ordner
+  aus — die Absicherung in `server.js` greift auf diesem Weg nicht. Beide
+  Stellen binden jetzt an `127.0.0.1`; die Vorschau darf nicht laufen, sobald
+  `.env` existiert. Ungetestet automatisierbar — `scripts/test-static.mjs` deckt
+  nur `server.js` ab.
 - **Offen — `/api/generate` hat keine Authentifizierung und kein Rate-Limit.**
   Nur an localhost binden. Öffentlich erreichbar könnte jeder das
   Higgsfield-Guthaben verbrauchen. Löst sich erst mit dem Accounts-Backend

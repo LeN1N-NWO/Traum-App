@@ -3,6 +3,43 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-06 18:20 — Hanni — Branch `session/2026-08-06-hanni-preview-bind`
+
+**Was:** Die statische Vorschau abgesichert und `.claude/launch.json` ins Repo
+aufgenommen (vorher unversioniert im Arbeitsverzeichnis).
+
+Gefunden beim Durchsehen der bis dahin unversionierten `launch.json`: sie startet
+`python3 -m http.server 8100` — Pythons Standard-Dateiserver, der keine
+Freigabeliste kennt und **alles** im Ordner ausliefert. Damit umgeht dieser Weg
+die Absicherung, die in derselben Session in `server.js` eingebaut wurde. Der
+Server lief zu dem Zeitpunkt tatsächlich und war an `0.0.0.0` gebunden, also für
+jedes Gerät im selben WLAN erreichbar. Nachgemessen: `/.gitignore`,
+`/server.js`, `/package.json`, `/docs/STAND.md` kamen alle mit HTTP 200 zurück,
+auch über die LAN-IP. Dass Dotfiles durchgehen, heißt: sobald `.env` angelegt
+ist (wie `README.md` es anweist), hätte `GET /.env` den Higgsfield-Key
+herausgegeben.
+
+Behoben: `--bind 127.0.0.1` in `launch.json` und in der README-Anleitung, plus
+eine Warnung in der README, die Vorschau nicht mit vorhandener `.env` zu starten
+und warum `server.js` hier nicht schützt. Verifiziert: über `127.0.0.1` weiterhin
+HTTP 200, über `192.168.2.100` Verbindung abgelehnt. Der laufende Prozess wurde
+nach Rücksprache beendet.
+
+Nebenbei: toter Link in der README korrigiert
+(`ADR-0002-stack.md` → `ADR-0002-stack-bun-vanilla-higgsfield.md`).
+
+**Warum:** Die Absicherung von `server.js` war unvollständig, solange der in der
+README empfohlene und per Verknüpfung startbare Alternativweg dasselbe Loch
+offen ließ — mit demselben Ergebnis (Key im Netz), nur an `server.js` vorbei.
+
+**Was der Nächste wissen muss:**
+- `scripts/test-static.mjs` prüft **nur** `server.js`. Für den Python-Weg gibt es
+  keinen Schutz und keinen Test — der ist ausschließlich durch `--bind` und die
+  README-Warnung abgedeckt. Wer die Vorschau woanders dokumentiert, muss
+  `--bind 127.0.0.1` mitschreiben.
+- `.claude/launch.json` ist jetzt versioniert. `.claude/settings.local.json`
+  bleibt wie gehabt ignoriert (persönliche Einstellungen).
+
 ## 2026-08-06 17:45 — Hanni — Branch `session/2026-08-06-hanni`
 
 **Was:** Prompt-Eingabe abgesichert. Vorher aber das Bedrohungsmodell geprüft,
