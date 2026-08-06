@@ -20,8 +20,24 @@ const MODELS = {
   filmVideo:     process.env.HF_MODEL_VIDEO || "seedance-2/text-to-video",
 };
 
+// Pet/place cast entries aren't sent as image data — unverified whether
+// Higgsfield's image_references param handles non-face reference photos
+// sensibly (same kind of unverified-slug gap noted in docs/STAND.md).
+// Safe default: fold their short text description into the prompt instead.
+// Revisit once the Higgsfield dashboard/docs confirm a dedicated non-face
+// reference param.
+function withStyleContext(prompt, styleContext = []) {
+  if (!styleContext.length) return prompt;
+  const clauses = styleContext.slice(0, 5).map((s) => {
+    const desc = (s.desc || s.tag || "").trim();
+    if (!desc) return null;
+    return s.category === "pet" ? `featuring my pet ${desc}` : `set in a place like ${desc}`;
+  }).filter(Boolean);
+  return clauses.length ? `${prompt} (${clauses.join(", ")})` : prompt;
+}
+
 // ---- Higgsfield call (lazy import so the server boots without the dep) ----
-async function higgsfieldGenerate({ prompt, kind, references = [] }) {
+async function higgsfieldGenerate({ prompt, kind, references = [], styleContext = [] }) {
   if (!process.env.HF_CREDENTIALS && !(process.env.HF_API_KEY && process.env.HF_API_SECRET)) {
     throw new Error("NO_CREDENTIALS");
   }
@@ -35,8 +51,8 @@ async function higgsfieldGenerate({ prompt, kind, references = [] }) {
   if (process.env.HF_CREDENTIALS) config({ credentials: process.env.HF_CREDENTIALS });
 
   const model = kind === "film" ? MODELS.filmVideo : MODELS.sequenceImage;
-  const input = { prompt, aspect_ratio: "9:16" };
-  if (references.length) input.image_references = references; // face-consistency refs
+  const input = { prompt: withStyleContext(prompt, styleContext), aspect_ratio: "9:16" };
+  if (references.length) input.image_references = references; // person-category photos only — face-consistency refs
 
   const jobSet = await higgsfield.subscribe(model, { input, withPolling: true });
   if (!jobSet.isCompleted) throw new Error("GENERATION_FAILED");
@@ -70,6 +86,7 @@ Bun.serve({
           prompt: dream,
           kind: body.mode === "film" ? "film" : "sequence",
           references: Array.isArray(body.references) ? body.references : [],
+          styleContext: Array.isArray(body.styleContext) ? body.styleContext.slice(0, 5) : [],
         });
         return json({ ok: true, urls });
       } catch (e) {

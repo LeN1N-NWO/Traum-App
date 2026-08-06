@@ -1,11 +1,13 @@
 {
-  "_hinweis": "Geteilte Dateien, bei denen parallele Arbeit fast sicher kollidiert. ACHTUNG: Das sind noch Platzhalter-Vermutungen — sobald Code existiert, empirisch neu ermitteln: zählen, welche Module quer über Feature-Grenzen importiert werden, und die meistgenutzten eintragen.",
+  "_hinweis": "Geteilte Dateien, bei denen parallele Arbeit fast sicher kollidiert. index.html und server.js sind seit der Session 2026-08-06-hanni empirisch bestätigt: die einzigen zwei Code-Dateien im Projekt, jedes Feature fasst beide an.",
   "dateien": [
     "package.json",
     "package-lock.json",
     "AGENTS.md",
     "docs/STAND.md",
     ".gitattributes",
-    ".claude/settings.json"
+    ".claude/settings.json",
+    "index.html",
+    "server.js"
   ]
 }
