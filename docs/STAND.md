@@ -39,12 +39,31 @@
   Nur an localhost binden. Öffentlich erreichbar könnte jeder das
   Higgsfield-Guthaben verbrauchen. Löst sich erst mit dem Accounts-Backend
   (siehe unten).
+- **Prompt-Eingabe:** unsichtbare Zeichen (Zero-Width, Bidi-Overrides, Unicode-
+  TAG-Block) werden aus dem Traumtext entfernt — relevant für *eingefügten*
+  Text, der versteckte Anweisungen mitbringen kann. Freitext-Fragmente
+  (Haustier/Ort) werden einzeilig gemacht und in eine feste Klausel gesperrt,
+  können die Prompt-Struktur also nicht aufbrechen. `sanitizePromptText()` in
+  `server.js` ist die verbindliche Stelle, `index.html` putzt beim Einfügen
+  zusätzlich und meldet dem Nutzer, wie viele Zeichen entfernt wurden.
+  Abgesichert durch `node scripts/test-prompt-sanitize.mjs` (20 Prüfungen).
+  Bewusst **keine** Blockliste für anweisungsartige Formulierungen: der
+  Traumtext ist der eigene Prompt des Nutzers, es gibt keine Rechtegrenze zu
+  schützen, und eine Blockliste wäre umgehbar und fehlalarmanfällig.
 - **Offen — Datenschutz:** hochgeladene Referenzfotos (Gesichter, Haustiere,
   Wohnorte) gehen an Higgsfield. Gesichtsbilder sind biometrische Daten und
   damit besonders geschützt (DSGVO Art. 9). Vor einer Veröffentlichung braucht
   es Datenschutzhinweis/Einwilligung und eine Klärung, wie lange Higgsfield die
   Bilder speichert. Der UI-Hinweis benennt den Upload inzwischen ehrlich, das
   ersetzt aber keine Datenschutzerklärung.
+- **Offen — Missbrauch der Generierung.** Das größere Risiko in diesem Umfeld
+  ist nicht Prompt Injection, sondern was jemand absichtlich erzeugen lässt:
+  Referenzfoto einer realen Person plus entsprechender Traumtext ergibt einen
+  Deepfake. Rechtlich (Persönlichkeitsrecht) und für den Higgsfield-Account
+  (ToS) haftet der Betreiber. Es gibt aktuell keine Inhaltsprüfung, keine
+  Bestätigung, dass abgebildete Personen eingewilligt haben, und kein Logging,
+  wer was erzeugt hat. Vor einer Veröffentlichung zu entscheiden — braucht
+  vermutlich eine Moderationsstufe und ist damit an das Backend-ADR gekoppelt.
 
 ## Bekannte Baustellen
 
