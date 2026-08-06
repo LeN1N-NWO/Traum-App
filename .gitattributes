@@ -1,0 +1,23 @@
+# Einheitliche Zeilenenden — sonst erzeugt jeder Mac/Windows-Wechsel Scheinänderungen
+* text=auto
+
+# Alle hängen ans Worklog an; union übernimmt bei parallelen Sessions beide Seiten
+docs/WORKLOG.md merge=union
+
+# STAND.md bewusst OHNE union: der Konflikt dort ist erwünscht (bewusste Entscheidung)
+
+# Binärdateien
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.mp3 binary
+*.mp4 binary
+*.mov binary
