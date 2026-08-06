@@ -61,7 +61,7 @@ Ohne Namen keine Änderung.
 ## Projektregeln
 
 - Sprache: Deutsch in UI, Doku und Commit-Nachrichten (Conventional Commits: feat/fix/docs/chore).
-- Stack: noch nicht festgelegt — die Entscheidung kommt als ADR nach `docs/decisions/`.
+- Stack: Bun + Vanilla HTML/JS + Higgsfield-API-Proxy — siehe `docs/decisions/ADR-0002-stack-bun-vanilla-higgsfield.md`.
 - Keine Secrets ins Repository: keine `.env`, keine Schlüssel, keine Tokens.
 - Kein externes Gedächtnis-Werkzeug (Vektordatenbank, Memory-MCP, externer Dienst).
   Projektstand liegt als Markdown im Repository. Begründung: ADR-0001.

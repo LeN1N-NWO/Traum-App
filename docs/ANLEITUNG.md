@@ -1,6 +1,6 @@
 # Anleitung für alle — ganz einfach erklärt
 
-So arbeiten wir zusammen am Projekt **<projektname>**, ohne dass etwas kaputtgeht
+So arbeiten wir zusammen am Projekt **Traum-App**, ohne dass etwas kaputtgeht
 oder verloren geht. Einmal einrichten dauert ca. 10 Minuten. Danach ist es easy.
 
 ---
@@ -29,8 +29,8 @@ Installiere diese 3 Programme (einfach runterladen, durchklicken):
 
 Dann hol dir das Projekt auf deinen Computer. Terminal öffnen und eintippen:
 
-    git clone https://github.com/<dein-github-name>/<projektname>.git
-    cd <projektname>
+    git clone https://github.com/LeN1N-NWO/Traum-App.git
+    cd Traum-App
 
 ⚠️ **Nicht** in einen Google-Drive-, OneDrive- oder Dropbox-Ordner legen!
 Das macht das Projekt kaputt. Einfach ein normaler Ordner auf dem Computer.
@@ -49,7 +49,7 @@ wer was gemacht hat.
 
 **Anfangen:**
 
-1. Terminal öffnen, in den Projekt-Ordner gehen (`cd <projektname>`).
+1. Terminal öffnen, in den Projekt-Ordner gehen (`cd Traum-App`).
 2. `claude` eintippen. Claude startet und zeigt dir sofort:
    wer du bist, wo das Projekt gerade steht, und woran die anderen arbeiten.
 3. Im Chat `/start` eintippen. Claude macht dann alles für dich:
