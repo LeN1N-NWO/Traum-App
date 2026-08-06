@@ -25,7 +25,14 @@ zum Anfangen, `/wrap` zum Abschließen, `/checkpoint` vor riskanten Umbauten,
 
 Statische Vorschau (keine echte Generierung, zeigt Beispiel-Inhalte):
 
-    python3 -m http.server 8100
+    python3 -m http.server 8100 --bind 127.0.0.1
+
+⚠️ **`--bind 127.0.0.1` nicht weglassen, und die Vorschau nicht starten, sobald
+`.env` existiert.** Dieser Einzeiler ist Pythons Standard-Dateiserver: er kennt
+keine Freigabeliste und liefert *alles* im Ordner aus — auch `.env` mit deinem
+Higgsfield-Key. Ohne `--bind` lauscht er zusätzlich auf allen Netzwerk-
+Schnittstellen, ist also für jeden im selben WLAN erreichbar. Die Absicherung in
+`server.js` greift hier nicht, weil dieser Weg daran vorbeigeht.
 
 Echte Generierung (braucht Bun + einen Higgsfield-API-Key):
 
@@ -34,5 +41,7 @@ Echte Generierung (braucht Bun + einen Higgsfield-API-Key):
     bun server.js               # → http://localhost:8100
 
 Key besorgen unter **cloud.higgsfield.ai** (API Keys). Der Key bleibt serverseitig
-in `server.js` — der Browser bekommt ihn nie zu sehen. Details, Model-Slugs und
-Deploy-Hinweise: siehe `server.js`-Kommentare und `docs/decisions/ADR-0002-stack.md`.
+in `server.js` — der Browser bekommt ihn nie zu sehen: `server.js` liefert nur
+`index.html` und `clips/*` aus, alles andere ist 404 (abgesichert durch
+`node scripts/test-static.mjs`). Details, Model-Slugs und Deploy-Hinweise: siehe
+`server.js`-Kommentare und `docs/decisions/ADR-0002-stack-bun-vanilla-higgsfield.md`.
