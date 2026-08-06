@@ -20,6 +20,32 @@
   Higgsfield-Proxy, kein Login, kein Backend — Zustand lebt in `localStorage`
   (ADR-0002). Das trägt die App bis einschließlich Punkt 4 oben.
 
+## Sicherheit — Stand der Schutzziele
+
+- **Vertraulichkeit:** `server.js` liefert nur noch `/index.html` und `/clips/*`
+  aus (deny-by-default in `resolveStatic()`). Vorher war das gesamte
+  App-Verzeichnis abrufbar, inklusive `.env` mit dem Higgsfield-Key. Abgesichert
+  durch `scripts/test-static.mjs` (28 Prüfungen, `node scripts/test-static.mjs`).
+  Wer ein neues öffentliches Asset braucht: `PUBLIC_FILES`/`PUBLIC_DIRS` in
+  `server.js` erweitern, sonst 404.
+- **Integrität:** Alle Fremddaten (API-URLs, Traumtexte, Titel) werden vor dem
+  Einsetzen ins DOM escaped. Ohne das wurde eine bösartige API-Antwort durch
+  das Tagebuch dauerhaft gespeichert und bei jedem Seitenaufruf erneut
+  ausgeführt.
+- **Verfügbarkeit:** `save()` fängt volles localStorage ab (sperrte sonst den
+  Summon-Button dauerhaft), `/api/generate` begrenzt Body-Größe und
+  Array-Längen.
+- **Offen — `/api/generate` hat keine Authentifizierung und kein Rate-Limit.**
+  Nur an localhost binden. Öffentlich erreichbar könnte jeder das
+  Higgsfield-Guthaben verbrauchen. Löst sich erst mit dem Accounts-Backend
+  (siehe unten).
+- **Offen — Datenschutz:** hochgeladene Referenzfotos (Gesichter, Haustiere,
+  Wohnorte) gehen an Higgsfield. Gesichtsbilder sind biometrische Daten und
+  damit besonders geschützt (DSGVO Art. 9). Vor einer Veröffentlichung braucht
+  es Datenschutzhinweis/Einwilligung und eine Klärung, wie lange Higgsfield die
+  Bilder speichert. Der UI-Hinweis benennt den Upload inzwischen ehrlich, das
+  ersetzt aber keine Datenschutzerklärung.
+
 ## Bekannte Baustellen
 
 - **Credits/Bezahlmodell fehlt komplett.** Braucht laut Diskussion mit dem
@@ -53,8 +79,13 @@
   gesamte App-Oberfläche (Antons Original plus die neuen Sektionen dieser
   Session) ist Englisch. Ungelöst — entweder Regel anpassen oder UI später
   übersetzen.
-- Kein Lint-/Test-Setup — bei einer Datei ohne Build-Step bisher nicht
-  dringend, aber mit jetzt ~600 Zeilen `index.html` zunehmend spürbar.
+- Kein Lint-Setup und keine Test-Suite. Einziger automatisierter Test ist
+  `scripts/test-static.mjs` (Datei-Freigabe). Alles andere ist manuell geprüft.
+  Bei jetzt ~640 Zeilen `index.html` zunehmend spürbar.
+- Tagebuch wächst unbegrenzt und wird komplett gerendert — keine Pagination,
+  kein Aufräumen. Zusammen mit den base64-Referenzfotos ist das localStorage-
+  Quota (~5 MB) das eigentliche Limit; `save()` meldet es jetzt wenigstens,
+  statt still zu scheitern.
 
 ## Nächste Schritte
 
