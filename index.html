@@ -150,6 +150,7 @@
   .jcard .jtitle{font-weight:700;font-size:14.5px;letter-spacing:-.01em}
   .jcard .jtext{font-size:12px;color:var(--muted);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .jcard .jdate{font-size:11px;color:#6f6a97;margin-top:8px}
+  .jcard .jdemo{color:var(--gold);font-weight:600}
   .jcard .rm{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:#1a1533;
     border:1px solid var(--panel-line);color:var(--pink);font-size:12px;line-height:1;cursor:pointer;display:none;z-index:2}
   .jcard:hover .rm{display:block}
@@ -207,7 +208,7 @@
       <button class="mic" id="mic" title="Speak your dream">🎙</button>
       <button class="summon" id="summon">✦ Summon the dream</button>
     </div>
-    <div class="hint">Speak it out loud — half-asleep works best. Nothing leaves your device except the render request.</div>
+    <div class="hint">Speak it out loud — half-asleep works best. Your dream text and any photos you attach are sent to Higgsfield to render it; your journal and menagerie stay on this device.</div>
 
     <div class="ctl">
       <div class="ctl-lbl">① How should the dream come out?</div>
@@ -218,7 +219,7 @@
     </div>
 
     <div class="ctl">
-      <div class="ctl-lbl">② Who's in it? <span style="font-weight:500;text-transform:none;letter-spacing:0;opacity:.7">— add faces so the dream is really you</span></div>
+      <div class="ctl-lbl">② Who &amp; what's in it? <span style="font-weight:500;text-transform:none;letter-spacing:0;opacity:.7">— people, pets and places from your life</span></div>
       <div class="cast" id="cast"></div>
       <input type="file" id="facePick" accept="image/*" hidden>
     </div>
@@ -352,12 +353,24 @@ function genId(prefix){return prefix+"_"+Date.now().toString(36)+Math.random().t
 function load(){
   try{
     const s=Object.assign({},DEF,JSON.parse(localStorage.getItem(DB))||{});
-    // migrate cast entries saved before category/id existed
-    s.cast=(s.cast||[]).map(p=>({id:p.id||genId("c"),category:p.category||"person",...p}));
+    // migrate cast entries saved before category/id existed (spread first, so a
+    // stored null/undefined can't clobber the default back out)
+    s.cast=(s.cast||[]).map(p=>({...p,id:p.id||genId("c"),category:p.category||"person"}));
+    if(!Array.isArray(s.journal))s.journal=[];
     return s;
-  }catch(e){return Object.assign({},DEF)}
+  }catch(e){return {...DEF,creatures:[],cast:[],journal:[]}}
 }
-function save(s){localStorage.setItem(DB,JSON.stringify(s))}
+// Reference photos are base64 in localStorage, so the ~5MB quota is reachable.
+// A throw here used to bubble out of summon() and leave the button disabled
+// forever — fail loudly but keep the app usable instead.
+function save(s){
+  try{localStorage.setItem(DB,JSON.stringify(s));return true}
+  catch(err){
+    console.warn('[DreamRushes] save failed:',err);
+    toast("⚠ Storage full — delete old entries or reference photos.");
+    return false;
+  }
+}
 let state=load();
 
 /* ---------- helpers ---------- */
@@ -411,14 +424,20 @@ function renderJournal(){
     const thumb=e.media&&e.media.urls&&e.media.urls[0];
     const badge=e.mode==='film'?'🎬':'🖼';
     const date=new Date(e.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-    const thumbTag=thumb?(e.media.type==='video'?`<video class="jthumb" src="${thumb}" muted></video>`:`<img class="jthumb" src="${thumb}">`):'';
+    // preload=metadata: a poster frame is enough, don't pull whole clips per card
+    const thumbTag=thumb?(e.media.type==='video'
+      ?`<video class="jthumb" src="${escapeHtml(thumb)}" muted preload="metadata"></video>`
+      :`<img class="jthumb" loading="lazy" src="${escapeHtml(thumb)}">`):'';
+    // Demo runs show stock showcase media, not this dream — say so, or the
+    // journal quietly becomes a record of something that never happened.
+    const demo=e.media&&e.media.source==='demo'?' · <span class="jdemo">demo</span>':'';
     return `<div class="jcard" data-open="${e.id}">
-      <div class="rm" data-rm="${e.id}">✕</div>
+      <div class="rm" data-rm="${e.id}" title="Delete entry">✕</div>
       <div class="jbadge">${badge}</div>
       ${thumbTag}
       <div class="jtitle">${escapeHtml(e.title)}</div>
       <div class="jtext">${escapeHtml(e.text)}</div>
-      <div class="jdate">${date}</div>
+      <div class="jdate">${date}${demo}</div>
     </div>`;
   }).join("");
 }
@@ -442,12 +461,17 @@ function openJournalEntry(id){
   document.getElementById('jModalText').textContent=entry.text;
   const date=new Date(entry.createdAt).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const refs=entry.references&&entry.references.length ? ' · with '+entry.references.map(r=>'@'+r.tag).join(', ') : '';
-  document.getElementById('jModalMeta').textContent=`${date} · ${entry.mode==='film'?'Film':'Photo story'}${refs}`;
+  const demo=entry.media&&entry.media.source==='demo' ? ' · demo media (not generated from this dream)' : '';
+  document.getElementById('jModalMeta').textContent=`${date} · ${entry.mode==='film'?'Film':'Photo story'}${refs}${demo}`;
   document.getElementById('jModal').classList.add('on');
 }
-function closeJournalModal(){document.getElementById('jModal').classList.remove('on');}
+function closeJournalModal(){
+  document.getElementById('jModal').classList.remove('on');
+  document.getElementById('jModalFilm').innerHTML=''; // stop playback of a closed entry
+}
 document.getElementById('jModalClose').onclick=closeJournalModal;
 document.getElementById('jModal').addEventListener('click',e=>{if(e.target.id==='jModal')closeJournalModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeJournalModal();});
 
 /* ---------- the ritual ---------- */
 // Real Seedance 2.0 clip (streamed from Higgsfield CDN). For a permanent deploy,
@@ -498,13 +522,17 @@ async function tryBackend(dream){
     const d=await r.json(); return (d.urls&&d.urls.length)?d.urls:null;
   }catch(e){console.info('[DreamRushes] no backend, using showcase');return null;}
 }
+// URLs come back from the API and get persisted into the journal, so a single
+// hostile/garbled response would otherwise become a permanent attribute
+// breakout that re-fires on every page load. Escape them like any other
+// untrusted string.
 function renderUrls(film,urls,mode=state.mode){
   if(mode==='film'){
-    film.innerHTML=`<video src="${urls[0]}" autoplay muted loop playsinline></video>`;return;
+    film.innerHTML=`<video src="${escapeHtml(urls[0])}" autoplay muted loop playsinline></video>`;return;
   }
   film.innerHTML=`<div style="display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory">`+
     urls.map((u,i)=>`<figure style="margin:0;flex:0 0 100%;scroll-snap-align:center;position:relative;background:#000">
-      <img src="${u}" style="width:100%;height:100%;object-fit:cover;display:block">
+      <img src="${escapeHtml(u)}" style="width:100%;height:100%;object-fit:cover;display:block">
       <figcaption style="position:absolute;left:10px;bottom:10px;font:600 12px/1 var(--sans);color:#fff;text-shadow:0 1px 4px #000">${i+1}</figcaption>
     </figure>`).join("")+`</div>
     <div style="position:absolute;top:10px;right:12px;font:600 11px/1 var(--sans);color:#fff;background:rgba(0,0,0,.45);padding:5px 9px;border-radius:999px">swipe →</div>`;
@@ -550,10 +578,11 @@ function summon(){
     const creature={id:genId('cr'),e:base.e,name,rare,rareClass,power,lucid,date:new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'}),title};
     state.creatures.push(creature);
 
-    // journal entry — the actual dream text + media, not just the creature summary
+    // journal entry — the actual dream text + media, not just the creature summary.
+    // Only record references that were really sent (tryBackend skips img-less ones).
     const references=[];
     if(state.me&&state.me.img)references.push({tag:'me',category:'person'});
-    state.cast.forEach(p=>references.push({tag:p.tag,category:p.category||'person'}));
+    state.cast.forEach(p=>{if(p.img)references.push({tag:p.tag,category:p.category||'person'})});
     state.journal.push({
       id:genId('e'),createdAt:new Date().toISOString(),text,title,
       mode:state.mode,cons:state.cons,
@@ -571,6 +600,12 @@ function summon(){
     bumpStreak();renderMenagerie();renderJournal();
     btn.disabled=false;
     toast(`✦ ${name} joined your menagerie`);
+  }).catch(err=>{
+    // Never strand the user with a permanently disabled button.
+    clearInterval(lt);
+    console.error('[DreamRushes] summon failed:',err);
+    film.innerHTML=fallback("Something went wrong summoning this dream.");
+    btn.disabled=false;
   });
 }
 document.getElementById('summon').onclick=summon;

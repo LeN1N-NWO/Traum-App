@@ -8,9 +8,23 @@
 //
 // Without deps/key the server still boots and serves the app; /api/generate
 // then returns a clear, actionable error instead of crashing.
+//
+// ⚠ LOCALHOST ONLY as it stands. /api/generate has no auth, no rate limit and
+// no per-user quota — exposing this to the internet lets anyone spend your
+// Higgsfield credits. Real accounts/quotas are blocked on the backend decision
+// still pending in docs/STAND.md; until then, don't bind it to a public
+// interface (or put an authenticating reverse proxy in front).
+
+import { resolve, sep } from "node:path";
 
 const PORT = process.env.PORT || 8100;
 const ROOT = import.meta.dir;
+
+// Reference photos are base64 dataURLs, so bodies are chunky — but not unbounded.
+const MAX_BODY = 12 * 1024 * 1024;
+const MAX_REFERENCES = 6;
+const MAX_STYLE_CONTEXT = 5;
+const MAX_DREAM = 2000;
 
 // Model slugs on the Higgsfield platform SDK. CONFIRM these against your
 // dashboard's model catalog (cloud.higgsfield.ai) — platform slugs can differ
@@ -60,13 +74,37 @@ async function higgsfieldGenerate({ prompt, kind, references = [], styleContext 
 }
 
 // ---- static file serving ----
-const TYPES = { html:"text/html", js:"text/javascript", css:"text/css", png:"image/png", mp4:"video/mp4", json:"application/json", svg:"image/svg+xml", webp:"image/webp" };
+// The app directory also holds .env (the Higgsfield key!), .git/, package.json
+// and docs/. Serving it naively hands all of that to anyone who asks, which
+// would defeat the whole point of keeping the key server-side. Everything below
+// exists to make that impossible; scripts/test-static.mjs keeps it that way.
+const TYPES = { html:"text/html", js:"text/javascript", css:"text/css", png:"image/png", jpg:"image/jpeg", jpeg:"image/jpeg", gif:"image/gif", mp4:"video/mp4", webp:"image/webp" };
+const ROOT_ABS = resolve(ROOT);
+// Deny by default. The app is exactly one page plus whatever lives in clips/ —
+// an extension allowlist alone was not enough (it still exposed package.json
+// and scripts/*.js). Adding a new public asset is a deliberate edit here.
+const PUBLIC_FILES = new Set(["/index.html"]);
+const PUBLIC_DIRS = ["/clips/"];
+export function resolveStatic(pathname) {
+  let rel;
+  try { rel = decodeURIComponent(pathname); } catch { return null; } // malformed %-escape
+  if (rel === "/") rel = "/index.html";
+  if (rel.includes("\0")) return null;
+  // blocks .env, .git/config, .gitignore … and any encoded ../ that decoded here
+  if (rel.split("/").some((seg) => seg.startsWith("."))) return null;
+  if (!PUBLIC_FILES.has(rel) && !PUBLIC_DIRS.some((d) => rel.startsWith(d))) return null;
+  const ext = rel.split(".").pop().toLowerCase();
+  if (!Object.hasOwn(TYPES, ext)) return null; // unknown/extension-less → never served
+  const abs = resolve(ROOT_ABS, "." + rel);
+  if (abs !== ROOT_ABS && !abs.startsWith(ROOT_ABS + sep)) return null; // escaped the app dir
+  return { abs, ext };
+}
 async function serveStatic(pathname) {
-  const rel = pathname === "/" ? "/index.html" : pathname;
-  const file = Bun.file(ROOT + rel);
+  const hit = resolveStatic(pathname);
+  if (!hit) return new Response("Not found", { status: 404 });
+  const file = Bun.file(hit.abs);
   if (!(await file.exists())) return new Response("Not found", { status: 404 });
-  const ext = rel.split(".").pop();
-  return new Response(file, { headers: { "content-type": TYPES[ext] || "application/octet-stream" } });
+  return new Response(file, { headers: { "content-type": TYPES[hit.ext] } });
 }
 
 Bun.serve({
@@ -76,17 +114,34 @@ Bun.serve({
 
     if (url.pathname === "/api/generate" && req.method === "POST") {
       try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
         const body = await req.json();
-        const dream = (body.dream || "").trim();
+        const dream = String(body.dream || "").trim();
         if (dream.length < 8) return json({ error: "Dream too short." }, 400);
+        if (dream.length > MAX_DREAM) return json({ error: "Dream too long." }, 400);
+        // Everything below crosses into a paid third-party API, so shape and
+        // size are pinned here rather than trusted from the client.
+        const references = (Array.isArray(body.references) ? body.references : [])
+          .filter((r) => typeof r === "string")
+          .slice(0, MAX_REFERENCES);
+        const styleContext = (Array.isArray(body.styleContext) ? body.styleContext : [])
+          .slice(0, MAX_STYLE_CONTEXT)
+          .filter((s) => s && typeof s === "object")
+          .map((s) => ({
+            category: String(s.category || ""),
+            tag: String(s.tag || "").slice(0, 40),
+            desc: String(s.desc || "").slice(0, 120),
+          }));
         // The dream-sequence-director skill turns `dream` into director-grade
         // prompts. Here we pass it straight through; swap in the skill's
         // Deakins/Seedance prompt builder for production quality.
         const urls = await higgsfieldGenerate({
           prompt: dream,
           kind: body.mode === "film" ? "film" : "sequence",
-          references: Array.isArray(body.references) ? body.references : [],
-          styleContext: Array.isArray(body.styleContext) ? body.styleContext.slice(0, 5) : [],
+          references,
+          styleContext,
         });
         return json({ ok: true, urls });
       } catch (e) {
@@ -95,8 +150,11 @@ Bun.serve({
           NO_SDK:         [503, "SDK not installed. Run `bun install`, then restart."],
           GENERATION_FAILED: [502, "Higgsfield generation did not complete."],
         };
-        const [code, msg] = map[e.message] || [500, "Server error: " + e.message];
-        return json({ error: msg }, code);
+        const hit = map[e.message];
+        if (hit) return json({ error: hit[1] }, hit[0]);
+        // Don't echo internals (paths, SDK internals, key fragments) to the client.
+        console.error("[DreamRushes] /api/generate failed:", e);
+        return json({ error: "Server error." }, 500);
       }
     }
 
