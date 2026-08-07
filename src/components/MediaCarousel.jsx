@@ -44,6 +44,18 @@ export default function MediaCarousel({ urls = [], type = "image" }) {
           <img key={i} src={u} alt="" loading="lazy" />
         ))}
       </div>
+      {/* Arrows on the images themselves — the dots alone are easy to miss,
+          and on desktop there is no swipe instinct at all. */}
+      {index > 0 && (
+        <button className="mc-arrow mc-arrow-left" onClick={() => goTo(index - 1)} aria-label="Previous image">
+          ‹
+        </button>
+      )}
+      {index < urls.length - 1 && (
+        <button className="mc-arrow mc-arrow-right" onClick={() => goTo(index + 1)} aria-label="Next image">
+          ›
+        </button>
+      )}
       <span className="mc-count" aria-live="polite">{index + 1} / {urls.length}</span>
       <div className="mc-dots">
         {urls.map((_, i) => (

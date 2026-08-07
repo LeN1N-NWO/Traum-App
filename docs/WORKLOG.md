@@ -3,6 +3,39 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 22:15 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** Der Referenzbild-Fehler ist gefunden und behoben, dazu zwei
+UX-Nachbesserungen.
+
+**Der Fehler:** Hochgeladene Charakterfotos tauchten in den generierten
+Bildern nie auf. Diagnose mit einem knallroten 64×64-Test-PNG:
+`fal-ai/nano-banana-2` (Text-to-Image) **ignoriert `image_urls`
+stillschweigend** — der Endpunkt akzeptiert sogar `image_urls: 123` mit
+HTTP 200. Die Referenzen gingen also seit der fal.ai-Umstellung ins Leere,
+ohne je einen Fehler auszulösen. Der Schwester-Endpunkt
+`fal-ai/nano-banana-2/edit` nimmt `image_urls` an und reproduziert das
+Referenzbild nachweislich (rotes Quadrat kam exakt zurück).
+
+**Fix:** `falGenerateImage()` wählt jetzt den Endpunkt nach Lage: mit
+Referenzbildern → `FAL_MODEL_IMAGE_EDIT` (Default `<FAL_MODEL_IMAGE>/edit`,
+per Env überschreibbar), ohne → wie bisher. End-to-end über `/api/generate`
+verifiziert: rotes Referenzquadrat erschien exakt im gerenderten 9:16-Bild.
+
+**Lehre für die Zukunft:** „HTTP 200" heißt bei fal.ai nicht „Parameter
+angekommen". Unbekannte Felder werden kommentarlos verworfen. Wer neue
+Parameter anschließt, testet sie mit absichtlich kaputten Werten gegen —
+nur ein 422 beweist, dass das Feld gelesen wird.
+
+**Außerdem:**
+- „Improve with AI" schreibt jetzt wirklich um statt nur Kommas zu setzen:
+  Die `text`-Regel im Analysis-Prompt behandelt die Eingabe ausdrücklich als
+  möglicherweise diktierte Sprache (Wiederholungen, Satzabbrüche,
+  ineinander gesprochene Gedanken) und erzählt den Traum als flüssigen Text
+  neu — erfinden bleibt verboten.
+- Die Slideshow hat Pfeile auf den Bildern (‹ ›), zusätzlich zu Punkten und
+  Zähler. An den Enden verschwindet der jeweils sinnlose Pfeil.
+
 ## 2026-08-07 21:30 — Anton — Branch `claude/new-session-x9qv1w`
 
 **Was:** Drei Nachbesserungen aus Antons Test des Wizards.

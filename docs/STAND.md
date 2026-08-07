@@ -3,7 +3,7 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-07 (21:30)
+**Stand:** 2026-08-07 (22:15)
 
 ## Woran wird gearbeitet
 
@@ -67,8 +67,8 @@ Der ⊕-Knopf öffnet einen Vollbild-Flow über der Tab-Leiste:
 4. **Dasselbe für Orte.** Ein Traum, der irgendwohin fliegt, hat zwei.
 5. **Style, Format und Bildanzahl** (3/5/10 · 2/3/5 Credits), Style aus der
    Analyse vorausgewählt, 9:16 Standard.
-6. **Ergebnis als Slideshow** (`MediaCarousel`: scroll-snap, Punkte, Zähler
-   — auch im Tagebuch-Detail), dann ins Tagebuch.
+6. **Ergebnis als Slideshow** (`MediaCarousel`: scroll-snap, Pfeile auf den
+   Bildern, Punkte, Zähler — auch im Tagebuch-Detail), dann ins Tagebuch.
 
 **Nach Schritt 1 fällt kein weiterer LLM-Aufruf an.** `beats.js` leitet die
 Bildanzahl lokal aus den fünf Beats ab, `styles.js` sind Konstanten,
@@ -104,6 +104,11 @@ Der zuerst geschriebene Text bleibt über beliebig viele Überarbeitungen als
 ## Provider — fal.ai und DeepSeek, live verifiziert
 
 - **Bild:** fal.ai `fal-ai/nano-banana-2` (`FAL_MODEL_IMAGE` überschreibbar).
+  **Mit Referenzbildern** geht der Aufruf an `fal-ai/nano-banana-2/edit`
+  (`FAL_MODEL_IMAGE_EDIT`) — der Text-to-Image-Endpunkt ignoriert
+  `image_urls` stillschweigend (akzeptiert sogar Müll mit 200). Das war der
+  Grund, warum hochgeladene Charakterfotos nie in den Bildern auftauchten;
+  am 07.08. per Test-PNG bewiesen und behoben.
 - **Video:** fal.ai `minimax/h3/image-to-video` (`FAL_MODEL_VIDEO`). Es ist
   **image-to-video**: `generateVideo()` erzeugt erst ein Standbild über den
   Bild-Pfad und animiert das Ergebnis. Kein Text-to-Video-Pfad mehr.

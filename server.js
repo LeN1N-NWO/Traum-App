@@ -48,6 +48,11 @@ const MAX_CRAFTED_PROMPT = 3000; // ceiling on what DeepSeek is allowed to hand 
 // confirm at fal.ai/models before relying on this in production. Override via
 // env without editing code.
 const FAL_MODEL_IMAGE = process.env.FAL_MODEL_IMAGE || "fal-ai/nano-banana-2";
+// Reference photos need the EDIT variant of the model. Diagnosed 07.08.: the
+// text-to-image endpoint silently ignores image_urls (it even accepts
+// image_urls: 123 with a 200), so likenesses never reached the model. The
+// /edit endpoint takes image_urls and demonstrably reproduces them.
+const FAL_MODEL_IMAGE_EDIT = process.env.FAL_MODEL_IMAGE_EDIT || `${FAL_MODEL_IMAGE}/edit`;
 // Given directly by the product owner, not a guess — still worth confirming
 // the exact slug in the fal.ai dashboard before production use, model IDs
 // there are usually namespaced (e.g. "fal-ai/minimax/...").
@@ -266,7 +271,7 @@ Schema (every key is required, exactly these names):
 
 Why the language split matters: "text", "people[].name", "places" and "mood" are SHOWN to the person and must stay in the language they wrote in — a German dream gets a German improved text. "beats" are rendering instructions for an image model and must be English regardless of the dream's language.
 
-Rules for "text": fix spelling, grammar and punctuation; make the wording more vivid and easier to picture. NEVER invent events, people or places that are not there. NEVER change what happened or reorder it. NEVER change the emotional tone. Keep it first person if it was first person.
+Rules for "text": FIRST understand what actually happened in the dream, then retell it. The input is often dictated speech — fragmented, repetitive, thoughts spoken over each other, false starts. Do not just patch spelling: rewrite it as one flowing, well-told account in the dreamer's language. Merge repetitions, complete fragments, untangle sentences that ran into each other, and make the wording vivid and easy to picture. You may restructure sentences freely as long as the DREAM itself stays untouched: never invent events, people or places that are not there, never drop any, never change the emotional tone, never add interpretation. Keep it first person if it was first person.
 
 Rules for "people": include the dreamer only if they appear as a visible character (then name them as the dream does — "ich"/"I" is fine). A dog, cat or other animal is kind "pet". Empty array if nobody appears.
 
@@ -381,7 +386,12 @@ async function falGenerateImage({ prompt, namedRefs = [] }) {
   const imageUrls = namedRefs.map((r) => r.img).filter(Boolean);
   if (imageUrls.length) input.image_urls = imageUrls;
 
-  const res = await fetch(`https://fal.run/${FAL_MODEL_IMAGE}`, {
+  // With references the request MUST go to the edit endpoint — the plain
+  // text-to-image endpoint ignores image_urls without erroring, which is how
+  // likenesses silently went missing for days. See FAL_MODEL_IMAGE_EDIT note.
+  const model = imageUrls.length ? FAL_MODEL_IMAGE_EDIT : FAL_MODEL_IMAGE;
+
+  const res = await fetch(`https://fal.run/${model}`, {
     method: "POST",
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
     body: JSON.stringify(input),
