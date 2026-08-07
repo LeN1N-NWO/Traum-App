@@ -36,7 +36,7 @@ export default function HomeScreen() {
     <main className="screen">
       <div className="h-kopf">
         <div className="h-mond" aria-hidden="true" />
-        <p className="h-streak">🔥 {state.streak || 0} Tage</p>
+        <p className="h-streak">🔥 {state.streak || 0} {state.streak === 1 ? "Tag" : "Tage"}</p>
       </div>
 
       <h1 className="h-gruss">{begruessung()}</h1>
