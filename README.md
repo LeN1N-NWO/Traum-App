@@ -1,9 +1,10 @@
 # Traum-App (Dream Rushes)
 
-Traum reinsprechen oder tippen → daraus wird eine 10-Bild-Kinosequenz (Nano Banana,
-Deakins-Framing) oder ein 15-Sekunden-Film (Seedance), mit dem eigenen Gesicht in
-jedem Frame. Jeder Traum hinterlässt außerdem ein sammelbares Wesen und zählt auf
-eine tägliche Streak ein.
+Traum reinsprechen oder tippen → daraus wird eine 10-Bild-Kinosequenz (fal.ai,
+Nano Banana 2) oder ein 15-Sekunden-Film (fal.ai, MiniMax H3 image-to-video),
+mit dem eigenen Gesicht in jedem Frame. DeepSeek schreibt dabei optional den
+Bild-Prompt. Jeder Traum hinterlässt außerdem ein sammelbares Wesen und zählt
+auf eine tägliche Streak ein.
 
 ## Einstieg
 
@@ -23,25 +24,36 @@ zum Anfangen, `/wrap` zum Abschließen, `/checkpoint` vor riskanten Umbauten,
 
 ## App starten
 
-Statische Vorschau (keine echte Generierung, zeigt Beispiel-Inhalte):
-
-    python3 -m http.server 8100 --bind 127.0.0.1
-
-⚠️ **`--bind 127.0.0.1` nicht weglassen, und die Vorschau nicht starten, sobald
-`.env` existiert.** Dieser Einzeiler ist Pythons Standard-Dateiserver: er kennt
-keine Freigabeliste und liefert *alles* im Ordner aus — auch `.env` mit deinem
-Higgsfield-Key. Ohne `--bind` lauscht er zusätzlich auf allen Netzwerk-
-Schnittstellen, ist also für jeden im selben WLAN erreichbar. Die Absicherung in
-`server.js` greift hier nicht, weil dieser Weg daran vorbeigeht.
-
-Echte Generierung (braucht Bun + einen Higgsfield-API-Key):
+Beim Entwickeln — Oberfläche auf 5173 mit Hot Reload, API auf 8100:
 
     bun install
-    cp .env.example .env        # dann HF_CREDENTIALS eintragen
-    bun server.js               # → http://localhost:8100
+    cp .env.example .env        # dann FAL_KEY eintragen (DEEPSEEK_KEY optional)
+    bun run dev                 # → http://localhost:5173
 
-Key besorgen unter **cloud.higgsfield.ai** (API Keys). Der Key bleibt serverseitig
-in `server.js` — der Browser bekommt ihn nie zu sehen: `server.js` liefert nur
-`index.html` und `clips/*` aus, alles andere ist 404 (abgesichert durch
-`node scripts/test-static.mjs`). Details, Model-Slugs und Deploy-Hinweise: siehe
-`server.js`-Kommentare und `docs/decisions/ADR-0002-stack-bun-vanilla-higgsfield.md`.
+Produktionsnah — alles auf einem Port:
+
+    bun run build && bun server.js    # → http://localhost:8100
+
+`bun server.js` allein genügt seit dem Vite-Umbau (ADR-0004) **nicht** mehr:
+der Server liefert `dist/` aus, das erst gebaut werden muss. Ohne Build
+antwortet alles mit 404.
+
+Tests:
+
+    bun run test                # Unit-Tests + Dateifreigabe + Prompt-Hygiene
+
+## Schlüssel und Absicherung
+
+fal.ai-Key besorgen unter **fal.ai/dashboard/keys**, DeepSeek-Key optional unter
+**platform.deepseek.com**. Beide bleiben serverseitig in `server.js` — der
+Browser bekommt sie nie zu sehen, und das gilt auch für die später geplante
+iPhone-App: ein App-Bundle ist extrahierbar.
+
+Die Web-Wurzel ist `dist/`, also der Build. Damit liegen `.env`, `.git/`,
+`docs/` und der Servercode selbst außerhalb dessen, was überhaupt auflösbar ist
+— zusätzlich zur Freigabeliste in `server.js`, die nur `/index.html`,
+`/assets/*` und `/clips/*` erlaubt. Abgesichert durch
+`node scripts/test-static.mjs`.
+
+Details, Model-Slugs und Deploy-Hinweise: siehe `server.js`-Kommentare und
+`docs/STAND.md`.

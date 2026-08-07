@@ -1,0 +1,29 @@
+/* Design tokens — the only place colour, type and spacing values live.
+   No hex value belongs inside a component: the later Mobbin redesign swaps
+   this file and the base components, nothing else.
+
+   Carried over from the pre-React stylesheet so the look survives the port. */
+:root {
+  /* Warmer violet night rather than a cool near-black. */
+  --bg:#0b0718; --bg2:#150f30; --sky:#2a1d5e;
+  --panel:rgba(255,255,255,.05); --panel-line:rgba(255,255,255,.11);
+
+  /* ⚠ --faint on --sky is the WCAG AA worst case (4.79:1). Anyone changing
+     these values re-measures that pairing — see docs/STAND.md. */
+  --text:#f4f1ff; --muted:#a9a2cd; --faint:#8d85b4;
+
+  --violet:#8b5cf6; --violet-soft:#a78bfa; --violet-deep:#6d3fe0;
+  --pink:#ec4899; --cyan:#22d3ee; --gold:#fbbf24; --ok:#34d399;
+
+  --radius:20px; --radius-lg:26px;
+
+  --t-hero:clamp(30px,7vw,48px); --t-h2:22px; --t-h3:16px;
+  --t-body:15px; --t-small:13px; --t-micro:11px;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+
+  /* New: spacing as a scale rather than one-off values, and the tab bar
+     height as a variable — screens need it for their bottom padding, or the
+     bar covers the last entry. */
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:22px; --s-6:32px;
+  --tabbar-h:64px;
+}

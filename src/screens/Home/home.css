@@ -1,0 +1,51 @@
+.h-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-5); }
+.h-moon {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff 0%, #e2d6ff 32%, var(--violet) 76%, #5b21b6 100%);
+  box-shadow: 0 0 22px rgba(139, 92, 246, .55);
+}
+.h-streak {
+  font-size: var(--t-small); color: var(--muted); margin: 0;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  padding: var(--s-2) var(--s-3); border-radius: 999px; white-space: nowrap;
+}
+
+.h-hero { text-align: center; padding: var(--s-5) 0 var(--s-5); }
+.h-kicker {
+  font-size: var(--t-micro); letter-spacing: .2em; text-transform: uppercase;
+  color: var(--violet-soft); font-weight: 600; margin: 0 0 var(--s-3); opacity: .85;
+}
+.h-title {
+  font-size: var(--t-hero); line-height: 1.08; letter-spacing: -.03em;
+  margin: 0 0 var(--s-3); font-weight: 600;
+}
+.h-title-accent { color: var(--violet-soft); }
+.h-lede { color: var(--muted); font-size: var(--t-body); max-width: 420px; margin: 0 auto; }
+
+.h-section { font-size: var(--t-h3); font-weight: 600; margin: var(--s-6) 0 var(--s-3); }
+
+.h-last { display: flex; flex-direction: column; gap: var(--s-1); }
+.h-last-title { font-weight: 600; }
+.h-last-text {
+  color: var(--muted); font-size: var(--t-small);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.h-empty { color: var(--faint); font-size: var(--t-small); text-align: center; padding: var(--s-5) 0; }
+.h-menagerie { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s-3); }
+.h-creature {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  border-radius: var(--radius); padding: var(--s-3);
+}
+.h-creature-emoji { font-size: 26px; line-height: 1; }
+.h-creature-name { font-size: var(--t-small); font-weight: 600; }
+.h-creature-rare { font-size: var(--t-micro); }
+.h-creature-date { font-size: var(--t-micro); color: var(--faint); }
+
+/* Rarity colours — unchanged from the pre-React stylesheet. */
+.rare-common { color: #9ca3af; }
+.rare-uncommon { color: var(--ok); }
+.rare-rare { color: var(--cyan); }
+.rare-epic { color: var(--violet); }
+.rare-legendary { color: var(--gold); }

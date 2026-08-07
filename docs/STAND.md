@@ -3,192 +3,232 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-07
+**Stand:** 2026-08-07 (22:15)
 
 ## Woran wird gearbeitet
 
-- Die App ("Dream Rushes") deckt jetzt vier von fünf Kernfunktionen ab, die der
-  Produktbesitzer (Hanni) für die Traum-App vorgesehen hat:
-  1. Traum per Text/Sprache eingeben → KI-generierte Bildsequenz oder Video (Higgsfield).
-  2. Echtes Traumtagebuch (Text + Medien + verwendete Referenzfotos pro Eintrag,
-     durchsuchbar/durchblätterbar über eine Karten-Ansicht mit Detail-Modal).
-  3. Lucid-Dreaming-Guide (Reality Checks, MILD, WBTB, Journaling-Tipp) als eigene Sektion.
-  4. Eigene Referenzfotos — jetzt mit Kategorien Person/Pet/Place statt nur Gesichter.
-  5. **Fehlt noch:** Bezahlmodell (Credits gegen Euro/Dollar, Video-Generierung
-     kostenpflichtig).
-  6. **Foto-Bibliothek (07.08.)**: `fotos.html` — eigene Fotos hochladen und
-     benennen; wird der Name im Traumtext getippt, erscheint er dort hinterlegt
-     und das Foto geht als benannte Referenz an die Bildgenerierung. Erreichbar
-     über den Knopf oben rechts.
-  7. **Symbolsammlung (07.08.)**: `symbole.html` zeigt wiederkehrende Motive aus
-     den Traumtexten (20 Symbole in fünf Kategorien) mit einer gängigen Lesart,
-     und erlaubt, sie mit Lebensereignissen zu verknüpfen. Erreichbar über die
-     Menagerie-Überschrift.
-- Stack: Bun + `server.js` als API-Proxy (aktuell Higgsfield, siehe
-  Provider-Wechsel unten), kein Login, kein Backend — Zustand lebt in
-  `localStorage` (ADR-0002). Seit 07.08. **drei Seiten** (`index.html`,
-  `symbole.html`, `fotos.html`) mit geteiltem `app.css` und `app.js`
-  (ADR-0003); weiterhin kein Build-Schritt.
-- **Design überarbeitet (07.08.)**: Leitbild ist die Traumdeutungs-App *Moonly*
-  (violette Nacht, warm) — das bestätigt Antons Farbwelt, statt sie zu
-  ersetzen. Vom Journaling-Vorbild *pillowtalk* wurde nur die Struktur
-  übernommen: vollbreite Tagebucheinträge mit großer Datumstypografie.
-  Konkret: wärmere Tokens, Typo-Skala als CSS-Variablen, Neon-Verläufe raus,
-  ein Hauptknopf am Formularende statt nummerierter Blöcke, Menagerie
-  zurückgenommen, Inhaltsbreite 680px (Handy-Format).
+Die App ("Dream Rushes") ist seit dem 07.08. eine **React-SPA mit Tabs** statt
+drei loser HTML-Seiten — Phase 1 des Umbaus aus
+`docs/specs/2026-08-07-app-umbau-design.md` ist abgeschlossen.
 
-## Provider-Wechsel geplant: Higgsfield → fal.ai
+**Fünf Tabs**, der Wizard öffnet sich später über der Tab-Leiste:
 
-- Entscheidung (07.08., Anton): Higgsfield wird komplett durch **fal.ai**
-  ersetzt — Bild, Video und eine neue LLM-Funktion sollen alle über fal.ai
-  laufen.
-- Ein fal.ai-Key liegt vor, ist aber **nur lokal in `.env`** (git-ignoriert,
-  nicht im Repo). `.env.example` dokumentiert `FAL_KEY` als Vorlage.
-- Die eigentliche Code-Anbindung in `server.js` (SDK-Wahl, Modell-Slugs,
-  LLM-Route) ist noch **nicht gemacht** — übernimmt eine Kollegin, sobald sie
-  sie braucht. Bis dahin läuft `server.js` unverändert auf Higgsfield weiter
-  (Code, Model-Slugs und Sicherheitsstand unten beziehen sich noch auf
-  Higgsfield).
-- Architekturvorgabe für die Anbindung, auch mit Blick auf die geplante
-  iPhone-App: der Key darf **nie in den Client** (weder `index.html` noch
-  später ein kompiliertes App-Bundle) — beides ist extrahierbar. Client ruft
-  ausschließlich den eigenen Server auf, der Server hält den Key gegenüber
-  fal.ai. Das gilt identisch für lokales Testen (Kollegin mit eigener lokaler
-  `.env`) und für Produktion.
-- Wer den echten Key braucht: bekommt ihn außerhalb des Repos (Passwort-
-  Manager/DM), nicht automatisch durch Repo-Zugriff — siehe AGENTS.md,
-  keine Secrets im Repository.
+| Tab | Inhalt |
+|---|---|
+| Start | Begrüßung, Serie, letzter Traum, Menagerie |
+| Tagebuch | Kartenansicht mit Suche, Detail-Modal, Löschen |
+| **⊕** | Der sechsstufige Wizard: Traum → Analyse → Personen → Orte → Style → Ergebnis |
+| Symbole | 20 Symbole in fünf Kategorien, Vorkommen je Traum |
+| Profil | Personen/Tiere/Orte, Lucid-Guide, Credit-Anzeige |
+
+Kernfunktionen für die Traum-App:
+
+1. Traum eingeben → KI-generierte Bildsequenz oder Video (fal.ai). ✅
+2. Traumtagebuch mit Medien und verwendeten Referenzfotos. ✅
+3. Lucid-Dreaming-Guide (Reality Checks, MILD, WBTB, Journaling). ✅
+4. Eigene Referenzfotos mit Kategorien Person/Tier/Ort. ✅
+5. Symbolsammlung mit gängiger Lesart. ✅
+6. Credits werden gezählt und abgebucht. **Fehlt noch:** echtes Geld dafür.
+
+**Stack:** Bun + Vite + React 18 + react-router-dom (HashRouter), `server.js`
+als schlüsselhaltender Proxy. **Mit Build-Schritt** (ADR-0004 löst ADR-0003 ab
+und ersetzt den Vanilla-Teil von ADR-0002). Zustand lebt weiter in
+`localStorage`, Schlüssel unverändert `dreamrushes_v1`.
+
+**Sprache:** Die Oberfläche ist **englisch**; Deutsch ist als zweite Sprache
+geplant, nicht als Ersatz. Alle sichtbaren Texte liegen in `src/i18n/en.js`
+und nirgends sonst — die zweite Sprache ist damit eine neue Datei, kein Umbau.
+`AGENTS.md` unterschied früher nicht zwischen Oberfläche (englisch) und
+Doku/Commits (deutsch) und war deshalb missverständlich; die Regel ist jetzt
+präzisiert.
+
+## Der Wizard (Phase 2, fertig)
+
+Der ⊕-Knopf öffnet einen Vollbild-Flow über der Tab-Leiste:
+
+1. **Traum schreiben oder sprechen.** „Improve with AI" (1 Credit) löst den
+   **einzigen LLM-Aufruf pro Traum** aus (`/api/analyze`). Das JSON-Schema
+   ist der Vertrag zwischen Modell und App, mit harter **Sprachtrennung**:
+   `text`, `people[].name`, `places`, `mood` bleiben in der Eingabesprache
+   (deutscher Traum → deutsche verbesserte Fassung), `beats` sind immer
+   englisch, weil sie ans Bildmodell gehen. `people` sind strukturiert
+   (`{name, kind, desc}`) — die App unterscheidet damit Tiere (`pet`) von
+   Menschen, und eine mitgelieferte Beschreibung füllt den Anlege-Dialog
+   vor. `language` kommt als validierter BCP-47-Code mit (später nützlich
+   für die UI-Sprache). Vorschau mit „Keep my words" oder „Use this
+   version"; die erste Niederschrift bleibt immer als `originalText`.
+2. **Was daraus werden soll:** nur speichern (gratis), Fotostrecke (ab 2
+   Credits) oder Film (9 Credits). Die Bildanzahl wird hier noch NICHT
+   gewählt — erst nachdem die Charaktere feststehen.
+3. **„Who is in it?"** — eine Kachel je erkannter Person. Vorhandene Avatare
+   werden automatisch zugeordnet (Tag-Vergleich; „I"/„me" trifft `@me`).
+   Sonst: aus der Bibliothek wählen, neu anlegen (Foto und/oder Beschreibung,
+   Name vorausgefüllt) oder der KI überlassen.
+4. **Dasselbe für Orte.** Ein Traum, der irgendwohin fliegt, hat zwei.
+5. **Style, Format und Bildanzahl** (3/5/10 · 2/3/5 Credits), Style aus der
+   Analyse vorausgewählt, 9:16 Standard.
+6. **Ergebnis als Slideshow** (`MediaCarousel`: scroll-snap, Pfeile auf den
+   Bildern, Punkte, Zähler — auch im Tagebuch-Detail), dann ins Tagebuch.
+
+**Nach Schritt 1 fällt kein weiterer LLM-Aufruf an.** `beats.js` leitet die
+Bildanzahl lokal aus den fünf Beats ab, `styles.js` sind Konstanten,
+`promptBuilder.js` setzt den Master-Prompt zusammen. `/api/generate` nimmt
+diesen fertigen Prompt entgegen (weiterhin sanitisiert — ein client-gebauter
+Prompt ist nicht vertrauenswürdiger als ein modellgebauter).
+
+Gerendert wird **drei parallel** (`parallel.js`); sequenziell brauchten drei
+Bilder über eine Minute.
+
+## Tagebuch-Eintrag: Drei-Punkte-Menü
+
+- **Bearbeiten** — Textfeld, kostenlos, ohne LLM.
+- **Korrigieren** (1) · **Neu schreiben** (1) · **Ausarbeiten** (2) — alle
+  über eine Route `/api/refine` mit `mode`-Parameter, alle mit Vorschau
+  („jetzt" gegen „überarbeitet") und Übernehmen oder Verwerfen.
+- **Teilen** — Web Share API, also das native Teilen-Blatt des Geräts. Kein
+  Schlüssel, kein OAuth, kein Entwickler-Account je Plattform, und es
+  funktioniert in Capacitor. Wo Datei-Teilen fehlt, wird heruntergeladen.
+- **Löschen.**
+
+Der zuerst geschriebene Text bleibt über beliebig viele Überarbeitungen als
+`originalText` erhalten und ist im Eintrag aufklappbar.
+
+## Starten
+
+    bun run dev                       # Oberfläche 5173, API 8100, Hot Reload
+    bun run build && bun server.js    # produktionsnah, alles auf 8100
+    bun run test                      # 50 Unit-Tests + 33 Freigabe-Prüfungen + Prompt-Hygiene
+
+⚠️ `bun server.js` allein genügt nicht mehr — ohne `dist/` antwortet alles 404.
+
+## Provider — fal.ai und DeepSeek, live verifiziert
+
+- **Bild:** fal.ai `fal-ai/nano-banana-2` (`FAL_MODEL_IMAGE` überschreibbar).
+  **Mit Referenzbildern** geht der Aufruf an `fal-ai/nano-banana-2/edit`
+  (`FAL_MODEL_IMAGE_EDIT`) — der Text-to-Image-Endpunkt ignoriert
+  `image_urls` stillschweigend (akzeptiert sogar Müll mit 200). Das war der
+  Grund, warum hochgeladene Charakterfotos nie in den Bildern auftauchten;
+  am 07.08. per Test-PNG bewiesen und behoben.
+- **Video:** fal.ai `minimax/h3/image-to-video` (`FAL_MODEL_VIDEO`). Es ist
+  **image-to-video**: `generateVideo()` erzeugt erst ein Standbild über den
+  Bild-Pfad und animiert das Ergebnis. Kein Text-to-Video-Pfad mehr.
+- **DeepSeek (optional):** `craftPromptViaDeepseek()` schickt Traumtext +
+  Nano-Banana-6-Elemente-Formel + Metadaten der benannten Referenzfotos an
+  `deepseek-v4-flash` und bekommt einen fertigen Bild-Prompt. **DeepSeek sieht
+  die Fotos selbst nicht** — die öffentliche API ist textbasiert. Die echten
+  Fotos gehen direkt an fal.ai/Nano Banana, das selbst Vision hat. Ohne
+  `DEEPSEEK_KEY` greift die lokale Vorlage (`buildFallbackPrompt()`).
+- **End-to-end verifiziert (07.08.):** echte Schlüssel eingetragen, Bild- UND
+  Film-Modus real durchlaufen, beide `200 OK` mit echten
+  `https://v3b.fal.media/...`-URLs. Nach dem React-Umbau erneut geprüft: Traum
+  über die neue Oberfläche eingegeben, echtes Bild kam zurück, landete im
+  Tagebuch, Wesen und Serie wurden mitgeschrieben.
+- Beide Schlüssel liegen lokal in `.env` (git-ignoriert). `.env.example`
+  dokumentiert beide.
+- Architekturvorgabe, auch für die geplante iPhone-App: Schlüssel dürfen **nie
+  in den Client**. Der Client kennt nur `API_BASE` (in `src/lib/api.js`,
+  konfigurierbar über `VITE_API_BASE` — nötig, weil ein Capacitor-Bundle nicht
+  auf demselben Ursprung läuft).
 
 ## Sicherheit — Stand der Schutzziele
 
-- **Vertraulichkeit:** `server.js` liefert nur `/index.html`, `/symbole.html`,
-  `/fotos.html`, `/app.css`, `/app.js` und `/clips/*` aus (deny-by-default in
-  `resolveStatic()`). Vorher war das gesamte App-Verzeichnis abrufbar,
-  inklusive `.env` mit dem Higgsfield-Key. Abgesichert durch
-  `scripts/test-static.mjs` (32 Prüfungen). Wer ein neues öffentliches Asset
-  braucht: `PUBLIC_FILES`/`PUBLIC_DIRS` in `server.js` erweitern, sonst 404.
-- **Integrität:** Alle Fremddaten (API-URLs, Traumtexte, Titel) werden vor dem
-  Einsetzen ins DOM escaped. Ohne das wurde eine bösartige API-Antwort durch
-  das Tagebuch dauerhaft gespeichert und bei jedem Seitenaufruf erneut
-  ausgeführt.
-- **Verfügbarkeit:** `save()` fängt volles localStorage ab (sperrte sonst den
-  Summon-Button dauerhaft), `/api/generate` begrenzt Body-Größe und
-  Array-Längen.
-- **Statische Vorschau:** `python3 -m http.server` (in `README.md` und
-  `.claude/launch.json`) hat **keine** Freigabeliste und liefert alles im Ordner
-  aus — die Absicherung in `server.js` greift auf diesem Weg nicht. Beide
-  Stellen binden jetzt an `127.0.0.1`; die Vorschau darf nicht laufen, sobald
-  `.env` existiert. Ungetestet automatisierbar — `scripts/test-static.mjs` deckt
-  nur `server.js` ab.
+- **Vertraulichkeit, zwei unabhängige Schranken.** Die Web-Wurzel ist seit dem
+  Vite-Umbau `dist/`, nicht das Repository: `.env`, `.git/`, `docs/`, `src/`
+  und `server.js` sind damit **strukturell** außer Reichweite. Zusätzlich gilt
+  weiter deny-by-default in `resolveStatic()` — erlaubt sind nur
+  `/index.html`, `/assets/*` und `/clips/*`. Abgesichert durch
+  `scripts/test-static.mjs` (33 Prüfungen).
+- **Integrität:** React escaped Textinhalte von sich aus; es gibt kein
+  `innerHTML` mehr im Anwendungscode. Der frühere Weg, über eine bösartige
+  API-Antwort dauerhaft Skript ins Tagebuch zu schreiben, ist damit zu.
+- **Verfügbarkeit:** `saveState()` fängt vollen `localStorage` ab und meldet es
+  sichtbar, statt den Knopf dauerhaft zu sperren. `/api/generate` begrenzt
+  Body-Größe und Array-Längen.
+- **Prompt-Eingabe:** unsichtbare Zeichen (Zero-Width, Bidi-Overrides,
+  Unicode-TAG-Block) werden serverseitig entfernt; `sanitizePromptText()` in
+  `server.js` ist die verbindliche Stelle. Auch DeepSeeks Rückgabetext läuft
+  dort durch — er wird zum Prompt für einen weiteren bezahlten Aufruf und
+  verdient dasselbe Misstrauen wie Nutzereingaben. Abgesichert durch
+  `scripts/test-prompt-sanitize.mjs`. Bewusst **keine** Blockliste für
+  anweisungsartige Formulierungen: der Traumtext ist der eigene Prompt des
+  Nutzers, es gibt keine Rechtegrenze zu schützen.
 - **Offen — `/api/generate` hat keine Authentifizierung und kein Rate-Limit.**
-  Nur an localhost binden. Öffentlich erreichbar könnte jeder das
-  API-Guthaben (Higgsfield, künftig fal.ai) verbrauchen. Löst sich erst mit
-  dem Accounts-Backend (siehe unten) — wird verbindlich zu lösen, **bevor**
-  die geplante iPhone-App echte Nutzer auf einen gemeinsamen Server lässt.
-- **Prompt-Eingabe:** unsichtbare Zeichen (Zero-Width, Bidi-Overrides, Unicode-
-  TAG-Block) werden aus dem Traumtext entfernt — relevant für *eingefügten*
-  Text, der versteckte Anweisungen mitbringen kann. Freitext-Fragmente
-  (Haustier/Ort) werden einzeilig gemacht und in eine feste Klausel gesperrt,
-  können die Prompt-Struktur also nicht aufbrechen. `sanitizePromptText()` in
-  `server.js` ist die verbindliche Stelle, `index.html` putzt beim Einfügen
-  zusätzlich und meldet dem Nutzer, wie viele Zeichen entfernt wurden.
-  Abgesichert durch `node scripts/test-prompt-sanitize.mjs` (20 Prüfungen).
-  Bewusst **keine** Blockliste für anweisungsartige Formulierungen: der
-  Traumtext ist der eigene Prompt des Nutzers, es gibt keine Rechtegrenze zu
-  schützen, und eine Blockliste wäre umgehbar und fehlalarmanfällig.
-- **Offen — Datenschutz:** hochgeladene Referenzfotos (Gesichter, Haustiere,
+  Nur an localhost binden. Öffentlich erreichbar könnte jeder das Guthaben
+  verbrauchen. Löst sich erst mit dem Accounts-Backend — verbindlich zu lösen,
+  **bevor** die iPhone-App echte Nutzer auf einen gemeinsamen Server lässt.
+- **Offen — Credits sind Buchhaltung, keine Zugangskontrolle.** Sie werden
+  seit 07.08. tatsächlich abgebucht (erst nach erfolgreichem Aufruf, damit ein
+  Fehlschlag nichts kostet), und neue Installationen bekommen einmalig 25
+  Stück. Aber der Stand liegt im `localStorage` und ist frei editierbar — wer
+  will, verschafft sich unbegrenzt Generierungen. Echte Durchsetzung gehört
+  auf den Server, neben die Accounts.
+- **Offen — Datenschutz:** hochgeladene Referenzfotos (Gesichter, Tiere,
   Wohnorte) gehen an den Generierungs-Provider. Gesichtsbilder sind
-  biometrische Daten und damit besonders geschützt (DSGVO Art. 9). Vor einer
-  Veröffentlichung braucht es Datenschutzhinweis/Einwilligung und eine
-  Klärung, wie lange der jeweilige Provider die Bilder speichert (gilt für
-  Higgsfield wie für fal.ai). Der UI-Hinweis benennt den Upload inzwischen
-  ehrlich, das ersetzt aber keine Datenschutzerklärung.
-- **Offen — Missbrauch der Generierung.** Das größere Risiko in diesem Umfeld
-  ist nicht Prompt Injection, sondern was jemand absichtlich erzeugen lässt:
-  Referenzfoto einer realen Person plus entsprechender Traumtext ergibt einen
-  Deepfake. Rechtlich (Persönlichkeitsrecht) und für den Provider-Account
-  (ToS) haftet der Betreiber. Es gibt aktuell keine Inhaltsprüfung, keine
-  Bestätigung, dass abgebildete Personen eingewilligt haben, und kein Logging,
-  wer was erzeugt hat. Vor einer Veröffentlichung zu entscheiden — braucht
-  vermutlich eine Moderationsstufe und ist damit an das Backend-ADR gekoppelt.
+  biometrische Daten (DSGVO Art. 9). Vor einer Veröffentlichung braucht es
+  Datenschutzhinweis, Einwilligung und eine Klärung der Speicherdauer bei
+  fal.ai. Der UI-Hinweis benennt den Upload ehrlich, ersetzt aber keine
+  Datenschutzerklärung.
+- **Offen — Missbrauch der Generierung.** Referenzfoto einer realen Person plus
+  entsprechender Traumtext ergibt einen Deepfake. Rechtlich
+  (Persönlichkeitsrecht) und für den Provider-Account (ToS) haftet der
+  Betreiber. Es gibt keine Inhaltsprüfung, keine Einwilligungsbestätigung und
+  kein Logging. Braucht vermutlich eine Moderationsstufe und ist damit an das
+  Backend-ADR gekoppelt.
 
 ## Bekannte Baustellen
 
-- **Fal.ai-Anbindung in `server.js` fehlt noch** (siehe Provider-Wechsel
-  oben) — `server.js` läuft aktuell komplett auf Higgsfield.
-- **Credits/Bezahlmodell fehlt komplett.** Braucht laut Diskussion mit dem
-  Produktbesitzer eine echte, fälschungssichere Datenhaltung (client-seitiges
-  `localStorage` reicht für echtes Geld nicht) — tentativ Supabase (Accounts,
-  DB, Storage). Braucht ein eigenes Supabase-Projekt vom Produktbesitzer und
-  ein eigenes ADR, das ADR-0002 in diesem einen Punkt ersetzt (von ADR-0002
-  selbst als Trigger für eine Ablösung vorgesehen).
-- **App-/Play-Store-Vertrieb fehlt.** Für In-App-Käufe (Credits) muss die
-  Web-App später gewrappt werden (tentativ Capacitor), plus Apple/Google
-  Developer Accounts, die der Produktbesitzer noch nicht hat. Eigenes ADR,
-  eigene Session, erst sinnvoll sobald das Backend oben steht.
-- `server.js`s `withStyleContext()` (Pet/Place-Referenzfotos fließen als Text
-  statt als `image_references` in den Prompt) ist eine unverifizierte Annahme
-  über die Higgsfield-API-Semantik — noch nicht gegen den echten Katalog/Docs
-  geprüft, gleiche Art Lücke wie die Model-Slugs unten. Wird mit dem
-  fal.ai-Wechsel ohnehin neu zu bewerten sein.
-- Model-Slugs in `server.js` (`nano-banana-2/text-to-image`,
-  `seedance-2/text-to-video`) sind weiterhin Annahmen aus der SDK-Doku, nicht
-  am eigenen Higgsfield-Katalog verifiziert.
-- `server.js` reicht den rohen Traumtext weiterhin unverändert an das Modell
-  weiter (jetzt ergänzt um die Pet/Place-Style-Context-Klausel). Für wirklich
-  gute, Deakins-gerahmte Frames fehlt noch die Anbindung an den Prompt-Aufbau,
-  der andernorts als Skill existiert (10-Beat-Bogen, Shot-Ladder,
-  Identity-Locks) — unverändert offen seit der letzten Session.
-- `.env` existiert in dieser Session lokal mit `FAL_KEY`, aber **ohne**
-  `HF_CREDENTIALS` — `/api/generate` liefert also weiterhin einen klaren 503
-  (Higgsfield-Key fehlt), bis entweder der Higgsfield-Key ergänzt oder die
-  fal.ai-Anbindung gebaut ist. Live-Generierung im Repo selbst weiterhin
-  nicht verifiziert.
-- **Sprachwiderspruch:** `AGENTS.md` schreibt Deutsch für die UI vor, die
-  gesamte App-Oberfläche ist Englisch. Ungelöst — entweder Regel anpassen
-  oder UI später übersetzen.
-- Kein Lint-Setup und keine Test-Suite für die UI (`npm run lint` existiert
-  nicht). Automatisiert getestet sind nur `scripts/test-static.mjs`
-  (Datei-Freigabe) und `scripts/test-prompt-sanitize.mjs` (Prompt-Hygiene) —
-  beide betreffen `server.js`. Das gesamte Design und alle DOM-Funktionen in
-  `index.html` sind ausschließlich manuell geprüft. Bei jetzt ~730 Zeilen
-  zunehmend spürbar.
-- Responsives Verhalten ist nur rechnerisch verifiziert (Container verengt,
-  Überlauf gemessen), nicht auf einem echten Gerät. Vor einer Veröffentlichung
-  an einem echten Telefon gegenprüfen — relevant auch für die geplante
-  iPhone-App.
-- **Barrierefreiheit teilweise offen.** Tagebuchkarten sind seit 07.08. per
-  Tastatur bedienbar (Fokus, Enter/Space, sichtbarer Rahmen), die Cast-Kacheln
-  aber nicht: deren Löschknopf ist weiterhin ein `<div>` ohne Fokus. Kontraste
-  sind für Text geprüft und bestehen WCAG AA (≥4,79:1); ungeprüft sind
-  Fokus-Indikatoren auf allen Flächen und die Bedienbarkeit mit Screenreader.
-  Maßgeblicher Härtefall für künftige Farbänderungen: `--faint` auf
-  `rgba(11,7,24,.55)` über `#2a1d5e`.
-- Tagebuch wächst unbegrenzt und wird komplett gerendert — keine Pagination,
-  kein Aufräumen. Zusammen mit den base64-Referenzfotos ist das localStorage-
-  Quota (~5 MB) das eigentliche Limit; `save()` meldet es jetzt wenigstens,
-  statt still zu scheitern.
-- **Symbolerkennung nur auf Englisch.** Die Stichwortlisten in `app.js` sind
-  rein englisch (bewusst entschieden). Deutsche Traumeinträge liefern keine
-  Symbole. Erweiterbar ohne Umbau: deutsche Begriffe in `SYMBOLS` ergänzen.
+- **Screens sind nur manuell geprüft.** Getestet ist die Logikschicht:
+  `storage.js`, `symbols.js`, `tags.js`, `streak.js`, `beats.js`,
+  `promptBuilder.js`, `parallel.js`, `credits.js` (50 Unit-Tests via
+  `bun test`) plus Server-Freigabe und Prompt-Hygiene. Für die React-Screens
+  gibt es keine automatisierten Tests — dafür bräuchte es eine DOM-Umgebung.
+- **Die riskanteste Stelle ist `promptBuilder.js`.** Referenzklauseln sagen
+  „Reference image 2 shows @anton", und diese Nummer muss zur Position im
+  Bild-Array passen. Eine Figur ohne Foto darf deshalb keinen Index
+  verbrauchen — sonst bekommen Menschen fremde Gesichter. Dafür gibt es
+  eigene Tests; wer dort etwas ändert, führt sie aus.
+- **Generierte Medien werden nicht lokal gespeichert.** `/api/generate` reicht
+  nur die fal.ai-Hosting-URL durch, die App speichert diese URL im
+  Tagebuch-Eintrag. Anton möchte sie zusätzlich lokal ablegen. Angedacht:
+  Server lädt die Datei nach der Generierung herunter und liefert einen
+  lokalen Pfad neben der Original-URL zurück — Speicherort, Dateibenennung und
+  Aufräumen sind ungeklärt.
+- `mentionsTag()` ist im Wizard nur noch **Vorschlag**, nicht mehr Filter —
+  die Zuordnung passiert ausdrücklich in Schritt 3 und 4. Die alte Regel
+  greift nur noch, wenn jemand „Improve with AI" überspringt.
+- **Credits/Bezahlmodell fehlt.** Braucht eine fälschungssichere Datenhaltung
+  (client-seitiges `localStorage` reicht für echtes Geld nicht) — tentativ
+  Supabase. Braucht ein eigenes Projekt vom Produktbesitzer und ein eigenes
+  ADR, das ADR-0002 in diesem Punkt ersetzt.
+- **App-/Play-Store-Vertrieb fehlt.** Für In-App-Käufe muss die Web-App
+  gewrappt werden (tentativ Capacitor), plus Apple/Google Developer Accounts,
+  die der Produktbesitzer noch nicht hat. Eigenes ADR, eigene Session.
+- Der 10-Beat-Traum-Bogen/Shot-Ladder/Identity-Locks-Skill ist weiterhin nicht
+  angebunden. `craftPromptViaDeepseek()` nutzt bereits die
+  Nano-Banana-6-Elemente-Formel; der Ausbau wäre dort.
+- Responsives Verhalten ist am Rechner geprüft, nicht auf einem echten Gerät.
+  Vor einer Veröffentlichung am Telefon gegenprüfen.
+- **Symbolerkennung nur auf Englisch.** Die Stichwortlisten in
+  `src/lib/symbols.js` sind rein englisch (bewusst entschieden) — nur die
+  Kategorienamen sind deutsch. Deutsche Traumeinträge liefern keine Symbole.
+  Erweiterbar ohne Umbau: deutsche Begriffe in `SYMBOLS` ergänzen. **Wird
+  spätestens mit der deutschen Oberfläche fällig** — sonst liefert ein deutsch
+  geschriebener Traum gar keine Symbole.
 - Symbolerkennung ist Stichwortabgleich, kein Sprachverständnis. „I was *not*
-  afraid" zählt als *Fear*; Umschreibungen ohne die Stichwörter werden nicht
-  erkannt. Für mehr bräuchte es ein Sprachmodell — also das Backend.
+  afraid" zählt als *Fear*. Für mehr bräuchte es ein Sprachmodell.
+- Tagebuch wächst unbegrenzt und wird komplett gerendert — keine Pagination.
+  Zusammen mit den base64-Referenzfotos ist das localStorage-Kontingent
+  (~5 MB) das eigentliche Limit; `saveState()` meldet es wenigstens.
 
 ## Nächste Schritte
 
-1. fal.ai-Anbindung in `server.js` bauen (Kollegin) — SDK-Wahl, Modell-Slugs
-   für Bild/Video, neue Route für die LLM-Funktion. Danach end-to-end mit dem
-   vorliegenden `FAL_KEY` verifizieren.
-2. Vor jeder öffentlichen/iPhone-Nutzung: Auth + Rate-Limit für
-   `/api/generate`, sonst verbraucht jeder Zugriff das gemeinsame
-   fal.ai-Guthaben ohne Begrenzung.
-3. Supabase-Projekt anlegen (Produktbesitzer) → ADR für Accounts/DB/Credits-
-   Ledger, ersetzt den "kein Backend"-Teil von ADR-0002.
-4. Darauf aufbauend: Credits-Kauf + Gating der Video-Generierung hinter
-   Guthaben.
-5. Apple-/Google-Developer-Accounts anlegen (Produktbesitzer) → ADR für
-   Capacitor-Wrapping + In-App-Käufe.
-6. Den Prompt-Aufbau (10-Beat-Traum-Bogen, Deakins-Shot-Ladder, Gesichts-Locks)
-   in `server.js` einbauen, statt rohen Text durchzureichen.
-7. Sprachwiderspruch AGENTS.md vs. UI klären.
+1. Generierte Bilder/Videos zusätzlich lokal speichern (Antons Wunsch).
+2. **Character-Sheets**: eine beschriebene Figur ohne Foto bekommt bisher nur
+   eine Textklausel. Die Spec sieht vor, daraus einmalig ein Referenzbild
+   erzeugen zu lassen (2 Credits), das am Avatar hängt und wiederverwendbar
+   ist. Noch nicht gebaut.
+3. Vor jeder öffentlichen/iPhone-Nutzung: Auth + Rate-Limit für
+   `/api/generate`.
+4. Supabase-Projekt anlegen (Produktbesitzer) → ADR für Accounts/DB/Credits.
+5. Darauf aufbauend: Credits-Kauf + Gating der Video-Generierung.
+6. Apple-/Google-Developer-Accounts (Produktbesitzer) → ADR für Capacitor.

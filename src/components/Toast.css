@@ -1,0 +1,10 @@
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s-4));
+  z-index: 50; max-width: 90vw;
+  padding: var(--s-3) var(--s-5); border-radius: 999px;
+  background: rgba(11, 7, 24, .94); border: 1px solid var(--panel-line);
+  color: var(--text); font-size: var(--t-small);
+  opacity: 0; pointer-events: none; transition: opacity .25s ease;
+}
+.toast-an { opacity: 1; }

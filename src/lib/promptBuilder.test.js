@@ -1,0 +1,70 @@
+import { test, expect } from "bun:test";
+import { buildReferences, buildImagePrompt } from "./promptBuilder.js";
+
+const anton = { name: "Anton", kind: "person", avatar: { tag: "anton", img: "a.png", desc: "" } };
+const rex = { name: "Rex", kind: "pet", avatar: { tag: "rex", img: "r.png", desc: "" } };
+const stranger = { name: "a stranger in a red coat", kind: "person", free: true };
+
+test("reference numbers match the image array positions", () => {
+  const { references, clauses } = buildReferences([anton, rex]);
+  expect(references.map((r) => r.tag)).toEqual(["anton", "rex"]);
+  expect(clauses[0]).toContain("Reference image 1");
+  expect(clauses[0]).toContain("@anton");
+  expect(clauses[1]).toContain("Reference image 2");
+  expect(clauses[1]).toContain("@rex");
+});
+
+// The failure this whole module exists to prevent: a character with no photo
+// must not consume an index, or every later reference points at the wrong face.
+test("a free character does not consume a reference index", () => {
+  const { references, clauses } = buildReferences([anton, stranger, rex]);
+  expect(references.map((r) => r.tag)).toEqual(["anton", "rex"]);
+  expect(clauses.find((c) => c.includes("@rex"))).toContain("Reference image 2");
+});
+
+test("free characters are named as inventable", () => {
+  const { clauses } = buildReferences([anton, stranger]);
+  const freeClause = clauses.find((c) => c.startsWith("Invent"));
+  expect(freeClause).toContain("a stranger in a red coat");
+});
+
+test("an unassigned character contributes nothing at all", () => {
+  const { references, clauses } = buildReferences([{ name: "Nobody", kind: "person" }]);
+  expect(references).toEqual([]);
+  expect(clauses).toEqual([]);
+});
+
+test("no assignments produce no clauses", () => {
+  expect(buildReferences([])).toEqual({ references: [], clauses: [] });
+  expect(buildReferences()).toEqual({ references: [], clauses: [] });
+});
+
+test("a description is woven into the clause", () => {
+  const withDesc = { name: "Rex", kind: "pet", avatar: { tag: "rex", img: "r.png", desc: "a black labrador" } };
+  const { clauses } = buildReferences([withDesc]);
+  expect(clauses[0]).toContain("a black labrador");
+});
+
+test("the prompt carries beat, style, framing and clauses", () => {
+  const { clauses } = buildReferences([anton]);
+  const prompt = buildImagePrompt({
+    beat: "Anton sits on the windowsill.",
+    styleId: "dark", format: "9:16", clauses, index: 2, total: 5,
+  });
+  expect(prompt).toContain("Anton sits on the windowsill.");
+  expect(prompt).toContain("low-key lighting");     // the dark template
+  expect(prompt).toContain("9:16 vertical framing");
+  expect(prompt).toContain("image 2 of 5");
+  expect(prompt).toContain("Reference image 1");
+});
+
+test("a single image gets no sequence clause", () => {
+  const prompt = buildImagePrompt({ beat: "A door.", styleId: "dreamlike", format: "16:9", total: 1 });
+  expect(prompt).not.toContain("image 1 of 1");
+  expect(prompt).toContain("16:9 widescreen framing");
+});
+
+test("an unknown style falls back rather than breaking", () => {
+  const prompt = buildImagePrompt({ beat: "A door.", styleId: "nonsense", format: "9:16" });
+  expect(prompt).toContain("dreamlike realism");
+});

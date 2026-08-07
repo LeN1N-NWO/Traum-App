@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "static-preview",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8100", "--bind", "127.0.0.1"],
+      "name": "dev",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["server.js"],
       "port": 8100
     }
   ]

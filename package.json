@@ -4,10 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bun server.js",
-    "dev": "bun server.js"
+    "dev": "bun scripts/dev.mjs",
+    "dev:api": "bun server.js",
+    "dev:web": "vite",
+    "build": "vite build",
+    "start": "bun run build && bun server.js",
+    "test": "bun test && node scripts/test-static.mjs && node scripts/test-prompt-sanitize.mjs"
   },
   "dependencies": {
-    "@higgsfield/client": "^2.0.0"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.0"
   }
 }

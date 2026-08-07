@@ -3,6 +3,356 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 23:00 — Anton — Branch `claude/new-session-x9qv1w` — Sitzungsabschluss
+
+**Commits dieser Sitzung** (die inhaltlichen Einträge darunter, 14:20 bis
+22:15, beschreiben das Was und Warum — hier die Hashes dazu):
+
+- `7134dcf` fal.ai/DeepSeek live verifiziert, dev-Launch-Config
+- `13c51da` main gemergt (Hannis Foto-Bibliothek), STAND-Konflikt von Hand
+- `43dface` `d0e03be` Spec + ADR-0004 + Implementierungsplan Phase 1
+- `62b0bc8` … `456ed4e` Phase 1: Vite/React, dist/-Auslieferung, Tokens,
+  Speicher/Symbole/Tags als getestete Module, Shell, alle Screens, legacy weg
+- `42110f5` Singular „1 Tag"
+- `f9df654` Oberfläche zurück auf Englisch, verlorene Funktionen zurück
+- `dcc6547` `b45a843` Spec-Ergänzungen; Modellnamen raus aus der UI
+- `04a97f2` `8bba1be` der Wizard; Analyse-Code aus dem Hygiene-Block
+- `72971dd` Tagebuch-Menü, /api/refine, Teilen, Credits zählen
+- `cce65e5` Sprachtrennung im Analyse-Schema, Bildanzahl → Schritt 5, Slideshow
+- `ae12ce8` **Referenzbild-Fix** (edit-Endpunkt), Diktat-Verständnis, Pfeile
+
+**Zustand bei Abschluss:** Build grün, 50 Unit-Tests grün, 33
+Freigabe-Prüfungen grün, Prompt-Hygiene grün. PR #7 offen (kein Entwurf),
+Merge-Entscheidung liegt beim Produktbesitzer. Kein separater Worktree
+angelegt — gearbeitet wurde direkt im Projektordner auf diesem Branch.
+`npm run lint` existiert weiterhin nicht (bekannte Baustelle).
+
+**Was der Nächste zuerst liest:** `docs/STAND.md` (Stand 22:15 ist aktuell),
+dann den 22:15-Eintrag hier — die fal.ai-Lehre („200 heißt nicht, dass der
+Parameter ankam") betrifft jeden, der API-Parameter anschließt.
+
+## 2026-08-07 22:15 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** Der Referenzbild-Fehler ist gefunden und behoben, dazu zwei
+UX-Nachbesserungen.
+
+**Der Fehler:** Hochgeladene Charakterfotos tauchten in den generierten
+Bildern nie auf. Diagnose mit einem knallroten 64×64-Test-PNG:
+`fal-ai/nano-banana-2` (Text-to-Image) **ignoriert `image_urls`
+stillschweigend** — der Endpunkt akzeptiert sogar `image_urls: 123` mit
+HTTP 200. Die Referenzen gingen also seit der fal.ai-Umstellung ins Leere,
+ohne je einen Fehler auszulösen. Der Schwester-Endpunkt
+`fal-ai/nano-banana-2/edit` nimmt `image_urls` an und reproduziert das
+Referenzbild nachweislich (rotes Quadrat kam exakt zurück).
+
+**Fix:** `falGenerateImage()` wählt jetzt den Endpunkt nach Lage: mit
+Referenzbildern → `FAL_MODEL_IMAGE_EDIT` (Default `<FAL_MODEL_IMAGE>/edit`,
+per Env überschreibbar), ohne → wie bisher. End-to-end über `/api/generate`
+verifiziert: rotes Referenzquadrat erschien exakt im gerenderten 9:16-Bild.
+
+**Lehre für die Zukunft:** „HTTP 200" heißt bei fal.ai nicht „Parameter
+angekommen". Unbekannte Felder werden kommentarlos verworfen. Wer neue
+Parameter anschließt, testet sie mit absichtlich kaputten Werten gegen —
+nur ein 422 beweist, dass das Feld gelesen wird.
+
+**Außerdem:**
+- „Improve with AI" schreibt jetzt wirklich um statt nur Kommas zu setzen:
+  Die `text`-Regel im Analysis-Prompt behandelt die Eingabe ausdrücklich als
+  möglicherweise diktierte Sprache (Wiederholungen, Satzabbrüche,
+  ineinander gesprochene Gedanken) und erzählt den Traum als flüssigen Text
+  neu — erfinden bleibt verboten.
+- Die Slideshow hat Pfeile auf den Bildern (‹ ›), zusätzlich zu Punkten und
+  Zähler. An den Enden verschwindet der jeweils sinnlose Pfeil.
+
+## 2026-08-07 21:30 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** Drei Nachbesserungen aus Antons Test des Wizards.
+
+1. **Analyse-Schema als echter Vertrag.** `ANALYSIS_SYSTEM` in `server.js`
+   legt jetzt fest: Felder, die der Mensch sieht (`text`, `people[].name`,
+   `places`, `mood`), bleiben in der Sprache des Traums — ein deutscher
+   Traum bekommt eine deutsche verbesserte Fassung. `beats` sind immer
+   englisch (Bildmodell-Anweisungen). `people` sind strukturiert
+   (`{name, kind, desc}`), damit die App Tiere von Menschen unterscheidet;
+   `desc` füllt den Avatar-Anlege-Dialog vor. Neues validiertes Feld
+   `language` (BCP-47). `normaliseAnalysis()` toleriert weiterhin nackte
+   Strings — der lokale Ohne-LLM-Pfad liefert solche.
+2. **Bildanzahl von Schritt 2 nach Schritt 5 verschoben.** Erst Charaktere
+   und Orte festlegen, dann Anzahl wählen, dann generieren — vorher stand
+   die Anzahl vor einer Entscheidung, die man noch gar nicht beurteilen kann.
+3. **Ergebnis als Slideshow.** `MediaCarousel` (CSS scroll-snap, Punkte,
+   Zähler „2 / 3") ersetzt den Bilderstapel — im Wizard-Ergebnis UND im
+   Tagebuch-Detail. Bewusst ohne Carousel-Bibliothek: natives Touch-
+   Verhalten gratis, funktioniert im Capacitor-WebView identisch.
+
+**Live geprüft:** Deutscher Traum („alter Bahnhof, Katze Luna, Anton,
+Wald aus Lichtern") → `language: "de"`, deutscher verbesserter Text mit
+korrigierten Umlauten, Luna als `pet` erkannt, Orte deutsch, fünf englische
+Beats, `mood: "verträumt"`. Slideshow im Tagebuch slidet, Zähler folgt.
+
+**Was der Nächste wissen muss:** Wer am Schema etwas ändert, ändert BEIDE
+Seiten — `ANALYSIS_SYSTEM` (was das Modell liefern soll) und
+`normaliseAnalysis()` (was die App akzeptiert). Die zweite ist die
+verbindliche.
+
+## 2026-08-07 20:30 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** Phase 2 gebaut — der Wizard und das Tagebuch-Menü. Damit ist alles
+umgesetzt, was in `docs/specs/2026-08-07-app-umbau-design.md` steht.
+
+Neu: `/api/analyze` (der eine LLM-Aufruf pro Traum, striktes JSON),
+`/api/refine` (korrigieren/neu schreiben/ausarbeiten hinter einem
+`mode`-Parameter), `src/wizard/` mit sechs Schritten, `src/lib/beats.js`,
+`styles.js`, `promptBuilder.js`, `parallel.js`, `credits.js`, `share.js`,
+`pricing.js`. `AvatarDialog` wanderte nach `src/components/`, weil ihn jetzt
+Profil UND Wizard brauchen.
+
+**Warum:** Anton hat zu Recht reklamiert, dass die Spec keine App ist. Der
+Ablauf, den wir lange besprochen hatten — Traum durch die LLM, „Wer ist
+Anton?", Bibliothek durchsuchen oder neu anlegen — existierte nur auf Papier.
+
+**Drei Korrekturen an eigenen Fehlern:**
+
+1. **Sprache.** Ich hatte aus `AGENTS.md` („Deutsch in UI") geschlossen, die
+   Oberfläche solle deutsch werden. Falsch: Englisch ist die App-Sprache,
+   Deutsch kommt als zweite dazu. Alles auf Englisch zurückgedreht, Texte in
+   `src/i18n/en.js` gebündelt, `AGENTS.md` präzisiert.
+2. **Mein „1:1-Port" war keiner.** Beim React-Umbau hatte ich Spracheingabe,
+   Ladeanzeige, die Cast-Auswahl im Flow und die gute Copy verloren, ohne es
+   zu merken oder zu sagen. Alles wiederhergestellt, die Copy wörtlich aus
+   dem alten Stand („Your subconscious, directed" …).
+3. **Zweimal denselben Fehler gemacht:** neuen Servercode zwischen die Marker
+   `prompt hygiene (start/end)` gesetzt. `scripts/test-prompt-sanitize.mjs`
+   extrahiert diesen Block und wertet ihn per `new Function()` aus — ein
+   `export` darin ist dort ein Syntaxfehler und legt den Test lahm. **Wer
+   `server.js` erweitert: nicht in diesen Block hinein.**
+
+**Unterwegs gefunden:** Sequenzielle Bildgenerierung war zu langsam (drei
+Bilder über eine Minute, zehn wären mehrere gewesen). Läuft jetzt drei
+parallel über `mapWithLimit`, mit Begrenzung — zehn gleichzeitige bezahlte
+Aufrufe an fal.ai wären das andere Extrem.
+
+**Sicherheit:** Der vom Client gebaute Master-Prompt geht durch dieselbe
+`sanitizePromptText()`-Hygiene wie alles andere. Ein client-gebauter Prompt
+ist nicht vertrauenswürdiger als ein modellgebauter.
+
+**Live geprüft:** Traum mit Anton, Rex und zwei Orten. Die Analyse erkannte
+alle drei Personen und beide Orte („my old bedroom", „a dark sea"), Anton
+wurde im Wizard mit Beschreibung angelegt und gebunden, drei Bilder kamen
+zurück — das erste zeigt ihn mit der angegebenen Beschreibung auf dem
+Fensterbrett. Danach „Rewrite it better" am gespeicherten Eintrag: Vorschau
+kam, Text blieb inhaltlich treu, Guthaben ging von 25 auf 24.
+
+**Was der Nächste wissen muss:**
+- **Der eine LLM-Aufruf ist das Entwurfsprinzip.** Die Analyse liefert immer
+  fünf `beats`; daraus leitet `beats.js` 3, 5 oder 10 Bilder ab. Wer die
+  Bildanzahl ändern will, fasst `beats.js` an — nicht den Prompt.
+- **`promptBuilder.js` ist die gefährlichste Datei.** Eine Figur ohne Foto
+  darf keinen Referenz-Index verbrauchen, sonst zeigen alle späteren
+  Klauseln auf das falsche Gesicht. Tests dafür sind da; bei Änderungen
+  ausführen.
+- Credits werden abgebucht, aber **erst nach erfolgreichem Aufruf** — ein
+  Fehlschlag darf nichts kosten. Neue Installationen bekommen einmalig 25.
+  Weiterhin keine Zugangskontrolle: `localStorage` ist editierbar.
+- Modellnamen gehören nicht in die Oberfläche (Provider-Wechsel wäre sonst
+  eine Textänderung). Der Datenschutzhinweis nennt die Dienstleister trotzdem
+  — das ist eine Pflichtangabe, keine Werbung.
+- Noch offen aus der Spec: Character-Sheets für beschriebene Figuren ohne
+  Foto (2 Credits), und generierte Medien zusätzlich lokal speichern.
+
+## 2026-08-07 16:30 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** Phase 1 des App-Umbaus komplett — die App ist jetzt eine React-SPA
+mit fünf Tabs statt drei loser HTML-Seiten. Vorher entstanden Spec
+(`docs/specs/2026-08-07-app-umbau-design.md`), `ADR-0004` und der
+Implementierungsplan (`docs/plans/2026-08-07-phase1-geruest.md`, 12 Aufgaben);
+danach wurde der Plan Aufgabe für Aufgabe abgearbeitet.
+
+Neu: Vite-Build, `src/lib/` (storage, symbols, tags, streak, creatures, api),
+`src/state/AppState.jsx` als einziger Schreibpfad in den Speicher,
+`src/components/` (Button, Card, ScreenHeader, TabBar, Splash, Toast),
+`src/screens/` (Home, Journal, Symbols, Profile, Dream). `legacy/` gelöscht.
+Oberfläche durchgehend auf Deutsch.
+
+**Warum:** Die App soll sich wie eine App anfühlen und später über Capacitor
+nach iOS/Android portiert werden. Der sechsstufige Wizard aus der Spec braucht
+Zustand über mehrere Schritte — das ist von Hand geführter DOM-Zustand in
+seiner fehleranfälligsten Form. Next.js wurde verworfen: seine Kernfunktionen
+(SSR, API-Routen, SEO) sind für ein Capacitor-Bundle wertlos, man müsste sie
+abschalten, um es einsetzen zu können. Begründung in ADR-0004.
+
+**Zwei Fehler, die beim Planen auffielen — beide vor der Umsetzung behoben:**
+
+1. **`state.lastDream` ist ein DATUM, kein Traumtext.** Der Feldname legt das
+   Gegenteil nahe, und die Serien-Logik vergleicht ihn mit `todayStr()`. Ein
+   erster Planentwurf schrieb dort den Traumtext hinein — das hätte die Serie
+   bei jedem Traum still auf 1 zurückgesetzt. `src/lib/streak.js` hat jetzt
+   sechs Tests, die genau das abdecken, und einen Warnkommentar.
+2. **Die Menagerie wäre verschwunden.** Die Spec sagt „Menagerie und Streak
+   nach Home", der erste Plan portierte nur den Streak. Nutzer haben Wesen im
+   Speicher — die wären ersatzlos weg gewesen.
+
+**Sicherheit — nebenbei verbessert:** Die Web-Wurzel ist jetzt `dist/` statt
+des Repositories. Damit liegen `.env`, `.git/`, `docs/`, `src/` und
+`server.js` **strukturell** außerhalb dessen, was `resolveStatic()` überhaupt
+auflösen kann — zweite, unabhängige Schranke zusätzlich zur Freigabeliste.
+`scripts/test-static.mjs` prüft das (33 Prüfungen) und wurde entsprechend auf
+`dist/` umgestellt. Außerdem gibt es kein `innerHTML` mehr im Anwendungscode:
+React escaped von sich aus.
+
+**Verifiziert:** 24 Unit-Tests (`bun test`), 33 Freigabe-Prüfungen,
+Prompt-Hygiene-Tests, Build grün. Echter HTTP-Abruf gegen den laufenden
+Server: `/` und `/assets/*` liefern 200, `.env`, `/src/`, `/legacy/`,
+`/server.js` und `/package.json` liefern 404. Im Browser durchgespielt: Traum
+eingegeben → echtes Bild von fal.ai zurück → Eintrag im Tagebuch mit Bild →
+Wesen („Nyxjelly", Rare) auf der Startseite → Serie auf 1 → Symbole (Water,
+Flying, Joy & warmth) korrekt erkannt.
+
+**Unterwegs korrigiert:** „🔥 1 Tage" → „1 Tag" (Singular).
+
+**Was der Nächste wissen muss:**
+- **`bun server.js` allein genügt nicht mehr.** Ohne `bun run build` gibt es
+  kein `dist/` und alles antwortet 404. Zum Entwickeln `bun run dev`
+  (Oberfläche 5173 mit Hot Reload, API 8100).
+- Der Speicherschlüssel bleibt `dreamrushes_v1`; alle neuen Felder
+  (`credits`, `originalText`, …) sind optional mit Vorgabewert. Bestehende
+  Traumtagebücher laden unverändert weiter.
+- Orte brauchten kein neues Datenfeld: `state.cast` kennt bereits
+  `category: "place"`. Avatare und Orte sind dieselbe Struktur, nur gefiltert.
+- `src/screens/Dream/DreamScreen.jsx` ist bewusst ein 1:1-Port des alten
+  Formulars und wird in Phase 2 durch den Wizard ersetzt — deshalb klein
+  gehalten.
+- Ein verwaister `bun`-Prozess kann Port 8100 blockieren und dann eine
+  irreführende Meldung („Port vom OS reserviert") auslösen. `netstat -ano |
+  grep :8100` zeigt den Übeltäter.
+
+## 2026-08-07 14:20 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** fal.ai + DeepSeek end-to-end verifiziert (Punkt 1 der letzten
+"Nächsten Schritte"). Anton hat echte Keys lokal in `.env` eingetragen
+(`FAL_KEY`, `DEEPSEEK_KEY`, git-ignoriert, nicht Teil dieses Commits). Server
+über `bun server.js` gestartet und `/api/generate` real getestet:
+Bild-Modus und Film-Modus, jeweils `200 OK` mit echten Medien-URLs
+(`https://v3b.fal.media/...`), keine Fehler im Log → DeepSeek hat den Prompt
+tatsächlich geschrieben (kein Fallback-Log ausgelöst), `fal-ai/nano-banana-2`
+und `minimax/h3/image-to-video` sind damit bestätigte, keine unverifizierten
+Modell-Slugs mehr.
+
+Zusätzlich: `.claude/launch.json` um eine `dev`-Konfiguration erweitert
+(`bun server.js`), damit die App künftig über den echten Server mit
+Freigabeliste läuft statt über `static-preview`
+(`python3 -m http.server`) — letzteres liefert das gesamte Verzeichnis aus
+und darf laut Sicherheitsabschnitt in STAND.md nicht laufen, sobald `.env`
+existiert (jetzt der Fall). `static-preview` bleibt als Eintrag erhalten,
+falls doch mal ohne Secrets statisch getestet werden soll.
+
+**Warum:** Anton wollte die Keys testen und die App lokal sehen können,
+ohne versehentlich `.env` über den unsicheren Static-Server zu exponieren.
+
+**Was der Nächste wissen muss:**
+- Punkt 1 der alten "Nächsten Schritte" ist erledigt — `FAL_MODEL_IMAGE`,
+  `FAL_MODEL_VIDEO` und die DeepSeek-Response-Shape sind jetzt live bestätigt,
+  nicht mehr nur Annahme.
+- App künftig mit `.claude/launch.json`-Eintrag `dev` starten (`bun
+  server.js`), nicht mit `static-preview`.
+- **Offener Wunsch von Anton:** von der App aus generierte Bilder/Videos
+  sollen zusätzlich lokal gespeichert werden (aktuell nur die
+  fal.ai-Hosting-URL, die serverseitig durchgereicht und im Tagebuch-Eintrag
+  referenziert wird — kein eigener lokaler Download/Cache). Noch nicht
+  umgesetzt, nur besprochen.
+
+## 2026-08-07 13:30 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** Higgsfield komplett entfernt (Code + `@higgsfield/client`-Dependency).
+Video läuft jetzt über fal.ai (`minimax/h3/image-to-video`, von Anton direkt
+vorgegeben). Neuer, optionaler DeepSeek-Key als Prompt-Schnittstelle:
+`craftPromptViaDeepseek()` schickt Traumtext + Nano-Banana-6-Elemente-Formel
+(aus dem `nanobanana`-Skill) + Name/Kategorie/Beschreibung jedes benannten
+Referenzfotos an `deepseek-v4-flash`, bekommt einen fertigen Bild-Prompt
+zurück. `generateImages()`/`generateVideo()` in `server.js` orchestrieren
+DeepSeek → fal.ai; Film-Modus generiert zuerst ein Standbild und animiert es
+(image-to-video braucht ein Ausgangsbild, es gibt keinen Text-to-Video-Pfad
+mehr). `README.md`, `scripts/test-static.mjs`-Kommentar, `.env.example`,
+`index.html`-UI-Texte (Modell-Label, Datenschutzhinweis) entsprechend
+aktualisiert. `scripts/test-prompt-sanitize.mjs` umgestellt: testet jetzt
+`buildFallbackPrompt()`/`sanitizeTag()` statt des entfernten
+`withStyleContext()`.
+
+**Warum:** Anton wollte den Video-Provider konkretisieren (minimax/h3) und
+eine zweite KI (DeepSeek) als Prompt-Schreiber dazwischenschalten, die die
+Skill-Formel und die Referenzfoto-Namen kennt.
+
+**Wichtiger Fund unterwegs (per Web-Recherche geprüft, nicht geraten):**
+DeepSeek nannte "Flash 4" als Modell — richtig war `deepseek-v4-flash`,
+existiert wirklich (284B/13B-MoE, öffentliche Beta, OpenAI-kompatible API).
+Aber: **die öffentliche API ist textbasiert, kein Bild-Input** — bestätigt
+über offizielle DeepSeek-Docs plus DeepInfra/OpenRouter/AIML-API-Referenzen.
+Ursprünglicher Plan war, DeepSeek die Fotos sehen zu lassen; das geht mit
+dieser API nicht. Nach Rückfrage entschieden: DeepSeek bekommt nur
+Text-Metadaten (Tag/Kategorie/Beschreibung), die echten Fotos gehen direkt an
+fal.ai/Nano Banana (das selbst Vision hat).
+
+**Sicherheit:** DeepSeeks Rückgabetext wird vor Weiterverwendung durch
+`sanitizePromptText()` geschickt wie jeder andere Prompt-Baustein auch —
+er wird zum Prompt für einen weiteren bezahlten Drittanbieter-Aufruf und
+verdient dasselbe Misstrauen wie Nutzereingaben, unabhängig davon, wie
+gutartig DeepSeek normalerweise antwortet.
+
+**Nicht end-to-end verifiziert:** Weder `fal.run` noch vermutlich
+`api.deepseek.com` sind aus dieser Sandbox erreichbar (Netzwerk-Policy,
+403). Getestet: Syntax, beide Testsuiten grün, Fehlerfall für Bild UND Film
+per curl und Playwright — App fällt sauber auf Demo-Modus zurück.
+
+**Was der Nächste wissen muss:**
+- `FAL_MODEL_VIDEO` kam direkt von Anton, ist aber trotzdem unverifiziert —
+  fal.ai-Modell-IDs sind sonst meist unter `fal-ai/...` genamespaced, beim
+  ersten echten Test gegenprüfen.
+- Ohne `DEEPSEEK_KEY` läuft alles weiter wie zuvor (lokale Prompt-Vorlage,
+  `buildFallbackPrompt()`) — DeepSeek ist eine reine Qualitätsverbesserung,
+  kein Hard-Dependency.
+- `docs/STAND.md` entsprechend aktualisiert.
+
+## 2026-08-07 12:15 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** fal.ai (Nano Banana 2) für die Bildgenerierung angebunden, mit
+namentlichen Referenzbildern. `server.js`: neue `falGenerateImage()` +
+`buildNanoBananaPrompt()`, Video bleibt bei `higgsfieldGenerateVideo()`
+(umbenannt, Bild-Zweig entfernt). `index.html`: `tryBackend()` schickt nur
+noch Cast-Einträge (`@tag`), deren Name wörtlich im Traumtext vorkommt
+(`mentionsTag()`), `@me` bleibt immer dabei. `.env.example` aktualisiert
+(`FAL_KEY` aktiv statt geplant).
+
+**Warum:** Anton hat einen Nano-Banana-Prompt-Skill (`nanobanana`) im
+Repo-Kontext; Wunsch war, fal.ai für Bildgenerierung darüber laufen zu
+lassen und Referenzbilder per Name zu binden — genau wie das Skill für
+Charakter-/Bild-Referenzen (`@char1`/`@img1`) in seiner "PJ's Grid"-Struktur
+vormacht. Umgesetzt als Prompt-Klausel pro Referenzbild: "Reference image N
+shows @tag — depict them with this exact likeness whenever 'tag' appears."
+
+**Sicherheit:** Tags werden serverseitig erneut sanitisiert
+(`sanitizeTag()`), nicht nur dem Client vertraut — gleiches Prinzip wie
+`sanitizeFragment()` vorher. `cast`-Array serverseitig auf Form, Länge
+(`MAX_REFERENCES`) und erlaubte Kategorien geprüft, bevor es in den Prompt
+oder an fal.ai geht.
+
+**Nicht end-to-end verifiziert:** `fal.run` ist von dieser Sandbox aus nicht
+erreichbar (Netzwerk-Policy blockt den Host, `403 request rejected: host
+not permitted` — keine Umgehung versucht, siehe `/root/.ccr/README.md`).
+Verifiziert stattdessen: Syntax (`bun build`), beide Bestands-Testsuiten
+weiterhin grün, und der Fehlerfall per Playwright — App fällt bei
+fehlgeschlagenem `/api/generate` sauber auf Demo-Modus zurück, kein Absturz.
+
+**Was der Nächste wissen muss:**
+- Modell-Slug `fal-ai/nano-banana-2` (`FAL_MODEL_IMAGE` überschreibbar) und
+  die erwartete Response-Form (`data.images[].url`) sind **unverifizierte
+  Annahmen** — vor Produktivbetrieb gegen den echten fal.ai-Katalog prüfen.
+- Wer Netzwerkzugriff auf `fal.run` hat: einen Traum mit benanntem
+  Cast-Mitglied (z.B. "…mein Hund Rex…" mit @rex-Foto) durchlaufen lassen
+  und prüfen, ob das Referenzbild tatsächlich verwendet wird.
+- Pet/Place-Fotos gehen jetzt als echte Bildreferenzen an Nano Banana (nicht
+  mehr nur als Text-Klausel wie beim alten Higgsfield-Bildpfad) — die alte
+  `withStyleContext()`-Textklausel existiert nur noch für den Video-Pfad.
+- Docs (`docs/STAND.md`) entsprechend aktualisiert.
 ## 2026-08-07 12:50 — Hanni — Branch `session/2026-08-07-hanni-fotos`
 
 **Was:** Foto-Bibliothek als eigene Seite `fotos.html` plus optische Erkennung

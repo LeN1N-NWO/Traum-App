@@ -1,53 +1,12 @@
-/* Dream Rushes — gemeinsame Grundlage für index.html und symbole.html.
+/* Dream symbols — ported from the pre-React app, unchanged in substance.
  *
- * Hier steht ausschließlich, was BEIDE Seiten brauchen: die Speicherschicht und
- * die Symbolerkennung. Alles Seitenspezifische (Traumbeschwörung, Tagebuch,
- * Cast, Guide) bleibt in der jeweiligen Seite.
+ * The keyword lists, the word-boundary regex and the local-time day bounds are
+ * hard-won fixes and are NOT to be touched here.
  *
- * Der Grund für die Auslagerung ist nicht Ästhetik: Zwei Kopien der
- * Speicherschicht würden mit der Zeit auseinanderlaufen, und ein driftendes
- * Datenschema beschädigt die Traumtagebücher der Nutzer.
- *
- * Wird als klassisches <script> geladen (kein Modul, kein Build-Schritt —
- * ADR-0002), muss also VOR dem Seitenskript stehen.
+ * Keywords are English only. When German lands as a second app language, the
+ * lists need German terms too — otherwise German dream entries yield no
+ * symbols at all. Tracked in docs/STAND.md.
  */
-
-/* ---------- Speicher ---------- */
-const DB = "dreamrushes_v1";
-const DEF = {
-  creatures: [], lastDream: null, streak: 0,
-  mode: "sequence", cons: "standard",
-  me: null, cast: [], journal: [],
-  events: [],   // Lebensereignisse, siehe symbole.html
-};
-function genId(prefix){return prefix+"_"+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
-function load(){
-  try{
-    const s=Object.assign({},DEF,JSON.parse(localStorage.getItem(DB))||{});
-    // migrate cast entries saved before category/id existed (spread first, so a
-    // stored null/undefined can't clobber the default back out)
-    s.cast=(s.cast||[]).map(p=>({...p,id:p.id||genId("c"),category:p.category||"person"}));
-    if(!Array.isArray(s.journal))s.journal=[];
-    if(!Array.isArray(s.events))s.events=[];
-    return s;
-  }catch(e){return {...DEF,creatures:[],cast:[],journal:[],events:[]}}
-}
-// Reference photos are base64 in localStorage, so the ~5MB quota is reachable.
-// A throw here used to bubble out of summon() and leave the button disabled
-// forever — fail loudly but keep the app usable instead.
-function save(s){
-  try{localStorage.setItem(DB,JSON.stringify(s));return true}
-  catch(err){
-    console.warn('[DreamRushes] save failed:',err);
-    toast("⚠ Storage full — delete old entries or reference photos.");
-    return false;
-  }
-}
-let state=load();
-
-/* ---------- gemeinsame Helfer ---------- */
-function toast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2600)}
-function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 /* ---------- Traumsymbole ----------
  *
@@ -64,7 +23,7 @@ function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'
  * `meaning` ist eine gängige Lesart zur Selbstbeobachtung, keine Diagnose.
  * Die Seite sagt das auch so.
  */
-const SYMBOL_CATEGORIES = {
+export const SYMBOL_CATEGORIES = {
   place:    { label: "Places",    emoji: "🏞" },
   scenario: { label: "Scenarios", emoji: "🎬" },
   creature: { label: "Creatures", emoji: "🐾" },
@@ -72,7 +31,7 @@ const SYMBOL_CATEGORIES = {
   emotion:  { label: "Feelings",  emoji: "💗" },
 };
 
-const SYMBOLS = [
+export const SYMBOLS = [
   // — Orte —
   { id:'water', label:'Water', emoji:'🌊', category:'place',
     keywords:['water','ocean','sea','beach','shore','wave','waves','tide','river','lake','swim','swimming','drown','drowning','flood','flooding','rain','raining'],
@@ -159,7 +118,7 @@ const SYMBOL_RE = new Map(SYMBOLS.map(s => {
 }));
 
 /** Alle Symbol-IDs, die in einem Traumtext vorkommen. */
-function detectSymbols(text){
+export function detectSymbols(text){
   // Typografische Apostrophe angleichen, sonst verfehlt "can't find" ein
   // "can’t find" aus der Zwischenablage.
   const t = String(text||'').toLowerCase().replace(/[‘’ʼ]/g, "'");
@@ -170,7 +129,7 @@ function detectSymbols(text){
 }
 
 /** Map<symbolId, [{entryId, createdAt, title, text}]> — aus dem Tagebuch abgeleitet. */
-function symbolOccurrences(journal){
+export function symbolOccurrences(journal){
   const out = new Map();
   for(const entry of (journal||[])){
     for(const id of detectSymbols(entry.text)){
@@ -183,7 +142,7 @@ function symbolOccurrences(journal){
   return out;
 }
 
-function symbolById(id){ return SYMBOLS.find(s => s.id===id) || null; }
+export function symbolById(id){ return SYMBOLS.find(s => s.id===id) || null; }
 
 // Ereignisdaten sind reine Kalendertage ('2026-08-01'). `new Date()` liest die
 // als UTC-Mitternacht — Traumzeitstempel sind dagegen echte Zeitpunkte. In
@@ -200,7 +159,7 @@ function localDayEnd(ymd){
 }
 
 /** Träume, die in den Zeitraum eines Lebensereignisses fallen. */
-function dreamsDuringEvent(journal, event){
+export function dreamsDuringEvent(journal, event){
   if(!event || !event.startsAt) return [];
   const from = localDayStart(event.startsAt);
   const to = event.endsAt ? localDayEnd(event.endsAt) : Date.now();
@@ -208,53 +167,4 @@ function dreamsDuringEvent(journal, event){
     const t = new Date(e.createdAt).getTime();
     return t >= from && t <= to;
   }).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
-}
-
-/* ---------- Foto-Tags ----------
- *
- * Ein Foto in der Bibliothek trägt einen selbst vergebenen Tag ("anna",
- * "island"). Nennt der Traumtext diesen Tag, wird das Foto als benannte
- * Referenz an die Bildgenerierung übergeben.
- *
- * Wortgrenzen sind Pflicht: "anna" darf nicht in "annals" anschlagen und
- * "ex" nicht in "exam". Gleiche Logik wie bei der Symbolerkennung.
- *
- * Anmerkung für den Merge: Anton hat auf seinem Branch eine gleichnamige
- * Funktion direkt in index.html. Beim Zusammenführen bleibt diese hier
- * (beide Seiten brauchen sie), seine Kopie entfällt.
- */
-function mentionsTag(text, tag){
-  if(!tag) return false;
-  const esc = String(tag).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  return new RegExp(`(^|[^a-z0-9])${esc}([^a-z0-9]|$)`,'i').test(String(text||''));
-}
-
-/** Alle Bibliothek-Einträge, die der Text namentlich nennt (inkl. @me). */
-function taggedPhotosIn(text){
-  const out = [];
-  if(state.me && state.me.img && mentionsTag(text,'me')) out.push({tag:'me',category:'person',img:state.me.img});
-  for(const p of (state.cast||[])) if(p.img && mentionsTag(text,p.tag)) out.push(p);
-  return out;
-}
-
-/** Fundstellen eines Tags im Text: [{start,end,tag}], für die Hervorhebung. */
-function findTagSpans(text, tags){
-  const spans = [];
-  for(const tag of tags){
-    if(!tag) continue;
-    const esc = String(tag).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-    const re = new RegExp(`(^|[^a-z0-9])(${esc})([^a-z0-9]|$)`,'gi');
-    let m;
-    while((m = re.exec(String(text||''))) !== null){
-      const start = m.index + m[1].length;
-      spans.push({start, end: start + m[2].length, tag});
-      re.lastIndex = start + m[2].length;   // Überlappungen zulassen
-    }
-  }
-  // nach Position sortieren, Überschneidungen verwerfen (längster Treffer gewinnt)
-  spans.sort((a,b)=> a.start - b.start || (b.end-b.start) - (a.end-a.start));
-  const clean = [];
-  let last = -1;
-  for(const s of spans){ if(s.start >= last){ clean.push(s); last = s.end; } }
-  return clean;
 }
