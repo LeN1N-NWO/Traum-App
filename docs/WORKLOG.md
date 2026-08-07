@@ -3,6 +3,34 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 23:00 — Anton — Branch `claude/new-session-x9qv1w` — Sitzungsabschluss
+
+**Commits dieser Sitzung** (die inhaltlichen Einträge darunter, 14:20 bis
+22:15, beschreiben das Was und Warum — hier die Hashes dazu):
+
+- `7134dcf` fal.ai/DeepSeek live verifiziert, dev-Launch-Config
+- `13c51da` main gemergt (Hannis Foto-Bibliothek), STAND-Konflikt von Hand
+- `43dface` `d0e03be` Spec + ADR-0004 + Implementierungsplan Phase 1
+- `62b0bc8` … `456ed4e` Phase 1: Vite/React, dist/-Auslieferung, Tokens,
+  Speicher/Symbole/Tags als getestete Module, Shell, alle Screens, legacy weg
+- `42110f5` Singular „1 Tag"
+- `f9df654` Oberfläche zurück auf Englisch, verlorene Funktionen zurück
+- `dcc6547` `b45a843` Spec-Ergänzungen; Modellnamen raus aus der UI
+- `04a97f2` `8bba1be` der Wizard; Analyse-Code aus dem Hygiene-Block
+- `72971dd` Tagebuch-Menü, /api/refine, Teilen, Credits zählen
+- `cce65e5` Sprachtrennung im Analyse-Schema, Bildanzahl → Schritt 5, Slideshow
+- `ae12ce8` **Referenzbild-Fix** (edit-Endpunkt), Diktat-Verständnis, Pfeile
+
+**Zustand bei Abschluss:** Build grün, 50 Unit-Tests grün, 33
+Freigabe-Prüfungen grün, Prompt-Hygiene grün. PR #7 offen (kein Entwurf),
+Merge-Entscheidung liegt beim Produktbesitzer. Kein separater Worktree
+angelegt — gearbeitet wurde direkt im Projektordner auf diesem Branch.
+`npm run lint` existiert weiterhin nicht (bekannte Baustelle).
+
+**Was der Nächste zuerst liest:** `docs/STAND.md` (Stand 22:15 ist aktuell),
+dann den 22:15-Eintrag hier — die fal.ai-Lehre („200 heißt nicht, dass der
+Parameter ankam") betrifft jeden, der API-Parameter anschließt.
+
 ## 2026-08-07 22:15 — Anton — Branch `claude/new-session-x9qv1w`
 
 **Was:** Der Referenzbild-Fehler ist gefunden und behoben, dazu zwei
