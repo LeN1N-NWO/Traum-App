@@ -6,97 +6,114 @@
 <title>Dream Rushes — Turn your dreams into films</title>
 <style>
   :root{
-    --bg:#07060d; --bg2:#0d0b1a; --panel:rgba(255,255,255,.045); --panel-line:rgba(255,255,255,.10);
-    --text:#f2f0ff; --muted:#9d98c4; --violet:#8b5cf6; --pink:#ec4899; --cyan:#22d3ee;
-    --gold:#fbbf24; --ok:#34d399; --radius:20px;
+    /* Wärmere violette Nacht statt kühlem Fast-Schwarz — Antons Mond und
+       Sternenstaub bleiben, der Himmel darum wird weicher. */
+    --bg:#0b0718; --bg2:#150f30; --sky:#2a1d5e;
+    --panel:rgba(255,255,255,.05); --panel-line:rgba(255,255,255,.11);
+    /* --faint war #736c99 und fiel überall durch WCAG AA (bis auf 2,63:1 in der
+       Kapsel) — betroffen war unter anderem der Datenschutzhinweis. Gemessen
+       aufgehellt: jetzt 4,79–5,81:1 auf allen realen Untergründen. */
+    --text:#f4f1ff; --muted:#a9a2cd; --faint:#8d85b4;
+    --violet:#8b5cf6; --violet-soft:#a78bfa; --violet-deep:#6d3fe0;
+    --pink:#ec4899; --cyan:#22d3ee; --gold:#fbbf24; --ok:#34d399;
+    --radius:20px; --radius-lg:26px;
+    /* Typo-Skala — vorher wuchs jede Größe für sich */
+    --t-hero:clamp(30px,7vw,48px); --t-h2:22px; --t-h3:16px;
+    --t-body:15px; --t-small:13px; --t-micro:11px;
     --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
-    --mono:"SF Mono",ui-monospace,Menlo,monospace;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
   body{
-    background:radial-gradient(120% 80% at 50% -10%, #1a1140 0%, var(--bg2) 45%, var(--bg) 100%);
-    color:var(--text);font-family:var(--sans);line-height:1.5;min-height:100vh;overflow-x:hidden;
+    background:radial-gradient(125% 85% at 50% -12%, var(--sky) 0%, var(--bg2) 42%, var(--bg) 100%);
+    background-attachment:fixed;
+    color:var(--text);font-family:var(--sans);line-height:1.6;min-height:100vh;overflow-x:hidden;
   }
-  /* floating dust */
+  /* Sternenstaub — leiser als vorher, er soll nicht mit dem Inhalt konkurrieren */
   .dust{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
   .dust i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;opacity:.0;
     animation:float linear infinite}
   @keyframes float{0%{transform:translateY(100vh) scale(0);opacity:0}
-    10%{opacity:.5}90%{opacity:.4}100%{transform:translateY(-10vh) scale(1);opacity:0}}
-  .wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:22px 18px 120px}
+    10%{opacity:.28}90%{opacity:.2}100%{transform:translateY(-10vh) scale(1);opacity:0}}
+  @media (prefers-reduced-motion:reduce){.dust{display:none}}
+  .wrap{position:relative;z-index:1;max-width:680px;margin:0 auto;padding:22px 20px 120px}
 
-  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
-  .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:19px;letter-spacing:-.02em}
-  .moon{width:32px;height:32px;border-radius:50%;
-    background:radial-gradient(circle at 35% 30%,#fff 0%,#d8c7ff 30%,#8b5cf6 75%,#5b21b6 100%);
-    box-shadow:0 0 26px rgba(139,92,246,.7)}
-  .streak{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;
-    background:var(--panel);border:1px solid var(--panel-line);padding:7px 13px;border-radius:999px}
-  .streak .fire{filter:drop-shadow(0 0 6px rgba(251,191,36,.8))}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;flex-wrap:wrap}
+  .hdr-actions{display:flex;gap:8px;align-items:center;margin-left:auto}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:600;font-size:17px;letter-spacing:-.01em}
+  a.streak{text-decoration:none;color:var(--muted)}
+  a.streak:hover{color:var(--text);border-color:rgba(167,139,250,.4)}
+  .moon{width:30px;height:30px;border-radius:50%;flex:0 0 30px;
+    background:radial-gradient(circle at 35% 30%,#fff 0%,#e2d6ff 32%,var(--violet) 76%,#5b21b6 100%);
+    box-shadow:0 0 22px rgba(139,92,246,.55)}
+  .streak{display:flex;align-items:center;gap:7px;font-size:var(--t-small);font-weight:500;color:var(--muted);
+    background:var(--panel);border:1px solid var(--panel-line);padding:7px 13px;border-radius:999px;white-space:nowrap}
+  .streak .fire{filter:drop-shadow(0 0 5px rgba(251,191,36,.55))}
 
-  /* HERO */
-  .hero{text-align:center;padding:26px 0 10px}
-  .kicker{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--violet);font-weight:700;margin-bottom:16px}
-  h1{font-size:clamp(34px,8vw,60px);line-height:1.02;letter-spacing:-.035em;margin:0 0 16px;font-weight:800}
-  h1 .g{background:linear-gradient(120deg,var(--cyan),var(--violet) 45%,var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
-  .lede{color:var(--muted);font-size:18px;max-width:520px;margin:0 auto 4px}
+  /* HERO — ruhiger: ein Farbton statt Neon-Verlauf, weniger Gewicht */
+  .hero{text-align:center;padding:34px 0 6px}
+  .kicker{font-size:var(--t-micro);letter-spacing:.2em;text-transform:uppercase;color:var(--violet-soft);font-weight:600;margin-bottom:14px;opacity:.85}
+  h1{font-size:var(--t-hero);line-height:1.08;letter-spacing:-.03em;margin:0 0 14px;font-weight:600}
+  h1 .g{color:var(--violet-soft)}
+  .lede{color:var(--muted);font-size:var(--t-body);max-width:420px;margin:0 auto}
 
-  /* DREAM INPUT */
-  .capsule{margin:30px auto 0;max-width:600px;background:var(--panel);
-    border:1px solid var(--panel-line);border-radius:var(--radius);
-    padding:22px;backdrop-filter:blur(14px);box-shadow:0 30px 80px -30px rgba(88,28,135,.7)}
-  .cap-label{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
-  textarea#dream{width:100%;min-height:96px;background:rgba(0,0,0,.28);border:1px solid var(--panel-line);
-    border-radius:14px;color:var(--text);padding:14px 15px;font-size:16px;font-family:var(--sans);resize:vertical;line-height:1.55}
-  textarea#dream:focus{outline:none;border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,92,246,.25)}
-  textarea#dream::placeholder{color:#6f6a97}
-  .cap-actions{display:flex;gap:12px;margin-top:14px;align-items:center}
-  .mic{width:52px;height:52px;flex:0 0 52px;border-radius:50%;border:1px solid var(--panel-line);
-    background:rgba(255,255,255,.06);color:var(--text);font-size:22px;cursor:pointer;display:grid;place-items:center;transition:.2s}
-  .mic:hover{border-color:var(--pink)}
-  .mic.rec{background:var(--pink);border-color:var(--pink);animation:pulse 1.1s ease-in-out infinite}
-  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(236,72,153,.55)}50%{box-shadow:0 0 0 14px rgba(236,72,153,0)}}
-  .summon{flex:1;height:52px;border:none;border-radius:14px;cursor:pointer;font-size:16px;font-weight:700;color:#0a0714;
-    background:linear-gradient(120deg,var(--cyan),var(--violet) 50%,var(--pink));letter-spacing:-.01em;
-    box-shadow:0 12px 30px -10px rgba(139,92,246,.8);transition:.15s}
+  /* DREAM INPUT — dunkle Karte auf hellerem Himmel (Moonly). Aufhellen hätte
+     hier den Text unlesbar gemacht: die Kapsel sitzt am oberen Verlaufsende. */
+  .capsule{margin:26px auto 0;background:rgba(11,7,24,.55);
+    border:1px solid var(--panel-line);border-radius:var(--radius-lg);
+    padding:20px;backdrop-filter:blur(14px);box-shadow:0 26px 70px -34px rgba(60,20,120,.85)}
+  .cap-label{font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.12em;color:var(--faint);font-weight:600;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+  textarea#dream{width:100%;min-height:104px;background:rgba(0,0,0,.24);border:1px solid var(--panel-line);
+    border-radius:16px;color:var(--text);padding:14px 15px;font-size:16px;font-family:var(--sans);resize:vertical;line-height:1.6}
+  textarea#dream:focus{outline:none;border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,92,246,.2)}
+  textarea#dream::placeholder{color:var(--faint)}
+  .cap-actions{display:flex;gap:12px;margin-top:12px;align-items:center}
+  .mic{width:48px;height:48px;flex:0 0 48px;border-radius:50%;border:1px solid var(--panel-line);
+    background:rgba(255,255,255,.05);color:var(--muted);font-size:20px;cursor:pointer;display:grid;place-items:center;transition:.2s}
+  .mic:hover{border-color:var(--violet-soft);color:var(--text)}
+  .mic.rec{background:var(--violet);border-color:var(--violet);color:#fff;animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(139,92,246,.5)}50%{box-shadow:0 0 0 13px rgba(139,92,246,0)}}
+  /* Ein klarer Hauptknopf, volle Breite, am Ende des Formulars (Moonly) */
+  .summon{width:100%;height:54px;border:none;border-radius:16px;cursor:pointer;font-size:16px;font-weight:600;color:#fff;
+    background:linear-gradient(160deg,var(--violet-soft),var(--violet) 45%,var(--violet-deep));letter-spacing:-.01em;
+    box-shadow:0 14px 34px -14px rgba(139,92,246,.85);transition:.15s;margin-top:20px;
+    display:flex;align-items:center;justify-content:center;gap:10px}
+  .summon:hover{filter:brightness(1.06)}
   .summon:active{transform:translateY(1px)}
-  .summon:disabled{opacity:.55;cursor:progress}
-  .hint{font-size:12px;color:#6f6a97;margin-top:10px;text-align:center}
+  .summon:disabled{opacity:.7;cursor:progress;filter:none}
+  .summon .spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.35);
+    border-top-color:#fff;animation:spin .9s linear infinite;display:none}
+  .summon:disabled .spin{display:block}
+  .hint{font-size:var(--t-micro);color:var(--faint);margin-top:12px;text-align:center;line-height:1.5}
+  .hint-inline{margin:0;text-align:left;flex:1}
 
-  /* --- variant controls --- */
-  .ctl{margin-top:18px}
-  .ctl-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:7px}
-  .seg{display:flex;gap:6px;background:rgba(0,0,0,.28);border:1px solid var(--panel-line);border-radius:12px;padding:5px}
-  .seg button{flex:1;border:none;background:transparent;color:var(--muted);font-size:13.5px;font-weight:600;padding:10px 8px;border-radius:8px;cursor:pointer;transition:.15s;font-family:var(--sans);line-height:1.25}
-  .seg button small{display:block;font-weight:500;font-size:10.5px;opacity:.7;margin-top:2px}
-  .seg button[aria-pressed="true"]{background:linear-gradient(120deg,rgba(34,211,238,.9),rgba(139,92,246,.9));color:#0a0714}
-  .seg button[aria-pressed="true"] small{opacity:.85}
+  /* --- variant controls: leiser, nummerierte ①②③-Schilder sind weg --- */
+  .ctl{margin-top:20px}
+  .ctl-lbl{font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.12em;color:var(--faint);font-weight:600;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+  .seg{display:flex;gap:5px;background:rgba(0,0,0,.24);border:1px solid var(--panel-line);border-radius:14px;padding:5px}
+  .seg button{flex:1;border:none;background:transparent;color:var(--muted);font-size:var(--t-small);font-weight:500;padding:10px 8px;border-radius:10px;cursor:pointer;transition:.15s;font-family:var(--sans);line-height:1.3}
+  .seg button small{display:block;font-weight:400;font-size:10.5px;opacity:.65;margin-top:2px}
+  .seg button[aria-pressed="true"]{background:rgba(139,92,246,.22);color:var(--text);box-shadow:inset 0 0 0 1px rgba(167,139,250,.45)}
+  .seg button[aria-pressed="true"] small{opacity:.75}
   /* cast */
   .cast{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
-  .face{width:58px;text-align:center;position:relative}
-  .face .av{width:58px;height:58px;border-radius:14px;object-fit:cover;border:1px solid var(--panel-line);background:#1a1533;display:grid;place-items:center;font-size:22px;color:var(--muted)}
-  .face.me .av{border-color:var(--violet);box-shadow:0 0 0 2px rgba(139,92,246,.35)}
-  .face .tag{font-size:10.5px;color:var(--muted);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .face .rm{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#1a1533;border:1px solid var(--panel-line);color:var(--pink);font-size:11px;line-height:1;cursor:pointer;display:none}
+  .face{width:56px;text-align:center;position:relative}
+  .face .av{width:56px;height:56px;border-radius:16px;object-fit:cover;border:1px solid var(--panel-line);background:rgba(255,255,255,.04);display:grid;place-items:center;font-size:21px;color:var(--muted)}
+  .face.me .av{border-color:rgba(167,139,250,.5)}
+  .face .tag{font-size:10.5px;color:var(--faint);margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .face .rm{position:absolute;top:-6px;right:-6px;width:19px;height:19px;border-radius:50%;background:#241c47;border:1px solid var(--panel-line);color:var(--muted);font-size:11px;line-height:1;cursor:pointer;display:none}
+  .face .rm:hover{color:var(--pink)}
   .face:hover .rm{display:block}
   .face.add .av{cursor:pointer;border-style:dashed}
-  .face.add .av:hover{border-color:var(--cyan);color:var(--cyan)}
-  .addmenu{position:absolute;top:64px;left:0;z-index:20;display:flex;gap:4px;background:#1a1533;
-    border:1px solid var(--panel-line);border-radius:10px;padding:5px;box-shadow:0 14px 34px -14px #000}
-  .addmenu button{border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:600;
-    padding:7px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;font-family:var(--sans)}
+  .face.add .av:hover{border-color:var(--violet-soft);color:var(--violet-soft)}
+  .addmenu{position:absolute;top:62px;left:0;z-index:20;display:flex;gap:4px;background:#241c47;
+    border:1px solid var(--panel-line);border-radius:12px;padding:5px;box-shadow:0 14px 34px -14px #000}
+  .addmenu button{border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:500;
+    padding:7px 9px;border-radius:8px;cursor:pointer;white-space:nowrap;font-family:var(--sans)}
   .addmenu button:hover{background:rgba(255,255,255,.08);color:var(--text)}
   .soul{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.2);border:1px solid var(--panel-line);border-radius:12px;padding:11px 13px;font-size:13px;color:var(--muted)}
   .soul b{color:var(--text)}
   .soul .badge{margin-left:auto;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--gold);border:1px solid rgba(251,191,36,.4);padding:3px 8px;border-radius:999px}
-  /* sequence filmstrip */
-  .strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;height:100%}
-  .strip figure{margin:0;position:relative;overflow:hidden;border-radius:8px;background:#000}
-  .strip img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .5s}
-  .strip figure .fn{position:absolute;left:5px;bottom:4px;font-size:9px;color:#fff;opacity:.75;text-shadow:0 1px 3px #000}
-  .strip.big{grid-auto-flow:row;grid-template-columns:repeat(2,1fr);grid-auto-rows:1fr}
-
   /* STAGE (result) */
   .stage{max-width:600px;margin:26px auto 0;display:none}
   .stage.on{display:block;animation:rise .6s cubic-bezier(.2,.8,.2,1)}
@@ -104,6 +121,9 @@
   .film{position:relative;border-radius:var(--radius);overflow:hidden;border:1px solid var(--panel-line);
     background:#000;aspect-ratio:9/16;max-height:70vh;margin:0 auto;box-shadow:0 40px 90px -30px rgba(0,0,0,.9)}
   .film video{width:100%;height:100%;object-fit:cover;display:block}
+  /* Bildstreifen wischt man, die Leiste stört nur */
+  .film>div{scrollbar-width:none}
+  .film ::-webkit-scrollbar{display:none}
   .film .loading{position:absolute;inset:0;display:grid;place-items:center;text-align:center;gap:14px;padding:24px}
   .spinner{width:46px;height:46px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:var(--violet);animation:spin 1s linear infinite;margin:0 auto}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -122,38 +142,55 @@
   .cr-stats{display:flex;gap:14px;margin-top:9px;font-size:12px;color:var(--muted)}
   .cr-stats b{color:var(--text)}
 
-  /* MENAGERIE */
-  .menagerie{max-width:900px;margin:56px auto 0}
-  .sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
-  .sec-head h2{font-size:24px;letter-spacing:-.02em;margin:0;font-weight:800}
-  .sec-head .count{color:var(--muted);font-size:13px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
-  .card{border:1px solid var(--panel-line);border-radius:16px;padding:16px 14px;text-align:center;
+  /* MENAGERIE — bewusst zurückgenommen: das Tagebuch führt, die Sammlung begleitet */
+  .menagerie{margin:64px auto 0}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px;gap:12px}
+  .sec-head h2{font-size:var(--t-h2);letter-spacing:-.02em;margin:0;font-weight:500}
+  .sec-head .count{color:var(--faint);font-size:var(--t-small);white-space:nowrap}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:12px}
+  .card{border:1px solid var(--panel-line);border-radius:18px;padding:15px 12px;text-align:center;
     background:var(--panel);backdrop-filter:blur(8px);transition:.18s;cursor:default;position:relative;overflow:hidden}
-  .card:hover{transform:translateY(-3px);border-color:var(--violet)}
-  .card .e{font-size:38px}
-  .card .n{font-weight:700;font-size:14px;margin-top:6px;letter-spacing:-.01em}
-  .card .r{font-size:10px;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-top:4px}
-  .card .d{font-size:11px;color:#6f6a97;margin-top:6px}
-  .empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 20px;border:1px dashed var(--panel-line);border-radius:16px}
+  .card:hover{border-color:rgba(167,139,250,.4)}
+  .card .e{font-size:30px;line-height:1.2}
+  .card .n{font-weight:500;font-size:var(--t-small);margin-top:7px;letter-spacing:-.01em}
+  .card .r{font-size:9.5px;text-transform:uppercase;letter-spacing:.13em;font-weight:600;margin-top:4px;opacity:.85}
+  .card .d{font-size:10.5px;color:var(--faint);margin-top:5px}
+  .empty{grid-column:1/-1;text-align:center;color:var(--faint);font-size:var(--t-small);padding:38px 20px;
+    border:1px dashed var(--panel-line);border-radius:var(--radius);line-height:1.6}
   .rare-common{color:#9ca3af}.rare-uncommon{color:var(--ok)}.rare-rare{color:var(--cyan)}
   .rare-epic{color:var(--violet)}.rare-legendary{color:var(--gold)}
 
-  /* ===== JOURNAL ===== */
-  .journal{max-width:900px;margin:56px auto 0}
-  .jgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
-  .jcard{border:1px solid var(--panel-line);border-radius:16px;padding:14px;text-align:left;
-    background:var(--panel);backdrop-filter:blur(8px);transition:.18s;cursor:pointer;position:relative;overflow:hidden}
-  .jcard:hover{transform:translateY(-3px);border-color:var(--violet)}
-  .jcard .jthumb{width:100%;aspect-ratio:16/10;border-radius:10px;object-fit:cover;background:#000;display:block;margin-bottom:10px}
-  .jcard .jbadge{position:absolute;top:22px;right:22px;font-size:15px;text-shadow:0 1px 4px #000}
-  .jcard .jtitle{font-weight:700;font-size:14.5px;letter-spacing:-.01em}
-  .jcard .jtext{font-size:12px;color:var(--muted);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .jcard .jdate{font-size:11px;color:#6f6a97;margin-top:8px}
-  .jcard .jdemo{color:var(--gold);font-weight:600}
-  .jcard .rm{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:#1a1533;
-    border:1px solid var(--panel-line);color:var(--pink);font-size:12px;line-height:1;cursor:pointer;display:none;z-index:2}
-  .jcard:hover .rm{display:block}
+  /* ===== JOURNAL =====
+     Vollbreite Einträge statt Kachel-Grid: Titel links, Datum als Anker rechts,
+     das Bild darunter über die volle Breite. Der Traumtext steht — wie der
+     Prompt bei Canva — direkt beim Bild, nicht in einer Fußzeile. */
+  .journal{margin:64px auto 0}
+  .jlist{display:flex;flex-direction:column;gap:38px}
+  .jcard{position:relative;cursor:pointer;transition:opacity .18s}
+  .jcard:hover{opacity:.92}
+  .jhead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
+  .jcard .jtitle{font-size:17px;font-weight:500;letter-spacing:-.01em;line-height:1.35;flex:1;min-width:0}
+  .jdate{text-align:right;flex:0 0 auto;line-height:1}
+  .jdate .m{display:block;font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.14em;color:var(--faint);margin-bottom:3px}
+  .jdate .d{display:block;font-size:38px;font-weight:200;letter-spacing:-.03em;color:var(--muted);font-variant-numeric:tabular-nums}
+  .jmedia{position:relative;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--panel-line);
+    background:linear-gradient(150deg,rgba(139,92,246,.3),rgba(35,25,80,.6))}
+  .jcard .jthumb{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+  .jcard .jbadge{position:absolute;top:12px;right:12px;font-size:13px;line-height:1;
+    background:rgba(11,7,24,.55);backdrop-filter:blur(6px);padding:6px 8px;border-radius:999px;pointer-events:none}
+  .jcard .jtext{font-size:var(--t-small);color:var(--muted);margin-top:12px;line-height:1.6;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .jcard .jmeta{font-size:var(--t-micro);color:var(--faint);margin-top:7px}
+  .jcard .jdemo{color:var(--gold)}
+  /* im Bild oben links — oben rechts sitzt das Modus-Abzeichen, rechts daneben das Datum */
+  .jcard .rm{position:absolute;top:12px;left:12px;width:28px;height:28px;border-radius:50%;
+    background:rgba(11,7,24,.6);backdrop-filter:blur(6px);border:1px solid var(--panel-line);
+    color:var(--muted);font-size:12px;line-height:1;cursor:pointer;display:none;z-index:2;
+    font-family:var(--sans);padding:0}
+  .jcard .rm:hover{color:var(--pink)}
+  /* auch bei Tastaturfokus sichtbar — sonst wäre er per Tab unerreichbar */
+  .jcard:hover .rm,.jcard .rm:focus-visible{display:block}
+  .jcard:focus-visible{outline:2px solid var(--violet-soft);outline-offset:6px;border-radius:8px}
   .jmodal{position:fixed;inset:0;z-index:80;display:none;background:rgba(5,4,10,.75);backdrop-filter:blur(6px);
     padding:24px;overflow-y:auto}
   .jmodal.on{display:block}
@@ -165,22 +202,37 @@
   .jmodal .jm-text{margin-top:16px;color:var(--text);font-size:14.5px;line-height:1.6;white-space:pre-wrap}
   .jmodal .jm-meta{color:var(--muted);font-size:12.5px;margin-top:10px}
 
-  /* ===== LUCID GUIDE ===== */
-  .guide{max-width:760px;margin:56px auto 0}
-  .guide .lede{max-width:none;text-align:left;margin:0 0 22px}
-  .guide h3{font-size:16.5px;margin:26px 0 8px;letter-spacing:-.01em}
-  .guide p,.guide li{color:var(--muted);font-size:14px;line-height:1.65}
+  /* ===== LUCID GUIDE — editorialer, mehr Luft ===== */
+  .guide{margin:64px auto 0}
+  .guide .lede{max-width:none;text-align:left;margin:0 0 26px;font-size:var(--t-body)}
+  .guide h3{font-size:var(--t-h3);margin:34px 0 10px;letter-spacing:-.01em;font-weight:500}
+  .guide p,.guide li{color:var(--muted);font-size:var(--t-body);line-height:1.75}
   .guide ol,.guide ul{margin:0;padding-left:20px}
-  .guide .jgrid{margin-top:4px}
-  .guide .card{text-align:left;padding:14px 16px}
-  .guide .card .n{margin-top:0}
+  .guide li{margin-bottom:8px}
+  .guide li::marker{color:var(--faint)}
+  .guide-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:6px}
+  .guide .card{text-align:left;padding:15px 17px;cursor:default}
+  .guide .card .n{margin-top:0;font-size:var(--t-small);font-weight:600}
+  .guide .card .d{color:var(--muted);font-size:12.5px;margin-top:6px;line-height:1.6}
 
-  footer{margin-top:60px;text-align:center;color:#5a5578;font-size:12px}
+  footer{margin-top:72px;text-align:center;color:var(--faint);font-size:var(--t-micro);opacity:.8}
+
+  /* Handy: der Kopf lief sonst über und erzwang seitliches Scrollen */
+  @media (max-width:460px){
+    .wrap{padding:18px 16px 100px}
+    .brand{font-size:15px}
+    .moon{width:26px;height:26px;flex-basis:26px}
+    .streak{padding:6px 11px;font-size:12px}
+    .streak .lbl{display:none}
+    .hero{padding:26px 0 4px}
+    .jdate .d{font-size:32px}
+    .jlist{gap:32px}
+  }
 
   /* toast */
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(120px);
-    background:#1a1533;border:1px solid var(--panel-line);padding:12px 18px;border-radius:12px;font-size:14px;
-    z-index:60;transition:.35s cubic-bezier(.2,.9,.2,1);box-shadow:0 20px 50px -20px #000}
+    background:#241c47;border:1px solid var(--panel-line);padding:12px 18px;border-radius:14px;font-size:var(--t-small);
+    z-index:60;transition:.35s cubic-bezier(.2,.9,.2,1);box-shadow:0 20px 50px -20px #000;max-width:90vw;text-align:center}
   .toast.on{transform:translateX(-50%) translateY(0)}
 </style>
 </head>
@@ -189,16 +241,16 @@
 <div class="wrap">
   <header>
     <div class="brand"><div class="moon"></div> Dream&nbsp;Rushes</div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <a class="streak" href="#guide" style="text-decoration:none;color:inherit">🌙 Lucid Guide</a>
-      <div class="streak"><span class="fire">🔥</span> <span id="streakN">0</span>-day streak</div>
+    <div class="hdr-actions">
+      <a class="streak" href="#guide">🌙&nbsp;<span class="lbl">Lucid </span>Guide</a>
+      <div class="streak"><span class="fire">🔥</span>&nbsp;<span id="streakN">0</span><span class="lbl">-day streak</span></div>
     </div>
   </header>
 
   <section class="hero">
     <div class="kicker">Your subconscious, directed</div>
     <h1>Record your dream.<br><span class="g">Get a film.</span></h1>
-    <p class="lede">Tell it while it's still warm. We turn the fog in your head into a cinematic photo-story — or a 15-second film — with your own face in it, and a creature for your menagerie.</p>
+    <p class="lede">Tell it while it's still warm — half-asleep works best.</p>
   </section>
 
   <div class="capsule">
@@ -206,12 +258,11 @@
     <textarea id="dream" placeholder="…I was falling backward through a city that turned into water, and the streetlights became jellyfish…"></textarea>
     <div class="cap-actions">
       <button class="mic" id="mic" title="Speak your dream">🎙</button>
-      <button class="summon" id="summon">✦ Summon the dream</button>
+      <p class="hint hint-inline">Your dream text and any photos you attach are sent to Higgsfield to render it; your journal and menagerie stay on this device.</p>
     </div>
-    <div class="hint">Speak it out loud — half-asleep works best. Your dream text and any photos you attach are sent to Higgsfield to render it; your journal and menagerie stay on this device.</div>
 
     <div class="ctl">
-      <div class="ctl-lbl">① How should the dream come out?</div>
+      <div class="ctl-lbl">How should it come out?</div>
       <div class="seg" id="modeSeg">
         <button data-mode="sequence" aria-pressed="true">🖼 Photo story<small>10 frames · Nano Banana</small></button>
         <button data-mode="film" aria-pressed="false">🎬 Film<small>15s clip · Seedance</small></button>
@@ -219,13 +270,13 @@
     </div>
 
     <div class="ctl">
-      <div class="ctl-lbl">② Who &amp; what's in it? <span style="font-weight:500;text-transform:none;letter-spacing:0;opacity:.7">— people, pets and places from your life</span></div>
+      <div class="ctl-lbl">Who &amp; what's in it? <span style="font-weight:400;text-transform:none;letter-spacing:0">— people, pets, places</span></div>
       <div class="cast" id="cast"></div>
       <input type="file" id="facePick" accept="image/*" hidden>
     </div>
 
     <div class="ctl">
-      <div class="ctl-lbl">③ Face consistency</div>
+      <div class="ctl-lbl">Face consistency</div>
       <div class="seg" id="consSeg" style="margin-bottom:10px">
         <button data-cons="standard" aria-pressed="true">Standard<small>reference photo per frame</small></button>
         <button data-cons="soul" aria-pressed="false">Soul-ID ✦<small>trained face · strongest</small></button>
@@ -235,6 +286,8 @@
         <span class="badge">Pro</span>
       </div>
     </div>
+
+    <button class="summon" id="summon"><span class="spin"></span><span>✦ Summon the dream</span></button>
   </div>
 
   <div class="stage" id="stage">
@@ -266,7 +319,7 @@
       <h2>Your Dream Journal</h2>
       <div class="count" id="jouCount">0 entries</div>
     </div>
-    <div class="jgrid" id="jouGrid"></div>
+    <div class="jlist" id="jouGrid"></div>
   </section>
 
   <section class="menagerie">
@@ -285,7 +338,7 @@
     <p class="lede">A few habits that make it more likely you'll notice you're dreaming — while you're still in it. Your <a href="#" onclick="document.querySelector('.journal').scrollIntoView({behavior:'smooth'});return false;" style="color:var(--cyan)">Dream Journal</a> above is the single best tool for this: the more you reread your dreams, the more their recurring signs jump out at you while you're dreaming.</p>
 
     <h3>Reality checks</h3>
-    <div class="jgrid">
+    <div class="guide-grid">
       <div class="card"><div class="n">🖐 Hands &amp; fingers</div><div class="d">Look at your hands. In dreams, fingers often look wrong, blurry, or the wrong count.</div></div>
       <div class="card"><div class="n">🔢 Re-read text</div><div class="d">Read a sentence, look away, read it again. Text usually changes or turns to nonsense in a dream.</div></div>
       <div class="card"><div class="n">💡 Light switches</div><div class="d">Flip a switch. Lighting rarely responds correctly in dreams.</div></div>
@@ -423,22 +476,28 @@ function renderJournal(){
   g.innerHTML=state.journal.slice().reverse().map(e=>{
     const thumb=e.media&&e.media.urls&&e.media.urls[0];
     const badge=e.mode==='film'?'🎬':'🖼';
-    const date=new Date(e.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    const d=new Date(e.createdAt);
+    const month=d.toLocaleDateString('en-GB',{month:'short'});
+    const day=d.toLocaleDateString('en-GB',{day:'2-digit'});
+    const year=d.getFullYear()!==new Date().getFullYear()?` ${d.getFullYear()}`:'';
     // preload=metadata: a poster frame is enough, don't pull whole clips per card
     const thumbTag=thumb?(e.media.type==='video'
       ?`<video class="jthumb" src="${escapeHtml(thumb)}" muted preload="metadata"></video>`
       :`<img class="jthumb" loading="lazy" src="${escapeHtml(thumb)}">`):'';
     // Demo runs show stock showcase media, not this dream — say so, or the
     // journal quietly becomes a record of something that never happened.
-    const demo=e.media&&e.media.source==='demo'?' · <span class="jdemo">demo</span>':'';
-    return `<div class="jcard" data-open="${e.id}">
-      <div class="rm" data-rm="${e.id}" title="Delete entry">✕</div>
-      <div class="jbadge">${badge}</div>
-      ${thumbTag}
-      <div class="jtitle">${escapeHtml(e.title)}</div>
-      <div class="jtext">${escapeHtml(e.text)}</div>
-      <div class="jdate">${date}${demo}</div>
-    </div>`;
+    const demo=e.media&&e.media.source==='demo'?' · <span class="jdemo">demo media</span>':'';
+    return `<article class="jcard" data-open="${e.id}" tabindex="0" role="button"
+             aria-label="Open dream entry: ${escapeHtml(e.title)}">
+      <div class="jhead">
+        <h3 class="jtitle">${escapeHtml(e.title)}</h3>
+        <div class="jdate"><span class="m">${month}${year}</span><span class="d">${day}</span></div>
+      </div>
+      <div class="jmedia">${thumbTag}<div class="jbadge">${badge}</div>
+        <button type="button" class="rm" data-rm="${e.id}" aria-label="Delete this entry">✕</button></div>
+      <p class="jtext">${escapeHtml(e.text)}</p>
+      <div class="jmeta">${e.mode==='film'?'Film':'Photo story'}${demo}</div>
+    </article>`;
   }).join("");
 }
 document.getElementById('jouGrid').addEventListener('click',e=>{
@@ -446,6 +505,17 @@ document.getElementById('jouGrid').addEventListener('click',e=>{
   if(rm){deleteJournalEntry(rm.dataset.rm);return;}
   const card=e.target.closest('[data-open]');
   if(card)openJournalEntry(card.dataset.open);
+});
+// Die Karte ist ein anklickbares Element ohne eigene Semantik — ohne das hier
+// käme man per Tastatur nicht an die Einträge. Der Löschknopf ist ein echter
+// <button> und feuert Enter/Space selbst, deshalb hier ausgenommen.
+document.getElementById('jouGrid').addEventListener('keydown',e=>{
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  if(e.target.closest('[data-rm]'))return;
+  const card=e.target.closest('[data-open]');
+  if(!card)return;
+  e.preventDefault();
+  openJournalEntry(card.dataset.open);
 });
 function deleteJournalEntry(id){
   const i=state.journal.findIndex(e=>e.id===id);

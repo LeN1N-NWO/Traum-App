@@ -3,6 +3,108 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 10:15 — Hanni — Branch `session/2026-08-07-hanni`
+
+**Was:** Kritische Selbstprüfung des Redesigns von 09:30. Fünf Befunde, alle
+behoben — davon zwei echte Fehler, die ich selbst eingebaut hatte.
+
+**Barrierefreiheit (die zwei echten Fehler)**
+- **Kontrast:** Das neue Token `--faint` (`#736c99`) fiel auf *jedem* realen
+  Untergrund durch WCAG AA — im schlimmsten Fall 2,63:1 in der Eingabekapsel.
+  Betroffen war unter anderem der Datenschutzhinweis, also ausgerechnet der
+  Text, der ehrlich sagt, dass Fotos hochgeladen werden. Verschärft hatte ich
+  es selbst, indem ich `.ctl-lbl` und `.cap-label` von `--muted` auf `--faint`
+  umgestellt hatte. Gelöst nicht durch Aufhellen allein (das hätte `--faint`
+  und `--muted` ununterscheidbar gemacht), sondern zusätzlich durch eine
+  **dunklere Eingabekapsel** — was ohnehin näher an Moonly ist, wo die
+  Eingabekarte dunkler als der Himmel ist. Gemessen: jetzt 4,79–5,81:1 auf
+  allen Untergründen.
+- **Tastatur:** Die Tagebuchkarten waren anklickbar, aber per Tastatur nicht
+  erreichbar — das ging schon bei ihrer Einführung gestern schief. Jetzt
+  `tabindex`/`role="button"` mit Enter/Space-Behandlung, sichtbarer
+  Fokusrahmen, und der Löschknopf ist ein echter `<button>` mit `aria-label`,
+  der auch bei Tastaturfokus eingeblendet wird. Verifiziert: Fokus landet auf
+  der Karte, Enter öffnet sie, Enter auf dem Löschknopf öffnet *nicht*
+  zusätzlich das Modal.
+
+**Aufräumen**
+- Toter CSS-Block `.strip` (5 Regeln) entfernt — wurde nie benutzt, der
+  Bildstreifen entsteht per Inline-Style. Ebenso das nie verwendete Token
+  `--mono`. Beides stammte aus Antons Bestand. Automatisch geprüft: keine
+  ungenutzte Klasse mehr im Stylesheet.
+- Inline-Styles aus dem Markup in eine Klasse `.hint-inline` überführt.
+- Doppelte Leerstelle in der Guide-Pille beseitigt (`Lucid  Guide`).
+
+**Sicherheit unverändert geprüft:** Die Render-Funktion des Tagebuchs wurde
+komplett umgeschrieben, deshalb den XSS-Test von gestern gegen die *neue*
+Kartenstruktur wiederholt — bösartige URL, bösartiger Titel, bösartiger Text.
+Ergebnis: alle Nutzlasten inert, kein `onerror`/`onmouseover` im DOM, Flag
+bleibt 0. Auch das neue `aria-label` ist escaped.
+
+**Was der Nächste wissen muss:**
+- Kontraste sind rechnerisch belegt (Skript im Worklog-Verlauf nachvollziehbar:
+  sRGB-Luminanz, Panel-Blend gegen den Verlauf an drei Stellen). Wer die Farben
+  ändert, muss `--faint` erneut gegen `rgba(11,7,24,.55)` über `#2a1d5e`
+  prüfen — das ist der ungünstigste Fall.
+- **Noch offen, bewusst nicht angefasst:** Die Cast-Kacheln (`.face .rm`) haben
+  dasselbe Tastaturproblem wie die Tagebuchkarten vorher — Löschknopf ist ein
+  `<div>`. Das ist Antons Bestand und war nicht Teil dieses Umbaus; wer die
+  Cast-Auswahl anfasst, sollte es mitnehmen.
+
+## 2026-08-07 09:30 — Hanni — Branch `session/2026-08-07-hanni`
+
+**Was:** Design-Überarbeitung von `index.html` anhand von Mobbin-Referenzen.
+Nur Optik und Struktur — keine Funktion, kein Sicherheitscode angefasst.
+
+**Wie die Richtung zustande kam:** Erst Referenzen gesichtet (Mobbin-MCP,
+16 Screens), dann entschieden. Zwischenzeitlich stand die pillowtalk-Linie
+(streng, schwarz, schmucklos) im Raum. Ein Abgleich mit Antons tatsächlichen
+Tokens hat das widerlegt: er hatte bereits violetten Nachthimmel-Verlauf
+(`#1a1140`), einen Mond im Logo (`.moon`) und Sternenpartikel (`.dust`) gebaut.
+Damit steht sein Bestand viel näher an **Moonly** (Traumdeutungs-App, violette
+Nacht, illustriert) als an pillowtalk. Entscheidung deshalb: Moonlys Wärme als
+Leitbild — bestätigt Antons Richtung, statt sie wegzuwerfen — kombiniert mit
+pillowtalks *Struktur* fürs Tagebuch.
+
+Umgesetzt:
+- **Farbwelt wärmer**: Hintergrund von kühlem Fast-Schwarz auf violette Nacht
+  (`--sky:#2a1d5e`), neue Tokens `--violet-soft`/`--violet-deep`/`--faint`.
+  Neon-Verlauf aus Überschrift und Hauptknopf entfernt — beide jetzt einfarbig
+  violett. Sternenpartikel von Opazität .5 auf .28 gedämpft, dazu
+  `prefers-reduced-motion`-Abschaltung.
+- **Typo-Skala** als Tokens (`--t-hero` … `--t-micro`); vorher wuchs jede Größe
+  für sich. Schriftgewichte durchgehend von 700/800 auf 500/600 zurückgenommen.
+- **Tagebuch** (das Herzstück): Kachel-Grid raus, vollbreite Einträge rein —
+  Titel links, Datum als Anker rechts (Monat klein, Tag groß und dünn), Bild
+  darunter über die volle Breite, Traumtext darunter wie der Prompt bei Canva.
+- **Eingabe**: die nummerierten Blöcke ①②③ sind weg, stattdessen ein einziger
+  Hauptknopf über die volle Breite **am Ende** des Formulars (Moonly). Der
+  Ladezustand steckt jetzt im Knopf statt in einem separaten Bereich.
+- **Menagerie** bewusst zurückgenommen (kleinere Karten, leiser), damit das
+  Tagebuch führt. **Guide** editorialer mit mehr Zeilenabstand und Luft.
+- Inhaltsbreite von 960px auf 680px — die App ist ein Handy-Format.
+
+**Warum:** Antons Farbwelt war stimmig, es fehlte Struktur — Typo-Hierarchie,
+Gruppierung, ruhigere Flächen. Ein kompletter Identitätswechsel hätte
+funktionierende Arbeit zerstört.
+
+**Was der Nächste wissen muss:**
+- **Beim Umbau gefunden und behoben:** der Kopfbereich lief auf Handybreite über
+  (brauchte 422px bei 350px verfügbar) und hätte seitliches Scrollen erzwungen —
+  ausgerechnet bei einer App, die man nachts am Handy benutzt. Jetzt
+  `flex-wrap` plus Media Query unter 460px, in der die Wortmarken der Pillen
+  ausgeblendet werden („🔥 1" statt „🔥 1-day streak"). Gemessen verifiziert:
+  Kopf passt in eine Zeile, kein Überlauf.
+- `.jgrid` wurde zu `.jlist` (Flex-Spalte). Der Lucid-Guide nutzte dieselbe
+  Klasse und hat jetzt eine eigene, `.guide-grid` — wer `.jgrid` sucht, sucht
+  vergeblich.
+- Der Löschen-Knopf der Tagebuchkarte sitzt jetzt **im Bild oben links**; oben
+  rechts liegt das Modus-Abzeichen, rechts daneben das Datum. Vorher überlagerte
+  er die Monatsangabe.
+- Verifiziert: beide Modi erzeugen Einträge, Modal spielt den richtigen Medientyp,
+  keine Konsolenfehler, beide Testsuiten grün. Live-Generierung weiterhin
+  ungetestet (kein `bun`, kein Key).
+
 ## 2026-08-06 18:20 — Hanni — Branch `session/2026-08-06-hanni-preview-bind`
 
 **Was:** Die statische Vorschau abgesichert und `.claude/launch.json` ins Repo

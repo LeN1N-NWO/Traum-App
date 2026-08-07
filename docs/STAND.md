@@ -3,7 +3,7 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-06
+**Stand:** 2026-08-07
 
 ## Woran wird gearbeitet
 
@@ -19,6 +19,13 @@
 - Stack unverändert: Bun + eine `index.html` (vanilla JS) + `server.js` als
   Higgsfield-Proxy, kein Login, kein Backend — Zustand lebt in `localStorage`
   (ADR-0002). Das trägt die App bis einschließlich Punkt 4 oben.
+- **Design überarbeitet (07.08.)**: Leitbild ist die Traumdeutungs-App *Moonly*
+  (violette Nacht, warm) — das bestätigt Antons Farbwelt, statt sie zu
+  ersetzen. Vom Journaling-Vorbild *pillowtalk* wurde nur die Struktur
+  übernommen: vollbreite Tagebucheinträge mit großer Datumstypografie.
+  Konkret: wärmere Tokens, Typo-Skala als CSS-Variablen, Neon-Verläufe raus,
+  ein Hauptknopf am Formularende statt nummerierter Blöcke, Menagerie
+  zurückgenommen, Inhaltsbreite 680px (Handy-Format).
 
 ## Sicherheit — Stand der Schutzziele
 
@@ -104,9 +111,22 @@
   gesamte App-Oberfläche (Antons Original plus die neuen Sektionen dieser
   Session) ist Englisch. Ungelöst — entweder Regel anpassen oder UI später
   übersetzen.
-- Kein Lint-Setup und keine Test-Suite. Einziger automatisierter Test ist
-  `scripts/test-static.mjs` (Datei-Freigabe). Alles andere ist manuell geprüft.
-  Bei jetzt ~640 Zeilen `index.html` zunehmend spürbar.
+- Kein Lint-Setup und keine Test-Suite für die UI. Automatisiert getestet sind
+  nur `scripts/test-static.mjs` (Datei-Freigabe) und
+  `scripts/test-prompt-sanitize.mjs` (Prompt-Hygiene) — beide betreffen
+  `server.js`. Das gesamte Design und alle DOM-Funktionen in `index.html` sind
+  ausschließlich manuell geprüft. Bei jetzt ~730 Zeilen zunehmend spürbar.
+- Responsives Verhalten ist nur rechnerisch verifiziert (Container verengt,
+  Überlauf gemessen), nicht auf einem echten Gerät. Die Fenster-Größenänderung
+  im Browser-Werkzeug hat in dieser Umgebung nicht gegriffen. Vor einer
+  Veröffentlichung an einem echten Telefon gegenprüfen.
+- **Barrierefreiheit teilweise offen.** Tagebuchkarten sind seit 07.08. per
+  Tastatur bedienbar (Fokus, Enter/Space, sichtbarer Rahmen), die Cast-Kacheln
+  aber nicht: deren Löschknopf ist weiterhin ein `<div>` ohne Fokus. Kontraste
+  sind für Text geprüft und bestehen WCAG AA (≥4,79:1); ungeprüft sind
+  Fokus-Indikatoren auf allen Flächen und die Bedienbarkeit mit Screenreader.
+  Maßgeblicher Härtefall für künftige Farbänderungen: `--faint` auf
+  `rgba(11,7,24,.55)` über `#2a1d5e`.
 - Tagebuch wächst unbegrenzt und wird komplett gerendert — keine Pagination,
   kein Aufräumen. Zusammen mit den base64-Referenzfotos ist das localStorage-
   Quota (~5 MB) das eigentliche Limit; `save()` meldet es jetzt wenigstens,
