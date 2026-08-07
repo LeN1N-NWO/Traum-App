@@ -3,7 +3,18 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-08 (09:30)
+**Stand:** 2026-08-08 (10:15)
+
+## ⚠ Parallele Arbeit — vor dem Anfassen des Profil-Bereichs lesen
+
+Hanni hat mit dem Entwurfs-PR **#8** (`session/2026-08-07-hanni-profile`,
+07.08. 17:55) den Profil-Bereich reserviert: Personen/Tiere/Orte anlegen,
+bearbeiten, löschen — **plus Tag-Hervorhebung im Traum-Eingabefeld**.
+
+Der Bearbeiten-Teil wurde am 08.08. versehentlich parallel gebaut und liegt
+auf `main` (`96cca16`). Ihr Branch enthält nur den Reservierungs-Commit, es
+ist also nichts verloren. **Die Tag-Hervorhebung im Eingabefeld ist nicht
+gebaut** und gehört weiterhin ihr. Details im WORKLOG-Eintrag 08.08. 10:15.
 
 ## Woran wird gearbeitet
 
@@ -156,11 +167,13 @@ Der zuerst geschriebene Text bleibt über beliebig viele Überarbeitungen als
   Referenzen als Tag-String; wird ein Avatar im Profil umbenannt, werden diese
   Referenzen mitgeändert (`AvatarDialog.save()`), sonst zeigten alte Träume
   auf einen Namen, den es nicht mehr gibt.
-- **Offen — `/api/generate` hat keine Authentifizierung und kein Rate-Limit.**
+- **Offen — `/api/generate` hat keine Authentifizierung und kein Rate-Limit**
+  (`server.js:546`).
   Nur an localhost binden. Öffentlich erreichbar könnte jeder das Guthaben
   verbrauchen. Löst sich erst mit dem Accounts-Backend — verbindlich zu lösen,
   **bevor** die iPhone-App echte Nutzer auf einen gemeinsamen Server lässt.
-- **Offen — Credits sind Buchhaltung, keine Zugangskontrolle.** Sie werden
+- **Offen — Credits sind Buchhaltung, keine Zugangskontrolle**
+  (`src/lib/credits.js:20`). Sie werden
   seit 07.08. tatsächlich abgebucht (erst nach erfolgreichem Aufruf, damit ein
   Fehlschlag nichts kostet), und neue Installationen bekommen einmalig 25
   Stück. Aber der Stand liegt im `localStorage` und ist frei editierbar — wer
@@ -186,13 +199,13 @@ Der zuerst geschriebene Text bleibt über beliebig viele Überarbeitungen als
   `promptBuilder.js`, `parallel.js`, `credits.js` (50 Unit-Tests via
   `bun test`) plus Server-Freigabe und Prompt-Hygiene. Für die React-Screens
   gibt es keine automatisierten Tests — dafür bräuchte es eine DOM-Umgebung.
-- **Die riskanteste Stelle ist `promptBuilder.js`.** Referenzklauseln sagen
+- **Die riskanteste Stelle ist `promptBuilder.js:18` (`buildReferences`).** Referenzklauseln sagen
   „Reference image 2 shows @anton", und diese Nummer muss zur Position im
   Bild-Array passen. Eine Figur ohne Foto darf deshalb keinen Index
   verbrauchen — sonst bekommen Menschen fremde Gesichter. Dafür gibt es
   eigene Tests; wer dort etwas ändert, führt sie aus.
 - **Generierte Medien werden nicht lokal gespeichert.** `/api/generate` reicht
-  nur die fal.ai-Hosting-URL durch, die App speichert diese URL im
+  nur die fal.ai-Hosting-URL durch (`server.js:404`), die App speichert diese URL im
   Tagebuch-Eintrag. Anton möchte sie zusätzlich lokal ablegen. Angedacht:
   Server lädt die Datei nach der Generierung herunter und liefert einen
   lokalen Pfad neben der Original-URL zurück — Speicherort, Dateibenennung und
@@ -200,6 +213,12 @@ Der zuerst geschriebene Text bleibt über beliebig viele Überarbeitungen als
 - `mentionsTag()` ist im Wizard nur noch **Vorschlag**, nicht mehr Filter —
   die Zuordnung passiert ausdrücklich in Schritt 3 und 4. Die alte Regel
   greift nur noch, wenn jemand „Improve with AI" überspringt.
+- **`DEEPSEEK_KEY` ist seit 08.08. faktisch Pflicht.** Schritt 1 des Wizards
+  lässt sich nicht mehr überspringen (`src/wizard/Step1Dream.jsx:109`), und
+  „nur speichern" liegt dahinter in Schritt 2
+  (`src/wizard/Step2Output.jsx:16`). Wer einen Traum bloß aufschreiben will,
+  zahlt also einen Credit für die Analyse. Falls das kostenlos bleiben soll,
+  bräuchte es einen eigenen Weg am Wizard vorbei — bewusst offen gelassen.
 - **Credits/Bezahlmodell fehlt.** Braucht eine fälschungssichere Datenhaltung
   (client-seitiges `localStorage` reicht für echtes Geld nicht) — tentativ
   Supabase. Braucht ein eigenes Projekt vom Produktbesitzer und ein eigenes
@@ -212,7 +231,7 @@ Der zuerst geschriebene Text bleibt über beliebig viele Überarbeitungen als
   Nano-Banana-6-Elemente-Formel; der Ausbau wäre dort.
 - Responsives Verhalten ist am Rechner geprüft, nicht auf einem echten Gerät.
   Vor einer Veröffentlichung am Telefon gegenprüfen.
-- **Symbolerkennung nur auf Englisch.** Die Stichwortlisten in
+- **Symbolerkennung nur auf Englisch** (`src/lib/symbols.js:6`). Die Stichwortlisten in
   `src/lib/symbols.js` sind rein englisch (bewusst entschieden) — nur die
   Kategorienamen sind deutsch. Deutsche Traumeinträge liefern keine Symbole.
   Erweiterbar ohne Umbau: deutsche Begriffe in `SYMBOLS` ergänzen. **Wird

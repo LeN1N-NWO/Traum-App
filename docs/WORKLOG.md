@@ -3,6 +3,44 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-08 10:15 — Anton — Branch `main` — Sitzungsabschluss
+
+**Commits:** `96cca16` (Avatare bearbeitbar, Ohne-KI-Weg raus). Zustand:
+Build grün, 50 Unit-Tests, 33 Freigabe-Prüfungen, Prompt-Hygiene grün.
+`npm run lint` existiert weiterhin nicht. Kein Worktree, kein eigener PR.
+
+**⚠ KOLLISION — bitte lesen, bevor jemand weitermacht.**
+
+Hanni hat am 07.08. um 17:55 den Entwurfs-PR #8
+(`session/2026-08-07-hanni-profile`) als **Reservierung** geöffnet, für genau
+dieses Feature: „Profil-Bereich für Personen, Haustiere und Orte — anlegen,
+**bearbeiten**, Beschreibung und Foto ändern, löschen" plus Tag-Hervorhebung
+im Traum-Eingabefeld. Auslöser war derselbe Fund wie bei uns: ein
+Cast-Eintrag `anton` mit Beschreibung, aber `img: ""`.
+
+Ich habe das Bearbeiten heute Vormittag gebaut und direkt auf `main`
+gepusht, ohne die Reservierung zu beachten. `gh pr list` beim Sitzungsstart
+zeigte nichts — warum, kann ich nicht mehr rekonstruieren; der PR bestand
+seit dem Vorabend. Das ist genau der Fall, den AGENTS.md mit dem
+Entwurfs-PR verhindern will („Müssen zwei ans selbe Feature: nacheinander,
+nicht parallel").
+
+**Lage, damit niemand unnötig aufräumt:** Hannis Branch enthält **nur den
+Reservierungs-Commit** (`c08ea34`), keine Codeänderung — es geht also nichts
+von ihrer Arbeit verloren. Überschneidung ist nur die Hälfte „anlegen /
+bearbeiten / löschen"; die **Tag-Hervorhebung im Eingabefeld ist NICHT
+gebaut** und bleibt offen.
+
+**Nächster Schritt (menschlich, nicht technisch):** Hanni Bescheid geben,
+dass das Bearbeiten auf `main` liegt, damit sie rebasen und sich auf die
+Hervorhebung konzentrieren kann. Ihr PR bleibt unberührt — das ist ihre
+Entscheidung, nicht unsere.
+
+**Lehre:** Beim Sitzungsstart reicht ein stiller `gh pr list` nicht. Wenn die
+Ausgabe leer ist, ist das ein Grund nachzuhaken, kein Freibrief — besonders
+bevor man an einem Bereich arbeitet, der in `scripts/shared-files.json` steht
+oder offensichtlich jemanden interessieren könnte.
+
 ## 2026-08-08 09:30 — Anton — Branch `main`
 
 **Was:** Avatare im Profil sind jetzt bearbeitbar, und der Wizard hat keinen
