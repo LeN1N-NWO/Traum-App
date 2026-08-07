@@ -1,0 +1,16 @@
+.d-feld {
+  width: 100%; padding: var(--s-4); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font-family: var(--sans); font-size: var(--t-body);
+  line-height: 1.6; resize: vertical; margin-bottom: var(--s-4);
+}
+.d-feld:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
+
+.d-modus { border: none; padding: 0; margin: 0 0 var(--s-4); }
+.d-modus legend { font-size: var(--t-small); color: var(--muted); margin-bottom: var(--s-2); padding: 0; }
+.d-modus label {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  margin-right: var(--s-5); font-size: var(--t-body); cursor: pointer;
+}
+
+.d-hinweis { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-4); }

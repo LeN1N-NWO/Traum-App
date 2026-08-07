@@ -4,9 +4,11 @@ import { AppStateProvider, useAppState } from "./state/AppState.jsx";
 import TabBar from "./components/TabBar.jsx";
 import Splash from "./components/Splash.jsx";
 import Toast from "./components/Toast.jsx";
+import HomeScreen from "./screens/Home/HomeScreen.jsx";
 import JournalScreen from "./screens/Journal/JournalScreen.jsx";
 import SymbolsScreen from "./screens/Symbols/SymbolsScreen.jsx";
 import ProfileScreen from "./screens/Profile/ProfileScreen.jsx";
+import DreamScreen from "./screens/Dream/DreamScreen.jsx";
 
 /* HashRouter, nicht BrowserRouter: Capacitor lädt die App später über
    file://, wo die History-API nicht zuverlässig funktioniert. */
@@ -18,11 +20,11 @@ export default function App() {
       {zeigeSplash && <Splash onFertig={() => setZeigeSplash(false)} />}
       <HashRouter>
         <Routes>
-          <Route path="/"         element={<Platzhalter name="Start" />} />
+          <Route path="/"         element={<HomeScreen />} />
           <Route path="/tagebuch" element={<JournalScreen />} />
           <Route path="/symbole"  element={<SymbolsScreen />} />
           <Route path="/profil"   element={<ProfileScreen />} />
-          <Route path="/traum"    element={<Platzhalter name="Traum erfassen" />} />
+          <Route path="/traum"    element={<DreamScreen />} />
         </Routes>
         <TabBar />
       </HashRouter>
@@ -34,9 +36,4 @@ export default function App() {
 function ToastAnschluss() {
   const { toastText } = useAppState();
   return <Toast text={toastText} />;
-}
-
-// Wird in den Aufgaben 8 bis 11 einzeln ersetzt.
-function Platzhalter({ name }) {
-  return <main className="screen"><h1>{name}</h1></main>;
 }
