@@ -11,6 +11,7 @@ import "./profile.css";
 export default function ProfileScreen() {
   const { state } = useAppState();
   const [dialogFor, setDialogFor] = useState(null);   // "person" | "pet" | "place" | null
+  const [editing, setEditing] = useState(null);       // ein vorhandener Eintrag
 
   return (
     <main className="screen">
@@ -26,19 +27,25 @@ export default function ProfileScreen() {
       </Card>
 
       <h2 className="p-section">{t.profile.people}</h2>
-      <AvatarList category="person" onNew={() => setDialogFor("person")} />
+      <AvatarList category="person" onNew={() => setDialogFor("person")} onOpen={setEditing} />
 
       <h2 className="p-section">{t.profile.pets}</h2>
-      <AvatarList category="pet" onNew={() => setDialogFor("pet")} />
+      <AvatarList category="pet" onNew={() => setDialogFor("pet")} onOpen={setEditing} />
 
       <h2 className="p-section">{t.profile.places}</h2>
-      <AvatarList category="place" onNew={() => setDialogFor("place")} />
+      <AvatarList category="place" onNew={() => setDialogFor("place")} onOpen={setEditing} />
 
       <h2 className="p-section">{t.profile.guide}</h2>
       <LucidGuide />
 
       {dialogFor && (
         <AvatarDialog category={dialogFor} onClose={() => setDialogFor(null)} />
+      )}
+
+      {editing && (
+        /* key: ohne ihn behielte der Dialog beim Wechsel zwischen zwei
+           Einträgen die Feldinhalte des vorigen. */
+        <AvatarDialog key={editing.id} avatar={editing} onClose={() => setEditing(null)} />
       )}
     </main>
   );

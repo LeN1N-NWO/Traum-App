@@ -14,12 +14,19 @@ function cleanTag(raw) {
 /* Used from the profile screen AND from the wizard, where a character the
    analysis found has no avatar yet. `suggestedName` pre-fills the field with
    the name from the dream; `onCreated` hands the new avatar straight back so
-   the wizard can bind it to that character. */
-export default function AvatarDialog({ category, suggestedName = "", suggestedDesc = "", onCreated, onClose }) {
+   the wizard can bind it to that character.
+
+   Pass `avatar` to open an existing entry instead: the fields are pre-filled
+   and saving updates that entry rather than adding a second one. */
+export default function AvatarDialog({ category, avatar = null, suggestedName = "", suggestedDesc = "", onCreated, onClose }) {
   const { state, update, toast } = useAppState();
-  const [tag, setTag] = useState(cleanTag(suggestedName));
-  const [desc, setDesc] = useState(suggestedDesc);
-  const [image, setImage] = useState("");
+  const editing = Boolean(avatar);
+  const [tag, setTag] = useState(cleanTag(avatar ? avatar.tag : suggestedName));
+  const [desc, setDesc] = useState(avatar ? avatar.desc || "" : suggestedDesc);
+  const [image, setImage] = useState(avatar ? avatar.img || "" : "");
+  // An entry without a photo is fine — description alone is enough for the
+  // renderer. So "no image" must stay distinguishable from "not touched".
+  const cat = avatar ? avatar.category : category;
 
   function readFile(e) {
     const file = e.target.files?.[0];
@@ -33,15 +40,27 @@ export default function AvatarDialog({ category, suggestedName = "", suggestedDe
   function save() {
     const clean = cleanTag(tag);
     if (!clean) return toast(t.avatarDialog.needName);
-    if ((state.cast || []).some((p) => p.tag === clean)) return toast(t.avatarDialog.exists(clean));
-    const avatar = { id: genId("c"), tag: clean, category, desc: desc.trim(), img: image };
-    update({ cast: [...(state.cast || []), avatar] });
+    // When editing, the entry's own name is not a clash with itself.
+    const clash = (state.cast || []).some((p) => p.tag === clean && p.id !== avatar?.id);
+    if (clash) return toast(t.avatarDialog.exists(clean));
+
+    if (editing) {
+      const next = { ...avatar, tag: clean, category: cat, desc: desc.trim(), img: image };
+      update({ cast: (state.cast || []).map((p) => (p.id === avatar.id ? next : p)) });
+      toast(t.avatarDialog.updated(clean));
+      onCreated?.(next);
+      return onClose();
+    }
+
+    const created = { id: genId("c"), tag: clean, category: cat, desc: desc.trim(), img: image };
+    update({ cast: [...(state.cast || []), created] });
     toast(t.avatarDialog.created(clean));
-    onCreated?.(avatar);
+    onCreated?.(created);
     onClose();
   }
 
-  const title = t.avatarDialog.titleFor[category];
+  const title = editing ? t.avatarDialog.editTitleFor[cat] : t.avatarDialog.titleFor[cat];
+  const renamed = editing && cleanTag(tag) && cleanTag(tag) !== avatar.tag;
 
   return (
     <div className="av-backdrop" onClick={onClose}>
@@ -59,12 +78,24 @@ export default function AvatarDialog({ category, suggestedName = "", suggestedDe
           <input value={tag} onChange={(e) => setTag(e.target.value)} maxLength={20} autoFocus />
         </label>
 
+        {renamed && <p className="av-hint av-warn">{t.avatarDialog.renameHint(cleanTag(tag))}</p>}
+
         <label className="av-field">
-          <span>{t.avatarDialog.photoLabel}</span>
+          <span>{image ? t.avatarDialog.photoLabelReplace : t.avatarDialog.photoLabel}</span>
           <input type="file" accept="image/*" onChange={readFile} />
         </label>
 
-        {image && <img className="av-preview" src={image} alt={t.avatarDialog.previewAlt} />}
+        {image && (
+          <div className="av-photo">
+            <img className="av-preview" src={image} alt={t.avatarDialog.previewAlt} />
+            <Button
+              variant="ghost"
+              onClick={() => { setImage(""); toast(t.avatarDialog.photoRemoved); }}
+            >
+              {t.avatarDialog.removePhoto}
+            </Button>
+          </div>
+        )}
 
         {/* Without a photo the description is the only thing the renderer has
             to go on, so it is worth asking for either way. */}
@@ -82,7 +113,7 @@ export default function AvatarDialog({ category, suggestedName = "", suggestedDe
 
         <div className="av-actions">
           <Button variant="ghost" onClick={onClose}>{t.avatarDialog.cancel}</Button>
-          <Button onClick={save}>{t.avatarDialog.save}</Button>
+          <Button onClick={save}>{editing ? t.avatarDialog.saveChanges : t.avatarDialog.save}</Button>
         </div>
       </div>
     </div>

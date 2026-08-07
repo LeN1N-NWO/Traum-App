@@ -6,9 +6,20 @@
   background: var(--panel); border: 1px solid var(--panel-line); border-radius: var(--radius);
   padding: var(--s-3); color: var(--text); font-family: var(--sans);
 }
+/* Der Öffnen-Knopf füllt die Kachel und trägt deren Innenabstand, damit die
+   ganze Fläche klickbar ist — nur der Löschknopf liegt darüber. */
+.p-tile:has(.p-open) { padding: 0; }
+.p-open {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s-1);
+  width: 100%; padding: var(--s-3); background: none; border: 0; border-radius: var(--radius);
+  color: inherit; font-family: var(--sans); cursor: pointer;
+}
+.p-open:hover { background: rgba(139, 92, 246, .1); }
+.p-open:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: -2px; }
 .p-tile img, .p-no-image { width: 54px; height: 54px; border-radius: 50%; object-fit: cover; }
 .p-no-image { display: flex; align-items: center; justify-content: center; background: var(--sky); color: var(--faint); }
 .p-tag { font-size: var(--t-micro); color: var(--muted); }
+.p-nophoto { font-size: 9.5px; color: var(--faint); }
 .p-remove {
   position: absolute; top: 2px; right: 2px; width: 22px; height: 22px;
   border-radius: 50%; cursor: pointer; background: rgba(11, 7, 24, .8);

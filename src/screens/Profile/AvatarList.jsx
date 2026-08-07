@@ -2,7 +2,7 @@ import { useAppState } from "../../state/AppState.jsx";
 import { t } from "../../i18n/index.js";
 import "./profile.css";
 
-export default function AvatarList({ category, onNew }) {
+export default function AvatarList({ category, onNew, onOpen }) {
   const { state, update, toast } = useAppState();
   const entries = (state.cast || []).filter((p) => p.category === category);
 
@@ -14,13 +14,21 @@ export default function AvatarList({ category, onNew }) {
   return (
     <div className="p-grid">
       {entries.map((p) => (
+        /* The tile stays a <div>: the open and delete controls are siblings,
+           because a button inside a button is invalid and the delete target
+           would swallow clicks meant for the tile. */
         <div key={p.id} className="p-tile">
-          {p.img
-            ? <img src={p.img} alt={t.profile.referenceFor(p.tag)} loading="lazy" />
-            : <div className="p-no-image" aria-hidden="true">?</div>}
-          <span className="p-tag">@{p.tag}</span>
-          {/* Used to be a <div> with no focus — now a real button, so the
-              tiles are keyboard-operable. */}
+          <button
+            className="p-open"
+            onClick={() => onOpen?.(p)}
+            aria-label={t.profile.openLabel(p.tag)}
+          >
+            {p.img
+              ? <img src={p.img} alt="" loading="lazy" />
+              : <div className="p-no-image" aria-hidden="true">?</div>}
+            <span className="p-tag">@{p.tag}</span>
+            {!p.img && <span className="p-nophoto">{t.profile.noPhoto}</span>}
+          </button>
           <button
             className="p-remove"
             onClick={() => remove(p.id, p.tag)}
