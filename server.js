@@ -111,6 +111,72 @@ function sanitizeTag(raw) {
   return String(raw ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
 }
 
+// Local fallback prompt (no LLM call) — used when DEEPSEEK_KEY is unset or
+// the DeepSeek call fails, so image generation still works without it. Each
+// cast entry the client sent (because its @tag literally appears in the
+// dream text) becomes one @tag ↔ reference-image binding, spelled out in the
+// prompt so Nano Banana uses that person's/pet's/place's actual likeness
+// instead of inventing one whenever the dream mentions them by name.
+function buildFallbackPrompt(dream, namedRefs = []) {
+  const clauses = namedRefs.map((r, i) => {
+    const tag = sanitizeTag(r.tag);
+    if (!tag) return null;
+    const kind = r.category === "pet" ? "pet" : r.category === "place" ? "place" : "person";
+    const desc = sanitizeFragment(r.desc || "", MAX_FRAGMENT);
+    const descClause = desc ? `, described as: ${desc}` : "";
+    return `Reference image ${i + 1} shows @${tag} (${kind}${descClause}) — whenever "${tag}" appears in the dream below, depict them with this exact likeness, not a generic stand-in.`;
+  }).filter(Boolean);
+  const refBlock = clauses.length ? `\n${clauses.join(" ")}` : "";
+  return `A cinematic, photoreal film still capturing this dream: ${dream}${refBlock}\nNatural cinematic lighting, 9:16 vertical framing, ultra-detailed, accurate hands and faces.`;
+}
+
+// DeepSeek-crafted prompt: same job as buildFallbackPrompt() above, but
+// written by an LLM following Google's official Nano Banana 6-element
+// formula (Subject, Action, Environment, Art Style, Lighting, Details, one
+// flowing paragraph) instead of our fixed template — richer, varies per
+// dream. DeepSeek never sees the actual photos (text-only API): it gets tag/
+// category/description metadata and writes the @tag-binding clauses the same
+// way buildFallbackPrompt() does, just in better prose.
+async function craftPromptViaDeepseek(dream, namedRefs = []) {
+  const key = process.env.DEEPSEEK_KEY;
+  if (!key) throw new Error("NO_DEEPSEEK_KEY");
+
+  const refLines = namedRefs.map((r) => {
+    const tag = sanitizeTag(r.tag);
+    const kind = r.category === "pet" ? "pet" : r.category === "place" ? "place" : "person";
+    const desc = sanitizeFragment(r.desc || "", MAX_FRAGMENT);
+    return `- @${tag} (${kind}${desc ? `: ${desc}` : ""})`;
+  }).join("\n");
+
+  const system = `You are a prompt engineer for Google's Nano Banana (Gemini) image model. Write ONE image prompt using its official 6-element formula — Subject, Action, Environment, Art Style, Lighting, Details — as a single flowing natural-language paragraph, not a keyword list. Style: cinematic, photoreal, 9:16 vertical framing, accurate hands and faces.
+If named references are given below, weave in a clear binding clause for each one you use — e.g. "@rex, shown in his reference photo, ..." — so the image model uses that exact photo instead of inventing an appearance. Only use references actually relevant to the dream; never invent new named people/pets/places beyond what's given.
+Output ONLY the finished prompt text. No preamble, no markdown, no quotes around it.`;
+  const user = `Dream: "${dream}"\n\nAvailable named references (use only if relevant):\n${refLines || "(none)"}`;
+
+  const res = await fetch(DEEPSEEK_API_URL, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      messages: [{ role: "system", content: system }, { role: "user", content: user }],
+      stream: false,
+    }),
+  });
+  if (!res.ok) {
+    console.error("[DreamRushes] DeepSeek request failed:", res.status, await res.text().catch(() => ""));
+    throw new Error("DEEPSEEK_FAILED");
+  }
+  const data = await res.json().catch(() => null);
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text || typeof text !== "string") throw new Error("DEEPSEEK_FAILED");
+  // DeepSeek's output becomes a prompt for a paid third-party API next —
+  // sanitise it exactly like user input, regardless of the source.
+  const cleaned = sanitizePromptText(text).slice(0, MAX_CRAFTED_PROMPT);
+  if (!cleaned) throw new Error("DEEPSEEK_FAILED");
+  return cleaned;
+}
+// ---- prompt hygiene (end) ----
+
 // ---- dream analysis (the ONE llm call per dream) ----
 //
 // This is the wizard's foundation. A single DeepSeek call returns everything
@@ -215,71 +281,6 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
   };
 }
 
-// Local fallback prompt (no LLM call) — used when DEEPSEEK_KEY is unset or
-// the DeepSeek call fails, so image generation still works without it. Each
-// cast entry the client sent (because its @tag literally appears in the
-// dream text) becomes one @tag ↔ reference-image binding, spelled out in the
-// prompt so Nano Banana uses that person's/pet's/place's actual likeness
-// instead of inventing one whenever the dream mentions them by name.
-function buildFallbackPrompt(dream, namedRefs = []) {
-  const clauses = namedRefs.map((r, i) => {
-    const tag = sanitizeTag(r.tag);
-    if (!tag) return null;
-    const kind = r.category === "pet" ? "pet" : r.category === "place" ? "place" : "person";
-    const desc = sanitizeFragment(r.desc || "", MAX_FRAGMENT);
-    const descClause = desc ? `, described as: ${desc}` : "";
-    return `Reference image ${i + 1} shows @${tag} (${kind}${descClause}) — whenever "${tag}" appears in the dream below, depict them with this exact likeness, not a generic stand-in.`;
-  }).filter(Boolean);
-  const refBlock = clauses.length ? `\n${clauses.join(" ")}` : "";
-  return `A cinematic, photoreal film still capturing this dream: ${dream}${refBlock}\nNatural cinematic lighting, 9:16 vertical framing, ultra-detailed, accurate hands and faces.`;
-}
-
-// DeepSeek-crafted prompt: same job as buildFallbackPrompt() above, but
-// written by an LLM following Google's official Nano Banana 6-element
-// formula (Subject, Action, Environment, Art Style, Lighting, Details, one
-// flowing paragraph) instead of our fixed template — richer, varies per
-// dream. DeepSeek never sees the actual photos (text-only API): it gets tag/
-// category/description metadata and writes the @tag-binding clauses the same
-// way buildFallbackPrompt() does, just in better prose.
-async function craftPromptViaDeepseek(dream, namedRefs = []) {
-  const key = process.env.DEEPSEEK_KEY;
-  if (!key) throw new Error("NO_DEEPSEEK_KEY");
-
-  const refLines = namedRefs.map((r) => {
-    const tag = sanitizeTag(r.tag);
-    const kind = r.category === "pet" ? "pet" : r.category === "place" ? "place" : "person";
-    const desc = sanitizeFragment(r.desc || "", MAX_FRAGMENT);
-    return `- @${tag} (${kind}${desc ? `: ${desc}` : ""})`;
-  }).join("\n");
-
-  const system = `You are a prompt engineer for Google's Nano Banana (Gemini) image model. Write ONE image prompt using its official 6-element formula — Subject, Action, Environment, Art Style, Lighting, Details — as a single flowing natural-language paragraph, not a keyword list. Style: cinematic, photoreal, 9:16 vertical framing, accurate hands and faces.
-If named references are given below, weave in a clear binding clause for each one you use — e.g. "@rex, shown in his reference photo, ..." — so the image model uses that exact photo instead of inventing an appearance. Only use references actually relevant to the dream; never invent new named people/pets/places beyond what's given.
-Output ONLY the finished prompt text. No preamble, no markdown, no quotes around it.`;
-  const user = `Dream: "${dream}"\n\nAvailable named references (use only if relevant):\n${refLines || "(none)"}`;
-
-  const res = await fetch(DEEPSEEK_API_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({
-      model: DEEPSEEK_MODEL,
-      messages: [{ role: "system", content: system }, { role: "user", content: user }],
-      stream: false,
-    }),
-  });
-  if (!res.ok) {
-    console.error("[DreamRushes] DeepSeek request failed:", res.status, await res.text().catch(() => ""));
-    throw new Error("DEEPSEEK_FAILED");
-  }
-  const data = await res.json().catch(() => null);
-  const text = data?.choices?.[0]?.message?.content;
-  if (!text || typeof text !== "string") throw new Error("DEEPSEEK_FAILED");
-  // DeepSeek's output becomes a prompt for a paid third-party API next —
-  // sanitise it exactly like user input, regardless of the source.
-  const cleaned = sanitizePromptText(text).slice(0, MAX_CRAFTED_PROMPT);
-  if (!cleaned) throw new Error("DEEPSEEK_FAILED");
-  return cleaned;
-}
-// ---- prompt hygiene (end) ----
 
 // ---- fal.ai calls ----
 // Synchronous fal.ai REST endpoint (fal.run/<model>) rather than the queue
