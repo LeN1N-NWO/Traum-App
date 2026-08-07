@@ -24,26 +24,36 @@ zum Anfangen, `/wrap` zum Abschließen, `/checkpoint` vor riskanten Umbauten,
 
 ## App starten
 
-Statische Vorschau (keine echte Generierung, zeigt Beispiel-Inhalte):
-
-    python3 -m http.server 8100 --bind 127.0.0.1
-
-⚠️ **`--bind 127.0.0.1` nicht weglassen, und die Vorschau nicht starten, sobald
-`.env` existiert.** Dieser Einzeiler ist Pythons Standard-Dateiserver: er kennt
-keine Freigabeliste und liefert *alles* im Ordner aus — auch `.env` mit deinen
-API-Keys. Ohne `--bind` lauscht er zusätzlich auf allen Netzwerk-
-Schnittstellen, ist also für jeden im selben WLAN erreichbar. Die Absicherung in
-`server.js` greift hier nicht, weil dieser Weg daran vorbeigeht.
-
-Echte Generierung (braucht Bun + einen fal.ai-API-Key; DeepSeek ist optional):
+Beim Entwickeln — Oberfläche auf 5173 mit Hot Reload, API auf 8100:
 
     bun install
     cp .env.example .env        # dann FAL_KEY eintragen (DEEPSEEK_KEY optional)
-    bun server.js               # → http://localhost:8100
+    bun run dev                 # → http://localhost:5173
+
+Produktionsnah — alles auf einem Port:
+
+    bun run build && bun server.js    # → http://localhost:8100
+
+`bun server.js` allein genügt seit dem Vite-Umbau (ADR-0004) **nicht** mehr:
+der Server liefert `dist/` aus, das erst gebaut werden muss. Ohne Build
+antwortet alles mit 404.
+
+Tests:
+
+    bun run test                # Unit-Tests + Dateifreigabe + Prompt-Hygiene
+
+## Schlüssel und Absicherung
 
 fal.ai-Key besorgen unter **fal.ai/dashboard/keys**, DeepSeek-Key optional unter
-**platform.deepseek.com**. Die Keys bleiben serverseitig in `server.js` — der
-Browser bekommt sie nie zu sehen: `server.js` liefert nur `index.html` und
-`clips/*` aus, alles andere ist 404 (abgesichert durch
-`node scripts/test-static.mjs`). Details, Model-Slugs und Deploy-Hinweise: siehe
-`server.js`-Kommentare und `docs/STAND.md`.
+**platform.deepseek.com**. Beide bleiben serverseitig in `server.js` — der
+Browser bekommt sie nie zu sehen, und das gilt auch für die später geplante
+iPhone-App: ein App-Bundle ist extrahierbar.
+
+Die Web-Wurzel ist `dist/`, also der Build. Damit liegen `.env`, `.git/`,
+`docs/` und der Servercode selbst außerhalb dessen, was überhaupt auflösbar ist
+— zusätzlich zur Freigabeliste in `server.js`, die nur `/index.html`,
+`/assets/*` und `/clips/*` erlaubt. Abgesichert durch
+`node scripts/test-static.mjs`.
+
+Details, Model-Slugs und Deploy-Hinweise: siehe `server.js`-Kommentare und
+`docs/STAND.md`.

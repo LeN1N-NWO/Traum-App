@@ -3,6 +3,72 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 16:30 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** Phase 1 des App-Umbaus komplett — die App ist jetzt eine React-SPA
+mit fünf Tabs statt drei loser HTML-Seiten. Vorher entstanden Spec
+(`docs/specs/2026-08-07-app-umbau-design.md`), `ADR-0004` und der
+Implementierungsplan (`docs/plans/2026-08-07-phase1-geruest.md`, 12 Aufgaben);
+danach wurde der Plan Aufgabe für Aufgabe abgearbeitet.
+
+Neu: Vite-Build, `src/lib/` (storage, symbols, tags, streak, creatures, api),
+`src/state/AppState.jsx` als einziger Schreibpfad in den Speicher,
+`src/components/` (Button, Card, ScreenHeader, TabBar, Splash, Toast),
+`src/screens/` (Home, Journal, Symbols, Profile, Dream). `legacy/` gelöscht.
+Oberfläche durchgehend auf Deutsch.
+
+**Warum:** Die App soll sich wie eine App anfühlen und später über Capacitor
+nach iOS/Android portiert werden. Der sechsstufige Wizard aus der Spec braucht
+Zustand über mehrere Schritte — das ist von Hand geführter DOM-Zustand in
+seiner fehleranfälligsten Form. Next.js wurde verworfen: seine Kernfunktionen
+(SSR, API-Routen, SEO) sind für ein Capacitor-Bundle wertlos, man müsste sie
+abschalten, um es einsetzen zu können. Begründung in ADR-0004.
+
+**Zwei Fehler, die beim Planen auffielen — beide vor der Umsetzung behoben:**
+
+1. **`state.lastDream` ist ein DATUM, kein Traumtext.** Der Feldname legt das
+   Gegenteil nahe, und die Serien-Logik vergleicht ihn mit `todayStr()`. Ein
+   erster Planentwurf schrieb dort den Traumtext hinein — das hätte die Serie
+   bei jedem Traum still auf 1 zurückgesetzt. `src/lib/streak.js` hat jetzt
+   sechs Tests, die genau das abdecken, und einen Warnkommentar.
+2. **Die Menagerie wäre verschwunden.** Die Spec sagt „Menagerie und Streak
+   nach Home", der erste Plan portierte nur den Streak. Nutzer haben Wesen im
+   Speicher — die wären ersatzlos weg gewesen.
+
+**Sicherheit — nebenbei verbessert:** Die Web-Wurzel ist jetzt `dist/` statt
+des Repositories. Damit liegen `.env`, `.git/`, `docs/`, `src/` und
+`server.js` **strukturell** außerhalb dessen, was `resolveStatic()` überhaupt
+auflösen kann — zweite, unabhängige Schranke zusätzlich zur Freigabeliste.
+`scripts/test-static.mjs` prüft das (33 Prüfungen) und wurde entsprechend auf
+`dist/` umgestellt. Außerdem gibt es kein `innerHTML` mehr im Anwendungscode:
+React escaped von sich aus.
+
+**Verifiziert:** 24 Unit-Tests (`bun test`), 33 Freigabe-Prüfungen,
+Prompt-Hygiene-Tests, Build grün. Echter HTTP-Abruf gegen den laufenden
+Server: `/` und `/assets/*` liefern 200, `.env`, `/src/`, `/legacy/`,
+`/server.js` und `/package.json` liefern 404. Im Browser durchgespielt: Traum
+eingegeben → echtes Bild von fal.ai zurück → Eintrag im Tagebuch mit Bild →
+Wesen („Nyxjelly", Rare) auf der Startseite → Serie auf 1 → Symbole (Water,
+Flying, Joy & warmth) korrekt erkannt.
+
+**Unterwegs korrigiert:** „🔥 1 Tage" → „1 Tag" (Singular).
+
+**Was der Nächste wissen muss:**
+- **`bun server.js` allein genügt nicht mehr.** Ohne `bun run build` gibt es
+  kein `dist/` und alles antwortet 404. Zum Entwickeln `bun run dev`
+  (Oberfläche 5173 mit Hot Reload, API 8100).
+- Der Speicherschlüssel bleibt `dreamrushes_v1`; alle neuen Felder
+  (`credits`, `originalText`, …) sind optional mit Vorgabewert. Bestehende
+  Traumtagebücher laden unverändert weiter.
+- Orte brauchten kein neues Datenfeld: `state.cast` kennt bereits
+  `category: "place"`. Avatare und Orte sind dieselbe Struktur, nur gefiltert.
+- `src/screens/Dream/DreamScreen.jsx` ist bewusst ein 1:1-Port des alten
+  Formulars und wird in Phase 2 durch den Wizard ersetzt — deshalb klein
+  gehalten.
+- Ein verwaister `bun`-Prozess kann Port 8100 blockieren und dann eine
+  irreführende Meldung („Port vom OS reserviert") auslösen. `netstat -ano |
+  grep :8100` zeigt den Übeltäter.
+
 ## 2026-08-07 14:20 — Anton — Branch `claude/new-session-x9qv1w`
 
 **Was:** fal.ai + DeepSeek end-to-end verifiziert (Punkt 1 der letzten
