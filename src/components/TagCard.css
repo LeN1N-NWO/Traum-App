@@ -1,0 +1,33 @@
+/* Placed from JS, so position: fixed — the anchor comes from
+   getClientRects(), which is relative to the viewport. */
+.tc-card {
+  position: fixed; z-index: 68;   /* over the wizard (65), under the dialog (70) */
+  display: flex; gap: var(--s-3); align-items: flex-start;
+  width: max-content; max-width: min(300px, calc(100vw - 24px));
+  padding: var(--s-3);
+  background: var(--bg2); border: 1px solid var(--panel-line);
+  border-radius: var(--radius); box-shadow: 0 12px 32px rgba(0, 0, 0, .45);
+}
+
+.tc-img {
+  width: 56px; height: 56px; flex: none;
+  border-radius: 14px; object-fit: cover; display: block;
+}
+.tc-no-image {
+  display: grid; place-items: center;
+  background: var(--panel); color: var(--faint); font-size: 20px;
+}
+
+.tc-body { min-width: 0; }   /* lets long words wrap instead of stretching the card */
+.tc-tag { font-size: var(--t-body); font-weight: 600; margin: 0; overflow-wrap: anywhere; }
+.tc-cat { font-size: var(--t-micro); color: var(--muted); margin: 2px 0 0;
+          text-transform: uppercase; letter-spacing: .08em; }
+.tc-desc { font-size: var(--t-small); color: var(--text); margin: var(--s-2) 0 0;
+           overflow-wrap: anywhere; }
+.tc-faint { color: var(--faint); }
+
+.tc-close {
+  flex: none; margin: -4px -4px 0 0; width: 26px; height: 26px; border-radius: 50%;
+  background: none; border: 0; color: var(--muted); font-size: 17px; cursor: pointer;
+}
+.tc-close:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }

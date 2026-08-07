@@ -3,18 +3,19 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-08 (10:15)
+**Stand:** 2026-08-07 (19:00)
 
-## ⚠ Parallele Arbeit — vor dem Anfassen des Profil-Bereichs lesen
+⚠ Die Uhrzeiten in älteren Doku-Einträgen gehen teils einen Tag vor
+(Eintrag „2026-08-08 10:15" gehört zu einem Commit vom 07.08. 18:05). Im
+Zweifel gilt die Commit-Zeit.
 
-Hanni hat mit dem Entwurfs-PR **#8** (`session/2026-08-07-hanni-profile`,
-07.08. 17:55) den Profil-Bereich reserviert: Personen/Tiere/Orte anlegen,
-bearbeiten, löschen — **plus Tag-Hervorhebung im Traum-Eingabefeld**.
+## Parallele Arbeit — erledigt
 
-Der Bearbeiten-Teil wurde am 08.08. versehentlich parallel gebaut und liegt
-auf `main` (`96cca16`). Ihr Branch enthält nur den Reservierungs-Commit, es
-ist also nichts verloren. **Die Tag-Hervorhebung im Eingabefeld ist nicht
-gebaut** und gehört weiterhin ihr. Details im WORKLOG-Eintrag 08.08. 10:15.
+Die Kollision zwischen PR **#8** (Hanni) und `96cca16` (Anton) am
+Profil-Bereich ist aufgelöst: `main` wurde in #8 gemergt, Doppeltes
+herausgeworfen. Antons Bearbeiten-Funktion bleibt, aus Hannis Teil bleibt die
+Pflicht **Foto oder Beschreibung** sowie die Tag-Hervorhebung samt
+anklickbarer Tags. Kein offener Konflikt.
 
 ## Woran wird gearbeitet
 
@@ -68,6 +69,13 @@ Der ⊕-Knopf öffnet einen Vollbild-Flow über der Tab-Leiste:
    vor. `language` kommt als validierter BCP-47-Code mit (später nützlich
    für die UI-Sprache). Vorschau mit „Keep my words" oder „Use this
    version"; die erste Niederschrift bleibt immer als `originalText`.
+   **Namen aus dem Profil leuchten beim Tippen auf** (`TagTextarea`) und sind
+   **anklickbar** — ein Klick zeigt Foto, Kategorie und Beschreibung der
+   Entität (`TagCard`). Hervorgehoben wird jeder Avatar, auch der ohne Foto:
+   seit ein Eintrag mit bloßer Beschreibung angelegt werden darf, ist „hat ein
+   Bild" nicht mehr das Kriterium für Brauchbarkeit. `taggedPhotosIn()`
+   filtert weiterhin auf `img` — das entscheidet, was **hochgeladen** wird,
+   nicht, was **angezeigt** wird.
 2. **Was daraus werden soll:** nur speichern (gratis), Fotostrecke (ab 2
    Credits) oder Film (9 Credits). Die Bildanzahl wird hier noch NICHT
    gewählt — erst nachdem die Charaktere feststehen.
@@ -194,6 +202,20 @@ Der zuerst geschriebene Text bleibt über beliebig viele Überarbeitungen als
 
 ## Bekannte Baustellen
 
+- **⚠ Falle in `TagTextarea.css`.** Feld und Spiegelebene tragen zusätzlich
+  die Klasse des Aufrufers (`.wiz-textarea`), die `background` und `color`
+  setzt. Bei gleicher Spezifität entscheidet die Bündelreihenfolge — und
+  `.wiz-textarea` steht im gebauten CSS **hinter** `TagTextarea.css`. Deshalb
+  braucht dort alles, was den Aufrufer schlagen muss, ein `.tt-wrap` davor.
+  Genau daran ist es schon einmal gescheitert (07.08., doppelt gezeichneter
+  Text und Weißschleier über den Markierungen); sichtbar war es nur über
+  `getComputedStyle`, nicht mit bloßem Auge.
+- **Die Tag-Karte im Eingabefeld öffnet nur per Zeiger**
+  (`src/components/TagTextarea.jsx`). Die Markierungen liegen in einer
+  `aria-hidden`-Ebene hinter dem Textfeld und werden geometrisch getroffen,
+  nicht angeklickt. Derselbe Inhalt steht im Profil-Tab, der vollständig per
+  Tastatur bedienbar ist. Wer das nachrüstet, darf `Tab` im Textfeld nicht
+  belegen — das muss zum nächsten Bedienelement führen.
 - **Screens sind nur manuell geprüft.** Getestet ist die Logikschicht:
   `storage.js`, `symbols.js`, `tags.js`, `streak.js`, `beats.js`,
   `promptBuilder.js`, `parallel.js`, `credits.js` (50 Unit-Tests via

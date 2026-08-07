@@ -1,0 +1,67 @@
+/* Mirror layer behind the textarea — see TagTextarea.jsx for why.
+ *
+ * ⚠ Both boxes also carry the caller's own class (.wiz-textarea), which sets
+ * background and color. Same specificity would let bundle order decide the
+ * winner — and it decided against us: the mirror drew the text a second time
+ * and a 5% veil sat over the marks. Hence the descendant selectors below.
+ * Anything that MUST beat the caller's class needs .tt-wrap in front of it. */
+.tt-wrap { position: relative; }
+
+.tt-wrap .tt-mirror {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  white-space: pre-wrap; word-wrap: break-word;
+  color: transparent;               /* only there to place the marks */
+}
+
+/* Sits on top and keeps caret, selection and resizing. Transparent so the
+   marks on the layer below show through behind the real text. */
+.tt-wrap .tt-input { position: relative; z-index: 1; background: transparent; }
+
+/* The pill covers its word and nothing else.
+ *
+ * No horizontal padding at all, and that is not laziness: a space in this
+ * font is 3.47px wide, and between "anton" and the comma after it there is no
+ * gap whatsoever. Any horizontal padding therefore paints over a neighbouring
+ * character — it was 7px, so it swallowed the whole space and 3.5px of the
+ * letter beside it. Room to breathe could only come from real space, and that
+ * would shift the text against the field underneath.
+ *
+ * Vertically there IS room: the inline box is 16.82px in a 24px line, so
+ * 3.59px are free on each side. 3px stays inside that, which keeps pills on
+ * consecutive lines apart — 4px had them overlapping by 0.41px. Vertical
+ * padding on an inline box paints without affecting line height, so this
+ * moves nothing either. */
+.tt-wrap .tt-mirror mark {
+  position: relative;
+  background: rgba(139, 92, 246, .26);
+  color: transparent;
+  border-radius: 6px;
+  padding: 3px 0;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* A point of light travelling once around the rim: a rotating conic gradient
+   with its middle punched out by a mask. No extra element, and the ring stays
+   round when a mark wraps. */
+@property --tag-a { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes tag-run { to { --tag-a: 360deg; } }
+
+.tt-wrap .tt-mirror mark::before {
+  content: ""; position: absolute; inset: 0; border-radius: 6px; padding: 1px;
+  pointer-events: none;
+  background: conic-gradient(from var(--tag-a),
+    rgba(167, 139, 250, .32) 0turn, rgba(167, 139, 250, .32) .58turn,
+    #fff .70turn, rgba(167, 139, 250, .32) .82turn, rgba(167, 139, 250, .32) 1turn);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: tag-run 4s linear infinite;
+}
+
+/* Without @property support the ring simply stands still — the highlight
+   stays visible either way. Same when reduced motion is asked for. */
+@media (prefers-reduced-motion: reduce) {
+  .tt-wrap .tt-mirror mark::before { animation: none; }
+}

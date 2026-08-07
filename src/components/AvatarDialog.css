@@ -27,3 +27,8 @@
 .av-drop:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
 .av-hint { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-4); }
 .av-actions { display: flex; gap: var(--s-2); justify-content: flex-end; }
+
+/* Foto mit Entfernen-Möglichkeit — ein Eintrag ohne Bild ist ausdrücklich
+   erlaubt, die Beschreibung allein reicht dem Bildmodell. */
+.av-photo { display: flex; align-items: center; gap: var(--s-3); }
+.av-warn { color: var(--gold); }

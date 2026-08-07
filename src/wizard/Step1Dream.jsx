@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { analyze } from "../lib/api.js";
 import { useVoiceInput } from "../lib/useVoiceInput.js";
 import { PRICES } from "../lib/pricing.js";
@@ -6,15 +6,38 @@ import { spend } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
+import TagTextarea from "../components/TagTextarea.jsx";
+import TagCard from "../components/TagCard.jsx";
 import "./wizard.css";
 
 export default function Step1Dream({ w, patch, seedAssignments }) {
   const { state, update, toast } = useAppState();
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);   // the analysis awaiting a decision
+  const [card, setCard] = useState(null);         // the tag being looked at, if any
   const voice = useVoiceInput({ onText: (text) => patch({ text }) });
 
   const clean = w.text.trim();
+
+  // Every avatar counts, with or without a photo: since an entry may carry
+  // just a description, "has an image" is no longer what makes it usable.
+  const knownTags = useMemo(() => {
+    const tags = (state.cast || []).map((p) => p.tag).filter(Boolean);
+    if (state.me) tags.push("me");
+    return tags;
+  }, [state.cast, state.me]);
+
+  /* Tapping a highlighted name shows who it is. @me is not in the cast — it is
+   * its own field, so it needs its own case. Stable identity on both callbacks:
+   * TagCard registers window listeners keyed on onClose. */
+  const openCard = useCallback((tag, rect) => {
+    const avatar = tag === "me"
+      ? { ...state.me, tag: "me", category: "person" }
+      : (state.cast || []).find((p) => p.tag === tag);
+    if (avatar) setCard({ avatar, rect });
+  }, [state.cast, state.me]);
+
+  const closeCard = useCallback(() => setCard(null), []);
 
   /** The single LLM call. Its result drives every later step. */
   async function runAnalysis() {
@@ -85,15 +108,22 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
         )}
       </div>
 
-      <textarea
+      {/* Names from the profile light up as they are typed, so it is visible
+          which avatars this dream will pull in — before the wizard asks.
+          Tapping one shows the photo and description behind the name. */}
+      <TagTextarea
         className="wiz-textarea"
         value={w.text}
+        tags={knownTags}
         onChange={(e) => patch({ text: e.target.value })}
+        onTagClick={openCard}
         placeholder={t.dream.placeholder}
         rows={9}
         autoFocus
         aria-label={t.dream.textLabel}
       />
+
+      {card && <TagCard avatar={card.avatar} anchor={card.rect} onClose={closeCard} />}
 
       {voice.supported && (
         <button
