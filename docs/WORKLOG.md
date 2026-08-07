@@ -3,6 +3,57 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 13:30 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** Higgsfield komplett entfernt (Code + `@higgsfield/client`-Dependency).
+Video läuft jetzt über fal.ai (`minimax/h3/image-to-video`, von Anton direkt
+vorgegeben). Neuer, optionaler DeepSeek-Key als Prompt-Schnittstelle:
+`craftPromptViaDeepseek()` schickt Traumtext + Nano-Banana-6-Elemente-Formel
+(aus dem `nanobanana`-Skill) + Name/Kategorie/Beschreibung jedes benannten
+Referenzfotos an `deepseek-v4-flash`, bekommt einen fertigen Bild-Prompt
+zurück. `generateImages()`/`generateVideo()` in `server.js` orchestrieren
+DeepSeek → fal.ai; Film-Modus generiert zuerst ein Standbild und animiert es
+(image-to-video braucht ein Ausgangsbild, es gibt keinen Text-to-Video-Pfad
+mehr). `README.md`, `scripts/test-static.mjs`-Kommentar, `.env.example`,
+`index.html`-UI-Texte (Modell-Label, Datenschutzhinweis) entsprechend
+aktualisiert. `scripts/test-prompt-sanitize.mjs` umgestellt: testet jetzt
+`buildFallbackPrompt()`/`sanitizeTag()` statt des entfernten
+`withStyleContext()`.
+
+**Warum:** Anton wollte den Video-Provider konkretisieren (minimax/h3) und
+eine zweite KI (DeepSeek) als Prompt-Schreiber dazwischenschalten, die die
+Skill-Formel und die Referenzfoto-Namen kennt.
+
+**Wichtiger Fund unterwegs (per Web-Recherche geprüft, nicht geraten):**
+DeepSeek nannte "Flash 4" als Modell — richtig war `deepseek-v4-flash`,
+existiert wirklich (284B/13B-MoE, öffentliche Beta, OpenAI-kompatible API).
+Aber: **die öffentliche API ist textbasiert, kein Bild-Input** — bestätigt
+über offizielle DeepSeek-Docs plus DeepInfra/OpenRouter/AIML-API-Referenzen.
+Ursprünglicher Plan war, DeepSeek die Fotos sehen zu lassen; das geht mit
+dieser API nicht. Nach Rückfrage entschieden: DeepSeek bekommt nur
+Text-Metadaten (Tag/Kategorie/Beschreibung), die echten Fotos gehen direkt an
+fal.ai/Nano Banana (das selbst Vision hat).
+
+**Sicherheit:** DeepSeeks Rückgabetext wird vor Weiterverwendung durch
+`sanitizePromptText()` geschickt wie jeder andere Prompt-Baustein auch —
+er wird zum Prompt für einen weiteren bezahlten Drittanbieter-Aufruf und
+verdient dasselbe Misstrauen wie Nutzereingaben, unabhängig davon, wie
+gutartig DeepSeek normalerweise antwortet.
+
+**Nicht end-to-end verifiziert:** Weder `fal.run` noch vermutlich
+`api.deepseek.com` sind aus dieser Sandbox erreichbar (Netzwerk-Policy,
+403). Getestet: Syntax, beide Testsuiten grün, Fehlerfall für Bild UND Film
+per curl und Playwright — App fällt sauber auf Demo-Modus zurück.
+
+**Was der Nächste wissen muss:**
+- `FAL_MODEL_VIDEO` kam direkt von Anton, ist aber trotzdem unverifiziert —
+  fal.ai-Modell-IDs sind sonst meist unter `fal-ai/...` genamespaced, beim
+  ersten echten Test gegenprüfen.
+- Ohne `DEEPSEEK_KEY` läuft alles weiter wie zuvor (lokale Prompt-Vorlage,
+  `buildFallbackPrompt()`) — DeepSeek ist eine reine Qualitätsverbesserung,
+  kein Hard-Dependency.
+- `docs/STAND.md` entsprechend aktualisiert.
+
 ## 2026-08-07 12:15 — Anton — Branch `claude/new-session-x9qv1w`
 
 **Was:** fal.ai (Nano Banana 2) für die Bildgenerierung angebunden, mit

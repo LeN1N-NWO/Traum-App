@@ -6,8 +6,5 @@
   "scripts": {
     "start": "bun server.js",
     "dev": "bun server.js"
-  },
-  "dependencies": {
-    "@higgsfield/client": "^2.0.0"
   }
 }

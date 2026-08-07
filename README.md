@@ -1,9 +1,10 @@
 # Traum-App (Dream Rushes)
 
-Traum reinsprechen oder tippen → daraus wird eine 10-Bild-Kinosequenz (Nano Banana,
-Deakins-Framing) oder ein 15-Sekunden-Film (Seedance), mit dem eigenen Gesicht in
-jedem Frame. Jeder Traum hinterlässt außerdem ein sammelbares Wesen und zählt auf
-eine tägliche Streak ein.
+Traum reinsprechen oder tippen → daraus wird eine 10-Bild-Kinosequenz (fal.ai,
+Nano Banana 2) oder ein 15-Sekunden-Film (fal.ai, MiniMax H3 image-to-video),
+mit dem eigenen Gesicht in jedem Frame. DeepSeek schreibt dabei optional den
+Bild-Prompt. Jeder Traum hinterlässt außerdem ein sammelbares Wesen und zählt
+auf eine tägliche Streak ein.
 
 ## Einstieg
 
@@ -29,19 +30,20 @@ Statische Vorschau (keine echte Generierung, zeigt Beispiel-Inhalte):
 
 ⚠️ **`--bind 127.0.0.1` nicht weglassen, und die Vorschau nicht starten, sobald
 `.env` existiert.** Dieser Einzeiler ist Pythons Standard-Dateiserver: er kennt
-keine Freigabeliste und liefert *alles* im Ordner aus — auch `.env` mit deinem
-Higgsfield-Key. Ohne `--bind` lauscht er zusätzlich auf allen Netzwerk-
+keine Freigabeliste und liefert *alles* im Ordner aus — auch `.env` mit deinen
+API-Keys. Ohne `--bind` lauscht er zusätzlich auf allen Netzwerk-
 Schnittstellen, ist also für jeden im selben WLAN erreichbar. Die Absicherung in
 `server.js` greift hier nicht, weil dieser Weg daran vorbeigeht.
 
-Echte Generierung (braucht Bun + einen Higgsfield-API-Key):
+Echte Generierung (braucht Bun + einen fal.ai-API-Key; DeepSeek ist optional):
 
     bun install
-    cp .env.example .env        # dann HF_CREDENTIALS eintragen
+    cp .env.example .env        # dann FAL_KEY eintragen (DEEPSEEK_KEY optional)
     bun server.js               # → http://localhost:8100
 
-Key besorgen unter **cloud.higgsfield.ai** (API Keys). Der Key bleibt serverseitig
-in `server.js` — der Browser bekommt ihn nie zu sehen: `server.js` liefert nur
-`index.html` und `clips/*` aus, alles andere ist 404 (abgesichert durch
+fal.ai-Key besorgen unter **fal.ai/dashboard/keys**, DeepSeek-Key optional unter
+**platform.deepseek.com**. Die Keys bleiben serverseitig in `server.js` — der
+Browser bekommt sie nie zu sehen: `server.js` liefert nur `index.html` und
+`clips/*` aus, alles andere ist 404 (abgesichert durch
 `node scripts/test-static.mjs`). Details, Model-Slugs und Deploy-Hinweise: siehe
-`server.js`-Kommentare und `docs/decisions/ADR-0002-stack-bun-vanilla-higgsfield.md`.
+`server.js`-Kommentare und `docs/STAND.md`.

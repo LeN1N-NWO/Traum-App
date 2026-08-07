@@ -28,14 +28,14 @@
     <textarea id="dream" placeholder="…I was falling backward through a city that turned into water, and the streetlights became jellyfish…"></textarea>
     <div class="cap-actions">
       <button class="mic" id="mic" title="Speak your dream">🎙</button>
-      <p class="hint hint-inline">Your dream text and any photos you attach are sent to Higgsfield to render it; your journal and menagerie stay on this device.</p>
+      <p class="hint hint-inline">Your dream text is sent to fal.ai (and DeepSeek, to help write the prompt) to render it; any photos you attach are sent to fal.ai only. Your journal and menagerie stay on this device.</p>
     </div>
 
     <div class="ctl">
       <div class="ctl-lbl">How should it come out?</div>
       <div class="seg" id="modeSeg">
         <button data-mode="sequence" aria-pressed="true">🖼 Photo story<small>10 frames · Nano Banana</small></button>
-        <button data-mode="film" aria-pressed="false">🎬 Film<small>15s clip · Seedance</small></button>
+        <button data-mode="film" aria-pressed="false">🎬 Film<small>15s clip · MiniMax</small></button>
       </div>
     </div>
 
@@ -71,7 +71,7 @@
     </div>
     <div class="filmcap">
       <div class="t" id="filmTitle">Untitled Dream</div>
-      <div class="m" id="filmMeta">15s · Seedance 2.0</div>
+      <div class="m" id="filmMeta">15s · MiniMax H3</div>
     </div>
     <div class="creature" id="creatureBox" style="display:none">
       <div class="cr-emoji" id="crEmoji">🪼</div>
@@ -376,7 +376,7 @@ function summon(){
 
   const title=titleFrom(text);
   document.getElementById('filmTitle').textContent=title;
-  document.getElementById('filmMeta').textContent = state.mode==='film' ? '15s · Seedance 2.0' : '10 frames · Nano Banana · Deakins framing';
+  document.getElementById('filmMeta').textContent = state.mode==='film' ? '15s · MiniMax H3' : '10 frames · Nano Banana · Deakins framing';
 
   let i=0;const lt=setInterval(()=>{const el=document.getElementById('loadtxt');if(el)el.textContent=LOAD_MSGS[i++%LOAD_MSGS.length]},1400);
 
@@ -529,7 +529,7 @@ function wireSeg(id,key,after){
   });
 }
 wireSeg('modeSeg','mode',()=>{
-  document.getElementById('filmMeta').textContent = state.mode==='film' ? '15s · Seedance 2.0' : '10 frames · Nano Banana · Deakins framing';
+  document.getElementById('filmMeta').textContent = state.mode==='film' ? '15s · MiniMax H3' : '10 frames · Nano Banana · Deakins framing';
 });
 wireSeg('consSeg','cons',()=>{
   document.getElementById('soulRow').style.display = state.cons==='soul' ? 'flex' : 'none';

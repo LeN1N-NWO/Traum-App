@@ -4,7 +4,7 @@
 //   node scripts/test-static.mjs
 //
 // Warum es das gibt: server.js hat einmal das komplette App-Verzeichnis
-// ausgeliefert — inklusive .env mit dem Higgsfield-Key. Dieser Test hält die
+// ausgeliefert — inklusive .env mit den API-Keys. Dieser Test hält die
 // Freigabe eng. Wer ein neues öffentliches Asset braucht, erweitert bewusst
 // PUBLIC_FILES/PUBLIC_DIRS in server.js UND die Liste hier.
 //
