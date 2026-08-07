@@ -3,7 +3,7 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-07 (18:00)
+**Stand:** 2026-08-07 (20:30)
 
 ## Woran wird gearbeitet
 
@@ -17,7 +17,7 @@ drei loser HTML-Seiten — Phase 1 des Umbaus aus
 |---|---|
 | Start | Begrüßung, Serie, letzter Traum, Menagerie |
 | Tagebuch | Kartenansicht mit Suche, Detail-Modal, Löschen |
-| **⊕** | Traum erfassen (Phase 2: der sechsstufige Wizard) |
+| **⊕** | Der sechsstufige Wizard: Traum → Analyse → Personen → Orte → Style → Ergebnis |
 | Symbole | 20 Symbole in fünf Kategorien, Vorkommen je Traum |
 | Profil | Personen/Tiere/Orte, Lucid-Guide, Credit-Anzeige |
 
@@ -28,7 +28,7 @@ Kernfunktionen für die Traum-App:
 3. Lucid-Dreaming-Guide (Reality Checks, MILD, WBTB, Journaling). ✅
 4. Eigene Referenzfotos mit Kategorien Person/Tier/Ort. ✅
 5. Symbolsammlung mit gängiger Lesart. ✅
-6. **Fehlt noch:** Bezahlmodell (Credits gegen echtes Geld).
+6. Credits werden gezählt und abgebucht. **Fehlt noch:** echtes Geld dafür.
 
 **Stack:** Bun + Vite + React 18 + react-router-dom (HashRouter), `server.js`
 als schlüsselhaltender Proxy. **Mit Build-Schritt** (ADR-0004 löst ADR-0003 ab
@@ -42,11 +42,54 @@ und nirgends sonst — die zweite Sprache ist damit eine neue Datei, kein Umbau.
 Doku/Commits (deutsch) und war deshalb missverständlich; die Regel ist jetzt
 präzisiert.
 
+## Der Wizard (Phase 2, fertig)
+
+Der ⊕-Knopf öffnet einen Vollbild-Flow über der Tab-Leiste:
+
+1. **Traum schreiben oder sprechen.** „Improve with AI" (1 Credit) löst den
+   **einzigen LLM-Aufruf pro Traum** aus (`/api/analyze`): geglätteter Text,
+   Personen, Orte, fünf Beats und ein Style-Vorschlag, alles als striktes
+   JSON. Vorschau mit „Keep my words" oder „Use this version"; die erste
+   Niederschrift bleibt immer als `originalText`. Überspringbar — dann greift
+   eine lokale Erkennung ohne Kosten.
+2. **Was daraus werden soll:** nur speichern (gratis), Fotostrecke (3, 5 oder
+   10 Bilder, 2/3/5 Credits) oder Film (9 Credits).
+3. **„Who is in it?"** — eine Kachel je erkannter Person. Vorhandene Avatare
+   werden automatisch zugeordnet (Tag-Vergleich; „I"/„me" trifft `@me`).
+   Sonst: aus der Bibliothek wählen, neu anlegen (Foto und/oder Beschreibung,
+   Name vorausgefüllt) oder der KI überlassen.
+4. **Dasselbe für Orte.** Ein Traum, der irgendwohin fliegt, hat zwei.
+5. **Style und Format**, Style aus der Analyse vorausgewählt, 9:16 Standard.
+6. **Ergebnis**, dann ins Tagebuch.
+
+**Nach Schritt 1 fällt kein weiterer LLM-Aufruf an.** `beats.js` leitet die
+Bildanzahl lokal aus den fünf Beats ab, `styles.js` sind Konstanten,
+`promptBuilder.js` setzt den Master-Prompt zusammen. `/api/generate` nimmt
+diesen fertigen Prompt entgegen (weiterhin sanitisiert — ein client-gebauter
+Prompt ist nicht vertrauenswürdiger als ein modellgebauter).
+
+Gerendert wird **drei parallel** (`parallel.js`); sequenziell brauchten drei
+Bilder über eine Minute.
+
+## Tagebuch-Eintrag: Drei-Punkte-Menü
+
+- **Bearbeiten** — Textfeld, kostenlos, ohne LLM.
+- **Korrigieren** (1) · **Neu schreiben** (1) · **Ausarbeiten** (2) — alle
+  über eine Route `/api/refine` mit `mode`-Parameter, alle mit Vorschau
+  („jetzt" gegen „überarbeitet") und Übernehmen oder Verwerfen.
+- **Teilen** — Web Share API, also das native Teilen-Blatt des Geräts. Kein
+  Schlüssel, kein OAuth, kein Entwickler-Account je Plattform, und es
+  funktioniert in Capacitor. Wo Datei-Teilen fehlt, wird heruntergeladen.
+- **Löschen.**
+
+Der zuerst geschriebene Text bleibt über beliebig viele Überarbeitungen als
+`originalText` erhalten und ist im Eintrag aufklappbar.
+
 ## Starten
 
     bun run dev                       # Oberfläche 5173, API 8100, Hot Reload
     bun run build && bun server.js    # produktionsnah, alles auf 8100
-    bun run test                      # 24 Unit-Tests + 33 Freigabe-Prüfungen + Prompt-Hygiene
+    bun run test                      # 50 Unit-Tests + 33 Freigabe-Prüfungen + Prompt-Hygiene
 
 ⚠️ `bun server.js` allein genügt nicht mehr — ohne `dist/` antwortet alles 404.
 
@@ -100,8 +143,12 @@ präzisiert.
   Nur an localhost binden. Öffentlich erreichbar könnte jeder das Guthaben
   verbrauchen. Löst sich erst mit dem Accounts-Backend — verbindlich zu lösen,
   **bevor** die iPhone-App echte Nutzer auf einen gemeinsamen Server lässt.
-- **Offen — Credits sind eine Attrappe.** Der Zähler liegt im `localStorage`
-  und ist damit vom Nutzer frei editierbar: Anzeige, keine Zugangskontrolle.
+- **Offen — Credits sind Buchhaltung, keine Zugangskontrolle.** Sie werden
+  seit 07.08. tatsächlich abgebucht (erst nach erfolgreichem Aufruf, damit ein
+  Fehlschlag nichts kostet), und neue Installationen bekommen einmalig 25
+  Stück. Aber der Stand liegt im `localStorage` und ist frei editierbar — wer
+  will, verschafft sich unbegrenzt Generierungen. Echte Durchsetzung gehört
+  auf den Server, neben die Accounts.
 - **Offen — Datenschutz:** hochgeladene Referenzfotos (Gesichter, Tiere,
   Wohnorte) gehen an den Generierungs-Provider. Gesichtsbilder sind
   biometrische Daten (DSGVO Art. 9). Vor einer Veröffentlichung braucht es
@@ -118,19 +165,24 @@ präzisiert.
 ## Bekannte Baustellen
 
 - **Screens sind nur manuell geprüft.** Getestet ist die Logikschicht:
-  `storage.js`, `symbols.js`, `tags.js`, `streak.js` (24 Unit-Tests via
+  `storage.js`, `symbols.js`, `tags.js`, `streak.js`, `beats.js`,
+  `promptBuilder.js`, `parallel.js`, `credits.js` (50 Unit-Tests via
   `bun test`) plus Server-Freigabe und Prompt-Hygiene. Für die React-Screens
   gibt es keine automatisierten Tests — dafür bräuchte es eine DOM-Umgebung.
+- **Die riskanteste Stelle ist `promptBuilder.js`.** Referenzklauseln sagen
+  „Reference image 2 shows @anton", und diese Nummer muss zur Position im
+  Bild-Array passen. Eine Figur ohne Foto darf deshalb keinen Index
+  verbrauchen — sonst bekommen Menschen fremde Gesichter. Dafür gibt es
+  eigene Tests; wer dort etwas ändert, führt sie aus.
 - **Generierte Medien werden nicht lokal gespeichert.** `/api/generate` reicht
   nur die fal.ai-Hosting-URL durch, die App speichert diese URL im
   Tagebuch-Eintrag. Anton möchte sie zusätzlich lokal ablegen. Angedacht:
   Server lädt die Datei nach der Generierung herunter und liefert einen
   lokalen Pfad neben der Original-URL zurück — Speicherort, Dateibenennung und
   Aufräumen sind ungeklärt.
-- **Referenzfotos hängen noch an `mentionsTag()`** — der Name muss wörtlich im
-  Traumtext stehen. „meine Schwester" bekommt kein Foto, obwohl eins da wäre.
-  Phase 2 löst das durch die ausdrückliche Zuordnung im Wizard; die Erkennung
-  wird dann Vorschlag statt Filter.
+- `mentionsTag()` ist im Wizard nur noch **Vorschlag**, nicht mehr Filter —
+  die Zuordnung passiert ausdrücklich in Schritt 3 und 4. Die alte Regel
+  greift nur noch, wenn jemand „Improve with AI" überspringt.
 - **Credits/Bezahlmodell fehlt.** Braucht eine fälschungssichere Datenhaltung
   (client-seitiges `localStorage` reicht für echtes Geld nicht) — tentativ
   Supabase. Braucht ein eigenes Projekt vom Produktbesitzer und ein eigenes
@@ -157,13 +209,11 @@ präzisiert.
 
 ## Nächste Schritte
 
-1. **Phase 2 — der Wizard** (`docs/specs/2026-08-07-app-umbau-design.md`,
-   Abschnitt 3): sechs Schritte, `/api/analyze` als **einziger** LLM-Aufruf pro
-   Traum, `promptBuilder.js` mit Style-Templates, Credit-Anzeige an jedem
-   kostenpflichtigen Knopf. Ersetzt `src/screens/Dream/DreamScreen.jsx`.
-   Erster Schritt: prüfen, ob DeepSeek das JSON-Schema zuverlässig liefert —
-   braucht einen echten Aufruf.
-2. Generierte Bilder/Videos zusätzlich lokal speichern (Antons Wunsch).
+1. Generierte Bilder/Videos zusätzlich lokal speichern (Antons Wunsch).
+2. **Character-Sheets**: eine beschriebene Figur ohne Foto bekommt bisher nur
+   eine Textklausel. Die Spec sieht vor, daraus einmalig ein Referenzbild
+   erzeugen zu lassen (2 Credits), das am Avatar hängt und wiederverwendbar
+   ist. Noch nicht gebaut.
 3. Vor jeder öffentlichen/iPhone-Nutzung: Auth + Rate-Limit für
    `/api/generate`.
 4. Supabase-Projekt anlegen (Produktbesitzer) → ADR für Accounts/DB/Credits.

@@ -3,6 +3,71 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 20:30 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** Phase 2 gebaut — der Wizard und das Tagebuch-Menü. Damit ist alles
+umgesetzt, was in `docs/specs/2026-08-07-app-umbau-design.md` steht.
+
+Neu: `/api/analyze` (der eine LLM-Aufruf pro Traum, striktes JSON),
+`/api/refine` (korrigieren/neu schreiben/ausarbeiten hinter einem
+`mode`-Parameter), `src/wizard/` mit sechs Schritten, `src/lib/beats.js`,
+`styles.js`, `promptBuilder.js`, `parallel.js`, `credits.js`, `share.js`,
+`pricing.js`. `AvatarDialog` wanderte nach `src/components/`, weil ihn jetzt
+Profil UND Wizard brauchen.
+
+**Warum:** Anton hat zu Recht reklamiert, dass die Spec keine App ist. Der
+Ablauf, den wir lange besprochen hatten — Traum durch die LLM, „Wer ist
+Anton?", Bibliothek durchsuchen oder neu anlegen — existierte nur auf Papier.
+
+**Drei Korrekturen an eigenen Fehlern:**
+
+1. **Sprache.** Ich hatte aus `AGENTS.md` („Deutsch in UI") geschlossen, die
+   Oberfläche solle deutsch werden. Falsch: Englisch ist die App-Sprache,
+   Deutsch kommt als zweite dazu. Alles auf Englisch zurückgedreht, Texte in
+   `src/i18n/en.js` gebündelt, `AGENTS.md` präzisiert.
+2. **Mein „1:1-Port" war keiner.** Beim React-Umbau hatte ich Spracheingabe,
+   Ladeanzeige, die Cast-Auswahl im Flow und die gute Copy verloren, ohne es
+   zu merken oder zu sagen. Alles wiederhergestellt, die Copy wörtlich aus
+   dem alten Stand („Your subconscious, directed" …).
+3. **Zweimal denselben Fehler gemacht:** neuen Servercode zwischen die Marker
+   `prompt hygiene (start/end)` gesetzt. `scripts/test-prompt-sanitize.mjs`
+   extrahiert diesen Block und wertet ihn per `new Function()` aus — ein
+   `export` darin ist dort ein Syntaxfehler und legt den Test lahm. **Wer
+   `server.js` erweitert: nicht in diesen Block hinein.**
+
+**Unterwegs gefunden:** Sequenzielle Bildgenerierung war zu langsam (drei
+Bilder über eine Minute, zehn wären mehrere gewesen). Läuft jetzt drei
+parallel über `mapWithLimit`, mit Begrenzung — zehn gleichzeitige bezahlte
+Aufrufe an fal.ai wären das andere Extrem.
+
+**Sicherheit:** Der vom Client gebaute Master-Prompt geht durch dieselbe
+`sanitizePromptText()`-Hygiene wie alles andere. Ein client-gebauter Prompt
+ist nicht vertrauenswürdiger als ein modellgebauter.
+
+**Live geprüft:** Traum mit Anton, Rex und zwei Orten. Die Analyse erkannte
+alle drei Personen und beide Orte („my old bedroom", „a dark sea"), Anton
+wurde im Wizard mit Beschreibung angelegt und gebunden, drei Bilder kamen
+zurück — das erste zeigt ihn mit der angegebenen Beschreibung auf dem
+Fensterbrett. Danach „Rewrite it better" am gespeicherten Eintrag: Vorschau
+kam, Text blieb inhaltlich treu, Guthaben ging von 25 auf 24.
+
+**Was der Nächste wissen muss:**
+- **Der eine LLM-Aufruf ist das Entwurfsprinzip.** Die Analyse liefert immer
+  fünf `beats`; daraus leitet `beats.js` 3, 5 oder 10 Bilder ab. Wer die
+  Bildanzahl ändern will, fasst `beats.js` an — nicht den Prompt.
+- **`promptBuilder.js` ist die gefährlichste Datei.** Eine Figur ohne Foto
+  darf keinen Referenz-Index verbrauchen, sonst zeigen alle späteren
+  Klauseln auf das falsche Gesicht. Tests dafür sind da; bei Änderungen
+  ausführen.
+- Credits werden abgebucht, aber **erst nach erfolgreichem Aufruf** — ein
+  Fehlschlag darf nichts kosten. Neue Installationen bekommen einmalig 25.
+  Weiterhin keine Zugangskontrolle: `localStorage` ist editierbar.
+- Modellnamen gehören nicht in die Oberfläche (Provider-Wechsel wäre sonst
+  eine Textänderung). Der Datenschutzhinweis nennt die Dienstleister trotzdem
+  — das ist eine Pflichtangabe, keine Werbung.
+- Noch offen aus der Spec: Character-Sheets für beschriebene Figuren ohne
+  Foto (2 Credits), und generierte Medien zusätzlich lokal speichern.
+
 ## 2026-08-07 16:30 — Anton — Branch `claude/new-session-x9qv1w`
 
 **Was:** Phase 1 des App-Umbaus komplett — die App ist jetzt eine React-SPA
