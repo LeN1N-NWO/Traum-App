@@ -1,75 +1,73 @@
 import { useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
 import { genId } from "../../lib/storage.js";
+import { t } from "../../i18n/index.js";
 import Button from "../../components/Button.jsx";
 import "./profile.css";
 
-// Spiegelt sanitizeTag() in server.js: nur [a-z0-9], höchstens 12 Zeichen.
-// Der Server prüft ohnehin erneut — hier geht es darum, dass der Mensch
-// sofort sieht, was tatsächlich ankommt.
-function saeubereTag(roh) {
-  return String(roh || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
+// Mirrors sanitizeTag() in server.js: [a-z0-9] only, 12 chars max. The server
+// re-checks anyway — this is so the person sees what actually lands.
+function cleanTag(raw) {
+  return String(raw || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
 }
 
-export default function AvatarDialog({ kategorie, onSchliessen }) {
+export default function AvatarDialog({ category, onClose }) {
   const { state, update, toast } = useAppState();
   const [tag, setTag] = useState("");
-  const [bild, setBild] = useState("");
+  const [image, setImage] = useState("");
 
-  function dateiLesen(e) {
-    const datei = e.target.files?.[0];
-    if (!datei) return;
-    const leser = new FileReader();
-    leser.onload = () => setBild(String(leser.result));
-    leser.onerror = () => toast("⚠ Foto konnte nicht gelesen werden.");
-    leser.readAsDataURL(datei);
+  function readFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setImage(String(reader.result));
+    reader.onerror = () => toast(t.avatarDialog.readFailed);
+    reader.readAsDataURL(file);
   }
 
-  function speichern() {
-    const sauber = saeubereTag(tag);
-    if (!sauber) return toast("⚠ Bitte einen Namen aus Buchstaben oder Zahlen angeben.");
-    if ((state.cast || []).some((p) => p.tag === sauber)) return toast(`⚠ @${sauber} gibt es schon.`);
+  function save() {
+    const clean = cleanTag(tag);
+    if (!clean) return toast(t.avatarDialog.needName);
+    if ((state.cast || []).some((p) => p.tag === clean)) return toast(t.avatarDialog.exists(clean));
     update({
       cast: [...(state.cast || []), {
-        id: genId("c"), tag: sauber, category: kategorie, desc: "", img: bild,
+        id: genId("c"), tag: clean, category, desc: "", img: image,
       }],
     });
-    toast(`@${sauber} angelegt`);
-    onSchliessen();
+    toast(t.avatarDialog.created(clean));
+    onClose();
   }
 
-  const bezeichnung = kategorie === "place" ? "Ort" : kategorie === "pet" ? "Tier" : "Person";
+  const title = t.avatarDialog.titleFor[category];
 
   return (
-    <div className="p-modal-hinter" onClick={onSchliessen}>
+    <div className="p-backdrop" onClick={onClose}>
       <div
         className="p-modal"
         role="dialog"
         aria-modal="true"
-        aria-label={`${bezeichnung} anlegen`}
+        aria-label={title}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="p-modal-titel">{bezeichnung} anlegen</h2>
+        <h2 className="p-modal-title">{title}</h2>
 
-        <label className="p-feld">
-          <span>Name (wird zu @{saeubereTag(tag) || "…"})</span>
+        <label className="p-field">
+          <span>{t.avatarDialog.nameLabel(cleanTag(tag) || "…")}</span>
           <input value={tag} onChange={(e) => setTag(e.target.value)} maxLength={20} autoFocus />
         </label>
 
-        <label className="p-feld">
-          <span>Referenzfoto</span>
-          <input type="file" accept="image/*" onChange={dateiLesen} />
+        <label className="p-field">
+          <span>{t.avatarDialog.photoLabel}</span>
+          <input type="file" accept="image/*" onChange={readFile} />
         </label>
 
-        {bild && <img className="p-vorschau" src={bild} alt="Vorschau des gewählten Fotos" />}
+        {image && <img className="p-preview" src={image} alt={t.avatarDialog.previewAlt} />}
 
-        <p className="p-hinweis">
-          Das Foto wird bei der Bildgenerierung an fal.ai übertragen.
-        </p>
+        <p className="p-hint">{t.avatarDialog.privacy}</p>
 
-        <div className="p-aktionen">
-          <Button variant="geist" onClick={onSchliessen}>Abbrechen</Button>
-          <Button onClick={speichern}>Speichern</Button>
+        <div className="p-actions">
+          <Button variant="ghost" onClick={onClose}>{t.avatarDialog.cancel}</Button>
+          <Button onClick={save}>{t.avatarDialog.save}</Button>
         </div>
       </div>
     </div>

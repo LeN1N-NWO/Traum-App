@@ -1,63 +1,64 @@
 import { useEffect, useRef } from "react";
 import Button from "../../components/Button.jsx";
 import { useAppState } from "../../state/AppState.jsx";
+import { t } from "../../i18n/index.js";
 import "./journal.css";
 
-export default function JournalDetail({ eintrag, onSchliessen }) {
+export default function JournalDetail({ entry, onClose }) {
   const { state, update, toast } = useAppState();
-  const schliessenRef = useRef(null);
+  const closeRef = useRef(null);
 
-  // Fokus in den Dialog holen und Escape belegen — sonst bleibt die Tastatur
-  // hinter dem Modal hängen.
+  // Pull focus into the dialog and wire Escape — otherwise the keyboard stays
+  // stuck behind the modal.
   useEffect(() => {
-    schliessenRef.current?.focus();
-    const beiTaste = (e) => { if (e.key === "Escape") onSchliessen(); };
-    document.addEventListener("keydown", beiTaste);
-    return () => document.removeEventListener("keydown", beiTaste);
-  }, [onSchliessen]);
+    closeRef.current?.focus();
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
-  function loeschen() {
-    update({ journal: state.journal.filter((e) => e.id !== eintrag.id) });
-    toast("Eintrag gelöscht");
-    onSchliessen();
+  function remove() {
+    update({ journal: state.journal.filter((e) => e.id !== entry.id) });
+    toast(t.journal.deleted);
+    onClose();
   }
 
-  const d = new Date(eintrag.createdAt);
+  const d = new Date(entry.createdAt);
   return (
-    <div className="j-modal-hinter" onClick={onSchliessen}>
+    <div className="j-backdrop" onClick={onClose}>
       <div
         className="j-modal"
         role="dialog"
         aria-modal="true"
-        aria-label={eintrag.title || "Traumeintrag"}
+        aria-label={entry.title || t.journal.untitled}
         onClick={(e) => e.stopPropagation()}
       >
-        <button ref={schliessenRef} className="j-schliessen" onClick={onSchliessen} aria-label="Schließen">
+        <button ref={closeRef} className="j-close" onClick={onClose} aria-label={t.journal.close}>
           ×
         </button>
 
-        <p className="j-modal-datum">
-          {d.toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" })}
+        <p className="j-modal-date">
+          {d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
         </p>
-        <h2 className="j-modal-titel">{eintrag.title || "Ohne Titel"}</h2>
+        <h2 className="j-modal-title">{entry.title || t.journal.untitled}</h2>
 
-        {eintrag.media?.urls?.length > 0 && (
-          <div className="j-medien">
-            {eintrag.media.type === "video"
-              ? <video src={eintrag.media.urls[0]} controls playsInline />
-              : eintrag.media.urls.map((u, i) => <img key={i} src={u} alt="" loading="lazy" />)}
+        {entry.media?.urls?.length > 0 && (
+          <div className="j-media">
+            {entry.media.type === "video"
+              ? <video src={entry.media.urls[0]} controls playsInline />
+              : entry.media.urls.map((u, i) => <img key={i} src={u} alt="" loading="lazy" />)}
           </div>
         )}
 
-        <p className="j-modal-text">{eintrag.text}</p>
+        <p className="j-modal-text">{entry.text}</p>
 
-        {eintrag.references?.length > 0 && (
-          <p className="j-referenzen">
-            Verwendete Fotos: {eintrag.references.map((r) => "@" + r.tag).join(", ")}
+        {entry.references?.length > 0 && (
+          <p className="j-references">
+            {t.journal.referencesUsed} {entry.references.map((r) => "@" + r.tag).join(", ")}
           </p>
         )}
 
-        <Button variant="still" onClick={loeschen}>Eintrag löschen</Button>
+        <Button variant="quiet" onClick={remove}>{t.journal.delete}</Button>
       </div>
     </div>
   );

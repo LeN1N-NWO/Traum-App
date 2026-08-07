@@ -1,24 +1,25 @@
 import { useEffect, useState } from "react";
+import { t } from "../i18n/index.js";
 import "./Splash.css";
 
-/* Nicht nur Deko: beim Capacitor-Build ist ein Splash ohnehin Pflicht, und er
-   überdeckt das Laden des localStorage. */
-export default function Splash({ onFertig }) {
-  const [weg, setWeg] = useState(false);
+/* Not just decoration: a Capacitor build needs a splash anyway, and it covers
+   the localStorage read. */
+export default function Splash({ onDone }) {
+  const [gone, setGone] = useState(false);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setWeg(true), 1400);
-    const t2 = setTimeout(onFertig, 1800);   // erst nach dem Ausblenden entfernen
+    const t1 = setTimeout(() => setGone(true), 1400);
+    const t2 = setTimeout(onDone, 1800);   // remove only after the fade
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [onFertig]);
+  }, [onDone]);
 
   return (
     <div
-      className={"splash" + (weg ? " splash-weg" : "")}
+      className={"splash" + (gone ? " splash-gone" : "")}
       role="status"
-      aria-label="Dream Rushes wird geladen"
+      aria-label={t.splash.loading}
     >
-      <div className="splash-mond" aria-hidden="true" />
+      <div className="splash-moon" aria-hidden="true" />
       <p className="splash-name">Dream Rushes</p>
     </div>
   );

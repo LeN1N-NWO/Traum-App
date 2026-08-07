@@ -1,43 +1,44 @@
 import { useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
+import { t } from "../../i18n/index.js";
 import ScreenHeader from "../../components/ScreenHeader.jsx";
 import Card from "../../components/Card.jsx";
-import AvatarListe from "./AvatarListe.jsx";
+import AvatarList from "./AvatarList.jsx";
 import AvatarDialog from "./AvatarDialog.jsx";
 import LucidGuide from "./LucidGuide.jsx";
 import "./profile.css";
 
 export default function ProfileScreen() {
   const { state } = useAppState();
-  const [dialogFuer, setDialogFuer] = useState(null);   // "person" | "pet" | "place" | null
+  const [dialogFor, setDialogFor] = useState(null);   // "person" | "pet" | "place" | null
 
   return (
     <main className="screen">
-      <ScreenHeader titel="Profil" />
+      <ScreenHeader title={t.profile.title} />
 
-      {/* Attrappe: der Zähler liegt im localStorage und ist damit vom Menschen
-          editierbar. Anzeige, keine Zugangskontrolle — echte Durchsetzung
-          braucht das Backend. */}
+      {/* A stand-in: the counter lives in localStorage and is editable by the
+          user. Display, not access control — real enforcement needs the
+          backend. */}
       <Card className="p-credits">
-        <span className="p-credits-zahl">{state.credits ?? 0}</span>
-        <span className="p-credits-label">Credits</span>
-        <span className="p-credits-hinweis">Aufladen bald verfügbar</span>
+        <span className="p-credits-count">{state.credits ?? 0}</span>
+        <span className="p-credits-label">{t.profile.credits}</span>
+        <span className="p-credits-hint">{t.profile.creditsSoon}</span>
       </Card>
 
-      <h2 className="p-abschnitt">Personen</h2>
-      <AvatarListe kategorie="person" onNeu={() => setDialogFuer("person")} />
+      <h2 className="p-section">{t.profile.people}</h2>
+      <AvatarList category="person" onNew={() => setDialogFor("person")} />
 
-      <h2 className="p-abschnitt">Tiere</h2>
-      <AvatarListe kategorie="pet" onNeu={() => setDialogFuer("pet")} />
+      <h2 className="p-section">{t.profile.pets}</h2>
+      <AvatarList category="pet" onNew={() => setDialogFor("pet")} />
 
-      <h2 className="p-abschnitt">Orte</h2>
-      <AvatarListe kategorie="place" onNeu={() => setDialogFuer("place")} />
+      <h2 className="p-section">{t.profile.places}</h2>
+      <AvatarList category="place" onNew={() => setDialogFor("place")} />
 
-      <h2 className="p-abschnitt">Klarträumen lernen</h2>
+      <h2 className="p-section">{t.profile.guide}</h2>
       <LucidGuide />
 
-      {dialogFuer && (
-        <AvatarDialog kategorie={dialogFuer} onSchliessen={() => setDialogFuer(null)} />
+      {dialogFor && (
+        <AvatarDialog category={dialogFor} onClose={() => setDialogFor(null)} />
       )}
     </main>
   );

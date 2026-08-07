@@ -10,30 +10,30 @@ import SymbolsScreen from "./screens/Symbols/SymbolsScreen.jsx";
 import ProfileScreen from "./screens/Profile/ProfileScreen.jsx";
 import DreamScreen from "./screens/Dream/DreamScreen.jsx";
 
-/* HashRouter, nicht BrowserRouter: Capacitor lädt die App später über
-   file://, wo die History-API nicht zuverlässig funktioniert. */
+/* HashRouter, not BrowserRouter: Capacitor will load the app over file://,
+   where the History API is unreliable. */
 export default function App() {
-  const [zeigeSplash, setZeigeSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
 
   return (
     <AppStateProvider>
-      {zeigeSplash && <Splash onFertig={() => setZeigeSplash(false)} />}
+      {showSplash && <Splash onDone={() => setShowSplash(false)} />}
       <HashRouter>
         <Routes>
-          <Route path="/"         element={<HomeScreen />} />
-          <Route path="/tagebuch" element={<JournalScreen />} />
-          <Route path="/symbole"  element={<SymbolsScreen />} />
-          <Route path="/profil"   element={<ProfileScreen />} />
-          <Route path="/traum"    element={<DreamScreen />} />
+          <Route path="/"        element={<HomeScreen />} />
+          <Route path="/journal" element={<JournalScreen />} />
+          <Route path="/symbols" element={<SymbolsScreen />} />
+          <Route path="/profile" element={<ProfileScreen />} />
+          <Route path="/dream"   element={<DreamScreen />} />
         </Routes>
         <TabBar />
       </HashRouter>
-      <ToastAnschluss />
+      <ToastBridge />
     </AppStateProvider>
   );
 }
 
-function ToastAnschluss() {
+function ToastBridge() {
   const { toastText } = useAppState();
   return <Toast text={toastText} />;
 }

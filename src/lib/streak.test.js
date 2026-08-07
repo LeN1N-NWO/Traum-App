@@ -1,30 +1,30 @@
 import { test, expect } from "bun:test";
 import { bumpStreak, refreshStreak, todayStr } from "./streak.js";
 
-const heute = todayStr();
-const gestern = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
-const vorwoche = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+const today = todayStr();
+const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+const lastWeek = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
 
-test("erster Traum ueberhaupt startet die Serie bei 1", () => {
-  expect(bumpStreak({ streak: 0, lastDream: null })).toEqual({ streak: 1, lastDream: heute });
+test("the very first dream starts the streak at 1", () => {
+  expect(bumpStreak({ streak: 0, lastDream: null })).toEqual({ streak: 1, lastDream: today });
 });
 
-test("Traum an Folgetagen zaehlt hoch", () => {
-  expect(bumpStreak({ streak: 3, lastDream: gestern })).toEqual({ streak: 4, lastDream: heute });
+test("a dream on consecutive days counts up", () => {
+  expect(bumpStreak({ streak: 3, lastDream: yesterday })).toEqual({ streak: 4, lastDream: today });
 });
 
-test("zweiter Traum am selben Tag aendert nichts", () => {
-  expect(bumpStreak({ streak: 4, lastDream: heute })).toEqual({ streak: 4, lastDream: heute });
+test("a second dream the same day changes nothing", () => {
+  expect(bumpStreak({ streak: 4, lastDream: today })).toEqual({ streak: 4, lastDream: today });
 });
 
-test("Luecke beginnt die Serie neu", () => {
-  expect(bumpStreak({ streak: 9, lastDream: vorwoche })).toEqual({ streak: 1, lastDream: heute });
+test("a gap restarts the streak", () => {
+  expect(bumpStreak({ streak: 9, lastDream: lastWeek })).toEqual({ streak: 1, lastDream: today });
 });
 
-test("refreshStreak setzt eine abgerissene Serie zurueck", () => {
-  expect(refreshStreak({ streak: 9, lastDream: vorwoche }).streak).toBe(0);
+test("refreshStreak resets a broken streak", () => {
+  expect(refreshStreak({ streak: 9, lastDream: lastWeek }).streak).toBe(0);
 });
 
-test("refreshStreak laesst eine laufende Serie stehen", () => {
-  expect(refreshStreak({ streak: 3, lastDream: gestern }).streak).toBe(3);
+test("refreshStreak leaves a running streak alone", () => {
+  expect(refreshStreak({ streak: 3, lastDream: yesterday }).streak).toBe(3);
 });

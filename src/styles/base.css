@@ -1,6 +1,6 @@
-/* Grundlayout. Aus legacy/app.css übernommen, ergänzt um die
-   Sicherheitsabstände moderner Telefone (Notch, Home-Indikator) — relevant
-   für die geplante iPhone-App. */
+/* Base layout. Carried over from the pre-React stylesheet, plus the safe-area
+   insets of modern phones (notch, home indicator) — relevant for the planned
+   iPhone app. */
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; }
 
@@ -16,8 +16,8 @@ body {
 
 #root { min-height: 100vh; }
 
-/* Jeder Screen nutzt diese Klasse. Der untere Innenabstand hält die
-   Tab-Leiste frei, sonst ist der letzte Eintrag nicht erreichbar. */
+/* Every screen uses this class. The bottom padding keeps the tab bar clear,
+   otherwise the last entry is unreachable. */
 .screen {
   max-width: 680px;
   margin: 0 auto;

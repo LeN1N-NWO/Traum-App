@@ -1,8 +1,9 @@
-/* Speicherschicht. Bewusst ohne React und ohne DOM — dadurch prüfbar.
+/* Storage layer. Deliberately free of React and the DOM — that is what makes
+ * it testable.
  *
- * Der Schlüssel bleibt dreamrushes_v1. Alle Ergänzungen sind optionale Felder
- * mit Vorgabewert: ein Schema-Bruch wäre Datenverlust in echten
- * Traumtagebüchern, nicht bloß ein Migrationsaufwand.
+ * The key stays dreamrushes_v1. Every addition is an optional field with a
+ * default: breaking the schema would mean data loss in real dream journals,
+ * not just migration work.
  */
 export const DB_KEY = "dreamrushes_v1";
 
@@ -10,7 +11,7 @@ export const DEFAULT_STATE = {
   creatures: [], lastDream: null, streak: 0,
   mode: "sequence", cons: "standard",
   me: null, cast: [], journal: [], events: [],
-  credits: 0,   // Platzhalter — echtes Guthaben braucht ein Backend, siehe Spec
+  credits: 0,   // stand-in — real balance needs the backend, see the spec
 };
 
 export function genId(prefix) {
@@ -24,10 +25,10 @@ function defaultBackend() {
 export function loadState(backend = defaultBackend()) {
   if (!backend) return structuredClone(DEFAULT_STATE);
   try {
-    const roh = JSON.parse(backend.getItem(DB_KEY)) || {};
-    const s = { ...DEFAULT_STATE, ...roh };
-    // Zuerst spreizen, damit ein gespeichertes null/undefined die Vorgabe
-    // nicht wieder herausschlägt.
+    const raw = JSON.parse(backend.getItem(DB_KEY)) || {};
+    const s = { ...DEFAULT_STATE, ...raw };
+    // Spread first so a stored null/undefined cannot knock the default back
+    // out.
     s.cast = (s.cast || []).map((p) => ({
       ...p, id: p.id || genId("c"), category: p.category || "person",
     }));
@@ -40,16 +41,16 @@ export function loadState(backend = defaultBackend()) {
   }
 }
 
-// Referenzfotos liegen als base64 im Speicher, das ~5-MB-Kontingent ist
-// erreichbar. Ein Wurf hier hat früher den Beschwören-Knopf dauerhaft
-// gesperrt — deshalb: laut scheitern, aber bedienbar bleiben.
+// Reference photos are base64 in localStorage, so the ~5 MB quota is
+// reachable. A throw here used to disable the summon button forever — so:
+// fail loudly, but stay usable.
 export function saveState(state, backend = defaultBackend()) {
   if (!backend) return false;
   try {
     backend.setItem(DB_KEY, JSON.stringify(state));
     return true;
   } catch (err) {
-    console.warn("[DreamRushes] Speichern fehlgeschlagen:", err);
+    console.warn("[DreamRushes] save failed:", err);
     return false;
   }
 }

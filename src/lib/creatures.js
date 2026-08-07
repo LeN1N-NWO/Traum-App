@@ -1,9 +1,7 @@
-/* Menagerie — jeder aufgeschriebene Traum lässt ein Wesen zurück.
+/* Menagerie — every dream written down leaves a creature behind.
  *
- * Portiert aus legacy/index.html, Daten unverändert. Reine Spielerei, keine
- * Datenhaltung: der Zufall bleibt Zufall und wird nicht geprüft.
- *
- * Die Stichwörter sind wie bei der Symbolerkennung englisch.
+ * Ported unchanged from the pre-React app. Pure flavour, not data: the
+ * randomness stays random and is not tested.
  */
 import { genId } from "./storage.js";
 
@@ -55,8 +53,8 @@ function titleFrom(text) {
   return ADJ[Math.floor(Math.random() * ADJ.length)] + " " + noun;
 }
 
-/** Eine Kreatur (inkl. Traumtitel) aus einem Traumtext. */
-export function neueKreatur(text) {
+/** A creature (and a dream title) from a dream text. */
+export function newCreature(text) {
   const basis = matchCreature(text);
   const [rare, rareClass] = pickRarity();
   return {
@@ -66,7 +64,7 @@ export function neueKreatur(text) {
     rare, rareClass,
     power: 20 + Math.floor(Math.random() * 80),
     lucid: 1 + Math.floor(Math.random() * 10),
-    date: new Date().toLocaleDateString("de-DE", { day: "numeric", month: "short" }),
+    date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
     title: titleFrom(text),
   };
 }

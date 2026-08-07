@@ -5,15 +5,15 @@
   background: radial-gradient(125% 85% at 50% -12%, var(--sky) 0%, var(--bg2) 42%, var(--bg) 100%);
   transition: opacity .4s ease;
 }
-.splash-weg { opacity: 0; pointer-events: none; }
+.splash-gone { opacity: 0; pointer-events: none; }
 
-.splash-mond {
+.splash-moon {
   width: 74px; height: 74px; border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #fff 0%, #e2d6ff 32%, var(--violet) 76%, #5b21b6 100%);
   box-shadow: 0 0 46px rgba(139, 92, 246, .6);
-  animation: splash-atmen 2.4s ease-in-out infinite;
+  animation: splash-breathe 2.4s ease-in-out infinite;
 }
 .splash-name { color: var(--muted); font-size: var(--t-h3); letter-spacing: .04em; margin: 0; }
 
-@keyframes splash-atmen { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
-@media (prefers-reduced-motion: reduce) { .splash-mond { animation: none; } }
+@keyframes splash-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .splash-moon { animation: none; } }

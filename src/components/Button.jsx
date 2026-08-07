@@ -1,7 +1,7 @@
 import "./ui.css";
 
-/* Varianten: "primär" (Hauptaktion), "still" (Nebenaktion), "geist" (kaum
-   sichtbar, z. B. Abbrechen). */
-export default function Button({ variant = "primär", children, ...rest }) {
+/* Variants: "primary" (main action), "quiet" (secondary), "ghost" (barely
+   there, e.g. Cancel). */
+export default function Button({ variant = "primary", children, ...rest }) {
   return <button className={`btn btn-${variant}`} {...rest}>{children}</button>;
 }

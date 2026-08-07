@@ -1,8 +1,8 @@
 import { test, expect } from "bun:test";
 import { DEFAULT_STATE, genId, loadState, saveState } from "./storage.js";
 
-/** Minimale localStorage-Attrappe — deshalb braucht dieser Test weder
- *  Browser noch DOM-Bibliothek. */
+/** Minimal localStorage stand-in — which is why this test needs neither a
+ *  browser nor a DOM library. */
 function fakeBackend(initial = null) {
   const map = new Map();
   if (initial !== null) map.set("dreamrushes_v1", initial);
@@ -12,19 +12,19 @@ function fakeBackend(initial = null) {
   };
 }
 
-test("leerer Speicher liefert die Vorgabewerte", () => {
+test("empty storage yields the defaults", () => {
   const s = loadState(fakeBackend());
   expect(s.journal).toEqual([]);
   expect(s.cast).toEqual([]);
   expect(s.credits).toBe(0);
 });
 
-test("kaputtes JSON wirft nicht, sondern faellt auf Vorgaben zurueck", () => {
+test("broken JSON falls back to defaults instead of throwing", () => {
   const s = loadState(fakeBackend("{nicht json"));
   expect(s.journal).toEqual([]);
 });
 
-test("alte cast-Eintraege bekommen id und category nachgeruestet", () => {
+test("legacy cast entries gain id and category", () => {
   const alt = JSON.stringify({ cast: [{ tag: "anna", img: "x" }] });
   const s = loadState(fakeBackend(alt));
   expect(s.cast[0].category).toBe("person");
@@ -32,13 +32,13 @@ test("alte cast-Eintraege bekommen id und category nachgeruestet", () => {
   expect(s.cast[0].tag).toBe("anna");
 });
 
-test("gespeicherter Zustand ueberlebt eine Runde", () => {
+test("saved state survives a round trip", () => {
   const backend = fakeBackend();
   saveState({ ...DEFAULT_STATE, streak: 7 }, backend);
   expect(loadState(backend).streak).toBe(7);
 });
 
-test("voller Speicher meldet false statt zu werfen", () => {
+test("full storage reports false instead of throwing", () => {
   const voll = {
     getItem: () => null,
     setItem: () => { throw new Error("QuotaExceededError"); },
@@ -46,7 +46,7 @@ test("voller Speicher meldet false statt zu werfen", () => {
   expect(saveState(DEFAULT_STATE, voll)).toBe(false);
 });
 
-test("genId erzeugt eindeutige Werte mit Praefix", () => {
+test("genId produces unique values with a prefix", () => {
   const a = genId("c"), b = genId("c");
   expect(a.startsWith("c_")).toBe(true);
   expect(a).not.toBe(b);

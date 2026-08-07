@@ -1,22 +1,23 @@
 import { useEffect, useRef } from "react";
 import { symbolById } from "../../lib/symbols.js";
+import { t } from "../../i18n/index.js";
 import "./symbols.css";
 
-export default function SymbolDetail({ symbolId, vorkommen, onSchliessen }) {
+export default function SymbolDetail({ symbolId, occurrences, onClose }) {
   const symbol = symbolById(symbolId);
-  const schliessenRef = useRef(null);
+  const closeRef = useRef(null);
 
   useEffect(() => {
-    schliessenRef.current?.focus();
-    const beiTaste = (e) => { if (e.key === "Escape") onSchliessen(); };
-    document.addEventListener("keydown", beiTaste);
-    return () => document.removeEventListener("keydown", beiTaste);
-  }, [onSchliessen]);
+    closeRef.current?.focus();
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   if (!symbol) return null;
 
   return (
-    <div className="s-modal-hinter" onClick={onSchliessen}>
+    <div className="s-backdrop" onClick={onClose}>
       <div
         className="s-modal"
         role="dialog"
@@ -24,25 +25,23 @@ export default function SymbolDetail({ symbolId, vorkommen, onSchliessen }) {
         aria-label={symbol.label}
         onClick={(e) => e.stopPropagation()}
       >
-        <button ref={schliessenRef} className="s-schliessen" onClick={onSchliessen} aria-label="Schließen">
+        <button ref={closeRef} className="s-close" onClick={onClose} aria-label={t.symbols.close}>
           ×
         </button>
 
         <p className="s-modal-emoji" aria-hidden="true">{symbol.emoji}</p>
-        <h2 className="s-modal-titel">{symbol.label}</h2>
-        <p className="s-deutung">{symbol.meaning}</p>
-        <p className="s-hinweis">Eine gängige Lesart zur Selbstbeobachtung — keine Diagnose.</p>
+        <h2 className="s-modal-title">{symbol.label}</h2>
+        <p className="s-meaning">{symbol.meaning}</p>
+        <p className="s-disclaimer">{t.symbols.disclaimer}</p>
 
-        <h3 className="s-vorkommen-titel">
-          {vorkommen.length === 1 ? "In 1 Traum" : `In ${vorkommen.length} Träumen`}
-        </h3>
-        <ul className="s-vorkommen">
-          {vorkommen.map((v) => (
-            <li key={v.entryId}>
-              <span className="s-v-datum">
-                {new Date(v.createdAt).toLocaleDateString("de-DE", { day: "numeric", month: "short" })}
+        <h3 className="s-occ-title">{t.symbols.occurrences(occurrences.length)}</h3>
+        <ul className="s-occ">
+          {occurrences.map((o) => (
+            <li key={o.entryId}>
+              <span className="s-occ-date">
+                {new Date(o.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
               </span>
-              <span className="s-v-titel">{v.title || "Ohne Titel"}</span>
+              <span className="s-occ-title-text">{o.title || t.symbols.untitled}</span>
             </li>
           ))}
         </ul>

@@ -1,34 +1,33 @@
-/* Serie ("Streak") aufeinanderfolgender Traumtage.
+/* Streak of consecutive dream days.
  *
- * ⚠ ACHTUNG: state.lastDream ist ein DATUM ("2026-08-07"), nicht der
- * Traumtext. Der Feldname legt das Gegenteil nahe, und alle Vergleiche hier
- * hängen daran — wer den Traumtext hineinschreibt, setzt die Serie bei jedem
- * Traum auf 1 zurück.
+ * ⚠ CAREFUL: state.lastDream is a DATE ("2026-08-07"), not the dream text.
+ * The field name suggests otherwise, and every comparison here depends on it —
+ * writing the dream text there resets the streak on every single dream.
  *
- * Portiert aus legacy/index.html, aber als reine Funktionen: kein DOM-Zugriff,
- * kein Speichern. Dadurch prüfbar.
+ * Ported from the pre-React app as pure functions: no DOM, no saving. That is
+ * what makes it testable.
  */
 
 export function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** Nach einem gespeicherten Traum aufrufen. Liefert {streak, lastDream}. */
+/** Call after a dream is saved. Returns {streak, lastDream}. */
 export function bumpStreak(state) {
-  const heute = todayStr();
-  if (state.lastDream === heute) return { streak: state.streak, lastDream: heute };
-  const gestern = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+  const today = todayStr();
+  if (state.lastDream === today) return { streak: state.streak, lastDream: today };
+  const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
   return {
-    streak: state.lastDream === gestern ? (state.streak || 0) + 1 : 1,
-    lastDream: heute,
+    streak: state.lastDream === yesterday ? (state.streak || 0) + 1 : 1,
+    lastDream: today,
   };
 }
 
-/** Beim Anzeigen aufrufen: eine abgerissene Serie fällt auf 0. */
+/** Call when displaying: a broken streak falls back to 0. */
 export function refreshStreak(state) {
   if (!state.lastDream) return { streak: state.streak || 0, lastDream: state.lastDream };
-  const abstand = (new Date(todayStr()) - new Date(state.lastDream)) / 864e5;
-  return abstand > 1
+  const gap = (new Date(todayStr()) - new Date(state.lastDream)) / 864e5;
+  return gap > 1
     ? { streak: 0, lastDream: state.lastDream }
     : { streak: state.streak || 0, lastDream: state.lastDream };
 }

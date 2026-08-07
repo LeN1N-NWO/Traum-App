@@ -60,7 +60,13 @@ Ohne Namen keine Änderung.
 
 ## Projektregeln
 
-- Sprache: Deutsch in UI, Doku und Commit-Nachrichten (Conventional Commits: feat/fix/docs/chore).
+- Sprache — **zwei verschiedene Dinge, nicht verwechseln:**
+  - **App-Oberfläche: Englisch.** Alle sichtbaren Texte, Platzhalter und
+    Fehlermeldungen. Deutsch ist als *zweite* Sprache geplant, nicht als
+    Ersatz. Alle Texte stehen in `src/i18n/en.js` — nirgends sonst; das macht
+    die zweite Sprache zu einer neuen Datei statt zu einem Umbau.
+  - **Doku und Commit-Nachrichten: Deutsch** (Conventional Commits:
+    feat/fix/docs/chore). Codekommentare und Bezeichner: Englisch.
 - Stack: Bun + Vanilla HTML/JS + Higgsfield-API-Proxy — siehe `docs/decisions/ADR-0002-stack-bun-vanilla-higgsfield.md`.
 - Keine Secrets ins Repository: keine `.env`, keine Schlüssel, keine Tokens.
 - Kein externes Gedächtnis-Werkzeug (Vektordatenbank, Memory-MCP, externer Dienst).

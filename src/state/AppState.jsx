@@ -1,9 +1,10 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import { loadState, saveState } from "../lib/storage.js";
+import { t } from "../i18n/index.js";
 
-/* Der gesamte App-Zustand an einer Stelle. Jede Änderung geht durch update()
-   und wird sofort gespeichert — es gibt keinen zweiten Weg in den Speicher.
-   Das ist Absicht: zwei Schreibpfade würden mit der Zeit auseinanderlaufen. */
+/* The whole app state in one place. Every change goes through update() and is
+   saved immediately — there is no second path into storage. That is
+   deliberate: two write paths would drift apart over time. */
 const Ctx = createContext(null);
 
 export function AppStateProvider({ children }) {
@@ -15,13 +16,13 @@ export function AppStateProvider({ children }) {
     setTimeout(() => setToastText(""), 2600);
   }, []);
 
-  // Immer eine neue Struktur erzeugen, nie den Bestand verändern — sonst
-  // rendert React nicht neu und der Fehler ist später kaum auffindbar.
-  const update = useCallback((teil) => {
-    setState((alt) => {
-      const neu = { ...alt, ...teil };
-      if (!saveState(neu)) toast("⚠ Speicher voll — alte Einträge oder Fotos löschen.");
-      return neu;
+  // Always build a new object, never mutate the existing one — otherwise
+  // React skips the re-render and the bug becomes near-impossible to find.
+  const update = useCallback((patch) => {
+    setState((prev) => {
+      const next = { ...prev, ...patch };
+      if (!saveState(next)) toast(t.errors.storageFull);
+      return next;
     });
   }, [toast]);
 
@@ -34,6 +35,6 @@ export function AppStateProvider({ children }) {
 
 export function useAppState() {
   const v = useContext(Ctx);
-  if (!v) throw new Error("useAppState ausserhalb von AppStateProvider benutzt");
+  if (!v) throw new Error("useAppState used outside AppStateProvider");
   return v;
 }

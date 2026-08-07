@@ -1,26 +1,23 @@
 import { useAppState } from "../../state/AppState.jsx";
+import { t } from "../../i18n/index.js";
 import "./home.css";
 
 export default function Menagerie() {
   const { state } = useAppState();
-  const kreaturen = [...(state.creatures || [])].reverse();   // neueste zuerst
+  const creatures = [...(state.creatures || [])].reverse();   // newest first
 
-  if (kreaturen.length === 0) {
-    return (
-      <p className="h-leer">
-        Noch keine Wesen. Jeder aufgeschriebene Traum lässt eines zurück.
-      </p>
-    );
+  if (creatures.length === 0) {
+    return <p className="h-empty">{t.home.menagerieEmpty}</p>;
   }
 
   return (
     <div className="h-menagerie">
-      {kreaturen.map((c) => (
-        <div key={c.id} className="h-wesen">
-          <span className="h-wesen-emoji" aria-hidden="true">{c.e}</span>
-          <span className="h-wesen-name">{c.name}</span>
-          <span className={"h-wesen-rar " + c.rareClass}>{c.rare}</span>
-          <span className="h-wesen-datum">{c.date}</span>
+      {creatures.map((c) => (
+        <div key={c.id} className="h-creature">
+          <span className="h-creature-emoji" aria-hidden="true">{c.e}</span>
+          <span className="h-creature-name">{c.name}</span>
+          <span className={"h-creature-rare " + c.rareClass}>{c.rare}</span>
+          <span className="h-creature-date">{c.date}</span>
         </div>
       ))}
     </div>

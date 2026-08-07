@@ -1,113 +1,150 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppState } from "../../state/AppState.jsx";
 import { taggedPhotosIn } from "../../lib/tags.js";
 import { genId } from "../../lib/storage.js";
 import { generate } from "../../lib/api.js";
 import { bumpStreak } from "../../lib/streak.js";
-import { neueKreatur } from "../../lib/creatures.js";
+import { newCreature } from "../../lib/creatures.js";
+import { useVoiceInput } from "../../lib/useVoiceInput.js";
+import { t } from "../../i18n/index.js";
 import Button from "../../components/Button.jsx";
 import ScreenHeader from "../../components/ScreenHeader.jsx";
 import "./dream.css";
 
-/* ⚠ Bewusst ein 1:1-Port des alten Formulars, KEIN Wizard.
-   Der sechsstufige Ablauf ist Phase 2 und ersetzt genau diese Datei —
-   deshalb ist sie absichtlich klein gehalten. */
+/* Interim screen. The six-step wizard replaces this file — see
+   docs/specs/2026-08-07-app-umbau-design.md. Kept deliberately small. */
 export default function DreamScreen() {
   const { state, update, toast } = useAppState();
   const navigate = useNavigate();
   const [text, setText] = useState("");
-  const [modus, setModus] = useState("sequence");
-  const [laeuft, setLaeuft] = useState(false);
+  const [mode, setMode] = useState("sequence");
+  const [busy, setBusy] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState(0);
+  const voice = useVoiceInput({ onText: setText });
 
-  async function absenden() {
-    const sauber = text.trim();
-    if (sauber.length < 8) return toast("⚠ Schreib etwas mehr auf.");
+  // Rotate the loading copy so a long generation doesn't look frozen.
+  useEffect(() => {
+    if (!busy) return;
+    const id = setInterval(() => setLoadingMsg((i) => i + 1), 1400);
+    return () => clearInterval(id);
+  }, [busy]);
 
-    setLaeuft(true);
-    // Nur Referenzfotos mitschicken, deren Name wirklich vorkommt. Diese
-    // Regel löst Phase 2 durch die ausdrückliche Zuordnung im Wizard ab.
-    const cast = taggedPhotosIn(state, sauber);
+  async function submit() {
+    const clean = text.trim();
+    if (clean.length < 8) return toast(t.dream.tooShort);
+
+    setBusy(true);
+    setLoadingMsg(0);
+    // Only send reference photos whose name actually appears. The wizard
+    // replaces this rule with explicit assignment.
+    const cast = taggedPhotosIn(state, clean);
 
     let urls = [];
-    let quelle = "demo";
+    let source = "demo";
     try {
-      urls = await generate({ dream: sauber, mode: modus, cast });
-      quelle = "api";
+      urls = await generate({ dream: clean, mode, cast });
+      source = "api";
     } catch (err) {
-      console.error("[DreamRushes] Generierung fehlgeschlagen:", err);
+      console.error("[DreamRushes] generation failed:", err);
       toast(`⚠ ${err.message}`);
     }
 
-    const kreatur = neueKreatur(sauber);
-    const eintrag = {
+    const creature = newCreature(clean);
+    const entry = {
       id: genId("e"),
       createdAt: new Date().toISOString(),
-      text: sauber,
-      title: kreatur.title,
-      mode: modus,
+      text: clean,
+      title: creature.title,
+      mode,
       cons: state.cons,
-      media: { type: modus === "film" ? "video" : "image", urls, source: quelle },
+      media: { type: mode === "film" ? "video" : "image", urls, source },
       references: cast.map((c) => ({ tag: c.tag, category: c.category })),
-      creatureId: kreatur.id,
+      creatureId: creature.id,
     };
 
-    // bumpStreak liefert {streak, lastDream} — lastDream ist ein DATUM.
-    // Niemals den Traumtext dort hineinschreiben, sonst startet die Serie
-    // bei jedem Traum neu.
+    // bumpStreak returns {streak, lastDream} — lastDream is a DATE. Never put
+    // the dream text there or the streak restarts on every dream.
     update({
-      journal: [...(state.journal || []), eintrag],
-      creatures: [...(state.creatures || []), kreatur],
+      journal: [...(state.journal || []), entry],
+      creatures: [...(state.creatures || []), creature],
       ...bumpStreak(state),
     });
 
-    setLaeuft(false);
-    toast(`✦ ${kreatur.name} kam dazu`);
-    navigate("/tagebuch");
+    setBusy(false);
+    toast(t.dream.caught(creature.name));
+    navigate("/journal");
   }
 
   return (
     <main className="screen">
       <ScreenHeader
-        titel="Traum aufschreiben"
-        aktion={<Button variant="geist" onClick={() => navigate(-1)}>Abbrechen</Button>}
+        title={t.dream.title}
+        action={<Button variant="ghost" onClick={() => navigate(-1)}>{t.dream.cancel}</Button>}
       />
+
+      <div className="d-label">
+        <span>{t.dream.label}</span>
+        {voice.supported && (
+          <span className={voice.listening ? "d-voice-on" : ""}>
+            {voice.listening ? t.dream.voiceListening : t.dream.voiceReady}
+          </span>
+        )}
+      </div>
 
       <textarea
-        className="d-feld"
+        className="d-field"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Ich flog über ein violettes Meer…"
+        placeholder={t.dream.placeholder}
         rows={9}
         autoFocus
-        aria-label="Traumtext"
+        aria-label={t.dream.textLabel}
       />
 
-      <fieldset className="d-modus">
-        <legend>Was soll entstehen?</legend>
+      {voice.supported && (
+        <button
+          className={"d-mic" + (voice.listening ? " d-mic-on" : "")}
+          onClick={() => voice.toggle(text)}
+          aria-label={t.dream.voiceLabel}
+          aria-pressed={voice.listening}
+        >
+          🎙
+        </button>
+      )}
+
+      <fieldset className="d-mode">
+        <legend>{t.dream.modeLegend}</legend>
         <label>
           <input
-            type="radio" name="modus" value="sequence"
-            checked={modus === "sequence"} onChange={() => setModus("sequence")}
+            type="radio" name="mode" value="sequence"
+            checked={mode === "sequence"} onChange={() => setMode("sequence")}
           />
-          Bilder
+          <span>{t.dream.modeImages}<small>{t.dream.modeImagesHint}</small></span>
         </label>
         <label>
           <input
-            type="radio" name="modus" value="film"
-            checked={modus === "film"} onChange={() => setModus("film")}
+            type="radio" name="mode" value="film"
+            checked={mode === "film"} onChange={() => setMode("film")}
           />
-          Film
+          <span>{t.dream.modeFilm}<small>{t.dream.modeFilmHint}</small></span>
         </label>
       </fieldset>
 
-      <p className="d-hinweis">
-        Genannte Referenzfotos werden zur Generierung an fal.ai übertragen.
-      </p>
+      <p className="d-hint">{t.dream.privacy}</p>
 
-      <Button onClick={absenden} disabled={laeuft}>
-        {laeuft ? "Wird erzeugt…" : "Traum beschwören"}
+      <Button onClick={submit} disabled={busy}>
+        {busy ? t.dream.submitting : t.dream.submit}
       </Button>
+
+      {busy && (
+        <div className="d-loading" role="status" aria-live="polite">
+          <div className="d-spinner" aria-hidden="true" />
+          <p className="d-loading-text">
+            {t.dream.loading[loadingMsg % t.dream.loading.length]}
+          </p>
+        </div>
+      )}
     </main>
   );
 }

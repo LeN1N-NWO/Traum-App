@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
 import { SYMBOLS, SYMBOL_CATEGORIES, symbolOccurrences } from "../../lib/symbols.js";
+import { t } from "../../i18n/index.js";
 import ScreenHeader from "../../components/ScreenHeader.jsx";
 import Card from "../../components/Card.jsx";
 import SymbolDetail from "./SymbolDetail.jsx";
@@ -8,40 +9,37 @@ import "./symbols.css";
 
 export default function SymbolsScreen() {
   const { state } = useAppState();
-  const [offenId, setOffenId] = useState(null);
+  const [openId, setOpenId] = useState(null);
 
-  // Vorkommen werden bei jedem Rendern neu berechnet, nicht gespeichert: ein
-  // später ergänztes Symbol reichert dadurch auch alte Träume rückwirkend an.
-  const vorkommen = useMemo(() => symbolOccurrences(state.journal), [state.journal]);
+  // Recomputed on every render rather than stored: a symbol added later then
+  // enriches old dreams retroactively, with no migration.
+  const occurrences = useMemo(() => symbolOccurrences(state.journal), [state.journal]);
 
-  const nachKategorie = Object.entries(SYMBOL_CATEGORIES)
-    .map(([key, kat]) => ({
-      key, ...kat,
-      symbole: SYMBOLS.filter((s) => s.category === key && vorkommen.has(s.id)),
+  const groups = Object.entries(SYMBOL_CATEGORIES)
+    .map(([key, cat]) => ({
+      key, ...cat,
+      symbols: SYMBOLS.filter((s) => s.category === key && occurrences.has(s.id)),
     }))
-    .filter((g) => g.symbole.length > 0);
+    .filter((g) => g.symbols.length > 0);
 
   return (
     <main className="screen">
-      <ScreenHeader titel="Symbole" unterzeile="Wiederkehrende Motive aus deinen Träumen" />
+      <ScreenHeader title={t.symbols.title} subtitle={t.symbols.subtitle} />
 
-      {nachKategorie.length === 0 ? (
-        <p className="s-leer">
-          Noch keine Symbole gefunden. Schreib ein paar Träume auf — die
-          Erkennung arbeitet mit englischen Stichwörtern.
-        </p>
+      {groups.length === 0 ? (
+        <p className="s-empty">{t.symbols.empty}</p>
       ) : (
-        nachKategorie.map((g) => (
-          <section key={g.key} className="s-gruppe">
-            <h2 className="s-gruppe-titel">
+        groups.map((g) => (
+          <section key={g.key} className="s-group">
+            <h2 className="s-group-title">
               <span aria-hidden="true">{g.emoji}</span> {g.label}
             </h2>
-            <div className="s-raster">
-              {g.symbole.map((s) => (
-                <Card as="button" key={s.id} className="s-kachel" onClick={() => setOffenId(s.id)}>
+            <div className="s-grid">
+              {g.symbols.map((s) => (
+                <Card as="button" key={s.id} className="s-tile" onClick={() => setOpenId(s.id)}>
                   <span className="s-emoji" aria-hidden="true">{s.emoji}</span>
                   <span className="s-label">{s.label}</span>
-                  <span className="s-anzahl">{vorkommen.get(s.id).length}×</span>
+                  <span className="s-count">{occurrences.get(s.id).length}×</span>
                 </Card>
               ))}
             </div>
@@ -49,11 +47,11 @@ export default function SymbolsScreen() {
         ))
       )}
 
-      {offenId && (
+      {openId && (
         <SymbolDetail
-          symbolId={offenId}
-          vorkommen={vorkommen.get(offenId) || []}
-          onSchliessen={() => setOffenId(null)}
+          symbolId={openId}
+          occurrences={occurrences.get(openId) || []}
+          onClose={() => setOpenId(null)}
         />
       )}
     </main>

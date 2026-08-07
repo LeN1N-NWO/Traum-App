@@ -1,11 +1,11 @@
-/* Traumsymbole — portiert aus legacy/app.js, inhaltlich unveraendert.
+/* Dream symbols — ported from the pre-React app, unchanged in substance.
  *
- * Die Stichwortlisten, die Wortgrenzen-Regex und die Ortszeit-Tagesgrenzen
- * sind hart erarbeitete Korrekturen und werden hier NICHT angefasst. Nur die
- * Kategorie-Beschriftungen sind eingedeutscht.
+ * The keyword lists, the word-boundary regex and the local-time day bounds are
+ * hard-won fixes and are NOT to be touched here.
  *
- * Die keywords bleiben ENGLISCH — bewusste Entscheidung, siehe docs/STAND.md.
- * Deutsche Begriffe zu ergaenzen ist ein eigener Vorgang.
+ * Keywords are English only. When German lands as a second app language, the
+ * lists need German terms too — otherwise German dream entries yield no
+ * symbols at all. Tracked in docs/STAND.md.
  */
 
 /* ---------- Traumsymbole ----------
@@ -24,11 +24,11 @@
  * Die Seite sagt das auch so.
  */
 export const SYMBOL_CATEGORIES = {
-  place:    { label: "Orte",     emoji: "🏞" },
-  scenario: { label: "Szenen",   emoji: "🎬" },
-  creature: { label: "Wesen",    emoji: "🐾" },
-  person:   { label: "Menschen", emoji: "🧑" },
-  emotion:  { label: "Gefühle",  emoji: "💗" },
+  place:    { label: "Places",    emoji: "🏞" },
+  scenario: { label: "Scenarios", emoji: "🎬" },
+  creature: { label: "Creatures", emoji: "🐾" },
+  person:   { label: "People",    emoji: "🧑" },
+  emotion:  { label: "Feelings",  emoji: "💗" },
 };
 
 export const SYMBOLS = [

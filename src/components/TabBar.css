@@ -13,7 +13,7 @@
   flex: 1; text-decoration: none; color: var(--faint);
   font-size: var(--t-micro); padding: var(--s-2) 0;
 }
-.tab-aktiv { color: var(--violet-soft); }
+.tab-active { color: var(--violet-soft); }
 .tab-icon { font-size: 19px; line-height: 1; }
 .tab:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: -3px; border-radius: 10px; }
 
