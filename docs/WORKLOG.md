@@ -30,6 +30,19 @@ Spracheingabe und Größenänderung. Die Markierungen sind React-Elemente, kein
 `innerHTML` — es gibt nichts zu escapen, weil nie etwas als Markup gelesen
 wird. Umlaufender Lichtpunkt wie bei den Symbol-Kacheln.
 
+**Die Pille deckt genau ihr Wort und sonst nichts.** Anfangs `padding: 4px
+7px` mit ausgleichendem Negativ-Rand — das war zu viel: ein Leerzeichen ist
+in dieser Schrift **3,47 px** breit, die Pille ragte 7 px je Seite hinaus,
+verschluckte also die Lücke ganz und noch 3,5 px des Nachbarbuchstabens; vor
+einem Komma gibt es überhaupt keine Lücke. Waagerechtes Padding ist deshalb
+**0** — Luft ließe sich nur aus echtem Abstand nehmen, und der würde den Text
+gegen das Feld darunter verschieben. Senkrecht ist Platz: die Inline-Box ist
+16,82 px in einer 24-px-Zeile, also 3,59 px je Seite frei; 3 px bleiben
+darin, 4 px hatten Pillen aufeinanderfolgender Zeilen um 0,41 px überlappt.
+Radius auf 6 px. Nachgemessen: Lücke links 3,47 px, rechts 0 (berührt das
+Komma, überlagert es nicht), senkrecht 1,19 px, und `scrollWidth`/
+`scrollHeight` sind mit und ohne Padding identisch — es verschiebt nichts.
+
 **Anklickbare Tags** (`TagCard.jsx/.css`). Ein Klick auf einen markierten
 Namen zeigt Foto, Kategorie und Beschreibung der Entität. Weil das Feld
 oben liegt und alle Zeiger-Ereignisse schluckt, werden die Markierungen

@@ -17,17 +17,26 @@
    marks on the layer below show through behind the real text. */
 .tt-wrap .tt-input { position: relative; z-index: 1; background: transparent; }
 
-/* Padding WITHOUT moving any text: on an inline box vertical padding paints
-   without affecting line height, and the horizontal padding is cancelled out
-   by an equal negative margin. Otherwise the layer would drift against the
-   text in the field. */
+/* The pill covers its word and nothing else.
+ *
+ * No horizontal padding at all, and that is not laziness: a space in this
+ * font is 3.47px wide, and between "anton" and the comma after it there is no
+ * gap whatsoever. Any horizontal padding therefore paints over a neighbouring
+ * character — it was 7px, so it swallowed the whole space and 3.5px of the
+ * letter beside it. Room to breathe could only come from real space, and that
+ * would shift the text against the field underneath.
+ *
+ * Vertically there IS room: the inline box is 16.82px in a 24px line, so
+ * 3.59px are free on each side. 3px stays inside that, which keeps pills on
+ * consecutive lines apart — 4px had them overlapping by 0.41px. Vertical
+ * padding on an inline box paints without affecting line height, so this
+ * moves nothing either. */
 .tt-wrap .tt-mirror mark {
   position: relative;
   background: rgba(139, 92, 246, .26);
   color: transparent;
-  border-radius: 9px;
-  padding: 4px 7px;
-  margin: 0 -7px;
+  border-radius: 6px;
+  padding: 3px 0;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
@@ -39,7 +48,7 @@
 @keyframes tag-run { to { --tag-a: 360deg; } }
 
 .tt-wrap .tt-mirror mark::before {
-  content: ""; position: absolute; inset: 0; border-radius: 9px; padding: 1px;
+  content: ""; position: absolute; inset: 0; border-radius: 6px; padding: 1px;
   pointer-events: none;
   background: conic-gradient(from var(--tag-a),
     rgba(167, 139, 250, .32) 0turn, rgba(167, 139, 250, .32) .58turn,
