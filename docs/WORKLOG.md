@@ -3,6 +3,60 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 09:30 — Hanni — Branch `session/2026-08-07-hanni`
+
+**Was:** Design-Überarbeitung von `index.html` anhand von Mobbin-Referenzen.
+Nur Optik und Struktur — keine Funktion, kein Sicherheitscode angefasst.
+
+**Wie die Richtung zustande kam:** Erst Referenzen gesichtet (Mobbin-MCP,
+16 Screens), dann entschieden. Zwischenzeitlich stand die pillowtalk-Linie
+(streng, schwarz, schmucklos) im Raum. Ein Abgleich mit Antons tatsächlichen
+Tokens hat das widerlegt: er hatte bereits violetten Nachthimmel-Verlauf
+(`#1a1140`), einen Mond im Logo (`.moon`) und Sternenpartikel (`.dust`) gebaut.
+Damit steht sein Bestand viel näher an **Moonly** (Traumdeutungs-App, violette
+Nacht, illustriert) als an pillowtalk. Entscheidung deshalb: Moonlys Wärme als
+Leitbild — bestätigt Antons Richtung, statt sie wegzuwerfen — kombiniert mit
+pillowtalks *Struktur* fürs Tagebuch.
+
+Umgesetzt:
+- **Farbwelt wärmer**: Hintergrund von kühlem Fast-Schwarz auf violette Nacht
+  (`--sky:#2a1d5e`), neue Tokens `--violet-soft`/`--violet-deep`/`--faint`.
+  Neon-Verlauf aus Überschrift und Hauptknopf entfernt — beide jetzt einfarbig
+  violett. Sternenpartikel von Opazität .5 auf .28 gedämpft, dazu
+  `prefers-reduced-motion`-Abschaltung.
+- **Typo-Skala** als Tokens (`--t-hero` … `--t-micro`); vorher wuchs jede Größe
+  für sich. Schriftgewichte durchgehend von 700/800 auf 500/600 zurückgenommen.
+- **Tagebuch** (das Herzstück): Kachel-Grid raus, vollbreite Einträge rein —
+  Titel links, Datum als Anker rechts (Monat klein, Tag groß und dünn), Bild
+  darunter über die volle Breite, Traumtext darunter wie der Prompt bei Canva.
+- **Eingabe**: die nummerierten Blöcke ①②③ sind weg, stattdessen ein einziger
+  Hauptknopf über die volle Breite **am Ende** des Formulars (Moonly). Der
+  Ladezustand steckt jetzt im Knopf statt in einem separaten Bereich.
+- **Menagerie** bewusst zurückgenommen (kleinere Karten, leiser), damit das
+  Tagebuch führt. **Guide** editorialer mit mehr Zeilenabstand und Luft.
+- Inhaltsbreite von 960px auf 680px — die App ist ein Handy-Format.
+
+**Warum:** Antons Farbwelt war stimmig, es fehlte Struktur — Typo-Hierarchie,
+Gruppierung, ruhigere Flächen. Ein kompletter Identitätswechsel hätte
+funktionierende Arbeit zerstört.
+
+**Was der Nächste wissen muss:**
+- **Beim Umbau gefunden und behoben:** der Kopfbereich lief auf Handybreite über
+  (brauchte 422px bei 350px verfügbar) und hätte seitliches Scrollen erzwungen —
+  ausgerechnet bei einer App, die man nachts am Handy benutzt. Jetzt
+  `flex-wrap` plus Media Query unter 460px, in der die Wortmarken der Pillen
+  ausgeblendet werden („🔥 1" statt „🔥 1-day streak"). Gemessen verifiziert:
+  Kopf passt in eine Zeile, kein Überlauf.
+- `.jgrid` wurde zu `.jlist` (Flex-Spalte). Der Lucid-Guide nutzte dieselbe
+  Klasse und hat jetzt eine eigene, `.guide-grid` — wer `.jgrid` sucht, sucht
+  vergeblich.
+- Der Löschen-Knopf der Tagebuchkarte sitzt jetzt **im Bild oben links**; oben
+  rechts liegt das Modus-Abzeichen, rechts daneben das Datum. Vorher überlagerte
+  er die Monatsangabe.
+- Verifiziert: beide Modi erzeugen Einträge, Modal spielt den richtigen Medientyp,
+  keine Konsolenfehler, beide Testsuiten grün. Live-Generierung weiterhin
+  ungetestet (kein `bun`, kein Key).
+
 ## 2026-08-06 18:20 — Hanni — Branch `session/2026-08-06-hanni-preview-bind`
 
 **Was:** Die statische Vorschau abgesichert und `.claude/launch.json` ins Repo
