@@ -177,6 +177,56 @@ Output ONLY the finished prompt text. No preamble, no markdown, no quotes around
 }
 // ---- prompt hygiene (end) ----
 
+// ---- rewriting an existing dream ----
+// Three levels behind one route, differing only in the system prompt. All of
+// them are bounded by the same rule: the dream belongs to the person who
+// dreamt it, so nothing may be invented, reordered or reinterpreted.
+const REFINE_MODES = {
+  correct:
+    "Fix spelling, grammar and punctuation in the dream below. Change NOTHING else — " +
+    "not a word choice, not the order, not the tone. Return only the corrected text.",
+  rewrite:
+    "Rewrite the dream below so it reads more vividly and flows better. Keep every event, " +
+    "person and place exactly as given, in the same order, in the same emotional register, " +
+    "in the same language and person. Invent nothing. Return only the rewritten text.",
+  elaborate:
+    "Work the dream below into a fuller piece of storytelling: add sensory detail and a " +
+    "clearer arc. You may enrich HOW things are described, but you may NOT add events, " +
+    "people or places that are not already there, and you may NOT change their order or " +
+    "the emotional register. Keep the same language and person. Return only the text.",
+};
+
+async function refineDream(dream, mode) {
+  const system = REFINE_MODES[mode];
+  if (!system) throw new Error("BAD_MODE");
+  const key = process.env.DEEPSEEK_KEY;
+  if (!key) throw new Error("NO_DEEPSEEK_KEY");
+
+  const res = await fetch(DEEPSEEK_API_URL, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      messages: [
+        { role: "system", content: `${system}\nNo preamble, no markdown, no quotes around it.` },
+        { role: "user", content: dream },
+      ],
+      stream: false,
+    }),
+  });
+  if (!res.ok) {
+    console.error("[DreamRushes] refine request failed:", res.status, await res.text().catch(() => ""));
+    throw new Error("REFINE_FAILED");
+  }
+  const data = await res.json().catch(() => null);
+  const text = data?.choices?.[0]?.message?.content;
+  if (typeof text !== "string") throw new Error("REFINE_FAILED");
+  const cleaned = sanitizePromptText(text).slice(0, MAX_DREAM);
+  if (!cleaned) throw new Error("REFINE_FAILED");
+  return cleaned;
+}
+
+
 // ---- dream analysis (the ONE llm call per dream) ----
 //
 // This is the wizard's foundation. A single DeepSeek call returns everything
@@ -422,6 +472,29 @@ Bun.serve({
         const hit = map[e.message];
         if (hit) return json({ error: hit[1] }, hit[0]);
         console.error("[DreamRushes] /api/analyze failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/refine" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json();
+        const dream = sanitizePromptText(body.dream);
+        if (dream.length < 8) return json({ error: "Dream too short." }, 400);
+        if (dream.length > MAX_DREAM) return json({ error: "Dream too long." }, 400);
+        return json({ ok: true, text: await refineDream(dream, body.mode) });
+      } catch (e) {
+        const map = {
+          BAD_MODE: [400, "Unknown refine mode."],
+          NO_DEEPSEEK_KEY: [503, "Backend has no DeepSeek key. Set DEEPSEEK_KEY and restart."],
+          REFINE_FAILED: [502, "Could not rework that dream. Try again."],
+        };
+        const hit = map[e.message];
+        if (hit) return json({ error: hit[1] }, hit[0]);
+        console.error("[DreamRushes] /api/refine failed:", e);
         return json({ error: "Server error." }, 500);
       }
     }

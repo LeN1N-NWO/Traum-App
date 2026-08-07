@@ -2,13 +2,14 @@ import { useState } from "react";
 import { analyze } from "../lib/api.js";
 import { useVoiceInput } from "../lib/useVoiceInput.js";
 import { PRICES } from "../lib/pricing.js";
+import { spend } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
 import "./wizard.css";
 
 export default function Step1Dream({ w, patch, seedAssignments }) {
-  const { toast } = useAppState();
+  const { state, update, toast } = useAppState();
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);   // the analysis awaiting a decision
   const voice = useVoiceInput({ onText: (text) => patch({ text }) });
@@ -18,9 +19,13 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
   /** The single LLM call. Its result drives every later step. */
   async function runAnalysis() {
     if (clean.length < 8) return toast(t.wizard.tooShort);
+    const paid = spend(state, PRICES.improve);
+    if (!paid) return toast(t.wizard.noCredits);
     setBusy(true);
     try {
-      setPreview(await analyze(clean));
+      const result = await analyze(clean);
+      update(paid);          // only charge once the call actually succeeded
+      setPreview(result);
     } catch (err) {
       console.error("[DreamRushes] analyze failed:", err);
       toast(`⚠ ${err.message}`);

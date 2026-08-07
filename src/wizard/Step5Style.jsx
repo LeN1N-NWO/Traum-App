@@ -5,6 +5,7 @@ import { buildReferences, buildImagePrompt } from "../lib/promptBuilder.js";
 import { generate } from "../lib/api.js";
 import { mapWithLimit } from "../lib/parallel.js";
 import { priceForImages, PRICES } from "../lib/pricing.js";
+import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
@@ -15,7 +16,7 @@ import "./wizard.css";
 const GENERATION_WINDOW = 3;
 
 export default function Step5Style({ w, patch }) {
-  const { toast } = useAppState();
+  const { state, update, toast } = useAppState();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(0);
   const [done, setDone] = useState(0);
@@ -33,6 +34,8 @@ export default function Step5Style({ w, patch }) {
   }, [busy]);
 
   async function run() {
+    const paid = spend(state, price);
+    if (!paid) return toast(t.wizard.noCredits);
     setBusy(true);
     setDone(0);
     setMsg(0);
@@ -61,6 +64,7 @@ export default function Step5Style({ w, patch }) {
         setDone((n) => n + 1);
         return got;
       });
+      update(paid);          // only charge once the images actually arrived
       patch({ urls: perImage.flat(), step: 6 });
     } catch (err) {
       console.error("[DreamRushes] generation failed:", err);
@@ -118,7 +122,10 @@ export default function Step5Style({ w, patch }) {
         <p>{t.wizard.step5.summaryRefs(named)}</p>
       </div>
 
-      <Button onClick={run}>{t.wizard.step5.generate} · {price} {t.wizard.credits}</Button>
+      <Button onClick={run} disabled={!canAfford(state, price)}>
+        {t.wizard.step5.generate} · {price} {t.wizard.credits}
+      </Button>
+      {!canAfford(state, price) && <p className="wiz-hint">{t.wizard.noCredits}</p>}
     </section>
   );
 }

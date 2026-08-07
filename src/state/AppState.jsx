@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { loadState, saveState } from "../lib/storage.js";
+import { welcomeGrant } from "../lib/credits.js";
 import { t } from "../i18n/index.js";
 
 /* The whole app state in one place. Every change goes through update() and is
@@ -25,6 +26,14 @@ export function AppStateProvider({ children }) {
       return next;
     });
   }, [toast]);
+
+  // One-time starter balance, so the app is usable before top-ups exist.
+  useEffect(() => {
+    const grant = welcomeGrant(state);
+    if (grant) update(grant);
+    // Once, on mount — welcomeGrant() is itself idempotent via its flag.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Ctx.Provider value={{ state, setState, update, toast, toastText }}>

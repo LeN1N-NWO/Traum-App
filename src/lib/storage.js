@@ -11,7 +11,7 @@ export const DEFAULT_STATE = {
   creatures: [], lastDream: null, streak: 0,
   mode: "sequence", cons: "standard",
   me: null, cast: [], journal: [], events: [],
-  credits: 0,   // stand-in — real balance needs the backend, see the spec
+  credits: 0, creditsGranted: false,   // stand-in — a real balance needs the backend
 };
 
 export function genId(prefix) {

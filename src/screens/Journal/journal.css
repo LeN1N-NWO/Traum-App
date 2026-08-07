@@ -35,7 +35,6 @@
   padding: var(--s-6) var(--s-4) calc(env(safe-area-inset-bottom) + var(--s-6));
 }
 .j-close {
-  position: absolute; top: var(--s-3); right: var(--s-3);
   width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
   background: var(--panel); border: 1px solid var(--panel-line);
   color: var(--text); font-size: 19px;
@@ -47,3 +46,65 @@
 .j-media img, .j-media video { width: 100%; border-radius: var(--radius); display: block; }
 .j-modal-text { white-space: pre-wrap; margin: 0 0 var(--s-4); }
 .j-references { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-4); }
+
+/* — detail: tools, menu, editing, refine proposal — */
+.j-modal-tools { position: absolute; top: var(--s-3); right: var(--s-3); display: flex; gap: var(--s-2); }
+
+.j-menu-backdrop {
+  position: fixed; inset: 0; z-index: 75; background: rgba(11, 7, 24, .7);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.j-menu {
+  width: 100%; max-width: 420px;
+  background: var(--bg2); border: 1px solid var(--panel-line);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--s-3) var(--s-3) calc(env(safe-area-inset-bottom) + var(--s-4));
+}
+.j-menu-item {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+  width: 100%; padding: var(--s-3) var(--s-4); border-radius: var(--radius);
+  background: none; border: none; cursor: pointer;
+  color: var(--text); font-family: var(--sans); font-size: var(--t-body); text-align: left;
+}
+.j-menu-item:hover { background: var(--panel); }
+.j-menu-item:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: -2px; }
+.j-menu-price { color: var(--violet-soft); font-size: var(--t-small); font-weight: 600; }
+.j-menu-free { color: var(--ok); font-size: var(--t-small); }
+.j-menu-danger { color: var(--pink); }
+
+.j-working { color: var(--muted); font-size: var(--t-small); margin: 0 0 var(--s-3); }
+
+.j-edit {
+  width: 100%; padding: var(--s-3); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--violet-deep);
+  color: var(--text); font-family: var(--sans); font-size: var(--t-body);
+  line-height: 1.6; resize: vertical; margin-bottom: var(--s-3);
+}
+.j-edit:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
+.j-edit-actions { display: flex; gap: var(--s-2); justify-content: flex-end; margin-bottom: var(--s-4); }
+
+.j-proposal { margin-bottom: var(--s-4); }
+.j-proposal-title { font-size: var(--t-h3); font-weight: 600; margin: 0 0 var(--s-1); }
+.j-proposal-lede { color: var(--muted); font-size: var(--t-small); margin: 0 0 var(--s-3); }
+.j-compare-label {
+  font-size: var(--t-micro); text-transform: uppercase; letter-spacing: .12em;
+  color: var(--faint); font-weight: 600; margin: var(--s-3) 0 var(--s-1);
+}
+.j-compare-text {
+  margin: 0; padding: var(--s-3); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--panel-line); font-size: var(--t-small);
+}
+.j-compare-new { border-color: var(--violet-deep); }
+
+.j-original { margin-bottom: var(--s-4); }
+.j-original-toggle {
+  background: none; border: none; cursor: pointer; padding: 0;
+  color: var(--faint); font-family: var(--sans); font-size: var(--t-small);
+  text-decoration: underline;
+}
+.j-original-toggle:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; border-radius: 4px; }
+.j-original-label {
+  font-size: var(--t-micro); text-transform: uppercase; letter-spacing: .12em;
+  color: var(--faint); font-weight: 600; margin: var(--s-3) 0 var(--s-1);
+}
+.j-original-text { color: var(--muted); font-size: var(--t-small); white-space: pre-wrap; margin: 0; }

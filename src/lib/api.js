@@ -26,6 +26,13 @@ export async function analyze(dream) {
   return data.analysis;
 }
 
+/** Rework an existing dream. mode: "correct" | "rewrite" | "elaborate". */
+export async function refine(dream, mode) {
+  const data = await post("/api/refine", { dream, mode });
+  if (typeof data?.text !== "string") throw new Error(t.errors.unexpected);
+  return data.text;
+}
+
 /** Renders one image or a film. `prompt` overrides the server's own wording. */
 export async function generate({ dream, mode, cast, prompt }) {
   const data = await post("/api/generate", { dream, mode, cast, prompt });
