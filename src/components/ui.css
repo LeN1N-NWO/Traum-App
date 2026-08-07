@@ -1,0 +1,30 @@
+/* Die Bausteine, die das spätere Mobbin-Redesign trägt. Wer die Optik
+   austauscht, ändert diese Datei und tokens.css — nicht die Screens. */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
+  padding: var(--s-3) var(--s-5); border-radius: 999px;
+  font-family: var(--sans); font-size: var(--t-body); font-weight: 600;
+  border: 1px solid transparent; cursor: pointer; transition: opacity .15s ease;
+}
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 3px; }
+.btn-primär { background: linear-gradient(160deg, var(--violet-soft), var(--violet-deep)); color: var(--text); }
+.btn-still  { background: var(--panel); border-color: var(--panel-line); color: var(--text); }
+.btn-geist  { background: none; color: var(--muted); }
+
+.card {
+  display: block; width: 100%; text-align: left;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  border-radius: var(--radius); padding: var(--s-4);
+  color: var(--text); font-family: var(--sans); font-size: var(--t-body);
+}
+button.card { cursor: pointer; }
+button.card:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
+
+.screen-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--s-3); margin-bottom: var(--s-5);
+}
+.screen-titel { font-size: var(--t-h2); font-weight: 600; letter-spacing: -.02em; margin: 0; }
+.screen-unterzeile { color: var(--muted); font-size: var(--t-small); margin: var(--s-1) 0 0; }
