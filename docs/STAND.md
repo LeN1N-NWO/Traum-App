@@ -78,6 +78,20 @@
   wer was erzeugt hat. Vor einer Veröffentlichung zu entscheiden — braucht
   vermutlich eine Moderationsstufe und ist damit an das Backend-ADR gekoppelt.
 
+## Provider-Wechsel geplant: Higgsfield → fal.ai
+
+- Entscheidung (07.08., Anton): Higgsfield wird komplett durch **fal.ai**
+  ersetzt — Bild, Video und eine neue LLM-Funktion sollen alle über fal.ai
+  laufen.
+- Ein fal.ai-Key liegt vor, ist aber **nur lokal in `.env`** (git-ignoriert,
+  nicht im Repo). `.env.example` dokumentiert `FAL_KEY` als Vorlage.
+- Die eigentliche Code-Anbindung in `server.js` (SDK-Wahl, Modell-Slugs,
+  LLM-Route) ist noch **nicht gemacht** — übernimmt eine Kollegin, sobald sie
+  sie braucht. Bis dahin läuft `server.js` unverändert auf Higgsfield weiter.
+- Wer den echten Key braucht: bekommt ihn außerhalb des Repos (Passwort-
+  Manager/DM), nicht automatisch durch Repo-Zugriff — siehe AGENTS.md,
+  keine Secrets im Repository.
+
 ## Bekannte Baustellen
 
 - **Credits/Bezahlmodell fehlt komplett.** Braucht laut Diskussion mit dem
