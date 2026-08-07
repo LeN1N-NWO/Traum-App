@@ -12,6 +12,7 @@
   <header>
     <div class="brand"><div class="moon"></div> Dream&nbsp;Rushes</div>
     <div class="hdr-actions">
+      <a class="streak" href="fotos.html">🖼&nbsp;<span class="lbl">Photo </span>Library</a>
       <a class="streak" href="#guide">🌙&nbsp;<span class="lbl">Lucid </span>Guide</a>
       <div class="streak"><span class="fire">🔥</span>&nbsp;<span id="streakN">0</span><span class="lbl">-day streak</span></div>
     </div>
@@ -25,7 +26,11 @@
 
   <div class="capsule">
     <div class="cap-label"><span>Last night, I dreamt…</span><span id="lang">🎙 voice ready</span></div>
-    <textarea id="dream" placeholder="…I was falling backward through a city that turned into water, and the streetlights became jellyfish…"></textarea>
+    <div class="dreambox">
+      <div class="dream-mirror" id="dreamMirror" aria-hidden="true"></div>
+      <textarea id="dream" placeholder="…I was falling backward through a city that turned into water, and the streetlights became jellyfish…"></textarea>
+    </div>
+    <div class="tagbar" id="tagbar"></div>
     <div class="cap-actions">
       <button class="mic" id="mic" title="Speak your dream">🎙</button>
       <p class="hint hint-inline">Your dream text and any photos you attach are sent to Higgsfield to render it; your journal and menagerie stay on this device.</p>
@@ -479,7 +484,7 @@ function renderCast(){
 }
 document.getElementById('cast').addEventListener('click',e=>{
   const rm=e.target.closest('[data-rm]');
-  if(rm){const id=rm.dataset.rm;if(id==='me')state.me=null;else state.cast.splice(+id,1);save(state);renderCast();return;}
+  if(rm){const id=rm.dataset.rm;if(id==='me')state.me=null;else state.cast.splice(+id,1);save(state);renderCast();window.repaintDreamTags?.();return;}
   const cat=e.target.closest('[data-cat]');
   if(cat){pickTarget={mode:'add',category:cat.dataset.cat};document.getElementById('facePick').click();return;}
   const f=e.target.closest('[data-pick]');if(!f)return;
@@ -505,7 +510,7 @@ document.getElementById('facePick').addEventListener('change',e=>{
       toast(`✦ @${tag} linked`);
     }
     else {state.cast[+pickTarget]={...state.cast[+pickTarget],img};}
-    save(state);renderCast();
+    save(state);renderCast();window.repaintDreamTags?.();
   };
   r.readAsDataURL(file);e.target.value="";
 });
@@ -532,6 +537,62 @@ function restoreControls(){
 }
 
 /* ---------- init ---------- */
+/* ---------- Namen aus der Foto-Bibliothek im Eingabefeld hervorheben ----------
+   Ein <textarea> kann keine gestalteten Elemente enthalten. Hinter dem Feld
+   liegt deshalb eine deckungsgleiche Ebene mit demselben Text, in der die
+   erkannten Namen hinterlegt sind (siehe .dream-mirror in app.css). Darunter
+   zeigt eine Leiste, welche Fotos dieser Traum mitschickt. */
+(function(){
+  const ta = document.getElementById('dream');
+  const mirror = document.getElementById('dreamMirror');
+  const bar = document.getElementById('tagbar');
+  if(!ta || !mirror || !bar) return;
+
+  function knownTags(){
+    const t = (state.cast||[]).filter(p=>p.img).map(p=>p.tag);
+    if(state.me && state.me.img) t.push('me');
+    return t.filter(Boolean);
+  }
+
+  let lastBarKey = null;   // welche Fotos zeigt die Leiste gerade?
+
+  function paint(){
+    const text = ta.value;
+    const spans = findTagSpans(text, knownTags());
+    // Spiegel aufbauen — escapeHtml ist hier Pflicht, es ist Nutzertext.
+    let html = '', pos = 0;
+    for(const s of spans){
+      html += escapeHtml(text.slice(pos, s.start)) + '<mark>' + escapeHtml(text.slice(s.start, s.end)) + '</mark>';
+      pos = s.end;
+    }
+    html += escapeHtml(text.slice(pos));
+    // Abschliessender Umbruch, sonst schneidet der Spiegel die letzte Zeile ab.
+    mirror.innerHTML = html + '\n';
+
+    // Leiste NUR neu aufbauen, wenn sich die Auswahl geändert hat. Sonst
+    // dekodiert der Browser bei jedem Tastendruck alle base64-Fotos neu —
+    // gemessen ~11 ms pro Anschlag bei handygroßen Bildern, also sichtbares
+    // Ruckeln beim Tippen.
+    const used = taggedPhotosIn(text);
+    const key = used.map(p=>p.tag).join('|');
+    if(key === lastBarKey) return;
+    lastBarKey = key;
+    bar.innerHTML = used.length
+      ? `<span class="lbl">Sent with this dream:</span>` + used.map(p=>
+          `<span class="t"><img src="${escapeHtml(p.img)}" alt="">${escapeHtml(p.tag)}</span>`).join('')
+      : '';
+  }
+  // Nach Änderungen an der Bibliothek muss die Leiste zwingend neu — der
+  // Zwischenspeicher oben würde sonst ein gelöschtes Foto weiter anzeigen.
+  function repaint(){ lastBarKey = null; paint(); }
+
+  ta.addEventListener('input', paint);
+  ta.addEventListener('scroll', ()=>{ mirror.scrollTop = ta.scrollTop; });
+  window.addEventListener('pageshow', repaint);  // zurück aus der Bibliothek
+  repaint();
+  window.repaintDreamTags = repaint;             // nach Cast-Änderungen aufrufbar
+})();
+
 refreshStreak();renderMenagerie();renderJournal();renderCast();restoreControls();
 </script>
 </body>
