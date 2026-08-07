@@ -199,11 +199,12 @@ function renderEvents(){
   }
   list.innerHTML = evs.map(ev=>{
     const during = dreamsDuringEvent(state.journal, ev);
-    // Welche der verknüpften Symbole tauchen in genau diesen Träumen auf?
-    const hits = (ev.symbolIds||[]).map(id=>{
-      const n = during.filter(d => detectSymbols(d.text).includes(id)).length;
-      return {sym:symbolById(id), n};
-    }).filter(h=>h.sym);
+    // Einmal pro Traum erkennen, nicht einmal pro Traum UND Symbol.
+    const perDream = during.map(d => detectSymbols(d.text));
+    const hits = (ev.symbolIds||[]).map(id=>({
+      sym: symbolById(id),
+      n: perDream.reduce((n,ids)=>n + (ids.includes(id)?1:0), 0),
+    })).filter(h=>h.sym);
     const when = ev.endsAt ? `${fmtFull(ev.startsAt)} — ${fmtFull(ev.endsAt)}` : `since ${fmtFull(ev.startsAt)}`;
     return `<article class="ev-card">
       <div class="ev-actions">

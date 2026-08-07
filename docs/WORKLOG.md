@@ -55,6 +55,30 @@ auf echte Attribute, nicht auf Text.
 erweitert, `scripts/test-static.mjs` entsprechend (jetzt 31 Prüfungen). Rot-Probe
 wiederholt: Test schlägt weiterhin fehl, wenn die Freigabe aufgeweicht wird.
 
+**Nachgereicht (13:10) — kritische Durchsicht, zwei echte Fehler gefunden:**
+
+- **Zeitzonen-Fehler in `dreamsDuringEvent()` (schwerwiegend).** Ereignisdaten
+  sind reine Kalendertage (`2026-08-01`); `new Date()` liest die als
+  UTC-Mitternacht, Traumzeitstempel sind dagegen echte Zeitpunkte. In Berlin
+  (UTC+2) fiel damit ein um 00:30 Uhr notierter Traum aus dem Zeitraum seines
+  eigenen Tages — ausgerechnet die Träume, die man direkt nach dem Aufwachen
+  einträgt, also der Kernfall der App. Gemessen bestätigt (`2026-08-01 00:30`
+  Ortszeit → `2026-07-31T22:30Z` → nicht gefunden), behoben durch Tagesgrenzen
+  in Ortszeit (`localDayStart`/`localDayEnd`). Gegengeprüft: 00:30 und 23:45
+  werden gefunden, der Vortag um 23:30 korrekt ausgeschlossen.
+- **Unnötiger Rechenaufwand.** `detectSymbols()` übersetzte pro Aufruf 211
+  reguläre Ausdrücke neu, und `renderEvents()` rief die Erkennung zusätzlich
+  pro verknüpftem Symbol erneut für *jeden* Traum auf. Jetzt ein
+  vorkompilierter Ausdruck je Symbol (20 statt 211, einmalig beim Laden) und
+  eine Erkennung pro Traum statt pro Traum × Symbol.
+- Kleiner Fund nebenbei: `detectSymbols` verfehlte typografische Apostrophe —
+  „can’t find" aus der Zwischenablage traf nicht auf „can't find". Wird jetzt
+  angeglichen. Ebenso fehlten `raining`, `waves`, `flooding` bei *Water*,
+  während andere Symbole ihre Beugungen längst hatten.
+
+Gegen Fehlalarme geprüft: „brain", „training", „terrain", „doghouse",
+„scattered", „season", „catalogue", „flattering" lösen weiterhin nichts aus.
+
 **Nachgereicht (12:30):** In der Auswahl „Symbols you connect with it" heben
 sich jetzt die Symbole ab, die tatsächlich in den eigenen Träumen vorkommen —
 mit Trefferzahl und einem Lichtpunkt, der einmal um den Rand läuft. Technisch

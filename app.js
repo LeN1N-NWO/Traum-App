@@ -75,7 +75,7 @@ const SYMBOL_CATEGORIES = {
 const SYMBOLS = [
   // — Orte —
   { id:'water', label:'Water', emoji:'🌊', category:'place',
-    keywords:['water','ocean','sea','beach','shore','wave','tide','river','lake','swim','swimming','drown','drowning','flood','rain'],
+    keywords:['water','ocean','sea','beach','shore','wave','waves','tide','river','lake','swim','swimming','drown','drowning','flood','flooding','rain','raining'],
     meaning:'Water is usually read as feeling — its depth, its calm, its force. Rising water often shows up when something emotional feels bigger than expected.' },
   { id:'home', label:'House & home', emoji:'🏠', category:'place',
     keywords:['house','home','kitchen','bedroom','apartment','flat','living room','childhood home','attic','basement','cellar'],
@@ -144,18 +144,29 @@ const SYMBOLS = [
     meaning:'Death in dreams is rarely about dying. It much more often marks an ending of some other kind — a role, a phase, a version of oneself.' },
 ];
 
-// Wortgrenzen-Treffer, damit "sea" nicht in "season" und "ex" nicht in "exam"
-// anschlägt. Mehrwortbegriffe ("too late") funktionieren ebenso.
-function matchesKeyword(haystack, keyword){
-  const esc = keyword.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  return new RegExp('(^|[^a-z])' + esc + '([^a-z]|$)','i').test(haystack);
-}
+// Wortgrenzen-Treffer, damit "sea" nicht in "season" und "cat" nicht in
+// "catalogue" anschlägt. Mehrwortbegriffe ("too late") funktionieren ebenso.
+//
+// EIN Ausdruck pro Symbol, EINMAL beim Laden gebaut. Vorher wurde pro Aufruf
+// je Stichwort ein neuer RegExp übersetzt — 211 Stück, und `renderEvents` rief
+// die Erkennung zusätzlich pro verknüpftem Symbol erneut für jeden Traum auf.
+const SYMBOL_RE = new Map(SYMBOLS.map(s => {
+  const alts = s.keywords
+    .map(k => k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))
+    .sort((a,b) => b.length - a.length)   // längere Varianten zuerst prüfen
+    .join('|');
+  return [s.id, new RegExp('(^|[^a-z])(?:' + alts + ')([^a-z]|$)','i')];
+}));
 
 /** Alle Symbol-IDs, die in einem Traumtext vorkommen. */
 function detectSymbols(text){
-  const t = String(text||'').toLowerCase();
+  // Typografische Apostrophe angleichen, sonst verfehlt "can't find" ein
+  // "can’t find" aus der Zwischenablage.
+  const t = String(text||'').toLowerCase().replace(/[‘’ʼ]/g, "'");
   if(!t) return [];
-  return SYMBOLS.filter(s => s.keywords.some(k => matchesKeyword(t,k))).map(s => s.id);
+  const out = [];
+  for(const s of SYMBOLS) if(SYMBOL_RE.get(s.id).test(t)) out.push(s.id);
+  return out;
 }
 
 /** Map<symbolId, [{entryId, createdAt, title, text}]> — aus dem Tagebuch abgeleitet. */
@@ -174,11 +185,25 @@ function symbolOccurrences(journal){
 
 function symbolById(id){ return SYMBOLS.find(s => s.id===id) || null; }
 
+// Ereignisdaten sind reine Kalendertage ('2026-08-01'). `new Date()` liest die
+// als UTC-Mitternacht — Traumzeitstempel sind dagegen echte Zeitpunkte. In
+// Berlin (UTC+2) fiel damit ein um 00:30 Uhr notierter Traum aus dem Zeitraum
+// seines eigenen Tages heraus. Ausgerechnet die Träume, die man direkt nach
+// dem Aufwachen einträgt. Deshalb: Tagesgrenzen in ORTSZEIT bilden.
+function localDayStart(ymd){
+  const [y,m,d] = String(ymd).split('-').map(Number);
+  return new Date(y, m-1, d, 0, 0, 0, 0).getTime();
+}
+function localDayEnd(ymd){
+  const [y,m,d] = String(ymd).split('-').map(Number);
+  return new Date(y, m-1, d, 23, 59, 59, 999).getTime();
+}
+
 /** Träume, die in den Zeitraum eines Lebensereignisses fallen. */
 function dreamsDuringEvent(journal, event){
   if(!event || !event.startsAt) return [];
-  const from = new Date(event.startsAt).getTime();
-  const to = event.endsAt ? new Date(event.endsAt).getTime() + 86399999 : Date.now();
+  const from = localDayStart(event.startsAt);
+  const to = event.endsAt ? localDayEnd(event.endsAt) : Date.now();
   return (journal||[]).filter(e=>{
     const t = new Date(e.createdAt).getTime();
     return t >= from && t <= to;
