@@ -3,6 +3,113 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 11:40 — Hanni — Branch `session/2026-08-07-hanni-symbole`
+
+**Was:** Neue Seite `symbole.html` — Sammlung wiederkehrender Traumsymbole mit
+Deutung, plus Lebensereignisse zum Verknüpfen. Die Menagerie-Überschrift auf
+der Hauptseite führt dorthin.
+
+**Zwei Klarstellungen vorab, die den Zuschnitt bestimmt haben:**
+- Der Wunsch lautete, Symbole „aus den generierten Traumvisualisierungen" zu
+  erstellen. Das geht so nicht sinnvoll: die Symbole stecken bereits im
+  *Traumtext* — das Bild ist nur dessen Darstellung. Bildanalyse bräuchte ein
+  Vision-Modell, einen weiteren Anbieter, einen weiteren Schlüssel und damit
+  das Backend, das es nicht gibt. Entschieden: Erkennung aus dem Text, als
+  Ausbau von Antons `CREATURE_POOL`, der genau das schon grob tat.
+- Deutung kommt als mitgeliefertes Lexikon, ausdrücklich als gängige Lesart
+  gekennzeichnet, nicht als Diagnose. Die Seite sagt das auch. Sobald eine App
+  Träume mit Jobwechseln verknüpft, darf sie nicht klinisch klingen.
+
+**Struktur (ADR-0003):** Die Entscheidung für eine echte zweite HTML-Datei
+erzwang die Auslagerung von `app.css` (230 Zeilen) und `app.js`. Duplizieren
+wäre bei den Stilen ärgerlich gewesen und bei der Speicherschicht gefährlich:
+zwei driftende Kopien eines Datenschemas beschädigen Tagebücher. `app.js` hält
+jetzt Speicher, `escapeHtml`, `toast` und die Symbolerkennung; alles
+Seitenspezifische blieb, wo es war. `index.html` schrumpfte von 792 auf ~560
+Zeilen.
+
+**Symbolerkennung:** 20 Symbole in fünf Kategorien (Orte, Szenarien, Wesen,
+Menschen, Gefühle), abgedeckt sind beide vom Produktbesitzer genannten
+Beispiele (Strand → *Water*, verpasster Flug → *Missing something*).
+Vorkommen werden **nicht gespeichert**, sondern bei jedem Rendern aus
+`state.journal` neu berechnet — keine Migration, keine doppelten Daten, und ein
+später ergänztes Symbol reichert rückwirkend alte Träume an. Treffer laufen
+über Wortgrenzen, sonst hätte „sea" in „season" und „cat" in „catalogue"
+angeschlagen; beides geprüft.
+
+**Lebensereignisse:** `state.events` mit Titel, Zeitraum, Notiz und verknüpften
+Symbolen. Neben der ausdrücklichen Verknüpfung zeigt die Karte, wie viele
+Träume in den Zeitraum fielen und wie oft die verknüpften Symbole darin
+vorkamen — das macht „ich habe Urlaub gebucht und träume seitdem vom Strand"
+sichtbar, ohne Kausalität zu behaupten.
+
+**Sicherheit:** Ereignistitel und Notizen sind ein *neuer* Kanal für Nutzertext
+ins DOM. XSS-Test dagegen gefahren (bösartiger Titel, bösartige Notiz,
+bösartiger Traumtext): Nutzlast bleibt inert, kein einziges Element trägt ein
+`on*`-Attribut. Anmerkung für den Nächsten: eine Zeichenkettensuche in
+`outerHTML` ist hier **kein** gültiger Nachweis — der Browser gibt `&quot;` in
+Textknoten wieder als `"` aus, weil Anführungszeichen dort harmlos sind. Prüfe
+auf echte Attribute, nicht auf Text.
+
+`PUBLIC_FILES` in `server.js` um `/symbole.html`, `/app.css`, `/app.js`
+erweitert, `scripts/test-static.mjs` entsprechend (jetzt 31 Prüfungen). Rot-Probe
+wiederholt: Test schlägt weiterhin fehl, wenn die Freigabe aufgeweicht wird.
+
+**Nachgereicht (13:10) — kritische Durchsicht, zwei echte Fehler gefunden:**
+
+- **Zeitzonen-Fehler in `dreamsDuringEvent()` (schwerwiegend).** Ereignisdaten
+  sind reine Kalendertage (`2026-08-01`); `new Date()` liest die als
+  UTC-Mitternacht, Traumzeitstempel sind dagegen echte Zeitpunkte. In Berlin
+  (UTC+2) fiel damit ein um 00:30 Uhr notierter Traum aus dem Zeitraum seines
+  eigenen Tages — ausgerechnet die Träume, die man direkt nach dem Aufwachen
+  einträgt, also der Kernfall der App. Gemessen bestätigt (`2026-08-01 00:30`
+  Ortszeit → `2026-07-31T22:30Z` → nicht gefunden), behoben durch Tagesgrenzen
+  in Ortszeit (`localDayStart`/`localDayEnd`). Gegengeprüft: 00:30 und 23:45
+  werden gefunden, der Vortag um 23:30 korrekt ausgeschlossen.
+- **Unnötiger Rechenaufwand.** `detectSymbols()` übersetzte pro Aufruf 211
+  reguläre Ausdrücke neu, und `renderEvents()` rief die Erkennung zusätzlich
+  pro verknüpftem Symbol erneut für *jeden* Traum auf. Jetzt ein
+  vorkompilierter Ausdruck je Symbol (20 statt 211, einmalig beim Laden) und
+  eine Erkennung pro Traum statt pro Traum × Symbol.
+- Kleiner Fund nebenbei: `detectSymbols` verfehlte typografische Apostrophe —
+  „can’t find" aus der Zwischenablage traf nicht auf „can't find". Wird jetzt
+  angeglichen. Ebenso fehlten `raining`, `waves`, `flooding` bei *Water*,
+  während andere Symbole ihre Beugungen längst hatten.
+
+Gegen Fehlalarme geprüft: „brain", „training", „terrain", „doghouse",
+„scattered", „season", „catalogue", „flattering" lösen weiterhin nichts aus.
+
+**Nachgereicht (12:30):** In der Auswahl „Symbols you connect with it" heben
+sich jetzt die Symbole ab, die tatsächlich in den eigenen Träumen vorkommen —
+mit Trefferzahl und einem Lichtpunkt, der einmal um den Rand läuft. Technisch
+ein rotierender Kegelverlauf, aus dem die Mitte per Maske ausgestanzt wird
+(`@property --chip-a` für den Winkel); kein zusätzliches Element, und der Ring
+bleibt beim Umbrechen rund. Ohne `@property`-Unterstützung steht der Ring
+still, die Hervorhebung bleibt sichtbar; bei `prefers-reduced-motion` ebenso.
+Die hervorgehobenen Chips stehen zudem vorn — unter zwanzig Chips findet man
+sie sonst nicht. Eine kurze Zeile über der Auswahl erklärt, was das Leuchten
+bedeutet.
+
+**Nachgereicht (12:05):** Der Weg zur Analyseseite führt nicht mehr über die
+anklickbare Überschrift, sondern über einen eigenen Knopf „✦ What does it
+mean?" unter der Kreaturen-Sammlung — auf Wunsch des Produktbesitzers.
+Bewusst als Geister-Knopf gestaltet: der Hauptknopf der Seite ist „Summon the
+dream", ein zweiter Verlaufsknopf hätte mit ihm konkurriert. Die dadurch
+verwaiste Klasse `.sec-link` wurde entfernt, ebenso `.sym-card.dim`, das nie
+zum Einsatz kam (Symbole ohne Vorkommen werden gar nicht erst gerendert).
+Automatische Prüfung über beide Seiten meldet keine ungenutzte Klasse mehr.
+
+**Was der Nächste wissen muss:**
+- **Stichwörter sind rein englisch** — bewusst so entschieden. Deutsche
+  Traumeinträge liefern keine Symbole. Wer das ändert, ergänzt `SYMBOLS` in
+  `app.js` um deutsche Begriffe; die Wortgrenzen-Logik trägt das mit.
+- `app.js` ist ein klassisches Skript, kein Modul: Ladereihenfolge vor dem
+  Seitenskript ist bindend.
+- Verifiziert: Symbolerkennung pro Traum, Modal per Tastatur, Bearbeiten/
+  Löschen von Ereignissen, ungültiger Zeitraum wird abgefangen, keine
+  Überläufe auf Handybreite, keine Konsolenfehler, Hauptseite nach der
+  Auslagerung unverändert funktionsfähig.
+
 ## 2026-08-07 10:15 — Hanni — Branch `session/2026-08-07-hanni`
 
 **Was:** Kritische Selbstprüfung des Redesigns von 09:30. Fünf Befunde, alle
