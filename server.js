@@ -111,6 +111,110 @@ function sanitizeTag(raw) {
   return String(raw ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
 }
 
+// ---- dream analysis (the ONE llm call per dream) ----
+//
+// This is the wizard's foundation. A single DeepSeek call returns everything
+// the rest of the flow needs as structured JSON: the polished text, who and
+// where appears in it, the dream broken into beats, and a style guess.
+// Everything after this — assigning avatars, splitting beats into 3/5/10
+// images, picking a style template, assembling the master prompt — is local
+// logic with no further model calls. That is the whole token-economy design.
+const ANALYSIS_STYLES = ["dreamlike", "romantic", "dark", "surreal", "nostalgic", "adventurous"];
+const MAX_ANALYSIS_ITEMS = 8;   // people or places; more is noise, not signal
+const ANALYSIS_BEATS = 5;       // fixed: 3/5/10 images are all derived from these
+
+const ANALYSIS_SYSTEM = `You read a dream someone just wrote down and return STRICT JSON. No prose, no markdown, no code fences — the response must parse as JSON directly.
+
+Schema:
+{
+  "text": string,          // the dream, cleaned up
+  "people": string[],      // everyone appearing, as named or described in the dream
+  "places": string[],      // every distinct location, in the order they appear
+  "beats": string[],       // EXACTLY 5 short scene descriptions, in order
+  "style": string,         // one of: dreamlike, romantic, dark, surreal, nostalgic, adventurous
+  "mood": string           // one or two words
+}
+
+Rules for "text": fix spelling, grammar and punctuation; make the wording more vivid and easier to picture. NEVER invent events, people or places that are not there. NEVER change what happened or reorder it. NEVER change the emotional tone. Keep it first person if it was first person. Keep the same language the dream was written in.
+
+Rules for "people": use the name if the dream gives one ("Anton"), otherwise a short description ("a stranger in a red coat"). Include the dreamer only if they appear as a visible character. Empty array if nobody appears.
+
+Rules for "places": one entry per distinct location. A dream that moves from a bedroom to the sky over the sea has TWO places. Empty array if there is no discernible location.
+
+Rules for "beats": exactly 5, always, even for a short dream — split it evenly. Each beat is one sentence describing what is SEEN, not felt.`;
+
+/** One DeepSeek call → the structured shape the wizard runs on. */
+async function analyzeDream(dream) {
+  const key = process.env.DEEPSEEK_KEY;
+  if (!key) throw new Error("NO_DEEPSEEK_KEY");
+
+  const res = await fetch(DEEPSEEK_API_URL, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      messages: [
+        { role: "system", content: ANALYSIS_SYSTEM },
+        { role: "user", content: `Dream:\n${dream}` },
+      ],
+      response_format: { type: "json_object" },
+      stream: false,
+    }),
+  });
+  if (!res.ok) {
+    console.error("[DreamRushes] analyze request failed:", res.status, await res.text().catch(() => ""));
+    throw new Error("ANALYZE_FAILED");
+  }
+  const data = await res.json().catch(() => null);
+  const rawText = data?.choices?.[0]?.message?.content;
+  if (typeof rawText !== "string") throw new Error("ANALYZE_FAILED");
+
+  return normaliseAnalysis(rawText, dream);
+}
+
+// The model's answer is untrusted input twice over: it becomes prompt material
+// for a paid third-party call, and it drives the UI. Shape, length and content
+// are all pinned here rather than hoped for. Exported so it can be tested
+// against malformed answers without touching the network.
+export function normaliseAnalysis(rawText, fallbackDream = "") {
+  let parsed;
+  try {
+    // Models sometimes fence JSON despite being told not to.
+    const unfenced = String(rawText).replace(/^\s*```(?:json)?\s*|\s*```\s*$/g, "");
+    parsed = JSON.parse(unfenced);
+  } catch {
+    throw new Error("ANALYZE_FAILED");
+  }
+  if (!parsed || typeof parsed !== "object") throw new Error("ANALYZE_FAILED");
+
+  const text = sanitizePromptText(parsed.text).slice(0, MAX_DREAM) || sanitizePromptText(fallbackDream).slice(0, MAX_DREAM);
+  if (!text) throw new Error("ANALYZE_FAILED");
+
+  const list = (value) =>
+    (Array.isArray(value) ? value : [])
+      .map((v) => sanitizeFragment(v, MAX_FRAGMENT))
+      .filter(Boolean)
+      .slice(0, MAX_ANALYSIS_ITEMS);
+
+  // Beats drive the image count, so their number is pinned, not trusted.
+  // Too few: pad by repeating the last one rather than failing the whole
+  // analysis over a formatting slip. Too many: take the first five.
+  let beats = list(parsed.beats).slice(0, ANALYSIS_BEATS);
+  if (beats.length === 0) beats = [text.slice(0, MAX_FRAGMENT)];
+  while (beats.length < ANALYSIS_BEATS) beats.push(beats[beats.length - 1]);
+
+  const style = ANALYSIS_STYLES.includes(parsed.style) ? parsed.style : "dreamlike";
+
+  return {
+    text,
+    people: list(parsed.people),
+    places: list(parsed.places),
+    beats,
+    style,
+    mood: sanitizeFragment(parsed.mood || "", 40),
+  };
+}
+
 // Local fallback prompt (no LLM call) — used when DEEPSEEK_KEY is unset or
 // the DeepSeek call fails, so image generation still works without it. Each
 // cast entry the client sent (because its @tag literally appears in the
@@ -230,13 +334,19 @@ async function falGenerateVideo({ imageUrl, prompt }) {
 // Step 1 (DeepSeek, optional) + step 2 (fal.ai, required) from the pipeline
 // comment at the top of the file. DeepSeek failing or being unconfigured
 // degrades to the local template rather than blocking generation.
-async function generateImages({ dream, namedRefs }) {
-  let prompt;
-  try {
-    prompt = await craftPromptViaDeepseek(dream, namedRefs);
-  } catch (e) {
-    console.error("[DreamRushes] DeepSeek prompt crafting unavailable, using local template:", e.message);
-    prompt = buildFallbackPrompt(dream, namedRefs);
+async function generateImages({ dream, namedRefs, prompt: readyPrompt }) {
+  // The wizard assembles its own prompt locally (beats, style template,
+  // reference clauses) and sends it here — that path costs no LLM call at
+  // all. Only the older single-shot form, which sends raw dream text, still
+  // asks DeepSeek to word it.
+  let prompt = readyPrompt;
+  if (!prompt) {
+    try {
+      prompt = await craftPromptViaDeepseek(dream, namedRefs);
+    } catch (e) {
+      console.error("[DreamRushes] DeepSeek prompt crafting unavailable, using local template:", e.message);
+      prompt = buildFallbackPrompt(dream, namedRefs);
+    }
   }
   return falGenerateImage({ prompt, namedRefs });
 }
@@ -244,11 +354,11 @@ async function generateImages({ dream, namedRefs }) {
 // Film mode: render a keyframe still first (same pipeline as image mode),
 // then animate it. minimax/h3 is image-to-video, so it needs a source image
 // — there's no text-to-video path anymore.
-async function generateVideo({ dream, namedRefs }) {
-  const stills = await generateImages({ dream, namedRefs });
+async function generateVideo({ dream, namedRefs, prompt }) {
+  const stills = await generateImages({ dream, namedRefs, prompt });
   const keyframe = stills[0];
   if (!keyframe) throw new Error("GENERATION_FAILED");
-  return falGenerateVideo({ imageUrl: keyframe, prompt: dream });
+  return falGenerateVideo({ imageUrl: keyframe, prompt: prompt || dream });
 }
 
 // ---- static file serving ----
@@ -293,6 +403,28 @@ Bun.serve({
   async fetch(req) {
     const url = new URL(req.url);
 
+    if (url.pathname === "/api/analyze" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json();
+        const dream = sanitizePromptText(body.dream);
+        if (dream.length < 8) return json({ error: "Dream too short." }, 400);
+        if (dream.length > MAX_DREAM) return json({ error: "Dream too long." }, 400);
+        return json({ ok: true, analysis: await analyzeDream(dream) });
+      } catch (e) {
+        const map = {
+          NO_DEEPSEEK_KEY: [503, "Backend has no DeepSeek key. Set DEEPSEEK_KEY and restart."],
+          ANALYZE_FAILED: [502, "Could not read that dream. Try again."],
+        };
+        const hit = map[e.message];
+        if (hit) return json({ error: hit[1] }, hit[0]);
+        console.error("[DreamRushes] /api/analyze failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
     if (url.pathname === "/api/generate" && req.method === "POST") {
       try {
         if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
@@ -323,10 +455,18 @@ Bun.serve({
           }))
           .filter((c) => c.tag);
 
+        // A prompt assembled by the wizard. It skips DeepSeek entirely, but it
+        // still passes through the same hygiene as anything else that reaches
+        // a paid API — a client-built prompt is no more trusted than a
+        // model-built one.
+        const prompt = body.prompt
+          ? sanitizePromptText(body.prompt).slice(0, MAX_CRAFTED_PROMPT)
+          : undefined;
+
         const isFilm = body.mode === "film";
         const urls = isFilm
-          ? await generateVideo({ dream, namedRefs: cast })
-          : await generateImages({ dream, namedRefs: cast });
+          ? await generateVideo({ dream, namedRefs: cast, prompt })
+          : await generateImages({ dream, namedRefs: cast, prompt });
         return json({ ok: true, urls });
       } catch (e) {
         const map = {

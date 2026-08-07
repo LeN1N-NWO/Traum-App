@@ -76,6 +76,9 @@ export default {
     titleFor: { person: "Add a person", pet: "Add a pet", place: "Add a place" },
     nameLabel: (tag) => `Name (becomes @${tag})`,
     photoLabel: "Reference photo",
+    descLabel: "Describe them",
+    descLabelOptional: "Describe them (optional)",
+    descPlaceholder: "tall, dark curly hair, always in a green coat",
     previewAlt: "Preview of the selected photo",
     privacy: "This photo is sent to fal.ai when a dream is rendered.",
     cancel: "Cancel",
@@ -146,6 +149,95 @@ export default {
       "Summoning what you saw…",
       "Almost lucid…",
     ],
+  },
+
+  wizard: {
+    back: "Back",
+    cancel: "Cancel",
+    next: "Continue",
+    free: "Free",
+    from: "from",
+    credit: "credit",
+    credits: "credits",
+    tooShort: "⚠ Write a little more first.",
+    progress: (n, total) => `Step ${n} of ${total}`,
+
+    step1: {
+      title: "What did you dream?",
+      improve: "Improve with AI",
+      reading: "Reading your dream…",
+      skip: "Continue without it",
+      why: "The AI cleans up the wording and works out who and where appears in " +
+           "your dream — that is what the next steps are built on.",
+      previewTitle: "Here it is, tidied up",
+      previewLede: "Your own words are always kept, whichever you choose.",
+      yours: "As you wrote it",
+      improved: "Improved",
+      keepMine: "Keep my words",
+      useImproved: "Use this version",
+    },
+
+    step2: {
+      title: "What should become of it?",
+      saveOnly: "Just save it",
+      saveOnlyHint: "Into your journal, nothing generated",
+      images: "A photo story",
+      imagesHint: "Stills of your dream, in order",
+      film: "A film",
+      filmHint: "Renders a still first, then brings it to life",
+      countLabel: "How many images",
+      countNames: { 3: "Beginning, middle, end", 5: "The whole arc", 10: "Every turn" },
+      saved: "Dream saved",
+    },
+
+    step3: {
+      title: "Who is in it?",
+      lede: "Anyone already in your library is matched automatically. For the " +
+            "rest, tell us who they are — or let the AI invent them.",
+      empty: "Nobody was found in this dream. That is fine — carry on.",
+    },
+
+    step4: {
+      title: "Where does it happen?",
+      lede: "A dream that moves from one place to another needs both. Same " +
+            "choices as before.",
+      empty: "No place was found in this dream. The AI will imagine one.",
+    },
+
+    cast: {
+      choose: "From library",
+      change: "Change",
+      createNew: "Create new",
+      letAi: "Let the AI decide",
+      freeSet: "AI invents them",
+      undecided: "Not decided yet",
+      note: "Anything left undecided is invented by the AI.",
+      removeLabel: (name) => `Remove ${name}`,
+      pickTitle: (name) => `Who is “${name}”?`,
+      libraryEmpty: "Your library is still empty.",
+    },
+
+    step5: {
+      title: "How should it look?",
+      styleLabel: "Style",
+      formatLabel: "Format",
+      portrait: "Phone, stories",
+      landscape: "Widescreen",
+      generate: "Create it",
+      progress: (done, total) => `${done} of ${total} done`,
+      summaryImages: (n) => `${n} images in one continuous sequence.`,
+      summaryFilm: "One still, brought to life.",
+      summaryRefs: (n) =>
+        n === 0 ? "No reference photos — everything is invented."
+                : n === 1 ? "1 reference photo will be used."
+                          : `${n} reference photos will be used.`,
+    },
+
+    step6: {
+      title: "Your dream",
+      save: "Save to journal",
+      nothing: "Nothing came back. Try again from the last step.",
+    },
   },
 
   errors: {

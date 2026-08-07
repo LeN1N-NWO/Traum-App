@@ -8,14 +8,27 @@ import { t } from "../i18n/index.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
-export async function generate({ dream, mode, cast }) {
-  const res = await fetch(`${API_BASE}/api/generate`, {
+async function post(path, body) {
+  const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ dream, mode, cast }),
+    body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new Error(data?.error || t.errors.serverStatus(res.status));
+  return data;
+}
+
+/** The one LLM call per dream: polished text, people, places, beats, style. */
+export async function analyze(dream) {
+  const data = await post("/api/analyze", { dream });
+  if (!data?.analysis?.text) throw new Error(t.errors.unexpected);
+  return data.analysis;
+}
+
+/** Renders one image or a film. `prompt` overrides the server's own wording. */
+export async function generate({ dream, mode, cast, prompt }) {
+  const data = await post("/api/generate", { dream, mode, cast, prompt });
   if (!Array.isArray(data?.urls)) throw new Error(t.errors.unexpected);
   return data.urls;
 }

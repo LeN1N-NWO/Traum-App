@@ -4,7 +4,7 @@ import { t } from "../../i18n/index.js";
 import ScreenHeader from "../../components/ScreenHeader.jsx";
 import Card from "../../components/Card.jsx";
 import AvatarList from "./AvatarList.jsx";
-import AvatarDialog from "./AvatarDialog.jsx";
+import AvatarDialog from "../../components/AvatarDialog.jsx";
 import LucidGuide from "./LucidGuide.jsx";
 import "./profile.css";
 

@@ -8,7 +8,7 @@ import HomeScreen from "./screens/Home/HomeScreen.jsx";
 import JournalScreen from "./screens/Journal/JournalScreen.jsx";
 import SymbolsScreen from "./screens/Symbols/SymbolsScreen.jsx";
 import ProfileScreen from "./screens/Profile/ProfileScreen.jsx";
-import DreamScreen from "./screens/Dream/DreamScreen.jsx";
+import WizardShell from "./wizard/WizardShell.jsx";
 
 /* HashRouter, not BrowserRouter: Capacitor will load the app over file://,
    where the History API is unreliable. */
@@ -24,7 +24,7 @@ export default function App() {
           <Route path="/journal" element={<JournalScreen />} />
           <Route path="/symbols" element={<SymbolsScreen />} />
           <Route path="/profile" element={<ProfileScreen />} />
-          <Route path="/dream"   element={<DreamScreen />} />
+          <Route path="/dream"   element={<WizardShell />} />
         </Routes>
         <TabBar />
       </HashRouter>
