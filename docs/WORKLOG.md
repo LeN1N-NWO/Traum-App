@@ -130,6 +130,81 @@ fehlgeschlagenem `/api/generate` sauber auf Demo-Modus zurück, kein Absturz.
   mehr nur als Text-Klausel wie beim alten Higgsfield-Bildpfad) — die alte
   `withStyleContext()`-Textklausel existiert nur noch für den Video-Pfad.
 - Docs (`docs/STAND.md`) entsprechend aktualisiert.
+## 2026-08-07 12:50 — Hanni — Branch `session/2026-08-07-hanni-fotos`
+
+**Was:** Foto-Bibliothek als eigene Seite `fotos.html` plus optische Erkennung
+der Namen im Traum-Eingabefeld.
+
+- **Bibliothek**: hochladen, Namen vergeben, Kategorie (Person/Haustier/Ort),
+  Kurzbeschreibung, bearbeiten, löschen, durchsuchen. Zeigt je Foto, in wie
+  vielen Träumen sein Name vorkam. Erreichbar über einen neuen Knopf oben
+  rechts, auf `index.html` und `symbole.html`.
+- **Namen im Eingabefeld**: getippte Wörter, die einem Bibliotheks-Namen
+  entsprechen, werden hinterlegt dargestellt; darunter zeigt eine Leiste mit
+  Vorschaubildern, welche Fotos dieser Traum mitschickt.
+
+**Warum kein neuer Datenspeicher:** Die Bibliothek arbeitet auf `state.cast` —
+derselben Struktur, die Antons Generierungs-Code liest. Ein zweiter Speicher
+für „Fotos" neben dem „Cast" hätte zwei Wahrheiten erzeugt.
+
+**Technisch zur Hervorhebung:** Ein `<textarea>` kann keine gestalteten
+Elemente enthalten. Hinter dem Feld liegt deshalb eine deckungsgleiche Ebene
+mit demselben Text, in der die Namen hinterlegt sind; das Feld selbst ist
+transparent. Schrift, Größe, Zeilenhöhe und Innenabstand müssen exakt
+übereinstimmen — gemessen verifiziert: 0 px Abweichung, auch auf Handybreite,
+und die Ebene scrollt mit. Verworfen wurde `contenteditable`, das
+Spracheingabe, Einfüge-Bereinigung und Zeichenzähler gebrochen hätte.
+
+**Nachgereicht (13:40) — kritische Durchsicht vor dem Merge, vier Befunde:**
+
+- **NUL-Byte in `index.html`.** Beim Bearbeiten wurde aus `join(' ')` ein
+  `join('\0')`. Funktional trennt das zwar auch, aber die Datei galt damit als
+  binär: `grep` schwieg, `file` meldete „data", und Diffs wären im Review
+  unlesbar gewesen. Aufgefallen, weil `grep renderCast index.html` plötzlich
+  nichts mehr fand. Ersetzt durch `'|'`. **Dasselbe Muster wie heute früh beim
+  Testskript** — bei Bearbeitungen von Hand lohnt ein Blick auf `file <datei>`.
+- **Tippen ruckelte, sobald Tags trafen.** Die Leiste unter dem Eingabefeld
+  wurde bei *jedem* Tastendruck neu aufgebaut, samt `<img>` mit base64-Daten,
+  die der Browser jedes Mal neu dekodiert. Gemessen mit handygroßen Fotos:
+  **10,78 ms pro Anschlag** (ein Bild dauert 16,7 ms) gegen 0,01 ms ohne
+  Treffer. Jetzt wird die Leiste nur bei geänderter Auswahl neu gebaut:
+  **0,07 ms**. Peinlich, weil ich exakt diesen Fehler heute früh im
+  Symbol-Code kritisiert hatte.
+- **Hervorhebung zog bei Cast-Änderungen nicht mit.** `window.repaintDreamTags`
+  war für genau diesen Zweck exportiert und wurde nirgends gerufen — ein Foto
+  über die Leiste auf der Startseite hinzuzufügen ließ die Hervorhebung
+  unverändert bis zum Neuladen. Jetzt an Hinzufügen und Entfernen verdrahtet.
+- **Kein Zurückrollen bei vollem Speicher.** In der Bibliothek landete das Foto
+  erst im Arbeitsspeicher und dann im `save()`. Schlug das fehl, stand es in
+  der Liste, war aber beim nächsten Laden weg. Jetzt wird der Eintrag bei
+  Misserfolg wieder entfernt — verifiziert.
+
+Ein vierter Verdacht war **falsch**: Ich hielt die Ebene für nicht mitwachsend,
+wenn man das Eingabefeld größer zieht. Gemessen wächst sie korrekt mit
+(112→268 px); die 8 px Unterschied zum Feld sind der Zeilenabstand, den ein
+`textarea` als Inline-Element belegt, und für die Textausrichtung folgenlos.
+
+**Was der Nächste wissen muss:**
+- **Merge-Hinweis:** `mentionsTag()` steht jetzt in `app.js`, weil beide Seiten
+  sie brauchen. Anton hat auf `claude/new-session-x9qv1w` eine gleichnamige
+  Funktion direkt in `index.html`. Beim Zusammenführen bleibt die Fassung aus
+  `app.js`, seine Kopie entfällt — die Logik ist dieselbe (Wortgrenzen,
+  Groß-/Kleinschreibung egal).
+- **Beim Bauen gefunden und behoben:** Die dritte Kopfzeilen-Pille brachte den
+  Überlauf auf Handybreite zurück, den ich gestern behoben hatte. Ursache:
+  `header` durfte umbrechen, `.hdr-actions` nicht. Jetzt beide. Der Kopf
+  belegt auf schmalen Schirmen zwei Zeilen statt seitlich zu scrollen.
+- Namen werden auf `[a-z0-9]` normalisiert, weil man sie im Traumtext tippen
+  können muss. Doppelte Namen und `me` (für das eigene Gesicht reserviert)
+  werden abgelehnt.
+- **Speicherlimit bleibt die harte Grenze.** Fotos liegen base64 im
+  localStorage; die Bibliothek macht es leicht, viele anzulegen. `save()`
+  fängt das ab und meldet es per Hinweis, aber ein Foto geht dann verloren.
+  Echte Abhilfe erst mit dem Backend.
+- Geprüft: Wortgrenzen (`anna` trifft nicht in „annals", `island` nicht in
+  „islander"), XSS über manipulierte Tags und Bildpfade (Nutzlast bleibt
+  Text, kein `on*`-Attribut), Suche, Doppelnamen-Sperre, Tastaturbedienung,
+  volles localStorage, keine Konsolenfehler.
 
 ## 2026-08-07 10:35 — Anton — Branch `claude/new-session-x9qv1w`
 

@@ -16,15 +16,19 @@
   4. Eigene Referenzfotos — jetzt mit Kategorien Person/Pet/Place statt nur Gesichter.
   5. **Fehlt noch:** Bezahlmodell (Credits gegen Euro/Dollar, Video-Generierung
      kostenpflichtig).
-  6. **Symbolsammlung (07.08.)**: `symbole.html` zeigt wiederkehrende Motive aus
+  6. **Foto-Bibliothek (07.08.)**: `fotos.html` — eigene Fotos hochladen und
+     benennen; wird der Name im Traumtext getippt, erscheint er dort hinterlegt
+     und das Foto geht als benannte Referenz an die Bildgenerierung. Erreichbar
+     über den Knopf oben rechts.
+  7. **Symbolsammlung (07.08.)**: `symbole.html` zeigt wiederkehrende Motive aus
      den Traumtexten (20 Symbole in fünf Kategorien) mit einer gängigen Lesart,
      und erlaubt, sie mit Lebensereignissen zu verknüpfen. Erreichbar über die
      Menagerie-Überschrift.
 - Stack: Bun + `server.js` als API-Proxy (fal.ai + optional DeepSeek, siehe
   Provider-Wechsel unten — kein Higgsfield mehr, auch die Dependency ist raus),
   kein Login, kein Backend — Zustand lebt in `localStorage` (ADR-0002). Seit
-  07.08. **zwei Seiten** (`index.html`, `symbole.html`) mit geteiltem
-  `app.css` und `app.js` (ADR-0003); weiterhin kein Build-Schritt.
+  07.08. **drei Seiten** (`index.html`, `symbole.html`, `fotos.html`) mit
+  geteiltem `app.css` und `app.js` (ADR-0003); weiterhin kein Build-Schritt.
 - **Design überarbeitet (07.08.)**: Leitbild ist die Traumdeutungs-App *Moonly*
   (violette Nacht, warm) — das bestätigt Antons Farbwelt, statt sie zu
   ersetzen. Vom Journaling-Vorbild *pillowtalk* wurde nur die Struktur
@@ -103,10 +107,10 @@ sind entfernt. Kompletter Ersatz, in zwei Schritten:
 ## Sicherheit — Stand der Schutzziele
 
 - **Vertraulichkeit:** `server.js` liefert nur `/index.html`, `/symbole.html`,
-  `/app.css`, `/app.js` und `/clips/*` aus (deny-by-default in
+  `/fotos.html`, `/app.css`, `/app.js` und `/clips/*` aus (deny-by-default in
   `resolveStatic()`). Vorher war das gesamte App-Verzeichnis abrufbar,
   inklusive `.env` mit den API-Keys. Abgesichert durch
-  `scripts/test-static.mjs` (31 Prüfungen). Wer ein neues öffentliches Asset
+  `scripts/test-static.mjs` (32 Prüfungen). Wer ein neues öffentliches Asset
   braucht: `PUBLIC_FILES`/`PUBLIC_DIRS` in `server.js` erweitern, sonst 404.
 - **Integrität:** Alle Fremddaten (API-URLs, Traumtexte, Titel) werden vor dem
   Einsetzen ins DOM escaped. Ohne das wurde eine bösartige API-Antwort durch

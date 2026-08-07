@@ -260,6 +260,7 @@ const ROOT_ABS = resolve(ROOT);
 const PUBLIC_FILES = new Set([
   "/index.html",
   "/symbole.html",  // Symbolsammlung und Lebensereignisse
+  "/fotos.html",    // Foto-Bibliothek (benannte Referenzfotos)
   "/app.css",       // gemeinsames Stylesheet beider Seiten
   "/app.js",        // gemeinsame Speicherschicht + Symbolerkennung
 ]);
