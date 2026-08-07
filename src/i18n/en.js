@@ -118,6 +118,8 @@ export default {
     cancel: "Cancel",
     save: "Save",
     needName: "⚠ Please use letters or numbers for the name.",
+    needPhotoOrDesc: "⚠ Add a photo or describe them — the renderer needs one of the two.",
+    needPhotoOrDescHint: "Add a photo or a description. Without either there is nothing to draw from.",
     exists: (tag) => `⚠ @${tag} already exists.`,
     created: (tag) => `@${tag} added`,
     readFailed: "⚠ Could not read that photo.",

@@ -37,9 +37,15 @@ export default function AvatarDialog({ category, avatar = null, suggestedName = 
     reader.readAsDataURL(file);
   }
 
+  // A name alone gives the renderer nothing to work from — it needs either a
+  // photo to match or words to draw from. Applies to editing too, so an entry
+  // cannot be emptied out after the fact.
+  const hasSubstance = Boolean(image) || Boolean(desc.trim());
+
   function save() {
     const clean = cleanTag(tag);
     if (!clean) return toast(t.avatarDialog.needName);
+    if (!hasSubstance) return toast(t.avatarDialog.needPhotoOrDesc);
     // When editing, the entry's own name is not a clash with itself.
     const clash = (state.cast || []).some((p) => p.tag === clean && p.id !== avatar?.id);
     if (clash) return toast(t.avatarDialog.exists(clean));
@@ -109,11 +115,16 @@ export default function AvatarDialog({ category, avatar = null, suggestedName = 
           />
         </label>
 
+        {/* Sichtbar, bevor gespeichert wird — nicht erst als Meldung danach. */}
+        {!hasSubstance && <p className="av-hint av-warn">{t.avatarDialog.needPhotoOrDescHint}</p>}
+
         <p className="av-hint">{t.avatarDialog.privacy}</p>
 
         <div className="av-actions">
           <Button variant="ghost" onClick={onClose}>{t.avatarDialog.cancel}</Button>
-          <Button onClick={save}>{editing ? t.avatarDialog.saveChanges : t.avatarDialog.save}</Button>
+          <Button onClick={save} disabled={!hasSubstance}>
+            {editing ? t.avatarDialog.saveChanges : t.avatarDialog.save}
+          </Button>
         </div>
       </div>
     </div>
