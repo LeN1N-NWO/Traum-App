@@ -3,7 +3,7 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-07
+**Stand:** 2026-08-07 (14:20)
 
 ## Woran wird gearbeitet
 
@@ -71,24 +71,26 @@ sind entfernt. Kompletter Ersatz, in zwei Schritten:
   — `@me` bleibt immer dabei. Anders als beim alten Higgsfield-Bildpfad gehen
   jetzt auch Haustier-/Ortsfotos als echte Bild-Referenzen mit, nicht nur als
   Text-Klausel.
-- **Nicht end-to-end verifiziert:** Kein echter fal.ai- oder DeepSeek-Aufruf
-  konnte in dieser Sandbox getestet werden — die Netzwerk-Policy blockt
-  sowohl `fal.run` als auch vermutlich `api.deepseek.com` (`403 request
-  rejected: host not permitted`, bestätigt über den Proxy-Status für fal.run,
-  keine Umgehung versucht). Verifiziert wurde stattdessen: Syntax
-  (`bun build`), beide bestehenden Testsuiten weiterhin grün
-  (`scripts/test-static.mjs`, `scripts/test-prompt-sanitize.mjs`, letztere
-  jetzt gegen `buildFallbackPrompt()`/`sanitizeTag()` statt der entfernten
-  `withStyleContext()`), und der Fehlerfall für Bild UND Film — App fällt bei
-  fehlgeschlagenem `/api/generate` sauber auf den Demo-Modus zurück, kein
-  Absturz, geprüft per Playwright-Screenshot und curl.
-  **Nächster Schritt für wen immer Netzwerkzugriff hat:** einen echten Traum
-  mit benanntem Cast-Mitglied durchlaufen lassen (Bild- UND Film-Modus) und
-  prüfen, ob die drei Modell-/Parameter-Annahmen stimmen (`FAL_MODEL_IMAGE`,
-  `FAL_MODEL_VIDEO`, DeepSeek-Response-Shape `choices[0].message.content`).
+- **End-to-end verifiziert (07.08., 14:20):** Anton hat echte `FAL_KEY`/
+  `DEEPSEEK_KEY` lokal in `.env` eingetragen. Server über `bun server.js`
+  gestartet, `/api/generate` real getestet — Bild-Modus UND Film-Modus,
+  beide `200 OK` mit echten `https://v3b.fal.media/...`-URLs, kein
+  Fallback-Log ausgelöst (heißt: DeepSeek hat den Prompt tatsächlich
+  geschrieben). Damit sind `fal-ai/nano-banana-2`, `minimax/h3/image-to-video`
+  und die DeepSeek-Response-Shape (`choices[0].message.content`) bestätigt,
+  keine Annahmen mehr.
 - Beide Keys liegen lokal in `.env` (git-ignoriert, nicht im Repo) —
-  `FAL_KEY` gesetzt, `DEEPSEEK_KEY` (optional) nicht. `.env.example`
-  dokumentiert beide.
+  `FAL_KEY` und `DEEPSEEK_KEY` sind gesetzt. `.env.example` dokumentiert
+  beide.
+- **App-Start:** `.claude/launch.json` hat jetzt zwei Konfigurationen —
+  `dev` (`bun server.js`, empfohlen, hat die Freigabeliste) und
+  `static-preview` (`python3 -m http.server`, **darf nicht laufen, solange
+  `.env` existiert** — liefert das gesamte Verzeichnis aus, siehe
+  Sicherheitsabschnitt unten).
+- **Offener Wunsch (07.08., Anton):** von der App generierte Bilder/Videos
+  sollen zusätzlich lokal gespeichert werden. Aktuell liegt nur die
+  fal.ai-Hosting-URL im Tagebuch-Eintrag (`localStorage`), kein eigener
+  Download/Cache. Noch nicht umgesetzt.
 - Architekturvorgabe, auch mit Blick auf die geplante iPhone-App: Keys dürfen
   **nie in den Client** (weder `index.html` noch später ein kompiliertes
   App-Bundle) — beides ist extrahierbar. Client ruft ausschließlich den
@@ -152,12 +154,14 @@ sind entfernt. Kompletter Ersatz, in zwei Schritten:
 
 ## Bekannte Baustellen
 
-- **fal.ai-Aufruf nicht end-to-end verifiziert** (siehe Provider-Wechsel
-  oben) — Modell-Slug `fal-ai/nano-banana-2` und die erwartete
-  Response-Form (`data.images[].url`) sind Annahmen, nicht gegen den echten
-  fal.ai-Katalog geprüft. Diese Sandbox kann `fal.run` nicht erreichen
-  (Netzwerk-Policy), also braucht es einen echten Testlauf von jemandem mit
-  Zugriff.
+- **Generierte Medien werden nicht lokal gespeichert.** `/api/generate`
+  reicht nur die fal.ai-Hosting-URL durch, die App speichert diese URL im
+  Tagebuch-Eintrag (`localStorage`) — kein eigener Download/Cache. Anton
+  möchte das (07.08.) zusätzlich lokal ablegen. Angedacht: Server lädt die
+  Datei nach der Generierung selbst herunter (z. B. nach `clips/` oder
+  einen neuen `generated/`-Ordner) und liefert zusätzlich einen lokalen
+  Pfad zurück, den die App neben der Original-URL speichert — noch nicht
+  entworfen (Speicherort, Dateibenennung, Aufräumen/Quota ungeklärt).
 - **Credits/Bezahlmodell fehlt komplett.** Braucht laut Diskussion mit dem
   Produktbesitzer eine echte, fälschungssichere Datenhaltung (client-seitiges
   `localStorage` reicht für echtes Geld nicht) — tentativ Supabase (Accounts,
@@ -168,20 +172,11 @@ sind entfernt. Kompletter Ersatz, in zwei Schritten:
   Web-App später gewrappt werden (tentativ Capacitor), plus Apple/Google
   Developer Accounts, die der Produktbesitzer noch nicht hat. Eigenes ADR,
   eigene Session, erst sinnvoll sobald das Backend oben steht.
-- Drei Modell-/Parameter-Annahmen unverifiziert (siehe Provider-Wechsel oben):
-  `FAL_MODEL_IMAGE`, `FAL_MODEL_VIDEO` (image-to-video-Parameter `image_url`/
-  `prompt` geraten, nicht dokumentiert nachgeschlagen), und die
-  DeepSeek-Response-Shape (`choices[0].message.content`, OpenAI-kompatibel
-  laut offizieller Doku, aber nicht live getestet).
 - Für wirklich gute, Deakins-gerahmte Frames nutzt `craftPromptViaDeepseek()`
   bereits die Nano-Banana-6-Elemente-Formel — der separat existierende
   10-Beat-Traum-Bogen/Shot-Ladder/Identity-Locks-Skill ist aber weiterhin
   nicht angebunden, wäre ein Ausbau von system/user-Prompt in
   `craftPromptViaDeepseek()`.
-- `.env` existiert lokal mit `FAL_KEY`, ohne `DEEPSEEK_KEY` (optional) —
-  Bildgenerierung ist damit konfiguriert (bis auf die fehlende
-  Live-Verifikation oben), nutzt aber die lokale Fallback-Prompt-Vorlage
-  statt DeepSeek. Video braucht denselben `FAL_KEY`, kein separater Key nötig.
 - **Sprachwiderspruch:** `AGENTS.md` schreibt Deutsch für die UI vor, die
   gesamte App-Oberfläche ist Englisch. Ungelöst — entweder Regel anpassen
   oder UI später übersetzen.
@@ -215,10 +210,9 @@ sind entfernt. Kompletter Ersatz, in zwei Schritten:
 
 ## Nächste Schritte
 
-1. fal.ai + DeepSeek end-to-end verifizieren (jemand mit Netzwerkzugriff):
-   Bild- UND Film-Modus mit einem benannten Cast-Mitglied durchlaufen lassen,
-   `FAL_MODEL_IMAGE`, `FAL_MODEL_VIDEO` und die DeepSeek-Response-Shape gegen
-   die echten Kataloge/Docs prüfen.
+1. Generierte Bilder/Videos zusätzlich lokal speichern (Antons Wunsch,
+   07.08.) — Server lädt die fal.ai-Datei nach der Generierung herunter und
+   liefert einen lokalen Pfad zusätzlich zur Original-URL zurück.
 2. Vor jeder öffentlichen/iPhone-Nutzung: Auth + Rate-Limit für
    `/api/generate`, sonst verbraucht jeder Zugriff das gemeinsame
    fal.ai-/DeepSeek-Guthaben ohne Begrenzung.

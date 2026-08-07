@@ -3,6 +3,41 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 14:20 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** fal.ai + DeepSeek end-to-end verifiziert (Punkt 1 der letzten
+"Nächsten Schritte"). Anton hat echte Keys lokal in `.env` eingetragen
+(`FAL_KEY`, `DEEPSEEK_KEY`, git-ignoriert, nicht Teil dieses Commits). Server
+über `bun server.js` gestartet und `/api/generate` real getestet:
+Bild-Modus und Film-Modus, jeweils `200 OK` mit echten Medien-URLs
+(`https://v3b.fal.media/...`), keine Fehler im Log → DeepSeek hat den Prompt
+tatsächlich geschrieben (kein Fallback-Log ausgelöst), `fal-ai/nano-banana-2`
+und `minimax/h3/image-to-video` sind damit bestätigte, keine unverifizierten
+Modell-Slugs mehr.
+
+Zusätzlich: `.claude/launch.json` um eine `dev`-Konfiguration erweitert
+(`bun server.js`), damit die App künftig über den echten Server mit
+Freigabeliste läuft statt über `static-preview`
+(`python3 -m http.server`) — letzteres liefert das gesamte Verzeichnis aus
+und darf laut Sicherheitsabschnitt in STAND.md nicht laufen, sobald `.env`
+existiert (jetzt der Fall). `static-preview` bleibt als Eintrag erhalten,
+falls doch mal ohne Secrets statisch getestet werden soll.
+
+**Warum:** Anton wollte die Keys testen und die App lokal sehen können,
+ohne versehentlich `.env` über den unsicheren Static-Server zu exponieren.
+
+**Was der Nächste wissen muss:**
+- Punkt 1 der alten "Nächsten Schritte" ist erledigt — `FAL_MODEL_IMAGE`,
+  `FAL_MODEL_VIDEO` und die DeepSeek-Response-Shape sind jetzt live bestätigt,
+  nicht mehr nur Annahme.
+- App künftig mit `.claude/launch.json`-Eintrag `dev` starten (`bun
+  server.js`), nicht mit `static-preview`.
+- **Offener Wunsch von Anton:** von der App aus generierte Bilder/Videos
+  sollen zusätzlich lokal gespeichert werden (aktuell nur die
+  fal.ai-Hosting-URL, die serverseitig durchgereicht und im Tagebuch-Eintrag
+  referenziert wird — kein eigener lokaler Download/Cache). Noch nicht
+  umgesetzt, nur besprochen.
+
 ## 2026-08-07 13:30 — Anton — Branch `claude/new-session-x9qv1w`
 
 **Was:** Higgsfield komplett entfernt (Code + `@higgsfield/client`-Dependency).
