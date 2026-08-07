@@ -3,6 +3,73 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 19:00 — Hanni — Branch `session/2026-08-07-hanni-profile` (PR #8) — Sitzungsabschluss
+
+**Commits:** `e76d6c8` (Merge von main, Doppeltes raus), `6db78c9`
+(Tag-Hervorhebung), `HEAD` (anklickbare Tags + zwei CSS-Fehler behoben).
+Build grün, 50 Unit-Tests, 33 Freigabe-Prüfungen, Prompt-Hygiene grün.
+
+⚠ **Datumshinweis:** Der Eintrag unter diesem hier ist auf „2026-08-08 10:15"
+datiert, sein Commit `7d7bb61` liegt aber am **07.08. um 18:05**. Die
+Reihenfolge in dieser Datei stimmt trotzdem — nur die Datumsangabe dort geht
+einen Tag vor. Wer chronologisch sucht: nach Commit-Zeit gehen, nicht nach
+der Überschrift.
+
+**Kollision aufgelöst.** Antons Bearbeiten-Funktion lag schon auf `main`. Ich
+habe `main` gemergt und alles wieder herausgeworfen, was wir doppelt gebaut
+hatten; übrig blieb aus meinem Teil nur die Regel **Foto ODER Beschreibung
+ist Pflicht** (`AvatarDialog.jsx`) — ein Name allein gibt dem Bildmodell
+nichts, woraus es zeichnen könnte, und das gilt beim Bearbeiten genauso,
+damit ein Eintrag nicht nachträglich leergeräumt werden kann.
+
+**Tag-Hervorhebung im Eingabefeld** (`TagTextarea.jsx/.css`). Ein
+`<textarea>` kann keine gestalteten Elemente enthalten, deshalb liegt eine
+deckungsgleiche Ebene dahinter, die denselben Text mit markierten Namen
+trägt; das Feld selbst ist durchsichtig und behält Cursor, Auswahl,
+Spracheingabe und Größenänderung. Die Markierungen sind React-Elemente, kein
+`innerHTML` — es gibt nichts zu escapen, weil nie etwas als Markup gelesen
+wird. Umlaufender Lichtpunkt wie bei den Symbol-Kacheln.
+
+**Anklickbare Tags** (`TagCard.jsx/.css`). Ein Klick auf einen markierten
+Namen zeigt Foto, Kategorie und Beschreibung der Entität. Weil das Feld
+oben liegt und alle Zeiger-Ereignisse schluckt, werden die Markierungen
+nicht angeklickt, sondern **geometrisch getroffen**: `getClientRects()` je
+Markierung, nicht `getBoundingClientRect()` — eine über zwei Zeilen
+umbrochene Markierung hätte sonst einen Rahmen über die volle Feldbreite und
+würde weit neben dem Wort antworten. Die Karte ist bewusst **kein Modal**:
+der Fokus bleibt im Feld, der nächste Tastendruck schließt sie wieder.
+
+**⚠ Zwei eigene CSS-Fehler gefunden und behoben — für den Nächsten wichtig.**
+`.tt-input` und `.tt-mirror` bekommen zusätzlich die Klasse des Aufrufers
+(`.wiz-textarea`), die `background` und `color` setzt. Gleiche Spezifität,
+also entschied die Bündelreihenfolge — und sie entschied gegen uns:
+`.wiz-textarea` steht in `dist/assets/*.css` **nach** meinen Regeln. Folge:
+die Spiegelebene zeichnete den Traumtext ein zweites Mal (deckungsgleich,
+darum unsichtbar) und über den Markierungen lag ein 5-%-Weißschleier. Es fiel
+nur deshalb nicht auf, weil `--panel` fast durchsichtig ist. Behoben durch
+Anheben der Spezifität (`.tt-wrap .tt-input`). **Regel: alles in
+`TagTextarea.css`, was die Klasse des Aufrufers schlagen muss, braucht
+`.tt-wrap` davor.** Ein Sichttest findet so etwas nicht — nur
+`getComputedStyle`.
+
+**Nicht per Tastatur erreichbar.** Die Karte öffnet nur per Zeiger. Derselbe
+Inhalt steht im Profil-Tab, der vollständig per Tastatur bedienbar ist; die
+Karte ist eine Abkürzung, kein einziger Weg. Wer das ändern will, braucht
+einen Weg, der nicht mit dem Tippen kollidiert — Tab im Textfeld muss zum
+nächsten Bedienelement führen, nicht in die Markierungen.
+
+**Gemessen statt vermutet:** 0,081 ms je Mausbewegung bei 40 Markierungen
+(Bildbudget 16,7 ms), 0,22 ms je Tastendruck. Kein Caching eingebaut, es
+wäre Komplexität ohne Gegenwert.
+
+**Geprüft im Browser** (vorher Bündel-Hash abgeglichen, sonst misst man den
+alten Stand): Markierung trifft `anton`, nicht „annals" oder „islander";
+Klick auf das Wort öffnet, Klick daneben nicht; Textauswahl per Ziehen öffnet
+nicht; Escape, Tippen, Scrollen, Klick daneben schließen; Karte bleibt
+vollständig im Bild und weicht nach oben aus, wenn unten kein Platz ist
+(Wort bei y=408, Karte bei 260–400); Foto- und Ohne-Foto-Fall; kein
+seitlicher Überlauf.
+
 ## 2026-08-08 10:15 — Anton — Branch `main` — Sitzungsabschluss
 
 **Commits:** `96cca16` (Avatare bearbeitbar, Ohne-KI-Weg raus). Zustand:

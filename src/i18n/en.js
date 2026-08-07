@@ -122,6 +122,13 @@ export default {
     readFailed: "⚠ Could not read that photo.",
   },
 
+  tagCard: {
+    label: (tag) => `About @${tag}`,
+    categories: { person: "Person", pet: "Pet", place: "Place" },
+    photoOnly: "No description — the photo is used on its own.",
+    close: "Close",
+  },
+
   guide: [
     {
       title: "Reality checks",
