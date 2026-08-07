@@ -120,6 +120,13 @@
   Überlauf gemessen), nicht auf einem echten Gerät. Die Fenster-Größenänderung
   im Browser-Werkzeug hat in dieser Umgebung nicht gegriffen. Vor einer
   Veröffentlichung an einem echten Telefon gegenprüfen.
+- **Barrierefreiheit teilweise offen.** Tagebuchkarten sind seit 07.08. per
+  Tastatur bedienbar (Fokus, Enter/Space, sichtbarer Rahmen), die Cast-Kacheln
+  aber nicht: deren Löschknopf ist weiterhin ein `<div>` ohne Fokus. Kontraste
+  sind für Text geprüft und bestehen WCAG AA (≥4,79:1); ungeprüft sind
+  Fokus-Indikatoren auf allen Flächen und die Bedienbarkeit mit Screenreader.
+  Maßgeblicher Härtefall für künftige Farbänderungen: `--faint` auf
+  `rgba(11,7,24,.55)` über `#2a1d5e`.
 - Tagebuch wächst unbegrenzt und wird komplett gerendert — keine Pagination,
   kein Aufräumen. Zusammen mit den base64-Referenzfotos ist das localStorage-
   Quota (~5 MB) das eigentliche Limit; `save()` meldet es jetzt wenigstens,

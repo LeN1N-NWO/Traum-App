@@ -3,6 +3,54 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 10:15 — Hanni — Branch `session/2026-08-07-hanni`
+
+**Was:** Kritische Selbstprüfung des Redesigns von 09:30. Fünf Befunde, alle
+behoben — davon zwei echte Fehler, die ich selbst eingebaut hatte.
+
+**Barrierefreiheit (die zwei echten Fehler)**
+- **Kontrast:** Das neue Token `--faint` (`#736c99`) fiel auf *jedem* realen
+  Untergrund durch WCAG AA — im schlimmsten Fall 2,63:1 in der Eingabekapsel.
+  Betroffen war unter anderem der Datenschutzhinweis, also ausgerechnet der
+  Text, der ehrlich sagt, dass Fotos hochgeladen werden. Verschärft hatte ich
+  es selbst, indem ich `.ctl-lbl` und `.cap-label` von `--muted` auf `--faint`
+  umgestellt hatte. Gelöst nicht durch Aufhellen allein (das hätte `--faint`
+  und `--muted` ununterscheidbar gemacht), sondern zusätzlich durch eine
+  **dunklere Eingabekapsel** — was ohnehin näher an Moonly ist, wo die
+  Eingabekarte dunkler als der Himmel ist. Gemessen: jetzt 4,79–5,81:1 auf
+  allen Untergründen.
+- **Tastatur:** Die Tagebuchkarten waren anklickbar, aber per Tastatur nicht
+  erreichbar — das ging schon bei ihrer Einführung gestern schief. Jetzt
+  `tabindex`/`role="button"` mit Enter/Space-Behandlung, sichtbarer
+  Fokusrahmen, und der Löschknopf ist ein echter `<button>` mit `aria-label`,
+  der auch bei Tastaturfokus eingeblendet wird. Verifiziert: Fokus landet auf
+  der Karte, Enter öffnet sie, Enter auf dem Löschknopf öffnet *nicht*
+  zusätzlich das Modal.
+
+**Aufräumen**
+- Toter CSS-Block `.strip` (5 Regeln) entfernt — wurde nie benutzt, der
+  Bildstreifen entsteht per Inline-Style. Ebenso das nie verwendete Token
+  `--mono`. Beides stammte aus Antons Bestand. Automatisch geprüft: keine
+  ungenutzte Klasse mehr im Stylesheet.
+- Inline-Styles aus dem Markup in eine Klasse `.hint-inline` überführt.
+- Doppelte Leerstelle in der Guide-Pille beseitigt (`Lucid  Guide`).
+
+**Sicherheit unverändert geprüft:** Die Render-Funktion des Tagebuchs wurde
+komplett umgeschrieben, deshalb den XSS-Test von gestern gegen die *neue*
+Kartenstruktur wiederholt — bösartige URL, bösartiger Titel, bösartiger Text.
+Ergebnis: alle Nutzlasten inert, kein `onerror`/`onmouseover` im DOM, Flag
+bleibt 0. Auch das neue `aria-label` ist escaped.
+
+**Was der Nächste wissen muss:**
+- Kontraste sind rechnerisch belegt (Skript im Worklog-Verlauf nachvollziehbar:
+  sRGB-Luminanz, Panel-Blend gegen den Verlauf an drei Stellen). Wer die Farben
+  ändert, muss `--faint` erneut gegen `rgba(11,7,24,.55)` über `#2a1d5e`
+  prüfen — das ist der ungünstigste Fall.
+- **Noch offen, bewusst nicht angefasst:** Die Cast-Kacheln (`.face .rm`) haben
+  dasselbe Tastaturproblem wie die Tagebuchkarten vorher — Löschknopf ist ein
+  `<div>`. Das ist Antons Bestand und war nicht Teil dieses Umbaus; wer die
+  Cast-Auswahl anfasst, sollte es mitnehmen.
+
 ## 2026-08-07 09:30 — Hanni — Branch `session/2026-08-07-hanni`
 
 **Was:** Design-Überarbeitung von `index.html` anhand von Mobbin-Referenzen.
