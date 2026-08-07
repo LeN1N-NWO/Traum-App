@@ -3,7 +3,7 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-07 (22:15)
+**Stand:** 2026-08-08 (09:30)
 
 ## Woran wird gearbeitet
 
@@ -19,7 +19,7 @@ drei loser HTML-Seiten — Phase 1 des Umbaus aus
 | Tagebuch | Kartenansicht mit Suche, Detail-Modal, Löschen |
 | **⊕** | Der sechsstufige Wizard: Traum → Analyse → Personen → Orte → Style → Ergebnis |
 | Symbole | 20 Symbole in fünf Kategorien, Vorkommen je Traum |
-| Profil | Personen/Tiere/Orte, Lucid-Guide, Credit-Anzeige |
+| Profil | Personen/Tiere/Orte (anlegen, **bearbeiten**, löschen), Lucid-Guide, Credits |
 
 Kernfunktionen für die Traum-App:
 
@@ -152,6 +152,10 @@ Der zuerst geschriebene Text bleibt über beliebig viele Überarbeitungen als
   `scripts/test-prompt-sanitize.mjs`. Bewusst **keine** Blockliste für
   anweisungsartige Formulierungen: der Traumtext ist der eigene Prompt des
   Nutzers, es gibt keine Rechtegrenze zu schützen.
+- **Tag-Umbenennung zieht das Tagebuch mit.** Einträge speichern verwendete
+  Referenzen als Tag-String; wird ein Avatar im Profil umbenannt, werden diese
+  Referenzen mitgeändert (`AvatarDialog.save()`), sonst zeigten alte Träume
+  auf einen Namen, den es nicht mehr gibt.
 - **Offen — `/api/generate` hat keine Authentifizierung und kein Rate-Limit.**
   Nur an localhost binden. Öffentlich erreichbar könnte jeder das Guthaben
   verbrauchen. Löst sich erst mit dem Accounts-Backend — verbindlich zu lösen,

@@ -3,6 +3,29 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-08 09:30 — Anton — Branch `main`
+
+**Was:** Avatare im Profil sind jetzt bearbeitbar, und der Wizard hat keinen
+Ohne-KI-Weg mehr.
+
+- **Bearbeiten:** Antippen einer Kachel unter Personen/Tiere/Orte öffnet
+  denselben `AvatarDialog`, jetzt mit `existing`-Prop — Name, Foto und
+  Beschreibung änderbar, Foto auch entfernbar. Bisher konnte man nur anlegen
+  und löschen. Die Kachel besteht dafür aus zwei Geschwister-Knöpfen
+  (Inhalt + Löschen); ein Knopf im Knopf wäre ungültiges HTML.
+- **Umbenennen zieht das Tagebuch mit.** Einträge speichern verwendete
+  Referenzen als Tag-String. Ohne Nachziehen zeigten alte Träume nach einer
+  Umbenennung auf einen Namen, den es nicht mehr gibt. Live geprüft:
+  `@anton` → `@tony` änderte die Journal-Referenz mit, ID blieb stabil.
+- **„Continue without it" entfernt** (Antons Ansage). Der Weg ergab keinen
+  Sinn mehr: alle folgenden Schritte leben von der Analyse. Der lokale
+  Fallback-Zweig in `Step2Output` war damit toter Code und ist raus.
+
+**Was der Nächste wissen muss:** `DEEPSEEK_KEY` ist damit **faktisch
+Pflicht**, nicht mehr optional wie in älteren Einträgen beschrieben — ohne
+Analyse kommt niemand über Schritt 1 hinaus. Wer das nicht will, braucht
+einen bewussten Ersatzweg (z. B. „nur speichern" direkt vom Startscreen).
+
 ## 2026-08-07 23:00 — Anton — Branch `claude/new-session-x9qv1w` — Sitzungsabschluss
 
 **Commits dieser Sitzung** (die inhaltlichen Einträge darunter, 14:20 bis

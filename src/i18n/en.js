@@ -93,14 +93,18 @@ export default {
     guide: "Learn to lucid dream",
     new: "New",
     deleteLabel: (tag) => `Delete @${tag}`,
+    editLabel: (tag) => `Edit @${tag}`,
     referenceFor: (tag) => `Reference photo for @${tag}`,
     removed: (tag) => `@${tag} removed`,
   },
 
   avatarDialog: {
     titleFor: { person: "Add a person", pet: "Add a pet", place: "Add a place" },
+    editTitleFor: { person: "Edit person", pet: "Edit pet", place: "Edit place" },
     nameLabel: (tag) => `Name (becomes @${tag})`,
     photoLabel: "Reference photo",
+    photoReplace: "Replace the photo",
+    photoRemove: "Remove photo",
     descLabel: "Describe them",
     descLabelOptional: "Describe them (optional)",
     descPlaceholder: "tall, dark curly hair, always in a green coat",
@@ -108,9 +112,11 @@ export default {
     privacy: "This photo is sent to fal.ai when a dream is rendered.",
     cancel: "Cancel",
     save: "Save",
+    saveChanges: "Save changes",
     needName: "⚠ Please use letters or numbers for the name.",
     exists: (tag) => `⚠ @${tag} already exists.`,
     created: (tag) => `@${tag} added`,
+    saved: (tag) => `@${tag} updated`,
     readFailed: "⚠ Could not read that photo.",
   },
 
@@ -192,9 +198,9 @@ export default {
       title: "What did you dream?",
       improve: "Improve with AI",
       reading: "Reading your dream…",
-      skip: "Continue without it",
-      why: "The AI cleans up the wording and works out who and where appears in " +
-           "your dream — that is what the next steps are built on.",
+      why: "The AI retells your dream in your own language and works out who and " +
+           "where appears in it. Everything after this — the characters, the " +
+           "places, the images — is built on that.",
       previewTitle: "Here it is, tidied up",
       previewLede: "Your own words are always kept, whichever you choose.",
       yours: "As you wrote it",

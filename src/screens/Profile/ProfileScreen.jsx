@@ -11,6 +11,7 @@ import "./profile.css";
 export default function ProfileScreen() {
   const { state } = useAppState();
   const [dialogFor, setDialogFor] = useState(null);   // "person" | "pet" | "place" | null
+  const [editing, setEditing] = useState(null);       // an existing cast entry
 
   return (
     <main className="screen">
@@ -26,19 +27,27 @@ export default function ProfileScreen() {
       </Card>
 
       <h2 className="p-section">{t.profile.people}</h2>
-      <AvatarList category="person" onNew={() => setDialogFor("person")} />
+      <AvatarList category="person" onNew={() => setDialogFor("person")} onEdit={setEditing} />
 
       <h2 className="p-section">{t.profile.pets}</h2>
-      <AvatarList category="pet" onNew={() => setDialogFor("pet")} />
+      <AvatarList category="pet" onNew={() => setDialogFor("pet")} onEdit={setEditing} />
 
       <h2 className="p-section">{t.profile.places}</h2>
-      <AvatarList category="place" onNew={() => setDialogFor("place")} />
+      <AvatarList category="place" onNew={() => setDialogFor("place")} onEdit={setEditing} />
 
       <h2 className="p-section">{t.profile.guide}</h2>
       <LucidGuide />
 
       {dialogFor && (
         <AvatarDialog category={dialogFor} onClose={() => setDialogFor(null)} />
+      )}
+
+      {editing && (
+        <AvatarDialog
+          category={editing.category}
+          existing={editing}
+          onClose={() => setEditing(null)}
+        />
       )}
     </main>
   );

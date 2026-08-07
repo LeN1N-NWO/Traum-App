@@ -4,12 +4,11 @@ import { useAppState } from "../state/AppState.jsx";
 import { genId } from "../lib/storage.js";
 import { bumpStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
-import { taggedPhotosIn } from "../lib/tags.js";
 import { t } from "../i18n/index.js";
 import Card from "../components/Card.jsx";
 import "./wizard.css";
 
-export default function Step2Output({ w, patch, seedAssignments }) {
+export default function Step2Output({ w, patch }) {
   const { state, update, toast } = useAppState();
   const navigate = useNavigate();
 
@@ -36,19 +35,10 @@ export default function Step2Output({ w, patch, seedAssignments }) {
     navigate("/journal");
   }
 
-  /** Continue to the cast step. Without an analysis, guess locally. */
+  /** Continue to the cast step. An analysis always exists — step 1 cannot be
+   *  skipped, because everything from here on is built on its output. */
   function choose(mode) {
-    if (!w.analysis) {
-      // No paid analysis: derive characters from avatars the text names.
-      const found = taggedPhotosIn(state, w.text);
-      const people = found.filter((f) => f.category !== "place").map((f) => f.tag);
-      const places = found.filter((f) => f.category === "place").map((f) => f.tag);
-      const local = { text: w.text, people, places, beats: [w.text], style: "dreamlike", mood: "" };
-      patch({ mode, analysis: local, styleId: "dreamlike", step: 3 });
-      seedAssignments(local);
-      return;
-    }
-    patch({ mode, styleId: w.analysis.style || "dreamlike", step: 3 });
+    patch({ mode, styleId: w.analysis?.style || "dreamlike", step: 3 });
   }
 
   return (

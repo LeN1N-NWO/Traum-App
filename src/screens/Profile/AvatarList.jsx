@@ -2,7 +2,7 @@ import { useAppState } from "../../state/AppState.jsx";
 import { t } from "../../i18n/index.js";
 import "./profile.css";
 
-export default function AvatarList({ category, onNew }) {
+export default function AvatarList({ category, onNew, onEdit }) {
   const { state, update, toast } = useAppState();
   const entries = (state.cast || []).filter((p) => p.category === category);
 
@@ -15,12 +15,15 @@ export default function AvatarList({ category, onNew }) {
     <div className="p-grid">
       {entries.map((p) => (
         <div key={p.id} className="p-tile">
-          {p.img
-            ? <img src={p.img} alt={t.profile.referenceFor(p.tag)} loading="lazy" />
-            : <div className="p-no-image" aria-hidden="true">?</div>}
-          <span className="p-tag">@{p.tag}</span>
-          {/* Used to be a <div> with no focus — now a real button, so the
-              tiles are keyboard-operable. */}
+          {/* The tile body is its own button so the delete button can sit
+              beside it — a button inside a button is invalid HTML. */}
+          <button className="p-tile-open" onClick={() => onEdit(p)} aria-label={t.profile.editLabel(p.tag)}>
+            {p.img
+              ? <img src={p.img} alt="" loading="lazy" />
+              : <span className="p-no-image" aria-hidden="true">?</span>}
+            <span className="p-tag">@{p.tag}</span>
+          </button>
+
           <button
             className="p-remove"
             onClick={() => remove(p.id, p.tag)}
