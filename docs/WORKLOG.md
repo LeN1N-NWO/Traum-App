@@ -55,6 +55,17 @@ auf echte Attribute, nicht auf Text.
 erweitert, `scripts/test-static.mjs` entsprechend (jetzt 31 Prüfungen). Rot-Probe
 wiederholt: Test schlägt weiterhin fehl, wenn die Freigabe aufgeweicht wird.
 
+**Nachgereicht (12:30):** In der Auswahl „Symbols you connect with it" heben
+sich jetzt die Symbole ab, die tatsächlich in den eigenen Träumen vorkommen —
+mit Trefferzahl und einem Lichtpunkt, der einmal um den Rand läuft. Technisch
+ein rotierender Kegelverlauf, aus dem die Mitte per Maske ausgestanzt wird
+(`@property --chip-a` für den Winkel); kein zusätzliches Element, und der Ring
+bleibt beim Umbrechen rund. Ohne `@property`-Unterstützung steht der Ring
+still, die Hervorhebung bleibt sichtbar; bei `prefers-reduced-motion` ebenso.
+Die hervorgehobenen Chips stehen zudem vorn — unter zwanzig Chips findet man
+sie sonst nicht. Eine kurze Zeile über der Auswahl erklärt, was das Leuchten
+bedeutet.
+
 **Nachgereicht (12:05):** Der Weg zur Analyseseite führt nicht mehr über die
 anklickbare Überschrift, sondern über einen eigenen Knopf „✦ What does it
 mean?" unter der Kreaturen-Sammlung — auf Wunsch des Produktbesitzers.

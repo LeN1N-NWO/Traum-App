@@ -60,6 +60,7 @@
       </div>
       <div>
         <label>Symbols you connect with it</label>
+        <p class="chip-hint" id="chipHint"></p>
         <div class="chips" id="evChips"></div>
       </div>
       <div style="display:flex;gap:10px;margin-top:16px">
@@ -165,9 +166,21 @@ let editingId = null;             // null = neues Ereignis, sonst wird bearbeite
 let pickedSymbols = new Set();
 
 function renderChips(){
-  document.getElementById('evChips').innerHTML = SYMBOLS.map(s=>
-    `<button type="button" class="chip" data-chip="${s.id}" aria-pressed="${pickedSymbols.has(s.id)}">${s.emoji} ${escapeHtml(s.label)}</button>`
-  ).join('');
+  // Symbole, die tatsächlich in Träumen vorkommen, wandern nach vorn und
+  // bekommen den laufenden Leuchtrand — sonst sucht man sie unter zwanzig Chips.
+  const seen = id => (occurrences.get(id)||[]).length;
+  const sorted = SYMBOLS.slice().sort((a,b)=>seen(b.id)-seen(a.id));
+  document.getElementById('evChips').innerHTML = sorted.map(s=>{
+    const n = seen(s.id);
+    return `<button type="button" class="chip${n?' seen':''}" data-chip="${s.id}"
+      aria-pressed="${pickedSymbols.has(s.id)}"
+      aria-label="${escapeHtml(s.label)}${n?`, in ${n} of your dreams`:''}"
+      >${s.emoji} ${escapeHtml(s.label)}${n?` <span class="n">${n}</span>`:''}</button>`;
+  }).join('');
+  const anySeen = SYMBOLS.some(s=>seen(s.id));
+  document.getElementById('chipHint').textContent = anySeen
+    ? 'Glowing symbols are ones that already turn up in your dreams.'
+    : 'Once you have recorded dreams, the symbols found in them light up here.';
 }
 document.getElementById('evChips').addEventListener('click',e=>{
   const b = e.target.closest('[data-chip]'); if(!b)return;

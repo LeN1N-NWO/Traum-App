@@ -277,13 +277,38 @@
   .ev-form input:focus{outline:none;border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,92,246,.2)}
   .ev-form .f{flex:1;min-width:150px}
   .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+  .chip-hint{font-size:var(--t-micro);color:var(--faint);margin:0 0 9px;line-height:1.5}
   .chip{border:1px solid var(--panel-line);background:rgba(255,255,255,.04);color:var(--muted);
     font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;font-family:var(--sans);
-    transition:.15s}
+    transition:.15s;position:relative}
   .chip:hover{color:var(--text)}
   .chip[aria-pressed="true"]{background:rgba(139,92,246,.24);color:var(--text);
     box-shadow:inset 0 0 0 1px rgba(167,139,250,.5)}
   .chip:focus-visible{outline:2px solid var(--violet-soft);outline-offset:2px}
+  .chip .n{font-variant-numeric:tabular-nums}
+
+  /* Symbole, die in den eigenen Träumen wirklich vorkommen: heller Text plus
+     ein Lichtpunkt, der einmal um den Rand läuft. Der Ring entsteht aus einem
+     rotierenden Kegelverlauf, aus dem die Mitte per Maske ausgestanzt wird —
+     kein zusätzliches Element, kein Ruckeln beim Umbrechen. */
+  @property --chip-a { syntax:'<angle>'; initial-value:0deg; inherits:false }
+  @keyframes chiprun { to { --chip-a:360deg } }
+  .chip.seen{color:var(--text);border-color:transparent}
+  .chip.seen .n{color:var(--violet-soft);opacity:1;font-weight:600}
+  .chip.seen::before{
+    content:'';position:absolute;inset:-1px;border-radius:999px;padding:1px;pointer-events:none;
+    background:conic-gradient(from var(--chip-a),
+      rgba(167,139,250,.28) 0turn, rgba(167,139,250,.28) .58turn,
+      #fff .70turn, rgba(167,139,250,.28) .82turn, rgba(167,139,250,.28) 1turn);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    mask-composite:exclude;
+    animation:chiprun 4s linear infinite;
+  }
+  /* Ohne @property-Unterstützung bleibt der Ring stehen statt zu laufen —
+     sichtbar bleibt die Hervorhebung trotzdem. */
+  @media (prefers-reduced-motion:reduce){ .chip.seen::before{animation:none} }
   .btn{border:none;border-radius:14px;cursor:pointer;font-size:var(--t-body);font-weight:600;color:#fff;
     background:linear-gradient(160deg,var(--violet-soft),var(--violet) 45%,var(--violet-deep));
     padding:12px 20px;font-family:var(--sans);transition:.15s}
