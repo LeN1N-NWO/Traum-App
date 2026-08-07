@@ -15,15 +15,16 @@
   3. Lucid-Dreaming-Guide (Reality Checks, MILD, WBTB, Journaling-Tipp) als eigene Sektion.
   4. Eigene Referenzfotos — jetzt mit Kategorien Person/Pet/Place statt nur Gesichter.
   5. **Fehlt noch:** Bezahlmodell (Credits gegen Euro/Dollar, Video-Generierung
-     kostenpflichtig). Bewusst nicht Teil dieser Session — siehe unten.
+     kostenpflichtig).
   6. **Symbolsammlung (07.08.)**: `symbole.html` zeigt wiederkehrende Motive aus
      den Traumtexten (20 Symbole in fünf Kategorien) mit einer gängigen Lesart,
      und erlaubt, sie mit Lebensereignissen zu verknüpfen. Erreichbar über die
      Menagerie-Überschrift.
-- Stack: Bun + `server.js` als Higgsfield-Proxy, kein Login, kein Backend —
-  Zustand lebt in `localStorage` (ADR-0002). Seit 07.08. **zwei Seiten**
-  (`index.html`, `symbole.html`) mit geteiltem `app.css` und `app.js`
-  (ADR-0003); weiterhin kein Build-Schritt.
+- Stack: Bun + `server.js` als API-Proxy (aktuell Higgsfield, siehe
+  Provider-Wechsel unten), kein Login, kein Backend — Zustand lebt in
+  `localStorage` (ADR-0002). Seit 07.08. **zwei Seiten** (`index.html`,
+  `symbole.html`) mit geteiltem `app.css` und `app.js` (ADR-0003); weiterhin
+  kein Build-Schritt.
 - **Design überarbeitet (07.08.)**: Leitbild ist die Traumdeutungs-App *Moonly*
   (violette Nacht, warm) — das bestätigt Antons Farbwelt, statt sie zu
   ersetzen. Vom Journaling-Vorbild *pillowtalk* wurde nur die Struktur
@@ -31,6 +32,28 @@
   Konkret: wärmere Tokens, Typo-Skala als CSS-Variablen, Neon-Verläufe raus,
   ein Hauptknopf am Formularende statt nummerierter Blöcke, Menagerie
   zurückgenommen, Inhaltsbreite 680px (Handy-Format).
+
+## Provider-Wechsel geplant: Higgsfield → fal.ai
+
+- Entscheidung (07.08., Anton): Higgsfield wird komplett durch **fal.ai**
+  ersetzt — Bild, Video und eine neue LLM-Funktion sollen alle über fal.ai
+  laufen.
+- Ein fal.ai-Key liegt vor, ist aber **nur lokal in `.env`** (git-ignoriert,
+  nicht im Repo). `.env.example` dokumentiert `FAL_KEY` als Vorlage.
+- Die eigentliche Code-Anbindung in `server.js` (SDK-Wahl, Modell-Slugs,
+  LLM-Route) ist noch **nicht gemacht** — übernimmt eine Kollegin, sobald sie
+  sie braucht. Bis dahin läuft `server.js` unverändert auf Higgsfield weiter
+  (Code, Model-Slugs und Sicherheitsstand unten beziehen sich noch auf
+  Higgsfield).
+- Architekturvorgabe für die Anbindung, auch mit Blick auf die geplante
+  iPhone-App: der Key darf **nie in den Client** (weder `index.html` noch
+  später ein kompiliertes App-Bundle) — beides ist extrahierbar. Client ruft
+  ausschließlich den eigenen Server auf, der Server hält den Key gegenüber
+  fal.ai. Das gilt identisch für lokales Testen (Kollegin mit eigener lokaler
+  `.env`) und für Produktion.
+- Wer den echten Key braucht: bekommt ihn außerhalb des Repos (Passwort-
+  Manager/DM), nicht automatisch durch Repo-Zugriff — siehe AGENTS.md,
+  keine Secrets im Repository.
 
 ## Sicherheit — Stand der Schutzziele
 
@@ -55,8 +78,9 @@
   nur `server.js` ab.
 - **Offen — `/api/generate` hat keine Authentifizierung und kein Rate-Limit.**
   Nur an localhost binden. Öffentlich erreichbar könnte jeder das
-  Higgsfield-Guthaben verbrauchen. Löst sich erst mit dem Accounts-Backend
-  (siehe unten).
+  API-Guthaben (Higgsfield, künftig fal.ai) verbrauchen. Löst sich erst mit
+  dem Accounts-Backend (siehe unten) — wird verbindlich zu lösen, **bevor**
+  die geplante iPhone-App echte Nutzer auf einen gemeinsamen Server lässt.
 - **Prompt-Eingabe:** unsichtbare Zeichen (Zero-Width, Bidi-Overrides, Unicode-
   TAG-Block) werden aus dem Traumtext entfernt — relevant für *eingefügten*
   Text, der versteckte Anweisungen mitbringen kann. Freitext-Fragmente
@@ -69,15 +93,16 @@
   Traumtext ist der eigene Prompt des Nutzers, es gibt keine Rechtegrenze zu
   schützen, und eine Blockliste wäre umgehbar und fehlalarmanfällig.
 - **Offen — Datenschutz:** hochgeladene Referenzfotos (Gesichter, Haustiere,
-  Wohnorte) gehen an Higgsfield. Gesichtsbilder sind biometrische Daten und
-  damit besonders geschützt (DSGVO Art. 9). Vor einer Veröffentlichung braucht
-  es Datenschutzhinweis/Einwilligung und eine Klärung, wie lange Higgsfield die
-  Bilder speichert. Der UI-Hinweis benennt den Upload inzwischen ehrlich, das
-  ersetzt aber keine Datenschutzerklärung.
+  Wohnorte) gehen an den Generierungs-Provider. Gesichtsbilder sind
+  biometrische Daten und damit besonders geschützt (DSGVO Art. 9). Vor einer
+  Veröffentlichung braucht es Datenschutzhinweis/Einwilligung und eine
+  Klärung, wie lange der jeweilige Provider die Bilder speichert (gilt für
+  Higgsfield wie für fal.ai). Der UI-Hinweis benennt den Upload inzwischen
+  ehrlich, das ersetzt aber keine Datenschutzerklärung.
 - **Offen — Missbrauch der Generierung.** Das größere Risiko in diesem Umfeld
   ist nicht Prompt Injection, sondern was jemand absichtlich erzeugen lässt:
   Referenzfoto einer realen Person plus entsprechender Traumtext ergibt einen
-  Deepfake. Rechtlich (Persönlichkeitsrecht) und für den Higgsfield-Account
+  Deepfake. Rechtlich (Persönlichkeitsrecht) und für den Provider-Account
   (ToS) haftet der Betreiber. Es gibt aktuell keine Inhaltsprüfung, keine
   Bestätigung, dass abgebildete Personen eingewilligt haben, und kein Logging,
   wer was erzeugt hat. Vor einer Veröffentlichung zu entscheiden — braucht
@@ -85,6 +110,8 @@
 
 ## Bekannte Baustellen
 
+- **Fal.ai-Anbindung in `server.js` fehlt noch** (siehe Provider-Wechsel
+  oben) — `server.js` läuft aktuell komplett auf Higgsfield.
 - **Credits/Bezahlmodell fehlt komplett.** Braucht laut Diskussion mit dem
   Produktbesitzer eine echte, fälschungssichere Datenhaltung (client-seitiges
   `localStorage` reicht für echtes Geld nicht) — tentativ Supabase (Accounts,
@@ -98,7 +125,8 @@
 - `server.js`s `withStyleContext()` (Pet/Place-Referenzfotos fließen als Text
   statt als `image_references` in den Prompt) ist eine unverifizierte Annahme
   über die Higgsfield-API-Semantik — noch nicht gegen den echten Katalog/Docs
-  geprüft, gleiche Art Lücke wie die Model-Slugs unten.
+  geprüft, gleiche Art Lücke wie die Model-Slugs unten. Wird mit dem
+  fal.ai-Wechsel ohnehin neu zu bewerten sein.
 - Model-Slugs in `server.js` (`nano-banana-2/text-to-image`,
   `seedance-2/text-to-video`) sind weiterhin Annahmen aus der SDK-Doku, nicht
   am eigenen Higgsfield-Katalog verifiziert.
@@ -107,24 +135,24 @@
   gute, Deakins-gerahmte Frames fehlt noch die Anbindung an den Prompt-Aufbau,
   der andernorts als Skill existiert (10-Beat-Bogen, Shot-Ladder,
   Identity-Locks) — unverändert offen seit der letzten Session.
-- `.env` fehlt lokal noch — ohne sie liefert `/api/generate` einen klaren 503
-  und die App fällt auf Beispiel-Inhalte zurück. Live-Generierung im Repo
-  selbst weiterhin nicht verifiziert (in dieser Session: `bun` war in der
-  Arbeitsumgebung nicht verfügbar, verifiziert wurde daher nur der
-  no-backend-Demopfad über `python3 -m http.server`, keine Regressionen).
+- `.env` existiert in dieser Session lokal mit `FAL_KEY`, aber **ohne**
+  `HF_CREDENTIALS` — `/api/generate` liefert also weiterhin einen klaren 503
+  (Higgsfield-Key fehlt), bis entweder der Higgsfield-Key ergänzt oder die
+  fal.ai-Anbindung gebaut ist. Live-Generierung im Repo selbst weiterhin
+  nicht verifiziert.
 - **Sprachwiderspruch:** `AGENTS.md` schreibt Deutsch für die UI vor, die
-  gesamte App-Oberfläche (Antons Original plus die neuen Sektionen dieser
-  Session) ist Englisch. Ungelöst — entweder Regel anpassen oder UI später
-  übersetzen.
-- Kein Lint-Setup und keine Test-Suite für die UI. Automatisiert getestet sind
-  nur `scripts/test-static.mjs` (Datei-Freigabe) und
-  `scripts/test-prompt-sanitize.mjs` (Prompt-Hygiene) — beide betreffen
-  `server.js`. Das gesamte Design und alle DOM-Funktionen in `index.html` sind
-  ausschließlich manuell geprüft. Bei jetzt ~730 Zeilen zunehmend spürbar.
+  gesamte App-Oberfläche ist Englisch. Ungelöst — entweder Regel anpassen
+  oder UI später übersetzen.
+- Kein Lint-Setup und keine Test-Suite für die UI (`npm run lint` existiert
+  nicht). Automatisiert getestet sind nur `scripts/test-static.mjs`
+  (Datei-Freigabe) und `scripts/test-prompt-sanitize.mjs` (Prompt-Hygiene) —
+  beide betreffen `server.js`. Das gesamte Design und alle DOM-Funktionen in
+  `index.html` sind ausschließlich manuell geprüft. Bei jetzt ~730 Zeilen
+  zunehmend spürbar.
 - Responsives Verhalten ist nur rechnerisch verifiziert (Container verengt,
-  Überlauf gemessen), nicht auf einem echten Gerät. Die Fenster-Größenänderung
-  im Browser-Werkzeug hat in dieser Umgebung nicht gegriffen. Vor einer
-  Veröffentlichung an einem echten Telefon gegenprüfen.
+  Überlauf gemessen), nicht auf einem echten Gerät. Vor einer Veröffentlichung
+  an einem echten Telefon gegenprüfen — relevant auch für die geplante
+  iPhone-App.
 - **Barrierefreiheit teilweise offen.** Tagebuchkarten sind seit 07.08. per
   Tastatur bedienbar (Fokus, Enter/Space, sichtbarer Rahmen), die Cast-Kacheln
   aber nicht: deren Löschknopf ist weiterhin ein `<div>` ohne Fokus. Kontraste
@@ -136,7 +164,6 @@
   kein Aufräumen. Zusammen mit den base64-Referenzfotos ist das localStorage-
   Quota (~5 MB) das eigentliche Limit; `save()` meldet es jetzt wenigstens,
   statt still zu scheitern.
-
 - **Symbolerkennung nur auf Englisch.** Die Stichwortlisten in `app.js` sind
   rein englisch (bewusst entschieden). Deutsche Traumeinträge liefern keine
   Symbole. Erweiterbar ohne Umbau: deutsche Begriffe in `SYMBOLS` ergänzen.
@@ -146,15 +173,18 @@
 
 ## Nächste Schritte
 
-1. Higgsfield-Key besorgen, `.env` lokal anlegen, echte Generierung end-to-end
-   verifizieren (Model-Slugs UND die neue `withStyleContext()`-Annahme für
-   Pet/Place-Referenzen gegen den echten Katalog prüfen).
-2. Supabase-Projekt anlegen (Produktbesitzer) → ADR für Accounts/DB/Credits-
+1. fal.ai-Anbindung in `server.js` bauen (Kollegin) — SDK-Wahl, Modell-Slugs
+   für Bild/Video, neue Route für die LLM-Funktion. Danach end-to-end mit dem
+   vorliegenden `FAL_KEY` verifizieren.
+2. Vor jeder öffentlichen/iPhone-Nutzung: Auth + Rate-Limit für
+   `/api/generate`, sonst verbraucht jeder Zugriff das gemeinsame
+   fal.ai-Guthaben ohne Begrenzung.
+3. Supabase-Projekt anlegen (Produktbesitzer) → ADR für Accounts/DB/Credits-
    Ledger, ersetzt den "kein Backend"-Teil von ADR-0002.
-3. Darauf aufbauend: Credits-Kauf + Gating der Video-Generierung hinter
+4. Darauf aufbauend: Credits-Kauf + Gating der Video-Generierung hinter
    Guthaben.
-4. Apple-/Google-Developer-Accounts anlegen (Produktbesitzer) → ADR für
+5. Apple-/Google-Developer-Accounts anlegen (Produktbesitzer) → ADR für
    Capacitor-Wrapping + In-App-Käufe.
-5. Den Prompt-Aufbau (10-Beat-Traum-Bogen, Deakins-Shot-Ladder, Gesichts-Locks)
+6. Den Prompt-Aufbau (10-Beat-Traum-Bogen, Deakins-Shot-Ladder, Gesichts-Locks)
    in `server.js` einbauen, statt rohen Text durchzureichen.
-6. Sprachwiderspruch AGENTS.md vs. UI klären.
+7. Sprachwiderspruch AGENTS.md vs. UI klären.

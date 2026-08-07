@@ -3,6 +3,55 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 10:35 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** Session-Abschluss zum fal.ai-Key-Eintrag unten (Commit `7491dab`).
+Keine weiteren Code-/Doku-Änderungen, nur Klärung der Architektur im
+Gespräch — festgehalten, damit es nicht verloren geht.
+
+**Warum:** Frage war, ob der fal.ai-Key später in eine iPhone-App eingebaut
+werden kann, auf die Nutzer Zugriff haben.
+
+**Was der Nächste wissen muss:**
+- **Nein, der Key darf nie im Client-Bundle landen** (weder Web-JS noch
+  später ein kompiliertes iPhone-App-Bundle) — beides ist extrahierbar.
+  Nutzer bekommen Zugriff auf die *Funktion* (Generieren), nie auf den Key
+  selbst.
+- Architektur bleibt: Client → eigener Server (`server.js`) → fal.ai. Das
+  gilt identisch für lokales Testen und für die spätere iPhone-App (per
+  Capacitor, siehe „Bekannte Baustellen" in STAND.md) — der Server bleibt in
+  beiden Fällen der einzige Ort mit dem Key.
+- Zum Testen „wie die finale App": Kollegin trägt den Key in ihre eigene
+  lokale `.env` ein (bekommt ihn außerhalb des Repos von Anton), startet
+  `bun server.js` lokal, testet über den Browser/Simulator gegen ihren
+  eigenen lokalen Server — das ist bereits strukturell identisch zur
+  Produktion.
+- Dadurch wird der schon in STAND.md vermerkte offene Punkt „`/api/generate`
+  ohne Auth/Rate-Limit" für eine öffentliche iPhone-App verbindlich zu lösen,
+  bevor echte Nutzer draufzugreifen — sonst verbraucht jeder unbegrenzt das
+  fal.ai-Guthaben über den gemeinsamen Server.
+
+## 2026-08-07 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** fal.ai-API-Key als geplanten Ersatz für Higgsfield vorbereitet.
+`.env.example` um `FAL_KEY` ergänzt (Vorlage, kein echter Wert, sicher zu
+committen). Den echten Key **nicht** ins Repo gelegt — landet nur lokal in
+`.env` (git-ignoriert).
+
+**Warum:** Higgsfield soll komplett durch fal.ai ersetzt werden (Bild, Video,
+und neu: LLM-Funktion). Die eigentliche Anbindung in `server.js` macht eine
+Kollegin, wenn sie sie braucht.
+
+**Was der Nächste wissen muss:**
+- `.env` wird NIE über git geteilt (Absicht, siehe AGENTS.md). Wer den echten
+  fal.ai-Key braucht, bekommt ihn außerhalb des Repos (Passwort-Manager/DM),
+  nicht automatisch durch Repo-Zugriff.
+- `server.js` läuft weiterhin komplett auf Higgsfield (`@higgsfield/client`,
+  `HF_CREDENTIALS`, Model-Slugs `nano-banana-2/text-to-image` und
+  `seedance-2/text-to-video`) — daran wurde nichts geändert. Die
+  fal.ai-Umstellung (SDK-Wahl, Modell-Slugs, ggf. neue LLM-Route für
+  Traumtext) ist offen.
+- `docs/STAND.md` entsprechend aktualisiert.
 ## 2026-08-07 11:40 — Hanni — Branch `session/2026-08-07-hanni-symbole`
 
 **Was:** Neue Seite `symbole.html` — Sammlung wiederkehrender Traumsymbole mit
