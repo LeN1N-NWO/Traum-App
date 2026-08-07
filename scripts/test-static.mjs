@@ -32,19 +32,27 @@ const allowBlock = extract(/^const PUBLIC_FILES[\s\S]*?^const PUBLIC_DIRS.*$/m, 
 const fnSrc = extract(/export function resolveStatic\(pathname\) \{[\s\S]*?\n\}/, "resolveStatic()")
   .replace("export function", "function");
 
-const ROOT_ABS = REPO;
+// Die Web-Wurzel ist seit dem Vite-Umbau der Build, nicht das Repo. Damit
+// liegen .env, .git/, docs/ und der Servercode selbst ausserhalb dessen, was
+// überhaupt auflösbar ist — zweite Schranke zusätzlich zur Freigabeliste.
+const ROOT_ABS = join(REPO, "dist");
 const resolveStatic = new Function("resolve", "sep", "ROOT_ABS",
   `${typesLine}\n${allowBlock}\n${fnSrc}\nreturn resolveStatic;`)(resolve, sep, ROOT_ABS);
 
 // Was die App zum Laufen braucht — und sonst nichts.
-const MUST_SERVE = ["/", "/index.html", "/symbole.html", "/fotos.html", "/app.css", "/app.js",
-                    "/clips/dream.mp4", "/clips/frame.png"];
+// Die Asset-Namen tragen einen Build-Hash; geprüft wird die REGEL (/assets/
+// ist frei), nicht eine konkrete Datei. resolveStatic() prüft ohnehin keine
+// Existenz — das macht serveStatic().
+const MUST_SERVE = ["/", "/index.html", "/assets/index-abc123.js",
+                    "/assets/index-abc123.css", "/clips/dream.mp4",
+                    "/clips/frame.png"];
 
 // Alles hier drin würde ein Geheimnis, Quellcode oder Repo-Interna preisgeben.
 const MUST_BLOCK = [
   "/.env", "/.env.example", "/.git/config", "/.gitignore", "/.claude/settings.local.json",
   "/package.json", "/server.js", "/scripts/checkpoint.js", "/scripts/shared-files.json",
   "/docs/STAND.md", "/AGENTS.md", "/README.md", "/CLAUDE.md",
+  "/src/main.jsx", "/legacy/index.html", "/vite.config.js",
   "/../../etc/passwd", "/..%2f..%2fetc/passwd", "/%2e%2e/%2e%2e/etc/passwd",
   "/clips/../.env", "/clips/..%2f.env", "/clips/../../../etc/passwd",
   "/%00", "/foo", "/%ZZ", "/index.html.bak", "/INDEX.HTML",

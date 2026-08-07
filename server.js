@@ -31,7 +31,11 @@
 import { resolve, sep } from "node:path";
 
 const PORT = process.env.PORT || 8100;
-const ROOT = import.meta.dir;
+// Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
+// und der Servercode selbst ausserhalb dessen, was ueberhaupt aufloesbar ist —
+// eine zweite, unabhaengige Schranke zusaetzlich zur Freigabeliste unten.
+// Ohne vorherigen `vite build` gibt es kein dist/ und alles antwortet 404.
+const ROOT = resolve(import.meta.dir, "dist");
 
 // Reference photos are base64 dataURLs, so bodies are chunky — but not unbounded.
 const MAX_BODY = 12 * 1024 * 1024;
@@ -257,14 +261,11 @@ const ROOT_ABS = resolve(ROOT);
 // Deny by default. The app is exactly one page plus whatever lives in clips/ —
 // an extension allowlist alone was not enough (it still exposed package.json
 // and scripts/*.js). Adding a new public asset is a deliberate edit here.
-const PUBLIC_FILES = new Set([
-  "/index.html",
-  "/symbole.html",  // Symbolsammlung und Lebensereignisse
-  "/fotos.html",    // Foto-Bibliothek (benannte Referenzfotos)
-  "/app.css",       // gemeinsames Stylesheet beider Seiten
-  "/app.js",        // gemeinsame Speicherschicht + Symbolerkennung
-]);
-const PUBLIC_DIRS = ["/clips/"];
+// Der Build erzeugt genau eine Seite plus gehashte Assets; clips/ kommt
+// unveraendert aus public/. Ein neues oeffentliches Asset ist eine bewusste
+// Aenderung hier.
+const PUBLIC_FILES = new Set(["/index.html"]);
+const PUBLIC_DIRS = ["/assets/", "/clips/"];
 export function resolveStatic(pathname) {
   let rel;
   try { rel = decodeURIComponent(pathname); } catch { return null; } // malformed %-escape
