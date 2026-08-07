@@ -55,6 +55,15 @@ auf echte Attribute, nicht auf Text.
 erweitert, `scripts/test-static.mjs` entsprechend (jetzt 31 Prüfungen). Rot-Probe
 wiederholt: Test schlägt weiterhin fehl, wenn die Freigabe aufgeweicht wird.
 
+**Nachgereicht (12:05):** Der Weg zur Analyseseite führt nicht mehr über die
+anklickbare Überschrift, sondern über einen eigenen Knopf „✦ What does it
+mean?" unter der Kreaturen-Sammlung — auf Wunsch des Produktbesitzers.
+Bewusst als Geister-Knopf gestaltet: der Hauptknopf der Seite ist „Summon the
+dream", ein zweiter Verlaufsknopf hätte mit ihm konkurriert. Die dadurch
+verwaiste Klasse `.sec-link` wurde entfernt, ebenso `.sym-card.dim`, das nie
+zum Einsatz kam (Symbole ohne Vorkommen werden gar nicht erst gerendert).
+Automatische Prüfung über beide Seiten meldet keine ungenutzte Klasse mehr.
+
 **Was der Nächste wissen muss:**
 - **Stichwörter sind rein englisch** — bewusst so entschieden. Deutsche
   Traumeinträge liefern keine Symbole. Wer das ändert, ergänzt `SYMBOLS` in

@@ -247,7 +247,6 @@
     background:var(--panel);cursor:pointer;transition:.18s;position:relative}
   .sym-card:hover{border-color:rgba(167,139,250,.45)}
   .sym-card:focus-visible{outline:2px solid var(--violet-soft);outline-offset:3px}
-  .sym-card.dim{opacity:.4}
   .sym-card .e{font-size:28px;line-height:1.2}
   .sym-card .n{font-weight:500;font-size:var(--t-small);margin-top:7px}
   .sym-card .c{font-size:var(--t-micro);color:var(--faint);margin-top:4px}
@@ -307,8 +306,12 @@
   .ev-actions button:hover{color:var(--text)}
   .ev-actions button.del:hover{color:var(--pink)}
 
-  /* Verweis von der Menagerie auf die Symbolseite */
-  .sec-link{color:inherit;text-decoration:none;border-bottom:1px solid transparent;transition:.15s}
-  .sec-link:hover{color:var(--violet-soft);border-bottom-color:rgba(167,139,250,.5)}
-  .sec-link:focus-visible{outline:2px solid var(--violet-soft);outline-offset:4px;border-radius:4px}
-  .hint .sec-link{color:var(--violet-soft)}
+  /* Weg von der Menagerie zur Symbolseite. Bewusst als Geister-Knopf: der
+     Hauptknopf der Seite ist „Summon the dream", ein zweiter Verlaufsknopf
+     würde mit ihm konkurrieren. */
+  a.btn{display:inline-block;text-decoration:none;text-align:center}
+  .btn-meaning{margin-top:20px;width:100%;color:var(--violet-soft);
+    border-color:rgba(167,139,250,.32)}
+  .btn-meaning:hover{color:var(--text);border-color:rgba(167,139,250,.6);
+    background:rgba(139,92,246,.12)}
+  .btn:focus-visible{outline:2px solid var(--violet-soft);outline-offset:3px}
