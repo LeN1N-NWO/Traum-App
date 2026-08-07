@@ -20,4 +20,6 @@ CLAUDE.local.md
 Thumbs.db
 
 # App-spezifisch (Dream Rushes)
-clips/*.mp4
+# Demo-Medien liegen seit dem Vite-Umbau in public/clips/ und werden von
+# dort nach dist/clips/ kopiert.
+public/clips/*.mp4
