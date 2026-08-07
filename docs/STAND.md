@@ -3,7 +3,7 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-07 (16:30)
+**Stand:** 2026-08-07 (18:00)
 
 ## Woran wird gearbeitet
 
@@ -35,8 +35,12 @@ als schlüsselhaltender Proxy. **Mit Build-Schritt** (ADR-0004 löst ADR-0003 ab
 und ersetzt den Vanilla-Teil von ADR-0002). Zustand lebt weiter in
 `localStorage`, Schlüssel unverändert `dreamrushes_v1`.
 
-**Sprache:** Die Oberfläche ist jetzt durchgehend **deutsch**. Der lange offene
-Widerspruch zu AGENTS.md ist damit erledigt.
+**Sprache:** Die Oberfläche ist **englisch**; Deutsch ist als zweite Sprache
+geplant, nicht als Ersatz. Alle sichtbaren Texte liegen in `src/i18n/en.js`
+und nirgends sonst — die zweite Sprache ist damit eine neue Datei, kein Umbau.
+`AGENTS.md` unterschied früher nicht zwischen Oberfläche (englisch) und
+Doku/Commits (deutsch) und war deshalb missverständlich; die Regel ist jetzt
+präzisiert.
 
 ## Starten
 
@@ -142,7 +146,9 @@ Widerspruch zu AGENTS.md ist damit erledigt.
 - **Symbolerkennung nur auf Englisch.** Die Stichwortlisten in
   `src/lib/symbols.js` sind rein englisch (bewusst entschieden) — nur die
   Kategorienamen sind deutsch. Deutsche Traumeinträge liefern keine Symbole.
-  Erweiterbar ohne Umbau: deutsche Begriffe in `SYMBOLS` ergänzen.
+  Erweiterbar ohne Umbau: deutsche Begriffe in `SYMBOLS` ergänzen. **Wird
+  spätestens mit der deutschen Oberfläche fällig** — sonst liefert ein deutsch
+  geschriebener Traum gar keine Symbole.
 - Symbolerkennung ist Stichwortabgleich, kein Sprachverständnis. „I was *not*
   afraid" zählt als *Fear*. Für mehr bräuchte es ein Sprachmodell.
 - Tagebuch wächst unbegrenzt und wird komplett gerendert — keine Pagination.

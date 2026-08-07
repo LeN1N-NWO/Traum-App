@@ -51,9 +51,12 @@ server.js (Bun)  ── FAL_KEY, DEEPSEEK_KEY ──▶  fal.ai / DeepSeek
   `API_BASE` konfigurierbar (nicht hart `localhost`), und keine Annahme, dass
   Client und Server dieselbe Herkunft haben.
 
-**Sprache:** Die Oberfläche wird beim Umbau auf **Deutsch** gezogen. Damit ist
-der in `STAND.md` seit Wochen offene Sprachwiderspruch (AGENTS.md verlangt
-Deutsch, UI war Englisch) miterledigt statt weitergeschleppt.
+**Sprache:** Die Oberfläche ist **Englisch**. Deutsch ist als *zweite*
+Sprache geplant, nicht als Ersatz — die App soll mehrsprachig werden. Alle
+sichtbaren Texte liegen deshalb in `src/i18n/en.js` und nirgends sonst; die
+zweite Sprache ist damit eine neue Datei, kein Umbau. (Die frühere Fassung
+dieser Spec behauptete das Gegenteil und stützte sich auf eine missverständliche
+Regel in `AGENTS.md` — die ist inzwischen präzisiert.)
 
 ### Verzeichnisstruktur
 
@@ -115,7 +118,12 @@ steht.
 
 ### Schritt 1 — Traum erzählen
 
-Textfeld plus Spracheingabe (wie heute). Darunter:
+Textfeld plus Spracheingabe. Die läuft über die Web Speech API
+(`src/lib/useVoiceInput.js`) und blendet sich aus, wo der Browser sie nicht
+kennt. **Auf dem iPhone ist das Mikrofon der System-Tastatur der Hauptweg** —
+Diktat funktioniert dort in jedem Textfeld, ohne Code und ohne Berechtigungs-
+Dialog von uns. Ein eigener In-App-Mikrofonknopf für die native App wäre ein
+Capacitor-Plugin, kein Eigenbau. Darunter:
 
 > **✨ AI verbessern** · 1 Credit
 
@@ -141,13 +149,27 @@ Drei Karten, jede mit Preis:
 | Karte | Preis |
 |---|---|
 | 💾 Nur speichern | kostenlos |
-| 📸 Bilderstrecke erzeugen | 3 Credits |
-| 🎬 Film — erzeugt zuerst die Bilder | 10 Credits (3 Bilder + 7 Film) |
+| 📸 Bilderstrecke erzeugen | ab 2 Credits |
+| 🎬 Film — erzeugt zuerst die Bilder | ab 9 Credits |
 
 Beim Film steht ausdrücklich „erzeugt zuerst die Bilder", weil genau das
 technisch passiert: `minimax/h3` ist image-to-video und braucht ein Standbild.
 Der Preis ist die Summe, nicht versteckt. „Nur speichern" beendet den Wizard
 sofort und legt den Eintrag ins Tagebuch.
+
+**Bildanzahl.** Wer „Bilderstrecke" wählt, bekommt direkt darunter drei
+Stufen — die Zahl bestimmt, in wie viele Beats der Traum zerlegt wird:
+
+| Bilder | Aufteilung | Credits |
+|---|---|---|
+| 3 | Anfang · Mitte · Ende | 2 |
+| 5 | Anfang · Aufbau · Wendepunkt · Höhepunkt · Ausklang | 3 |
+| 10 | voller Traumbogen | 5 |
+
+Die Aufteilung ist **lokale Logik**, kein zusätzlicher LLM-Aufruf: Die Analyse
+(Abschnitt 4) liefert bereits eine Beat-Liste; `promptBuilder.js` fasst sie auf
+die gewählte Anzahl zusammen oder teilt sie auf. Für den Film wird immer nur
+das erste Bild erzeugt und animiert — dort entfällt die Auswahl.
 
 ### Schritt 3 — Wer kommt vor?
 
@@ -198,6 +220,38 @@ Orte brauchen kein neues Datenfeld: `state.cast` kennt bereits
 Bilder zum Durchwischen, „Ins Tagebuch speichern", optional „Film daraus
 machen" (nutzt das erste Bild als Ausgangsbild, ohne neu zu generieren).
 
+**Während der Generierung ist eine sichtbare Rückmeldung Pflicht**, nicht
+Zierde: Bild- und erst recht Filmgenerierung dauern zehn Sekunden bis über eine
+Minute. Ohne Anzeige wirkt die App eingefroren und der Mensch tippt erneut.
+Also: Spinner plus wechselnde Texte („Developing your rushes…", „Editing the
+fog…", „Colour-grading your subconscious…", „Almost lucid…") und ein
+deaktivierter Knopf. Bei mehreren Bildern zusätzlich der Fortschritt („3 von 5").
+
+### Nachträglich bearbeiten (Tagebuch)
+
+Ein gespeicherter Traum ist nicht eingefroren. Das Detail-Modal im Tagebuch
+bietet neben „Löschen":
+
+- **Bearbeiten** — Textfeld direkt im Modal, kostenlos, kein LLM. Wer nachts
+  hastig tippt, will morgens etwas richtigstellen.
+- **✨ Korrigieren** · 1 Credit — nur Rechtschreibung, Grammatik, Zeichensetzung.
+  Ändert kein Wort der Aussage.
+- **✨ Neu schreiben** · 1 Credit — derselbe Traum, bildhafter und flüssiger
+  formuliert. Das ist der Umfang von „AI verbessern" aus Schritt 1.
+- **✨ Ausarbeiten** · 2 Credits — arbeitet die Erzählung aus: sinnliche
+  Details, klarerer Spannungsbogen. **Darf nichts erfinden, was nicht im Text
+  angelegt ist**, und die Reihenfolge der Ereignisse nicht verändern. Die drei
+  Stufen unterscheiden sich ausschließlich im System-Prompt.
+
+Für alle drei LLM-Stufen gilt dieselbe Regel wie in Schritt 1: **Vorschau mit
+„Übernehmen" oder „Verwerfen", und der zuletzt bestätigte Text bleibt als
+`originalText` erhalten.** Nichts überschreibt den eigenen Traum unumkehrbar.
+Wer mehrfach ausarbeitet, überschreibt jeweils nur die aktuelle Fassung — die
+ursprüngliche Niederschrift bleibt.
+
+Alle drei laufen über dieselbe Route `/api/refine` mit einem `mode`-Parameter
+(`correct` | `rewrite` | `elaborate`), nicht über drei Endpunkte.
+
 ---
 
 ## 4 · Prompt-Baukasten und Token-Sparsamkeit
@@ -214,10 +268,18 @@ Löst „AI verbessern" aus und liefert alles auf einmal:
   "text": "…verbesserter Traumtext…",
   "personen": ["Anton", "eine fremde Frau"],
   "orte": ["mein Schlafzimmer", "über dem Meer"],
+  "beats": ["Ich liege wach im Zimmer", "Die Wand öffnet sich", "Flug über das Meer",
+            "Die Leuchttürme blinken", "Aufwachen im Fallen"],
   "style": "traumhaft",
   "stimmung": "friedlich"
 }
 ```
+
+`beats` ist die Zerlegung des Traums in Szenen — genau **fünf**, immer. Daraus
+bedient `promptBuilder.js` alle drei Bildanzahlen ohne weiteren LLM-Aufruf:
+3 Bilder fassen zusammen (1 · 3 · 5), 5 nehmen sie unverändert, 10 teilen jeden
+Beat in zwei Momente. Das ist der Kern der Token-Sparsamkeit: **die
+Bildanzahl kostet keinen einzigen zusätzlichen Aufruf.**
 
 Der Server verlangt JSON-Ausgabe, validiert die Struktur streng und wirft
 alles weg, was nicht passt. Ein zweiter LLM-Aufruf, um „den Style zu
@@ -269,7 +331,7 @@ Schema-Bruch wäre hier Datenverlust bei echten Nutzern.
 |---|---|
 | `cast[]` | neu optional: `sheet` (Character-Sheet-URL). `category` deckt Personen, Tiere und Orte bereits ab. |
 | `credits` | neu, Vorgabe `0` |
-| `journal[]` | neu optional: `originalText`, `improvedText`, `style`, `format`, `cost` |
+| `journal[]` | neu optional: `originalText` (die erste Niederschrift, wird nie überschrieben), `style`, `format`, `imageCount`, `cost`, `editedAt` |
 
 `load()` in `lib/storage.js` behält die vorhandene Migrationslogik und
 ergänzt die neuen Felder nach demselben Muster.
@@ -287,10 +349,12 @@ Anfang gesetzt (frei änderbar, sobald echte API-Kosten bekannt sind):
 
 | Aktion | Credits |
 |---|---|
-| AI verbessern | 1 |
+| AI verbessern (Schritt 1) | 1 |
+| Korrigieren / Neu schreiben (Tagebuch) | 1 |
+| Ausarbeiten (Tagebuch) | 2 |
 | Character-Sheet erzeugen | 2 |
-| Bilderstrecke | 3 |
-| Film (inkl. Bilder) | 10 |
+| Bilderstrecke 3 · 5 · 10 | 2 · 3 · 5 |
+| Film (inkl. erstem Bild) | 9 |
 
 Das ist bewusst eine Attrappe. Der Zweck ist, den Ablauf jetzt ehrlich
 aussehen zu lassen und alle Preisstellen im Code an einer Konstante zu haben. Wenn Supabase kommt, wird der lokale Zähler durch
@@ -321,7 +385,7 @@ Damit das spätere Redesign kein zweiter Umbau wird:
 
 **Phase 1 — Gerüst.** Vite+React aufsetzen, Tab-Navigation, Splash, Tokens,
 Basiskomponenten. Tagebuch, Symbole und Foto-Bibliothek 1:1 portieren,
-Oberfläche auf Deutsch. `server.js` liefert `dist/`, `scripts/test-static.mjs`
+Oberfläche englisch. `server.js` liefert `dist/`, `scripts/test-static.mjs`
 entsprechend umstellen. Danach ist die App funktional wie heute, aber in der
 neuen Struktur.
 
@@ -347,7 +411,10 @@ Umbau ist der Anlass, das zu ändern:
   wenn eine Person auf „KI entscheidet frei" steht und damit **kein** Bild
   beisteuert? Genau hier entstehen falsche Gesichter.
 - **`/api/analyze`** wird gegen fehlerhafte LLM-Antworten getestet: kein JSON,
-  zu viele Personen, Tags mit Sonderzeichen, leerer Text. Ohne echten
-  Netzaufruf, mit festen Antwort-Attrappen.
+  zu viele Personen, Tags mit Sonderzeichen, leerer Text, fehlende oder zu
+  viele `beats`. Ohne echten Netzaufruf, mit festen Antwort-Attrappen.
+- **Beat-Aufteilung** (5 Beats → 3, 5 oder 10 Bilder) ist reine Arithmetik und
+  wird direkt getestet — inklusive der Fälle, in denen die Analyse weniger als
+  fünf Beats liefert.
 - `scripts/test-static.mjs` wird auf `dist/` umgestellt und muss weiterhin
   beweisen, dass `.env` nicht ausgeliefert wird.
