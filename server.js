@@ -133,7 +133,12 @@ const ROOT_ABS = resolve(ROOT);
 // Deny by default. The app is exactly one page plus whatever lives in clips/ —
 // an extension allowlist alone was not enough (it still exposed package.json
 // and scripts/*.js). Adding a new public asset is a deliberate edit here.
-const PUBLIC_FILES = new Set(["/index.html"]);
+const PUBLIC_FILES = new Set([
+  "/index.html",
+  "/symbole.html",  // Symbolsammlung und Lebensereignisse
+  "/app.css",       // gemeinsames Stylesheet beider Seiten
+  "/app.js",        // gemeinsame Speicherschicht + Symbolerkennung
+]);
 const PUBLIC_DIRS = ["/clips/"];
 export function resolveStatic(pathname) {
   let rel;

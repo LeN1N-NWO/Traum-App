@@ -37,7 +37,8 @@ const resolveStatic = new Function("resolve", "sep", "ROOT_ABS",
   `${typesLine}\n${allowBlock}\n${fnSrc}\nreturn resolveStatic;`)(resolve, sep, ROOT_ABS);
 
 // Was die App zum Laufen braucht — und sonst nichts.
-const MUST_SERVE = ["/", "/index.html", "/clips/dream.mp4", "/clips/frame.png"];
+const MUST_SERVE = ["/", "/index.html", "/symbole.html", "/app.css", "/app.js",
+                    "/clips/dream.mp4", "/clips/frame.png"];
 
 // Alles hier drin würde ein Geheimnis, Quellcode oder Repo-Interna preisgeben.
 const MUST_BLOCK = [
