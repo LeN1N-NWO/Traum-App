@@ -16,9 +16,15 @@
   4. Eigene Referenzfotos — jetzt mit Kategorien Person/Pet/Place statt nur Gesichter.
   5. **Fehlt noch:** Bezahlmodell (Credits gegen Euro/Dollar, Video-Generierung
      kostenpflichtig).
-- Stack unverändert: Bun + eine `index.html` (vanilla JS) + `server.js` als
-  API-Proxy, kein Login, kein Backend — Zustand lebt in `localStorage`
-  (ADR-0002). Das trägt die App bis einschließlich Punkt 4 oben.
+  6. **Symbolsammlung (07.08.)**: `symbole.html` zeigt wiederkehrende Motive aus
+     den Traumtexten (20 Symbole in fünf Kategorien) mit einer gängigen Lesart,
+     und erlaubt, sie mit Lebensereignissen zu verknüpfen. Erreichbar über die
+     Menagerie-Überschrift.
+- Stack: Bun + `server.js` als API-Proxy (aktuell Higgsfield, siehe
+  Provider-Wechsel unten), kein Login, kein Backend — Zustand lebt in
+  `localStorage` (ADR-0002). Seit 07.08. **zwei Seiten** (`index.html`,
+  `symbole.html`) mit geteiltem `app.css` und `app.js` (ADR-0003); weiterhin
+  kein Build-Schritt.
 - **Design überarbeitet (07.08.)**: Leitbild ist die Traumdeutungs-App *Moonly*
   (violette Nacht, warm) — das bestätigt Antons Farbwelt, statt sie zu
   ersetzen. Vom Journaling-Vorbild *pillowtalk* wurde nur die Struktur
@@ -51,12 +57,12 @@
 
 ## Sicherheit — Stand der Schutzziele
 
-- **Vertraulichkeit:** `server.js` liefert nur noch `/index.html` und `/clips/*`
-  aus (deny-by-default in `resolveStatic()`). Vorher war das gesamte
-  App-Verzeichnis abrufbar, inklusive `.env` mit dem Higgsfield-Key. Abgesichert
-  durch `scripts/test-static.mjs` (28 Prüfungen, `node scripts/test-static.mjs`).
-  Wer ein neues öffentliches Asset braucht: `PUBLIC_FILES`/`PUBLIC_DIRS` in
-  `server.js` erweitern, sonst 404.
+- **Vertraulichkeit:** `server.js` liefert nur `/index.html`, `/symbole.html`,
+  `/app.css`, `/app.js` und `/clips/*` aus (deny-by-default in
+  `resolveStatic()`). Vorher war das gesamte App-Verzeichnis abrufbar,
+  inklusive `.env` mit dem Higgsfield-Key. Abgesichert durch
+  `scripts/test-static.mjs` (31 Prüfungen). Wer ein neues öffentliches Asset
+  braucht: `PUBLIC_FILES`/`PUBLIC_DIRS` in `server.js` erweitern, sonst 404.
 - **Integrität:** Alle Fremddaten (API-URLs, Traumtexte, Titel) werden vor dem
   Einsetzen ins DOM escaped. Ohne das wurde eine bösartige API-Antwort durch
   das Tagebuch dauerhaft gespeichert und bei jedem Seitenaufruf erneut
@@ -158,6 +164,12 @@
   kein Aufräumen. Zusammen mit den base64-Referenzfotos ist das localStorage-
   Quota (~5 MB) das eigentliche Limit; `save()` meldet es jetzt wenigstens,
   statt still zu scheitern.
+- **Symbolerkennung nur auf Englisch.** Die Stichwortlisten in `app.js` sind
+  rein englisch (bewusst entschieden). Deutsche Traumeinträge liefern keine
+  Symbole. Erweiterbar ohne Umbau: deutsche Begriffe in `SYMBOLS` ergänzen.
+- Symbolerkennung ist Stichwortabgleich, kein Sprachverständnis. „I was *not*
+  afraid" zählt als *Fear*; Umschreibungen ohne die Stichwörter werden nicht
+  erkannt. Für mehr bräuchte es ein Sprachmodell — also das Backend.
 
 ## Nächste Schritte
 

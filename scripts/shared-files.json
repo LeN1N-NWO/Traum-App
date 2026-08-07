@@ -1,5 +1,5 @@
 {
-  "_hinweis": "Geteilte Dateien, bei denen parallele Arbeit fast sicher kollidiert. index.html und server.js sind seit der Session 2026-08-06-hanni empirisch bestätigt: die einzigen zwei Code-Dateien im Projekt, jedes Feature fasst beide an.",
+  "_hinweis": "Geteilte Dateien, bei denen parallele Arbeit fast sicher kollidiert. index.html und server.js sind seit der Session 2026-08-06-hanni empirisch bestätigt. Seit 2026-08-07 kommen app.css und app.js dazu: beide Seiten laden sie, also fasst sie praktisch jedes Feature an — app.js enthält zudem die Speicherschicht, ein Konflikt dort beschädigt Nutzerdaten.",
   "dateien": [
     "package.json",
     "package-lock.json",
@@ -8,6 +8,9 @@
     ".gitattributes",
     ".claude/settings.json",
     "index.html",
+    "symbole.html",
+    "app.css",
+    "app.js",
     "server.js"
   ]
 }
