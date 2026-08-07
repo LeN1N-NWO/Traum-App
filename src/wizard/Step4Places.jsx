@@ -5,7 +5,7 @@ export default function Step4Places(props) {
   return (
     <CastStep
       {...props}
-      kind="place"
+      kinds={["place"]}
       title={t.wizard.step4.title}
       lede={t.wizard.step4.lede}
       emptyText={t.wizard.step4.empty}

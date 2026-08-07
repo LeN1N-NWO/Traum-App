@@ -5,6 +5,7 @@ import { bumpStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
 import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
+import MediaCarousel from "../components/MediaCarousel.jsx";
 import "./wizard.css";
 
 export default function Step6Result({ w }) {
@@ -50,11 +51,7 @@ export default function Step6Result({ w }) {
       {urls.length === 0 ? (
         <p className="wiz-empty">{t.wizard.step6.nothing}</p>
       ) : (
-        <div className={"wiz-result" + (w.format === "16:9" ? " wiz-result-wide" : "")}>
-          {isFilm
-            ? <video src={urls[0]} controls playsInline autoPlay loop />
-            : urls.map((u, i) => <img key={i} src={u} alt="" loading="lazy" />)}
-        </div>
+        <MediaCarousel urls={urls} type={isFilm ? "video" : "image"} />
       )}
 
       <Button onClick={save}>{t.wizard.step6.save}</Button>

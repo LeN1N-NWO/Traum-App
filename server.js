@@ -239,25 +239,40 @@ const ANALYSIS_STYLES = ["dreamlike", "romantic", "dark", "surreal", "nostalgic"
 const MAX_ANALYSIS_ITEMS = 8;   // people or places; more is noise, not signal
 const ANALYSIS_BEATS = 5;       // fixed: 3/5/10 images are all derived from these
 
+// The master prompt. Its JSON schema is the CONTRACT between the model and
+// the app: every field below is a marker the app reads by name, so the shape
+// is fixed and normaliseAnalysis() enforces it. The language split is the
+// core design decision — fields the person SEES stay in the language they
+// wrote in; fields that feed the image model are always English, because
+// that is what image models understand best.
 const ANALYSIS_SYSTEM = `You read a dream someone just wrote down and return STRICT JSON. No prose, no markdown, no code fences — the response must parse as JSON directly.
 
-Schema:
+Schema (every key is required, exactly these names):
 {
-  "text": string,          // the dream, cleaned up
-  "people": string[],      // everyone appearing, as named or described in the dream
-  "places": string[],      // every distinct location, in the order they appear
-  "beats": string[],       // EXACTLY 5 short scene descriptions, in order
+  "language": string,      // BCP-47 code of the language the dream is written in, e.g. "de", "en", "tr"
+  "text": string,          // the dream, cleaned up — in the SAME LANGUAGE as the input
+  "people": [              // every person AND animal appearing in the dream, in order
+    {
+      "name": string,      // the name if the dream gives one ("Anton", "Rex"), else a short description in the dream's language ("eine fremde Frau")
+      "kind": string,      // "person" or "pet" — an animal is "pet"
+      "desc": string       // short VISUAL description if the dream provides one, else ""
+    }
+  ],
+  "places": string[],      // every distinct location, in order, in the dream's language
+  "beats": string[],       // EXACTLY 5 short scene descriptions, in order — ALWAYS IN ENGLISH
   "style": string,         // one of: dreamlike, romantic, dark, surreal, nostalgic, adventurous
-  "mood": string           // one or two words
+  "mood": string           // one or two words, in the dream's language
 }
 
-Rules for "text": fix spelling, grammar and punctuation; make the wording more vivid and easier to picture. NEVER invent events, people or places that are not there. NEVER change what happened or reorder it. NEVER change the emotional tone. Keep it first person if it was first person. Keep the same language the dream was written in.
+Why the language split matters: "text", "people[].name", "places" and "mood" are SHOWN to the person and must stay in the language they wrote in — a German dream gets a German improved text. "beats" are rendering instructions for an image model and must be English regardless of the dream's language.
 
-Rules for "people": use the name if the dream gives one ("Anton"), otherwise a short description ("a stranger in a red coat"). Include the dreamer only if they appear as a visible character. Empty array if nobody appears.
+Rules for "text": fix spelling, grammar and punctuation; make the wording more vivid and easier to picture. NEVER invent events, people or places that are not there. NEVER change what happened or reorder it. NEVER change the emotional tone. Keep it first person if it was first person.
+
+Rules for "people": include the dreamer only if they appear as a visible character (then name them as the dream does — "ich"/"I" is fine). A dog, cat or other animal is kind "pet". Empty array if nobody appears.
 
 Rules for "places": one entry per distinct location. A dream that moves from a bedroom to the sky over the sea has TWO places. Empty array if there is no discernible location.
 
-Rules for "beats": exactly 5, always, even for a short dream — split it evenly. Each beat is one sentence describing what is SEEN, not felt.`;
+Rules for "beats": exactly 5, always, even for a short dream — split it evenly. Each beat is one English sentence describing what is SEEN, not felt. Refer to people by their "name" so the app can bind reference images.`;
 
 /** One DeepSeek call → the structured shape the wizard runs on. */
 async function analyzeDream(dream) {
@@ -312,6 +327,22 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
       .filter(Boolean)
       .slice(0, MAX_ANALYSIS_ITEMS);
 
+  // People are structured ({name, kind, desc}) so the app can tell pets from
+  // humans and pre-fill descriptions. Bare strings are tolerated — an older
+  // or sloppier model answer degrades to kind "person" instead of failing.
+  const people = (Array.isArray(parsed.people) ? parsed.people : [])
+    .map((p) => {
+      if (typeof p === "string") return { name: sanitizeFragment(p, MAX_FRAGMENT), kind: "person", desc: "" };
+      if (!p || typeof p !== "object") return null;
+      return {
+        name: sanitizeFragment(p.name, MAX_FRAGMENT),
+        kind: p.kind === "pet" ? "pet" : "person",
+        desc: sanitizeFragment(p.desc || "", MAX_FRAGMENT),
+      };
+    })
+    .filter((p) => p && p.name)
+    .slice(0, MAX_ANALYSIS_ITEMS);
+
   // Beats drive the image count, so their number is pinned, not trusted.
   // Too few: pad by repeating the last one rather than failing the whole
   // analysis over a formatting slip. Too many: take the first five.
@@ -322,8 +353,11 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
   const style = ANALYSIS_STYLES.includes(parsed.style) ? parsed.style : "dreamlike";
 
   return {
+    // Kept so the app can one day pick its UI language from it; validated so
+    // a hallucinated value cannot smuggle arbitrary text into the client.
+    language: /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$/.test(parsed.language) ? parsed.language : "",
     text,
-    people: list(parsed.people),
+    people,
     places: list(parsed.places),
     beats,
     style,

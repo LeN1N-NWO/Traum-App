@@ -1,0 +1,31 @@
+.mc { position: relative; margin-bottom: var(--s-4); }
+.mc-single { width: 100%; border-radius: var(--radius); display: block; }
+
+.mc-track {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+  border-radius: var(--radius);
+  scrollbar-width: none;             /* the dots are the scroll indicator */
+}
+.mc-track::-webkit-scrollbar { display: none; }
+.mc-track img {
+  flex: 0 0 100%; width: 100%; object-fit: contain;
+  scroll-snap-align: center; scroll-snap-stop: always;
+}
+
+.mc-count {
+  position: absolute; top: var(--s-2); right: var(--s-2);
+  padding: 3px 10px; border-radius: 999px;
+  background: rgba(11, 7, 24, .72); color: var(--text);
+  font-size: var(--t-micro); font-family: var(--sans);
+}
+
+.mc-dots {
+  display: flex; justify-content: center; gap: var(--s-2);
+  padding: var(--s-3) 0 0;
+}
+.mc-dot {
+  width: 8px; height: 8px; border-radius: 50%; cursor: pointer;
+  border: none; padding: 0; background: var(--panel-line);
+}
+.mc-dot-on { background: var(--violet-soft); }
+.mc-dot:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }

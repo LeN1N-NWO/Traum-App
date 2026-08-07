@@ -3,6 +3,37 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 21:30 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** Drei Nachbesserungen aus Antons Test des Wizards.
+
+1. **Analyse-Schema als echter Vertrag.** `ANALYSIS_SYSTEM` in `server.js`
+   legt jetzt fest: Felder, die der Mensch sieht (`text`, `people[].name`,
+   `places`, `mood`), bleiben in der Sprache des Traums — ein deutscher
+   Traum bekommt eine deutsche verbesserte Fassung. `beats` sind immer
+   englisch (Bildmodell-Anweisungen). `people` sind strukturiert
+   (`{name, kind, desc}`), damit die App Tiere von Menschen unterscheidet;
+   `desc` füllt den Avatar-Anlege-Dialog vor. Neues validiertes Feld
+   `language` (BCP-47). `normaliseAnalysis()` toleriert weiterhin nackte
+   Strings — der lokale Ohne-LLM-Pfad liefert solche.
+2. **Bildanzahl von Schritt 2 nach Schritt 5 verschoben.** Erst Charaktere
+   und Orte festlegen, dann Anzahl wählen, dann generieren — vorher stand
+   die Anzahl vor einer Entscheidung, die man noch gar nicht beurteilen kann.
+3. **Ergebnis als Slideshow.** `MediaCarousel` (CSS scroll-snap, Punkte,
+   Zähler „2 / 3") ersetzt den Bilderstapel — im Wizard-Ergebnis UND im
+   Tagebuch-Detail. Bewusst ohne Carousel-Bibliothek: natives Touch-
+   Verhalten gratis, funktioniert im Capacitor-WebView identisch.
+
+**Live geprüft:** Deutscher Traum („alter Bahnhof, Katze Luna, Anton,
+Wald aus Lichtern") → `language: "de"`, deutscher verbesserter Text mit
+korrigierten Umlauten, Luna als `pet` erkannt, Orte deutsch, fünf englische
+Beats, `mood: "verträumt"`. Slideshow im Tagebuch slidet, Zähler folgt.
+
+**Was der Nächste wissen muss:** Wer am Schema etwas ändert, ändert BEIDE
+Seiten — `ANALYSIS_SYSTEM` (was das Modell liefern soll) und
+`normaliseAnalysis()` (was die App akzeptiert). Die zweite ist die
+verbindliche.
+
 ## 2026-08-07 20:30 — Anton — Branch `claude/new-session-x9qv1w`
 
 **Was:** Phase 2 gebaut — der Wizard und das Tagebuch-Menü. Damit ist alles

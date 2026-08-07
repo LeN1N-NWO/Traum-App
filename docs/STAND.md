@@ -3,7 +3,7 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-07 (20:30)
+**Stand:** 2026-08-07 (21:30)
 
 ## Woran wird gearbeitet
 
@@ -47,20 +47,28 @@ präzisiert.
 Der ⊕-Knopf öffnet einen Vollbild-Flow über der Tab-Leiste:
 
 1. **Traum schreiben oder sprechen.** „Improve with AI" (1 Credit) löst den
-   **einzigen LLM-Aufruf pro Traum** aus (`/api/analyze`): geglätteter Text,
-   Personen, Orte, fünf Beats und ein Style-Vorschlag, alles als striktes
-   JSON. Vorschau mit „Keep my words" oder „Use this version"; die erste
-   Niederschrift bleibt immer als `originalText`. Überspringbar — dann greift
-   eine lokale Erkennung ohne Kosten.
-2. **Was daraus werden soll:** nur speichern (gratis), Fotostrecke (3, 5 oder
-   10 Bilder, 2/3/5 Credits) oder Film (9 Credits).
+   **einzigen LLM-Aufruf pro Traum** aus (`/api/analyze`). Das JSON-Schema
+   ist der Vertrag zwischen Modell und App, mit harter **Sprachtrennung**:
+   `text`, `people[].name`, `places`, `mood` bleiben in der Eingabesprache
+   (deutscher Traum → deutsche verbesserte Fassung), `beats` sind immer
+   englisch, weil sie ans Bildmodell gehen. `people` sind strukturiert
+   (`{name, kind, desc}`) — die App unterscheidet damit Tiere (`pet`) von
+   Menschen, und eine mitgelieferte Beschreibung füllt den Anlege-Dialog
+   vor. `language` kommt als validierter BCP-47-Code mit (später nützlich
+   für die UI-Sprache). Vorschau mit „Keep my words" oder „Use this
+   version"; die erste Niederschrift bleibt immer als `originalText`.
+2. **Was daraus werden soll:** nur speichern (gratis), Fotostrecke (ab 2
+   Credits) oder Film (9 Credits). Die Bildanzahl wird hier noch NICHT
+   gewählt — erst nachdem die Charaktere feststehen.
 3. **„Who is in it?"** — eine Kachel je erkannter Person. Vorhandene Avatare
    werden automatisch zugeordnet (Tag-Vergleich; „I"/„me" trifft `@me`).
    Sonst: aus der Bibliothek wählen, neu anlegen (Foto und/oder Beschreibung,
    Name vorausgefüllt) oder der KI überlassen.
 4. **Dasselbe für Orte.** Ein Traum, der irgendwohin fliegt, hat zwei.
-5. **Style und Format**, Style aus der Analyse vorausgewählt, 9:16 Standard.
-6. **Ergebnis**, dann ins Tagebuch.
+5. **Style, Format und Bildanzahl** (3/5/10 · 2/3/5 Credits), Style aus der
+   Analyse vorausgewählt, 9:16 Standard.
+6. **Ergebnis als Slideshow** (`MediaCarousel`: scroll-snap, Punkte, Zähler
+   — auch im Tagebuch-Detail), dann ins Tagebuch.
 
 **Nach Schritt 1 fällt kein weiterer LLM-Aufruf an.** `beats.js` leitet die
 Bildanzahl lokal aus den fünf Beats ab, `styles.js` sind Konstanten,

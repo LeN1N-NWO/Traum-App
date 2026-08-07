@@ -15,10 +15,10 @@ function cleanTag(raw) {
    analysis found has no avatar yet. `suggestedName` pre-fills the field with
    the name from the dream; `onCreated` hands the new avatar straight back so
    the wizard can bind it to that character. */
-export default function AvatarDialog({ category, suggestedName = "", onCreated, onClose }) {
+export default function AvatarDialog({ category, suggestedName = "", suggestedDesc = "", onCreated, onClose }) {
   const { state, update, toast } = useAppState();
   const [tag, setTag] = useState(cleanTag(suggestedName));
-  const [desc, setDesc] = useState("");
+  const [desc, setDesc] = useState(suggestedDesc);
   const [image, setImage] = useState("");
 
   function readFile(e) {

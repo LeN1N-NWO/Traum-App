@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { PRICES, IMAGE_COUNTS, priceForImages } from "../lib/pricing.js";
+import { PRICES } from "../lib/pricing.js";
 import { useAppState } from "../state/AppState.jsx";
 import { genId } from "../lib/storage.js";
 import { bumpStreak } from "../lib/streak.js";
@@ -70,25 +70,11 @@ export default function Step2Output({ w, patch, seedAssignments }) {
           <span className="wiz-choice-title">{t.wizard.step2.images}</span>
           <span className="wiz-choice-hint">{t.wizard.step2.imagesHint}</span>
         </span>
-        <span className="wiz-price">{t.wizard.from} {priceForImages(w.imageCount)}</span>
+        {/* The count (3/5/10) is chosen in step 5, after the characters are
+            settled — deciding it here would front-load a detail the person
+            cannot judge yet. Show the entry price only. */}
+        <span className="wiz-price">{t.wizard.from} {PRICES.images[3]}</span>
       </Card>
-
-      {/* The count sits under the images card because it only applies there —
-          film always renders a single still and animates it. */}
-      <div className="wiz-counts" role="group" aria-label={t.wizard.step2.countLabel}>
-        {IMAGE_COUNTS.map((n) => (
-          <button
-            key={n}
-            className={"wiz-count" + (w.imageCount === n ? " wiz-count-on" : "")}
-            onClick={() => patch({ imageCount: n })}
-            aria-pressed={w.imageCount === n}
-          >
-            <span className="wiz-count-n">{n}</span>
-            <span className="wiz-count-label">{t.wizard.step2.countNames[n]}</span>
-            <span className="wiz-count-price">{PRICES.images[n]} {t.wizard.credits}</span>
-          </button>
-        ))}
-      </div>
 
       <Card as="button" className="wiz-choice" onClick={() => choose("film")}>
         <span className="wiz-choice-emoji" aria-hidden="true">🎬</span>

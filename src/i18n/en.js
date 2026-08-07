@@ -211,8 +211,6 @@ export default {
       imagesHint: "Stills of your dream, in order",
       film: "A film",
       filmHint: "Renders a still first, then brings it to life",
-      countLabel: "How many images",
-      countNames: { 3: "Beginning, middle, end", 5: "The whole arc", 10: "Every turn" },
       saved: "Dream saved",
     },
 
@@ -245,6 +243,8 @@ export default {
 
     step5: {
       title: "How should it look?",
+      countLabel: "How many images",
+      countNames: { 3: "Beginning, middle, end", 5: "The whole arc", 10: "Every turn" },
       styleLabel: "Style",
       formatLabel: "Format",
       portrait: "Phone, stories",

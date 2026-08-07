@@ -7,6 +7,7 @@ import { PRICES } from "../../lib/pricing.js";
 import { shareDream, downloadAll, canShareFiles } from "../../lib/share.js";
 import { t } from "../../i18n/index.js";
 import EntryMenu from "./EntryMenu.jsx";
+import MediaCarousel from "../../components/MediaCarousel.jsx";
 import "./journal.css";
 
 export default function JournalDetail({ entry, onClose }) {
@@ -113,11 +114,7 @@ export default function JournalDetail({ entry, onClose }) {
         <h2 className="j-modal-title">{entry.title || t.journal.untitled}</h2>
 
         {urls.length > 0 && (
-          <div className="j-media">
-            {entry.media.type === "video"
-              ? <video src={urls[0]} controls playsInline />
-              : urls.map((u, i) => <img key={i} src={u} alt="" loading="lazy" />)}
-          </div>
+          <MediaCarousel urls={urls} type={entry.media.type} />
         )}
 
         {busy && <p className="j-working">{t.journal.working}</p>}

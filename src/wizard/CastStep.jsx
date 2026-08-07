@@ -1,29 +1,31 @@
 import { useState } from "react";
 import { useAppState } from "../state/AppState.jsx";
-import { assignmentsOfKind } from "./useWizard.js";
+import { assignmentsOfKinds } from "./useWizard.js";
 import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
 import AvatarDialog from "../components/AvatarDialog.jsx";
 import "./wizard.css";
 
-/* Shared by "who's in it" (people/pets) and "where is it" (places): the
-   mechanics are identical, only the wording and the category differ. */
+/* Shared by "who's in it" (people AND pets — the analysis tells them apart)
+   and "where is it" (places): the mechanics are identical, only the wording
+   and the kinds differ. */
 export default function CastStep({
   w, patch, assign, dropAssignment,
-  kind, title, lede, emptyText, nextStep,
+  kinds, title, lede, emptyText, nextStep,
 }) {
   const { state } = useAppState();
   const [pickerFor, setPickerFor] = useState(null);   // name awaiting a library choice
   const [createFor, setCreateFor] = useState(null);   // name awaiting a new avatar
 
-  const items = assignmentsOfKind(w.assignments, kind);
+  const items = assignmentsOfKinds(w.assignments, kinds);
+  const isPlaces = kinds.includes("place");
   const library = (state.cast || []).filter((c) =>
-    kind === "place" ? c.category === "place" : c.category !== "place"
+    isPlaces ? c.category === "place" : c.category !== "place"
   );
 
   /** A freshly created avatar binds to the character that triggered the dialog. */
   function onCreated(avatar) {
-    if (createFor) assign(createFor, { avatar, free: false });
+    if (createFor) assign(createFor.name, { avatar, free: false });
     setCreateFor(null);
   }
 
@@ -41,7 +43,7 @@ export default function CastStep({
               <div className="wiz-person-face">
                 {a.avatar?.img
                   ? <img src={a.avatar.img} alt="" />
-                  : <span aria-hidden="true">{a.free ? "✨" : "?"}</span>}
+                  : <span aria-hidden="true">{a.free ? "✨" : a.kind === "pet" ? "🐾" : "?"}</span>}
               </div>
 
               <div className="wiz-person-body">
@@ -52,10 +54,10 @@ export default function CastStep({
               </div>
 
               <div className="wiz-person-actions">
-                <button className="wiz-mini" onClick={() => setPickerFor(a.name)}>
+                <button className="wiz-mini" onClick={() => setPickerFor(a)}>
                   {a.avatar ? t.wizard.cast.change : t.wizard.cast.choose}
                 </button>
-                <button className="wiz-mini" onClick={() => setCreateFor(a.name)}>
+                <button className="wiz-mini" onClick={() => setCreateFor(a)}>
                   {t.wizard.cast.createNew}
                 </button>
                 <button
@@ -84,17 +86,18 @@ export default function CastStep({
       {pickerFor && (
         <LibraryPicker
           library={library}
-          onPick={(avatar) => { assign(pickerFor, { avatar, free: false }); setPickerFor(null); }}
+          onPick={(avatar) => { assign(pickerFor.name, { avatar, free: false }); setPickerFor(null); }}
           onCreate={() => { setCreateFor(pickerFor); setPickerFor(null); }}
           onClose={() => setPickerFor(null)}
-          name={pickerFor}
+          name={pickerFor.name}
         />
       )}
 
       {createFor && (
         <AvatarDialog
-          category={kind === "place" ? "place" : "person"}
-          suggestedName={createFor}
+          category={createFor.kind === "pet" ? "pet" : isPlaces ? "place" : "person"}
+          suggestedName={createFor.name}
+          suggestedDesc={createFor.hint || ""}
           onCreated={onCreated}
           onClose={() => setCreateFor(null)}
         />

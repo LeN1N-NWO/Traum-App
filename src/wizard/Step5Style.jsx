@@ -4,7 +4,7 @@ import { beatsForCount } from "../lib/beats.js";
 import { buildReferences, buildImagePrompt } from "../lib/promptBuilder.js";
 import { generate } from "../lib/api.js";
 import { mapWithLimit } from "../lib/parallel.js";
-import { priceForImages, PRICES } from "../lib/pricing.js";
+import { priceForImages, PRICES, IMAGE_COUNTS } from "../lib/pricing.js";
 import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
@@ -116,6 +116,26 @@ export default function Step5Style({ w, patch }) {
           </button>
         ))}
       </div>
+
+      {!isFilm && (
+        <>
+          <h2 className="wiz-sub">{t.wizard.step5.countLabel}</h2>
+          <div className="wiz-counts" role="group" aria-label={t.wizard.step5.countLabel}>
+            {IMAGE_COUNTS.map((n) => (
+              <button
+                key={n}
+                className={"wiz-count" + (w.imageCount === n ? " wiz-count-on" : "")}
+                onClick={() => patch({ imageCount: n })}
+                aria-pressed={w.imageCount === n}
+              >
+                <span className="wiz-count-n">{n}</span>
+                <span className="wiz-count-label">{t.wizard.step5.countNames[n]}</span>
+                <span className="wiz-count-price">{PRICES.images[n]} {t.wizard.credits}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="wiz-summary">
         <p>{isFilm ? t.wizard.step5.summaryFilm : t.wizard.step5.summaryImages(count)}</p>

@@ -47,12 +47,20 @@ export function useWizard() {
   const patch = useCallback((p) => setW((prev) => ({ ...prev, ...p })), []);
   const reset = useCallback(() => setW(EMPTY), []);
 
-  /** Seed the character/place tiles from an analysis, auto-matching what we can. */
+  /** Seed the character/place tiles from an analysis, auto-matching what we can.
+   *  `people` entries are objects ({name, kind, desc}) since the analysis got
+   *  structured; bare strings still work — the local no-LLM fallback sends
+   *  those. The desc travels along as `hint` so creating a new avatar can
+   *  pre-fill it. */
   const seedAssignments = useCallback((analysis) => {
-    const build = (names, kind) =>
-      (names || []).reduce((acc, name) => {
+    const build = (items, fallbackKind) =>
+      (items || []).reduce((acc, item) => {
+        const name = typeof item === "string" ? item : item?.name;
+        if (!name) return acc;
+        const kind = typeof item === "object" && item?.kind === "pet" ? "pet" : fallbackKind;
+        const hint = (typeof item === "object" && item?.desc) || "";
         const avatar = autoMatch(name, state.cast, state.me);
-        acc[name] = { name, kind, ...(avatar ? { avatar } : {}) };
+        acc[name] = { name, kind, hint, ...(avatar ? { avatar } : {}) };
         return acc;
       }, {});
     setW((prev) => ({
@@ -79,7 +87,7 @@ export function useWizard() {
   return { w, patch, reset, seedAssignments, assign, dropAssignment };
 }
 
-/** The assignments for one kind, in the order the analysis produced them. */
-export function assignmentsOfKind(assignments, kind) {
-  return Object.values(assignments).filter((a) => a.kind === kind);
+/** The assignments for a set of kinds, in the order the analysis produced them. */
+export function assignmentsOfKinds(assignments, kinds) {
+  return Object.values(assignments).filter((a) => kinds.includes(a.kind));
 }
