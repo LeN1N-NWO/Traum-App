@@ -484,7 +484,7 @@ function renderCast(){
 }
 document.getElementById('cast').addEventListener('click',e=>{
   const rm=e.target.closest('[data-rm]');
-  if(rm){const id=rm.dataset.rm;if(id==='me')state.me=null;else state.cast.splice(+id,1);save(state);renderCast();return;}
+  if(rm){const id=rm.dataset.rm;if(id==='me')state.me=null;else state.cast.splice(+id,1);save(state);renderCast();window.repaintDreamTags?.();return;}
   const cat=e.target.closest('[data-cat]');
   if(cat){pickTarget={mode:'add',category:cat.dataset.cat};document.getElementById('facePick').click();return;}
   const f=e.target.closest('[data-pick]');if(!f)return;
@@ -510,7 +510,7 @@ document.getElementById('facePick').addEventListener('change',e=>{
       toast(`✦ @${tag} linked`);
     }
     else {state.cast[+pickTarget]={...state.cast[+pickTarget],img};}
-    save(state);renderCast();
+    save(state);renderCast();window.repaintDreamTags?.();
   };
   r.readAsDataURL(file);e.target.value="";
 });
@@ -554,6 +554,8 @@ function restoreControls(){
     return t.filter(Boolean);
   }
 
+  let lastBarKey = null;   // welche Fotos zeigt die Leiste gerade?
+
   function paint(){
     const text = ta.value;
     const spans = findTagSpans(text, knownTags());
@@ -567,19 +569,28 @@ function restoreControls(){
     // Abschliessender Umbruch, sonst schneidet der Spiegel die letzte Zeile ab.
     mirror.innerHTML = html + '\n';
 
-    // Leiste: welche Fotos gehen mit?
+    // Leiste NUR neu aufbauen, wenn sich die Auswahl geändert hat. Sonst
+    // dekodiert der Browser bei jedem Tastendruck alle base64-Fotos neu —
+    // gemessen ~11 ms pro Anschlag bei handygroßen Bildern, also sichtbares
+    // Ruckeln beim Tippen.
     const used = taggedPhotosIn(text);
+    const key = used.map(p=>p.tag).join('|');
+    if(key === lastBarKey) return;
+    lastBarKey = key;
     bar.innerHTML = used.length
       ? `<span class="lbl">Sent with this dream:</span>` + used.map(p=>
           `<span class="t"><img src="${escapeHtml(p.img)}" alt="">${escapeHtml(p.tag)}</span>`).join('')
       : '';
   }
+  // Nach Änderungen an der Bibliothek muss die Leiste zwingend neu — der
+  // Zwischenspeicher oben würde sonst ein gelöschtes Foto weiter anzeigen.
+  function repaint(){ lastBarKey = null; paint(); }
 
   ta.addEventListener('input', paint);
   ta.addEventListener('scroll', ()=>{ mirror.scrollTop = ta.scrollTop; });
-  window.addEventListener('pageshow', paint);   // zurück aus der Bibliothek
-  paint();
-  window.repaintDreamTags = paint;              // nach Cast-Änderungen aufrufbar
+  window.addEventListener('pageshow', repaint);  // zurück aus der Bibliothek
+  repaint();
+  window.repaintDreamTags = repaint;             // nach Cast-Änderungen aufrufbar
 })();
 
 refreshStreak();renderMenagerie();renderJournal();renderCast();restoreControls();

@@ -152,8 +152,17 @@ document.getElementById('addForm').addEventListener('submit',e=>{
     if(save(state)) toast('✦ Photo updated');
   }else{
     if(!pendingImg){ toast('⚠ Choose a photo first.'); return; }
-    state.cast.push({id:genId('c'),tag,category:pickedCat,desc,img:pendingImg});
-    if(save(state)) toast(`✦ "${tag}" added — write it in a dream to use it`);
+    const entry = {id:genId('c'),tag,category:pickedCat,desc,img:pendingImg};
+    state.cast.push(entry);
+    if(save(state)){
+      toast(`✦ "${tag}" added — write it in a dream to use it`);
+    }else{
+      // Speicher voll: sonst stünde das Foto in der Liste, wäre aber beim
+      // nächsten Laden weg. Lieber gar nicht erst anzeigen.
+      state.cast = state.cast.filter(p => p !== entry);
+      renderLibrary();
+      return;
+    }
   }
   resetForm(); renderLibrary();
 });
