@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { analyze } from "../lib/api.js";
 import { useVoiceInput } from "../lib/useVoiceInput.js";
 import { PRICES } from "../lib/pricing.js";
@@ -6,6 +6,7 @@ import { spend } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
+import TagTextarea from "../components/TagTextarea.jsx";
 import "./wizard.css";
 
 export default function Step1Dream({ w, patch, seedAssignments }) {
@@ -15,6 +16,14 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
   const voice = useVoiceInput({ onText: (text) => patch({ text }) });
 
   const clean = w.text.trim();
+
+  // Every avatar counts, with or without a photo: since an entry may carry
+  // just a description, "has an image" is no longer what makes it usable.
+  const knownTags = useMemo(() => {
+    const tags = (state.cast || []).map((p) => p.tag).filter(Boolean);
+    if (state.me) tags.push("me");
+    return tags;
+  }, [state.cast, state.me]);
 
   /** The single LLM call. Its result drives every later step. */
   async function runAnalysis() {
@@ -85,9 +94,12 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
         )}
       </div>
 
-      <textarea
+      {/* Names from the profile light up as they are typed, so it is visible
+          which avatars this dream will pull in — before the wizard asks. */}
+      <TagTextarea
         className="wiz-textarea"
         value={w.text}
+        tags={knownTags}
         onChange={(e) => patch({ text: e.target.value })}
         placeholder={t.dream.placeholder}
         rows={9}

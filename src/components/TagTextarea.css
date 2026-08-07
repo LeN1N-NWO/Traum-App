@@ -1,0 +1,52 @@
+/* Mirror layer behind the textarea — see TagTextarea.jsx for why. */
+.tt-wrap { position: relative; }
+
+.tt-mirror {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  white-space: pre-wrap; word-wrap: break-word;
+  color: transparent;               /* only there to place the marks */
+}
+
+/* Sits on top and keeps caret, selection and resizing. Transparent so the
+   marks on the layer below show through behind the real text. */
+.tt-input { position: relative; z-index: 1; background: transparent; }
+
+/* Padding WITHOUT moving any text: on an inline box vertical padding paints
+   without affecting line height, and the horizontal padding is cancelled out
+   by an equal negative margin. Otherwise the layer would drift against the
+   text in the field. */
+.tt-mirror mark {
+  position: relative;
+  background: rgba(139, 92, 246, .26);
+  color: transparent;
+  border-radius: 9px;
+  padding: 4px 7px;
+  margin: 0 -7px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* A point of light travelling once around the rim: a rotating conic gradient
+   with its middle punched out by a mask. No extra element, and the ring stays
+   round when a mark wraps. */
+@property --tag-a { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes tag-run { to { --tag-a: 360deg; } }
+
+.tt-mirror mark::before {
+  content: ""; position: absolute; inset: 0; border-radius: 9px; padding: 1px;
+  pointer-events: none;
+  background: conic-gradient(from var(--tag-a),
+    rgba(167, 139, 250, .32) 0turn, rgba(167, 139, 250, .32) .58turn,
+    #fff .70turn, rgba(167, 139, 250, .32) .82turn, rgba(167, 139, 250, .32) 1turn);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: tag-run 4s linear infinite;
+}
+
+/* Without @property support the ring simply stands still — the highlight
+   stays visible either way. Same when reduced motion is asked for. */
+@media (prefers-reduced-motion: reduce) {
+  .tt-mirror mark::before { animation: none; }
+}
