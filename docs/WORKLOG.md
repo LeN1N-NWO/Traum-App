@@ -3,6 +3,67 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-08 10:15 — Anton — Branch `main` — Sitzungsabschluss
+
+**Commits:** `96cca16` (Avatare bearbeitbar, Ohne-KI-Weg raus). Zustand:
+Build grün, 50 Unit-Tests, 33 Freigabe-Prüfungen, Prompt-Hygiene grün.
+`npm run lint` existiert weiterhin nicht. Kein Worktree, kein eigener PR.
+
+**⚠ KOLLISION — bitte lesen, bevor jemand weitermacht.**
+
+Hanni hat am 07.08. um 17:55 den Entwurfs-PR #8
+(`session/2026-08-07-hanni-profile`) als **Reservierung** geöffnet, für genau
+dieses Feature: „Profil-Bereich für Personen, Haustiere und Orte — anlegen,
+**bearbeiten**, Beschreibung und Foto ändern, löschen" plus Tag-Hervorhebung
+im Traum-Eingabefeld. Auslöser war derselbe Fund wie bei uns: ein
+Cast-Eintrag `anton` mit Beschreibung, aber `img: ""`.
+
+Ich habe das Bearbeiten heute Vormittag gebaut und direkt auf `main`
+gepusht, ohne die Reservierung zu beachten. `gh pr list` beim Sitzungsstart
+zeigte nichts — warum, kann ich nicht mehr rekonstruieren; der PR bestand
+seit dem Vorabend. Das ist genau der Fall, den AGENTS.md mit dem
+Entwurfs-PR verhindern will („Müssen zwei ans selbe Feature: nacheinander,
+nicht parallel").
+
+**Lage, damit niemand unnötig aufräumt:** Hannis Branch enthält **nur den
+Reservierungs-Commit** (`c08ea34`), keine Codeänderung — es geht also nichts
+von ihrer Arbeit verloren. Überschneidung ist nur die Hälfte „anlegen /
+bearbeiten / löschen"; die **Tag-Hervorhebung im Eingabefeld ist NICHT
+gebaut** und bleibt offen.
+
+**Nächster Schritt (menschlich, nicht technisch):** Hanni Bescheid geben,
+dass das Bearbeiten auf `main` liegt, damit sie rebasen und sich auf die
+Hervorhebung konzentrieren kann. Ihr PR bleibt unberührt — das ist ihre
+Entscheidung, nicht unsere.
+
+**Lehre:** Beim Sitzungsstart reicht ein stiller `gh pr list` nicht. Wenn die
+Ausgabe leer ist, ist das ein Grund nachzuhaken, kein Freibrief — besonders
+bevor man an einem Bereich arbeitet, der in `scripts/shared-files.json` steht
+oder offensichtlich jemanden interessieren könnte.
+
+## 2026-08-08 09:30 — Anton — Branch `main`
+
+**Was:** Avatare im Profil sind jetzt bearbeitbar, und der Wizard hat keinen
+Ohne-KI-Weg mehr.
+
+- **Bearbeiten:** Antippen einer Kachel unter Personen/Tiere/Orte öffnet
+  denselben `AvatarDialog`, jetzt mit `existing`-Prop — Name, Foto und
+  Beschreibung änderbar, Foto auch entfernbar. Bisher konnte man nur anlegen
+  und löschen. Die Kachel besteht dafür aus zwei Geschwister-Knöpfen
+  (Inhalt + Löschen); ein Knopf im Knopf wäre ungültiges HTML.
+- **Umbenennen zieht das Tagebuch mit.** Einträge speichern verwendete
+  Referenzen als Tag-String. Ohne Nachziehen zeigten alte Träume nach einer
+  Umbenennung auf einen Namen, den es nicht mehr gibt. Live geprüft:
+  `@anton` → `@tony` änderte die Journal-Referenz mit, ID blieb stabil.
+- **„Continue without it" entfernt** (Antons Ansage). Der Weg ergab keinen
+  Sinn mehr: alle folgenden Schritte leben von der Analyse. Der lokale
+  Fallback-Zweig in `Step2Output` war damit toter Code und ist raus.
+
+**Was der Nächste wissen muss:** `DEEPSEEK_KEY` ist damit **faktisch
+Pflicht**, nicht mehr optional wie in älteren Einträgen beschrieben — ohne
+Analyse kommt niemand über Schritt 1 hinaus. Wer das nicht will, braucht
+einen bewussten Ersatzweg (z. B. „nur speichern" direkt vom Startscreen).
+
 ## 2026-08-07 23:00 — Anton — Branch `claude/new-session-x9qv1w` — Sitzungsabschluss
 
 **Commits dieser Sitzung** (die inhaltlichen Einträge darunter, 14:20 bis

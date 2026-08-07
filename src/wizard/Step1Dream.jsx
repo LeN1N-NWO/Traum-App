@@ -47,14 +47,6 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
     setPreview(null);
   }
 
-  // Skipping the paid step still needs people and places, so it falls back to
-  // a local guess: no LLM, no cost, just the avatars already in the library
-  // whose name appears in the text.
-  function skip() {
-    if (clean.length < 8) return toast(t.wizard.tooShort);
-    patch({ originalText: w.originalText || clean, analysis: null, step: 2 });
-  }
-
   if (preview) {
     return (
       <section className="wiz-body">
@@ -114,11 +106,13 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
         </button>
       )}
 
+      {/* No skip: every later step runs on what this call returns — the
+          characters, the places, the beats. Continuing without it would mean
+          a wizard with nothing to show. */}
       <div className="wiz-actions wiz-actions-stack">
         <Button onClick={runAnalysis} disabled={busy}>
           {busy ? t.wizard.step1.reading : `✨ ${t.wizard.step1.improve} · ${PRICES.improve} ${t.wizard.credit}`}
         </Button>
-        <Button variant="ghost" onClick={skip} disabled={busy}>{t.wizard.step1.skip}</Button>
       </div>
 
       <p className="wiz-hint">{t.wizard.step1.why}</p>

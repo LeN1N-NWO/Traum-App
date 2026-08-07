@@ -11,7 +11,7 @@ import "./profile.css";
 export default function ProfileScreen() {
   const { state } = useAppState();
   const [dialogFor, setDialogFor] = useState(null);   // "person" | "pet" | "place" | null
-  const [editing, setEditing] = useState(null);       // ein vorhandener Eintrag
+  const [editing, setEditing] = useState(null);       // an existing cast entry
 
   return (
     <main className="screen">
@@ -27,13 +27,13 @@ export default function ProfileScreen() {
       </Card>
 
       <h2 className="p-section">{t.profile.people}</h2>
-      <AvatarList category="person" onNew={() => setDialogFor("person")} onOpen={setEditing} />
+      <AvatarList category="person" onNew={() => setDialogFor("person")} onEdit={setEditing} />
 
       <h2 className="p-section">{t.profile.pets}</h2>
-      <AvatarList category="pet" onNew={() => setDialogFor("pet")} onOpen={setEditing} />
+      <AvatarList category="pet" onNew={() => setDialogFor("pet")} onEdit={setEditing} />
 
       <h2 className="p-section">{t.profile.places}</h2>
-      <AvatarList category="place" onNew={() => setDialogFor("place")} onOpen={setEditing} />
+      <AvatarList category="place" onNew={() => setDialogFor("place")} onEdit={setEditing} />
 
       <h2 className="p-section">{t.profile.guide}</h2>
       <LucidGuide />
@@ -43,9 +43,11 @@ export default function ProfileScreen() {
       )}
 
       {editing && (
-        /* key: ohne ihn behielte der Dialog beim Wechsel zwischen zwei
-           Einträgen die Feldinhalte des vorigen. */
-        <AvatarDialog key={editing.id} avatar={editing} onClose={() => setEditing(null)} />
+        <AvatarDialog
+          category={editing.category}
+          existing={editing}
+          onClose={() => setEditing(null)}
+        />
       )}
     </main>
   );
