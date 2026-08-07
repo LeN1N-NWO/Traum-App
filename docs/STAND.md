@@ -33,24 +33,45 @@
   ein Hauptknopf am Formularende statt nummerierter Blöcke, Menagerie
   zurückgenommen, Inhaltsbreite 680px (Handy-Format).
 
-## Provider-Wechsel geplant: Higgsfield → fal.ai
+## Provider-Wechsel Higgsfield → fal.ai — Bildgenerierung erledigt
 
-- Entscheidung (07.08., Anton): Higgsfield wird komplett durch **fal.ai**
-  ersetzt — Bild, Video und eine neue LLM-Funktion sollen alle über fal.ai
-  laufen.
-- Ein fal.ai-Key liegt vor, ist aber **nur lokal in `.env`** (git-ignoriert,
-  nicht im Repo). `.env.example` dokumentiert `FAL_KEY` als Vorlage.
-- Die eigentliche Code-Anbindung in `server.js` (SDK-Wahl, Modell-Slugs,
-  LLM-Route) ist noch **nicht gemacht** — übernimmt eine Kollegin, sobald sie
-  sie braucht. Bis dahin läuft `server.js` unverändert auf Higgsfield weiter
-  (Code, Model-Slugs und Sicherheitsstand unten beziehen sich noch auf
-  Higgsfield).
-- Architekturvorgabe für die Anbindung, auch mit Blick auf die geplante
-  iPhone-App: der Key darf **nie in den Client** (weder `index.html` noch
-  später ein kompiliertes App-Bundle) — beides ist extrahierbar. Client ruft
+- **Bild:** `server.js` ruft für Bilder jetzt fal.ai (`falGenerateImage()`,
+  Modell-Slug `fal-ai/nano-banana-2` via `FAL_MODEL_IMAGE` überschreibbar)
+  statt Higgsfield. **Modell-Slug und Response-Shape (`data.images[].url`)
+  sind unverifiziert** — analog zu den bisherigen Higgsfield-Slug-Annahmen,
+  siehe „Bekannte Baustellen".
+- **Video:** läuft weiterhin über Higgsfield/Seedance
+  (`higgsfieldGenerateVideo()`) — Nano Banana ist bildbasiert, kein
+  Video-Ersatz. Ein LLM-Anwendungsfall über fal.ai ist weiterhin nicht gebaut.
+- **Namentliche Referenzbilder (07.08., Anton):** Die App hat bereits ein
+  `@tag`-System für Personen/Haustiere/Orte (`state.cast` in `index.html`).
+  Neu: `tryBackend()` schickt nur noch die Cast-Einträge mit, deren `@tag`
+  wörtlich im Traumtext vorkommt (`mentionsTag()`, Wortgrenzen-Regex,
+  case-insensitive) — `@me` bleibt immer dabei. Der Server baut daraus einen
+  Nano-Banana-Prompt (`buildNanoBananaPrompt()` in `server.js`), der jedes
+  Referenzbild explizit an seinen Namen bindet: „Reference image N shows
+  @tag — depict them with this exact likeness whenever 'tag' appears."
+  Damit werden — anders als beim alten Higgsfield-Pfad — auch Haustier-/
+  Ortsfotos als echte Bild-Referenzen statt nur als Text-Klausel mitgeschickt.
+- **Nicht end-to-end verifiziert:** Der reale fal.ai-Aufruf konnte in dieser
+  Session nicht getestet werden — die Netzwerk-Policy der Sandbox blockt
+  `fal.run` (`403 request rejected: host not permitted`, bestätigt über den
+  Proxy-Status, keine Umgehung versucht). Verifiziert wurde stattdessen:
+  Syntax (`bun build`), beide bestehenden Testsuiten weiterhin grün
+  (`scripts/test-static.mjs`, `scripts/test-prompt-sanitize.mjs`), und der
+  Fehlerfall — App fällt bei fehlgeschlagenem `/api/generate` sauber auf den
+  Demo-Modus zurück, kein Absturz, geprüft per Playwright-Screenshot.
+  **Nächster Schritt für wen immer Netzwerkzugriff auf fal.run hat:** einen
+  echten Traum mit benanntem Cast-Mitglied durchlaufen lassen und prüfen, ob
+  Modell-Slug, `image_urls`- und `images[].url`-Namen stimmen.
+- Der fal.ai-Key liegt lokal in `.env` (git-ignoriert, nicht im Repo).
+  `.env.example` dokumentiert `FAL_KEY` (aktiv) und `HF_CREDENTIALS`
+  (weiterhin für Video nötig).
+- Architekturvorgabe, auch mit Blick auf die geplante iPhone-App: der Key
+  darf **nie in den Client** (weder `index.html` noch später ein
+  kompiliertes App-Bundle) — beides ist extrahierbar. Client ruft
   ausschließlich den eigenen Server auf, der Server hält den Key gegenüber
-  fal.ai. Das gilt identisch für lokales Testen (Kollegin mit eigener lokaler
-  `.env`) und für Produktion.
+  fal.ai. Das gilt identisch für lokales Testen und für Produktion.
 - Wer den echten Key braucht: bekommt ihn außerhalb des Repos (Passwort-
   Manager/DM), nicht automatisch durch Repo-Zugriff — siehe AGENTS.md,
   keine Secrets im Repository.
@@ -110,8 +131,12 @@
 
 ## Bekannte Baustellen
 
-- **Fal.ai-Anbindung in `server.js` fehlt noch** (siehe Provider-Wechsel
-  oben) — `server.js` läuft aktuell komplett auf Higgsfield.
+- **fal.ai-Aufruf nicht end-to-end verifiziert** (siehe Provider-Wechsel
+  oben) — Modell-Slug `fal-ai/nano-banana-2` und die erwartete
+  Response-Form (`data.images[].url`) sind Annahmen, nicht gegen den echten
+  fal.ai-Katalog geprüft. Diese Sandbox kann `fal.run` nicht erreichen
+  (Netzwerk-Policy), also braucht es einen echten Testlauf von jemandem mit
+  Zugriff.
 - **Credits/Bezahlmodell fehlt komplett.** Braucht laut Diskussion mit dem
   Produktbesitzer eine echte, fälschungssichere Datenhaltung (client-seitiges
   `localStorage` reicht für echtes Geld nicht) — tentativ Supabase (Accounts,
@@ -122,24 +147,22 @@
   Web-App später gewrappt werden (tentativ Capacitor), plus Apple/Google
   Developer Accounts, die der Produktbesitzer noch nicht hat. Eigenes ADR,
   eigene Session, erst sinnvoll sobald das Backend oben steht.
-- `server.js`s `withStyleContext()` (Pet/Place-Referenzfotos fließen als Text
-  statt als `image_references` in den Prompt) ist eine unverifizierte Annahme
-  über die Higgsfield-API-Semantik — noch nicht gegen den echten Katalog/Docs
-  geprüft, gleiche Art Lücke wie die Model-Slugs unten. Wird mit dem
-  fal.ai-Wechsel ohnehin neu zu bewerten sein.
-- Model-Slugs in `server.js` (`nano-banana-2/text-to-image`,
-  `seedance-2/text-to-video`) sind weiterhin Annahmen aus der SDK-Doku, nicht
-  am eigenen Higgsfield-Katalog verifiziert.
+- `server.js`s `withStyleContext()` (Pet/Place-Referenzfotos fließen für die
+  **Video**-Generierung als Text statt als `image_references` in den Prompt)
+  ist eine unverifizierte Annahme über die Higgsfield-API-Semantik — für Bild
+  ist das seit dem fal.ai-Wechsel obsolet (Nano Banana bekommt Pet/Place-Fotos
+  jetzt als echte Bild-Referenzen, siehe `buildNanoBananaPrompt()`).
+- Model-Slug `seedance-2/text-to-video` (Video, Higgsfield) ist weiterhin eine
+  Annahme aus der SDK-Doku, nicht am eigenen Higgsfield-Katalog verifiziert.
 - `server.js` reicht den rohen Traumtext weiterhin unverändert an das Modell
   weiter (jetzt ergänzt um die Pet/Place-Style-Context-Klausel). Für wirklich
   gute, Deakins-gerahmte Frames fehlt noch die Anbindung an den Prompt-Aufbau,
   der andernorts als Skill existiert (10-Beat-Bogen, Shot-Ladder,
   Identity-Locks) — unverändert offen seit der letzten Session.
-- `.env` existiert in dieser Session lokal mit `FAL_KEY`, aber **ohne**
-  `HF_CREDENTIALS` — `/api/generate` liefert also weiterhin einen klaren 503
-  (Higgsfield-Key fehlt), bis entweder der Higgsfield-Key ergänzt oder die
-  fal.ai-Anbindung gebaut ist. Live-Generierung im Repo selbst weiterhin
-  nicht verifiziert.
+- `.env` existiert lokal mit `FAL_KEY`, aber **ohne** `HF_CREDENTIALS` —
+  Bildgenerierung ist also konfiguriert (bis auf die fehlende
+  Live-Verifikation oben), Video-Generierung liefert weiterhin einen klaren
+  503, bis ein Higgsfield-Key ergänzt wird.
 - **Sprachwiderspruch:** `AGENTS.md` schreibt Deutsch für die UI vor, die
   gesamte App-Oberfläche ist Englisch. Ungelöst — entweder Regel anpassen
   oder UI später übersetzen.
@@ -173,9 +196,11 @@
 
 ## Nächste Schritte
 
-1. fal.ai-Anbindung in `server.js` bauen (Kollegin) — SDK-Wahl, Modell-Slugs
-   für Bild/Video, neue Route für die LLM-Funktion. Danach end-to-end mit dem
-   vorliegenden `FAL_KEY` verifizieren.
+1. fal.ai-Bildgenerierung end-to-end verifizieren (jemand mit Netzwerkzugriff
+   auf `fal.run`): Modell-Slug `fal-ai/nano-banana-2` und Response-Shape
+   gegen den echten Katalog prüfen, einen Traum mit benanntem Cast-Mitglied
+   durchlaufen lassen. Danach: LLM-Funktion über fal.ai bauen (offen, noch
+   niemand zugewiesen).
 2. Vor jeder öffentlichen/iPhone-Nutzung: Auth + Rate-Limit für
    `/api/generate`, sonst verbraucht jeder Zugriff das gemeinsame
    fal.ai-Guthaben ohne Begrenzung.

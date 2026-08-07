@@ -317,23 +317,33 @@ function revealMedia(film){
 }
 function fallback(msg){return '<div class="loading"><div style="text-align:center"><div style="font-size:40px">🌌</div><div class="txt" style="max-width:220px">'+msg+'</div></div></div>'}
 
+// Whole-word, case-insensitive: "anna" matches "...saw Anna running..." but
+// not "annals". Escaped because @tags are alnum-only anyway, but a tag could
+// still contain regex-special leftovers from older data.
+function mentionsTag(text,tag){
+  if(!tag)return false;
+  const esc=tag.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return new RegExp(`\\b${esc}\\b`,'i').test(text);
+}
+
 // Try the real backend (/api/generate). Returns array of URLs, or null to fall
 // back to the baked-in showcase (no backend / no key / not deployed with server).
 async function tryBackend(dream){
   try{
-    // Person photos go through as face-consistency references. Pet/place photos
-    // aren't sent as image data (unverified whether Higgsfield's image_references
-    // param handles non-face content) — their short text description is folded
-    // into the prompt server-side instead. See server.js withStyleContext().
-    const refs=[]; if(state.me&&state.me.img) refs.push(state.me.img);
-    const styleContext=[];
+    // Nano Banana 2 (fal.ai) can take several reference photos at once and
+    // bind each to a name in the prompt — so unlike the old face-only path,
+    // person/pet/place all go through as named image references now. Only
+    // send the ones the dream actually names, so the model doesn't have to
+    // guess who's who and we don't leak photos of people not in this dream.
+    // @me stays unconditional — nearly every dream is first-person already.
+    const cast=[];
+    if(state.me&&state.me.img) cast.push({tag:'me',category:'person',img:state.me.img});
     state.cast.forEach(p=>{
-      if(!p.img)return;
-      if((p.category||'person')==='person') refs.push(p.img);
-      else styleContext.push({category:p.category,tag:p.tag,desc:(p.desc||'').slice(0,120)});
+      if(!p.img||!mentionsTag(dream,p.tag))return;
+      cast.push({tag:p.tag,category:p.category||'person',desc:(p.desc||'').slice(0,120),img:p.img});
     });
     const r=await fetch('/api/generate',{method:'POST',headers:{'content-type':'application/json'},
-      body:JSON.stringify({dream,mode:state.mode,cons:state.cons,references:refs,styleContext})});
+      body:JSON.stringify({dream,mode:state.mode,cons:state.cons,cast})});
     if(!r.ok){const e=await r.json().catch(()=>({}));console.info('[DreamRushes] backend not live:',e.error||r.status);return null;}
     const d=await r.json(); return (d.urls&&d.urls.length)?d.urls:null;
   }catch(e){console.info('[DreamRushes] no backend, using showcase');return null;}
@@ -395,10 +405,10 @@ function summon(){
     state.creatures.push(creature);
 
     // journal entry — the actual dream text + media, not just the creature summary.
-    // Only record references that were really sent (tryBackend skips img-less ones).
+    // Only record references that were really sent (same mention-filter as tryBackend).
     const references=[];
     if(state.me&&state.me.img)references.push({tag:'me',category:'person'});
-    state.cast.forEach(p=>{if(p.img)references.push({tag:p.tag,category:p.category||'person'})});
+    state.cast.forEach(p=>{if(p.img&&mentionsTag(text,p.tag))references.push({tag:p.tag,category:p.category||'person'})});
     state.journal.push({
       id:genId('e'),createdAt:new Date().toISOString(),text,title,
       mode:state.mode,cons:state.cons,

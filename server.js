@@ -1,19 +1,23 @@
 // Dream Rushes — minimal backend (Bun)
-// Holds the Higgsfield key server-side and proxies generation so the browser
-// never sees credentials. Serves the static app too.
+// Holds the API keys server-side and proxies generation so the browser never
+// sees credentials. Serves the static app too.
 //
-//   1) bun install            (installs @higgsfield/client)
-//   2) export HF_CREDENTIALS="YOUR_KEY_ID:YOUR_KEY_SECRET"   (from platform.higgsfield.ai)
+// Image generation → fal.ai (Nano Banana 2). Video generation → Higgsfield
+// (Seedance) — Nano Banana is image-only, video hasn't moved yet.
+//
+//   1) bun install            (installs @higgsfield/client, video path only)
+//   2) export FAL_KEY="YOUR_KEY_ID:YOUR_KEY_SECRET"          (from fal.ai/dashboard/keys, images)
+//      export HF_CREDENTIALS="YOUR_KEY_ID:YOUR_KEY_SECRET"   (from platform.higgsfield.ai, video)
 //   3) bun server.js          → http://localhost:8100
 //
-// Without deps/key the server still boots and serves the app; /api/generate
+// Without deps/keys the server still boots and serves the app; /api/generate
 // then returns a clear, actionable error instead of crashing.
 //
 // ⚠ LOCALHOST ONLY as it stands. /api/generate has no auth, no rate limit and
 // no per-user quota — exposing this to the internet lets anyone spend your
-// Higgsfield credits. Real accounts/quotas are blocked on the backend decision
-// still pending in docs/STAND.md; until then, don't bind it to a public
-// interface (or put an authenticating reverse proxy in front).
+// fal.ai/Higgsfield credits. Real accounts/quotas are blocked on the backend
+// decision still pending in docs/STAND.md; until then, don't bind it to a
+// public interface (or put an authenticating reverse proxy in front).
 
 import { resolve, sep } from "node:path";
 
@@ -27,13 +31,19 @@ const MAX_STYLE_CONTEXT = 5;
 const MAX_DREAM = 2000;
 const MAX_FRAGMENT = 120; // per pet/place description, mirrors the client-side cap
 
-// Model slugs on the Higgsfield platform SDK. CONFIRM these against your
-// dashboard's model catalog (cloud.higgsfield.ai) — platform slugs can differ
-// from the in-app names. Override via env without editing code.
+// Model slug on the Higgsfield platform SDK (video only — image generation
+// moved to fal.ai, see FAL_MODEL_IMAGE below). CONFIRM against your dashboard's
+// model catalog (cloud.higgsfield.ai) — platform slugs can differ from the
+// in-app names. Override via env without editing code.
 const MODELS = {
-  sequenceImage: process.env.HF_MODEL_IMAGE || "nano-banana-2/text-to-image",
-  filmVideo:     process.env.HF_MODEL_VIDEO || "seedance-2/text-to-video",
+  filmVideo: process.env.HF_MODEL_VIDEO || "seedance-2/text-to-video",
 };
+
+// fal.ai model slug for image generation (Nano Banana 2). UNVERIFIED against
+// fal.ai's actual model catalog — same kind of assumption as the Higgsfield
+// slugs above, confirm at fal.ai/models before relying on this in production.
+// Override via FAL_MODEL_IMAGE without editing code.
+const FAL_MODEL_IMAGE = process.env.FAL_MODEL_IMAGE || "fal-ai/nano-banana-2";
 
 // ---- prompt hygiene (start) ----
 // Scope note, because "prompt injection" means something narrower here than
@@ -98,10 +108,64 @@ function withStyleContext(prompt, styleContext = []) {
   if (!clauses.length) return prompt;
   return `${prompt}\nAlso present in the scene — ${clauses.join("; ")}.`;
 }
+// Cast tags are already constrained client-side to [a-z0-9]{1,12} at creation
+// (see index.html), but the server never trusts client-side constraints —
+// re-apply the same shape here before a tag ever reaches a prompt.
+function sanitizeTag(raw) {
+  return String(raw ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
+}
+
+// Named references for Nano Banana: each cast entry the client sent (because
+// its @tag literally appears in the dream text) becomes one @tag ↔ reference
+// image binding, spelled out in the prompt so the model uses that person's/
+// pet's/place's actual likeness instead of inventing one whenever the dream
+// mentions them by name.
+function buildNanoBananaPrompt(dream, namedRefs = []) {
+  const clauses = namedRefs.map((r, i) => {
+    const tag = sanitizeTag(r.tag);
+    if (!tag) return null;
+    const kind = r.category === "pet" ? "pet" : r.category === "place" ? "place" : "person";
+    const desc = sanitizeFragment(r.desc || "", MAX_FRAGMENT);
+    const descClause = desc ? `, described as: ${desc}` : "";
+    return `Reference image ${i + 1} shows @${tag} (${kind}${descClause}) — whenever "${tag}" appears in the dream below, depict them with this exact likeness, not a generic stand-in.`;
+  }).filter(Boolean);
+  const refBlock = clauses.length ? `\n${clauses.join(" ")}` : "";
+  return `A cinematic, photoreal film still capturing this dream: ${dream}${refBlock}\nNatural cinematic lighting, 9:16 vertical framing, ultra-detailed, accurate hands and faces.`;
+}
 // ---- prompt hygiene (end) ----
 
-// ---- Higgsfield call (lazy import so the server boots without the dep) ----
-async function higgsfieldGenerate({ prompt, kind, references = [], styleContext = [] }) {
+// ---- fal.ai call (Nano Banana 2 — image generation only) ----
+// Synchronous fal.ai REST endpoint (fal.run/<model>) rather than the queue
+// API: simpler, no extra dependency, fine for image-gen latencies. Revisit if
+// Nano Banana 2 runs long enough to need the queue+polling flow.
+async function falGenerateImage({ dream, namedRefs = [] }) {
+  const key = process.env.FAL_KEY;
+  if (!key) throw new Error("NO_FAL_KEY");
+
+  const input = {
+    prompt: buildNanoBananaPrompt(dream, namedRefs),
+    aspect_ratio: "9:16", // unverified param name/value for this model, see FAL_MODEL_IMAGE note above
+  };
+  const imageUrls = namedRefs.map((r) => r.img).filter(Boolean);
+  if (imageUrls.length) input.image_urls = imageUrls;
+
+  const res = await fetch(`https://fal.run/${FAL_MODEL_IMAGE}`, {
+    method: "POST",
+    headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    console.error("[DreamRushes] fal.ai request failed:", res.status, await res.text().catch(() => ""));
+    throw new Error("GENERATION_FAILED");
+  }
+  const data = await res.json().catch(() => null);
+  const urls = (data?.images || []).map((img) => img?.url).filter(Boolean);
+  if (!urls.length) throw new Error("GENERATION_FAILED");
+  return urls;
+}
+
+// ---- Higgsfield call (video only — lazy import so the server boots without the dep) ----
+async function higgsfieldGenerateVideo({ prompt, references = [], styleContext = [] }) {
   if (!process.env.HF_CREDENTIALS && !(process.env.HF_API_KEY && process.env.HF_API_SECRET)) {
     throw new Error("NO_CREDENTIALS");
   }
@@ -114,17 +178,16 @@ async function higgsfieldGenerate({ prompt, kind, references = [], styleContext 
   const { higgsfield, config } = sdk;
   if (process.env.HF_CREDENTIALS) config({ credentials: process.env.HF_CREDENTIALS });
 
-  const model = kind === "film" ? MODELS.filmVideo : MODELS.sequenceImage;
   const input = { prompt: withStyleContext(prompt, styleContext), aspect_ratio: "9:16" };
   if (references.length) input.image_references = references; // person-category photos only — face-consistency refs
 
-  const jobSet = await higgsfield.subscribe(model, { input, withPolling: true });
+  const jobSet = await higgsfield.subscribe(MODELS.filmVideo, { input, withPolling: true });
   if (!jobSet.isCompleted) throw new Error("GENERATION_FAILED");
   return jobSet.jobs.map((j) => j.results?.raw?.url).filter(Boolean);
 }
 
 // ---- static file serving ----
-// The app directory also holds .env (the Higgsfield key!), .git/, package.json
+// The app directory also holds .env (the fal.ai/Higgsfield keys!), .git/, package.json
 // and docs/. Serving it naively hands all of that to anyone who asks, which
 // would defeat the whole point of keeping the key server-side. Everything below
 // exists to make that impossible; scripts/test-static.mjs keeps it that way.
@@ -180,32 +243,43 @@ Bun.serve({
         if (dream.length > MAX_DREAM) return json({ error: "Dream too long." }, 400);
         // Everything below crosses into a paid third-party API, so shape and
         // size are pinned here rather than trusted from the client.
-        const references = (Array.isArray(body.references) ? body.references : [])
-          .filter((r) => typeof r === "string")
-          .slice(0, MAX_REFERENCES);
-        const styleContext = (Array.isArray(body.styleContext) ? body.styleContext : [])
-          .slice(0, MAX_STYLE_CONTEXT)
-          .filter((s) => s && typeof s === "object")
-          .map((s) => ({
-            category: String(s.category || ""),
-            tag: String(s.tag || "").slice(0, 40),
-            desc: String(s.desc || "").slice(0, MAX_FRAGMENT),
-          })); // withStyleContext() sanitises these again at the point of use
+        //
+        // `cast`: the client already filtered this down to cast members whose
+        // @tag literally appears in the dream text (see index.html tryBackend())
+        // — that's the "only use a reference photo when its name is actually
+        // mentioned" rule. The server re-sanitises every field regardless;
+        // never trust a client-side filter as the only guard.
+        const cast = (Array.isArray(body.cast) ? body.cast : [])
+          .slice(0, MAX_REFERENCES)
+          .filter((c) => c && typeof c === "object" && typeof c.img === "string" && c.img)
+          .map((c) => ({
+            tag: sanitizeTag(c.tag),
+            category: ["person", "pet", "place"].includes(c.category) ? c.category : "person",
+            desc: String(c.desc || "").slice(0, MAX_FRAGMENT),
+            img: c.img,
+          }))
+          .filter((c) => c.tag);
+
+        const isFilm = body.mode === "film";
         // The dream-sequence-director skill turns `dream` into director-grade
         // prompts. Here we pass it straight through; swap in the skill's
         // Deakins/Seedance prompt builder for production quality.
-        const urls = await higgsfieldGenerate({
-          prompt: dream,
-          kind: body.mode === "film" ? "film" : "sequence",
-          references,
-          styleContext,
-        });
+        const urls = isFilm
+          // Nano Banana 2 is image-only — video still goes through Higgsfield/
+          // Seedance until that path also moves to fal.ai.
+          ? await higgsfieldGenerateVideo({
+              prompt: dream,
+              references: cast.filter((c) => c.category === "person").map((c) => c.img),
+              styleContext: cast.filter((c) => c.category !== "person"),
+            })
+          : await falGenerateImage({ dream, namedRefs: cast });
         return json({ ok: true, urls });
       } catch (e) {
         const map = {
           NO_CREDENTIALS: [503, "Backend has no Higgsfield key. Set HF_CREDENTIALS and restart."],
           NO_SDK:         [503, "SDK not installed. Run `bun install`, then restart."],
-          GENERATION_FAILED: [502, "Higgsfield generation did not complete."],
+          NO_FAL_KEY:     [503, "Backend has no fal.ai key. Set FAL_KEY and restart."],
+          GENERATION_FAILED: [502, "Image/video generation did not complete."],
         };
         const hit = map[e.message];
         if (hit) return json({ error: hit[1] }, hit[0]);
@@ -224,4 +298,5 @@ function json(obj, status = 200) {
 }
 
 console.log(`Dream Rushes running → http://localhost:${PORT}`);
-console.log(process.env.HF_CREDENTIALS ? "Higgsfield key: loaded ✓" : "Higgsfield key: MISSING (app runs, generation disabled)");
+console.log(process.env.FAL_KEY ? "fal.ai key: loaded ✓ (images)" : "fal.ai key: MISSING (image generation disabled)");
+console.log(process.env.HF_CREDENTIALS ? "Higgsfield key: loaded ✓ (video)" : "Higgsfield key: MISSING (video generation disabled)");

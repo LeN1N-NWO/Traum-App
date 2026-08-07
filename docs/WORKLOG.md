@@ -3,6 +3,48 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 12:15 — Anton — Branch `claude/new-session-x9qv1w`
+
+**Was:** fal.ai (Nano Banana 2) für die Bildgenerierung angebunden, mit
+namentlichen Referenzbildern. `server.js`: neue `falGenerateImage()` +
+`buildNanoBananaPrompt()`, Video bleibt bei `higgsfieldGenerateVideo()`
+(umbenannt, Bild-Zweig entfernt). `index.html`: `tryBackend()` schickt nur
+noch Cast-Einträge (`@tag`), deren Name wörtlich im Traumtext vorkommt
+(`mentionsTag()`), `@me` bleibt immer dabei. `.env.example` aktualisiert
+(`FAL_KEY` aktiv statt geplant).
+
+**Warum:** Anton hat einen Nano-Banana-Prompt-Skill (`nanobanana`) im
+Repo-Kontext; Wunsch war, fal.ai für Bildgenerierung darüber laufen zu
+lassen und Referenzbilder per Name zu binden — genau wie das Skill für
+Charakter-/Bild-Referenzen (`@char1`/`@img1`) in seiner "PJ's Grid"-Struktur
+vormacht. Umgesetzt als Prompt-Klausel pro Referenzbild: "Reference image N
+shows @tag — depict them with this exact likeness whenever 'tag' appears."
+
+**Sicherheit:** Tags werden serverseitig erneut sanitisiert
+(`sanitizeTag()`), nicht nur dem Client vertraut — gleiches Prinzip wie
+`sanitizeFragment()` vorher. `cast`-Array serverseitig auf Form, Länge
+(`MAX_REFERENCES`) und erlaubte Kategorien geprüft, bevor es in den Prompt
+oder an fal.ai geht.
+
+**Nicht end-to-end verifiziert:** `fal.run` ist von dieser Sandbox aus nicht
+erreichbar (Netzwerk-Policy blockt den Host, `403 request rejected: host
+not permitted` — keine Umgehung versucht, siehe `/root/.ccr/README.md`).
+Verifiziert stattdessen: Syntax (`bun build`), beide Bestands-Testsuiten
+weiterhin grün, und der Fehlerfall per Playwright — App fällt bei
+fehlgeschlagenem `/api/generate` sauber auf Demo-Modus zurück, kein Absturz.
+
+**Was der Nächste wissen muss:**
+- Modell-Slug `fal-ai/nano-banana-2` (`FAL_MODEL_IMAGE` überschreibbar) und
+  die erwartete Response-Form (`data.images[].url`) sind **unverifizierte
+  Annahmen** — vor Produktivbetrieb gegen den echten fal.ai-Katalog prüfen.
+- Wer Netzwerkzugriff auf `fal.run` hat: einen Traum mit benanntem
+  Cast-Mitglied (z.B. "…mein Hund Rex…" mit @rex-Foto) durchlaufen lassen
+  und prüfen, ob das Referenzbild tatsächlich verwendet wird.
+- Pet/Place-Fotos gehen jetzt als echte Bildreferenzen an Nano Banana (nicht
+  mehr nur als Text-Klausel wie beim alten Higgsfield-Bildpfad) — die alte
+  `withStyleContext()`-Textklausel existiert nur noch für den Video-Pfad.
+- Docs (`docs/STAND.md`) entsprechend aktualisiert.
+
 ## 2026-08-07 10:35 — Anton — Branch `claude/new-session-x9qv1w`
 
 **Was:** Session-Abschluss zum fal.ai-Key-Eintrag unten (Commit `7491dab`).
