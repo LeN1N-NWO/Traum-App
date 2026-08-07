@@ -119,10 +119,17 @@ export default {
                  "and the streetlights became jellyfish…",
     textLabel: "Dream text",
     modeLegend: "How should it come out?",
+    // Never name the underlying models in the UI. Which provider renders a
+    // dream is implementation detail — it is noise to the reader, and it
+    // would turn every provider swap into a copy change.
     modeImages: "Photo story",
-    modeImagesHint: "Nano Banana",
+    modeImagesHint: "A sequence of stills",
     modeFilm: "Film",
-    modeFilmHint: "15s clip · MiniMax",
+    modeFilmHint: "A short moving clip",
+    // Names the processors on purpose — this is a data-protection disclosure,
+    // not model marketing. Reference photos can be faces, which are biometric
+    // data; people are entitled to know where those go. Model names are a
+    // different matter and stay out of the UI.
     privacy: "Your dream text goes to fal.ai (and DeepSeek, to help write the prompt). " +
              "Reference photos go to fal.ai only. Your journal stays on this device.",
     submit: "✦ Summon the dream",

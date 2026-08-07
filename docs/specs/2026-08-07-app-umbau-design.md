@@ -51,6 +51,12 @@ server.js (Bun)  ── FAL_KEY, DEEPSEEK_KEY ──▶  fal.ai / DeepSeek
   `API_BASE` konfigurierbar (nicht hart `localhost`), und keine Annahme, dass
   Client und Server dieselbe Herkunft haben.
 
+**Modellnamen gehören nicht in die Oberfläche.** Ob ein Bild von Nano Banana,
+MiniMax oder etwas Künftigem stammt, ist Implementierungsdetail: für den
+Lesenden ohne Bedeutung, und jeder Provider-Wechsel würde sonst zur
+Textänderung. Ausgenommen ist der Datenschutzhinweis — dass Fotos an einen
+Dienstleister gehen, ist eine Pflichtangabe und bleibt sichtbar.
+
 **Sprache:** Die Oberfläche ist **Englisch**. Deutsch ist als *zweite*
 Sprache geplant, nicht als Ersatz — die App soll mehrsprachig werden. Alle
 sichtbaren Texte liegen deshalb in `src/i18n/en.js` und nirgends sonst; die
@@ -230,7 +236,12 @@ deaktivierter Knopf. Bei mehreren Bildern zusätzlich der Fortschritt („3 von 
 ### Nachträglich bearbeiten (Tagebuch)
 
 Ein gespeicherter Traum ist nicht eingefroren. Das Detail-Modal im Tagebuch
-bietet neben „Löschen":
+bekommt oben rechts ein **Drei-Punkte-Menü** (⋯) mit allem, was man mit dem
+Eintrag tun kann — Bearbeiten, die LLM-Stufen, Teilen, Löschen. Der Grund für
+ein Menü statt einer Knopfreihe: es werden absehbar acht bis zehn Aktionen,
+und die passen nicht nebeneinander auf ein Telefon.
+
+Inhalt des Menüs:
 
 - **Bearbeiten** — Textfeld direkt im Modal, kostenlos, kein LLM. Wer nachts
   hastig tippt, will morgens etwas richtigstellen.
@@ -251,6 +262,35 @@ ursprüngliche Niederschrift bleibt.
 
 Alle drei laufen über dieselbe Route `/api/refine` mit einem `mode`-Parameter
 (`correct` | `rewrite` | `elaborate`), nicht über drei Endpunkte.
+
+### Teilen und Exportieren — vorgesehen, noch nicht gebaut
+
+Dasselbe Menü bekommt einen Teilen-Bereich: aus einem Traum soll mit einem Tipp
+ein **Instagram-Post**, eine **Instagram-Story**, eine **Slideshow** oder ein
+TikTok-Beitrag werden. Das ist ausdrücklich für **später**; hier steht nur, was
+jetzt schon berücksichtigt werden muss, damit es später keinen Umbau braucht:
+
+- **Das Seitenverhältnis entscheidet sich vorher, nicht nachher.** Story und
+  TikTok sind 9:16, ein klassischer Feed-Post 4:5 oder 1:1. Ein 16:9-Bild
+  hinterher auf 9:16 zu beschneiden zerstört die Komposition. Deshalb ist
+  9:16 der Standard (Abschnitt „Style und Format") — er passt für die
+  häufigsten Ziele.
+- **Mehrere Bilder brauchen eine Reihenfolge.** Die ist durch die `beats` schon
+  gegeben; eine Slideshow ist damit die Beat-Folge in Originalreihenfolge,
+  ohne neue Datenhaltung.
+- **Der technische Weg ist die Web Share API** (`navigator.share` mit `files`),
+  nicht eine eigene Integration pro Plattform. Sie öffnet das native
+  Teilen-Blatt des Geräts, das alle installierten Apps kennt — kein
+  API-Schlüssel, kein OAuth, keine Plattform-Zulassung, und es funktioniert
+  in Capacitor. Direkte Instagram-/TikTok-APIs zu benutzen hieße:
+  Entwickler-Account, App-Review und Wartung pro Plattform, für dasselbe
+  Ergebnis.
+- **Slideshow als Video** bräuchte eine Zusammensetzung der Einzelbilder. Ob
+  das clientseitig geschieht oder serverseitig, ist offen und gehört in ein
+  eigenes ADR, sobald es ansteht.
+
+Nicht Teil dieser Spec: die Umsetzung. Sie steht hier, damit Format und
+Reihenfolge jetzt richtig entschieden werden.
 
 ---
 
