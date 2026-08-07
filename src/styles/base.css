@@ -1,0 +1,26 @@
+/* Grundlayout. Aus legacy/app.css übernommen, ergänzt um die
+   Sicherheitsabstände moderner Telefone (Notch, Home-Indikator) — relevant
+   für die geplante iPhone-App. */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: radial-gradient(125% 85% at 50% -12%, var(--sky) 0%, var(--bg2) 42%, var(--bg) 100%);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--sans);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#root { min-height: 100vh; }
+
+/* Jeder Screen nutzt diese Klasse. Der untere Innenabstand hält die
+   Tab-Leiste frei, sonst ist der letzte Eintrag nicht erreichbar. */
+.screen {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + var(--s-5)) var(--s-4)
+           calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s-6));
+}
