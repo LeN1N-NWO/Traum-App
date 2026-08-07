@@ -387,10 +387,29 @@
   /* eigener Hintergrund, damit der transparente Text des Feldes darauf liegt */
   .dreambox::before{content:'';position:absolute;inset:0;border-radius:16px;
     background:rgba(0,0,0,.24);z-index:0;pointer-events:none}
+  /* Innenabstand OHNE den Text zu verschieben: senkrecht zählt bei Inline-
+     Elementen ohnehin nicht für die Zeilenhöhe, waagerecht wird der Abstand
+     durch negativen Außenabstand exakt ausgeglichen. Sonst liefe die Ebene
+     gegen den Text im Feld auseinander. */
   .dream-mirror mark{
-    background:rgba(139,92,246,.32);color:transparent;border-radius:6px;
-    box-shadow:0 0 0 1px rgba(167,139,250,.55);
+    position:relative;
+    background:rgba(139,92,246,.26);color:transparent;border-radius:9px;
+    padding:4px 7px;margin:0 -7px;
+    box-decoration-break:clone;-webkit-box-decoration-break:clone;
   }
+  /* gleicher laufender Lichtpunkt wie bei den Symbol-Chips */
+  .dream-mirror mark::before{
+    content:'';position:absolute;inset:0;border-radius:9px;padding:1px;pointer-events:none;
+    background:conic-gradient(from var(--chip-a),
+      rgba(167,139,250,.32) 0turn, rgba(167,139,250,.32) .58turn,
+      #fff .70turn, rgba(167,139,250,.32) .82turn, rgba(167,139,250,.32) 1turn);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    mask-composite:exclude;
+    animation:chiprun 4s linear infinite;
+  }
+  @media (prefers-reduced-motion:reduce){ .dream-mirror mark::before{animation:none} }
   .tagbar{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;align-items:center}
   .tagbar .lbl{font-size:var(--t-micro);color:var(--faint)}
   .tagbar .t{display:inline-flex;align-items:center;gap:5px;font-size:12px;
