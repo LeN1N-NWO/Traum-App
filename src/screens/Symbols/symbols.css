@@ -1,0 +1,38 @@
+.s-gruppe { margin-bottom: var(--s-6); }
+.s-gruppe-titel { font-size: var(--t-h3); font-weight: 600; margin: 0 0 var(--s-3); color: var(--muted); }
+.s-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: var(--s-3); }
+.s-kachel { display: flex; flex-direction: column; align-items: center; gap: var(--s-1); text-align: center; }
+.s-emoji { font-size: 26px; line-height: 1; }
+.s-label { font-size: var(--t-small); font-weight: 500; }
+.s-anzahl { font-size: var(--t-micro); color: var(--faint); }
+.s-leer { color: var(--faint); text-align: center; padding: var(--s-6) 0; }
+
+.s-modal-hinter {
+  position: fixed; inset: 0; z-index: 60; background: rgba(11, 7, 24, .8);
+  backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center;
+}
+.s-modal {
+  position: relative; width: 100%; max-width: 680px; max-height: 88vh; overflow-y: auto;
+  background: var(--bg2); border: 1px solid var(--panel-line);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--s-6) var(--s-4) calc(env(safe-area-inset-bottom) + var(--s-6));
+}
+.s-schliessen {
+  position: absolute; top: var(--s-3); right: var(--s-3);
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font-size: 19px;
+}
+.s-schliessen:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
+.s-modal-emoji { font-size: 38px; margin: 0 0 var(--s-2); }
+.s-modal-titel { font-size: var(--t-h2); font-weight: 600; margin: 0 0 var(--s-3); }
+.s-deutung { margin: 0 0 var(--s-2); }
+.s-hinweis { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-5); }
+.s-vorkommen-titel { font-size: var(--t-h3); font-weight: 600; margin: 0 0 var(--s-2); }
+.s-vorkommen { list-style: none; padding: 0; margin: 0; }
+.s-vorkommen li {
+  display: flex; gap: var(--s-3); padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--panel-line);
+}
+.s-v-datum { color: var(--faint); font-size: var(--t-small); flex: 0 0 62px; }
+.s-v-titel { font-size: var(--t-small); }
