@@ -3,6 +3,53 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-07 12:50 — Hanni — Branch `session/2026-08-07-hanni-fotos`
+
+**Was:** Foto-Bibliothek als eigene Seite `fotos.html` plus optische Erkennung
+der Namen im Traum-Eingabefeld.
+
+- **Bibliothek**: hochladen, Namen vergeben, Kategorie (Person/Haustier/Ort),
+  Kurzbeschreibung, bearbeiten, löschen, durchsuchen. Zeigt je Foto, in wie
+  vielen Träumen sein Name vorkam. Erreichbar über einen neuen Knopf oben
+  rechts, auf `index.html` und `symbole.html`.
+- **Namen im Eingabefeld**: getippte Wörter, die einem Bibliotheks-Namen
+  entsprechen, werden hinterlegt dargestellt; darunter zeigt eine Leiste mit
+  Vorschaubildern, welche Fotos dieser Traum mitschickt.
+
+**Warum kein neuer Datenspeicher:** Die Bibliothek arbeitet auf `state.cast` —
+derselben Struktur, die Antons Generierungs-Code liest. Ein zweiter Speicher
+für „Fotos" neben dem „Cast" hätte zwei Wahrheiten erzeugt.
+
+**Technisch zur Hervorhebung:** Ein `<textarea>` kann keine gestalteten
+Elemente enthalten. Hinter dem Feld liegt deshalb eine deckungsgleiche Ebene
+mit demselben Text, in der die Namen hinterlegt sind; das Feld selbst ist
+transparent. Schrift, Größe, Zeilenhöhe und Innenabstand müssen exakt
+übereinstimmen — gemessen verifiziert: 0 px Abweichung, auch auf Handybreite,
+und die Ebene scrollt mit. Verworfen wurde `contenteditable`, das
+Spracheingabe, Einfüge-Bereinigung und Zeichenzähler gebrochen hätte.
+
+**Was der Nächste wissen muss:**
+- **Merge-Hinweis:** `mentionsTag()` steht jetzt in `app.js`, weil beide Seiten
+  sie brauchen. Anton hat auf `claude/new-session-x9qv1w` eine gleichnamige
+  Funktion direkt in `index.html`. Beim Zusammenführen bleibt die Fassung aus
+  `app.js`, seine Kopie entfällt — die Logik ist dieselbe (Wortgrenzen,
+  Groß-/Kleinschreibung egal).
+- **Beim Bauen gefunden und behoben:** Die dritte Kopfzeilen-Pille brachte den
+  Überlauf auf Handybreite zurück, den ich gestern behoben hatte. Ursache:
+  `header` durfte umbrechen, `.hdr-actions` nicht. Jetzt beide. Der Kopf
+  belegt auf schmalen Schirmen zwei Zeilen statt seitlich zu scrollen.
+- Namen werden auf `[a-z0-9]` normalisiert, weil man sie im Traumtext tippen
+  können muss. Doppelte Namen und `me` (für das eigene Gesicht reserviert)
+  werden abgelehnt.
+- **Speicherlimit bleibt die harte Grenze.** Fotos liegen base64 im
+  localStorage; die Bibliothek macht es leicht, viele anzulegen. `save()`
+  fängt das ab und meldet es per Hinweis, aber ein Foto geht dann verloren.
+  Echte Abhilfe erst mit dem Backend.
+- Geprüft: Wortgrenzen (`anna` trifft nicht in „annals", `island` nicht in
+  „islander"), XSS über manipulierte Tags und Bildpfade (Nutzlast bleibt
+  Text, kein `on*`-Attribut), Suche, Doppelnamen-Sperre, Tastaturbedienung,
+  volles localStorage, keine Konsolenfehler.
+
 ## 2026-08-07 10:35 — Anton — Branch `claude/new-session-x9qv1w`
 
 **Was:** Session-Abschluss zum fal.ai-Key-Eintrag unten (Commit `7491dab`).

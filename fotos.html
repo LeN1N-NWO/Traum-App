@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Photo Library — Dream Rushes</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="dust" id="dust"></div>
+<div class="wrap">
+  <header>
+    <a class="brand" href="index.html"><span class="moon"></span> Dream&nbsp;Rushes</a>
+    <div class="hdr-actions">
+      <a class="backlink" href="index.html">← Dreams</a>
+    </div>
+  </header>
+
+  <section class="hero" style="text-align:left;padding:22px 0 4px">
+    <div class="kicker">Who and what your dreams are made of</div>
+    <h1 style="font-size:var(--t-hero)">Photo Library</h1>
+  </section>
+
+  <p class="page-lede">Add photos of the people, pets and places in your life and give each one a name. Write that name in a dream and the photo is sent along, so the picture actually looks like them.</p>
+  <p class="disclaimer">Photos stay on this device. They are only uploaded when a dream names them, and only to generate that dream's images. Faces are personal data — only add photos of people who are fine with it.</p>
+
+  <!-- ===== HINZUFÜGEN ===== -->
+  <section>
+    <div class="sec-head">
+      <h2>Add a photo</h2>
+    </div>
+    <form class="ev-form" id="addForm">
+      <div class="ev-row">
+        <div class="f">
+          <label for="phTag">Name it — this is what you type in a dream</label>
+          <input type="text" id="phTag" maxlength="24" placeholder="anna" required
+                 autocomplete="off" spellcheck="false">
+          <p class="chip-hint" id="tagHint">Letters and numbers only. Pick something you would actually write.</p>
+        </div>
+      </div>
+      <div class="ev-row">
+        <div class="f">
+          <label>What is it?</label>
+          <div class="chips" id="catChips"></div>
+        </div>
+      </div>
+      <div class="ev-row">
+        <div class="f">
+          <label for="phDesc">Describe it briefly (optional, helps for pets and places)</label>
+          <input type="text" id="phDesc" maxlength="120" placeholder="golden retriever, always muddy">
+        </div>
+      </div>
+      <input type="file" id="phFile" accept="image/*" hidden>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+        <button type="button" class="btn ghost" id="phPick">🖼 Choose photo</button>
+        <button type="submit" class="btn" id="phSubmit">Add to library</button>
+        <button type="button" class="btn ghost" id="phCancel" style="display:none">Cancel</button>
+      </div>
+      <div class="ph-preview" id="phPreview"></div>
+    </form>
+  </section>
+
+  <!-- ===== BIBLIOTHEK ===== -->
+  <section style="margin-top:56px">
+    <div class="sec-head">
+      <h2>Your library</h2>
+      <div class="count" id="libCount">0 photos</div>
+    </div>
+    <input type="search" id="libSearch" class="lib-search" placeholder="Search by name…"
+           autocomplete="off" aria-label="Search the library by name">
+    <div id="libBody"></div>
+  </section>
+
+  <footer>Dream Rushes — a nightly ritual. Keep your streak alive or your world starts to fade.</footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+<script>
+/* ---------- ambient dust ---------- */
+(function(){const d=document.getElementById('dust');for(let i=0;i<32;i++){const s=document.createElement('i');
+  s.style.left=Math.random()*100+'%';s.style.animationDuration=(12+Math.random()*22)+'s';
+  s.style.animationDelay=(-Math.random()*22)+'s';const sc=.5+Math.random()*1.6;s.style.width=s.style.height=(sc*2.5)+'px';
+  d.appendChild(s);}})();
+
+const CATS = [['person','🧑 Person'],['pet','🐾 Pet'],['place','🏞 Place']];
+let pickedCat = 'person';
+let pendingImg = null;     // Bild-Datenstring vor dem Speichern
+let editingId = null;
+
+/* ---------- Formular ---------- */
+function renderCatChips(){
+  document.getElementById('catChips').innerHTML = CATS.map(([id,label])=>
+    `<button type="button" class="chip" data-cat="${id}" aria-pressed="${pickedCat===id}">${label}</button>`
+  ).join('');
+}
+document.getElementById('catChips').addEventListener('click',e=>{
+  const b = e.target.closest('[data-cat]'); if(!b) return;
+  pickedCat = b.dataset.cat; renderCatChips();
+});
+
+// Tags landen im Traumtext, deshalb nur Zeichen, die man dort auch tippt.
+function normaliseTag(v){ return String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,24); }
+
+document.getElementById('phTag').addEventListener('input',e=>{
+  const clean = normaliseTag(e.target.value);
+  if(clean !== e.target.value.toLowerCase()) e.target.value = clean;
+  const hint = document.getElementById('tagHint');
+  const clash = state.cast.some(p => p.tag===clean && p.id!==editingId) || (clean==='me');
+  hint.textContent = !clean ? 'Letters and numbers only. Pick something you would actually write.'
+    : clash ? `⚠ "${clean}" is already taken — pick another name.`
+    : `In a dream, write "${clean}" and this photo comes along.`;
+  hint.style.color = clash ? 'var(--gold)' : '';
+});
+
+document.getElementById('phPick').onclick = () => document.getElementById('phFile').click();
+document.getElementById('phFile').addEventListener('change',e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = () => { pendingImg = r.result; renderPreview(); };
+  r.readAsDataURL(file);
+  e.target.value = '';
+});
+function renderPreview(){
+  document.getElementById('phPreview').innerHTML = pendingImg
+    ? `<img src="${escapeHtml(pendingImg)}" alt="Selected photo">`
+    : '';
+}
+
+function resetForm(){
+  editingId = null; pendingImg = null; pickedCat = 'person';
+  document.getElementById('addForm').reset();
+  document.getElementById('phSubmit').textContent = 'Add to library';
+  document.getElementById('phCancel').style.display = 'none';
+  document.getElementById('tagHint').textContent = 'Letters and numbers only. Pick something you would actually write.';
+  document.getElementById('tagHint').style.color = '';
+  renderCatChips(); renderPreview();
+}
+document.getElementById('phCancel').onclick = resetForm;
+
+document.getElementById('addForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const tag = normaliseTag(document.getElementById('phTag').value);
+  const desc = document.getElementById('phDesc').value.trim();
+  if(!tag){ toast('⚠ Give the photo a name first.'); return; }
+  if(tag === 'me'){ toast('⚠ "me" is reserved for your own face on the main page.'); return; }
+  if(state.cast.some(p => p.tag===tag && p.id!==editingId)){ toast(`⚠ "${tag}" is already taken.`); return; }
+
+  if(editingId){
+    const p = state.cast.find(x => x.id===editingId);
+    if(p){ Object.assign(p,{tag,category:pickedCat,desc}); if(pendingImg) p.img = pendingImg; }
+    if(save(state)) toast('✦ Photo updated');
+  }else{
+    if(!pendingImg){ toast('⚠ Choose a photo first.'); return; }
+    state.cast.push({id:genId('c'),tag,category:pickedCat,desc,img:pendingImg});
+    if(save(state)) toast(`✦ "${tag}" added — write it in a dream to use it`);
+  }
+  resetForm(); renderLibrary();
+});
+
+/* ---------- Bibliothek ---------- */
+function usageCount(tag){
+  return (state.journal||[]).filter(e => mentionsTag(e.text, tag)).length;
+}
+function renderLibrary(){
+  const q = normaliseTag(document.getElementById('libSearch').value);
+  const all = state.cast || [];
+  const shown = q ? all.filter(p => p.tag.includes(q)) : all;
+  document.getElementById('libCount').textContent =
+    `${all.length} photo${all.length===1?'':'s'}${q && shown.length!==all.length ? ` · ${shown.length} shown` : ''}`;
+
+  const body = document.getElementById('libBody');
+  if(!all.length){
+    body.innerHTML = '<div class="empty">Nothing here yet. Add a photo above, give it a name, and it becomes usable in your dreams.</div>';
+    return;
+  }
+  if(!shown.length){ body.innerHTML = `<div class="empty">No photo named like “${escapeHtml(q)}”.</div>`; return; }
+
+  body.innerHTML = `<div class="lib-grid">` + shown.map(p=>{
+    const used = usageCount(p.tag);
+    const cat = CATS.find(c=>c[0]===(p.category||'person'));
+    return `<figure class="lib-card">
+      <img class="lib-img" src="${escapeHtml(p.img)}" alt="${escapeHtml(p.tag)}" loading="lazy">
+      <figcaption>
+        <div class="lib-tag">${escapeHtml(p.tag)}</div>
+        <div class="lib-meta">${escapeHtml(cat ? cat[1] : p.category||'')}</div>
+        ${p.desc ? `<div class="lib-desc">${escapeHtml(p.desc)}</div>` : ''}
+        <div class="lib-used">${used ? `named in <b>${used}</b> dream${used===1?'':'s'}` : 'not used yet'}</div>
+      </figcaption>
+      <div class="lib-actions">
+        <button type="button" data-edit="${p.id}">Edit</button>
+        <button type="button" class="del" data-del="${p.id}">Delete</button>
+      </div>
+    </figure>`;
+  }).join('') + `</div>`;
+}
+
+document.getElementById('libSearch').addEventListener('input', renderLibrary);
+
+document.getElementById('libBody').addEventListener('click',e=>{
+  const del = e.target.closest('[data-del]');
+  if(del){
+    const i = state.cast.findIndex(p => p.id===del.dataset.del);
+    if(i<0) return;
+    const tag = state.cast[i].tag;
+    state.cast.splice(i,1); save(state);
+    if(editingId === del.dataset.del) resetForm();
+    renderLibrary(); toast(`✦ "${tag}" removed`);
+    return;
+  }
+  const ed = e.target.closest('[data-edit]');
+  if(ed){
+    const p = state.cast.find(x => x.id===ed.dataset.edit); if(!p) return;
+    editingId = p.id; pickedCat = p.category || 'person'; pendingImg = null;
+    document.getElementById('phTag').value = p.tag;
+    document.getElementById('phDesc').value = p.desc || '';
+    document.getElementById('phSubmit').textContent = 'Save changes';
+    document.getElementById('phCancel').style.display = '';
+    document.getElementById('tagHint').textContent = `Leave the photo empty to keep the current one.`;
+    renderCatChips(); renderPreview();
+    document.getElementById('addForm').scrollIntoView({behavior:'smooth',block:'center'});
+  }
+});
+
+/* ---------- init ---------- */
+renderCatChips(); renderPreview(); renderLibrary();
+</script>
+</body>
+</html>
