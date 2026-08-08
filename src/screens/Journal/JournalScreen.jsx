@@ -4,6 +4,7 @@ import { t } from "../../i18n/index.js";
 import ScreenHeader from "../../components/ScreenHeader.jsx";
 import JournalCard from "./JournalCard.jsx";
 import JournalDetail from "./JournalDetail.jsx";
+import CastLibrary from "./CastLibrary.jsx";
 import "./journal.css";
 
 export default function JournalScreen() {
@@ -11,6 +12,7 @@ export default function JournalScreen() {
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState(null);
   const [index, setIndex] = useState(0);
+  const [library, setLibrary] = useState(false);
   const trackRef = useRef(null);
 
   // The chosen view outlives the visit — it is a preference, not a mood.
@@ -51,7 +53,16 @@ export default function JournalScreen() {
   useEffect(() => { if (deck) restyle(); }, [entries, deck, restyle]);
 
   const total = state.journal?.length || 0;
+  const castCount = (state.cast?.length || 0) + (state.me ? 1 : 0);
   const open = entries.find((e) => e.id === openId) || null;
+
+  if (library) {
+    return (
+      <main className="screen">
+        <CastLibrary onBack={() => setLibrary(false)} />
+      </main>
+    );
+  }
 
   return (
     <main className="screen">
@@ -79,6 +90,16 @@ export default function JournalScreen() {
         placeholder={t.journal.search}
         aria-label={t.journal.searchLabel}
       />
+
+      {/* The cast lives here, not in the profile: these entries exist to be
+          referenced by dreams, so they belong next to them. */}
+      <button className="j-library" onClick={() => setLibrary(true)}>
+        <span className="j-library-body">
+          <span className="j-library-title">{t.journal.library}</span>
+          <span className="j-library-text">{t.journal.libraryCount(castCount)}</span>
+        </span>
+        <span className="j-library-chev" aria-hidden="true">›</span>
+      </button>
 
       {entries.length === 0 ? (
         <p className="j-empty">{query ? t.journal.emptySearch : t.journal.empty}</p>

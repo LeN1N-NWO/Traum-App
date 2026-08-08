@@ -1,8 +1,8 @@
 .h-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-5); }
 .h-moon {
   width: 30px; height: 30px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff 0%, #e2d6ff 32%, var(--violet) 76%, #5b21b6 100%);
-  box-shadow: 0 0 22px rgba(139, 92, 246, .55);
+  background: radial-gradient(circle at 35% 30%, #fff 0%, #dbe9ff 30%, var(--accent) 72%, var(--accent-deep) 100%);
+  box-shadow: 0 0 22px var(--accent-glow);
 }
 .h-streak {
   font-size: var(--t-small); color: var(--muted); margin: 0;
@@ -13,13 +13,13 @@
 .h-hero { text-align: center; padding: var(--s-5) 0 var(--s-5); }
 .h-kicker {
   font-size: var(--t-micro); letter-spacing: .2em; text-transform: uppercase;
-  color: var(--violet-soft); font-weight: 600; margin: 0 0 var(--s-3); opacity: .85;
+  color: var(--accent-soft); font-weight: 600; margin: 0 0 var(--s-3); opacity: .85;
 }
 .h-title {
   font-size: var(--t-hero); line-height: 1.08; letter-spacing: -.03em;
   margin: 0 0 var(--s-3); font-weight: 600;
 }
-.h-title-accent { color: var(--violet-soft); }
+.h-title-accent { color: var(--accent-soft); }
 .h-lede { color: var(--muted); font-size: var(--t-body); max-width: 420px; margin: 0 auto; }
 
 .h-section { font-size: var(--t-h3); font-weight: 600; margin: var(--s-6) 0 var(--s-3); }
@@ -44,8 +44,8 @@
 .h-creature-date { font-size: var(--t-micro); color: var(--faint); }
 
 /* Rarity colours — unchanged from the pre-React stylesheet. */
-.rare-common { color: #9ca3af; }
+.rare-common { color: var(--faint); }
 .rare-uncommon { color: var(--ok); }
 .rare-rare { color: var(--cyan); }
-.rare-epic { color: var(--violet); }
+.rare-epic { color: var(--accent); }
 .rare-legendary { color: var(--gold); }

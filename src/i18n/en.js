@@ -37,6 +37,11 @@ export default {
   journal: {
     viewList: "Show as a list",
     viewDeck: "Show as cards",
+    library: "Your cast",
+    libraryLede: "People, pets and places your dreams can draw on.",
+    libraryCount: (n) =>
+      n === 0 ? "Nobody yet — add the faces your dreams should use"
+              : `${n} ${n === 1 ? "entry" : "entries"} · people, pets, places`,
     title: "Journal",
     count: (n) => (n === 1 ? "1 dream" : `${n} dreams`),
     search: "Search your dreams…",
@@ -88,8 +93,15 @@ export default {
 
   profile: {
     title: "Profile",
-    credits: "Credits",
+    credits: "credits",
     creditsSoon: "Top-up coming soon",
+    you: "You",
+    meSet: "Tap to change your photo",
+    meEmpty: "Add a photo so dreams can put you in them",
+    addPhoto: "Add your photo",
+    changePhoto: "Change your photo",
+    statDreams: "dreams",
+    statStreak: "day streak",
     people: "People",
     pets: "Pets",
     places: "Places",
@@ -111,6 +123,7 @@ export default {
   avatarDialog: {
     titleFor: { person: "Add a person", pet: "Add a pet", place: "Add a place" },
     editTitleFor: { person: "Edit person", pet: "Edit pet", place: "Edit place" },
+    meTitle: "This is you",
     nameLabel: (tag) => `Name (becomes @${tag})`,
     photoLabel: "Reference photo",
     photoReplace: "Replace the photo",

@@ -8,7 +8,7 @@
 .s-empty { color: var(--faint); text-align: center; padding: var(--s-6) 0; }
 
 .s-backdrop {
-  position: fixed; inset: 0; z-index: 60; background: rgba(11, 7, 24, .8);
+  position: fixed; inset: 0; z-index: 60; background: var(--veil);
   backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center;
 }
 .s-modal {
@@ -23,7 +23,7 @@
   background: var(--panel); border: 1px solid var(--panel-line);
   color: var(--text); font-size: 19px;
 }
-.s-close:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
+.s-close:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 .s-modal-emoji { font-size: 38px; margin: 0 0 var(--s-2); }
 .s-modal-title { font-size: var(--t-h2); font-weight: 600; margin: 0 0 var(--s-3); }
 .s-meaning { margin: 0 0 var(--s-2); }

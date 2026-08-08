@@ -6,12 +6,15 @@
   border: 1px solid var(--panel-line); color: var(--text);
   font-family: var(--sans); text-align: left;
 }
-.sl-tile:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
-/* Each tile carries its own dusk gradient, like the sleep apps we studied. */
-.sl-tile-checklist { background: linear-gradient(150deg, #1d1650, #2a1d5e); }
-.sl-tile-sounds    { background: linear-gradient(150deg, #14264d, #1c3a5e); }
-.sl-tile-guide     { background: linear-gradient(150deg, #241245, #3b1d5e); }
-.sl-tile-symbols   { background: linear-gradient(150deg, #2b1440, #4a2350); }
+.sl-tile:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+/* Each tile carries its own dusk gradient — all four walk the same cold-blue
+   ladder, and only the checklist (the bedtime ritual) is allowed a warm edge.
+   Written as mixes of the palette rather than fresh hexes, so they follow
+   tokens.css instead of drifting away from it. */
+.sl-tile-checklist { background: linear-gradient(150deg, var(--sky), color-mix(in oklab, var(--warm) 22%, var(--bg2))); }
+.sl-tile-sounds    { background: linear-gradient(150deg, var(--sky), color-mix(in oklab, var(--cyan) 20%, var(--bg2))); }
+.sl-tile-guide     { background: linear-gradient(150deg, var(--sky), color-mix(in oklab, var(--accent) 26%, var(--bg2))); }
+.sl-tile-symbols   { background: linear-gradient(150deg, var(--sky), color-mix(in oklab, var(--accent-deep) 34%, var(--bg2))); }
 .sl-tile-emoji { font-size: 24px; line-height: 1; }
 .sl-tile-title { font-size: var(--t-h3); font-weight: 600; margin-top: auto; }
 .sl-tile-text { color: var(--muted); font-size: var(--t-small); }
@@ -22,7 +25,7 @@
   background: none; border: none; cursor: pointer;
   color: var(--muted); font-family: var(--sans); font-size: var(--t-body);
 }
-.sl-back:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; border-radius: 8px; }
+.sl-back:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 8px; }
 .sl-lede { color: var(--muted); font-size: var(--t-small); margin: 0 0 var(--s-4); }
 .sl-hint { color: var(--faint); font-size: var(--t-small); margin: var(--s-4) 0 0; }
 
@@ -30,7 +33,7 @@
 .sl-checklist { display: flex; flex-direction: column; gap: var(--s-3); }
 .sl-progress { display: flex; gap: 6px; }
 .sl-progress-seg { flex: 1; height: 5px; border-radius: 999px; background: var(--panel-line); }
-.sl-progress-on { background: var(--violet-soft); }
+.sl-progress-on { background: var(--accent-soft); }
 .sl-progress-text { color: var(--faint); font-size: var(--t-small); text-align: right; margin: 0; }
 .sl-check { display: flex; gap: var(--s-3); align-items: flex-start; cursor: pointer; text-align: left; width: 100%; }
 .sl-check-dot {
@@ -39,7 +42,7 @@
   display: flex; align-items: center; justify-content: center;
   font-size: 14px; color: var(--bg);
 }
-.sl-check-done .sl-check-dot { background: var(--violet-soft); border-color: var(--violet-soft); }
+.sl-check-done .sl-check-dot { background: var(--accent-soft); border-color: var(--accent-soft); }
 .sl-check-done .sl-check-title { color: var(--muted); text-decoration: line-through; }
 .sl-check-body { display: flex; flex-direction: column; gap: 2px; }
 .sl-check-title { font-weight: 600; font-size: var(--t-body); }
@@ -50,12 +53,12 @@
 .sl-slider { display: flex; flex-direction: column; gap: var(--s-2); }
 .sl-slider-name { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; }
 .sl-slider-name small { color: var(--faint); font-weight: 400; font-size: var(--t-small); }
-.sl-slider input[type="range"] { width: 100%; accent-color: var(--violet-soft); }
+.sl-slider input[type="range"] { width: 100%; accent-color: var(--accent-soft); }
 .sl-autostart {
   display: flex; gap: var(--s-3); align-items: flex-start; cursor: pointer;
   padding: var(--s-4); border-radius: var(--radius);
   background: var(--panel); border: 1px solid var(--panel-line);
 }
-.sl-autostart input { accent-color: var(--violet-soft); margin-top: 3px; }
+.sl-autostart input { accent-color: var(--accent-soft); margin-top: 3px; }
 .sl-autostart span { display: flex; flex-direction: column; gap: 2px; }
 .sl-autostart small { color: var(--faint); font-size: var(--t-small); }

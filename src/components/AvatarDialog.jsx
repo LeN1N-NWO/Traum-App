@@ -21,12 +21,18 @@ function cleanTag(raw) {
  *
  * `onCreated` hands the saved avatar back so the wizard can bind it straight
  * to the character that triggered the dialog.
+ *
+ * `isMe` is a fourth mode: the dreamer's own avatar. It lives in state.me
+ * rather than in the cast — there is exactly one of it, the wizard matches
+ * "I"/"me" against it, and it must not collide with or be deleted alongside
+ * the ordinary entries.
  */
 export default function AvatarDialog({
   category,
   suggestedName = "",
   suggestedDesc = "",
   existing = null,
+  isMe = false,
   onCreated,
   onClose,
 }) {
@@ -55,6 +61,15 @@ export default function AvatarDialog({
     const clean = cleanTag(tag);
     if (!clean) return toast(t.avatarDialog.needName);
     if (!hasSubstance) return toast(t.avatarDialog.needPhotoOrDesc);
+
+    if (isMe) {
+      const saved = { tag: clean, desc: desc.trim(), img: image };
+      update({ me: saved });
+      toast(t.avatarDialog.saved(clean));
+      onCreated?.(saved);
+      onClose();
+      return;
+    }
 
     // A name may collide with anyone EXCEPT the entry being edited.
     const collides = (state.cast || []).some((p) => p.tag === clean && p.id !== existing?.id);
@@ -92,9 +107,11 @@ export default function AvatarDialog({
     onClose();
   }
 
-  const title = isEdit
-    ? t.avatarDialog.editTitleFor[existing.category] || t.avatarDialog.editTitleFor.person
-    : t.avatarDialog.titleFor[category];
+  const title = isMe
+    ? t.avatarDialog.meTitle
+    : isEdit
+      ? t.avatarDialog.editTitleFor[existing.category] || t.avatarDialog.editTitleFor.person
+      : t.avatarDialog.titleFor[category];
 
   return (
     <div className="av-backdrop" onClick={onClose}>
