@@ -22,11 +22,15 @@ export default {
   },
 
   home: {
-    kicker: "Your subconscious, directed",
-    title1: "Record your dream.",
-    title2: "Get a film.",
+    greeting: {
+      night: "Still awake",
+      morning: "Good morning",
+      afternoon: "Good afternoon",
+      evening: "Good evening",
+    },
+    title: "What did you dream?",
     lede: "Tell it while it's still warm — half-asleep works best.",
-    cta: "Record your dream",
+    cta: "Record it",
     streak: (n) => `${n} day${n === 1 ? "" : "s"}`,
     lastHeading: "Last night",
     menagerieHeading: "Your menagerie",

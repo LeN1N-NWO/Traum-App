@@ -2,11 +2,19 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppState } from "../../state/AppState.jsx";
 import { refreshStreak } from "../../lib/streak.js";
+import { mediaUrl } from "../../lib/api.js";
 import { t } from "../../i18n/index.js";
-import Button from "../../components/Button.jsx";
-import Card from "../../components/Card.jsx";
 import Menagerie from "./Menagerie.jsx";
 import "./home.css";
+
+/** Which greeting fits the hour — the app is used late at night and early
+ *  in the morning, and "Good evening" at 6am reads as a machine talking. */
+function greetingKey(hour) {
+  if (hour < 5) return "night";
+  if (hour < 12) return "morning";
+  if (hour < 18) return "afternoon";
+  return "evening";
+}
 
 export default function HomeScreen() {
   const { state, update } = useAppState();
@@ -25,32 +33,47 @@ export default function HomeScreen() {
   const last = [...(state.journal || [])]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
 
+  // The last dream becomes the sky of the home screen — blurred and dimmed
+  // far past recognition, so it reads as weather rather than as a thumbnail.
+  // Without one, the gradient in .h-sky stands on its own.
+  const backdrop = last?.media?.type === "image" ? mediaUrl(last.media.urls?.[0]) : null;
+  const greeting = t.home.greeting[greetingKey(new Date().getHours())];
+  const streak = state.streak || 0;
+
   return (
-    <main className="screen">
+    <main className="screen h-screen">
+      <div className="h-sky" aria-hidden="true">
+        {backdrop && <img className="h-sky-img" src={backdrop} alt="" />}
+        <span className="h-sky-veil" />
+        <span className="h-moon" />
+      </div>
+
       <div className="h-top">
-        <div className="h-moon" aria-hidden="true" />
-        <p className="h-streak">🔥 {t.home.streak(state.streak || 0)}</p>
+        <p className="h-greeting">{greeting}</p>
+        {streak > 0 && (
+          <p className="h-streak">
+            <span aria-hidden="true">✦</span> {t.home.streak(streak)}
+          </p>
+        )}
       </div>
 
       <section className="h-hero">
-        <p className="h-kicker">{t.home.kicker}</p>
-        <h1 className="h-title">
-          {t.home.title1}<br />
-          <span className="h-title-accent">{t.home.title2}</span>
-        </h1>
+        <h1 className="h-title">{t.home.title}</h1>
         <p className="h-lede">{t.home.lede}</p>
+        <button className="h-cta" onClick={() => navigate("/dream")}>
+          {t.home.cta}
+        </button>
       </section>
 
-      <Button onClick={() => navigate("/dream")}>{t.home.cta}</Button>
-
       {last && (
-        <>
-          <h2 className="h-section">{t.home.lastHeading}</h2>
-          <Card as="button" className="h-last" onClick={() => navigate("/journal")}>
+        <button className="h-last" onClick={() => navigate("/journal")}>
+          {backdrop && <img className="h-last-thumb" src={backdrop} alt="" loading="lazy" />}
+          <span className="h-last-body">
+            <span className="h-last-label">{t.home.lastHeading}</span>
             <span className="h-last-title">{last.title || t.home.untitled}</span>
-            <span className="h-last-text">{last.text}</span>
-          </Card>
-        </>
+            <span className="h-last-text">{last.tagline || last.text}</span>
+          </span>
+        </button>
       )}
 
       <h2 className="h-section">{t.home.menagerieHeading}</h2>
