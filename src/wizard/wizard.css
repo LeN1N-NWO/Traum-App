@@ -21,6 +21,8 @@
 .wiz-lede { color: var(--muted); font-size: var(--t-small); margin: 0 0 var(--s-4); }
 .wiz-hint { color: var(--faint); font-size: var(--t-small); margin: var(--s-3) 0 0; }
 .wiz-empty { color: var(--faint); text-align: center; padding: var(--s-5) 0; }
+.wiz-poster-line { color: var(--muted); font-size: var(--t-small); margin: var(--s-3) 0 0; }
+.wiz-poster-line strong { color: var(--text); }
 .wiz-actions { display: flex; gap: var(--s-2); justify-content: flex-end; margin-top: var(--s-4); }
 .wiz-actions-stack { flex-direction: column; align-items: stretch; }
 
@@ -145,6 +147,14 @@
 .wiz-style-on { border-color: var(--violet-soft); background: rgba(139, 92, 246, .16); }
 .wiz-style:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
 .wiz-style-emoji { font-size: 22px; line-height: 1; }
+
+.wiz-poster-fields { display: grid; gap: var(--s-2); }
+.wiz-input {
+  width: 100%; padding: var(--s-3); border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font-family: var(--sans); font-size: var(--t-body);
+}
+.wiz-input:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
 
 .wiz-formats { display: flex; gap: var(--s-2); }
 .wiz-format {

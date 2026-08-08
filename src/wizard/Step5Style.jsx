@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { STYLES } from "../lib/styles.js";
 import { beatsForCount } from "../lib/beats.js";
-import { buildReferences, buildImagePrompt } from "../lib/promptBuilder.js";
+import { buildReferences, buildImagePrompt, buildPosterPrompt } from "../lib/promptBuilder.js";
 import { generate } from "../lib/api.js";
 import { mapWithLimit } from "../lib/parallel.js";
 import { priceForImages, PRICES, IMAGE_COUNTS } from "../lib/pricing.js";
@@ -20,6 +20,11 @@ export default function Step5Style({ w, patch }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(0);
   const [done, setDone] = useState(0);
+  // Re-entry guard. `busy` cannot do this job: it is state, so it is still
+  // false for a second call that arrives in the same tick — and two runs mean
+  // the credits are spent twice and every image is rendered twice. Seen for
+  // real on 08.08.: one press produced six /api/generate calls.
+  const running = useRef(false);
 
   const isFilm = w.mode === "film";
   const count = isFilm ? 1 : w.imageCount;
@@ -34,8 +39,10 @@ export default function Step5Style({ w, patch }) {
   }, [busy]);
 
   async function run() {
+    if (running.current) return;
     const paid = spend(state, price);
     if (!paid) return toast(t.wizard.noCredits);
+    running.current = true;
     setBusy(true);
     setDone(0);
     setMsg(0);
@@ -43,18 +50,33 @@ export default function Step5Style({ w, patch }) {
     // Everything below is local: no LLM call. The beats came from the single
     // analysis, the style is a constant, the reference clauses are built from
     // what the person assigned.
-    const beats = beatsForCount(w.analysis?.beats || [w.text], count);
     const { references, clauses } = buildReferences(assignments);
+
+    // The poster replaces the first image (same count, same price). With a
+    // film, the poster IS the keyframe that gets animated — the clip opens
+    // like a title sequence. No title (analysis empty, field cleared) means
+    // no poster: plain scene images as before.
+    const title = (w.title || "").trim();
+    const withPoster = title.length > 0;
+    const sceneCount = withPoster ? count - 1 : count;
+    const beats = sceneCount > 0 ? beatsForCount(w.analysis?.beats || [w.text], sceneCount) : [];
+    const allBeats = w.analysis?.beats || [w.text];
+    const jobs = withPoster ? ["__poster__", ...beats] : beats;
 
     try {
       // Rendering runs a few at a time, not one after another: sequentially,
       // ten images meant minutes of staring at a spinner. The cap keeps us
       // from firing ten simultaneous paid calls at the provider.
-      const perImage = await mapWithLimit(beats, GENERATION_WINDOW, async (beat, i) => {
-        const prompt = buildImagePrompt({
-          beat, styleId: w.styleId, format: w.format,
-          clauses, index: i + 1, total: beats.length,
-        });
+      const perImage = await mapWithLimit(jobs, GENERATION_WINDOW, async (beat, i) => {
+        const prompt = beat === "__poster__"
+          ? buildPosterPrompt({
+              title, tagline: (w.tagline || "").trim(),
+              essence: allBeats.join(" "), styleId: w.styleId, format: w.format, clauses,
+            })
+          : buildImagePrompt({
+              beat, styleId: w.styleId, format: w.format,
+              clauses, index: withPoster ? i : i + 1, total: beats.length,
+            });
         const got = await generate({
           dream: w.text,
           mode: isFilm ? "film" : "image",
@@ -70,6 +92,7 @@ export default function Step5Style({ w, patch }) {
       console.error("[DreamRushes] generation failed:", err);
       toast(`⚠ ${err.message}`);
     }
+    running.current = false;
     setBusy(false);
   }
 
@@ -99,6 +122,30 @@ export default function Step5Style({ w, patch }) {
             <span>{s.label}</span>
           </button>
         ))}
+      </div>
+
+      {/* The poster opens every dream (it replaces the first image, so the
+          count and price stay untouched). Clearing the title is the opt-out:
+          no title, no poster. */}
+      <h2 className="wiz-sub">{t.wizard.step5.posterLabel}</h2>
+      <div className="wiz-poster-fields">
+        <input
+          className="wiz-input"
+          value={w.title}
+          onChange={(e) => patch({ title: e.target.value })}
+          placeholder={t.wizard.step5.posterTitlePlaceholder}
+          maxLength={60}
+          aria-label={t.wizard.step5.posterTitleLabel}
+        />
+        <input
+          className="wiz-input"
+          value={w.tagline}
+          onChange={(e) => patch({ tagline: e.target.value })}
+          placeholder={t.wizard.step5.posterTaglinePlaceholder}
+          maxLength={120}
+          aria-label={t.wizard.step5.posterTaglineLabel}
+        />
+        <p className="wiz-hint">{t.wizard.step5.posterHint}</p>
       </div>
 
       <h2 className="wiz-sub">{t.wizard.step5.formatLabel}</h2>

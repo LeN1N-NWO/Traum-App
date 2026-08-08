@@ -11,6 +11,8 @@
  * ratio at generation time, which is why 9:16 is the default.
  */
 
+import { mediaUrl } from "./api.js";
+
 export function canShareFiles() {
   return typeof navigator !== "undefined" &&
          typeof navigator.canShare === "function" &&
@@ -21,7 +23,7 @@ export function canShareFiles() {
 async function toFiles(urls, title) {
   const files = [];
   for (let i = 0; i < urls.length; i++) {
-    const res = await fetch(urls[i]);
+    const res = await fetch(mediaUrl(urls[i]));
     if (!res.ok) throw new Error(`Could not fetch image ${i + 1}.`);
     const blob = await res.blob();
     const ext = blob.type.includes("video") ? "mp4" : "png";
@@ -53,7 +55,7 @@ export function downloadAll(urls, title) {
   const base = (title || "dream").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   urls.forEach((url, i) => {
     const a = document.createElement("a");
-    a.href = url;
+    a.href = mediaUrl(url);
     a.download = `${base}-${i + 1}`;
     a.target = "_blank";
     a.rel = "noopener";

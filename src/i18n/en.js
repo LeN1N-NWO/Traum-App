@@ -174,14 +174,19 @@ export default {
     // data; people are entitled to know where those go. Model names are a
     // different matter and stay out of the UI.
     privacy: "Your dream text goes to fal.ai (and DeepSeek, to help write the prompt). " +
-             "Reference photos go to fal.ai only. Your journal stays on this device.",
+             "Reference photos and voice recordings go to fal.ai only. Your journal stays on this device.",
     submit: "✦ Summon the dream",
     submitting: "Summoning…",
     tooShort: "⚠ Write a little more first.",
     caught: (name) => `✦ ${name} joined your menagerie`,
     voiceReady: "🎙 voice ready",
     voiceListening: "● listening…",
+    voiceTranscribing: "✍ writing it down…",
     voiceLabel: "Speak your dream",
+    voiceErrors: {
+      MIC_DENIED: "⚠ Microphone access was blocked. Allow it in your browser settings.",
+      READ_FAILED: "⚠ Could not read the recording. Try again.",
+    },
     loading: [
       "Developing your rushes…",
       "Editing the fog…",
@@ -264,6 +269,14 @@ export default {
       formatLabel: "Format",
       portrait: "Phone, stories",
       landscape: "Widescreen",
+      posterLabel: "The poster",
+      posterTitleLabel: "Film title",
+      posterTitlePlaceholder: "Title on the poster",
+      posterTaglineLabel: "Tagline",
+      posterTaglinePlaceholder: "One line that sells the dream (optional)",
+      posterHint: "Your dream opens like a film: the first image is its poster, " +
+                  "with this title on it. Clear the title if you'd rather have " +
+                  "scene images only.",
       generate: "Create it",
       progress: (done, total) => `${done} of ${total} done`,
       summaryImages: (n) => `${n} images in one continuous sequence.`,

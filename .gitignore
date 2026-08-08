@@ -23,3 +23,7 @@ Thumbs.db
 # Demo-Medien liegen seit dem Vite-Umbau in public/clips/ und werden von
 # dort nach dist/clips/ kopiert.
 public/clips/*.mp4
+
+# Lokale Kopien der erzeugten Bilder/Filme (server.js legt sie an).
+# Gehören dem jeweiligen Gerät, nicht dem Repository.
+media/

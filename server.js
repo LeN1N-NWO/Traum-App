@@ -57,6 +57,9 @@ const FAL_MODEL_IMAGE_EDIT = process.env.FAL_MODEL_IMAGE_EDIT || `${FAL_MODEL_IM
 // the exact slug in the fal.ai dashboard before production use, model IDs
 // there are usually namespaced (e.g. "fal-ai/minimax/...").
 const FAL_MODEL_VIDEO = process.env.FAL_MODEL_VIDEO || "minimax/h3/image-to-video";
+// Whisper v3 as hosted by fal.ai — used by /api/transcribe (dictation). Slug
+// confirmed against fal.ai/models/fal-ai/wizper on 2026-08-08.
+const FAL_MODEL_STT = process.env.FAL_MODEL_STT || "fal-ai/wizper";
 
 // DeepSeek-V4-Flash: OpenAI-compatible chat completions API, text-only (no
 // image input on the public API as of writing). Used purely to turn the dream
@@ -240,7 +243,7 @@ async function refineDream(dream, mode) {
 // Everything after this — assigning avatars, splitting beats into 3/5/10
 // images, picking a style template, assembling the master prompt — is local
 // logic with no further model calls. That is the whole token-economy design.
-const ANALYSIS_STYLES = ["dreamlike", "romantic", "dark", "surreal", "nostalgic", "adventurous"];
+const ANALYSIS_STYLES = ["ultrareal", "noir", "dreamlike", "romantic", "dark", "surreal", "nostalgic", "adventurous"];
 const MAX_ANALYSIS_ITEMS = 8;   // people or places; more is noise, not signal
 const ANALYSIS_BEATS = 5;       // fixed: 3/5/10 images are all derived from these
 
@@ -265,8 +268,10 @@ Schema (every key is required, exactly these names):
   ],
   "places": string[],      // every distinct location, in order, in the dream's language
   "beats": string[],       // EXACTLY 5 short scene descriptions, in order — ALWAYS IN ENGLISH
-  "style": string,         // one of: dreamlike, romantic, dark, surreal, nostalgic, adventurous
-  "mood": string           // one or two words, in the dream's language
+  "style": string,         // one of: ultrareal, noir, dreamlike, romantic, dark, surreal, nostalgic, adventurous
+  "mood": string,          // one or two words, in the dream's language
+  "title": string,         // a film title for this dream: 1-4 evocative words, in the dream's language, no quotes
+  "tagline": string        // one short poster tagline (under 10 words), in the dream's language — like "Nothing on earth could come between them."
 }
 
 Why the language split matters: "text", "people[].name", "places" and "mood" are SHOWN to the person and must stay in the language they wrote in — a German dream gets a German improved text. "beats" are rendering instructions for an image model and must be English regardless of the dream's language.
@@ -277,7 +282,9 @@ Rules for "people": include the dreamer only if they appear as a visible charact
 
 Rules for "places": one entry per distinct location. A dream that moves from a bedroom to the sky over the sea has TWO places. Empty array if there is no discernible location.
 
-Rules for "beats": exactly 5, always, even for a short dream — split it evenly. Each beat is one English sentence describing what is SEEN, not felt. Refer to people by their "name" so the app can bind reference images.`;
+Rules for "beats": exactly 5, always, even for a short dream — split it evenly. Each beat is one English sentence describing what is SEEN, not felt. Refer to people by their "name" so the app can bind reference images.
+
+Rules for "title" and "tagline": they go on a film poster for this dream. The title is what a great director would call this film — short, concrete, evocative; never generic ("My Dream", "A Strange Night" are failures). The tagline is one line that makes a stranger want to watch — it hints at the emotional core without summarising the plot. Both stay in the dream's language.`;
 
 /** One DeepSeek call → the structured shape the wizard runs on. */
 async function analyzeDream(dream) {
@@ -367,6 +374,12 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
     beats,
     style,
     mood: sanitizeFragment(parsed.mood || "", 40),
+    // Poster text. Both are SHOWN (dream's language) and later embedded in a
+    // prompt we build, so they get the fragment treatment: quotes and brackets
+    // stripped, length pinned. Empty is legal — the client then falls back to
+    // plain scene images instead of a poster.
+    title: sanitizeFragment(parsed.title || "", 60),
+    tagline: sanitizeFragment(parsed.tagline || "", 120),
   };
 }
 
@@ -423,6 +436,94 @@ async function falGenerateVideo({ imageUrl, prompt }) {
   const url = data?.video?.url;
   if (!url) throw new Error("GENERATION_FAILED");
   return [url];
+}
+
+// Dictation: the client records audio (MediaRecorder) and sends it as a
+// base64 data URI; Wizper auto-detects the spoken language, so German and
+// English both come back as written text without a language toggle.
+async function falTranscribe(audioDataUri) {
+  const key = process.env.FAL_KEY;
+  if (!key) throw new Error("NO_FAL_KEY");
+
+  const res = await fetch(`https://fal.run/${FAL_MODEL_STT}`, {
+    method: "POST",
+    headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({ audio_url: audioDataUri, task: "transcribe" }),
+  });
+  if (!res.ok) {
+    console.error("[DreamRushes] fal.ai transcribe request failed:", res.status, await res.text().catch(() => ""));
+    throw new Error("TRANSCRIBE_FAILED");
+  }
+  const data = await res.json().catch(() => null);
+  const text = data?.text;
+  if (typeof text !== "string") throw new Error("TRANSCRIBE_FAILED");
+  return text;
+}
+
+// ---- local media copies ----
+// fal.ai hands back URLs on ITS hosting, with no promise about how long they
+// stay reachable. A dream journal that quietly empties out months later is
+// worthless, so every generated file is copied here and the journal is given
+// the local path instead. The fal URL is the fallback, not the record.
+const MEDIA_DIR = resolve(import.meta.dir, "media");
+const MEDIA_TYPES = {
+  "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp",
+  "video/mp4": "mp4", "video/quicktime": "mp4",
+};
+const MEDIA_MIME = { png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp4: "video/mp4" };
+const MAX_MEDIA_BYTES = 60 * 1024 * 1024;
+
+/** Copy one generated file locally. Returns "/media/<name>", or null to keep
+ *  using the provider URL — a failed copy must never fail the generation the
+ *  person already paid for. */
+async function storeMedia(url) {
+  try {
+    if (!/^https:\/\//.test(url)) return null;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const ext = MEDIA_TYPES[(res.headers.get("content-type") || "").split(";")[0].trim()];
+    if (!ext) return null;
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (!bytes.length || bytes.length > MAX_MEDIA_BYTES) return null;
+    // Named from a hash of the content, so the filename can never carry
+    // anything the model or the client chose.
+    const name = `${Bun.hash(bytes).toString(36)}.${ext}`;
+    await Bun.write(resolve(MEDIA_DIR, name), bytes);
+    return `/media/${name}`;
+  } catch (e) {
+    console.error("[DreamRushes] could not store media locally:", e.message);
+    return null;
+  }
+}
+
+async function storeAll(urls) {
+  return Promise.all(urls.map(async (u) => (await storeMedia(u)) || u));
+}
+
+// Only ever serves files this server wrote: the name must be exactly the
+// hash-plus-extension shape produced above, so nothing else is addressable.
+const MEDIA_NAME = /^\/media\/([a-z0-9]{1,20}\.(png|jpg|webp|mp4))$/;
+/** The filename a /media/ request resolves to, or null. Exported so the
+ *  serving rules can be tested without the network. */
+export function resolveMedia(pathname) {
+  let rel;
+  try { rel = decodeURIComponent(pathname); } catch { return null; }  // malformed %-escape
+  const hit = MEDIA_NAME.exec(rel);
+  return hit ? { name: hit[1], ext: hit[2] } : null;
+}
+
+async function serveMedia(pathname) {
+  const hit = resolveMedia(pathname);
+  if (!hit) return new Response("Not found", { status: 404 });
+  const file = Bun.file(resolve(MEDIA_DIR, hit.name));
+  if (!(await file.exists())) return new Response("Not found", { status: 404 });
+  return new Response(file, {
+    headers: {
+      "content-type": MEDIA_MIME[hit.ext],
+      // Content-addressed names never change meaning, so they cache forever.
+      "cache-control": "public, max-age=31536000, immutable",
+    },
+  });
 }
 
 // ---- orchestration ----
@@ -543,6 +644,33 @@ Bun.serve({
       }
     }
 
+    if (url.pathname === "/api/transcribe" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Recording too large." }, 413);
+        }
+        const body = await req.json();
+        // Only a data URI is accepted — never a URL. Forwarding a
+        // client-supplied URL to fal.ai would make this route a fetch-proxy
+        // for whatever address the client names (SSRF by delegation).
+        const audio = typeof body.audio === "string" ? body.audio : "";
+        if (!/^data:audio\/[\w.+-]+;base64,/.test(audio)) {
+          return json({ error: "Expected a base64 audio data URI." }, 400);
+        }
+        const text = sanitizePromptText(await falTranscribe(audio));
+        return json({ ok: true, text });
+      } catch (e) {
+        const map = {
+          NO_FAL_KEY: [503, "Backend has no fal.ai key. Set FAL_KEY and restart."],
+          TRANSCRIBE_FAILED: [502, "Could not transcribe that recording. Try again."],
+        };
+        const hit = map[e.message];
+        if (hit) return json({ error: hit[1] }, hit[0]);
+        console.error("[DreamRushes] /api/transcribe failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
     if (url.pathname === "/api/generate" && req.method === "POST") {
       try {
         if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
@@ -585,7 +713,9 @@ Bun.serve({
         const urls = isFilm
           ? await generateVideo({ dream, namedRefs: cast, prompt })
           : await generateImages({ dream, namedRefs: cast, prompt });
-        return json({ ok: true, urls });
+        // Hand back local paths where the copy worked, provider URLs where it
+        // did not — the client stores whatever it gets.
+        return json({ ok: true, urls: await storeAll(urls) });
       } catch (e) {
         const map = {
           NO_FAL_KEY: [503, "Backend has no fal.ai key. Set FAL_KEY and restart."],
@@ -598,6 +728,8 @@ Bun.serve({
         return json({ error: "Server error." }, 500);
       }
     }
+
+    if (url.pathname.startsWith("/media/")) return serveMedia(url.pathname);
 
     return serveStatic(url.pathname);
   },

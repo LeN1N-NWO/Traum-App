@@ -68,3 +68,46 @@ test("an unknown style falls back rather than breaking", () => {
   const prompt = buildImagePrompt({ beat: "A door.", styleId: "nonsense", format: "9:16" });
   expect(prompt).toContain("dreamlike realism");
 });
+
+// — the poster —
+
+import { buildPosterPrompt } from "./promptBuilder.js";
+import { STYLES } from "./styles.js";
+
+test("the poster carries title, tagline, essence and the style's archetype", () => {
+  const prompt = buildPosterPrompt({
+    title: "Der lila Ozean", tagline: "Manche Träume tragen dich.",
+    essence: "Anton flies over a purple ocean.", styleId: "romantic", format: "9:16",
+  });
+  expect(prompt).toContain('the title "Der lila Ozean"');
+  expect(prompt).toContain('the tagline "Manche Träume tragen dich."');
+  expect(prompt).toContain("Anton flies over a purple ocean.");
+  expect(prompt).toContain("overlapping montage");        // romantic archetype
+  expect(prompt).toContain("billing block");
+  expect(prompt).toContain("9:16 vertical one-sheet");
+});
+
+test("an empty tagline drops the tagline line entirely", () => {
+  const prompt = buildPosterPrompt({
+    title: "Falling", tagline: "", essence: "x", styleId: "dark", format: "9:16",
+  });
+  expect(prompt).not.toContain("tagline");
+  expect(prompt).toContain('the title "Falling"');
+});
+
+test("poster reference clauses ride along so faces match the avatars", () => {
+  const { clauses } = buildReferences([anton]);
+  const prompt = buildPosterPrompt({
+    title: "T", tagline: "", essence: "x", styleId: "ultrareal", format: "9:16", clauses,
+  });
+  expect(prompt).toContain("Reference image 1");
+  expect(prompt).toContain("@anton");
+});
+
+test("every style declares a complete poster spec", () => {
+  for (const s of STYLES) {
+    expect(s.poster?.archetype?.length).toBeGreaterThan(0);
+    expect(s.poster?.lettering?.length).toBeGreaterThan(0);
+    expect(s.poster?.palette?.length).toBeGreaterThan(0);
+  }
+});

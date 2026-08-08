@@ -70,5 +70,35 @@ for (const p of MUST_BLOCK) {
   else console.log("ok    sperren:   ", JSON.stringify(p), "-> 404");
 }
 
-console.log(fail ? `\n✗ ${fail} Fehlschläge` : `\n✓ alle ${MUST_SERVE.length + MUST_BLOCK.length} Prüfungen bestanden`);
+// — /media/: die lokal aufbewahrten Kopien der erzeugten Bilder/Filme —
+// Eigener Zweig im Server, also eigene Prüfung. Die Namen erzeugt server.js
+// selbst aus einem Inhalts-Hash; alles, was nicht genau diese Form hat, muss
+// abprallen — sonst wäre /media/ ein zweiter Weg ins Dateisystem.
+const nameLine = extract(/^const MEDIA_NAME = .*$/m, "MEDIA_NAME");
+const mediaSrc = extract(/export function resolveMedia\(pathname\) \{[\s\S]*?\n\}/, "resolveMedia()")
+  .replace("export function", "function");
+const resolveMedia = new Function(`${nameLine}\n${mediaSrc}\nreturn resolveMedia;`)();
+
+const MEDIA_SERVE = ["/media/a1b2c3.png", "/media/xyz789.mp4", "/media/f0.webp", "/media/aa.jpg"];
+const MEDIA_BLOCK = [
+  "/media/../.env", "/media/..%2f.env", "/media/../../server.js",
+  "/media/%2e%2e/%2e%2e/etc/passwd", "/media/sub/dir.png",
+  "/media/a1b2c3.js", "/media/a1b2c3.exe", "/media/a1b2c3", "/media/.env",
+  "/media/A1B2C3.png",                    // Grossbuchstaben erzeugen wir nie
+  "/media/aaaaaaaaaaaaaaaaaaaaaaaaa.png", // laenger als jeder Hash-Name
+  "/media/", "/media/%00.png",
+];
+for (const p of MEDIA_SERVE) {
+  const r = resolveMedia(p);
+  if (!r) { fail++; console.log("FAIL  ausliefern:", JSON.stringify(p), "-> 404"); }
+  else console.log("ok    ausliefern:", JSON.stringify(p), "->", r.name);
+}
+for (const p of MEDIA_BLOCK) {
+  const r = resolveMedia(p);
+  if (r) { fail++; console.log("FAIL  sperren:   ", JSON.stringify(p), "-> AUSGELIEFERT:", r.name); }
+  else console.log("ok    sperren:   ", JSON.stringify(p), "-> 404");
+}
+
+const total = MUST_SERVE.length + MUST_BLOCK.length + MEDIA_SERVE.length + MEDIA_BLOCK.length;
+console.log(fail ? `\n✗ ${fail} Fehlschläge` : `\n✓ alle ${total} Prüfungen bestanden`);
 process.exit(fail ? 1 : 0);

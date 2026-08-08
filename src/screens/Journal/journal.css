@@ -6,21 +6,46 @@
 }
 .j-search:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
 
-.j-list { display: flex; flex-direction: column; gap: var(--s-3); }
-.j-card { display: flex; gap: var(--s-4); align-items: flex-start; }
-.j-date { display: flex; flex-direction: column; align-items: center; flex: 0 0 42px; }
-.j-day { font-size: var(--t-h2); font-weight: 600; line-height: 1; }
-.j-month { font-size: var(--t-micro); color: var(--faint); text-transform: uppercase; letter-spacing: .08em; }
-.j-body { flex: 1; min-width: 0; }
-.j-title { font-size: var(--t-h3); font-weight: 600; margin: 0 0 var(--s-1); }
-.j-text {
-  color: var(--muted); font-size: var(--t-small); margin: 0;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+.j-list { display: flex; flex-direction: column; gap: var(--s-4); }
+
+/* — the list as poster tiles — */
+.j-tile {
+  position: relative; display: block; width: 100%; aspect-ratio: 4 / 5;
+  padding: 0; overflow: hidden; cursor: pointer; text-align: left;
+  border: 1px solid var(--panel-line); border-radius: var(--radius-lg);
+  background: var(--sky); color: var(--text); font-family: var(--sans);
 }
-.j-thumb { width: 54px; height: 54px; border-radius: 12px; object-fit: cover; flex: 0 0 54px; }
-.j-video {
-  display: flex; align-items: center; justify-content: center;
-  background: var(--sky); font-size: 22px;
+.j-tile:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 3px; }
+.j-tile-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.j-tile-blank {
+  position: absolute; inset: 0;
+  background: linear-gradient(160deg, var(--sky), var(--bg2) 70%);
+}
+/* Two stops rather than one: a single fade leaves the title sitting on the
+   busiest part of the image. This keeps the lower third genuinely dark. */
+.j-tile-scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(11,7,24,.92) 0%, rgba(11,7,24,.72) 26%, rgba(11,7,24,0) 62%);
+}
+.j-tile-date {
+  position: absolute; top: var(--s-3); left: var(--s-3);
+  padding: 5px 11px; border-radius: 999px;
+  background: rgba(11,7,24,.55); backdrop-filter: blur(8px);
+  border: 1px solid var(--panel-line);
+  font-size: var(--t-micro); text-transform: uppercase; letter-spacing: .08em;
+}
+.j-tile-body {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; flex-direction: column; gap: 5px;
+  padding: var(--s-4) var(--s-4) var(--s-5);
+}
+.j-tile-title {
+  font-family: var(--serif); font-size: 27px; line-height: 1.15; letter-spacing: -.01em;
+  text-wrap: balance;
+}
+.j-tile-sub {
+  color: rgba(244,241,255,.72); font-size: var(--t-small); line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .j-empty { color: var(--faint); text-align: center; padding: var(--s-6) 0; }
 
@@ -29,22 +54,48 @@
   backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center;
 }
 .j-modal {
-  position: relative; width: 100%; max-width: 680px; max-height: 88vh; overflow-y: auto;
+  position: relative; width: 100%; max-width: 680px; max-height: 92vh; overflow-y: auto;
   background: var(--bg2); border: 1px solid var(--panel-line);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: var(--s-6) var(--s-4) calc(env(safe-area-inset-bottom) + var(--s-6));
+  padding: 0;
 }
+.j-content { padding: var(--s-5) var(--s-4) calc(env(safe-area-inset-bottom) + var(--s-6)); }
+
+/* — detail: the hero — */
+.j-hero { position: relative; height: 46vh; min-height: 260px; overflow: hidden; }
+.j-hero-img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  /* Top-biased crop: on a poster the rendered title sits in the lower third,
+     so keeping to the upper part shows the artwork and leaves the type below
+     the fold — the app's own title then has the space to itself. */
+  object-position: center 32%;
+}
+.j-hero-blank { position: absolute; inset: 0; background: linear-gradient(160deg, var(--sky), var(--bg2) 70%); }
+.j-hero-scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, var(--bg2) 0%, rgba(21,15,48,.86) 22%, rgba(21,15,48,.25) 58%, rgba(21,15,48,.45) 100%);
+}
+.j-hero-meta { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 var(--s-4) var(--s-4); }
+.j-hero-title {
+  font-family: var(--serif); font-size: clamp(28px, 7.5vw, 40px); font-weight: 400;
+  line-height: 1.1; letter-spacing: -.015em; margin: 0; text-wrap: balance;
+}
+.j-hero-tagline { color: rgba(244,241,255,.74); font-size: var(--t-small); margin: var(--s-2) 0 0; }
+
 .j-close {
   width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
-  background: var(--panel); border: 1px solid var(--panel-line);
+  background: rgba(11,7,24,.55); backdrop-filter: blur(8px);
+  border: 1px solid var(--panel-line);
   color: var(--text); font-size: 19px;
 }
 .j-close:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
-.j-modal-date { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-1); }
-.j-modal-title { font-size: var(--t-h2); font-weight: 600; margin: 0 0 var(--s-4); }
+.j-modal-date {
+  color: var(--muted); font-size: var(--t-micro); margin: 0 0 var(--s-2);
+  text-transform: uppercase; letter-spacing: .1em;
+}
 .j-media { display: flex; flex-direction: column; gap: var(--s-2); margin-bottom: var(--s-4); }
 .j-media img, .j-media video { width: 100%; border-radius: var(--radius); display: block; }
-.j-modal-text { white-space: pre-wrap; margin: 0 0 var(--s-4); }
+.j-modal-text { white-space: pre-wrap; margin: 0 0 var(--s-5); font-size: 17px; line-height: 1.62; }
 .j-references { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-4); }
 
 /* — detail: tools, menu, editing, refine proposal — */

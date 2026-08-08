@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Button from "../../components/Button.jsx";
 import { useAppState } from "../../state/AppState.jsx";
-import { refine } from "../../lib/api.js";
+import { refine, mediaUrl } from "../../lib/api.js";
 import { spend } from "../../lib/credits.js";
 import { PRICES } from "../../lib/pricing.js";
 import { shareDream, downloadAll, canShareFiles } from "../../lib/share.js";
@@ -93,6 +93,8 @@ export default function JournalDetail({ entry, onClose }) {
 
   const d = new Date(entry.createdAt);
   const urls = entry.media?.urls || [];
+  const isVideo = entry.media?.type === "video";
+  const hero = mediaUrl(urls[0]) || null;
 
   return (
     <div className="j-backdrop" onClick={onClose}>
@@ -103,20 +105,32 @@ export default function JournalDetail({ entry, onClose }) {
         aria-label={entry.title || t.journal.untitled}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="j-modal-tools">
-          <button className="j-close" onClick={() => setMenuOpen(true)} aria-label={t.journal.menu}>⋯</button>
-          <button ref={closeRef} className="j-close" onClick={onClose} aria-label={t.journal.close}>×</button>
+        {/* The dream opens with its own image behind the title. The hero is a
+            CROP of the first image (top-biased), which is why the app draws
+            the title itself: on a poster the rendered title sits in the lower
+            third, below this crop, so the two never collide. The full poster
+            is still right there in the carousel underneath. */}
+        <div className="j-hero">
+          {hero && !isVideo && <img className="j-hero-img" src={hero} alt="" />}
+          {hero && isVideo && <video className="j-hero-img" src={hero} muted loop autoPlay playsInline />}
+          {!hero && <div className="j-hero-blank" aria-hidden="true" />}
+          <div className="j-hero-scrim" aria-hidden="true" />
+
+          <div className="j-modal-tools">
+            <button className="j-close" onClick={() => setMenuOpen(true)} aria-label={t.journal.menu}>⋯</button>
+            <button ref={closeRef} className="j-close" onClick={onClose} aria-label={t.journal.close}>×</button>
+          </div>
+
+          <div className="j-hero-meta">
+            <p className="j-modal-date">
+              {d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+            </p>
+            <h2 className="j-hero-title">{entry.title || t.journal.untitled}</h2>
+            {entry.tagline && <p className="j-hero-tagline">{entry.tagline}</p>}
+          </div>
         </div>
 
-        <p className="j-modal-date">
-          {d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-        </p>
-        <h2 className="j-modal-title">{entry.title || t.journal.untitled}</h2>
-
-        {urls.length > 0 && (
-          <MediaCarousel urls={urls} type={entry.media.type} />
-        )}
-
+        <div className="j-content">
         {busy && <p className="j-working">{t.journal.working}</p>}
 
         {proposal ? (
@@ -147,6 +161,10 @@ export default function JournalDetail({ entry, onClose }) {
           <p className="j-modal-text">{entry.text}</p>
         )}
 
+        {/* Every image, the poster included, seen whole and uncropped —
+            the hero above only ever shows a crop of the first one. */}
+        {urls.length > 0 && <MediaCarousel urls={urls} type={entry.media.type} />}
+
         {entry.references?.length > 0 && (
           <p className="j-references">
             {t.journal.referencesUsed} {entry.references.map((r) => "@" + r.tag).join(", ")}
@@ -168,6 +186,7 @@ export default function JournalDetail({ entry, onClose }) {
             )}
           </div>
         )}
+        </div>
 
         {menuOpen && (
           <EntryMenu

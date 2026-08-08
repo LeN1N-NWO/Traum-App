@@ -7,7 +7,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    proxy: { "/api": "http://127.0.0.1:8100" },
+    // /media sind die lokal aufbewahrten Kopien der erzeugten Bilder und
+    // Filme — sie liefert server.js, also muss der Dev-Server auch dorthin
+    // durchreichen.
+    proxy: { "/api": "http://127.0.0.1:8100", "/media": "http://127.0.0.1:8100" },
   },
   build: { outDir: "dist", emptyOutDir: true },
 });

@@ -31,6 +31,8 @@ const EMPTY = {
   step: 1,
   text: "",
   originalText: "",
+  title: "",           // film title for the poster, editable in step 5
+  tagline: "",         // poster tagline, editable in step 5
   analysis: null,
   mode: null,          // "save" | "images" | "film"
   imageCount: 5,

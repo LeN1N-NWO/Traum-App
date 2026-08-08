@@ -20,6 +20,9 @@
   --t-hero:clamp(30px,7vw,48px); --t-h2:22px; --t-h3:16px;
   --t-body:15px; --t-small:13px; --t-micro:11px;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+  /* Poster/editorial voice for dream titles. System faces only — a webfont
+     would cost a download for the two places this is used. */
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
 
   /* New: spacing as a scale rather than one-off values, and the tab bar
      height as a variable — screens need it for their bottom padding, or the

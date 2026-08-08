@@ -8,6 +8,19 @@ import { t } from "../i18n/index.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
+/* Where a stored media path actually lives.
+ *
+ * Generated files are kept by the server and referenced as "/media/<name>",
+ * which is what goes into the journal: a relative path survives the server
+ * moving or the app being wrapped, an absolute one would not. It is resolved
+ * against API_BASE here, at render time — a Capacitor bundle does not run on
+ * the server's origin. Anything else (an old fal.ai URL, a data URI) is
+ * handed back untouched.
+ */
+export function mediaUrl(u) {
+  return typeof u === "string" && u.startsWith("/media/") ? `${API_BASE}${u}` : u;
+}
+
 async function post(path, body) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
@@ -29,6 +42,13 @@ export async function analyze(dream) {
 /** Rework an existing dream. mode: "correct" | "rewrite" | "elaborate". */
 export async function refine(dream, mode) {
   const data = await post("/api/refine", { dream, mode });
+  if (typeof data?.text !== "string") throw new Error(t.errors.unexpected);
+  return data.text;
+}
+
+/** Dictation: audio as a base64 data URI in, spoken words as text out. */
+export async function transcribe(audio) {
+  const data = await post("/api/transcribe", { audio });
   if (typeof data?.text !== "string") throw new Error(t.errors.unexpected);
   return data.text;
 }

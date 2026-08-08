@@ -25,7 +25,10 @@ export default function Step6Result({ w }) {
       createdAt: new Date().toISOString(),
       text: w.text,
       originalText: w.originalText || w.text,
-      title: creature.title,
+      // The analysis names the dream like a film; the creature name stays the
+      // fallback for the (rare) path where no title came back.
+      title: (w.title || "").trim() || creature.title,
+      tagline: (w.tagline || "").trim(),
       mode: w.mode,
       style: w.styleId,
       format: w.format,

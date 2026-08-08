@@ -15,7 +15,12 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);   // the analysis awaiting a decision
   const [card, setCard] = useState(null);         // the tag being looked at, if any
-  const voice = useVoiceInput({ onText: (text) => patch({ text }) });
+  const voice = useVoiceInput({
+    onText: (text) => patch({ text }),
+    // MIC_DENIED / READ_FAILED are our own codes; anything else is already a
+    // user-facing message from the server (same contract as analyze/refine).
+    onError: (msg) => toast(t.dream.voiceErrors[msg] || `⚠ ${msg}`),
+  });
 
   const clean = w.text.trim();
 
@@ -58,14 +63,20 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
 
   /** Keep the improved wording. The original is preserved either way. */
   function accept() {
-    patch({ text: preview.text, originalText: w.originalText || clean, analysis: preview, step: 2 });
+    patch({
+      text: preview.text, originalText: w.originalText || clean, analysis: preview,
+      title: preview.title || "", tagline: preview.tagline || "", step: 2,
+    });
     seedAssignments(preview);
     setPreview(null);
   }
 
   /** Keep my own words, but still use everything else the analysis found. */
   function keepMine() {
-    patch({ originalText: w.originalText || clean, analysis: { ...preview, text: clean }, step: 2 });
+    patch({
+      originalText: w.originalText || clean, analysis: { ...preview, text: clean },
+      title: preview.title || "", tagline: preview.tagline || "", step: 2,
+    });
     seedAssignments(preview);
     setPreview(null);
   }
@@ -87,6 +98,12 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
           </div>
         </div>
 
+        {preview.title && (
+          <p className="wiz-poster-line">
+            🎬 <strong>{preview.title}</strong>{preview.tagline ? ` — ${preview.tagline}` : ""}
+          </p>
+        )}
+
         <div className="wiz-actions">
           <Button variant="quiet" onClick={keepMine}>{t.wizard.step1.keepMine}</Button>
           <Button onClick={accept}>{t.wizard.step1.useImproved}</Button>
@@ -103,7 +120,9 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
         <span>{t.dream.label}</span>
         {voice.supported && (
           <span className={voice.listening ? "wiz-voice-on" : ""}>
-            {voice.listening ? t.dream.voiceListening : t.dream.voiceReady}
+            {voice.listening ? t.dream.voiceListening
+              : voice.busy ? t.dream.voiceTranscribing
+              : t.dream.voiceReady}
           </span>
         )}
       </div>
@@ -129,6 +148,7 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
         <button
           className={"wiz-mic" + (voice.listening ? " wiz-mic-on" : "")}
           onClick={() => voice.toggle(w.text)}
+          disabled={voice.busy}
           aria-label={t.dream.voiceLabel}
           aria-pressed={voice.listening}
         >

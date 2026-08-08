@@ -42,6 +42,46 @@ export function buildReferences(assignments = []) {
 }
 
 /**
+ * The title card that opens every dream: a theatrical film poster.
+ *
+ * The layout rules are reverse-engineered from seven classic one-sheets
+ * (Titanic, Gladiator, E.T., Pulp Fiction, Léon, They Cloned Tyrone, Risky
+ * Business). What they all share, and what AI posters usually get wrong:
+ * ONE dominant motif (never a collage), a strict vertical hierarchy
+ * (tagline top, motif middle, title in the lower third, billing block at the
+ * bottom), a restricted palette, and typography that carries the genre.
+ * Which archetype the motif follows comes from the style's `poster` field.
+ *
+ * @param {object} p
+ * @param {string} p.title      exact title text, in the dream's language
+ * @param {string} p.tagline    exact tagline text; empty skips the tagline line
+ * @param {string} p.essence    what the dream is about, distilled (English)
+ * @param {string} p.styleId
+ * @param {string} p.format     "9:16" | "16:9"
+ * @param {string[]} p.clauses  from buildReferences() — poster faces are the real avatars
+ */
+export function buildPosterPrompt({ title, tagline, essence, styleId, format, clauses = [] }) {
+  const style = styleById(styleId);
+  const p = style.poster;
+  const framing = format === "16:9" ? "16:9 horizontal one-sheet" : "9:16 vertical one-sheet, standard theatrical poster proportions";
+  const taglineLine = tagline
+    ? `Near the top, in small widely-spaced capitals: the tagline "${tagline}". `
+    : "";
+  const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
+
+  return (
+    `A theatrical film poster for an imaginary film, ${framing}.` +
+    `\nThe film: ${essence}` +
+    `\nCentral motif — commit to exactly ONE dominant visual idea, never a collage: ${p.archetype}.` +
+    `\n${taglineLine}In the lower third, large and unmissable: the title "${title}" in ${p.lettering}. ` +
+    `At the very bottom edge, a fine-print billing block of tiny illegible credit lines, like a real release poster.` +
+    `\nRestricted palette: ${p.palette}.` +
+    `\n${style.prompt}` +
+    `\nRender the title${tagline ? " and tagline" : ""} EXACTLY as given, spelled correctly, as crisp printed typography. No other text, no logos, no watermarks.${refs}`
+  );
+}
+
+/**
  * The prompt for a single image in the sequence.
  * @param {object} p
  * @param {string} p.beat        what this image shows
