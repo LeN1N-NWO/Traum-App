@@ -33,6 +33,11 @@
 
   /* Warm counterpoint, plus the two signal colours. */
   --warm:#f2a765; --gold:#f6c65b; --cyan:#4fd6e6; --ok:#3ddc97;
+  /* The warm gradient every primary control wears. Three stops, not two:
+     a flat orange looks like a swatch, and a two-stop fade still reads as
+     one colour dimmed. Passing through gold at the start and into a deep
+     ember at the end is what makes it look lit rather than painted. */
+  --warm-grad: linear-gradient(135deg, var(--gold) 0%, var(--warm) 46%, #d2683a 100%);
 
   /* Overlays, all derived from the background above. */
   --veil: rgb(var(--bg-rgb) / .82);          /* modal backdrops, the tab bar */

@@ -50,7 +50,7 @@
 .h-cta {
   display: inline-flex; align-items: center; justify-content: center;
   padding: var(--s-4) var(--s-6); border-radius: 999px; border: none; cursor: pointer;
-  background: linear-gradient(160deg, var(--warm), color-mix(in oklab, var(--warm) 74%, #b2542a));
+  background: var(--warm-grad);
   color: var(--bg); font-family: var(--sans); font-size: var(--t-body); font-weight: 700;
   box-shadow: 0 10px 30px rgb(242 167 101 / .3);
 }

@@ -23,7 +23,7 @@
 .pw-brand { font-size: var(--t-small); color: var(--muted); font-weight: 600; }
 .pw-plus {
   display: inline-block; margin-left: 4px; padding: 2px 7px; border-radius: 6px;
-  background: var(--warm); color: var(--bg); font-size: var(--t-micro); font-weight: 700;
+  background: var(--warm-grad); color: var(--bg); font-size: var(--t-micro); font-weight: 700;
   letter-spacing: .06em;
 }
 .pw-title {
@@ -43,7 +43,7 @@
   background: none; border: none; color: var(--muted);
   font-family: var(--sans); font-size: var(--t-small); font-weight: 600;
 }
-.pw-tab-on { background: var(--warm); color: var(--bg); }
+.pw-tab-on { background: var(--warm-grad); color: var(--bg); }
 .pw-tab:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 
 .pw-plans { display: flex; flex-direction: column; gap: var(--s-2); }

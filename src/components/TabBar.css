@@ -28,7 +28,7 @@
 .tabbar-plus {
   flex: 0 0 auto; align-self: flex-start; width: 56px; height: 56px; margin-top: -24px;
   border: none; border-radius: 50%; cursor: pointer;
-  background: linear-gradient(160deg, var(--warm), color-mix(in oklab, var(--warm) 74%, #b2542a));
+  background: var(--warm-grad);
   color: var(--bg); font-size: 28px; line-height: 1;
   /* A ring in the bar's own colour so the raised part reads as sitting in
      front of the bar rather than punched through it. */

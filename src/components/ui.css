@@ -14,7 +14,7 @@
    heavier weight. Dark text on it, because amber is a light colour: white
    on amber fails contrast, near-black passes comfortably. */
 .btn-primary {
-  background: linear-gradient(160deg, var(--warm), color-mix(in oklab, var(--warm) 74%, #b2542a));
+  background: var(--warm-grad);
   color: var(--bg);
 }
 .btn-quiet  { background: var(--panel); border-color: var(--panel-line); color: var(--text); }
