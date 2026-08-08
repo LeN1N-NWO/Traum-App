@@ -8,13 +8,14 @@
   border-top: 1px solid var(--panel-line);
 }
 
+/* Icons only. The tap target stays full height even though the glyph is
+   24px — a 24px target would fail every touch guideline. */
 .tab {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  flex: 1; text-decoration: none; color: var(--faint);
-  font-size: var(--t-micro); padding: var(--s-2) 0;
+  display: flex; align-items: center; justify-content: center;
+  flex: 1; align-self: stretch;
+  text-decoration: none; color: var(--faint);
 }
 .tab-active { color: var(--violet-soft); }
-.tab-icon { font-size: 19px; line-height: 1; }
 .tab:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: -3px; border-radius: 10px; }
 
 .tabbar-plus {

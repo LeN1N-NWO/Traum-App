@@ -1,12 +1,18 @@
 import { NavLink, useNavigate } from "react-router-dom";
+import { IconMoon, IconBook, IconBed, IconSparkle, IconPerson } from "./icons.jsx";
 import { t } from "../i18n/index.js";
 import "./TabBar.css";
 
+/* Icons only, no labels: five tabs plus the centre action do not fit with
+   captions on a narrow phone, and these glyphs carry their own meaning. The
+   label lives on in aria-label and the tooltip, so nothing is lost for screen
+   readers or on hover. */
 const TABS = [
-  { to: "/",        label: t.tabs.home,    icon: "🌙" },
-  { to: "/journal", label: t.tabs.journal, icon: "📖" },
-  { to: "/symbols", label: t.tabs.symbols, icon: "✧" },
-  { to: "/profile", label: t.tabs.profile, icon: "👤" },
+  { to: "/",        label: t.tabs.home,    Icon: IconMoon },
+  { to: "/journal", label: t.tabs.journal, Icon: IconBook },
+  { to: "/sleep",   label: t.tabs.sleep,   Icon: IconBed },
+  { to: "/symbols", label: t.tabs.symbols, Icon: IconSparkle },
+  { to: "/profile", label: t.tabs.profile, Icon: IconPerson },
 ];
 
 /* The centre plus is the established mobile pattern: the core action is one
@@ -28,15 +34,16 @@ export default function TabBar() {
   );
 }
 
-function Tab({ to, label, icon }) {
+function Tab({ to, label, Icon }) {
   return (
     <NavLink
       to={to}
       end={to === "/"}
+      title={label}
+      aria-label={label}
       className={({ isActive }) => "tab" + (isActive ? " tab-active" : "")}
     >
-      <span className="tab-icon" aria-hidden="true">{icon}</span>
-      <span className="tab-label">{label}</span>
+      <Icon />
     </NavLink>
   );
 }

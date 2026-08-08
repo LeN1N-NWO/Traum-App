@@ -5,7 +5,7 @@ import ScreenHeader from "../../components/ScreenHeader.jsx";
 import Card from "../../components/Card.jsx";
 import AvatarList from "./AvatarList.jsx";
 import AvatarDialog from "../../components/AvatarDialog.jsx";
-import LucidGuide from "./LucidGuide.jsx";
+import DreamCalendar from "./DreamCalendar.jsx";
 import "./profile.css";
 
 export default function ProfileScreen() {
@@ -35,8 +35,10 @@ export default function ProfileScreen() {
       <h2 className="p-section">{t.profile.places}</h2>
       <AvatarList category="place" onNew={() => setDialogFor("place")} onEdit={setEditing} />
 
-      <h2 className="p-section">{t.profile.guide}</h2>
-      <LucidGuide />
+      {/* The lucid guide moved to the Sleep tab, where the rest of the free
+          content lives. Statistics start here instead. */}
+      <h2 className="p-section">{t.profile.calendar}</h2>
+      <DreamCalendar />
 
       {dialogFor && (
         <AvatarDialog category={dialogFor} onClose={() => setDialogFor(null)} />

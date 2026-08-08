@@ -13,6 +13,7 @@ export default {
     journal: "Journal",
     symbols: "Symbols",
     profile: "Profile",
+    sleep: "Sleep",
     newDream: "Record a new dream",
   },
 
@@ -34,6 +35,8 @@ export default {
   },
 
   journal: {
+    viewList: "Show as a list",
+    viewDeck: "Show as cards",
     title: "Journal",
     count: (n) => (n === 1 ? "1 dream" : `${n} dreams`),
     search: "Search your dreams…",
@@ -90,7 +93,14 @@ export default {
     people: "People",
     pets: "Pets",
     places: "Places",
-    guide: "Learn to lucid dream",
+    calendar: "Dream calendar",
+    calLabel: "Days with a recorded dream",
+    calPrev: "Previous month",
+    calNext: "Next month",
+    calMonths: ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"],
+    calWeekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+    calDreamt: (day) => `Day ${day}: dream recorded`,
     new: "New",
     deleteLabel: (tag) => `Delete @${tag}`,
     editLabel: (tag) => `Edit @${tag}`,
@@ -292,6 +302,69 @@ export default {
       save: "Save to journal",
       nothing: "Nothing came back. Try again from the last step.",
     },
+  },
+
+  // The free-content tab: nothing behind it costs a credit.
+  // Checklist content follows the sleep-hygiene evidence (light exposure,
+  // body-temperature timing, caffeine half-life, progressive muscle
+  // relaxation, slow breathing) — not folklore.
+  sleep: {
+    title: "Sleep",
+    subtitle: "Everything around the dream — all of it free.",
+    free: "Dreams cost credits. Sleep never will.",
+    tiles: {
+      checklist: {
+        emoji: "🌜",
+        title: "Wind down",
+        text: "Tonight's checklist for falling asleep faster",
+      },
+      sounds: {
+        emoji: "🌊",
+        title: "Sleep sounds",
+        text: "Mix noise colours and let them run",
+      },
+      guide: {
+        emoji: "🧠",
+        title: "Lucid dreaming",
+        text: "Reality checks, MILD, WBTB, journaling",
+      },
+    },
+    checklist: {
+      lede: "Tonight's ritual — the ticks reset themselves every day.",
+      progressLabel: "Steps done tonight",
+      remaining: (n) => (n === 0 ? "All done — sleep well." : `${n} to go`),
+      hint: "Still awake after ~20 minutes? Get up, do something calm in dim " +
+            "light, and come back when you're drowsy — lying there awake " +
+            "teaches the bed to mean “awake”.",
+      items: [
+        { id: "light",    title: "Dim everything",
+          text: "Low light for the last hour — or none: a blacked-out room or a sleep mask." },
+        { id: "shower",   title: "Warm shower or bath",
+          text: "About 90 minutes before bed. The cool-down afterwards is the body's own sleep signal." },
+        { id: "cool",     title: "Cool the bedroom",
+          text: "Around 16–19 °C. A cool room under a warm blanket beats a warm room." },
+        { id: "caffeine", title: "No caffeine after mid-afternoon",
+          text: "It blocks sleep pressure for six hours and more — evening coffee is morning tiredness." },
+        { id: "screens",  title: "Screens away",
+          text: "The last half hour belongs to paper, sound, or nothing. The journal is for the morning." },
+        { id: "relax",    title: "Release every muscle",
+          text: "Toes to jaw: tense each group for five seconds, let go, move on. The best-tested trick on this list." },
+        { id: "breathe",  title: "Slow your breath",
+          text: "In for 4, hold for 7, out for 8 — a few rounds. Long exhales switch the body to rest." },
+      ],
+    },
+    sounds: {
+      lede: "Three colours of noise, mixable into your own blend. They loop " +
+            "until you stop them — and keep playing while you use the rest of the app.",
+      names: { white: "White noise", pink: "Pink noise", brown: "Brown noise" },
+      descs: { white: "bright static, masks everything", pink: "like steady rain", brown: "like a far-off ocean" },
+      autoStart: "Start my mix when the app opens",
+      autoStartHint: "Browsers want one tap first — your mix starts with the first touch.",
+      background: "The mix keeps playing wherever you go in the app. The speaker " +
+                  "button in the top corner mutes it any time.",
+    },
+    soundsMute: "Mute sleep sounds",
+    soundsUnmute: "Unmute sleep sounds",
   },
 
   errors: {

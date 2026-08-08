@@ -2,16 +2,37 @@ import { mediaUrl } from "../../lib/api.js";
 import { t } from "../../i18n/index.js";
 import "./journal.css";
 
-/* One dream as a poster tile: the image fills the card, the title sits on it.
+/* One dream, in either of the journal's two views.
  *
- * Everything inside is a <span>: the tile is a <button>, and a button may only
- * contain phrasing content — an <h2>/<p> in there is invalid markup that
- * browsers silently reflow. The heading level lives on the screen, not here.
+ * "tile"  — a poster card, image filling it, title on top of the image.
+ * "row"   — a compact list line: title, opening words, small thumbnail.
+ *
+ * Everything inside is a <span>: the card is a <button>, and a button may
+ * only contain phrasing content — an <h2>/<p> in there is invalid markup
+ * that browsers silently reflow. The heading level lives on the screen.
  */
-export default function JournalCard({ entry, onOpen }) {
+export default function JournalCard({ entry, onOpen, variant = "tile" }) {
   const d = new Date(entry.createdAt);
   const media = mediaUrl(entry.media?.urls?.[0]);
   const isVideo = entry.media?.type === "video";
+  const title = entry.title || t.journal.untitled;
+
+  if (variant === "row") {
+    return (
+      <button className="j-row" onClick={() => onOpen(entry.id)}>
+        <span className="j-row-date">
+          <span className="j-row-day">{d.getDate()}</span>
+          <span className="j-row-month">{t.journal.months[d.getMonth()]}</span>
+        </span>
+        <span className="j-row-body">
+          <span className="j-row-title">{title}</span>
+          <span className="j-row-text">{entry.tagline || entry.text}</span>
+        </span>
+        {media && !isVideo && <img className="j-row-thumb" src={media} alt="" loading="lazy" />}
+        {media && isVideo && <video className="j-row-thumb" src={media} muted playsInline preload="metadata" />}
+      </button>
+    );
+  }
 
   return (
     <button className="j-tile" onClick={() => onOpen(entry.id)}>
@@ -28,7 +49,7 @@ export default function JournalCard({ entry, onOpen }) {
       </span>
 
       <span className="j-tile-body">
-        <span className="j-tile-title">{entry.title || t.journal.untitled}</span>
+        <span className="j-tile-title">{title}</span>
         <span className="j-tile-sub">{entry.tagline || entry.text}</span>
       </span>
     </button>
