@@ -195,3 +195,8 @@
   .wiz-mic-on { animation: none; }
   .wiz-spinner { animation-duration: 3s; }
 }
+
+.wiz-rendering {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s-3);
+  padding: var(--s-6) 0; text-align: center;
+}

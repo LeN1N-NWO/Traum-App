@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppState } from "../state/AppState.jsx";
+import { jobStatus } from "../lib/api.js";
 import { genId } from "../lib/storage.js";
 import { bumpStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
@@ -8,11 +10,36 @@ import Button from "../components/Button.jsx";
 import MediaCarousel from "../components/MediaCarousel.jsx";
 import "./wizard.css";
 
-export default function Step6Result({ w }) {
+export default function Step6Result({ w, patch }) {
   const { state, update, toast } = useAppState();
   const navigate = useNavigate();
-  const urls = w.urls || [];
   const isFilm = w.mode === "film";
+  const urls = w.urls || [];
+
+  /* A film is still rendering when this screen opens — the server queued it
+   * and we come back for it. Polling every 6 seconds rather than streaming:
+   * a 15-second render measured 280 seconds, so this asks about 45 times at
+   * most, and it survives the page being reloaded because the id is in the
+   * wizard state. Saving the entry before it arrives is allowed on purpose;
+   * the journal keeps the job id and can collect it later. */
+  const [failed, setFailed] = useState(false);
+  const waiting = isFilm && !!w.jobId && urls.length === 0 && !failed;
+
+  useEffect(() => {
+    if (!waiting) return;
+    let alive = true;
+    const tick = async () => {
+      try {
+        const r = await jobStatus(w.jobId);
+        if (!alive) return;
+        if (r.status === "done") patch({ urls: r.urls || [] });
+        else if (r.status === "failed" || r.status === "unknown") setFailed(true);
+      } catch { /* a hiccup is not a failure — the next tick tries again */ }
+    };
+    tick();
+    const id = setInterval(tick, 6000);
+    return () => { alive = false; clearInterval(id); };
+  }, [waiting, w.jobId, patch]);
 
   function save() {
     const creature = newCreature(w.text);
@@ -34,6 +61,9 @@ export default function Step6Result({ w }) {
       format: w.format,
       imageCount: isFilm ? 1 : w.imageCount,
       media: { type: isFilm ? "video" : "image", urls, source: "api" },
+      // Kept when the film is still rendering, so the entry can collect it
+      // afterwards instead of the render being lost with the wizard state.
+      ...(waiting ? { jobId: w.jobId } : {}),
       references,
       creatureId: creature.id,
     };
@@ -51,13 +81,25 @@ export default function Step6Result({ w }) {
     <section className="wiz-body">
       <h1 className="wiz-title">{t.wizard.step6.title}</h1>
 
-      {urls.length === 0 ? (
+      {waiting ? (
+        <div className="wiz-rendering" role="status" aria-live="polite">
+          <div className="wiz-spinner" aria-hidden="true" />
+          <p className="wiz-busy-text">{t.wizard.step6.rendering}</p>
+          <p className="wiz-hint">{t.wizard.step6.renderingHint}</p>
+        </div>
+      ) : failed ? (
+        <p className="wiz-empty">{t.wizard.step6.renderFailed}</p>
+      ) : urls.length === 0 ? (
         <p className="wiz-empty">{t.wizard.step6.nothing}</p>
       ) : (
         <MediaCarousel urls={urls} type={isFilm ? "video" : "image"} />
       )}
 
-      <Button onClick={save}>{t.wizard.step6.save}</Button>
+      {/* Saving while it renders is deliberate: the entry keeps the job id
+          and picks the film up later. Nobody has to sit and watch. */}
+      <Button onClick={save}>
+        {waiting ? t.wizard.step6.saveWhileRendering : t.wizard.step6.save}
+      </Button>
     </section>
   );
 }

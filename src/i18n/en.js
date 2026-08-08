@@ -317,6 +317,12 @@ export default {
     step6: {
       title: "Your dream",
       save: "Save to journal",
+      saveWhileRendering: "Save — I'll come back for it",
+      rendering: "Your film is being made…",
+      renderingHint: "This takes a few minutes. You can leave — it will be " +
+                     "waiting in your journal when it's done.",
+      renderFailed: "The film did not come through. Your credits were spent on " +
+                    "the attempt — tell us and we will look into it.",
       nothing: "Nothing came back. Try again from the last step.",
     },
   },

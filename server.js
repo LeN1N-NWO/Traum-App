@@ -387,6 +387,12 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
 // ---- fal.ai calls ----
 // Synchronous fal.ai REST endpoint (fal.run/<model>) rather than the queue
 // API: simpler, no extra dependency, fine for image/video-gen latencies.
+//
+// ⚠ THAT CEILING HAS BEEN REACHED (measured 08.08.2026). A 15-second video on
+// minimax/h3 does not finish inside the synchronous request — it times out,
+// and the render is paid for but lost. Images and short clips are unaffected.
+// Anything longer needs queue.fal.run: submit, poll status_url, fetch
+// response_url. Do that BEFORE offering film lengths above ~10 seconds.
 // Revisit if a model runs long enough to need the queue+polling flow.
 async function falGenerateImage({ prompt, namedRefs = [] }) {
   const key = process.env.FAL_KEY;
@@ -419,23 +425,92 @@ async function falGenerateImage({ prompt, namedRefs = [] }) {
   return urls;
 }
 
-async function falGenerateVideo({ imageUrl, prompt }) {
+/* ---- the queue path ----
+ *
+ * Video does NOT go through fal.run. Measured 08.08.2026: a 15-second render
+ * on minimax/h3 takes 280 seconds, far past what a held-open HTTP request
+ * survives — and a timeout there means fal still renders it, still bills for
+ * it, and nobody ever collects it. Paid for and lost.
+ *
+ * So: submit to the queue, hand the client a job id, let it come back. The
+ * job outlives the request, which is the whole point.
+ *
+ * Jobs live on disk rather than in a Map, because a server restart during a
+ * five-minute render would otherwise orphan something the person paid for.
+ */
+const JOBS_DIR = resolve(import.meta.dir, "media", "jobs");
+const JOB_ID = /^[a-z0-9]{6,32}$/;
+
+async function readJob(id) {
+  if (!JOB_ID.test(id)) return null;
+  const f = Bun.file(resolve(JOBS_DIR, `${id}.json`));
+  return (await f.exists()) ? f.json() : null;
+}
+const writeJob = (id, job) => Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.stringify(job));
+
+/** Hand the work to fal's queue and return our own job id. */
+async function falSubmitVideo({ imageUrl, prompt, seconds }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
-  const res = await fetch(`https://fal.run/${FAL_MODEL_VIDEO}`, {
+  const res = await fetch(`https://queue.fal.run/${FAL_MODEL_VIDEO}`, {
     method: "POST",
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({ image_url: imageUrl, prompt }), // param names unverified, see FAL_MODEL_VIDEO note above
+    body: JSON.stringify({
+      image_url: imageUrl,
+      prompt,
+      // minimax/h3 accepts up to 15 (confirmed against its own validation
+      // error, which is the only place the limit is written down).
+      duration: Math.min(Math.max(Number(seconds) || 6, 2), 15),
+      resolution: "768P",
+    }),
   });
   if (!res.ok) {
-    console.error("[DreamRushes] fal.ai video request failed:", res.status, await res.text().catch(() => ""));
+    console.error("[DreamRushes] fal.ai video submit failed:", res.status, await res.text().catch(() => ""));
     throw new Error("GENERATION_FAILED");
   }
-  const data = await res.json().catch(() => null);
-  const url = data?.video?.url;
-  if (!url) throw new Error("GENERATION_FAILED");
-  return [url];
+  const { request_id } = await res.json();
+  if (!request_id) throw new Error("GENERATION_FAILED");
+
+  const id = genJobId();
+  await writeJob(id, { requestId: request_id, model: FAL_MODEL_VIDEO, createdAt: Date.now(), status: "pending" });
+  return id;
+}
+
+function genJobId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+/** Where a job stands. Finished media is copied locally before it is handed
+ *  over, exactly like the synchronous path — the fal URL is never the record. */
+async function jobStatus(id) {
+  const job = await readJob(id);
+  if (!job) return { status: "unknown" };
+  if (job.status === "done") return { status: "done", urls: job.urls };
+  if (job.status === "failed") return { status: "failed" };
+
+  const key = process.env.FAL_KEY;
+  const base = `https://queue.fal.run/${job.model}/requests/${job.requestId}`;
+  const s = await fetch(`${base}/status`, { headers: { Authorization: `Key ${key}` } });
+  if (!s.ok) return { status: "pending" };            // a hiccup is not a failure
+  const st = await s.json();
+
+  if (st.status === "FAILED") {
+    await writeJob(id, { ...job, status: "failed" });
+    return { status: "failed" };
+  }
+  if (st.status !== "COMPLETED") return { status: "pending" };
+
+  const r = await fetch(base, { headers: { Authorization: `Key ${key}` } });
+  const data = await r.json().catch(() => null);
+  const url = data?.video?.url || data?.videos?.[0]?.url;
+  if (!url) {
+    await writeJob(id, { ...job, status: "failed" });
+    return { status: "failed" };
+  }
+  const urls = await storeAll([url]);
+  await writeJob(id, { ...job, status: "done", urls });
+  return { status: "done", urls };
 }
 
 // Dictation: the client records audio (MediaRecorder) and sends it as a
@@ -550,11 +625,13 @@ async function generateImages({ dream, namedRefs, prompt: readyPrompt }) {
 // Film mode: render a keyframe still first (same pipeline as image mode),
 // then animate it. minimax/h3 is image-to-video, so it needs a source image
 // — there's no text-to-video path anymore.
-async function generateVideo({ dream, namedRefs, prompt }) {
+/** Film: render the keyframe (fast, synchronous) and hand the animation to
+ *  the queue. Returns a job id, not a URL — the client comes back for it. */
+async function startVideo({ dream, namedRefs, prompt, seconds }) {
   const stills = await generateImages({ dream, namedRefs, prompt });
   const keyframe = stills[0];
   if (!keyframe) throw new Error("GENERATION_FAILED");
-  return falGenerateVideo({ imageUrl: keyframe, prompt: prompt || dream });
+  return falSubmitVideo({ imageUrl: keyframe, prompt: prompt || dream, seconds });
 }
 
 // ---- static file serving ----
@@ -709,10 +786,14 @@ Bun.serve({
           ? sanitizePromptText(body.prompt).slice(0, MAX_CRAFTED_PROMPT)
           : undefined;
 
-        const isFilm = body.mode === "film";
-        const urls = isFilm
-          ? await generateVideo({ dream, namedRefs: cast, prompt })
-          : await generateImages({ dream, namedRefs: cast, prompt });
+        // Two shapes come back from here, and the client handles both:
+        //   images → { urls }   (fast enough to wait for)
+        //   film   → { jobId }  (minutes; the client collects it later)
+        if (body.mode === "film") {
+          const jobId = await startVideo({ dream, namedRefs: cast, prompt, seconds: body.seconds });
+          return json({ ok: true, jobId });
+        }
+        const urls = await generateImages({ dream, namedRefs: cast, prompt });
         // Hand back local paths where the copy worked, provider URLs where it
         // did not — the client stores whatever it gets.
         return json({ ok: true, urls: await storeAll(urls) });
@@ -725,6 +806,17 @@ Bun.serve({
         if (hit) return json({ error: hit[1] }, hit[0]);
         // Don't echo internals (paths, key fragments) to the client.
         console.error("[DreamRushes] /api/generate failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    // Collecting a film. Deliberately a GET with no body: the client may ask
+    // days later, from a cold start, with nothing but the id it saved.
+    if (url.pathname === "/api/job" && req.method === "GET") {
+      try {
+        return json({ ok: true, ...(await jobStatus(url.searchParams.get("id") || "")) });
+      } catch (e) {
+        console.error("[DreamRushes] /api/job failed:", e);
         return json({ error: "Server error." }, 500);
       }
     }

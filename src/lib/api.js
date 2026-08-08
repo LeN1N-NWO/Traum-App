@@ -53,9 +53,24 @@ export async function transcribe(audio) {
   return data.text;
 }
 
-/** Renders one image or a film. `prompt` overrides the server's own wording. */
-export async function generate({ dream, mode, cast, prompt }) {
-  const data = await post("/api/generate", { dream, mode, cast, prompt });
-  if (!Array.isArray(data?.urls)) throw new Error(t.errors.unexpected);
-  return data.urls;
+/* Renders images or a film. `prompt` overrides the server's own wording.
+ *
+ * Two shapes come back, because the two jobs are nothing alike in length:
+ *   images → { urls }   — seconds, worth waiting for
+ *   film   → { jobId }  — minutes (a 15s render measured 280s), so the
+ *                         server queues it and we collect it afterwards.
+ */
+export async function generate({ dream, mode, cast, prompt, seconds }) {
+  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds });
+  if (Array.isArray(data?.urls)) return { urls: data.urls };
+  if (typeof data?.jobId === "string") return { jobId: data.jobId };
+  throw new Error(t.errors.unexpected);
+}
+
+/** Where a queued film stands: "pending" | "done" | "failed" | "unknown". */
+export async function jobStatus(id) {
+  const res = await fetch(`${API_BASE}/api/job?id=${encodeURIComponent(id)}`);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.error || t.errors.serverStatus(res.status));
+  return data;
 }

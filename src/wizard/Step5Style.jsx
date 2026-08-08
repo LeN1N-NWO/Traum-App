@@ -64,6 +64,24 @@ export default function Step5Style({ w, patch }) {
     const jobs = withPoster ? ["__poster__", ...beats] : beats;
 
     try {
+      // A film is one call and comes back as a job id, not as pictures: the
+      // render takes minutes, so the server queues it and step 6 collects it.
+      if (isFilm) {
+        const { jobId } = await generate({
+          dream: w.text, mode: "film", seconds: w.seconds,
+          cast: references.map((r) => ({ tag: r.tag, category: "person", desc: "", img: r.img })),
+          prompt: buildPosterPrompt({
+            title, tagline: (w.tagline || "").trim(),
+            essence: allBeats.join(" "), styleId: w.styleId, format: w.format, clauses,
+          }),
+        });
+        update(paid);
+        patch({ jobId, urls: [], step: 6 });
+        running.current = false;
+        setBusy(false);
+        return;
+      }
+
       // Rendering runs a few at a time, not one after another: sequentially,
       // ten images meant minutes of staring at a spinner. The cap keeps us
       // from firing ten simultaneous paid calls at the provider.
@@ -77,14 +95,14 @@ export default function Step5Style({ w, patch }) {
               beat, styleId: w.styleId, format: w.format,
               clauses, index: withPoster ? i : i + 1, total: beats.length,
             });
-        const got = await generate({
+        const { urls } = await generate({
           dream: w.text,
-          mode: isFilm ? "film" : "image",
+          mode: "image",
           cast: references.map((r) => ({ tag: r.tag, category: "person", desc: "", img: r.img })),
           prompt,
         });
         setDone((n) => n + 1);
-        return got;
+        return urls;
       });
       update(paid);          // only charge once the images actually arrived
       patch({ urls: perImage.flat(), step: 6 });
