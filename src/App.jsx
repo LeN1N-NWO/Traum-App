@@ -7,7 +7,6 @@ import Toast from "./components/Toast.jsx";
 import HomeScreen from "./screens/Home/HomeScreen.jsx";
 import JournalScreen from "./screens/Journal/JournalScreen.jsx";
 import SleepScreen from "./screens/Sleep/SleepScreen.jsx";
-import SymbolsScreen from "./screens/Symbols/SymbolsScreen.jsx";
 import ProfileScreen from "./screens/Profile/ProfileScreen.jsx";
 import WizardShell from "./wizard/WizardShell.jsx";
 import SoundDock from "./components/SoundDock.jsx";
@@ -24,8 +23,8 @@ export default function App() {
         <Routes>
           <Route path="/"        element={<HomeScreen />} />
           <Route path="/journal" element={<JournalScreen />} />
+          {/* Symbols are a section inside /sleep now — see TabBar. */}
           <Route path="/sleep"   element={<SleepScreen />} />
-          <Route path="/symbols" element={<SymbolsScreen />} />
           <Route path="/profile" element={<ProfileScreen />} />
           <Route path="/dream"   element={<WizardShell />} />
         </Routes>

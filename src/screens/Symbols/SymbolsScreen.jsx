@@ -7,7 +7,11 @@ import Card from "../../components/Card.jsx";
 import SymbolDetail from "./SymbolDetail.jsx";
 import "./symbols.css";
 
-export default function SymbolsScreen() {
+/* `embedded` drops the screen chrome so the Sleep tab can host this as one of
+   its sections — symbols are dream knowledge, and that is where the free
+   content lives. Still a whole screen component, not a fragment: the detail
+   modal and the occurrence lookup belong together. */
+export default function SymbolsScreen({ embedded = false }) {
   const { state } = useAppState();
   const [openId, setOpenId] = useState(null);
 
@@ -22,9 +26,11 @@ export default function SymbolsScreen() {
     }))
     .filter((g) => g.symbols.length > 0);
 
+  const Wrap = embedded ? "div" : "main";
+
   return (
-    <main className="screen">
-      <ScreenHeader title={t.symbols.title} subtitle={t.symbols.subtitle} />
+    <Wrap className={embedded ? "" : "screen"}>
+      {!embedded && <ScreenHeader title={t.symbols.title} subtitle={t.symbols.subtitle} />}
 
       {groups.length === 0 ? (
         <p className="s-empty">{t.symbols.empty}</p>
@@ -54,6 +60,6 @@ export default function SymbolsScreen() {
           onClose={() => setOpenId(null)}
         />
       )}
-    </main>
+    </Wrap>
   );
 }

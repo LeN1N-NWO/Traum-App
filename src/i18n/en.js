@@ -328,6 +328,11 @@ export default {
         title: "Lucid dreaming",
         text: "Reality checks, MILD, WBTB, journaling",
       },
+      symbols: {
+        emoji: "✧",
+        title: "Dream symbols",
+        text: "What keeps turning up in your dreams",
+      },
     },
     checklist: {
       lede: "Tonight's ritual — the ticks reset themselves every day.",

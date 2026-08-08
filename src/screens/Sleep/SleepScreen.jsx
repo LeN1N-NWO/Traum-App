@@ -6,13 +6,16 @@ import { t } from "../../i18n/index.js";
 import ScreenHeader from "../../components/ScreenHeader.jsx";
 import SleepChecklist from "./SleepChecklist.jsx";
 import LucidGuide from "../Profile/LucidGuide.jsx";
+import SymbolsScreen from "../Symbols/SymbolsScreen.jsx";
 import "./sleep.css";
 
 /* The free-content home: everything around the dream, none of it costs a
  * credit. A tile overview opens one section at a time — no sub-routes, the
  * tab stays a single screen the back button cannot get lost in. */
+const SECTIONS = ["checklist", "sounds", "guide", "symbols"];
+
 export default function SleepScreen() {
-  const [view, setView] = useState(null);   // null | "checklist" | "sounds" | "guide"
+  const [view, setView] = useState(null);   // null | one of SECTIONS
 
   if (view) {
     const section = t.sleep.tiles[view];
@@ -23,6 +26,7 @@ export default function SleepScreen() {
         {view === "checklist" && <SleepChecklist />}
         {view === "sounds" && <SoundMixerPanel />}
         {view === "guide" && <LucidGuide />}
+        {view === "symbols" && <SymbolsScreen embedded />}
       </main>
     );
   }
@@ -31,7 +35,7 @@ export default function SleepScreen() {
     <main className="screen">
       <ScreenHeader title={t.sleep.title} subtitle={t.sleep.subtitle} />
       <div className="sl-tiles">
-        {["checklist", "sounds", "guide"].map((id) => (
+        {SECTIONS.map((id) => (
           <button key={id} className={`sl-tile sl-tile-${id}`} onClick={() => setView(id)}>
             <span className="sl-tile-emoji" aria-hidden="true">{t.sleep.tiles[id].emoji}</span>
             <span className="sl-tile-title">{t.sleep.tiles[id].title}</span>

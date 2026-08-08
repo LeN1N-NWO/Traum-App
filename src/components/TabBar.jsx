@@ -1,17 +1,20 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { IconMoon, IconBook, IconBed, IconSparkle, IconPerson } from "./icons.jsx";
+import { IconMoon, IconBook, IconBed, IconPerson } from "./icons.jsx";
 import { t } from "../i18n/index.js";
 import "./TabBar.css";
 
-/* Icons only, no labels: five tabs plus the centre action do not fit with
-   captions on a narrow phone, and these glyphs carry their own meaning. The
-   label lives on in aria-label and the tooltip, so nothing is lost for screen
-   readers or on hover. */
+/* Icons only, no labels: the glyphs carry their own meaning, and the label
+   lives on in aria-label and the tooltip, so nothing is lost for screen
+   readers or on hover.
+ *
+ * FOUR tabs, deliberately — an EVEN number is what lets the centre button sit
+ * on the actual centre line. With five it landed 32px off, because two tabs
+ * on the left can never balance three on the right. Symbols moved into the
+ * Sleep tab, where the rest of the free dream content lives. */
 const TABS = [
   { to: "/",        label: t.tabs.home,    Icon: IconMoon },
   { to: "/journal", label: t.tabs.journal, Icon: IconBook },
   { to: "/sleep",   label: t.tabs.sleep,   Icon: IconBed },
-  { to: "/symbols", label: t.tabs.symbols, Icon: IconSparkle },
   { to: "/profile", label: t.tabs.profile, Icon: IconPerson },
 ];
 

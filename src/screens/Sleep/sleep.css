@@ -10,7 +10,8 @@
 /* Each tile carries its own dusk gradient, like the sleep apps we studied. */
 .sl-tile-checklist { background: linear-gradient(150deg, #1d1650, #2a1d5e); }
 .sl-tile-sounds    { background: linear-gradient(150deg, #14264d, #1c3a5e); }
-.sl-tile-guide     { background: linear-gradient(150deg, #241245, #3b1d5e); grid-column: 1 / -1; min-height: 96px; }
+.sl-tile-guide     { background: linear-gradient(150deg, #241245, #3b1d5e); }
+.sl-tile-symbols   { background: linear-gradient(150deg, #2b1440, #4a2350); }
 .sl-tile-emoji { font-size: 24px; line-height: 1; }
 .sl-tile-title { font-size: var(--t-h3); font-weight: 600; margin-top: auto; }
 .sl-tile-text { color: var(--muted); font-size: var(--t-small); }

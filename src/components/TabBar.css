@@ -18,11 +18,20 @@
 .tab-active { color: var(--violet-soft); }
 .tab:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: -3px; border-radius: 10px; }
 
+/* Raised so that roughly half of it clears the bar's top edge: 24 of 56px
+   sit above the line. align-self:flex-start rather than the bar's
+   align-items:center — under centring, a negative margin only moves the box
+   by HALF its value (the flex algorithm centres the margin box), so -28px
+   bought just 10px of lift. From flex-start the offset means what it says.
+   The row has an even number of tabs either side, so this lands on the true
+   centre. */
 .tabbar-plus {
-  flex: 0 0 auto; width: 52px; height: 52px; margin-top: -18px;
+  flex: 0 0 auto; align-self: flex-start; width: 56px; height: 56px; margin-top: -24px;
   border: none; border-radius: 50%; cursor: pointer;
   background: linear-gradient(160deg, var(--violet-soft), var(--violet-deep));
-  color: var(--text); font-size: 27px; line-height: 1;
-  box-shadow: 0 6px 20px rgba(109, 63, 224, .5);
+  color: var(--text); font-size: 28px; line-height: 1;
+  /* A ring in the bar's own colour so the raised part reads as sitting in
+     front of the bar rather than punched through it. */
+  box-shadow: 0 0 0 5px rgba(11, 7, 24, .82), 0 8px 22px rgba(109, 63, 224, .5);
 }
 .tabbar-plus:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
