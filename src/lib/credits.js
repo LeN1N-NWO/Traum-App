@@ -9,8 +9,23 @@
  * changes these three functions and nothing else.
  */
 
-/** New installs get a starter balance so the app is usable before top-ups exist. */
-export const WELCOME_CREDITS = 25;
+/* New installs get enough to make one complete dream — three images, at full
+ * quality. Three, not five, and not the old twenty-five:
+ *
+ *   Every free credit is $0.08 of real money we hand out, and localStorage
+ *   makes it repeatable by anyone who clears their site data. At 25 that was
+ *   $2.00 per install, unlimited times.
+ *
+ *   Three credits cost $0.24. Against $2.09 of profit per subscriber-month
+ *   and a three-month average stay, the giveaway pays for itself at a 3.8 %
+ *   conversion rate — inside what freemium apps actually reach. At five
+ *   credits it would need 6.4 %, which is not.
+ *
+ *   Deliberately NOT solved by rendering the free dream on a cheaper model:
+ *   the first dream someone sees decides whether they ever pay for another,
+ *   so it gets the same renderer as everything else. Fewer, not worse.
+ */
+export const WELCOME_CREDITS = 3;
 
 export function canAfford(state, cost) {
   return (state?.credits ?? 0) >= cost;
