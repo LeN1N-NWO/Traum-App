@@ -25,15 +25,15 @@ export default function EntryMenu({ onEdit, onRefine, onShare, onDelete, onClose
 
         <button role="menuitem" className="j-menu-item" onClick={() => onRefine("correct")}>
           <span>🔤 {t.journal.correct}</span>
-          <span className="j-menu-price">{PRICES.correct}</span>
+          <span className={PRICES.correct ? "j-menu-price" : "j-menu-free"}>{PRICES.correct || t.wizard.free}</span>
         </button>
         <button role="menuitem" className="j-menu-item" onClick={() => onRefine("rewrite")}>
           <span>✨ {t.journal.rewrite}</span>
-          <span className="j-menu-price">{PRICES.rewrite}</span>
+          <span className={PRICES.rewrite ? "j-menu-price" : "j-menu-free"}>{PRICES.rewrite || t.wizard.free}</span>
         </button>
         <button role="menuitem" className="j-menu-item" onClick={() => onRefine("elaborate")}>
           <span>📖 {t.journal.elaborate}</span>
-          <span className="j-menu-price">{PRICES.elaborate}</span>
+          <span className={PRICES.elaborate ? "j-menu-price" : "j-menu-free"}>{PRICES.elaborate || t.wizard.free}</span>
         </button>
 
         {canShare && (

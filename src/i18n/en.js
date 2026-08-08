@@ -296,6 +296,12 @@ export default {
       formatLabel: "Format",
       portrait: "Phone, stories",
       landscape: "Widescreen",
+      filmModelLabel: "Which renderer",
+      filmModels: {
+        standard: { name: "Standard", hint: "up to 15s · 1 credit a second" },
+        premium:  { name: "Premium",  hint: "up to 30s in one take · 6 a second" },
+      },
+      lengthLabel: "How long",
       posterLabel: "The poster",
       posterTitleLabel: "Film title",
       posterTitlePlaceholder: "Title on the poster",
@@ -308,6 +314,7 @@ export default {
       progress: (done, total) => `${done} of ${total} done`,
       summaryImages: (n) => `${n} images in one continuous sequence.`,
       summaryFilm: "One still, brought to life.",
+      summaryFilmLength: (s) => `${s} seconds of film. Rendering takes a few minutes — you can leave and come back.`,
       summaryRefs: (n) =>
         n === 0 ? "No reference photos — everything is invented."
                 : n === 1 ? "1 reference photo will be used."

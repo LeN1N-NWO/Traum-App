@@ -39,7 +39,8 @@ const EMPTY = {
   assignments: {},     // name -> { name, kind, avatar?, free? }
   styleId: "dreamlike",
   format: "9:16",
-  seconds: 6,          // film length; minimax/h3 accepts 2–15
+  videoModel: "standard",
+  seconds: 6,          // film length; see lib/video.js for each model's range
   urls: null,
   jobId: null,         // set while a film renders in fal's queue
 };

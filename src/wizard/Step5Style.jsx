@@ -5,6 +5,7 @@ import { buildReferences, buildImagePrompt, buildPosterPrompt } from "../lib/pro
 import { generate } from "../lib/api.js";
 import { mapWithLimit } from "../lib/parallel.js";
 import { priceForImages, PRICES, IMAGE_COUNTS } from "../lib/pricing.js";
+import { VIDEO_MODELS, priceForFilm, clampSeconds, videoModel } from "../lib/video.js";
 import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
@@ -28,7 +29,7 @@ export default function Step5Style({ w, patch }) {
 
   const isFilm = w.mode === "film";
   const count = isFilm ? 1 : w.imageCount;
-  const price = isFilm ? PRICES.film : priceForImages(w.imageCount);
+  const price = isFilm ? priceForFilm(w.videoModel, w.seconds) : priceForImages(w.imageCount);
   const assignments = Object.values(w.assignments);
   const named = assignments.filter((a) => a.avatar?.img).length;
 
@@ -182,6 +183,47 @@ export default function Step5Style({ w, patch }) {
         ))}
       </div>
 
+      {/* Film: the renderer and the length are the person's call, and both
+          move the price. The premium model costs six times as much per
+          second, so it is never a default — but for someone who wants a
+          half-minute film in one unbroken take, it is the only way. */}
+      {isFilm && (
+        <>
+          <h2 className="wiz-sub">{t.wizard.step5.filmModelLabel}</h2>
+          <div className="wiz-formats" role="group" aria-label={t.wizard.step5.filmModelLabel}>
+            {VIDEO_MODELS.map((m) => (
+              <button
+                key={m.id}
+                className={"wiz-format" + (w.videoModel === m.id ? " wiz-format-on" : "")}
+                onClick={() => patch({ videoModel: m.id, seconds: clampSeconds(m.id, w.seconds) })}
+                aria-pressed={w.videoModel === m.id}
+              >
+                <span>{t.wizard.step5.filmModels[m.id].name}</span>
+                <small>{t.wizard.step5.filmModels[m.id].hint}</small>
+              </button>
+            ))}
+          </div>
+
+          <h2 className="wiz-sub">{t.wizard.step5.lengthLabel}</h2>
+          <div className="wiz-seconds">
+            <output className="wiz-seconds-value">{w.seconds}s</output>
+            <input
+              type="range"
+              min={videoModel(w.videoModel).min}
+              max={videoModel(w.videoModel).max}
+              step={videoModel(w.videoModel).step}
+              value={w.seconds}
+              onChange={(e) => patch({ seconds: clampSeconds(w.videoModel, e.target.value) })}
+              aria-label={t.wizard.step5.lengthLabel}
+            />
+            <div className="wiz-seconds-scale" aria-hidden="true">
+              <span>{videoModel(w.videoModel).min}s</span>
+              <span>{videoModel(w.videoModel).max}s</span>
+            </div>
+          </div>
+        </>
+      )}
+
       {!isFilm && (
         <>
           <h2 className="wiz-sub">{t.wizard.step5.countLabel}</h2>
@@ -203,7 +245,7 @@ export default function Step5Style({ w, patch }) {
       )}
 
       <div className="wiz-summary">
-        <p>{isFilm ? t.wizard.step5.summaryFilm : t.wizard.step5.summaryImages(count)}</p>
+        <p>{isFilm ? t.wizard.step5.summaryFilmLength(w.seconds) : t.wizard.step5.summaryImages(count)}</p>
         <p>{t.wizard.step5.summaryRefs(named)}</p>
       </div>
 

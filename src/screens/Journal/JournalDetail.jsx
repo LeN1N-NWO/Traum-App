@@ -158,12 +158,12 @@ export default function JournalDetail({ entry, onClose }) {
             </div>
           </>
         ) : (
-          <p className="j-modal-text">{entry.text}</p>
+          <DreamStory text={entry.text} urls={urls} type={entry.media?.type} />
         )}
 
-        {/* Every image, the poster included, seen whole and uncropped —
-            the hero above only ever shows a crop of the first one. */}
-        {urls.length > 0 && <MediaCarousel urls={urls} type={entry.media.type} />}
+        {/* Films keep the carousel: there is one clip, not a sequence to
+            walk through. */}
+        {entry.media?.type === "video" && urls.length > 0 && <MediaCarousel urls={urls} type={entry.media.type} />}
 
         {entry.references?.length > 0 && (
           <p className="j-references">
@@ -199,6 +199,51 @@ export default function JournalDetail({ entry, onClose }) {
           />
         )}
       </div>
+    </div>
+  );
+}
+
+/* The dream as a photo story: a passage of text, then the picture it
+ * describes, then the next passage — the way a comic reads.
+ *
+ * The split is by SENTENCES, distributed evenly across the images, because
+ * that is the only structure the text reliably has. The beats that produced
+ * the images are English and live in the analysis, not in the entry, so they
+ * cannot line the two up; an even spread gets the order right, which is what
+ * matters. The first image stays first, the last passage stays last.
+ */
+function DreamStory({ text, urls = [], type }) {
+  // Only image sequences become a story. One image or a film has nothing to
+  // interleave, so the text stays whole.
+  if (type !== "image" || urls.length < 2) {
+    return (
+      <>
+        <p className="j-modal-text">{text}</p>
+        {urls.length === 1 && <img className="j-story-img" src={mediaUrl(urls[0])} alt="" loading="lazy" />}
+      </>
+    );
+  }
+
+  const sentences = String(text).match(/[^.!?…]+[.!?…]*\s*/g) || [text];
+  const per = Math.ceil(sentences.length / urls.length);
+  const passages = [];
+  for (let i = 0; i < urls.length; i++) {
+    const part = sentences.slice(i * per, (i + 1) * per).join("").trim();
+    if (part) passages.push(part);
+  }
+
+  return (
+    <div className="j-story">
+      {urls.map((u, i) => (
+        <div key={i} className="j-story-panel">
+          <img className="j-story-img" src={mediaUrl(u)} alt="" loading="lazy" />
+          {passages[i] && <p className="j-story-text">{passages[i]}</p>}
+        </div>
+      ))}
+      {/* Anything left over when there are more passages than pictures. */}
+      {passages.slice(urls.length).map((p, i) => (
+        <p key={`rest${i}`} className="j-story-text">{p}</p>
+      ))}
     </div>
   );
 }

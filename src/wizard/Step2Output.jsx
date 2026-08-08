@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { PRICES } from "../lib/pricing.js";
+import { priceForFilm } from "../lib/video.js";
 import { useAppState } from "../state/AppState.jsx";
 import { genId } from "../lib/storage.js";
 import { bumpStreak } from "../lib/streak.js";
@@ -72,7 +73,9 @@ export default function Step2Output({ w, patch }) {
           <span className="wiz-choice-title">{t.wizard.step2.film}</span>
           <span className="wiz-choice-hint">{t.wizard.step2.filmHint}</span>
         </span>
-        <span className="wiz-price">{PRICES.film}</span>
+        {/* Same reasoning as above: renderer and length are chosen in step 5,
+            so only the cheapest possible film is quoted here. */}
+        <span className="wiz-price">{t.wizard.from} {priceForFilm("standard", 4)}</span>
       </Card>
     </section>
   );

@@ -161,7 +161,8 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
           a wizard with nothing to show. */}
       <div className="wiz-actions wiz-actions-stack">
         <Button onClick={runAnalysis} disabled={busy}>
-          {busy ? t.wizard.step1.reading : `✨ ${t.wizard.step1.improve} · ${PRICES.improve} ${t.wizard.credit}`}
+          {busy ? t.wizard.step1.reading
+                : `✨ ${t.wizard.step1.improve} · ${PRICES.improve ? `${PRICES.improve} ${t.wizard.credit}` : t.wizard.free}`}
         </Button>
       </div>
 
