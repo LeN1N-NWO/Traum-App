@@ -3,277 +3,177 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-07 (19:00)
-
-⚠ Die Uhrzeiten in älteren Doku-Einträgen gehen teils einen Tag vor
-(Eintrag „2026-08-08 10:15" gehört zu einem Commit vom 07.08. 18:05). Im
-Zweifel gilt die Commit-Zeit.
-
-## Parallele Arbeit — erledigt
-
-Die Kollision zwischen PR **#8** (Hanni) und `96cca16` (Anton) am
-Profil-Bereich ist aufgelöst: `main` wurde in #8 gemergt, Doppeltes
-herausgeworfen. Antons Bearbeiten-Funktion bleibt, aus Hannis Teil bleibt die
-Pflicht **Foto oder Beschreibung** sowie die Tag-Hervorhebung samt
-anklickbarer Tags. Kein offener Konflikt.
+**Stand:** 2026-08-08 (15:30) — Branch `session/2026-08-07-anton`, PR #9
 
 ## Woran wird gearbeitet
 
-Die App ("Dream Rushes") ist seit dem 07.08. eine **React-SPA mit Tabs** statt
-drei loser HTML-Seiten — Phase 1 des Umbaus aus
-`docs/specs/2026-08-07-app-umbau-design.md` ist abgeschlossen.
-
-**Fünf Tabs**, der Wizard öffnet sich später über der Tab-Leiste:
+„Dream Rushes" ist eine React-SPA: Traum aufschreiben oder sprechen → KI macht
+daraus eine Bildstrecke oder einen kurzen Film. **Fünf Tabs**, der Wizard öffnet
+sich über der Tab-Leiste:
 
 | Tab | Inhalt |
 |---|---|
-| Start | Begrüßung, Serie, letzter Traum, Menagerie |
-| Tagebuch | Kartenansicht mit Suche, Detail-Modal, Löschen |
-| **⊕** | Der sechsstufige Wizard: Traum → Analyse → Personen → Orte → Style → Ergebnis |
-| Symbole | 20 Symbole in fünf Kategorien, Vorkommen je Traum |
-| Profil | Personen/Tiere/Orte (anlegen, **bearbeiten**, löschen), Lucid-Guide, Credits |
+| Home | Begrüßung nach Tageszeit, letzter Traum als Himmel, Menagerie |
+| Journal | Träume als Kartenstapel **oder** Liste (umschaltbar), Bibliothek, Detail als Bilderstrecke |
+| **⊕** | Der Wizard: Traum → Ausgabe → Personen → Orte → Style → Ergebnis |
+| Sleep | **Alles gratis:** Einschlaf-Checkliste, Sound-Mixer, Lucid-Guide, Symbole |
+| Profil | Porträt, Credits-Pille (öffnet Paywall), Traum-Kalender |
 
-Kernfunktionen für die Traum-App:
+Die Navigationsleiste trägt **nur Icons** aus einem einheitlichen SVG-Satz und
+genau **vier** Tabs — eine gerade Zahl, damit der Plus-Knopf auf der Mittellinie
+sitzt. Bei fünf lag er 32 px daneben, weil zwei Tabs links nie drei rechts
+ausgleichen. Deshalb sind die Symbole in den Sleep-Tab gezogen.
 
-1. Traum eingeben → KI-generierte Bildsequenz oder Video (fal.ai). ✅
-2. Traumtagebuch mit Medien und verwendeten Referenzfotos. ✅
-3. Lucid-Dreaming-Guide (Reality Checks, MILD, WBTB, Journaling). ✅
-4. Eigene Referenzfotos mit Kategorien Person/Tier/Ort. ✅
-5. Symbolsammlung mit gängiger Lesart. ✅
-6. Credits werden gezählt und abgebucht. **Fehlt noch:** echtes Geld dafür.
+**Stack:** Bun + Vite + React 18 + react-router-dom (HashRouter), `server.js` als
+schlüsselhaltender Proxy. Zustand in `localStorage`, Schlüssel `dreamrushes_v1`.
 
-**Stack:** Bun + Vite + React 18 + react-router-dom (HashRouter), `server.js`
-als schlüsselhaltender Proxy. **Mit Build-Schritt** (ADR-0004 löst ADR-0003 ab
-und ersetzt den Vanilla-Teil von ADR-0002). Zustand lebt weiter in
-`localStorage`, Schlüssel unverändert `dreamrushes_v1`.
+**Sprache:** Oberfläche **englisch**, alle Texte in `src/i18n/en.js` und nirgends
+sonst. Doku und Commits deutsch.
 
-**Sprache:** Die Oberfläche ist **englisch**; Deutsch ist als zweite Sprache
-geplant, nicht als Ersatz. Alle sichtbaren Texte liegen in `src/i18n/en.js`
-und nirgends sonst — die zweite Sprache ist damit eine neue Datei, kein Umbau.
-`AGENTS.md` unterschied früher nicht zwischen Oberfläche (englisch) und
-Doku/Commits (deutsch) und war deshalb missverständlich; die Regel ist jetzt
-präzisiert.
+## Farben und Gestaltung
 
-## Der Wizard (Phase 2, fertig)
+Seit 08.08. **tiefes Blau mit warmem Gegenpol** (vorher violette Nacht). Der
+Hintergrund existiert genau **einmal** als `--bg-rgb` in `src/styles/tokens.css`;
+jeder Schleier und Verlauf leitet seine Deckkraft davon ab
+(`rgb(var(--bg-rgb) / .x)`). Vorher stand er in zwölf Dateien von Hand.
 
-Der ⊕-Knopf öffnet einen Vollbild-Flow über der Tab-Leiste:
-
-1. **Traum schreiben oder sprechen.** „Improve with AI" (1 Credit) löst den
-   **einzigen LLM-Aufruf pro Traum** aus (`/api/analyze`). Das JSON-Schema
-   ist der Vertrag zwischen Modell und App, mit harter **Sprachtrennung**:
-   `text`, `people[].name`, `places`, `mood` bleiben in der Eingabesprache
-   (deutscher Traum → deutsche verbesserte Fassung), `beats` sind immer
-   englisch, weil sie ans Bildmodell gehen. `people` sind strukturiert
-   (`{name, kind, desc}`) — die App unterscheidet damit Tiere (`pet`) von
-   Menschen, und eine mitgelieferte Beschreibung füllt den Anlege-Dialog
-   vor. `language` kommt als validierter BCP-47-Code mit (später nützlich
-   für die UI-Sprache). Vorschau mit „Keep my words" oder „Use this
-   version"; die erste Niederschrift bleibt immer als `originalText`.
-   **Namen aus dem Profil leuchten beim Tippen auf** (`TagTextarea`) und sind
-   **anklickbar** — ein Klick zeigt Foto, Kategorie und Beschreibung der
-   Entität (`TagCard`). Hervorgehoben wird jeder Avatar, auch der ohne Foto:
-   seit ein Eintrag mit bloßer Beschreibung angelegt werden darf, ist „hat ein
-   Bild" nicht mehr das Kriterium für Brauchbarkeit. `taggedPhotosIn()`
-   filtert weiterhin auf `img` — das entscheidet, was **hochgeladen** wird,
-   nicht, was **angezeigt** wird.
-2. **Was daraus werden soll:** nur speichern (gratis), Fotostrecke (ab 2
-   Credits) oder Film (9 Credits). Die Bildanzahl wird hier noch NICHT
-   gewählt — erst nachdem die Charaktere feststehen.
-3. **„Who is in it?"** — eine Kachel je erkannter Person. Vorhandene Avatare
-   werden automatisch zugeordnet (Tag-Vergleich; „I"/„me" trifft `@me`).
-   Sonst: aus der Bibliothek wählen, neu anlegen (Foto und/oder Beschreibung,
-   Name vorausgefüllt) oder der KI überlassen.
-4. **Dasselbe für Orte.** Ein Traum, der irgendwohin fliegt, hat zwei.
-5. **Style, Format und Bildanzahl** (3/5/10 · 2/3/5 Credits), Style aus der
-   Analyse vorausgewählt, 9:16 Standard.
-6. **Ergebnis als Slideshow** (`MediaCarousel`: scroll-snap, Pfeile auf den
-   Bildern, Punkte, Zähler — auch im Tagebuch-Detail), dann ins Tagebuch.
-
-**Nach Schritt 1 fällt kein weiterer LLM-Aufruf an.** `beats.js` leitet die
-Bildanzahl lokal aus den fünf Beats ab, `styles.js` sind Konstanten,
-`promptBuilder.js` setzt den Master-Prompt zusammen. `/api/generate` nimmt
-diesen fertigen Prompt entgegen (weiterhin sanitisiert — ein client-gebauter
-Prompt ist nicht vertrauenswürdiger als ein modellgebauter).
-
-Gerendert wird **drei parallel** (`parallel.js`); sequenziell brauchten drei
-Bilder über eine Minute.
-
-## Tagebuch-Eintrag: Drei-Punkte-Menü
-
-- **Bearbeiten** — Textfeld, kostenlos, ohne LLM.
-- **Korrigieren** (1) · **Neu schreiben** (1) · **Ausarbeiten** (2) — alle
-  über eine Route `/api/refine` mit `mode`-Parameter, alle mit Vorschau
-  („jetzt" gegen „überarbeitet") und Übernehmen oder Verwerfen.
-- **Teilen** — Web Share API, also das native Teilen-Blatt des Geräts. Kein
-  Schlüssel, kein OAuth, kein Entwickler-Account je Plattform, und es
-  funktioniert in Capacitor. Wo Datei-Teilen fehlt, wird heruntergeladen.
-- **Löschen.**
-
-Der zuerst geschriebene Text bleibt über beliebig viele Überarbeitungen als
-`originalText` erhalten und ist im Eintrag aufklappbar.
+- **Warm ist selten und bedeutet „Weg nach vorn":** Hauptknöpfe, Plus-Knopf und
+  Paywall-Akzente tragen `--warm-grad` (drei Stopps, Gold → Bernstein → Glut).
+  ⚠ **Immer mit `color: var(--bg)`** — Weiß auf Bernstein reißt den Kontrast.
+- **Titel stehen in `--serif`** (Systemschriften, kein Download).
+- `scripts/test-contrast.mjs` prüft 16 Paarungen gegen WCAG AA und läuft in
+  `bun run test` mit. Der Grenzfall `--faint` auf `--sky` steht bei **5,56:1**.
 
 ## Starten
 
     bun run dev                       # Oberfläche 5173, API 8100, Hot Reload
     bun run build && bun server.js    # produktionsnah, alles auf 8100
-    bun run test                      # 50 Unit-Tests + 33 Freigabe-Prüfungen + Prompt-Hygiene
+    bun run test                      # 65 Unit + 50 Freigabe + Hygiene + 16 Kontrast
 
-⚠️ `bun server.js` allein genügt nicht mehr — ohne `dist/` antwortet alles 404.
+⚠️ Die Oberfläche liegt im Dev-Modus auf **5173**, nicht 8100 — dort läuft nur
+die API. Und: **5173 und 8100 sind für den Browser verschiedene Herkünfte mit
+getrenntem `localStorage`.** Wer die Ports wechselt, sieht zwei verschiedene
+Tagebücher; das sah lange nach Datenverlust aus.
 
-## Provider — fal.ai und DeepSeek, live verifiziert
+## Provider und Preise (recherchiert und gemessen am 08.08.)
 
-- **Bild:** fal.ai `fal-ai/nano-banana-2` (`FAL_MODEL_IMAGE` überschreibbar).
-  **Mit Referenzbildern** geht der Aufruf an `fal-ai/nano-banana-2/edit`
-  (`FAL_MODEL_IMAGE_EDIT`) — der Text-to-Image-Endpunkt ignoriert
-  `image_urls` stillschweigend (akzeptiert sogar Müll mit 200). Das war der
-  Grund, warum hochgeladene Charakterfotos nie in den Bildern auftauchten;
-  am 07.08. per Test-PNG bewiesen und behoben.
-- **Video:** fal.ai `minimax/h3/image-to-video` (`FAL_MODEL_VIDEO`). Es ist
-  **image-to-video**: `generateVideo()` erzeugt erst ein Standbild über den
-  Bild-Pfad und animiert das Ergebnis. Kein Text-to-Video-Pfad mehr.
-- **DeepSeek (optional):** `craftPromptViaDeepseek()` schickt Traumtext +
-  Nano-Banana-6-Elemente-Formel + Metadaten der benannten Referenzfotos an
-  `deepseek-v4-flash` und bekommt einen fertigen Bild-Prompt. **DeepSeek sieht
-  die Fotos selbst nicht** — die öffentliche API ist textbasiert. Die echten
-  Fotos gehen direkt an fal.ai/Nano Banana, das selbst Vision hat. Ohne
-  `DEEPSEEK_KEY` greift die lokale Vorlage (`buildFallbackPrompt()`).
-- **End-to-end verifiziert (07.08.):** echte Schlüssel eingetragen, Bild- UND
-  Film-Modus real durchlaufen, beide `200 OK` mit echten
-  `https://v3b.fal.media/...`-URLs. Nach dem React-Umbau erneut geprüft: Traum
-  über die neue Oberfläche eingegeben, echtes Bild kam zurück, landete im
-  Tagebuch, Wesen und Serie wurden mitgeschrieben.
-- Beide Schlüssel liegen lokal in `.env` (git-ignoriert). `.env.example`
-  dokumentiert beide.
-- Architekturvorgabe, auch für die geplante iPhone-App: Schlüssel dürfen **nie
-  in den Client**. Der Client kennt nur `API_BASE` (in `src/lib/api.js`,
-  konfigurierbar über `VITE_API_BASE` — nötig, weil ein Capacitor-Bundle nicht
-  auf demselben Ursprung läuft).
+| | Modell | Kosten |
+|---|---|---|
+| Bild | `fal-ai/nano-banana-2` (1K) | **$0,08** je Bild |
+| Bild mit Referenz | `.../edit` — Pflicht, sonst werden `image_urls` ignoriert | $0,08 |
+| Video Standard | `minimax/h3/image-to-video` (768P) | **$0,08 je Sekunde**, 2–15 s |
+| Video Premium | `bytedance/seedance-2.5` (720p) | **$0,473 je Sekunde**, bis 30 s am Stück |
+| Diktat | `fal-ai/wizper` | $0,0005 je Minute |
+| Analyse | `deepseek-v4-flash` | **$0,00026** je Traum |
 
-## Sicherheit — Stand der Schutzziele
+**Die Credit-Skala leitet sich daraus ab: 1 Credit = 1 Bild = $0,08.** Textarbeit
+(Analyse, Überarbeiten, Diktat) ist **gratis**, weil sie 0,065 % eines Traums
+kostet. Film Standard = ein Credit je Sekunde plus einer fürs Startbild.
+Alles in `src/lib/pricing.js` und `src/lib/video.js`, jeweils aus **einer** Zahl
+je Modell abgeleitet.
 
-- **Vertraulichkeit, zwei unabhängige Schranken.** Die Web-Wurzel ist seit dem
-  Vite-Umbau `dist/`, nicht das Repository: `.env`, `.git/`, `docs/`, `src/`
-  und `server.js` sind damit **strukturell** außer Reichweite. Zusätzlich gilt
-  weiter deny-by-default in `resolveStatic()` — erlaubt sind nur
-  `/index.html`, `/assets/*` und `/clips/*`. Abgesichert durch
-  `scripts/test-static.mjs` (33 Prüfungen).
-- **Integrität:** React escaped Textinhalte von sich aus; es gibt kein
-  `innerHTML` mehr im Anwendungscode. Der frühere Weg, über eine bösartige
-  API-Antwort dauerhaft Skript ins Tagebuch zu schreiben, ist damit zu.
-- **Verfügbarkeit:** `saveState()` fängt vollen `localStorage` ab und meldet es
-  sichtbar, statt den Knopf dauerhaft zu sperren. `/api/generate` begrenzt
-  Body-Größe und Array-Längen.
-- **Prompt-Eingabe:** unsichtbare Zeichen (Zero-Width, Bidi-Overrides,
-  Unicode-TAG-Block) werden serverseitig entfernt; `sanitizePromptText()` in
-  `server.js` ist die verbindliche Stelle. Auch DeepSeeks Rückgabetext läuft
-  dort durch — er wird zum Prompt für einen weiteren bezahlten Aufruf und
-  verdient dasselbe Misstrauen wie Nutzereingaben. Abgesichert durch
-  `scripts/test-prompt-sanitize.mjs`. Bewusst **keine** Blockliste für
-  anweisungsartige Formulierungen: der Traumtext ist der eigene Prompt des
-  Nutzers, es gibt keine Rechtegrenze zu schützen.
-- **Tag-Umbenennung zieht das Tagebuch mit.** Einträge speichern verwendete
-  Referenzen als Tag-String; wird ein Avatar im Profil umbenannt, werden diese
-  Referenzen mitgeändert (`AvatarDialog.save()`), sonst zeigten alte Träume
-  auf einen Namen, den es nicht mehr gibt.
+Verkaufsseite in `src/lib/plans.js`: Preis = Kosten × Aufschlag ÷ (1 − Provision).
+Bei Apples 30 % und 1,75× Aufschlag sind das **$0,200 je Credit**. Abos bekommen
+den Mindestaufschlag, Einmalkäufe 2,2× — daher der Abo-Rabatt.
+
+**Modellwahl bewusst so:** Seedream 5 Lite kostet 56 % weniger, hält im Test
+Gesichter pixelgenau, **befolgt aber die Regieanweisung nicht** (liefert einen
+Hintergrundtausch statt eines Filmbildes). Für Bildstrecken bleibt es deshalb bei
+Nano Banana — auch für den Gratis-Traum, weil der erste Eindruck entscheidet.
+
+## Sicherheit
+
+- **Vertraulichkeit:** Web-Wurzel ist `dist/`, nicht das Repo. Zusätzlich
+  deny-by-default in `resolveStatic()`; `/media/` hat eine eigene, ebenso enge
+  Prüfung (`resolveMedia()`, nur Hash-plus-Endung). 50 Prüfungen in
+  `scripts/test-static.mjs`.
+- **Prompt-Eingabe:** unsichtbare Zeichen werden serverseitig entfernt,
+  `sanitizePromptText()` in `server.js:101` ist die verbindliche Stelle. Auch
+  DeepSeeks Rückgabe und jedes Transkript laufen dort durch.
+- **`/api/transcribe` nimmt nur Base64-Data-URIs**, niemals URLs — sonst wäre die
+  Route ein Abruf-Proxy für beliebige Adressen.
 - **Offen — `/api/generate` hat keine Authentifizierung und kein Rate-Limit**
-  (`server.js:546`).
-  Nur an localhost binden. Öffentlich erreichbar könnte jeder das Guthaben
-  verbrauchen. Löst sich erst mit dem Accounts-Backend — verbindlich zu lösen,
-  **bevor** die iPhone-App echte Nutzer auf einen gemeinsamen Server lässt.
+  (`server.js:25`). Nur an localhost binden. Löst sich erst mit dem Backend,
+  verbindlich **vor** jeder öffentlichen Nutzung.
 - **Offen — Credits sind Buchhaltung, keine Zugangskontrolle**
-  (`src/lib/credits.js:20`). Sie werden
-  seit 07.08. tatsächlich abgebucht (erst nach erfolgreichem Aufruf, damit ein
-  Fehlschlag nichts kostet), und neue Installationen bekommen einmalig 25
-  Stück. Aber der Stand liegt im `localStorage` und ist frei editierbar — wer
-  will, verschafft sich unbegrenzt Generierungen. Echte Durchsetzung gehört
-  auf den Server, neben die Accounts.
-- **Offen — Datenschutz:** hochgeladene Referenzfotos (Gesichter, Tiere,
-  Wohnorte) gehen an den Generierungs-Provider. Gesichtsbilder sind
-  biometrische Daten (DSGVO Art. 9). Vor einer Veröffentlichung braucht es
-  Datenschutzhinweis, Einwilligung und eine Klärung der Speicherdauer bei
-  fal.ai. Der UI-Hinweis benennt den Upload ehrlich, ersetzt aber keine
-  Datenschutzerklärung.
-- **Offen — Missbrauch der Generierung.** Referenzfoto einer realen Person plus
-  entsprechender Traumtext ergibt einen Deepfake. Rechtlich
-  (Persönlichkeitsrecht) und für den Provider-Account (ToS) haftet der
-  Betreiber. Es gibt keine Inhaltsprüfung, keine Einwilligungsbestätigung und
-  kein Logging. Braucht vermutlich eine Moderationsstufe und ist damit an das
-  Backend-ADR gekoppelt.
+  (`src/lib/credits.js:28`). Der Stand liegt im `localStorage` und ist frei
+  editierbar. Das Willkommensgeschenk ist deshalb auf **3** gesenkt.
+- **Offen — Datenschutz:** hochgeladene Referenzfotos und Sprachaufnahmen gehen
+  an fal.ai. Gesichtsbilder sind biometrische Daten (DSGVO Art. 9). Vor einer
+  Veröffentlichung braucht es Datenschutzhinweis, Einwilligung und Klärung der
+  Speicherdauer.
+- **Offen — Missbrauch:** Referenzfoto einer realen Person plus Traumtext ergibt
+  einen Deepfake. Keine Inhaltsprüfung, kein Logging. Gehört ans Backend-ADR.
 
 ## Bekannte Baustellen
 
-- **⚠ Falle in `TagTextarea.css`.** Feld und Spiegelebene tragen zusätzlich
-  die Klasse des Aufrufers (`.wiz-textarea`), die `background` und `color`
-  setzt. Bei gleicher Spezifität entscheidet die Bündelreihenfolge — und
-  `.wiz-textarea` steht im gebauten CSS **hinter** `TagTextarea.css`. Deshalb
-  braucht dort alles, was den Aufrufer schlagen muss, ein `.tt-wrap` davor.
-  Genau daran ist es schon einmal gescheitert (07.08., doppelt gezeichneter
-  Text und Weißschleier über den Markierungen); sichtbar war es nur über
-  `getComputedStyle`, nicht mit bloßem Auge.
+- **⚠ Der synchrone `fal.run` reicht nur für Bilder.** Gemessen: ein
+  15-Sekunden-Video braucht **280 Sekunden**. Filme laufen deshalb über
+  `queue.fal.run` (`falSubmitVideo()` / `jobStatus()` in `server.js`). **Wer
+  irgendetwas anderes verlängert, muss denselben Weg nehmen** — sonst rechnet fal
+  ab und niemand holt das Ergebnis.
+- **`minimax/h3` ist nirgends öffentlich dokumentiert.** Seine Grenzen (2–15 s,
+  768P/2K/4K) stehen nur in der eigenen Validierungsantwort. Leeren oder
+  ungültigen Body schicken und den Fehler lesen — kostet nichts.
+- **⚠ Falle in `TagTextarea.css`:** Feld und Spiegelebene tragen zusätzlich die
+  Klasse des Aufrufers (`.wiz-textarea`). Bei gleicher Spezifität entscheidet die
+  Bündelreihenfolge, und die entscheidet gegen uns. Alles, was den Aufrufer
+  schlagen muss, braucht `.tt-wrap` davor.
 - **Die Tag-Karte im Eingabefeld öffnet nur per Zeiger**
-  (`src/components/TagTextarea.jsx`). Die Markierungen liegen in einer
-  `aria-hidden`-Ebene hinter dem Textfeld und werden geometrisch getroffen,
-  nicht angeklickt. Derselbe Inhalt steht im Profil-Tab, der vollständig per
-  Tastatur bedienbar ist. Wer das nachrüstet, darf `Tab` im Textfeld nicht
-  belegen — das muss zum nächsten Bedienelement führen.
-- **Screens sind nur manuell geprüft.** Getestet ist die Logikschicht:
-  `storage.js`, `symbols.js`, `tags.js`, `streak.js`, `beats.js`,
-  `promptBuilder.js`, `parallel.js`, `credits.js` (50 Unit-Tests via
-  `bun test`) plus Server-Freigabe und Prompt-Hygiene. Für die React-Screens
+  (`src/components/TagTextarea.jsx:48`) — die Markierungen liegen in einer
+  `aria-hidden`-Ebene und werden geometrisch getroffen. Derselbe Inhalt steht im
+  Journal unter „Your cast", das per Tastatur bedienbar ist.
+- **Screens sind nur manuell geprüft.** Getestet ist die Logikschicht (65
+  Unit-Tests) plus Freigabe, Prompt-Hygiene und Kontrast. Für die React-Screens
   gibt es keine automatisierten Tests — dafür bräuchte es eine DOM-Umgebung.
-- **Die riskanteste Stelle ist `promptBuilder.js:18` (`buildReferences`).** Referenzklauseln sagen
-  „Reference image 2 shows @anton", und diese Nummer muss zur Position im
-  Bild-Array passen. Eine Figur ohne Foto darf deshalb keinen Index
-  verbrauchen — sonst bekommen Menschen fremde Gesichter. Dafür gibt es
-  eigene Tests; wer dort etwas ändert, führt sie aus.
-- **Generierte Medien werden nicht lokal gespeichert.** `/api/generate` reicht
-  nur die fal.ai-Hosting-URL durch (`server.js:404`), die App speichert diese URL im
-  Tagebuch-Eintrag. Anton möchte sie zusätzlich lokal ablegen. Angedacht:
-  Server lädt die Datei nach der Generierung herunter und liefert einen
-  lokalen Pfad neben der Original-URL zurück — Speicherort, Dateibenennung und
-  Aufräumen sind ungeklärt.
-- `mentionsTag()` ist im Wizard nur noch **Vorschlag**, nicht mehr Filter —
-  die Zuordnung passiert ausdrücklich in Schritt 3 und 4. Die alte Regel
-  greift nur noch, wenn jemand „Improve with AI" überspringt.
-- **`DEEPSEEK_KEY` ist seit 08.08. faktisch Pflicht.** Schritt 1 des Wizards
-  lässt sich nicht mehr überspringen (`src/wizard/Step1Dream.jsx:109`), und
-  „nur speichern" liegt dahinter in Schritt 2
-  (`src/wizard/Step2Output.jsx:16`). Wer einen Traum bloß aufschreiben will,
-  zahlt also einen Credit für die Analyse. Falls das kostenlos bleiben soll,
-  bräuchte es einen eigenen Weg am Wizard vorbei — bewusst offen gelassen.
-- **Credits/Bezahlmodell fehlt.** Braucht eine fälschungssichere Datenhaltung
-  (client-seitiges `localStorage` reicht für echtes Geld nicht) — tentativ
-  Supabase. Braucht ein eigenes Projekt vom Produktbesitzer und ein eigenes
-  ADR, das ADR-0002 in diesem Punkt ersetzt.
-- **App-/Play-Store-Vertrieb fehlt.** Für In-App-Käufe muss die Web-App
-  gewrappt werden (tentativ Capacitor), plus Apple/Google Developer Accounts,
-  die der Produktbesitzer noch nicht hat. Eigenes ADR, eigene Session.
-- Der 10-Beat-Traum-Bogen/Shot-Ladder/Identity-Locks-Skill ist weiterhin nicht
-  angebunden. `craftPromptViaDeepseek()` nutzt bereits die
-  Nano-Banana-6-Elemente-Formel; der Ausbau wäre dort.
-- Responsives Verhalten ist am Rechner geprüft, nicht auf einem echten Gerät.
-  Vor einer Veröffentlichung am Telefon gegenprüfen.
-- **Symbolerkennung nur auf Englisch** (`src/lib/symbols.js:6`). Die Stichwortlisten in
-  `src/lib/symbols.js` sind rein englisch (bewusst entschieden) — nur die
-  Kategorienamen sind deutsch. Deutsche Traumeinträge liefern keine Symbole.
-  Erweiterbar ohne Umbau: deutsche Begriffe in `SYMBOLS` ergänzen. **Wird
-  spätestens mit der deutschen Oberfläche fällig** — sonst liefert ein deutsch
-  geschriebener Traum gar keine Symbole.
-- Symbolerkennung ist Stichwortabgleich, kein Sprachverständnis. „I was *not*
-  afraid" zählt als *Fear*. Für mehr bräuchte es ein Sprachmodell.
+- **Die riskanteste Stelle bleibt `promptBuilder.js:18` (`buildReferences`).**
+  Eine Figur ohne Foto darf keinen Index verbrauchen, sonst bekommen Menschen
+  fremde Gesichter. Wer dort etwas ändert, führt die Tests aus.
+- **Die Bilderstrecke im Journal teilt nach Sätzen**, gleichmäßig auf die Bilder.
+  Genauer ginge es nur, wenn die Beats im Eintrag gespeichert würden — sie liegen
+  heute nur in der Analyse.
+- **Vite startet neu, sobald eine `.env*`-Datei gespeichert wird** — auch
+  `.env.example`. Sieht beim ersten Mal nach einem Absturz aus.
+- **Symbolerkennung nur auf Englisch** (`src/lib/symbols.js:34`). Deutsche Träume
+  liefern keine Symbole. Wird spätestens mit der deutschen Oberfläche fällig.
 - Tagebuch wächst unbegrenzt und wird komplett gerendert — keine Pagination.
-  Zusammen mit den base64-Referenzfotos ist das localStorage-Kontingent
-  (~5 MB) das eigentliche Limit; `saveState()` meldet es wenigstens.
+  Zusammen mit base64-Referenzfotos ist das localStorage-Kontingent (~5 MB) das
+  eigentliche Limit; `saveState()` meldet es wenigstens.
 
 ## Nächste Schritte
 
-1. Generierte Bilder/Videos zusätzlich lokal speichern (Antons Wunsch).
-2. **Character-Sheets**: eine beschriebene Figur ohne Foto bekommt bisher nur
-   eine Textklausel. Die Spec sieht vor, daraus einmalig ein Referenzbild
-   erzeugen zu lassen (2 Credits), das am Avatar hängt und wiederverwendbar
-   ist. Noch nicht gebaut.
-3. Vor jeder öffentlichen/iPhone-Nutzung: Auth + Rate-Limit für
-   `/api/generate`.
-4. Supabase-Projekt anlegen (Produktbesitzer) → ADR für Accounts/DB/Credits.
-5. Darauf aufbauend: Credits-Kauf + Gating der Video-Generierung.
-6. Apple-/Google-Developer-Accounts (Produktbesitzer) → ADR für Capacitor.
+1. **Sprachassistent (Gemini Live).** `GEMINI_KEY` liegt seit 08.08. in `.env`.
+   fal bietet kein Echtzeit-Sprachmodell, der Schlüssel kommt direkt von Google.
+   **Wichtig für die Umsetzung:** Gemini Live kann Funktionen aufrufen — dem
+   Modell `setDreamText()`, `addPerson()`, `addPlace()` mitgeben, statt hinterher
+   ein Protokoll durch DeepSeek zu jagen. Die Daten kommen dann strukturiert an,
+   ohne zweiten Aufruf. Kosten: ~$0,028 je Traum (3 Minuten Gespräch).
+2. **Onboarding-Fragebogen** über denselben Assistenten: Name, wiederkehrende
+   Träume, Vorlieben, eigenes Foto. Gestaffelte Belohnung bis 3 Credits — wer
+   nichts ausfüllt, behält alles Kostenlose und stößt erst beim Generieren auf
+   die Paywall.
+3. **Empfehlungsprogramm.** Trägt sich ab dem zweiten Monat des Geworbenen.
+   Prämie **erst nach der ersten erfolgreichen Abbuchung** gutschreiben, sonst ist
+   es eine Einladung, sich selbst zu empfehlen. Braucht das Konten-Backend.
+4. **Character-Sheets** für beschriebene Figuren ohne Foto. Seedream ist dafür
+   das bessere und billigere Werkzeug — seine Stärke (Vorlage exakt halten) ist
+   hier genau richtig.
+5. Vor jeder öffentlichen Nutzung: **Auth + Rate-Limit** für `/api/generate`.
+6. **Supabase-Projekt** (Produktbesitzer) → ADR für Accounts/DB/Credits. Erst
+   danach sind Bezahlung, Empfehlungen und ein fälschungssicherer Kontostand
+   möglich.
+7. Apple-/Google-Developer-Accounts → ADR für Capacitor. Erst dann In-App-Käufe,
+   ein echter Einschlaf-Wecker (Benachrichtigungen) und natives Autostart für den
+   Sound-Mixer.
+
+## Offene Zahlen, die nur die Wirklichkeit beantworten kann
+
+- **Umwandlungsquote und Haltedauer.** Das Geschenk trägt sich ab **3,8 %** bei
+  drei Monaten mittlerer Haltedauer. Ob die erreicht werden, weiß niemand, bevor
+  es Konten gibt. Konservativ starten, nachlegen wenn die Zahlen es hergeben —
+  zu wenig verschenkt lässt sich korrigieren, zu viel ist weg.
+- **Das Jahresabo trägt die Marge nur bei ~75 % Verbrauch.** Deshalb verfallen
+  Monats-Credits. Vor dem Verkauf an echten Zahlen prüfen.
+- **Echte Rechnungsbeträge** stehen im fal.ai-Dashboard. Die Sitzung hat dort
+  reale Läufe hinterlassen (Bilder, ein 15-s- und ein 12-s-Video) — ein Blick
+  darauf bestätigt oder korrigiert die hier genannten Preise.

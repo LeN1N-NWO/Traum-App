@@ -3,6 +3,95 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-08 15:30 — Anton — Branch `session/2026-08-07-anton` (PR #9) — Sitzungsabschluss
+
+**Commits:** `13bd9b0` (Diktat, Poster, Journal-Look, Medien lokal), `46b72e1`
+(Sleep-Tab, zwei Journal-Ansichten, Icon-Leiste), `af64474` (Plus-Knopf mittig),
+`025fb7c` (tiefblaue Farbwelt, Profil neu), `688e01f` (Paywall, warme Akzente),
+`309a9d2` (Startseite), `1802b79` (Verlaufsknöpfe), `624331e` (Warteschlange für
+Filme), `8cc2a94` (Credit-Skala, Film-Auswahl, Bilderstrecke), `73f2b32`
+(Willkommensgeschenk 3). Zustand: 65 Unit-Tests, 50 Freigabe-Prüfungen,
+Prompt-Hygiene, 16 Kontrast-Paarungen — alles grün. Build sauber.
+`npm run lint` existiert weiterhin nicht.
+
+**Diktat neu gebaut.** Web Speech war fest auf `en-US` verdrahtet, verstand
+Deutsch gar nicht und funktionierte in iOS Safari nie. Jetzt MediaRecorder +
+Whisper (`fal-ai/wizper`) über `/api/transcribe`. Spracherkennung automatisch,
+also kein Umschalter. Die Route nimmt **nur Base64-Data-URIs**, keine URLs —
+sonst wäre sie ein Abruf-Proxy für beliebige Adressen.
+
+**Traum-Poster.** Der eine Analyse-Aufruf liefert jetzt zusätzlich `title` und
+`tagline` in der Traumsprache. `buildPosterPrompt()` setzt die aus sieben
+echten Filmpostern destillierten Regeln um: ein dominantes Motiv, Tagline oben,
+Titel im unteren Drittel, Billing-Block unten, Sperr-Palette. Das Poster
+ersetzt das erste Bild (gleiche Anzahl, gleicher Preis). Acht Styles statt
+sechs, neu **Ultra Real** (Deakins-Grammatik) und **Film Noir**.
+
+**Medien liegen jetzt lokal.** `/api/generate` lädt jede erzeugte Datei nach
+`media/` (git-ignoriert) und gibt `/media/<hash>.<ext>` zurück. Vorher stand
+nur die fal-URL im Tagebuch, und die verschwindet irgendwann — ein Tagebuch,
+das nach Monaten leer wird, ist wertlos. 17 neue Freigabe-Prüfungen halten die
+Route dicht.
+
+**Sleep-Tab** mit Einschlaf-Checkliste (Haken gelten für eine Nacht, setzen
+sich per Datumsschlüssel selbst zurück), Sound-Mixer (White/Pink/Brown werden
+**synthetisiert** — kein Download, keine Lizenz) und dem umgezogenen
+Lucid-Guide. Der Web-Audio-Graph liegt außerhalb von React, damit der Ton beim
+Navigieren weiterläuft.
+
+**Farbwelt komplett getauscht**, von violetter Nacht auf tiefes Blau mit warmem
+Gegenpol. Der eigentliche Gewinn ist strukturell: der Hintergrund stand vorher
+in **zwölf Dateien** von Hand ausgeschrieben, jetzt genau einmal als
+`--bg-rgb`, und jeder Schleier leitet sich davon ab. Dazu
+`scripts/test-contrast.mjs`, das die echten Tokens liest und 16 Paarungen gegen
+WCAG AA prüft — der in STAND.md seit Monaten dokumentierte Grenzfall (`--faint`
+auf `--sky`) steigt von 4,79:1 auf 5,56:1. Eine Warnung in einer Textdatei hält
+niemanden auf, ein Test schon.
+
+**⚠ Zwei echte Fehler gefunden, beide teuer:**
+
+1. `run()` in Step5 war **nicht wiedereintrittsfest**. Ein Druck erzeugte sechs
+   `/api/generate`-Aufrufe; auf dem Telefon hätte ein Doppeltipp doppelt
+   Credits gekostet. `busy` konnte das nicht verhindern — es ist React-State und
+   im selben Tick noch `false`. Jetzt `useRef`-Wächter.
+2. **Der synchrone `fal.run`-Aufruf reicht für lange Filme nicht.** Gemessen:
+   ein 15-Sekunden-Render dauert **280 Sekunden** und läuft in eine
+   Zeitüberschreitung — während fal weiterrechnet und abrechnet. Bezahlt und
+   verloren. Filme laufen jetzt über `queue.fal.run`: einreichen, Job auf Platte
+   schreiben, `/api/job?id=` fragt nach. Aufträge liegen auf Platte, nicht in
+   einer Map, damit ein Neustart nichts verwaisen lässt, wofür jemand bezahlt hat.
+
+**Preise auf echte Kosten gestellt.** Recherchiert und teils direkt gemessen:
+Bild $0.08, Video $0.08/Sekunde bei 768P, Analyse $0.00026. Vorher war derselbe
+Credit je nach Verwendung zwischen 4 und 16 Cent wert. Jetzt **1 Credit = 1 Bild
+= $0.08**, Textarbeit gratis (sie kostet 0,065 % eines Traums), Film ein Credit
+je Sekunde. Willkommensgeschenk von 25 auf **3** — 25 waren $2.00 je
+Installation, durch Löschen der Website-Daten beliebig wiederholbar.
+
+**Modellvergleich mit echten Bildern** (~$0.31): synthetisches Porträt erzeugt,
+beiden Modellen als Referenz gegeben. **Seedream 5 Lite hält das Gesicht
+pixelgenau, ignoriert aber die Regieanweisung** — beide Male dasselbe frontale
+Brustbild, faktisch nur ein Hintergrundtausch. Nano Banana befolgt die Regie
+(Ganzfigur, Profil, Lichtstimmung), verliert dafür Kleinstmerkmale auf
+Szenendistanz. **Für Filmbilder ist Nano Banana richtig**; der Test hat eine
+teure Fehlentscheidung erspart. Seedreams Stärke passt zu den noch offenen
+Character-Sheets.
+
+**Was der Nächste wissen muss:**
+
+- **`minimax/h3` kann 15 Sekunden**, nicht 6 oder 10. Der Slug existiert, ist
+  aber nirgends öffentlich dokumentiert — die Grenzen stehen nur in fal's
+  eigener Validierungsantwort. Leeren Body schicken, Fehler lesen: kostet nichts
+  und ist die einzige Quelle. So kamen auch die erlaubten Auflösungen heraus.
+- **Vite startet neu, sobald `.env.example` gespeichert wird** (es beobachtet
+  alle `.env*`). Beim ersten Mal sah das nach einem Absturz aus.
+- **`--warm` braucht dunklen Text.** Weiß auf Bernstein reißt den Kontrast; die
+  Hauptknöpfe tragen deshalb `color: var(--bg)`.
+- Die Journal-Bilderstrecke teilt den Text **nach Sätzen**, gleichmäßig auf die
+  Bilder. Die englischen Beats liegen in der Analyse und nicht im Eintrag,
+  können also nicht zuordnen — die Reihenfolge stimmt, mehr ist ohne
+  gespeicherte Beats nicht drin.
+
 ## 2026-08-07 19:00 — Hanni — Branch `session/2026-08-07-hanni-profile` (PR #8) — Sitzungsabschluss
 
 **Commits:** `e76d6c8` (Merge von main, Doppeltes raus), `6db78c9`
