@@ -385,6 +385,33 @@ export default {
     soundsUnmute: "Unmute sleep sounds",
   },
 
+  paywall: {
+    title: "Dream Rushes Plus",
+    close: "Close",
+    headline: "Your dreams, as films.",
+    lede: "Writing, voice and everything in the Sleep tab stay free. Credits are only for what a renderer has to draw.",
+    tabSub: "Subscribe",
+    tabPack: "Buy credits",
+    periodName: { month: "Monthly", year: "Yearly" },
+    packName: (n) => `${n} credits`,
+    per: { month: "per month", year: "per year" },
+    oneTime: "one-time",
+    save: (pct) => `Save ${pct}`,
+    creditsPerMonth: (n) => `${n} credits every month`,
+    creditsOnce: (n) => `${n} credits, never expire`,
+    yield: (credits, five, three) =>
+      `${credits} credits — about ${five} dreams with 5 images, or ${three} with 3. A film costs the same as 5 images.`,
+    included: "Always included, free",
+    chips: [
+      "Unlimited journaling", "Voice recording", "AI rewriting",
+      "Sleep sounds", "Wind-down checklist", "Lucid guide", "Dream symbols",
+    ],
+    freeNote: "Only image and film generation costs credits — that is the part we pay a renderer for.",
+    cta: "Continue",
+    notYet: "⚠ Payment is not connected yet — this is a preview of the plans.",
+    balance: (n) => `You currently have ${n} credits.`,
+  },
+
   errors: {
     storageFull: "⚠ Storage full — delete old entries or reference photos.",
     unexpected: "Unexpected response from the server.",

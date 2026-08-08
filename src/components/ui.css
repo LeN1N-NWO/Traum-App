@@ -9,7 +9,14 @@
 }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 .btn:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 3px; }
-.btn-primary { background: linear-gradient(160deg, var(--accent-soft), var(--accent-deep)); color: var(--text); }
+/* The primary action is the ONE warm thing on a cold screen — that is what
+   makes it read as the way forward without needing a bigger size or a
+   heavier weight. Dark text on it, because amber is a light colour: white
+   on amber fails contrast, near-black passes comfortably. */
+.btn-primary {
+  background: linear-gradient(160deg, var(--warm), color-mix(in oklab, var(--warm) 74%, #b2542a));
+  color: var(--bg);
+}
 .btn-quiet  { background: var(--panel); border-color: var(--panel-line); color: var(--text); }
 .btn-ghost  { background: none; color: var(--muted); }
 

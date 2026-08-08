@@ -1,0 +1,90 @@
+.pw {
+  position: fixed; inset: 0; z-index: 80; overflow-y: auto;
+  background: var(--bg); display: flex; flex-direction: column;
+}
+/* The warm light at the top is the whole reason the page feels like an offer
+   rather than a form: cold app, one warm window. */
+.pw-hero {
+  position: absolute; top: 0; left: 0; right: 0; height: 320px; pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 25% 0%, color-mix(in oklab, var(--warm) 42%, transparent), transparent 62%),
+    radial-gradient(90% 70% at 85% 12%, color-mix(in oklab, var(--accent) 40%, transparent), transparent 66%),
+    linear-gradient(to bottom, transparent 55%, var(--bg) 100%);
+}
+.pw-close {
+  position: absolute; top: calc(env(safe-area-inset-top) + 12px); right: 14px; z-index: 2;
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+  background: var(--glass); backdrop-filter: blur(8px);
+  border: 1px solid var(--panel-line); color: var(--text); font-size: 19px;
+}
+.pw-close:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+.pw-head { position: relative; padding: calc(env(safe-area-inset-top) + 64px) var(--s-4) var(--s-5); }
+.pw-brand { font-size: var(--t-small); color: var(--muted); font-weight: 600; }
+.pw-plus {
+  display: inline-block; margin-left: 4px; padding: 2px 7px; border-radius: 6px;
+  background: var(--warm); color: var(--bg); font-size: var(--t-micro); font-weight: 700;
+  letter-spacing: .06em;
+}
+.pw-title {
+  font-family: var(--serif); font-size: clamp(30px, 8vw, 42px); font-weight: 400;
+  line-height: 1.08; margin: var(--s-3) 0 var(--s-2); text-wrap: balance;
+}
+.pw-lede { color: var(--muted); font-size: var(--t-body); margin: 0; max-width: 32ch; }
+
+.pw-body { position: relative; padding: 0 var(--s-4) calc(env(safe-area-inset-bottom) + var(--s-6)); }
+
+.pw-tabs {
+  display: flex; gap: 4px; padding: 4px; margin-bottom: var(--s-4);
+  background: var(--panel); border: 1px solid var(--panel-line); border-radius: 999px;
+}
+.pw-tab {
+  flex: 1; padding: var(--s-2); border-radius: 999px; cursor: pointer;
+  background: none; border: none; color: var(--muted);
+  font-family: var(--sans); font-size: var(--t-small); font-weight: 600;
+}
+.pw-tab-on { background: var(--warm); color: var(--bg); }
+.pw-tab:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+.pw-plans { display: flex; flex-direction: column; gap: var(--s-2); }
+.pw-plan {
+  display: flex; align-items: center; gap: var(--s-3); width: 100%;
+  padding: var(--s-4); border-radius: var(--radius); cursor: pointer; text-align: left;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font-family: var(--sans);
+}
+.pw-plan-on { border-color: var(--warm); background: color-mix(in oklab, var(--warm) 12%, transparent); }
+.pw-plan:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.pw-radio {
+  flex: 0 0 22px; width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--panel-line);
+}
+.pw-plan-on .pw-radio { border-color: var(--warm); background: var(--warm); box-shadow: inset 0 0 0 4px var(--bg); }
+.pw-plan-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pw-plan-name { font-weight: 600; display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+.pw-badge {
+  padding: 2px 7px; border-radius: 6px; background: var(--ok); color: var(--bg);
+  font-size: var(--t-micro); font-weight: 700;
+}
+.pw-plan-sub { color: var(--faint); font-size: var(--t-small); }
+.pw-plan-price { display: flex; flex-direction: column; align-items: flex-end; }
+.pw-plan-price b { font-size: var(--t-h3); }
+.pw-plan-price small { color: var(--faint); font-size: var(--t-micro); }
+
+.pw-yield {
+  margin: var(--s-4) 0 0; padding: var(--s-3) var(--s-4);
+  border-radius: var(--radius); background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--muted); font-size: var(--t-small);
+}
+
+.pw-included { margin-top: var(--s-5); }
+.pw-included-title { font-size: var(--t-h3); font-weight: 600; margin: 0 0 var(--s-3); }
+.pw-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.pw-chip {
+  padding: 7px 13px; border-radius: 999px; font-size: var(--t-small);
+  background: var(--panel); border: 1px solid var(--panel-line); color: var(--muted);
+}
+.pw-free-note { color: var(--faint); font-size: var(--t-small); margin: var(--s-3) 0 0; }
+
+.pw-foot { margin-top: var(--s-6); display: flex; flex-direction: column; gap: var(--s-3); }
+.pw-small { color: var(--faint); font-size: var(--t-small); text-align: center; margin: 0; }

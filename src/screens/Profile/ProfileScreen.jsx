@@ -3,6 +3,7 @@ import { useAppState } from "../../state/AppState.jsx";
 import { t } from "../../i18n/index.js";
 import AvatarDialog from "../../components/AvatarDialog.jsx";
 import DreamCalendar from "./DreamCalendar.jsx";
+import Paywall from "./Paywall.jsx";
 import "./profile.css";
 
 /* The profile is about the person, not their material: people, pets and
@@ -12,6 +13,7 @@ import "./profile.css";
 export default function ProfileScreen() {
   const { state } = useAppState();
   const [editingMe, setEditingMe] = useState(false);
+  const [paywall, setPaywall] = useState(false);
 
   const me = state.me;
   const dreams = state.journal?.length || 0;
@@ -24,11 +26,11 @@ export default function ProfileScreen() {
           has not earned until it can actually be topped up. */}
       <div className="p-top">
         <h1 className="p-title">{t.profile.title}</h1>
-        <span className="p-credits-pill">
+        <button className="p-credits-pill" onClick={() => setPaywall(true)}>
           <span className="p-credits-dot" aria-hidden="true">✦</span>
           {state.credits ?? 0}
           <span className="p-credits-word">{t.profile.credits}</span>
-        </span>
+        </button>
       </div>
 
       <div className="p-hero">
@@ -71,6 +73,8 @@ export default function ProfileScreen() {
           onClose={() => setEditingMe(false)}
         />
       )}
+
+      {paywall && <Paywall onClose={() => setPaywall(false)} />}
     </main>
   );
 }

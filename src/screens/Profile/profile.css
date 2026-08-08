@@ -27,11 +27,12 @@
 .p-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-5); }
 .p-title { font-size: var(--t-h2); font-weight: 600; letter-spacing: -.02em; margin: 0; }
 .p-credits-pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 5px 12px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  padding: 6px 13px; border-radius: 999px;
   background: var(--panel); border: 1px solid var(--panel-line);
-  font-size: var(--t-small); font-weight: 600;
+  color: var(--text); font-family: var(--sans); font-size: var(--t-small); font-weight: 600;
 }
+.p-credits-pill:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 .p-credits-dot { color: var(--gold); }
 .p-credits-word { color: var(--faint); font-weight: 400; font-size: var(--t-micro); }
 
