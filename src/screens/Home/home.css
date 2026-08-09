@@ -2,45 +2,15 @@
    with negative margins and the content sits back on top of it. */
 .h-screen { position: relative; }
 
-/* ⚠ DEV-ONLY Varianten (09.08.2026): drei Layouts hinter dem A/B/C-Schalter
-   in HomeScreen.jsx. Nach der Wahl fliegen zwei davon raus. Gemeinsam ist
-   allen: das Faultier-Video, leicht abgedunkelt, statt des alten Verlaufs-
-   himmels mit Mond. */
+/* Die Posterkarte: das Faultier-Video in einem gerundeten Rahmen, Titel und
+   Knopf auf seiner Unterkante — der Zuschnitt der Onboarding-Karten, auf die
+   Startseite übertragen (gewählt 09.08.2026 aus drei gebauten Varianten).
 
-/* Variante A „Himmel": Video im oberen Bereich, wo vorher der Verlauf war. */
-.h-sky {
-  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-  width: 100vw; height: 62vh; max-height: 520px; overflow: hidden; pointer-events: none;
-  background: var(--sky);
-}
-/* Variante B „Kino": dasselbe Video, aber ganzseitig hinter allem. */
-.h-cine {
-  position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: -1;
-}
-.h-bg-video {
-  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-}
-/* Der Schleier dunkelt das Video, damit es Stimmung bleibt statt Motiv:
-   in A läuft er unten in volle Deckung aus (der Inhalt steht auf --bg),
-   in B bleibt er gleichmäßiger, weil ALLES auf dem Video steht. */
-.h-sky-veil {
-  position: absolute; inset: 0;
-  background: linear-gradient(to bottom, rgb(var(--bg-rgb) / .35) 0%, rgb(var(--bg-rgb) / .72) 46%, var(--bg) 100%);
-}
-.h-cine .h-sky-veil {
-  background: linear-gradient(to bottom,
-    rgb(var(--bg-rgb) / .5) 0%, rgb(var(--bg-rgb) / .55) 45%, rgb(var(--bg-rgb) / .9) 100%);
-}
-/* In B werden die Karten zu Glas, damit das Video überall durchschimmert. */
-.h-v-b .h-last, .h-v-b .h-creature {
-  background: rgb(var(--bg-rgb) / .45);
-  backdrop-filter: blur(10px);
-}
-.h-v-b .h-title, .h-v-b .h-lede { text-shadow: 0 1px 18px rgb(0 0 0 / .55); }
-
-/* Variante C „Karte": das Video wohnt in einer großen gerundeten Poster-
-   karte, Titel und Knopf auf ihrer Unterkante — der Zuschnitt der
-   Onboarding-Karten, auf die Startseite übertragen. */
+   Der Scrim ist oben fast durchsichtig und läuft nach unten in Deckung: das
+   Motiv bleibt hell, wo es nichts zu lesen gibt, und trägt die Schrift, wo
+   sie steht. Er ist die einzige Abdunklung — das Video selbst wird NICHT
+   per filter gedimmt, das kostet auf dem Telefon jede Sekunde Rechenzeit,
+   während ein Verlauf einmal gezeichnet wird und liegen bleibt. */
 .h-poster {
   position: relative; overflow: hidden; border-radius: var(--radius-lg);
   aspect-ratio: 4 / 5; margin-top: var(--s-4);
@@ -61,20 +31,6 @@
 }
 .h-poster-body .h-title { font-size: clamp(30px, 8.4vw, 42px); }
 .h-poster-body .h-lede { margin-bottom: var(--s-4); }
-.h-v-c .h-top { position: relative; z-index: 1; }
-
-/* Der Schalter selbst — fliegt mit den Verlierer-Varianten raus. */
-.h-dev-switch {
-  position: fixed; right: var(--s-3); top: 50%; transform: translateY(-50%);
-  display: flex; flex-direction: column; gap: 6px; z-index: 30;
-}
-.h-dev-pill {
-  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
-  border: 1px solid var(--panel-line); background: var(--glass);
-  backdrop-filter: blur(8px); color: var(--muted);
-  font-family: var(--sans); font-size: 12px; font-weight: 700;
-}
-.h-dev-on { background: var(--accent-wash); color: var(--accent-soft); border-color: var(--accent-soft); }
 
 .h-top {
   position: relative; display: flex; align-items: center; justify-content: space-between;
@@ -90,7 +46,6 @@
 }
 .h-streak span { color: var(--gold); }
 
-.h-hero { position: relative; padding: 22vh 0 var(--s-5); }
 .h-title {
   font-family: var(--serif); font-size: clamp(34px, 10vw, 52px); font-weight: 400;
   line-height: 1.04; letter-spacing: -.02em; margin: 0 0 var(--s-3);

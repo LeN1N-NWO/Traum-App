@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppState } from "../../state/AppState.jsx";
 import { refreshStreak } from "../../lib/streak.js";
 import { t } from "../../i18n/index.js";
 import Menagerie from "./Menagerie.jsx";
 // Vite-gebündelt wie das Intro-Video: 666 KB, ohne Ton, transkodiert aus
-// media/video/Faultier-002.mov (7,3 MB). Läuft leicht abgedunkelt als
-// Hintergrund — siehe die Varianten unten.
+// media/video/Faultier-002.mov (7,3 MB).
 import homeVideo from "../../assets/home-faultier.mp4";
 import "./home.css";
 
@@ -19,26 +18,23 @@ function greetingKey(hour) {
   return "evening";
 }
 
-/* ⚠ DEV-ONLY (09.08.2026): three layout variants behind a floating A/B/C
- * switcher, so Anton can pick one live. Once chosen, the two losers and the
- * switcher get deleted and the winner becomes THE home screen. The variants:
- *   a  „Himmel"  — the video replaces the sky gradient in the top 62vh,
- *                  everything else keeps its place.
- *   b  „Kino"    — the video runs full-screen behind everything; the cards
- *                  float over it as glass.
- *   c  „Karte"   — the video lives inside one big rounded poster card with
- *                  the title and CTA on its lower edge, Withings-style.
+/* The home screen, as a poster.
+ *
+ * The film lives INSIDE a rounded card rather than behind the whole screen
+ * (chosen 09.08.2026 from three built variants). Two things follow from
+ * that and are the reason it won: the card has an edge, so the video reads
+ * as a picture someone framed instead of as a background that leaked; and
+ * everything below it — last night, the menagerie — sits on calm dark
+ * again, where lists belong. A full-bleed video made those look like
+ * subtitles.
+ *
+ * The title and the CTA sit ON the card's lower edge, over the scrim. That
+ * is what makes the sloth look at the person reading the question rather
+ * than at a caption underneath it.
  */
 export default function HomeScreen() {
   const { state, update } = useAppState();
   const navigate = useNavigate();
-  const [variant, setVariant] = useState(() =>
-    localStorage.getItem("dev_home_variant") || "a");
-
-  function pick(v) {
-    setVariant(v);
-    localStorage.setItem("dev_home_variant", v);
-  }
 
   // A broken streak drops to 0 when you look at it — otherwise the app keeps
   // claiming "9 days" after a fortnight away.
@@ -56,86 +52,42 @@ export default function HomeScreen() {
   const greeting = t.home.greeting[greetingKey(new Date().getHours())];
   const streak = state.streak || 0;
 
-  const topRow = (
-    <div className="h-top">
-      <p className="h-greeting">{greeting}</p>
-      {streak > 0 && (
-        <p className="h-streak">
-          <span aria-hidden="true">✦</span> {t.home.streak(streak)}
-        </p>
-      )}
-    </div>
-  );
-
-  const lastCard = last && (
-    <button className="h-last" onClick={() => navigate("/journal")}>
-      <span className="h-last-body">
-        <span className="h-last-label">{t.home.lastHeading}</span>
-        <span className="h-last-title">{last.title || t.home.untitled}</span>
-        <span className="h-last-text">{last.tagline || last.text}</span>
-      </span>
-    </button>
-  );
-
-  const switcher = (
-    <div className="h-dev-switch" aria-hidden="true">
-      {["a", "b", "c"].map((v) => (
-        <button key={v}
-                className={"h-dev-pill" + (v === variant ? " h-dev-on" : "")}
-                onClick={() => pick(v)}>
-          {v.toUpperCase()}
-        </button>
-      ))}
-    </div>
-  );
-
-  if (variant === "c") {
-    return (
-      <main className="screen h-screen h-v-c">
-        {topRow}
-        <section className="h-poster">
-          <video className="h-poster-video" src={homeVideo}
-                 autoPlay muted loop playsInline aria-hidden="true" />
-          <div className="h-poster-scrim" aria-hidden="true" />
-          <div className="h-poster-body">
-            <h1 className="h-title">{t.home.title}</h1>
-            <p className="h-lede">{t.home.lede}</p>
-            <button className="h-cta" onClick={() => navigate("/dream")}>
-              {t.home.cta}
-            </button>
-          </div>
-        </section>
-        {lastCard}
-        <h2 className="h-section">{t.home.menagerieHeading}</h2>
-        <Menagerie />
-        {switcher}
-      </main>
-    );
-  }
-
   return (
-    <main className={`screen h-screen h-v-${variant}`}>
-      <div className={variant === "b" ? "h-cine" : "h-sky"} aria-hidden="true">
-        <video className="h-bg-video" src={homeVideo}
-               autoPlay muted loop playsInline />
-        <span className="h-sky-veil" />
+    <main className="screen h-screen">
+      <div className="h-top">
+        <p className="h-greeting">{greeting}</p>
+        {streak > 0 && (
+          <p className="h-streak">
+            <span aria-hidden="true">✦</span> {t.home.streak(streak)}
+          </p>
+        )}
       </div>
 
-      {topRow}
-
-      <section className="h-hero">
-        <h1 className="h-title">{t.home.title}</h1>
-        <p className="h-lede">{t.home.lede}</p>
-        <button className="h-cta" onClick={() => navigate("/dream")}>
-          {t.home.cta}
-        </button>
+      <section className="h-poster">
+        <video className="h-poster-video" src={homeVideo}
+               autoPlay muted loop playsInline aria-hidden="true" />
+        <div className="h-poster-scrim" aria-hidden="true" />
+        <div className="h-poster-body">
+          <h1 className="h-title">{t.home.title}</h1>
+          <p className="h-lede">{t.home.lede}</p>
+          <button className="h-cta" onClick={() => navigate("/dream")}>
+            {t.home.cta}
+          </button>
+        </div>
       </section>
 
-      {lastCard}
+      {last && (
+        <button className="h-last" onClick={() => navigate("/journal")}>
+          <span className="h-last-body">
+            <span className="h-last-label">{t.home.lastHeading}</span>
+            <span className="h-last-title">{last.title || t.home.untitled}</span>
+            <span className="h-last-text">{last.tagline || last.text}</span>
+          </span>
+        </button>
+      )}
 
       <h2 className="h-section">{t.home.menagerieHeading}</h2>
       <Menagerie />
-      {switcher}
     </main>
   );
 }
