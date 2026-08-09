@@ -120,7 +120,9 @@ export function buildGridPrompt({ beats, styleId, clauses = [] }) {
   return (
     `A single 16:9 image divided into exactly THREE equal vertical panels side by side, ` +
     `separated by a thin solid black divider line running the full height between each panel — ` +
-    `like a triptych or a 3-panel comic strip. Each panel is a self-contained cinematic photoreal ` +
+    `like a triptych or a 3-panel comic strip. The panels fill the ENTIRE canvas edge to edge: ` +
+    `no letterboxing, no black bars above or below, no outer frame or margin of any kind. ` +
+    `Each panel is a self-contained cinematic photoreal ` +
     `film still with no bleed or shared elements across the divider lines.` +
     `\n${panels}` +
     `\nConsistent color grade and lighting across all three panels so they read as one continuous ` +
