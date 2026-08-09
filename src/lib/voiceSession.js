@@ -83,6 +83,9 @@ export function startVoiceSession(h = {}, who = {}) {
     // conversation collects profile facts instead of a dream.
     mode: who.mode || "",
     lang: who.lang || navigator.language || "",
+    // Chosen in VoicePicker just before this session opened. The server
+    // allowlists it and puts it in Gemini's speechConfig.
+    voice: who.voice || "",
   }));
 
   ws.onmessage = async (e) => {

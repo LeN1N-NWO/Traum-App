@@ -458,6 +458,10 @@ export default {
     finish: "انتهيت",
     send: "إرسال",
     typePlaceholder: "أو اكتبه بدلًا من ذلك…",
+    pickTitle: "اختر صوتًا",
+    pickHint: "انقر على اسم لسماعه",
+    pickGo: "يبدو مناسبًا",
+    traits: { warm: "دافئ", soft: "ناعم", gentle: "رقيق", young: "شابّ", bright: "مشرق", deep: "عميق" },
     errors: {
       NO_GEMINI_KEY: "⚠ لا يوجد مفتاح صوت على الخادم. عيّن GEMINI_KEY وأعد التشغيل.",
       MIC_DENIED: "⚠ تم حظر الوصول إلى الميكروفون. اسمح به من إعدادات متصفحك.",

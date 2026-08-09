@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { startVoiceSession } from "../../lib/voiceSession.js";
+import { isVoice, DEFAULT_VOICE } from "../../lib/voices.js";
 import { zodiacOf } from "../../lib/zodiac.js";
 import { useAppState } from "../../state/AppState.jsx";
 import { t } from "../../i18n/index.js";
 import DreamScape from "../../components/DreamScape.jsx";
+import VoicePicker from "../../components/VoicePicker.jsx";
 import "../../wizard/voice.css";
 
 /* The welcome survey, spoken. Same screen grammar as the dream interview
@@ -14,7 +16,10 @@ import "../../wizard/voice.css";
  * Every field stays optional. onDone receives whatever was actually
  * answered; the caller decides nothing here beyond "they finished". */
 export default function OnboardingSurvey({ onDone, onCancel }) {
-  const { state: app } = useAppState();
+  const { state: app, update } = useAppState();
+  /* null while the picker is up — see VoiceInterview.jsx, same contract:
+   * no socket and no microphone until a voice was confirmed. */
+  const [voice, setVoice] = useState(null);
   const [state, setState] = useState("connecting");   // connecting|live|error
   const [error, setError] = useState(null);
   const [level, setLevel] = useState(0);
@@ -28,6 +33,7 @@ export default function OnboardingSurvey({ onDone, onCancel }) {
   const endRef = useRef(null);
 
   useEffect(() => {
+    if (!voice) return;   // picker still up
     const s = startVoiceSession({
       onReady: () => setState("live"),
       onLevel: setLevel,
@@ -57,12 +63,13 @@ export default function OnboardingSurvey({ onDone, onCancel }) {
         if (name === "setGoal" && args.goal) c.goal = String(args.goal).slice(0, 20);
         if (name === "finish") finish();
       },
-    }, { mode: "onboarding", lang: app.language || "" });
+    }, { mode: "onboarding", lang: app.language || "", voice });
     session.current = s;
     return () => s.stop();
-    // Mount only: a second session would open a second microphone.
+    // Runs once when the picker confirms (null → id) — a second session
+    // would open a second microphone.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [voice]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [lines]);
 
@@ -77,6 +84,16 @@ export default function OnboardingSurvey({ onDone, onCancel }) {
     session.current?.say(clean);
     setDraft("");
     setTyping(false);
+  }
+
+  if (!voice) {
+    return (
+      <VoicePicker
+        current={isVoice(app.voice) ? app.voice : DEFAULT_VOICE}
+        onDone={(id) => { update({ voice: id }); setVoice(id); }}
+        onCancel={onCancel}
+      />
+    );
   }
 
   return (

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { startVoiceSession } from "../lib/voiceSession.js";
+import { isVoice, DEFAULT_VOICE } from "../lib/voices.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
 import DreamScape from "../components/DreamScape.jsx";
+import VoicePicker from "../components/VoicePicker.jsx";
 import "./voice.css";
 
 /* The dream interview. The assistant asks, the person answers out loud, and
@@ -17,7 +19,12 @@ import "./voice.css";
  * out loud, and a dream is often one of them.
  */
 export default function VoiceInterview({ onDone, onCancel }) {
-  const { state: app } = useAppState();
+  const { state: app, update } = useAppState();
+  /* null while the picker is up — the session must not open (and the
+   * microphone must not turn on) until a voice was confirmed. Asked for
+   * every time on purpose: the remembered choice sits preselected, so
+   * continuing costs one tap, changing your mind costs the same one. */
+  const [voice, setVoice] = useState(null);
   const [state, setState] = useState("connecting");   // connecting|live|error
   const [error, setError] = useState(null);
   const [level, setLevel] = useState(0);
@@ -44,6 +51,7 @@ export default function VoiceInterview({ onDone, onCancel }) {
   });
 
   useEffect(() => {
+    if (!voice) return;   // picker still up — no socket, no microphone
     const s = startVoiceSession({
       onReady: () => setState("live"),
       onLevel: setLevel,
@@ -71,12 +79,13 @@ export default function VoiceInterview({ onDone, onCancel }) {
         if (name === "addPlace" && args.name && !c.places.includes(args.name)) c.places.push(args.name);
         if (name === "finish") finish();
       },
-    }, who.current);
+    }, { ...who.current, voice });
     session.current = s;
     return () => s.stop();
-    // Mount only: a second session would open a second microphone.
+    // Runs once when the picker confirms (null → id) — a second session
+    // would open a second microphone.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [voice]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [lines]);
 
@@ -95,6 +104,16 @@ export default function VoiceInterview({ onDone, onCancel }) {
     session.current?.say(clean);
     setDraft("");
     setTyping(false);
+  }
+
+  if (!voice) {
+    return (
+      <VoicePicker
+        current={isVoice(app.voice) ? app.voice : DEFAULT_VOICE}
+        onDone={(id) => { update({ voice: id }); setVoice(id); }}
+        onCancel={onCancel}
+      />
+    );
   }
 
   return (

@@ -16,6 +16,7 @@ export const DEFAULT_STATE = {
   surveyDone: false,     // welcome survey finished — that is what earns the grant
   profile: null,         // { name, birthday, zodiac, recall, lucid, themes, goal }
   language: null,        // chosen once, before anything else — see LanguagePicker.jsx
+  voice: null,           // the assistant's voice, chosen in VoicePicker — a Gemini voice id
 };
 
 export function genId(prefix) {

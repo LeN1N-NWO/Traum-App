@@ -74,6 +74,85 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-live-preview"
 const GEMINI_WS =
   "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
 
+/* Gemini TTS — ONLY for the voice previews in the picker. It shares the Live
+ * API's voice catalogue, which is the whole point: the sample you tap is the
+ * exact voice that will then talk to you. There is no prebuilt-samples
+ * endpoint (checked 09.08.2026 — AI Studio has them, the API does not), so
+ * each sample is generated once and cached on disk; after that it costs
+ * nothing and plays instantly.
+ * Measured: returns audio/l16;rate=24000 mono (~48 KB/s), NOT a WAV — the
+ * header is added below, because a browser <audio> cannot play headerless
+ * PCM. */
+const GEMINI_TTS_MODEL = process.env.GEMINI_TTS_MODEL || "gemini-3.1-flash-tts-preview";
+
+/* The picker's shortlist, mirrored in src/lib/voices.js (ids must match).
+ * Six of the thirty, chosen for a dream journal at 3am: mostly soft and warm,
+ * one bright, one deep — variety without a wall of names. Also the allowlist:
+ * `voice` from the hello frame goes into the Gemini setup verbatim, so only
+ * these exact strings may pass. */
+const VOICE_NAMES = new Set(["Sulafat", "Achernar", "Vindemiatrix", "Leda", "Puck", "Charon"]);
+
+/* What a voice says to introduce itself — in the app language, because that
+ * is the language it will actually speak. One warm line, long enough to hear
+ * the character, short enough to tap through all six. */
+const VOICE_SAMPLE_LINES = {
+  en: "Hi, it's me. I'll be here when you wake up — tell me everything you dreamed.",
+  de: "Hallo, ich bin's. Ich bin da, wenn du aufwachst — erzähl mir alles, was du geträumt hast.",
+  es: "Hola, soy yo. Estaré aquí cuando despiertes: cuéntame todo lo que soñaste.",
+  fr: "Bonjour, c'est moi. Je serai là à ton réveil — raconte-moi tout ce que tu as rêvé.",
+  zh: "你好，是我。你醒来的时候我就在这里——把你梦到的一切都讲给我听吧。",
+  hi: "नमस्ते, मैं हूँ। जब आप जागेंगे, मैं यहीं रहूँगी — मुझे अपना पूरा सपना सुनाइए।",
+  ar: "مرحبًا، هذه أنا. سأكون هنا عندما تستيقظ — احكِ لي كلّ ما حلمت به.",
+};
+
+/** Wrap raw 16-bit mono PCM in the 44-byte RIFF header that makes it a WAV. */
+function pcmToWav(pcm, rate) {
+  const header = new ArrayBuffer(44);
+  const v = new DataView(header);
+  const ascii = (off, s) => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
+  ascii(0, "RIFF"); v.setUint32(4, 36 + pcm.length, true); ascii(8, "WAVE");
+  ascii(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  ascii(36, "data"); v.setUint32(40, pcm.length, true);
+  const out = new Uint8Array(44 + pcm.length);
+  out.set(new Uint8Array(header)); out.set(pcm, 44);
+  return out;
+}
+
+/** The sample for one (voice, language), from disk or freshly generated. */
+async function voiceSample(voice, lang) {
+  const path = resolve(MEDIA_DIR, `voice-sample-${voice}-${lang}.wav`);
+  const cached = Bun.file(path);
+  if (await cached.exists()) return cached;
+
+  const key = process.env.GEMINI_KEY;
+  if (!key) throw new Error("NO_GEMINI_KEY");
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${key}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: VOICE_SAMPLE_LINES[lang] }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } },
+        },
+      }),
+    },
+  );
+  if (!res.ok) throw new Error("TTS_FAILED");
+  const body = await res.json();
+  const part = body?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+  if (!part?.data) throw new Error("TTS_FAILED");
+  // The advertised rate rides in the mimeType ("audio/l16;rate=24000") —
+  // read it rather than assuming, in case the model ever changes it.
+  const rate = Number(/rate=(\d+)/.exec(part.mimeType || "")?.[1]) || 24000;
+  const wav = pcmToWav(Buffer.from(part.data, "base64"), rate);
+  await Bun.write(path, wav);
+  return Bun.file(path);
+}
+
 /* What the assistant is told, and what it may do.
  *
  * The tools are the whole design. Without them the answer comes back as a
@@ -313,7 +392,14 @@ function sendVoiceSetup(ws) {
   up.send(JSON.stringify({
     setup: {
       model: `models/${GEMINI_MODEL}`,
-      generationConfig: { responseModalities: ["AUDIO"] },
+      generationConfig: {
+        responseModalities: ["AUDIO"],
+        // The voice chosen in the picker. Absent → Gemini's default, so an
+        // old client that never sends one keeps working unchanged.
+        ...(ws.data.who?.voice ? {
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: ws.data.who.voice } } },
+        } : {}),
+      },
       systemInstruction: { parts: [{ text: voiceSystem(ws.data.who) }] },
       tools: ws.data.who?.mode === "onboarding" ? ONBOARDING_TOOLS : VOICE_TOOLS,
       inputAudioTranscription: {},   // what THEY said, as text
@@ -1102,6 +1188,8 @@ Bun.serve({
                 lang: String(msg.lang || "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 12),
                 // Allowlisted, never interpolated: picks briefing and tools.
                 mode: msg.mode === "onboarding" ? "onboarding" : "",
+                // Allowlisted too — this string goes into the Gemini setup.
+                voice: VOICE_NAMES.has(msg.voice) ? msg.voice : "",
               };
               return sendVoiceSetup(ws);   // never forwarded upstream
             }
@@ -1128,6 +1216,28 @@ Bun.serve({
     if (url.pathname === "/api/voice") {
       if (server.upgrade(req, { data: { upstream: null } })) return undefined;
       return new Response("Expected a WebSocket upgrade.", { status: 426 });
+    }
+
+    /* A voice introducing itself. GET and cache-friendly on purpose: the
+     * browser's own cache absorbs repeat taps, and the disk cache above
+     * absorbs repeat users — Gemini is only ever billed once per
+     * (voice, language) per machine. */
+    if (url.pathname === "/api/voice-sample") {
+      const voice = url.searchParams.get("voice") || "";
+      const lang = url.searchParams.get("lang") || "";
+      if (!VOICE_NAMES.has(voice)) return json({ error: "Unknown voice." }, 400);
+      if (!VOICE_SAMPLE_LINES[lang]) return json({ error: "Unknown language." }, 400);
+      try {
+        return new Response(await voiceSample(voice, lang), {
+          headers: { "content-type": "audio/wav", "cache-control": "public, max-age=86400" },
+        });
+      } catch (e) {
+        if (e.message === "NO_GEMINI_KEY") {
+          return json({ error: "Backend has no Gemini key. Set GEMINI_KEY and restart." }, 503);
+        }
+        console.error("[DreamRushes] /api/voice-sample failed:", e);
+        return json({ error: "Could not fetch that voice." }, 502);
+      }
     }
 
     if (url.pathname === "/api/analyze" && req.method === "POST") {

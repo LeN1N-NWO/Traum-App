@@ -454,6 +454,10 @@ export default {
     finish: "listo",
     send: "Enviar",
     typePlaceholder: "O escríbelo en su lugar…",
+    pickTitle: "Elige una voz",
+    pickHint: "Toca un nombre para escucharla",
+    pickGo: "Suena bien",
+    traits: { warm: "cálida", soft: "suave", gentle: "delicada", young: "joven", bright: "luminosa", deep: "grave" },
     errors: {
       NO_GEMINI_KEY: "⚠ No hay clave de voz en el servidor. Configura GEMINI_KEY y reinicia.",
       MIC_DENIED: "⚠ Se bloqueó el acceso al micrófono. Permítelo en la configuración de tu navegador.",

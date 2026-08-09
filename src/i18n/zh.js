@@ -451,6 +451,10 @@ export default {
     finish: "完成",
     send: "发送",
     typePlaceholder: "或者改为打字…",
+    pickTitle: "选择一个声音",
+    pickHint: "点按名字即可试听",
+    pickGo: "就是它了",
+    traits: { warm: "温暖", soft: "轻柔", gentle: "温和", young: "年轻", bright: "明亮", deep: "低沉" },
     errors: {
       NO_GEMINI_KEY: "⚠ 服务器上没有语音密钥。请设置 GEMINI_KEY 并重启。",
       MIC_DENIED: "⚠ 麦克风权限被拒绝。请在浏览器设置中允许访问。",
