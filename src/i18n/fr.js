@@ -1,0 +1,497 @@
+/* Traduction française. Doit avoir exactement la même forme que en.js :
+ * mêmes clés, mêmes signatures de fonction, même longueur de tableau.
+ * Toute modification ici doit être répercutée dans CHAQUE fichier de
+ * langue — la structure est le contrat que src/i18n/index.js présuppose.
+ *
+ * Tutoiement partout — un journal de rêves personnel ne vouvoie personne.
+ */
+export default {
+  tabs: {
+    home: "Accueil",
+    journal: "Journal",
+    symbols: "Symboles",
+    profile: "Profil",
+    sleep: "Sommeil",
+    newDream: "Enregistrer un nouveau rêve",
+  },
+
+  splash: {
+    loading: "Dream Rushes se charge",
+  },
+
+  home: {
+    greeting: {
+      night: "Encore éveillé",
+      morning: "Bonjour",
+      afternoon: "Bon après-midi",
+      evening: "Bonsoir",
+    },
+    title: "Qu'as-tu rêvé ?",
+    lede: "Raconte-le pendant que c'est encore frais — à moitié endormi, c'est l'idéal.",
+    cta: "L'enregistrer",
+    streak: (n) => `${n} jour${n === 1 ? "" : "s"}`,
+    lastHeading: "Cette nuit",
+    menagerieHeading: "Ta ménagerie",
+    menagerieEmpty: "Pas encore de créature. Chaque rêve noté en laisse une derrière lui.",
+    untitled: "Rêve sans titre",
+  },
+
+  journal: {
+    viewList: "Afficher en liste",
+    viewDeck: "Afficher en cartes",
+    library: "Ta distribution",
+    libraryLede: "Personnes, animaux et lieux dans lesquels tes rêves peuvent puiser.",
+    libraryCount: (n) =>
+      n === 0 ? "Personne encore — ajoute les visages que tes rêves doivent utiliser"
+              : `${n} ${n === 1 ? "entrée" : "entrées"} · personnes, animaux, lieux`,
+    title: "Journal",
+    count: (n) => (n === 1 ? "1 rêve" : `${n} rêves`),
+    search: "Rechercher dans tes rêves…",
+    searchLabel: "Rechercher dans tes rêves",
+    empty: "Aucun rêve noté pour l'instant.",
+    emptySearch: "Rien trouvé.",
+    untitled: "Rêve sans titre",
+    close: "Fermer",
+    referencesUsed: "Photos de référence utilisées :",
+    delete: "Supprimer l'entrée",
+    deleted: "Entrée supprimée",
+    menu: "Plus d'actions",
+    edit: "Modifier le texte",
+    editing: "Modification",
+    save: "Enregistrer",
+    cancelEdit: "Annuler les modifications",
+    edited: "Modifications enregistrées",
+    correct: "Corriger l'orthographe et la grammaire",
+    rewrite: "Le réécrire en mieux",
+    elaborate: "Développer le récit",
+    working: "En cours…",
+    refineTitle: "Voici la version retravaillée",
+    refineLede: "Ton texte actuel est conservé jusqu'à ce que tu acceptes celui-ci.",
+    before: "Maintenant",
+    after: "Retravaillé",
+    keep: "Garder le mien",
+    accept: "Utiliser cette version",
+    share: "Partager",
+    sharing: "Préparation…",
+    shared: "Partagé",
+    shareUnsupported: "Le partage n'est pas possible ici — les fichiers ont été téléchargés à la place.",
+    shareNothing: "Rien à partager pour l'instant — ce rêve n'a pas d'images.",
+    noCredits: "Pas assez de crédits. La recharge arrive bientôt.",
+    original: "Écrit à l'origine",
+    showOriginal: "Montrer ce que j'ai écrit en premier",
+    hideOriginal: "Masquer l'original",
+    months: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+    actRemix: "Remix",
+    actRewrite: "Réécrire",
+    actEdit: "Modifier",
+    actShare: "Partager",
+    remixLede: "Voici les mots à partir desquels tes images ont été créées. Modifie-les, " +
+               "et la prochaine série suivra la nouvelle version.",
+    remixLabel: "Le rêve à partir duquel tes images sont faites",
+    remixGo: "Créer de nouvelles images",
+    filmRendering: "Ton film est encore en cours de rendu — il arrivera ici une fois terminé.",
+    filmArrived: "✦ Ton film est prêt",
+    makeLede: "Pas encore d'images. Tu en veux ?",
+    makeImages: "Créer les images",
+    makeFilmLede: "Maintenant, donne-lui vie.",
+    makeFilm: "Créer un court-métrage",
+    calendar: "Calendrier des rêves",
+    calLabel: "Jours avec un rêve enregistré — appuie pour l'ouvrir",
+    calPrev: "Mois précédent",
+    calNext: "Mois suivant",
+    calMonths: ["janvier", "février", "mars", "avril", "mai", "juin",
+                "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+    calWeekdays: ["lu", "ma", "me", "je", "ve", "sa", "di"],
+    calDreamt: (day, n) =>
+      n === 1 ? `Jour ${day} : ouvrir ce rêve` : `Jour ${day} : ${n} rêves`,
+    calSeveral: (n) => `${n} rêves cette nuit-là`,
+  },
+
+  symbols: {
+    title: "Symboles",
+    subtitle: "Les motifs qui reviennent sans cesse",
+    empty: "Pas encore de symboles. Note quelques rêves et ils apparaîtront ici.",
+    close: "Fermer",
+    disclaimer: "Une interprétation courante, pour la réflexion — pas un diagnostic.",
+    occurrences: (n) => (n === 1 ? "Dans 1 rêve" : `Dans ${n} rêves`),
+    untitled: "Rêve sans titre",
+  },
+
+  profile: {
+    title: "Profil",
+    credits: "crédits",
+    creditsSoon: "La recharge arrive bientôt",
+    you: "Toi",
+    meSet: "Appuie pour changer ta photo",
+    meEmpty: "Ajoute une photo pour que les rêves puissent t'y inclure",
+    addPhoto: "Ajouter ta photo",
+    changePhoto: "Changer ta photo",
+    statDreams: "rêves",
+    statStreak: "jours d'affilée",
+    people: "Personnes",
+    pets: "Animaux",
+    places: "Lieux",
+    new: "Nouveau",
+    deleteLabel: (tag) => `Supprimer @${tag}`,
+    editLabel: (tag) => `Modifier @${tag}`,
+    referenceFor: (tag) => `Photo de référence pour @${tag}`,
+    removed: (tag) => `@${tag} supprimé`,
+  },
+
+  avatarDialog: {
+    titleFor: { person: "Ajouter une personne", pet: "Ajouter un animal", place: "Ajouter un lieu" },
+    editTitleFor: { person: "Modifier la personne", pet: "Modifier l'animal", place: "Modifier le lieu" },
+    meTitle: "C'est toi",
+    nameLabel: (tag) => `Nom (devient @${tag})`,
+    photoLabel: "Photo de référence",
+    photoAdd: "Ajouter une photo",
+    photoReplace: "Remplacer la photo",
+    photoRemove: "Retirer la photo",
+    descLabel: "Décris-le",
+    descLabelOptional: "Décris-le (facultatif)",
+    descPlaceholder: "grand, cheveux bouclés foncés, toujours en manteau vert",
+    previewAlt: "Aperçu de la photo sélectionnée",
+    privacy: "Cette photo est envoyée à fal.ai lors du rendu d'un rêve.",
+    cancel: "Annuler",
+    save: "Enregistrer",
+    saveChanges: "Enregistrer les modifications",
+    needName: "⚠ Utilise uniquement des lettres ou des chiffres pour le nom.",
+    needPhotoOrDesc: "⚠ Ajoute une photo ou décris-le — le moteur de rendu a besoin de l'un des deux.",
+    needPhotoOrDescHint: "Ajoute une photo ou une description. Sans l'un des deux, il n'y a rien pour s'en inspirer.",
+    exists: (tag) => `⚠ @${tag} existe déjà.`,
+    created: (tag) => `@${tag} ajouté`,
+    saved: (tag) => `@${tag} mis à jour`,
+    readFailed: "⚠ Impossible de lire cette photo.",
+  },
+
+  tagCard: {
+    label: (tag) => `À propos de @${tag}`,
+    categories: { person: "Personne", pet: "Animal", place: "Lieu" },
+    photoOnly: "Pas de description — la photo se suffit à elle-même.",
+    close: "Fermer",
+  },
+
+  guide: [
+    {
+      title: "Tests de réalité",
+      text: "Demande-toi plusieurs fois par jour si tu rêves — et vérifie-le vraiment : " +
+            "compte tes doigts, regarde une horloge, détourne le regard, regarde à nouveau. " +
+            "Dans un rêve, la réponse change.",
+    },
+    {
+      title: "MILD",
+      text: "En t'endormant, répète : « Cette nuit, je remarquerai que je rêve. » " +
+            "Imagine un rêve que tu as déjà fait et vois-toi t'y surprendre en train de rêver.",
+    },
+    {
+      title: "WBTB",
+      text: "Réveille-toi brièvement après environ cinq heures, reste éveillé 20 à 30 minutes, " +
+            "puis rendors-toi avec MILD. La méthode la plus fiable — et celle qui te coûte du sommeil.",
+    },
+    {
+      title: "Note-le",
+      text: "Note tes rêves juste après le réveil, avant de te lever. Ceux qui écrivent " +
+            "régulièrement se souviennent de plus — et finissent par voir leurs propres schémas.",
+    },
+  ],
+
+  dream: {
+    title: "Enregistre ton rêve",
+    cancel: "Annuler",
+    label: "Cette nuit, j'ai rêvé…",
+    placeholder: "…je tombais à la renverse à travers une ville qui se changeait en eau, " +
+                 "et les lampadaires devenaient des méduses…",
+    textLabel: "Texte du rêve",
+    modeLegend: "Comment veux-tu que ça sorte ?",
+    modeImages: "Récit en images",
+    modeImagesHint: "Une séquence d'images fixes",
+    modeFilm: "Film",
+    modeFilmHint: "Un court clip animé",
+    privacy: "Le texte de ton rêve est envoyé à fal.ai (et à DeepSeek, pour aider à écrire le prompt). " +
+             "Les photos de référence et les enregistrements vocaux vont uniquement à fal.ai. Ton journal reste sur cet appareil.",
+    submit: "✦ Invoquer le rêve",
+    submitting: "Invocation…",
+    tooShort: "⚠ Écris encore un peu plus d'abord.",
+    caught: (name) => `✦ ${name} a rejoint ta ménagerie`,
+    interview: "Le raconter à voix haute",
+    interviewHint: "Je pose les questions, tu parles — les yeux fermés si tu veux",
+    reading: "Lecture de ton rêve…",
+    readingHint: "On lui donne un nom, et on repère qui était présent.",
+    or: "ou l'écrire",
+    loading: [
+      "Développement de tes rushes…",
+      "Montage du brouillard…",
+      "Étalonnage de ton subconscient…",
+      "Invocation de ce que tu as vu…",
+      "Presque lucide…",
+    ],
+  },
+
+  wizard: {
+    back: "Retour",
+    cancel: "Annuler",
+    next: "Continuer",
+    free: "Gratuit",
+    from: "à partir de",
+    credit: "crédit",
+    credits: "crédits",
+    tooShort: "⚠ Écris encore un peu plus d'abord.",
+    noCredits: "Pas assez de crédits. La recharge arrive bientôt.",
+    progress: (n, total) => `Étape ${n} sur ${total}`,
+
+    step1: {
+      title: "Qu'as-tu rêvé ?",
+      improve: "Améliorer avec l'IA",
+      reading: "Lecture de ton rêve…",
+      why: "L'IA raconte ton rêve à nouveau dans ta propre langue et détermine qui et " +
+           "où y apparaît. Tout ce qui suit — les personnages, les lieux, les images — " +
+           "se construit là-dessus.",
+      previewTitle: "Le voici, remis en ordre",
+      previewLede: "Tes propres mots sont toujours conservés, quel que soit ton choix.",
+      yours: "Comme tu l'as écrit",
+      improved: "Amélioré",
+      keepMine: "Garder mes mots",
+      useImproved: "Utiliser cette version",
+    },
+
+    step2: {
+      title: "Qu'est-ce que ça doit devenir ?",
+      saveOnly: "Juste l'enregistrer",
+      saveOnlyHint: "Dans ton journal, rien de généré",
+      images: "Un récit en images",
+      imagesHint: "Des images fixes de ton rêve, dans l'ordre",
+      film: "Un film",
+      filmHint: "Rend d'abord une image fixe, puis lui donne vie",
+      saved: "Rêve enregistré",
+    },
+
+    step3: {
+      title: "Qui est présent ?",
+      lede: "Tous ceux déjà dans ta bibliothèque sont reconnus automatiquement. Pour le " +
+            "reste, dis-nous qui ils sont — ou laisse l'IA les inventer.",
+      empty: "Personne n'a été trouvé dans ce rêve. Ce n'est pas grave — continuons.",
+    },
+
+    step4: {
+      title: "Où cela se passe-t-il ?",
+      lede: "Un rêve qui se déplace d'un lieu à l'autre a besoin des deux. Les mêmes " +
+            "choix qu'avant.",
+      empty: "Aucun lieu n'a été trouvé dans ce rêve. L'IA en imaginera un.",
+    },
+
+    cast: {
+      choose: "Depuis la bibliothèque",
+      change: "Changer",
+      createNew: "Créer un nouveau",
+      letAi: "Laisser l'IA décider",
+      freeSet: "L'IA les invente",
+      undecided: "Pas encore décidé",
+      note: "Tout ce qui reste indécis est inventé par l'IA.",
+      removeLabel: (name) => `Retirer ${name}`,
+      pickTitle: (name) => `Qui est « ${name} » ?`,
+      libraryEmpty: "Ta bibliothèque est encore vide.",
+    },
+
+    step5: {
+      title: "À quoi ça devrait ressembler ?",
+      countLabel: "Combien d'images",
+      countNames: { 3: "Début, milieu, fin", 5: "Tout l'arc", 10: "Chaque tournant" },
+      styleLabel: "Style",
+      formatLabel: "Format",
+      portrait: "Téléphone, stories",
+      landscape: "Écran large",
+      keyframeLabel: "Quelle image prend vie ?",
+      keyframeHint: "Le film part de cette image — son style se retrouve tout du long.",
+      filmModelLabel: "Quel moteur de rendu",
+      filmModels: {
+        standard: { name: "Standard", hint: "jusqu'à 15s · 1 crédit par seconde" },
+        premium:  { name: "Premium",  hint: "jusqu'à 30s en un seul plan · 6 par seconde" },
+      },
+      lengthLabel: "Quelle durée",
+      posterLabel: "L'affiche",
+      posterTitleLabel: "Titre du film",
+      posterTitlePlaceholder: "Titre sur l'affiche",
+      posterTaglineLabel: "Accroche",
+      posterTaglinePlaceholder: "Une ligne qui vend le rêve (facultatif)",
+      posterHint: "Ton rêve s'ouvre comme un film : la première image est son affiche, " +
+                  "avec ce titre dessus. Efface le titre si tu préfères juste des images de scène.",
+      generate: "Le créer",
+      progress: (done, total) => `${done} sur ${total} terminées`,
+      summaryImages: (n) => `${n} images dans une séquence continue.`,
+      summaryFilm: "Une image fixe, prenant vie.",
+      summaryFilmLength: (s) => `${s} secondes de film. Le rendu prend quelques minutes — tu peux partir et revenir.`,
+      summaryRefs: (n) =>
+        n === 0 ? "Aucune photo de référence — tout est inventé."
+                : n === 1 ? "1 photo de référence sera utilisée."
+                          : `${n} photos de référence seront utilisées.`,
+    },
+
+    step6: {
+      title: "Ton rêve",
+      save: "Enregistrer dans le journal",
+      added: "Ajouté à ton rêve",
+      saveWhileRendering: "Enregistrer — je reviendrai le chercher",
+      rendering: "Ton film est en train de se créer…",
+      renderingHint: "Cela prend quelques minutes. Tu peux partir — il t'attendra " +
+                     "dans ton journal une fois prêt.",
+      renderFailed: "Le film n'est pas arrivé. Tes crédits ont été dépensés pour " +
+                    "l'essai — préviens-nous, on va se pencher dessus.",
+      nothing: "Rien n'est revenu. Réessaie depuis la dernière étape.",
+    },
+  },
+
+  sleep: {
+    title: "Sommeil",
+    subtitle: "Tout ce qui entoure le rêve — entièrement gratuit.",
+    free: "Les rêves coûtent des crédits. Le sommeil, jamais.",
+    tiles: {
+      checklist: {
+        emoji: "🌜",
+        title: "Se détendre",
+        text: "La liste du soir pour s'endormir plus vite",
+      },
+      sounds: {
+        emoji: "🌊",
+        title: "Sons d'endormissement",
+        text: "Mélange des couleurs de bruit et laisse-les tourner",
+      },
+      guide: {
+        emoji: "🧠",
+        title: "Rêve lucide",
+        text: "Tests de réalité, MILD, WBTB, journal",
+      },
+      symbols: {
+        emoji: "✧",
+        title: "Symboles de rêves",
+        text: "Ce qui revient sans cesse dans tes rêves",
+      },
+    },
+    checklist: {
+      lede: "Le rituel de ce soir — les cases se réinitialisent seules chaque jour.",
+      progressLabel: "Étapes faites ce soir",
+      remaining: (n) => (n === 0 ? "Tout est fait — dors bien." : `Encore ${n}`),
+      hint: "Encore éveillé après ~20 minutes ? Lève-toi, fais quelque chose de calme sous " +
+            "une lumière tamisée, et reviens quand tu as sommeil — rester éveillé au lit " +
+            "apprend au lit à signifier « éveillé ».",
+      items: [
+        { id: "light",    title: "Tamise tout",
+          text: "Peu de lumière pour la dernière heure — ou aucune : pièce occultée ou masque de sommeil." },
+        { id: "shower",   title: "Douche ou bain chaud",
+          text: "Environ 90 minutes avant de dormir. Le refroidissement qui suit est le propre signal de sommeil du corps." },
+        { id: "cool",     title: "Rafraîchis la chambre",
+          text: "Autour de 16–19 °C. Une pièce fraîche sous une couverture chaude bat une pièce chaude." },
+        { id: "caffeine", title: "Pas de caféine après le milieu d'après-midi",
+          text: "Elle bloque la pression de sommeil pendant six heures ou plus — un café du soir, c'est de la fatigue du matin." },
+        { id: "screens",  title: "Écrans de côté",
+          text: "La dernière demi-heure appartient au papier, au son, ou à rien. Le journal, c'est pour le matin." },
+        { id: "relax",    title: "Relâche chaque muscle",
+          text: "Des orteils à la mâchoire : contracte chaque groupe cinq secondes, relâche, continue. L'astuce la mieux prouvée de cette liste." },
+        { id: "breathe",  title: "Ralentis ta respiration",
+          text: "4 secondes d'inspiration, 7 de rétention, 8 d'expiration — quelques cycles. De longues expirations mettent le corps au repos." },
+      ],
+    },
+    sounds: {
+      lede: "Trois couleurs de bruit, à mélanger à ta façon. Elles tournent en boucle " +
+            "jusqu'à ce que tu les arrêtes — et continuent pendant que tu utilises le reste de l'app.",
+      names: { white: "Bruit blanc", pink: "Bruit rose", brown: "Bruit brun" },
+      descs: { white: "statique claire, masque tout", pink: "comme une pluie régulière", brown: "comme un océan lointain" },
+      autoStart: "Démarrer mon mélange à l'ouverture de l'app",
+      autoStartHint: "Les navigateurs veulent d'abord un geste — ton mélange démarre au premier toucher.",
+      background: "Le mélange continue de jouer où que tu ailles dans l'app. Le bouton " +
+                  "haut-parleur dans le coin en haut le coupe à tout moment.",
+    },
+    soundsMute: "Couper les sons d'endormissement",
+    soundsUnmute: "Réactiver les sons d'endormissement",
+  },
+
+  onboarding: {
+    tagline: "Tes rêves, révélés.",
+    swipe: "glisser",
+    slides: [
+      { title: "Garde chaque rêve",
+        text: "Raconte-le à moitié endormi, à voix haute — l'assistant pose les bonnes " +
+              "questions et note la nuit à ta place." },
+      { title: "Visualise ton rêve",
+        text: "Il devient une séquence d'images cinématographiques — avec les vrais " +
+              "visages des personnes, animaux et lieux qui y figurent. Choisis " +
+              "ta préférée et donne-lui vie sous forme de court-métrage." },
+      { title: "Il y a encore plus, gratuitement",
+        text: "Un guide du rêve lucide, et ce que tes symboles récurrents " +
+              "pourraient signifier — quand tu le souhaites." },
+    ],
+    start: "Commencer",
+    gateTitle: "Fais-le tien",
+    gateText: "Une discussion de deux minutes avec l'assistant personnalise ton " +
+              "profil — comment tu rêves, ce qui revient sans cesse, comment " +
+              "t'appeler. Tu peux passer n'importe quelle question.",
+    gateReward: "✦ 3 crédits gratuits une fois terminé",
+    gateStart: "Discutons",
+    gateLater: "Peut-être plus tard",
+    surveyTitle: "faisons connaissance",
+    selfieTitle: "Une dernière chose",
+    selfieText: "Ajoute une photo de toi et tes rêves peuvent te mettre en vedette, TOI — " +
+                "les images utilisent ton vrai visage. Tu peux toujours le faire plus tard.",
+    selfieAdd: "Ajouter ma photo",
+    selfieSkip: "Pas maintenant",
+    granted: "✦ Bienvenue — 3 crédits ajoutés",
+    thanks: "✦ Merci — ton profil est prêt",
+    profileCard: "Termine ton profil avec une discussion de 2 minutes",
+    profileCardHint: "✦ 3 crédits gratuits si tu le fais",
+    startMenuTitle: "Avant d'entrer",
+    startMenuText: "Voir le parcours de bienvenue, ou passer directement à l'app ?",
+    startMenuOnboarding: "Montrer la bienvenue",
+    startMenuSkip: "Passer à l'app",
+  },
+
+  voice: {
+    title: "raconte un rêve",
+    cancel: "Fermer",
+    connecting: "Réveil en cours…",
+    yourTurn: "Parle, je t'écoute",
+    listening: "…",
+    type: "écrire",
+    finish: "terminé",
+    send: "Envoyer",
+    typePlaceholder: "Ou écris-le à la place…",
+    errors: {
+      NO_GEMINI_KEY: "⚠ Aucune clé vocale sur le serveur. Définis GEMINI_KEY et redémarre.",
+      MIC_DENIED: "⚠ L'accès au microphone a été bloqué. Autorise-le dans les réglages de ton navigateur.",
+      UPSTREAM: "⚠ Le service vocal s'est interrompu. Réessaie.",
+      SOCKET: "⚠ Impossible de joindre le service vocal.",
+      CLOSED: "⚠ La connexion s'est fermée. Réessaie.",
+    },
+  },
+
+  paywall: {
+    title: "Dream Rushes Plus",
+    close: "Fermer",
+    headline: "Tes rêves, en films.",
+    lede: "L'écriture, la voix et tout l'onglet Sommeil restent gratuits. Les crédits ne servent qu'à ce qu'un moteur de rendu doit dessiner.",
+    tabSub: "S'abonner",
+    tabPack: "Acheter des crédits",
+    periodName: { month: "Mensuel", year: "Annuel" },
+    packName: (n) => `${n} crédits`,
+    per: { month: "par mois", year: "par an" },
+    oneTime: "paiement unique",
+    save: (pct) => `Économise ${pct}`,
+    creditsPerMonth: (n) => `${n} crédits chaque mois`,
+    creditsOnce: (n) => `${n} crédits, n'expirent jamais`,
+    yield: (credits, five, three) =>
+      `${credits} crédits — environ ${five} rêves avec 5 images, ou ${three} avec 3. Un film coûte autant que 5 images.`,
+    included: "Toujours inclus, gratuit",
+    chips: [
+      "Journal illimité", "Enregistrement vocal", "Réécriture par IA",
+      "Sons d'endormissement", "Liste pour se détendre", "Guide du rêve lucide", "Symboles de rêves",
+    ],
+    freeNote: "Seules la génération d'images et de films coûte des crédits — c'est la part qu'on paie à un moteur de rendu.",
+    cta: "Continuer",
+    notYet: "⚠ Le paiement n'est pas encore connecté — ceci est un aperçu des formules.",
+    balance: (n) => `Tu as actuellement ${n} crédits.`,
+  },
+
+  errors: {
+    storageFull: "⚠ Stockage plein — supprime d'anciennes entrées ou photos de référence.",
+    unexpected: "Réponse inattendue du serveur.",
+    serverStatus: (s) => `Le serveur a répondu avec ${s}.`,
+  },
+};

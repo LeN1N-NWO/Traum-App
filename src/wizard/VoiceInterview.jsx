@@ -38,6 +38,9 @@ export default function VoiceInterview({ onDone, onCancel }) {
     name: app.profile?.name
       || (app.me?.tag ? app.me.tag[0].toUpperCase() + app.me.tag.slice(1) : ""),
     cast: (app.cast || []).map((c) => c.tag).filter(Boolean),
+    // Chosen once in LanguagePicker, not guessed from the device — see
+    // voiceSession.js and voiceSystem() in server.js for what this drives.
+    lang: app.language || "",
   });
 
   useEffect(() => {

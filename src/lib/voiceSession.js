@@ -41,9 +41,14 @@ function fromBase64(b64) {
  *   onSpeaking(bool)               the assistant is talking
  *   onTool({name, args})           setDreamText / addPerson / addPlace / finish
  *   onError(code)
- * @param {object} who  who is talking — {name, cast}. The server needs it for
- *   the briefing: the greeting uses the name, and the cast lets the assistant
- *   recognise people who already have a face on file. Both optional.
+ * @param {object} who  who is talking — {name, cast, lang}. The server needs
+ *   it for the briefing: the greeting uses the name, the cast lets the
+ *   assistant recognise people who already have a face on file, and `lang`
+ *   is the language chosen in LanguagePicker — a deliberate choice now, not
+ *   a device guess, so it drives the WHOLE conversation, not just the
+ *   opening line (see voiceSystem() in server.js). All optional; `lang`
+ *   falls back to the device setting only for the rare session that somehow
+ *   starts before a language was ever chosen.
  */
 export function startVoiceSession(h = {}, who = {}) {
   /* Diese eine Verbindung geht direkt an den API-Port, nicht über den Proxy
@@ -77,9 +82,7 @@ export function startVoiceSession(h = {}, who = {}) {
     // "onboarding" swaps briefing and tools server-side: same relay, but the
     // conversation collects profile facts instead of a dream.
     mode: who.mode || "",
-    // Which language to open in. Only the first sentence rides on this — from
-    // their first answer the assistant follows whatever they actually speak.
-    lang: navigator.language || "",
+    lang: who.lang || navigator.language || "",
   }));
 
   ws.onmessage = async (e) => {

@@ -171,6 +171,33 @@ const VOICE_TOOLS = [{
   ],
 }];
 
+/* The seven languages LanguagePicker offers (src/lib/locales.js), mapped to
+ * a name a language model can act on reliably — safer than trusting it to
+ * expand a bare "de" or "ar" correctly every single time. `lang` only ever
+ * reaches here as one of these ids: sendVoiceSetup's caller restricts it to
+ * [A-Za-z0-9-] before it is quoted into anything, same as every other
+ * client-supplied string that ends up in a prompt. */
+const LANGUAGE_NAMES = {
+  en: "English", de: "German", es: "Spanish", fr: "French",
+  zh: "Mandarin Chinese", hi: "Hindi", ar: "Modern Standard Arabic",
+};
+
+/* Shared by voiceSystem() and onboardingSystem(). Unlike a device-guessed
+ * locale, this is a language someone DELIBERATELY chose in LanguagePicker
+ * before anything else in the app happened — so it governs the whole
+ * conversation from the first word, not just an opening line that used to
+ * be a one-sentence guess. It still yields instantly if they actually speak
+ * something else; a chosen default is not a cage. */
+function languageDirective(lang) {
+  const name = LANGUAGE_NAMES[lang];
+  if (!name) return "";
+  return (
+    `They chose ${name} as this app's language before anything else happened. Speak ${name} for ` +
+    `this entire conversation, starting with your very first word. If they clearly answer in a ` +
+    `different language, follow them there instead.\n\n`
+  );
+}
+
 /* The briefing. Built per session, because the two things that make this feel
  * like a person rather than a form — knowing your name and knowing who is
  * already in your journal — are different for everyone.
@@ -188,12 +215,7 @@ function voiceSystem({ name = "", cast = [], lang = "", mode = "" } = {}) {
       `does.\n\n`
     : `You do not know their name. Do not ask for it — open with a greeting and the first question.\n\n`;
 
-  /* Which language to open in is a guess until they have said a word, so it
-   * is taken from the phone's own setting. Getting it wrong for one sentence
-   * is recoverable; the rule below hands control to them immediately. */
-  const opening = lang
-    ? `Their phone is set to "${lang}" — say your opening line in that language.\n\n`
-    : "";
+  const opening = languageDirective(lang);
 
   const known = cast.length
     ? `These already exist in their journal, with a face on file: ${cast.join(", ")}. ` +
@@ -209,8 +231,9 @@ function voiceSystem({ name = "", cast = [], lang = "", mode = "" } = {}) {
     greeting + opening + known +
 
     "HOW TO SPEAK\n" +
-    "From their first words onward, speak the language THEY speak, whatever the setting above said — " +
-    "if they answer in German, continue in German without remarking on the switch. " +
+    "Follow the language instruction above for the whole conversation. If they nonetheless answer " +
+    "in something else, continue in THAT language without remarking on the switch — a chosen " +
+    "language is a strong default, not a rule to enforce on someone. " +
     "One or two short sentences per turn, never more. " +
     "No lists, no summaries of what they just said, no 'how interesting'. Warm, quiet, awake.\n\n" +
 
@@ -246,9 +269,7 @@ function voiceSystem({ name = "", cast = [], lang = "", mode = "" } = {}) {
  * is allowed to be "skip" — this buys them credits, it must never feel like
  * a form with required fields. */
 function onboardingSystem({ lang = "" } = {}) {
-  const opening = lang
-    ? `Their phone is set to "${lang}" — open in that language, then follow whatever language they answer in.\n\n`
-    : "";
+  const opening = languageDirective(lang);
   return (
     "You are the friendly voice inside a dream journal app, meeting a brand-new user for the " +
     "first time. This is a short welcome chat that personalises their profile — they get bonus " +

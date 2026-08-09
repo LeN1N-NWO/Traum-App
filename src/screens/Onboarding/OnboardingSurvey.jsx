@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { startVoiceSession } from "../../lib/voiceSession.js";
 import { zodiacOf } from "../../lib/zodiac.js";
+import { useAppState } from "../../state/AppState.jsx";
 import { t } from "../../i18n/index.js";
 import DreamScape from "../../components/DreamScape.jsx";
 import "../../wizard/voice.css";
@@ -13,6 +14,7 @@ import "../../wizard/voice.css";
  * Every field stays optional. onDone receives whatever was actually
  * answered; the caller decides nothing here beyond "they finished". */
 export default function OnboardingSurvey({ onDone, onCancel }) {
+  const { state: app } = useAppState();
   const [state, setState] = useState("connecting");   // connecting|live|error
   const [error, setError] = useState(null);
   const [level, setLevel] = useState(0);
@@ -55,7 +57,7 @@ export default function OnboardingSurvey({ onDone, onCancel }) {
         if (name === "setGoal" && args.goal) c.goal = String(args.goal).slice(0, 20);
         if (name === "finish") finish();
       },
-    }, { mode: "onboarding" });
+    }, { mode: "onboarding", lang: app.language || "" });
     session.current = s;
     return () => s.stop();
     // Mount only: a second session would open a second microphone.

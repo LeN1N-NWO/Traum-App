@@ -12,6 +12,7 @@ import WizardShell from "./wizard/WizardShell.jsx";
 import SoundDock from "./components/SoundDock.jsx";
 import Onboarding from "./screens/Onboarding/Onboarding.jsx";
 import StartMenu from "./screens/Onboarding/StartMenu.jsx";
+import LanguagePicker from "./screens/Onboarding/LanguagePicker.jsx";
 
 /* HashRouter, not BrowserRouter: Capacitor will load the app over file://,
    where the History API is unreliable. */
@@ -35,7 +36,13 @@ export default function App() {
  * state.onboarded once the flow is settled — a returning user should not
  * be asked "onboarding or app?" every time they open the app. */
 function Gate() {
+  const { state } = useAppState();
   const [phase, setPhase] = useState("menu");   // menu | onboarding | app
+
+  // Before the wordmark, before the slides, before the dev start menu:
+  // which language. Permanent, unlike StartMenu below — asked once and
+  // never again, the same way a fresh phone asks it during system setup.
+  if (!state.language) return <LanguagePicker />;
 
   if (phase === "menu") {
     return <StartMenu onOnboarding={() => setPhase("onboarding")} onSkip={() => setPhase("app")} />;

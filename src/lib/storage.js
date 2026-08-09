@@ -15,6 +15,7 @@ export const DEFAULT_STATE = {
   onboarded: false,      // first-run flow seen (slides + survey offer)
   surveyDone: false,     // welcome survey finished — that is what earns the grant
   profile: null,         // { name, birthday, zodiac, recall, lucid, themes, goal }
+  language: null,        // chosen once, before anything else — see LanguagePicker.jsx
 };
 
 export function genId(prefix) {
