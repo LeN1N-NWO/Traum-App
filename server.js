@@ -82,6 +82,62 @@ const GEMINI_WS =
  * to be wrong. With them, the assistant hands over `addPerson("Rex","pet")`
  * the moment it hears it, already structured.
  */
+/* The onboarding survey speaks through the same relay as the dream
+ * interview, but collects PROFILE facts, not a dream — different tools,
+ * different briefing (see voiceSystem's onboarding branch). Every field is
+ * optional by design: refusing a question must never stall the flow. */
+const ONBOARDING_TOOLS = [{
+  functionDeclarations: [
+    {
+      name: "setName",
+      description: "What they want to be called. First name or nickname, exactly as they said it.",
+      parameters: { type: "OBJECT", properties: { name: { type: "STRING" } }, required: ["name"] },
+    },
+    {
+      name: "setBirthday",
+      description: "Their date of birth as YYYY-MM-DD. Year may be 0000 if they only gave day and month.",
+      parameters: { type: "OBJECT", properties: { date: { type: "STRING" } }, required: ["date"] },
+    },
+    {
+      name: "setDreamRecall",
+      description: "How often they remember their dreams.",
+      parameters: {
+        type: "OBJECT",
+        properties: { frequency: { type: "STRING", description: "nightly | weekly | rarely | almost-never" } },
+        required: ["frequency"],
+      },
+    },
+    {
+      name: "setLucidLevel",
+      description: "Their relationship with lucid dreaming.",
+      parameters: {
+        type: "OBJECT",
+        properties: { level: { type: "STRING", description: "never-heard | curious | tried | practicing" } },
+        required: ["level"],
+      },
+    },
+    {
+      name: "addTheme",
+      description: "A recurring dream, place, person or feeling they mention. Call once per theme.",
+      parameters: { type: "OBJECT", properties: { name: { type: "STRING" } }, required: ["name"] },
+    },
+    {
+      name: "setGoal",
+      description: "What draws them to their dreams.",
+      parameters: {
+        type: "OBJECT",
+        properties: { goal: { type: "STRING", description: "remember | understand | create | sleep-better" } },
+        required: ["goal"],
+      },
+    },
+    {
+      name: "finish",
+      description: "The survey is complete or they want to stop. Call this last.",
+      parameters: { type: "OBJECT", properties: {} },
+    },
+  ],
+}];
+
 const VOICE_TOOLS = [{
   functionDeclarations: [
     {
@@ -124,7 +180,8 @@ const VOICE_TOOLS = [{
  * is [a-z0-9]{1,12} by construction, a name is trimmed hard. Neither can carry
  * a newline, so neither can pretend to be a new instruction paragraph.
  */
-function voiceSystem({ name = "", cast = [], lang = "" } = {}) {
+function voiceSystem({ name = "", cast = [], lang = "", mode = "" } = {}) {
+  if (mode === "onboarding") return onboardingSystem({ lang });
   const greeting = name
     ? `Their name is ${name}. Greet them by it in your very first sentence, then ask straight away ` +
       `what they dreamt. Use the name once more at most; repeating it every turn is what a machine ` +
@@ -185,6 +242,44 @@ function voiceSystem({ name = "", cast = [], lang = "" } = {}) {
   );
 }
 
+/* The welcome survey. Six questions, roughly two minutes, and every answer
+ * is allowed to be "skip" — this buys them credits, it must never feel like
+ * a form with required fields. */
+function onboardingSystem({ lang = "" } = {}) {
+  const opening = lang
+    ? `Their phone is set to "${lang}" — open in that language, then follow whatever language they answer in.\n\n`
+    : "";
+  return (
+    "You are the friendly voice inside a dream journal app, meeting a brand-new user for the " +
+    "first time. This is a short welcome chat that personalises their profile — they get bonus " +
+    "credits for finishing it, and they already know that.\n\n" +
+
+    opening +
+
+    "HOW TO SPEAK\n" +
+    "Warm, brief, a little playful. One question per turn, one or two short sentences. Never " +
+    "read out a list of options — ask naturally and map whatever they say onto the tool values.\n\n" +
+
+    "THE QUESTIONS, in this order, one tool call the moment each is answered:\n" +
+    "1. What should I call you? → setName\n" +
+    "2. When were you born? Day, month and year — the year also gives their star sign. If they " +
+    "prefer not to say the year, day and month are enough (year 0000). → setBirthday\n" +
+    "3. How often do you remember your dreams? → setDreamRecall\n" +
+    "4. Have you heard of lucid dreaming — knowing you're dreaming while it happens? Where are " +
+    "they on that journey? → setLucidLevel\n" +
+    "5. Is there a dream, place or person that keeps coming back at night? → addTheme, once per " +
+    "thing they name\n" +
+    "6. What brings you here — remembering more, understanding what dreams mean, turning them " +
+    "into pictures, or sleeping better? → setGoal\n\n" +
+
+    "RULES\n" +
+    "Any question may be skipped the moment they hesitate or decline — move on cheerfully, never " +
+    "press, never ask why. Never interpret their dreams or make health claims; if they share " +
+    "something heavy, acknowledge it kindly in a few words and continue. After question 6, thank " +
+    "them, tell them their bonus credits are in, and call finish."
+  );
+}
+
 /* Two things have to be true before Gemini can be set up: the socket to Google
  * must be open, and the client must have said who is talking. They arrive in
  * either order, so both paths call this and the second one through wins. */
@@ -199,7 +294,7 @@ function sendVoiceSetup(ws) {
       model: `models/${GEMINI_MODEL}`,
       generationConfig: { responseModalities: ["AUDIO"] },
       systemInstruction: { parts: [{ text: voiceSystem(ws.data.who) }] },
-      tools: VOICE_TOOLS,
+      tools: ws.data.who?.mode === "onboarding" ? ONBOARDING_TOOLS : VOICE_TOOLS,
       inputAudioTranscription: {},   // what THEY said, as text
       outputAudioTranscription: {},  // what IT said, as text
     },
@@ -936,6 +1031,8 @@ Bun.serve({
                 // A BCP-47 tag and nothing else: it is quoted into the prompt,
                 // so it may not carry anything but letters, digits and dashes.
                 lang: String(msg.lang || "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 12),
+                // Allowlisted, never interpolated: picks briefing and tools.
+                mode: msg.mode === "onboarding" ? "onboarding" : "",
               };
               return sendVoiceSetup(ws);   // never forwarded upstream
             }

@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
+import { welcomeGrant } from "../../lib/credits.js";
 import { t } from "../../i18n/index.js";
 import AvatarDialog from "../../components/AvatarDialog.jsx";
+import OnboardingSurvey from "../Onboarding/OnboardingSurvey.jsx";
 import Paywall from "./Paywall.jsx";
 import "./profile.css";
 
@@ -12,13 +14,23 @@ import "./profile.css";
  * What is left is who you are here — your face, your balance, your record.
  */
 export default function ProfileScreen() {
-  const { state } = useAppState();
+  const { state, update, toast } = useAppState();
   const [editingMe, setEditingMe] = useState(false);
   const [paywall, setPaywall] = useState(false);
+  const [survey, setSurvey] = useState(false);
 
   const me = state.me;
   const dreams = state.journal?.length || 0;
   const streak = state.streak || 0;
+
+  /* Same completion as the onboarding path — skipping there was never meant
+   * to be final, only deferred, so the reward stays claimable here. */
+  function surveyDone(profile) {
+    setSurvey(false);
+    const grant = welcomeGrant(state);
+    update({ surveyDone: true, profile, ...(grant || {}) });
+    toast(grant ? t.onboarding.granted : t.onboarding.thanks);
+  }
 
   return (
     <main className="screen">
@@ -62,6 +74,23 @@ export default function ProfileScreen() {
           </span>
         </div>
       </div>
+
+      {/* Skipped the welcome survey? The offer — and its credits — wait
+          here rather than expiring. Gone once done: a finished survey is
+          not an achievement to look at. */}
+      {!state.surveyDone && (
+        <button className="p-survey" onClick={() => setSurvey(true)}>
+          <span className="p-survey-body">
+            <span className="p-survey-title">{t.onboarding.profileCard}</span>
+            <span className="p-survey-hint">{t.onboarding.profileCardHint}</span>
+          </span>
+          <span aria-hidden="true">›</span>
+        </button>
+      )}
+
+      {survey && (
+        <OnboardingSurvey onDone={surveyDone} onCancel={() => setSurvey(false)} />
+      )}
 
       {editingMe && (
         <AvatarDialog

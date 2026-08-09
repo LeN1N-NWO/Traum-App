@@ -1,6 +1,5 @@
-import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
 import { loadState, saveState } from "../lib/storage.js";
-import { welcomeGrant } from "../lib/credits.js";
 import { t } from "../i18n/index.js";
 
 /* The whole app state in one place. Every change goes through update() and is
@@ -27,13 +26,11 @@ export function AppStateProvider({ children }) {
     });
   }, [toast]);
 
-  // One-time starter balance, so the app is usable before top-ups exist.
-  useEffect(() => {
-    const grant = welcomeGrant(state);
-    if (grant) update(grant);
-    // Once, on mount — welcomeGrant() is itself idempotent via its flag.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  /* No silent grant on mount anymore: the welcome credits are the reward for
+   * the onboarding survey (Onboarding.jsx / ProfileScreen.jsx). A gift with
+   * a face converts; a balance that was always there is furniture. People
+   * from before the survey keep what they were given — welcomeGrant() stays
+   * idempotent via its flag. */
 
   return (
     <Ctx.Provider value={{ state, setState, update, toast, toastText }}>

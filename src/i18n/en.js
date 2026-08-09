@@ -418,6 +418,39 @@ export default {
     soundsUnmute: "Unmute sleep sounds",
   },
 
+  onboarding: {
+    tagline: "Your dreams, developed.",
+    swipe: "swipe",
+    slides: [
+      { title: "Keep every dream",
+        text: "Tell it half-asleep, out loud — the assistant asks the right " +
+              "questions and writes the night down for you." },
+      { title: "Then see it",
+        text: "Your dream becomes a sequence of cinematic images — with the " +
+              "real faces of the people, pets and places in it." },
+      { title: "Then watch it move",
+        text: "Pick the best image and bring it to life as a short film." },
+    ],
+    start: "Get started",
+    gateTitle: "Make it yours",
+    gateText: "A two-minute chat with the assistant personalises your " +
+              "profile — how you dream, what keeps coming back, what to " +
+              "call you. You can skip any question.",
+    gateReward: "✦ 3 free credits when you finish",
+    gateStart: "Let's talk",
+    gateLater: "Maybe later",
+    surveyTitle: "getting to know you",
+    selfieTitle: "One last thing",
+    selfieText: "Add a photo of yourself and your dreams can star YOU — " +
+                "the images use your real face. You can always do this later.",
+    selfieAdd: "Add my photo",
+    selfieSkip: "Not now",
+    granted: "✦ Welcome — 3 credits added",
+    thanks: "✦ Thanks — your profile is set",
+    profileCard: "Finish your profile with a 2-minute chat",
+    profileCardHint: "✦ 3 free credits when you do",
+  },
+
   voice: {
     title: "telling a dream",
     cancel: "Close",

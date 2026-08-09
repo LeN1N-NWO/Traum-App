@@ -74,6 +74,9 @@ export function startVoiceSession(h = {}, who = {}) {
     type: "hello",
     name: who.name || "",
     cast: who.cast || [],
+    // "onboarding" swaps briefing and tools server-side: same relay, but the
+    // conversation collects profile facts instead of a dream.
+    mode: who.mode || "",
     // Which language to open in. Only the first sentence rides on this — from
     // their first answer the assistant follows whatever they actually speak.
     lang: navigator.language || "",

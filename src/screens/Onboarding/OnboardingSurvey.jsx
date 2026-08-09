@@ -1,23 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { startVoiceSession } from "../lib/voiceSession.js";
-import { useAppState } from "../state/AppState.jsx";
-import { t } from "../i18n/index.js";
-import DreamScape from "../components/DreamScape.jsx";
-import "./voice.css";
+import { startVoiceSession } from "../../lib/voiceSession.js";
+import { zodiacOf } from "../../lib/zodiac.js";
+import { t } from "../../i18n/index.js";
+import DreamScape from "../../components/DreamScape.jsx";
+import "../../wizard/voice.css";
 
-/* The dream interview. The assistant asks, the person answers out loud, and
- * the words appear as they are said — that is the whole screen.
+/* The welcome survey, spoken. Same screen grammar as the dream interview
+ * (same voice.css, same transcript) so the assistant feels like ONE person
+ * throughout the app — only what it collects differs: profile facts via the
+ * onboarding tool set, not a dream.
  *
- * Everything spoken is also written down, deliberately: half the reason to
- * talk to a phone at 3am is that you cannot see, and the other half is that
- * you do not trust it heard you. The transcript answers the second one.
- *
- * Typing stays available throughout, not as a fallback for when the voice
- * fails but as an equal way in — some things are easier to write than to say
- * out loud, and a dream is often one of them.
- */
-export default function VoiceInterview({ onDone, onCancel }) {
-  const { state: app } = useAppState();
+ * Every field stays optional. onDone receives whatever was actually
+ * answered; the caller decides nothing here beyond "they finished". */
+export default function OnboardingSurvey({ onDone, onCancel }) {
   const [state, setState] = useState("connecting");   // connecting|live|error
   const [error, setError] = useState(null);
   const [level, setLevel] = useState(0);
@@ -27,18 +22,8 @@ export default function VoiceInterview({ onDone, onCancel }) {
   const [draft, setDraft] = useState("");
 
   const session = useRef(null);
-  const collected = useRef({ text: "", people: [], places: [] });
+  const collected = useRef({ name: "", birthday: "", zodiac: null, recall: "", lucid: "", themes: [], goal: "" });
   const endRef = useRef(null);
-
-  /* Who the assistant is talking to. The survey name wins — it is what they
-   * said they want to be CALLED, while the tag is an @mention that merely
-   * resembles one (stored lowercase; first letter goes back up for speech).
-   * Read once at mount — see the effect below. */
-  const who = useRef({
-    name: app.profile?.name
-      || (app.me?.tag ? app.me.tag[0].toUpperCase() + app.me.tag.slice(1) : ""),
-    cast: (app.cast || []).map((c) => c.tag).filter(Boolean),
-  });
 
   useEffect(() => {
     const s = startVoiceSession({
@@ -47,9 +32,6 @@ export default function VoiceInterview({ onDone, onCancel }) {
       onSpeaking: setSpeaking,
       onError: (code) => { setError(code); setState("error"); },
       onTranscript: ({ who, text }) =>
-        // Gemini streams a turn in fragments; appending to the last line of
-        // the same speaker keeps it one sentence instead of a stutter of
-        // half-words.
         setLines((prev) => {
           const last = prev[prev.length - 1];
           if (last && last.who === who) {
@@ -59,16 +41,21 @@ export default function VoiceInterview({ onDone, onCancel }) {
         }),
       onTool: ({ name, args }) => {
         const c = collected.current;
-        if (name === "setDreamText" && args.text) c.text = args.text;
-        if (name === "addPerson" && args.name) {
-          if (!c.people.some((p) => p.name === args.name)) {
-            c.people.push({ name: args.name, kind: args.kind === "pet" ? "pet" : "person", desc: args.desc || "" });
-          }
+        if (name === "setName" && args.name) c.name = String(args.name).slice(0, 40);
+        if (name === "setBirthday" && args.date) {
+          c.birthday = String(args.date).slice(0, 10);
+          c.zodiac = zodiacOf(c.birthday);
         }
-        if (name === "addPlace" && args.name && !c.places.includes(args.name)) c.places.push(args.name);
+        if (name === "setDreamRecall" && args.frequency) c.recall = String(args.frequency).slice(0, 20);
+        if (name === "setLucidLevel" && args.level) c.lucid = String(args.level).slice(0, 20);
+        if (name === "addTheme" && args.name && c.themes.length < 12) {
+          const theme = String(args.name).slice(0, 60);
+          if (!c.themes.includes(theme)) c.themes.push(theme);
+        }
+        if (name === "setGoal" && args.goal) c.goal = String(args.goal).slice(0, 20);
         if (name === "finish") finish();
       },
-    }, who.current);
+    }, { mode: "onboarding" });
     session.current = s;
     return () => s.stop();
     // Mount only: a second session would open a second microphone.
@@ -79,11 +66,7 @@ export default function VoiceInterview({ onDone, onCancel }) {
 
   function finish() {
     session.current?.stop();
-    const c = collected.current;
-    // Whatever was actually said beats whatever the model summarised — if it
-    // never called setDreamText, the transcript is still a dream.
-    const text = c.text || lines.filter((l) => l.who === "you").map((l) => l.text).join(" ");
-    onDone({ text: text.trim(), people: c.people, places: c.places });
+    onDone({ ...collected.current });
   }
 
   function send() {
@@ -100,7 +83,7 @@ export default function VoiceInterview({ onDone, onCancel }) {
 
       <header className="vi-top">
         <button className="vi-round" onClick={onCancel} aria-label={t.voice.cancel}>×</button>
-        <span className="vi-title">{t.voice.title}</span>
+        <span className="vi-title">{t.onboarding.surveyTitle}</span>
         <span className="vi-round vi-round-ghost" aria-hidden="true" />
       </header>
 
@@ -151,7 +134,7 @@ export default function VoiceInterview({ onDone, onCancel }) {
       )}
 
       <p className="vi-hint">
-        {state === "live" ? (speaking ? t.voice.listening : t.voice.yourTurn) : " "}
+        {state === "live" ? (speaking ? t.voice.listening : t.voice.yourTurn) : " "}
       </p>
     </div>
   );
