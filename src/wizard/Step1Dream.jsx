@@ -8,6 +8,7 @@ import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
 import TagTextarea from "../components/TagTextarea.jsx";
 import TagCard from "../components/TagCard.jsx";
+import VoiceInterview from "./VoiceInterview.jsx";
 import "./wizard.css";
 
 export default function Step1Dream({ w, patch, seedAssignments }) {
@@ -15,6 +16,7 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);   // the analysis awaiting a decision
   const [card, setCard] = useState(null);         // the tag being looked at, if any
+  const [interview, setInterview] = useState(false);
   const voice = useVoiceInput({
     onText: (text) => patch({ text }),
     // MIC_DENIED / READ_FAILED are our own codes; anything else is already a
@@ -81,6 +83,20 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
     setPreview(null);
   }
 
+  /* What the interview brings back. The text goes into the same field the
+   * typed path uses, so everything downstream is unchanged — but the people
+   * and places it already identified are kept, and step 3 starts from them
+   * instead of from a second analysis of the same words. */
+  function fromInterview({ text, people, places }) {
+    setInterview(false);
+    if (!text) return;
+    patch({ text, interview: { people, places } });
+  }
+
+  if (interview) {
+    return <VoiceInterview onDone={fromInterview} onCancel={() => setInterview(false)} />;
+  }
+
   if (preview) {
     return (
       <section className="wiz-body">
@@ -144,17 +160,25 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
 
       {card && <TagCard avatar={card.avatar} anchor={card.rect} onClose={closeCard} />}
 
-      {voice.supported && (
-        <button
-          className={"wiz-mic" + (voice.listening ? " wiz-mic-on" : "")}
-          onClick={() => voice.toggle(w.text)}
-          disabled={voice.busy}
-          aria-label={t.dream.voiceLabel}
-          aria-pressed={voice.listening}
-        >
-          🎙
+      {/* Two ways to speak, and they are not the same thing. Dictation just
+          writes down what you say. The interview asks — and comes back with
+          the people and places already sorted out. */}
+      <div className="wiz-voice-row">
+        {voice.supported && (
+          <button
+            className={"wiz-mic" + (voice.listening ? " wiz-mic-on" : "")}
+            onClick={() => voice.toggle(w.text)}
+            disabled={voice.busy}
+            aria-label={t.dream.voiceLabel}
+            aria-pressed={voice.listening}
+          >
+            🎙
+          </button>
+        )}
+        <button className="wiz-interview" onClick={() => setInterview(true)}>
+          {t.dream.interview}
         </button>
-      )}
+      </div>
 
       {/* No skip: every later step runs on what this call returns — the
           characters, the places, the beats. Continuing without it would mean

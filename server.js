@@ -68,6 +68,68 @@ const FAL_MODEL_STT = process.env.FAL_MODEL_STT || "fal-ai/wizper";
 const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 
+// Gemini Live — the voice interview. fal has no realtime conversational
+// model, so this one talks to Google directly.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-live-preview";
+const GEMINI_WS =
+  "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
+
+/* What the assistant is told, and what it may do.
+ *
+ * The tools are the whole design. Without them the answer comes back as a
+ * transcript, and somebody has to guess afterwards which words were a name
+ * and which were a place — a second model call, a second bill, and a new way
+ * to be wrong. With them, the assistant hands over `addPerson("Rex","pet")`
+ * the moment it hears it, already structured.
+ */
+const VOICE_TOOLS = [{
+  functionDeclarations: [
+    {
+      name: "setDreamText",
+      description: "The dream as one flowing account, in the language the person spoke. Call this whenever they add to it; the newest call wins.",
+      parameters: { type: "OBJECT", properties: { text: { type: "STRING" } }, required: ["text"] },
+    },
+    {
+      name: "addPerson",
+      description: "Someone or some animal who appeared in the dream. Call once per character.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          name: { type: "STRING" },
+          kind: { type: "STRING", description: "person or pet" },
+          desc: { type: "STRING", description: "short visual description, empty if the dream gives none" },
+        },
+        required: ["name", "kind"],
+      },
+    },
+    {
+      name: "addPlace",
+      description: "A distinct location in the dream. A dream that moves has more than one.",
+      parameters: { type: "OBJECT", properties: { name: { type: "STRING" } }, required: ["name"] },
+    },
+    {
+      name: "finish",
+      description: "The person has told the whole dream and has nothing to add. Call this last.",
+      parameters: { type: "OBJECT", properties: {} },
+    },
+  ],
+}];
+
+const VOICE_SYSTEM =
+  "You are the dream interviewer in a dream journal app. Someone has just woken up.\n" +
+  "\n" +
+  "Speak the language they speak. Keep every turn to one or two short sentences — " +
+  "they are half asleep and holding a phone in the dark.\n" +
+  "\n" +
+  "Your job is to get the dream out of them, not to interpret it. Ask what happened " +
+  "next, who was there, where it took place, what it looked like. Never analyse, never " +
+  "reassure, never explain what a dream 'means'. If they went through something " +
+  "distressing, acknowledge it in a few words and carry on with the account.\n" +
+  "\n" +
+  "Call setDreamText as the account grows, and addPerson/addPlace the moment someone " +
+  "or somewhere is named — do not wait for the end. Call finish when they are done. " +
+  "Stop asking once you have the shape of it; three or four questions is usually plenty.";
+
 // ---- prompt hygiene (start) ----
 // Scope note, because "prompt injection" means something narrower here than
 // usual: the dream text is the user's OWN prompt for their OWN image. Someone
@@ -673,8 +735,67 @@ async function serveStatic(pathname) {
 
 Bun.serve({
   port: PORT,
-  async fetch(req) {
+
+  /* The voice interview runs through here rather than browser-to-Google.
+   *
+   * It has to: the browser would need GEMINI_KEY to open that socket, and a
+   * key in a bundle is a key everyone has. So the client talks to us, we hold
+   * the key, and we pass frames through in both directions. The relay reads
+   * nothing except the one message it must translate — the audio config —
+   * and never stores what is said. */
+  websocket: {
+    async open(ws) {
+      const key = process.env.GEMINI_KEY;
+      if (!key) {
+        ws.send(JSON.stringify({ type: "error", code: "NO_GEMINI_KEY" }));
+        return ws.close();
+      }
+
+      const upstream = new WebSocket(`${GEMINI_WS}?key=${key}`);
+      ws.data.upstream = upstream;
+
+      upstream.addEventListener("open", () => {
+        upstream.send(JSON.stringify({
+          setup: {
+            model: `models/${GEMINI_MODEL}`,
+            generationConfig: { responseModalities: ["AUDIO"] },
+            systemInstruction: { parts: [{ text: VOICE_SYSTEM }] },
+            tools: VOICE_TOOLS,
+            inputAudioTranscription: {},   // what THEY said, as text
+            outputAudioTranscription: {},  // what IT said, as text
+          },
+        }));
+        ws.send(JSON.stringify({ type: "ready" }));
+      });
+
+      // Straight through. Blobs stay blobs — the audio never becomes a string
+      // on the way past, which would corrupt it and cost a copy per frame.
+      upstream.addEventListener("message", (e) => {
+        try { ws.send(e.data); } catch { /* client already gone */ }
+      });
+      upstream.addEventListener("close", () => { try { ws.close(); } catch {} });
+      upstream.addEventListener("error", () => {
+        try { ws.send(JSON.stringify({ type: "error", code: "UPSTREAM" })); ws.close(); } catch {}
+      });
+    },
+
+    message(ws, data) {
+      const up = ws.data.upstream;
+      if (up?.readyState === 1) up.send(data);
+    },
+
+    close(ws) {
+      try { ws.data.upstream?.close(); } catch { /* already gone */ }
+    },
+  },
+
+  async fetch(req, server) {
     const url = new URL(req.url);
+
+    if (url.pathname === "/api/voice") {
+      if (server.upgrade(req, { data: { upstream: null } })) return undefined;
+      return new Response("Expected a WebSocket upgrade.", { status: 426 });
+    }
 
     if (url.pathname === "/api/analyze" && req.method === "POST") {
       try {
@@ -834,3 +955,4 @@ function json(obj, status = 200) {
 console.log(`Dream Rushes running → http://localhost:${PORT}`);
 console.log(process.env.FAL_KEY ? "fal.ai key: loaded ✓ (images + video)" : "fal.ai key: MISSING (generation disabled)");
 console.log(process.env.DEEPSEEK_KEY ? "DeepSeek key: loaded ✓ (LLM-crafted prompts)" : "DeepSeek key: MISSING (using local prompt template)");
+console.log(process.env.GEMINI_KEY ? "Gemini key: loaded ✓ (voice interview)" : "Gemini key: MISSING (voice interview disabled)");

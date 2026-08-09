@@ -210,6 +210,7 @@ export default {
     voiceListening: "● listening…",
     voiceTranscribing: "✍ writing it down…",
     voiceLabel: "Speak your dream",
+    interview: "✦ Tell it out loud",
     voiceErrors: {
       MIC_DENIED: "⚠ Microphone access was blocked. Allow it in your browser settings.",
       READ_FAILED: "⚠ Could not read the recording. Try again.",
@@ -400,6 +401,25 @@ export default {
     },
     soundsMute: "Mute sleep sounds",
     soundsUnmute: "Unmute sleep sounds",
+  },
+
+  voice: {
+    title: "telling a dream",
+    cancel: "Close",
+    connecting: "Waking up…",
+    yourTurn: "Just talk — I'm listening",
+    listening: "…",
+    type: "type",
+    finish: "done",
+    send: "Send",
+    typePlaceholder: "Or write it instead…",
+    errors: {
+      NO_GEMINI_KEY: "⚠ No voice key on the server. Set GEMINI_KEY and restart.",
+      MIC_DENIED: "⚠ Microphone access was blocked. Allow it in your browser settings.",
+      UPSTREAM: "⚠ The voice service dropped out. Try again.",
+      SOCKET: "⚠ Could not reach the voice service.",
+      CLOSED: "⚠ The connection closed. Try again.",
+    },
   },
 
   paywall: {

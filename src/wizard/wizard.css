@@ -216,3 +216,12 @@
   display: flex; justify-content: space-between;
   color: var(--faint); font-size: var(--t-micro); margin-top: 2px;
 }
+
+.wiz-voice-row { display: flex; align-items: center; gap: var(--s-3); margin-top: var(--s-3); }
+.wiz-voice-row .wiz-mic { margin-top: 0; }
+.wiz-interview {
+  padding: var(--s-3) var(--s-4); border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font-family: var(--sans); font-size: var(--t-small); font-weight: 600;
+}
+.wiz-interview:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
