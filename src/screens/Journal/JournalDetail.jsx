@@ -10,6 +10,7 @@ import { shareDream, downloadAll, canShareFiles } from "../../lib/share.js";
 import { t } from "../../i18n/index.js";
 import EntryMenu from "./EntryMenu.jsx";
 import MediaCarousel from "../../components/MediaCarousel.jsx";
+import { IconImages, IconFilm } from "../../components/icons.jsx";
 import "./journal.css";
 
 export default function JournalDetail({ entry, onClose }) {
@@ -198,12 +199,12 @@ export default function JournalDetail({ entry, onClose }) {
             <p className="j-make-lede">{t.journal.makeLede}</p>
             <div className="j-make-row">
               <button className="j-make-btn" onClick={() => make("images")}>
-                <span className="j-make-emoji" aria-hidden="true">📸</span>
+                <IconImages />
                 <span className="j-make-title">{t.journal.makeImages}</span>
                 <span className="j-make-price">{t.wizard.from} {PRICES.images[3]}</span>
               </button>
               <button className="j-make-btn" onClick={() => make("film")}>
-                <span className="j-make-emoji" aria-hidden="true">🎬</span>
+                <IconFilm />
                 <span className="j-make-title">{t.journal.makeFilm}</span>
                 <span className="j-make-price">{t.wizard.from} {priceForFilm("standard", 4)}</span>
               </button>

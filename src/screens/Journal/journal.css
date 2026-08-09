@@ -296,20 +296,25 @@
 
 /* — „mach was draus" —
    Nur sichtbar, wenn der Traum noch keine Bilder hat. Zwei gleich große
-   Felder, damit keine der beiden Möglichkeiten die andere überstimmt. */
+   Felder, damit keine der beiden Möglichkeiten die andere überstimmt.
+   Derselbe warme Verlauf wie der primäre Knopf (.btn-primary in ui.css) —
+   diese zwei sind der eigentliche Antrieb der Seite, keine Nebensache in
+   Kartenfarbe. Dunkler Text aus demselben Grund wie dort: Amber ist hell,
+   Weiß darauf fällt beim Kontrast durch, Beinahe-Schwarz nicht — geprüft in
+   test-contrast.mjs unter --warm auf --bg. */
 .j-make { margin-top: var(--s-5); }
 .j-make-lede { margin: 0 0 var(--s-3); color: var(--muted); font-size: var(--t-small); }
 .j-make-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
 .j-make-btn {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
   padding: var(--s-3) var(--s-4); cursor: pointer; text-align: left;
-  border-radius: var(--radius); border: 1px solid var(--panel-line);
-  background: var(--panel); color: var(--text); font-family: inherit;
-  transition: border-color .14s ease-out, transform .14s ease-out;
+  border-radius: var(--radius); border: 1px solid transparent;
+  background: var(--warm-grad); color: var(--bg); font-family: inherit;
+  transition: opacity .14s ease-out, transform .14s ease-out;
 }
-.j-make-btn:hover { border-color: var(--accent-soft); }
+.j-make-btn svg { color: var(--bg); }
+.j-make-btn:hover { opacity: .92; }
 .j-make-btn:active { transform: scale(.985); }
 .j-make-btn:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
-.j-make-emoji { font-size: 20px; line-height: 1.3; }
 .j-make-title { font-size: var(--t-small); font-weight: 600; }
-.j-make-price { color: var(--faint); font-size: var(--t-micro); }
+.j-make-price { color: rgb(var(--bg-rgb) / .68); font-size: var(--t-micro); }

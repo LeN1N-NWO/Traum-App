@@ -59,3 +59,28 @@ export function IconPerson() {
     </svg>
   );
 }
+
+/* A sequence of stills — three overlapping frames, the middle one forward,
+   so it reads as pictures in a row rather than one photo. */
+export function IconImages() {
+  return (
+    <svg {...base}>
+      <rect x="3" y="7" width="13" height="13" rx="2.2" transform="rotate(-8 9.5 13.5)" opacity=".55" />
+      <rect x="7" y="4" width="14" height="14" rx="2.2" />
+      <circle cx="12.3" cy="9.6" r="1.4" />
+      <path d="M8.5 15.2 11 12.6a1.4 1.4 0 0 1 2 0l1 1 1.6-1.7a1.4 1.4 0 0 1 2 0L20 14.5" />
+    </svg>
+  );
+}
+
+/* A filmstrip, not a clapperboard — sprocket holes read at 24px, a clapper's
+   hinge and stripes do not. */
+export function IconFilm() {
+  return (
+    <svg {...base}>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <path d="M8 5v14M16 5v14" />
+      <path d="M3.5 9h2.2M18.3 9h2.2M3.5 15h2.2M18.3 15h2.2" />
+    </svg>
+  );
+}
