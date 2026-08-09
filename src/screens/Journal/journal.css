@@ -304,17 +304,20 @@
    test-contrast.mjs unter --warm auf --bg. */
 .j-make { margin-top: var(--s-5); }
 .j-make-lede { margin: 0 0 var(--s-3); color: var(--muted); font-size: var(--t-small); }
-.j-make-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+/* Volle Breite als Pille, Symbol links, Pfeil rechts: eine Leserichtung,
+   die größte Fläche für den Daumen, und der Preis steht bewusst NICHT hier
+   — „ab 3" sagt niemandem, dass Credits gemeint sind. Die Zahl steht im
+   Schritt danach, zusammen mit dem, wofür sie gilt. */
 .j-make-btn {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
-  padding: var(--s-3) var(--s-4); cursor: pointer; text-align: left;
-  border-radius: var(--radius); border: 1px solid transparent;
+  display: flex; align-items: center; gap: var(--s-3); width: 100%;
+  padding: 14px var(--s-4); cursor: pointer; text-align: left;
+  border-radius: 999px; border: 1px solid transparent;
   background: var(--warm-grad); color: var(--bg); font-family: inherit;
   transition: opacity .14s ease-out, transform .14s ease-out;
 }
-.j-make-btn svg { color: var(--bg); }
+.j-make-btn svg { color: var(--bg); flex: none; }
+.j-make-btn > svg:last-child { opacity: .55; }
 .j-make-btn:hover { opacity: .92; }
 .j-make-btn:active { transform: scale(.985); }
 .j-make-btn:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
-.j-make-title { font-size: var(--t-small); font-weight: 600; }
-.j-make-price { color: rgb(var(--bg-rgb) / .68); font-size: var(--t-micro); }
+.j-make-title { flex: 1; font-size: var(--t-body); font-weight: 600; }

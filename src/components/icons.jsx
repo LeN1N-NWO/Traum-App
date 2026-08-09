@@ -73,6 +73,16 @@ export function IconImages() {
   );
 }
 
+/* The "this leads somewhere" mark at the end of a row. Same stroke family as
+   the rest, so it does not read as a typographic ">" borrowed from the font. */
+export function ChevronRight() {
+  return (
+    <svg {...base} width="18" height="18">
+      <path d="m9 6 6 6-6 6" />
+    </svg>
+  );
+}
+
 /* A filmstrip, not a clapperboard — sprocket holes read at 24px, a clapper's
    hinge and stripes do not. */
 export function IconFilm() {

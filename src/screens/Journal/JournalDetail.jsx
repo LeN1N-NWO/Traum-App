@@ -5,12 +5,11 @@ import { useAppState } from "../../state/AppState.jsx";
 import { refine, mediaUrl } from "../../lib/api.js";
 import { spend } from "../../lib/credits.js";
 import { PRICES } from "../../lib/pricing.js";
-import { priceForFilm } from "../../lib/video.js";
 import { shareDream, downloadAll, canShareFiles } from "../../lib/share.js";
 import { t } from "../../i18n/index.js";
 import EntryMenu from "./EntryMenu.jsx";
 import MediaCarousel from "../../components/MediaCarousel.jsx";
-import { IconImages, IconFilm } from "../../components/icons.jsx";
+import { IconImages, IconFilm, ChevronRight } from "../../components/icons.jsx";
 import "./journal.css";
 
 export default function JournalDetail({ entry, onClose }) {
@@ -190,25 +189,35 @@ export default function JournalDetail({ entry, onClose }) {
             walk through. */}
         {entry.media?.type === "video" && urls.length > 0 && <MediaCarousel urls={urls} type={entry.media.type} />}
 
-        {/* A dream kept for free has no pictures — and until now no way back
-            to making them. Same two choices step 2 offers, offered again
-            where the dream actually lives. Hidden while a film is still
-            rendering: that one is on its way, not missing. */}
-        {urls.length === 0 && !entry.jobId && !editing && !proposal && (
+        {/* One way forward at a time, in the order the dream actually grows:
+            words → pictures → motion.
+
+            A dream with nothing yet is only offered pictures. Offering a film
+            there asked someone to buy the most expensive thing in the app
+            before they had seen a single frame of what it would look like —
+            no price tag either, so "from 5" meant nothing. The film is
+            offered once there ARE pictures, when they know what they are
+            animating. Both hidden while a film renders: that one is on its
+            way, not missing. */}
+        {!entry.jobId && !editing && !proposal && urls.length === 0 && (
           <div className="j-make">
             <p className="j-make-lede">{t.journal.makeLede}</p>
-            <div className="j-make-row">
-              <button className="j-make-btn" onClick={() => make("images")}>
-                <IconImages />
-                <span className="j-make-title">{t.journal.makeImages}</span>
-                <span className="j-make-price">{t.wizard.from} {PRICES.images[3]}</span>
-              </button>
-              <button className="j-make-btn" onClick={() => make("film")}>
-                <IconFilm />
-                <span className="j-make-title">{t.journal.makeFilm}</span>
-                <span className="j-make-price">{t.wizard.from} {priceForFilm("standard", 4)}</span>
-              </button>
-            </div>
+            <button className="j-make-btn" onClick={() => make("images")}>
+              <IconImages />
+              <span className="j-make-title">{t.journal.makeImages}</span>
+              <ChevronRight />
+            </button>
+          </div>
+        )}
+
+        {!entry.jobId && !editing && !proposal && urls.length > 0 && entry.media?.type === "image" && (
+          <div className="j-make">
+            <p className="j-make-lede">{t.journal.makeFilmLede}</p>
+            <button className="j-make-btn" onClick={() => make("film")}>
+              <IconFilm />
+              <span className="j-make-title">{t.journal.makeFilm}</span>
+              <ChevronRight />
+            </button>
           </div>
         )}
 
