@@ -605,9 +605,10 @@ async function falSubmitVideo({ imageUrl, prompt, seconds }) {
     body: JSON.stringify({
       image_url: imageUrl,
       prompt,
-      // minimax/h3 accepts up to 15 (confirmed against its own validation
-      // error, which is the only place the limit is written down).
-      duration: Math.min(Math.max(Number(seconds) || 6, 2), 15),
+      // minimax/h3 accepts 5–15 ("ge: 5" per its validator, re-measured
+      // 09.08.2026 — the queue only enforces this at RENDER time, so a bad
+      // value here would burn the fee and come back as a failed job).
+      duration: Math.min(Math.max(Number(seconds) || 6, 5), 15),
       resolution: "768P",
     }),
   });
@@ -615,11 +616,21 @@ async function falSubmitVideo({ imageUrl, prompt, seconds }) {
     console.error("[DreamRushes] fal.ai video submit failed:", res.status, await res.text().catch(() => ""));
     throw new Error("GENERATION_FAILED");
   }
-  const { request_id } = await res.json();
+  const { request_id, status_url, response_url } = await res.json();
   if (!request_id) throw new Error("GENERATION_FAILED");
 
+  /* status_url/response_url are stored VERBATIM from fal's answer, never
+   * rebuilt from the model slug: the queue routes under the model FAMILY
+   * ("minimax/h3"), not the full slug ("minimax/h3/image-to-video") — a
+   * hand-built path 405s, and jobStatus reads every failure as "pending",
+   * so a finished film would never be collected. Found 09.08.2026 when a
+   * COMPLETED render sat unclaimed behind exactly that 405. */
   const id = genJobId();
-  await writeJob(id, { requestId: request_id, model: FAL_MODEL_VIDEO, createdAt: Date.now(), status: "pending" });
+  await writeJob(id, {
+    requestId: request_id, model: FAL_MODEL_VIDEO,
+    statusUrl: status_url, responseUrl: response_url,
+    createdAt: Date.now(), status: "pending",
+  });
   return id;
 }
 
@@ -636,8 +647,13 @@ async function jobStatus(id) {
   if (job.status === "failed") return { status: "failed" };
 
   const key = process.env.FAL_KEY;
-  const base = `https://queue.fal.run/${job.model}/requests/${job.requestId}`;
-  const s = await fetch(`${base}/status`, { headers: { Authorization: `Key ${key}` } });
+  /* Jobs written since 09.08.2026 carry fal's own URLs. Older ones fall back
+   * to the model FAMILY (first two slug segments) — the full slug is exactly
+   * the 405 that kept finished films uncollectable. */
+  const family = job.model.split("/").slice(0, 2).join("/");
+  const base = job.responseUrl || `https://queue.fal.run/${family}/requests/${job.requestId}`;
+  const statusUrl = job.statusUrl || `${base}/status`;
+  const s = await fetch(statusUrl, { headers: { Authorization: `Key ${key}` } });
   if (!s.ok) return { status: "pending" };            // a hiccup is not a failure
   const st = await s.json();
 
