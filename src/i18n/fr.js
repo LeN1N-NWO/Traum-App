@@ -405,32 +405,26 @@ export default {
   },
 
   onboarding: {
-    tagline: "Tes rêves, révélés.",
+    tagline: "Chaque nuit, tu tournes des films. Commence à les garder.",
+    kicker: "le journal de rêves",
     swipe: "glisser",
     slides: [
-      { title: "Garde chaque rêve",
-        text: "Raconte-le à moitié endormi, à voix haute — l'assistant pose les bonnes " +
-              "questions et note la nuit à ta place." },
-      { title: "Visualise ton rêve",
-        text: "Il devient une séquence d'images cinématographiques — avec les vrais " +
-              "visages des personnes, animaux et lieux qui y figurent. Choisis " +
-              "ta préférée et donne-lui vie sous forme de court-métrage." },
-      { title: "Il y a encore plus, gratuitement",
-        text: "Un guide du rêve lucide, et ce que tes symboles récurrents " +
-              "pourraient signifier — quand tu le souhaites." },
+      { title: "Chuchote-le, à moitié endormi",
+        text: "Trois heures du matin, les yeux encore fermés : parle, c'est tout. L'assistante pose les bonnes questions, note la nuit et te laisse te rendormir." },
+      { title: "Puis regarde-le",
+        text: "Le rêve devient une suite d'images de cinéma — avec les vrais visages de tes proches, de tes animaux, de tes lieux. Ton moment préféré devient un court-métrage." },
+      { title: "La part silencieuse est gratuite",
+        text: "Un guide du rêve lucide, les motifs derrière tes symboles récurrents, des sons pour t'endormir. Sans crédits, sans piège." },
     ],
-    start: "Commencer",
-    gateTitle: "Fais-le tien",
-    gateText: "Une discussion de deux minutes avec l'assistant personnalise ton " +
-              "profil — comment tu rêves, ce qui revient sans cesse, comment " +
-              "t'appeler. Tu peux passer n'importe quelle question.",
+    start: "Commence cette nuit",
+    gateTitle: "Dis-nous comment tu rêves",
+    gateText: "Deux minutes de conversation, rien à remplir : comment t'appeler, à quoi ressemblent tes nuits, ce qui revient sans cesse. Passe ce que tu veux.",
     gateReward: "✦ 3 crédits gratuits une fois terminé",
-    gateStart: "Discutons",
+    gateStart: "On parle ?",
     gateLater: "Peut-être plus tard",
     surveyTitle: "faisons connaissance",
     selfieTitle: "Une dernière chose",
-    selfieText: "Ajoute une photo de toi et tes rêves peuvent te mettre en vedette, TOI — " +
-                "les images utilisent ton vrai visage. Tu peux toujours le faire plus tard.",
+    selfieText: "Ajoute une photo et tes rêves tiennent leur premier rôle — ton vrai visage, dans chaque image. Tu pourras toujours le faire plus tard.",
     selfieAdd: "Ajouter ma photo",
     selfieSkip: "Pas maintenant",
     granted: "✦ Bienvenue — 3 crédits ajoutés",

@@ -3,8 +3,11 @@ import { useAppState } from "../../state/AppState.jsx";
 import { welcomeGrant } from "../../lib/credits.js";
 import { t } from "../../i18n/index.js";
 import Button from "../../components/Button.jsx";
-import DreamScape from "../../components/DreamScape.jsx";
 import AvatarDialog from "../../components/AvatarDialog.jsx";
+// Durch Vite importiert statt als /public-Pfad: so überlebt die Referenz
+// jede base-Änderung (Capacitor lädt später von file://). 551 KB, ohne
+// Tonspur — transkodiert aus media/video/Faultier-001.mov (8,4 MB).
+import heroVideo from "../../assets/intro-faultier.mp4";
 import { IconBook, IconSparkle, IconMoon } from "../../components/icons.jsx";
 import OnboardingSurvey from "./OnboardingSurvey.jsx";
 import Mascot from "./Mascot.jsx";
@@ -16,9 +19,9 @@ import "./onboarding.css";
  * install: a gift with a face converts better than a balance that was
  * always there.
  *
- * Placeholder by design ("erstmal dumm", 09.08.2026): the opening animation
- * is the DreamScape until a rendered film replaces it, and the mascot is a
- * simple wisp until there is real art. The FLOW is the deliverable here.
+ * The opening is a real rendered clip now (assets/intro-faultier.mp4, full
+ * bleed behind a scrim); only the mascot remains a simple wisp until there
+ * is real art.
  */
 export default function Onboarding({ onExit }) {
   const { state, update, toast } = useAppState();
@@ -108,10 +111,15 @@ export default function Onboarding({ onExit }) {
   return (
     <main className="ob">
       <div className="ob-slides" ref={track} onScroll={onScroll}>
-        {/* The opening: animation and the name, nothing to read. */}
+        {/* The opening: the film IS the screen. A full-bleed dream sequence
+            under a scrim that dims it just enough for the name to carry —
+            the video sets the mood, the words close the deal. */}
         <section className="ob-slide ob-slide-hero">
-          <DreamScape level={0} speaking={false} />
+          <video className="ob-hero-video" src={heroVideo}
+                 autoPlay muted loop playsInline aria-hidden="true" />
+          <div className="ob-hero-scrim" aria-hidden="true" />
           <div className="ob-hero-text">
+            <p className="ob-kicker">{t.onboarding.kicker}</p>
             <p className="ob-wordmark">Dream Rushes</p>
             <p className="ob-tagline">{t.onboarding.tagline}</p>
           </div>

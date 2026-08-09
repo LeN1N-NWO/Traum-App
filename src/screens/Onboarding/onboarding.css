@@ -22,15 +22,49 @@
   padding: var(--s-6) var(--s-5); text-align: center;
 }
 
-/* Folie 0: nur Animation und Name. Der DreamScape füllt die Folie; relative
-   Position, weil er absolut in seinen Träger malt. */
-.ob-slide-hero { position: relative; padding: 0; }
-.ob-hero-text { position: relative; }
-.ob-wordmark {
-  font-family: var(--serif); font-size: var(--t-hero); margin: 0;
-  letter-spacing: -.015em; text-wrap: balance;
+/* Folie 0: der Film IST der Bildschirm. Das Video läuft vollflächig hinter
+   einem Scrim; der Text sitzt im unteren Drittel — dort, wo der Daumen ohnehin
+   hinschaut und das Motiv am ruhigsten ist. Der Scrim macht zwei Dinge auf
+   einmal: er dimmt die ganze Fläche leicht (das Video soll leuchten, nicht
+   blenden) und läuft unten in fast-Deckung aus, damit die Schrift auf jedem
+   Frame lesbar bleibt, egal was das Video gerade zeigt. */
+.ob-slide-hero { position: relative; padding: 0; overflow: hidden; justify-content: flex-end; }
+.ob-hero-video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover;
 }
-.ob-tagline { color: var(--muted); margin: var(--s-2) 0 0; }
+.ob-hero-scrim {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(to bottom,
+      rgb(var(--bg-rgb) / .42) 0%,
+      rgb(var(--bg-rgb) / .12) 30%,
+      rgb(var(--bg-rgb) / .22) 55%,
+      rgb(var(--bg-rgb) / .88) 88%,
+      var(--bg) 100%);
+}
+.ob-hero-text {
+  position: relative; margin-bottom: 18vh;
+  display: flex; flex-direction: column; align-items: center;
+}
+/* Die kleine Zeile ÜBER dem Namen: gesperrt, leise — sie sagt, was das hier
+   ist, damit der Name darunter nichts erklären muss und Poster sein darf. */
+.ob-kicker {
+  margin: 0 0 var(--s-3); color: var(--accent-soft);
+  font-size: 12px; font-weight: 600;
+  letter-spacing: .32em; text-indent: .32em; /* gleicht das letzte Zeichen aus */
+  text-transform: uppercase;
+}
+.ob-wordmark {
+  font-family: var(--serif); font-size: clamp(40px, 11vw, 58px); margin: 0;
+  line-height: 1.04; letter-spacing: -.02em; text-wrap: balance;
+  text-shadow: 0 2px 26px rgb(0 0 0 / .45);
+}
+.ob-tagline {
+  color: var(--text); opacity: .82; margin: var(--s-3) 0 0;
+  font-size: var(--t-body); max-width: 30ch; text-align: center; line-height: 1.5;
+  text-shadow: 0 1px 14px rgb(0 0 0 / .5);
+}
 .ob-swipe {
   position: absolute; bottom: var(--s-5); left: 0; right: 0;
   color: var(--faint); font-size: var(--t-small);

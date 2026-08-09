@@ -406,32 +406,26 @@ export default {
   },
 
   onboarding: {
-    tagline: "Tus sueños, revelados.",
+    tagline: "Cada noche ruedas películas. Empieza a quedártelas.",
+    kicker: "el diario de sueños",
     swipe: "desliza",
     slides: [
-      { title: "Guarda cada sueño",
-        text: "Cuéntalo medio dormido, en voz alta — el asistente hace las " +
-              "preguntas correctas y anota la noche por ti." },
-      { title: "Visualiza tu sueño",
-        text: "Se convierte en una secuencia de imágenes cinematográficas — con las " +
-              "caras reales de las personas, mascotas y lugares que aparecen. Elige " +
-              "tu favorita y dale vida como un cortometraje." },
-      { title: "Hay más, gratis",
-        text: "Una guía de sueños lúcidos, y lo que podrían significar tus símbolos " +
-              "recurrentes — cuando quieras." },
+      { title: "Susúrralo medio dormido",
+        text: "Las tres de la mañana, los ojos aún cerrados: solo habla. La asistente pregunta lo justo, apunta la noche y te deja volver al sueño." },
+      { title: "Después, míralo",
+        text: "El sueño se convierte en una secuencia de fotogramas de cine, con los rostros reales de tu gente, tus mascotas, tus lugares. Tu momento favorito se vuelve un cortometraje." },
+      { title: "La parte tranquila es gratis",
+        text: "Una guía de sueños lúcidos, los patrones de tus símbolos recurrentes, sonidos para dormirte. Sin créditos, sin trampa." },
     ],
-    start: "Empezar",
-    gateTitle: "Hazlo tuyo",
-    gateText: "Una charla de dos minutos con el asistente personaliza tu " +
-              "perfil — cómo sueñas, qué se repite, cómo quieres que te llamen. " +
-              "Puedes saltarte cualquier pregunta.",
+    start: "Empieza esta noche",
+    gateTitle: "Cuéntanos cómo sueñas",
+    gateText: "Dos minutos de charla, nada que rellenar: cómo quieres que te llamemos, cómo son tus noches, qué vuelve una y otra vez. Sáltate lo que quieras.",
     gateReward: "✦ 3 créditos gratis al terminar",
-    gateStart: "Vamos a hablar",
+    gateStart: "Hablemos",
     gateLater: "Quizá luego",
     surveyTitle: "conociéndote",
     selfieTitle: "Una última cosa",
-    selfieText: "Añade una foto tuya y tus sueños pueden protagonizarte a TI — " +
-                "las imágenes usan tu cara real. Siempre puedes hacerlo más tarde.",
+    selfieText: "Añade una foto y tus sueños tendrán protagonista: tu rostro real, en cada fotograma. Siempre puedes hacerlo más tarde.",
     selfieAdd: "Añadir mi foto",
     selfieSkip: "Ahora no",
     granted: "✦ Bienvenido — se añadieron 3 créditos",

@@ -423,32 +423,26 @@ export default {
   },
 
   onboarding: {
-    tagline: "Your dreams, developed.",
+    tagline: "Every night you make films. Start keeping them.",
+    kicker: "the dream journal",
     swipe: "swipe",
     slides: [
-      { title: "Keep every dream",
-        text: "Tell it half-asleep, out loud — the assistant asks the right " +
-              "questions and writes the night down for you." },
-      { title: "Visualise your dream",
-        text: "It becomes a sequence of cinematic images — with the real " +
-              "faces of the people, pets and places in it. Pick your " +
-              "favourite and bring it to life as a short film." },
-      { title: "There's more, free",
-        text: "A guide to lucid dreaming, and what your recurring symbols " +
-              "might mean — whenever you want them." },
+      { title: "Whisper it, half-asleep",
+        text: "Three a.m., eyes still closed — just talk. The assistant asks the right questions, writes the night down, and lets you drift back under." },
+      { title: "Then watch it back",
+        text: "The dream becomes a run of cinematic stills — with the real faces of your people, your pets, your places. Your favourite moment turns into a short film." },
+      { title: "The quiet part is free",
+        text: "A guide to lucid dreaming, the patterns behind your recurring symbols, sounds to fall asleep to. No credits, no catch." },
     ],
-    start: "Get started",
-    gateTitle: "Make it yours",
-    gateText: "A two-minute chat with the assistant personalises your " +
-              "profile — how you dream, what keeps coming back, what to " +
-              "call you. You can skip any question.",
+    start: "Start tonight",
+    gateTitle: "Tell us how you dream",
+    gateText: "Two minutes of talking, nothing to fill in: what to call you, how your nights run, what keeps coming back. Skip whatever you like.",
     gateReward: "✦ 3 free credits when you finish",
     gateStart: "Let's talk",
     gateLater: "Maybe later",
     surveyTitle: "getting to know you",
     selfieTitle: "One last thing",
-    selfieText: "Add a photo of yourself and your dreams can star YOU — " +
-                "the images use your real face. You can always do this later.",
+    selfieText: "Add a photo and your dreams get their lead actor — your real face, in every frame. You can always do this later.",
     selfieAdd: "Add my photo",
     selfieSkip: "Not now",
     granted: "✦ Welcome — 3 credits added",

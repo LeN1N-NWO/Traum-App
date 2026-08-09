@@ -404,32 +404,26 @@ export default {
   },
 
   onboarding: {
-    tagline: "Deine Träume, entwickelt.",
+    tagline: "Jede Nacht drehst du Filme. Fang an, sie zu behalten.",
+    kicker: "das Traumtagebuch",
     swipe: "wischen",
     slides: [
-      { title: "Jeden Traum festhalten",
-        text: "Erzähl ihn halb schlafend, laut — der Assistent stellt die richtigen " +
-              "Fragen und schreibt die Nacht für dich auf." },
-      { title: "Deinen Traum sichtbar machen",
-        text: "Er wird zu einer Abfolge filmischer Bilder — mit den echten " +
-              "Gesichtern der Personen, Tiere und Orte darin. Wähl dein " +
-              "liebstes und erweck es als Kurzfilm zum Leben." },
-      { title: "Und da ist noch mehr, gratis",
-        text: "Eine Anleitung zum luziden Träumen, und was deine wiederkehrenden " +
-              "Symbole bedeuten könnten — wann immer du willst." },
+      { title: "Flüster ihn, noch im Halbschlaf",
+        text: "Drei Uhr nachts, die Augen noch zu — erzähl einfach. Die Assistentin fragt das Richtige, schreibt die Nacht auf und lässt dich zurück in den Schlaf." },
+      { title: "Dann sieh ihn dir an",
+        text: "Der Traum wird eine Bildstrecke wie aus einem Film — mit den echten Gesichtern deiner Menschen, deiner Tiere, deiner Orte. Dein liebster Moment wird ein kurzer Film." },
+      { title: "Das Leise daran ist gratis",
+        text: "Ein Wegweiser zum Klarträumen, die Muster hinter deinen wiederkehrenden Symbolen, Klänge zum Einschlafen. Ohne Credits, ohne Haken." },
     ],
-    start: "Los geht's",
-    gateTitle: "Mach es zu deinem",
-    gateText: "Ein zweiminütiges Gespräch mit dem Assistenten macht dein " +
-              "Profil persönlich — wie du träumst, was immer wiederkehrt, wie " +
-              "du genannt werden willst. Jede Frage darf übersprungen werden.",
+    start: "Fang heute Nacht an",
+    gateTitle: "Erzähl uns, wie du träumst",
+    gateText: "Zwei Minuten reden, nichts auszufüllen: wie du heißen willst, wie deine Nächte sind, was immer wiederkehrt. Überspring, was du willst.",
     gateReward: "✦ 3 Credits gratis, wenn du fertig bist",
-    gateStart: "Los geht's",
+    gateStart: "Reden wir",
     gateLater: "Vielleicht später",
     surveyTitle: "wir lernen uns kennen",
     selfieTitle: "Eine letzte Sache",
-    selfieText: "Füg ein Foto von dir hinzu, und deine Träume können DICH zeigen — " +
-                "die Bilder verwenden dein echtes Gesicht. Das geht auch jederzeit später.",
+    selfieText: "Füg ein Foto hinzu, und deine Träume haben ihre Hauptrolle — dein echtes Gesicht, in jedem Bild. Geht auch jederzeit später.",
     selfieAdd: "Mein Foto hinzufügen",
     selfieSkip: "Jetzt nicht",
     granted: "✦ Willkommen — 3 Credits hinzugefügt",
