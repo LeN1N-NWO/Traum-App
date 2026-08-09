@@ -29,6 +29,29 @@
  * It reaches the 1.5× target at roughly 75 % usage, which is why monthly
  * credits do not roll over. If real usage turns out higher, the yearly price
  * has to rise — check this against actual figures before it goes on sale.
+ *
+ * ── Two costs the maths above IGNORES (modelled 09.08.2026) ───────────────
+ * The formula `price × markup / (1 − store share)` misses both of the
+ * biggest real deductions, so every margin above is too optimistic:
+ *
+ * 1. VAT. In the EU, tax comes out of the sticker price BEFORE anything
+ *    else: a German $5.99 is $5.03 net (÷1.19), and Apple's 30 % applies
+ *    to the net. Real chain for monthly-m at 30 % store / 75 % usage:
+ *    $5.99 → ÷1.19 → ×0.70 → −$2.10 credits = $1.42/month, not $2.09.
+ *
+ * 2. The welcome grant is paid PER INSTALL, not per customer. At a
+ *    conversion rate c, every subscriber drags 1/c installs behind them;
+ *    spread over an average stay of L months that is (1/L)·($0.24/c) per
+ *    subscriber-month. At c = 5 %, L = 3: $1.60/month — MORE than the
+ *    $1.42 the subscription itself earns. With both corrections applied,
+ *    the standard 30 % store cut is structurally loss-making.
+ *
+ * Consequence: the Small Business Program (15 %) is a REQUIREMENT of this
+ * price list, not a nice-to-have — with it the same numbers yield roughly
+ * €0.50–1.30 contribution per subscriber-month. The metric that decides
+ * everything is conversion: below ~4.5 % free-to-paid the welcome grant
+ * eats the whole margin; at 8 % the picture is comfortable. Measure
+ * conversion FIRST after launch, before trusting any number in this file.
  */
 
 // What one credit costs us, in USD. Every price below derives from it.

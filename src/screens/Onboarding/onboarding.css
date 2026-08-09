@@ -128,10 +128,53 @@
 .ob-dot-on { background: var(--accent-soft); width: 18px; }
 
 /* — Tor zur Umfrage & Selfie-Schritt — */
+
+/* Der Winkel, den die Lichtspur entlangläuft. Als @property registriert,
+   damit er animierbar ist — ein einfaches custom property interpoliert
+   nicht, dann spränge das Licht statt zu wandern. */
+@property --ob-orbit {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* Die Belohnungs-Pille bekommt eine dezente Linie, die sie umfährt und
+   leicht glüht — das einzige bewegte Element der Seite, also geht der
+   Blick genau dorthin. Technik: ein conic-gradient als Hintergrund des
+   ::before, per Maske auf einen 1,5px-Ring beschnitten; animiert wird
+   nur der Startwinkel. Kein Layout, kein Repaint der Pille selbst. */
 .ob-reward {
+  position: relative;
   margin: var(--s-4) 0 0; padding: 9px 16px; border-radius: 999px;
   background: var(--accent-wash); color: var(--accent-soft);
   font-size: var(--t-small); font-weight: 600;
+}
+.ob-reward::before {
+  content: ""; position: absolute; inset: -3px; border-radius: 999px;
+  padding: 1.5px;
+  background: conic-gradient(from var(--ob-orbit),
+    transparent 0turn, transparent .62turn,
+    color-mix(in oklab, var(--gold) 55%, transparent) .8turn,
+    var(--gold) .9turn,
+    transparent 1turn);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--gold) 65%, transparent));
+  animation: ob-orbit 3.4s linear infinite;
+  pointer-events: none;
+}
+@keyframes ob-orbit {
+  to { --ob-orbit: 360deg; }
+}
+/* Ohne Bewegung (Systemeinstellung oder Browser ohne @property-Animation):
+   ein stiller, gleichmäßiger Schimmer statt der Wanderlinie. */
+@media (prefers-reduced-motion: reduce) {
+  .ob-reward::before {
+    animation: none;
+    background: color-mix(in oklab, var(--gold) 40%, transparent);
+  }
 }
 .ob-actions {
   display: flex; flex-direction: column; gap: var(--s-2);

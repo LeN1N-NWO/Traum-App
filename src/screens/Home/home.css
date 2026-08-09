@@ -2,29 +2,79 @@
    with negative margins and the content sits back on top of it. */
 .h-screen { position: relative; }
 
+/* ⚠ DEV-ONLY Varianten (09.08.2026): drei Layouts hinter dem A/B/C-Schalter
+   in HomeScreen.jsx. Nach der Wahl fliegen zwei davon raus. Gemeinsam ist
+   allen: das Faultier-Video, leicht abgedunkelt, statt des alten Verlaufs-
+   himmels mit Mond. */
+
+/* Variante A „Himmel": Video im oberen Bereich, wo vorher der Verlauf war. */
 .h-sky {
   position: absolute; top: 0; left: 50%; transform: translateX(-50%);
   width: 100vw; height: 62vh; max-height: 520px; overflow: hidden; pointer-events: none;
-  background:
-    radial-gradient(90% 60% at 78% 8%, color-mix(in oklab, var(--warm) 30%, transparent), transparent 60%),
-    radial-gradient(100% 70% at 15% 0%, color-mix(in oklab, var(--accent-deep) 60%, transparent), transparent 65%),
-    var(--sky);
+  background: var(--sky);
 }
-/* Your last dream as tonight's weather: blurred and dimmed far past
-   recognition, so it colours the screen instead of competing with it. */
-.h-sky-img {
-  position: absolute; inset: -12%; width: 124%; height: 124%; object-fit: cover;
-  filter: blur(34px) saturate(1.15); opacity: .5;
+/* Variante B „Kino": dasselbe Video, aber ganzseitig hinter allem. */
+.h-cine {
+  position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: -1;
 }
+.h-bg-video {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+/* Der Schleier dunkelt das Video, damit es Stimmung bleibt statt Motiv:
+   in A läuft er unten in volle Deckung aus (der Inhalt steht auf --bg),
+   in B bleibt er gleichmäßiger, weil ALLES auf dem Video steht. */
 .h-sky-veil {
   position: absolute; inset: 0;
   background: linear-gradient(to bottom, rgb(var(--bg-rgb) / .35) 0%, rgb(var(--bg-rgb) / .72) 46%, var(--bg) 100%);
 }
-.h-moon {
-  position: absolute; top: 14%; right: 12%; width: 62px; height: 62px; border-radius: 50%;
-  background: radial-gradient(circle at 34% 28%, #fff 0%, #ffe9cf 26%, var(--warm) 68%, #b2542a 100%);
-  box-shadow: 0 0 60px rgb(242 167 101 / .45);
+.h-cine .h-sky-veil {
+  background: linear-gradient(to bottom,
+    rgb(var(--bg-rgb) / .5) 0%, rgb(var(--bg-rgb) / .55) 45%, rgb(var(--bg-rgb) / .9) 100%);
 }
+/* In B werden die Karten zu Glas, damit das Video überall durchschimmert. */
+.h-v-b .h-last, .h-v-b .h-creature {
+  background: rgb(var(--bg-rgb) / .45);
+  backdrop-filter: blur(10px);
+}
+.h-v-b .h-title, .h-v-b .h-lede { text-shadow: 0 1px 18px rgb(0 0 0 / .55); }
+
+/* Variante C „Karte": das Video wohnt in einer großen gerundeten Poster-
+   karte, Titel und Knopf auf ihrer Unterkante — der Zuschnitt der
+   Onboarding-Karten, auf die Startseite übertragen. */
+.h-poster {
+  position: relative; overflow: hidden; border-radius: var(--radius-lg);
+  aspect-ratio: 4 / 5; margin-top: var(--s-4);
+  border: 1px solid var(--panel-line);
+}
+.h-poster-video {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+.h-poster-scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom,
+    rgb(var(--bg-rgb) / .25) 0%, rgb(var(--bg-rgb) / .05) 35%,
+    rgb(var(--bg-rgb) / .55) 70%, rgb(var(--bg-rgb) / .92) 100%);
+}
+.h-poster-body {
+  position: absolute; inset: auto 0 0 0; padding: var(--s-5);
+  display: flex; flex-direction: column; align-items: flex-start;
+}
+.h-poster-body .h-title { font-size: clamp(30px, 8.4vw, 42px); }
+.h-poster-body .h-lede { margin-bottom: var(--s-4); }
+.h-v-c .h-top { position: relative; z-index: 1; }
+
+/* Der Schalter selbst — fliegt mit den Verlierer-Varianten raus. */
+.h-dev-switch {
+  position: fixed; right: var(--s-3); top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 6px; z-index: 30;
+}
+.h-dev-pill {
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--panel-line); background: var(--glass);
+  backdrop-filter: blur(8px); color: var(--muted);
+  font-family: var(--sans); font-size: 12px; font-weight: 700;
+}
+.h-dev-on { background: var(--accent-wash); color: var(--accent-soft); border-color: var(--accent-soft); }
 
 .h-top {
   position: relative; display: flex; align-items: center; justify-content: space-between;

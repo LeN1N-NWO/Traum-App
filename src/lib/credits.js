@@ -21,6 +21,15 @@
  *   conversion rate — inside what freemium apps actually reach. At five
  *   credits it would need 6.4 %, which is not.
  *
+ *   ⚠ Correction (09.08.2026): the 3.8 % ignores VAT. In the EU the tax
+ *   comes off the sticker price BEFORE Apple's cut, so the $2.09 above is
+ *   really ~$1.42 at the standard 30 % — break-even is ~4.5–5 %, not 3.8 %.
+ *   Under the Small Business Program (15 %) it drops back to ~3.7 %. The
+ *   fuller model (store cut × VAT × burn × conversion × stay) lives in the
+ *   header of plans.js; the decision it forces is unchanged — fewer free
+ *   credits, not worse ones — but the safety margin is thinner than this
+ *   comment originally believed.
+ *
  *   Deliberately NOT solved by rendering the free dream on a cheaper model:
  *   the first dream someone sees decides whether they ever pay for another,
  *   so it gets the same renderer as everything else. Fewer, not worse.
