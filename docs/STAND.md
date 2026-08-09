@@ -3,177 +3,240 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-08 (15:30) — Branch `session/2026-08-07-anton`, PR #9
+**Stand:** 2026-08-09 (19:37) — Branch `session/2026-08-07-anton`, PR #9
 
 ## Woran wird gearbeitet
 
 „Dream Rushes" ist eine React-SPA: Traum aufschreiben oder sprechen → KI macht
-daraus eine Bildstrecke oder einen kurzen Film. **Fünf Tabs**, der Wizard öffnet
-sich über der Tab-Leiste:
+daraus eine Bildstrecke und optional einen kurzen Film. **Vier Tabs**, der
+Wizard öffnet sich über der Tab-Leiste; vor allem anderen entscheidet gerade
+ein **Startmenü**, ob man das Onboarding sieht oder direkt in die App springt
+(siehe „⚠ Übergangslösung" unten — wichtigster Punkt dieser Datei).
 
 | Tab | Inhalt |
 |---|---|
 | Home | Begrüßung nach Tageszeit, letzter Traum als Himmel, Menagerie |
-| Journal | Träume als Kartenstapel **oder** Liste (umschaltbar), Bibliothek, Detail als Bilderstrecke |
+| Journal | Träume als Kartenstapel **oder** Liste, Kalender, Detail mit Film+Bildern nebeneinander |
 | **⊕** | Der Wizard: Traum → Ausgabe → Personen → Orte → Style → Ergebnis |
 | Sleep | **Alles gratis:** Einschlaf-Checkliste, Sound-Mixer, Lucid-Guide, Symbole |
-| Profil | Porträt, Credits-Pille (öffnet Paywall), Traum-Kalender |
-
-Die Navigationsleiste trägt **nur Icons** aus einem einheitlichen SVG-Satz und
-genau **vier** Tabs — eine gerade Zahl, damit der Plus-Knopf auf der Mittellinie
-sitzt. Bei fünf lag er 32 px daneben, weil zwei Tabs links nie drei rechts
-ausgleichen. Deshalb sind die Symbole in den Sleep-Tab gezogen.
+| Profil | Porträt, Credits-Pille (öffnet Paywall), Umfrage-Karte falls offen |
 
 **Stack:** Bun + Vite + React 18 + react-router-dom (HashRouter), `server.js` als
-schlüsselhaltender Proxy. Zustand in `localStorage`, Schlüssel `dreamrushes_v1`.
+schlüsselhaltender Proxy (fal.ai, DeepSeek, Gemini Live). Zustand in
+`localStorage`, Schlüssel `dreamrushes_v1`.
 
 **Sprache:** Oberfläche **englisch**, alle Texte in `src/i18n/en.js` und nirgends
 sonst. Doku und Commits deutsch.
 
+## ⚠ Übergangslösung, die vor echter Nutzung raus muss
+
+`src/App.jsx`s `Gate()` zeigt bei **jedem** App-Start ein `StartMenu`
+(„Show onboarding" / „Skip to app") statt einfach auf `state.onboarded` zu
+prüfen. Absichtlich so gebaut, solange am Onboarding gearbeitet wird — sonst
+wäre der Flow nach dem ersten Anschauen praktisch unerreichbar, weil das Flag
+einmal kippt und dann für immer kippt. **Vor jeder echten Nutzung:**
+`src/screens/Onboarding/StartMenu.jsx` löschen, `Gate()` wieder auf
+`!state.onboarded` gaten lassen (im Kommentar dort genau beschrieben).
+
+## Der Sprachassistent (Gemini Live)
+
+Zwei Modi über denselben Relay in `server.js` (`/api/voice`, WebSocket):
+
+- **`dream`** — Trauminterview, `VOICE_TOOLS` (`setDreamText`, `addPerson`,
+  `addPlace`, `finish`), Briefing kennt Name aus dem Profil und bekannte
+  Cast-Mitglieder, damit genannte Figuren als bestehende `@tag`s erkannt
+  werden statt neu erfunden zu werden.
+- **`onboarding`** — Willkommens-Umfrage, `ONBOARDING_TOOLS` (`setName`,
+  `setBirthday`, `setDreamRecall`, `setLucidLevel`, `addTheme`, `setGoal`,
+  `finish`), jede Frage überspringbar.
+
+**Zwei nicht offensichtliche technische Punkte, falls daran gearbeitet wird:**
+
+- Die Verbindung geht **direkt an den API-Port** (`__API_PORT__` aus
+  `vite.config.js`), nicht über den Vite-Dev-Proxy — der reicht WebSockets
+  unter Bun nicht durch (`node:http` meldet die 101-Antwort als gewöhnliche
+  Antwort statt als `upgrade`-Ereignis).
+- Gemini antwortet **ausschließlich in Binärframes**, auch das
+  `setupComplete`-Handshake-Signal. Wer neue Steuer-Logik auf Frame-Inhalt
+  ergänzt: mit `TextDecoder` dekodieren, nicht auf `typeof data === "string"`
+  prüfen.
+
+## Journal — Struktur
+
+Ein Eintrag kann **Film und Bildstrecke gleichzeitig** besitzen — zwei
+unabhängige Felder, `entry.media` (Bilder) und `entry.film` (Clip), nie eines
+das andere überschreibend. `src/lib/entryMedia.js` (`filmOf`, `imagesOf`,
+`allMediaOf`) ist die einzige Stelle, die beide liest; alte Einträge mit Film
+in `media.type === "video"` werden per Fallback weiter gefunden. **Wer neue
+Medien-Lesestellen baut: über `entryMedia.js`, nie `entry.media` direkt.**
+
+Reihenfolge auf der Detailseite: warmer Haupt-Knopf (Bilder/Film machen) ganz
+oben, darunter die Aktionsleiste (Remix/Rewrite/Edit/Share), darunter Film
+(falls vorhanden), darunter Text und Bilderstrecke.
+
+**Ein „nur gespeicherter" Traum lässt sich fortsetzen** — der Wizard startet
+dann direkt bei der Besetzung (Schritt 3), nicht bei der Analyse, weil der
+Text schon da ist. **Remix** öffnet denselben Text zum Ändern und erzeugt neu
+daraus; die alte Analyse wird dabei verworfen (beschreibt sonst einen Text,
+den es so nicht mehr gibt).
+
+**Ein Film kann eines der eigenen Bilder des Traums animieren** statt immer
+ein neues Keyframe zu rendern — spart ein Credit. Das Bild geht als Data-URI
+an fal; `resolveMedia()` in `server.js` lässt nur Pfade durch, die auf echte,
+selbst geschriebene Dateien zeigen.
+
+## Grid-Bilder — ein Aufruf, drei Bilder
+
+Für die 3-Bilder-Stufe **ohne Poster** generiert `buildGridPrompt()`
+(`promptBuilder.js`) ein einzelnes 16:9-Bild mit drei Panels, `splitGrid.js`
+schneidet es im Browser per `<canvas>`. **Das Modell malt trotz Verbot einen
+Letterbox-Rahmen ins Bild** — der Zuschnitt entfernt ihn, erkannt am
+**hellsten** Pixel jeder Randzeile (nicht am Durchschnitt: gemalte Balken
+max. 5/255, eine dunkle Wasserszene trägt trotzdem Glanzpunkte ab 19). Preis
+bleibt bei 3 Credits, die Ersparnis (~$0,08 statt ~$0,24) geht bewusst in die
+Marge — Entscheidung vom 09.08., dokumentiert in `pricing.js`. Nur für genau
+diese eine Kombination (3 Bilder, kein Poster) gebaut; ein Poster+2-Panel-Grid
+oder ein 9-Panel-Grid sind unbewiesen und bewusst nicht gebaut.
+
+## Onboarding
+
+`src/screens/Onboarding/`: Animation (`DreamScape`, Platzhalter bis ein
+gerendertes Video sie ersetzt) → drei Folien → Sprach-Umfrage → optionaler
+Selfie-Schritt über `AvatarDialog`. Maskottchen (`Mascot.jsx`) ist bewusst
+simpel gehalten, austauschbar. Die Willkommens-Credits sind jetzt die
+**Belohnung** fürs Abschließen der Umfrage, nicht mehr ein stilles Geschenk
+bei Installation (`welcomeGrant()` bleibt idempotent). Wer überspringt,
+findet Angebot und Credits als Karte im Profil wieder
+(`ProfileScreen.jsx`, `p-survey`).
+
+`src/lib/zodiac.js` leitet aus dem Geburtsdatum das Sternzeichen ab
+(clientseitig, getestet) — Vorarbeit für eine spätere Traumdeutungs-Funktion,
+noch nicht angebunden.
+
 ## Farben und Gestaltung
 
-Seit 08.08. **tiefes Blau mit warmem Gegenpol** (vorher violette Nacht). Der
-Hintergrund existiert genau **einmal** als `--bg-rgb` in `src/styles/tokens.css`;
-jeder Schleier und Verlauf leitet seine Deckkraft davon ab
-(`rgb(var(--bg-rgb) / .x)`). Vorher stand er in zwölf Dateien von Hand.
+Tiefes Blau mit warmem Gegenpol. Der Hintergrund existiert genau **einmal**
+als `--bg-rgb` in `src/styles/tokens.css`; jeder Schleier und Verlauf leitet
+seine Deckkraft davon ab (`rgb(var(--bg-rgb) / .x)`).
 
-- **Warm ist selten und bedeutet „Weg nach vorn":** Hauptknöpfe, Plus-Knopf und
-  Paywall-Akzente tragen `--warm-grad` (drei Stopps, Gold → Bernstein → Glut).
-  ⚠ **Immer mit `color: var(--bg)`** — Weiß auf Bernstein reißt den Kontrast.
-- **Titel stehen in `--serif`** (Systemschriften, kein Download).
+- **Warm ist selten und bedeutet „Weg nach vorn":** Hauptknöpfe, Plus-Knopf,
+  Paywall-Akzente, der „Make it"-Knopf im Journal tragen `--warm-grad` (drei
+  Stopps, Gold → Bernstein → Glut). ⚠ **Immer mit `color: var(--bg)`** — Weiß
+  auf Bernstein reißt den Kontrast.
+- Icons kommen aus **einem** SVG-Satz (`src/components/icons.jsx`), 24px-Box,
+  gestrichelt, `currentColor` — kein Emoji mehr irgendwo in Bedienelementen.
+- Native Formularelemente, die sich nicht stylen lassen (Datei-Input,
+  `<input type=range>`), werden unsichtbar gemacht und durch eigene
+  Bedienelemente im App-Stil ersetzt, die sie per Klick/Wert-Sync ansteuern
+  — siehe `AvatarDialog.jsx` (Foto) und `SleepScreen.jsx` (Klangregler).
 - `scripts/test-contrast.mjs` prüft 16 Paarungen gegen WCAG AA und läuft in
-  `bun run test` mit. Der Grenzfall `--faint` auf `--sky` steht bei **5,56:1**.
+  `bun run test` mit.
 
 ## Starten
 
     bun run dev                       # Oberfläche 5173, API 8100, Hot Reload
     bun run build && bun server.js    # produktionsnah, alles auf 8100
-    bun run test                      # 65 Unit + 50 Freigabe + Hygiene + 16 Kontrast
+    bun run test                      # 77 Unit + 50 Freigabe + Hygiene + 16 Kontrast
 
 ⚠️ Die Oberfläche liegt im Dev-Modus auf **5173**, nicht 8100 — dort läuft nur
-die API. Und: **5173 und 8100 sind für den Browser verschiedene Herkünfte mit
-getrenntem `localStorage`.** Wer die Ports wechselt, sieht zwei verschiedene
-Tagebücher; das sah lange nach Datenverlust aus.
+die API. **5173 und 8100 sind für den Browser verschiedene Herkünfte mit
+getrenntem `localStorage`.**
 
-## Provider und Preise (recherchiert und gemessen am 08.08.)
+⚠️ **Die `.claude/launch.json` im Hauptrepo-Ordner** (nicht im Worktree)
+startet nur `bun server.js`, nie Vite — ein frischer `main`-Checkout zeigt in
+der Vorschau ein altes `dist/` ohne Oberfläche. Noch nicht angeglichen; siehe
+Worklog-Eintrag 09.08. für Details.
+
+## Provider und Preise (Stand 09.08., minimax-Dauer neu gemessen)
 
 | | Modell | Kosten |
 |---|---|---|
 | Bild | `fal-ai/nano-banana-2` (1K) | **$0,08** je Bild |
 | Bild mit Referenz | `.../edit` — Pflicht, sonst werden `image_urls` ignoriert | $0,08 |
-| Video Standard | `minimax/h3/image-to-video` (768P) | **$0,08 je Sekunde**, 2–15 s |
+| Video Standard | `minimax/h3/image-to-video` (768P) | **$0,08 je Sekunde**, **5–15 s** |
 | Video Premium | `bytedance/seedance-2.5` (720p) | **$0,473 je Sekunde**, bis 30 s am Stück |
 | Diktat | `fal-ai/wizper` | $0,0005 je Minute |
 | Analyse | `deepseek-v4-flash` | **$0,00026** je Traum |
 
-**Die Credit-Skala leitet sich daraus ab: 1 Credit = 1 Bild = $0,08.** Textarbeit
-(Analyse, Überarbeiten, Diktat) ist **gratis**, weil sie 0,065 % eines Traums
-kostet. Film Standard = ein Credit je Sekunde plus einer fürs Startbild.
-Alles in `src/lib/pricing.js` und `src/lib/video.js`, jeweils aus **einer** Zahl
-je Modell abgeleitet.
+⚠ **`minimax/h3` verlangt jetzt mindestens 5 Sekunden**, nicht 2 wie am
+08.08. notiert — nachgemessen am 09.08. gegen die echte Validierungsantwort
+(`"ge: 5"`). Die Queue prüft das erst beim **Rendern**, nicht beim
+Einreichen: ein zu kurzer Wert verbrennt Credits und kommt Minuten später als
+gescheiterter Job zurück. `clampSeconds()` in `lib/video.js` fängt das ab.
+
+**Die Credit-Skala:** 1 Credit = 1 Bild = $0,08. Textarbeit gratis. Die
+3-Bilder-Grid-Stufe kostet real nur ~$0,08 (siehe oben), Preis bleibt trotzdem
+bei 3 Credits — bewusste Margen-Entscheidung. Ein Film, der ein eigenes Bild
+animiert statt ein neues Keyframe zu rendern, spart ein Credit automatisch.
 
 Verkaufsseite in `src/lib/plans.js`: Preis = Kosten × Aufschlag ÷ (1 − Provision).
-Bei Apples 30 % und 1,75× Aufschlag sind das **$0,200 je Credit**. Abos bekommen
-den Mindestaufschlag, Einmalkäufe 2,2× — daher der Abo-Rabatt.
-
-**Modellwahl bewusst so:** Seedream 5 Lite kostet 56 % weniger, hält im Test
-Gesichter pixelgenau, **befolgt aber die Regieanweisung nicht** (liefert einen
-Hintergrundtausch statt eines Filmbildes). Für Bildstrecken bleibt es deshalb bei
-Nano Banana — auch für den Gratis-Traum, weil der erste Eindruck entscheidet.
+Bei Apples 30 % und 1,75× Aufschlag sind das **$0,200 je Credit**.
 
 ## Sicherheit
 
-- **Vertraulichkeit:** Web-Wurzel ist `dist/`, nicht das Repo. Zusätzlich
-  deny-by-default in `resolveStatic()`; `/media/` hat eine eigene, ebenso enge
-  Prüfung (`resolveMedia()`, nur Hash-plus-Endung). 50 Prüfungen in
+- **Vertraulichkeit:** Web-Wurzel ist `dist/`, nicht das Repo. `/media/` hat
+  eine eigene, enge Prüfung (`resolveMedia()`, nur Hash-plus-Endung — auch
+  Grundlage dafür, dass ein Film nur eigene, selbst gespeicherte Bilder
+  animieren kann, nie einen beliebigen Pfad). 50 Prüfungen in
   `scripts/test-static.mjs`.
 - **Prompt-Eingabe:** unsichtbare Zeichen werden serverseitig entfernt,
-  `sanitizePromptText()` in `server.js:101` ist die verbindliche Stelle. Auch
-  DeepSeeks Rückgabe und jedes Transkript laufen dort durch.
-- **`/api/transcribe` nimmt nur Base64-Data-URIs**, niemals URLs — sonst wäre die
-  Route ein Abruf-Proxy für beliebige Adressen.
-- **Offen — `/api/generate` hat keine Authentifizierung und kein Rate-Limit**
-  (`server.js:25`). Nur an localhost binden. Löst sich erst mit dem Backend,
-  verbindlich **vor** jeder öffentlichen Nutzung.
-- **Offen — Credits sind Buchhaltung, keine Zugangskontrolle**
-  (`src/lib/credits.js:28`). Der Stand liegt im `localStorage` und ist frei
-  editierbar. Das Willkommensgeschenk ist deshalb auf **3** gesenkt.
-- **Offen — Datenschutz:** hochgeladene Referenzfotos und Sprachaufnahmen gehen
-  an fal.ai. Gesichtsbilder sind biometrische Daten (DSGVO Art. 9). Vor einer
-  Veröffentlichung braucht es Datenschutzhinweis, Einwilligung und Klärung der
-  Speicherdauer.
-- **Offen — Missbrauch:** Referenzfoto einer realen Person plus Traumtext ergibt
-  einen Deepfake. Keine Inhaltsprüfung, kein Logging. Gehört ans Backend-ADR.
+  `sanitizePromptText()` in `server.js` ist die verbindliche Stelle.
+- **`/api/transcribe` und `/api/panel` (Grid-Upload) nehmen nur Base64-Data-URIs
+  bzw. rohe Bild-Bytes mit geprüftem Content-Type**, niemals beliebige URLs.
+- **Offen — `/api/generate` hat keine Authentifizierung und kein Rate-Limit.**
+  Nur an localhost binden. Löst sich erst mit dem Backend.
+- **Offen — Credits sind Buchhaltung, keine Zugangskontrolle.** Der Stand
+  liegt im `localStorage` und ist frei editierbar.
+- **Offen — Datenschutz:** hochgeladene Referenzfotos, Sprachaufnahmen und
+  jetzt auch die Onboarding-Umfrage (Geburtsdatum, wiederkehrende Themen)
+  gehen an fal.ai bzw. Google. Vor einer Veröffentlichung braucht es
+  Datenschutzhinweis, Einwilligung und Klärung der Speicherdauer.
 
 ## Bekannte Baustellen
 
-- **⚠ Der synchrone `fal.run` reicht nur für Bilder.** Gemessen: ein
-  15-Sekunden-Video braucht **280 Sekunden**. Filme laufen deshalb über
-  `queue.fal.run` (`falSubmitVideo()` / `jobStatus()` in `server.js`). **Wer
-  irgendetwas anderes verlängert, muss denselben Weg nehmen** — sonst rechnet fal
-  ab und niemand holt das Ergebnis.
-- **`minimax/h3` ist nirgends öffentlich dokumentiert.** Seine Grenzen (2–15 s,
-  768P/2K/4K) stehen nur in der eigenen Validierungsantwort. Leeren oder
-  ungültigen Body schicken und den Fehler lesen — kostet nichts.
-- **⚠ Falle in `TagTextarea.css`:** Feld und Spiegelebene tragen zusätzlich die
-  Klasse des Aufrufers (`.wiz-textarea`). Bei gleicher Spezifität entscheidet die
-  Bündelreihenfolge, und die entscheidet gegen uns. Alles, was den Aufrufer
-  schlagen muss, braucht `.tt-wrap` davor.
-- **Die Tag-Karte im Eingabefeld öffnet nur per Zeiger**
-  (`src/components/TagTextarea.jsx:48`) — die Markierungen liegen in einer
-  `aria-hidden`-Ebene und werden geometrisch getroffen. Derselbe Inhalt steht im
-  Journal unter „Your cast", das per Tastatur bedienbar ist.
-- **Screens sind nur manuell geprüft.** Getestet ist die Logikschicht (65
-  Unit-Tests) plus Freigabe, Prompt-Hygiene und Kontrast. Für die React-Screens
-  gibt es keine automatisierten Tests — dafür bräuchte es eine DOM-Umgebung.
-- **Die riskanteste Stelle bleibt `promptBuilder.js:18` (`buildReferences`).**
-  Eine Figur ohne Foto darf keinen Index verbrauchen, sonst bekommen Menschen
-  fremde Gesichter. Wer dort etwas ändert, führt die Tests aus.
-- **Die Bilderstrecke im Journal teilt nach Sätzen**, gleichmäßig auf die Bilder.
-  Genauer ginge es nur, wenn die Beats im Eintrag gespeichert würden — sie liegen
-  heute nur in der Analyse.
-- **Vite startet neu, sobald eine `.env*`-Datei gespeichert wird** — auch
-  `.env.example`. Sieht beim ersten Mal nach einem Absturz aus.
-- **Symbolerkennung nur auf Englisch** (`src/lib/symbols.js:34`). Deutsche Träume
-  liefern keine Symbole. Wird spätestens mit der deutschen Oberfläche fällig.
-- Tagebuch wächst unbegrenzt und wird komplett gerendert — keine Pagination.
-  Zusammen mit base64-Referenzfotos ist das localStorage-Kontingent (~5 MB) das
-  eigentliche Limit; `saveState()` meldet es wenigstens.
+- **⚠ StartMenu ist eine Übergangslösung** (siehe oben) — höchste Priorität
+  vor jeder echten Nutzung.
+- **Der synchrone `fal.run` reicht nur für Bilder**, Filme laufen über
+  `queue.fal.run`. `falSubmitVideo()` speichert `status_url`/`response_url`
+  jetzt wörtlich aus fals eigener Antwort — **wer diesen Code anfasst: nicht
+  wieder aus dem Modell-Slug rekonstruieren**, das war der Fehler, der
+  fertige Filme unabholbar machte (siehe Worklog 09.08.).
+- **Grid-Bilder nur für „3, kein Poster"** — andere Kombinationen (Poster+2,
+  9er-Grid) sind unbewiesen.
+- **Kein Charakter bleibt beim Filmen aus eigenem Bild garantiert konsistent**
+  — der Film animiert das gewählte Bild direkt, es gibt keinen zweiten
+  Referenz-Abgleich an dieser Stelle.
+- **Die Bilderstrecke im Journal teilt nach Sätzen**, gleichmäßig auf die
+  Bilder — die Beats liegen nur in der (ggf. verworfenen) Analyse, nicht am
+  Eintrag gespeichert.
+- **Symbolerkennung nur auf Englisch** (`src/lib/symbols.js`).
+- Tagebuch wächst unbegrenzt, keine Pagination; base64-Referenzfotos plus
+  wachsende Medien-Liste machen das localStorage-Kontingent (~5 MB) zum
+  eigentlichen Limit.
+- Kein `npm run lint` / `bun run lint` — weiterhin keine Konfiguration dafür.
 
 ## Nächste Schritte
 
-1. **Sprachassistent (Gemini Live).** `GEMINI_KEY` liegt seit 08.08. in `.env`.
-   fal bietet kein Echtzeit-Sprachmodell, der Schlüssel kommt direkt von Google.
-   **Wichtig für die Umsetzung:** Gemini Live kann Funktionen aufrufen — dem
-   Modell `setDreamText()`, `addPerson()`, `addPlace()` mitgeben, statt hinterher
-   ein Protokoll durch DeepSeek zu jagen. Die Daten kommen dann strukturiert an,
-   ohne zweiten Aufruf. Kosten: ~$0,028 je Traum (3 Minuten Gespräch).
-2. **Onboarding-Fragebogen** über denselben Assistenten: Name, wiederkehrende
-   Träume, Vorlieben, eigenes Foto. Gestaffelte Belohnung bis 3 Credits — wer
-   nichts ausfüllt, behält alles Kostenlose und stößt erst beim Generieren auf
-   die Paywall.
-3. **Empfehlungsprogramm.** Trägt sich ab dem zweiten Monat des Geworbenen.
-   Prämie **erst nach der ersten erfolgreichen Abbuchung** gutschreiben, sonst ist
-   es eine Einladung, sich selbst zu empfehlen. Braucht das Konten-Backend.
-4. **Character-Sheets** für beschriebene Figuren ohne Foto. Seedream ist dafür
-   das bessere und billigere Werkzeug — seine Stärke (Vorlage exakt halten) ist
-   hier genau richtig.
+1. **StartMenu entfernen**, sobald das Onboarding als fertig gilt (siehe oben).
+2. **`.claude/launch.json` im Hauptrepo angleichen** (auf `bun run dev`,
+   Port 5173) — noch nicht gemacht, siehe Worklog 09.08.
+3. **Empfehlungsprogramm.** Prämie erst nach der ersten erfolgreichen
+   Abbuchung gutschreiben. Braucht das Konten-Backend.
+4. **Character-Sheets** für beschriebene Figuren ohne Foto (Seedream, siehe
+   Modellvergleich vom 08.08.).
 5. Vor jeder öffentlichen Nutzung: **Auth + Rate-Limit** für `/api/generate`.
-6. **Supabase-Projekt** (Produktbesitzer) → ADR für Accounts/DB/Credits. Erst
-   danach sind Bezahlung, Empfehlungen und ein fälschungssicherer Kontostand
-   möglich.
-7. Apple-/Google-Developer-Accounts → ADR für Capacitor. Erst dann In-App-Käufe,
-   ein echter Einschlaf-Wecker (Benachrichtigungen) und natives Autostart für den
-   Sound-Mixer.
+6. **Supabase-Projekt** (Produktbesitzer) → ADR für Accounts/DB/Credits.
+7. Apple-/Google-Developer-Accounts → ADR für Capacitor.
+8. **`lib/zodiac.js` ist noch nicht an eine Traumdeutungs-Funktion
+   angebunden** — die Umfrage sammelt Sternzeichen und wiederkehrende Themen
+   bereits, es passiert nur noch nichts damit.
 
 ## Offene Zahlen, die nur die Wirklichkeit beantworten kann
 
-- **Umwandlungsquote und Haltedauer.** Das Geschenk trägt sich ab **3,8 %** bei
-  drei Monaten mittlerer Haltedauer. Ob die erreicht werden, weiß niemand, bevor
-  es Konten gibt. Konservativ starten, nachlegen wenn die Zahlen es hergeben —
-  zu wenig verschenkt lässt sich korrigieren, zu viel ist weg.
-- **Das Jahresabo trägt die Marge nur bei ~75 % Verbrauch.** Deshalb verfallen
-  Monats-Credits. Vor dem Verkauf an echten Zahlen prüfen.
-- **Echte Rechnungsbeträge** stehen im fal.ai-Dashboard. Die Sitzung hat dort
-  reale Läufe hinterlassen (Bilder, ein 15-s- und ein 12-s-Video) — ein Blick
-  darauf bestätigt oder korrigiert die hier genannten Preise.
+- **Umwandlungsquote und Haltedauer.** Das Geschenk trägt sich ab **3,8 %**
+  bei drei Monaten mittlerer Haltedauer. Ob die erreicht werden, weiß
+  niemand, bevor es Konten gibt.
+- **Echte Rechnungsbeträge** stehen im fal.ai-Dashboard. Diese und die
+  letzte Sitzung haben dort reale Läufe hinterlassen (Bilder, mehrere
+  5–15-Sekunden-Videos) — ein Blick darauf bestätigt oder korrigiert die
+  hier genannten Preise.
