@@ -1,4 +1,5 @@
 import { mediaUrl } from "../../lib/api.js";
+import { filmOf, imagesOf } from "../../lib/entryMedia.js";
 import { t } from "../../i18n/index.js";
 import "./journal.css";
 
@@ -13,8 +14,12 @@ import "./journal.css";
  */
 export default function JournalCard({ entry, onOpen, variant = "tile" }) {
   const d = new Date(entry.createdAt);
-  const media = mediaUrl(entry.media?.urls?.[0]);
-  const isVideo = entry.media?.type === "video";
+  // A dream that became a film shows the film: it is the newest and most
+  // finished thing about it, and a still from the sequence would under-sell
+  // what is actually in there.
+  const film = filmOf(entry);
+  const media = mediaUrl(film || imagesOf(entry)[0]);
+  const isVideo = !!film;
   const title = entry.title || t.journal.untitled;
 
   if (variant === "row") {

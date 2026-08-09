@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppState } from "../../state/AppState.jsx";
 import { refreshStreak } from "../../lib/streak.js";
 import { mediaUrl } from "../../lib/api.js";
+import { imagesOf } from "../../lib/entryMedia.js";
 import { t } from "../../i18n/index.js";
 import Menagerie from "./Menagerie.jsx";
 import "./home.css";
@@ -36,7 +37,9 @@ export default function HomeScreen() {
   // The last dream becomes the sky of the home screen — blurred and dimmed
   // far past recognition, so it reads as weather rather than as a thumbnail.
   // Without one, the gradient in .h-sky stands on its own.
-  const backdrop = last?.media?.type === "image" ? mediaUrl(last.media.urls?.[0]) : null;
+  // A still only — this is a background element, and an <img> is all .h-sky
+  // can blur. A film-only dream simply leaves the gradient standing.
+  const backdrop = mediaUrl(imagesOf(last)[0]) || null;
   const greeting = t.home.greeting[greetingKey(new Date().getHours())];
   const streak = state.streak || 0;
 

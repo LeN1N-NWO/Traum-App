@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../components/Button.jsx";
 import { useAppState } from "../../state/AppState.jsx";
-import { refine, mediaUrl } from "../../lib/api.js";
+import { refine, mediaUrl, jobStatus } from "../../lib/api.js";
+import { filmOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
 import { spend } from "../../lib/credits.js";
 import { PRICES } from "../../lib/pricing.js";
 import { shareDream, downloadAll, canShareFiles } from "../../lib/share.js";
 import { t } from "../../i18n/index.js";
 import EntryMenu from "./EntryMenu.jsx";
-import MediaCarousel from "../../components/MediaCarousel.jsx";
 import { IconImages, IconFilm, ChevronRight } from "../../components/icons.jsx";
 import "./journal.css";
 
@@ -30,6 +30,45 @@ export default function JournalDetail({ entry, onClose }) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose, menuOpen]);
+
+  /* Collecting a film that was still rendering when the wizard was left.
+   *
+   * Saving mid-render is offered on purpose ("Save — I'll come back for it"),
+   * but nothing ever came back for it: the entry kept its job id and the
+   * finished film was never fetched. This is the collector. It runs while the
+   * dream is open and stops the moment the film lands — a render measured
+   * 280s, so six seconds between asks is plenty. */
+  useEffect(() => {
+    if (!entry.jobId) return;
+    let alive = true;
+    const tick = async () => {
+      try {
+        const r = await jobStatus(entry.jobId);
+        if (!alive) return;
+        if (r.status === "done" && r.urls?.length) {
+          update({
+            journal: state.journal.map((e) =>
+              e.id === entry.id
+                ? { ...e, film: { urls: r.urls, source: "api" }, jobId: undefined }
+                : e
+            ),
+          });
+          toast(t.journal.filmArrived);
+        } else if (r.status === "failed" || r.status === "unknown") {
+          // Drop the id rather than asking forever about a job that is gone.
+          update({
+            journal: state.journal.map((e) => (e.id === entry.id ? { ...e, jobId: undefined } : e)),
+          });
+        }
+      } catch { /* a hiccup is not a failure — the next tick asks again */ }
+    };
+    tick();
+    const id = setInterval(tick, 6000);
+    return () => { alive = false; clearInterval(id); };
+    // state.journal is deliberately not a dependency: update() replaces it on
+    // every write, which would tear this down and restart it in a loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry.jobId, entry.id]);
 
   /** Write a new text onto the entry. The first version is never touched. */
   function commitText(text) {
@@ -69,7 +108,8 @@ export default function JournalDetail({ entry, onClose }) {
 
   async function doShare() {
     setMenuOpen(false);
-    const urls = entry.media?.urls || [];
+    // Film first, then the stills — the same order the page shows them in.
+    const urls = allMediaOf(entry);
     if (urls.length === 0) return toast(t.journal.shareNothing);
     setBusy(true);
     try {
@@ -103,9 +143,7 @@ export default function JournalDetail({ entry, onClose }) {
           // wizard shows them and lets the person pick which one. Only local
           // copies qualify — an old entry may still hold fal URLs, and those
           // expire, so offering them would offer a picture that is gone.
-          urls: entry.media?.type === "image"
-            ? (entry.media?.urls || []).filter((u) => typeof u === "string" && u.startsWith("/media/"))
-            : [],
+          urls: imagesOf(entry).filter((u) => typeof u === "string" && u.startsWith("/media/")),
           text: entry.text,
           originalText: entry.originalText || entry.text,
           title: entry.title || "",
@@ -123,9 +161,12 @@ export default function JournalDetail({ entry, onClose }) {
   }
 
   const d = new Date(entry.createdAt);
-  const urls = entry.media?.urls || [];
-  const isVideo = entry.media?.type === "video";
-  const hero = mediaUrl(urls[0]) || null;
+  const film = filmOf(entry);
+  const images = imagesOf(entry);
+  // The film leads if there is one — it is the finished thing the pictures
+  // were a step towards, so it takes the hero and the top of the page.
+  const hero = mediaUrl(film || images[0]) || null;
+  const heroIsVideo = !!film;
 
   return (
     <div className="j-backdrop" onClick={onClose}>
@@ -142,8 +183,8 @@ export default function JournalDetail({ entry, onClose }) {
             third, below this crop, so the two never collide. The full poster
             is still right there in the carousel underneath. */}
         <div className="j-hero">
-          {hero && !isVideo && <img className="j-hero-img" src={hero} alt="" />}
-          {hero && isVideo && <video className="j-hero-img" src={hero} muted loop autoPlay playsInline />}
+          {hero && !heroIsVideo && <img className="j-hero-img" src={hero} alt="" />}
+          {hero && heroIsVideo && <video className="j-hero-img" src={hero} muted loop autoPlay playsInline />}
           {!hero && <div className="j-hero-blank" aria-hidden="true" />}
           <div className="j-hero-scrim" aria-hidden="true" />
 
@@ -163,6 +204,23 @@ export default function JournalDetail({ entry, onClose }) {
 
         <div className="j-content">
         {busy && <p className="j-working">{t.journal.working}</p>}
+
+        {/* The film comes first, above the words and the stills it was made
+            from: it is the finished piece, they are the working material.
+            Controls on, unmuted, no autoplay — a film someone paid for is
+            watched deliberately, not glimpsed as a silent loop. */}
+        {film && (
+          <video className="j-film" src={mediaUrl(film)} controls playsInline preload="metadata" />
+        )}
+
+        {/* Still rendering: it was saved mid-render on purpose, and the
+            collector above is asking for it while this stays open. */}
+        {!film && entry.jobId && (
+          <div className="j-film-wait" role="status" aria-live="polite">
+            <span className="wiz-spinner" aria-hidden="true" />
+            <span>{t.journal.filmRendering}</span>
+          </div>
+        )}
 
         {proposal ? (
           <RefineProposal
@@ -189,12 +247,8 @@ export default function JournalDetail({ entry, onClose }) {
             </div>
           </>
         ) : (
-          <DreamStory text={entry.text} urls={urls} type={entry.media?.type} />
+          <DreamStory text={entry.text} urls={images} type="image" />
         )}
-
-        {/* Films keep the carousel: there is one clip, not a sequence to
-            walk through. */}
-        {entry.media?.type === "video" && urls.length > 0 && <MediaCarousel urls={urls} type={entry.media.type} />}
 
         {/* One way forward at a time, in the order the dream actually grows:
             words → pictures → motion.
@@ -206,7 +260,7 @@ export default function JournalDetail({ entry, onClose }) {
             offered once there ARE pictures, when they know what they are
             animating. Both hidden while a film renders: that one is on its
             way, not missing. */}
-        {!entry.jobId && !editing && !proposal && urls.length === 0 && (
+        {!entry.jobId && !editing && !proposal && images.length === 0 && (
           <div className="j-make">
             <p className="j-make-lede">{t.journal.makeLede}</p>
             <button className="j-make-btn" onClick={() => make("images")}>
@@ -217,7 +271,7 @@ export default function JournalDetail({ entry, onClose }) {
           </div>
         )}
 
-        {!entry.jobId && !editing && !proposal && urls.length > 0 && entry.media?.type === "image" && (
+        {!entry.jobId && !film && !editing && !proposal && images.length > 0 && (
           <div className="j-make">
             <p className="j-make-lede">{t.journal.makeFilmLede}</p>
             <button className="j-make-btn" onClick={() => make("film")}>
@@ -253,7 +307,7 @@ export default function JournalDetail({ entry, onClose }) {
 
         {menuOpen && (
           <EntryMenu
-            canShare={urls.length > 0}
+            canShare={allMediaOf(entry).length > 0}
             onEdit={() => { setMenuOpen(false); setEditing(true); }}
             onRefine={runRefine}
             onShare={doShare}

@@ -45,7 +45,14 @@ export default function Step6Result({ w, patch }) {
     const references = Object.values(w.assignments)
       .filter((a) => a.avatar?.tag)
       .map((a) => ({ tag: a.avatar.tag, category: a.kind }));
-    const media = { type: isFilm ? "video" : "image", urls, source: "api" };
+    /* A film and a picture sequence are two different things a dream can
+     * own, not two states of one field. Writing the film into `media` used
+     * to overwrite the images it was made FROM — three pictures gone the
+     * moment you animated one of them. They live side by side now; see
+     * lib/entryMedia.js for the readers that hide the old shape. */
+    const madeNow = isFilm
+      ? { film: { urls, source: "api" } }
+      : { media: { type: "image", urls, source: "api" } };
 
     /* Resumed from the journal: this dream already exists. It has its date,
      * its creature and its place in the streak — only the pictures are new,
@@ -57,8 +64,8 @@ export default function Step6Result({ w, patch }) {
           mode: w.mode,
           style: w.styleId,
           format: w.format,
-          imageCount: isFilm ? 1 : w.imageCount,
-          media,
+          imageCount: isFilm ? e.imageCount : w.imageCount,
+          ...madeNow,
           references,
           analysis: w.analysis || e.analysis || null,
           // The title was only ever a placeholder while the dream had no
@@ -85,8 +92,11 @@ export default function Step6Result({ w, patch }) {
       mode: w.mode,
       style: w.styleId,
       format: w.format,
-      imageCount: isFilm ? 1 : w.imageCount,
-      media,
+      imageCount: isFilm ? 0 : w.imageCount,
+      // A film-first dream has no picture sequence yet; the empty media keeps
+      // the shape uniform so "make the images" is offered for it later.
+      media: { type: "image", urls: [], source: "none" },
+      ...madeNow,
       // See Step2Output: kept so a later round of pictures starts for free.
       analysis: w.analysis || null,
       // Kept when the film is still rendering, so the entry can collect it

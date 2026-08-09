@@ -83,6 +83,8 @@ export default {
     showOriginal: "Show what I first wrote",
     hideOriginal: "Hide the original",
     months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    filmRendering: "Your film is still rendering — it lands here when it's done.",
+    filmArrived: "✦ Your film is ready",
     makeLede: "No pictures yet. Want some?",
     makeImages: "Make the images",
     makeFilmLede: "Now bring it to life.",
