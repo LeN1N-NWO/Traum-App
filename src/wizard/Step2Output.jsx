@@ -21,9 +21,13 @@ export default function Step2Output({ w, patch }) {
       createdAt: new Date().toISOString(),
       text: w.text,
       originalText: w.originalText || w.text,
-      title: creature.title,
+      title: (w.title || "").trim() || creature.title,
+      tagline: (w.tagline || "").trim(),
       mode: "save",
       media: { type: "image", urls: [], source: "none" },
+      // Kept so that turning this dream into pictures later costs nothing to
+      // prepare: the characters and places have already been worked out once.
+      analysis: w.analysis || null,
       references: [],
       creatureId: creature.id,
     };

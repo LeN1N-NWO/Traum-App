@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "../../components/Button.jsx";
 import { useAppState } from "../../state/AppState.jsx";
 import { refine, mediaUrl } from "../../lib/api.js";
 import { spend } from "../../lib/credits.js";
 import { PRICES } from "../../lib/pricing.js";
+import { priceForFilm } from "../../lib/video.js";
 import { shareDream, downloadAll, canShareFiles } from "../../lib/share.js";
 import { t } from "../../i18n/index.js";
 import EntryMenu from "./EntryMenu.jsx";
@@ -12,6 +14,7 @@ import "./journal.css";
 
 export default function JournalDetail({ entry, onClose }) {
   const { state, update, toast } = useAppState();
+  const navigate = useNavigate();
   const closeRef = useRef(null);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -83,6 +86,27 @@ export default function JournalDetail({ entry, onClose }) {
       toast(`⚠ ${err.message}`);
     }
     setBusy(false);
+  }
+
+  /* Choosing "save only" was never meant to be final — it just deferred the
+   * decision. This hands the dream back to the wizard, which picks up at the
+   * cast step: the text is written, so the only thing still open is what to
+   * make of it. The entry id travels along so the result updates this dream
+   * instead of writing a second copy of it. */
+  function make(mode) {
+    navigate("/dream", {
+      state: {
+        resume: {
+          entryId: entry.id,
+          mode,
+          text: entry.text,
+          originalText: entry.originalText || entry.text,
+          title: entry.title || "",
+          tagline: entry.tagline || "",
+          analysis: entry.analysis || null,
+        },
+      },
+    });
   }
 
   function remove() {
@@ -164,6 +188,28 @@ export default function JournalDetail({ entry, onClose }) {
         {/* Films keep the carousel: there is one clip, not a sequence to
             walk through. */}
         {entry.media?.type === "video" && urls.length > 0 && <MediaCarousel urls={urls} type={entry.media.type} />}
+
+        {/* A dream kept for free has no pictures — and until now no way back
+            to making them. Same two choices step 2 offers, offered again
+            where the dream actually lives. Hidden while a film is still
+            rendering: that one is on its way, not missing. */}
+        {urls.length === 0 && !entry.jobId && !editing && !proposal && (
+          <div className="j-make">
+            <p className="j-make-lede">{t.journal.makeLede}</p>
+            <div className="j-make-row">
+              <button className="j-make-btn" onClick={() => make("images")}>
+                <span className="j-make-emoji" aria-hidden="true">📸</span>
+                <span className="j-make-title">{t.journal.makeImages}</span>
+                <span className="j-make-price">{t.wizard.from} {PRICES.images[3]}</span>
+              </button>
+              <button className="j-make-btn" onClick={() => make("film")}>
+                <span className="j-make-emoji" aria-hidden="true">🎬</span>
+                <span className="j-make-title">{t.journal.makeFilm}</span>
+                <span className="j-make-price">{t.wizard.from} {priceForFilm("standard", 4)}</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {entry.references?.length > 0 && (
           <p className="j-references">

@@ -83,6 +83,9 @@ export default {
     showOriginal: "Show what I first wrote",
     hideOriginal: "Hide the original",
     months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    makeLede: "No pictures yet. Want some?",
+    makeImages: "Image sequence",
+    makeFilm: "Short film",
     calendar: "Dream calendar",
     calLabel: "Days with a recorded dream — tap one to open it",
     calPrev: "Previous month",
@@ -331,6 +334,7 @@ export default {
     step6: {
       title: "Your dream",
       save: "Save to journal",
+      added: "Added to your dream",
       saveWhileRendering: "Save — I'll come back for it",
       rendering: "Your film is being made…",
       renderingHint: "This takes a few minutes. You can leave — it will be " +

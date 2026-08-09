@@ -42,11 +42,37 @@ export default function Step6Result({ w, patch }) {
   }, [waiting, w.jobId, patch]);
 
   function save() {
-    const creature = newCreature(w.text);
     const references = Object.values(w.assignments)
       .filter((a) => a.avatar?.tag)
       .map((a) => ({ tag: a.avatar.tag, category: a.kind }));
+    const media = { type: isFilm ? "video" : "image", urls, source: "api" };
 
+    /* Resumed from the journal: this dream already exists. It has its date,
+     * its creature and its place in the streak — only the pictures are new,
+     * so the entry is updated rather than written a second time. */
+    if (w.entryId) {
+      update({
+        journal: (state.journal || []).map((e) => (e.id === w.entryId ? {
+          ...e,
+          mode: w.mode,
+          style: w.styleId,
+          format: w.format,
+          imageCount: isFilm ? 1 : w.imageCount,
+          media,
+          references,
+          analysis: w.analysis || e.analysis || null,
+          // The title was only ever a placeholder while the dream had no
+          // picture; a real one from the analysis may now replace it.
+          title: (w.title || "").trim() || e.title,
+          tagline: (w.tagline || "").trim() || e.tagline || "",
+          ...(waiting ? { jobId: w.jobId } : {}),
+        } : e)),
+      });
+      toast(t.wizard.step6.added);
+      return navigate("/journal");
+    }
+
+    const creature = newCreature(w.text);
     const entry = {
       id: genId("e"),
       createdAt: new Date().toISOString(),
@@ -60,7 +86,9 @@ export default function Step6Result({ w, patch }) {
       style: w.styleId,
       format: w.format,
       imageCount: isFilm ? 1 : w.imageCount,
-      media: { type: isFilm ? "video" : "image", urls, source: "api" },
+      media,
+      // See Step2Output: kept so a later round of pictures starts for free.
+      analysis: w.analysis || null,
       // Kept when the film is still rendering, so the entry can collect it
       // afterwards instead of the render being lost with the wizard state.
       ...(waiting ? { jobId: w.jobId } : {}),

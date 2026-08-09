@@ -29,6 +29,7 @@ export function autoMatch(name, cast, me) {
 
 const EMPTY = {
   step: 1,
+  entryId: null,       // set when an existing journal dream is being continued
   text: "",
   originalText: "",
   title: "",           // film title for the poster, editable in step 5
