@@ -49,6 +49,10 @@ export default function WizardShell() {
       }
       patch({
         entryId: resume.entryId,
+        // The dream's own images ride along; the first is the default
+        // keyframe until the person picks another in the film step.
+        sourceUrls: resume.urls?.length ? resume.urls : null,
+        keyframe: resume.urls?.[0] || null,
         text: resume.text,
         originalText: resume.originalText || resume.text,
         title: resume.title || analysis?.title || "",

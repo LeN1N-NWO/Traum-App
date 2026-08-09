@@ -99,6 +99,13 @@ export default function JournalDetail({ entry, onClose }) {
         resume: {
           entryId: entry.id,
           mode,
+          // A film made from this dream animates one of its own images; the
+          // wizard shows them and lets the person pick which one. Only local
+          // copies qualify — an old entry may still hold fal URLs, and those
+          // expire, so offering them would offer a picture that is gone.
+          urls: entry.media?.type === "image"
+            ? (entry.media?.urls || []).filter((u) => typeof u === "string" && u.startsWith("/media/"))
+            : [],
           text: entry.text,
           originalText: entry.originalText || entry.text,
           title: entry.title || "",

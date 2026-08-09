@@ -44,6 +44,8 @@ const EMPTY = {
   seconds: 6,          // film length; see lib/video.js for each model's range
   urls: null,
   jobId: null,         // set while a film renders in fal's queue
+  sourceUrls: null,    // the dream's existing images, when resumed for a film
+  keyframe: null,      // which of them the film animates ("/media/…")
 };
 
 export function useWizard() {

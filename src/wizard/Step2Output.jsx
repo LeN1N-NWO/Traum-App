@@ -79,7 +79,7 @@ export default function Step2Output({ w, patch }) {
         </span>
         {/* Same reasoning as above: renderer and length are chosen in step 5,
             so only the cheapest possible film is quoted here. */}
-        <span className="wiz-price">{t.wizard.from} {priceForFilm("standard", 4)}</span>
+        <span className="wiz-price">{t.wizard.from} {priceForFilm("standard", 5)}</span>
       </Card>
     </section>
   );

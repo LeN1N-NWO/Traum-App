@@ -776,12 +776,27 @@ async function generateImages({ dream, namedRefs, prompt: readyPrompt, aspectRat
 // then animate it. minimax/h3 is image-to-video, so it needs a source image
 // — there's no text-to-video path anymore.
 /** Film: render the keyframe (fast, synchronous) and hand the animation to
- *  the queue. Returns a job id, not a URL — the client comes back for it. */
-async function startVideo({ dream, namedRefs, prompt, seconds }) {
+ *  the queue. Returns a job id, not a URL — the client comes back for it.
+ *
+ *  With `keyframe` set, no keyframe is rendered at all: the film animates an
+ *  image the dream already owns. The value is a /media/ path, NEVER a URL —
+ *  resolveMedia() only matches names this server itself wrote, so the client
+ *  cannot point this at an arbitrary file or host. fal gets the bytes as a
+ *  data URI because the /media/ path only exists on this machine; fal could
+ *  never fetch it (verified live 09.08.2026: minimax/h3 accepts data URIs). */
+async function startVideo({ dream, namedRefs, prompt, seconds, keyframe }) {
+  if (keyframe) {
+    const hit = resolveMedia(keyframe);
+    const file = hit && Bun.file(resolve(MEDIA_DIR, hit.name));
+    if (!hit || !(await file.exists())) throw new Error("GENERATION_FAILED");
+    const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
+    const dataUri = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
+    return falSubmitVideo({ imageUrl: dataUri, prompt: prompt || dream, seconds });
+  }
   const stills = await generateImages({ dream, namedRefs, prompt });
-  const keyframe = stills[0];
-  if (!keyframe) throw new Error("GENERATION_FAILED");
-  return falSubmitVideo({ imageUrl: keyframe, prompt: prompt || dream, seconds });
+  const first = stills[0];
+  if (!first) throw new Error("GENERATION_FAILED");
+  return falSubmitVideo({ imageUrl: first, prompt: prompt || dream, seconds });
 }
 
 // ---- static file serving ----
@@ -1054,7 +1069,10 @@ Bun.serve({
         //   images → { urls }   (fast enough to wait for)
         //   film   → { jobId }  (minutes; the client collects it later)
         if (body.mode === "film") {
-          const jobId = await startVideo({ dream, namedRefs: cast, prompt, seconds: body.seconds });
+          // Only a /media/-shaped name survives; startVideo re-validates it
+          // against resolveMedia before touching the filesystem.
+          const keyframe = typeof body.keyframe === "string" ? body.keyframe : undefined;
+          const jobId = await startVideo({ dream, namedRefs: cast, prompt, seconds: body.seconds, keyframe });
           return json({ ok: true, jobId });
         }
         const urls = await generateImages({ dream, namedRefs: cast, prompt, aspectRatio });

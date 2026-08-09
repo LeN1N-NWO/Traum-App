@@ -30,7 +30,12 @@ export default function Step5Style({ w, patch }) {
 
   const isFilm = w.mode === "film";
   const count = isFilm ? 1 : w.imageCount;
-  const price = isFilm ? priceForFilm(w.videoModel, w.seconds) : priceForImages(w.imageCount);
+  // A film resumed from a dream with images animates one of THEM — no new
+  // keyframe is rendered, so that credit disappears from the price.
+  const ownKeyframe = isFilm && !!w.keyframe;
+  const price = isFilm
+    ? priceForFilm(w.videoModel, w.seconds, { ownKeyframe })
+    : priceForImages(w.imageCount);
   const assignments = Object.values(w.assignments);
   const named = assignments.filter((a) => a.avatar?.img).length;
 
@@ -81,6 +86,9 @@ export default function Step5Style({ w, patch }) {
         const { jobId } = await generate({
           dream: w.text, mode: "film", seconds: w.seconds,
           cast: castForApi,
+          // The chosen image, if any — the server then animates it directly
+          // instead of rendering a fresh keyframe first.
+          keyframe: w.keyframe || undefined,
           prompt: buildImagePrompt({
             beat: beats[0] || w.text, styleId: w.styleId, format: w.format, clauses, index: 1, total: 1,
           }),
@@ -225,6 +233,28 @@ export default function Step5Style({ w, patch }) {
           half-minute film in one unbroken take, it is the only way. */}
       {isFilm && (
         <>
+          {/* The dream's own images, when it has some: the film animates one
+              of them, and this row decides which. Same poster tiles as the
+              journal, just small — recognition over novelty. */}
+          {w.sourceUrls?.length > 0 && (
+            <>
+              <h2 className="wiz-sub">{t.wizard.step5.keyframeLabel}</h2>
+              <div className="wiz-frames" role="group" aria-label={t.wizard.step5.keyframeLabel}>
+                {w.sourceUrls.map((u) => (
+                  <button
+                    key={u}
+                    className={"wiz-frame" + (w.keyframe === u ? " wiz-frame-on" : "")}
+                    onClick={() => patch({ keyframe: u })}
+                    aria-pressed={w.keyframe === u}
+                  >
+                    <img src={mediaUrl(u)} alt="" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+              <p className="wiz-hint">{t.wizard.step5.keyframeHint}</p>
+            </>
+          )}
+
           <h2 className="wiz-sub">{t.wizard.step5.filmModelLabel}</h2>
           <div className="wiz-formats" role="group" aria-label={t.wizard.step5.filmModelLabel}>
             {VIDEO_MODELS.map((m) => (

@@ -76,21 +76,43 @@
 .wiz-count-price { font-size: var(--t-micro); color: var(--faint); }
 
 /* — steps 3 & 4 — */
+/* — Keyframe-Wahl im Film-Schritt —
+   Dieselben Hochkant-Kacheln wie im Journal, nur klein: Wiedererkennen
+   schlägt Neuerfinden. Die Auswahl markiert der Ring, nicht eine Färbung —
+   auf einem Foto ist jede Umfärbung unsichtbar. */
+.wiz-frames {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2);
+  margin: 0 0 var(--s-3);
+}
+.wiz-frame {
+  position: relative; aspect-ratio: 4 / 5; padding: 0; overflow: hidden;
+  border-radius: 14px; border: 2px solid transparent; cursor: pointer;
+  background: var(--sky);
+}
+.wiz-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.wiz-frame-on { border-color: var(--warm); box-shadow: 0 0 0 3px rgb(242 167 101 / .3); }
+.wiz-frame:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
 .wiz-cast { display: flex; flex-direction: column; gap: var(--s-3); margin-bottom: var(--s-4); }
+/* Schmal gehalten: das Entfernen sitzt als kleines × in der oberen Ecke
+   statt als volle Pille in der Knopfreihe — die Reihe trägt nur noch die
+   drei echten Entscheidungen, und die Kachel verliert eine halbe Zeile. */
 .wiz-person {
+  position: relative;
   display: flex; align-items: flex-start; gap: var(--s-3);
   background: var(--panel); border: 1px solid var(--panel-line);
   border-radius: var(--radius); padding: var(--s-3); flex-wrap: wrap;
 }
 .wiz-person-set { border-color: var(--accent-deep); }
 .wiz-person-face {
-  width: 46px; height: 46px; border-radius: 50%; flex: 0 0 46px; overflow: hidden;
+  width: 42px; height: 42px; border-radius: 50%; flex: 0 0 42px; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
-  background: var(--sky); color: var(--faint); font-size: 18px;
+  background: var(--sky); color: var(--faint); font-size: 17px;
 }
 .wiz-person-face img { width: 100%; height: 100%; object-fit: cover; }
-.wiz-person-body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.wiz-person-name { font-weight: 600; }
+/* min-width:0 + padding-right: der Name bricht um statt unters × zu laufen. */
+.wiz-person-body { display: flex; flex-direction: column; flex: 1; min-width: 0; padding-right: 26px; }
+.wiz-person-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wiz-person-state { font-size: var(--t-small); color: var(--muted); }
 .wiz-person-actions { display: flex; gap: var(--s-1); flex-wrap: wrap; width: 100%; }
 .wiz-mini {
@@ -100,7 +122,17 @@
 }
 .wiz-mini:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 .wiz-mini-on { background: var(--accent-deep); border-color: var(--accent-soft); color: var(--text); }
-.wiz-mini-drop { margin-left: auto; }
+/* Bewusst 26px klein, aber mit unsichtbarem 44px-Tippziel darüber — klein
+   fürs Auge heißt nicht klein für den Daumen. */
+.wiz-person-x {
+  position: absolute; top: var(--s-2); right: var(--s-2);
+  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: 0; color: var(--faint); font-size: 15px; line-height: 1;
+}
+.wiz-person-x::after { content: ""; position: absolute; inset: -9px; }
+.wiz-person-x:hover { color: var(--text); background: rgba(255, 255, 255, .07); }
+.wiz-person-x:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 1px; }
 
 .wiz-backdrop {
   position: fixed; inset: 0; z-index: 65; background: var(--veil);
