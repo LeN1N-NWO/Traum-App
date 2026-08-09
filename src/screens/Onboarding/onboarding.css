@@ -56,6 +56,26 @@
 }
 .ob-card svg { width: 96px; height: 96px; filter: drop-shadow(0 0 22px rgb(140 192 255 / .45)); }
 
+/* Die Zwei-Funktionen-Karte: kein einzelnes großes Icon, sondern zwei
+   Zeilen — sie steht für "es gibt noch mehr", nicht für einen dritten
+   Schritt in derselben Kette wie die ersten beiden Karten. */
+.ob-card-duo {
+  flex-direction: column; justify-content: center; gap: var(--s-4);
+  padding: var(--s-5);
+}
+.ob-duo-row {
+  display: flex; align-items: center; gap: var(--s-3); width: 100%;
+  padding: var(--s-3) var(--s-4); border-radius: var(--radius);
+  background: rgb(var(--bg-rgb) / .35); border: 1px solid var(--panel-line);
+}
+.ob-duo-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; flex: none; border-radius: 50%;
+  background: var(--accent-wash); color: var(--accent-soft);
+}
+.ob-duo-icon svg { width: 20px; height: 20px; }
+.ob-duo-label { font-weight: 600; text-align: left; }
+
 .ob-title {
   font-family: var(--serif); font-size: clamp(26px, 6.4vw, 34px); font-weight: 400;
   margin: 0 0 var(--s-3); letter-spacing: -.01em; text-wrap: balance;

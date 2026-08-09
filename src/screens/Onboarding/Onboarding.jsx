@@ -5,7 +5,7 @@ import { t } from "../../i18n/index.js";
 import Button from "../../components/Button.jsx";
 import DreamScape from "../../components/DreamScape.jsx";
 import AvatarDialog from "../../components/AvatarDialog.jsx";
-import { IconBook, IconSparkle } from "../../components/icons.jsx";
+import { IconBook, IconSparkle, IconMoon } from "../../components/icons.jsx";
 import OnboardingSurvey from "./OnboardingSurvey.jsx";
 import Mascot from "./Mascot.jsx";
 import "./onboarding.css";
@@ -120,9 +120,29 @@ export default function Onboarding({ onExit }) {
 
         {slides.map((s, i) => (
           <section key={i} className="ob-slide">
-            <div className="ob-card" aria-hidden="true">
-              {i === 0 ? <IconBook /> : i === 1 ? <IconSparkle /> : <FilmGlyph />}
-            </div>
+            {/* Slide 2 is the app's free content, not the paid dream flow —
+                shown as two small feature rows rather than one big icon, so
+                it reads as "there's more here" instead of pretending to be
+                a third step in the same sequence as the first two slides.
+                Pulled straight from the Sleep tab's own tile copy: one
+                source for what each feature is called, not a rephrasing
+                that could drift from it. */}
+            {i === 2 ? (
+              <div className="ob-card ob-card-duo" aria-hidden="true">
+                <div className="ob-duo-row">
+                  <span className="ob-duo-icon"><IconMoon /></span>
+                  <span className="ob-duo-label">{t.sleep.tiles.guide.title}</span>
+                </div>
+                <div className="ob-duo-row">
+                  <span className="ob-duo-icon"><IconSparkle /></span>
+                  <span className="ob-duo-label">{t.sleep.tiles.symbols.title}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="ob-card" aria-hidden="true">
+                {i === 0 ? <IconBook /> : <FilmGlyph />}
+              </div>
+            )}
             <h1 className="ob-title">{s.title}</h1>
             <p className="ob-text">{s.text}</p>
           </section>

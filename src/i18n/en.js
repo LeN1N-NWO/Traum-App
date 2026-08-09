@@ -426,11 +426,13 @@ export default {
       { title: "Keep every dream",
         text: "Tell it half-asleep, out loud — the assistant asks the right " +
               "questions and writes the night down for you." },
-      { title: "Then see it",
-        text: "Your dream becomes a sequence of cinematic images — with the " +
-              "real faces of the people, pets and places in it." },
-      { title: "Then watch it move",
-        text: "Pick the best image and bring it to life as a short film." },
+      { title: "Visualise your dream",
+        text: "It becomes a sequence of cinematic images — with the real " +
+              "faces of the people, pets and places in it. Pick your " +
+              "favourite and bring it to life as a short film." },
+      { title: "There's more, free",
+        text: "A guide to lucid dreaming, and what your recurring symbols " +
+              "might mean — whenever you want them." },
     ],
     start: "Get started",
     gateTitle: "Make it yours",
