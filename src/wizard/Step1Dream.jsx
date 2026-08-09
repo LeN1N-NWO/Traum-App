@@ -132,6 +132,20 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
     <section className="wiz-body">
       <h1 className="wiz-title">{t.wizard.step1.title}</h1>
 
+      {/* Talking comes first, and it is the biggest thing on the screen —
+          this is the half-asleep case the app is actually for. Typing is
+          right underneath for everyone else, and for anything easier written
+          than said. */}
+      <button className="wiz-tell" onClick={() => setInterview(true)}>
+        <span className="wiz-tell-icon" aria-hidden="true">✦</span>
+        <span className="wiz-tell-body">
+          <span className="wiz-tell-title">{t.dream.interview}</span>
+          <span className="wiz-tell-hint">{t.dream.interviewHint}</span>
+        </span>
+      </button>
+
+      <div className="wiz-or"><span>{t.dream.or}</span></div>
+
       <div className="wiz-field-label">
         <span>{t.dream.label}</span>
         {voice.supported && (
@@ -160,31 +174,25 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
 
       {card && <TagCard avatar={card.avatar} anchor={card.rect} onClose={closeCard} />}
 
-      {/* Two ways to speak, and they are not the same thing. Dictation just
-          writes down what you say. The interview asks — and comes back with
-          the people and places already sorted out. */}
-      <div className="wiz-voice-row">
-        {voice.supported && (
-          <button
-            className={"wiz-mic" + (voice.listening ? " wiz-mic-on" : "")}
-            onClick={() => voice.toggle(w.text)}
-            disabled={voice.busy}
-            aria-label={t.dream.voiceLabel}
-            aria-pressed={voice.listening}
-          >
-            🎙
-          </button>
-        )}
-        <button className="wiz-interview" onClick={() => setInterview(true)}>
-          {t.dream.interview}
+      {/* Dictation, which is not the same thing as the interview above: this
+          one only writes down what you say, it never asks. */}
+      {voice.supported && (
+        <button
+          className={"wiz-mic" + (voice.listening ? " wiz-mic-on" : "")}
+          onClick={() => voice.toggle(w.text)}
+          disabled={voice.busy}
+          aria-label={t.dream.voiceLabel}
+          aria-pressed={voice.listening}
+        >
+          🎙
         </button>
-      </div>
+      )}
 
       {/* No skip: every later step runs on what this call returns — the
           characters, the places, the beats. Continuing without it would mean
           a wizard with nothing to show. */}
       <div className="wiz-actions wiz-actions-stack">
-        <Button onClick={runAnalysis} disabled={busy}>
+        <Button onClick={runAnalysis} variant="quiet" disabled={busy}>
           {busy ? t.wizard.step1.reading
                 : `✨ ${t.wizard.step1.improve} · ${PRICES.improve ? `${PRICES.improve} ${t.wizard.credit}` : t.wizard.free}`}
         </Button>

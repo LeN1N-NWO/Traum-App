@@ -217,11 +217,25 @@
   color: var(--faint); font-size: var(--t-micro); margin-top: 2px;
 }
 
-.wiz-voice-row { display: flex; align-items: center; gap: var(--s-3); margin-top: var(--s-3); }
-.wiz-voice-row .wiz-mic { margin-top: 0; }
-.wiz-interview {
-  padding: var(--s-3) var(--s-4); border-radius: 999px; cursor: pointer;
-  background: var(--panel); border: 1px solid var(--panel-line);
-  color: var(--text); font-family: var(--sans); font-size: var(--t-small); font-weight: 600;
+/* The way in that the app is actually for: someone half awake who would
+   rather talk than type. It leads the screen; writing sits underneath. */
+.wiz-tell {
+  display: flex; align-items: center; gap: var(--s-4); width: 100%;
+  padding: var(--s-4) var(--s-5); margin-bottom: var(--s-4);
+  border: none; border-radius: var(--radius); cursor: pointer; text-align: left;
+  background: var(--warm-grad); color: var(--bg); font-family: var(--sans);
+  box-shadow: 0 10px 28px rgb(242 167 101 / .26);
 }
-.wiz-interview:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.wiz-tell:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.wiz-tell-icon { font-size: 24px; line-height: 1; }
+.wiz-tell-body { display: flex; flex-direction: column; gap: 2px; }
+.wiz-tell-title { font-size: var(--t-h3); font-weight: 700; }
+.wiz-tell-hint { font-size: var(--t-small); opacity: .75; }
+
+.wiz-or {
+  display: flex; align-items: center; gap: var(--s-3);
+  color: var(--faint); font-size: var(--t-small); margin-bottom: var(--s-4);
+}
+.wiz-or::before, .wiz-or::after {
+  content: ""; flex: 1; height: 1px; background: var(--panel-line);
+}

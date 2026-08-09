@@ -210,7 +210,9 @@ export default {
     voiceListening: "● listening…",
     voiceTranscribing: "✍ writing it down…",
     voiceLabel: "Speak your dream",
-    interview: "✦ Tell it out loud",
+    interview: "Tell it out loud",
+    interviewHint: "I'll ask, you talk — eyes closed if you like",
+    or: "or write it",
     voiceErrors: {
       MIC_DENIED: "⚠ Microphone access was blocked. Allow it in your browser settings.",
       READ_FAILED: "⚠ Could not read the recording. Try again.",
