@@ -447,23 +447,68 @@ Output ONLY the finished prompt text. No preamble, no markdown, no quotes around
 }
 // ---- prompt hygiene (end) ----
 
-// ---- rewriting an existing dream ----
-// Three levels behind one route, differing only in the system prompt. All of
-// them are bounded by the same rule: the dream belongs to the person who
-// dreamt it, so nothing may be invented, reordered or reinterpreted.
+/* ---- rewriting an existing dream ----
+ *
+ * Three modes behind one route, differing ONLY in the system prompt below.
+ * This block is the actual feature: the sheet in the app (RefineSheet.jsx)
+ * just names these three and sends a mode string — every rule about what a
+ * rewrite may and may not do lives here, in one place, in English, where it
+ * can be read and argued with.
+ *
+ * The shared rule, and the reason all three are worded so defensively: the
+ * dream belongs to the person who dreamt it. A language model asked to
+ * "improve" a text will, unprompted, tidy away the strange parts — and the
+ * strange parts ARE the dream. So each mode states what it may touch AND
+ * what it must leave, because a prompt that only says what to do gets the
+ * rest invented.
+ *
+ * SHARED_RULES is appended to each: the constraints are identical for all
+ * three, and duplicating them by hand is how they drift apart.
+ */
+const REFINE_SHARED_RULES =
+  "\n\nRULES THAT ALWAYS APPLY:\n" +
+  "- Write in the SAME LANGUAGE as the dream you are given. Never translate it.\n" +
+  "- Keep the same grammatical person and tense the dreamer used.\n" +
+  "- Invent NOTHING: no events, people, places, animals or objects that are not " +
+  "already in the text. If a detail is vague, leave it vague — a half-remembered " +
+  "dream is normal and is not a gap to fill.\n" +
+  "- Never reorder what happened, and never explain, interpret or resolve it. " +
+  "Dreams do not need to make sense.\n" +
+  "- Keep the emotional register. Do not make a frightening dream cosy, or a dull " +
+  "one dramatic.\n" +
+  "- Return ONLY the text itself: no preamble, no title, no markdown, no quotation " +
+  "marks around it, no commentary about what you changed.";
+
 const REFINE_MODES = {
+  /* The lightest touch there is. Deliberately forbids improvement of any
+   * kind — someone who asks for spelling and gets their voice rewritten
+   * has lost something they cannot get back except via "show original". */
   correct:
-    "Fix spelling, grammar and punctuation in the dream below. Change NOTHING else — " +
-    "not a word choice, not the order, not the tone. Return only the corrected text.",
+    "Fix ONLY spelling, grammar and punctuation in the dream below. Change nothing " +
+    "else whatsoever: not a word choice, not a sentence boundary, not the order, not " +
+    "the tone. If a sentence is clumsy but correct, leave it clumsy." +
+    REFINE_SHARED_RULES,
+
+  /* Same content, better prose. The line it must not cross is adding
+   * anything; it may only re-say what is already said. */
   rewrite:
-    "Rewrite the dream below so it reads more vividly and flows better. Keep every event, " +
-    "person and place exactly as given, in the same order, in the same emotional register, " +
-    "in the same language and person. Invent nothing. Return only the rewritten text.",
+    "Rewrite the dream below so it reads more vividly and flows better. Improve the " +
+    "wording, the rhythm and the sentence structure. Every event, person and place " +
+    "must survive exactly as given — you are changing HOW it is told, never WHAT is " +
+    "told. Keep it roughly the same length." +
+    REFINE_SHARED_RULES,
+
+  /* The most liberal of the three, and therefore the one whose limits are
+   * spelled out hardest: sensory detail is allowed, new plot is not. */
   elaborate:
-    "Work the dream below into a fuller piece of storytelling: add sensory detail and a " +
-    "clearer arc. You may enrich HOW things are described, but you may NOT add events, " +
-    "people or places that are not already there, and you may NOT change their order or " +
-    "the emotional register. Keep the same language and person. Return only the text.",
+    "Work the dream below into a fuller piece of storytelling. You MAY add sensory " +
+    "texture to what is already there — light, sound, temperature, texture, the feel " +
+    "of a space — and you may shape the existing material into a clearer arc with a " +
+    "beginning, a middle and an end. You may make it noticeably longer.\n" +
+    "You may NOT add a single event, person, place or object that is not already in " +
+    "the text. Describing the room they are in more richly is allowed; putting a new " +
+    "person in that room is not." +
+    REFINE_SHARED_RULES,
 };
 
 async function refineDream(dream, mode) {
@@ -478,7 +523,10 @@ async function refineDream(dream, mode) {
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
       messages: [
-        { role: "system", content: `${system}\nNo preamble, no markdown, no quotes around it.` },
+        // No extra tail: REFINE_SHARED_RULES already ends with the
+        // "return only the text" rule, and saying it twice in different
+        // words is how a prompt starts contradicting itself.
+        { role: "system", content: system },
         { role: "user", content: dream },
       ],
       stream: false,

@@ -174,6 +174,11 @@
 }
 .j-menu-item:hover { background: var(--panel); }
 .j-menu-item:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: -2px; }
+/* Symbol und Text als eine Einheit, damit der Preis rechts bündig bleibt.
+   Das Symbol erbt die Farbe der Zeile — bei „Löschen" wird es dadurch von
+   selbst warm, ohne eigene Regel. */
+.j-menu-label { display: inline-flex; align-items: center; gap: var(--s-3); min-width: 0; }
+.j-menu-label svg { width: 18px; height: 18px; flex: none; }
 .j-menu-price { color: var(--accent-soft); font-size: var(--t-small); font-weight: 600; }
 .j-menu-free { color: var(--ok); font-size: var(--t-small); }
 .j-menu-danger { color: var(--warm); }
@@ -341,19 +346,16 @@
 
 /* — Aktionsleiste über dem Traum —
    Dunkle Pillen mit warmem Symbol: sie gehören sichtbar zur App, treten
-   aber gegen den einen warmen Hauptknopf darunter bewusst zurück. Seitlich
-   scrollbar statt umbrechend — eine zweite Zeile schöbe den Traum selbst
-   aus dem Bild. */
+   aber gegen den einen warmen Hauptknopf darunter bewusst zurück.
+
+   UMBRECHEND, nicht seitlich scrollend. Die scrollende Fassung schnitt
+   „Teilen" auf Deutsch rechts ab — erreichbar durch Ziehen, aber niemand
+   zieht an einer Reihe, deren Ende er nicht sieht. Umbrechen ist die
+   einzige Variante, die in keiner der sieben Sprachen etwas abschneiden
+   kann; bei drei Pillen bleibt es fast überall trotzdem eine Zeile. */
 .j-acts {
-  display: flex; gap: var(--s-2); margin-bottom: var(--s-5);
-  overflow-x: auto; scrollbar-width: none;
-  /* Negativer Rand + Innenabstand: die Reihe scrollt bis an den Bildrand,
-     statt vorher an der Inhaltsspalte abgeschnitten zu wirken. */
-  margin-inline: calc(var(--s-4) * -1); padding-inline: var(--s-4);
+  display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-5);
 }
-.j-acts::-webkit-scrollbar { display: none; }
-/* Kompakt genug, dass vier Pillen auf 375px nebeneinander stehen — was
-   herausscrollt, wird nie angetippt. */
 .j-act {
   display: inline-flex; align-items: center; gap: 5px; flex: none;
   padding: 7px 11px 7px 9px; border-radius: 999px; cursor: pointer;
@@ -367,5 +369,49 @@
 .j-act:disabled { opacity: .4; cursor: not-allowed; }
 .j-act:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 
-.j-remix { margin-bottom: var(--s-5); }
-.j-remix-lede { margin: 0 0 var(--s-3); color: var(--muted); font-size: var(--t-small); line-height: 1.5; }
+/* — Auswahlblatt „wie umschreiben?" —
+   Steigt von unten herein und legt den Traum dahinter unscharf: die drei
+   Möglichkeiten sind auf einen Blick nicht auseinanderzuhalten, also
+   bekommen sie je eine Erklärzeile und den ganzen Fokus, statt als
+   Menüzeilen zu erscheinen. */
+.j-sheet-backdrop {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgb(var(--bg-rgb) / .72); backdrop-filter: blur(10px);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: j-sheet-fade .16s ease-out;
+}
+.j-sheet {
+  width: 100%; max-width: 680px;
+  background: var(--bg2); border: 1px solid var(--panel-line);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--s-5) var(--s-4) calc(env(safe-area-inset-bottom) + var(--s-5));
+  animation: j-sheet-rise .22s cubic-bezier(.2, .8, .3, 1);
+}
+@keyframes j-sheet-fade { from { opacity: 0; } }
+@keyframes j-sheet-rise { from { transform: translateY(14px); } }
+
+.j-sheet-title { margin: 0; font-size: var(--t-h3); font-weight: 600; }
+.j-sheet-lede { margin: var(--s-1) 0 var(--s-4); color: var(--muted); font-size: var(--t-small); }
+.j-sheet-item {
+  display: flex; align-items: center; gap: var(--s-3); width: 100%;
+  padding: var(--s-3); margin-bottom: var(--s-2); cursor: pointer; text-align: left;
+  border-radius: var(--radius); border: 1px solid var(--panel-line);
+  background: var(--panel); color: var(--text); font-family: inherit;
+  transition: background .14s ease-out, border-color .14s ease-out;
+}
+.j-sheet-item:hover { background: rgba(255, 255, 255, .08); border-color: var(--accent-soft); }
+.j-sheet-item:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.j-sheet-icon {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--accent-wash); color: var(--accent-soft);
+}
+.j-sheet-icon svg { width: 19px; height: 19px; }
+.j-sheet-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.j-sheet-name { font-size: var(--t-small); font-weight: 600; }
+.j-sheet-hint { color: var(--faint); font-size: var(--t-micro); line-height: 1.45; }
+.j-sheet-free { flex: none; color: var(--ok); font-size: var(--t-micro); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  .j-sheet-backdrop, .j-sheet { animation: none; }
+}

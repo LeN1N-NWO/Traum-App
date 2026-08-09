@@ -83,14 +83,17 @@ export default {
     showOriginal: "Show what I first wrote",
     hideOriginal: "Hide the original",
     months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    actRemix: "Remix",
     actRewrite: "Rewrite",
     actEdit: "Edit",
     actShare: "Share",
-    remixLede: "These are the words your pictures were made from. Change them, " +
-               "and the next set follows the new version.",
-    remixLabel: "The dream your pictures are made from",
-    remixGo: "Make new pictures",
+    // The three refine modes, as offered in RefineSheet. Each hint says
+    // what the mode will NOT do — that is the part people cannot guess,
+    // and picking the wrong one costs a rewritten dream to find out.
+    refinePickTitle: "How should I rewrite it?",
+    refinePickLede: "Your version is kept either way — nothing is replaced until you accept it.",
+    correctHint: "Spelling and grammar only. Not a word of your voice changes.",
+    rewriteHint: "The same dream, told better. Nothing added, nothing left out.",
+    elaborateHint: "Richer detail and a clearer arc — without inventing anything new.",
     filmRendering: "Your film is still rendering — it lands here when it's done.",
     filmArrived: "✦ Your film is ready",
     makeLede: "No pictures yet. Want some?",

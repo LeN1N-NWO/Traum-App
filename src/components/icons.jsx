@@ -73,13 +73,17 @@ export function IconImages() {
   );
 }
 
-/* Two crossing arrows — the standard "shuffle/remix" glyph. Reads at 20px
-   where a pair of curved arrows would turn to mush. */
-export function IconRemix() {
+/* Spellcheck: the "abc" of a proofreading mark with a tick under it. Reads
+   as "check the letters themselves", which is exactly what this mode does
+   and nothing more. */
+export function IconSpellcheck() {
   return (
     <svg {...base}>
-      <path d="M4 7h3.2l9.6 10H20M4 17h3.2l3-3.2M13.8 10.2l3-3.2H20" />
-      <path d="M17.6 4.4 20 7l-2.4 2.6M17.6 14.4 20 17l-2.4 2.6" />
+      <path d="M3.5 14 7 5.5 10.5 14" />
+      <path d="M4.7 11.2h4.6" />
+      <path d="M13.5 20.5 16 23l5.5-6" />
+      <path d="M13.5 14c0-2 1.4-3.2 3.2-3.2 1.9 0 3 1 3 3V16" />
+      <path d="M19.7 12.8c-3.6 0-5.4.8-5.4 2.4 0 1 .8 1.7 2 1.7 1.7 0 3.4-1.2 3.4-3" />
     </svg>
   );
 }
@@ -89,6 +93,17 @@ export function IconPencil() {
     <svg {...base}>
       <path d="M4 20h4L19.2 8.8a2.1 2.1 0 0 0-3-3L5 17v3Z" />
       <path d="m14.8 4.4 4.8 4.8" />
+    </svg>
+  );
+}
+
+export function IconTrash() {
+  return (
+    <svg {...base}>
+      <path d="M4 6.5h16" />
+      <path d="M9.5 6.5V4.8a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.7" />
+      <path d="M6.3 6.5 7 19.2a1.6 1.6 0 0 0 1.6 1.5h6.8a1.6 1.6 0 0 0 1.6-1.5l.7-12.7" />
+      <path d="M10.4 10.3v6.6M13.6 10.3v6.6" />
     </svg>
   );
 }

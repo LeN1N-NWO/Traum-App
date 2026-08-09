@@ -9,7 +9,8 @@ import { PRICES } from "../../lib/pricing.js";
 import { shareDream, downloadAll, canShareFiles } from "../../lib/share.js";
 import { t } from "../../i18n/index.js";
 import EntryMenu from "./EntryMenu.jsx";
-import { IconImages, IconFilm, IconRemix, IconShare, IconSparkle, IconPencil, ChevronRight } from "../../components/icons.jsx";
+import RefineSheet from "./RefineSheet.jsx";
+import { IconImages, IconFilm, IconShare, IconSparkle, IconPencil, ChevronRight } from "../../components/icons.jsx";
 import "./journal.css";
 
 export default function JournalDetail({ entry, onClose }) {
@@ -23,7 +24,7 @@ export default function JournalDetail({ entry, onClose }) {
   const [busy, setBusy] = useState(false);
   const [proposal, setProposal] = useState(null);   // reworked text awaiting a decision
   const [showOriginal, setShowOriginal] = useState(false);
-  const [remix, setRemix] = useState(null);         // edited text awaiting a re-render
+  const [refinePick, setRefinePick] = useState(false);   // the "how should I rewrite it?" sheet
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -149,24 +150,12 @@ export default function JournalDetail({ entry, onClose }) {
           originalText: entry.originalText || entry.text,
           title: entry.title || "",
           tagline: entry.tagline || "",
-          // A remix changed the words, so the old reading of them no longer
-          // describes this dream — it is re-read rather than reused.
+          // Changed words mean the old reading no longer describes this
+          // dream — it is re-read rather than reused.
           analysis: textOverride ? null : entry.analysis || null,
         },
       },
     });
-  }
-
-  /* Remix: the dream's own words ARE the brief the pictures were made from,
-   * so this shows them, lets them be changed, and renders again from the
-   * result. The change is kept on the entry either way — someone who
-   * rewrote their dream to get a better picture means the new wording. */
-  function runRemix() {
-    const clean = (remix || "").trim();
-    if (clean.length < 8) return toast(t.wizard.tooShort);
-    if (clean !== entry.text) commitText(clean);
-    setRemix(null);
-    make("images", clean);
   }
 
   function remove() {
@@ -228,7 +217,7 @@ export default function JournalDetail({ entry, onClose }) {
             would look like. The film is offered once there ARE pictures,
             when they know what they are animating. Both hidden while a film
             renders: that one is on its way, not missing. */}
-        {!entry.jobId && !editing && !proposal && !remix && images.length === 0 && (
+        {!entry.jobId && !editing && !proposal && images.length === 0 && (
           <div className="j-make">
             <p className="j-make-lede">{t.journal.makeLede}</p>
             <button className="j-make-btn" onClick={() => make("images")}>
@@ -239,7 +228,7 @@ export default function JournalDetail({ entry, onClose }) {
           </div>
         )}
 
-        {!entry.jobId && !film && !editing && !proposal && !remix && images.length > 0 && (
+        {!entry.jobId && !film && !editing && !proposal && images.length > 0 && (
           <div className="j-make">
             <p className="j-make-lede">{t.journal.makeFilmLede}</p>
             <button className="j-make-btn" onClick={() => make("film")}>
@@ -253,16 +242,17 @@ export default function JournalDetail({ entry, onClose }) {
         {/* The things you can do TO this dream, as one row underneath. They
             are all cheap or free and all reversible, which is why they read
             as secondary to the warm button above it — deleting stays in the
-            ⋯ menu where a mis-tap cannot reach it. Scrolls sideways rather
-            than wrapping: a second row would push the dream itself off the
-            screen. */}
-        {!editing && !proposal && !remix && (
+            ⋯ menu where a mis-tap cannot reach it.
+
+            WRAPS rather than scrolling sideways. The sideways-scrolling
+            version hid "Share" off the right edge in German ("Teilen" after
+            "Umschreiben" and "Bearbeiten") — reachable by dragging, but
+            nobody drags a row they cannot see the end of, so it read as a
+            cut-off button twice over. Wrapping is the only version that
+            cannot clip a label in ANY of the seven languages. */}
+        {!editing && !proposal && (
           <div className="j-acts">
-            <button className="j-act" onClick={() => setRemix(entry.text)}>
-              <IconRemix />
-              <span>{t.journal.actRemix}</span>
-            </button>
-            <button className="j-act" onClick={() => runRefine("rewrite")} disabled={busy}>
+            <button className="j-act" onClick={() => setRefinePick(true)} disabled={busy}>
               <IconSparkle />
               <span>{t.journal.actRewrite}</span>
             </button>
@@ -278,25 +268,6 @@ export default function JournalDetail({ entry, onClose }) {
         )}
 
         {busy && <p className="j-working">{t.journal.working}</p>}
-
-        {/* Remix: the words the pictures were made from, open for changes. */}
-        {remix !== null && (
-          <div className="j-remix">
-            <p className="j-remix-lede">{t.journal.remixLede}</p>
-            <textarea
-              className="j-edit"
-              value={remix}
-              onChange={(e) => setRemix(e.target.value)}
-              rows={8}
-              autoFocus
-              aria-label={t.journal.remixLabel}
-            />
-            <div className="j-edit-actions">
-              <Button variant="ghost" onClick={() => setRemix(null)}>{t.wizard.cancel}</Button>
-              <Button onClick={runRemix}>{t.journal.remixGo}</Button>
-            </div>
-          </div>
-        )}
 
         {/* The film comes first, above the words and the stills it was made
             from: it is the finished piece, they are the working material.
@@ -374,6 +345,13 @@ export default function JournalDetail({ entry, onClose }) {
             onShare={doShare}
             onDelete={() => { setMenuOpen(false); remove(); }}
             onClose={() => setMenuOpen(false)}
+          />
+        )}
+
+        {refinePick && (
+          <RefineSheet
+            onPick={(mode) => { setRefinePick(false); runRefine(mode); }}
+            onClose={() => setRefinePick(false)}
           />
         )}
       </div>
