@@ -115,20 +115,104 @@ const VOICE_TOOLS = [{
   ],
 }];
 
-const VOICE_SYSTEM =
-  "You are the dream interviewer in a dream journal app. Someone has just woken up.\n" +
-  "\n" +
-  "Speak the language they speak. Keep every turn to one or two short sentences — " +
-  "they are half asleep and holding a phone in the dark.\n" +
-  "\n" +
-  "Your job is to get the dream out of them, not to interpret it. Ask what happened " +
-  "next, who was there, where it took place, what it looked like. Never analyse, never " +
-  "reassure, never explain what a dream 'means'. If they went through something " +
-  "distressing, acknowledge it in a few words and carry on with the account.\n" +
-  "\n" +
-  "Call setDreamText as the account grows, and addPerson/addPlace the moment someone " +
-  "or somewhere is named — do not wait for the end. Call finish when they are done. " +
-  "Stop asking once you have the shape of it; three or four questions is usually plenty.";
+/* The briefing. Built per session, because the two things that make this feel
+ * like a person rather than a form — knowing your name and knowing who is
+ * already in your journal — are different for everyone.
+ *
+ * Both come from the client and are therefore untrusted: they go through the
+ * same sanitiser as any other free text before they are put in a prompt. A tag
+ * is [a-z0-9]{1,12} by construction, a name is trimmed hard. Neither can carry
+ * a newline, so neither can pretend to be a new instruction paragraph.
+ */
+function voiceSystem({ name = "", cast = [], lang = "" } = {}) {
+  const greeting = name
+    ? `Their name is ${name}. Greet them by it in your very first sentence, then ask straight away ` +
+      `what they dreamt. Use the name once more at most; repeating it every turn is what a machine ` +
+      `does.\n\n`
+    : `You do not know their name. Do not ask for it — open with a greeting and the first question.\n\n`;
+
+  /* Which language to open in is a guess until they have said a word, so it
+   * is taken from the phone's own setting. Getting it wrong for one sentence
+   * is recoverable; the rule below hands control to them immediately. */
+  const opening = lang
+    ? `Their phone is set to "${lang}" — say your opening line in that language.\n\n`
+    : "";
+
+  const known = cast.length
+    ? `These already exist in their journal, with a face on file: ${cast.join(", ")}. ` +
+      `If they mention one, pass exactly that name to addPerson/addPlace — spelled the same — ` +
+      `so the dream reuses the picture they already have instead of inventing a stranger. ` +
+      `Do not bring these up yourself; they are only for recognising.\n\n`
+    : "";
+
+  return (
+    "You are the dream interviewer in a dream journal app. Someone has just woken up and is " +
+    "talking to you in the dark, probably still half asleep, probably holding the phone badly.\n\n" +
+
+    greeting + opening + known +
+
+    "HOW TO SPEAK\n" +
+    "From their first words onward, speak the language THEY speak, whatever the setting above said — " +
+    "if they answer in German, continue in German without remarking on the switch. " +
+    "One or two short sentences per turn, never more. " +
+    "No lists, no summaries of what they just said, no 'how interesting'. Warm, quiet, awake.\n\n" +
+
+    "WHAT TO ASK\n" +
+    "Your job is to get the dream out of them, not to interpret it. Ask for what is missing, in " +
+    "roughly this order: what happened, then who was there, then where it was, then what it looked " +
+    "like. One question at a time. Follow what they actually said — if they mention a house, ask " +
+    "about the house, not about a checklist. Three or four questions is usually the whole interview; " +
+    "stop once the dream has a shape, even if details are missing. A half-remembered dream is normal " +
+    "and is not a problem to be solved.\n\n" +
+
+    "WHAT NEVER TO DO\n" +
+    "Never analyse, never say what a dream 'means', never reassure, never give sleep advice. If they " +
+    "went through something frightening, acknowledge it in a few words and carry on with the account. " +
+    "If they say they cannot remember more, accept it immediately and finish.\n\n" +
+
+    "THE WRITTEN DREAM — this is what the whole conversation is for\n" +
+    "Call setDreamText as the account grows, not only at the end; the newest call replaces the last. " +
+    "Write it the way they would write it themselves: first person, past tense, their language, their " +
+    "words, their images, in the order things happened. Turn their scattered answers into connected " +
+    "sentences — that is the work — but add nothing that was not said. No invented details, no " +
+    "adjectives they did not use, no interpretation, no moral, no tidy ending. If they said 'a big " +
+    "dark dog', it stays a big dark dog and does not become a menacing hound. Leave out your own " +
+    "questions and everything you said; only their dream goes in the text.\n\n" +
+
+    "TOOLS\n" +
+    "Call addPerson and addPlace the moment someone or somewhere is named — do not wait for the end. " +
+    "Call finish when they are done, and call setDreamText one last time before you do."
+  );
+}
+
+/* Two things have to be true before Gemini can be set up: the socket to Google
+ * must be open, and the client must have said who is talking. They arrive in
+ * either order, so both paths call this and the second one through wins. */
+function sendVoiceSetup(ws) {
+  const up = ws.data.upstream;
+  if (ws.data.setupSent || up?.readyState !== 1 || !ws.data.greeted) return;
+  ws.data.setupSent = true;
+  clearTimeout(ws.data.helloTimer);
+
+  up.send(JSON.stringify({
+    setup: {
+      model: `models/${GEMINI_MODEL}`,
+      generationConfig: { responseModalities: ["AUDIO"] },
+      systemInstruction: { parts: [{ text: voiceSystem(ws.data.who) }] },
+      tools: VOICE_TOOLS,
+      inputAudioTranscription: {},   // what THEY said, as text
+      outputAudioTranscription: {},  // what IT said, as text
+    },
+  }));
+  try { ws.send(JSON.stringify({ type: "ready" })); } catch { /* client gone */ }
+}
+
+/* Gemini Live does not speak first on its own — it waits for a turn. This is
+ * that turn: an instruction, not something the person said. It never reaches
+ * the transcript, because only audio is transcribed back to the client. */
+const VOICE_OPENING_CUE =
+  "[The app has just opened and the microphone is live. Say your greeting and your first " +
+  "question now, in one or two short sentences.]";
 
 // ---- prompt hygiene (start) ----
 // Scope note, because "prompt injection" means something narrower here than
@@ -754,23 +838,42 @@ Bun.serve({
       const upstream = new WebSocket(`${GEMINI_WS}?key=${key}`);
       ws.data.upstream = upstream;
 
-      upstream.addEventListener("open", () => {
-        upstream.send(JSON.stringify({
-          setup: {
-            model: `models/${GEMINI_MODEL}`,
-            generationConfig: { responseModalities: ["AUDIO"] },
-            systemInstruction: { parts: [{ text: VOICE_SYSTEM }] },
-            tools: VOICE_TOOLS,
-            inputAudioTranscription: {},   // what THEY said, as text
-            outputAudioTranscription: {},  // what IT said, as text
-          },
-        }));
-        ws.send(JSON.stringify({ type: "ready" }));
-      });
+      // The setup frame carries the name and the cast, so it cannot be sent
+      // until the client has told us who is talking. Whichever of the two
+      // arrives second (socket open / "hello") triggers it. The timer is the
+      // backstop: a client that never introduces itself still gets a session,
+      // just an anonymous one, instead of a socket that stays silent forever.
+      upstream.addEventListener("open", () => sendVoiceSetup(ws));
+      ws.data.helloTimer = setTimeout(() => {
+        ws.data.greeted = true;
+        sendVoiceSetup(ws);
+      }, 2000);
 
       // Straight through. Blobs stay blobs — the audio never becomes a string
       // on the way past, which would corrupt it and cost a copy per frame.
       upstream.addEventListener("message", (e) => {
+        /* The greeting may only be sent once Gemini has confirmed the setup,
+         * so the first frames are inspected — and only those. Gemini sends
+         * everything as binary frames, including this one (measured, not
+         * assumed: a string test here silently never matched and the
+         * assistant stayed mute). The size guard keeps a stray audio frame
+         * from being decoded for nothing; setupComplete is ~26 bytes. */
+        if (!ws.data.kicked) {
+          const head = typeof e.data === "string" ? e.data
+            : e.data.byteLength <= 4096 ? new TextDecoder().decode(e.data) : "";
+          if (head.includes("setupComplete")) ws.data.kicked = true;
+        }
+        if (ws.data.kicked && !ws.data.cued) {
+          ws.data.cued = true;
+          try {
+            upstream.send(JSON.stringify({
+              clientContent: {
+                turns: [{ role: "user", parts: [{ text: VOICE_OPENING_CUE }] }],
+                turnComplete: true,
+              },
+            }));
+          } catch { /* upstream died between frames */ }
+        }
         try { ws.send(e.data); } catch { /* client already gone */ }
       });
       upstream.addEventListener("close", () => { try { ws.close(); } catch {} });
@@ -780,11 +883,40 @@ Bun.serve({
     },
 
     message(ws, data) {
+      /* The client's very first frame is a "hello" naming the dreamer. It is
+       * ours, not Gemini's, so it stops here. Everything after it is audio and
+       * goes straight through — which is why this only looks at frame one:
+       * JSON.parse on every audio frame would be the most expensive thing the
+       * relay does. */
+      if (!ws.data.greeted) {
+        ws.data.greeted = true;
+        if (typeof data === "string" && data.includes('"hello"')) {
+          try {
+            const msg = JSON.parse(data);
+            if (msg.type === "hello") {
+              ws.data.who = {
+                name: sanitizeFragment(msg.name, 40),
+                cast: (Array.isArray(msg.cast) ? msg.cast : [])
+                  .map(sanitizeTag).filter(Boolean).slice(0, 40),
+                // A BCP-47 tag and nothing else: it is quoted into the prompt,
+                // so it may not carry anything but letters, digits and dashes.
+                lang: String(msg.lang || "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 12),
+              };
+              return sendVoiceSetup(ws);   // never forwarded upstream
+            }
+          } catch { /* not our handshake — fall through and treat as traffic */ }
+        }
+        // An older client, or a frame we do not recognise: Gemini still needs
+        // its setup before anything else, so send it now with what we know.
+        sendVoiceSetup(ws);
+      }
+
       const up = ws.data.upstream;
       if (up?.readyState === 1) up.send(data);
     },
 
     close(ws) {
+      clearTimeout(ws.data.helloTimer);
       try { ws.data.upstream?.close(); } catch { /* already gone */ }
     },
   },

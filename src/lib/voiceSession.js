@@ -41,8 +41,11 @@ function fromBase64(b64) {
  *   onSpeaking(bool)               the assistant is talking
  *   onTool({name, args})           setDreamText / addPerson / addPlace / finish
  *   onError(code)
+ * @param {object} who  who is talking — {name, cast}. The server needs it for
+ *   the briefing: the greeting uses the name, and the cast lets the assistant
+ *   recognise people who already have a face on file. Both optional.
  */
-export function startVoiceSession(h = {}) {
+export function startVoiceSession(h = {}, who = {}) {
   /* Diese eine Verbindung geht direkt an den API-Port, nicht über den Proxy
    * des Dev-Servers — der kann WebSockets unter Bun nicht durchreichen; die
    * Begründung steht in vite.config.js. location.hostname statt location.host,
@@ -62,6 +65,19 @@ export function startVoiceSession(h = {}) {
 
   ws.onerror = () => h.onError?.("SOCKET");
   ws.onclose = () => { if (!closed) h.onError?.("CLOSED"); };
+
+  /* First frame out, before any audio: who is talking. The server holds the
+   * setup back until this lands, so the assistant can open with the name
+   * instead of a generic hello. Nothing secret travels here — a display name
+   * and tags the person chose themselves. */
+  ws.onopen = () => ws.send(JSON.stringify({
+    type: "hello",
+    name: who.name || "",
+    cast: who.cast || [],
+    // Which language to open in. Only the first sentence rides on this — from
+    // their first answer the assistant follows whatever they actually speak.
+    lang: navigator.language || "",
+  }));
 
   ws.onmessage = async (e) => {
     let msg;

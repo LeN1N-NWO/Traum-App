@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { startVoiceSession } from "../lib/voiceSession.js";
+import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
 import DreamScape from "../components/DreamScape.jsx";
 import "./voice.css";
@@ -16,6 +17,7 @@ import "./voice.css";
  * out loud, and a dream is often one of them.
  */
 export default function VoiceInterview({ onDone, onCancel }) {
+  const { state: app } = useAppState();
   const [state, setState] = useState("connecting");   // connecting|live|error
   const [error, setError] = useState(null);
   const [level, setLevel] = useState(0);
@@ -27,6 +29,14 @@ export default function VoiceInterview({ onDone, onCancel }) {
   const session = useRef(null);
   const collected = useRef({ text: "", people: [], places: [] });
   const endRef = useRef(null);
+
+  /* Who the assistant is talking to. The tag is stored lowercase because it
+   * doubles as an @mention; spoken aloud it should sound like a name, so the
+   * first letter goes back up. Read once at mount — see the effect below. */
+  const who = useRef({
+    name: app.me?.tag ? app.me.tag[0].toUpperCase() + app.me.tag.slice(1) : "",
+    cast: (app.cast || []).map((c) => c.tag).filter(Boolean),
+  });
 
   useEffect(() => {
     const s = startVoiceSession({
@@ -56,7 +66,7 @@ export default function VoiceInterview({ onDone, onCancel }) {
         if (name === "addPlace" && args.name && !c.places.includes(args.name)) c.places.push(args.name);
         if (name === "finish") finish();
       },
-    });
+    }, who.current);
     session.current = s;
     return () => s.stop();
     // Mount only: a second session would open a second microphone.

@@ -11,12 +11,29 @@ import TagCard from "../components/TagCard.jsx";
 import VoiceInterview from "./VoiceInterview.jsx";
 import "./wizard.css";
 
+/* The interview names people and places out loud; the analysis names them
+ * again from the finished text. Same dream, two sources — union them by name,
+ * so nothing that was said is dropped just because the written account
+ * happened to phrase it differently. */
+function mergeInterview(analysis, people = [], places = []) {
+  const nameOf = (x) => String(typeof x === "string" ? x : x?.name || "").trim().toLowerCase();
+  const known = (list) => new Set((list || []).map(nameOf).filter(Boolean));
+  const seenPeople = known(analysis.people);
+  const seenPlaces = known(analysis.places);
+  return {
+    ...analysis,
+    people: [...(analysis.people || []), ...people.filter((p) => p?.name && !seenPeople.has(nameOf(p)))],
+    places: [...(analysis.places || []), ...places.filter((p) => p && !seenPlaces.has(nameOf(p)))],
+  };
+}
+
 export default function Step1Dream({ w, patch, seedAssignments }) {
   const { state, update, toast } = useAppState();
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);   // the analysis awaiting a decision
   const [card, setCard] = useState(null);         // the tag being looked at, if any
   const [interview, setInterview] = useState(false);
+  const [reading, setReading] = useState(false);  // analysing what the interview brought back
   const voice = useVoiceInput({
     onText: (text) => patch({ text }),
     // MIC_DENIED / READ_FAILED are our own codes; anything else is already a
@@ -83,18 +100,46 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
     setPreview(null);
   }
 
-  /* What the interview brings back. The text goes into the same field the
-   * typed path uses, so everything downstream is unchanged — but the people
-   * and places it already identified are kept, and step 3 starts from them
-   * instead of from a second analysis of the same words. */
-  function fromInterview({ text, people, places }) {
+  /* What the interview brings back.
+   *
+   * It does NOT land on the empty text field. Someone who has just spent two
+   * minutes talking has answered every question the analysis would ask, so
+   * asking them to press "improve" afterwards is asking twice — the reading
+   * runs on its own and they arrive at the comparison, dream already titled.
+   *
+   * The people and places named out loud are folded into the analysis, so a
+   * name that only ever came up in conversation still gets a tile in step 3. */
+  async function fromInterview({ text, people, places }) {
     setInterview(false);
     if (!text) return;
-    patch({ text, interview: { people, places } });
+    patch({ text });
+    setReading(true);
+    try {
+      setPreview(mergeInterview(await analyze(text), people, places));
+    } catch (err) {
+      console.error("[DreamRushes] analyze after interview failed:", err);
+      // The dream itself is safe in the field — this only costs the polish.
+      toast(`⚠ ${err.message}`);
+    }
+    setReading(false);
   }
 
   if (interview) {
     return <VoiceInterview onDone={fromInterview} onCancel={() => setInterview(false)} />;
+  }
+
+  /* Between the last word spoken and the comparison. Without this the empty
+     form flashes up for a second, which reads as "it lost everything". */
+  if (reading) {
+    return (
+      <section className="wiz-body">
+        <div className="wiz-rendering" role="status" aria-live="polite">
+          <div className="wiz-spinner" aria-hidden="true" />
+          <p className="wiz-busy-text">{t.dream.reading}</p>
+          <p className="wiz-hint">{t.dream.readingHint}</p>
+        </div>
+      </section>
+    );
   }
 
   if (preview) {

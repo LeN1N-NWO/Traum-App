@@ -214,6 +214,8 @@ export default {
     voiceLabel: "Speak your dream",
     interview: "Tell it out loud",
     interviewHint: "I'll ask, you talk — eyes closed if you like",
+    reading: "Reading your dream…",
+    readingHint: "Naming it, and picking out who was there.",
     or: "or write it",
     voiceErrors: {
       MIC_DENIED: "⚠ Microphone access was blocked. Allow it in your browser settings.",
