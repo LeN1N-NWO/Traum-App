@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
 import { t } from "../../i18n/index.js";
 import AvatarDialog from "../../components/AvatarDialog.jsx";
-import DreamCalendar from "./DreamCalendar.jsx";
 import Paywall from "./Paywall.jsx";
 import "./profile.css";
 
 /* The profile is about the person, not their material: people, pets and
- * places moved to the Journal tab, where the dreams that reference them are.
+ * places moved to the Journal tab, where the dreams that reference them are,
+ * and so did the calendar — every square in it opens a dream, which makes it
+ * a way into the journal rather than a fact about you.
  * What is left is who you are here — your face, your balance, your record.
  */
 export default function ProfileScreen() {
@@ -61,9 +62,6 @@ export default function ProfileScreen() {
           </span>
         </div>
       </div>
-
-      <h2 className="p-section">{t.profile.calendar}</h2>
-      <DreamCalendar />
 
       {editingMe && (
         <AvatarDialog

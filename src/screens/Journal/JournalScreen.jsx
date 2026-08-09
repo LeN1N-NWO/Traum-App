@@ -5,6 +5,7 @@ import ScreenHeader from "../../components/ScreenHeader.jsx";
 import JournalCard from "./JournalCard.jsx";
 import JournalDetail from "./JournalDetail.jsx";
 import CastLibrary from "./CastLibrary.jsx";
+import DreamCalendar from "./DreamCalendar.jsx";
 import "./journal.css";
 
 export default function JournalScreen() {
@@ -125,6 +126,12 @@ export default function JournalScreen() {
           ))}
         </div>
       )}
+
+      {/* Below the dreams, not above them: the calendar is the second way in
+          — for the night you remember by date rather than by name. It shows
+          the whole journal, so the search above deliberately does not touch
+          it; filtering the map would hide the very days you are looking for. */}
+      {total > 0 && <DreamCalendar onOpen={setOpenId} />}
 
       {open && <JournalDetail entry={open} onClose={() => setOpenId(null)} />}
     </main>

@@ -244,3 +244,52 @@
   background: var(--sky);
 }
 .j-story-text { margin: 0; font-size: 17px; line-height: 1.62; }
+
+/* — dream calendar —
+   Aus dem Profil hierher gezogen: die hellen Felder sind Knöpfe, keine
+   Statistik. Nur Tage mit Traum sind Knöpfe, leere bleiben <span>.
+
+   Bewusst klein gehalten. Der Kalender ist der zweite Weg ins Journal, nicht
+   sein Kopf — er steht unter den Träumen und soll dort nicht mehr Platz
+   einnehmen als eine einzige Karte. Zellen als feste 26px-Kreise, mittig in
+   ihrer Gitterspalte: über aspect-ratio würden sie mit der Bildschirmbreite
+   mitwachsen und auf dem Tablet zu Tellern werden. */
+.j-cal { padding: var(--s-3); margin-top: var(--s-4); }
+.j-cal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--s-2);
+}
+.j-cal-title { font-size: var(--t-small); font-weight: 600; letter-spacing: .01em; }
+.j-cal-nav {
+  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: 0; color: var(--muted); font-size: 15px; line-height: 1;
+}
+.j-cal-nav:hover:not(:disabled) { color: var(--text); background: var(--panel); }
+.j-cal-nav:disabled { opacity: .3; cursor: default; }
+.j-cal-nav:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.j-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.j-cal-wd {
+  color: var(--faint); font-size: 9px; text-transform: uppercase;
+  letter-spacing: .08em; padding-bottom: 2px;
+}
+.j-cal-day {
+  width: 26px; height: 26px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 12px; color: var(--faint);
+  /* Knopf-Rücksetzung: die Zellen sollen sich nicht wie Knöpfe anfühlen,
+     sondern wie Tage, die man antippen kann. */
+  padding: 0; border: 0; background: none; font-family: inherit;
+}
+.j-cal-dreamt {
+  background: var(--accent-deep); color: var(--text); font-weight: 600;
+  cursor: pointer; transition: transform .12s ease-out, background .12s ease-out;
+}
+.j-cal-dreamt:hover { background: var(--accent); }
+.j-cal-dreamt:active { transform: scale(.88); }
+.j-cal-dreamt:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.j-cal-today { box-shadow: inset 0 0 0 1px var(--accent-soft); }
+.j-cal-picked { background: var(--accent); box-shadow: 0 0 0 2px rgb(var(--bg-rgb) / .9), 0 0 0 4px var(--accent-soft); }
+
+.j-cal-day-list { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-3); }
+.j-cal-day-lede { margin: 0; color: var(--faint); font-size: var(--t-micro); }

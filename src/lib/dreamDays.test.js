@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { localDateKey, dreamDays, monthCells } from "./dreamDays.js";
+import { localDateKey, dreamsByDay, monthCells } from "./dreamDays.js";
 
 test("localDateKey uses the local day, not the UTC day", () => {
   // 00:30 local is still "tonight" — whatever UTC thinks about it.
@@ -7,17 +7,19 @@ test("localDateKey uses the local day, not the UTC day", () => {
   expect(localDateKey(halfPastMidnight)).toBe("2026-08-08");
 });
 
-test("dreamDays collects one key per day, however many entries", () => {
-  const days = dreamDays([
-    { createdAt: new Date(2026, 7, 8, 0, 30).toISOString() },
-    { createdAt: new Date(2026, 7, 8, 23, 0).toISOString() },
-    { createdAt: new Date(2026, 7, 7, 9, 0).toISOString() },
-    { createdAt: null },
+test("dreamsByDay groups by day and keeps every entry", () => {
+  const days = dreamsByDay([
+    { id: "a", createdAt: new Date(2026, 7, 8, 0, 30).toISOString() },
+    { id: "b", createdAt: new Date(2026, 7, 8, 23, 0).toISOString() },
+    { id: "c", createdAt: new Date(2026, 7, 7, 9, 0).toISOString() },
+    { id: "x", createdAt: null },
     null,
   ]);
   expect(days.size).toBe(2);
-  expect(days.has("2026-08-08")).toBe(true);
-  expect(days.has("2026-08-07")).toBe(true);
+  expect(days.get("2026-08-07").map((e) => e.id)).toEqual(["c"]);
+  // Newest first inside the day, so tapping a square opens the last dream
+  // of that night rather than whichever happened to be stored first.
+  expect(days.get("2026-08-08").map((e) => e.id)).toEqual(["b", "a"]);
 });
 
 test("monthCells pads to Monday-first and holds every day", () => {

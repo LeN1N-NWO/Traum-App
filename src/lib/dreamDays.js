@@ -1,4 +1,4 @@
-/* Which days carry at least one dream — the data behind the profile
+/* Which days carry a dream, and which one — the data behind the journal
  * calendar. Pure date arithmetic, no DOM, hence testable.
  *
  * Keys are LOCAL dates ("2026-08-08"): a dream written at 00:30 belongs to
@@ -13,11 +13,23 @@ export function localDateKey(date) {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
-/** Set of localDateKeys that have at least one journal entry. */
-export function dreamDays(journal = []) {
-  const days = new Set();
+/**
+ * The journal grouped by the local day it was written on, newest first
+ * within a day. A Map and not a Set of keys, because a lit square now has
+ * to open the dream behind it, not just prove one exists.
+ * @returns {Map<string, object[]>} localDateKey → entries
+ */
+export function dreamsByDay(journal = []) {
+  const days = new Map();
   for (const e of journal) {
-    if (e?.createdAt) days.add(localDateKey(e.createdAt));
+    if (!e?.createdAt) continue;
+    const key = localDateKey(e.createdAt);
+    const list = days.get(key);
+    if (list) list.push(e);
+    else days.set(key, [e]);
+  }
+  for (const list of days.values()) {
+    list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
   return days;
 }
