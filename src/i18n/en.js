@@ -146,6 +146,7 @@ export default {
     meTitle: "This is you",
     nameLabel: (tag) => `Name (becomes @${tag})`,
     photoLabel: "Reference photo",
+    photoAdd: "Add a photo",
     photoReplace: "Replace the photo",
     photoRemove: "Remove photo",
     descLabel: "Describe them",

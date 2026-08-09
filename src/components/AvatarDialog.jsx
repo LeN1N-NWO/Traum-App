@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAppState } from "../state/AppState.jsx";
 import { genId } from "../lib/storage.js";
 import { t } from "../i18n/index.js";
 import Button from "./Button.jsx";
+import { IconImages } from "./icons.jsx";
 import "./AvatarDialog.css";
 
 // Mirrors sanitizeTag() in server.js: [a-z0-9] only, 12 chars max. The server
@@ -42,6 +43,7 @@ export default function AvatarDialog({
   const [tag, setTag] = useState(cleanTag(existing?.tag || suggestedName));
   const [desc, setDesc] = useState(existing?.desc || suggestedDesc);
   const [image, setImage] = useState(existing?.img || "");
+  const fileRef = useRef(null);
 
   function readFile(e) {
     const file = e.target.files?.[0];
@@ -129,19 +131,45 @@ export default function AvatarDialog({
           <input value={tag} onChange={(e) => setTag(e.target.value)} maxLength={20} autoFocus />
         </label>
 
-        <label className="av-field">
-          <span>{isEdit && image ? t.avatarDialog.photoReplace : t.avatarDialog.photoLabel}</span>
-          <input type="file" accept="image/*" onChange={readFile} />
-        </label>
+        {/* The native file input is invisible on purpose — every browser
+            draws its own "Choose File" chrome for it, which is exactly the
+            thing that read as out of place here. It still does the actual
+            picking; the button just proxies the click onto it. */}
+        <div className="av-field">
+          <span>{t.avatarDialog.photoLabel}</span>
 
-        {image && (
-          <div className="av-preview-row">
-            <img className="av-preview" src={image} alt={t.avatarDialog.previewAlt} />
-            <button className="av-drop" onClick={() => setImage("")}>
-              {t.avatarDialog.photoRemove}
+          {image ? (
+            <div className="av-photo-set">
+              <img className="av-preview" src={image} alt={t.avatarDialog.previewAlt} />
+              <div className="av-photo-row">
+                <button type="button" className="av-photo-btn" onClick={() => fileRef.current?.click()}>
+                  {t.avatarDialog.photoReplace}
+                </button>
+                <button
+                  type="button" className="av-photo-btn av-photo-btn-ghost"
+                  onClick={() => setImage("")}
+                >
+                  {t.avatarDialog.photoRemove}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" className="av-upload" onClick={() => fileRef.current?.click()}>
+              <IconImages />
+              <span>{t.avatarDialog.photoAdd}</span>
             </button>
-          </div>
-        )}
+          )}
+
+          <input
+            ref={fileRef}
+            className="av-file-hidden"
+            type="file"
+            accept="image/*"
+            onChange={readFile}
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+        </div>
 
         {/* Without a photo the description is the only thing the renderer has
             to go on, so it is worth asking for either way. */}
