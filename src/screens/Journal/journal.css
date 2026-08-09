@@ -295,14 +295,16 @@
 .j-cal-day-lede { margin: 0; color: var(--faint); font-size: var(--t-micro); }
 
 /* — „mach was draus" —
-   Nur sichtbar, wenn der Traum noch keine Bilder hat. Zwei gleich große
-   Felder, damit keine der beiden Möglichkeiten die andere überstimmt.
+   Steht jetzt als Erstes in .j-content, vor der Aktionsreihe — kein
+   margin-top mehr nötig, das käme zum padding-top von .j-content oben
+   noch obendrauf. margin-bottom stattdessen: der Abstand zur Reihe
+   darunter, nicht zu einem Vorgänger, den es nicht mehr gibt.
    Derselbe warme Verlauf wie der primäre Knopf (.btn-primary in ui.css) —
-   diese zwei sind der eigentliche Antrieb der Seite, keine Nebensache in
+   das ist der eigentliche Antrieb der Seite, keine Nebensache in
    Kartenfarbe. Dunkler Text aus demselben Grund wie dort: Amber ist hell,
    Weiß darauf fällt beim Kontrast durch, Beinahe-Schwarz nicht — geprüft in
    test-contrast.mjs unter --warm auf --bg. */
-.j-make { margin-top: var(--s-5); }
+.j-make { margin-bottom: var(--s-5); }
 .j-make-lede { margin: 0 0 var(--s-3); color: var(--muted); font-size: var(--t-small); }
 /* Volle Breite als Pille, Symbol links, Pfeil rechts: eine Leserichtung,
    die größte Fläche für den Daumen, und der Preis steht bewusst NICHT hier

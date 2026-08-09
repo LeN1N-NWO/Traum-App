@@ -218,12 +218,44 @@ export default function JournalDetail({ entry, onClose }) {
         </div>
 
         <div className="j-content">
-        {/* The things you can do TO this dream, as one row at the top. They
-            are all cheap or free and all reversible, which is why they sit
-            out here — the big warm button below is the one that spends
-            credits, and deleting stays in the ⋯ menu where a mis-tap cannot
-            reach it. Scrolls sideways rather than wrapping: a second row
-            would push the dream itself off the screen. */}
+        {/* The one action that spends credits leads the page — moved up from
+            below the whole story, where it was the last thing anyone saw
+            after scrolling past everything else. One way forward at a time,
+            in the order the dream actually grows: words → pictures →
+            motion. A dream with nothing yet is only offered pictures.
+            Offering a film there asked someone to buy the most expensive
+            thing in the app before they had seen a single frame of what it
+            would look like. The film is offered once there ARE pictures,
+            when they know what they are animating. Both hidden while a film
+            renders: that one is on its way, not missing. */}
+        {!entry.jobId && !editing && !proposal && !remix && images.length === 0 && (
+          <div className="j-make">
+            <p className="j-make-lede">{t.journal.makeLede}</p>
+            <button className="j-make-btn" onClick={() => make("images")}>
+              <IconImages />
+              <span className="j-make-title">{t.journal.makeImages}</span>
+              <ChevronRight />
+            </button>
+          </div>
+        )}
+
+        {!entry.jobId && !film && !editing && !proposal && !remix && images.length > 0 && (
+          <div className="j-make">
+            <p className="j-make-lede">{t.journal.makeFilmLede}</p>
+            <button className="j-make-btn" onClick={() => make("film")}>
+              <IconFilm />
+              <span className="j-make-title">{t.journal.makeFilm}</span>
+              <ChevronRight />
+            </button>
+          </div>
+        )}
+
+        {/* The things you can do TO this dream, as one row underneath. They
+            are all cheap or free and all reversible, which is why they read
+            as secondary to the warm button above it — deleting stays in the
+            ⋯ menu where a mis-tap cannot reach it. Scrolls sideways rather
+            than wrapping: a second row would push the dream itself off the
+            screen. */}
         {!editing && !proposal && !remix && (
           <div className="j-acts">
             <button className="j-act" onClick={() => setRemix(entry.text)}>
@@ -309,38 +341,6 @@ export default function JournalDetail({ entry, onClose }) {
           </>
         ) : (
           <DreamStory text={entry.text} urls={images} type="image" />
-        )}
-
-        {/* One way forward at a time, in the order the dream actually grows:
-            words → pictures → motion.
-
-            A dream with nothing yet is only offered pictures. Offering a film
-            there asked someone to buy the most expensive thing in the app
-            before they had seen a single frame of what it would look like —
-            no price tag either, so "from 5" meant nothing. The film is
-            offered once there ARE pictures, when they know what they are
-            animating. Both hidden while a film renders: that one is on its
-            way, not missing. */}
-        {!entry.jobId && !editing && !proposal && images.length === 0 && (
-          <div className="j-make">
-            <p className="j-make-lede">{t.journal.makeLede}</p>
-            <button className="j-make-btn" onClick={() => make("images")}>
-              <IconImages />
-              <span className="j-make-title">{t.journal.makeImages}</span>
-              <ChevronRight />
-            </button>
-          </div>
-        )}
-
-        {!entry.jobId && !film && !editing && !proposal && images.length > 0 && (
-          <div className="j-make">
-            <p className="j-make-lede">{t.journal.makeFilmLede}</p>
-            <button className="j-make-btn" onClick={() => make("film")}>
-              <IconFilm />
-              <span className="j-make-title">{t.journal.makeFilm}</span>
-              <ChevronRight />
-            </button>
-          </div>
         )}
 
         {entry.references?.length > 0 && (
