@@ -9,19 +9,22 @@ import "./onboarding.css";
  * whole purpose, someone who cannot read English yet still has to find
  * "Deutsch" or "العربية" in this list.
  *
- * Choosing here does two things, not one: it mutates `t` in place so every
- * component reads the new copy from its very next render (setLanguage()),
- * and it writes state.language, which is the command the rest of the app
- * — the voice assistant included — reads from then on. See VoiceInterview
- * and OnboardingSurvey: they pass state.language into startVoiceSession
- * instead of guessing from the device.
+ * Choosing here does three things, not one: it mutates `t` in place so
+ * every component reads the new copy from its very next render
+ * (setLanguage()), it writes state.language, which is the command the rest
+ * of the app — the voice assistant included — reads from then on (see
+ * VoiceInterview and OnboardingSurvey, which pass state.language into
+ * startVoiceSession instead of guessing from the device), and it calls
+ * onChosen() so the caller can move on — App.jsx's Gate() decides the next
+ * phase itself rather than this component assuming what comes after it.
  */
-export default function LanguagePicker() {
+export default function LanguagePicker({ onChosen }) {
   const { update } = useAppState();
 
   function choose(id) {
     setLanguage(id);      // t is correct before the state update re-renders anything
     update({ language: id });
+    onChosen?.();
   }
 
   return (

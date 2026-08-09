@@ -32,20 +32,36 @@ export default function App() {
  * gating on state.onboarded meant the flow, once seen, was practically
  * unreachable again — the flag flips once and stays flipped. StartMenu
  * asks every launch instead of a stored flag deciding it, so it can be
- * previewed on demand. Remove StartMenu and go back to gating on
- * state.onboarded once the flow is settled — a returning user should not
- * be asked "onboarding or app?" every time they open the app. */
+ * previewed on demand.
+ *
+ * StartMenu goes FIRST, before the language picker — not after. It has to:
+ * it is hardcoded English on purpose (see StartMenu.jsx) precisely because
+ * nothing has chosen a language yet at that point, and it needs to ask
+ * "onboarding or app?" the moment the app opens, before either flow's
+ * language-dependent screens exist to ask it from.
+ *
+ * The language step ALSO repeats every launch here, on purpose, unlike a
+ * finished app: state.language stays SET the moment it is chosen (real
+ * apps must remember it), so a permanent "!state.language" gate would only
+ * ever fire once per browser and then never let the picker be seen again —
+ * exactly the "stuck in whatever I tested last" complaint that made
+ * StartMenu exist in the first place. Chosen again every time this phase
+ * is reached is what a REPEATABLE preview needs; it still writes
+ * state.language for real, so the voice assistant etc. see a real choice.
+ *
+ * Remove StartMenu AND this repeat-language-every-time behaviour together,
+ * and go back to a plain `if (!state.language) return <LanguagePicker />`
+ * plus gating on state.onboarded, once the flow is settled — a returning
+ * user should be asked neither "onboarding or app?" nor "which language?"
+ * on every open. */
 function Gate() {
-  const { state } = useAppState();
-  const [phase, setPhase] = useState("menu");   // menu | onboarding | app
-
-  // Before the wordmark, before the slides, before the dev start menu:
-  // which language. Permanent, unlike StartMenu below — asked once and
-  // never again, the same way a fresh phone asks it during system setup.
-  if (!state.language) return <LanguagePicker />;
+  const [phase, setPhase] = useState("menu");   // menu | language | onboarding | app
 
   if (phase === "menu") {
-    return <StartMenu onOnboarding={() => setPhase("onboarding")} onSkip={() => setPhase("app")} />;
+    return <StartMenu onOnboarding={() => setPhase("language-onboarding")} onSkip={() => setPhase("language-app")} />;
+  }
+  if (phase === "language-onboarding" || phase === "language-app") {
+    return <LanguagePicker onChosen={() => setPhase(phase === "language-onboarding" ? "onboarding" : "app")} />;
   }
   if (phase === "onboarding") {
     return <Onboarding onExit={() => setPhase("app")} />;
