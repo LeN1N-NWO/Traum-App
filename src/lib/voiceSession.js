@@ -43,10 +43,15 @@ function fromBase64(b64) {
  *   onError(code)
  */
 export function startVoiceSession(h = {}) {
+  /* Diese eine Verbindung geht direkt an den API-Port, nicht über den Proxy
+   * des Dev-Servers — der kann WebSockets unter Bun nicht durchreichen; die
+   * Begründung steht in vite.config.js. location.hostname statt location.host,
+   * damit der Port ersetzt wird und es auch vom Handy im selben Netz geht. */
   const base = import.meta.env.VITE_API_BASE || "";
+  const scheme = location.protocol === "https:" ? "wss" : "ws";
   const url = base
     ? base.replace(/^http/, "ws") + "/api/voice"
-    : `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/voice`;
+    : `${scheme}://${location.hostname}:${__API_PORT__}/api/voice`;
 
   const ws = new WebSocket(url);
   ws.binaryType = "arraybuffer";
