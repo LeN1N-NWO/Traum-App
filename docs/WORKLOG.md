@@ -3,6 +3,137 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-10 00:24 — Anton — Branch `session/2026-08-07-anton` (PR #9) — Sitzungsabschluss
+
+**Commits (neuester zuerst):** `cf1b10e` (Willkommen als Versprechen statt
+Währung), `69e6642` (Klartraum-Leitfaden aus der Studienlage + Stimme nur
+einmal fragen), `95c606c` (Assistenten-Persona + Startseite als Poster),
+`8d1b840` (Gate in Ich-Form, Leuchtlinie, drei Home-Varianten), `e837279`
+(Startscreen mit Faultier-Film, neue Copy in 7 Sprachen), `1d0fae3`
+(Schlaf-Checkliste im Hatch-Stil), `8ef6dd9` (Stimmwahl mit Vorhören),
+`6805085` (Umschreib-Blatt, Remix raus). Zustand: 77 Unit-Tests, 50
+Freigabe-Prüfungen, Prompt-Hygiene, 16 Kontrast-Paarungen, 6
+Sprachdatei-Prüfungen — alles grün. `bun run lint` existiert weiterhin nicht.
+
+Diese Sitzung hatte einen roten Faden: Die App bekommt **eine Stimme** — im
+wörtlichen wie im gestalterischen Sinn.
+
+**1. Stimmwahl mit echtem Vorhören.** Sechs Stimmen aus dem Gemini-Live-
+Katalog, ein Tipp spielt sie vor. Recherchiert und entschieden: Die API hat
+**keine** fertigen Hörproben (AI Studio schon, die API nicht). Deshalb
+erzeugt der Server sie selbst über Gemini TTS — das teilt den Stimmkatalog
+mit der Live-API, **was man vorhört, ist exakt die Stimme, die dann
+spricht**. Je (Stimme, Sprache) einmal erzeugt und als WAV unter `media/`
+gecacht; TTS liefert kopfloses PCM, der RIFF-Header wird selbst geschrieben,
+die Abtastrate aus dem `mimeType` gelesen statt angenommen. Gemessen: frisch
+4,7 s, gecacht unter 1 ms. `voice` ist beidseitig allowlisted
+(`VOICE_NAMES` in `server.js`, Spiegel in `src/lib/voices.js`).
+
+**Wichtige Nachbesserung am selben Tag:** Der Picker kam zuerst **vor jedem**
+Gespräch. Das ist eine Mautstelle vor genau der Sache, für die es die App
+gibt. Jetzt: nur beim allerersten Mal, danach **Profil → Zahnrad →
+Einstellungen**. Bewusst als Liste gebaut, nicht als dieses eine
+Bedienelement — die zweite und dritte Einstellung kommen.
+
+**2. Der Assistent bekommt einen Charakter** (Stil B von drei demonstrierten,
+„der coole Nachtportier"): ein gemeinsamer `PERSONA`-Block für **beide**
+Briefings, weil Trauminterview und Willkommensumfrage für den Nutzer eine
+Person sind.
+
+**Die lehrreiche Stelle:** Die erste Fassung bestand vor allem aus Verboten
+(„erwähne nie…", „beschreibe dich nie…") und erzeugte perfekt neutrale
+Begrüßungen — „Willkommen. Wie soll ich dich nennen?". Ein Modell, das vor
+allem hört, was es NICHT tun soll, spielt auf Nummer sicher. Erst die
+konkrete **positive** Anweisung zog: die erste Zeile bemerkt etwas Wahres
+über den Moment (die Uhrzeit, dass jemand kaum wach ist) und fragt dann —
+halber Nebensatz Beobachtung, dann die Frage. Dazu ein Eröffnungs-Cue, der
+Charakter einfordert statt „sag deine Begrüßung".
+
+Bewusst **keine Beispielsätze** im Prompt: genau das hat am 09.08. schon
+einmal die Sprache verbogen (ein „Guten Morgen" als Beispiel ließ den
+Assistenten überall Deutsch reden). Beschrieben ist die Bewegung, nicht der
+Wortlaut. Gegengeprüft an vier echten Gemini-Sitzungen über den Relay —
+Deutsch, Englisch, Arabisch, Chinesisch tragen den Ton, ohne dass eine
+durchschlägt. Der Charakter fällt außerdem als Erstes weg, wenn ein Traum
+bedrückend wird.
+
+**3. Gestaltung: das Faultier zieht ein.** Zwei gelieferte Clips
+transkodiert (`Faultier-001.mov` 8,4 MB → 551 KB, `Faultier-002.mov` 7,3 MB
+→ 666 KB, beide ohne Ton, per Vite-Import gebündelt statt als `/public`-Pfad
+— überlebt so jede `base`-Änderung, wichtig für Capacitor).
+
+- **Startscreen** als Filmplakat: Video vollflächig hinter einem Scrim, der
+  oben leicht dimmt und unten in fast-Deckung ausläuft, damit Schrift auf
+  jedem Frame trägt. Neue Kicker-Zeile, größere Wortmarke.
+- **Startseite:** drei Varianten gebaut und live umschaltbar gemacht
+  (A Himmel / B Kino / C Karte), Anton wählte **C**. Grund: die Karte hat
+  eine Kante, also liest sich der Film als gerahmtes Bild statt als
+  ausgelaufener Hintergrund — und alles darunter sitzt wieder auf ruhigem
+  Dunkel, wo Listen hingehören. A, B und der Schalter sind gelöscht.
+- **Copy überall neu** (7 Sprachen): „Jede Nacht drehst du Filme. Fang an,
+  sie zu behalten." Die Folien erzählen eine Nacht statt Features
+  aufzuzählen. Gate spricht jetzt in der **ersten Person** („Erzähl mir…"),
+  weil die App eine Persona hat und eine Persona *ich* sagt.
+- **Leuchtlinie** um die Belohnungs-Pille: `conic-gradient` auf dem
+  `::before`, per Maske auf einen 1,5-px-Ring beschnitten, animiert wird nur
+  der Startwinkel (als `@property` registriert, sonst interpoliert er
+  nicht). Bei `prefers-reduced-motion` ein stiller Schimmer.
+- **Schlaf-Checkliste** im Hatch-Stil: Karten-Raster mit leuchtenden
+  Glyphen; erledigte Karten klappen ihren Text ein und treten zurück.
+
+**4. Luzides Träumen — aus Belegen statt aus Folklore neu gebaut.**
+Grundlage ist die *International Lucid Dream Induction Study* (Aspy u. a.
+2020, 355 Teilnehmende, eine Woche Übung), der bislang einzige große
+Direktvergleich. Zwei Funde haben die Seitenstruktur bestimmt:
+
+- **Die Methode ist nicht der wichtigste Hebel.** Der größte Einzelfaktor
+  war, ob jemand binnen zehn Minuten wieder einschlief (18,3 % gegen
+  11,1 %) — ein größerer Effekt als der Abstand zwischen den Techniken.
+  Deshalb stehen drei Zahlenkarten **vor** den Methoden.
+- **Realitätschecks haben nicht funktioniert.** Zu MILD dazugenommen
+  schnitten sie schlechter ab als MILD allein (10,8 % und 13,4 % gegen
+  16,5 %). Es ist die meistempfohlene Technik im Netz und stand auch bei uns
+  an erster Stelle. Sie bleibt drin — mit dem echten Ergebnis daneben.
+
+Vier Methoden mit Schritt-für-Schritt-Protokollen (WBTB, SSILD, MILD,
+Realitätschecks), Erfolgsquote schon auf der zugeklappten Karte. Bewusst
+**keine** Checkliste: hier wird nichts abgehakt, und so zu tun würde ein
+Ergebnis versprechen, das die Studie nicht hergibt.
+
+**5. Geschäftsmodell durchgerechnet** (auf Nachfrage, Ergebnis als
+Kommentare in `plans.js`/`credits.js`). Die bisherige Formel ignorierte
+zwei der größten Abzüge: die **MwSt.** (geht in der EU vom Listenpreis ab,
+*bevor* Apple seine Provision nimmt) und dass die **Gratis-Credits pro
+Installation** anfallen, nicht pro Kunde. Mit beiden ist der 30-%-Schnitt
+strukturell defizitär; das Small Business Program (15 %) ist damit
+**Voraussetzung, nicht Optimierung**. Break-even-Conversion real ~4,5–5 %
+statt der bisher notierten 3,8 %. Für 5.000 € Gewinn/Monat braucht es grob
+2.500–5.000 aktive Abos, für 10.000 € etwa das Doppelte.
+
+**6. Das Willkommen ist jetzt ein Versprechen statt einer Währung:** „Dein
+erster Traum geht auf uns" statt „3 Credits gratis", in allen sieben
+Sprachen und an allen drei Stellen. `credits.test.js` prüft dafür jetzt
+**Gleichheit** statt einer Spanne — zu wenig hieße, der Willkommensbildschirm
+verspricht einen Traum und zeigt beim ersten Versuch eine Bezahlschranke; zu
+viel hieße Restcredits, die allein nichts kaufen und wie ein Fehler aussehen.
+
+**Was der Nächste wissen muss:**
+
+- **Der Grid-Pfad feuert praktisch nie.** `useGrid` in `Step5Style.jsx:80`
+  verlangt „3 Szenen UND kein Poster", der Titel kommt aber automatisch aus
+  der Analyse ins Feld — es sei denn, jemand leert es von Hand. Wer den
+  Effekt testen will, muss das Titelfeld in Schritt 5 leeren.
+- **Der Grid kostet Auflösung.** An einem echten Rendering gemessen:
+  Panels 459×768 gegen 768×1376 bei einem normalen Bild, ein Drittel der
+  Pixel. Deshalb ist entschieden, dass der **Gratis-Traum in voller Größe
+  rendert** — die Ersparnis fiele sonst ausgerechnet auf den einen Traum,
+  der gut sein muss. Begründung in `credits.js`.
+- **Prompt-Persona: niemals Beispielsätze.** Zweimal hat das die Sprache
+  verbogen. Bewegungen beschreiben, nicht Wortlaut.
+- **Der Stimm-Cache liegt in `media/`** (`voice-sample-<Stimme>-<Sprache>.wav`,
+  42 mögliche Dateien). `media/` ist in `.gitignore` — auf einem frischen
+  Rechner entstehen sie beim ersten Antippen neu, je einmal.
+
 ## 2026-08-09 19:37 — Anton — Branch `session/2026-08-07-anton` (PR #9) — Sitzungsabschluss
 
 **Commits (neuester zuerst):** `7576f28` (warmer Knopf nach oben), `353d1e7`
