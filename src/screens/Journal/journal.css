@@ -336,3 +336,32 @@
   border: 1px solid var(--panel-line);
   color: var(--muted); font-size: var(--t-small);
 }
+
+/* — Aktionsleiste über dem Traum —
+   Dunkle Pillen mit warmem Symbol: sie gehören sichtbar zur App, treten
+   aber gegen den einen warmen Hauptknopf darunter bewusst zurück. Seitlich
+   scrollbar statt umbrechend — eine zweite Zeile schöbe den Traum selbst
+   aus dem Bild. */
+.j-acts {
+  display: flex; gap: var(--s-2); margin-bottom: var(--s-5);
+  overflow-x: auto; scrollbar-width: none;
+  /* Negativer Rand + Innenabstand: die Reihe scrollt bis an den Bildrand,
+     statt vorher an der Inhaltsspalte abgeschnitten zu wirken. */
+  margin-inline: calc(var(--s-4) * -1); padding-inline: var(--s-4);
+}
+.j-acts::-webkit-scrollbar { display: none; }
+.j-act {
+  display: inline-flex; align-items: center; gap: 7px; flex: none;
+  padding: 9px 15px 9px 12px; border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font-family: inherit; font-size: var(--t-small); font-weight: 600;
+  transition: background .14s ease-out, transform .14s ease-out;
+}
+.j-act svg { width: 19px; height: 19px; color: var(--warm); }
+.j-act:hover:not(:disabled) { background: rgba(255, 255, 255, .1); }
+.j-act:active:not(:disabled) { transform: scale(.96); }
+.j-act:disabled { opacity: .4; cursor: not-allowed; }
+.j-act:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+.j-remix { margin-bottom: var(--s-5); }
+.j-remix-lede { margin: 0 0 var(--s-3); color: var(--muted); font-size: var(--t-small); line-height: 1.5; }

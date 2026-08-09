@@ -73,6 +73,36 @@ export function IconImages() {
   );
 }
 
+/* Two crossing arrows — the standard "shuffle/remix" glyph. Reads at 20px
+   where a pair of curved arrows would turn to mush. */
+export function IconRemix() {
+  return (
+    <svg {...base}>
+      <path d="M4 7h3.2l9.6 10H20M4 17h3.2l3-3.2M13.8 10.2l3-3.2H20" />
+      <path d="M17.6 4.4 20 7l-2.4 2.6M17.6 14.4 20 17l-2.4 2.6" />
+    </svg>
+  );
+}
+
+export function IconPencil() {
+  return (
+    <svg {...base}>
+      <path d="M4 20h4L19.2 8.8a2.1 2.1 0 0 0-3-3L5 17v3Z" />
+      <path d="m14.8 4.4 4.8 4.8" />
+    </svg>
+  );
+}
+
+export function IconShare() {
+  return (
+    <svg {...base}>
+      <path d="M12 15V4" />
+      <path d="m8.4 7.4 3.6-3.4 3.6 3.4" />
+      <path d="M6 12H4.8A.8.8 0 0 0 4 12.8v6.4a.8.8 0 0 0 .8.8h14.4a.8.8 0 0 0 .8-.8v-6.4a.8.8 0 0 0-.8-.8H18" />
+    </svg>
+  );
+}
+
 /* The "this leads somewhere" mark at the end of a row. Same stroke family as
    the rest, so it does not read as a typographic ">" borrowed from the font. */
 export function ChevronRight() {

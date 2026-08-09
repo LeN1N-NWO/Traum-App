@@ -9,7 +9,7 @@ import { PRICES } from "../../lib/pricing.js";
 import { shareDream, downloadAll, canShareFiles } from "../../lib/share.js";
 import { t } from "../../i18n/index.js";
 import EntryMenu from "./EntryMenu.jsx";
-import { IconImages, IconFilm, ChevronRight } from "../../components/icons.jsx";
+import { IconImages, IconFilm, IconRemix, IconShare, IconSparkle, IconPencil, ChevronRight } from "../../components/icons.jsx";
 import "./journal.css";
 
 export default function JournalDetail({ entry, onClose }) {
@@ -23,6 +23,7 @@ export default function JournalDetail({ entry, onClose }) {
   const [busy, setBusy] = useState(false);
   const [proposal, setProposal] = useState(null);   // reworked text awaiting a decision
   const [showOriginal, setShowOriginal] = useState(false);
+  const [remix, setRemix] = useState(null);         // edited text awaiting a re-render
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -133,7 +134,7 @@ export default function JournalDetail({ entry, onClose }) {
    * cast step: the text is written, so the only thing still open is what to
    * make of it. The entry id travels along so the result updates this dream
    * instead of writing a second copy of it. */
-  function make(mode) {
+  function make(mode, textOverride) {
     navigate("/dream", {
       state: {
         resume: {
@@ -144,14 +145,28 @@ export default function JournalDetail({ entry, onClose }) {
           // copies qualify — an old entry may still hold fal URLs, and those
           // expire, so offering them would offer a picture that is gone.
           urls: imagesOf(entry).filter((u) => typeof u === "string" && u.startsWith("/media/")),
-          text: entry.text,
+          text: textOverride || entry.text,
           originalText: entry.originalText || entry.text,
           title: entry.title || "",
           tagline: entry.tagline || "",
-          analysis: entry.analysis || null,
+          // A remix changed the words, so the old reading of them no longer
+          // describes this dream — it is re-read rather than reused.
+          analysis: textOverride ? null : entry.analysis || null,
         },
       },
     });
+  }
+
+  /* Remix: the dream's own words ARE the brief the pictures were made from,
+   * so this shows them, lets them be changed, and renders again from the
+   * result. The change is kept on the entry either way — someone who
+   * rewrote their dream to get a better picture means the new wording. */
+  function runRemix() {
+    const clean = (remix || "").trim();
+    if (clean.length < 8) return toast(t.wizard.tooShort);
+    if (clean !== entry.text) commitText(clean);
+    setRemix(null);
+    make("images", clean);
   }
 
   function remove() {
@@ -203,7 +218,53 @@ export default function JournalDetail({ entry, onClose }) {
         </div>
 
         <div className="j-content">
+        {/* The things you can do TO this dream, as one row at the top. They
+            are all cheap or free and all reversible, which is why they sit
+            out here — the big warm button below is the one that spends
+            credits, and deleting stays in the ⋯ menu where a mis-tap cannot
+            reach it. Scrolls sideways rather than wrapping: a second row
+            would push the dream itself off the screen. */}
+        {!editing && !proposal && !remix && (
+          <div className="j-acts">
+            <button className="j-act" onClick={() => setRemix(entry.text)}>
+              <IconRemix />
+              <span>{t.journal.actRemix}</span>
+            </button>
+            <button className="j-act" onClick={() => runRefine("rewrite")} disabled={busy}>
+              <IconSparkle />
+              <span>{t.journal.actRewrite}</span>
+            </button>
+            <button className="j-act" onClick={() => setEditing(true)}>
+              <IconPencil />
+              <span>{t.journal.actEdit}</span>
+            </button>
+            <button className="j-act" onClick={doShare} disabled={busy || allMediaOf(entry).length === 0}>
+              <IconShare />
+              <span>{t.journal.actShare}</span>
+            </button>
+          </div>
+        )}
+
         {busy && <p className="j-working">{t.journal.working}</p>}
+
+        {/* Remix: the words the pictures were made from, open for changes. */}
+        {remix !== null && (
+          <div className="j-remix">
+            <p className="j-remix-lede">{t.journal.remixLede}</p>
+            <textarea
+              className="j-edit"
+              value={remix}
+              onChange={(e) => setRemix(e.target.value)}
+              rows={8}
+              autoFocus
+              aria-label={t.journal.remixLabel}
+            />
+            <div className="j-edit-actions">
+              <Button variant="ghost" onClick={() => setRemix(null)}>{t.wizard.cancel}</Button>
+              <Button onClick={runRemix}>{t.journal.remixGo}</Button>
+            </div>
+          </div>
+        )}
 
         {/* The film comes first, above the words and the stills it was made
             from: it is the finished piece, they are the working material.
