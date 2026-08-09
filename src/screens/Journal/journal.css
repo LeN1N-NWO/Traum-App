@@ -350,14 +350,16 @@
   margin-inline: calc(var(--s-4) * -1); padding-inline: var(--s-4);
 }
 .j-acts::-webkit-scrollbar { display: none; }
+/* Kompakt genug, dass vier Pillen auf 375px nebeneinander stehen — was
+   herausscrollt, wird nie angetippt. */
 .j-act {
-  display: inline-flex; align-items: center; gap: 7px; flex: none;
-  padding: 9px 15px 9px 12px; border-radius: 999px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  padding: 7px 11px 7px 9px; border-radius: 999px; cursor: pointer;
   background: var(--panel); border: 1px solid var(--panel-line);
-  color: var(--text); font-family: inherit; font-size: var(--t-small); font-weight: 600;
+  color: var(--text); font-family: inherit; font-size: var(--t-micro); font-weight: 600;
   transition: background .14s ease-out, transform .14s ease-out;
 }
-.j-act svg { width: 19px; height: 19px; color: var(--warm); }
+.j-act svg { width: 15px; height: 15px; color: var(--warm); }
 .j-act:hover:not(:disabled) { background: rgba(255, 255, 255, .1); }
 .j-act:active:not(:disabled) { transform: scale(.96); }
 .j-act:disabled { opacity: .4; cursor: not-allowed; }
