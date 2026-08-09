@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
 import { analyze } from "../lib/api.js";
-import { useVoiceInput } from "../lib/useVoiceInput.js";
 import { PRICES } from "../lib/pricing.js";
 import { spend } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
@@ -34,12 +33,6 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
   const [card, setCard] = useState(null);         // the tag being looked at, if any
   const [interview, setInterview] = useState(false);
   const [reading, setReading] = useState(false);  // analysing what the interview brought back
-  const voice = useVoiceInput({
-    onText: (text) => patch({ text }),
-    // MIC_DENIED / READ_FAILED are our own codes; anything else is already a
-    // user-facing message from the server (same contract as analyze/refine).
-    onError: (msg) => toast(t.dream.voiceErrors[msg] || `⚠ ${msg}`),
-  });
 
   const clean = w.text.trim();
 
@@ -193,13 +186,6 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
 
       <div className="wiz-field-label">
         <span>{t.dream.label}</span>
-        {voice.supported && (
-          <span className={voice.listening ? "wiz-voice-on" : ""}>
-            {voice.listening ? t.dream.voiceListening
-              : voice.busy ? t.dream.voiceTranscribing
-              : t.dream.voiceReady}
-          </span>
-        )}
       </div>
 
       {/* Names from the profile light up as they are typed, so it is visible
@@ -218,20 +204,6 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
       />
 
       {card && <TagCard avatar={card.avatar} anchor={card.rect} onClose={closeCard} />}
-
-      {/* Dictation, which is not the same thing as the interview above: this
-          one only writes down what you say, it never asks. */}
-      {voice.supported && (
-        <button
-          className={"wiz-mic" + (voice.listening ? " wiz-mic-on" : "")}
-          onClick={() => voice.toggle(w.text)}
-          disabled={voice.busy}
-          aria-label={t.dream.voiceLabel}
-          aria-pressed={voice.listening}
-        >
-          🎙
-        </button>
-      )}
 
       {/* No skip: every later step runs on what this call returns — the
           characters, the places, the beats. Continuing without it would mean
