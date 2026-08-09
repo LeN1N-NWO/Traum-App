@@ -29,24 +29,61 @@
 .sl-lede { color: var(--muted); font-size: var(--t-small); margin: 0 0 var(--s-4); }
 .sl-hint { color: var(--faint); font-size: var(--t-small); margin: var(--s-4) 0 0; }
 
-/* — checklist — */
+/* — checklist —
+   Nach der Hatch-Referenz (09.08.2026): ein Raster ruhiger Karten statt
+   einer Zeilenliste. Jede Karte trägt ihr Glyph in einem weich leuchtenden
+   Kreis, Titel und Text zentriert darunter — kleine Altäre, keine To-dos.
+   Erledigt = die Karte tritt zurück: Fläche dunkler, Text eingeklappt,
+   Häkchen oben rechts. Das Verschwinden des Textes ist die Belohnung. */
 .sl-checklist { display: flex; flex-direction: column; gap: var(--s-3); }
 .sl-progress { display: flex; gap: 6px; }
 .sl-progress-seg { flex: 1; height: 5px; border-radius: 999px; background: var(--panel-line); }
 .sl-progress-on { background: var(--accent-soft); }
 .sl-progress-text { color: var(--faint); font-size: var(--t-small); text-align: right; margin: 0; }
-.sl-check { display: flex; gap: var(--s-3); align-items: flex-start; cursor: pointer; text-align: left; width: 100%; }
-.sl-check-dot {
-  flex: 0 0 26px; width: 26px; height: 26px; border-radius: 50%;
-  border: 1px solid var(--panel-line); background: var(--panel);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; color: var(--bg);
+
+/* align-items: start, damit eine erledigte (eingeklappte) Karte nicht auf
+   die Höhe ihrer offenen Nachbarin gestreckt wird — sonst steht da eine
+   große leere Fläche mit einem Häkchen drin. */
+.sl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); align-items: start; }
+/* Sieben Karten: die letzte (Atmung — der eigentliche Einschlaf-Griff)
+   bekommt die volle Breite statt eines leeren Nachbarn. */
+.sl-grid > :last-child { grid-column: 1 / -1; }
+
+.sl-card {
+  position: relative; display: flex; flex-direction: column; align-items: center;
+  gap: var(--s-2); padding: var(--s-4) var(--s-3); cursor: pointer; text-align: center;
+  border-radius: var(--radius-lg); border: 1px solid var(--panel-line);
+  background: linear-gradient(165deg, var(--sky), var(--bg2) 80%);
+  color: var(--text); font-family: var(--sans);
+  transition: background .2s ease-out, border-color .2s ease-out, opacity .2s ease-out;
 }
-.sl-check-done .sl-check-dot { background: var(--accent-soft); border-color: var(--accent-soft); }
-.sl-check-done .sl-check-title { color: var(--muted); text-decoration: line-through; }
-.sl-check-body { display: flex; flex-direction: column; gap: 2px; }
-.sl-check-title { font-weight: 600; font-size: var(--t-body); }
-.sl-check-text { color: var(--muted); font-size: var(--t-small); }
+.sl-card:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.sl-card:active { transform: scale(.985); }
+
+.sl-card-art {
+  display: flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; border-radius: 50%;
+  color: var(--accent-soft);
+  background: radial-gradient(60% 60% at 50% 40%, rgb(140 192 255 / .28), rgb(79 156 249 / .10) 75%, transparent);
+  box-shadow: 0 0 24px rgb(79 156 249 / .18);
+}
+.sl-card-title { font-weight: 600; font-size: var(--t-body); text-wrap: balance; }
+.sl-card-text { color: var(--muted); font-size: var(--t-small); line-height: 1.45; }
+
+.sl-card-tick {
+  position: absolute; top: 10px; inset-inline-end: 10px;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--bg);
+  background: var(--ok); opacity: 0; transform: scale(.6);
+  transition: opacity .18s ease-out, transform .18s ease-out;
+}
+
+.sl-card-done { background: var(--bg2); border-color: transparent; }
+.sl-card-done .sl-card-art { color: var(--faint); background: var(--panel); box-shadow: none; }
+.sl-card-done .sl-card-title { color: var(--muted); }
+.sl-card-done .sl-card-text { display: none; }
+.sl-card-done .sl-card-tick { opacity: 1; transform: scale(1); }
 
 /* — sound mixer —
    Chip links, Pillen-Spur rechts: die Spur IST der Regler. Die Füllung
