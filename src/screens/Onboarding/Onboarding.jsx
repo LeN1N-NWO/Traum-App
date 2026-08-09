@@ -20,7 +20,7 @@ import "./onboarding.css";
  * is the DreamScape until a rendered film replaces it, and the mascot is a
  * simple wisp until there is real art. The FLOW is the deliverable here.
  */
-export default function Onboarding() {
+export default function Onboarding({ onExit }) {
   const { state, update, toast } = useAppState();
   const [phase, setPhase] = useState("slides");   // slides | gate | survey | selfie
   const [dot, setDot] = useState(0);
@@ -35,7 +35,11 @@ export default function Onboarding() {
     if (el) setDot(Math.round(el.scrollLeft / el.clientWidth));
   }
 
-  /** The single exit. Everything before it only moves between phases. */
+  /* The single exit. Everything before it only moves between phases.
+   * Signals completion via onExit() rather than leaving the caller to infer
+   * it from state.onboarded flipping — the start menu (App.jsx) reopens
+   * this component on demand even when state.onboarded is already true, so
+   * that flip would not fire a second time and the screen would go nowhere. */
   function complete({ surveyDone = false, profile = null } = {}) {
     const grant = surveyDone ? welcomeGrant(state) : null;
     update({
@@ -49,6 +53,7 @@ export default function Onboarding() {
     // would be a lie with a ✦ on it.
     if (grant) toast(t.onboarding.granted);
     else if (surveyDone) toast(t.onboarding.thanks);
+    onExit?.();
   }
 
   if (phase === "survey") {

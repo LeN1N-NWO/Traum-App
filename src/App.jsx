@@ -11,6 +11,7 @@ import ProfileScreen from "./screens/Profile/ProfileScreen.jsx";
 import WizardShell from "./wizard/WizardShell.jsx";
 import SoundDock from "./components/SoundDock.jsx";
 import Onboarding from "./screens/Onboarding/Onboarding.jsx";
+import StartMenu from "./screens/Onboarding/StartMenu.jsx";
 
 /* HashRouter, not BrowserRouter: Capacitor will load the app over file://,
    where the History API is unreliable. */
@@ -26,13 +27,26 @@ export default function App() {
   );
 }
 
-/* First run gets the onboarding INSTEAD of the app, not on top of it: no
-   tab bar to escape through until it is done, like every native first-run
-   flow. Needs app state, hence a child of the provider. */
+/* Asked for explicitly while onboarding is under active work (09.08.2026):
+ * gating on state.onboarded meant the flow, once seen, was practically
+ * unreachable again — the flag flips once and stays flipped. StartMenu
+ * asks every launch instead of a stored flag deciding it, so it can be
+ * previewed on demand. Remove StartMenu and go back to gating on
+ * state.onboarded once the flow is settled — a returning user should not
+ * be asked "onboarding or app?" every time they open the app. */
 function Gate() {
-  const { state } = useAppState();
-  if (!state.onboarded) return <Onboarding />;
+  const [phase, setPhase] = useState("menu");   // menu | onboarding | app
 
+  if (phase === "menu") {
+    return <StartMenu onOnboarding={() => setPhase("onboarding")} onSkip={() => setPhase("app")} />;
+  }
+  if (phase === "onboarding") {
+    return <Onboarding onExit={() => setPhase("app")} />;
+  }
+  return <AppRouter />;
+}
+
+function AppRouter() {
   return (
     <HashRouter>
       <Routes>

@@ -449,6 +449,12 @@ export default {
     thanks: "✦ Thanks — your profile is set",
     profileCard: "Finish your profile with a 2-minute chat",
     profileCardHint: "✦ 3 free credits when you do",
+    // Dev-only picker shown before the app decides anything — see
+    // screens/Onboarding/StartMenu.jsx.
+    startMenuTitle: "Before we go in",
+    startMenuText: "See the onboarding flow, or skip straight to the app?",
+    startMenuOnboarding: "Show onboarding",
+    startMenuSkip: "Skip to app",
   },
 
   voice: {
