@@ -48,12 +48,39 @@
 .sl-check-title { font-weight: 600; font-size: var(--t-body); }
 .sl-check-text { color: var(--muted); font-size: var(--t-small); }
 
-/* — sound mixer — */
-.sl-sounds { display: flex; flex-direction: column; gap: var(--s-4); }
-.sl-slider { display: flex; flex-direction: column; gap: var(--s-2); }
-.sl-slider-name { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; }
-.sl-slider-name small { color: var(--faint); font-weight: 400; font-size: var(--t-small); }
-.sl-slider input[type="range"] { width: 100%; accent-color: var(--accent-soft); }
+/* — sound mixer —
+   Chip links, Pillen-Spur rechts: die Spur IST der Regler. Die Füllung
+   kommt aus --p (vom JSX gesetzt), gezeichnet als harter Verlaufsschnitt —
+   ein nativer Fortschrittsbalken kann die Pillenform nicht. Der Daumen
+   bleibt unsichtbar, aber in voller Höhe greifbar: das Ziel ist die ganze
+   44px-Spur, nicht ein 18px-Knubbel im Dunkeln. */
+.sl-sounds { display: flex; flex-direction: column; gap: var(--s-3); }
+.sl-slider { display: flex; align-items: center; gap: var(--s-3); cursor: pointer; }
+.sl-chip {
+  flex: 0 0 92px; padding: 10px 0; text-align: center;
+  border-radius: 999px; background: var(--panel); border: 1px solid var(--panel-line);
+  font-weight: 600; font-size: var(--t-small);
+}
+.sl-track { position: relative; flex: 1; display: flex; }
+.sl-range {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 44px; margin: 0; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(to right,
+    var(--text) 0%, var(--text) var(--p), rgba(255, 255, 255, .12) var(--p));
+}
+.sl-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 28px; height: 44px; background: transparent; border: 0;
+}
+.sl-range::-moz-range-thumb { width: 28px; height: 44px; background: transparent; border: 0; }
+.sl-range:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 3px; }
+/* Die Zahl liegt am rechten Ende der Spur. Dunkel auf der leeren Spur —
+   läuft die Füllung unter ihr durch, kehrt mix-blend sie um. */
+.sl-val {
+  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  pointer-events: none; font-size: var(--t-small); font-weight: 600;
+  color: var(--text); mix-blend-mode: difference;
+}
 .sl-autostart {
   display: flex; gap: var(--s-3); align-items: flex-start; cursor: pointer;
   padding: var(--s-4); border-radius: var(--radius);

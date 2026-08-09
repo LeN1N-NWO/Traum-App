@@ -68,18 +68,24 @@ function SoundMixerPanel() {
     <div className="sl-sounds">
       <p className="sl-lede">{t.sleep.sounds.lede}</p>
 
+      {/* One row per noise colour: name as a chip, the track a pill that
+          fills from the left, the loudness as a number at its end — the
+          whole row reads at a glance in the dark, which is where this
+          screen is actually used. */}
       {SOUND_IDS.map((id) => (
-        <label key={id} className="sl-slider">
-          <span className="sl-slider-name">
-            {t.sleep.sounds.names[id]}
-            <small>{t.sleep.sounds.descs[id]}</small>
+        <label key={id} className="sl-slider" title={t.sleep.sounds.descs[id]}>
+          <span className="sl-chip">{t.sleep.sounds.names[id]}</span>
+          <span className="sl-track">
+            <input
+              className="sl-range"
+              type="range" min="0" max="1" step="0.01"
+              value={vols[id]}
+              style={{ "--p": `${Math.round(vols[id] * 100)}%` }}
+              onChange={(e) => change(id, Number(e.target.value))}
+              aria-label={`${t.sleep.sounds.names[id]} — ${t.sleep.sounds.descs[id]}`}
+            />
+            <output className="sl-val" aria-hidden="true">{Math.round(vols[id] * 100)}</output>
           </span>
-          <input
-            type="range" min="0" max="1" step="0.01"
-            value={vols[id]}
-            onChange={(e) => change(id, Number(e.target.value))}
-            aria-label={t.sleep.sounds.names[id]}
-          />
         </label>
       ))}
 
