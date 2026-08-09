@@ -33,6 +33,24 @@
  *   Deliberately NOT solved by rendering the free dream on a cheaper model:
  *   the first dream someone sees decides whether they ever pay for another,
  *   so it gets the same renderer as everything else. Fewer, not worse.
+ *
+ * ── The grant is now a written promise (10.08.2026) ───────────────────────
+ * The welcome no longer says "3 credits" anywhere; it says "your first dream
+ * is on us" (t.onboarding.gateReward, seven locales). That is better copy —
+ * a dream is a thing, three credits is a conversion someone has to do — but
+ * it also binds this number: the grant has to buy exactly one smallest
+ * dream, no less and no more. credits.test.js pins that relationship,
+ * because the promise and the numbers live in nine different files.
+ *
+ * It also settles the grid question. The 3-image tier CAN be rendered as one
+ * wide image cut into three (Step5Style's `useGrid`), which would make this
+ * giveaway cost $0.08 instead of $0.24 — tempting, given how thin the
+ * margins in plans.js are. Measured on a real render: the panels come out
+ * 459×768 against 768×1376 for a normal still, a third of the pixels. So
+ * that saving would be taken precisely on the one dream that has to be
+ * good, and against the rule two paragraphs up. The free dream renders
+ * full-size. If the grid is ever wanted, it belongs in front of someone as
+ * a labelled cheaper choice, not behind their first impression.
  */
 export const WELCOME_CREDITS = 3;
 

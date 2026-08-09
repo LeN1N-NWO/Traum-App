@@ -477,7 +477,7 @@ export default {
     start: "Start tonight",
     gateTitle: "Tell me how you dream",
     gateText: "Two minutes with me, nothing to fill in: what to call you, how your nights run, what keeps coming back. Skip whatever you like.",
-    gateReward: "✦ 3 free credits when you finish",
+    gateReward: "✦ Your first dream is on us",
     gateStart: "Let's talk",
     gateLater: "Maybe later",
     surveyTitle: "getting to know you",
@@ -485,10 +485,10 @@ export default {
     selfieText: "Add a photo and your dreams get their lead actor — your real face, in every frame. You can always do this later.",
     selfieAdd: "Add my photo",
     selfieSkip: "Not now",
-    granted: "✦ Welcome — 3 credits added",
+    granted: "✦ Welcome — your first dream is on us",
     thanks: "✦ Thanks — your profile is set",
     profileCard: "Finish your profile with a 2-minute chat",
-    profileCardHint: "✦ 3 free credits when you do",
+    profileCardHint: "✦ Your first dream is on us",
     // Dev-only picker shown before the app decides anything — see
     // screens/Onboarding/StartMenu.jsx.
     startMenuTitle: "Before we go in",

@@ -31,18 +31,22 @@ test("existing installs keep the credits they already had", () => {
   expect(welcomeGrant({ credits: 4 })).toEqual({ credits: 4 + WELCOME_CREDITS, creditsGranted: true });
 });
 
-/* The promise the welcome grant makes: a new arrival can make ONE complete
- * dream without paying. That is a relationship between two files, and nothing
- * else notices when it breaks — raise the price of images and the grant
- * silently stops covering a dream, leaving newcomers stuck at a paywall on
- * their first try. Both numbers were also wrong at once before (25 credits
- * against a 2-credit dream), so pin the invariant, not the values. */
-test("the welcome grant pays for the smallest dream", () => {
+/* The promise the welcome grant makes, now in writing: "your first dream is
+ * on us" (t.onboarding.gateReward, in all seven locales). That sentence is
+ * true only while the grant buys EXACTLY one smallest dream, and the two
+ * numbers that decide it live in two other files, far from the seven where
+ * the promise is spelled out. Nothing else notices when they drift:
+ *
+ *   too little  → the welcome screen promises a dream and then shows a
+ *                 paywall on the first try, which is the worst first
+ *                 impression the app can make;
+ *   too much    → leftover credits that buy nothing on their own (the
+ *                 cheapest thing costs 3), so they read as a bug rather
+ *                 than as generosity.
+ *
+ * Both numbers were wrong at once before (25 credits against a 2-credit
+ * dream), so pin the RELATIONSHIP, not the values. */
+test("the welcome grant pays for exactly one smallest dream", () => {
   const smallest = priceForImages(Math.min(...IMAGE_COUNTS));
-  expect(WELCOME_CREDITS).toBeGreaterThanOrEqual(smallest);
-});
-
-test("…and not much more than that — free credits are real money", () => {
-  const smallest = priceForImages(Math.min(...IMAGE_COUNTS));
-  expect(WELCOME_CREDITS).toBeLessThanOrEqual(smallest * 2);
+  expect(WELCOME_CREDITS).toBe(smallest);
 });
