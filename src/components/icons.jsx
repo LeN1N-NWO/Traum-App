@@ -128,6 +128,17 @@ export function ChevronRight() {
   );
 }
 
+/* Settings: six teeth, not the usual twelve — at 24px a fine-toothed gear
+   turns into a fuzzy circle. Fewer, larger teeth still read as "gear". */
+export function IconGear() {
+  return (
+    <svg {...base}>
+      <circle cx="12" cy="12" r="3.1" />
+      <path d="M12 2.6v2.6M12 18.8v2.6M21.4 12h-2.6M5.2 12H2.6M18.6 5.4l-1.8 1.8M7.2 16.8l-1.8 1.8M18.6 18.6l-1.8-1.8M7.2 7.2 5.4 5.4" />
+    </svg>
+  );
+}
+
 /* A filmstrip, not a clapperboard — sprocket holes read at 24px, a clapper's
    hinge and stripes do not. */
 export function IconFilm() {

@@ -119,6 +119,10 @@ export default {
 
   profile: {
     title: "Profil",
+    settings: "Einstellungen",
+    voiceSetting: "Stimme des Assistenten",
+    voiceSettingHint: "Wer mit dir spricht",
+    done: "Fertig",
     credits: "Credits",
     creditsSoon: "Aufladen kommt bald",
     you: "Du",
@@ -171,29 +175,66 @@ export default {
     close: "Schließen",
   },
 
-  guide: [
-    {
-      title: "Realitätschecks",
-      text: "Frag dich mehrmals täglich, ob du gerade träumst — und prüfe es wirklich: " +
-            "zähl deine Finger, schau auf eine Uhr, schau weg, schau zurück. " +
-            "Im Traum ändert sich die Antwort.",
-    },
-    {
-      title: "MILD",
-      text: "Wiederhole beim Einschlafen: „Heute Nacht merke ich, dass ich träume.“ " +
-            "Stell dir einen Traum vor, den du schon hattest, und stell dir vor, dich darin zu erwischen.",
-    },
-    {
-      title: "WBTB",
-      text: "Nach etwa fünf Stunden kurz aufwachen, 20–30 Minuten wach bleiben, dann " +
-            "mit MILD wieder einschlafen. Die zuverlässigste Methode — und die, die Schlaf kostet.",
-    },
-    {
-      title: "Aufschreiben",
-      text: "Notiere deine Träume gleich nach dem Aufwachen, bevor du aufstehst. Wer regelmäßig " +
-            "schreibt, erinnert sich an mehr — und erkennt irgendwann die eigenen Muster.",
-    },
-  ],
+  lucid: {
+    lede: "Klarträumen heißt zu merken, dass man träumt, während es passiert — und manchmal zu lenken, was als Nächstes kommt. Es ist erlernbar: In der bisher größten Vergleichsstudie genügte vielen eine Woche Übung. Hier steht, was die Belege wirklich hergeben. Auch der Teil, der dem widerspricht, was im Netz überall empfohlen wird.",
+    leversTitle: "Was wirklich den Ausschlag gibt",
+    levers: [
+      { stat: "18 % vs 11 %", title: "Schnell wieder einschlafen",
+        text: "Der größte einzelne Unterschied in der ganzen Studie war nicht die gewählte Methode — sondern ob man danach innerhalb von zehn Minuten wieder einschlief. Sofort hinlegen. Kein Handy." },
+      { stat: "18 % vs 6 %", title: "Nach etwa fünf Stunden aufwachen",
+        text: "Nächte mit kurzem Aufstehen brachten dreimal so viele Klarträume wie Nächte ohne. Fast jede Methode hier unten baut auf diesem einen Moment auf." },
+      { stat: "die Grundlage", title: "Träume weiter aufschreiben",
+        text: "Wer sich an mehr Träume erinnerte, hatte mehr Klarträume — noch bevor er irgendeine Methode gelernt hatte. Du machst das ohnehin schon. Genau dafür gibt es diese App." },
+    ],
+    methodsTitle: "Die Methoden",
+    methods: [
+      {
+        id: "wbtb", name: "WBTB — Aufstehen und zurück ins Bett", rate: "der Verstärker",
+        summary: "Für sich genommen keine Methode: das Zeitfenster, in dem die anderen wirken.",
+        steps: [
+          "Früh genug ins Bett, dass nach fünf Stunden noch ein paar übrig sind.",
+          "Den Wecker so hinlegen, dass du zum Ausschalten aufstehen musst.",
+          "Fünf bis zehn Minuten wach bleiben. Bad, ein paar Schritte, gedämpftes Licht — keine Bildschirme.",
+          "Zurück ins Bett, und beim Hinlegen MILD oder SSILD laufen lassen.",
+        ],
+        note: "Das ist die Methode, die dich etwas kostet: unterbrochenen Schlaf. Zwei, drei Nächte pro Woche reichen völlig — jede Nacht ist der Weg, auf dem Leute aufgeben.",
+      },
+      {
+        id: "ssild", name: "SSILD — über die Sinne", rate: "16,9 %",
+        summary: "Sehen, Hören, Fühlen im Wechsel, bis du wegdriftest. Das beste Ergebnis der Studie, und der geringste Aufwand.",
+        steps: [
+          "Nach dem Aufwachen bei fünf Stunden bequem hinlegen.",
+          "Vier schnelle Runden: Augen (was du hinter den Lidern siehst), Ohren (was du hörst), Körper (das Gewicht der Decke). Zwei, drei Sekunden je Sinn — nicht verweilen.",
+          "Dann vier bis sechs langsame Runden: etwa zwanzig Sekunden je Sinn.",
+          "Aufhören, in deine gewohnte Schlafhaltung rollen und einschlafen lassen.",
+        ],
+        note: "Sich anzustrengen ist der klassische Fehler. Die Runden sollen dich schläfrig machen, nicht wach — wenn du noch konzentriert bist, hast du es übertrieben. Während der langsamen Runden einzuschlafen ist ein Erfolg, kein Versagen.",
+      },
+      {
+        id: "mild", name: "MILD — Vorsatz vor dem Einschlafen", rate: "16,5 %",
+        summary: "Mit einem Satz einschlafen — und mit dem Bild, wie du dich selbst ertappst.",
+        steps: [
+          "Nach dem Aufwachen bei fünf Stunden einen Traum von heute Nacht oder einen jüngeren erinnern, so lebhaft es geht.",
+          "Wiederholen, und es ernst meinen: „Das nächste Mal, wenn ich träume, merke ich, dass ich träume.“",
+          "Dich in diesen Traum zurückversetzen — und diesmal das bemerken, was ihn hätte verraten müssen.",
+          "Beim Einschlafen das Bild behalten, nicht die Worte.",
+        ],
+        note: "Es wirkt über den Vorsatz, nicht über die Wiederholung. Den Satz zwanzigmal zu sagen und dabei an etwas anderes zu denken, bringt nichts; ihn einmal zu sagen und zu meinen, ist die ganze Methode.",
+      },
+      {
+        id: "rc", name: "Realitätschecks", rate: "kein messbarer Nutzen",
+        summary: "Die meistempfohlene Methode im Netz — und die, mit der die Daten am wenigsten gnädig umgingen.",
+        steps: [
+          "Mehrmals am Tag fragen, ob du gerade träumst — und wirklich nachsehen, statt es anzunehmen.",
+          "Bei geschlossenem Mund und zugehaltener Nase einatmen wollen. Im Traum kommt die Luft trotzdem.",
+          "Oder die Finger der einen Hand gegen die andere Handfläche drücken. Im Traum gehen sie hindurch.",
+          "Vor allem dann, wenn dir etwas leicht seltsam vorkommt — dieser Reflex ist es, den du nachts haben willst.",
+        ],
+        note: "Der ehrliche Befund: Gruppen, die Realitätschecks zu MILD dazunahmen, schnitten schlechter ab als MILD allein (10,8 % und 13,4 % gegen 16,5 %). Sie mögen die Gewohnheit fördern, das Gesehene zu hinterfragen — aber sie sind nicht der Hebel, als der sie verkauft werden, und sie kosten Aufmerksamkeit am Tag, die woanders besser aufgehoben wäre.",
+      },
+    ],
+    sourceNote: "Zahlen aus der International Lucid Dream Induction Study (Aspy u. a., 2020): 355 Teilnehmende, eine Woche Übung. Beruhigend: In den Nächten, in denen es klappte, war die Schlafqualität nicht schlechter — die Teilnehmenden schliefen etwas länger und wachten weniger müde auf als in ihrer Vergleichswoche.",
+  },
 
   dream: {
     title: "Deinen Traum aufnehmen",
@@ -357,7 +398,7 @@ export default {
       guide: {
         emoji: "🧠",
         title: "Luzides Träumen",
-        text: "Realitätschecks, MILD, WBTB, Traumtagebuch",
+        text: "Was die Studienlage wirklich hergibt",
       },
       symbols: {
         emoji: "✧",

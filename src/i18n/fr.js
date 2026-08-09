@@ -119,6 +119,10 @@ export default {
 
   profile: {
     title: "Profil",
+    settings: "Réglages",
+    voiceSetting: "Voix de l'assistant",
+    voiceSettingHint: "Qui te parle",
+    done: "Terminé",
     credits: "crédits",
     creditsSoon: "La recharge arrive bientôt",
     you: "Toi",
@@ -171,29 +175,66 @@ export default {
     close: "Fermer",
   },
 
-  guide: [
-    {
-      title: "Tests de réalité",
-      text: "Demande-toi plusieurs fois par jour si tu rêves — et vérifie-le vraiment : " +
-            "compte tes doigts, regarde une horloge, détourne le regard, regarde à nouveau. " +
-            "Dans un rêve, la réponse change.",
-    },
-    {
-      title: "MILD",
-      text: "En t'endormant, répète : « Cette nuit, je remarquerai que je rêve. » " +
-            "Imagine un rêve que tu as déjà fait et vois-toi t'y surprendre en train de rêver.",
-    },
-    {
-      title: "WBTB",
-      text: "Réveille-toi brièvement après environ cinq heures, reste éveillé 20 à 30 minutes, " +
-            "puis rendors-toi avec MILD. La méthode la plus fiable — et celle qui te coûte du sommeil.",
-    },
-    {
-      title: "Note-le",
-      text: "Note tes rêves juste après le réveil, avant de te lever. Ceux qui écrivent " +
-            "régulièrement se souviennent de plus — et finissent par voir leurs propres schémas.",
-    },
-  ],
+  lucid: {
+    lede: "Le rêve lucide, c'est s'apercevoir qu'on rêve pendant que ça se produit — et parfois diriger la suite. Cela s'apprend : dans la plus grande étude comparative à ce jour, une semaine de pratique a suffi à beaucoup. Voici ce que les données soutiennent réellement, y compris la part qui contredit presque tous les conseils qu'on trouve en ligne.",
+    leversTitle: "Ce qui change vraiment quelque chose",
+    levers: [
+      { stat: "18 % vs 11 %", title: "Se rendormir vite",
+        text: "La plus grande différence de toute l'étude n'était pas la technique choisie, mais le fait de se rendormir dans les dix minutes qui suivent. Allonge-toi tout de suite. Pas de téléphone." },
+      { stat: "18 % vs 6 %", title: "Se réveiller après cinq heures",
+        text: "Les nuits avec un bref réveil ont produit trois fois plus de rêves lucides que les autres. Presque toutes les méthodes ci-dessous reposent sur ce seul moment." },
+      { stat: "le socle", title: "Continuer à noter ses rêves",
+        text: "Celles et ceux qui se rappelaient plus de rêves en faisaient davantage de lucides — avant même d'avoir appris la moindre technique. Tu le fais déjà. C'est à cela que sert cette app." },
+    ],
+    methodsTitle: "Les méthodes",
+    methods: [
+      {
+        id: "wbtb", name: "WBTB — Se lever puis se recoucher", rate: "le multiplicateur",
+        summary: "Pas une technique en soi : la fenêtre dans laquelle les autres fonctionnent.",
+        steps: [
+          "Couche-toi assez tôt pour qu'après cinq heures il t'en reste encore quelques-unes.",
+          "Pose le réveil là où il faut se lever pour l'éteindre.",
+          "Reste debout cinq à dix minutes. Salle de bain, quelques pas, lumière tamisée — aucun écran.",
+          "Retourne au lit et lance MILD ou SSILD en t'installant.",
+        ],
+        note: "C'est celle qui te coûte quelque chose : un sommeil interrompu. Deux ou trois nuits par semaine suffisent largement — toutes les nuits, c'est la façon dont on abandonne.",
+      },
+      {
+        id: "ssild", name: "SSILD — Par les sens", rate: "16,9 %",
+        summary: "Alterne vue, ouïe et toucher jusqu'à t'endormir. Le meilleur résultat de l'étude, et le moindre effort.",
+        steps: [
+          "Après le réveil des cinq heures, allonge-toi confortablement.",
+          "Quatre tours rapides : les yeux (ce que tu vois derrière les paupières), les oreilles (ce que tu entends), le corps (le poids de la couette). Deux ou trois secondes chacun, sans t'attarder.",
+          "Puis quatre à six tours lents : une vingtaine de secondes par sens.",
+          "Arrête, roule dans ta position habituelle et laisse-toi partir.",
+        ],
+        note: "Forcer est l'erreur classique. Les tours doivent t'assoupir, pas te réveiller : si tu es encore concentré, tu en as trop fait. S'endormir pendant les tours lents est une réussite, pas un échec.",
+      },
+      {
+        id: "mild", name: "MILD — L'intention avant le sommeil", rate: "16,5 %",
+        summary: "S'endormir en tenant une phrase, et l'image de se surprendre soi-même.",
+        steps: [
+          "Après le réveil des cinq heures, rappelle-toi un rêve de cette nuit ou un rêve récent, le plus nettement possible.",
+          "Répète, et pense-le vraiment : « La prochaine fois que je rêve, je me rendrai compte que je rêve. »",
+          "Imagine-toi de retour dans ce rêve — et remarquant cette fois ce qui aurait dû te mettre la puce à l'oreille.",
+          "En t'endormant, garde l'image, pas les mots.",
+        ],
+        note: "Cela marche par l'intention, pas par la répétition. Dire la phrase vingt fois en pensant à autre chose ne donne rien ; la dire une fois en le pensant vraiment, c'est toute la technique.",
+      },
+      {
+        id: "rc", name: "Tests de réalité", rate: "aucun bénéfice mesuré",
+        summary: "La technique la plus recommandée sur internet — et celle avec laquelle les données ont été le moins tendres.",
+        steps: [
+          "Plusieurs fois par jour, demande-toi si tu rêves — et vérifie vraiment, au lieu de le supposer.",
+          "Essaie d'inspirer bouche fermée et nez pincé. En rêve, l'air passe quand même.",
+          "Ou appuie les doigts d'une main contre la paume de l'autre. En rêve, ils la traversent.",
+          "Fais-le surtout quand quelque chose te semble légèrement étrange — c'est ce réflexe que tu veux avoir la nuit.",
+        ],
+        note: "Le constat honnête : les groupes qui ont ajouté des tests de réalité à MILD ont obtenu moins que MILD seul (10,8 % et 13,4 % contre 16,5 %). Ils entretiennent peut-être l'habitude de questionner ce qu'on voit, mais ce n'est pas le levier qu'on vend, et cela coûte une attention diurne mieux employée ailleurs.",
+      },
+    ],
+    sourceNote: "Chiffres de l'International Lucid Dream Induction Study (Aspy et coll., 2020) : 355 participants, une semaine de pratique. Rassurant : la qualité du sommeil n'était pas moins bonne les nuits où cela fonctionnait — les participants ont dormi un peu plus longtemps et se sont réveillés moins fatigués que pendant leur semaine de référence.",
+  },
 
   dream: {
     title: "Enregistre ton rêve",
@@ -358,7 +399,7 @@ export default {
       guide: {
         emoji: "🧠",
         title: "Rêve lucide",
-        text: "Tests de réalité, MILD, WBTB, journal",
+        text: "Ce que les données soutiennent vraiment",
       },
       symbols: {
         emoji: "✧",

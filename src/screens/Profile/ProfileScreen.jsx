@@ -5,6 +5,8 @@ import { t } from "../../i18n/index.js";
 import AvatarDialog from "../../components/AvatarDialog.jsx";
 import OnboardingSurvey from "../Onboarding/OnboardingSurvey.jsx";
 import Paywall from "./Paywall.jsx";
+import Settings from "./Settings.jsx";
+import { IconGear } from "../../components/icons.jsx";
 import "./profile.css";
 
 /* The profile is about the person, not their material: people, pets and
@@ -18,6 +20,7 @@ export default function ProfileScreen() {
   const [editingMe, setEditingMe] = useState(false);
   const [paywall, setPaywall] = useState(false);
   const [survey, setSurvey] = useState(false);
+  const [settings, setSettings] = useState(false);
 
   const me = state.me;
   const dreams = state.journal?.length || 0;
@@ -43,6 +46,12 @@ export default function ProfileScreen() {
           <span className="p-credits-dot" aria-hidden="true">✦</span>
           {state.credits ?? 0}
           <span className="p-credits-word">{t.profile.credits}</span>
+        </button>
+        {/* Round, next to the balance — the two things you reach for from
+            this corner are "top up" and "change something". */}
+        <button className="p-gear" onClick={() => setSettings(true)}
+                aria-label={t.profile.settings}>
+          <IconGear />
         </button>
       </div>
 
@@ -100,6 +109,8 @@ export default function ProfileScreen() {
           onClose={() => setEditingMe(false)}
         />
       )}
+
+      {settings && <Settings onClose={() => setSettings(false)} />}
 
       {paywall && <Paywall onClose={() => setPaywall(false)} />}
     </main>

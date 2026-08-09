@@ -20,11 +20,16 @@ import "./voice.css";
  */
 export default function VoiceInterview({ onDone, onCancel }) {
   const { state: app, update } = useAppState();
-  /* null while the picker is up — the session must not open (and the
-   * microphone must not turn on) until a voice was confirmed. Asked for
-   * every time on purpose: the remembered choice sits preselected, so
-   * continuing costs one tap, changing your mind costs the same one. */
-  const [voice, setVoice] = useState(null);
+  /* The chosen voice, or null while the picker is up — the session must not
+   * open (and the microphone must not turn on) until one is settled.
+   *
+   * Asked exactly ONCE, on the first voice chat ever. After that the stored
+   * choice is used straight away and this screen goes directly to talking:
+   * being asked "which voice?" every time you want to tell a dream at 3am
+   * is a toll booth in front of the one thing the app is for. Changing it
+   * later lives in Profile → Settings. */
+  const [voice, setVoice] = useState(() =>
+    isVoice(app.voice) ? app.voice : null);
   const [state, setState] = useState("connecting");   // connecting|live|error
   const [error, setError] = useState(null);
   const [level, setLevel] = useState(0);
@@ -109,7 +114,7 @@ export default function VoiceInterview({ onDone, onCancel }) {
   if (!voice) {
     return (
       <VoicePicker
-        current={isVoice(app.voice) ? app.voice : DEFAULT_VOICE}
+        current={DEFAULT_VOICE}
         onDone={(id) => { update({ voice: id }); setVoice(id); }}
         onCancel={onCancel}
       />

@@ -17,9 +17,12 @@ import "../../wizard/voice.css";
  * answered; the caller decides nothing here beyond "they finished". */
 export default function OnboardingSurvey({ onDone, onCancel }) {
   const { state: app, update } = useAppState();
-  /* null while the picker is up — see VoiceInterview.jsx, same contract:
-   * no socket and no microphone until a voice was confirmed. */
-  const [voice, setVoice] = useState(null);
+  /* Same contract as VoiceInterview.jsx: no socket and no microphone until
+   * a voice is settled, and asked only when none is stored yet. For a new
+   * install this survey IS the first voice chat, so this is usually where
+   * the one question gets asked. */
+  const [voice, setVoice] = useState(() =>
+    isVoice(app.voice) ? app.voice : null);
   const [state, setState] = useState("connecting");   // connecting|live|error
   const [error, setError] = useState(null);
   const [level, setLevel] = useState(0);
@@ -89,7 +92,7 @@ export default function OnboardingSurvey({ onDone, onCancel }) {
   if (!voice) {
     return (
       <VoicePicker
-        current={isVoice(app.voice) ? app.voice : DEFAULT_VOICE}
+        current={DEFAULT_VOICE}
         onDone={(id) => { update({ voice: id }); setVoice(id); }}
         onCancel={onCancel}
       />

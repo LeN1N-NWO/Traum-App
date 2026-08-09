@@ -24,7 +24,11 @@
 .p-new { cursor: pointer; border-style: dashed; font-size: 22px; color: var(--faint); }
 
 /* — the profile header and portrait — */
-.p-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-5); }
+/* Titel links, Guthaben und Zahnrad rechts: margin-inline-start:auto auf der
+   Pille schiebt beide als Gruppe nach rechts — mit space-between stünde das
+   Zahnrad allein am Rand und die Pille irgendwo in der Mitte. */
+.p-top { display: flex; align-items: center; gap: var(--s-2); margin-bottom: var(--s-5); }
+.p-credits-pill { margin-inline-start: auto; }
 .p-title { font-size: var(--t-h2); font-weight: 600; letter-spacing: -.02em; margin: 0; }
 .p-credits-pill {
   display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
@@ -35,6 +39,67 @@
 .p-credits-pill:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 .p-credits-dot { color: var(--gold); }
 .p-credits-word { color: var(--faint); font-weight: 400; font-size: var(--t-micro); }
+
+.p-gear {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line); color: var(--muted);
+}
+.p-gear:hover { color: var(--text); }
+.p-gear:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.p-gear svg { width: 19px; height: 19px; }
+
+/* — Einstellungen —
+   Blatt von unten, wie das Umschreib-Blatt im Journal: der Hintergrund
+   bleibt sichtbar und unscharf, damit klar ist, dass man kurz zur Seite
+   getreten ist und nicht woanders hin navigiert hat. */
+.p-set-backdrop {
+  position: fixed; inset: 0; z-index: 75;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: rgb(var(--bg-rgb) / .55); backdrop-filter: blur(10px);
+  animation: p-set-fade .18s ease-out;
+}
+.p-set {
+  width: 100%; max-width: 480px;
+  padding: var(--s-3) var(--s-4) calc(env(safe-area-inset-bottom) + var(--s-4));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--bg2); border: 1px solid var(--panel-line); border-bottom: none;
+  animation: p-set-rise .24s ease-out;
+}
+@keyframes p-set-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes p-set-rise { from { transform: translateY(18px); } to { transform: none; } }
+
+.p-set-grab {
+  width: 38px; height: 4px; border-radius: 999px; margin: 0 auto var(--s-4);
+  background: var(--panel-line);
+}
+.p-set-title {
+  font-family: var(--serif); font-size: var(--t-h2); font-weight: 400;
+  margin: 0 0 var(--s-4);
+}
+.p-set-row {
+  display: flex; align-items: center; gap: var(--s-3); width: 100%;
+  padding: var(--s-3) var(--s-3); border-radius: var(--radius); cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font-family: var(--sans); text-align: left;
+}
+.p-set-row:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.p-set-body { display: flex; flex-direction: column; gap: 2px; margin-inline-end: auto; min-width: 0; }
+.p-set-label { font-weight: 600; font-size: var(--t-body); }
+.p-set-hint { color: var(--faint); font-size: var(--t-small); }
+.p-set-value { color: var(--accent-soft); font-size: var(--t-small); font-weight: 600; white-space: nowrap; }
+.p-set-row svg { color: var(--faint); flex: none; }
+
+.p-set-close {
+  width: 100%; margin-top: var(--s-4); padding: var(--s-3); cursor: pointer;
+  border-radius: var(--radius); border: none; background: none;
+  color: var(--muted); font-family: var(--sans); font-size: var(--t-body);
+}
+.p-set-close:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .p-set-backdrop, .p-set { animation: none; }
+}
 
 .p-hero { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); }
 /* An organic blob, not a circle: a circle reads as an account avatar, this
@@ -73,9 +138,92 @@
 }
 .p-stat b { color: var(--text); font-size: var(--t-h2); font-weight: 600; letter-spacing: 0; }
 
-.p-guide { display: flex; flex-direction: column; gap: var(--s-2); }
-.p-guide-title { font-weight: 600; cursor: pointer; }
-.p-guide-text { color: var(--muted); font-size: var(--t-small); margin: var(--s-2) 0 0; }
+/* — Klartraum-Leitfaden —
+   Zwei Ebenen: die Hebel als Zahlenkarten (was laut Studie wirklich zählt),
+   darunter die Methoden als aufklappbare Karten mit ihrer Erfolgsquote auf
+   der Vorderseite. Die Quote steht bewusst schon im zugeklappten Zustand —
+   Methoden vergleichen zu können, ohne jede einzeln zu öffnen, ist der
+   ganze Sinn dieser Seite. */
+.p-lucid { display: flex; flex-direction: column; }
+.p-lucid-head {
+  font-family: var(--serif); font-size: var(--t-h3); font-weight: 400;
+  margin: var(--s-5) 0 var(--s-3);
+}
+
+.p-levers { display: flex; flex-direction: column; gap: var(--s-2); }
+/* Gestapelt, nicht nebeneinander: „18 % vs 11 %" braucht als Spalte so viel
+   Breite, dass daneben jede Überschrift umbricht — nachgemessen am 10.08.,
+   die erste Fassung war doppelt so hoch wie nötig. Die Zahl steht deshalb
+   als eigene Zeile über dem Titel, in Serifenschrift und Gold: sie ist das
+   Argument, der Text darunter erklärt sie nur. */
+.p-lever {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: var(--s-3) var(--s-4); border-radius: var(--radius);
+  background: linear-gradient(150deg, var(--sky), color-mix(in oklab, var(--accent) 18%, var(--bg2)));
+  border: 1px solid var(--panel-line);
+}
+.p-lever-stat {
+  font-family: var(--serif); font-size: 20px; color: var(--gold);
+  line-height: 1.2; letter-spacing: -.01em;
+}
+.p-lever-body { display: contents; }
+.p-lever-title { font-weight: 600; font-size: var(--t-body); }
+.p-lever-text { color: var(--muted); font-size: var(--t-small); line-height: 1.5; }
+
+.p-methods { display: flex; flex-direction: column; gap: var(--s-2); }
+.p-method {
+  border-radius: var(--radius); overflow: hidden;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  transition: border-color .16s ease-out;
+}
+.p-method-open { border-color: var(--accent-soft); }
+.p-method-top {
+  position: relative; display: flex; flex-direction: column; gap: 3px;
+  width: 100%; padding: var(--s-4); padding-inline-end: 46px; cursor: pointer;
+  background: none; border: none; color: var(--text);
+  font-family: var(--sans); text-align: left;
+}
+.p-method-top:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: -2px; }
+.p-method-head { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+.p-method-name { font-weight: 600; font-size: var(--t-body); }
+.p-method-rate {
+  padding: 2px 9px; border-radius: 999px;
+  background: var(--accent-wash); color: var(--accent-soft);
+  font-size: var(--t-micro); font-weight: 600; white-space: nowrap;
+}
+.p-method-sum { color: var(--muted); font-size: var(--t-small); line-height: 1.5; }
+.p-method-chev {
+  position: absolute; top: var(--s-4); inset-inline-end: var(--s-4);
+  color: var(--faint); font-size: 20px; line-height: 1;
+}
+
+.p-method-open-body { padding: 0 var(--s-4) var(--s-4); }
+.p-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-3); }
+.p-step {
+  display: flex; gap: var(--s-3); align-items: flex-start;
+  color: var(--text); font-size: var(--t-small); line-height: 1.55;
+}
+.p-step-n {
+  flex: 0 0 22px; width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-wash); color: var(--accent-soft);
+  font-size: var(--t-micro); font-weight: 700;
+}
+/* Der Hinweis ist der ehrliche Teil jeder Methode — was sie NICHT kann,
+   oder was daran regelmäßig schiefgeht. Warmer Rand statt blauem, damit er
+   nicht als weiterer Schritt gelesen wird. */
+.p-method-note {
+  margin: var(--s-4) 0 0; padding: var(--s-3) var(--s-4);
+  border-radius: var(--radius);
+  border-inline-start: 2px solid color-mix(in oklab, var(--warm) 60%, transparent);
+  background: color-mix(in oklab, var(--warm) 8%, transparent);
+  color: var(--muted); font-size: var(--t-small); line-height: 1.55;
+}
+
+.p-lucid-source {
+  color: var(--faint); font-size: var(--t-micro); line-height: 1.6;
+  margin: var(--s-5) 0 0;
+}
 
 .p-backdrop {
   position: fixed; inset: 0; z-index: 60; background: var(--veil);

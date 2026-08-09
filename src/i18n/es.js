@@ -120,6 +120,10 @@ export default {
 
   profile: {
     title: "Perfil",
+    settings: "Ajustes",
+    voiceSetting: "Voz del asistente",
+    voiceSettingHint: "Quién te habla",
+    done: "Listo",
     credits: "créditos",
     creditsSoon: "La recarga llega pronto",
     you: "Tú",
@@ -172,29 +176,66 @@ export default {
     close: "Cerrar",
   },
 
-  guide: [
-    {
-      title: "Comprobaciones de realidad",
-      text: "Pregúntate varias veces al día si estás soñando — y compruébalo de verdad: " +
-            "cuenta tus dedos, mira un reloj, aparta la vista, vuelve a mirar. " +
-            "En un sueño, la respuesta cambia.",
-    },
-    {
-      title: "MILD",
-      text: "Al quedarte dormido, repite: “Esta noche notaré que estoy soñando”. " +
-            "Imagina un sueño que hayas tenido e imagínate dándote cuenta dentro de él.",
-    },
-    {
-      title: "WBTB",
-      text: "Despierta brevemente tras unas cinco horas, quédate despierto 20–30 minutos, " +
-            "y vuelve a dormirte usando MILD. El método más fiable — y el que te cuesta sueño.",
-    },
-    {
-      title: "Escríbelo",
-      text: "Anota tus sueños justo al despertar, antes de levantarte. Quienes escriben " +
-            "con regularidad recuerdan más — y empiezan a ver sus propios patrones.",
-    },
-  ],
+  lucid: {
+    lede: "Soñar de forma lúcida significa darte cuenta de que estás soñando mientras ocurre, y a veces dirigir lo que viene después. Se puede aprender: en el mayor estudio comparativo hasta la fecha, a muchas personas les bastó una semana de práctica. Esto es lo que la evidencia respalda de verdad, incluida la parte que contradice casi todos los consejos que encontrarás en internet.",
+    leversTitle: "Lo que de verdad marca la diferencia",
+    levers: [
+      { stat: "18 % vs 11 %", title: "Volver a dormirte rápido",
+        text: "La mayor diferencia de todo el estudio no fue qué técnica se usaba, sino volver a dormirse en menos de diez minutos después de hacerla. Túmbate enseguida. Nada de móvil." },
+      { stat: "18 % vs 6 %", title: "Despertarte a las cinco horas",
+        text: "Las noches con un despertar breve produjeron el triple de sueños lúcidos que las noches sin él. Casi todos los métodos de abajo se apoyan en ese momento." },
+      { stat: "la base", title: "Seguir anotando tus sueños",
+        text: "Quienes recordaban más sueños tenían más sueños lúcidos, antes incluso de aprender técnica alguna. Ya lo estás haciendo. Para eso existe esta app." },
+    ],
+    methodsTitle: "Los métodos",
+    methods: [
+      {
+        id: "wbtb", name: "WBTB — Despertar y volver a la cama", rate: "el multiplicador",
+        summary: "Por sí solo no es una técnica: es la ventana en la que funcionan las demás.",
+        steps: [
+          "Acuéstate lo bastante temprano como para que tras cinco horas te queden algunas más.",
+          "Deja la alarma donde tengas que levantarte para apagarla.",
+          "Quédate en pie de cinco a diez minutos. Baño, unos pasos, luz tenue: nada de pantallas.",
+          "Vuelve a la cama y aplica MILD o SSILD mientras te acomodas.",
+        ],
+        note: "Este es el que te cuesta algo: sueño interrumpido. Dos o tres noches por semana son más que suficientes; hacerlo cada noche es la vía rápida a abandonarlo.",
+      },
+      {
+        id: "ssild", name: "SSILD — Iniciado por los sentidos", rate: "16,9 %",
+        summary: "Alterna vista, oído y tacto hasta quedarte dormido. El mejor resultado del estudio y el que menos esfuerzo pide.",
+        steps: [
+          "Tras el despertar de las cinco horas, túmbate cómodamente.",
+          "Cuatro rondas rápidas: ojos (lo que veas tras los párpados), oídos (lo que oigas), cuerpo (el peso de la manta). Dos o tres segundos cada uno, sin detenerte.",
+          "Después, de cuatro a seis rondas lentas: unos veinte segundos por sentido.",
+          "Para, gírate a tu postura habitual y déjate dormir.",
+        ],
+        note: "Esforzarse es el error clásico. Las rondas deben dejarte somnoliento, no despierto: si sigues concentrado, te has pasado. Dormirte durante las rondas lentas es un éxito, no un fallo.",
+      },
+      {
+        id: "mild", name: "MILD — Intención antes de dormir", rate: "16,5 %",
+        summary: "Duérmete sosteniendo una frase y la imagen de pillarte a ti mismo.",
+        steps: [
+          "Tras el despertar de las cinco horas, recuerda un sueño de esta noche o reciente, lo más vívido posible.",
+          "Repite, y siéntelo de verdad: «La próxima vez que sueñe, me daré cuenta de que estoy soñando».",
+          "Imagínate de vuelta en ese sueño, y esta vez advirtiendo aquello que debería haberte delatado.",
+          "Al dormirte, quédate con la imagen, no con las palabras.",
+        ],
+        note: "Funciona por la intención, no por la repetición. Decir la frase veinte veces pensando en otra cosa no sirve; decirla una vez sintiéndola es toda la técnica.",
+      },
+      {
+        id: "rc", name: "Comprobaciones de realidad", rate: "sin beneficio medido",
+        summary: "La técnica más recomendada de internet, y con la que los datos fueron menos amables.",
+        steps: [
+          "Varias veces al día, pregúntate si estás soñando, y compruébalo de verdad en vez de darlo por hecho.",
+          "Intenta inspirar con la boca cerrada y la nariz tapada. En un sueño, el aire entra igual.",
+          "O empuja los dedos de una mano contra la palma de la otra. En un sueño, la atraviesan.",
+          "Hazlo sobre todo cuando algo te parezca ligeramente raro: ese reflejo es el que quieres tener de noche.",
+        ],
+        note: "El hallazgo honesto: los grupos que añadieron comprobaciones de realidad a MILD puntuaron por debajo de MILD a secas (10,8 % y 13,4 % frente a 16,5 %). Puede que ayuden a cuestionar lo que ves, pero no son la palanca que dicen, y consumen atención diurna que rendiría más en otra parte.",
+      },
+    ],
+    sourceNote: "Cifras del International Lucid Dream Induction Study (Aspy et al., 2020): 355 participantes, una semana de práctica. Tranquilizador: la calidad del sueño no empeoró en las noches en que funcionó; los participantes durmieron algo más y despertaron menos cansados que en su semana de referencia.",
+  },
 
   dream: {
     title: "Graba tu sueño",
@@ -359,7 +400,7 @@ export default {
       guide: {
         emoji: "🧠",
         title: "Sueños lúcidos",
-        text: "Comprobaciones de realidad, MILD, WBTB, diario",
+        text: "Lo que la evidencia respalda de verdad",
       },
       symbols: {
         emoji: "✧",
