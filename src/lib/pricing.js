@@ -27,6 +27,16 @@ export const PRICES = {
   characterSheet: 2, // one generated reference image, plus a little
   images: { 3: 3, 5: 5, 10: 10 },   // one credit per image, no bulk discount:
                                      // every image costs us exactly the same
+                                     //
+                                     // EXCEPT the 3-tier without a poster: that
+                                     // one renders as a single grid call (see
+                                     // Step5Style's `useGrid`), so it costs us
+                                     // ~$0.08 to make, not ~$0.24 — same 3
+                                     // credits charged either way. Decided
+                                     // 09.08.2026: keep the price, take the
+                                     // saving as margin, matching "plus, never
+                                     // in the red". Revisit if that stance ever
+                                     // changes; nothing here enforces it.
   keyframe: 1,       // the still a film is animated from — it IS an image
 };
 

@@ -111,3 +111,39 @@ test("every style declares a complete poster spec", () => {
     expect(s.poster?.palette?.length).toBeGreaterThan(0);
   }
 });
+
+// — the grid: one generation, three panels —
+
+import { buildGridPrompt } from "./promptBuilder.js";
+
+test("the grid names all three beats, one per panel, in order", () => {
+  const prompt = buildGridPrompt({
+    beats: ["A flooded hallway.", "A dog at a window.", "Stairs into a dark basement."],
+    styleId: "dark",
+  });
+  const iHallway = prompt.indexOf("A flooded hallway.");
+  const iDog = prompt.indexOf("A dog at a window.");
+  const iStairs = prompt.indexOf("Stairs into a dark basement.");
+  expect(iHallway).toBeGreaterThan(-1);
+  // Panels must stay left-to-right in prompt order — a splitIntoPanels()
+  // crop has no other way to know which piece is which beat.
+  expect(iHallway).toBeLessThan(iDog);
+  expect(iDog).toBeLessThan(iStairs);
+  expect(prompt).toContain("Panel 1 (leftmost third)");
+  expect(prompt).toContain("Panel 2 (middle third)");
+  expect(prompt).toContain("Panel 3 (rightmost third)");
+});
+
+test("the grid asks for a wide canvas with a hard divider, never a collage", () => {
+  const prompt = buildGridPrompt({ beats: ["a", "b", "c"], styleId: "dreamlike" });
+  expect(prompt).toContain("16:9");
+  expect(prompt).toContain("divider line");
+  expect(prompt).toContain("no bleed");
+});
+
+test("grid reference clauses ride along so faces match the avatars", () => {
+  const { clauses } = buildReferences([anton]);
+  const prompt = buildGridPrompt({ beats: ["a", "b", "c"], styleId: "ultrareal", clauses });
+  expect(prompt).toContain("Reference image 1");
+  expect(prompt).toContain("@anton");
+});

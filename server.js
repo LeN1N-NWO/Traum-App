@@ -540,13 +540,13 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
 // Anything longer needs queue.fal.run: submit, poll status_url, fetch
 // response_url. Do that BEFORE offering film lengths above ~10 seconds.
 // Revisit if a model runs long enough to need the queue+polling flow.
-async function falGenerateImage({ prompt, namedRefs = [] }) {
+async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16" }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
   const input = {
     prompt,
-    aspect_ratio: "9:16", // unverified param name/value for this model, see FAL_MODEL_IMAGE note above
+    aspect_ratio: aspectRatio, // unverified param name/value for this model, see FAL_MODEL_IMAGE note above
   };
   const imageUrls = namedRefs.map((r) => r.img).filter(Boolean);
   if (imageUrls.length) input.image_urls = imageUrls;
@@ -694,6 +694,18 @@ const MEDIA_TYPES = {
 const MEDIA_MIME = { png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp4: "video/mp4" };
 const MAX_MEDIA_BYTES = 60 * 1024 * 1024;
 
+/** Write bytes under a name derived from their own content — never from
+ *  anything the model or the client chose — and hand back the path they
+ *  will be served at. Shared by the fetch-and-copy path below and by the
+ *  panel-upload endpoint, which has bytes already and nothing to fetch. */
+async function storeBytes(bytes, contentType) {
+  const ext = MEDIA_TYPES[String(contentType || "").split(";")[0].trim()];
+  if (!ext || !bytes.length || bytes.length > MAX_MEDIA_BYTES) return null;
+  const name = `${Bun.hash(bytes).toString(36)}.${ext}`;
+  await Bun.write(resolve(MEDIA_DIR, name), bytes);
+  return `/media/${name}`;
+}
+
 /** Copy one generated file locally. Returns "/media/<name>", or null to keep
  *  using the provider URL — a failed copy must never fail the generation the
  *  person already paid for. */
@@ -702,15 +714,7 @@ async function storeMedia(url) {
     if (!/^https:\/\//.test(url)) return null;
     const res = await fetch(url);
     if (!res.ok) return null;
-    const ext = MEDIA_TYPES[(res.headers.get("content-type") || "").split(";")[0].trim()];
-    if (!ext) return null;
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    if (!bytes.length || bytes.length > MAX_MEDIA_BYTES) return null;
-    // Named from a hash of the content, so the filename can never carry
-    // anything the model or the client chose.
-    const name = `${Bun.hash(bytes).toString(36)}.${ext}`;
-    await Bun.write(resolve(MEDIA_DIR, name), bytes);
-    return `/media/${name}`;
+    return await storeBytes(new Uint8Array(await res.arrayBuffer()), res.headers.get("content-type"));
   } catch (e) {
     console.error("[DreamRushes] could not store media locally:", e.message);
     return null;
@@ -751,7 +755,7 @@ async function serveMedia(pathname) {
 // Step 1 (DeepSeek, optional) + step 2 (fal.ai, required) from the pipeline
 // comment at the top of the file. DeepSeek failing or being unconfigured
 // degrades to the local template rather than blocking generation.
-async function generateImages({ dream, namedRefs, prompt: readyPrompt }) {
+async function generateImages({ dream, namedRefs, prompt: readyPrompt, aspectRatio }) {
   // The wizard assembles its own prompt locally (beats, style template,
   // reference clauses) and sends it here — that path costs no LLM call at
   // all. Only the older single-shot form, which sends raw dream text, still
@@ -765,7 +769,7 @@ async function generateImages({ dream, namedRefs, prompt: readyPrompt }) {
       prompt = buildFallbackPrompt(dream, namedRefs);
     }
   }
-  return falGenerateImage({ prompt, namedRefs });
+  return falGenerateImage({ prompt, namedRefs, aspectRatio });
 }
 
 // Film mode: render a keyframe still first (same pipeline as image mode),
@@ -1039,6 +1043,13 @@ Bun.serve({
           ? sanitizePromptText(body.prompt).slice(0, MAX_CRAFTED_PROMPT)
           : undefined;
 
+        // The one caller that needs a canvas wider than the app's own
+        // portrait default: a multi-panel grid, which only reads as several
+        // pictures once it is wide enough to cut into portrait-ish strips.
+        // Allowlisted rather than passed through — this reaches fal.ai
+        // verbatim, so it is a value, never client-supplied text.
+        const aspectRatio = body.aspectRatio === "16:9" ? "16:9" : undefined;
+
         // Two shapes come back from here, and the client handles both:
         //   images → { urls }   (fast enough to wait for)
         //   film   → { jobId }  (minutes; the client collects it later)
@@ -1046,7 +1057,7 @@ Bun.serve({
           const jobId = await startVideo({ dream, namedRefs: cast, prompt, seconds: body.seconds });
           return json({ ok: true, jobId });
         }
-        const urls = await generateImages({ dream, namedRefs: cast, prompt });
+        const urls = await generateImages({ dream, namedRefs: cast, prompt, aspectRatio });
         // Hand back local paths where the copy worked, provider URLs where it
         // did not — the client stores whatever it gets.
         return json({ ok: true, urls: await storeAll(urls) });
@@ -1070,6 +1081,30 @@ Bun.serve({
         return json({ ok: true, ...(await jobStatus(url.searchParams.get("id") || "")) });
       } catch (e) {
         console.error("[DreamRushes] /api/job failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    // The grid feature (one generation, several panels) is cut client-side
+    // with <canvas> — that is where the Vanilla-JS stack already has an image
+    // decoder, so the server does not need one. This is therefore the one
+    // endpoint that stores bytes the CLIENT produced rather than something a
+    // model returned. It is no more trusted for that: storeBytes names the
+    // file from a hash of its own content and only writes it at all if the
+    // content-type maps to a real image extension, so nothing about the
+    // request — not its size, not its declared type — reaches the filesystem
+    // unchecked.
+    if (url.pathname === "/api/panel" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const bytes = new Uint8Array(await req.arrayBuffer());
+        const stored = await storeBytes(bytes, req.headers.get("content-type"));
+        if (!stored) return json({ error: "Not a storable image." }, 400);
+        return json({ ok: true, url: stored });
+      } catch (e) {
+        console.error("[DreamRushes] /api/panel failed:", e);
         return json({ error: "Server error." }, 500);
       }
     }

@@ -91,6 +91,44 @@ export function buildPosterPrompt({ title, tagline, essence, styleId, format, cl
  * @param {number} p.index       1-based, for the reader's sense of sequence
  * @param {number} p.total
  */
+/**
+ * One request that reads back as several: a wide canvas cut into equal
+ * vertical panels by a hard divider line, each panel a distinct beat. A
+ * proven shape, not a guess — verified against the real API on 09.08.2026,
+ * one call, three cleanly separated scenes, exact thirds crop with no
+ * bleed. Only 3 panels is proven; do not raise this without testing first —
+ * the per-panel pixel budget shrinks with every extra panel, and faces and
+ * hands are exactly what degrades first.
+ *
+ * The canvas is deliberately wide (16:9, not the app's own 9:16 default) —
+ * cutting a WIDE image into vertical strips is what yields portrait-ish
+ * single images; cutting a tall one would yield unusable slivers. The
+ * caller must request that aspect ratio; this function only writes English.
+ *
+ * @param {object} p
+ * @param {string[]} p.beats     exactly 3, one per panel, left to right
+ * @param {string} p.styleId
+ * @param {string[]} p.clauses   from buildReferences()
+ */
+export function buildGridPrompt({ beats, styleId, clauses = [] }) {
+  const style = styleById(styleId);
+  const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
+  const panels = beats
+    .map((b, i) => `Panel ${i + 1} (${["leftmost", "middle", "rightmost"][i]} third): ${b}`)
+    .join("\n");
+
+  return (
+    `A single 16:9 image divided into exactly THREE equal vertical panels side by side, ` +
+    `separated by a thin solid black divider line running the full height between each panel — ` +
+    `like a triptych or a 3-panel comic strip. Each panel is a self-contained cinematic photoreal ` +
+    `film still with no bleed or shared elements across the divider lines.` +
+    `\n${panels}` +
+    `\nConsistent color grade and lighting across all three panels so they read as one continuous ` +
+    `sequence, in this style: ${style.prompt}` +
+    `\nUltra-detailed, accurate hands and faces. No text, no captions, no watermarks.${refs}`
+  );
+}
+
 export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 1, total = 1 }) {
   const style = styleById(styleId);
   const framing = format === "16:9" ? "16:9 widescreen framing" : "9:16 vertical framing";

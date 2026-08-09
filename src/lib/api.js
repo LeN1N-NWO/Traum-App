@@ -60,11 +60,25 @@ export async function transcribe(audio) {
  *   film   → { jobId }  — minutes (a 15s render measured 280s), so the
  *                         server queues it and we collect it afterwards.
  */
-export async function generate({ dream, mode, cast, prompt, seconds }) {
-  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds });
+export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio }) {
+  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio });
   if (Array.isArray(data?.urls)) return { urls: data.urls };
   if (typeof data?.jobId === "string") return { jobId: data.jobId };
   throw new Error(t.errors.unexpected);
+}
+
+/** Store one cropped grid panel and get back its own /media/ path — the
+ *  same kind of path a normal generation returns, so everything downstream
+ *  (the journal, the carousel, sharing) treats it identically. */
+export async function uploadPanel(blob) {
+  const res = await fetch(`${API_BASE}/api/panel`, {
+    method: "POST",
+    headers: { "content-type": blob.type || "image/png" },
+    body: blob,
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || typeof data?.url !== "string") throw new Error(data?.error || t.errors.serverStatus(res.status));
+  return data.url;
 }
 
 /** Where a queued film stands: "pending" | "done" | "failed" | "unknown". */

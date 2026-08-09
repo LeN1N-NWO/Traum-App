@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { STYLES } from "../lib/styles.js";
 import { beatsForCount } from "../lib/beats.js";
-import { buildReferences, buildImagePrompt, buildPosterPrompt } from "../lib/promptBuilder.js";
-import { generate } from "../lib/api.js";
+import { buildReferences, buildImagePrompt, buildPosterPrompt, buildGridPrompt } from "../lib/promptBuilder.js";
+import { generate, uploadPanel, mediaUrl } from "../lib/api.js";
+import { splitIntoPanels } from "../lib/splitGrid.js";
 import { mapWithLimit } from "../lib/parallel.js";
 import { priceForImages, PRICES, IMAGE_COUNTS } from "../lib/pricing.js";
 import { VIDEO_MODELS, priceForFilm, clampSeconds, videoModel } from "../lib/video.js";
@@ -53,16 +54,25 @@ export default function Step5Style({ w, patch }) {
     // what the person assigned.
     const { references, clauses } = buildReferences(assignments);
 
-    // The poster replaces the first image (same count, same price). With a
-    // film, the poster IS the keyframe that gets animated — the clip opens
-    // like a title sequence. No title (analysis empty, field cleared) means
-    // no poster: plain scene images as before.
+    // The poster replaces the first image (same count, same price) — for
+    // IMAGES only. A film no longer opens on it: large poster typography,
+    // run through image-to-video, animates as a warping mess rather than a
+    // title sequence — decided 09.08.2026 after the first version tried the
+    // opposite. No title (analysis empty, field cleared) means no poster
+    // either way.
     const title = (w.title || "").trim();
-    const withPoster = title.length > 0;
+    const withPoster = !isFilm && title.length > 0;
     const sceneCount = withPoster ? count - 1 : count;
     const beats = sceneCount > 0 ? beatsForCount(w.analysis?.beats || [w.text], sceneCount) : [];
     const allBeats = w.analysis?.beats || [w.text];
     const jobs = withPoster ? ["__poster__", ...beats] : beats;
+    const castForApi = references.map((r) => ({ tag: r.tag, category: "person", desc: "", img: r.img }));
+
+    // The grid trick — one generation cut into several panels client-side —
+    // is proven for exactly one shape: three plain scene stills, no poster
+    // eating a slot (see buildGridPrompt). Only substituted when that shape
+    // is exactly what would have been rendered anyway.
+    const useGrid = !isFilm && sceneCount === 3 && !withPoster;
 
     try {
       // A film is one call and comes back as a job id, not as pictures: the
@@ -70,14 +80,38 @@ export default function Step5Style({ w, patch }) {
       if (isFilm) {
         const { jobId } = await generate({
           dream: w.text, mode: "film", seconds: w.seconds,
-          cast: references.map((r) => ({ tag: r.tag, category: "person", desc: "", img: r.img })),
-          prompt: buildPosterPrompt({
-            title, tagline: (w.tagline || "").trim(),
-            essence: allBeats.join(" "), styleId: w.styleId, format: w.format, clauses,
+          cast: castForApi,
+          prompt: buildImagePrompt({
+            beat: beats[0] || w.text, styleId: w.styleId, format: w.format, clauses, index: 1, total: 1,
           }),
         });
         update(paid);
         patch({ jobId, urls: [], step: 6 });
+        running.current = false;
+        setBusy(false);
+        return;
+      }
+
+      // One request, one $0.08 generation, cut into three afterwards instead
+      // of three separate $0.08 requests for the same three pictures.
+      if (useGrid) {
+        const { urls: gridUrls } = await generate({
+          dream: w.text,
+          mode: "image",
+          cast: castForApi,
+          prompt: buildGridPrompt({ beats, styleId: w.styleId, clauses }),
+          aspectRatio: "16:9",
+        });
+        const gridUrl = mediaUrl(gridUrls[0]);
+        if (!gridUrl) throw new Error(t.errors.unexpected);
+        const blobs = await splitIntoPanels(gridUrl, beats.length);
+        const panelUrls = [];
+        for (const blob of blobs) {
+          panelUrls.push(await uploadPanel(blob));
+          setDone((n) => n + 1);
+        }
+        update(paid);
+        patch({ urls: panelUrls, step: 6 });
         running.current = false;
         setBusy(false);
         return;
@@ -96,12 +130,7 @@ export default function Step5Style({ w, patch }) {
               beat, styleId: w.styleId, format: w.format,
               clauses, index: withPoster ? i : i + 1, total: beats.length,
             });
-        const { urls } = await generate({
-          dream: w.text,
-          mode: "image",
-          cast: references.map((r) => ({ tag: r.tag, category: "person", desc: "", img: r.img })),
-          prompt,
-        });
+        const { urls } = await generate({ dream: w.text, mode: "image", cast: castForApi, prompt });
         setDone((n) => n + 1);
         return urls;
       });
@@ -143,29 +172,36 @@ export default function Step5Style({ w, patch }) {
         ))}
       </div>
 
-      {/* The poster opens every dream (it replaces the first image, so the
-          count and price stay untouched). Clearing the title is the opt-out:
-          no title, no poster. */}
-      <h2 className="wiz-sub">{t.wizard.step5.posterLabel}</h2>
-      <div className="wiz-poster-fields">
-        <input
-          className="wiz-input"
-          value={w.title}
-          onChange={(e) => patch({ title: e.target.value })}
-          placeholder={t.wizard.step5.posterTitlePlaceholder}
-          maxLength={60}
-          aria-label={t.wizard.step5.posterTitleLabel}
-        />
-        <input
-          className="wiz-input"
-          value={w.tagline}
-          onChange={(e) => patch({ tagline: e.target.value })}
-          placeholder={t.wizard.step5.posterTaglinePlaceholder}
-          maxLength={120}
-          aria-label={t.wizard.step5.posterTaglineLabel}
-        />
-        <p className="wiz-hint">{t.wizard.step5.posterHint}</p>
-      </div>
+      {/* The poster opens an image sequence (it replaces the first image, so
+          the count and price stay untouched). Clearing the title is the
+          opt-out: no title, no poster. Video-only, w.title/w.tagline still
+          hold whatever "Improve with AI" found — that is also the journal
+          card's title, so it is kept either way, just not offered for
+          editing here when there is no poster left for it to describe. */}
+      {!isFilm && (
+        <>
+          <h2 className="wiz-sub">{t.wizard.step5.posterLabel}</h2>
+          <div className="wiz-poster-fields">
+            <input
+              className="wiz-input"
+              value={w.title}
+              onChange={(e) => patch({ title: e.target.value })}
+              placeholder={t.wizard.step5.posterTitlePlaceholder}
+              maxLength={60}
+              aria-label={t.wizard.step5.posterTitleLabel}
+            />
+            <input
+              className="wiz-input"
+              value={w.tagline}
+              onChange={(e) => patch({ tagline: e.target.value })}
+              placeholder={t.wizard.step5.posterTaglinePlaceholder}
+              maxLength={120}
+              aria-label={t.wizard.step5.posterTaglineLabel}
+            />
+            <p className="wiz-hint">{t.wizard.step5.posterHint}</p>
+          </div>
+        </>
+      )}
 
       <h2 className="wiz-sub">{t.wizard.step5.formatLabel}</h2>
       <div className="wiz-formats" role="group" aria-label={t.wizard.step5.formatLabel}>
