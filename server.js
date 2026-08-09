@@ -57,6 +57,9 @@ const FAL_MODEL_IMAGE_EDIT = process.env.FAL_MODEL_IMAGE_EDIT || `${FAL_MODEL_IM
 // the exact slug in the fal.ai dashboard before production use, model IDs
 // there are usually namespaced (e.g. "fal-ai/minimax/...").
 const FAL_MODEL_VIDEO = process.env.FAL_MODEL_VIDEO || "minimax/h3/image-to-video";
+// Whisper v3 as hosted by fal.ai — used by /api/transcribe (dictation). Slug
+// confirmed against fal.ai/models/fal-ai/wizper on 2026-08-08.
+const FAL_MODEL_STT = process.env.FAL_MODEL_STT || "fal-ai/wizper";
 
 // DeepSeek-V4-Flash: OpenAI-compatible chat completions API, text-only (no
 // image input on the public API as of writing). Used purely to turn the dream
@@ -64,6 +67,401 @@ const FAL_MODEL_VIDEO = process.env.FAL_MODEL_VIDEO || "minimax/h3/image-to-vide
 // photos never go to DeepSeek, only to fal.ai afterwards.
 const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
+
+// Gemini Live — the voice interview. fal has no realtime conversational
+// model, so this one talks to Google directly.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-live-preview";
+const GEMINI_WS =
+  "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
+
+/* Gemini TTS — ONLY for the voice previews in the picker. It shares the Live
+ * API's voice catalogue, which is the whole point: the sample you tap is the
+ * exact voice that will then talk to you. There is no prebuilt-samples
+ * endpoint (checked 09.08.2026 — AI Studio has them, the API does not), so
+ * each sample is generated once and cached on disk; after that it costs
+ * nothing and plays instantly.
+ * Measured: returns audio/l16;rate=24000 mono (~48 KB/s), NOT a WAV — the
+ * header is added below, because a browser <audio> cannot play headerless
+ * PCM. */
+const GEMINI_TTS_MODEL = process.env.GEMINI_TTS_MODEL || "gemini-3.1-flash-tts-preview";
+
+/* The picker's shortlist, mirrored in src/lib/voices.js (ids must match).
+ * Six of the thirty, chosen for a dream journal at 3am: mostly soft and warm,
+ * one bright, one deep — variety without a wall of names. Also the allowlist:
+ * `voice` from the hello frame goes into the Gemini setup verbatim, so only
+ * these exact strings may pass. */
+const VOICE_NAMES = new Set(["Sulafat", "Achernar", "Vindemiatrix", "Leda", "Puck", "Charon"]);
+
+/* What a voice says to introduce itself — in the app language, because that
+ * is the language it will actually speak. One warm line, long enough to hear
+ * the character, short enough to tap through all six. */
+const VOICE_SAMPLE_LINES = {
+  en: "Hi, it's me. I'll be here when you wake up — tell me everything you dreamed.",
+  de: "Hallo, ich bin's. Ich bin da, wenn du aufwachst — erzähl mir alles, was du geträumt hast.",
+  es: "Hola, soy yo. Estaré aquí cuando despiertes: cuéntame todo lo que soñaste.",
+  fr: "Bonjour, c'est moi. Je serai là à ton réveil — raconte-moi tout ce que tu as rêvé.",
+  zh: "你好，是我。你醒来的时候我就在这里——把你梦到的一切都讲给我听吧。",
+  hi: "नमस्ते, मैं हूँ। जब आप जागेंगे, मैं यहीं रहूँगी — मुझे अपना पूरा सपना सुनाइए।",
+  ar: "مرحبًا، هذه أنا. سأكون هنا عندما تستيقظ — احكِ لي كلّ ما حلمت به.",
+};
+
+/** Wrap raw 16-bit mono PCM in the 44-byte RIFF header that makes it a WAV. */
+function pcmToWav(pcm, rate) {
+  const header = new ArrayBuffer(44);
+  const v = new DataView(header);
+  const ascii = (off, s) => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
+  ascii(0, "RIFF"); v.setUint32(4, 36 + pcm.length, true); ascii(8, "WAVE");
+  ascii(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  ascii(36, "data"); v.setUint32(40, pcm.length, true);
+  const out = new Uint8Array(44 + pcm.length);
+  out.set(new Uint8Array(header)); out.set(pcm, 44);
+  return out;
+}
+
+/** The sample for one (voice, language), from disk or freshly generated. */
+async function voiceSample(voice, lang) {
+  const path = resolve(MEDIA_DIR, `voice-sample-${voice}-${lang}.wav`);
+  const cached = Bun.file(path);
+  if (await cached.exists()) return cached;
+
+  const key = process.env.GEMINI_KEY;
+  if (!key) throw new Error("NO_GEMINI_KEY");
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${key}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: VOICE_SAMPLE_LINES[lang] }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } },
+        },
+      }),
+    },
+  );
+  if (!res.ok) throw new Error("TTS_FAILED");
+  const body = await res.json();
+  const part = body?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+  if (!part?.data) throw new Error("TTS_FAILED");
+  // The advertised rate rides in the mimeType ("audio/l16;rate=24000") —
+  // read it rather than assuming, in case the model ever changes it.
+  const rate = Number(/rate=(\d+)/.exec(part.mimeType || "")?.[1]) || 24000;
+  const wav = pcmToWav(Buffer.from(part.data, "base64"), rate);
+  await Bun.write(path, wav);
+  return Bun.file(path);
+}
+
+/* What the assistant is told, and what it may do.
+ *
+ * The tools are the whole design. Without them the answer comes back as a
+ * transcript, and somebody has to guess afterwards which words were a name
+ * and which were a place — a second model call, a second bill, and a new way
+ * to be wrong. With them, the assistant hands over `addPerson("Rex","pet")`
+ * the moment it hears it, already structured.
+ */
+/* The onboarding survey speaks through the same relay as the dream
+ * interview, but collects PROFILE facts, not a dream — different tools,
+ * different briefing (see voiceSystem's onboarding branch). Every field is
+ * optional by design: refusing a question must never stall the flow. */
+const ONBOARDING_TOOLS = [{
+  functionDeclarations: [
+    {
+      name: "setName",
+      description: "What they want to be called. First name or nickname, exactly as they said it.",
+      parameters: { type: "OBJECT", properties: { name: { type: "STRING" } }, required: ["name"] },
+    },
+    {
+      name: "setBirthday",
+      description: "Their date of birth as YYYY-MM-DD. Year may be 0000 if they only gave day and month.",
+      parameters: { type: "OBJECT", properties: { date: { type: "STRING" } }, required: ["date"] },
+    },
+    {
+      name: "setDreamRecall",
+      description: "How often they remember their dreams.",
+      parameters: {
+        type: "OBJECT",
+        properties: { frequency: { type: "STRING", description: "nightly | weekly | rarely | almost-never" } },
+        required: ["frequency"],
+      },
+    },
+    {
+      name: "setLucidLevel",
+      description: "Their relationship with lucid dreaming.",
+      parameters: {
+        type: "OBJECT",
+        properties: { level: { type: "STRING", description: "never-heard | curious | tried | practicing" } },
+        required: ["level"],
+      },
+    },
+    {
+      name: "addTheme",
+      description: "A recurring dream, place, person or feeling they mention. Call once per theme.",
+      parameters: { type: "OBJECT", properties: { name: { type: "STRING" } }, required: ["name"] },
+    },
+    {
+      name: "setGoal",
+      description: "What draws them to their dreams.",
+      parameters: {
+        type: "OBJECT",
+        properties: { goal: { type: "STRING", description: "remember | understand | create | sleep-better" } },
+        required: ["goal"],
+      },
+    },
+    {
+      name: "finish",
+      description: "The survey is complete or they want to stop. Call this last.",
+      parameters: { type: "OBJECT", properties: {} },
+    },
+  ],
+}];
+
+const VOICE_TOOLS = [{
+  functionDeclarations: [
+    {
+      name: "setDreamText",
+      description: "The dream as one flowing account, in the language the person spoke. Call this whenever they add to it; the newest call wins.",
+      parameters: { type: "OBJECT", properties: { text: { type: "STRING" } }, required: ["text"] },
+    },
+    {
+      name: "addPerson",
+      description: "Someone or some animal who appeared in the dream. Call once per character.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          name: { type: "STRING" },
+          kind: { type: "STRING", description: "person or pet" },
+          desc: { type: "STRING", description: "short visual description, empty if the dream gives none" },
+        },
+        required: ["name", "kind"],
+      },
+    },
+    {
+      name: "addPlace",
+      description: "A distinct location in the dream. A dream that moves has more than one.",
+      parameters: { type: "OBJECT", properties: { name: { type: "STRING" } }, required: ["name"] },
+    },
+    {
+      name: "finish",
+      description: "The person has told the whole dream and has nothing to add. Call this last.",
+      parameters: { type: "OBJECT", properties: {} },
+    },
+  ],
+}];
+
+/* The seven languages LanguagePicker offers (src/lib/locales.js), mapped to
+ * a name a language model can act on reliably — safer than trusting it to
+ * expand a bare "de" or "ar" correctly every single time. `lang` only ever
+ * reaches here as one of these ids: sendVoiceSetup's caller restricts it to
+ * [A-Za-z0-9-] before it is quoted into anything, same as every other
+ * client-supplied string that ends up in a prompt. */
+const LANGUAGE_NAMES = {
+  en: "English", de: "German", es: "Spanish", fr: "French",
+  zh: "Mandarin Chinese", hi: "Hindi", ar: "Modern Standard Arabic",
+};
+
+/* Shared by voiceSystem() and onboardingSystem(). Unlike a device-guessed
+ * locale, this is a language someone DELIBERATELY chose in LanguagePicker
+ * before anything else in the app happened — so it governs the whole
+ * conversation from the first word, not just an opening line that used to
+ * be a one-sentence guess. It still yields instantly if they actually speak
+ * something else; a chosen default is not a cage. */
+function languageDirective(lang) {
+  const name = LANGUAGE_NAMES[lang];
+  if (!name) return "";
+  return (
+    `They chose ${name} as this app's language before anything else happened. Speak ${name} for ` +
+    `this entire conversation, starting with your very first word. If they clearly answer in a ` +
+    `different language, follow them there instead.\n\n`
+  );
+}
+
+/* WHO is talking — the app's persona, shared by both briefings (chosen
+ * 09.08.2026 from three demoed styles: "the cool night porter").
+ *
+ * One character, everywhere: the interview and the welcome survey must not
+ * feel like two different people, because to the user they are one voice
+ * that already knows them.
+ *
+ * The hard part of a persona prompt is not the character, it is the FLOOR
+ * under it. A model told to be "funny and laid-back" starts performing:
+ * jokes about the dream, riffs on the answers, a comedian at 3am. So every
+ * trait below is paired with what it must never cost — and the last
+ * paragraph says outright that the character yields the moment the dream
+ * gets heavy. A persona is a way of speaking, not a thing to protect.
+ *
+ * Deliberately NOT written as "you are a sloth": a model given an animal
+ * tends to mention being one, and an assistant that keeps announcing its
+ * own quirkiness is exhausting by the third question. The sloth lives in
+ * the tempo and in the artwork; here it is only a temperament.
+ */
+const PERSONA =
+  "WHO YOU ARE\n" +
+  "You are the calm, slightly amused night presence of this app — the porter of the small hours. " +
+  "You have heard every kind of night and are surprised by none of them, which is exactly why " +
+  "people can tell you anything. Unhurried to the point of being a little lazy: you never rush " +
+  "anyone, never sound busy, never act as if the next question matters more than this one.\n" +
+  "Dry, warm understatement. Being awake at an absurd hour, being half asleep, forgetting most " +
+  "of it: all completely fine by you, and you say so lightly rather than reassuringly.\n" +
+  "\n" +
+  "HOW THAT SOUNDS, CONCRETELY\n" +
+  "Your first sentence is where this voice gets established, so it is never a bare 'Welcome.' or " +
+  "'Hello.' — you are not a reception desk. It does two things in one breath: it notices " +
+  "something true about the moment (the hour, that they are barely awake, that they came back, " +
+  "that mornings are a rumour), and then it asks. Half a clause of noticing, then the question. " +
+  "Later turns are plainer — the character lives in the openings and in the occasional single " +
+  "dry clause, not in every sentence.\n" +
+  "Understatement, not jokes: you never tell a joke, never comment on the dream itself, never " +
+  "make the dreamer the punchline. If a remark would make them explain themselves, drop it.\n" +
+  "Do not describe yourself, do not announce what you are about to do, and never say you are " +
+  "slow or lazy — that is a tempo you have, not a fact you share. You understand quickly.\n" +
+  "\n" +
+  "The character is the FIRST thing to go if the dream turns frightening or sad: then you are " +
+  "simply quiet, plain and kind, with no wink in it. Wit is how you make room for someone, " +
+  "never something you protect at their cost.\n\n";
+
+/* The briefing. Built per session, because the two things that make this feel
+ * like a person rather than a form — knowing your name and knowing who is
+ * already in your journal — are different for everyone.
+ *
+ * Both come from the client and are therefore untrusted: they go through the
+ * same sanitiser as any other free text before they are put in a prompt. A tag
+ * is [a-z0-9]{1,12} by construction, a name is trimmed hard. Neither can carry
+ * a newline, so neither can pretend to be a new instruction paragraph.
+ */
+function voiceSystem({ name = "", cast = [], lang = "", mode = "" } = {}) {
+  if (mode === "onboarding") return onboardingSystem({ lang });
+  const greeting = name
+    ? `Their name is ${name}. Greet them by it in your very first sentence, then ask straight away ` +
+      `what they dreamt. Use the name once more at most; repeating it every turn is what a machine ` +
+      `does.\n\n`
+    : `You do not know their name. Do not ask for it — open with a greeting and the first question.\n\n`;
+
+  const opening = languageDirective(lang);
+
+  const known = cast.length
+    ? `These already exist in their journal, with a face on file: ${cast.join(", ")}. ` +
+      `If they mention one, pass exactly that name to addPerson/addPlace — spelled the same — ` +
+      `so the dream reuses the picture they already have instead of inventing a stranger. ` +
+      `Do not bring these up yourself; they are only for recognising.\n\n`
+    : "";
+
+  return (
+    "You are the dream interviewer in a dream journal app. Someone has just woken up and is " +
+    "talking to you in the dark, probably still half asleep, probably holding the phone badly.\n\n" +
+
+    PERSONA + greeting + opening + known +
+
+    "HOW TO SPEAK\n" +
+    "Follow the language instruction above for the whole conversation. If they nonetheless answer " +
+    "in something else, continue in THAT language without remarking on the switch — a chosen " +
+    "language is a strong default, not a rule to enforce on someone. " +
+    "One or two short sentences per turn, never more. " +
+    "No lists, no summaries of what they just said, no 'how interesting'. Warm, quiet, awake.\n\n" +
+
+    "WHAT TO ASK\n" +
+    "Your job is to get the dream out of them, not to interpret it. Ask for what is missing, in " +
+    "roughly this order: what happened, then who was there, then where it was, then what it looked " +
+    "like. One question at a time. Follow what they actually said — if they mention a house, ask " +
+    "about the house, not about a checklist. Three or four questions is usually the whole interview; " +
+    "stop once the dream has a shape, even if details are missing. A half-remembered dream is normal " +
+    "and is not a problem to be solved.\n\n" +
+
+    "WHAT NEVER TO DO\n" +
+    "Never analyse, never say what a dream 'means', never reassure, never give sleep advice. If they " +
+    "went through something frightening, acknowledge it in a few words and carry on with the account. " +
+    "If they say they cannot remember more, accept it immediately and finish.\n\n" +
+
+    "THE WRITTEN DREAM — this is what the whole conversation is for\n" +
+    "Call setDreamText as the account grows, not only at the end; the newest call replaces the last. " +
+    "Write it the way they would write it themselves: first person, past tense, their language, their " +
+    "words, their images, in the order things happened. Turn their scattered answers into connected " +
+    "sentences — that is the work — but add nothing that was not said. No invented details, no " +
+    "adjectives they did not use, no interpretation, no moral, no tidy ending. If they said 'a big " +
+    "dark dog', it stays a big dark dog and does not become a menacing hound. Leave out your own " +
+    "questions and everything you said; only their dream goes in the text.\n\n" +
+
+    "TOOLS\n" +
+    "Call addPerson and addPlace the moment someone or somewhere is named — do not wait for the end. " +
+    "Call finish when they are done, and call setDreamText one last time before you do."
+  );
+}
+
+/* The welcome survey. Six questions, roughly two minutes, and every answer
+ * is allowed to be "skip" — this buys them credits, it must never feel like
+ * a form with required fields. */
+function onboardingSystem({ lang = "" } = {}) {
+  const opening = languageDirective(lang);
+  return (
+    "You are the voice inside a dream journal app, meeting a brand-new user for the " +
+    "first time. This is a short welcome chat that personalises their profile — they get bonus " +
+    "credits for finishing it, and they already know that.\n\n" +
+
+    PERSONA + opening +
+
+    "HOW TO SPEAK\n" +
+    "Brief above all: one question per turn, one or two short sentences. This is the first " +
+    "impression, so the character may show a little more here than during a dream — but six " +
+    "questions is still six questions, and nobody wants a comedian between each one. Never " +
+    "read out a list of options — ask naturally and map whatever they say onto the tool values.\n\n" +
+
+    "THE QUESTIONS, in this order, one tool call the moment each is answered:\n" +
+    "1. What should I call you? → setName\n" +
+    "2. When were you born? Day, month and year — the year also gives their star sign. If they " +
+    "prefer not to say the year, day and month are enough (year 0000). → setBirthday\n" +
+    "3. How often do you remember your dreams? → setDreamRecall\n" +
+    "4. Have you heard of lucid dreaming — knowing you're dreaming while it happens? Where are " +
+    "they on that journey? → setLucidLevel\n" +
+    "5. Is there a dream, place or person that keeps coming back at night? → addTheme, once per " +
+    "thing they name\n" +
+    "6. What brings you here — remembering more, understanding what dreams mean, turning them " +
+    "into pictures, or sleeping better? → setGoal\n\n" +
+
+    "RULES\n" +
+    "Any question may be skipped the moment they hesitate or decline — move on cheerfully, never " +
+    "press, never ask why. Never interpret their dreams or make health claims; if they share " +
+    "something heavy, acknowledge it kindly in a few words and continue. After question 6, thank " +
+    "them, tell them their bonus credits are in, and call finish."
+  );
+}
+
+/* Two things have to be true before Gemini can be set up: the socket to Google
+ * must be open, and the client must have said who is talking. They arrive in
+ * either order, so both paths call this and the second one through wins. */
+function sendVoiceSetup(ws) {
+  const up = ws.data.upstream;
+  if (ws.data.setupSent || up?.readyState !== 1 || !ws.data.greeted) return;
+  ws.data.setupSent = true;
+  clearTimeout(ws.data.helloTimer);
+
+  up.send(JSON.stringify({
+    setup: {
+      model: `models/${GEMINI_MODEL}`,
+      generationConfig: {
+        responseModalities: ["AUDIO"],
+        // The voice chosen in the picker. Absent → Gemini's default, so an
+        // old client that never sends one keeps working unchanged.
+        ...(ws.data.who?.voice ? {
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: ws.data.who.voice } } },
+        } : {}),
+      },
+      systemInstruction: { parts: [{ text: voiceSystem(ws.data.who) }] },
+      tools: ws.data.who?.mode === "onboarding" ? ONBOARDING_TOOLS : VOICE_TOOLS,
+      inputAudioTranscription: {},   // what THEY said, as text
+      outputAudioTranscription: {},  // what IT said, as text
+    },
+  }));
+  try { ws.send(JSON.stringify({ type: "ready" })); } catch { /* client gone */ }
+}
+
+/* Gemini Live does not speak first on its own — it waits for a turn. This is
+ * that turn: an instruction, not something the person said. It never reaches
+ * the transcript, because only audio is transcribed back to the client. */
+const VOICE_OPENING_CUE =
+  "[The app has just opened and the microphone is live. Open the way YOU open — the noticing " +
+  "half-clause, then the question — in one or two short sentences. This first line sets the " +
+  "voice for everything after it, so do not fall back on a neutral greeting.]";
 
 // ---- prompt hygiene (start) ----
 // Scope note, because "prompt injection" means something narrower here than
@@ -182,23 +580,68 @@ Output ONLY the finished prompt text. No preamble, no markdown, no quotes around
 }
 // ---- prompt hygiene (end) ----
 
-// ---- rewriting an existing dream ----
-// Three levels behind one route, differing only in the system prompt. All of
-// them are bounded by the same rule: the dream belongs to the person who
-// dreamt it, so nothing may be invented, reordered or reinterpreted.
+/* ---- rewriting an existing dream ----
+ *
+ * Three modes behind one route, differing ONLY in the system prompt below.
+ * This block is the actual feature: the sheet in the app (RefineSheet.jsx)
+ * just names these three and sends a mode string — every rule about what a
+ * rewrite may and may not do lives here, in one place, in English, where it
+ * can be read and argued with.
+ *
+ * The shared rule, and the reason all three are worded so defensively: the
+ * dream belongs to the person who dreamt it. A language model asked to
+ * "improve" a text will, unprompted, tidy away the strange parts — and the
+ * strange parts ARE the dream. So each mode states what it may touch AND
+ * what it must leave, because a prompt that only says what to do gets the
+ * rest invented.
+ *
+ * SHARED_RULES is appended to each: the constraints are identical for all
+ * three, and duplicating them by hand is how they drift apart.
+ */
+const REFINE_SHARED_RULES =
+  "\n\nRULES THAT ALWAYS APPLY:\n" +
+  "- Write in the SAME LANGUAGE as the dream you are given. Never translate it.\n" +
+  "- Keep the same grammatical person and tense the dreamer used.\n" +
+  "- Invent NOTHING: no events, people, places, animals or objects that are not " +
+  "already in the text. If a detail is vague, leave it vague — a half-remembered " +
+  "dream is normal and is not a gap to fill.\n" +
+  "- Never reorder what happened, and never explain, interpret or resolve it. " +
+  "Dreams do not need to make sense.\n" +
+  "- Keep the emotional register. Do not make a frightening dream cosy, or a dull " +
+  "one dramatic.\n" +
+  "- Return ONLY the text itself: no preamble, no title, no markdown, no quotation " +
+  "marks around it, no commentary about what you changed.";
+
 const REFINE_MODES = {
+  /* The lightest touch there is. Deliberately forbids improvement of any
+   * kind — someone who asks for spelling and gets their voice rewritten
+   * has lost something they cannot get back except via "show original". */
   correct:
-    "Fix spelling, grammar and punctuation in the dream below. Change NOTHING else — " +
-    "not a word choice, not the order, not the tone. Return only the corrected text.",
+    "Fix ONLY spelling, grammar and punctuation in the dream below. Change nothing " +
+    "else whatsoever: not a word choice, not a sentence boundary, not the order, not " +
+    "the tone. If a sentence is clumsy but correct, leave it clumsy." +
+    REFINE_SHARED_RULES,
+
+  /* Same content, better prose. The line it must not cross is adding
+   * anything; it may only re-say what is already said. */
   rewrite:
-    "Rewrite the dream below so it reads more vividly and flows better. Keep every event, " +
-    "person and place exactly as given, in the same order, in the same emotional register, " +
-    "in the same language and person. Invent nothing. Return only the rewritten text.",
+    "Rewrite the dream below so it reads more vividly and flows better. Improve the " +
+    "wording, the rhythm and the sentence structure. Every event, person and place " +
+    "must survive exactly as given — you are changing HOW it is told, never WHAT is " +
+    "told. Keep it roughly the same length." +
+    REFINE_SHARED_RULES,
+
+  /* The most liberal of the three, and therefore the one whose limits are
+   * spelled out hardest: sensory detail is allowed, new plot is not. */
   elaborate:
-    "Work the dream below into a fuller piece of storytelling: add sensory detail and a " +
-    "clearer arc. You may enrich HOW things are described, but you may NOT add events, " +
-    "people or places that are not already there, and you may NOT change their order or " +
-    "the emotional register. Keep the same language and person. Return only the text.",
+    "Work the dream below into a fuller piece of storytelling. You MAY add sensory " +
+    "texture to what is already there — light, sound, temperature, texture, the feel " +
+    "of a space — and you may shape the existing material into a clearer arc with a " +
+    "beginning, a middle and an end. You may make it noticeably longer.\n" +
+    "You may NOT add a single event, person, place or object that is not already in " +
+    "the text. Describing the room they are in more richly is allowed; putting a new " +
+    "person in that room is not." +
+    REFINE_SHARED_RULES,
 };
 
 async function refineDream(dream, mode) {
@@ -213,7 +656,10 @@ async function refineDream(dream, mode) {
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
       messages: [
-        { role: "system", content: `${system}\nNo preamble, no markdown, no quotes around it.` },
+        // No extra tail: REFINE_SHARED_RULES already ends with the
+        // "return only the text" rule, and saying it twice in different
+        // words is how a prompt starts contradicting itself.
+        { role: "system", content: system },
         { role: "user", content: dream },
       ],
       stream: false,
@@ -240,7 +686,7 @@ async function refineDream(dream, mode) {
 // Everything after this — assigning avatars, splitting beats into 3/5/10
 // images, picking a style template, assembling the master prompt — is local
 // logic with no further model calls. That is the whole token-economy design.
-const ANALYSIS_STYLES = ["dreamlike", "romantic", "dark", "surreal", "nostalgic", "adventurous"];
+const ANALYSIS_STYLES = ["ultrareal", "noir", "dreamlike", "romantic", "dark", "surreal", "nostalgic", "adventurous"];
 const MAX_ANALYSIS_ITEMS = 8;   // people or places; more is noise, not signal
 const ANALYSIS_BEATS = 5;       // fixed: 3/5/10 images are all derived from these
 
@@ -265,8 +711,10 @@ Schema (every key is required, exactly these names):
   ],
   "places": string[],      // every distinct location, in order, in the dream's language
   "beats": string[],       // EXACTLY 5 short scene descriptions, in order — ALWAYS IN ENGLISH
-  "style": string,         // one of: dreamlike, romantic, dark, surreal, nostalgic, adventurous
-  "mood": string           // one or two words, in the dream's language
+  "style": string,         // one of: ultrareal, noir, dreamlike, romantic, dark, surreal, nostalgic, adventurous
+  "mood": string,          // one or two words, in the dream's language
+  "title": string,         // a film title for this dream: 1-4 evocative words, in the dream's language, no quotes
+  "tagline": string        // one short poster tagline (under 10 words), in the dream's language — like "Nothing on earth could come between them."
 }
 
 Why the language split matters: "text", "people[].name", "places" and "mood" are SHOWN to the person and must stay in the language they wrote in — a German dream gets a German improved text. "beats" are rendering instructions for an image model and must be English regardless of the dream's language.
@@ -277,7 +725,9 @@ Rules for "people": include the dreamer only if they appear as a visible charact
 
 Rules for "places": one entry per distinct location. A dream that moves from a bedroom to the sky over the sea has TWO places. Empty array if there is no discernible location.
 
-Rules for "beats": exactly 5, always, even for a short dream — split it evenly. Each beat is one English sentence describing what is SEEN, not felt. Refer to people by their "name" so the app can bind reference images.`;
+Rules for "beats": exactly 5, always, even for a short dream — split it evenly. Each beat is one English sentence describing what is SEEN, not felt. Refer to people by their "name" so the app can bind reference images.
+
+Rules for "title" and "tagline": they go on a film poster for this dream. The title is what a great director would call this film — short, concrete, evocative; never generic ("My Dream", "A Strange Night" are failures). The tagline is one line that makes a stranger want to watch — it hints at the emotional core without summarising the plot. Both stay in the dream's language.`;
 
 /** One DeepSeek call → the structured shape the wizard runs on. */
 async function analyzeDream(dream) {
@@ -367,6 +817,12 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
     beats,
     style,
     mood: sanitizeFragment(parsed.mood || "", 40),
+    // Poster text. Both are SHOWN (dream's language) and later embedded in a
+    // prompt we build, so they get the fragment treatment: quotes and brackets
+    // stripped, length pinned. Empty is legal — the client then falls back to
+    // plain scene images instead of a poster.
+    title: sanitizeFragment(parsed.title || "", 60),
+    tagline: sanitizeFragment(parsed.tagline || "", 120),
   };
 }
 
@@ -374,14 +830,20 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
 // ---- fal.ai calls ----
 // Synchronous fal.ai REST endpoint (fal.run/<model>) rather than the queue
 // API: simpler, no extra dependency, fine for image/video-gen latencies.
+//
+// ⚠ THAT CEILING HAS BEEN REACHED (measured 08.08.2026). A 15-second video on
+// minimax/h3 does not finish inside the synchronous request — it times out,
+// and the render is paid for but lost. Images and short clips are unaffected.
+// Anything longer needs queue.fal.run: submit, poll status_url, fetch
+// response_url. Do that BEFORE offering film lengths above ~10 seconds.
 // Revisit if a model runs long enough to need the queue+polling flow.
-async function falGenerateImage({ prompt, namedRefs = [] }) {
+async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16" }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
   const input = {
     prompt,
-    aspect_ratio: "9:16", // unverified param name/value for this model, see FAL_MODEL_IMAGE note above
+    aspect_ratio: aspectRatio, // unverified param name/value for this model, see FAL_MODEL_IMAGE note above
   };
   const imageUrls = namedRefs.map((r) => r.img).filter(Boolean);
   if (imageUrls.length) input.image_urls = imageUrls;
@@ -406,30 +868,207 @@ async function falGenerateImage({ prompt, namedRefs = [] }) {
   return urls;
 }
 
-async function falGenerateVideo({ imageUrl, prompt }) {
+/* ---- the queue path ----
+ *
+ * Video does NOT go through fal.run. Measured 08.08.2026: a 15-second render
+ * on minimax/h3 takes 280 seconds, far past what a held-open HTTP request
+ * survives — and a timeout there means fal still renders it, still bills for
+ * it, and nobody ever collects it. Paid for and lost.
+ *
+ * So: submit to the queue, hand the client a job id, let it come back. The
+ * job outlives the request, which is the whole point.
+ *
+ * Jobs live on disk rather than in a Map, because a server restart during a
+ * five-minute render would otherwise orphan something the person paid for.
+ */
+const JOBS_DIR = resolve(import.meta.dir, "media", "jobs");
+const JOB_ID = /^[a-z0-9]{6,32}$/;
+
+async function readJob(id) {
+  if (!JOB_ID.test(id)) return null;
+  const f = Bun.file(resolve(JOBS_DIR, `${id}.json`));
+  return (await f.exists()) ? f.json() : null;
+}
+const writeJob = (id, job) => Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.stringify(job));
+
+/** Hand the work to fal's queue and return our own job id. */
+async function falSubmitVideo({ imageUrl, prompt, seconds }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
-  const res = await fetch(`https://fal.run/${FAL_MODEL_VIDEO}`, {
+  const res = await fetch(`https://queue.fal.run/${FAL_MODEL_VIDEO}`, {
     method: "POST",
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({ image_url: imageUrl, prompt }), // param names unverified, see FAL_MODEL_VIDEO note above
+    body: JSON.stringify({
+      image_url: imageUrl,
+      prompt,
+      // minimax/h3 accepts 5–15 ("ge: 5" per its validator, re-measured
+      // 09.08.2026 — the queue only enforces this at RENDER time, so a bad
+      // value here would burn the fee and come back as a failed job).
+      duration: Math.min(Math.max(Number(seconds) || 6, 5), 15),
+      resolution: "768P",
+    }),
   });
   if (!res.ok) {
-    console.error("[DreamRushes] fal.ai video request failed:", res.status, await res.text().catch(() => ""));
+    console.error("[DreamRushes] fal.ai video submit failed:", res.status, await res.text().catch(() => ""));
     throw new Error("GENERATION_FAILED");
   }
+  const { request_id, status_url, response_url } = await res.json();
+  if (!request_id) throw new Error("GENERATION_FAILED");
+
+  /* status_url/response_url are stored VERBATIM from fal's answer, never
+   * rebuilt from the model slug: the queue routes under the model FAMILY
+   * ("minimax/h3"), not the full slug ("minimax/h3/image-to-video") — a
+   * hand-built path 405s, and jobStatus reads every failure as "pending",
+   * so a finished film would never be collected. Found 09.08.2026 when a
+   * COMPLETED render sat unclaimed behind exactly that 405. */
+  const id = genJobId();
+  await writeJob(id, {
+    requestId: request_id, model: FAL_MODEL_VIDEO,
+    statusUrl: status_url, responseUrl: response_url,
+    createdAt: Date.now(), status: "pending",
+  });
+  return id;
+}
+
+function genJobId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+/** Where a job stands. Finished media is copied locally before it is handed
+ *  over, exactly like the synchronous path — the fal URL is never the record. */
+async function jobStatus(id) {
+  const job = await readJob(id);
+  if (!job) return { status: "unknown" };
+  if (job.status === "done") return { status: "done", urls: job.urls };
+  if (job.status === "failed") return { status: "failed" };
+
+  const key = process.env.FAL_KEY;
+  /* Jobs written since 09.08.2026 carry fal's own URLs. Older ones fall back
+   * to the model FAMILY (first two slug segments) — the full slug is exactly
+   * the 405 that kept finished films uncollectable. */
+  const family = job.model.split("/").slice(0, 2).join("/");
+  const base = job.responseUrl || `https://queue.fal.run/${family}/requests/${job.requestId}`;
+  const statusUrl = job.statusUrl || `${base}/status`;
+  const s = await fetch(statusUrl, { headers: { Authorization: `Key ${key}` } });
+  if (!s.ok) return { status: "pending" };            // a hiccup is not a failure
+  const st = await s.json();
+
+  if (st.status === "FAILED") {
+    await writeJob(id, { ...job, status: "failed" });
+    return { status: "failed" };
+  }
+  if (st.status !== "COMPLETED") return { status: "pending" };
+
+  const r = await fetch(base, { headers: { Authorization: `Key ${key}` } });
+  const data = await r.json().catch(() => null);
+  const url = data?.video?.url || data?.videos?.[0]?.url;
+  if (!url) {
+    await writeJob(id, { ...job, status: "failed" });
+    return { status: "failed" };
+  }
+  const urls = await storeAll([url]);
+  await writeJob(id, { ...job, status: "done", urls });
+  return { status: "done", urls };
+}
+
+// Dictation: the client records audio (MediaRecorder) and sends it as a
+// base64 data URI; Wizper auto-detects the spoken language, so German and
+// English both come back as written text without a language toggle.
+async function falTranscribe(audioDataUri) {
+  const key = process.env.FAL_KEY;
+  if (!key) throw new Error("NO_FAL_KEY");
+
+  const res = await fetch(`https://fal.run/${FAL_MODEL_STT}`, {
+    method: "POST",
+    headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({ audio_url: audioDataUri, task: "transcribe" }),
+  });
+  if (!res.ok) {
+    console.error("[DreamRushes] fal.ai transcribe request failed:", res.status, await res.text().catch(() => ""));
+    throw new Error("TRANSCRIBE_FAILED");
+  }
   const data = await res.json().catch(() => null);
-  const url = data?.video?.url;
-  if (!url) throw new Error("GENERATION_FAILED");
-  return [url];
+  const text = data?.text;
+  if (typeof text !== "string") throw new Error("TRANSCRIBE_FAILED");
+  return text;
+}
+
+// ---- local media copies ----
+// fal.ai hands back URLs on ITS hosting, with no promise about how long they
+// stay reachable. A dream journal that quietly empties out months later is
+// worthless, so every generated file is copied here and the journal is given
+// the local path instead. The fal URL is the fallback, not the record.
+const MEDIA_DIR = resolve(import.meta.dir, "media");
+const MEDIA_TYPES = {
+  "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp",
+  "video/mp4": "mp4", "video/quicktime": "mp4",
+};
+const MEDIA_MIME = { png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp4: "video/mp4" };
+const MAX_MEDIA_BYTES = 60 * 1024 * 1024;
+
+/** Write bytes under a name derived from their own content — never from
+ *  anything the model or the client chose — and hand back the path they
+ *  will be served at. Shared by the fetch-and-copy path below and by the
+ *  panel-upload endpoint, which has bytes already and nothing to fetch. */
+async function storeBytes(bytes, contentType) {
+  const ext = MEDIA_TYPES[String(contentType || "").split(";")[0].trim()];
+  if (!ext || !bytes.length || bytes.length > MAX_MEDIA_BYTES) return null;
+  const name = `${Bun.hash(bytes).toString(36)}.${ext}`;
+  await Bun.write(resolve(MEDIA_DIR, name), bytes);
+  return `/media/${name}`;
+}
+
+/** Copy one generated file locally. Returns "/media/<name>", or null to keep
+ *  using the provider URL — a failed copy must never fail the generation the
+ *  person already paid for. */
+async function storeMedia(url) {
+  try {
+    if (!/^https:\/\//.test(url)) return null;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await storeBytes(new Uint8Array(await res.arrayBuffer()), res.headers.get("content-type"));
+  } catch (e) {
+    console.error("[DreamRushes] could not store media locally:", e.message);
+    return null;
+  }
+}
+
+async function storeAll(urls) {
+  return Promise.all(urls.map(async (u) => (await storeMedia(u)) || u));
+}
+
+// Only ever serves files this server wrote: the name must be exactly the
+// hash-plus-extension shape produced above, so nothing else is addressable.
+const MEDIA_NAME = /^\/media\/([a-z0-9]{1,20}\.(png|jpg|webp|mp4))$/;
+/** The filename a /media/ request resolves to, or null. Exported so the
+ *  serving rules can be tested without the network. */
+export function resolveMedia(pathname) {
+  let rel;
+  try { rel = decodeURIComponent(pathname); } catch { return null; }  // malformed %-escape
+  const hit = MEDIA_NAME.exec(rel);
+  return hit ? { name: hit[1], ext: hit[2] } : null;
+}
+
+async function serveMedia(pathname) {
+  const hit = resolveMedia(pathname);
+  if (!hit) return new Response("Not found", { status: 404 });
+  const file = Bun.file(resolve(MEDIA_DIR, hit.name));
+  if (!(await file.exists())) return new Response("Not found", { status: 404 });
+  return new Response(file, {
+    headers: {
+      "content-type": MEDIA_MIME[hit.ext],
+      // Content-addressed names never change meaning, so they cache forever.
+      "cache-control": "public, max-age=31536000, immutable",
+    },
+  });
 }
 
 // ---- orchestration ----
 // Step 1 (DeepSeek, optional) + step 2 (fal.ai, required) from the pipeline
 // comment at the top of the file. DeepSeek failing or being unconfigured
 // degrades to the local template rather than blocking generation.
-async function generateImages({ dream, namedRefs, prompt: readyPrompt }) {
+async function generateImages({ dream, namedRefs, prompt: readyPrompt, aspectRatio }) {
   // The wizard assembles its own prompt locally (beats, style template,
   // reference clauses) and sends it here — that path costs no LLM call at
   // all. Only the older single-shot form, which sends raw dream text, still
@@ -443,17 +1082,34 @@ async function generateImages({ dream, namedRefs, prompt: readyPrompt }) {
       prompt = buildFallbackPrompt(dream, namedRefs);
     }
   }
-  return falGenerateImage({ prompt, namedRefs });
+  return falGenerateImage({ prompt, namedRefs, aspectRatio });
 }
 
 // Film mode: render a keyframe still first (same pipeline as image mode),
 // then animate it. minimax/h3 is image-to-video, so it needs a source image
 // — there's no text-to-video path anymore.
-async function generateVideo({ dream, namedRefs, prompt }) {
+/** Film: render the keyframe (fast, synchronous) and hand the animation to
+ *  the queue. Returns a job id, not a URL — the client comes back for it.
+ *
+ *  With `keyframe` set, no keyframe is rendered at all: the film animates an
+ *  image the dream already owns. The value is a /media/ path, NEVER a URL —
+ *  resolveMedia() only matches names this server itself wrote, so the client
+ *  cannot point this at an arbitrary file or host. fal gets the bytes as a
+ *  data URI because the /media/ path only exists on this machine; fal could
+ *  never fetch it (verified live 09.08.2026: minimax/h3 accepts data URIs). */
+async function startVideo({ dream, namedRefs, prompt, seconds, keyframe }) {
+  if (keyframe) {
+    const hit = resolveMedia(keyframe);
+    const file = hit && Bun.file(resolve(MEDIA_DIR, hit.name));
+    if (!hit || !(await file.exists())) throw new Error("GENERATION_FAILED");
+    const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
+    const dataUri = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
+    return falSubmitVideo({ imageUrl: dataUri, prompt: prompt || dream, seconds });
+  }
   const stills = await generateImages({ dream, namedRefs, prompt });
-  const keyframe = stills[0];
-  if (!keyframe) throw new Error("GENERATION_FAILED");
-  return falGenerateVideo({ imageUrl: keyframe, prompt: prompt || dream });
+  const first = stills[0];
+  if (!first) throw new Error("GENERATION_FAILED");
+  return falSubmitVideo({ imageUrl: first, prompt: prompt || dream, seconds });
 }
 
 // ---- static file serving ----
@@ -495,8 +1151,141 @@ async function serveStatic(pathname) {
 
 Bun.serve({
   port: PORT,
-  async fetch(req) {
+
+  /* The voice interview runs through here rather than browser-to-Google.
+   *
+   * It has to: the browser would need GEMINI_KEY to open that socket, and a
+   * key in a bundle is a key everyone has. So the client talks to us, we hold
+   * the key, and we pass frames through in both directions. The relay reads
+   * nothing except the one message it must translate — the audio config —
+   * and never stores what is said. */
+  websocket: {
+    async open(ws) {
+      const key = process.env.GEMINI_KEY;
+      if (!key) {
+        ws.send(JSON.stringify({ type: "error", code: "NO_GEMINI_KEY" }));
+        return ws.close();
+      }
+
+      const upstream = new WebSocket(`${GEMINI_WS}?key=${key}`);
+      ws.data.upstream = upstream;
+
+      // The setup frame carries the name and the cast, so it cannot be sent
+      // until the client has told us who is talking. Whichever of the two
+      // arrives second (socket open / "hello") triggers it. The timer is the
+      // backstop: a client that never introduces itself still gets a session,
+      // just an anonymous one, instead of a socket that stays silent forever.
+      upstream.addEventListener("open", () => sendVoiceSetup(ws));
+      ws.data.helloTimer = setTimeout(() => {
+        ws.data.greeted = true;
+        sendVoiceSetup(ws);
+      }, 2000);
+
+      // Straight through. Blobs stay blobs — the audio never becomes a string
+      // on the way past, which would corrupt it and cost a copy per frame.
+      upstream.addEventListener("message", (e) => {
+        /* The greeting may only be sent once Gemini has confirmed the setup,
+         * so the first frames are inspected — and only those. Gemini sends
+         * everything as binary frames, including this one (measured, not
+         * assumed: a string test here silently never matched and the
+         * assistant stayed mute). The size guard keeps a stray audio frame
+         * from being decoded for nothing; setupComplete is ~26 bytes. */
+        if (!ws.data.kicked) {
+          const head = typeof e.data === "string" ? e.data
+            : e.data.byteLength <= 4096 ? new TextDecoder().decode(e.data) : "";
+          if (head.includes("setupComplete")) ws.data.kicked = true;
+        }
+        if (ws.data.kicked && !ws.data.cued) {
+          ws.data.cued = true;
+          try {
+            upstream.send(JSON.stringify({
+              clientContent: {
+                turns: [{ role: "user", parts: [{ text: VOICE_OPENING_CUE }] }],
+                turnComplete: true,
+              },
+            }));
+          } catch { /* upstream died between frames */ }
+        }
+        try { ws.send(e.data); } catch { /* client already gone */ }
+      });
+      upstream.addEventListener("close", () => { try { ws.close(); } catch {} });
+      upstream.addEventListener("error", () => {
+        try { ws.send(JSON.stringify({ type: "error", code: "UPSTREAM" })); ws.close(); } catch {}
+      });
+    },
+
+    message(ws, data) {
+      /* The client's very first frame is a "hello" naming the dreamer. It is
+       * ours, not Gemini's, so it stops here. Everything after it is audio and
+       * goes straight through — which is why this only looks at frame one:
+       * JSON.parse on every audio frame would be the most expensive thing the
+       * relay does. */
+      if (!ws.data.greeted) {
+        ws.data.greeted = true;
+        if (typeof data === "string" && data.includes('"hello"')) {
+          try {
+            const msg = JSON.parse(data);
+            if (msg.type === "hello") {
+              ws.data.who = {
+                name: sanitizeFragment(msg.name, 40),
+                cast: (Array.isArray(msg.cast) ? msg.cast : [])
+                  .map(sanitizeTag).filter(Boolean).slice(0, 40),
+                // A BCP-47 tag and nothing else: it is quoted into the prompt,
+                // so it may not carry anything but letters, digits and dashes.
+                lang: String(msg.lang || "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 12),
+                // Allowlisted, never interpolated: picks briefing and tools.
+                mode: msg.mode === "onboarding" ? "onboarding" : "",
+                // Allowlisted too — this string goes into the Gemini setup.
+                voice: VOICE_NAMES.has(msg.voice) ? msg.voice : "",
+              };
+              return sendVoiceSetup(ws);   // never forwarded upstream
+            }
+          } catch { /* not our handshake — fall through and treat as traffic */ }
+        }
+        // An older client, or a frame we do not recognise: Gemini still needs
+        // its setup before anything else, so send it now with what we know.
+        sendVoiceSetup(ws);
+      }
+
+      const up = ws.data.upstream;
+      if (up?.readyState === 1) up.send(data);
+    },
+
+    close(ws) {
+      clearTimeout(ws.data.helloTimer);
+      try { ws.data.upstream?.close(); } catch { /* already gone */ }
+    },
+  },
+
+  async fetch(req, server) {
     const url = new URL(req.url);
+
+    if (url.pathname === "/api/voice") {
+      if (server.upgrade(req, { data: { upstream: null } })) return undefined;
+      return new Response("Expected a WebSocket upgrade.", { status: 426 });
+    }
+
+    /* A voice introducing itself. GET and cache-friendly on purpose: the
+     * browser's own cache absorbs repeat taps, and the disk cache above
+     * absorbs repeat users — Gemini is only ever billed once per
+     * (voice, language) per machine. */
+    if (url.pathname === "/api/voice-sample") {
+      const voice = url.searchParams.get("voice") || "";
+      const lang = url.searchParams.get("lang") || "";
+      if (!VOICE_NAMES.has(voice)) return json({ error: "Unknown voice." }, 400);
+      if (!VOICE_SAMPLE_LINES[lang]) return json({ error: "Unknown language." }, 400);
+      try {
+        return new Response(await voiceSample(voice, lang), {
+          headers: { "content-type": "audio/wav", "cache-control": "public, max-age=86400" },
+        });
+      } catch (e) {
+        if (e.message === "NO_GEMINI_KEY") {
+          return json({ error: "Backend has no Gemini key. Set GEMINI_KEY and restart." }, 503);
+        }
+        console.error("[DreamRushes] /api/voice-sample failed:", e);
+        return json({ error: "Could not fetch that voice." }, 502);
+      }
+    }
 
     if (url.pathname === "/api/analyze" && req.method === "POST") {
       try {
@@ -543,6 +1332,33 @@ Bun.serve({
       }
     }
 
+    if (url.pathname === "/api/transcribe" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Recording too large." }, 413);
+        }
+        const body = await req.json();
+        // Only a data URI is accepted — never a URL. Forwarding a
+        // client-supplied URL to fal.ai would make this route a fetch-proxy
+        // for whatever address the client names (SSRF by delegation).
+        const audio = typeof body.audio === "string" ? body.audio : "";
+        if (!/^data:audio\/[\w.+-]+;base64,/.test(audio)) {
+          return json({ error: "Expected a base64 audio data URI." }, 400);
+        }
+        const text = sanitizePromptText(await falTranscribe(audio));
+        return json({ ok: true, text });
+      } catch (e) {
+        const map = {
+          NO_FAL_KEY: [503, "Backend has no fal.ai key. Set FAL_KEY and restart."],
+          TRANSCRIBE_FAILED: [502, "Could not transcribe that recording. Try again."],
+        };
+        const hit = map[e.message];
+        if (hit) return json({ error: hit[1] }, hit[0]);
+        console.error("[DreamRushes] /api/transcribe failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
     if (url.pathname === "/api/generate" && req.method === "POST") {
       try {
         if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
@@ -581,11 +1397,27 @@ Bun.serve({
           ? sanitizePromptText(body.prompt).slice(0, MAX_CRAFTED_PROMPT)
           : undefined;
 
-        const isFilm = body.mode === "film";
-        const urls = isFilm
-          ? await generateVideo({ dream, namedRefs: cast, prompt })
-          : await generateImages({ dream, namedRefs: cast, prompt });
-        return json({ ok: true, urls });
+        // The one caller that needs a canvas wider than the app's own
+        // portrait default: a multi-panel grid, which only reads as several
+        // pictures once it is wide enough to cut into portrait-ish strips.
+        // Allowlisted rather than passed through — this reaches fal.ai
+        // verbatim, so it is a value, never client-supplied text.
+        const aspectRatio = body.aspectRatio === "16:9" ? "16:9" : undefined;
+
+        // Two shapes come back from here, and the client handles both:
+        //   images → { urls }   (fast enough to wait for)
+        //   film   → { jobId }  (minutes; the client collects it later)
+        if (body.mode === "film") {
+          // Only a /media/-shaped name survives; startVideo re-validates it
+          // against resolveMedia before touching the filesystem.
+          const keyframe = typeof body.keyframe === "string" ? body.keyframe : undefined;
+          const jobId = await startVideo({ dream, namedRefs: cast, prompt, seconds: body.seconds, keyframe });
+          return json({ ok: true, jobId });
+        }
+        const urls = await generateImages({ dream, namedRefs: cast, prompt, aspectRatio });
+        // Hand back local paths where the copy worked, provider URLs where it
+        // did not — the client stores whatever it gets.
+        return json({ ok: true, urls: await storeAll(urls) });
       } catch (e) {
         const map = {
           NO_FAL_KEY: [503, "Backend has no fal.ai key. Set FAL_KEY and restart."],
@@ -599,6 +1431,43 @@ Bun.serve({
       }
     }
 
+    // Collecting a film. Deliberately a GET with no body: the client may ask
+    // days later, from a cold start, with nothing but the id it saved.
+    if (url.pathname === "/api/job" && req.method === "GET") {
+      try {
+        return json({ ok: true, ...(await jobStatus(url.searchParams.get("id") || "")) });
+      } catch (e) {
+        console.error("[DreamRushes] /api/job failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    // The grid feature (one generation, several panels) is cut client-side
+    // with <canvas> — that is where the Vanilla-JS stack already has an image
+    // decoder, so the server does not need one. This is therefore the one
+    // endpoint that stores bytes the CLIENT produced rather than something a
+    // model returned. It is no more trusted for that: storeBytes names the
+    // file from a hash of its own content and only writes it at all if the
+    // content-type maps to a real image extension, so nothing about the
+    // request — not its size, not its declared type — reaches the filesystem
+    // unchecked.
+    if (url.pathname === "/api/panel" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const bytes = new Uint8Array(await req.arrayBuffer());
+        const stored = await storeBytes(bytes, req.headers.get("content-type"));
+        if (!stored) return json({ error: "Not a storable image." }, 400);
+        return json({ ok: true, url: stored });
+      } catch (e) {
+        console.error("[DreamRushes] /api/panel failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    if (url.pathname.startsWith("/media/")) return serveMedia(url.pathname);
+
     return serveStatic(url.pathname);
   },
 });
@@ -610,3 +1479,4 @@ function json(obj, status = 200) {
 console.log(`Dream Rushes running → http://localhost:${PORT}`);
 console.log(process.env.FAL_KEY ? "fal.ai key: loaded ✓ (images + video)" : "fal.ai key: MISSING (generation disabled)");
 console.log(process.env.DEEPSEEK_KEY ? "DeepSeek key: loaded ✓ (LLM-crafted prompts)" : "DeepSeek key: MISSING (using local prompt template)");
+console.log(process.env.GEMINI_KEY ? "Gemini key: loaded ✓ (voice interview)" : "Gemini key: MISSING (voice interview disabled)");

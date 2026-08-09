@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAppState } from "../state/AppState.jsx";
 import { genId } from "../lib/storage.js";
 import { t } from "../i18n/index.js";
 import Button from "./Button.jsx";
+import { IconImages } from "./icons.jsx";
 import "./AvatarDialog.css";
 
 // Mirrors sanitizeTag() in server.js: [a-z0-9] only, 12 chars max. The server
@@ -21,12 +22,18 @@ function cleanTag(raw) {
  *
  * `onCreated` hands the saved avatar back so the wizard can bind it straight
  * to the character that triggered the dialog.
+ *
+ * `isMe` is a fourth mode: the dreamer's own avatar. It lives in state.me
+ * rather than in the cast — there is exactly one of it, the wizard matches
+ * "I"/"me" against it, and it must not collide with or be deleted alongside
+ * the ordinary entries.
  */
 export default function AvatarDialog({
   category,
   suggestedName = "",
   suggestedDesc = "",
   existing = null,
+  isMe = false,
   onCreated,
   onClose,
 }) {
@@ -36,6 +43,7 @@ export default function AvatarDialog({
   const [tag, setTag] = useState(cleanTag(existing?.tag || suggestedName));
   const [desc, setDesc] = useState(existing?.desc || suggestedDesc);
   const [image, setImage] = useState(existing?.img || "");
+  const fileRef = useRef(null);
 
   function readFile(e) {
     const file = e.target.files?.[0];
@@ -55,6 +63,15 @@ export default function AvatarDialog({
     const clean = cleanTag(tag);
     if (!clean) return toast(t.avatarDialog.needName);
     if (!hasSubstance) return toast(t.avatarDialog.needPhotoOrDesc);
+
+    if (isMe) {
+      const saved = { tag: clean, desc: desc.trim(), img: image };
+      update({ me: saved });
+      toast(t.avatarDialog.saved(clean));
+      onCreated?.(saved);
+      onClose();
+      return;
+    }
 
     // A name may collide with anyone EXCEPT the entry being edited.
     const collides = (state.cast || []).some((p) => p.tag === clean && p.id !== existing?.id);
@@ -92,9 +109,11 @@ export default function AvatarDialog({
     onClose();
   }
 
-  const title = isEdit
-    ? t.avatarDialog.editTitleFor[existing.category] || t.avatarDialog.editTitleFor.person
-    : t.avatarDialog.titleFor[category];
+  const title = isMe
+    ? t.avatarDialog.meTitle
+    : isEdit
+      ? t.avatarDialog.editTitleFor[existing.category] || t.avatarDialog.editTitleFor.person
+      : t.avatarDialog.titleFor[category];
 
   return (
     <div className="av-backdrop" onClick={onClose}>
@@ -112,19 +131,45 @@ export default function AvatarDialog({
           <input value={tag} onChange={(e) => setTag(e.target.value)} maxLength={20} autoFocus />
         </label>
 
-        <label className="av-field">
-          <span>{isEdit && image ? t.avatarDialog.photoReplace : t.avatarDialog.photoLabel}</span>
-          <input type="file" accept="image/*" onChange={readFile} />
-        </label>
+        {/* The native file input is invisible on purpose — every browser
+            draws its own "Choose File" chrome for it, which is exactly the
+            thing that read as out of place here. It still does the actual
+            picking; the button just proxies the click onto it. */}
+        <div className="av-field">
+          <span>{t.avatarDialog.photoLabel}</span>
 
-        {image && (
-          <div className="av-preview-row">
-            <img className="av-preview" src={image} alt={t.avatarDialog.previewAlt} />
-            <button className="av-drop" onClick={() => setImage("")}>
-              {t.avatarDialog.photoRemove}
+          {image ? (
+            <div className="av-photo-set">
+              <img className="av-preview" src={image} alt={t.avatarDialog.previewAlt} />
+              <div className="av-photo-row">
+                <button type="button" className="av-photo-btn" onClick={() => fileRef.current?.click()}>
+                  {t.avatarDialog.photoReplace}
+                </button>
+                <button
+                  type="button" className="av-photo-btn av-photo-btn-ghost"
+                  onClick={() => setImage("")}
+                >
+                  {t.avatarDialog.photoRemove}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" className="av-upload" onClick={() => fileRef.current?.click()}>
+              <IconImages />
+              <span>{t.avatarDialog.photoAdd}</span>
             </button>
-          </div>
-        )}
+          )}
+
+          <input
+            ref={fileRef}
+            className="av-file-hidden"
+            type="file"
+            accept="image/*"
+            onChange={readFile}
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+        </div>
 
         {/* Without a photo the description is the only thing the renderer has
             to go on, so it is worth asking for either way. */}

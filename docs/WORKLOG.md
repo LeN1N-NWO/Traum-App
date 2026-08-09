@@ -3,6 +3,360 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-10 00:24 — Anton — Branch `session/2026-08-07-anton` (PR #9) — Sitzungsabschluss
+
+**Commits (neuester zuerst):** `cf1b10e` (Willkommen als Versprechen statt
+Währung), `69e6642` (Klartraum-Leitfaden aus der Studienlage + Stimme nur
+einmal fragen), `95c606c` (Assistenten-Persona + Startseite als Poster),
+`8d1b840` (Gate in Ich-Form, Leuchtlinie, drei Home-Varianten), `e837279`
+(Startscreen mit Faultier-Film, neue Copy in 7 Sprachen), `1d0fae3`
+(Schlaf-Checkliste im Hatch-Stil), `8ef6dd9` (Stimmwahl mit Vorhören),
+`6805085` (Umschreib-Blatt, Remix raus). Zustand: 77 Unit-Tests, 50
+Freigabe-Prüfungen, Prompt-Hygiene, 16 Kontrast-Paarungen, 6
+Sprachdatei-Prüfungen — alles grün. `bun run lint` existiert weiterhin nicht.
+
+Diese Sitzung hatte einen roten Faden: Die App bekommt **eine Stimme** — im
+wörtlichen wie im gestalterischen Sinn.
+
+**1. Stimmwahl mit echtem Vorhören.** Sechs Stimmen aus dem Gemini-Live-
+Katalog, ein Tipp spielt sie vor. Recherchiert und entschieden: Die API hat
+**keine** fertigen Hörproben (AI Studio schon, die API nicht). Deshalb
+erzeugt der Server sie selbst über Gemini TTS — das teilt den Stimmkatalog
+mit der Live-API, **was man vorhört, ist exakt die Stimme, die dann
+spricht**. Je (Stimme, Sprache) einmal erzeugt und als WAV unter `media/`
+gecacht; TTS liefert kopfloses PCM, der RIFF-Header wird selbst geschrieben,
+die Abtastrate aus dem `mimeType` gelesen statt angenommen. Gemessen: frisch
+4,7 s, gecacht unter 1 ms. `voice` ist beidseitig allowlisted
+(`VOICE_NAMES` in `server.js`, Spiegel in `src/lib/voices.js`).
+
+**Wichtige Nachbesserung am selben Tag:** Der Picker kam zuerst **vor jedem**
+Gespräch. Das ist eine Mautstelle vor genau der Sache, für die es die App
+gibt. Jetzt: nur beim allerersten Mal, danach **Profil → Zahnrad →
+Einstellungen**. Bewusst als Liste gebaut, nicht als dieses eine
+Bedienelement — die zweite und dritte Einstellung kommen.
+
+**2. Der Assistent bekommt einen Charakter** (Stil B von drei demonstrierten,
+„der coole Nachtportier"): ein gemeinsamer `PERSONA`-Block für **beide**
+Briefings, weil Trauminterview und Willkommensumfrage für den Nutzer eine
+Person sind.
+
+**Die lehrreiche Stelle:** Die erste Fassung bestand vor allem aus Verboten
+(„erwähne nie…", „beschreibe dich nie…") und erzeugte perfekt neutrale
+Begrüßungen — „Willkommen. Wie soll ich dich nennen?". Ein Modell, das vor
+allem hört, was es NICHT tun soll, spielt auf Nummer sicher. Erst die
+konkrete **positive** Anweisung zog: die erste Zeile bemerkt etwas Wahres
+über den Moment (die Uhrzeit, dass jemand kaum wach ist) und fragt dann —
+halber Nebensatz Beobachtung, dann die Frage. Dazu ein Eröffnungs-Cue, der
+Charakter einfordert statt „sag deine Begrüßung".
+
+Bewusst **keine Beispielsätze** im Prompt: genau das hat am 09.08. schon
+einmal die Sprache verbogen (ein „Guten Morgen" als Beispiel ließ den
+Assistenten überall Deutsch reden). Beschrieben ist die Bewegung, nicht der
+Wortlaut. Gegengeprüft an vier echten Gemini-Sitzungen über den Relay —
+Deutsch, Englisch, Arabisch, Chinesisch tragen den Ton, ohne dass eine
+durchschlägt. Der Charakter fällt außerdem als Erstes weg, wenn ein Traum
+bedrückend wird.
+
+**3. Gestaltung: das Faultier zieht ein.** Zwei gelieferte Clips
+transkodiert (`Faultier-001.mov` 8,4 MB → 551 KB, `Faultier-002.mov` 7,3 MB
+→ 666 KB, beide ohne Ton, per Vite-Import gebündelt statt als `/public`-Pfad
+— überlebt so jede `base`-Änderung, wichtig für Capacitor).
+
+- **Startscreen** als Filmplakat: Video vollflächig hinter einem Scrim, der
+  oben leicht dimmt und unten in fast-Deckung ausläuft, damit Schrift auf
+  jedem Frame trägt. Neue Kicker-Zeile, größere Wortmarke.
+- **Startseite:** drei Varianten gebaut und live umschaltbar gemacht
+  (A Himmel / B Kino / C Karte), Anton wählte **C**. Grund: die Karte hat
+  eine Kante, also liest sich der Film als gerahmtes Bild statt als
+  ausgelaufener Hintergrund — und alles darunter sitzt wieder auf ruhigem
+  Dunkel, wo Listen hingehören. A, B und der Schalter sind gelöscht.
+- **Copy überall neu** (7 Sprachen): „Jede Nacht drehst du Filme. Fang an,
+  sie zu behalten." Die Folien erzählen eine Nacht statt Features
+  aufzuzählen. Gate spricht jetzt in der **ersten Person** („Erzähl mir…"),
+  weil die App eine Persona hat und eine Persona *ich* sagt.
+- **Leuchtlinie** um die Belohnungs-Pille: `conic-gradient` auf dem
+  `::before`, per Maske auf einen 1,5-px-Ring beschnitten, animiert wird nur
+  der Startwinkel (als `@property` registriert, sonst interpoliert er
+  nicht). Bei `prefers-reduced-motion` ein stiller Schimmer.
+- **Schlaf-Checkliste** im Hatch-Stil: Karten-Raster mit leuchtenden
+  Glyphen; erledigte Karten klappen ihren Text ein und treten zurück.
+
+**4. Luzides Träumen — aus Belegen statt aus Folklore neu gebaut.**
+Grundlage ist die *International Lucid Dream Induction Study* (Aspy u. a.
+2020, 355 Teilnehmende, eine Woche Übung), der bislang einzige große
+Direktvergleich. Zwei Funde haben die Seitenstruktur bestimmt:
+
+- **Die Methode ist nicht der wichtigste Hebel.** Der größte Einzelfaktor
+  war, ob jemand binnen zehn Minuten wieder einschlief (18,3 % gegen
+  11,1 %) — ein größerer Effekt als der Abstand zwischen den Techniken.
+  Deshalb stehen drei Zahlenkarten **vor** den Methoden.
+- **Realitätschecks haben nicht funktioniert.** Zu MILD dazugenommen
+  schnitten sie schlechter ab als MILD allein (10,8 % und 13,4 % gegen
+  16,5 %). Es ist die meistempfohlene Technik im Netz und stand auch bei uns
+  an erster Stelle. Sie bleibt drin — mit dem echten Ergebnis daneben.
+
+Vier Methoden mit Schritt-für-Schritt-Protokollen (WBTB, SSILD, MILD,
+Realitätschecks), Erfolgsquote schon auf der zugeklappten Karte. Bewusst
+**keine** Checkliste: hier wird nichts abgehakt, und so zu tun würde ein
+Ergebnis versprechen, das die Studie nicht hergibt.
+
+**5. Geschäftsmodell durchgerechnet** (auf Nachfrage, Ergebnis als
+Kommentare in `plans.js`/`credits.js`). Die bisherige Formel ignorierte
+zwei der größten Abzüge: die **MwSt.** (geht in der EU vom Listenpreis ab,
+*bevor* Apple seine Provision nimmt) und dass die **Gratis-Credits pro
+Installation** anfallen, nicht pro Kunde. Mit beiden ist der 30-%-Schnitt
+strukturell defizitär; das Small Business Program (15 %) ist damit
+**Voraussetzung, nicht Optimierung**. Break-even-Conversion real ~4,5–5 %
+statt der bisher notierten 3,8 %. Für 5.000 € Gewinn/Monat braucht es grob
+2.500–5.000 aktive Abos, für 10.000 € etwa das Doppelte.
+
+**6. Das Willkommen ist jetzt ein Versprechen statt einer Währung:** „Dein
+erster Traum geht auf uns" statt „3 Credits gratis", in allen sieben
+Sprachen und an allen drei Stellen. `credits.test.js` prüft dafür jetzt
+**Gleichheit** statt einer Spanne — zu wenig hieße, der Willkommensbildschirm
+verspricht einen Traum und zeigt beim ersten Versuch eine Bezahlschranke; zu
+viel hieße Restcredits, die allein nichts kaufen und wie ein Fehler aussehen.
+
+**Was der Nächste wissen muss:**
+
+- **Der Grid-Pfad feuert praktisch nie.** `useGrid` in `Step5Style.jsx:80`
+  verlangt „3 Szenen UND kein Poster", der Titel kommt aber automatisch aus
+  der Analyse ins Feld — es sei denn, jemand leert es von Hand. Wer den
+  Effekt testen will, muss das Titelfeld in Schritt 5 leeren.
+- **Der Grid kostet Auflösung.** An einem echten Rendering gemessen:
+  Panels 459×768 gegen 768×1376 bei einem normalen Bild, ein Drittel der
+  Pixel. Deshalb ist entschieden, dass der **Gratis-Traum in voller Größe
+  rendert** — die Ersparnis fiele sonst ausgerechnet auf den einen Traum,
+  der gut sein muss. Begründung in `credits.js`.
+- **Prompt-Persona: niemals Beispielsätze.** Zweimal hat das die Sprache
+  verbogen. Bewegungen beschreiben, nicht Wortlaut.
+- **Der Stimm-Cache liegt in `media/`** (`voice-sample-<Stimme>-<Sprache>.wav`,
+  42 mögliche Dateien). `media/` ist in `.gitignore` — auf einem frischen
+  Rechner entstehen sie beim ersten Antippen neu, je einmal.
+
+## 2026-08-09 19:37 — Anton — Branch `session/2026-08-07-anton` (PR #9) — Sitzungsabschluss
+
+**Commits (neuester zuerst):** `7576f28` (warmer Knopf nach oben), `353d1e7`
+(Onboarding-Folien zusammengelegt), `21fb959` (Foto-Knopf im Avatar-Dialog),
+`f2a4d2b` (Startauswahl), `0d4a122` (Onboarding komplett), `1ff3272`
+(Klangregler), `a3bf17f` `f1f61e1` (Aktionspillen, Grid-Balken), `00f813d`
+(Aktionsleiste + Remix), `69fee5b` `5548d76` (Film-Bilder-Fix,
+Job-Abholung), `19fa21b` `0d4cf0a` `66fcf1f` `8875f47` `53524c1`
+(Film-Keyframe, Bilder-vor-Film, Icon-Knöpfe, Grid-Bilder, Diktat raus),
+`1091221` `cd18cc3` `33165cc` `cb60e01` (Fortsetzen aus dem Journal,
+Sprach-Briefing, Kalender, WebSocket-Fix), dazu `f725a3b`/`1b0270d`
+(Sprachassistent-Grundgerüst, vor dieser Sitzung entstanden, aber noch nie
+im Worklog vermerkt — der letzte Abschluss-Eintrag lag zeitlich davor).
+Zustand: 77 Unit-Tests, 50 Freigabe-Prüfungen, Prompt-Hygiene, 16
+Kontrast-Paarungen — alles grün. `npm run lint`/`bun run lint` existiert
+weiterhin nicht.
+
+Sehr lange Sitzung, sechs große Themenblöcke. Der Reihe nach:
+
+**1. Der Sprachassistent — vom Grundgerüst zum funktionierenden Interview.**
+Kam stumm rein: der Dev-Proxy leitet WebSockets unter Bun nicht durch (Buns
+`node:http` meldet eine 101-Antwort als gewöhnliche Antwort statt als
+`upgrade`-Ereignis) — die Sprachverbindung geht seither **direkt** an den
+API-Port (`__API_PORT__` aus `vite.config.js`, siehe `voiceSession.js`).
+Danach: Gemini antwortet ausschließlich in **Binärframes**, auch
+`setupComplete` — die ursprüngliche Texterkennung griff nie, der Assistent
+blieb stumm, obwohl `ready` schon ankam. Fix in `server.js`: die ersten
+Frames werden bei Bedarf dekodiert, nicht blind als Text erwartet.
+
+Danach ein echtes **Briefing** statt generischer Fragen: Name aus dem
+Profil, bekannte Cast-Mitglieder (damit „Rex" als `@rex` erkannt wird,
+nicht als neue Figur), Gerätesprache fürs erste Wort — durchgespielt mit
+einem getippten Vier-Runden-Gespräch, alle vier Werkzeuge (`setDreamText`,
+`addPerson`, `addPlace`, `finish`) feuerten korrekt.
+
+**2. Journal-Struktur — Kalender, Fortsetzen, Film und Bilder nebeneinander.**
+Der Traumkalender zog vom Profil ins Journal (jedes Feld öffnet den
+jeweiligen Traum). Ein „nur gespeicherter" Traum lässt sich jetzt aus dem
+Journal heraus fortsetzen — der Wizard startet direkt bei der Besetzung,
+weil der Text schon da ist.
+
+**⚠ Zwei Fehler, die echtes Geld betroffen hätten:**
+
+- **Ein Film löschte die Bilder, aus denen er gemacht wurde.** `media`
+  wurde beim Speichern komplett ersetzt statt ergänzt. `lib/entryMedia.js`
+  trennt jetzt `film` und `media` als zwei unabhängige Felder; alte
+  Einträge mit Film in `media` werden per Fallback weiter gefunden.
+- **Fertige Filme wurden nie abgeholt.** Die Status-Abfrage wurde aus dem
+  vollen Modell-Slug gebaut (`minimax/h3/image-to-video`), fals Queue
+  routet aber unter der Familie (`minimax/h3`) — der selbstgebaute Pfad
+  antwortete 405, und `jobStatus()` wertete jeden Fehlschlag als
+  „pending". Ein fertig gerenderter, bezahlter Film blieb dadurch **für
+  immer** auf „rendering…" stehen. Gefunden, weil ein eigener Testclip
+  nach 20 Minuten nicht ankam — fal sagte `COMPLETED`, der Server fragte
+  falsch. Fix: `status_url`/`response_url` kommen jetzt wörtlich aus fals
+  eigener Einreichungs-Antwort, nicht mehr rekonstruiert.
+
+**3. Ein Film kann jetzt ein eigenes Bild des Traums animieren**, statt
+immer ein neues Keyframe zu rendern — ein Credit gespart, sichtbar im
+Preis. Das Bild geht als Data-URI an fal (lokale `/media/`-Pfade sind für
+fal nicht erreichbar); `resolveMedia()` prüft den Pfad gegen echte,
+selbst geschriebene Dateien, feindliche Werte (fremde URLs, `../`,
+`/etc/passwd`) scheitern serverseitig, bevor fal je kontaktiert wird —
+gegen den laufenden Server geprüft. Dabei außerdem gemessen:
+**`minimax/h3` verlangt inzwischen mindestens 5 Sekunden**, nicht 2 wie am
+08.08. notiert — die Queue prüft das erst beim Rendern, nicht beim
+Einreichen, ein zu kurzer Wert hätte Credits verbrannt und wäre Minuten
+später als gescheiterter Job zurückgekommen.
+
+**4. Ein Aufruf liefert drei Bilder statt drei Aufrufe eins.** Für die
+3-Bilder-Stufe ohne Poster generiert `buildGridPrompt()` ein einzelnes
+16:9-Bild mit drei Panels; `lib/splitGrid.js` schneidet es im Browser per
+`<canvas>` (kein neuer Bild-Decoder auf dem Server). Ein echter Test zeigte
+saubere Panel-Trennung, aber auch: das Modell malt trotz Verbot einen
+Letterbox-Rahmen ins Bild — kein Anzeigefehler, Teil der generierten
+Pixel. Der Zuschnitt erkennt Rahmenzeilen jetzt am **hellsten** Pixel der
+Zeile, nicht am Durchschnitt (gemalte Balken: max. 5/255 über die ganze
+Breite; selbst eine dunkle Wasserszene trägt Glanzpunkte ab 19). Ein
+Durchschnitts-Schwellwert hätte 144 px echte Szene mitgefressen. Preis
+bleibt bei 3 Credits, die Ersparnis geht bewusst in die Marge (dokumentiert
+in `pricing.js`) — Video ohne Titelkarte aus demselben Grund: großformatige
+Poster-Typografie durch Image-to-Video verzerrt beim Animieren.
+
+**5. Bedienelemente aufgeräumt.** Die alte Diktierfunktion (Mikro-Knopf,
+Status-Text) ist raus, `useVoiceInput.js` gelöscht — „Tell it out loud"
+deckt das jetzt allein ab. Bilder/Film-Knöpfe im Journal: kein Emoji mehr,
+eigenes SVG-Icon-Set, warmer Verlauf statt Kartenfarbe, **eine** Pille statt
+zwei nebeneinander (erst Bilder, Film erst wenn Bilder da sind — das
+Teuerste in der App nie anbieten, bevor jemand ein Bild gesehen hat). Eine
+neue Aktionsleiste (Remix/Rewrite/Edit/Share) sitzt jetzt **über** dem
+warmen Hauptknopf — er stand ursprünglich unter dem gesamten Traumtext, das
+Letzte, was jemand nach dem Scrollen sah. Remix zeigt den Text, aus dem die
+Bilder entstanden, lässt ihn ändern und erzeugt neu; die alte Analyse wird
+dabei verworfen, weil sie einen Text beschreibt, den es so nicht mehr gibt.
+Der native `<input type="file">` im Avatar-Dialog („Datei auswählen /
+Keine ausgewählt") ist jetzt unsichtbar und wird von einem Knopf im
+App-Stil ausgelöst — das war der eigentliche Grund, warum das Fenster alt
+aussah, kein CSS erreicht die OS-Chrome eines nativen File-Inputs. Die
+Klangregler im Sleep-Tab sind jetzt Chip-plus-Pille statt nativem
+`<input type=range>`.
+
+**6. Onboarding komplett neu, als eigener Bereich `src/screens/Onboarding/`.**
+Animation → drei Folien (zwei zu einer verschmolzen: „Visualise your
+dream" deckt Bild UND Film ab; die frei gewordene dritte Karte zeigt die
+Gratis-Funktionen Lucid Dreaming/Traumsymbole als zwei kleine Zeilen,
+Beschriftung direkt aus `t.sleep.tiles` gezogen, keine zweite,
+driftende Quelle) → Sprach-Umfrage (eigener Relay-Modus `onboarding` in
+`server.js`, eigenes Werkzeug-Set: Name, Geburtstag → Sternzeichen
+clientseitig via `lib/zodiac.js`, Traumerinnerung, Klarträume, wiederkehrende
+Themen, Ziel — jede Frage überspringbar) → optionaler Selfie-Schritt über
+den bestehenden `AvatarDialog`. Die Willkommens-Credits wandern vom
+stillen Mount-Geschenk zur Umfrage-**Belohnung** (`welcomeGrant()` bleibt
+idempotent, wer schon vorher etwas bekam, bekommt nichts doppelt); wer
+überspringt, findet Angebot samt Credits als Karte im Profil wieder.
+
+**Wichtig für den Nächsten:** `App.jsx` zeigt aktuell bei **jedem** Start
+eine `StartMenu`-Auswahl („Show onboarding" / „Skip to app") **statt**
+direkt auf `state.onboarded` zu gaten — das war explizit gewünscht, solange
+am Onboarding gearbeitet wird, ist aber ausdrücklich als
+**Übergangslösung** markiert (Kommentar in `StartMenu.jsx`). Vor jeder
+echten Nutzung: `src/screens/Onboarding/StartMenu.jsx` löschen,
+`App.jsx`s `Gate()` wieder auf `!state.onboarded` prüfen lassen.
+
+**Außerdem gefunden, nicht sitzungsrelevant, aber notiert:** Die
+`.claude/launch.json` im **Hauptrepo** (nicht im Worktree) startet nur
+`bun server.js` (Port 8100), nie Vite — ein frischer `main`-Checkout zeigt
+über die Vorschau also ein altes `dist/` ohne Oberfläche, nur `FAL_KEY`
+gesetzt. Absichtlich nicht angefasst (Änderung an geteilter Datei auf
+`main`, nicht Teil dieser Session).
+
+**Was der Nächste zuerst liest:** diesen Eintrag, dann `docs/STAND.md`
+(komplett neu geschrieben) — insbesondere den `StartMenu`-Punkt oben und
+die Baustellen-Liste dort.
+
+## 2026-08-08 15:30 — Anton — Branch `session/2026-08-07-anton` (PR #9) — Sitzungsabschluss
+
+**Commits:** `13bd9b0` (Diktat, Poster, Journal-Look, Medien lokal), `46b72e1`
+(Sleep-Tab, zwei Journal-Ansichten, Icon-Leiste), `af64474` (Plus-Knopf mittig),
+`025fb7c` (tiefblaue Farbwelt, Profil neu), `688e01f` (Paywall, warme Akzente),
+`309a9d2` (Startseite), `1802b79` (Verlaufsknöpfe), `624331e` (Warteschlange für
+Filme), `8cc2a94` (Credit-Skala, Film-Auswahl, Bilderstrecke), `73f2b32`
+(Willkommensgeschenk 3). Zustand: 65 Unit-Tests, 50 Freigabe-Prüfungen,
+Prompt-Hygiene, 16 Kontrast-Paarungen — alles grün. Build sauber.
+`npm run lint` existiert weiterhin nicht.
+
+**Diktat neu gebaut.** Web Speech war fest auf `en-US` verdrahtet, verstand
+Deutsch gar nicht und funktionierte in iOS Safari nie. Jetzt MediaRecorder +
+Whisper (`fal-ai/wizper`) über `/api/transcribe`. Spracherkennung automatisch,
+also kein Umschalter. Die Route nimmt **nur Base64-Data-URIs**, keine URLs —
+sonst wäre sie ein Abruf-Proxy für beliebige Adressen.
+
+**Traum-Poster.** Der eine Analyse-Aufruf liefert jetzt zusätzlich `title` und
+`tagline` in der Traumsprache. `buildPosterPrompt()` setzt die aus sieben
+echten Filmpostern destillierten Regeln um: ein dominantes Motiv, Tagline oben,
+Titel im unteren Drittel, Billing-Block unten, Sperr-Palette. Das Poster
+ersetzt das erste Bild (gleiche Anzahl, gleicher Preis). Acht Styles statt
+sechs, neu **Ultra Real** (Deakins-Grammatik) und **Film Noir**.
+
+**Medien liegen jetzt lokal.** `/api/generate` lädt jede erzeugte Datei nach
+`media/` (git-ignoriert) und gibt `/media/<hash>.<ext>` zurück. Vorher stand
+nur die fal-URL im Tagebuch, und die verschwindet irgendwann — ein Tagebuch,
+das nach Monaten leer wird, ist wertlos. 17 neue Freigabe-Prüfungen halten die
+Route dicht.
+
+**Sleep-Tab** mit Einschlaf-Checkliste (Haken gelten für eine Nacht, setzen
+sich per Datumsschlüssel selbst zurück), Sound-Mixer (White/Pink/Brown werden
+**synthetisiert** — kein Download, keine Lizenz) und dem umgezogenen
+Lucid-Guide. Der Web-Audio-Graph liegt außerhalb von React, damit der Ton beim
+Navigieren weiterläuft.
+
+**Farbwelt komplett getauscht**, von violetter Nacht auf tiefes Blau mit warmem
+Gegenpol. Der eigentliche Gewinn ist strukturell: der Hintergrund stand vorher
+in **zwölf Dateien** von Hand ausgeschrieben, jetzt genau einmal als
+`--bg-rgb`, und jeder Schleier leitet sich davon ab. Dazu
+`scripts/test-contrast.mjs`, das die echten Tokens liest und 16 Paarungen gegen
+WCAG AA prüft — der in STAND.md seit Monaten dokumentierte Grenzfall (`--faint`
+auf `--sky`) steigt von 4,79:1 auf 5,56:1. Eine Warnung in einer Textdatei hält
+niemanden auf, ein Test schon.
+
+**⚠ Zwei echte Fehler gefunden, beide teuer:**
+
+1. `run()` in Step5 war **nicht wiedereintrittsfest**. Ein Druck erzeugte sechs
+   `/api/generate`-Aufrufe; auf dem Telefon hätte ein Doppeltipp doppelt
+   Credits gekostet. `busy` konnte das nicht verhindern — es ist React-State und
+   im selben Tick noch `false`. Jetzt `useRef`-Wächter.
+2. **Der synchrone `fal.run`-Aufruf reicht für lange Filme nicht.** Gemessen:
+   ein 15-Sekunden-Render dauert **280 Sekunden** und läuft in eine
+   Zeitüberschreitung — während fal weiterrechnet und abrechnet. Bezahlt und
+   verloren. Filme laufen jetzt über `queue.fal.run`: einreichen, Job auf Platte
+   schreiben, `/api/job?id=` fragt nach. Aufträge liegen auf Platte, nicht in
+   einer Map, damit ein Neustart nichts verwaisen lässt, wofür jemand bezahlt hat.
+
+**Preise auf echte Kosten gestellt.** Recherchiert und teils direkt gemessen:
+Bild $0.08, Video $0.08/Sekunde bei 768P, Analyse $0.00026. Vorher war derselbe
+Credit je nach Verwendung zwischen 4 und 16 Cent wert. Jetzt **1 Credit = 1 Bild
+= $0.08**, Textarbeit gratis (sie kostet 0,065 % eines Traums), Film ein Credit
+je Sekunde. Willkommensgeschenk von 25 auf **3** — 25 waren $2.00 je
+Installation, durch Löschen der Website-Daten beliebig wiederholbar.
+
+**Modellvergleich mit echten Bildern** (~$0.31): synthetisches Porträt erzeugt,
+beiden Modellen als Referenz gegeben. **Seedream 5 Lite hält das Gesicht
+pixelgenau, ignoriert aber die Regieanweisung** — beide Male dasselbe frontale
+Brustbild, faktisch nur ein Hintergrundtausch. Nano Banana befolgt die Regie
+(Ganzfigur, Profil, Lichtstimmung), verliert dafür Kleinstmerkmale auf
+Szenendistanz. **Für Filmbilder ist Nano Banana richtig**; der Test hat eine
+teure Fehlentscheidung erspart. Seedreams Stärke passt zu den noch offenen
+Character-Sheets.
+
+**Was der Nächste wissen muss:**
+
+- **`minimax/h3` kann 15 Sekunden**, nicht 6 oder 10. Der Slug existiert, ist
+  aber nirgends öffentlich dokumentiert — die Grenzen stehen nur in fal's
+  eigener Validierungsantwort. Leeren Body schicken, Fehler lesen: kostet nichts
+  und ist die einzige Quelle. So kamen auch die erlaubten Auflösungen heraus.
+- **Vite startet neu, sobald `.env.example` gespeichert wird** (es beobachtet
+  alle `.env*`). Beim ersten Mal sah das nach einem Absturz aus.
+- **`--warm` braucht dunklen Text.** Weiß auf Bernstein reißt den Kontrast; die
+  Hauptknöpfe tragen deshalb `color: var(--bg)`.
+- Die Journal-Bilderstrecke teilt den Text **nach Sätzen**, gleichmäßig auf die
+  Bilder. Die englischen Beats liegen in der Analyse und nicht im Eintrag,
+  können also nicht zuordnen — die Reihenfolge stimmt, mehr ist ohne
+  gespeicherte Beats nicht drin.
+
 ## 2026-08-07 19:00 — Hanni — Branch `session/2026-08-07-hanni-profile` (PR #8) — Sitzungsabschluss
 
 **Commits:** `e76d6c8` (Merge von main, Doppeltes raus), `6db78c9`

@@ -33,7 +33,7 @@
  * moves nothing either. */
 .tt-wrap .tt-mirror mark {
   position: relative;
-  background: rgba(139, 92, 246, .26);
+  background: var(--accent-halo);
   color: transparent;
   border-radius: 6px;
   padding: 3px 0;
@@ -51,8 +51,8 @@
   content: ""; position: absolute; inset: 0; border-radius: 6px; padding: 1px;
   pointer-events: none;
   background: conic-gradient(from var(--tag-a),
-    rgba(167, 139, 250, .32) 0turn, rgba(167, 139, 250, .32) .58turn,
-    #fff .70turn, rgba(167, 139, 250, .32) .82turn, rgba(167, 139, 250, .32) 1turn);
+    var(--accent-ring) 0turn, var(--accent-ring) .58turn,
+    #fff .70turn, var(--accent-ring) .82turn, var(--accent-ring) 1turn);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);

@@ -1,5 +1,5 @@
 .av-backdrop {
-  position: fixed; inset: 0; z-index: 70; background: rgba(11, 7, 24, .8);
+  position: fixed; inset: 0; z-index: 70; background: var(--veil);
   backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
   padding: var(--s-4);
 }
@@ -16,16 +16,45 @@
   background: var(--panel); border: 1px solid var(--panel-line);
   color: var(--text); font-family: var(--sans); font-size: var(--t-body);
 }
-.av-field input:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
-.av-preview-row { margin-bottom: var(--s-3); }
+.av-field input:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 .av-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: var(--radius); display: block; }
-.av-drop {
-  margin-top: var(--s-2); padding: 6px 12px; border-radius: 999px; cursor: pointer;
-  background: var(--panel); border: 1px solid var(--panel-line);
-  color: var(--muted); font-family: var(--sans); font-size: var(--t-small);
-}
-.av-drop:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
 .av-hint { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-4); }
+
+/* — the photo control —
+   The native <input type="file"> draws its own OS-styled button with no way
+   to restyle it (that mismatched "Datei auswählen" chrome was the actual
+   complaint) — so it stays, but invisible, and a real button in the app's
+   own language proxies the click onto it. */
+.av-upload {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s-2);
+  width: 100%; padding: var(--s-5) var(--s-4); cursor: pointer;
+  border-radius: var(--radius); border: 1px dashed var(--panel-line);
+  background: var(--panel); color: var(--muted); font-family: inherit;
+  font-size: var(--t-small); font-weight: 600;
+  transition: border-color .14s ease-out, color .14s ease-out;
+}
+.av-upload svg { width: 26px; height: 26px; color: var(--accent-soft); }
+.av-upload:hover { border-color: var(--accent-soft); color: var(--text); }
+.av-upload:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+.av-photo-set { display: flex; flex-direction: column; gap: var(--s-2); }
+.av-photo-row { display: flex; gap: var(--s-2); }
+.av-photo-btn {
+  padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font-family: inherit; font-size: var(--t-small); font-weight: 600;
+}
+.av-photo-btn:hover { background: rgba(255, 255, 255, .08); }
+.av-photo-btn-ghost { color: var(--muted); font-weight: 400; }
+.av-photo-btn:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+/* Visually hidden, not display:none — some engines refuse a programmatic
+   .click() on a display:none input, and this pattern keeps it out of the
+   layout without that risk. */
+.av-file-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
 .av-actions { display: flex; gap: var(--s-2); justify-content: flex-end; }
 
 /* Foto mit Entfernen-Möglichkeit — ein Eintrag ohne Bild ist ausdrücklich

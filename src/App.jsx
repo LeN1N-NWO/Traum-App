@@ -6,9 +6,13 @@ import Splash from "./components/Splash.jsx";
 import Toast from "./components/Toast.jsx";
 import HomeScreen from "./screens/Home/HomeScreen.jsx";
 import JournalScreen from "./screens/Journal/JournalScreen.jsx";
-import SymbolsScreen from "./screens/Symbols/SymbolsScreen.jsx";
+import SleepScreen from "./screens/Sleep/SleepScreen.jsx";
 import ProfileScreen from "./screens/Profile/ProfileScreen.jsx";
 import WizardShell from "./wizard/WizardShell.jsx";
+import SoundDock from "./components/SoundDock.jsx";
+import Onboarding from "./screens/Onboarding/Onboarding.jsx";
+import StartMenu from "./screens/Onboarding/StartMenu.jsx";
+import LanguagePicker from "./screens/Onboarding/LanguagePicker.jsx";
 
 /* HashRouter, not BrowserRouter: Capacitor will load the app over file://,
    where the History API is unreliable. */
@@ -18,18 +22,68 @@ export default function App() {
   return (
     <AppStateProvider>
       {showSplash && <Splash onDone={() => setShowSplash(false)} />}
-      <HashRouter>
-        <Routes>
-          <Route path="/"        element={<HomeScreen />} />
-          <Route path="/journal" element={<JournalScreen />} />
-          <Route path="/symbols" element={<SymbolsScreen />} />
-          <Route path="/profile" element={<ProfileScreen />} />
-          <Route path="/dream"   element={<WizardShell />} />
-        </Routes>
-        <TabBar />
-      </HashRouter>
+      <Gate />
       <ToastBridge />
     </AppStateProvider>
+  );
+}
+
+/* Asked for explicitly while onboarding is under active work (09.08.2026):
+ * gating on state.onboarded meant the flow, once seen, was practically
+ * unreachable again — the flag flips once and stays flipped. StartMenu
+ * asks every launch instead of a stored flag deciding it, so it can be
+ * previewed on demand.
+ *
+ * StartMenu goes FIRST, before the language picker — not after. It has to:
+ * it is hardcoded English on purpose (see StartMenu.jsx) precisely because
+ * nothing has chosen a language yet at that point, and it needs to ask
+ * "onboarding or app?" the moment the app opens, before either flow's
+ * language-dependent screens exist to ask it from.
+ *
+ * The language step ALSO repeats every launch here, on purpose, unlike a
+ * finished app: state.language stays SET the moment it is chosen (real
+ * apps must remember it), so a permanent "!state.language" gate would only
+ * ever fire once per browser and then never let the picker be seen again —
+ * exactly the "stuck in whatever I tested last" complaint that made
+ * StartMenu exist in the first place. Chosen again every time this phase
+ * is reached is what a REPEATABLE preview needs; it still writes
+ * state.language for real, so the voice assistant etc. see a real choice.
+ *
+ * Remove StartMenu AND this repeat-language-every-time behaviour together,
+ * and go back to a plain `if (!state.language) return <LanguagePicker />`
+ * plus gating on state.onboarded, once the flow is settled — a returning
+ * user should be asked neither "onboarding or app?" nor "which language?"
+ * on every open. */
+function Gate() {
+  const [phase, setPhase] = useState("menu");   // menu | language | onboarding | app
+
+  if (phase === "menu") {
+    return <StartMenu onOnboarding={() => setPhase("language-onboarding")} onSkip={() => setPhase("language-app")} />;
+  }
+  if (phase === "language-onboarding" || phase === "language-app") {
+    return <LanguagePicker onChosen={() => setPhase(phase === "language-onboarding" ? "onboarding" : "app")} />;
+  }
+  if (phase === "onboarding") {
+    return <Onboarding onExit={() => setPhase("app")} />;
+  }
+  return <AppRouter />;
+}
+
+function AppRouter() {
+  return (
+    <HashRouter>
+      <Routes>
+        <Route path="/"        element={<HomeScreen />} />
+        <Route path="/journal" element={<JournalScreen />} />
+        {/* Symbols are a section inside /sleep now — see TabBar. */}
+        <Route path="/sleep"   element={<SleepScreen />} />
+        <Route path="/profile" element={<ProfileScreen />} />
+        <Route path="/dream"   element={<WizardShell />} />
+      </Routes>
+      <TabBar />
+      {/* Outside Routes: the sleep mix follows the person across screens. */}
+      <SoundDock />
+    </HashRouter>
   );
 }
 

@@ -1,34 +1,84 @@
-.h-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-5); }
-.h-moon {
-  width: 30px; height: 30px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff 0%, #e2d6ff 32%, var(--violet) 76%, #5b21b6 100%);
-  box-shadow: 0 0 22px rgba(139, 92, 246, .55);
-}
-.h-streak {
-  font-size: var(--t-small); color: var(--muted); margin: 0;
-  background: var(--panel); border: 1px solid var(--panel-line);
-  padding: var(--s-2) var(--s-3); border-radius: 999px; white-space: nowrap;
-}
+/* The screen's own padding would box the sky in; it is pulled full-bleed
+   with negative margins and the content sits back on top of it. */
+.h-screen { position: relative; }
 
-.h-hero { text-align: center; padding: var(--s-5) 0 var(--s-5); }
-.h-kicker {
-  font-size: var(--t-micro); letter-spacing: .2em; text-transform: uppercase;
-  color: var(--violet-soft); font-weight: 600; margin: 0 0 var(--s-3); opacity: .85;
+/* Die Posterkarte: das Faultier-Video in einem gerundeten Rahmen, Titel und
+   Knopf auf seiner Unterkante — der Zuschnitt der Onboarding-Karten, auf die
+   Startseite übertragen (gewählt 09.08.2026 aus drei gebauten Varianten).
+
+   Der Scrim ist oben fast durchsichtig und läuft nach unten in Deckung: das
+   Motiv bleibt hell, wo es nichts zu lesen gibt, und trägt die Schrift, wo
+   sie steht. Er ist die einzige Abdunklung — das Video selbst wird NICHT
+   per filter gedimmt, das kostet auf dem Telefon jede Sekunde Rechenzeit,
+   während ein Verlauf einmal gezeichnet wird und liegen bleibt. */
+.h-poster {
+  position: relative; overflow: hidden; border-radius: var(--radius-lg);
+  aspect-ratio: 4 / 5; margin-top: var(--s-4);
+  border: 1px solid var(--panel-line);
 }
+.h-poster-video {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+.h-poster-scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom,
+    rgb(var(--bg-rgb) / .25) 0%, rgb(var(--bg-rgb) / .05) 35%,
+    rgb(var(--bg-rgb) / .55) 70%, rgb(var(--bg-rgb) / .92) 100%);
+}
+.h-poster-body {
+  position: absolute; inset: auto 0 0 0; padding: var(--s-5);
+  display: flex; flex-direction: column; align-items: flex-start;
+}
+.h-poster-body .h-title { font-size: clamp(30px, 8.4vw, 42px); }
+.h-poster-body .h-lede { margin-bottom: var(--s-4); }
+
+.h-top {
+  position: relative; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s-3); min-height: 34px;
+}
+.h-greeting { color: var(--muted); font-size: var(--t-small); margin: 0; }
+.h-streak {
+  display: inline-flex; align-items: center; gap: 5px; margin: 0;
+  font-size: var(--t-small); color: var(--text); white-space: nowrap;
+  background: var(--glass); backdrop-filter: blur(8px);
+  border: 1px solid var(--panel-line);
+  padding: 5px 12px; border-radius: 999px;
+}
+.h-streak span { color: var(--gold); }
+
 .h-title {
-  font-size: var(--t-hero); line-height: 1.08; letter-spacing: -.03em;
-  margin: 0 0 var(--s-3); font-weight: 600;
+  font-family: var(--serif); font-size: clamp(34px, 10vw, 52px); font-weight: 400;
+  line-height: 1.04; letter-spacing: -.02em; margin: 0 0 var(--s-3);
+  text-wrap: balance; max-width: 14ch;
 }
-.h-title-accent { color: var(--violet-soft); }
-.h-lede { color: var(--muted); font-size: var(--t-body); max-width: 420px; margin: 0 auto; }
+.h-lede { color: var(--muted); font-size: var(--t-body); max-width: 30ch; margin: 0 0 var(--s-5); }
+.h-cta {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: var(--s-4) var(--s-6); border-radius: 999px; border: none; cursor: pointer;
+  background: var(--warm-grad);
+  color: var(--bg); font-family: var(--sans); font-size: var(--t-body); font-weight: 700;
+  box-shadow: 0 10px 30px rgb(242 167 101 / .3);
+}
+.h-cta:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
 
 .h-section { font-size: var(--t-h3); font-weight: 600; margin: var(--s-6) 0 var(--s-3); }
 
-.h-last { display: flex; flex-direction: column; gap: var(--s-1); }
-.h-last-title { font-weight: 600; }
+.h-last {
+  position: relative; display: flex; align-items: center; gap: var(--s-4); width: 100%;
+  margin-top: var(--s-5); padding: var(--s-3); border-radius: var(--radius); cursor: pointer;
+  text-align: left; background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font-family: var(--sans);
+}
+.h-last:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.h-last-thumb { width: 58px; height: 58px; border-radius: 12px; object-fit: cover; flex: 0 0 58px; }
+.h-last-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.h-last-label {
+  font-size: var(--t-micro); text-transform: uppercase; letter-spacing: .1em; color: var(--faint);
+}
+.h-last-title { font-family: var(--serif); font-size: var(--t-h3); }
 .h-last-text {
   color: var(--muted); font-size: var(--t-small);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
 
 .h-empty { color: var(--faint); font-size: var(--t-small); text-align: center; padding: var(--s-5) 0; }
@@ -44,8 +94,8 @@
 .h-creature-date { font-size: var(--t-micro); color: var(--faint); }
 
 /* Rarity colours — unchanged from the pre-React stylesheet. */
-.rare-common { color: #9ca3af; }
+.rare-common { color: var(--faint); }
 .rare-uncommon { color: var(--ok); }
 .rare-rare { color: var(--cyan); }
-.rare-epic { color: var(--violet); }
+.rare-epic { color: var(--accent); }
 .rare-legendary { color: var(--gold); }

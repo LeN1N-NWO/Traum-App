@@ -40,6 +40,15 @@ export default function CastStep({
         <div className="wiz-cast">
           {items.map((a) => (
             <div key={a.name} className={"wiz-person" + (a.avatar || a.free ? " wiz-person-set" : "")}>
+              {/* Entfernen ist eine Randnotiz, keine vierte Option — klein in
+                  der Ecke, damit die Knopfreihe nur echte Entscheidungen trägt. */}
+              <button
+                className="wiz-person-x"
+                onClick={() => dropAssignment(a.name)}
+                aria-label={t.wizard.cast.removeLabel(a.name)}
+              >
+                ×
+              </button>
               <div className="wiz-person-face">
                 {a.avatar?.img
                   ? <img src={a.avatar.img} alt="" />
@@ -66,13 +75,6 @@ export default function CastStep({
                   aria-pressed={!!a.free}
                 >
                   {t.wizard.cast.letAi}
-                </button>
-                <button
-                  className="wiz-mini wiz-mini-drop"
-                  onClick={() => dropAssignment(a.name)}
-                  aria-label={t.wizard.cast.removeLabel(a.name)}
-                >
-                  ×
                 </button>
               </div>
             </div>

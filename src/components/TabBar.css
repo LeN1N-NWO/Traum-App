@@ -3,25 +3,35 @@
   display: flex; align-items: center; justify-content: space-around;
   height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
-  background: rgba(11, 7, 24, .82);
+  background: var(--veil);
   backdrop-filter: blur(14px);
   border-top: 1px solid var(--panel-line);
 }
 
+/* Icons only. The tap target stays full height even though the glyph is
+   24px — a 24px target would fail every touch guideline. */
 .tab {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  flex: 1; text-decoration: none; color: var(--faint);
-  font-size: var(--t-micro); padding: var(--s-2) 0;
+  display: flex; align-items: center; justify-content: center;
+  flex: 1; align-self: stretch;
+  text-decoration: none; color: var(--faint);
 }
-.tab-active { color: var(--violet-soft); }
-.tab-icon { font-size: 19px; line-height: 1; }
-.tab:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: -3px; border-radius: 10px; }
+.tab-active { color: var(--accent-soft); }
+.tab:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: -3px; border-radius: 10px; }
 
+/* Raised so that roughly half of it clears the bar's top edge: 24 of 56px
+   sit above the line. align-self:flex-start rather than the bar's
+   align-items:center — under centring, a negative margin only moves the box
+   by HALF its value (the flex algorithm centres the margin box), so -28px
+   bought just 10px of lift. From flex-start the offset means what it says.
+   The row has an even number of tabs either side, so this lands on the true
+   centre. */
 .tabbar-plus {
-  flex: 0 0 auto; width: 52px; height: 52px; margin-top: -18px;
+  flex: 0 0 auto; align-self: flex-start; width: 56px; height: 56px; margin-top: -24px;
   border: none; border-radius: 50%; cursor: pointer;
-  background: linear-gradient(160deg, var(--violet-soft), var(--violet-deep));
-  color: var(--text); font-size: 27px; line-height: 1;
-  box-shadow: 0 6px 20px rgba(109, 63, 224, .5);
+  background: var(--warm-grad);
+  color: var(--bg); font-size: 28px; line-height: 1;
+  /* A ring in the bar's own colour so the raised part reads as sitting in
+     front of the bar rather than punched through it. */
+  box-shadow: 0 0 0 5px var(--veil), 0 8px 22px rgb(242 167 101 / .38);
 }
 .tabbar-plus:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }

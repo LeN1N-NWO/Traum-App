@@ -1,0 +1,128 @@
+/* — tile overview — */
+.sl-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+.sl-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-1);
+  min-height: 128px; padding: var(--s-4); border-radius: var(--radius); cursor: pointer;
+  border: 1px solid var(--panel-line); color: var(--text);
+  font-family: var(--sans); text-align: left;
+}
+.sl-tile:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+/* Each tile carries its own dusk gradient — all four walk the same cold-blue
+   ladder, and only the checklist (the bedtime ritual) is allowed a warm edge.
+   Written as mixes of the palette rather than fresh hexes, so they follow
+   tokens.css instead of drifting away from it. */
+.sl-tile-checklist { background: linear-gradient(150deg, var(--sky), color-mix(in oklab, var(--warm) 22%, var(--bg2))); }
+.sl-tile-sounds    { background: linear-gradient(150deg, var(--sky), color-mix(in oklab, var(--cyan) 20%, var(--bg2))); }
+.sl-tile-guide     { background: linear-gradient(150deg, var(--sky), color-mix(in oklab, var(--accent) 26%, var(--bg2))); }
+.sl-tile-symbols   { background: linear-gradient(150deg, var(--sky), color-mix(in oklab, var(--accent-deep) 34%, var(--bg2))); }
+.sl-tile-emoji { font-size: 24px; line-height: 1; }
+.sl-tile-title { font-size: var(--t-h3); font-weight: 600; margin-top: auto; }
+.sl-tile-text { color: var(--muted); font-size: var(--t-small); }
+.sl-free { color: var(--faint); font-size: var(--t-small); text-align: center; margin-top: var(--s-5); }
+
+.sl-back {
+  align-self: flex-start; margin-bottom: var(--s-3); padding: var(--s-2) 0;
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-family: var(--sans); font-size: var(--t-body);
+}
+.sl-back:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 8px; }
+.sl-lede { color: var(--muted); font-size: var(--t-small); margin: 0 0 var(--s-4); }
+.sl-hint { color: var(--faint); font-size: var(--t-small); margin: var(--s-4) 0 0; }
+
+/* — checklist —
+   Nach der Hatch-Referenz (09.08.2026): ein Raster ruhiger Karten statt
+   einer Zeilenliste. Jede Karte trägt ihr Glyph in einem weich leuchtenden
+   Kreis, Titel und Text zentriert darunter — kleine Altäre, keine To-dos.
+   Erledigt = die Karte tritt zurück: Fläche dunkler, Text eingeklappt,
+   Häkchen oben rechts. Das Verschwinden des Textes ist die Belohnung. */
+.sl-checklist { display: flex; flex-direction: column; gap: var(--s-3); }
+.sl-progress { display: flex; gap: 6px; }
+.sl-progress-seg { flex: 1; height: 5px; border-radius: 999px; background: var(--panel-line); }
+.sl-progress-on { background: var(--accent-soft); }
+.sl-progress-text { color: var(--faint); font-size: var(--t-small); text-align: right; margin: 0; }
+
+/* align-items: start, damit eine erledigte (eingeklappte) Karte nicht auf
+   die Höhe ihrer offenen Nachbarin gestreckt wird — sonst steht da eine
+   große leere Fläche mit einem Häkchen drin. */
+.sl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); align-items: start; }
+/* Sieben Karten: die letzte (Atmung — der eigentliche Einschlaf-Griff)
+   bekommt die volle Breite statt eines leeren Nachbarn. */
+.sl-grid > :last-child { grid-column: 1 / -1; }
+
+.sl-card {
+  position: relative; display: flex; flex-direction: column; align-items: center;
+  gap: var(--s-2); padding: var(--s-4) var(--s-3); cursor: pointer; text-align: center;
+  border-radius: var(--radius-lg); border: 1px solid var(--panel-line);
+  background: linear-gradient(165deg, var(--sky), var(--bg2) 80%);
+  color: var(--text); font-family: var(--sans);
+  transition: background .2s ease-out, border-color .2s ease-out, opacity .2s ease-out;
+}
+.sl-card:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.sl-card:active { transform: scale(.985); }
+
+.sl-card-art {
+  display: flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; border-radius: 50%;
+  color: var(--accent-soft);
+  background: radial-gradient(60% 60% at 50% 40%, rgb(140 192 255 / .28), rgb(79 156 249 / .10) 75%, transparent);
+  box-shadow: 0 0 24px rgb(79 156 249 / .18);
+}
+.sl-card-title { font-weight: 600; font-size: var(--t-body); text-wrap: balance; }
+.sl-card-text { color: var(--muted); font-size: var(--t-small); line-height: 1.45; }
+
+.sl-card-tick {
+  position: absolute; top: 10px; inset-inline-end: 10px;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--bg);
+  background: var(--ok); opacity: 0; transform: scale(.6);
+  transition: opacity .18s ease-out, transform .18s ease-out;
+}
+
+.sl-card-done { background: var(--bg2); border-color: transparent; }
+.sl-card-done .sl-card-art { color: var(--faint); background: var(--panel); box-shadow: none; }
+.sl-card-done .sl-card-title { color: var(--muted); }
+.sl-card-done .sl-card-text { display: none; }
+.sl-card-done .sl-card-tick { opacity: 1; transform: scale(1); }
+
+/* — sound mixer —
+   Chip links, Pillen-Spur rechts: die Spur IST der Regler. Die Füllung
+   kommt aus --p (vom JSX gesetzt), gezeichnet als harter Verlaufsschnitt —
+   ein nativer Fortschrittsbalken kann die Pillenform nicht. Der Daumen
+   bleibt unsichtbar, aber in voller Höhe greifbar: das Ziel ist die ganze
+   44px-Spur, nicht ein 18px-Knubbel im Dunkeln. */
+.sl-sounds { display: flex; flex-direction: column; gap: var(--s-3); }
+.sl-slider { display: flex; align-items: center; gap: var(--s-3); cursor: pointer; }
+.sl-chip {
+  flex: 0 0 92px; padding: 10px 0; text-align: center;
+  border-radius: 999px; background: var(--panel); border: 1px solid var(--panel-line);
+  font-weight: 600; font-size: var(--t-small);
+}
+.sl-track { position: relative; flex: 1; display: flex; }
+.sl-range {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 44px; margin: 0; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(to right,
+    var(--text) 0%, var(--text) var(--p), rgba(255, 255, 255, .12) var(--p));
+}
+.sl-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 28px; height: 44px; background: transparent; border: 0;
+}
+.sl-range::-moz-range-thumb { width: 28px; height: 44px; background: transparent; border: 0; }
+.sl-range:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 3px; }
+/* Die Zahl liegt am rechten Ende der Spur. Dunkel auf der leeren Spur —
+   läuft die Füllung unter ihr durch, kehrt mix-blend sie um. */
+.sl-val {
+  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  pointer-events: none; font-size: var(--t-small); font-weight: 600;
+  color: var(--text); mix-blend-mode: difference;
+}
+.sl-autostart {
+  display: flex; gap: var(--s-3); align-items: flex-start; cursor: pointer;
+  padding: var(--s-4); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--panel-line);
+}
+.sl-autostart input { accent-color: var(--accent-soft); margin-top: 3px; }
+.sl-autostart span { display: flex; flex-direction: column; gap: 2px; }
+.sl-autostart small { color: var(--faint); font-size: var(--t-small); }

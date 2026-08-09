@@ -1,0 +1,214 @@
+/* Erste Inbetriebnahme. Ganzseitig, ohne Tab-Leiste — es gibt noch nichts,
+   wohin man wechseln könnte. */
+.ob {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; flex-direction: column;
+  background: var(--bg); color: var(--text);
+}
+.ob-center {
+  align-items: center; justify-content: center; text-align: center;
+  padding: var(--s-6) var(--s-5);
+}
+
+/* — die Folien — */
+.ob-slides {
+  flex: 1; display: flex;
+  overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+}
+.ob-slides::-webkit-scrollbar { display: none; }
+.ob-slide {
+  flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: var(--s-6) var(--s-5); text-align: center;
+}
+
+/* Folie 0: der Film IST der Bildschirm. Das Video läuft vollflächig hinter
+   einem Scrim; der Text sitzt im unteren Drittel — dort, wo der Daumen ohnehin
+   hinschaut und das Motiv am ruhigsten ist. Der Scrim macht zwei Dinge auf
+   einmal: er dimmt die ganze Fläche leicht (das Video soll leuchten, nicht
+   blenden) und läuft unten in fast-Deckung aus, damit die Schrift auf jedem
+   Frame lesbar bleibt, egal was das Video gerade zeigt. */
+.ob-slide-hero { position: relative; padding: 0; overflow: hidden; justify-content: flex-end; }
+.ob-hero-video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover;
+}
+.ob-hero-scrim {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(to bottom,
+      rgb(var(--bg-rgb) / .42) 0%,
+      rgb(var(--bg-rgb) / .12) 30%,
+      rgb(var(--bg-rgb) / .22) 55%,
+      rgb(var(--bg-rgb) / .88) 88%,
+      var(--bg) 100%);
+}
+.ob-hero-text {
+  position: relative; margin-bottom: 18vh;
+  display: flex; flex-direction: column; align-items: center;
+}
+/* Die kleine Zeile ÜBER dem Namen: gesperrt, leise — sie sagt, was das hier
+   ist, damit der Name darunter nichts erklären muss und Poster sein darf. */
+.ob-kicker {
+  margin: 0 0 var(--s-3); color: var(--accent-soft);
+  font-size: 12px; font-weight: 600;
+  letter-spacing: .32em; text-indent: .32em; /* gleicht das letzte Zeichen aus */
+  text-transform: uppercase;
+}
+.ob-wordmark {
+  font-family: var(--serif); font-size: clamp(40px, 11vw, 58px); margin: 0;
+  line-height: 1.04; letter-spacing: -.02em; text-wrap: balance;
+  text-shadow: 0 2px 26px rgb(0 0 0 / .45);
+}
+.ob-tagline {
+  color: var(--text); opacity: .82; margin: var(--s-3) 0 0;
+  font-size: var(--t-body); max-width: 30ch; text-align: center; line-height: 1.5;
+  text-shadow: 0 1px 14px rgb(0 0 0 / .5);
+}
+.ob-swipe {
+  position: absolute; bottom: var(--s-5); left: 0; right: 0;
+  color: var(--faint); font-size: var(--t-small);
+  animation: ob-nudge 2.2s ease-in-out infinite;
+}
+@keyframes ob-nudge {
+  0%, 100% { transform: translateX(0); opacity: .7; }
+  50%      { transform: translateX(-7px); opacity: 1; }
+}
+
+/* Die Bildkarte im Withings-Zuschnitt: großes gerundetes Feld oben, Titel
+   und Text darunter. Das Motiv ist ein leuchtendes Icon — Platzhalter, bis
+   echte Renderings die Karten füllen. */
+.ob-card {
+  width: min(78vw, 320px); aspect-ratio: 4 / 5;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-lg); margin-bottom: var(--s-6);
+  background:
+    radial-gradient(90% 70% at 50% 30%, rgb(79 156 249 / .28), transparent 70%),
+    linear-gradient(160deg, var(--sky), var(--bg2) 75%);
+  border: 1px solid var(--panel-line);
+  color: var(--accent-soft);
+}
+.ob-card svg { width: 96px; height: 96px; filter: drop-shadow(0 0 22px rgb(140 192 255 / .45)); }
+
+/* Die Zwei-Funktionen-Karte: kein einzelnes großes Icon, sondern zwei
+   Zeilen — sie steht für "es gibt noch mehr", nicht für einen dritten
+   Schritt in derselben Kette wie die ersten beiden Karten. */
+.ob-card-duo {
+  flex-direction: column; justify-content: center; gap: var(--s-4);
+  padding: var(--s-5);
+}
+.ob-duo-row {
+  display: flex; align-items: center; gap: var(--s-3); width: 100%;
+  padding: var(--s-3) var(--s-4); border-radius: var(--radius);
+  background: rgb(var(--bg-rgb) / .35); border: 1px solid var(--panel-line);
+}
+.ob-duo-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; flex: none; border-radius: 50%;
+  background: var(--accent-wash); color: var(--accent-soft);
+}
+.ob-duo-icon svg { width: 20px; height: 20px; }
+.ob-duo-label { font-weight: 600; text-align: left; }
+
+.ob-title {
+  font-family: var(--serif); font-size: clamp(26px, 6.4vw, 34px); font-weight: 400;
+  margin: 0 0 var(--s-3); letter-spacing: -.01em; text-wrap: balance;
+}
+.ob-text {
+  color: var(--muted); font-size: var(--t-body); line-height: 1.6;
+  max-width: 34ch; margin: 0;
+}
+
+.ob-foot {
+  display: flex; flex-direction: column; gap: var(--s-4);
+  padding: var(--s-4) var(--s-5) calc(env(safe-area-inset-bottom) + var(--s-5));
+}
+.ob-dots { display: flex; gap: 6px; justify-content: center; }
+.ob-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--panel-line); transition: width .2s; }
+.ob-dot-on { background: var(--accent-soft); width: 18px; }
+
+/* — Tor zur Umfrage & Selfie-Schritt — */
+
+/* Der Winkel, den die Lichtspur entlangläuft. Als @property registriert,
+   damit er animierbar ist — ein einfaches custom property interpoliert
+   nicht, dann spränge das Licht statt zu wandern. */
+@property --ob-orbit {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* Die Belohnungs-Pille bekommt eine dezente Linie, die sie umfährt und
+   leicht glüht — das einzige bewegte Element der Seite, also geht der
+   Blick genau dorthin. Technik: ein conic-gradient als Hintergrund des
+   ::before, per Maske auf einen 1,5px-Ring beschnitten; animiert wird
+   nur der Startwinkel. Kein Layout, kein Repaint der Pille selbst. */
+.ob-reward {
+  position: relative;
+  margin: var(--s-4) 0 0; padding: 9px 16px; border-radius: 999px;
+  background: var(--accent-wash); color: var(--accent-soft);
+  font-size: var(--t-small); font-weight: 600;
+}
+.ob-reward::before {
+  content: ""; position: absolute; inset: -3px; border-radius: 999px;
+  padding: 1.5px;
+  background: conic-gradient(from var(--ob-orbit),
+    transparent 0turn, transparent .62turn,
+    color-mix(in oklab, var(--gold) 55%, transparent) .8turn,
+    var(--gold) .9turn,
+    transparent 1turn);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--gold) 65%, transparent));
+  animation: ob-orbit 3.4s linear infinite;
+  pointer-events: none;
+}
+@keyframes ob-orbit {
+  to { --ob-orbit: 360deg; }
+}
+/* Ohne Bewegung (Systemeinstellung oder Browser ohne @property-Animation):
+   ein stiller, gleichmäßiger Schimmer statt der Wanderlinie. */
+@media (prefers-reduced-motion: reduce) {
+  .ob-reward::before {
+    animation: none;
+    background: color-mix(in oklab, var(--gold) 40%, transparent);
+  }
+}
+.ob-actions {
+  display: flex; flex-direction: column; gap: var(--s-2);
+  width: 100%; max-width: 340px; margin-top: var(--s-6);
+}
+.ob-actions .btn { width: 100%; }
+
+.ob-mascot { margin-bottom: var(--s-4); animation: ob-float 3.6s ease-in-out infinite; }
+@keyframes ob-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-9px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ob-mascot, .ob-swipe { animation: none; }
+}
+
+/* — Sprachwahl —
+   Jedes Label steht in seiner eigenen Sprache und behält seine eigene
+   Schreibrichtung (dir="ltr"/"rtl" je Knopf), unabhängig davon, was gerade
+   im Rest des Dokuments gilt — das Dokument hat vor der Wahl ja noch gar
+   keine. */
+.lp-mark { font-size: 28px; color: var(--warm); margin: 0 0 var(--s-5); }
+.lp-list {
+  list-style: none; margin: 0; padding: 0; width: 100%; max-width: 340px;
+  display: flex; flex-direction: column; gap: var(--s-2);
+}
+.lp-btn {
+  width: 100%; padding: 15px var(--s-4); cursor: pointer; text-align: center;
+  border-radius: var(--radius); border: 1px solid var(--panel-line);
+  background: var(--panel); color: var(--text); font-family: inherit;
+  font-size: 17px; font-weight: 600;
+  transition: background .14s ease-out, border-color .14s ease-out;
+}
+.lp-btn:hover { background: rgba(255, 255, 255, .08); border-color: var(--accent-soft); }
+.lp-btn:active { transform: scale(.985); }
+.lp-btn:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }

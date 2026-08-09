@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "../../components/Button.jsx";
 import { useAppState } from "../../state/AppState.jsx";
-import { refine } from "../../lib/api.js";
+import { refine, mediaUrl, jobStatus } from "../../lib/api.js";
+import { filmOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
 import { spend } from "../../lib/credits.js";
 import { PRICES } from "../../lib/pricing.js";
 import { shareDream, downloadAll, canShareFiles } from "../../lib/share.js";
 import { t } from "../../i18n/index.js";
 import EntryMenu from "./EntryMenu.jsx";
-import MediaCarousel from "../../components/MediaCarousel.jsx";
+import RefineSheet from "./RefineSheet.jsx";
+import { IconImages, IconFilm, IconShare, IconSparkle, IconPencil, ChevronRight } from "../../components/icons.jsx";
 import "./journal.css";
 
 export default function JournalDetail({ entry, onClose }) {
   const { state, update, toast } = useAppState();
+  const navigate = useNavigate();
   const closeRef = useRef(null);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -20,6 +24,7 @@ export default function JournalDetail({ entry, onClose }) {
   const [busy, setBusy] = useState(false);
   const [proposal, setProposal] = useState(null);   // reworked text awaiting a decision
   const [showOriginal, setShowOriginal] = useState(false);
+  const [refinePick, setRefinePick] = useState(false);   // the "how should I rewrite it?" sheet
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -27,6 +32,45 @@ export default function JournalDetail({ entry, onClose }) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose, menuOpen]);
+
+  /* Collecting a film that was still rendering when the wizard was left.
+   *
+   * Saving mid-render is offered on purpose ("Save — I'll come back for it"),
+   * but nothing ever came back for it: the entry kept its job id and the
+   * finished film was never fetched. This is the collector. It runs while the
+   * dream is open and stops the moment the film lands — a render measured
+   * 280s, so six seconds between asks is plenty. */
+  useEffect(() => {
+    if (!entry.jobId) return;
+    let alive = true;
+    const tick = async () => {
+      try {
+        const r = await jobStatus(entry.jobId);
+        if (!alive) return;
+        if (r.status === "done" && r.urls?.length) {
+          update({
+            journal: state.journal.map((e) =>
+              e.id === entry.id
+                ? { ...e, film: { urls: r.urls, source: "api" }, jobId: undefined }
+                : e
+            ),
+          });
+          toast(t.journal.filmArrived);
+        } else if (r.status === "failed" || r.status === "unknown") {
+          // Drop the id rather than asking forever about a job that is gone.
+          update({
+            journal: state.journal.map((e) => (e.id === entry.id ? { ...e, jobId: undefined } : e)),
+          });
+        }
+      } catch { /* a hiccup is not a failure — the next tick asks again */ }
+    };
+    tick();
+    const id = setInterval(tick, 6000);
+    return () => { alive = false; clearInterval(id); };
+    // state.journal is deliberately not a dependency: update() replaces it on
+    // every write, which would tear this down and restart it in a loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry.jobId, entry.id]);
 
   /** Write a new text onto the entry. The first version is never touched. */
   function commitText(text) {
@@ -66,7 +110,8 @@ export default function JournalDetail({ entry, onClose }) {
 
   async function doShare() {
     setMenuOpen(false);
-    const urls = entry.media?.urls || [];
+    // Film first, then the stills — the same order the page shows them in.
+    const urls = allMediaOf(entry);
     if (urls.length === 0) return toast(t.journal.shareNothing);
     setBusy(true);
     try {
@@ -85,6 +130,34 @@ export default function JournalDetail({ entry, onClose }) {
     setBusy(false);
   }
 
+  /* Choosing "save only" was never meant to be final — it just deferred the
+   * decision. This hands the dream back to the wizard, which picks up at the
+   * cast step: the text is written, so the only thing still open is what to
+   * make of it. The entry id travels along so the result updates this dream
+   * instead of writing a second copy of it. */
+  function make(mode, textOverride) {
+    navigate("/dream", {
+      state: {
+        resume: {
+          entryId: entry.id,
+          mode,
+          // A film made from this dream animates one of its own images; the
+          // wizard shows them and lets the person pick which one. Only local
+          // copies qualify — an old entry may still hold fal URLs, and those
+          // expire, so offering them would offer a picture that is gone.
+          urls: imagesOf(entry).filter((u) => typeof u === "string" && u.startsWith("/media/")),
+          text: textOverride || entry.text,
+          originalText: entry.originalText || entry.text,
+          title: entry.title || "",
+          tagline: entry.tagline || "",
+          // Changed words mean the old reading no longer describes this
+          // dream — it is re-read rather than reused.
+          analysis: textOverride ? null : entry.analysis || null,
+        },
+      },
+    });
+  }
+
   function remove() {
     update({ journal: state.journal.filter((e) => e.id !== entry.id) });
     toast(t.journal.deleted);
@@ -92,7 +165,12 @@ export default function JournalDetail({ entry, onClose }) {
   }
 
   const d = new Date(entry.createdAt);
-  const urls = entry.media?.urls || [];
+  const film = filmOf(entry);
+  const images = imagesOf(entry);
+  // The film leads if there is one — it is the finished thing the pictures
+  // were a step towards, so it takes the hero and the top of the page.
+  const hero = mediaUrl(film || images[0]) || null;
+  const heroIsVideo = !!film;
 
   return (
     <div className="j-backdrop" onClick={onClose}>
@@ -103,21 +181,110 @@ export default function JournalDetail({ entry, onClose }) {
         aria-label={entry.title || t.journal.untitled}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="j-modal-tools">
-          <button className="j-close" onClick={() => setMenuOpen(true)} aria-label={t.journal.menu}>⋯</button>
-          <button ref={closeRef} className="j-close" onClick={onClose} aria-label={t.journal.close}>×</button>
+        {/* The dream opens with its own image behind the title. The hero is a
+            CROP of the first image (top-biased), which is why the app draws
+            the title itself: on a poster the rendered title sits in the lower
+            third, below this crop, so the two never collide. The full poster
+            is still right there in the carousel underneath. */}
+        <div className="j-hero">
+          {hero && !heroIsVideo && <img className="j-hero-img" src={hero} alt="" />}
+          {hero && heroIsVideo && <video className="j-hero-img" src={hero} muted loop autoPlay playsInline />}
+          {!hero && <div className="j-hero-blank" aria-hidden="true" />}
+          <div className="j-hero-scrim" aria-hidden="true" />
+
+          <div className="j-modal-tools">
+            <button className="j-close" onClick={() => setMenuOpen(true)} aria-label={t.journal.menu}>⋯</button>
+            <button ref={closeRef} className="j-close" onClick={onClose} aria-label={t.journal.close}>×</button>
+          </div>
+
+          <div className="j-hero-meta">
+            <p className="j-modal-date">
+              {d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+            </p>
+            <h2 className="j-hero-title">{entry.title || t.journal.untitled}</h2>
+            {entry.tagline && <p className="j-hero-tagline">{entry.tagline}</p>}
+          </div>
         </div>
 
-        <p className="j-modal-date">
-          {d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-        </p>
-        <h2 className="j-modal-title">{entry.title || t.journal.untitled}</h2>
+        <div className="j-content">
+        {/* The one action that spends credits leads the page — moved up from
+            below the whole story, where it was the last thing anyone saw
+            after scrolling past everything else. One way forward at a time,
+            in the order the dream actually grows: words → pictures →
+            motion. A dream with nothing yet is only offered pictures.
+            Offering a film there asked someone to buy the most expensive
+            thing in the app before they had seen a single frame of what it
+            would look like. The film is offered once there ARE pictures,
+            when they know what they are animating. Both hidden while a film
+            renders: that one is on its way, not missing. */}
+        {!entry.jobId && !editing && !proposal && images.length === 0 && (
+          <div className="j-make">
+            <p className="j-make-lede">{t.journal.makeLede}</p>
+            <button className="j-make-btn" onClick={() => make("images")}>
+              <IconImages />
+              <span className="j-make-title">{t.journal.makeImages}</span>
+              <ChevronRight />
+            </button>
+          </div>
+        )}
 
-        {urls.length > 0 && (
-          <MediaCarousel urls={urls} type={entry.media.type} />
+        {!entry.jobId && !film && !editing && !proposal && images.length > 0 && (
+          <div className="j-make">
+            <p className="j-make-lede">{t.journal.makeFilmLede}</p>
+            <button className="j-make-btn" onClick={() => make("film")}>
+              <IconFilm />
+              <span className="j-make-title">{t.journal.makeFilm}</span>
+              <ChevronRight />
+            </button>
+          </div>
+        )}
+
+        {/* The things you can do TO this dream, as one row underneath. They
+            are all cheap or free and all reversible, which is why they read
+            as secondary to the warm button above it — deleting stays in the
+            ⋯ menu where a mis-tap cannot reach it.
+
+            WRAPS rather than scrolling sideways. The sideways-scrolling
+            version hid "Share" off the right edge in German ("Teilen" after
+            "Umschreiben" and "Bearbeiten") — reachable by dragging, but
+            nobody drags a row they cannot see the end of, so it read as a
+            cut-off button twice over. Wrapping is the only version that
+            cannot clip a label in ANY of the seven languages. */}
+        {!editing && !proposal && (
+          <div className="j-acts">
+            <button className="j-act" onClick={() => setRefinePick(true)} disabled={busy}>
+              <IconSparkle />
+              <span>{t.journal.actRewrite}</span>
+            </button>
+            <button className="j-act" onClick={() => setEditing(true)}>
+              <IconPencil />
+              <span>{t.journal.actEdit}</span>
+            </button>
+            <button className="j-act" onClick={doShare} disabled={busy || allMediaOf(entry).length === 0}>
+              <IconShare />
+              <span>{t.journal.actShare}</span>
+            </button>
+          </div>
         )}
 
         {busy && <p className="j-working">{t.journal.working}</p>}
+
+        {/* The film comes first, above the words and the stills it was made
+            from: it is the finished piece, they are the working material.
+            Controls on, unmuted, no autoplay — a film someone paid for is
+            watched deliberately, not glimpsed as a silent loop. */}
+        {film && (
+          <video className="j-film" src={mediaUrl(film)} controls playsInline preload="metadata" />
+        )}
+
+        {/* Still rendering: it was saved mid-render on purpose, and the
+            collector above is asking for it while this stays open. */}
+        {!film && entry.jobId && (
+          <div className="j-film-wait" role="status" aria-live="polite">
+            <span className="wiz-spinner" aria-hidden="true" />
+            <span>{t.journal.filmRendering}</span>
+          </div>
+        )}
 
         {proposal ? (
           <RefineProposal
@@ -144,7 +311,7 @@ export default function JournalDetail({ entry, onClose }) {
             </div>
           </>
         ) : (
-          <p className="j-modal-text">{entry.text}</p>
+          <DreamStory text={entry.text} urls={images} type="image" />
         )}
 
         {entry.references?.length > 0 && (
@@ -168,10 +335,11 @@ export default function JournalDetail({ entry, onClose }) {
             )}
           </div>
         )}
+        </div>
 
         {menuOpen && (
           <EntryMenu
-            canShare={urls.length > 0}
+            canShare={allMediaOf(entry).length > 0}
             onEdit={() => { setMenuOpen(false); setEditing(true); }}
             onRefine={runRefine}
             onShare={doShare}
@@ -179,7 +347,59 @@ export default function JournalDetail({ entry, onClose }) {
             onClose={() => setMenuOpen(false)}
           />
         )}
+
+        {refinePick && (
+          <RefineSheet
+            onPick={(mode) => { setRefinePick(false); runRefine(mode); }}
+            onClose={() => setRefinePick(false)}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+/* The dream as a photo story: a passage of text, then the picture it
+ * describes, then the next passage — the way a comic reads.
+ *
+ * The split is by SENTENCES, distributed evenly across the images, because
+ * that is the only structure the text reliably has. The beats that produced
+ * the images are English and live in the analysis, not in the entry, so they
+ * cannot line the two up; an even spread gets the order right, which is what
+ * matters. The first image stays first, the last passage stays last.
+ */
+function DreamStory({ text, urls = [], type }) {
+  // Only image sequences become a story. One image or a film has nothing to
+  // interleave, so the text stays whole.
+  if (type !== "image" || urls.length < 2) {
+    return (
+      <>
+        <p className="j-modal-text">{text}</p>
+        {urls.length === 1 && <img className="j-story-img" src={mediaUrl(urls[0])} alt="" loading="lazy" />}
+      </>
+    );
+  }
+
+  const sentences = String(text).match(/[^.!?…]+[.!?…]*\s*/g) || [text];
+  const per = Math.ceil(sentences.length / urls.length);
+  const passages = [];
+  for (let i = 0; i < urls.length; i++) {
+    const part = sentences.slice(i * per, (i + 1) * per).join("").trim();
+    if (part) passages.push(part);
+  }
+
+  return (
+    <div className="j-story">
+      {urls.map((u, i) => (
+        <div key={i} className="j-story-panel">
+          <img className="j-story-img" src={mediaUrl(u)} alt="" loading="lazy" />
+          {passages[i] && <p className="j-story-text">{passages[i]}</p>}
+        </div>
+      ))}
+      {/* Anything left over when there are more passages than pictures. */}
+      {passages.slice(urls.length).map((p, i) => (
+        <p key={`rest${i}`} className="j-story-text">{p}</p>
+      ))}
     </div>
   );
 }

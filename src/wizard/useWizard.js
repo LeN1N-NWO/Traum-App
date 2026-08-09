@@ -29,15 +29,23 @@ export function autoMatch(name, cast, me) {
 
 const EMPTY = {
   step: 1,
+  entryId: null,       // set when an existing journal dream is being continued
   text: "",
   originalText: "",
+  title: "",           // film title for the poster, editable in step 5
+  tagline: "",         // poster tagline, editable in step 5
   analysis: null,
   mode: null,          // "save" | "images" | "film"
   imageCount: 5,
   assignments: {},     // name -> { name, kind, avatar?, free? }
   styleId: "dreamlike",
   format: "9:16",
+  videoModel: "standard",
+  seconds: 6,          // film length; see lib/video.js for each model's range
   urls: null,
+  jobId: null,         // set while a film renders in fal's queue
+  sourceUrls: null,    // the dream's existing images, when resumed for a film
+  keyframe: null,      // which of them the film animates ("/media/…")
 };
 
 export function useWizard() {

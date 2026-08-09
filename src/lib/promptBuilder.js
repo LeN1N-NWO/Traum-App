@@ -42,6 +42,46 @@ export function buildReferences(assignments = []) {
 }
 
 /**
+ * The title card that opens every dream: a theatrical film poster.
+ *
+ * The layout rules are reverse-engineered from seven classic one-sheets
+ * (Titanic, Gladiator, E.T., Pulp Fiction, Léon, They Cloned Tyrone, Risky
+ * Business). What they all share, and what AI posters usually get wrong:
+ * ONE dominant motif (never a collage), a strict vertical hierarchy
+ * (tagline top, motif middle, title in the lower third, billing block at the
+ * bottom), a restricted palette, and typography that carries the genre.
+ * Which archetype the motif follows comes from the style's `poster` field.
+ *
+ * @param {object} p
+ * @param {string} p.title      exact title text, in the dream's language
+ * @param {string} p.tagline    exact tagline text; empty skips the tagline line
+ * @param {string} p.essence    what the dream is about, distilled (English)
+ * @param {string} p.styleId
+ * @param {string} p.format     "9:16" | "16:9"
+ * @param {string[]} p.clauses  from buildReferences() — poster faces are the real avatars
+ */
+export function buildPosterPrompt({ title, tagline, essence, styleId, format, clauses = [] }) {
+  const style = styleById(styleId);
+  const p = style.poster;
+  const framing = format === "16:9" ? "16:9 horizontal one-sheet" : "9:16 vertical one-sheet, standard theatrical poster proportions";
+  const taglineLine = tagline
+    ? `Near the top, in small widely-spaced capitals: the tagline "${tagline}". `
+    : "";
+  const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
+
+  return (
+    `A theatrical film poster for an imaginary film, ${framing}.` +
+    `\nThe film: ${essence}` +
+    `\nCentral motif — commit to exactly ONE dominant visual idea, never a collage: ${p.archetype}.` +
+    `\n${taglineLine}In the lower third, large and unmissable: the title "${title}" in ${p.lettering}. ` +
+    `At the very bottom edge, a fine-print billing block of tiny illegible credit lines, like a real release poster.` +
+    `\nRestricted palette: ${p.palette}.` +
+    `\n${style.prompt}` +
+    `\nRender the title${tagline ? " and tagline" : ""} EXACTLY as given, spelled correctly, as crisp printed typography. No other text, no logos, no watermarks.${refs}`
+  );
+}
+
+/**
  * The prompt for a single image in the sequence.
  * @param {object} p
  * @param {string} p.beat        what this image shows
@@ -51,6 +91,46 @@ export function buildReferences(assignments = []) {
  * @param {number} p.index       1-based, for the reader's sense of sequence
  * @param {number} p.total
  */
+/**
+ * One request that reads back as several: a wide canvas cut into equal
+ * vertical panels by a hard divider line, each panel a distinct beat. A
+ * proven shape, not a guess — verified against the real API on 09.08.2026,
+ * one call, three cleanly separated scenes, exact thirds crop with no
+ * bleed. Only 3 panels is proven; do not raise this without testing first —
+ * the per-panel pixel budget shrinks with every extra panel, and faces and
+ * hands are exactly what degrades first.
+ *
+ * The canvas is deliberately wide (16:9, not the app's own 9:16 default) —
+ * cutting a WIDE image into vertical strips is what yields portrait-ish
+ * single images; cutting a tall one would yield unusable slivers. The
+ * caller must request that aspect ratio; this function only writes English.
+ *
+ * @param {object} p
+ * @param {string[]} p.beats     exactly 3, one per panel, left to right
+ * @param {string} p.styleId
+ * @param {string[]} p.clauses   from buildReferences()
+ */
+export function buildGridPrompt({ beats, styleId, clauses = [] }) {
+  const style = styleById(styleId);
+  const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
+  const panels = beats
+    .map((b, i) => `Panel ${i + 1} (${["leftmost", "middle", "rightmost"][i]} third): ${b}`)
+    .join("\n");
+
+  return (
+    `A single 16:9 image divided into exactly THREE equal vertical panels side by side, ` +
+    `separated by a thin solid black divider line running the full height between each panel — ` +
+    `like a triptych or a 3-panel comic strip. The panels fill the ENTIRE canvas edge to edge: ` +
+    `no letterboxing, no black bars above or below, no outer frame or margin of any kind. ` +
+    `Each panel is a self-contained cinematic photoreal ` +
+    `film still with no bleed or shared elements across the divider lines.` +
+    `\n${panels}` +
+    `\nConsistent color grade and lighting across all three panels so they read as one continuous ` +
+    `sequence, in this style: ${style.prompt}` +
+    `\nUltra-detailed, accurate hands and faces. No text, no captions, no watermarks.${refs}`
+  );
+}
+
 export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 1, total = 1 }) {
   const style = styleById(styleId);
   const framing = format === "16:9" ? "16:9 widescreen framing" : "9:16 vertical framing";

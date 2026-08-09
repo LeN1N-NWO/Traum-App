@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { PRICES } from "../lib/pricing.js";
+import { priceForFilm } from "../lib/video.js";
 import { useAppState } from "../state/AppState.jsx";
 import { genId } from "../lib/storage.js";
 import { bumpStreak } from "../lib/streak.js";
@@ -20,9 +21,13 @@ export default function Step2Output({ w, patch }) {
       createdAt: new Date().toISOString(),
       text: w.text,
       originalText: w.originalText || w.text,
-      title: creature.title,
+      title: (w.title || "").trim() || creature.title,
+      tagline: (w.tagline || "").trim(),
       mode: "save",
       media: { type: "image", urls: [], source: "none" },
+      // Kept so that turning this dream into pictures later costs nothing to
+      // prepare: the characters and places have already been worked out once.
+      analysis: w.analysis || null,
       references: [],
       creatureId: creature.id,
     };
@@ -72,7 +77,9 @@ export default function Step2Output({ w, patch }) {
           <span className="wiz-choice-title">{t.wizard.step2.film}</span>
           <span className="wiz-choice-hint">{t.wizard.step2.filmHint}</span>
         </span>
-        <span className="wiz-price">{PRICES.film}</span>
+        {/* Same reasoning as above: renderer and length are chosen in step 5,
+            so only the cheapest possible film is quoted here. */}
+        <span className="wiz-price">{t.wizard.from} {priceForFilm("standard", 5)}</span>
       </Card>
     </section>
   );

@@ -12,6 +12,11 @@ export const DEFAULT_STATE = {
   mode: "sequence", cons: "standard",
   me: null, cast: [], journal: [], events: [],
   credits: 0, creditsGranted: false,   // stand-in — a real balance needs the backend
+  onboarded: false,      // first-run flow seen (slides + survey offer)
+  surveyDone: false,     // welcome survey finished — that is what earns the grant
+  profile: null,         // { name, birthday, zodiac, recall, lucid, themes, goal }
+  language: null,        // chosen once, before anything else — see LanguagePicker.jsx
+  voice: null,           // the assistant's voice, chosen in VoicePicker — a Gemini voice id
 };
 
 export function genId(prefix) {

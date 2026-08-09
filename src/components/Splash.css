@@ -9,8 +9,8 @@
 
 .splash-moon {
   width: 74px; height: 74px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff 0%, #e2d6ff 32%, var(--violet) 76%, #5b21b6 100%);
-  box-shadow: 0 0 46px rgba(139, 92, 246, .6);
+  background: radial-gradient(circle at 35% 30%, #fff 0%, #dbe9ff 30%, var(--accent) 72%, var(--accent-deep) 100%);
+  box-shadow: 0 0 46px var(--accent-glow);
   animation: splash-breathe 2.4s ease-in-out infinite;
 }
 .splash-name { color: var(--muted); font-size: var(--t-h3); letter-spacing: .04em; margin: 0; }

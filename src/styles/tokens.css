@@ -1,25 +1,58 @@
 /* Design tokens — the only place colour, type and spacing values live.
-   No hex value belongs inside a component: the later Mobbin redesign swaps
-   this file and the base components, nothing else.
+   No hex value belongs inside a component: a redesign swaps this file and
+   the base components, nothing else.
 
-   Carried over from the pre-React stylesheet so the look survives the port. */
+   Deep blue night, cool base with a warm counterpoint (08.08., replacing the
+   violet night). The warm tones are deliberately rare — they read as warmth
+   only because everything around them is cold. Spend them on the things that
+   should feel human: the streak, the credit count, a lit window.
+
+   The background exists exactly ONCE, as --bg-rgb. Every veil, scrim and
+   gradient stop derives its alpha from that, so nothing can drift out of
+   step with it — the old palette had the background written out by hand in
+   twelve files. */
 :root {
-  /* Warmer violet night rather than a cool near-black. */
-  --bg:#0b0718; --bg2:#150f30; --sky:#2a1d5e;
-  --panel:rgba(255,255,255,.05); --panel-line:rgba(255,255,255,.11);
+  --bg-rgb: 5 10 20;
+  --bg2-rgb: 12 20 35;
+  --bg: rgb(var(--bg-rgb));
+  --bg2: rgb(var(--bg2-rgb));
+  --sky: #17263f;
 
-  /* ⚠ --faint on --sky is the WCAG AA worst case (4.79:1). Anyone changing
-     these values re-measures that pairing — see docs/STAND.md. */
-  --text:#f4f1ff; --muted:#a9a2cd; --faint:#8d85b4;
+  --panel: rgba(255,255,255,.055); --panel-line: rgba(255,255,255,.11);
 
-  --violet:#8b5cf6; --violet-soft:#a78bfa; --violet-deep:#6d3fe0;
-  --pink:#ec4899; --cyan:#22d3ee; --gold:#fbbf24; --ok:#34d399;
+  /* ⚠ --faint on --sky is the WCAG AA worst case. Anyone changing these
+     re-measures that pairing — scripts/test-contrast.mjs does it. */
+  --text:#eaf0fb; --muted:#a3b6d2; --faint:#8b9eba;
+
+  /* Cool primary. */
+  --accent:#4f9cf9; --accent-soft:#8cc0ff; --accent-deep:#2a62d0;
+  --accent-wash: rgb(79 156 249 / .16);    /* selected tiles */
+  --accent-halo: rgb(79 156 249 / .26);    /* highlighted names in the dream */
+  --accent-ring: rgb(140 192 255 / .34);   /* the travelling light on a tag */
+  --accent-glow: rgb(42 98 208 / .5);      /* the lift under a raised control */
+
+  /* Warm counterpoint, plus the two signal colours. */
+  --warm:#f2a765; --gold:#f6c65b; --cyan:#4fd6e6; --ok:#3ddc97;
+  /* The warm gradient every primary control wears. Three stops, not two:
+     a flat orange looks like a swatch, and a two-stop fade still reads as
+     one colour dimmed. Passing through gold at the start and into a deep
+     ember at the end is what makes it look lit rather than painted. */
+  --warm-grad: linear-gradient(135deg, var(--gold) 0%, var(--warm) 46%, #d2683a 100%);
+
+  /* Overlays, all derived from the background above. */
+  --veil: rgb(var(--bg-rgb) / .82);          /* modal backdrops, the tab bar */
+  --veil-strong: rgb(var(--bg-rgb) / .94);   /* the toast, which must be read */
+  --glass: rgb(var(--bg-rgb) / .55);         /* frosted round buttons on images */
+  --glass-hover: rgb(var(--bg-rgb) / .8);
 
   --radius:20px; --radius-lg:26px;
 
   --t-hero:clamp(30px,7vw,48px); --t-h2:22px; --t-h3:16px;
   --t-body:15px; --t-small:13px; --t-micro:11px;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+  /* Poster/editorial voice for dream titles. System faces only — a webfont
+     would cost a download for the two places this is used. */
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
 
   /* New: spacing as a scale rather than one-off values, and the tab bar
      height as a variable — screens need it for their bottom padding, or the

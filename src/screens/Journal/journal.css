@@ -4,54 +4,160 @@
   background: var(--panel); border: 1px solid var(--panel-line);
   color: var(--text); font-family: var(--sans); font-size: var(--t-body);
 }
-.j-search:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
+.j-search:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 
-.j-list { display: flex; flex-direction: column; gap: var(--s-3); }
-.j-card { display: flex; gap: var(--s-4); align-items: flex-start; }
-.j-date { display: flex; flex-direction: column; align-items: center; flex: 0 0 42px; }
-.j-day { font-size: var(--t-h2); font-weight: 600; line-height: 1; }
-.j-month { font-size: var(--t-micro); color: var(--faint); text-transform: uppercase; letter-spacing: .08em; }
-.j-body { flex: 1; min-width: 0; }
-.j-title { font-size: var(--t-h3); font-weight: 600; margin: 0 0 var(--s-1); }
-.j-text {
-  color: var(--muted); font-size: var(--t-small); margin: 0;
+/* — the deck: poster cards stacked like a hand of cards, swiped through — */
+/* A NEGATIVE gap is the whole trick: each card is pulled back over its
+   neighbour, so the stack overlaps instead of sitting in a row. The centred
+   card wins the z-order (set from the scroll handler) and its neighbours
+   slide underneath it on both sides. Padding centres the first and last
+   card; scroll-snap does the swiping. */
+.j-deck {
+  display: flex; gap: 0;
+  overflow-x: auto; scroll-snap-type: x mandatory;
+  padding: var(--s-4) calc((100% - min(68vw, 300px)) / 2) var(--s-3);
+  perspective: 1000px;
+  scrollbar-width: none;
+}
+.j-deck::-webkit-scrollbar { display: none; }
+.j-deck .j-tile {
+  flex: 0 0 min(68vw, 300px);
+  scroll-snap-align: center;
+  margin-inline: -11%;                 /* the overlap */
+  transition: transform .18s ease-out, opacity .18s ease-out;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .55);
+}
+/* List view: compact lines — many dreams at a glance, image only as a hint. */
+.j-list { display: flex; flex-direction: column; }
+.j-row {
+  display: flex; gap: var(--s-4); align-items: center; width: 100%;
+  padding: var(--s-3) 0; cursor: pointer; text-align: left;
+  background: none; border: none; border-bottom: 1px solid var(--panel-line);
+  color: var(--text); font-family: var(--sans);
+}
+.j-row:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: -2px; border-radius: 10px; }
+.j-row-date { display: flex; flex-direction: column; align-items: center; flex: 0 0 34px; }
+.j-row-day { font-size: var(--t-h3); font-weight: 600; line-height: 1.1; }
+.j-row-month { font-size: var(--t-micro); color: var(--faint); text-transform: uppercase; letter-spacing: .06em; }
+.j-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.j-row-title {
+  font-size: var(--t-body); font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.j-row-text {
+  color: var(--muted); font-size: var(--t-small);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.j-thumb { width: 54px; height: 54px; border-radius: 12px; object-fit: cover; flex: 0 0 54px; }
-.j-video {
+.j-row-thumb { width: 46px; height: 46px; border-radius: 10px; object-fit: cover; flex: 0 0 46px; }
+
+.j-view-toggle {
+  width: 38px; height: 38px; border-radius: 12px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  background: var(--sky); font-size: 22px;
+  background: var(--panel); border: 1px solid var(--panel-line); color: var(--text);
+}
+.j-view-toggle:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+.j-deck-dots { display: flex; gap: 6px; justify-content: center; margin-top: var(--s-3); }
+.j-deck-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--panel-line); }
+.j-deck-dot-on { background: var(--accent-soft); width: 18px; }
+
+/* — the poster tile itself — */
+.j-tile {
+  position: relative; display: block; width: 100%; aspect-ratio: 4 / 5;
+  padding: 0; overflow: hidden; cursor: pointer; text-align: left;
+  border: 1px solid var(--panel-line); border-radius: var(--radius-lg);
+  background: var(--sky); color: var(--text); font-family: var(--sans);
+}
+.j-tile:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 3px; }
+.j-tile-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.j-tile-blank {
+  position: absolute; inset: 0;
+  background: linear-gradient(160deg, var(--sky), var(--bg2) 70%);
+}
+/* Two stops rather than one: a single fade leaves the title sitting on the
+   busiest part of the image. This keeps the lower third genuinely dark. */
+.j-tile-scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top,
+    rgb(var(--bg-rgb) / .92) 0%, rgb(var(--bg-rgb) / .72) 26%, rgb(var(--bg-rgb) / 0) 62%);
+}
+.j-tile-date {
+  position: absolute; top: var(--s-3); left: var(--s-3);
+  padding: 5px 11px; border-radius: 999px;
+  background: var(--glass); backdrop-filter: blur(8px);
+  border: 1px solid var(--panel-line);
+  font-size: var(--t-micro); text-transform: uppercase; letter-spacing: .08em;
+}
+.j-tile-body {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; flex-direction: column; gap: 5px;
+  padding: var(--s-4) var(--s-4) var(--s-5);
+}
+.j-tile-title {
+  font-family: var(--serif); font-size: 27px; line-height: 1.15; letter-spacing: -.01em;
+  text-wrap: balance;
+}
+.j-tile-sub {
+  color: var(--muted); font-size: var(--t-small); line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .j-empty { color: var(--faint); text-align: center; padding: var(--s-6) 0; }
 
 .j-backdrop {
-  position: fixed; inset: 0; z-index: 60; background: rgba(11, 7, 24, .8);
+  position: fixed; inset: 0; z-index: 60; background: var(--veil);
   backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center;
 }
 .j-modal {
-  position: relative; width: 100%; max-width: 680px; max-height: 88vh; overflow-y: auto;
+  position: relative; width: 100%; max-width: 680px; max-height: 92vh; overflow-y: auto;
   background: var(--bg2); border: 1px solid var(--panel-line);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: var(--s-6) var(--s-4) calc(env(safe-area-inset-bottom) + var(--s-6));
+  padding: 0;
 }
+.j-content { padding: var(--s-5) var(--s-4) calc(env(safe-area-inset-bottom) + var(--s-6)); }
+
+/* — detail: the hero — */
+.j-hero { position: relative; height: 46vh; min-height: 260px; overflow: hidden; }
+.j-hero-img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  /* Top-biased crop: on a poster the rendered title sits in the lower third,
+     so keeping to the upper part shows the artwork and leaves the type below
+     the fold — the app's own title then has the space to itself. */
+  object-position: center 32%;
+}
+.j-hero-blank { position: absolute; inset: 0; background: linear-gradient(160deg, var(--sky), var(--bg2) 70%); }
+.j-hero-scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, var(--bg2) 0%,
+    rgb(var(--bg2-rgb) / .86) 22%, rgb(var(--bg2-rgb) / .25) 58%, rgb(var(--bg2-rgb) / .45) 100%);
+}
+.j-hero-meta { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 var(--s-4) var(--s-4); }
+.j-hero-title {
+  font-family: var(--serif); font-size: clamp(28px, 7.5vw, 40px); font-weight: 400;
+  line-height: 1.1; letter-spacing: -.015em; margin: 0; text-wrap: balance;
+}
+.j-hero-tagline { color: var(--muted); font-size: var(--t-small); margin: var(--s-2) 0 0; }
+
 .j-close {
   width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
-  background: var(--panel); border: 1px solid var(--panel-line);
+  background: var(--glass); backdrop-filter: blur(8px);
+  border: 1px solid var(--panel-line);
   color: var(--text); font-size: 19px;
 }
-.j-close:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
-.j-modal-date { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-1); }
-.j-modal-title { font-size: var(--t-h2); font-weight: 600; margin: 0 0 var(--s-4); }
+.j-close:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.j-modal-date {
+  color: var(--muted); font-size: var(--t-micro); margin: 0 0 var(--s-2);
+  text-transform: uppercase; letter-spacing: .1em;
+}
 .j-media { display: flex; flex-direction: column; gap: var(--s-2); margin-bottom: var(--s-4); }
 .j-media img, .j-media video { width: 100%; border-radius: var(--radius); display: block; }
-.j-modal-text { white-space: pre-wrap; margin: 0 0 var(--s-4); }
+.j-modal-text { white-space: pre-wrap; margin: 0 0 var(--s-5); font-size: 17px; line-height: 1.62; }
 .j-references { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-4); }
 
 /* — detail: tools, menu, editing, refine proposal — */
 .j-modal-tools { position: absolute; top: var(--s-3); right: var(--s-3); display: flex; gap: var(--s-2); }
 
 .j-menu-backdrop {
-  position: fixed; inset: 0; z-index: 75; background: rgba(11, 7, 24, .7);
+  position: fixed; inset: 0; z-index: 75; background: var(--veil);
   display: flex; align-items: flex-end; justify-content: center;
 }
 .j-menu {
@@ -67,20 +173,25 @@
   color: var(--text); font-family: var(--sans); font-size: var(--t-body); text-align: left;
 }
 .j-menu-item:hover { background: var(--panel); }
-.j-menu-item:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: -2px; }
-.j-menu-price { color: var(--violet-soft); font-size: var(--t-small); font-weight: 600; }
+.j-menu-item:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: -2px; }
+/* Symbol und Text als eine Einheit, damit der Preis rechts bündig bleibt.
+   Das Symbol erbt die Farbe der Zeile — bei „Löschen" wird es dadurch von
+   selbst warm, ohne eigene Regel. */
+.j-menu-label { display: inline-flex; align-items: center; gap: var(--s-3); min-width: 0; }
+.j-menu-label svg { width: 18px; height: 18px; flex: none; }
+.j-menu-price { color: var(--accent-soft); font-size: var(--t-small); font-weight: 600; }
 .j-menu-free { color: var(--ok); font-size: var(--t-small); }
-.j-menu-danger { color: var(--pink); }
+.j-menu-danger { color: var(--warm); }
 
 .j-working { color: var(--muted); font-size: var(--t-small); margin: 0 0 var(--s-3); }
 
 .j-edit {
   width: 100%; padding: var(--s-3); border-radius: var(--radius);
-  background: var(--panel); border: 1px solid var(--violet-deep);
+  background: var(--panel); border: 1px solid var(--accent-deep);
   color: var(--text); font-family: var(--sans); font-size: var(--t-body);
   line-height: 1.6; resize: vertical; margin-bottom: var(--s-3);
 }
-.j-edit:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
+.j-edit:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 .j-edit-actions { display: flex; gap: var(--s-2); justify-content: flex-end; margin-bottom: var(--s-4); }
 
 .j-proposal { margin-bottom: var(--s-4); }
@@ -94,7 +205,7 @@
   margin: 0; padding: var(--s-3); border-radius: var(--radius);
   background: var(--panel); border: 1px solid var(--panel-line); font-size: var(--t-small);
 }
-.j-compare-new { border-color: var(--violet-deep); }
+.j-compare-new { border-color: var(--accent-deep); }
 
 .j-original { margin-bottom: var(--s-4); }
 .j-original-toggle {
@@ -102,9 +213,205 @@
   color: var(--faint); font-family: var(--sans); font-size: var(--t-small);
   text-decoration: underline;
 }
-.j-original-toggle:focus-visible { outline: 2px solid var(--violet-soft); outline-offset: 2px; border-radius: 4px; }
+.j-original-toggle:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 4px; }
 .j-original-label {
   font-size: var(--t-micro); text-transform: uppercase; letter-spacing: .12em;
   color: var(--faint); font-weight: 600; margin: var(--s-3) 0 var(--s-1);
 }
 .j-original-text { color: var(--muted); font-size: var(--t-small); white-space: pre-wrap; margin: 0; }
+
+/* — the cast library entry point — */
+.j-library {
+  display: flex; align-items: center; gap: var(--s-3); width: 100%;
+  margin-bottom: var(--s-4); padding: var(--s-3) var(--s-4);
+  border-radius: var(--radius); cursor: pointer; text-align: left;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font-family: var(--sans);
+}
+.j-library:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.j-library-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.j-library-title { font-weight: 600; font-size: var(--t-body); }
+.j-library-text { color: var(--faint); font-size: var(--t-small); }
+.j-library-chev { color: var(--faint); font-size: 20px; line-height: 1; }
+
+.j-back {
+  align-self: flex-start; margin-bottom: var(--s-3); padding: var(--s-2) 0;
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-family: var(--sans); font-size: var(--t-body);
+}
+.j-back:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 8px; }
+
+/* — the dream as a photo story — */
+.j-story { display: flex; flex-direction: column; gap: var(--s-5); margin-bottom: var(--s-5); }
+.j-story-panel { display: flex; flex-direction: column; gap: var(--s-3); }
+.j-story-img {
+  width: 100%; border-radius: var(--radius); display: block;
+  background: var(--sky);
+}
+.j-story-text { margin: 0; font-size: 17px; line-height: 1.62; }
+
+/* — dream calendar —
+   Aus dem Profil hierher gezogen: die hellen Felder sind Knöpfe, keine
+   Statistik. Nur Tage mit Traum sind Knöpfe, leere bleiben <span>.
+
+   Bewusst klein gehalten. Der Kalender ist der zweite Weg ins Journal, nicht
+   sein Kopf — er steht unter den Träumen und soll dort nicht mehr Platz
+   einnehmen als eine einzige Karte. Zellen als feste 26px-Kreise, mittig in
+   ihrer Gitterspalte: über aspect-ratio würden sie mit der Bildschirmbreite
+   mitwachsen und auf dem Tablet zu Tellern werden. */
+.j-cal { padding: var(--s-3); margin-top: var(--s-4); }
+.j-cal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--s-2);
+}
+.j-cal-title { font-size: var(--t-small); font-weight: 600; letter-spacing: .01em; }
+.j-cal-nav {
+  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: 0; color: var(--muted); font-size: 15px; line-height: 1;
+}
+.j-cal-nav:hover:not(:disabled) { color: var(--text); background: var(--panel); }
+.j-cal-nav:disabled { opacity: .3; cursor: default; }
+.j-cal-nav:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.j-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.j-cal-wd {
+  color: var(--faint); font-size: 9px; text-transform: uppercase;
+  letter-spacing: .08em; padding-bottom: 2px;
+}
+.j-cal-day {
+  width: 26px; height: 26px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 12px; color: var(--faint);
+  /* Knopf-Rücksetzung: die Zellen sollen sich nicht wie Knöpfe anfühlen,
+     sondern wie Tage, die man antippen kann. */
+  padding: 0; border: 0; background: none; font-family: inherit;
+}
+.j-cal-dreamt {
+  background: var(--accent-deep); color: var(--text); font-weight: 600;
+  cursor: pointer; transition: transform .12s ease-out, background .12s ease-out;
+}
+.j-cal-dreamt:hover { background: var(--accent); }
+.j-cal-dreamt:active { transform: scale(.88); }
+.j-cal-dreamt:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.j-cal-today { box-shadow: inset 0 0 0 1px var(--accent-soft); }
+.j-cal-picked { background: var(--accent); box-shadow: 0 0 0 2px rgb(var(--bg-rgb) / .9), 0 0 0 4px var(--accent-soft); }
+
+.j-cal-day-list { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-3); }
+.j-cal-day-lede { margin: 0; color: var(--faint); font-size: var(--t-micro); }
+
+/* — „mach was draus" —
+   Steht jetzt als Erstes in .j-content, vor der Aktionsreihe — kein
+   margin-top mehr nötig, das käme zum padding-top von .j-content oben
+   noch obendrauf. margin-bottom stattdessen: der Abstand zur Reihe
+   darunter, nicht zu einem Vorgänger, den es nicht mehr gibt.
+   Derselbe warme Verlauf wie der primäre Knopf (.btn-primary in ui.css) —
+   das ist der eigentliche Antrieb der Seite, keine Nebensache in
+   Kartenfarbe. Dunkler Text aus demselben Grund wie dort: Amber ist hell,
+   Weiß darauf fällt beim Kontrast durch, Beinahe-Schwarz nicht — geprüft in
+   test-contrast.mjs unter --warm auf --bg. */
+.j-make { margin-bottom: var(--s-5); }
+.j-make-lede { margin: 0 0 var(--s-3); color: var(--muted); font-size: var(--t-small); }
+/* Volle Breite als Pille, Symbol links, Pfeil rechts: eine Leserichtung,
+   die größte Fläche für den Daumen, und der Preis steht bewusst NICHT hier
+   — „ab 3" sagt niemandem, dass Credits gemeint sind. Die Zahl steht im
+   Schritt danach, zusammen mit dem, wofür sie gilt. */
+.j-make-btn {
+  display: flex; align-items: center; gap: var(--s-3); width: 100%;
+  padding: 14px var(--s-4); cursor: pointer; text-align: left;
+  border-radius: 999px; border: 1px solid transparent;
+  background: var(--warm-grad); color: var(--bg); font-family: inherit;
+  transition: opacity .14s ease-out, transform .14s ease-out;
+}
+.j-make-btn svg { color: var(--bg); flex: none; }
+.j-make-btn > svg:last-child { opacity: .55; }
+.j-make-btn:hover { opacity: .92; }
+.j-make-btn:active { transform: scale(.985); }
+.j-make-btn:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.j-make-title { flex: 1; font-size: var(--t-body); font-weight: 600; }
+
+/* — der Film, ganz oben —
+   Mit Bedienelementen und ohne Autoplay: ein Film, für den jemand bezahlt
+   hat, wird bewusst angesehen, nicht als stumme Schleife gestreift. */
+.j-film {
+  width: 100%; display: block; border-radius: var(--radius);
+  background: var(--sky); margin-bottom: var(--s-5);
+}
+.j-film-wait {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-4); margin-bottom: var(--s-5);
+  border-radius: var(--radius); background: var(--panel);
+  border: 1px solid var(--panel-line);
+  color: var(--muted); font-size: var(--t-small);
+}
+
+/* — Aktionsleiste über dem Traum —
+   Dunkle Pillen mit warmem Symbol: sie gehören sichtbar zur App, treten
+   aber gegen den einen warmen Hauptknopf darunter bewusst zurück.
+
+   UMBRECHEND, nicht seitlich scrollend. Die scrollende Fassung schnitt
+   „Teilen" auf Deutsch rechts ab — erreichbar durch Ziehen, aber niemand
+   zieht an einer Reihe, deren Ende er nicht sieht. Umbrechen ist die
+   einzige Variante, die in keiner der sieben Sprachen etwas abschneiden
+   kann; bei drei Pillen bleibt es fast überall trotzdem eine Zeile. */
+.j-acts {
+  display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-5);
+}
+.j-act {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  padding: 7px 11px 7px 9px; border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font-family: inherit; font-size: var(--t-micro); font-weight: 600;
+  transition: background .14s ease-out, transform .14s ease-out;
+}
+.j-act svg { width: 15px; height: 15px; color: var(--warm); }
+.j-act:hover:not(:disabled) { background: rgba(255, 255, 255, .1); }
+.j-act:active:not(:disabled) { transform: scale(.96); }
+.j-act:disabled { opacity: .4; cursor: not-allowed; }
+.j-act:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+/* — Auswahlblatt „wie umschreiben?" —
+   Steigt von unten herein und legt den Traum dahinter unscharf: die drei
+   Möglichkeiten sind auf einen Blick nicht auseinanderzuhalten, also
+   bekommen sie je eine Erklärzeile und den ganzen Fokus, statt als
+   Menüzeilen zu erscheinen. */
+.j-sheet-backdrop {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgb(var(--bg-rgb) / .72); backdrop-filter: blur(10px);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: j-sheet-fade .16s ease-out;
+}
+.j-sheet {
+  width: 100%; max-width: 680px;
+  background: var(--bg2); border: 1px solid var(--panel-line);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--s-5) var(--s-4) calc(env(safe-area-inset-bottom) + var(--s-5));
+  animation: j-sheet-rise .22s cubic-bezier(.2, .8, .3, 1);
+}
+@keyframes j-sheet-fade { from { opacity: 0; } }
+@keyframes j-sheet-rise { from { transform: translateY(14px); } }
+
+.j-sheet-title { margin: 0; font-size: var(--t-h3); font-weight: 600; }
+.j-sheet-lede { margin: var(--s-1) 0 var(--s-4); color: var(--muted); font-size: var(--t-small); }
+.j-sheet-item {
+  display: flex; align-items: center; gap: var(--s-3); width: 100%;
+  padding: var(--s-3); margin-bottom: var(--s-2); cursor: pointer; text-align: left;
+  border-radius: var(--radius); border: 1px solid var(--panel-line);
+  background: var(--panel); color: var(--text); font-family: inherit;
+  transition: background .14s ease-out, border-color .14s ease-out;
+}
+.j-sheet-item:hover { background: rgba(255, 255, 255, .08); border-color: var(--accent-soft); }
+.j-sheet-item:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.j-sheet-icon {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--accent-wash); color: var(--accent-soft);
+}
+.j-sheet-icon svg { width: 19px; height: 19px; }
+.j-sheet-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.j-sheet-name { font-size: var(--t-small); font-weight: 600; }
+.j-sheet-hint { color: var(--faint); font-size: var(--t-micro); line-height: 1.45; }
+.j-sheet-free { flex: none; color: var(--ok); font-size: var(--t-micro); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  .j-sheet-backdrop, .j-sheet { animation: none; }
+}

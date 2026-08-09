@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { mediaUrl } from "../lib/api.js";
 import "./MediaCarousel.css";
 
 /* Swipeable slideshow for a dream's images. CSS scroll-snap does the actual
@@ -13,14 +14,14 @@ export default function MediaCarousel({ urls = [], type = "image" }) {
   if (type === "video") {
     return (
       <div className="mc">
-        <video className="mc-single" src={urls[0]} controls playsInline />
+        <video className="mc-single" src={mediaUrl(urls[0])} controls playsInline />
       </div>
     );
   }
   if (urls.length === 1) {
     return (
       <div className="mc">
-        <img className="mc-single" src={urls[0]} alt="" />
+        <img className="mc-single" src={mediaUrl(urls[0])} alt="" />
       </div>
     );
   }
@@ -41,7 +42,7 @@ export default function MediaCarousel({ urls = [], type = "image" }) {
     <div className="mc">
       <div className="mc-track" ref={trackRef} onScroll={onScroll}>
         {urls.map((u, i) => (
-          <img key={i} src={u} alt="" loading="lazy" />
+          <img key={i} src={mediaUrl(u)} alt="" loading="lazy" />
         ))}
       </div>
       {/* Arrows on the images themselves — the dots alone are easy to miss,
