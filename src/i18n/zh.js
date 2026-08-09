@@ -277,6 +277,7 @@ export default {
     from: "起",
     credit: "点数",
     credits: "点数",
+    creditsN: (n) => "点数",   // Chinesisch kennt keine Pluralform; n bleibt ungenutzt
     tooShort: "⚠ 请先多写一点。",
     noCredits: "点数不足。充值即将开放。",
     progress: (n, total) => `第 ${n} 步，共 ${total} 步`,
@@ -337,6 +338,8 @@ export default {
       title: "想要什么样的画面？",
       countLabel: "图片数量",
       countNames: { 3: "开头、中段、结尾", 5: "完整的故事弧线", 10: "每一个转折" },
+      previewName: "快速预览",
+      previewHint: "一次渲染切出三张较小的图——足够看清这个梦的走向，再决定要不要多花。",
       styleLabel: "风格",
       formatLabel: "画幅",
       portrait: "手机、竖屏动态",
@@ -359,6 +362,7 @@ export default {
       generate: "开始生成",
       progress: (done, total) => `已完成 ${done} / ${total}`,
       summaryImages: (n) => `${n} 张图片，构成一段连贯的画面。`,
+      summaryPreview: (n) => `快速预览：一次渲染切出的 ${n} 张较小的图。`,
       summaryFilm: "一张静态画面，即将动起来。",
       summaryFilmLength: (s) => `${s} 秒的影片。渲染需要几分钟——你可以先离开，之后再回来看。`,
       summaryRefs: (n) =>

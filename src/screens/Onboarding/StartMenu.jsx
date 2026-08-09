@@ -16,10 +16,18 @@ import "./onboarding.css";
  * opposite of "ask every launch". A screen whose whole job is to run
  * before language exists cannot itself depend on it.
  *
- * Not meant to survive to a real release — a returning user should not be
- * asked "onboarding or app?" on every open. Delete this file and let App.jsx
- * gate on state.onboarded (and state.language) again once the flow is
- * settled. */
+ * ⚠ DO NOT REMOVE THIS ON YOUR OWN INITIATIVE (standing decision, Anton,
+ * 10.08.2026). It stays until he says otherwise, in those words. It reads
+ * like an oversight — a returning user being asked "onboarding or app?" on
+ * every launch is obviously wrong for a shipped app — which is exactly why
+ * it kept getting listed as the top thing to fix. It is not an oversight:
+ * the onboarding is still being worked on, and gating it behind
+ * state.onboarded makes it a one-shot that is unreachable the moment it has
+ * been seen once.
+ *
+ * When the word comes: delete this file, and let App.jsx's Gate() branch on
+ * state.language and state.onboarded again (both already exist and are
+ * already written on the happy path). */
 export default function StartMenu({ onOnboarding, onSkip }) {
   return (
     <main className="ob ob-center" lang="en" dir="ltr">

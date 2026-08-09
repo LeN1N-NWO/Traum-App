@@ -5,7 +5,7 @@ import { buildReferences, buildImagePrompt, buildPosterPrompt, buildGridPrompt }
 import { generate, uploadPanel, mediaUrl } from "../lib/api.js";
 import { splitIntoPanels } from "../lib/splitGrid.js";
 import { mapWithLimit } from "../lib/parallel.js";
-import { priceForImages, PRICES, IMAGE_COUNTS } from "../lib/pricing.js";
+import { priceForImages, PRICES, IMAGE_COUNTS, PREVIEW_COUNT } from "../lib/pricing.js";
 import { VIDEO_MODELS, priceForFilm, clampSeconds, videoModel } from "../lib/video.js";
 import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
@@ -29,12 +29,19 @@ export default function Step5Style({ w, patch }) {
   const running = useRef(false);
 
   const isFilm = w.mode === "film";
-  const count = isFilm ? 1 : w.imageCount;
+  /* The quick look is a mode, not a count: it always renders ONE image and
+     cuts it into PREVIEW_COUNT panels, so it never has a poster and never
+     honours the format choice (the grid is 16:9 by construction). Both
+     controls are hidden while it is on rather than left there doing
+     nothing. */
+  const isPreview = !isFilm && w.preview;
+  const count = isFilm ? 1 : isPreview ? PREVIEW_COUNT : w.imageCount;
   // A film resumed from a dream with images animates one of THEM — no new
   // keyframe is rendered, so that credit disappears from the price.
   const ownKeyframe = isFilm && !!w.keyframe;
   const price = isFilm
     ? priceForFilm(w.videoModel, w.seconds, { ownKeyframe })
+    : isPreview ? PRICES.preview
     : priceForImages(w.imageCount);
   const assignments = Object.values(w.assignments);
   const named = assignments.filter((a) => a.avatar?.img).length;
@@ -66,18 +73,24 @@ export default function Step5Style({ w, patch }) {
     // opposite. No title (analysis empty, field cleared) means no poster
     // either way.
     const title = (w.title || "").trim();
-    const withPoster = !isFilm && title.length > 0;
+    // A preview has no poster — its three panels come out of one image, and
+    // spending one of them on a title card would leave two scenes.
+    const withPoster = !isFilm && !isPreview && title.length > 0;
     const sceneCount = withPoster ? count - 1 : count;
     const beats = sceneCount > 0 ? beatsForCount(w.analysis?.beats || [w.text], sceneCount) : [];
     const allBeats = w.analysis?.beats || [w.text];
     const jobs = withPoster ? ["__poster__", ...beats] : beats;
     const castForApi = references.map((r) => ({ tag: r.tag, category: "person", desc: "", img: r.img }));
 
-    // The grid trick — one generation cut into several panels client-side —
-    // is proven for exactly one shape: three plain scene stills, no poster
-    // eating a slot (see buildGridPrompt). Only substituted when that shape
-    // is exactly what would have been rendered anyway.
-    const useGrid = !isFilm && sceneCount === 3 && !withPoster;
+    /* The grid — one generation cut into several panels client-side — is now
+     * exactly what "preview" MEANS, not something inferred from the shape of
+     * the request. Until 10.08.2026 this line read `sceneCount === 3 &&
+     * !withPoster`, which sounds equivalent and was not: the analysis fills
+     * the title field automatically, so the poster was almost always on and
+     * the grid almost never ran. The saving existed only for someone who
+     * happened to clear a text field, and they were charged full price for
+     * it anyway. A cheaper render has to be a button, not a side effect. */
+    const useGrid = isPreview;
 
     try {
       // A film is one call and comes back as a job id, not as pictures: the
@@ -186,7 +199,7 @@ export default function Step5Style({ w, patch }) {
           hold whatever "Improve with AI" found — that is also the journal
           card's title, so it is kept either way, just not offered for
           editing here when there is no poster left for it to describe. */}
-      {!isFilm && (
+      {!isFilm && !isPreview && (
         <>
           <h2 className="wiz-sub">{t.wizard.step5.posterLabel}</h2>
           <div className="wiz-poster-fields">
@@ -211,6 +224,11 @@ export default function Step5Style({ w, patch }) {
         </>
       )}
 
+      {/* Hidden during a preview: the grid is 16:9 by construction and its
+          panels come out near-portrait whatever is chosen here, so leaving
+          the control visible would be a switch that changes nothing. */}
+      {!isPreview && (
+        <>
       <h2 className="wiz-sub">{t.wizard.step5.formatLabel}</h2>
       <div className="wiz-formats" role="group" aria-label={t.wizard.step5.formatLabel}>
         {["9:16", "16:9"].map((f) => (
@@ -226,6 +244,8 @@ export default function Step5Style({ w, patch }) {
           </button>
         ))}
       </div>
+        </>
+      )}
 
       {/* Film: the renderer and the length are the person's call, and both
           move the price. The premium model costs six times as much per
@@ -293,17 +313,35 @@ export default function Step5Style({ w, patch }) {
       {!isFilm && (
         <>
           <h2 className="wiz-sub">{t.wizard.step5.countLabel}</h2>
+
+          {/* The cheap look, full width above the three real counts — it is a
+              different KIND of thing, not a fourth size, and putting it in
+              the same row would read as "3 images but cheaper" rather than
+              "smaller images". The hint says what you give up; nobody can
+              guess "a third of the resolution" from a price. */}
+          <button
+            className={"wiz-preview" + (isPreview ? " wiz-preview-on" : "")}
+            onClick={() => patch({ preview: !w.preview })}
+            aria-pressed={isPreview}
+          >
+            <span className="wiz-preview-head">
+              <span className="wiz-preview-name">{t.wizard.step5.previewName}</span>
+              <span className="wiz-count-price">{PRICES.preview} {t.wizard.creditsN(PRICES.preview)}</span>
+            </span>
+            <span className="wiz-preview-hint">{t.wizard.step5.previewHint}</span>
+          </button>
+
           <div className="wiz-counts" role="group" aria-label={t.wizard.step5.countLabel}>
             {IMAGE_COUNTS.map((n) => (
               <button
                 key={n}
-                className={"wiz-count" + (w.imageCount === n ? " wiz-count-on" : "")}
-                onClick={() => patch({ imageCount: n })}
-                aria-pressed={w.imageCount === n}
+                className={"wiz-count" + (!isPreview && w.imageCount === n ? " wiz-count-on" : "")}
+                onClick={() => patch({ imageCount: n, preview: false })}
+                aria-pressed={!isPreview && w.imageCount === n}
               >
                 <span className="wiz-count-n">{n}</span>
                 <span className="wiz-count-label">{t.wizard.step5.countNames[n]}</span>
-                <span className="wiz-count-price">{PRICES.images[n]} {t.wizard.credits}</span>
+                <span className="wiz-count-price">{PRICES.images[n]} {t.wizard.creditsN(PRICES.images[n])}</span>
               </button>
             ))}
           </div>
@@ -311,12 +349,14 @@ export default function Step5Style({ w, patch }) {
       )}
 
       <div className="wiz-summary">
-        <p>{isFilm ? t.wizard.step5.summaryFilmLength(w.seconds) : t.wizard.step5.summaryImages(count)}</p>
+        <p>{isFilm ? t.wizard.step5.summaryFilmLength(w.seconds)
+                   : isPreview ? t.wizard.step5.summaryPreview(count)
+                   : t.wizard.step5.summaryImages(count)}</p>
         <p>{t.wizard.step5.summaryRefs(named)}</p>
       </div>
 
       <Button onClick={run} disabled={!canAfford(state, price)}>
-        {t.wizard.step5.generate} · {price} {t.wizard.credits}
+        {t.wizard.step5.generate} · {price} {t.wizard.creditsN(price)}
       </Button>
       {!canAfford(state, price) && <p className="wiz-hint">{t.wizard.noCredits}</p>}
     </section>

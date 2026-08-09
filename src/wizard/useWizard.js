@@ -37,6 +37,7 @@ const EMPTY = {
   analysis: null,
   mode: null,          // "save" | "images" | "film"
   imageCount: 5,
+  preview: false,      // the cheap look: one render cut into three, see pricing.js
   assignments: {},     // name -> { name, kind, avatar?, free? }
   styleId: "dreamlike",
   format: "9:16",

@@ -27,20 +27,29 @@ export const PRICES = {
   characterSheet: 2, // one generated reference image, plus a little
   images: { 3: 3, 5: 5, 10: 10 },   // one credit per image, no bulk discount:
                                      // every image costs us exactly the same
-                                     //
-                                     // EXCEPT the 3-tier without a poster: that
-                                     // one renders as a single grid call (see
-                                     // Step5Style's `useGrid`), so it costs us
-                                     // ~$0.08 to make, not ~$0.24 — same 3
-                                     // credits charged either way. Decided
-                                     // 09.08.2026: keep the price, take the
-                                     // saving as margin, matching "plus, never
-                                     // in the red". Revisit if that stance ever
-                                     // changes; nothing here enforces it.
   keyframe: 1,       // the still a film is animated from — it IS an image
+
+  /* The quick look: three panels cut out of ONE rendered image, so it costs
+   * us one image and is priced as one. See PREVIEW_COUNT below.
+   *
+   * This used to be a hidden accident (10.08.2026): the grid fired only when
+   * someone happened to clear the poster title, and still charged 3 credits
+   * for 1 render. Two things were wrong with that. The saving was invisible,
+   * so nobody could choose it — and the price lied in the other direction,
+   * because the panels come out at a THIRD of the resolution (measured:
+   * 459×768 against 768×1376). Charging full price for a third of the pixels
+   * is the part that would have cost trust; taking the margin quietly was
+   * only the part that looked clever. */
+  preview: 1,
 };
 
 export const IMAGE_COUNTS = [3, 5, 10];
+
+/* How many panels the preview cuts. Three is not a preference: splitGrid and
+ * buildGridPrompt are proven for exactly this shape (09.08.2026), and a
+ * nine-panel grid would put each frame at a ninth of the pixels, which is a
+ * thumbnail, not a look at your dream. */
+export const PREVIEW_COUNT = 3;
 
 export function priceForImages(count) {
   return PRICES.images[count] ?? PRICES.images[5];

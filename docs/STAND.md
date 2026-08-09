@@ -29,16 +29,23 @@ in `localStorage`, Schlüssel `dreamrushes_v1`.
 alle Texte in `src/i18n/<id>.js` und nirgends sonst; `en.js` ist die Vorlage,
 `scripts/check-i18n-shape.mjs` erzwingt gleiche Form. Doku und Commits deutsch.
 
-## ⚠ Übergangslösung, die vor echter Nutzung raus muss
+## ⚠ Das Startmenü bleibt — nicht eigenmächtig entfernen
 
 `src/App.jsx`s `Gate()` zeigt bei **jedem** App-Start ein `StartMenu`
 („Show onboarding" / „Skip to app") statt auf `state.onboarded` zu prüfen.
-Absichtlich so, solange am Onboarding gearbeitet wird — sonst wäre der Flow
-nach dem ersten Anschauen unerreichbar, weil das Flag einmal kippt und dann
-für immer. **Vor jeder echten Nutzung:**
-`src/screens/Onboarding/StartMenu.jsx` löschen, `Gate()` wieder auf
-`!state.onboarded` (und `!state.language`) gaten lassen — im Kommentar dort
-genau beschrieben.
+
+**Das ist eine stehende Entscheidung (Anton, 10.08.2026), keine Baustelle.**
+Es bleibt, bis er ausdrücklich etwas anderes sagt. Es sieht wie ein
+Versehen aus — einen wiederkehrenden Nutzer bei jedem Start zu fragen
+„Onboarding oder App?" wäre für eine ausgelieferte App offensichtlich
+falsch —, und genau deshalb stand es zweimal ganz oben auf der
+Aufräumliste. Es ist keins: Am Onboarding wird noch gearbeitet, und hinter
+`state.onboarded` versteckt wäre es ein Einmal-Erlebnis, unerreichbar,
+sobald man es einmal gesehen hat.
+
+Wenn das Wort kommt: `src/screens/Onboarding/StartMenu.jsx` löschen und
+`Gate()` wieder auf `state.language`/`state.onboarded` verzweigen lassen —
+beide werden auf dem normalen Weg längst gesetzt.
 
 ## Die Persona — eine Stimme, überall dieselbe
 
@@ -119,19 +126,23 @@ Der Letterbox-Rahmen, den das Modell trotz Verbot malt, wird am **hellsten**
 Pixel jeder Randzeile erkannt (nicht am Durchschnitt: gemalte Balken max.
 5/255, eine dunkle Wasserszene trägt Glanzpunkte ab 19).
 
-**⚠ Zwei Dinge, die man wissen muss, bevor man daran weiterbaut:**
+**Seit 10.08. ist das die „Schnellvorschau"** — eine sichtbare Kachel in
+Schritt 5, **1 Credit**, mit dem Satz daneben, was man dafür aufgibt.
+`useGrid` heißt jetzt schlicht `isPreview`; die Vorschau hat nie ein Poster
+und blendet die Format-Wahl aus (der Grid ist bauartbedingt 16:9).
 
-- **Der Pfad feuert praktisch nie.** `useGrid` (`Step5Style.jsx:80`) verlangt
-  „3 Szenen UND kein Poster" — der Titel kommt aber automatisch aus der Analyse
-  ins Feld. Nur wer ihn in Schritt 5 **von Hand leert**, löst den Grid aus.
-- **Er kostet Auflösung.** An einem echten Rendering gemessen: Panels
-  **459×768** gegen **768×1376** bei einem normalen Bild — ein Drittel der
-  Pixel. Deshalb rendert der **Gratis-Traum in voller Größe**: die Ersparnis
-  fiele sonst ausgerechnet auf den einen Traum, der gut sein muss.
-  Begründung in `credits.js`.
+**Warum das eine Korrektur war, keine Erweiterung:** Vorher lautete die
+Bedingung „3 Szenen UND kein Poster" — klingt gleichwertig, war es nicht.
+Die Analyse füllt das Titelfeld automatisch, also war das Poster fast immer
+an und der Grid lief fast nie. Wer ihn doch auslöste (durch Leeren eines
+Textfelds), zahlte trotzdem 3 Credits für **ein** Rendering. Gemessen:
+Panels **459×768** gegen **768×1376** bei einem normalen Bild — ein Drittel
+der Pixel. Vollen Preis für ein Drittel der Auflösung zu nehmen war der
+Teil, der Vertrauen gekostet hätte.
 
-Offen: Pfad entfernen **oder** als sichtbar billigere „Schnellvorschau"
-ausbauen. So wie er ist, ist er unsichtbar und falsch bepreist.
+Der **Gratis-Traum rendert weiter in voller Größe** — die Ersparnis fiele
+sonst ausgerechnet auf den einen Traum, der gut sein muss. Begründung in
+`credits.js`.
 
 ## Onboarding
 
@@ -258,9 +269,6 @@ alles andere hängt an ihr.
 
 ## Bekannte Baustellen
 
-- **⚠ StartMenu ist eine Übergangslösung** (siehe oben) — höchste Priorität.
-- **Der Grid-Pfad ist unsichtbar und falsch bepreist** (siehe oben) —
-  entfernen oder sichtbar machen.
 - **RTL (Arabisch) ist nicht einzeln geprüft.** `dir="rtl"` steht am
   Dokument, was der Browser daraus macht, ist ungeprüft; eigene
   Flex-/Absolut-Layouts über ~35 CSS-Dateien wurden nicht durchgesehen.
@@ -276,20 +284,20 @@ alles andere hängt an ihr.
 
 ## Nächste Schritte
 
-1. **StartMenu entfernen**, sobald das Onboarding als fertig gilt.
-2. **Grid-Pfad entscheiden:** entfernen oder als „Schnellvorschau" sichtbar
-   machen (billiger, kleiner — beides angeschrieben).
-3. **Small Business Program beantragen**, sobald es einen Entwickleraccount
+1. **Small Business Program beantragen**, sobald es einen Entwickleraccount
    gibt — ohne ist die Preisliste defizitär.
-4. **RTL-Durchsicht** für Arabisch.
-5. **Empfehlungsprogramm.** Prämie erst nach der ersten erfolgreichen
+2. **RTL-Durchsicht** für Arabisch.
+3. **Empfehlungsprogramm.** Prämie erst nach der ersten erfolgreichen
    Abbuchung. Braucht das Konten-Backend.
-6. **Character-Sheets** für beschriebene Figuren ohne Foto.
-7. Vor jeder öffentlichen Nutzung: **Auth + Rate-Limit** für `/api/generate`.
-8. **Supabase-Projekt** (Produktbesitzer) → ADR für Accounts/DB/Credits.
-9. Apple-/Google-Developer-Accounts → ADR für Capacitor.
-10. **`lib/zodiac.js` anbinden** — die Umfrage sammelt Sternzeichen und Themen
-    bereits, es passiert nur noch nichts damit.
+4. **Character-Sheets** für beschriebene Figuren ohne Foto.
+5. Vor jeder öffentlichen Nutzung: **Auth + Rate-Limit** für `/api/generate`.
+6. **Supabase-Projekt** (Produktbesitzer) → ADR für Accounts/DB/Credits.
+7. Apple-/Google-Developer-Accounts → ADR für Capacitor.
+8. **`lib/zodiac.js` anbinden** — die Umfrage sammelt Sternzeichen und Themen
+   bereits, es passiert nur noch nichts damit.
+
+**Nicht auf dieser Liste, mit Absicht:** das Startmenü (siehe oben — bleibt,
+bis Anton es ausdrücklich sagt).
 
 ## Offene Zahlen, die nur die Wirklichkeit beantworten kann
 

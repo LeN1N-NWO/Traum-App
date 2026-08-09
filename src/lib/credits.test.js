@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 import { canAfford, spend, welcomeGrant, WELCOME_CREDITS } from "./credits.js";
-import { priceForImages, IMAGE_COUNTS } from "./pricing.js";
+import { priceForImages, IMAGE_COUNTS, PRICES, PREVIEW_COUNT } from "./pricing.js";
 
 test("affordability compares against the balance", () => {
   expect(canAfford({ credits: 3 }, 3)).toBe(true);
@@ -49,4 +49,25 @@ test("existing installs keep the credits they already had", () => {
 test("the welcome grant pays for exactly one smallest dream", () => {
   const smallest = priceForImages(Math.min(...IMAGE_COUNTS));
   expect(WELCOME_CREDITS).toBe(smallest);
+});
+
+/* The quick look is priced as what it actually is: ONE render. Before
+ * 10.08.2026 the same grid render was billed at the full three-image price
+ * because it was reached by accident (a cleared title field) rather than
+ * chosen — full price for a third of the resolution. Pin both halves of the
+ * fix: it costs one image, and it stays cheaper than the three separate
+ * renders it stands in for. If someone ever prices them the same again,
+ * this fails and says why. */
+test("the quick look costs one render, not three", () => {
+  expect(PRICES.preview).toBe(PRICES.images[1] ?? 1);
+  expect(PRICES.preview).toBeLessThan(priceForImages(PREVIEW_COUNT));
+});
+
+/* …and it must not undercut the welcome promise. "Your first dream is on
+ * us" means a FULL dream; if the preview were ever free, the grant would
+ * buy previews instead and the first dream someone sees would be the
+ * third-resolution one. */
+test("the quick look still costs something", () => {
+  expect(PRICES.preview).toBeGreaterThan(0);
+  expect(WELCOME_CREDITS).toBeGreaterThan(PRICES.preview);
 });
