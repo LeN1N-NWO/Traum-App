@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from "react";
-import { loadState, saveState } from "../lib/storage.js";
+import { loadState, saveState, DB_KEY } from "../lib/storage.js";
+import { buildSeedJournal } from "../lib/seedJournal.js";
 import { t } from "../i18n/index.js";
 
 /* The whole app state in one place. Every change goes through update() and is
@@ -7,8 +8,20 @@ import { t } from "../i18n/index.js";
    deliberate: two write paths would drift apart over time. */
 const Ctx = createContext(null);
 
+// ⚠️ TEMPORARY (10.08.2026, Anton) — see seedJournal.js for why and how to
+// remove. Only fires when nothing was EVER saved for this browser (the raw
+// key is null, not just an empty journal), so it can never overwrite a
+// journal someone actually built or deliberately emptied.
+function loadInitialState() {
+  const s = loadState();
+  const fresh = typeof localStorage !== "undefined" && localStorage.getItem(DB_KEY) === null;
+  if (!fresh || s.journal.length > 0) return s;
+  const seed = buildSeedJournal();
+  return { ...s, journal: seed.journal, creatures: [...(s.creatures || []), ...seed.creatures] };
+}
+
 export function AppStateProvider({ children }) {
-  const [state, setState] = useState(loadState);
+  const [state, setState] = useState(loadInitialState);
   const [toastText, setToastText] = useState("");
 
   const toast = useCallback((text) => {

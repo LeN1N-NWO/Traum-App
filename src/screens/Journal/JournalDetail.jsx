@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../components/Button.jsx";
+import TagField from "../../components/TagField.jsx";
 import { useAppState } from "../../state/AppState.jsx";
 import { refine, mediaUrl, jobStatus } from "../../lib/api.js";
 import { filmOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
@@ -295,7 +296,11 @@ export default function JournalDetail({ entry, onClose }) {
           />
         ) : editing ? (
           <>
-            <textarea
+            {/* Same field as in the wizard: names from the profile light up
+                while the text is reworked, and tapping one shows who it is.
+                Which avatars a rewritten dream will pull in matters most
+                here — the images beside it were made from the old wording. */}
+            <TagField
               className="j-edit"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}

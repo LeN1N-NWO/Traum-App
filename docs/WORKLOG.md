@@ -3,6 +3,44 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-10 12:40 — Anton — Branch `session/2026-08-10-anton-seed` — Sitzungsabschluss
+
+**Commits:** `0d1db75` (geteiltes Test-Journal) + der Doku-Commit dieser Zeilen.
+
+**Was:** Jeder frische Install zeigt jetzt dieselben zwei Träume im Journal
+(„Weeping Old Bedroom" englisch, „Der gläserne Zug" deutsch) statt eines
+leeren Zustands — mit echten Bildern. Neu: `src/lib/seedJournal.js`,
+`scripts/add-seed-dream.mjs`, sechs WebP unter `public/clips/`, plus ein
+`loadInitialState()`-Wrapper in `src/state/AppState.jsx`.
+
+**Warum:** Anton wollte einen Testzugang, den alle im Merge bekommen, und
+dass künftige Medien dort ebenfalls landen.
+
+**Drei Dinge, die der Nächste wissen muss:**
+
+1. **Der erste Anlauf war falsch, und der Fehler ist lehrreich.** Ich hatte
+   die Bilder per direktem `/api/generate`-Aufruf erzeugt — ohne `prompt`,
+   ohne `aspectRatio: "16:9"`. Das landet im alten Einzelbild-Pfad und
+   umgeht Grid und Schnitt vollständig. Anton hat zu Recht gefragt, warum das
+   Triptychon nicht ankommt: **das System war da, ich habe es umgangen.** Wer
+   Seed-Medien erzeugt, nimmt das Skript — nicht curl.
+2. **WebP ist Pflicht, nicht Geschmack.** Die sechs Panels als PNG waren
+   3,4 MB bei 3,6 MB Git-Historie: ein Commit hätte das Repo verdoppelt, und
+   Git gibt den Platz beim Löschen nicht zurück. Als WebP: 0,27 MB, optisch
+   ununterscheidbar. Bei „alle künftigen Medien" ist das der Unterschied
+   zwischen tragfähig und einem Repo, das nach zwanzig Träumen 70 MB wiegt.
+   `add-seed-dream.mjs` erzwingt es.
+3. **Der Python-Schnitt im Skript ist ein PORT von `splitGrid.js`**, keine
+   gemeinsame Quelle. Ändert sich dort die Zuschneide-Logik (MAX_TRIM, der
+   „hellster Pixel"-Test, die Rundung der Grenzen), muss sie im Skript
+   mitgezogen werden — sonst sehen Seed-Panels anders aus als das, was die
+   App selbst erzeugt. Bun hat keinen Bilddecoder; deshalb Python/Pillow.
+
+**Offen und bewusst so gelassen:** Das Seed-Journal erscheint bei **jedem**
+frischen Install, auch bei echten Nutzern. Als Testzugang gewollt, vor einem
+Release zu entfernen — die Anleitung steht im Kopfkommentar von
+`seedJournal.js`, der Punkt zusätzlich in STAND.md unter Baustellen.
+
 ## 2026-08-10 00:24 — Anton — Branch `session/2026-08-07-anton` (PR #9) — Sitzungsabschluss
 
 **Commits (neuester zuerst):** `cf1b10e` (Willkommen als Versprechen statt

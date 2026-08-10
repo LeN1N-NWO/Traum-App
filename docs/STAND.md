@@ -3,7 +3,7 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-10 (00:24) — Branch `session/2026-08-07-anton`, PR #9
+**Stand:** 2026-08-10 (12:40) — Branch `session/2026-08-10-anton-seed`
 
 ## Woran wird gearbeitet
 
@@ -16,7 +16,7 @@ ein **Startmenü**, ob man das Onboarding sieht oder direkt in die App springt
 | Tab | Inhalt |
 |---|---|
 | Home | Begrüßung nach Tageszeit, **Faultier-Film als Posterkarte**, letzter Traum, Menagerie |
-| Journal | Träume als Kartenstapel **oder** Liste, Kalender, Detail mit Film+Bildern |
+| Journal | Träume als Kartenstapel **oder** Liste, Kalender, Detail mit Film+Bildern. Zwei **Seed-Träume** in jedem frischen Install (siehe unten) |
 | **⊕** | Der Wizard: Traum → Ausgabe → Personen → Orte → Style → Ergebnis |
 | Sleep | **Alles gratis:** Einschlaf-Checkliste, Sound-Mixer, Klartraum-Leitfaden, Symbole |
 | Profil | Porträt, Credits-Pille (öffnet Paywall), **Zahnrad → Einstellungen**, Umfrage-Karte falls offen |
@@ -200,6 +200,27 @@ davon ab (`rgb(var(--bg-rgb) / .x)`).
   überlebt die Referenz jede `base`-Änderung (wichtig für Capacitor).
 - `scripts/test-contrast.mjs` prüft 16 Paarungen gegen WCAG AA.
 
+## Geteiltes Test-Journal (10.08.) — vor dem Release entfernen
+
+Jeder frische Install zeigt zwei Träume mit echten Bildern statt eines leeren
+Journals: `src/lib/seedJournal.js`, sechs WebP unter `public/clips/seed-*`,
+eingehängt über `loadInitialState()` in `src/state/AppState.jsx:11`.
+
+Greift **nur**, wenn für den Browser noch nie etwas gespeichert wurde (der
+Schlüssel ist `null`, nicht bloß ein leeres Journal) — ein absichtlich
+geleertes Journal wird also nie überschrieben.
+
+**Weitere Träume ergänzen:** `bun scripts/add-seed-dream.mjs <slug>` — rendert
+das 16:9-Grid über den echten `buildGridPrompt()`, schneidet es nach der
+Logik aus `splitGrid.js`, komprimiert nach WebP und druckt den Block zum
+Einfügen. **Nicht von Hand per curl generieren:** ohne `prompt` und
+`aspectRatio: "16:9"` läuft der Aufruf in den alten Einzelbild-Pfad und das
+Triptychon entsteht gar nicht (passiert am 10.08., siehe WORKLOG).
+
+**WebP ist Pflicht.** Die sechs Panels als PNG wären 3,4 MB bei 3,6 MB
+Git-Historie gewesen — ein Commit hätte das Repo verdoppelt, und Git gibt den
+Platz beim Löschen nicht zurück. Als WebP: 0,27 MB.
+
 ## Starten
 
     bun run dev                       # Oberfläche 5173, API 8100, Hot Reload
@@ -280,6 +301,15 @@ alles andere hängt an ihr.
 - **Symbolerkennung nur auf Englisch** (`src/lib/symbols.js`).
 - Tagebuch wächst unbegrenzt, keine Pagination; base64-Referenzfotos machen das
   localStorage-Kontingent (~5 MB) zum eigentlichen Limit.
+- **Das Seed-Journal erscheint bei JEDEM frischen Install**, auch bei echten
+  Nutzern (`src/state/AppState.jsx:11`). Als Testzugang gewollt; vor einem
+  Release zu entfernen — Anleitung im Kopfkommentar von
+  `src/lib/seedJournal.js`.
+- **Der Zuschneide-Code im Seed-Skript ist ein PORT**, keine gemeinsame
+  Quelle: `scripts/add-seed-dream.mjs` enthält Python, das `splitGrid.js`
+  nachbildet (Bun hat keinen Bilddecoder). Ändert sich dort MAX_TRIM, der
+  „hellster Pixel"-Test oder die Rundung der Grenzen, muss das Skript
+  mitgezogen werden.
 - Kein `bun run lint` — weiterhin keine Konfiguration dafür.
 
 ## Nächste Schritte
