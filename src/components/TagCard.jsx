@@ -35,12 +35,18 @@ export default function TagCard({ avatar, anchor, onClose }) {
   // changes, so the marks move.
   useEffect(() => {
     const outside = (e) => { if (!box.current?.contains(e.target)) onClose(); };
-    window.addEventListener("keydown", onClose);
+    /* Escape stops here. Any other key just closes the card, but Escape is
+       also how the surroundings close themselves — in the journal the card
+       sits inside a modal, and one press would have shut both. Capture on
+       window runs before a listener on document, so stopping it there keeps
+       the press from ever reaching the modal. */
+    const onKey = (e) => { if (e.key === "Escape") e.stopPropagation(); onClose(); };
+    window.addEventListener("keydown", onKey, true);
     window.addEventListener("pointerdown", outside, true);
     window.addEventListener("scroll", onClose, true);   // capture: the field scrolls too
     window.addEventListener("resize", onClose);
     return () => {
-      window.removeEventListener("keydown", onClose);
+      window.removeEventListener("keydown", onKey, true);
       window.removeEventListener("pointerdown", outside, true);
       window.removeEventListener("scroll", onClose, true);
       window.removeEventListener("resize", onClose);
