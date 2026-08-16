@@ -49,10 +49,10 @@ export default function DreamCalendar({ onOpen }) {
        name only survives for screen readers. */
     <Card as="section" className="j-cal" aria-label={t.journal.calendar}>
       <div className="j-cal-head">
-        <button className="j-cal-nav" onClick={() => shift(-1)} aria-label={t.journal.calPrev}>‹</button>
+        <button className="j-cal-nav" onClick={() => shift(-1)} aria-label={t.journal.calPrev} data-flip>‹</button>
         <span className="j-cal-title">{t.journal.calMonths[month]} {year}</span>
         <button className="j-cal-nav" onClick={() => shift(1)}
-                disabled={atCurrentMonth} aria-label={t.journal.calNext}>›</button>
+                disabled={atCurrentMonth} aria-label={t.journal.calNext} data-flip>›</button>
       </div>
 
       <div className="j-cal-grid" role="grid" aria-label={t.journal.calLabel}>

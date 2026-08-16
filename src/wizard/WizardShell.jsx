@@ -76,7 +76,7 @@ export default function WizardShell() {
   return (
     <main className="screen wiz">
       <header className="wiz-top">
-        <button className="wiz-back" onClick={back} aria-label={t.wizard.back}>←</button>
+        <button className="wiz-back" onClick={back} aria-label={t.wizard.back} data-flip>←</button>
         <ol className="wiz-dots" aria-label={t.wizard.progress(w.step, STEPS.length)}>
           {STEPS.map((_, i) => (
             <li

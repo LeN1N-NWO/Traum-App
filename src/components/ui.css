@@ -21,7 +21,7 @@
 .btn-ghost  { background: none; color: var(--muted); }
 
 .card {
-  display: block; width: 100%; text-align: left;
+  display: block; width: 100%; text-align: start;
   background: var(--panel); border: 1px solid var(--panel-line);
   border-radius: var(--radius); padding: var(--s-4);
   color: var(--text); font-family: var(--sans); font-size: var(--t-body);

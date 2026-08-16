@@ -66,7 +66,7 @@
 .h-last {
   position: relative; display: flex; align-items: center; gap: var(--s-4); width: 100%;
   margin-top: var(--s-5); padding: var(--s-3); border-radius: var(--radius); cursor: pointer;
-  text-align: left; background: var(--panel); border: 1px solid var(--panel-line);
+  text-align: start; background: var(--panel); border: 1px solid var(--panel-line);
   color: var(--text); font-family: var(--sans);
 }
 .h-last:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }

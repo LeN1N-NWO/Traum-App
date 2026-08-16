@@ -123,7 +123,7 @@ export default function Onboarding({ onExit }) {
             <p className="ob-wordmark">Dream Rushes</p>
             <p className="ob-tagline">{t.onboarding.tagline}</p>
           </div>
-          <span className="ob-swipe" aria-hidden="true">‹ {t.onboarding.swipe}</span>
+          <span className="ob-swipe" aria-hidden="true"><span data-flip>‹</span> {t.onboarding.swipe}</span>
         </section>
 
         {slides.map((s, i) => (

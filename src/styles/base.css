@@ -24,3 +24,26 @@ body {
   padding: calc(env(safe-area-inset-top) + var(--s-5)) var(--s-4)
            calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s-6));
 }
+
+/* — Rechts-nach-links (Arabisch) —
+   `dir="rtl"` am Dokument (i18n/index.js) dreht Textfluss und alle logischen
+   Eigenschaften automatisch um. Was es NICHT drehen kann, sind Zeichen und
+   Grafiken, die eine Richtung MEINEN: ein „‹" bedeutet auf Arabisch „vorwärts",
+   nicht „zurück", und der Pfeil zeigt trotzdem nach links.
+
+   Deshalb werden genau diese Elemente gespiegelt, und nur sie. Absichtlich
+   NICHT gespiegelt: Bilder, Videos, das Maskottchen, die DreamScape-Flächen —
+   ein gespiegeltes Foto ist ein falsches Foto, kein übersetztes.
+
+   Erfasst wird über `[data-flip]` statt über eine Klassenliste: wer künftig
+   einen Pfeil setzt, schreibt das Attribut daran und muss diese Datei nicht
+   kennen. */
+[dir="rtl"] [data-flip] { transform: scaleX(-1); }
+
+/* Der Wisch-Hinweis im Onboarding stupst in die Richtung, aus der die nächste
+   Folie kommt — auf Arabisch also andersherum. */
+[dir="rtl"] .ob-swipe { animation-name: ob-nudge-rtl; }
+@keyframes ob-nudge-rtl {
+  0%, 100% { transform: translateX(0); opacity: .7; }
+  50%      { transform: translateX(7px); opacity: 1; }
+}

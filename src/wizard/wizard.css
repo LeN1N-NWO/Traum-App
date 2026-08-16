@@ -83,7 +83,7 @@
 .wiz-preview {
   display: flex; flex-direction: column; gap: 3px; width: 100%;
   margin-bottom: var(--s-2); padding: var(--s-3) var(--s-4);
-  border-radius: var(--radius); cursor: pointer; text-align: left;
+  border-radius: var(--radius); cursor: pointer; text-align: start;
   background: var(--panel); border: 1px dashed var(--panel-line);
   color: var(--text); font-family: var(--sans);
 }
@@ -129,7 +129,7 @@
 }
 .wiz-person-face img { width: 100%; height: 100%; object-fit: cover; }
 /* min-width:0 + padding-right: der Name bricht um statt unters × zu laufen. */
-.wiz-person-body { display: flex; flex-direction: column; flex: 1; min-width: 0; padding-right: 26px; }
+.wiz-person-body { display: flex; flex-direction: column; flex: 1; min-width: 0; padding-inline-end: 26px; }
 .wiz-person-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wiz-person-state { font-size: var(--t-small); color: var(--muted); }
 .wiz-person-actions { display: flex; gap: var(--s-1); flex-wrap: wrap; width: 100%; }
@@ -143,7 +143,7 @@
 /* Bewusst 26px klein, aber mit unsichtbarem 44px-Tippziel darüber — klein
    fürs Auge heißt nicht klein für den Daumen. */
 .wiz-person-x {
-  position: absolute; top: var(--s-2); right: var(--s-2);
+  position: absolute; top: var(--s-2); inset-inline-end: var(--s-2);
   width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   background: none; border: 0; color: var(--faint); font-size: 15px; line-height: 1;
@@ -261,7 +261,7 @@
 .wiz-tell {
   display: flex; align-items: center; gap: var(--s-4); width: 100%;
   padding: var(--s-4) var(--s-5); margin-bottom: var(--s-4);
-  border: none; border-radius: var(--radius); cursor: pointer; text-align: left;
+  border: none; border-radius: var(--radius); cursor: pointer; text-align: start;
   background: var(--warm-grad); color: var(--bg); font-family: var(--sans);
   box-shadow: 0 10px 28px rgb(242 167 101 / .26);
 }

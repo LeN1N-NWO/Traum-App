@@ -9,7 +9,7 @@
     "dev:web": "vite",
     "build": "vite build",
     "start": "bun run build && bun server.js",
-    "test": "bun test && node scripts/test-static.mjs && node scripts/test-prompt-sanitize.mjs && node scripts/test-contrast.mjs && node scripts/check-i18n-shape.mjs"
+    "test": "bun test && node scripts/test-static.mjs && node scripts/test-prompt-sanitize.mjs && node scripts/test-contrast.mjs && node scripts/check-i18n-shape.mjs && node scripts/test-rtl.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

@@ -16,7 +16,7 @@
 .p-no-image { display: flex; align-items: center; justify-content: center; background: var(--sky); color: var(--faint); }
 .p-tag { font-size: var(--t-micro); color: var(--muted); }
 .p-remove {
-  position: absolute; top: 2px; right: 2px; width: 22px; height: 22px;
+  position: absolute; top: 2px; inset-inline-end: 2px; width: 22px; height: 22px;
   border-radius: 50%; cursor: pointer; background: var(--veil);
   border: 1px solid var(--panel-line); color: var(--text); font-size: 13px; line-height: 1;
 }
@@ -81,7 +81,7 @@
   display: flex; align-items: center; gap: var(--s-3); width: 100%;
   padding: var(--s-3) var(--s-3); border-radius: var(--radius); cursor: pointer;
   background: var(--panel); border: 1px solid var(--panel-line);
-  color: var(--text); font-family: var(--sans); text-align: left;
+  color: var(--text); font-family: var(--sans); text-align: start;
 }
 .p-set-row:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 .p-set-body { display: flex; flex-direction: column; gap: 2px; margin-inline-end: auto; min-width: 0; }
@@ -181,7 +181,7 @@
   position: relative; display: flex; flex-direction: column; gap: 3px;
   width: 100%; padding: var(--s-4); padding-inline-end: 46px; cursor: pointer;
   background: none; border: none; color: var(--text);
-  font-family: var(--sans); text-align: left;
+  font-family: var(--sans); text-align: start;
 }
 .p-method-top:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: -2px; }
 .p-method-head { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
@@ -253,7 +253,7 @@
 /* Die wartende Willkommens-Umfrage — verschwindet nach dem Abschluss. */
 .p-survey {
   display: flex; align-items: center; gap: var(--s-3); width: 100%;
-  padding: var(--s-4); margin-top: var(--s-5); cursor: pointer; text-align: left;
+  padding: var(--s-4); margin-top: var(--s-5); cursor: pointer; text-align: start;
   border-radius: var(--radius); border: 1px solid var(--panel-line);
   background: var(--accent-wash); color: var(--text); font-family: inherit;
 }

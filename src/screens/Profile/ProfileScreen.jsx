@@ -93,7 +93,7 @@ export default function ProfileScreen() {
             <span className="p-survey-title">{t.onboarding.profileCard}</span>
             <span className="p-survey-hint">{t.onboarding.profileCardHint}</span>
           </span>
-          <span aria-hidden="true">›</span>
+          <span aria-hidden="true" data-flip>›</span>
         </button>
       )}
 
