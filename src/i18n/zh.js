@@ -31,6 +31,8 @@ export default {
     lede: "趁记忆还热乎的时候说出来——半梦半醒时效果最好。",
     cta: "开始记录",
     streak: (n) => `连续 ${n} 天`,
+    streakPerk: (n, max) => `第 ${n} 夜，共 ${max} 夜——你的生物越来越稀有了。`,
+    streakRisk: "昨夜你写了。今晚就能接上——不用急，睡前都算数。",
     lastHeading: "昨夜",
     menagerieHeading: "你的异兽园",
     menagerieEmpty: "还没有生物。你写下的每一个梦都会留下一只。",

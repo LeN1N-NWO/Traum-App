@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppState } from "../state/AppState.jsx";
 import { jobStatus } from "../lib/api.js";
 import { genId } from "../lib/storage.js";
-import { bumpStreak } from "../lib/streak.js";
+import { bumpStreak, refreshStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
 import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
@@ -79,7 +79,10 @@ export default function Step6Result({ w, patch }) {
       return navigate("/journal");
     }
 
-    const creature = newCreature(w.text);
+    // Der Stand VOR dem Hochzaehlen: die Serie, die man sich verdient
+    // hat, zaehlt fuer diesen Wurf — nicht die, die er gerade erst
+    // erzeugt. Sonst belohnte sich der allererste Traum selbst.
+    const creature = newCreature(w.text, refreshStreak(state).streak);
     const entry = {
       id: genId("e"),
       createdAt: new Date().toISOString(),

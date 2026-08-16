@@ -30,6 +30,8 @@ export default {
     lede: "Raconte-le pendant que c'est encore frais — à moitié endormi, c'est l'idéal.",
     cta: "L'enregistrer",
     streak: (n) => `${n} jour${n === 1 ? "" : "s"}`,
+    streakPerk: (n, max) => `Nuit ${n} sur ${max} — tes créatures se font plus rares.`,
+    streakRisk: "Tu as écrit cette nuit. Ce soir prolonge la série — sans hâte, elle tient jusqu'à ton sommeil.",
     lastHeading: "Cette nuit",
     menagerieHeading: "Ta ménagerie",
     menagerieEmpty: "Pas encore de créature. Chaque rêve noté en laisse une derrière lui.",

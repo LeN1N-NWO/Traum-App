@@ -99,3 +99,16 @@
 .rare-rare { color: var(--cyan); }
 .rare-epic { color: var(--accent); }
 .rare-legendary { color: var(--gold); }
+
+/* Was die Serie einbringt. Eine leise Zeile, kein Banner — sie steht unter
+   dem Poster und über dem letzten Traum, also da, wo der Blick ohnehin
+   vorbeikommt, ohne dass etwas dafür weichen muss. */
+.h-streak-note {
+  color: var(--faint); font-size: var(--t-small); line-height: 1.5;
+  margin: var(--s-4) 0 0; max-width: 46ch;
+}
+/* Am Tag, an dem die Serie auf der Kippe steht, wechselt die Pille von kühl
+   auf warm — warm heißt in dieser App „Weg nach vorn", und genau das ist es:
+   heute schreiben. Kein Rot, kein Ausrufezeichen. */
+.h-streak-risk { border-color: color-mix(in oklab, var(--warm) 45%, var(--panel-line)); }
+.h-streak-risk span { color: var(--warm); }

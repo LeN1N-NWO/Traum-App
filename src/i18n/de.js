@@ -30,6 +30,8 @@ export default {
     lede: "Erzähl es, solange es noch warm ist — halb wach klappt am besten.",
     cta: "Aufnehmen",
     streak: (n) => `${n} Tag${n === 1 ? "" : "e"}`,
+    streakPerk: (n, max) => `Nacht ${n} von ${max} — deine Wesen kommen seltener.`,
+    streakRisk: "Letzte Nacht hast du geschrieben. Heute hält die Serie — keine Eile, sie zählt bis du schläfst.",
     lastHeading: "Letzte Nacht",
     menagerieHeading: "Deine Menagerie",
     menagerieEmpty: "Noch keine Wesen. Jeder aufgeschriebene Traum lässt eines zurück.",

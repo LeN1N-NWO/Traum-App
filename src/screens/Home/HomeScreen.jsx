@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppState } from "../../state/AppState.jsx";
-import { refreshStreak } from "../../lib/streak.js";
+import { refreshStreak, streakAtRisk, STREAK_CAP } from "../../lib/streak.js";
 import { t } from "../../i18n/index.js";
 import Menagerie from "./Menagerie.jsx";
 // Vite-gebündelt wie das Intro-Video: 666 KB, ohne Ton, transkodiert aus
@@ -51,13 +51,17 @@ export default function HomeScreen() {
 
   const greeting = t.home.greeting[greetingKey(new Date().getHours())];
   const streak = state.streak || 0;
+  /* Der einzige Tag, an dem ein Hinweis etwas nuetzt: gestern geschrieben,
+     heute noch nicht. An jedem anderen Tag waere er entweder ueberfluessig
+     oder eine Mahnung an etwas, das ohnehin vorbei ist. */
+  const atRisk = streakAtRisk(state);
 
   return (
     <main className="screen h-screen">
       <div className="h-top">
         <p className="h-greeting">{greeting}</p>
         {streak > 0 && (
-          <p className="h-streak">
+          <p className={"h-streak" + (atRisk ? " h-streak-risk" : "")}>
             <span aria-hidden="true">✦</span> {t.home.streak(streak)}
           </p>
         )}
@@ -75,6 +79,15 @@ export default function HomeScreen() {
           </button>
         </div>
       </section>
+
+      {/* Was die Serie einbringt — und nur, solange sie noch etwas einbringt.
+          Kein Countdown, keine Drohung: die Zeile sagt, was BESSER wird, nie
+          was verloren geht. Begruendung in streak.js. */}
+      {streak > 0 && (
+        <p className="h-streak-note">
+          {atRisk ? t.home.streakRisk : t.home.streakPerk(Math.min(streak, STREAK_CAP), STREAK_CAP)}
+        </p>
+      )}
 
       {last && (
         <button className="h-last" onClick={() => navigate("/journal")}>

@@ -31,6 +31,8 @@ export default {
     lede: "Cuéntalo mientras aún está fresco — funciona mejor medio dormido.",
     cta: "Grabarlo",
     streak: (n) => `${n} día${n === 1 ? "" : "s"}`,
+    streakPerk: (n, max) => `Noche ${n} de ${max}: tus criaturas salen más raras.`,
+    streakRisk: "Anoche escribiste. Esta noche mantiene la racha; sin prisa, aguanta hasta que te duermas.",
     lastHeading: "Anoche",
     menagerieHeading: "Tu colección",
     menagerieEmpty: "Todavía no hay criaturas. Cada sueño que escribes deja una atrás.",

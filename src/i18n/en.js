@@ -32,6 +32,8 @@ export default {
     lede: "Tell it while it's still warm — half-asleep works best.",
     cta: "Record it",
     streak: (n) => `${n} day${n === 1 ? "" : "s"}`,
+    streakPerk: (n, max) => `Night ${n} of ${max} — the creatures are coming rarer.`,
+    streakRisk: "You wrote last night. Tonight keeps the run going — no rush, it holds until you sleep.",
     lastHeading: "Last night",
     menagerieHeading: "Your menagerie",
     menagerieEmpty: "No creatures yet. Every dream you write down leaves one behind.",
