@@ -4,6 +4,7 @@
  * randomness stays random and is not tested.
  */
 import { genId } from "./storage.js";
+import { weightedRarities } from "./streak.js";
 
 export const RARITIES = [
   ["Common", "rare-common", 55],
@@ -34,9 +35,12 @@ const STOP = new Set(
    "this through into past over under back backward forward").split(" ")
 );
 
-function pickRarity() {
+function pickRarity(streak = 0) {
+  // Die Serie verschiebt die Gewichte, sie ersetzt sie nicht — Begruendung
+  // in streak.js. Ohne Serie ist das hier exakt der alte Wurf.
+  const table = weightedRarities(RARITIES, streak);
   let r = Math.random() * 100, a = 0;
-  for (const [n, c, w] of RARITIES) { a += w; if (r <= a) return [n, c]; }
+  for (const [n, c, w] of table) { a += w; if (r <= a) return [n, c]; }
   return ["Common", "rare-common"];
 }
 
@@ -53,10 +57,13 @@ function titleFrom(text) {
   return ADJ[Math.floor(Math.random() * ADJ.length)] + " " + noun;
 }
 
-/** A creature (and a dream title) from a dream text. */
-export function newCreature(text) {
+/** A creature (and a dream title) from a dream text.
+ *  @param {number} streak Tage in Folge — verschiebt die Seltenheit nach
+ *         oben. Ohne Angabe verhaelt sich alles wie vorher, damit
+ *         bestehende Aufrufe (Seed-Journal) unveraendert bleiben. */
+export function newCreature(text, streak = 0) {
   const basis = matchCreature(text);
-  const [rare, rareClass] = pickRarity();
+  const [rare, rareClass] = pickRarity(streak);
   return {
     id: genId("cr"),
     e: basis.e,

@@ -119,10 +119,16 @@ export function IconShare() {
 }
 
 /* The "this leads somewhere" mark at the end of a row. Same stroke family as
-   the rest, so it does not read as a typographic ">" borrowed from the font. */
+   the rest, so it does not read as a typographic ">" borrowed from the font.
+
+   Carries data-flip on the component itself rather than at each call site: a
+   chevron IS a direction, so there is no use of it that should keep pointing
+   right in Arabic. Every other icon in this file is direction-free — a bed, a
+   moon, a trash can mean the same mirrored — which is why they carry nothing
+   and must not be given it wholesale. */
 export function ChevronRight() {
   return (
-    <svg {...base} width="18" height="18">
+    <svg {...base} width="18" height="18" data-flip>
       <path d="m9 6 6 6-6 6" />
     </svg>
   );

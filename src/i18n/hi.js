@@ -29,6 +29,8 @@ export default {
     lede: "जब तक याद ताज़ा है, बता दीजिए — आधी नींद में यह सबसे अच्छा काम करता है।",
     cta: "रिकॉर्ड करें",
     streak: (n) => `${n} दिन`,
+    streakPerk: (n, max) => `${max} में से ${n} रातें — आपके जीव और दुर्लभ होते जा रहे हैं।`,
+    streakRisk: "कल रात आपने लिखा था। आज की रात सिलसिला बनाए रखेगी — जल्दी नहीं, सोने तक गिनती है।",
     lastHeading: "पिछली रात",
     menagerieHeading: "आपका जीव-संग्रह",
     menagerieEmpty: "अभी तक कोई जीव नहीं। हर लिखा हुआ सपना एक जीव छोड़ जाता है।",
@@ -116,6 +118,46 @@ export default {
     untitled: "बिना शीर्षक सपना",
   },
 
+  dreamer: {
+    title: "आपने मुझे जो बताया",
+    retake: "फिर से बताइए",
+    recall: "सपनों की याद",
+    lucid: "सुस्पष्ट स्वप्न",
+    goal: "आप यहाँ क्यों हैं",
+    themes: "बार-बार लौटता है",
+    signs: {
+      aries: "मेष",
+      taurus: "वृषभ",
+      gemini: "मिथुन",
+      cancer: "कर्क",
+      leo: "सिंह",
+      virgo: "कन्या",
+      libra: "तुला",
+      scorpio: "वृश्चिक",
+      sagittarius: "धनु",
+      capricorn: "मकर",
+      aquarius: "कुम्भ",
+      pisces: "मीन",
+    },
+    recallValues: {
+      nightly: "लगभग हर रात",
+      weekly: "हफ़्ते में कुछ बार",
+      rarely: "कभी-कभार",
+      "almost-never": "लगभग कभी नहीं",
+    },
+    lucidValues: {
+      "never-heard": "बिलकुल नया",
+      curious: "जिज्ञासु",
+      tried: "आज़माया है",
+      practicing: "अभ्यास करता हूँ",
+    },
+    goalValues: {
+      remember: "और ज़्यादा याद रखना",
+      understand: "उन्हें समझना",
+      create: "उन्हें तस्वीरों में बदलना",
+      "sleep-better": "बेहतर सोना",
+    },
+  },
   profile: {
     title: "प्रोफ़ाइल",
     settings: "सेटिंग्स",
@@ -143,6 +185,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "व्यक्ति जोड़ें", pet: "पालतू जानवर जोड़ें", place: "जगह जोड़ें" },
+    drawFromDesc: "आपके विवरण से बनाएँ",
+    drawingNow: "बन रहा है…",
+    drawHint: "एक संदर्भ चित्र, ताकि हर तस्वीर में वे एक जैसे दिखें",
     editTitleFor: { person: "व्यक्ति बदलें", pet: "पालतू जानवर बदलें", place: "जगह बदलें" },
     meTitle: "यह आप हैं",
     nameLabel: (tag) => `नाम (@${tag} बन जाएगा)`,
@@ -278,6 +323,7 @@ export default {
     creditsN: (n) => (n === 1 ? "क्रेडिट" : "क्रेडिट"),
     tooShort: "⚠ पहले थोड़ा और लिखिए।",
     noCredits: "पर्याप्त क्रेडिट नहीं हैं। रिचार्ज जल्द आ रहा है।",
+    noCreditsCta: "दाम देखिए",
     progress: (n, total) => `चरण ${n} / ${total}`,
 
     step1: {
@@ -507,17 +553,38 @@ export default {
     close: "बंद करें",
     headline: "आपके सपने, फ़िल्मों की तरह।",
     lede: "लिखना, आवाज़ और नींद टैब की हर चीज़ मुफ़्त रहेगी। क्रेडिट सिर्फ़ उसी के लिए लगते हैं जो रेंडरर को बनाना पड़ता है।",
+    /* Die Ueberschrift richtet sich nach dem Anlass: wer selbst geoeffnet
+       hat, bekommt das Angebot; wem das Blatt in den Weg gesprungen ist,
+       bekommt zuerst den Grund. Siehe Paywall.jsx. */
+    headlineFor: {
+      browse: "आपके सपने, फ़िल्मों की तरह।",
+      spent: "आपके क्रेडिट ख़त्म हो गए।",
+      first: "यह आपका पहला था।",
+    },
+    ledeFor: {
+      spent: "यहाँ बस यही रुकता है। लिखना, बोलना और नींद टैब का सब कुछ मुफ़्त ही रहता है।",
+      first: "यह अब आपकी डायरी में है और आपका है। अगले के लिए क्रेडिट चाहिए — दाम यहाँ हैं।",
+    },
     tabSub: "सब्सक्राइब करें",
     tabPack: "क्रेडिट ख़रीदें",
-    periodName: { month: "मासिक", year: "वार्षिक" },
+    periodName: { week: "साप्ताहिक", month: "मासिक", year: "वार्षिक" },
     packName: (n) => `${n} क्रेडिट`,
-    per: { month: "प्रति माह", year: "प्रति वर्ष" },
+    per: { week: "प्रति सप्ताह", month: "प्रति माह", year: "प्रति वर्ष" },
     oneTime: "एक बार",
     save: (pct) => `${pct} की बचत`,
-    creditsPerMonth: (n) => `हर महीने ${n} क्रेडिट`,
-    creditsOnce: (n) => `${n} क्रेडिट, कभी समाप्त नहीं होते`,
-    yield: (credits, five, three) =>
-      `${credits} क्रेडिट — लगभग ${five} सपने 5 तस्वीरों के साथ, या ${three} सपने 3 तस्वीरों के साथ। एक फ़िल्म की कीमत 5 तस्वीरों जितनी है।`,
+    creditsPer: (n, period) => `हर ${period} ${n} क्रेडिट`,
+    /* Jahresabo zaehlt in MONATEN, nicht in Jahren: das Guthaben
+       kommt monatlich, der Preis wird jaehrlich abgebucht. */
+    periodUnit: {
+      week: "सप्ताह",
+      month: "महीने",
+      year: "महीने",
+    },
+    yieldImages: (n) => (n === 1 ? "तस्वीर" : "तस्वीरें"),
+    yieldFilms: (n) => (n === 1 ? "फ़िल्म" : "फ़िल्में"),
+    yieldOr: "या",
+    packNote: "ये कभी ख़त्म नहीं होते — न सदस्यता, न रीसेट। इसीलिए प्रति क्रेडिट महँगे हैं।",
+    packYield: (i, f) => (f ? `${i} तस्वीरें, या ${f} फ़िल्में` : `${i} तस्वीरें`),
     included: "हमेशा शामिल, मुफ़्त",
     chips: [
       "असीमित डायरी लेखन", "आवाज़ रिकॉर्डिंग", "AI रीराइटिंग",

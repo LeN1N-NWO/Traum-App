@@ -48,12 +48,12 @@ export default function MediaCarousel({ urls = [], type = "image" }) {
       {/* Arrows on the images themselves — the dots alone are easy to miss,
           and on desktop there is no swipe instinct at all. */}
       {index > 0 && (
-        <button className="mc-arrow mc-arrow-left" onClick={() => goTo(index - 1)} aria-label="Previous image">
+        <button className="mc-arrow mc-arrow-left" onClick={() => goTo(index - 1)} aria-label="Previous image" data-flip>
           ‹
         </button>
       )}
       {index < urls.length - 1 && (
-        <button className="mc-arrow mc-arrow-right" onClick={() => goTo(index + 1)} aria-label="Next image">
+        <button className="mc-arrow mc-arrow-right" onClick={() => goTo(index + 1)} aria-label="Next image" data-flip>
           ›
         </button>
       )}

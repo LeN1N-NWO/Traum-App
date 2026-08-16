@@ -4,7 +4,7 @@
   display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-1);
   min-height: 128px; padding: var(--s-4); border-radius: var(--radius); cursor: pointer;
   border: 1px solid var(--panel-line); color: var(--text);
-  font-family: var(--sans); text-align: left;
+  font-family: var(--sans); text-align: start;
 }
 .sl-tile:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 /* Each tile carries its own dusk gradient — all four walk the same cold-blue
@@ -39,7 +39,7 @@
 .sl-progress { display: flex; gap: 6px; }
 .sl-progress-seg { flex: 1; height: 5px; border-radius: 999px; background: var(--panel-line); }
 .sl-progress-on { background: var(--accent-soft); }
-.sl-progress-text { color: var(--faint); font-size: var(--t-small); text-align: right; margin: 0; }
+.sl-progress-text { color: var(--faint); font-size: var(--t-small); text-align: end; margin: 0; }
 
 /* align-items: start, damit eine erledigte (eingeklappte) Karte nicht auf
    die Höhe ihrer offenen Nachbarin gestreckt wird — sonst steht da eine
@@ -114,7 +114,7 @@
 /* Die Zahl liegt am rechten Ende der Spur. Dunkel auf der leeren Spur —
    läuft die Füllung unter ihr durch, kehrt mix-blend sie um. */
 .sl-val {
-  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  position: absolute; inset-inline-end: 16px; top: 50%; transform: translateY(-50%);
   pointer-events: none; font-size: var(--t-small); font-weight: 600;
   color: var(--text); mix-blend-mode: difference;
 }

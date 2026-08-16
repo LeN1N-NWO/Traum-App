@@ -21,7 +21,7 @@ export default function SleepScreen() {
     const section = t.sleep.tiles[view];
     return (
       <main className="screen">
-        <button className="sl-back" onClick={() => setView(null)}>‹ {t.sleep.title}</button>
+        <button className="sl-back" onClick={() => setView(null)}><span data-flip aria-hidden="true">‹</span> {t.sleep.title}</button>
         <ScreenHeader title={section.title} subtitle={section.text} />
         {view === "checklist" && <SleepChecklist />}
         {view === "sounds" && <SoundMixerPanel />}

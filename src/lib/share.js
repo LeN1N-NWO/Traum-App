@@ -11,7 +11,8 @@
  * ratio at generation time, which is why 9:16 is the default.
  */
 
-import { mediaUrl } from "./api.js";
+import { mediaUrl, filmWithOutro, uploadPanel } from "./api.js";
+import { buildEndCard } from "./endCard.js";
 
 export function canShareFiles() {
   return typeof navigator !== "undefined" &&
@@ -37,9 +38,44 @@ async function toFiles(urls, title) {
  * Cancelling the native sheet is a normal outcome, not an error — it must not
  * surface as a failure toast.
  */
+
+/* Jeder geteilte Film bekommt einen Abspann — Bilder nicht, die haben kein
+ * Ende, an das man etwas haengen koennte.
+ *
+ * Faellt still auf den Originalfilm zurueck, wenn irgendetwas daran scheitert:
+ * ffmpeg fehlt auf dem Server (501), die Masse sind nicht lesbar, das Netz ist
+ * weg. Ein Abspann ist eine Nettigkeit — an ihr darf das Teilen nicht
+ * scheitern, und ein Fehlerhinweis fuer etwas, das der Mensch nie angefordert
+ * hat, waere schlicht verwirrend.
+ */
+async function addOutro(url) {
+  if (!/\.mp4$/i.test(url)) return url;
+  try {
+    const { width, height } = await filmSize(mediaUrl(url));
+    if (!width || !height) return url;
+    const card = await uploadPanel(await buildEndCard(width, height));
+    return await filmWithOutro(url, card);
+  } catch {
+    return url;
+  }
+}
+
+/** Die Masse des Films, aus dem Video-Element — der Abspann muss exakt
+ *  passen, sonst skaliert ffmpeg und die Schrift wird weich. */
+function filmSize(src) {
+  return new Promise((resolve) => {
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    v.onloadedmetadata = () => resolve({ width: v.videoWidth, height: v.videoHeight });
+    v.onerror = () => resolve({});
+    v.src = src;
+  });
+}
+
 export async function shareDream({ urls, title, text }) {
   if (!canShareFiles() || !urls?.length) return "unsupported";
-  const files = await toFiles(urls, (title || "dream").replace(/[^a-z0-9]+/gi, "-").toLowerCase());
+  const withOutro = await Promise.all(urls.map(addOutro));
+  const files = await toFiles(withOutro, (title || "dream").replace(/[^a-z0-9]+/gi, "-").toLowerCase());
   if (!navigator.canShare({ files })) return "unsupported";
   try {
     await navigator.share({ files, title, text });

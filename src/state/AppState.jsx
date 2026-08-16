@@ -23,6 +23,12 @@ function loadInitialState() {
 export function AppStateProvider({ children }) {
   const [state, setState] = useState(loadInitialState);
   const [toastText, setToastText] = useState("");
+  /* Warum der Anlass mitwandert und nicht nur „auf/zu": Ein Kaufblatt, das
+     jemand SELBST geöffnet hat, darf mit dem Angebot beginnen. Eines, das
+     ihm gerade in den Weg gesprungen ist, muss zuerst erklären, warum — sonst
+     liest es sich als Hinterhalt. Der Anlass steuert die Überschrift, siehe
+     Paywall.jsx. */
+  const [paywall, setPaywall] = useState(null);   // null | "browse" | "spent" | "first" 
 
   const toast = useCallback((text) => {
     setToastText(text);
@@ -45,8 +51,18 @@ export function AppStateProvider({ children }) {
    * from before the survey keep what they were given — welcomeGrant() stays
    * idempotent via its flag. */
 
+  /* Eine Mechanik statt fünf Flicken. Vor dem 16.08.2026 endeten fünf
+     Stellen im selben Toast „Aufladen kommt bald" — die teuersten Momente
+     der App, jeder eine Sackgasse. Jetzt kann jeder Bildschirm das Kaufblatt
+     öffnen, ohne es selbst einzuhängen. */
+  const openPaywall = useCallback((reason = "browse") => setPaywall(reason), []);
+  const closePaywall = useCallback(() => setPaywall(null), []);
+
   return (
-    <Ctx.Provider value={{ state, setState, update, toast, toastText }}>
+    <Ctx.Provider value={{
+      state, setState, update, toast, toastText,
+      paywall, openPaywall, closePaywall,
+    }}>
       {children}
     </Ctx.Provider>
   );

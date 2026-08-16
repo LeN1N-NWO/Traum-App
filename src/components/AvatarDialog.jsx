@@ -1,9 +1,12 @@
 import { useRef, useState } from "react";
 import { useAppState } from "../state/AppState.jsx";
 import { genId } from "../lib/storage.js";
+import { characterSheet, mediaUrl } from "../lib/api.js";
+import { PRICES } from "../lib/pricing.js";
+import { spend, canAfford } from "../lib/credits.js";
 import { t } from "../i18n/index.js";
 import Button from "./Button.jsx";
-import { IconImages } from "./icons.jsx";
+import { IconImages, IconSparkle } from "./icons.jsx";
 import "./AvatarDialog.css";
 
 // Mirrors sanitizeTag() in server.js: [a-z0-9] only, 12 chars max. The server
@@ -37,13 +40,38 @@ export default function AvatarDialog({
   onCreated,
   onClose,
 }) {
-  const { state, update, toast } = useAppState();
+  const { state, update, toast, openPaywall } = useAppState();
   const isEdit = Boolean(existing);
 
   const [tag, setTag] = useState(cleanTag(existing?.tag || suggestedName));
   const [desc, setDesc] = useState(existing?.desc || suggestedDesc);
   const [image, setImage] = useState(existing?.img || "");
+  const [drawing, setDrawing] = useState(false);
   const fileRef = useRef(null);
+
+  /* Der Charakterbogen. Ohne Foto reicht die Beschreibung als WORTE in
+     jeden Bildauftrag, und der Renderer erfindet die Figur jedes Mal neu —
+     eine Zehnerstrecke zeigt dann zehn verschiedene Menschen mit demselben
+     Namen. Ein einmal erzeugtes Bild macht daraus eine Referenz, ab da
+     läuft es über denselben Pfad wie ein echtes Foto.
+
+     Erst NACH dem Rendern abgebucht, wie überall sonst: ein fehlgeschlagener
+     Aufruf darf nichts kosten. */
+  const sheetPrice = PRICES.characterSheet;
+  async function drawCharacter() {
+    const text = desc.trim();
+    if (!text || drawing) return;
+    if (!canAfford(state, sheetPrice)) return openPaywall("spent");
+    setDrawing(true);
+    try {
+      const url = await characterSheet({ desc: text, category: existing?.category || category });
+      setImage(mediaUrl(url));
+      update(spend(state, sheetPrice));
+    } catch (err) {
+      toast(`⚠ ${err.message}`);
+    }
+    setDrawing(false);
+  }
 
   function readFile(e) {
     const file = e.target.files?.[0];
@@ -154,10 +182,25 @@ export default function AvatarDialog({
               </div>
             </div>
           ) : (
-            <button type="button" className="av-upload" onClick={() => fileRef.current?.click()}>
-              <IconImages />
-              <span>{t.avatarDialog.photoAdd}</span>
-            </button>
+            <>
+              <button type="button" className="av-upload" onClick={() => fileRef.current?.click()}>
+                <IconImages />
+                <span>{t.avatarDialog.photoAdd}</span>
+              </button>
+
+              {/* Erscheint erst, wenn es etwas zu zeichnen GIBT. Vorher wäre
+                  es ein Knopf, der nur „beschreib erst mal" sagen kann. */}
+              {desc.trim().length >= 10 && (
+                <button type="button" className="av-draw" onClick={drawCharacter} disabled={drawing}>
+                  <IconSparkle />
+                  <span className="av-draw-body">
+                    <span>{drawing ? t.avatarDialog.drawingNow : t.avatarDialog.drawFromDesc}</span>
+                    <small>{t.avatarDialog.drawHint}</small>
+                  </span>
+                  <span className="av-draw-price">{sheetPrice} {t.wizard.creditsN(sheetPrice)}</span>
+                </button>
+              )}
+            </>
           )}
 
           <input

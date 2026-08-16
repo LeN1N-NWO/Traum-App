@@ -36,6 +36,8 @@ export default {
     lede: "احكِه وهو لا يزال طازجًا — أفضل وقت هو حين تكون نصف نائم.",
     cta: "سجّله",
     streak: (n) => `${n} يوم`,
+    streakPerk: (n, max) => `الليلة ${n} من ${max} — مخلوقاتك تأتي أندر.`,
+    streakRisk: "كتبت الليلة الماضية. هذه الليلة تُبقي السلسلة — لا عجلة، تظلّ قائمة حتى تنام.",
     lastHeading: "الليلة الماضية",
     menagerieHeading: "مجموعة مخلوقاتك",
     menagerieEmpty: "لا مخلوقات بعد. كل حلم تدوّنه يترك مخلوقًا وراءه.",
@@ -123,6 +125,46 @@ export default {
     untitled: "حلم بلا عنوان",
   },
 
+  dreamer: {
+    title: "ما أخبرتني به",
+    retake: "احكِ لي من جديد",
+    recall: "تذكّر الأحلام",
+    lucid: "الحلم الواعي",
+    goal: "ما الذي جاء بك",
+    themes: "يعود مرارًا",
+    signs: {
+      aries: "الحمل",
+      taurus: "الثور",
+      gemini: "الجوزاء",
+      cancer: "السرطان",
+      leo: "الأسد",
+      virgo: "العذراء",
+      libra: "الميزان",
+      scorpio: "العقرب",
+      sagittarius: "القوس",
+      capricorn: "الجدي",
+      aquarius: "الدلو",
+      pisces: "الحوت",
+    },
+    recallValues: {
+      nightly: "كلّ ليلة تقريبًا",
+      weekly: "بضع مرّات أسبوعيًّا",
+      rarely: "نادرًا",
+      "almost-never": "نادرًا جدًّا",
+    },
+    lucidValues: {
+      "never-heard": "جديد عليه",
+      curious: "فضولي",
+      tried: "جرّبته",
+      practicing: "أتمرّن عليه",
+    },
+    goalValues: {
+      remember: "أن أتذكّر أكثر",
+      understand: "أن أفهمها",
+      create: "أن أحوّلها إلى صور",
+      "sleep-better": "أن أنام أفضل",
+    },
+  },
   profile: {
     title: "الملف الشخصي",
     settings: "الإعدادات",
@@ -150,6 +192,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "إضافة شخص", pet: "إضافة حيوان أليف", place: "إضافة مكان" },
+    drawFromDesc: "ارسمه من وصفك",
+    drawingNow: "يُرسم الآن…",
+    drawHint: "صورة مرجعية واحدة، ليبدو هو نفسه في كلّ لقطة",
     editTitleFor: { person: "تعديل شخص", pet: "تعديل حيوان أليف", place: "تعديل مكان" },
     meTitle: "هذا أنت",
     nameLabel: (tag) => `الاسم (سيصبح @${tag})`,
@@ -285,6 +330,7 @@ export default {
     creditsN: (n) => (n === 1 ? "رصيد" : n === 2 ? "رصيدان" : n <= 10 ? "أرصدة" : "رصيدًا"),
     tooShort: "⚠ اكتب المزيد أولًا.",
     noCredits: "لا يوجد رصيد كافٍ. إعادة الشحن قادمة قريبًا.",
+    noCreditsCta: "اطّلع على الأسعار",
     progress: (n, total) => `الخطوة ${n} من ${total}`,
 
     step1: {
@@ -515,17 +561,38 @@ export default {
     close: "إغلاق",
     headline: "أحلامك، كأفلام.",
     lede: "تبقى الكتابة والصوت وكل ما في تبويب النوم مجانيًا. الرصيد مخصص فقط لما يجب على المُولِّد رسمه.",
+    /* Die Ueberschrift richtet sich nach dem Anlass: wer selbst geoeffnet
+       hat, bekommt das Angebot; wem das Blatt in den Weg gesprungen ist,
+       bekommt zuerst den Grund. Siehe Paywall.jsx. */
+    headlineFor: {
+      browse: "أحلامك، أفلامًا.",
+      spent: "نفد رصيدك.",
+      first: "كان ذلك أوّلك.",
+    },
+    ledeFor: {
+      spent: "هذا وحده ما يتوقّف هنا. الكتابة والكلام وكلّ ما في تبويب النوم يبقى مجّانيًّا.",
+      first: "صار في دفترك، وهو لك. التالي يحتاج رصيدًا — وهذه أسعاره.",
+    },
     tabSub: "اشترك",
     tabPack: "شراء رصيد",
-    periodName: { month: "شهري", year: "سنوي" },
+    periodName: { week: "أسبوعي", month: "شهري", year: "سنوي" },
     packName: (n) => `${n} رصيد`,
-    per: { month: "شهريًا", year: "سنويًا" },
+    per: { week: "أسبوعيًّا", month: "شهريًا", year: "سنويًا" },
     oneTime: "دفعة واحدة",
     save: (pct) => `وفّر ${pct}`,
-    creditsPerMonth: (n) => `${n} رصيد كل شهر`,
-    creditsOnce: (n) => `${n} رصيد، لا ينتهي أبدًا`,
-    yield: (credits, five, three) =>
-      `${credits} رصيد — أي ما يقارب ${five} حلمًا بـ5 صور، أو ${three} بـ3 صور. يكلّف الفيلم مثل 5 صور.`,
+    creditsPer: (n, period) => `${n} رصيدًا كلّ ${period}`,
+    /* Jahresabo zaehlt in MONATEN, nicht in Jahren: das Guthaben
+       kommt monatlich, der Preis wird jaehrlich abgebucht. */
+    periodUnit: {
+      week: "أسبوع",
+      month: "شهر",
+      year: "شهر",
+    },
+    yieldImages: (n) => (n === 1 ? "صورة" : n === 2 ? "صورتان" : n <= 10 ? "صور" : "صورة"),
+    yieldFilms: (n) => (n === 1 ? "فيلم" : n === 2 ? "فيلمان" : n <= 10 ? "أفلام" : "فيلمًا"),
+    yieldOr: "أو",
+    packNote: "هذه لا تنتهي أبدًا — بلا اشتراك وبلا تصفير. ولهذا سعر الرصيد فيها أعلى.",
+    packYield: (i, f) => (f ? `${i} صورة، أو ${f} فيلمًا` : `${i} صورة`),
     included: "مُضمَّن دائمًا، مجانًا",
     chips: [
       "مذكرات غير محدودة", "تسجيل صوتي", "إعادة كتابة بالذكاء الاصطناعي",

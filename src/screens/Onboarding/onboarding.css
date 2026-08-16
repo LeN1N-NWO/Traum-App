@@ -108,7 +108,7 @@
   background: var(--accent-wash); color: var(--accent-soft);
 }
 .ob-duo-icon svg { width: 20px; height: 20px; }
-.ob-duo-label { font-weight: 600; text-align: left; }
+.ob-duo-label { font-weight: 600; text-align: start; }
 
 .ob-title {
   font-family: var(--serif); font-size: clamp(26px, 6.4vw, 34px); font-weight: 400;

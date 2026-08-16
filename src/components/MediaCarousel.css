@@ -21,13 +21,13 @@
   display: flex; align-items: center; justify-content: center;
   backdrop-filter: blur(4px);
 }
-.mc-arrow-left { left: var(--s-2); }
-.mc-arrow-right { right: var(--s-2); }
+.mc-arrow-left { inset-inline-start: var(--s-2); }
+.mc-arrow-right { inset-inline-end: var(--s-2); }
 .mc-arrow:hover { background: var(--glass-hover); }
 .mc-arrow:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 
 .mc-count {
-  position: absolute; top: var(--s-2); right: var(--s-2);
+  position: absolute; top: var(--s-2); inset-inline-end: var(--s-2);
   padding: 3px 10px; border-radius: 999px;
   background: var(--glass-hover); color: var(--text);
   font-size: var(--t-micro); font-family: var(--sans);

@@ -143,3 +143,40 @@ export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 
     `\n${framing}, ultra-detailed, accurate hands and faces.${place}${refs}`
   );
 }
+
+/* Ein Referenzbild aus einer Beschreibung — der „Charakterbogen".
+ *
+ * Wozu das überhaupt gut ist, steht nicht im Preis: Ohne Foto reicht die
+ * Beschreibung als WORTE in jeden Bildauftrag, und der Renderer erfindet die
+ * Figur jedes Mal neu. In einer Zehnerstrecke sind das zehn verschiedene
+ * Menschen mit demselben Namen. Ein einmal erzeugtes Bild macht daraus eine
+ * Referenz, und ab da läuft es über denselben `.../edit`-Pfad wie ein echtes
+ * Foto — dieselbe Person in jedem Bild.
+ *
+ * Deshalb ist das hier ausdrücklich KEIN Szenenbild: neutraler Hintergrund,
+ * frontal, gleichmäßiges Licht, keine Handlung, kein Stil. Alles, was das
+ * Bild interessant machen würde, macht es als Referenz schlechter — ein
+ * dramatischer Schatten wandert später in jedes Bild der Strecke mit.
+ *
+ * Bewusst OHNE styleId: der Stil gehört an die Traumbilder, nicht an die
+ * Referenz. Sonst kann man die Figur nicht in einem zweiten Traum mit
+ * anderem Stil wiederverwenden.
+ */
+export function buildCharacterPrompt({ desc, category = "person" }) {
+  const clean = String(desc || "").trim();
+  const framing = {
+    person: "Head-and-shoulders reference portrait of one person, facing the camera, "
+          + "neutral expression, eyes open and visible.",
+    pet: "Reference photo of one animal, side-on to three-quarter view, whole animal in frame, "
+       + "head clearly visible.",
+    place: "Establishing reference photograph of one location, eye level, no people in frame.",
+  }[category] || "Reference portrait of one subject, facing the camera.";
+
+  return [
+    framing,
+    `The subject: ${clean}`,
+    "Plain mid-grey background, even soft lighting, no shadows cast on the background.",
+    "Sharp focus, natural colour, photographic. No text, no logos, no border, no collage.",
+    "Do not add props, weather, story or mood — this is a reference sheet, not a scene.",
+  ].join(" ");
+}

@@ -54,14 +54,55 @@
  */
 export const WELCOME_CREDITS = 3;
 
+/* ── Zwei Töpfe, nicht einer (16.08.2026) ─────────────────────────────────
+ *
+ * Anton hat beim Durchsehen der Preisliste gefragt, wie die App eigentlich
+ * unterscheiden soll, welche Credits verfallen und welche bleiben. Antwort:
+ * bis eben gar nicht — es gab eine Zahl. Damit wäre die erste Abrechnung
+ * eines Abos nicht durchführbar gewesen, ohne jemandem etwas wegzunehmen,
+ * das er bezahlt hat:
+ *
+ *   `allowance` kommt aus einem Abo, füllt sich zum Periodenbeginn neu auf
+ *              und wird dabei zurückgesetzt, nicht addiert (plans.js: „does
+ *              not roll over" — daran hängt die Jahresrechnung).
+ *   `credits`  kommt aus Paketen und aus dem Willkommensgeschenk. Bleibt.
+ *              Auch wenn ein Abo endet.
+ *
+ * Ausgegeben wird IMMER zuerst das Verfallende. Das ist zugleich das
+ * Freundlichere und das Naheliegende: Was ohnehin abläuft, soll zuerst
+ * genutzt werden. Andersherum verlöre jemand mit Abo bei jeder Abrechnung
+ * genau die Credits, die er zusätzlich gekauft hat.
+ *
+ * ⚠ Bleibt Buchhaltung, keine Zugangskontrolle — beides liegt im
+ * localStorage. Der Punkt ist, dass das MODELL stimmt, bevor es einen
+ * Server gibt, der es durchsetzt.
+ */
+
+/** Was zusammen zur Verfügung steht. Die einzige Zahl, die jemand sieht —
+ *  die Trennung ist Buchhaltung, keine Aufgabe für den Menschen. */
+export function totalCredits(state) {
+  return (state?.credits ?? 0) + (state?.allowance ?? 0);
+}
+
 export function canAfford(state, cost) {
-  return (state?.credits ?? 0) >= cost;
+  return totalCredits(state) >= cost;
 }
 
 /** @returns a patch for update(), or null when the balance is too low. */
 export function spend(state, cost) {
   if (!canAfford(state, cost)) return null;
-  return { credits: (state.credits ?? 0) - cost };
+  const allowance = state.allowance ?? 0;
+  const fromAllowance = Math.min(allowance, cost);
+  return {
+    allowance: allowance - fromAllowance,
+    credits: (state.credits ?? 0) - (cost - fromAllowance),
+  };
+}
+
+/** Periodenbeginn eines Abos: das Guthaben wird GESETZT, nicht addiert.
+ *  Gekaufte Credits bleiben unberührt — sie gehören nicht dem Abo. */
+export function refillAllowance(state, credits) {
+  return { allowance: credits, credits: state?.credits ?? 0 };
 }
 
 /** One-time welcome grant. Flagged so it never repeats, including for people

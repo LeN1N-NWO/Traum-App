@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
-import { welcomeGrant } from "../../lib/credits.js";
+import { welcomeGrant, totalCredits } from "../../lib/credits.js";
 import { t } from "../../i18n/index.js";
 import AvatarDialog from "../../components/AvatarDialog.jsx";
 import OnboardingSurvey from "../Onboarding/OnboardingSurvey.jsx";
-import Paywall from "./Paywall.jsx";
 import Settings from "./Settings.jsx";
+import DreamerCard from "./DreamerCard.jsx";
 import { IconGear } from "../../components/icons.jsx";
 import "./profile.css";
 
@@ -16,9 +16,8 @@ import "./profile.css";
  * What is left is who you are here — your face, your balance, your record.
  */
 export default function ProfileScreen() {
-  const { state, update, toast } = useAppState();
+  const { state, update, toast, openPaywall } = useAppState();
   const [editingMe, setEditingMe] = useState(false);
-  const [paywall, setPaywall] = useState(false);
   const [survey, setSurvey] = useState(false);
   const [settings, setSettings] = useState(false);
 
@@ -42,9 +41,9 @@ export default function ProfileScreen() {
           has not earned until it can actually be topped up. */}
       <div className="p-top">
         <h1 className="p-title">{t.profile.title}</h1>
-        <button className="p-credits-pill" onClick={() => setPaywall(true)}>
+        <button className="p-credits-pill" onClick={() => openPaywall("browse")}>
           <span className="p-credits-dot" aria-hidden="true">✦</span>
-          {state.credits ?? 0}
+          {totalCredits(state)}
           <span className="p-credits-word">{t.profile.credits}</span>
         </button>
         {/* Round, next to the balance — the two things you reach for from
@@ -93,9 +92,13 @@ export default function ProfileScreen() {
             <span className="p-survey-title">{t.onboarding.profileCard}</span>
             <span className="p-survey-hint">{t.onboarding.profileCardHint}</span>
           </span>
-          <span aria-hidden="true">›</span>
+          <span aria-hidden="true" data-flip>›</span>
         </button>
       )}
+
+      {/* What they told the assistant, shown back — see DreamerCard for why
+          this exists and why it stops short of astrology. */}
+      <DreamerCard profile={state.profile} onRetake={() => setSurvey(true)} />
 
       {survey && (
         <OnboardingSurvey onDone={surveyDone} onCancel={() => setSurvey(false)} />
@@ -112,7 +115,6 @@ export default function ProfileScreen() {
 
       {settings && <Settings onClose={() => setSettings(false)} />}
 
-      {paywall && <Paywall onClose={() => setPaywall(false)} />}
     </main>
   );
 }

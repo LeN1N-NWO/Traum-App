@@ -18,7 +18,7 @@ import "./wizard.css";
 const GENERATION_WINDOW = 3;
 
 export default function Step5Style({ w, patch }) {
-  const { state, update, toast } = useAppState();
+  const { state, update, toast, openPaywall } = useAppState();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(0);
   const [done, setDone] = useState(0);
@@ -55,7 +55,7 @@ export default function Step5Style({ w, patch }) {
   async function run() {
     if (running.current) return;
     const paid = spend(state, price);
-    if (!paid) return toast(t.wizard.noCredits);
+    if (!paid) return openPaywall("spent");
     running.current = true;
     setBusy(true);
     setDone(0);
@@ -358,7 +358,13 @@ export default function Step5Style({ w, patch }) {
       <Button onClick={run} disabled={!canAfford(state, price)}>
         {t.wizard.step5.generate} · {price} {t.wizard.creditsN(price)}
       </Button>
-      {!canAfford(state, price) && <p className="wiz-hint">{t.wizard.noCredits}</p>}
+      {/* Kein Satz, der nur feststellt — ein Weg. Wer die Preise sehen
+          will, bevor er auf einen gesperrten Knopf drueckt, kommt hier hin. */}
+      {!canAfford(state, price) && (
+        <button className="wiz-topup" onClick={() => openPaywall("spent")}>
+          {t.wizard.noCreditsCta}
+        </button>
+      )}
     </section>
   );
 }

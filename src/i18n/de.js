@@ -30,6 +30,8 @@ export default {
     lede: "Erzähl es, solange es noch warm ist — halb wach klappt am besten.",
     cta: "Aufnehmen",
     streak: (n) => `${n} Tag${n === 1 ? "" : "e"}`,
+    streakPerk: (n, max) => `Nacht ${n} von ${max} — deine Wesen kommen seltener.`,
+    streakRisk: "Letzte Nacht hast du geschrieben. Heute hält die Serie — keine Eile, sie zählt bis du schläfst.",
     lastHeading: "Letzte Nacht",
     menagerieHeading: "Deine Menagerie",
     menagerieEmpty: "Noch keine Wesen. Jeder aufgeschriebene Traum lässt eines zurück.",
@@ -117,6 +119,46 @@ export default {
     untitled: "Unbenannter Traum",
   },
 
+  dreamer: {
+    title: "Was du mir erzählt hast",
+    retake: "Nochmal erzählen",
+    recall: "Traumerinnerung",
+    lucid: "Klarträumen",
+    goal: "Warum du hier bist",
+    themes: "Kommt immer wieder",
+    signs: {
+      aries: "Widder",
+      taurus: "Stier",
+      gemini: "Zwillinge",
+      cancer: "Krebs",
+      leo: "Löwe",
+      virgo: "Jungfrau",
+      libra: "Waage",
+      scorpio: "Skorpion",
+      sagittarius: "Schütze",
+      capricorn: "Steinbock",
+      aquarius: "Wassermann",
+      pisces: "Fische",
+    },
+    recallValues: {
+      nightly: "Fast jede Nacht",
+      weekly: "Ein paar Mal die Woche",
+      rarely: "Selten",
+      "almost-never": "Fast nie",
+    },
+    lucidValues: {
+      "never-heard": "Ganz neu darin",
+      curious: "Neugierig",
+      tried: "Schon versucht",
+      practicing: "Übe regelmäßig",
+    },
+    goalValues: {
+      remember: "Mehr behalten",
+      understand: "Verstehen, was sie meinen",
+      create: "Sie zu Bildern machen",
+      "sleep-better": "Besser schlafen",
+    },
+  },
   profile: {
     title: "Profil",
     settings: "Einstellungen",
@@ -144,6 +186,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "Person hinzufügen", pet: "Tier hinzufügen", place: "Ort hinzufügen" },
+    drawFromDesc: "Aus deiner Beschreibung zeichnen",
+    drawingNow: "Wird gezeichnet…",
+    drawHint: "Ein Referenzbild, damit sie in jedem Bild gleich aussehen",
     editTitleFor: { person: "Person bearbeiten", pet: "Tier bearbeiten", place: "Ort bearbeiten" },
     meTitle: "Das bist du",
     nameLabel: (tag) => `Name (wird zu @${tag})`,
@@ -279,6 +324,7 @@ export default {
     creditsN: (n) => (n === 1 ? "Credit" : "Credits"),
     tooShort: "⚠ Schreib erst noch etwas mehr.",
     noCredits: "Nicht genug Credits. Aufladen kommt bald.",
+    noCreditsCta: "Preise ansehen",
     progress: (n, total) => `Schritt ${n} von ${total}`,
 
     step1: {
@@ -509,17 +555,38 @@ export default {
     close: "Schließen",
     headline: "Deine Träume, als Filme.",
     lede: "Schreiben, Sprache und alles im Schlaf-Tab bleiben gratis. Credits gibt es nur für das, was ein Renderer zeichnen muss.",
+    /* Die Ueberschrift richtet sich nach dem Anlass: wer selbst geoeffnet
+       hat, bekommt das Angebot; wem das Blatt in den Weg gesprungen ist,
+       bekommt zuerst den Grund. Siehe Paywall.jsx. */
+    headlineFor: {
+      browse: "Deine Träume, als Filme.",
+      spent: "Deine Credits sind aufgebraucht.",
+      first: "Das war dein erster.",
+    },
+    ledeFor: {
+      spent: "Das ist das Einzige, was hier endet. Schreiben, Sprechen und alles im Schlaf-Tab bleiben gratis.",
+      first: "Er liegt jetzt in deinem Tagebuch und gehört dir. Der nächste braucht Credits — hier steht, was sie kosten.",
+    },
     tabSub: "Abonnieren",
     tabPack: "Credits kaufen",
-    periodName: { month: "Monatlich", year: "Jährlich" },
+    periodName: { week: "Wöchentlich", month: "Monatlich", year: "Jährlich" },
     packName: (n) => `${n} Credits`,
-    per: { month: "pro Monat", year: "pro Jahr" },
+    per: { week: "pro Woche", month: "pro Monat", year: "pro Jahr" },
     oneTime: "einmalig",
     save: (pct) => `${pct} sparen`,
-    creditsPerMonth: (n) => `${n} Credits jeden Monat`,
-    creditsOnce: (n) => `${n} Credits, verfallen nie`,
-    yield: (credits, five, three) =>
-      `${credits} Credits — etwa ${five} Träume mit 5 Bildern, oder ${three} mit 3. Ein Film kostet so viel wie 5 Bilder.`,
+    creditsPer: (n, period) => `${n} Credits jede${period === "Woche" ? "" : "n"} ${period}`,
+    /* Jahresabo zaehlt in MONATEN, nicht in Jahren: das Guthaben
+       kommt monatlich, der Preis wird jaehrlich abgebucht. */
+    periodUnit: {
+      week: "Woche",
+      month: "Monat",
+      year: "Monat",
+    },
+    yieldImages: (n) => (n === 1 ? "Bild" : "Bilder"),
+    yieldFilms: (n) => (n === 1 ? "Film" : "Filme"),
+    yieldOr: "oder",
+    packNote: "Diese verfallen nie — kein Abo, kein Zurücksetzen. Genau dafür sind sie je Credit teurer.",
+    packYield: (i, f) => (f ? `${i} Bilder, oder ${f} Filme` : `${i} Bilder`),
     included: "Immer inklusive, gratis",
     chips: [
       "Unbegrenztes Journal", "Sprachaufnahme", "KI-Umschreiben",

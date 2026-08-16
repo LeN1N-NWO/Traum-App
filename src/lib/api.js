@@ -67,6 +67,16 @@ export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio
   throw new Error(t.errors.unexpected);
 }
 
+/** Ein Referenzbild aus einer Beschreibung — der Charakterbogen.
+ *  Gibt einen /media/-Pfad zurück, also genau das, was auch ein hochgeladenes
+ *  Foto wäre: ab hier behandelt alles Weitere beides gleich. */
+export async function characterSheet({ desc, category }) {
+  const data = await post("/api/character", { desc, category });
+  const url = Array.isArray(data?.urls) ? data.urls[0] : null;
+  if (typeof url !== "string") throw new Error(t.errors.unexpected);
+  return url;
+}
+
 /** Store one cropped grid panel and get back its own /media/ path — the
  *  same kind of path a normal generation returns, so everything downstream
  *  (the journal, the carousel, sharing) treats it identically. */
@@ -78,6 +88,15 @@ export async function uploadPanel(blob) {
   });
   const data = await res.json().catch(() => null);
   if (!res.ok || typeof data?.url !== "string") throw new Error(data?.error || t.errors.serverStatus(res.status));
+  return data.url;
+}
+
+/** Haengt den Abspann an einen bereits gerenderten Film und gibt den Pfad
+ *  der neuen Datei zurueck. Wirft, wenn der Server es nicht kann (501) —
+ *  share.js faengt das ab und teilt dann das Original. */
+export async function filmWithOutro(film, card) {
+  const data = await post("/api/film-outro", { film, card });
+  if (typeof data?.url !== "string") throw new Error(t.errors.unexpected);
   return data.url;
 }
 

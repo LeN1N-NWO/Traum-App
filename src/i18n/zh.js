@@ -31,6 +31,8 @@ export default {
     lede: "趁记忆还热乎的时候说出来——半梦半醒时效果最好。",
     cta: "开始记录",
     streak: (n) => `连续 ${n} 天`,
+    streakPerk: (n, max) => `第 ${n} 夜，共 ${max} 夜——你的生物越来越稀有了。`,
+    streakRisk: "昨夜你写了。今晚就能接上——不用急，睡前都算数。",
     lastHeading: "昨夜",
     menagerieHeading: "你的异兽园",
     menagerieEmpty: "还没有生物。你写下的每一个梦都会留下一只。",
@@ -118,6 +120,46 @@ export default {
     untitled: "无题之梦",
   },
 
+  dreamer: {
+    title: "你告诉过我的",
+    retake: "再说一次",
+    recall: "梦的记忆",
+    lucid: "清醒梦",
+    goal: "你为什么来这儿",
+    themes: "总是回来的",
+    signs: {
+      aries: "白羊座",
+      taurus: "金牛座",
+      gemini: "双子座",
+      cancer: "巨蟹座",
+      leo: "狮子座",
+      virgo: "处女座",
+      libra: "天秤座",
+      scorpio: "天蝎座",
+      sagittarius: "射手座",
+      capricorn: "摩羯座",
+      aquarius: "水瓶座",
+      pisces: "双鱼座",
+    },
+    recallValues: {
+      nightly: "几乎每晚",
+      weekly: "一周几次",
+      rarely: "很少",
+      "almost-never": "几乎没有",
+    },
+    lucidValues: {
+      "never-heard": "刚接触",
+      curious: "感兴趣",
+      tried: "试过",
+      practicing: "在练习",
+    },
+    goalValues: {
+      remember: "记住更多",
+      understand: "想弄懂它们",
+      create: "把它们变成画面",
+      "sleep-better": "睡得更好",
+    },
+  },
   profile: {
     title: "我的",
     settings: "设置",
@@ -145,6 +187,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "添加人物", pet: "添加宠物", place: "添加地点" },
+    drawFromDesc: "按你的描述画出来",
+    drawingNow: "正在画…",
+    drawHint: "一张参考图，让他在每张画面里都是同一个人",
     editTitleFor: { person: "编辑人物", pet: "编辑宠物", place: "编辑地点" },
     meTitle: "这是你",
     nameLabel: (tag) => `名字（将成为 @${tag}）`,
@@ -280,6 +325,7 @@ export default {
     creditsN: (n) => "点数",   // Chinesisch kennt keine Pluralform; n bleibt ungenutzt
     tooShort: "⚠ 请先多写一点。",
     noCredits: "点数不足。充值即将开放。",
+    noCreditsCta: "看看价格",
     progress: (n, total) => `第 ${n} 步，共 ${total} 步`,
 
     step1: {
@@ -508,17 +554,38 @@ export default {
     close: "关闭",
     headline: "把你的梦，拍成电影。",
     lede: "文字记录、语音以及睡眠标签页里的一切都将永久免费。点数只用于渲染引擎需要绘制的部分。",
+    /* Die Ueberschrift richtet sich nach dem Anlass: wer selbst geoeffnet
+       hat, bekommt das Angebot; wem das Blatt in den Weg gesprungen ist,
+       bekommt zuerst den Grund. Siehe Paywall.jsx. */
+    headlineFor: {
+      browse: "把你的梦，变成电影。",
+      spent: "你的点数用完了。",
+      first: "这是你的第一个。",
+    },
+    ledeFor: {
+      spent: "这里只有这一件事会停下。写下来、说出来，以及睡眠页里的一切，依旧免费。",
+      first: "它已经在你的日记里，属于你了。下一个需要点数——价格在这儿。",
+    },
     tabSub: "订阅",
     tabPack: "购买点数",
-    periodName: { month: "月付", year: "年付" },
+    periodName: { week: "按周", month: "月付", year: "年付" },
     packName: (n) => `${n} 点数`,
-    per: { month: "每月", year: "每年" },
+    per: { week: "每周", month: "每月", year: "每年" },
     oneTime: "一次性",
     save: (pct) => `节省 ${pct}`,
-    creditsPerMonth: (n) => `每月 ${n} 点数`,
-    creditsOnce: (n) => `${n} 点数，永不过期`,
-    yield: (credits, five, three) =>
-      `${credits} 点数——大约可生成 ${five} 个 5 张图的梦，或 ${three} 个 3 张图的梦。一部影片的花费和 5 张图相同。`,
+    creditsPer: (n, period) => `每${period} ${n} 点数`,
+    /* Jahresabo zaehlt in MONATEN, nicht in Jahren: das Guthaben
+       kommt monatlich, der Preis wird jaehrlich abgebucht. */
+    periodUnit: {
+      week: "周",
+      month: "月",
+      year: "月",
+    },
+    yieldImages: (n) => "张图",
+    yieldFilms: (n) => "部影片",
+    yieldOr: "或",
+    packNote: "这些永不过期——不用订阅，也不会清零。正因如此，单价更高。",
+    packYield: (i, f) => (f ? `${i} 张图，或 ${f} 部影片` : `${i} 张图`),
     included: "始终包含，完全免费",
     chips: [
       "无限记录日记", "语音录制", "AI 润色重写",

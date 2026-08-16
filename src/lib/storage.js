@@ -11,12 +11,14 @@ export const DEFAULT_STATE = {
   creatures: [], lastDream: null, streak: 0,
   mode: "sequence", cons: "standard",
   me: null, cast: [], journal: [], events: [],
-  credits: 0, creditsGranted: false,   // stand-in — a real balance needs the backend
+  credits: 0, creditsGranted: false,   // gekauft/geschenkt — bleiben. Siehe credits.js
+  allowance: 0,          // aus einem Abo — wird zum Periodenbeginn gesetzt, nicht addiert
   onboarded: false,      // first-run flow seen (slides + survey offer)
   surveyDone: false,     // welcome survey finished — that is what earns the grant
   profile: null,         // { name, birthday, zodiac, recall, lucid, themes, goal }
   language: null,        // chosen once, before anything else — see LanguagePicker.jsx
   voice: null,           // the assistant's voice, chosen in VoicePicker — a Gemini voice id
+  paywallSeen: false,    // das Kaufblatt kam einmal von selbst — siehe Step6Result.jsx
 };
 
 export function genId(prefix) {

@@ -99,7 +99,7 @@ export default function JournalScreen() {
           <span className="j-library-title">{t.journal.library}</span>
           <span className="j-library-text">{t.journal.libraryCount(castCount)}</span>
         </span>
-        <span className="j-library-chev" aria-hidden="true">›</span>
+        <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
       </button>
 
       {entries.length === 0 ? (

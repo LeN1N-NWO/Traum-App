@@ -3,336 +3,253 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-10 (12:40) — Branch `session/2026-08-10-anton-seed`
+**Stand:** 2026-08-16 (22:02) — Branch `session/2026-08-10-anton`, PR #11
 
 ## Woran wird gearbeitet
 
 „Dream Rushes" ist eine React-SPA: Traum aufschreiben oder sprechen → KI macht
 daraus eine Bildstrecke und optional einen kurzen Film. **Vier Tabs**, der
-Wizard öffnet sich über der Tab-Leiste; vor allem anderen entscheidet gerade
-ein **Startmenü**, ob man das Onboarding sieht oder direkt in die App springt
-(siehe „⚠ Übergangslösung" unten — wichtigster Punkt dieser Datei).
+Wizard öffnet sich über der Tab-Leiste.
 
 | Tab | Inhalt |
 |---|---|
-| Home | Begrüßung nach Tageszeit, **Faultier-Film als Posterkarte**, letzter Traum, Menagerie |
-| Journal | Träume als Kartenstapel **oder** Liste, Kalender, Detail mit Film+Bildern. Zwei **Seed-Träume** in jedem frischen Install (siehe unten) |
+| Home | Begrüßung, Faultier-Film als Posterkarte, Serien-Zeile, letzter Traum, Menagerie |
+| Journal | Kartenstapel **oder** Liste, Kalender, Detail mit Film+Bildern |
 | **⊕** | Der Wizard: Traum → Ausgabe → Personen → Orte → Style → Ergebnis |
-| Sleep | **Alles gratis:** Einschlaf-Checkliste, Sound-Mixer, Klartraum-Leitfaden, Symbole |
-| Profil | Porträt, Credits-Pille (öffnet Paywall), **Zahnrad → Einstellungen**, Umfrage-Karte falls offen |
+| Sleep | **Alles gratis:** Checkliste, Sound-Mixer, Klartraum-Leitfaden, Symbole |
+| Profil | Porträt, Guthaben-Pille (Kaufblatt), Zahnrad → Einstellungen, „Was du mir erzählt hast" |
 
 **Stack:** Bun + Vite + React 18 + react-router-dom (HashRouter), `server.js` als
 schlüsselhaltender Proxy (fal.ai, DeepSeek, Gemini Live + Gemini TTS). Zustand
 in `localStorage`, Schlüssel `dreamrushes_v1`.
 
 **Sprache:** Oberfläche in **sieben Sprachen** (en, de, es, fr, zh, hi, ar),
-alle Texte in `src/i18n/<id>.js` und nirgends sonst; `en.js` ist die Vorlage,
-`scripts/check-i18n-shape.mjs` erzwingt gleiche Form. Doku und Commits deutsch.
+alle Texte in `src/i18n/<id>.js`; `en.js` ist die Vorlage,
+`scripts/check-i18n-shape.mjs` erzwingt gleiche Form **und gleiche Arität**.
+Doku und Commits deutsch.
 
-## ⚠ Das Startmenü bleibt — nicht eigenmächtig entfernen
+## ⚠ Zwei Dinge, die absichtlich drin sind
 
-`src/App.jsx`s `Gate()` zeigt bei **jedem** App-Start ein `StartMenu`
-(„Show onboarding" / „Skip to app") statt auf `state.onboarded` zu prüfen.
+**Das Startmenü bleibt** (`src/App.jsx:15`, `screens/Onboarding/StartMenu.jsx`).
+Es fragt bei **jedem** Start „Onboarding oder App?". Stehende Entscheidung
+(Anton, 10.08.2026) — es bleibt, bis er ausdrücklich etwas anderes sagt. Es
+sieht wie ein Versehen aus; genau deshalb steht das hier.
 
-**Das ist eine stehende Entscheidung (Anton, 10.08.2026), keine Baustelle.**
-Es bleibt, bis er ausdrücklich etwas anderes sagt. Es sieht wie ein
-Versehen aus — einen wiederkehrenden Nutzer bei jedem Start zu fragen
-„Onboarding oder App?" wäre für eine ausgelieferte App offensichtlich
-falsch —, und genau deshalb stand es zweimal ganz oben auf der
-Aufräumliste. Es ist keins: Am Onboarding wird noch gearbeitet, und hinter
-`state.onboarded` versteckt wäre es ein Einmal-Erlebnis, unerreichbar,
-sobald man es einmal gesehen hat.
+**Das Seed-Journal bleibt** (`src/lib/seedJournal.js`, eingehängt in
+`state/AppState.jsx:15`). Zwei Träume mit echten Bildern in jedem frischen
+Install. Vor einem Release zu entfernen; Anleitung im Kopf der Datei.
+Wer Code schreibt, der „hat der Nutzer schon Träume?" fragt: nach
+`e_seed`-Präfix filtern, sonst zählen die mit (siehe `Step6Result.jsx`).
 
-Wenn das Wort kommt: `src/screens/Onboarding/StartMenu.jsx` löschen und
-`Gate()` wieder auf `state.language`/`state.onboarded` verzweigen lassen —
-beide werden auf dem normalen Weg längst gesetzt.
+## Geld — Preise, Töpfe, Kaufwege
+
+**Es kassiert weiterhin niemand.** Kein Zahlungsanbieter, kein Store-Konto,
+kein serverseitiges Guthaben. Alles unten ist Fluss und Zahlenwerk, bereit
+zum Anschließen.
+
+**Preisliste** (`src/lib/plans.js`, neu gerechnet 16.08.):
+
+| | Preis | Credits | je Credit |
+|---|---|---|---|
+| Woche | $4,99 | 12 / Woche | $0,416 |
+| Monat ★ | $9,99 | 45 / Monat | $0,222 |
+| Jahr | $79,99 | 45 / Monat | $0,148 |
+| Paket S | $2,99 | 6, bleiben | $0,498 |
+| Paket M | $7,99 | 18, bleiben | $0,444 |
+| Paket L | $14,99 | 32, bleiben | $0,468 |
+
+**Zwei Regeln, in `plans.test.js` festgenagelt:** Kein Paket teilt einen
+Preispunkt mit einem Abo, und jedes Paket ist je Credit teurer als jedes Abo.
+Beides gibt es, weil genau das schon einmal kaputt war — `pack-s` bot bei
+identischem Preis mehr Credits als das Wochen-Abo, und die damalige Prüfung
+ließ es durch, weil sie monatlich normierte statt den Kaufmoment zu messen.
+
+**Zwei Guthaben-Töpfe** (`src/lib/credits.js`):
+`credits` (Pakete + Willkommensgeschenk — bleiben) und `allowance` (Abo — wird
+zum Periodenbeginn **gesetzt**, nicht addiert). Ausgegeben wird **immer zuerst
+das Verfallende**; andersherum verlöre ein Abonnent bei jeder Abrechnung seine
+dazugekauften Credits. Angezeigt wird die Summe über `totalCredits()`.
+
+**Das Kaufblatt öffnet sich von überall** über `openPaywall(reason)` aus dem
+AppState, eingehängt einmal in `App.jsx`. Drei Anlässe: `browse` (selbst
+getippt), `spent` (Guthaben leer, an fünf Stellen) und `first` (genau einmal,
+wenn der erste **selbst gemachte** Traum fertig ist).
+
+⚠ Der Aha-Moment liegt bewusst NICHT am Ende des Onboardings, obwohl die
+Konversionszahlen das nahelegen: Dort verspricht die App „Dein erster Traum
+geht auf uns". Direkt danach nach Geld zu fragen wäre der Widerspruch, den
+man einer App nicht verzeiht.
+
+## Schranke vor den teuren Endpunkten
+
+`src/lib/gatekeeper.js`, eingehängt ganz oben in `server.js`s `fetch`:
+
+- **Mengenbegrenzung je Absender**, greift immer. `generate` 20/min,
+  `text` 40/min, `cheap` 120/min.
+- **Optionales `API_TOKEN`.** Ohne gesetzte Variable bleibt alles offen —
+  eine Sicherung, die alle als Erstes abschalten, sichert nichts.
+
+⚠ **Die Voreinstellung ist die strengste:** Alles unter `/api/` wird begrenzt,
+sofern es nicht ausdrücklich in `UNLIMITED` steht (`/api/job`, `/api/voice`).
+Grund: Eine Liste kann einen vergessenen Endpunkt nicht verhindern — genau das
+passierte am 16.08. mit `/api/character`. Wer einen neuen Endpunkt baut,
+bekommt die Bremse geschenkt.
+
+**Bleibt trotzdem KEINE Benutzerverwaltung:** keine Konten, kein
+serverseitiges Guthaben, keine Zuordnung wer was ausgegeben hat.
 
 ## Die Persona — eine Stimme, überall dieselbe
 
-Der Assistent ist „der coole Nachtportier": ruhig, trocken-warm, spürbar
-unaufgeregt. Ein einziger `PERSONA`-Block in `server.js` speist **beide**
-Briefings, weil Trauminterview und Willkommensumfrage für den Nutzer eine
-Person sind.
+„Der coole Nachtportier": ruhig, trocken-warm, unaufgeregt. Ein `PERSONA`-Block
+in `server.js` speist **beide** Briefings.
 
-**Zwei Regeln, die beim Bauen Blut gekostet haben:**
-
-1. **Keine Beispielsätze im Prompt.** Zweimal hat das die Sprache verbogen
-   (ein „Guten Morgen" als Beispiel ließ den Assistenten überall Deutsch
-   reden). Beschrieben wird die *Bewegung* — „bemerke etwas Wahres über den
-   Moment, dann frag" —, nie der Wortlaut.
+**Zwei Regeln, die Blut gekostet haben:**
+1. **Keine Beispielsätze im Prompt.** Zweimal hat das die Sprache verbogen.
+   Beschrieben wird die *Bewegung*, nie der Wortlaut.
 2. **Verbote allein erzeugen Neutralität.** Eine Fassung aus lauter „erwähne
-   nie…" lieferte perfekt farblose Begrüßungen. Charakter entsteht nur durch
-   positive, konkrete Anweisung.
+   nie…" lieferte farblose Begrüßungen.
 
-Der Charakter fällt als Erstes weg, wenn ein Traum bedrückend wird — dann nur
-noch leise und schlicht.
+Der Charakter fällt als Erstes weg, wenn ein Traum bedrückend wird.
 
 ## Der Sprachassistent (Gemini Live)
 
-Zwei Modi über denselben Relay in `server.js` (`/api/voice`, WebSocket):
-**`dream`** (Trauminterview, `VOICE_TOOLS`) und **`onboarding`**
-(Willkommens-Umfrage, `ONBOARDING_TOOLS`, jede Frage überspringbar).
+Zwei Modi über denselben Relay (`/api/voice`): `dream` und `onboarding`.
+**Die Stimme wird genau einmal gewählt**, danach unter Profil → Zahnrad.
+Sechs Stimmen in `src/lib/voices.js`, gespiegelt als `VOICE_NAMES` in
+`server.js`.
 
-**Die Stimme wird genau einmal gewählt** — beim allerersten Sprachgespräch,
-danach nie wieder ungefragt. Geändert wird sie unter **Profil → Zahnrad →
-Einstellungen** (`src/screens/Profile/Settings.jsx`, als Liste gebaut, weil
-weitere Einstellungen kommen). Sechs Stimmen in `src/lib/voices.js`, gespiegelt
-als Allowlist `VOICE_NAMES` in `server.js`.
+**Vorhören:** Die API bietet keine fertigen Proben. `/api/voice-sample` erzeugt
+sie per Gemini TTS — derselbe Stimmkatalog wie die Live-API, also ist die Probe
+exakt die spätere Stimme. Je (Stimme, Sprache) einmal, als WAV gecacht.
 
-**Vorhören:** Die Gemini-API bietet **keine** fertigen Hörproben (AI Studio
-schon, die API nicht — geprüft 09.08.). `/api/voice-sample` erzeugt sie selbst
-per **Gemini TTS**, das denselben Stimmkatalog nutzt wie die Live-API — was man
-vorhört, ist exakt die Stimme, die dann spricht. Je (Stimme, Sprache) einmal
-erzeugt, als WAV unter `media/` gecacht (frisch 4,7 s, gecacht <1 ms). TTS
-liefert **kopfloses PCM**; der RIFF-Header wird selbst geschrieben, die
-Abtastrate aus dem `mimeType` gelesen, nicht angenommen.
+**Zwei nicht offensichtliche Punkte:** Die Verbindung geht **direkt an den
+API-Port** (der Vite-Proxy reicht WebSockets unter Bun nicht durch), und Gemini
+antwortet **ausschließlich in Binärframes**, auch `setupComplete`.
 
-**Zwei nicht offensichtliche technische Punkte:**
+## Bilder, Filme, Teilen
 
-- Die Verbindung geht **direkt an den API-Port** (`__API_PORT__` aus
-  `vite.config.js`), nicht über den Vite-Dev-Proxy — der reicht WebSockets
-  unter Bun nicht durch (`node:http` meldet die 101-Antwort als gewöhnliche
-  Antwort statt als `upgrade`-Ereignis).
-- Gemini antwortet **ausschließlich in Binärframes**, auch das
-  `setupComplete`-Signal. Wer Steuer-Logik auf Frame-Inhalt ergänzt: mit
-  `TextDecoder` dekodieren, nicht auf `typeof data === "string"` prüfen.
+**Schnellvorschau** (`Step5Style.jsx:37`, `isPreview`): 3 Panels aus EINEM
+Rendering, **1 Credit**, sichtbare Kachel. Kostet ein Drittel der Auflösung
+(gemessen: 459×768 gegen 768×1376) — deshalb rendert der Gratis-Traum weiter
+in voller Größe.
 
-## Journal — Struktur
+**Charakterbögen** (`/api/character`, 2 Credits): aus einer Beschreibung ein
+neutrales Referenzporträt, das ab da wie ein Foto wirkt. Ausdrücklich kein
+Szenenbild und ohne `styleId` — sonst ließe sich die Figur nicht in einem
+zweiten Traum mit anderem Stil verwenden.
 
-Ein Eintrag kann **Film und Bildstrecke gleichzeitig** besitzen — zwei
-unabhängige Felder, `entry.media` (Bilder) und `entry.film` (Clip), nie eines
-das andere überschreibend. `src/lib/entryMedia.js` (`filmOf`, `imagesOf`,
-`allMediaOf`) ist die einzige Stelle, die beide liest. **Wer neue
-Medien-Lesestellen baut: über `entryMedia.js`, nie `entry.media` direkt.**
+**Abspann beim Teilen** (`/api/film-outro`): zwei Sekunden Mond und Wortmarke
+an das Filmende. Karte im **Browser** gezeichnet (dort leben Schrift und
+Palette), zusammengefügt auf dem **Server** mit ffmpeg.
+⚠ **ffmpeg ist ein Systemprogramm, keine npm-Abhängigkeit.** Fehlt es → 501,
+und `share.js` teilt den Film unverändert.
 
-Reihenfolge auf der Detailseite: warmer Haupt-Knopf ganz oben, darunter die
-Aktionsleiste (Umschreiben/Bearbeiten/Teilen — sie **bricht um** statt seitlich
-zu scrollen, sonst ragt „Teilen" bei langen Übersetzungen aus dem Bild),
-darunter Film, darunter Text und Bilderstrecke.
+**`dreamsFor` berechnet den Filmpreis aus `video.js`**, statt ihn zu
+wiederholen. Vorher stand dort `credits / 5`, während ein Film 7 kostet — die
+Paywall versprach 9 Filme, wo 6 drin sind.
 
-**„Umschreiben"** öffnet ein Blatt mit drei Möglichkeiten (korrigieren /
-umschreiben / ausarbeiten), Hintergrund unscharf. Die Modi liegen serverseitig
-in `REFINE_MODES` mit einem gemeinsamen `REFINE_SHARED_RULES`-Block: gleiche
-Sprache, gleiche Person, nichts erfinden, nicht umsortieren, nicht deuten.
-**Remix gibt es nicht mehr** — damit fehlt auch der Weg „Text ändern und daraus
-neu erzeugen"; falls er zurücksoll, wäre der Ort ein Knopf im
-Vorschlags-Bildschirm.
+## Die Serie belohnt, sie bestraft nie
 
-## Grid-Bilder — ein Aufruf, drei Bilder
+`streak.js`: Eine längere Serie verschiebt die Seltenheit der Wesen
+(ohne Serie 55/25/12/6/2, bei 14 Nächten 25/41,7/20/10/3,3), gedeckelt bei 14.
 
-Für die 3-Bilder-Stufe **ohne Poster** erzeugt `buildGridPrompt()` ein
-einzelnes 16:9-Bild mit drei Panels, `splitGrid.js` schneidet es per `<canvas>`.
-Der Letterbox-Rahmen, den das Modell trotz Verbot malt, wird am **hellsten**
-Pixel jeder Randzeile erkannt (nicht am Durchschnitt: gemalte Balken max.
-5/255, eine dunkle Wasserszene trägt Glanzpunkte ab 19).
+⚠ **Wer daran weiterbaut:** keine Countdowns, nichts Eingefrorenes, keine
+Verlustdrohung. Es geht nie etwas verloren — wer eine Woche aussetzt, findet
+alles unverändert vor. Begründung im Kopf der Datei.
 
-**Seit 10.08. ist das die „Schnellvorschau"** — eine sichtbare Kachel in
-Schritt 5, **1 Credit**, mit dem Satz daneben, was man dafür aufgibt.
-`useGrid` heißt jetzt schlicht `isPreview`; die Vorschau hat nie ein Poster
-und blendet die Format-Wahl aus (der Grid ist bauartbedingt 16:9).
+## Farben, Gestaltung, Sprache
 
-**Warum das eine Korrektur war, keine Erweiterung:** Vorher lautete die
-Bedingung „3 Szenen UND kein Poster" — klingt gleichwertig, war es nicht.
-Die Analyse füllt das Titelfeld automatisch, also war das Poster fast immer
-an und der Grid lief fast nie. Wer ihn doch auslöste (durch Leeren eines
-Textfelds), zahlte trotzdem 3 Credits für **ein** Rendering. Gemessen:
-Panels **459×768** gegen **768×1376** bei einem normalen Bild — ein Drittel
-der Pixel. Vollen Preis für ein Drittel der Auflösung zu nehmen war der
-Teil, der Vertrauen gekostet hätte.
-
-Der **Gratis-Traum rendert weiter in voller Größe** — die Ersparnis fiele
-sonst ausgerechnet auf den einen Traum, der gut sein muss. Begründung in
-`credits.js`.
-
-## Onboarding
-
-`src/screens/Onboarding/`: **Faultier-Film** (`assets/intro-faultier.mp4`,
-vollflächig hinter einem Scrim) → drei Folien → Sprach-Umfrage → optionaler
-Selfie-Schritt. Das Gate spricht in der **ersten Person** („Erzähl mir, wie du
-träumst"), weil die App eine Persona hat.
-
-**Das Willkommen ist ein Versprechen, keine Währung:** „Dein erster Traum geht
-auf uns" statt „3 Credits gratis". Das stimmt genau — drei Credits kaufen
-exakt einen kleinsten Traum —, und `credits.test.js` prüft diese **Gleichheit**,
-weil die Zahlen in zwei Dateien und das Versprechen in sieben anderen stehen.
-Zu wenig hieße: Bezahlschranke beim ersten Versuch. Zu viel hieße: Restcredits,
-die allein nichts kaufen und wie ein Fehler aussehen.
-
-Die Belohnungs-Pille trägt eine umlaufende, leicht glühende Linie
-(`conic-gradient` auf dem `::before`, Maske auf 1,5 px, animiert wird nur der
-Startwinkel — als `@property` registriert, sonst interpoliert er nicht).
-
-`src/lib/zodiac.js` leitet aus dem Geburtsdatum das Sternzeichen ab — Vorarbeit
-für eine Deutungs-Funktion, **noch nicht angebunden**.
-
-## Klartraum-Leitfaden (Sleep → Luzides Träumen)
-
-Neu aufgebaut aus der *International Lucid Dream Induction Study* (Aspy u. a.
-2020, 355 Teilnehmende). Zwei Funde bestimmen den Aufbau:
-
-- **Die Methode ist nicht der wichtigste Hebel.** Der größte Einzelfaktor war,
-  ob jemand binnen zehn Minuten wieder einschlief (18,3 % gegen 11,1 %) —
-  größer als der Abstand zwischen den Techniken. Deshalb stehen drei
-  Zahlenkarten **vor** den Methoden.
-- **Realitätschecks haben nicht geholfen.** Zu MILD dazugenommen schnitten sie
-  schlechter ab als MILD allein (10,8 % / 13,4 % gegen 16,5 %). Sie bleiben
-  drin, mit dem echten Ergebnis daneben.
-
-Vier Methoden mit Schritt-für-Schritt-Protokollen (WBTB, SSILD 16,9 %, MILD
-16,5 %, Realitätschecks), Erfolgsquote schon auf der zugeklappten Karte.
-Bewusst **keine** Checkliste — hier wird nichts abgehakt.
-
-## Farben und Gestaltung
-
-Tiefes Blau mit warmem Gegenpol. Der Hintergrund existiert genau **einmal** als
-`--bg-rgb` in `src/styles/tokens.css`; jeder Schleier leitet seine Deckkraft
-davon ab (`rgb(var(--bg-rgb) / .x)`).
-
-- **Warm ist selten und bedeutet „Weg nach vorn":** Hauptknöpfe, Plus-Knopf,
-  Paywall-Akzente tragen `--warm-grad`. ⚠ **Immer mit `color: var(--bg)`** —
-  Weiß auf Bernstein reißt den Kontrast.
-- Icons kommen aus **einem** SVG-Satz (`src/components/icons.jsx`), 24px-Box,
-  gestrichelt, `currentColor` — kein Emoji in Bedienelementen.
-- **Videos werden nie per `filter` gedimmt**, immer über einen Verlaufs-Scrim:
-  ein Filter kostet auf dem Telefon jede Sekunde Rechenzeit, ein Verlauf wird
-  einmal gezeichnet.
-- Videos werden **per Vite-Import** eingebunden, nicht als `/public`-Pfad — so
-  überlebt die Referenz jede `base`-Änderung (wichtig für Capacitor).
-- `scripts/test-contrast.mjs` prüft 16 Paarungen gegen WCAG AA.
-
-## Geteiltes Test-Journal (10.08.) — vor dem Release entfernen
-
-Jeder frische Install zeigt zwei Träume mit echten Bildern statt eines leeren
-Journals: `src/lib/seedJournal.js`, sechs WebP unter `public/clips/seed-*`,
-eingehängt über `loadInitialState()` in `src/state/AppState.jsx:11`.
-
-Greift **nur**, wenn für den Browser noch nie etwas gespeichert wurde (der
-Schlüssel ist `null`, nicht bloß ein leeres Journal) — ein absichtlich
-geleertes Journal wird also nie überschrieben.
-
-**Weitere Träume ergänzen:** `bun scripts/add-seed-dream.mjs <slug>` — rendert
-das 16:9-Grid über den echten `buildGridPrompt()`, schneidet es nach der
-Logik aus `splitGrid.js`, komprimiert nach WebP und druckt den Block zum
-Einfügen. **Nicht von Hand per curl generieren:** ohne `prompt` und
-`aspectRatio: "16:9"` läuft der Aufruf in den alten Einzelbild-Pfad und das
-Triptychon entsteht gar nicht (passiert am 10.08., siehe WORKLOG).
-
-**WebP ist Pflicht.** Die sechs Panels als PNG wären 3,4 MB bei 3,6 MB
-Git-Historie gewesen — ein Commit hätte das Repo verdoppelt, und Git gibt den
-Platz beim Löschen nicht zurück. Als WebP: 0,27 MB.
+- Der Hintergrund existiert **einmal** als `--bg-rgb` in `tokens.css`.
+- **Warm ist selten und heißt „Weg nach vorn".** Immer mit `color: var(--bg)`.
+- Icons aus **einem** SVG-Satz, kein Emoji in Bedienelementen.
+- **Videos nie per `filter` dimmen**, immer Verlaufs-Scrim; per Vite-Import
+  einbinden, nicht als `/public`-Pfad.
+- **RTL:** logische Eigenschaften überall, `scripts/test-rtl.mjs` erzwingt es.
+  Zeichen, die eine Richtung MEINEN, tragen `[data-flip]`.
+- **Plural:** Wer eine Zahl neben ein Wort setzt, nimmt eine Funktion
+  (`creditsN`, `yieldImages`, `yieldFilms`). Zweimal stand „1 Credits" bzw.
+  „1 Filme" im Bild. Arabisch hat Einzahl, Zweizahl, Mehrzahl 3–10, dann
+  wieder Einzahl.
 
 ## Starten
 
     bun run dev                       # Oberfläche 5173, API 8100, Hot Reload
     bun run build && bun server.js    # produktionsnah, alles auf 8100
-    bun run test                      # 77 Unit + 50 Freigabe + Hygiene + Kontrast + i18n
+    bun run test                      # 114 Unit + 50 Freigabe + Hygiene + Kontrast + i18n + RTL
 
-⚠️ Die Oberfläche liegt im Dev-Modus auf **5173**, nicht 8100 — dort läuft nur
-die API. **5173 und 8100 sind für den Browser verschiedene Herkünfte mit
-getrenntem `localStorage`.**
+⚠️ 5173 und 8100 sind für den Browser **verschiedene Herkünfte mit getrenntem
+`localStorage`**.
 
-⚠️ **Die `.claude/launch.json` im Hauptrepo-Ordner** (nicht im Worktree) steht
-auf Attach-only und startet keinen Server. Noch nicht angeglichen.
+⚠️ `preview_start` bedient das **Hauptrepo**, nicht den Worktree — beim
+Arbeiten im Worktree dort zusätzlich `bunx vite` starten, sonst prüft man
+Code, den man nicht geschrieben hat.
 
-## Provider und Preise (Stand 09.08.)
+## Provider und Preise
 
 | | Modell | Kosten |
 |---|---|---|
 | Bild | `fal-ai/nano-banana-2` (1K) | **$0,08** je Bild |
-| Bild mit Referenz | `.../edit` — Pflicht, sonst werden `image_urls` ignoriert | $0,08 |
-| Video Standard | `minimax/h3/image-to-video` (768P) | **$0,08 je Sekunde**, **5–15 s** |
+| Bild mit Referenz | `.../edit` — Pflicht | $0,08 |
+| Video | `minimax/h3/image-to-video` (768P) | **$0,08/s**, **5–15 s** |
 | Diktat | `fal-ai/wizper` | $0,0005 je Minute |
-| Analyse | `deepseek-v4-flash` | **$0,00026** je Traum |
-| Stimmproben | `gemini-3.1-flash-tts-preview` | einmalig je Stimme+Sprache, gecacht |
+| Analyse | `deepseek-v4-flash` | $0,00026 je Traum |
+| Stimmproben | `gemini-3.1-flash-tts-preview` | einmalig je Stimme+Sprache |
 
-⚠ **`minimax/h3` verlangt mindestens 5 Sekunden.** Die Queue prüft das erst
-beim **Rendern**: ein zu kurzer Wert verbrennt Credits und kommt Minuten später
-als gescheiterter Job zurück. `clampSeconds()` in `lib/video.js` fängt das ab.
+⚠ `minimax/h3` verlangt **mindestens 5 Sekunden**; die Queue prüft das erst
+beim Rendern, ein zu kurzer Wert verbrennt Credits. `clampSeconds()` fängt es ab.
 
-## Geschäftsmodell — korrigierte Rechnung (10.08.)
+## Geschäftsmodell
 
-Die ursprüngliche Formel in `plans.js` ignorierte **zwei der größten Abzüge**;
-beide sind jetzt dort und in `credits.js` dokumentiert:
+Die Rechnung in `plans.js` berücksichtigt **MwSt.** (geht in der EU vor der
+Store-Provision ab) und **Gratis-Credits pro Installation**. Mit beiden ist der
+30-%-Schnitt defizitär — **das Small Business Program (15 %) ist Voraussetzung,
+nicht Optimierung.** Break-even-Conversion ~4,5–5 %.
+Neuer Deckungsbeitrag Monat: **$4,44** (alte Liste: $1,42).
 
-1. **MwSt.** geht in der EU vom Listenpreis ab, *bevor* der Store seine
-   Provision nimmt: $5,99 → ÷1,19 → ×0,70 → −$2,10 Credits = **$1,42**/Monat,
-   nicht $2,09.
-2. **Gratis-Credits fallen pro Installation an**, nicht pro Kunde. Bei einer
-   Conversion c schleppt jeder Abonnent 1/c Installationen mit; bei 5 % und
-   drei Monaten Haltedauer sind das **$1,60**/Abo/Monat — mehr, als das Abo
-   einbringt.
-
-**Folge: Mit dem Standard-Schnitt von 30 % ist das Modell defizitär.** Das
-**Small Business Program (15 %) ist Voraussetzung, nicht Optimierung.**
-Break-even-Conversion real **~4,5–5 %** (bisher notiert: 3,8 %). Für 5.000 €
-Gewinn/Monat grob **2.500–5.000 aktive Abos**, für 10.000 € etwa das Doppelte.
-**Die Conversion ist die erste Kennzahl, die nach Launch gemessen gehört** —
-alles andere hängt an ihr.
+**Die Conversion ist die erste Kennzahl, die nach Launch gemessen gehört.**
 
 ## Sicherheit
 
-- **Vertraulichkeit:** Web-Wurzel ist `dist/`, nicht das Repo. `/media/` hat
-  eine eigene, enge Prüfung (`resolveMedia()`, nur Hash-plus-Endung). 50
-  Prüfungen in `scripts/test-static.mjs`.
-- **Prompt-Eingabe:** unsichtbare Zeichen werden serverseitig entfernt,
-  `sanitizePromptText()` in `server.js` ist die verbindliche Stelle.
-- **Allowlisten statt Interpolation:** `voice`, `mode`, `lang` und
-  `aspectRatio` kommen vom Client und landen in Prompts bzw. in Geminis Setup —
-  alle vier werden gegen feste Listen geprüft, nie durchgereicht.
-- **Offen — `/api/generate` hat keine Authentifizierung und kein Rate-Limit.**
-  Nur an localhost binden. Löst sich erst mit dem Backend.
-- **Offen — Credits sind Buchhaltung, keine Zugangskontrolle.** Der Stand liegt
-  im `localStorage` und ist frei editierbar.
-- **Offen — Datenschutz:** Referenzfotos, Sprachaufnahmen und die
-  Onboarding-Umfrage (Geburtsdatum, wiederkehrende Themen) gehen an fal.ai bzw.
-  Google. Vor Veröffentlichung braucht es Hinweis, Einwilligung und Klärung der
-  Speicherdauer.
+- Web-Wurzel ist `dist/`. `/media/` hat eine eigene enge Prüfung
+  (`resolveMedia()`, nur Hash-plus-Endung) — Grundlage auch dafür, dass
+  Film-Keyframe und Abspann nur eigene Dateien verwenden können.
+- **Allowlisten statt Interpolation:** `voice`, `mode`, `lang`, `aspectRatio`
+  und `category` kommen vom Client und werden gegen feste Listen geprüft.
+- **Offen — Datenschutz:** Referenzfotos, Sprachaufnahmen und die Umfrage
+  (Geburtsdatum) gehen an fal.ai bzw. Google. Vor Veröffentlichung braucht es
+  Hinweis, Einwilligung und Speicherdauer.
+- **Offen — Credits sind Buchhaltung, keine Zugangskontrolle.**
 
 ## Bekannte Baustellen
 
-- **RTL (Arabisch) ist nicht einzeln geprüft.** `dir="rtl"` steht am
-  Dokument, was der Browser daraus macht, ist ungeprüft; eigene
-  Flex-/Absolut-Layouts über ~35 CSS-Dateien wurden nicht durchgesehen.
+- **Kein Zahlungsanbieter.** Der Kaufknopf sagt es ehrlich.
 - **Filme laufen über `queue.fal.run`.** `falSubmitVideo()` speichert
-  `status_url`/`response_url` **wörtlich** aus fals Antwort — **nicht wieder
-  aus dem Modell-Slug rekonstruieren**, das machte fertige Filme unabholbar.
-- **Die Bilderstrecke im Journal teilt nach Sätzen** — die Beats liegen nur in
-  der (ggf. verworfenen) Analyse, nicht am Eintrag gespeichert.
+  `status_url`/`response_url` **wörtlich** — nicht aus dem Slug rekonstruieren,
+  das machte fertige Filme unabholbar.
+- **Die Bilderstrecke im Journal teilt nach Sätzen** — Beats liegen nur in der
+  (ggf. verworfenen) Analyse.
 - **Symbolerkennung nur auf Englisch** (`src/lib/symbols.js`).
-- Tagebuch wächst unbegrenzt, keine Pagination; base64-Referenzfotos machen das
-  localStorage-Kontingent (~5 MB) zum eigentlichen Limit.
-- **Das Seed-Journal erscheint bei JEDEM frischen Install**, auch bei echten
-  Nutzern (`src/state/AppState.jsx:11`). Als Testzugang gewollt; vor einem
-  Release zu entfernen — Anleitung im Kopfkommentar von
-  `src/lib/seedJournal.js`.
-- **Der Zuschneide-Code im Seed-Skript ist ein PORT**, keine gemeinsame
-  Quelle: `scripts/add-seed-dream.mjs` enthält Python, das `splitGrid.js`
-  nachbildet (Bun hat keinen Bilddecoder). Ändert sich dort MAX_TRIM, der
-  „hellster Pixel"-Test oder die Rundung der Grenzen, muss das Skript
-  mitgezogen werden.
-- Kein `bun run lint` — weiterhin keine Konfiguration dafür.
+- Tagebuch wächst unbegrenzt; base64-Referenzfotos machen das
+  localStorage-Kontingent (~5 MB) zum Limit.
+- Kein `bun run lint`.
 
 ## Nächste Schritte
 
-1. **Small Business Program beantragen**, sobald es einen Entwickleraccount
-   gibt — ohne ist die Preisliste defizitär.
-2. **RTL-Durchsicht** für Arabisch.
-3. **Empfehlungsprogramm.** Prämie erst nach der ersten erfolgreichen
-   Abbuchung. Braucht das Konten-Backend.
-4. **Character-Sheets** für beschriebene Figuren ohne Foto.
-5. Vor jeder öffentlichen Nutzung: **Auth + Rate-Limit** für `/api/generate`.
-6. **Supabase-Projekt** (Produktbesitzer) → ADR für Accounts/DB/Credits.
-7. Apple-/Google-Developer-Accounts → ADR für Capacitor.
-8. **`lib/zodiac.js` anbinden** — die Umfrage sammelt Sternzeichen und Themen
-   bereits, es passiert nur noch nichts damit.
+1. **Capacitor + StoreKit + RevenueCat** — Punkt 1 des Wachstumsplans. Alles
+   andere multipliziert diesen.
+2. **Small Business Program beantragen**, sobald es einen Entwickleraccount gibt.
+3. **Push:** Morgen-Erinnerung und „Dein Film ist fertig" (braucht Capacitor).
+4. **Web-Funnel + Stripe** — die Sprach-Umfrage ist bereits ein Quiz-Funnel in
+   sieben Sprachen, sie steht nur am falschen Ort.
+5. **Datenschutzerklärung und App-Privacy-Angaben** (Voraussetzung fürs
+   Einreichen, Liste in `docs/plans/2026-08-16-positionierung-und-store.md`).
+6. **Startmenü und Seed-Journal entfernen** — beides auf Antons Wort.
+7. Empfehlungsprogramm · Preise lokalisieren · Churn-Werkzeuge.
 
-**Nicht auf dieser Liste, mit Absicht:** das Startmenü (siehe oben — bleibt,
-bis Anton es ausdrücklich sagt).
+## Dokumente aus dieser Sitzung
 
-## Offene Zahlen, die nur die Wirklichkeit beantworten kann
-
-- **Conversion und Haltedauer.** Siehe Geschäftsmodell oben: unter ~4,5 % trägt
-  sich das Geschenk nicht. Niemand weiß es, bevor es Konten gibt.
-- **Echte Rechnungsbeträge** stehen im fal.ai-Dashboard. Die letzten Sitzungen
-  haben dort reale Läufe hinterlassen — ein Blick darauf bestätigt oder
-  korrigiert die hier genannten Preise.
+- `docs/plans/2026-08-16-wachstumsplan.md` — zehn Umsatzhebel nach
+  Hebel÷Aufwand, mit Quellen und einer bewussten Nicht-Empfehlungs-Liste.
+- `docs/plans/2026-08-16-positionierung-und-store.md` — Store-Texte auf
+  Englisch und Deutsch, Längen gegen Apples Grenzen geprüft, plus die Liste
+  dessen, was vor einer Einreichung fehlt.

@@ -26,7 +26,7 @@ function mergeInterview(analysis, people = [], places = []) {
 }
 
 export default function Step1Dream({ w, patch, seedAssignments }) {
-  const { state, update, toast } = useAppState();
+  const { state, update, toast, openPaywall } = useAppState();
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);   // the analysis awaiting a decision
   const [interview, setInterview] = useState(false);
@@ -38,7 +38,10 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
   async function runAnalysis() {
     if (clean.length < 8) return toast(t.wizard.tooShort);
     const paid = spend(state, PRICES.improve);
-    if (!paid) return toast(t.wizard.noCredits);
+    // Sackgasse ersetzt (16.08.2026): wer hier steht, WILL gerade etwas
+    // erzeugen. Der teuerste Moment der App darf nicht in einer Meldung
+    // enden, die auf spaeter vertroestet.
+    if (!paid) return openPaywall("spent");
     setBusy(true);
     try {
       const result = await analyze(clean);

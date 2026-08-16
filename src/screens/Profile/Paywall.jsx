@@ -1,18 +1,32 @@
 import { useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
 import { SUBSCRIPTIONS, PACKS, dreamsFor } from "../../lib/plans.js";
+import { totalCredits } from "../../lib/credits.js";
 import { t } from "../../i18n/index.js";
 import Button from "../../components/Button.jsx";
+import { IconImages, IconFilm } from "../../components/icons.jsx";
 import "./paywall.css";
 
-/* The shop window. Reached from the credits pill on the profile.
+/* The shop window. Opened from anywhere via openPaywall(reason) — the credits
+ * pill, the wizard when the balance runs out, the avatar dialog, and once
+ * after the very first finished dream.
+ *
+ * `reason` only changes the two lines at the top, and that is the whole point:
+ * a sheet somebody opened THEMSELVES may lead with the offer, but one that
+ * just jumped into their way has to say why first, or it reads as an ambush.
+ * Three cases, in rising order of how much explaining they owe:
+ *   browse  — they tapped the balance. Straight to the offer.
+ *   spent   — they were about to render and ran out. Name that first.
+ *   first   — their first dream just finished and the free credits are gone.
+ *             The only moment where the app has already proved itself, so
+ *             it may say so.
  *
  * ⚠ Nothing here charges anybody: there is no payment provider, no store
  * account and no server-side balance. The button says so rather than
  * pretending — a paywall that silently does nothing is worse than one that
  * admits it is not open yet.
  */
-export default function Paywall({ onClose }) {
+export default function Paywall({ reason = "browse", onClose }) {
   const { state, toast } = useAppState();
   const [tab, setTab] = useState("sub");        // "sub" | "pack"
   const [chosen, setChosen] = useState(SUBSCRIPTIONS.find((p) => p.featured)?.id);
@@ -35,8 +49,8 @@ export default function Paywall({ onClose }) {
         <span className="pw-brand">
           Dream Rushes <span className="pw-plus">PLUS</span>
         </span>
-        <h1 className="pw-title">{t.paywall.headline}</h1>
-        <p className="pw-lede">{t.paywall.lede}</p>
+        <h1 className="pw-title">{t.paywall.headlineFor[reason] || t.paywall.headline}</h1>
+        <p className="pw-lede">{t.paywall.ledeFor[reason] || t.paywall.lede}</p>
       </div>
 
       <div className="pw-body">
@@ -58,6 +72,12 @@ export default function Paywall({ onClose }) {
           ))}
         </div>
 
+        {/* Warum Pakete teurer sind, einmal gesagt statt dreimal. Vorher
+            stand „verfallen nie" an jedem einzelnen Paket — dieselbe
+            Information dreifach, und der GRUND für den höheren Preis
+            nirgends. */}
+        {tab === "pack" && <p className="pw-packnote">{t.paywall.packNote}</p>}
+
         <div className="pw-plans">
           {plans.map((p) => (
             <button
@@ -74,8 +94,8 @@ export default function Paywall({ onClose }) {
                 </span>
                 <span className="pw-plan-sub">
                   {p.period
-                    ? t.paywall.creditsPerMonth(p.credits)
-                    : t.paywall.creditsOnce(p.credits)}
+                    ? t.paywall.creditsPer(p.credits, t.paywall.periodUnit[p.period])
+                    : t.paywall.packYield(dreamsFor(p.credits).images, dreamsFor(p.credits).films)}
                 </span>
               </span>
               <span className="pw-plan-price">
@@ -86,8 +106,33 @@ export default function Paywall({ onClose }) {
           ))}
         </div>
 
-        {/* The concrete promise: what the selected plan actually buys. */}
-        <p className="pw-yield">{t.paywall.yield(plan.credits, got.fiveImages, got.threeImages)}</p>
+        {/* Was der gewählte Tarif konkret hergibt — als zwei Zahlen mit
+            Symbol statt als Satz. Der Satz davor („45 Credits — etwa 9
+            Träume mit 5 Bildern, oder 15 mit 3…") stimmte zwar, aber er
+            musste gelesen und dann umgerechnet werden; hier steht die
+            Antwort schon da. Die Zahlen kommen aus dreamsFor(), also aus
+            derselben Quelle wie der echte Preis. */}
+        <div className="pw-yield">
+          <span className="pw-yield-item">
+            <IconImages />
+            <b>{got.images}</b>
+            <small>{t.paywall.yieldImages(got.images)}</small>
+          </span>
+          {/* Kein Filmsymbol mit einer 0 daneben: Das kleinste Paket reicht
+              fuer keinen Film, und eine Null auf einer Kaufseite liest sich
+              als Mangel, nicht als Information. Dann steht dort nur, was das
+              Guthaben WIRKLICH hergibt. */}
+          {got.films > 0 && (
+            <>
+              <span className="pw-yield-or">{t.paywall.yieldOr}</span>
+              <span className="pw-yield-item">
+                <IconFilm />
+                <b>{got.films}</b>
+                <small>{t.paywall.yieldFilms(got.films)}</small>
+              </span>
+            </>
+          )}
+        </div>
 
         <div className="pw-included">
           <h2 className="pw-included-title">{t.paywall.included}</h2>
@@ -101,7 +146,7 @@ export default function Paywall({ onClose }) {
 
         <div className="pw-foot">
           <Button onClick={() => toast(t.paywall.notYet)}>{t.paywall.cta}</Button>
-          <p className="pw-small">{t.paywall.balance(state.credits ?? 0)}</p>
+          <p className="pw-small">{t.paywall.balance(totalCredits(state))}</p>
         </div>
       </div>
     </div>

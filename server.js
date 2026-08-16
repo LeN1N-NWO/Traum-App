@@ -22,13 +22,18 @@
 // Without FAL_KEY the server still boots and serves the app; /api/generate
 // then returns a clear, actionable error instead of crashing.
 //
-// ⚠ LOCALHOST ONLY as it stands. /api/generate has no auth, no rate limit and
-// no per-user quota — exposing this to the internet lets anyone spend your
-// fal.ai/DeepSeek credits. Real accounts/quotas are blocked on the backend
-// decision still pending in docs/STAND.md; until then, don't bind it to a
-// public interface (or put an authenticating reverse proxy in front).
+// ⚠ Seit 10.08.2026 steht eine Schranke davor (src/lib/gatekeeper.js): eine
+// Mengenbegrenzung je Absender, die IMMER greift, und ein optionales
+// Geheimnis über API_TOKEN. Das ersetzt KEINE Benutzerverwaltung — es gibt
+// weiterhin keine Konten und kein serverseitiges Guthaben, das hängt an der
+// Backend-Entscheidung in docs/STAND.md. Für eine öffentliche Adresse
+// braucht es zusätzlich API_TOKEN und einen Proxy, der TLS beendet.
 
 import { resolve, sep } from "node:path";
+// Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
+// laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
+import { guard } from "./src/lib/gatekeeper.js";
+import { buildCharacterPrompt } from "./src/lib/promptBuilder.js";
 
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
@@ -1034,6 +1039,79 @@ async function storeMedia(url) {
   }
 }
 
+/* ── Abspann anhaengen ────────────────────────────────────────────────────
+ *
+ * Zwei Eigenheiten, die den Unterschied zwischen „laeuft" und „laeuft auch
+ * morgen" ausmachen:
+ *
+ * 1. TON. Die Filme von minimax haben eine AAC-Spur, das Standbild hat
+ *    keine. Ohne erzeugte Stille bricht `concat` mit einem Strommangel ab —
+ *    oder, schlimmer, laesst den Ton der ersten Haelfte einfach weg. Ob es
+ *    ueberhaupt Ton gibt, wird gemessen und nicht angenommen: ein Film ohne
+ *    Tonspur muss genauso durchgehen.
+ * 2. MASSE. Die Karte wird auf die Masse des Films skaliert und `setsar=1`
+ *    gesetzt. Ohne das kippt concat bei abweichendem Pixel-Seitenverhaeltnis
+ *    aus, und das faellt erst am krummen Bild auf.
+ *
+ * Das Ergebnis wird wie jede Datei nach Inhalt benannt und bleibt liegen:
+ * derselbe Film mit derselben Karte kostet genau einmal Rechenzeit.
+ */
+const OUTRO_SECONDS = 2;
+
+function ffprobeJson(file) {
+  const p = Bun.spawnSync(["ffprobe", "-v", "error", "-print_format", "json",
+                           "-show_streams", "-show_format", file]);
+  if (!p.success) throw new Error("NO_FFMPEG");
+  return JSON.parse(new TextDecoder().decode(p.stdout));
+}
+
+async function appendOutro(filmName, cardName) {
+  const film = resolve(MEDIA_DIR, filmName);
+  const card = resolve(MEDIA_DIR, cardName);
+
+  // Nach Inhalt benannt, nicht nach Zufall: zweimal derselbe Wunsch liefert
+  // dieselbe Datei zurueck, ohne zu rechnen.
+  const key = Bun.hash(`${filmName}|${cardName}|${OUTRO_SECONDS}`).toString(36);
+  const outName = `outro${key}.mp4`;
+  const out = resolve(MEDIA_DIR, outName);
+  if (await Bun.file(out).exists()) return `/media/${outName}`;
+
+  const info = ffprobeJson(film);
+  const v = (info.streams || []).find((x) => x.codec_type === "video");
+  const hasAudio = (info.streams || []).some((x) => x.codec_type === "audio");
+  if (!v) throw new Error("BAD_FILM");
+  const w = v.width, h = v.height;
+
+  const args = [
+    "-y", "-i", film,
+    "-loop", "1", "-t", String(OUTRO_SECONDS), "-i", card,
+  ];
+  // Der Ton der Karte: erzeugte Stille, exakt so lang wie sie steht.
+  if (hasAudio) {
+    args.push("-f", "lavfi", "-t", String(OUTRO_SECONDS),
+              "-i", "anullsrc=channel_layout=stereo:sample_rate=44100");
+  }
+  // Die Karte blendet auf, statt hart zu schneiden — ein Abspann faellt
+  // sonst in den letzten Bildeindruck hinein.
+  const cardChain = `[1:v]scale=${w}:${h},setsar=1,fade=t=in:st=0:d=0.45,format=yuv420p[c]`;
+  const concat = hasAudio
+    ? `${cardChain};[0:v][0:a][c][2:a]concat=n=2:v=1:a=1[v][a]`
+    : `${cardChain};[0:v][c]concat=n=2:v=1:a=0[v]`;
+
+  args.push("-filter_complex", concat, "-map", "[v]");
+  if (hasAudio) args.push("-map", "[a]", "-c:a", "aac", "-b:a", "128k");
+  args.push("-c:v", "libx264", "-crf", "20", "-preset", "veryfast",
+            "-pix_fmt", "yuv420p", "-movflags", "+faststart", out);
+
+  const run = Bun.spawnSync(["ffmpeg", ...args]);
+  if (!run.success) {
+    const err = new TextDecoder().decode(run.stderr).split("\n").slice(-4).join(" ");
+    console.error("[DreamRushes] ffmpeg:", err);
+    throw new Error("OUTRO_FAILED");
+  }
+  return `/media/${outName}`;
+}
+
 async function storeAll(urls) {
   return Promise.all(urls.map(async (u) => (await storeMedia(u)) || u));
 }
@@ -1260,6 +1338,28 @@ Bun.serve({
   async fetch(req, server) {
     const url = new URL(req.url);
 
+    /* Die Schranke vor allem, was Geld kostet. Steht ganz oben, damit kein
+     * Endpunkt sie versehentlich umgeht — die Klassen-Tabelle in
+     * gatekeeper.js entscheidet, was überhaupt betroffen ist, und alles
+     * Unbekannte (Oberfläche, /media, /api/job) läuft ungebremst durch.
+     *
+     * Die Absenderkennung kommt von Bun selbst, nicht aus einem Kopfzeile
+     * wie X-Forwarded-For: die kann jeder setzen, und ein Rate-Limit, das
+     * sich der Begrenzte selbst aussucht, ist keins. Hinter einem Proxy
+     * sähe der Server dann dessen Adresse — das ist beim heutigen Aufbau
+     * (localhost) richtig und muss beim Umzug hinter einen Proxy bewusst
+     * geändert werden. */
+    const verdict = guard(
+      url.pathname,
+      server.requestIP(req)?.address || "unknown",
+      req.headers.get("x-api-token"),
+      process.env.API_TOKEN,
+    );
+    if (!verdict.ok) {
+      return json({ error: verdict.error }, verdict.status,
+        verdict.retryAfter ? { "retry-after": String(verdict.retryAfter) } : undefined);
+    }
+
     if (url.pathname === "/api/voice") {
       if (server.upgrade(req, { data: { upstream: null } })) return undefined;
       return new Response("Expected a WebSocket upgrade.", { status: 426 });
@@ -1355,6 +1455,85 @@ Bun.serve({
         const hit = map[e.message];
         if (hit) return json({ error: hit[1] }, hit[0]);
         console.error("[DreamRushes] /api/transcribe failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    /* Der Charakterbogen: aus einer Beschreibung EIN Referenzbild.
+     *
+     * Eigener Endpunkt statt eines Sonderfalls in /api/generate, weil er
+     * etwas anderes tut: kein Traumbild, keine Szene, kein Stil, keine
+     * Referenzen — nur ein neutrales Porträt, das ab da SELBST die Referenz
+     * ist. Ein Flag in /api/generate hätte die Hälfte von dessen Prüfungen
+     * übersprungen und die andere Hälfte umgangen.
+     *
+     * Ein einziger fal-Aufruf, also derselbe Kostenrahmen wie ein Bild; die
+     * Skala in pricing.js verlangt trotzdem 2 Credits, weil die Referenz
+     * danach beliebig oft wiederverwendet wird.
+     */
+    /* Der Abspann: Film + Standbild zu einem neuen Film.
+     *
+     * Warum ueberhaupt serverseitig — im Browser gaebe es nur zwei Wege, und
+     * beide sind schlechter: ffmpeg.wasm waere ein Megabyte-Download fuer
+     * eine Nebensache, und Canvas plus MediaRecorder wuerde den fertigen
+     * Film neu abfilmen und dabei Qualitaet verlieren. Hier wird der
+     * Originalstrom nur einmal umkodiert.
+     *
+     * Und warum die KARTE trotzdem aus dem Browser kommt: ffmpegs `drawtext`
+     * braeuchte eine Schriftdatei, die auf einem fremden Server vielleicht
+     * nicht liegt. So kennt diese Route nur Pixel.
+     *
+     * ⚠ ffmpeg ist ein Systemprogramm, keine npm-Abhaengigkeit. Fehlt es,
+     * antwortet die Route mit 501 und der Client teilt den Film ohne
+     * Abspann — Teilen darf an einer Nettigkeit nicht scheitern.
+     */
+    if (url.pathname === "/api/film-outro" && req.method === "POST") {
+      try {
+        const body = await req.json();
+        const film = resolveMedia(String(body.film || ""));
+        const card = resolveMedia(String(body.card || ""));
+        // Nur eigene, selbst geschriebene Dateien — dieselbe Schranke wie
+        // beim Keyframe: der Client benennt einen Pfad, nie eine URL.
+        if (!film || film.ext !== "mp4") return json({ error: "Unknown film." }, 400);
+        if (!card || card.ext === "mp4") return json({ error: "Unknown end card." }, 400);
+        return json({ ok: true, url: await appendOutro(film.name, card.name) });
+      } catch (e) {
+        if (e.message === "NO_FFMPEG") {
+          return json({ error: "This server cannot add an end card." }, 501);
+        }
+        console.error("[DreamRushes] /api/film-outro failed:", e);
+        return json({ error: "Could not add the end card." }, 502);
+      }
+    }
+
+    if (url.pathname === "/api/character" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json();
+        const desc = sanitizePromptText(body.desc);
+        // Kurze Beschreibungen ergeben keine brauchbare Referenz — und der
+        // Aufruf kostet trotzdem. Die Grenze fängt „x" ab, bevor Geld fließt.
+        if (desc.length < 10) return json({ error: "Describe them a little more first." }, 400);
+        if (desc.length > 400) return json({ error: "Description too long." }, 400);
+        // Allowlist: die Kategorie wählt die Bildaufteilung, nichts wird
+        // interpoliert.
+        const category = ["person", "pet", "place"].includes(body.category) ? body.category : "person";
+
+        const urls = await falGenerateImage({
+          prompt: buildCharacterPrompt({ desc, category }),
+          aspectRatio: category === "place" ? "16:9" : undefined,
+        });
+        return json({ ok: true, urls: await storeAll(urls) });
+      } catch (e) {
+        const map = {
+          NO_FAL_KEY: [503, "Backend has no fal.ai key. Set FAL_KEY and restart."],
+          GENERATE_FAILED: [502, "Could not draw them. Try again."],
+        };
+        const hit = map[e.message];
+        if (hit) return json({ error: hit[1] }, hit[0]);
+        console.error("[DreamRushes] /api/character failed:", e);
         return json({ error: "Server error." }, 500);
       }
     }
@@ -1472,8 +1651,11 @@ Bun.serve({
   },
 });
 
-function json(obj, status = 200) {
-  return new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json" } });
+function json(obj, status = 200, extraHeaders) {
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { "content-type": "application/json", ...extraHeaders },
+  });
 }
 
 console.log(`Dream Rushes running → http://localhost:${PORT}`);

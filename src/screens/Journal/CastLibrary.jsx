@@ -17,7 +17,7 @@ export default function CastLibrary({ onBack }) {
 
   return (
     <>
-      <button className="j-back" onClick={onBack}>‹ {t.journal.title}</button>
+      <button className="j-back" onClick={onBack}><span data-flip aria-hidden="true">‹</span> {t.journal.title}</button>
       <ScreenHeader title={t.journal.library} subtitle={t.journal.libraryLede} />
 
       <h2 className="p-section">{t.profile.people}</h2>

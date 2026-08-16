@@ -4,6 +4,7 @@ import { AppStateProvider, useAppState } from "./state/AppState.jsx";
 import TabBar from "./components/TabBar.jsx";
 import Splash from "./components/Splash.jsx";
 import Toast from "./components/Toast.jsx";
+import Paywall from "./screens/Profile/Paywall.jsx";
 import HomeScreen from "./screens/Home/HomeScreen.jsx";
 import JournalScreen from "./screens/Journal/JournalScreen.jsx";
 import SleepScreen from "./screens/Sleep/SleepScreen.jsx";
@@ -24,6 +25,7 @@ export default function App() {
       {showSplash && <Splash onDone={() => setShowSplash(false)} />}
       <Gate />
       <ToastBridge />
+      <PaywallBridge />
     </AppStateProvider>
   );
 }
@@ -90,4 +92,13 @@ function AppRouter() {
 function ToastBridge() {
   const { toastText } = useAppState();
   return <Toast text={toastText} />;
+}
+
+/* Das Kaufblatt hängt hier ganz oben, nicht in den einzelnen Bildschirmen:
+   es wird aus dem Wizard, aus dem Journal, aus dem Avatar-Dialog und aus dem
+   Profil geöffnet. Fünf Einhängungen wären fünf Gelegenheiten, eine zu
+   vergessen — und die vergessene wäre wieder eine Sackgasse. */
+function PaywallBridge() {
+  const { paywall, closePaywall } = useAppState();
+  return paywall ? <Paywall reason={paywall} onClose={closePaywall} /> : null;
 }

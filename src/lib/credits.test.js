@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { canAfford, spend, welcomeGrant, WELCOME_CREDITS } from "./credits.js";
+import { canAfford, spend, welcomeGrant, WELCOME_CREDITS, totalCredits, refillAllowance } from "./credits.js";
 import { priceForImages, IMAGE_COUNTS, PRICES, PREVIEW_COUNT } from "./pricing.js";
 
 test("affordability compares against the balance", () => {
@@ -9,7 +9,7 @@ test("affordability compares against the balance", () => {
 });
 
 test("spending returns the reduced balance", () => {
-  expect(spend({ credits: 10 }, 3)).toEqual({ credits: 7 });
+  expect(spend({ credits: 10 }, 3)).toEqual({ credits: 7, allowance: 0 });
 });
 
 test("spending more than you have is refused, not allowed to go negative", () => {
@@ -18,7 +18,7 @@ test("spending more than you have is refused, not allowed to go negative", () =>
 
 test("free actions are always affordable", () => {
   expect(canAfford({ credits: 0 }, 0)).toBe(true);
-  expect(spend({ credits: 0 }, 0)).toEqual({ credits: 0 });
+  expect(spend({ credits: 0 }, 0)).toEqual({ credits: 0, allowance: 0 });
 });
 
 test("the welcome grant applies once", () => {
@@ -70,4 +70,44 @@ test("the quick look costs one render, not three", () => {
 test("the quick look still costs something", () => {
   expect(PRICES.preview).toBeGreaterThan(0);
   expect(WELCOME_CREDITS).toBeGreaterThan(PRICES.preview);
+});
+
+/* ── Die zwei Töpfe ───────────────────────────────────────────────────────
+   Diese Zeilen halten die eine Regel fest, an der alles hängt: Was verfällt,
+   wird zuerst ausgegeben. Andersherum verlöre jemand mit Abo bei jeder
+   Abrechnung genau die Credits, die er zusätzlich GEKAUFT hat — der Fehler
+   wäre still, teuer und in echtem Geld messbar. */
+test("what expires is spent first", () => {
+  expect(spend({ credits: 10, allowance: 5 }, 3)).toEqual({ allowance: 2, credits: 10 });
+});
+
+test("spending past the allowance dips into the bought credits, not before", () => {
+  expect(spend({ credits: 10, allowance: 5 }, 8)).toEqual({ allowance: 0, credits: 7 });
+});
+
+test("both pots together decide what is affordable", () => {
+  expect(canAfford({ credits: 2, allowance: 3 }, 5)).toBe(true);
+  expect(canAfford({ credits: 2, allowance: 3 }, 6)).toBe(false);
+  expect(totalCredits({ credits: 2, allowance: 3 })).toBe(5);
+});
+
+test("an allowance refill sets, never adds — and leaves bought credits alone", () => {
+  // „does not roll over" aus plans.js: daran haengt die Jahresrechnung.
+  expect(refillAllowance({ credits: 7, allowance: 30 }, 45)).toEqual({ allowance: 45, credits: 7 });
+  expect(refillAllowance({ credits: 7, allowance: 0 }, 45)).toEqual({ allowance: 45, credits: 7 });
+});
+
+test("the welcome gift is permanent, not an allowance", () => {
+  // „Dein erster Traum geht auf uns" ist ein Geschenk. Ein Geschenk, das zum
+  // Monatsende verfaellt, ist keins.
+  const grant = welcomeGrant({ credits: 0 });
+  expect(grant.credits).toBe(WELCOME_CREDITS);
+  expect(grant.allowance).toBeUndefined();
+});
+
+test("old installs without an allowance field still work", () => {
+  // Das Feld kam am 16.08. dazu; bestehende Tagebuecher haben es nicht.
+  expect(canAfford({ credits: 5 }, 5)).toBe(true);
+  expect(totalCredits({ credits: 5 })).toBe(5);
+  expect(totalCredits({})).toBe(0);
 });

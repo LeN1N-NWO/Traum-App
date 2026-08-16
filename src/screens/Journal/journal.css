@@ -31,7 +31,7 @@
 .j-list { display: flex; flex-direction: column; }
 .j-row {
   display: flex; gap: var(--s-4); align-items: center; width: 100%;
-  padding: var(--s-3) 0; cursor: pointer; text-align: left;
+  padding: var(--s-3) 0; cursor: pointer; text-align: start;
   background: none; border: none; border-bottom: 1px solid var(--panel-line);
   color: var(--text); font-family: var(--sans);
 }
@@ -64,7 +64,7 @@
 /* — the poster tile itself — */
 .j-tile {
   position: relative; display: block; width: 100%; aspect-ratio: 4 / 5;
-  padding: 0; overflow: hidden; cursor: pointer; text-align: left;
+  padding: 0; overflow: hidden; cursor: pointer; text-align: start;
   border: 1px solid var(--panel-line); border-radius: var(--radius-lg);
   background: var(--sky); color: var(--text); font-family: var(--sans);
 }
@@ -82,7 +82,7 @@
     rgb(var(--bg-rgb) / .92) 0%, rgb(var(--bg-rgb) / .72) 26%, rgb(var(--bg-rgb) / 0) 62%);
 }
 .j-tile-date {
-  position: absolute; top: var(--s-3); left: var(--s-3);
+  position: absolute; top: var(--s-3); inset-inline-start: var(--s-3);
   padding: 5px 11px; border-radius: 999px;
   background: var(--glass); backdrop-filter: blur(8px);
   border: 1px solid var(--panel-line);
@@ -154,7 +154,7 @@
 .j-references { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-4); }
 
 /* — detail: tools, menu, editing, refine proposal — */
-.j-modal-tools { position: absolute; top: var(--s-3); right: var(--s-3); display: flex; gap: var(--s-2); }
+.j-modal-tools { position: absolute; top: var(--s-3); inset-inline-end: var(--s-3); display: flex; gap: var(--s-2); }
 
 .j-menu-backdrop {
   position: fixed; inset: 0; z-index: 75; background: var(--veil);
@@ -170,7 +170,7 @@
   display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
   width: 100%; padding: var(--s-3) var(--s-4); border-radius: var(--radius);
   background: none; border: none; cursor: pointer;
-  color: var(--text); font-family: var(--sans); font-size: var(--t-body); text-align: left;
+  color: var(--text); font-family: var(--sans); font-size: var(--t-body); text-align: start;
 }
 .j-menu-item:hover { background: var(--panel); }
 .j-menu-item:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: -2px; }
@@ -229,7 +229,7 @@
 .j-library {
   display: flex; align-items: center; gap: var(--s-3); width: 100%;
   margin-bottom: var(--s-4); padding: var(--s-3) var(--s-4);
-  border-radius: var(--radius); cursor: pointer; text-align: left;
+  border-radius: var(--radius); cursor: pointer; text-align: start;
   background: var(--panel); border: 1px solid var(--panel-line);
   color: var(--text); font-family: var(--sans);
 }
@@ -322,7 +322,7 @@
    Schritt danach, zusammen mit dem, wofür sie gilt. */
 .j-make-btn {
   display: flex; align-items: center; gap: var(--s-3); width: 100%;
-  padding: 14px var(--s-4); cursor: pointer; text-align: left;
+  padding: 14px var(--s-4); cursor: pointer; text-align: start;
   border-radius: 999px; border: 1px solid transparent;
   background: var(--warm-grad); color: var(--bg); font-family: inherit;
   transition: opacity .14s ease-out, transform .14s ease-out;
@@ -399,7 +399,7 @@
 .j-sheet-lede { margin: var(--s-1) 0 var(--s-4); color: var(--muted); font-size: var(--t-small); }
 .j-sheet-item {
   display: flex; align-items: center; gap: var(--s-3); width: 100%;
-  padding: var(--s-3); margin-bottom: var(--s-2); cursor: pointer; text-align: left;
+  padding: var(--s-3); margin-bottom: var(--s-2); cursor: pointer; text-align: start;
   border-radius: var(--radius); border: 1px solid var(--panel-line);
   background: var(--panel); color: var(--text); font-family: inherit;
   transition: background .14s ease-out, border-color .14s ease-out;

@@ -15,7 +15,10 @@ export default function Step2Output({ w, patch }) {
 
   /** Save only: no generation, no cost, straight into the journal. */
   function saveOnly() {
-    const creature = newCreature(w.text);
+    // Der Stand VOR dem Hochzaehlen: die Serie, die man sich verdient
+    // hat, zaehlt fuer diesen Wurf — nicht die, die er gerade erst
+    // erzeugt. Sonst belohnte sich der allererste Traum selbst.
+    const creature = newCreature(w.text, refreshStreak(state).streak);
     const entry = {
       id: genId("e"),
       createdAt: new Date().toISOString(),
