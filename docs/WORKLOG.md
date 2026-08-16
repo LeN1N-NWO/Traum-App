@@ -3,6 +3,110 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-16 22:02 — Anton — Branch `session/2026-08-10-anton` (PR #11) — Sitzungsabschluss
+
+**Commits (neuester zuerst):** `6eabb8a` (Paywall mit Symbolen),
+`981b846` (Positionierung + Store-Texte), `2b2ac49` (zwei Guthaben-Töpfe,
+Paket-Kollision), `3538dc7` (Serie belohnt), `9ed09fd` (Abspann am
+Filmende), `65b5022` (Preise, Wochen-Abo, fünf Sackgassen), `42d757f`
+(Wachstumsplan), `c326d59` (Charakterbögen), `7d9de45` (Endpunkt-Schranke),
+`7303d3e` (Sternzeichen angebunden), `ae54f34` (RTL). Zustand: 114
+Unit-Tests, 50 Freigabe-Prüfungen, Prompt-Hygiene, 16 Kontrast-Paarungen,
+7 Sprachdateien, 22 Stilblätter — alles grün. `bun run lint` existiert
+weiterhin nicht.
+
+Lange Sitzung in zwei Hälften: erst vier technische Baustellen (A–D), dann
+ein recherchierter Wachstumsplan und dessen Umsetzung.
+
+**A — RTL.** Arabisch lief bis heute auf `dir="rtl"` allein. Das dreht
+Textfluss und logische Eigenschaften, aber kein `margin-left`. 23 Stellen
+in 9 Stilblättern umgestellt. Der Punkt, der über den Einzelfall
+hinausgeht: Solche Zeilen sehen in sechs von sieben Sprachen völlig
+richtig aus — deshalb hilft Aufmerksamkeit nicht, sondern nur eine
+Prüfung. Neu: `scripts/test-rtl.mjs` mit begründeter Ausnahmeliste. Für
+Zeichen, die eine Richtung MEINEN, gibt es `[data-flip]` — ein Attribut
+statt einer Klassenliste, damit der Nächste einen Pfeil markieren kann,
+ohne base.css zu kennen.
+
+**B — Sternzeichen.** `zodiac.js` lag seit dem 09.08. fertig da. Der
+eigentliche Mangel war größer: Die Umfrage stellte sechs Fragen und zeigte
+nie wieder etwas davon. Neue `DreamerCard` gibt alles zurück. Ausdrücklich
+kein Horoskop. Der Glyph brauchte drei Schichten (U+FE0E,
+`font-variant-emoji`, Schriftliste) — die ersten beiden allein ließen
+macOS weiter die Farb-Emoji-Schrift ziehen.
+
+**C — Endpunkt-Schranke.** Über `/api/generate` stand nur ein Kommentar
+„⚠ LOCALHOST ONLY". Jetzt `src/lib/gatekeeper.js`: Mengenbegrenzung je
+Absender (greift immer) plus optionales `API_TOKEN` (ohne gesetzte Variable
+bleibt alles offen — eine Sicherung, die alle als Erstes abschalten,
+sichert nichts). Am laufenden Server nachgemessen, nicht nur im Test.
+
+**D — Charakterbögen.** Ohne Foto erfindet der Renderer die Figur in jedem
+Bild neu; eine Zehnerstrecke zeigt zehn verschiedene Menschen mit demselben
+Namen. Jetzt ein neutrales Referenzporträt, das ab da wie ein Foto wirkt.
+
+**Der Fund zwischen C und D, und der ist der wichtigste dieser Sitzung:**
+Der neue Endpunkt aus D wäre von der Schranke aus C nicht erfasst gewesen —
+er kostet Geld und stand nicht in der Tabelle. Statt ihn nachzutragen ist
+die Voreinstellung umgedreht: alles unter `/api/` ist jetzt begrenzt,
+sofern nicht ausdrücklich befreit. **Eine Liste kann diesen Fehler nicht
+verhindern, eine Voreinstellung schon.**
+
+**Der Wachstumsplan** (`docs/plans/2026-08-16-wachstumsplan.md`) ist gegen
+die Branchendaten 2026 recherchiert (RevenueCat, Adapty, Rechtslage nach
+Epic v. Apple) und nach Hebel÷Aufwand sortiert. Davon umgesetzt: Punkte
+2, 3, 6, 7, 9.
+
+**Preise und Kaufwege.** Fünf Stellen endeten im selben Toast „Aufladen
+kommt bald" — die teuersten Momente der App, jeder eine Sackgasse. Jetzt
+öffnet jede das Kaufblatt, über eine Mechanik (`openPaywall()` im
+AppState) statt fünf Flicken. Das Blatt kennt seinen Anlass: Wer selbst
+geöffnet hat, sieht das Angebot; wem es in den Weg gesprungen ist, bekommt
+zuerst den Grund.
+
+Der Aha-Moment kommt bewusst NICHT am Ende des Onboardings, wo die
+Konversionszahlen ihn hinstellen würden — das Onboarding verspricht „Dein
+erster Traum geht auf uns", und direkt danach nach Geld zu fragen ist der
+Widerspruch, den man einer App nicht verzeiht. Stattdessen: wenn der erste
+selbst gemachte Traum fertig im Tagebuch liegt.
+
+**Antons zwei Funde beim Durchsehen, beide echte Fehler:**
+
+1. `pack-s` stand bei $4,99 für 15 Credits gegen das Wochen-Abo mit $4,99
+   für 12. Gleiches Geld, mehr Credits, verfallen nie — das Abo war strikt
+   das schlechtere Angebot. Mein Test hatte es durchgelassen, weil er den
+   Abopreis auf den Monat hochrechnete und dann je Credit verglich. Über
+   ein Jahr gewinnt das Wochen-Abo damit haushoch, nur vergleicht so
+   niemand. **Ein Test, der die richtige Zahl auf die falsche Frage prüft,
+   ist schlimmer als keiner: er beruhigt.**
+2. Die App konnte nicht unterscheiden, welche Credits verfallen. Es gab
+   eine Zahl. Damit wäre die erste Abo-Abrechnung nicht durchführbar
+   gewesen, ohne jemandem etwas wegzunehmen, das er gekauft hat. Jetzt
+   zwei Töpfe, und ausgegeben wird immer zuerst das Verfallende.
+
+**Was der Nächste wissen muss:**
+
+- **Der Abspann braucht ffmpeg** als Systemprogramm, keine npm-Abhängigkeit.
+  Fehlt es, antwortet `/api/film-outro` mit 501 und die App teilt den Film
+  unverändert. Die Karte wird im BROWSER gezeichnet (dort leben Schrift und
+  Palette), nur zusammengefügt wird serverseitig.
+- **`dreamsFor` rechnet den Filmpreis aus `video.js`**, statt ihn zu
+  wiederholen. Vorher stand dort `credits / 5`, während ein Film längst 7
+  kostet — die Paywall versprach 9 Filme, wo 6 drin sind. Wer den Filmpreis
+  ändert, muss nichts nachziehen; wer ihn irgendwo hart hinschreibt, schon.
+- **Plural ist in dieser App zweimal aufgetreten** („1 Credits", „1 Filme").
+  Wer eine Zahl neben ein Wort setzt, nimmt eine Funktion — die
+  Sprachdateien haben dafür `creditsN`, `yieldImages`, `yieldFilms`, jede
+  mit der Regel ihrer Sprache. Arabisch hat Einzahl, Zweizahl, Mehrzahl
+  3–10 und danach wieder Einzahl.
+- **Die Serie belohnt, sie bestraft nie.** Wer daran weiterbaut: keine
+  Countdowns, nichts Eingefrorenes, keine Verlustdrohung. Begründung im
+  Kopf von `streak.js`.
+- **`check-i18n-shape.mjs` stürzte bei `null` ab** statt zu melden
+  (`typeof null === "object"`). Behoben — aber die Lehre gilt weiter: ein
+  Prüfwerkzeug, das bei ungewohnter Eingabe abstürzt, sagt nur, DASS etwas
+  kaputt ist.
+
 ## 2026-08-10 12:40 — Anton — Branch `session/2026-08-10-anton-seed` — Sitzungsabschluss
 
 **Commits:** `0d1db75` (geteiltes Test-Journal) + der Doku-Commit dieser Zeilen.
