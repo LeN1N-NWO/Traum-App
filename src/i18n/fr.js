@@ -583,9 +583,11 @@ export default {
       month: "mois",
       year: "mois",
     },
-    creditsOnce: (n) => `${n} crédits, n'expirent jamais`,
-    yield: (credits, five, three) =>
-      `${credits} crédits — environ ${five} rêves avec 5 images, ou ${three} avec 3. Un film coûte autant que 5 images.`,
+    yieldImages: (n) => (n === 1 ? "image" : "images"),
+    yieldFilms: (n) => (n === 1 ? "film" : "films"),
+    yieldOr: "ou",
+    packNote: "Ceux-ci n'expirent jamais : pas d'abonnement, pas de remise à zéro. C'est ce qui les rend plus chers par crédit.",
+    packYield: (i, f) => (f ? `${i} images, ou ${f} films` : `${i} images`),
     included: "Toujours inclus, gratuit",
     chips: [
       "Journal illimité", "Enregistrement vocal", "Réécriture par IA",

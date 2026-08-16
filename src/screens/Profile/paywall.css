@@ -71,10 +71,35 @@
 .pw-plan-price b { font-size: var(--t-h3); }
 .pw-plan-price small { color: var(--faint); font-size: var(--t-micro); }
 
+/* Was das Guthaben hergibt: zwei Zahlen mit Symbol, nicht ein Satz. Die
+   Zahl trägt, das Symbol sagt wovon, das Wort darunter ist nur noch
+   Beschriftung — in dieser Reihenfolge liest man es auch. */
 .pw-yield {
-  margin: var(--s-4) 0 0; padding: var(--s-3) var(--s-4);
+  display: flex; align-items: center; justify-content: center; gap: var(--s-5);
+  margin: var(--s-4) 0 0; padding: var(--s-4);
   border-radius: var(--radius); background: var(--panel); border: 1px solid var(--panel-line);
-  color: var(--muted); font-size: var(--t-small);
+}
+.pw-yield-item {
+  display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto;
+  align-items: center; column-gap: var(--s-2);
+}
+.pw-yield-item svg { grid-row: 1 / 3; color: var(--accent-soft); width: 26px; height: 26px; }
+.pw-yield-item b {
+  font-family: var(--serif); font-size: 26px; font-weight: 400; line-height: 1;
+  font-variant-numeric: tabular-nums; align-self: end;
+}
+.pw-yield-item small { color: var(--faint); font-size: var(--t-micro); align-self: start; }
+/* Das „oder" ist Bindeglied, kein Inhalt — es tritt entsprechend zurück. */
+.pw-yield-or { color: var(--faint); font-size: var(--t-small); }
+
+/* Warum Pakete teurer sind. Warm abgesetzt, weil es eine Einschränkung
+   erklärt und keine Eigenschaft anpreist. */
+.pw-packnote {
+  margin: var(--s-3) 0 0; padding: var(--s-3) var(--s-4);
+  border-inline-start: 2px solid color-mix(in oklab, var(--warm) 60%, transparent);
+  background: color-mix(in oklab, var(--warm) 8%, transparent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--muted); font-size: var(--t-small); line-height: 1.5;
 }
 
 .pw-included { margin-top: var(--s-5); }

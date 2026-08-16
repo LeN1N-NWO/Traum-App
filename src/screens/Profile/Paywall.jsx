@@ -4,6 +4,7 @@ import { SUBSCRIPTIONS, PACKS, dreamsFor } from "../../lib/plans.js";
 import { totalCredits } from "../../lib/credits.js";
 import { t } from "../../i18n/index.js";
 import Button from "../../components/Button.jsx";
+import { IconImages, IconFilm } from "../../components/icons.jsx";
 import "./paywall.css";
 
 /* The shop window. Opened from anywhere via openPaywall(reason) — the credits
@@ -71,6 +72,12 @@ export default function Paywall({ reason = "browse", onClose }) {
           ))}
         </div>
 
+        {/* Warum Pakete teurer sind, einmal gesagt statt dreimal. Vorher
+            stand „verfallen nie" an jedem einzelnen Paket — dieselbe
+            Information dreifach, und der GRUND für den höheren Preis
+            nirgends. */}
+        {tab === "pack" && <p className="pw-packnote">{t.paywall.packNote}</p>}
+
         <div className="pw-plans">
           {plans.map((p) => (
             <button
@@ -88,7 +95,7 @@ export default function Paywall({ reason = "browse", onClose }) {
                 <span className="pw-plan-sub">
                   {p.period
                     ? t.paywall.creditsPer(p.credits, t.paywall.periodUnit[p.period])
-                    : t.paywall.creditsOnce(p.credits)}
+                    : t.paywall.packYield(dreamsFor(p.credits).images, dreamsFor(p.credits).films)}
                 </span>
               </span>
               <span className="pw-plan-price">
@@ -99,8 +106,33 @@ export default function Paywall({ reason = "browse", onClose }) {
           ))}
         </div>
 
-        {/* The concrete promise: what the selected plan actually buys. */}
-        <p className="pw-yield">{t.paywall.yield(plan.credits, got.fiveImages, got.threeImages)}</p>
+        {/* Was der gewählte Tarif konkret hergibt — als zwei Zahlen mit
+            Symbol statt als Satz. Der Satz davor („45 Credits — etwa 9
+            Träume mit 5 Bildern, oder 15 mit 3…") stimmte zwar, aber er
+            musste gelesen und dann umgerechnet werden; hier steht die
+            Antwort schon da. Die Zahlen kommen aus dreamsFor(), also aus
+            derselben Quelle wie der echte Preis. */}
+        <div className="pw-yield">
+          <span className="pw-yield-item">
+            <IconImages />
+            <b>{got.images}</b>
+            <small>{t.paywall.yieldImages(got.images)}</small>
+          </span>
+          {/* Kein Filmsymbol mit einer 0 daneben: Das kleinste Paket reicht
+              fuer keinen Film, und eine Null auf einer Kaufseite liest sich
+              als Mangel, nicht als Information. Dann steht dort nur, was das
+              Guthaben WIRKLICH hergibt. */}
+          {got.films > 0 && (
+            <>
+              <span className="pw-yield-or">{t.paywall.yieldOr}</span>
+              <span className="pw-yield-item">
+                <IconFilm />
+                <b>{got.films}</b>
+                <small>{t.paywall.yieldFilms(got.films)}</small>
+              </span>
+            </>
+          )}
+        </div>
 
         <div className="pw-included">
           <h2 className="pw-included-title">{t.paywall.included}</h2>

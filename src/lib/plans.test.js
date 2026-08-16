@@ -1,5 +1,6 @@
 import { test, expect } from "bun:test";
 import { SUBSCRIPTIONS, PACKS, CREDIT_COST_USD, dreamsFor } from "./plans.js";
+import { priceForFilm, videoModel } from "./video.js";
 
 const num = (price) => Number(String(price).replace(/[^0-9.]/g, ""));
 
@@ -97,9 +98,22 @@ test("exactly one subscription is featured", () => {
   expect(SUBSCRIPTIONS.filter((p) => p.featured).length).toBe(1);
 });
 
-test("dreamsFor stays whole — half a dream buys nothing", () => {
-  const got = dreamsFor(12);
-  expect(got.fiveImages).toBe(2);
-  expect(got.threeImages).toBe(4);
-  expect(Number.isInteger(got.films)).toBe(true);
+/* Die zwei Zahlen auf der Paywall. Der Filmpreis wird aus video.js
+   BERECHNET, nicht hier wiederholt — bis zum 16.08. stand in dreamsFor
+   `credits / 5`, weil ein Film einmal fuenf Credits kostete. Er kostet
+   laengst sieben (sechs Sekunden plus Keyframe), und die Paywall versprach
+   entsprechend zu viel. Diese Zeilen halten fest, dass die Zahl mitwandert. */
+test("what a balance buys is whole, and never promises more than it can", () => {
+  const perFilm = priceForFilm("standard", videoModel("standard").preset);
+  for (const credits of [6, 12, 18, 45, 540]) {
+    const got = dreamsFor(credits);
+    expect(got.images).toBe(credits);                 // 1 Credit = 1 Bild
+    expect(Number.isInteger(got.films)).toBe(true);   // keine halben Filme
+    expect(got.films * perFilm).toBeLessThanOrEqual(credits);
+  }
+});
+
+test("a balance too small for a film says zero, not one", () => {
+  // Sonst stuende auf der Paywall eine 1, die man nicht einloesen kann.
+  expect(dreamsFor(1).films).toBe(0);
 });

@@ -581,9 +581,11 @@ export default {
       month: "月",
       year: "月",
     },
-    creditsOnce: (n) => `${n} 点数，永不过期`,
-    yield: (credits, five, three) =>
-      `${credits} 点数——大约可生成 ${five} 个 5 张图的梦，或 ${three} 个 3 张图的梦。一部影片的花费和 5 张图相同。`,
+    yieldImages: (n) => "张图",
+    yieldFilms: (n) => "部影片",
+    yieldOr: "或",
+    packNote: "这些永不过期——不用订阅，也不会清零。正因如此，单价更高。",
+    packYield: (i, f) => (f ? `${i} 张图，或 ${f} 部影片` : `${i} 张图`),
     included: "始终包含，完全免费",
     chips: [
       "无限记录日记", "语音录制", "AI 润色重写",

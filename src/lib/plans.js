@@ -54,6 +54,8 @@
  * conversion FIRST after launch, before trusting any number in this file.
  */
 
+import { priceForFilm, videoModel } from "./video.js";
+
 // What one credit costs us, in USD. Every price below derives from it.
 export const CREDIT_COST_USD = 0.08;
 
@@ -126,11 +128,19 @@ export const PACKS = [
   { id: "pack-l", price: "$14.99", credits: 32 },
 ];
 
-/** Roughly how many dreams a credit balance buys, for the "what you get" line. */
+/** Was ein Guthaben konkret hergibt — die Zahlen hinter den zwei Symbolen
+ *  auf der Paywall.
+ *
+ *  Der Filmpreis wird BERECHNET, nicht angenommen: Bis zum 16.08.2026 stand
+ *  hier `credits / 5`, weil ein Film einmal fünf Credits kostete. Er kostet
+ *  längst sieben (sechs Sekunden Voreinstellung plus ein Keyframe), und die
+ *  Paywall versprach entsprechend zu viel. Ein Preis, der an zwei Stellen
+ *  steht, driftet — also steht er nur noch an einer.
+ */
 export function dreamsFor(credits) {
+  const perFilm = priceForFilm("standard", videoModel("standard").preset);
   return {
-    fiveImages: Math.floor(credits / 5),
-    threeImages: Math.floor(credits / 3),
-    films: Math.floor(credits / 5),
+    images: credits,                          // 1 Credit = 1 Bild, per Definition
+    films: Math.floor(credits / perFilm),
   };
 }
