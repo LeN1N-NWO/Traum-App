@@ -1039,6 +1039,79 @@ async function storeMedia(url) {
   }
 }
 
+/* ── Abspann anhaengen ────────────────────────────────────────────────────
+ *
+ * Zwei Eigenheiten, die den Unterschied zwischen „laeuft" und „laeuft auch
+ * morgen" ausmachen:
+ *
+ * 1. TON. Die Filme von minimax haben eine AAC-Spur, das Standbild hat
+ *    keine. Ohne erzeugte Stille bricht `concat` mit einem Strommangel ab —
+ *    oder, schlimmer, laesst den Ton der ersten Haelfte einfach weg. Ob es
+ *    ueberhaupt Ton gibt, wird gemessen und nicht angenommen: ein Film ohne
+ *    Tonspur muss genauso durchgehen.
+ * 2. MASSE. Die Karte wird auf die Masse des Films skaliert und `setsar=1`
+ *    gesetzt. Ohne das kippt concat bei abweichendem Pixel-Seitenverhaeltnis
+ *    aus, und das faellt erst am krummen Bild auf.
+ *
+ * Das Ergebnis wird wie jede Datei nach Inhalt benannt und bleibt liegen:
+ * derselbe Film mit derselben Karte kostet genau einmal Rechenzeit.
+ */
+const OUTRO_SECONDS = 2;
+
+function ffprobeJson(file) {
+  const p = Bun.spawnSync(["ffprobe", "-v", "error", "-print_format", "json",
+                           "-show_streams", "-show_format", file]);
+  if (!p.success) throw new Error("NO_FFMPEG");
+  return JSON.parse(new TextDecoder().decode(p.stdout));
+}
+
+async function appendOutro(filmName, cardName) {
+  const film = resolve(MEDIA_DIR, filmName);
+  const card = resolve(MEDIA_DIR, cardName);
+
+  // Nach Inhalt benannt, nicht nach Zufall: zweimal derselbe Wunsch liefert
+  // dieselbe Datei zurueck, ohne zu rechnen.
+  const key = Bun.hash(`${filmName}|${cardName}|${OUTRO_SECONDS}`).toString(36);
+  const outName = `outro${key}.mp4`;
+  const out = resolve(MEDIA_DIR, outName);
+  if (await Bun.file(out).exists()) return `/media/${outName}`;
+
+  const info = ffprobeJson(film);
+  const v = (info.streams || []).find((x) => x.codec_type === "video");
+  const hasAudio = (info.streams || []).some((x) => x.codec_type === "audio");
+  if (!v) throw new Error("BAD_FILM");
+  const w = v.width, h = v.height;
+
+  const args = [
+    "-y", "-i", film,
+    "-loop", "1", "-t", String(OUTRO_SECONDS), "-i", card,
+  ];
+  // Der Ton der Karte: erzeugte Stille, exakt so lang wie sie steht.
+  if (hasAudio) {
+    args.push("-f", "lavfi", "-t", String(OUTRO_SECONDS),
+              "-i", "anullsrc=channel_layout=stereo:sample_rate=44100");
+  }
+  // Die Karte blendet auf, statt hart zu schneiden — ein Abspann faellt
+  // sonst in den letzten Bildeindruck hinein.
+  const cardChain = `[1:v]scale=${w}:${h},setsar=1,fade=t=in:st=0:d=0.45,format=yuv420p[c]`;
+  const concat = hasAudio
+    ? `${cardChain};[0:v][0:a][c][2:a]concat=n=2:v=1:a=1[v][a]`
+    : `${cardChain};[0:v][c]concat=n=2:v=1:a=0[v]`;
+
+  args.push("-filter_complex", concat, "-map", "[v]");
+  if (hasAudio) args.push("-map", "[a]", "-c:a", "aac", "-b:a", "128k");
+  args.push("-c:v", "libx264", "-crf", "20", "-preset", "veryfast",
+            "-pix_fmt", "yuv420p", "-movflags", "+faststart", out);
+
+  const run = Bun.spawnSync(["ffmpeg", ...args]);
+  if (!run.success) {
+    const err = new TextDecoder().decode(run.stderr).split("\n").slice(-4).join(" ");
+    console.error("[DreamRushes] ffmpeg:", err);
+    throw new Error("OUTRO_FAILED");
+  }
+  return `/media/${outName}`;
+}
+
 async function storeAll(urls) {
   return Promise.all(urls.map(async (u) => (await storeMedia(u)) || u));
 }
@@ -1398,6 +1471,41 @@ Bun.serve({
      * Skala in pricing.js verlangt trotzdem 2 Credits, weil die Referenz
      * danach beliebig oft wiederverwendet wird.
      */
+    /* Der Abspann: Film + Standbild zu einem neuen Film.
+     *
+     * Warum ueberhaupt serverseitig — im Browser gaebe es nur zwei Wege, und
+     * beide sind schlechter: ffmpeg.wasm waere ein Megabyte-Download fuer
+     * eine Nebensache, und Canvas plus MediaRecorder wuerde den fertigen
+     * Film neu abfilmen und dabei Qualitaet verlieren. Hier wird der
+     * Originalstrom nur einmal umkodiert.
+     *
+     * Und warum die KARTE trotzdem aus dem Browser kommt: ffmpegs `drawtext`
+     * braeuchte eine Schriftdatei, die auf einem fremden Server vielleicht
+     * nicht liegt. So kennt diese Route nur Pixel.
+     *
+     * ⚠ ffmpeg ist ein Systemprogramm, keine npm-Abhaengigkeit. Fehlt es,
+     * antwortet die Route mit 501 und der Client teilt den Film ohne
+     * Abspann — Teilen darf an einer Nettigkeit nicht scheitern.
+     */
+    if (url.pathname === "/api/film-outro" && req.method === "POST") {
+      try {
+        const body = await req.json();
+        const film = resolveMedia(String(body.film || ""));
+        const card = resolveMedia(String(body.card || ""));
+        // Nur eigene, selbst geschriebene Dateien — dieselbe Schranke wie
+        // beim Keyframe: der Client benennt einen Pfad, nie eine URL.
+        if (!film || film.ext !== "mp4") return json({ error: "Unknown film." }, 400);
+        if (!card || card.ext === "mp4") return json({ error: "Unknown end card." }, 400);
+        return json({ ok: true, url: await appendOutro(film.name, card.name) });
+      } catch (e) {
+        if (e.message === "NO_FFMPEG") {
+          return json({ error: "This server cannot add an end card." }, 501);
+        }
+        console.error("[DreamRushes] /api/film-outro failed:", e);
+        return json({ error: "Could not add the end card." }, 502);
+      }
+    }
+
     if (url.pathname === "/api/character" && req.method === "POST") {
       try {
         if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {

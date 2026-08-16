@@ -91,6 +91,15 @@ export async function uploadPanel(blob) {
   return data.url;
 }
 
+/** Haengt den Abspann an einen bereits gerenderten Film und gibt den Pfad
+ *  der neuen Datei zurueck. Wirft, wenn der Server es nicht kann (501) —
+ *  share.js faengt das ab und teilt dann das Original. */
+export async function filmWithOutro(film, card) {
+  const data = await post("/api/film-outro", { film, card });
+  if (typeof data?.url !== "string") throw new Error(t.errors.unexpected);
+  return data.url;
+}
+
 /** Where a queued film stands: "pending" | "done" | "failed" | "unknown". */
 export async function jobStatus(id) {
   const res = await fetch(`${API_BASE}/api/job?id=${encodeURIComponent(id)}`);
