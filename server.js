@@ -22,13 +22,17 @@
 // Without FAL_KEY the server still boots and serves the app; /api/generate
 // then returns a clear, actionable error instead of crashing.
 //
-// ⚠ LOCALHOST ONLY as it stands. /api/generate has no auth, no rate limit and
-// no per-user quota — exposing this to the internet lets anyone spend your
-// fal.ai/DeepSeek credits. Real accounts/quotas are blocked on the backend
-// decision still pending in docs/STAND.md; until then, don't bind it to a
-// public interface (or put an authenticating reverse proxy in front).
+// ⚠ Seit 10.08.2026 steht eine Schranke davor (src/lib/gatekeeper.js): eine
+// Mengenbegrenzung je Absender, die IMMER greift, und ein optionales
+// Geheimnis über API_TOKEN. Das ersetzt KEINE Benutzerverwaltung — es gibt
+// weiterhin keine Konten und kein serverseitiges Guthaben, das hängt an der
+// Backend-Entscheidung in docs/STAND.md. Für eine öffentliche Adresse
+// braucht es zusätzlich API_TOKEN und einen Proxy, der TLS beendet.
 
 import { resolve, sep } from "node:path";
+// Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
+// laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
+import { guard } from "./src/lib/gatekeeper.js";
 
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
@@ -1260,6 +1264,28 @@ Bun.serve({
   async fetch(req, server) {
     const url = new URL(req.url);
 
+    /* Die Schranke vor allem, was Geld kostet. Steht ganz oben, damit kein
+     * Endpunkt sie versehentlich umgeht — die Klassen-Tabelle in
+     * gatekeeper.js entscheidet, was überhaupt betroffen ist, und alles
+     * Unbekannte (Oberfläche, /media, /api/job) läuft ungebremst durch.
+     *
+     * Die Absenderkennung kommt von Bun selbst, nicht aus einem Kopfzeile
+     * wie X-Forwarded-For: die kann jeder setzen, und ein Rate-Limit, das
+     * sich der Begrenzte selbst aussucht, ist keins. Hinter einem Proxy
+     * sähe der Server dann dessen Adresse — das ist beim heutigen Aufbau
+     * (localhost) richtig und muss beim Umzug hinter einen Proxy bewusst
+     * geändert werden. */
+    const verdict = guard(
+      url.pathname,
+      server.requestIP(req)?.address || "unknown",
+      req.headers.get("x-api-token"),
+      process.env.API_TOKEN,
+    );
+    if (!verdict.ok) {
+      return json({ error: verdict.error }, verdict.status,
+        verdict.retryAfter ? { "retry-after": String(verdict.retryAfter) } : undefined);
+    }
+
     if (url.pathname === "/api/voice") {
       if (server.upgrade(req, { data: { upstream: null } })) return undefined;
       return new Response("Expected a WebSocket upgrade.", { status: 426 });
@@ -1472,8 +1498,11 @@ Bun.serve({
   },
 });
 
-function json(obj, status = 200) {
-  return new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json" } });
+function json(obj, status = 200, extraHeaders) {
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { "content-type": "application/json", ...extraHeaders },
+  });
 }
 
 console.log(`Dream Rushes running → http://localhost:${PORT}`);
