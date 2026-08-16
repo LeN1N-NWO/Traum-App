@@ -27,3 +27,26 @@ export function zodiacOf(date) {
   }
   return "capricorn";   // December 22–31
 }
+
+/* The glyph for a sign. Unicode, not artwork: ♈–♓ have been in every font
+ * since forever, they carry no style of their own, and they need no
+ * translation — which is the whole point next to twelve names that do. */
+const GLYPHS = {
+  aries: "♈", taurus: "♉", gemini: "♊", cancer: "♋",
+  leo: "♌", virgo: "♍", libra: "♎", scorpio: "♏",
+  sagittarius: "♐", capricorn: "♑", aquarius: "♒", pisces: "♓",
+};
+
+/* The trailing U+FE0E is not decoration — it is the whole reason this reads
+ * as a glyph. \u2648-\u2653 have an emoji presentation, and macOS and Android pick
+ * it by default: without the variation selector the profile shows a purple
+ * rounded square in an icon set that has no emoji anywhere else. FE0E asks
+ * for the text presentation, which then inherits colour and weight like any
+ * other character. Seen and fixed 10.08.2026. */
+export function zodiacGlyph(id) {
+  return GLYPHS[id] ? GLYPHS[id] + "\uFE0E" : "";
+}
+
+/** Every sign id, in calendar order. Exported so the i18n shape check and any
+ *  future picker walk the same list instead of hard-coding twelve strings. */
+export const ZODIAC_IDS = SIGNS.map(([id]) => id);

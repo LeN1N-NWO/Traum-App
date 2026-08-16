@@ -261,3 +261,56 @@
 .p-survey-body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .p-survey-title { font-weight: 600; font-size: var(--t-small); }
 .p-survey-hint { color: var(--accent-soft); font-size: var(--t-micro); font-weight: 600; }
+
+/* — Was du mir erzählt hast —
+   Der Block liest sich als Karte, nicht als Formular: keine Eingabefelder,
+   keine Häkchen, nur das Gesagte in Ruhe zurückgegeben. Geändert wird es,
+   indem man es noch einmal erzählt — deshalb steht der Knopf oben neben der
+   Überschrift und nicht als „Bearbeiten" an jeder Zeile. */
+.p-dreamer {
+  margin-top: var(--s-5); padding: var(--s-4);
+  border-radius: var(--radius); background: var(--panel);
+  border: 1px solid var(--panel-line);
+}
+.p-dreamer-top { display: flex; align-items: baseline; gap: var(--s-3); margin-bottom: var(--s-4); }
+.p-dreamer-title {
+  font-family: var(--serif); font-size: var(--t-h3); font-weight: 400;
+  margin: 0; margin-inline-end: auto;
+}
+.p-dreamer-redo {
+  background: none; border: none; cursor: pointer; padding: 0;
+  color: var(--accent-soft); font-family: var(--sans); font-size: var(--t-small);
+}
+.p-dreamer-redo:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 6px; }
+
+/* Das Sternzeichen trägt den Block optisch — deshalb groß und golden. Es
+   sagt nichts voraus; es steht hier wie ein Name steht. */
+.p-sign { display: flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-4); }
+.p-sign-glyph {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: radial-gradient(60% 60% at 50% 40%, rgb(246 198 91 / .24), transparent 75%);
+  color: var(--gold); font-size: 24px; line-height: 1;
+  /* Drei Schichten, weil zwei nicht reichten (gemessen 10.08.): der
+     Variantenselektor U+FE0E in zodiac.js und `font-variant-emoji` allein
+     ließen Chrome unter macOS weiter die Farb-Emoji-Schrift ziehen — im
+     Profil stand eine lila Kachel in einem Satz, der sonst kein Emoji
+     kennt. Erst eine Schriftliste, in der die Symbolschriften VOR der
+     Systemschrift stehen, entscheidet es. */
+  font-variant-emoji: text;
+  font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols 2", var(--sans);
+}
+.p-sign-name { font-family: var(--serif); font-size: var(--t-h3); }
+
+.p-facts { display: flex; flex-direction: column; gap: var(--s-2); margin: 0 0 var(--s-4); }
+.p-fact { display: flex; align-items: baseline; gap: var(--s-3); }
+.p-fact dt { color: var(--faint); font-size: var(--t-small); margin-inline-end: auto; }
+.p-fact dd { margin: 0; font-size: var(--t-small); font-weight: 600; text-align: end; }
+
+.p-themes-label { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-2); }
+.p-themes { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; }
+.p-theme {
+  padding: 5px 12px; border-radius: 999px;
+  background: var(--accent-wash); color: var(--accent-soft);
+  font-size: var(--t-small); font-weight: 600;
+}

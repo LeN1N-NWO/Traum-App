@@ -6,6 +6,7 @@ import AvatarDialog from "../../components/AvatarDialog.jsx";
 import OnboardingSurvey from "../Onboarding/OnboardingSurvey.jsx";
 import Paywall from "./Paywall.jsx";
 import Settings from "./Settings.jsx";
+import DreamerCard from "./DreamerCard.jsx";
 import { IconGear } from "../../components/icons.jsx";
 import "./profile.css";
 
@@ -96,6 +97,10 @@ export default function ProfileScreen() {
           <span aria-hidden="true" data-flip>›</span>
         </button>
       )}
+
+      {/* What they told the assistant, shown back — see DreamerCard for why
+          this exists and why it stops short of astrology. */}
+      <DreamerCard profile={state.profile} onRetake={() => setSurvey(true)} />
 
       {survey && (
         <OnboardingSurvey onDone={surveyDone} onCancel={() => setSurvey(false)} />
