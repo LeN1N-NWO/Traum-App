@@ -328,6 +328,7 @@ export default {
     creditsN: (n) => (n === 1 ? "رصيد" : n === 2 ? "رصيدان" : n <= 10 ? "أرصدة" : "رصيدًا"),
     tooShort: "⚠ اكتب المزيد أولًا.",
     noCredits: "لا يوجد رصيد كافٍ. إعادة الشحن قادمة قريبًا.",
+    noCreditsCta: "اطّلع على الأسعار",
     progress: (n, total) => `الخطوة ${n} من ${total}`,
 
     step1: {
@@ -558,14 +559,33 @@ export default {
     close: "إغلاق",
     headline: "أحلامك، كأفلام.",
     lede: "تبقى الكتابة والصوت وكل ما في تبويب النوم مجانيًا. الرصيد مخصص فقط لما يجب على المُولِّد رسمه.",
+    /* Die Ueberschrift richtet sich nach dem Anlass: wer selbst geoeffnet
+       hat, bekommt das Angebot; wem das Blatt in den Weg gesprungen ist,
+       bekommt zuerst den Grund. Siehe Paywall.jsx. */
+    headlineFor: {
+      browse: "أحلامك، أفلامًا.",
+      spent: "نفد رصيدك.",
+      first: "كان ذلك أوّلك.",
+    },
+    ledeFor: {
+      spent: "هذا وحده ما يتوقّف هنا. الكتابة والكلام وكلّ ما في تبويب النوم يبقى مجّانيًّا.",
+      first: "صار في دفترك، وهو لك. التالي يحتاج رصيدًا — وهذه أسعاره.",
+    },
     tabSub: "اشترك",
     tabPack: "شراء رصيد",
-    periodName: { month: "شهري", year: "سنوي" },
+    periodName: { week: "أسبوعي", month: "شهري", year: "سنوي" },
     packName: (n) => `${n} رصيد`,
-    per: { month: "شهريًا", year: "سنويًا" },
+    per: { week: "أسبوعيًّا", month: "شهريًا", year: "سنويًا" },
     oneTime: "دفعة واحدة",
     save: (pct) => `وفّر ${pct}`,
-    creditsPerMonth: (n) => `${n} رصيد كل شهر`,
+    creditsPer: (n, period) => `${n} رصيدًا كلّ ${period}`,
+    /* Jahresabo zaehlt in MONATEN, nicht in Jahren: das Guthaben
+       kommt monatlich, der Preis wird jaehrlich abgebucht. */
+    periodUnit: {
+      week: "أسبوع",
+      month: "شهر",
+      year: "شهر",
+    },
     creditsOnce: (n) => `${n} رصيد، لا ينتهي أبدًا`,
     yield: (credits, five, three) =>
       `${credits} رصيد — أي ما يقارب ${five} حلمًا بـ5 صور، أو ${three} بـ3 صور. يكلّف الفيلم مثل 5 صور.`,

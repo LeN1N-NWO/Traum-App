@@ -278,3 +278,16 @@
 .wiz-or::before, .wiz-or::after {
   content: ""; flex: 1; height: 1px; background: var(--panel-line);
 }
+
+/* Der Weg aus dem leeren Guthaben. Kein Satz, der nur feststellt — vorher
+   stand hier „Nicht genug Credits. Aufladen kommt bald.", also eine Sackgasse
+   an der teuersten Stelle der App. */
+.wiz-topup {
+  width: 100%; margin-top: var(--s-3); padding: var(--s-3);
+  border-radius: 999px; cursor: pointer;
+  background: none; border: 1px solid var(--panel-line);
+  color: var(--accent-soft); font-family: var(--sans);
+  font-size: var(--t-small); font-weight: 600;
+}
+.wiz-topup:hover { border-color: var(--accent-soft); }
+.wiz-topup:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }

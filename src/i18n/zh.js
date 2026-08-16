@@ -323,6 +323,7 @@ export default {
     creditsN: (n) => "点数",   // Chinesisch kennt keine Pluralform; n bleibt ungenutzt
     tooShort: "⚠ 请先多写一点。",
     noCredits: "点数不足。充值即将开放。",
+    noCreditsCta: "看看价格",
     progress: (n, total) => `第 ${n} 步，共 ${total} 步`,
 
     step1: {
@@ -551,14 +552,33 @@ export default {
     close: "关闭",
     headline: "把你的梦，拍成电影。",
     lede: "文字记录、语音以及睡眠标签页里的一切都将永久免费。点数只用于渲染引擎需要绘制的部分。",
+    /* Die Ueberschrift richtet sich nach dem Anlass: wer selbst geoeffnet
+       hat, bekommt das Angebot; wem das Blatt in den Weg gesprungen ist,
+       bekommt zuerst den Grund. Siehe Paywall.jsx. */
+    headlineFor: {
+      browse: "把你的梦，变成电影。",
+      spent: "你的点数用完了。",
+      first: "这是你的第一个。",
+    },
+    ledeFor: {
+      spent: "这里只有这一件事会停下。写下来、说出来，以及睡眠页里的一切，依旧免费。",
+      first: "它已经在你的日记里，属于你了。下一个需要点数——价格在这儿。",
+    },
     tabSub: "订阅",
     tabPack: "购买点数",
-    periodName: { month: "月付", year: "年付" },
+    periodName: { week: "按周", month: "月付", year: "年付" },
     packName: (n) => `${n} 点数`,
-    per: { month: "每月", year: "每年" },
+    per: { week: "每周", month: "每月", year: "每年" },
     oneTime: "一次性",
     save: (pct) => `节省 ${pct}`,
-    creditsPerMonth: (n) => `每月 ${n} 点数`,
+    creditsPer: (n, period) => `每${period} ${n} 点数`,
+    /* Jahresabo zaehlt in MONATEN, nicht in Jahren: das Guthaben
+       kommt monatlich, der Preis wird jaehrlich abgebucht. */
+    periodUnit: {
+      week: "周",
+      month: "月",
+      year: "月",
+    },
     creditsOnce: (n) => `${n} 点数，永不过期`,
     yield: (credits, five, three) =>
       `${credits} 点数——大约可生成 ${five} 个 5 张图的梦，或 ${three} 个 3 张图的梦。一部影片的花费和 5 张图相同。`,

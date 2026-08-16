@@ -322,6 +322,7 @@ export default {
     creditsN: (n) => (n === 1 ? "Credit" : "Credits"),
     tooShort: "⚠ Schreib erst noch etwas mehr.",
     noCredits: "Nicht genug Credits. Aufladen kommt bald.",
+    noCreditsCta: "Preise ansehen",
     progress: (n, total) => `Schritt ${n} von ${total}`,
 
     step1: {
@@ -552,14 +553,33 @@ export default {
     close: "Schließen",
     headline: "Deine Träume, als Filme.",
     lede: "Schreiben, Sprache und alles im Schlaf-Tab bleiben gratis. Credits gibt es nur für das, was ein Renderer zeichnen muss.",
+    /* Die Ueberschrift richtet sich nach dem Anlass: wer selbst geoeffnet
+       hat, bekommt das Angebot; wem das Blatt in den Weg gesprungen ist,
+       bekommt zuerst den Grund. Siehe Paywall.jsx. */
+    headlineFor: {
+      browse: "Deine Träume, als Filme.",
+      spent: "Deine Credits sind aufgebraucht.",
+      first: "Das war dein erster.",
+    },
+    ledeFor: {
+      spent: "Das ist das Einzige, was hier endet. Schreiben, Sprechen und alles im Schlaf-Tab bleiben gratis.",
+      first: "Er liegt jetzt in deinem Tagebuch und gehört dir. Der nächste braucht Credits — hier steht, was sie kosten.",
+    },
     tabSub: "Abonnieren",
     tabPack: "Credits kaufen",
-    periodName: { month: "Monatlich", year: "Jährlich" },
+    periodName: { week: "Wöchentlich", month: "Monatlich", year: "Jährlich" },
     packName: (n) => `${n} Credits`,
-    per: { month: "pro Monat", year: "pro Jahr" },
+    per: { week: "pro Woche", month: "pro Monat", year: "pro Jahr" },
     oneTime: "einmalig",
     save: (pct) => `${pct} sparen`,
-    creditsPerMonth: (n) => `${n} Credits jeden Monat`,
+    creditsPer: (n, period) => `${n} Credits jede${period === "Woche" ? "" : "n"} ${period}`,
+    /* Jahresabo zaehlt in MONATEN, nicht in Jahren: das Guthaben
+       kommt monatlich, der Preis wird jaehrlich abgebucht. */
+    periodUnit: {
+      week: "Woche",
+      month: "Monat",
+      year: "Monat",
+    },
     creditsOnce: (n) => `${n} Credits, verfallen nie`,
     yield: (credits, five, three) =>
       `${credits} Credits — etwa ${five} Träume mit 5 Bildern, oder ${three} mit 3. Ein Film kostet so viel wie 5 Bilder.`,

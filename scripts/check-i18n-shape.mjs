@@ -18,7 +18,14 @@ let failed = false;
 function shapeOf(v) {
   if (typeof v === "function") return `fn(${v.length})`;
   if (Array.isArray(v)) return `array(${v.length})`;
-  if (v && typeof v === "object") return "object";
+  /* null VOR dem Objekt-Zweig abfangen. `typeof null === "object"` ist die
+     bekannteste Falle in JavaScript, und hier hatte sie Folgen: der Pruefer
+     lief in Object.keys(null) und stuerzte mit einem TypeError ab, statt
+     einen Formunterschied zu MELDEN. Ein Pruefwerkzeug, das bei ungewohnter
+     Eingabe abstuerzt, sagt einem nur, dass etwas kaputt ist — nicht was.
+     Gefunden am 16.08.2026 beim Einbau der Paywall-Texte. */
+  if (v === null) return "null";
+  if (typeof v === "object") return "object";
   if (typeof v === "string") return "string";
   return typeof v;
 }

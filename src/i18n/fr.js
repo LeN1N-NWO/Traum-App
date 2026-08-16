@@ -322,6 +322,7 @@ export default {
     creditsN: (n) => (n === 1 ? "crédit" : "crédits"),
     tooShort: "⚠ Écris encore un peu plus d'abord.",
     noCredits: "Pas assez de crédits. La recharge arrive bientôt.",
+    noCreditsCta: "Voir les tarifs",
     progress: (n, total) => `Étape ${n} sur ${total}`,
 
     step1: {
@@ -553,14 +554,33 @@ export default {
     close: "Fermer",
     headline: "Tes rêves, en films.",
     lede: "L'écriture, la voix et tout l'onglet Sommeil restent gratuits. Les crédits ne servent qu'à ce qu'un moteur de rendu doit dessiner.",
+    /* Die Ueberschrift richtet sich nach dem Anlass: wer selbst geoeffnet
+       hat, bekommt das Angebot; wem das Blatt in den Weg gesprungen ist,
+       bekommt zuerst den Grund. Siehe Paywall.jsx. */
+    headlineFor: {
+      browse: "Tes rêves, en films.",
+      spent: "Tu n'as plus de crédits.",
+      first: "C'était le premier.",
+    },
+    ledeFor: {
+      spent: "C'est la seule chose qui s'arrête ici. Écrire, parler et tout l'onglet Sommeil restent gratuits.",
+      first: "Il est dans ton journal, et il est à toi. Le suivant demande des crédits — voici ce qu'ils coûtent.",
+    },
     tabSub: "S'abonner",
     tabPack: "Acheter des crédits",
-    periodName: { month: "Mensuel", year: "Annuel" },
+    periodName: { week: "Hebdomadaire", month: "Mensuel", year: "Annuel" },
     packName: (n) => `${n} crédits`,
-    per: { month: "par mois", year: "par an" },
+    per: { week: "par semaine", month: "par mois", year: "par an" },
     oneTime: "paiement unique",
     save: (pct) => `Économise ${pct}`,
-    creditsPerMonth: (n) => `${n} crédits chaque mois`,
+    creditsPer: (n, period) => `${n} crédits chaque ${period}`,
+    /* Jahresabo zaehlt in MONATEN, nicht in Jahren: das Guthaben
+       kommt monatlich, der Preis wird jaehrlich abgebucht. */
+    periodUnit: {
+      week: "semaine",
+      month: "mois",
+      year: "mois",
+    },
     creditsOnce: (n) => `${n} crédits, n'expirent jamais`,
     yield: (credits, five, three) =>
       `${credits} crédits — environ ${five} rêves avec 5 images, ou ${three} avec 3. Un film coûte autant que 5 images.`,

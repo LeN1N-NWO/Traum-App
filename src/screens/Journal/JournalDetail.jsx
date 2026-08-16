@@ -15,7 +15,7 @@ import { IconImages, IconFilm, IconShare, IconSparkle, IconPencil, ChevronRight 
 import "./journal.css";
 
 export default function JournalDetail({ entry, onClose }) {
-  const { state, update, toast } = useAppState();
+  const { state, update, toast, openPaywall } = useAppState();
   const navigate = useNavigate();
   const closeRef = useRef(null);
 
@@ -96,7 +96,7 @@ export default function JournalDetail({ entry, onClose }) {
     setMenuOpen(false);
     const cost = PRICES[mode];
     const paid = spend(state, cost);
-    if (!paid) return toast(t.journal.noCredits);
+    if (!paid) return openPaywall("spent");
     setBusy(true);
     try {
       const text = await refine(entry.text, mode);

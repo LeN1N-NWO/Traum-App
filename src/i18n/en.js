@@ -334,6 +334,7 @@ export default {
     creditsN: (n) => (n === 1 ? "credit" : "credits"),
     tooShort: "⚠ Write a little more first.",
     noCredits: "Not enough credits. Top-up is coming soon.",
+    noCreditsCta: "See the prices",
     progress: (n, total) => `Step ${n} of ${total}`,
 
     step1: {
@@ -572,14 +573,33 @@ export default {
     close: "Close",
     headline: "Your dreams, as films.",
     lede: "Writing, voice and everything in the Sleep tab stay free. Credits are only for what a renderer has to draw.",
+    /* Die Ueberschrift richtet sich nach dem Anlass: wer selbst geoeffnet
+       hat, bekommt das Angebot; wem das Blatt in den Weg gesprungen ist,
+       bekommt zuerst den Grund. Siehe Paywall.jsx. */
+    headlineFor: {
+      browse: "Your dreams, as films.",
+      spent: "You're out of credits.",
+      first: "That was your first one.",
+    },
+    ledeFor: {
+      spent: "That's the one thing that stops here. Writing, talking and everything in the Sleep tab stay free.",
+      first: "It's in your journal now, and it's yours. The next one needs credits — here's what they cost.",
+    },
     tabSub: "Subscribe",
     tabPack: "Buy credits",
-    periodName: { month: "Monthly", year: "Yearly" },
+    periodName: { week: "Weekly", month: "Monthly", year: "Yearly" },
     packName: (n) => `${n} credits`,
-    per: { month: "per month", year: "per year" },
+    per: { week: "per week", month: "per month", year: "per year" },
     oneTime: "one-time",
     save: (pct) => `Save ${pct}`,
-    creditsPerMonth: (n) => `${n} credits every month`,
+    creditsPer: (n, period) => `${n} credits every ${period}`,
+    /* Jahresabo zaehlt in MONATEN, nicht in Jahren: das Guthaben
+       kommt monatlich, der Preis wird jaehrlich abgebucht. */
+    periodUnit: {
+      week: "week",
+      month: "month",
+      year: "year",
+    },
     creditsOnce: (n) => `${n} credits, never expire`,
     yield: (credits, five, three) =>
       `${credits} credits — about ${five} dreams with 5 images, or ${three} with 3. A film costs the same as 5 images.`,

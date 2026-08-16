@@ -5,14 +5,26 @@ import { t } from "../../i18n/index.js";
 import Button from "../../components/Button.jsx";
 import "./paywall.css";
 
-/* The shop window. Reached from the credits pill on the profile.
+/* The shop window. Opened from anywhere via openPaywall(reason) — the credits
+ * pill, the wizard when the balance runs out, the avatar dialog, and once
+ * after the very first finished dream.
+ *
+ * `reason` only changes the two lines at the top, and that is the whole point:
+ * a sheet somebody opened THEMSELVES may lead with the offer, but one that
+ * just jumped into their way has to say why first, or it reads as an ambush.
+ * Three cases, in rising order of how much explaining they owe:
+ *   browse  — they tapped the balance. Straight to the offer.
+ *   spent   — they were about to render and ran out. Name that first.
+ *   first   — their first dream just finished and the free credits are gone.
+ *             The only moment where the app has already proved itself, so
+ *             it may say so.
  *
  * ⚠ Nothing here charges anybody: there is no payment provider, no store
  * account and no server-side balance. The button says so rather than
  * pretending — a paywall that silently does nothing is worse than one that
  * admits it is not open yet.
  */
-export default function Paywall({ onClose }) {
+export default function Paywall({ reason = "browse", onClose }) {
   const { state, toast } = useAppState();
   const [tab, setTab] = useState("sub");        // "sub" | "pack"
   const [chosen, setChosen] = useState(SUBSCRIPTIONS.find((p) => p.featured)?.id);
@@ -35,8 +47,8 @@ export default function Paywall({ onClose }) {
         <span className="pw-brand">
           Dream Rushes <span className="pw-plus">PLUS</span>
         </span>
-        <h1 className="pw-title">{t.paywall.headline}</h1>
-        <p className="pw-lede">{t.paywall.lede}</p>
+        <h1 className="pw-title">{t.paywall.headlineFor[reason] || t.paywall.headline}</h1>
+        <p className="pw-lede">{t.paywall.ledeFor[reason] || t.paywall.lede}</p>
       </div>
 
       <div className="pw-body">
@@ -74,7 +86,7 @@ export default function Paywall({ onClose }) {
                 </span>
                 <span className="pw-plan-sub">
                   {p.period
-                    ? t.paywall.creditsPerMonth(p.credits)
+                    ? t.paywall.creditsPer(p.credits, t.paywall.periodUnit[p.period])
                     : t.paywall.creditsOnce(p.credits)}
                 </span>
               </span>

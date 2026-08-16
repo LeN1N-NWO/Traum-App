@@ -4,7 +4,6 @@ import { welcomeGrant } from "../../lib/credits.js";
 import { t } from "../../i18n/index.js";
 import AvatarDialog from "../../components/AvatarDialog.jsx";
 import OnboardingSurvey from "../Onboarding/OnboardingSurvey.jsx";
-import Paywall from "./Paywall.jsx";
 import Settings from "./Settings.jsx";
 import DreamerCard from "./DreamerCard.jsx";
 import { IconGear } from "../../components/icons.jsx";
@@ -17,9 +16,8 @@ import "./profile.css";
  * What is left is who you are here — your face, your balance, your record.
  */
 export default function ProfileScreen() {
-  const { state, update, toast } = useAppState();
+  const { state, update, toast, openPaywall } = useAppState();
   const [editingMe, setEditingMe] = useState(false);
-  const [paywall, setPaywall] = useState(false);
   const [survey, setSurvey] = useState(false);
   const [settings, setSettings] = useState(false);
 
@@ -43,7 +41,7 @@ export default function ProfileScreen() {
           has not earned until it can actually be topped up. */}
       <div className="p-top">
         <h1 className="p-title">{t.profile.title}</h1>
-        <button className="p-credits-pill" onClick={() => setPaywall(true)}>
+        <button className="p-credits-pill" onClick={() => openPaywall("browse")}>
           <span className="p-credits-dot" aria-hidden="true">✦</span>
           {state.credits ?? 0}
           <span className="p-credits-word">{t.profile.credits}</span>
@@ -117,7 +115,6 @@ export default function ProfileScreen() {
 
       {settings && <Settings onClose={() => setSettings(false)} />}
 
-      {paywall && <Paywall onClose={() => setPaywall(false)} />}
     </main>
   );
 }

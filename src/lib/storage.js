@@ -17,6 +17,7 @@ export const DEFAULT_STATE = {
   profile: null,         // { name, birthday, zodiac, recall, lucid, themes, goal }
   language: null,        // chosen once, before anything else — see LanguagePicker.jsx
   voice: null,           // the assistant's voice, chosen in VoicePicker — a Gemini voice id
+  paywallSeen: false,    // das Kaufblatt kam einmal von selbst — siehe Step6Result.jsx
 };
 
 export function genId(prefix) {

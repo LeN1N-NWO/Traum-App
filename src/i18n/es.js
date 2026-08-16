@@ -323,6 +323,7 @@ export default {
     creditsN: (n) => (n === 1 ? "crédito" : "créditos"),
     tooShort: "⚠ Escribe un poco más primero.",
     noCredits: "No hay créditos suficientes. La recarga llega pronto.",
+    noCreditsCta: "Ver los precios",
     progress: (n, total) => `Paso ${n} de ${total}`,
 
     step1: {
@@ -554,14 +555,33 @@ export default {
     close: "Cerrar",
     headline: "Tus sueños, como películas.",
     lede: "Escribir, la voz y todo en la pestaña de Sueño siguen siendo gratis. Los créditos son solo para lo que un renderizador tiene que dibujar.",
+    /* Die Ueberschrift richtet sich nach dem Anlass: wer selbst geoeffnet
+       hat, bekommt das Angebot; wem das Blatt in den Weg gesprungen ist,
+       bekommt zuerst den Grund. Siehe Paywall.jsx. */
+    headlineFor: {
+      browse: "Tus sueños, como películas.",
+      spent: "Te has quedado sin créditos.",
+      first: "Ese fue el primero.",
+    },
+    ledeFor: {
+      spent: "Es lo único que se detiene aquí. Escribir, hablar y todo lo de la pestaña Sueño siguen siendo gratis.",
+      first: "Ya está en tu diario y es tuyo. El siguiente necesita créditos: esto es lo que cuestan.",
+    },
     tabSub: "Suscribirse",
     tabPack: "Comprar créditos",
-    periodName: { month: "Mensual", year: "Anual" },
+    periodName: { week: "Semanal", month: "Mensual", year: "Anual" },
     packName: (n) => `${n} créditos`,
-    per: { month: "al mes", year: "al año" },
+    per: { week: "por semana", month: "al mes", year: "al año" },
     oneTime: "pago único",
     save: (pct) => `Ahorra ${pct}`,
-    creditsPerMonth: (n) => `${n} créditos cada mes`,
+    creditsPer: (n, period) => `${n} créditos cada ${period}`,
+    /* Jahresabo zaehlt in MONATEN, nicht in Jahren: das Guthaben
+       kommt monatlich, der Preis wird jaehrlich abgebucht. */
+    periodUnit: {
+      week: "semana",
+      month: "mes",
+      year: "mes",
+    },
     creditsOnce: (n) => `${n} créditos, nunca caducan`,
     yield: (credits, five, three) =>
       `${credits} créditos — unos ${five} sueños con 5 imágenes, o ${three} con 3. Una película cuesta lo mismo que 5 imágenes.`,

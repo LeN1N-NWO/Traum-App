@@ -57,18 +57,52 @@
 // What one credit costs us, in USD. Every price below derives from it.
 export const CREDIT_COST_USD = 0.08;
 
-/** Subscriptions: the allowance refills each month and does not roll over. */
+/* ── Preisliste, neu gerechnet 16.08.2026 ─────────────────────────────────
+ *
+ * Die alte Liste (2,99 / 5,99 / 59,99 im Monatsrhythmus) hatte zwei Probleme,
+ * die erst die korrigierte Rechnung oben sichtbar gemacht hat:
+ *
+ * 1. Sie war ZU BILLIG. Nicht aus Bescheidenheit, sondern rechnerisch: mit
+ *    MwSt. und Store-Anteil blieben von $5,99 noch $1,42 im Monat, und davon
+ *    ging die Gratis-Credit-Last ab. Die Branchendaten zeigen zusätzlich,
+ *    dass teurere Apps im Median DOPPELT so gut konvertieren — der Preis ist
+ *    ein Qualitätssignal, kein Hindernis. Mirror nimmt $7,99 im Monat für
+ *    reine Textdeutung; wir rendern Filme.
+ *
+ * 2. Sie kannte kein WOCHEN-ABO. Das ist inzwischen das umsatzstärkste
+ *    Format der Branche (55,5 % gegenüber 43,3 % zwei Jahre zuvor), und für
+ *    eine App, die man nach einem besonderen Traum aufmacht, ist es das
+ *    passende Einstiegsversprechen: eine Woche ausprobieren, nicht ein Jahr
+ *    unterschreiben.
+ *
+ * Die Preise je Credit sind ABSICHTLICH gestaffelt — Bindung wird belohnt:
+ *   Woche   $4,99 / 12 Cr = $0,416   (Impuls, jederzeit weg)
+ *   Monat   $9,99 / 45 Cr = $0,222   (der Normalfall, deshalb hervorgehoben)
+ *   Jahr   $79,99 / 45 Cr = $0,148   (33 % billiger als zwölf Monate)
+ *   Pakete                           teurer je Credit als jedes Abo, weil
+ *                                    ohne Bindung — sonst wäre das Abo dumm.
+ *
+ * Deckungsbeitrag beim realistischen Fall (19 % MwSt., 15 % Small Business
+ * Program, 75 % Verbrauch): Monat $9,99 → netto $7,14 − $2,70 Credits =
+ * $4,44. Zum Vergleich die alte Liste: $1,42. Das ist der Unterschied
+ * zwischen „trägt sich ab 4,5 % Conversion" und „trägt sich früher".
+ *
+ * ⚠ Noch nichts davon kassiert. Die Zahlen sind so gebaut, dass sie beim
+ * Anlegen der Store-Produkte unverändert übernommen werden können.
+ */
+
+/** Subscriptions: the allowance refills each period and does not roll over. */
 export const SUBSCRIPTIONS = [
-  { id: "monthly-s", price: "$2.99", period: "month", credits: 17 },
-  { id: "monthly-m", price: "$5.99", period: "month", credits: 35, featured: true },
-  { id: "yearly",    price: "$59.99", period: "year", credits: 35, perMonth: true, saveHint: "17%" },
+  { id: "weekly",    price: "$4.99",  period: "week",  credits: 12 },
+  { id: "monthly",   price: "$9.99",  period: "month", credits: 45, featured: true },
+  { id: "yearly",    price: "$79.99", period: "year",  credits: 45, perMonth: true, saveHint: "33%" },
 ];
 
 /** One-off packs: bought once, never expire, no commitment. */
 export const PACKS = [
-  { id: "pack-s", price: "$2.99",  credits: 13 },
-  { id: "pack-m", price: "$9.99",  credits: 46 },
-  { id: "pack-l", price: "$19.99", credits: 92 },
+  { id: "pack-s", price: "$4.99",  credits: 15 },
+  { id: "pack-m", price: "$12.99", credits: 45 },
+  { id: "pack-l", price: "$24.99", credits: 100 },
 ];
 
 /** Roughly how many dreams a credit balance buys, for the "what you get" line. */

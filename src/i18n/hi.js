@@ -321,6 +321,7 @@ export default {
     creditsN: (n) => (n === 1 ? "क्रेडिट" : "क्रेडिट"),
     tooShort: "⚠ पहले थोड़ा और लिखिए।",
     noCredits: "पर्याप्त क्रेडिट नहीं हैं। रिचार्ज जल्द आ रहा है।",
+    noCreditsCta: "दाम देखिए",
     progress: (n, total) => `चरण ${n} / ${total}`,
 
     step1: {
@@ -550,14 +551,33 @@ export default {
     close: "बंद करें",
     headline: "आपके सपने, फ़िल्मों की तरह।",
     lede: "लिखना, आवाज़ और नींद टैब की हर चीज़ मुफ़्त रहेगी। क्रेडिट सिर्फ़ उसी के लिए लगते हैं जो रेंडरर को बनाना पड़ता है।",
+    /* Die Ueberschrift richtet sich nach dem Anlass: wer selbst geoeffnet
+       hat, bekommt das Angebot; wem das Blatt in den Weg gesprungen ist,
+       bekommt zuerst den Grund. Siehe Paywall.jsx. */
+    headlineFor: {
+      browse: "आपके सपने, फ़िल्मों की तरह।",
+      spent: "आपके क्रेडिट ख़त्म हो गए।",
+      first: "यह आपका पहला था।",
+    },
+    ledeFor: {
+      spent: "यहाँ बस यही रुकता है। लिखना, बोलना और नींद टैब का सब कुछ मुफ़्त ही रहता है।",
+      first: "यह अब आपकी डायरी में है और आपका है। अगले के लिए क्रेडिट चाहिए — दाम यहाँ हैं।",
+    },
     tabSub: "सब्सक्राइब करें",
     tabPack: "क्रेडिट ख़रीदें",
-    periodName: { month: "मासिक", year: "वार्षिक" },
+    periodName: { week: "साप्ताहिक", month: "मासिक", year: "वार्षिक" },
     packName: (n) => `${n} क्रेडिट`,
-    per: { month: "प्रति माह", year: "प्रति वर्ष" },
+    per: { week: "प्रति सप्ताह", month: "प्रति माह", year: "प्रति वर्ष" },
     oneTime: "एक बार",
     save: (pct) => `${pct} की बचत`,
-    creditsPerMonth: (n) => `हर महीने ${n} क्रेडिट`,
+    creditsPer: (n, period) => `हर ${period} ${n} क्रेडिट`,
+    /* Jahresabo zaehlt in MONATEN, nicht in Jahren: das Guthaben
+       kommt monatlich, der Preis wird jaehrlich abgebucht. */
+    periodUnit: {
+      week: "सप्ताह",
+      month: "महीने",
+      year: "महीने",
+    },
     creditsOnce: (n) => `${n} क्रेडिट, कभी समाप्त नहीं होते`,
     yield: (credits, five, three) =>
       `${credits} क्रेडिट — लगभग ${five} सपने 5 तस्वीरों के साथ, या ${three} सपने 3 तस्वीरों के साथ। एक फ़िल्म की कीमत 5 तस्वीरों जितनी है।`,

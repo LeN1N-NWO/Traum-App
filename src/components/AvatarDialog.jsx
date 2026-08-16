@@ -40,7 +40,7 @@ export default function AvatarDialog({
   onCreated,
   onClose,
 }) {
-  const { state, update, toast } = useAppState();
+  const { state, update, toast, openPaywall } = useAppState();
   const isEdit = Boolean(existing);
 
   const [tag, setTag] = useState(cleanTag(existing?.tag || suggestedName));
@@ -61,7 +61,7 @@ export default function AvatarDialog({
   async function drawCharacter() {
     const text = desc.trim();
     if (!text || drawing) return;
-    if (!canAfford(state, sheetPrice)) return toast(t.wizard.noCredits);
+    if (!canAfford(state, sheetPrice)) return openPaywall("spent");
     setDrawing(true);
     try {
       const url = await characterSheet({ desc: text, category: existing?.category || category });

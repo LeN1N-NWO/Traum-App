@@ -11,7 +11,7 @@ import MediaCarousel from "../components/MediaCarousel.jsx";
 import "./wizard.css";
 
 export default function Step6Result({ w, patch }) {
-  const { state, update, toast } = useAppState();
+  const { state, update, toast , openPaywall } = useAppState();
   const navigate = useNavigate();
   const isFilm = w.mode === "film";
   const urls = w.urls || [];
@@ -113,6 +113,30 @@ export default function Step6Result({ w, patch }) {
     });
     toast(t.dream.caught(creature.name));
     navigate("/journal");
+
+    /* Der eine Moment, an dem das Kaufblatt von selbst kommt — und zwar
+     * NICHT am Ende des Onboardings, wo es hingehoert haette, wenn man nur
+     * auf die Konversionszahlen schaut.
+     *
+     * Der Grund: Das Onboarding verspricht woertlich „Dein erster Traum geht
+     * auf uns". Direkt danach nach Geld zu fragen, waere genau die Sorte
+     * Widerspruch, die man einer App nicht verzeiht. Hier dagegen ist der
+     * erste Traum fertig, sichtbar, im Tagebuch — die App hat geliefert,
+     * bevor sie fragt. Das ist derselbe Aha-Moment, nur an der ehrlichen
+     * Stelle.
+     *
+     * Genau EINMAL: `paywallSeen` verhindert, dass daraus eine Gewohnheit
+     * wird. Verzoegert, damit erst das Journal steht und das Blatt darueber
+     * aufgeht statt in den Wechsel hinein. */
+    /* Gezaehlt werden nur SELBST gemachte Traeume. Ein frischer Install
+     * bekommt zwei Seed-Traeume (seedJournal.js) — ohne diesen Filter waere
+     * das Tagebuch nie leer und dieser Moment nie eingetreten. Beim Loeschen
+     * des Seed-Journals kann der Filter mit verschwinden. */
+    const own = (state.journal || []).filter((e) => !String(e.id).startsWith("e_seed"));
+    if (!state.paywallSeen && own.length === 0) {
+      update({ paywallSeen: true });
+      setTimeout(() => openPaywall("first"), 900);
+    }
   }
 
   return (
