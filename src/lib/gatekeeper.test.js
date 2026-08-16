@@ -14,7 +14,21 @@ test("paths outside the API are not rate limited at all", () => {
   // Seitenaufruf mit zwanzig Dateien käme sofort an die Grenze.
   expect(classOf("/index.html")).toBe(null);
   expect(classOf("/media/abc.png")).toBe(null);
-  expect(classOf("/api/job")).toBe(null);       // Abholen ist Warten, kein Ausgeben
+  expect(classOf("/")).toBe(null);
+});
+
+test("polling and the voice socket are exempt by name, with a reason", () => {
+  expect(classOf("/api/job")).toBe(null);     // Warten, kein Ausgeben
+  expect(classOf("/api/voice")).toBe(null);   // eine Sitzung ist EIN Aufruf
+});
+
+/* Der wichtigste Test dieser Datei. Die erste Fassung zählte nur benannte
+   Pfade, und eine Stunde später kam /api/character dazu — ein Endpunkt, der
+   bei fal.ai rendert und ungebremst gewesen wäre, weil niemand daran gedacht
+   hätte, ihn einzutragen. Seitdem ist die Voreinstellung die strengste. */
+test("a brand-new API endpoint is limited by default, not forgotten", () => {
+  expect(classOf("/api/character")).toBe("generate");
+  expect(classOf("/api/etwas-das-es-noch-nicht-gibt")).toBe("generate");
 });
 
 test("a burst up to the limit passes, the next one is refused", () => {

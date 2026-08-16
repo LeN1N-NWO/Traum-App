@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { buildReferences, buildImagePrompt } from "./promptBuilder.js";
+import { buildReferences, buildImagePrompt, buildCharacterPrompt } from "./promptBuilder.js";
 
 const anton = { name: "Anton", kind: "person", avatar: { tag: "anton", img: "a.png", desc: "" } };
 const rex = { name: "Rex", kind: "pet", avatar: { tag: "rex", img: "r.png", desc: "" } };
@@ -146,4 +146,29 @@ test("grid reference clauses ride along so faces match the avatars", () => {
   const prompt = buildGridPrompt({ beats: ["a", "b", "c"], styleId: "ultrareal", clauses });
   expect(prompt).toContain("Reference image 1");
   expect(prompt).toContain("@anton");
+});
+
+/* Der Charakterbogen muss langweilig sein — das ist seine Aufgabe. Alles,
+   was das Bild interessant macht (Stimmung, Handlung, Schatten), wandert
+   später in jedes Bild der Strecke mit, weil es als Referenz dient. */
+test("the character sheet asks for a reference, not a scene", () => {
+  const p = buildCharacterPrompt({ desc: "eine große Frau mit silbernem Haar", category: "person" });
+  expect(p).toContain("eine große Frau mit silbernem Haar");
+  expect(p.toLowerCase()).toContain("neutral");
+  expect(p.toLowerCase()).toContain("reference");
+  expect(p.toLowerCase()).toContain("not a scene");
+});
+
+test("each category gets its own framing", () => {
+  const person = buildCharacterPrompt({ desc: "x", category: "person" });
+  const pet = buildCharacterPrompt({ desc: "x", category: "pet" });
+  const place = buildCharacterPrompt({ desc: "x", category: "place" });
+  expect(person).not.toBe(pet);
+  expect(pet).not.toBe(place);
+  // Ein Ort hat kein Gesicht — „facing the camera" wäre dort Unsinn.
+  expect(place.toLowerCase()).toContain("no people");
+});
+
+test("an unknown category still yields a usable prompt", () => {
+  expect(buildCharacterPrompt({ desc: "x", category: "spaceship" })).toContain("x");
 });

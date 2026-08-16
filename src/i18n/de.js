@@ -184,6 +184,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "Person hinzufügen", pet: "Tier hinzufügen", place: "Ort hinzufügen" },
+    drawFromDesc: "Aus deiner Beschreibung zeichnen",
+    drawingNow: "Wird gezeichnet…",
+    drawHint: "Ein Referenzbild, damit sie in jedem Bild gleich aussehen",
     editTitleFor: { person: "Person bearbeiten", pet: "Tier bearbeiten", place: "Ort bearbeiten" },
     meTitle: "Das bist du",
     nameLabel: (tag) => `Name (wird zu @${tag})`,

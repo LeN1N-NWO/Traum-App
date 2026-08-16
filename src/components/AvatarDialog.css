@@ -61,3 +61,22 @@
    erlaubt, die Beschreibung allein reicht dem Bildmodell. */
 .av-photo { display: flex; align-items: center; gap: var(--s-3); }
 .av-warn { color: var(--gold); }
+
+/* — Charakterbogen —
+   Gestrichelter Rand wie der Hochlade-Knopf darüber, damit beide als „hier
+   entsteht das Bild" zusammengehören; der Preis rechts, weil er die einzige
+   Information ist, die man VOR dem Tippen braucht. */
+.av-draw {
+  display: flex; align-items: center; gap: var(--s-3); width: 100%;
+  margin-top: var(--s-2); padding: var(--s-3) var(--s-4);
+  border-radius: var(--radius); cursor: pointer; text-align: start;
+  background: var(--panel); border: 1px dashed var(--panel-line);
+  color: var(--text); font-family: var(--sans);
+}
+.av-draw:hover:not(:disabled) { border-color: var(--accent-soft); }
+.av-draw:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.av-draw:disabled { opacity: .6; cursor: progress; }
+.av-draw svg { flex: none; color: var(--accent-soft); }
+.av-draw-body { display: flex; flex-direction: column; gap: 1px; margin-inline-end: auto; min-width: 0; }
+.av-draw-body small { color: var(--faint); font-size: var(--t-micro); line-height: 1.4; }
+.av-draw-price { color: var(--faint); font-size: var(--t-micro); white-space: nowrap; }

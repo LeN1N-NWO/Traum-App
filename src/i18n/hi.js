@@ -183,6 +183,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "व्यक्ति जोड़ें", pet: "पालतू जानवर जोड़ें", place: "जगह जोड़ें" },
+    drawFromDesc: "आपके विवरण से बनाएँ",
+    drawingNow: "बन रहा है…",
+    drawHint: "एक संदर्भ चित्र, ताकि हर तस्वीर में वे एक जैसे दिखें",
     editTitleFor: { person: "व्यक्ति बदलें", pet: "पालतू जानवर बदलें", place: "जगह बदलें" },
     meTitle: "यह आप हैं",
     nameLabel: (tag) => `नाम (@${tag} बन जाएगा)`,

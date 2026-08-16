@@ -190,6 +190,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "إضافة شخص", pet: "إضافة حيوان أليف", place: "إضافة مكان" },
+    drawFromDesc: "ارسمه من وصفك",
+    drawingNow: "يُرسم الآن…",
+    drawHint: "صورة مرجعية واحدة، ليبدو هو نفسه في كلّ لقطة",
     editTitleFor: { person: "تعديل شخص", pet: "تعديل حيوان أليف", place: "تعديل مكان" },
     meTitle: "هذا أنت",
     nameLabel: (tag) => `الاسم (سيصبح @${tag})`,

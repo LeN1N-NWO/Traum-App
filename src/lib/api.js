@@ -67,6 +67,16 @@ export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio
   throw new Error(t.errors.unexpected);
 }
 
+/** Ein Referenzbild aus einer Beschreibung — der Charakterbogen.
+ *  Gibt einen /media/-Pfad zurück, also genau das, was auch ein hochgeladenes
+ *  Foto wäre: ab hier behandelt alles Weitere beides gleich. */
+export async function characterSheet({ desc, category }) {
+  const data = await post("/api/character", { desc, category });
+  const url = Array.isArray(data?.urls) ? data.urls[0] : null;
+  if (typeof url !== "string") throw new Error(t.errors.unexpected);
+  return url;
+}
+
 /** Store one cropped grid panel and get back its own /media/ path — the
  *  same kind of path a normal generation returns, so everything downstream
  *  (the journal, the carousel, sharing) treats it identically. */

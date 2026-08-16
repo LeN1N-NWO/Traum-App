@@ -185,6 +185,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "添加人物", pet: "添加宠物", place: "添加地点" },
+    drawFromDesc: "按你的描述画出来",
+    drawingNow: "正在画…",
+    drawHint: "一张参考图，让他在每张画面里都是同一个人",
     editTitleFor: { person: "编辑人物", pet: "编辑宠物", place: "编辑地点" },
     meTitle: "这是你",
     nameLabel: (tag) => `名字（将成为 @${tag}）`,

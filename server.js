@@ -33,6 +33,7 @@ import { resolve, sep } from "node:path";
 // Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
 import { guard } from "./src/lib/gatekeeper.js";
+import { buildCharacterPrompt } from "./src/lib/promptBuilder.js";
 
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
@@ -1381,6 +1382,50 @@ Bun.serve({
         const hit = map[e.message];
         if (hit) return json({ error: hit[1] }, hit[0]);
         console.error("[DreamRushes] /api/transcribe failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    /* Der Charakterbogen: aus einer Beschreibung EIN Referenzbild.
+     *
+     * Eigener Endpunkt statt eines Sonderfalls in /api/generate, weil er
+     * etwas anderes tut: kein Traumbild, keine Szene, kein Stil, keine
+     * Referenzen — nur ein neutrales Porträt, das ab da SELBST die Referenz
+     * ist. Ein Flag in /api/generate hätte die Hälfte von dessen Prüfungen
+     * übersprungen und die andere Hälfte umgangen.
+     *
+     * Ein einziger fal-Aufruf, also derselbe Kostenrahmen wie ein Bild; die
+     * Skala in pricing.js verlangt trotzdem 2 Credits, weil die Referenz
+     * danach beliebig oft wiederverwendet wird.
+     */
+    if (url.pathname === "/api/character" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json();
+        const desc = sanitizePromptText(body.desc);
+        // Kurze Beschreibungen ergeben keine brauchbare Referenz — und der
+        // Aufruf kostet trotzdem. Die Grenze fängt „x" ab, bevor Geld fließt.
+        if (desc.length < 10) return json({ error: "Describe them a little more first." }, 400);
+        if (desc.length > 400) return json({ error: "Description too long." }, 400);
+        // Allowlist: die Kategorie wählt die Bildaufteilung, nichts wird
+        // interpoliert.
+        const category = ["person", "pet", "place"].includes(body.category) ? body.category : "person";
+
+        const urls = await falGenerateImage({
+          prompt: buildCharacterPrompt({ desc, category }),
+          aspectRatio: category === "place" ? "16:9" : undefined,
+        });
+        return json({ ok: true, urls: await storeAll(urls) });
+      } catch (e) {
+        const map = {
+          NO_FAL_KEY: [503, "Backend has no fal.ai key. Set FAL_KEY and restart."],
+          GENERATE_FAILED: [502, "Could not draw them. Try again."],
+        };
+        const hit = map[e.message];
+        if (hit) return json({ error: hit[1] }, hit[0]);
+        console.error("[DreamRushes] /api/character failed:", e);
         return json({ error: "Server error." }, 500);
       }
     }
