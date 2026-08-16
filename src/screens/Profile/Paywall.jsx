@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
 import { SUBSCRIPTIONS, PACKS, dreamsFor } from "../../lib/plans.js";
+import { totalCredits } from "../../lib/credits.js";
 import { t } from "../../i18n/index.js";
 import Button from "../../components/Button.jsx";
 import "./paywall.css";
@@ -113,7 +114,7 @@ export default function Paywall({ reason = "browse", onClose }) {
 
         <div className="pw-foot">
           <Button onClick={() => toast(t.paywall.notYet)}>{t.paywall.cta}</Button>
-          <p className="pw-small">{t.paywall.balance(state.credits ?? 0)}</p>
+          <p className="pw-small">{t.paywall.balance(totalCredits(state))}</p>
         </div>
       </div>
     </div>

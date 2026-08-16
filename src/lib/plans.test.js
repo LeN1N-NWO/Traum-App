@@ -24,12 +24,43 @@ test("longer commitment is cheaper per credit, in that order", () => {
   expect(perCredit(month)).toBeGreaterThan(perCredit(year));
 });
 
-/* Ohne diese Regel waere das Abo das schlechtere Geschaeft und die Pakete
-   wuerden es kannibalisieren. */
-test("every pack costs more per credit than the monthly plan", () => {
-  const month = SUBSCRIPTIONS.find((p) => p.period === "month");
+/* Diese beiden Zeilen gibt es, weil die vorige Fassung einen Fehler
+   DURCHGELASSEN hat: pack-s stand bei $4,99 fuer 15 Credits gegen das
+   Wochen-Abo mit $4,99 fuer 12. Gleiches Geld, mehr Credits, und sie
+   verfallen nie — das Abo war strikt das schlechtere Angebot.
+
+   Der alte Test sah es nicht, weil er den Abopreis auf den Monat hochrechnete
+   und dann je Credit verglich. Ueber ein Jahr gewinnt das Wochen-Abo damit
+   haushoch. Nur vergleicht so niemand: Im Kaufmoment steht „$4,99 → 15, fuer
+   immer" neben „$4,99 → 12, laeuft ab", und das entscheidet.
+
+   Gemessen wird deshalb jetzt, was jemand im Kaufmoment SIEHT — die erste
+   Periode. */
+/** Was ein Credit kostet, wenn man den Tarif durchhaelt. Beim Jahresabo
+ *  zaehlt `credits` PRO MONAT (perMonth), nicht pro Jahr — daran ist die
+ *  erste Fassung dieses Helfers prompt gescheitert und hat $1,78 statt
+ *  $0,148 gemeldet. */
+function termPerCredit(plan) {
+  const price = num(plan.price);
+  const total = plan.perMonth ? plan.credits * 12 : plan.credits;
+  return price / total;
+}
+
+test("no pack shares a price point with a subscription", () => {
+  // Ein direkter Vergleich bei identischem Preis ist immer einer, den eine
+  // Seite verliert.
+  const subPrices = new Set(SUBSCRIPTIONS.map((p) => num(p.price)));
   for (const pack of PACKS) {
-    expect(num(pack.price) / pack.credits).toBeGreaterThan(perCredit(month));
+    expect(subPrices.has(num(pack.price))).toBe(false);
+  }
+});
+
+test("every pack is dearer per credit than every subscription", () => {
+  // Der Aufschlag fuer Unvergaenglichkeit — und der ehrliche Grund, warum es
+  // Pakete gibt: nicht als besseres Geschaeft, sondern als eines ohne Bindung.
+  const dearestSub = Math.max(...SUBSCRIPTIONS.map(termPerCredit));
+  for (const pack of PACKS) {
+    expect(termPerCredit(pack)).toBeGreaterThan(dearestSub);
   }
 });
 

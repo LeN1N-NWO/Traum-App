@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
-import { welcomeGrant } from "../../lib/credits.js";
+import { welcomeGrant, totalCredits } from "../../lib/credits.js";
 import { t } from "../../i18n/index.js";
 import AvatarDialog from "../../components/AvatarDialog.jsx";
 import OnboardingSurvey from "../Onboarding/OnboardingSurvey.jsx";
@@ -43,7 +43,7 @@ export default function ProfileScreen() {
         <h1 className="p-title">{t.profile.title}</h1>
         <button className="p-credits-pill" onClick={() => openPaywall("browse")}>
           <span className="p-credits-dot" aria-hidden="true">✦</span>
-          {state.credits ?? 0}
+          {totalCredits(state)}
           <span className="p-credits-word">{t.profile.credits}</span>
         </button>
         {/* Round, next to the balance — the two things you reach for from

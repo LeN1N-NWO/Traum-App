@@ -98,11 +98,32 @@ export const SUBSCRIPTIONS = [
   { id: "yearly",    price: "$79.99", period: "year",  credits: 45, perMonth: true, saveHint: "33%" },
 ];
 
-/** One-off packs: bought once, never expire, no commitment. */
+/* One-off packs: bought once, never expire, no commitment.
+ *
+ * Neu gesetzt am 16.08.2026, weil Anton eine Kollision gefunden hat, die
+ * meine Preisprüfung durchgelassen hatte: pack-s stand bei $4,99 für 15
+ * Credits — gegen das Wochen-Abo mit $4,99 für 12. Gleiches Geld, MEHR
+ * Credits, und sie verfallen nie. Das Abo war an dieser Stelle strikt das
+ * schlechtere Angebot, und niemand mit klarem Kopf hätte es genommen.
+ *
+ * Warum die Prüfung das nicht sah: Sie rechnete den Abopreis auf den Monat
+ * hoch und verglich dann je Credit. Über ein Jahr gewinnt das Wochen-Abo
+ * damit haushoch — nur vergleicht so niemand. Im Kaufmoment steht da
+ * „$4,99 → 15, für immer" neben „$4,99 → 12, läuft ab", und das entscheidet.
+ *
+ * Zwei Regeln, beide jetzt in plans.test.js festgenagelt:
+ *   1. Kein Paket teilt einen Preispunkt mit einem Abo. Ein direkter
+ *      Vergleich bei identischem Preis ist immer ein Vergleich, den eine
+ *      Seite verliert.
+ *   2. Jedes Paket ist je Credit teurer als JEDES Abo — auch als die erste
+ *      Woche des Wochen-Abos. Das ist der Aufschlag für Unvergänglichkeit,
+ *      und er ist der ehrliche Grund, warum Pakete existieren: nicht als
+ *      besseres Geschäft, sondern als eines ohne Bindung.
+ */
 export const PACKS = [
-  { id: "pack-s", price: "$4.99",  credits: 15 },
-  { id: "pack-m", price: "$12.99", credits: 45 },
-  { id: "pack-l", price: "$24.99", credits: 100 },
+  { id: "pack-s", price: "$2.99",  credits: 6 },
+  { id: "pack-m", price: "$7.99",  credits: 18 },
+  { id: "pack-l", price: "$14.99", credits: 32 },
 ];
 
 /** Roughly how many dreams a credit balance buys, for the "what you get" line. */
