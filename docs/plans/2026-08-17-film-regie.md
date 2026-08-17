@@ -1,0 +1,221 @@
+# Film-Regie: mehrere Modelle, echte Referenzen, ein Regisseur im Server
+
+> Geplant 17.08.2026, nach Antons Ansage: Träume, die schon Bilder und Text
+> haben, sollen ein „rundes Video" bekommen — 15 oder 30 Sekunden, wählbares
+> Modell, teurere Modelle kosten mehr Credits. Der Prompt dafür entsteht mit
+> der CINEDANCE-Methodik (Seedance-Skill) über das Flash-Modell.
+> **In dieser Sitzung wurde nichts generiert und kein Credit ausgegeben** —
+> alle Marktzahlen stammen von den fal.ai-Modellseiten (abgerufen 17.08.),
+> alle Systembefunde aus dem Code.
+
+## 1 · Was heute wirklich passiert (drei Befunde)
+
+Der Filmpfad läuft über den Wizard (`Step5Style.jsx`), auch aus dem Journal —
+„Kurzfilm machen" springt mit `resume` dorthin und bringt Text, eigene Bilder
+(als Keyframe-Kandidaten) und die Analyse mit. Das ist die richtige
+Architektur; sie bleibt. Aber:
+
+**Befund 1 — Der Film bekommt einen Standbild-Prompt.** `Step5Style.jsx:105`
+schickt wörtlich `buildImagePrompt(...)` mit: *„A cinematic, photoreal film
+still: …"* — an ein **Video**modell. Keine Kamera, kein Timing, keine
+Bewegung, kein Blocking. Was minimax daraus macht, ist Zufall. Das ist die
+Lücke, die die Regie füllt.
+
+**Befund 2 — Die Modellwahl erreicht den Server nicht.** `video.js` kennt
+`standard` und `premium`, Step 5 zeigt beide an und **rechnet den Preis nach
+Wahl ab** — aber `w.videoModel` steht nicht im Request
+(`Step5Style.jsx:100`), und der Server liest kein `body.model`. Jede
+Bestellung rendert `FAL_MODEL_VIDEO` (minimax). Wer Premium 30 s wählt,
+zahlt 6 Credits/s und bekommt minimax, von `falSubmitVideo` zusätzlich hart
+auf 15 s geklemmt (`server.js:912`). **Das ist heute ein echter Fehler**,
+kein fehlendes Feature — er wird als Erstes behoben, unabhängig vom Rest.
+
+**Befund 3 — Referenzen enden am Keyframe.** `startVideo` benutzt die
+mitgeschickten Referenzen nur, um das Startbild zu rendern. Das Videomodell
+selbst sieht genau ein Bild. Gesichter bleiben nur so ähnlich, wie das eine
+Standbild sie zeigt.
+
+## 2 · Der Markt (fal.ai, abgerufen 17.08.2026)
+
+| Modell | kann | Dauer | $/s | Credits/s* |
+|---|---|---|---|---|
+| `minimax/h3/image-to-video` 768P | 1 Bild animieren, Ton | 5–15 s | 0,08 | **1** |
+| `bytedance/seedance-2.0/mini/reference-to-video` 720p | **bis 9 Referenzen**, Ton | 4–15 s | 0,0928 | **2** |
+| `bytedance/seedance-2.0/fast/reference-to-video` 720p | **bis 9 Referenzen**, Ton | 4–15 s | 0,2419 | **4** |
+| `bytedance/seedance-2.0/reference-to-video` 720p | bis 9 Referenzen, Ton, 1080p möglich | 4–15 s | 0,3024 | 4 |
+| `bytedance/seedance-2.5/image-to-video` 720p | 1 Startbild (+ optional Endbild), Ton | **4–30 s** | 0,473 | **6** |
+
+\* 1 Credit = $0,08 (Kostenparität zum Bild, `pricing.js`), **aufgerundet,
+nie ab** — dieselbe Regel, mit der `premium` schon auf 6 kam.
+
+**Die zwei Fakten, die das Produkt formen:**
+
+1. **Referenz-Video (`reference-to-video`) nimmt bis zu 9 Bilder** über
+   `image_urls` und adressiert sie im Prompt als `@Image1`…`@Image9` — das
+   ist wörtlich unser Referenzsystem (`buildReferences()` nummeriert schon
+   heute „Reference image N shows @tag"), nur eine Modellgeneration weiter.
+2. **9 Referenzen und 30 Sekunden gibt es nicht im selben Modell.** 2.0-R2V
+   endet bei 15 s; 2.5 kann 30 s, nimmt aber nur ein Startbild. Wer beides
+   will, muss zwei Versprechen trennen (siehe Zielbild) oder verketten
+   (siehe Testplan T5 — R2V akzeptiert Videos als Eingabe, mit 40 % Rabatt
+   auf $/s; ungeprüft).
+
+Nebenbefund: `minimax/hailuo-02/standard` (768p) listet $0,045/s — fast die
+Hälfte unseres heutigen Standards. Gleiche Familie, neuere Karte. Ob die
+Qualität hält → Testplan T6.
+
+## 3 · Das Zielbild: drei Angebote statt zwei Modelle
+
+Dem Nutzer werden keine Modellnamen erklärt, sondern drei Versprechen —
+Antons Vorgabe: „ein günstiges Modell kostet weniger Credits, dafür weniger
+Sekunden" als Ton der Beschriftung.
+
+| | dahinter | Credits/s | Dauer | das Versprechen (Beschriftungs-Ton) |
+|---|---|---|---|---|
+| **Lebendig** | minimax/h3 (heute „standard") | 1 | 5–15 s | „Dein Bild beginnt sich zu bewegen." |
+| **Regie** ★ neu | seedance-2.0 **reference-to-video** (Fast- oder Normal-Tier → T2) | 4 | 5–15 s | „Mit den echten Gesichtern und Orten aus deinem Traum — und mit Ton." |
+| **Kino** | seedance-2.5 (heute „premium") | 6 | 5–30 s | „Die lange Einstellung: bis zu 30 Sekunden in einem Zug." |
+
+- **Regie ist das eigentlich Neue** — der erste Modus, in dem die Menschen
+  aus der Besetzung *im Film* sie selbst sind, nicht nur im Keyframe.
+  Und er füttert genau das, was die App schon sammelt: Referenzfotos,
+  Charakterbögen, Orte.
+- Beispielrechnung fürs Gefühl: 10 s Lebendig = 10 Cr + 1 Keyframe · 10 s
+  Regie = 40 Cr · 30 s Kino = 180 Cr + 1 Keyframe. Das Monatsabo (45 Cr)
+  reicht für Lebendig-Filme und einen Regie-Kurzfilm; Kino 30 s ist
+  Paket-L-Territorium. Das ist gewollt — Anton: teurere Modelle kosten
+  spürbar mehr.
+- `dreamsFor()` (Paywall) rechnet weiter mit dem Standard-Preis — dort geht
+  es um „was ist drin", nicht um die teuerste Option.
+
+## 4 · Der Regisseur im Server (CINEDANCE, destilliert)
+
+Der Seedance-Skill ist ein Regie-Regelwerk: aktueller Shot only, jede aktive
+Referenz als @Tag, erste sichtbare Frame-Belegung, messbares Blocking
+(„within 1 meter", nicht „nearby"), Blick- und Körperrichtung getrennt,
+Optik als Bildwinkel in Grad statt Millimeter, Physik mit Ursache und
+Wirkung, Licht als Vorrang-Regel, Zeitblöcke (0:00–0:03 …), Englisch,
+keine Negativ-Listen als Ersatz für positive Anweisungen.
+
+**Das wird NICHT als 600-Zeilen-Systemprompt verschifft.** Es wird zu einem
+`DIRECTOR`-Block in `server.js` destilliert (Vorbild: der `PERSONA`-Block),
+~40 Zeilen mit den tragenden Regeln. Zwei Lehren aus der Persona-Arbeit
+gelten wörtlich weiter: *keine Beispielsätze in den Prompt* (sie verbiegen
+die Sprache) und *Verbote allein erzeugen Neutralität*.
+
+**Neue Serverfunktion `directFilm()`** — DeepSeek Flash
+(`deepseek-v4-flash`, $0,00026 je Aufruf, also gratis im Sinne von
+`PRICES.improve`):
+
+```
+Eingabe   traumtext (Originalsprache) · beats aus der Analyse (falls da)
+          · nummerierte Referenzliste [{n, tag, kind, desc}] · sekunden
+          · modellfähigkeiten (maxRefs, kannTon, kannMultiShot) · stil-anker
+Ausgabe   EIN englischer Videoprompt nach CINEDANCE-Bauplan:
+          SCENE CONTEXT → ACTIVE REFERENCES (@ImageN, exakt unsere Reihenfolge)
+          → FIRST FRAME & BLOCKING → OPTICS (Grad) → CAMERA →
+          ACTION TIMING (Zeitblöcke über die GANZE Dauer) → PHYSICS →
+          LIGHTING → AUDIO
+```
+
+**Die harte Regel, und warum sie nicht verhandelbar ist:** Der Prompt darf
+`@ImageN` nur für existierende Indizes benutzen, in exakt der Reihenfolge
+des `image_urls`-Arrays. Das ist dieselbe Invariante, die `promptBuilder.js`
+im Kopfkommentar als „riskiest code in the app" führt — *get this wrong and
+people get each other's faces*. Deshalb prüft der Server die Antwort
+mechanisch nach (Regex über `@Image\d+`, jeder Index ≤ Anzahl Referenzen;
+Verstoß → Rückfall), zusätzlich läuft sie durch `sanitizePromptText` wie
+jeder andere Text, der eine bezahlte API erreicht.
+
+**Rückfallkette, weil der Regisseur nie einen Render blockieren darf:**
+DeepSeek fehlt oder scheitert → der heutige Zustand (`prompt || dream`).
+Schlechter Film schlägt keinen Film.
+
+**Je Modell ein anderes Drehbuch:**
+- *Lebendig* (1 Bild): reiner Bewegungs-Prompt — Kamera, Physik, Timing.
+  Keine @Tags (es gibt nur das Startbild), kein Blocking neuer Figuren.
+- *Regie* (bis 9 Referenzen): das volle Programm inkl. Multi-Shot, wenn die
+  Beats es hergeben — CINEDANCE erlaubt kontrollierte Schnitte MIT
+  definierter Kontinuität je Schnitt.
+- *Kino* (1 Startbild, 30 s): Single continuous take als Vorgabe (Stärke
+  des Modells), Zeitblöcke über 30 s, optional Endbild (`end_image_url`)
+  → könnte später das Poster als Schlussbild nehmen; nicht in v1.
+
+## 5 · Referenzen → `image_urls`: die Verdrahtung
+
+Reihenfolge und Deckelung sind Produktentscheidungen, keine Zufälle:
+
+1. **Index 1 ist immer der Keyframe** (das gewählte eigene Traumbild) — er
+   trägt Look und Farbwelt, der Prompt nennt ihn als Stil- und Szenenanker.
+2. Danach die Besetzung in `buildReferences`-Reihenfolge: **Personen, dann
+   Tiere, dann Orte** — bei mehr als 8 fliegen Orte zuerst, dann Tiere.
+   Gesichter sind das, was Identität ausmacht; ein Ort ist im Keyframe
+   ohnehin schon zu sehen.
+3. Der Client schickt weiter `cast` wie heute (die Leitung existiert schon —
+   `startVideo` bekommt `namedRefs` bereits); neu ist nur, dass sie bis ins
+   Modell durchgereicht wird statt am Keyframe zu enden.
+4. **Übertragungsform ist ein Testpunkt:** minimax akzeptiert data-URIs
+   (gemessen 09.08.). Ob Seedance-R2V das auch tut → T1. Falls nein: fal
+   bietet einen Upload-Speicher; das wäre ein kleiner Zusatzschritt im
+   Server, kein Umbau.
+
+## 6 · Was der Server ändern muss
+
+1. **`body.model` gegen Allowlist** (`standard` | `director` | `premium`),
+   serverseitige Slug-Tabelle. Der Client schickt IDs, nie Slugs — dieselbe
+   Regel wie bei `voice`, `lang`, `aspectRatio`.
+2. **Dauer je Modell klemmen** — die heutige harte 5–15 in `falSubmitVideo`
+   ist minimax-Wissen am falschen Ort; sie wandert in die Modelltabelle
+   (Spiegel von `clampSeconds`, serverseitig, weil der Client lügen kann).
+3. **Ein Submit je Modellfamilie:** minimax `{image_url, prompt, duration,
+   resolution:"768P"}` · R2V `{image_urls[], prompt, duration,
+   resolution:"720p", aspect_ratio, generate_audio:true}` · 2.5
+   `{image_url, prompt, duration, resolution:"720p", generate_audio}`.
+4. **`status_url`/`response_url` wörtlich speichern** — gilt unverändert
+   und wird mit Seedance wichtiger: neue Familie, neues Routing; die
+   Verbatim-Regel von 09.08. deckt das ab.
+5. `directFilm()` vor dem Submit (Abschnitt 4).
+6. **Gatekeeper: nichts zu tun** — alles läuft über `/api/generate`
+   (Klasse `generate`), und selbst ein späterer eigener Endpunkt wäre durch
+   die strenge Voreinstellung automatisch begrenzt.
+7. Client: `videoModel` mitschicken (Befund 2), Step 5 bekommt den dritten
+   Eintrag + ehrliche Beschriftungen in allen sieben Sprachen
+   (`filmModels`-Struktur existiert, Arität beachten).
+
+## 7 · Testplan — der bezahlte Teil, erst nach Freigabe
+
+Reihenfolge nach Erkenntnis je Dollar. Gesamtbudget für T0–T4: **unter $5.**
+
+| # | Was | Kostet | Beweist |
+|---|---|---|---|
+| T0 | `directFilm()` trocken: 3 Beispielträume durch DeepSeek, Prompts nur ANSEHEN | ~$0,001 | Regie-Prompt hält Bauplan + @Tag-Disziplin |
+| T1 | R2V **Mini**, 4–5 s, 480p, 2 Referenzen (1 Bogen + 1 Ort) als data-URI | ~$0,22 | data-URIs ja/nein · @Image-Zuordnung stimmt · Ton kommt an |
+| T2 | Gleicher Auftrag auf **Fast** und **Normal**, je 5 s | ~$1,21 + $1,51 | Qualitätsabstand → welches Tier „Regie" wird (Credits gleich: 4/s) |
+| T3 | Outro-Anhang an einen Seedance-Film | 0 (ffmpeg lokal) | Tonspur übersteht das Zusammenfügen (AAC vorhanden?) |
+| T4 | Regie 10 s mit 4 Referenzen, echter Traum aus dem Seed-Journal | ~$2,42 | das Produkterlebnis, das wir verkaufen |
+| T5 | *(optional, später)* 2×15 s R2V verkettet über Video-Eingabe | ~$5,80 | ob „30 s MIT Referenzen" als Kette geht |
+| T6 | *(optional)* hailuo-02 statt h3 für „Lebendig" | ~$0,23 | ob der Standard-Preis halbierbar ist |
+| — | Kino 30 s voll | ~$14 | **bewusst NICHT im ersten Testlauf** — teuerster Einzeltest, erst wenn Regie sitzt |
+
+## 8 · Offene Fragen an Anton
+
+1. **Regie-Tier:** Fast und Normal kosten nach Aufrundung dieselben
+   4 Credits/s — die Wahl ist reine Qualitätsfrage und fällt in T2.
+   Einverstanden, dass der Test entscheidet?
+2. **30 Sekunden:** Kino (ein Startbild, keine Besetzung im Film) ist das
+   ehrliche 30-s-Angebot von heute. „30 s mit echten Gesichtern" gibt es
+   erst, wenn T5 die Verkettung beweist. Okay, das so getrennt zu verkaufen?
+3. **Ton:** Seedance liefert nativen Ton (Musik/Atmo). Vorschlag: an, und
+   der Abspann (film-outro) bleibt stumm wie bisher. 
+4. **Namen der drei Stufen:** „Lebendig / Regie / Kino" ist Vorschlag —
+   deine Copy-Entscheidung.
+
+## 9 · Reihenfolge der Umsetzung
+
+1. Befund-2-Fix (Modell mitschicken + je Modell klemmen) — **das ist ein
+   Bugfix und geht vor allem anderen.**
+2. Modelltabelle + Submit je Familie (ohne Regie) → Premium funktioniert
+   damit zum ersten Mal wirklich.
+3. `DIRECTOR`-Block + `directFilm()` + mechanische @Tag-Prüfung + Rückfall.
+4. R2V-Verdrahtung (Referenzen bis ins Modell), UI-Dreier, i18n×7.
+5. Testplan T0–T4, dann Preise/Beschriftungen fixieren.
