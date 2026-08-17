@@ -43,7 +43,13 @@ export default {
     viewList: "Ver como lista",
     viewDeck: "Ver como tarjetas",
     library: "Tu reparto",
-    libraryLede: "Personas, mascotas y lugares de los que pueden surgir tus sueños.",
+    libraryLede: "Quién aparece en tus sueños, por frecuencia.",
+    /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie
+       in Serife gesetzt wird — deshalb liefert castDreamsN NUR das
+       Wort, so wie creditsN und yieldFilms es auch tun. */
+    castDreamsN: (n) => (n === 1 ? "sueño" : "sueños"),
+    castNever: "aún en ningún sueño",
+    castNew: "Añadir figura",
     libraryCount: (n) =>
       n === 0 ? "Todavía nadie — añade las caras que deben usar tus sueños"
               : `${n} ${n === 1 ? "entrada" : "entradas"} · personas, mascotas, lugares`,
@@ -187,6 +193,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "Añadir una persona", pet: "Añadir una mascota", place: "Añadir un lugar" },
+    kindLabel: "¿Qué es?",
+    kindFor: { person: "Persona", pet: "Animal", place: "Lugar" },
+    delete: "Eliminar",
     drawFromDesc: "Dibujarlo desde tu descripción",
     drawingNow: "Dibujando…",
     drawHint: "Una imagen de referencia, para que se vea igual en cada imagen",

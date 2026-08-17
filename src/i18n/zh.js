@@ -43,7 +43,13 @@ export default {
     viewList: "以列表显示",
     viewDeck: "以卡片显示",
     library: "你的角色库",
-    libraryLede: "你的梦可以调用的人物、宠物和地点。",
+    libraryLede: "谁常出现在你的梦里，按次数排列。",
+    /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie
+       in Serife gesetzt wird — deshalb liefert castDreamsN NUR das
+       Wort, so wie creditsN und yieldFilms es auch tun. */
+    castDreamsN: (n) => "个梦",
+    castNever: "还没进过梦",
+    castNew: "添加角色",
     libraryCount: (n) =>
       n === 0 ? "还没有——添加你的梦要用到的面孔"
               : `${n} 项 · 人物、宠物、地点`,
@@ -187,6 +193,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "添加人物", pet: "添加宠物", place: "添加地点" },
+    kindLabel: "这是什么？",
+    kindFor: { person: "人物", pet: "动物", place: "地点" },
+    delete: "删除",
     drawFromDesc: "按你的描述画出来",
     drawingNow: "正在画…",
     drawHint: "一张参考图，让他在每张画面里都是同一个人",

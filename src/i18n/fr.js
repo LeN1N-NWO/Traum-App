@@ -42,7 +42,13 @@ export default {
     viewList: "Afficher en liste",
     viewDeck: "Afficher en cartes",
     library: "Ta distribution",
-    libraryLede: "Personnes, animaux et lieux dans lesquels tes rêves peuvent puiser.",
+    libraryLede: "Qui revient dans tes rêves, du plus fréquent au moins.",
+    /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie
+       in Serife gesetzt wird — deshalb liefert castDreamsN NUR das
+       Wort, so wie creditsN und yieldFilms es auch tun. */
+    castDreamsN: (n) => (n === 1 ? "rêve" : "rêves"),
+    castNever: "dans aucun rêve encore",
+    castNew: "Ajouter une figure",
     libraryCount: (n) =>
       n === 0 ? "Personne encore — ajoute les visages que tes rêves doivent utiliser"
               : `${n} ${n === 1 ? "entrée" : "entrées"} · personnes, animaux, lieux`,
@@ -186,6 +192,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "Ajouter une personne", pet: "Ajouter un animal", place: "Ajouter un lieu" },
+    kindLabel: "C’est quoi ?",
+    kindFor: { person: "Personne", pet: "Animal", place: "Lieu" },
+    delete: "Supprimer",
     drawFromDesc: "Le dessiner d'après ta description",
     drawingNow: "En cours…",
     drawHint: "Une image de référence, pour qu'il soit le même sur chaque image",

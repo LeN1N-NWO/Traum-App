@@ -48,7 +48,13 @@ export default {
     viewList: "عرض كقائمة",
     viewDeck: "عرض كبطاقات",
     library: "طاقم شخصياتك",
-    libraryLede: "الأشخاص والحيوانات الأليفة والأماكن التي يمكن لأحلامك الاستعانة بها.",
+    libraryLede: "من يظهر في أحلامك، مرتَّبين حسب التكرار.",
+    /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie
+       in Serife gesetzt wird — deshalb liefert castDreamsN NUR das
+       Wort, so wie creditsN und yieldFilms es auch tun. */
+    castDreamsN: (n) => (n === 1 ? "حلم" : n === 2 ? "حلمان" : n <= 10 ? "أحلام" : "حلمًا"),
+    castNever: "لم يظهر في حلم بعد",
+    castNew: "أضف شخصية",
     libraryCount: (n) =>
       n === 0 ? "لا أحد بعد — أضِف الوجوه التي يجب أن تستخدمها أحلامك"
               : `${n} عنصر · أشخاص، حيوانات أليفة، أماكن`,
@@ -192,6 +198,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "إضافة شخص", pet: "إضافة حيوان أليف", place: "إضافة مكان" },
+    kindLabel: "ما هذا؟",
+    kindFor: { person: "شخص", pet: "حيوان", place: "مكان" },
+    delete: "حذف",
     drawFromDesc: "ارسمه من وصفك",
     drawingNow: "يُرسم الآن…",
     drawHint: "صورة مرجعية واحدة، ليبدو هو نفسه في كلّ لقطة",

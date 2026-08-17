@@ -80,3 +80,28 @@
 .av-draw-body { display: flex; flex-direction: column; gap: 1px; margin-inline-end: auto; min-width: 0; }
 .av-draw-body small { color: var(--faint); font-size: var(--t-micro); line-height: 1.4; }
 .av-draw-price { color: var(--faint); font-size: var(--t-micro); white-space: nowrap; }
+
+/* Die Gattungswahl — nur da, wenn der Aufrufer keine übergeben hat. */
+.av-kinds { display: flex; gap: var(--s-2); }
+.av-kind {
+  flex: 1; padding: var(--s-2); border-radius: 12px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--muted); font-size: var(--t-small); font-family: inherit;
+}
+.av-kind-on {
+  background: var(--accent-wash); border-color: var(--accent-ring); color: var(--text);
+  font-weight: 600;
+}
+.av-kind:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+/* Löschen: unter einer Linie, ohne Fläche, in ganzer Breite aber leise.
+   Es ist die einzige unumkehrbare Handlung im Blatt und soll nicht neben
+   dem Speichern-Knopf unter dem Daumen liegen. */
+.av-delete {
+  display: block; width: 100%; margin-block-start: var(--s-4);
+  padding-block-start: var(--s-3); padding-inline: 0; padding-block-end: 0;
+  background: none; border: 0; border-block-start: 1px solid var(--panel-line);
+  color: var(--faint); font-size: var(--t-small); font-family: inherit; cursor: pointer;
+}
+.av-delete:hover { color: var(--text); }
+.av-delete:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 8px; }
