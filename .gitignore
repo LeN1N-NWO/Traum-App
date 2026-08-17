@@ -1,5 +1,5 @@
 # Abhängigkeiten und Build-Ausgaben
-node_modules/
+node_modules
 dist/
 build/
 .cache/
@@ -26,4 +26,16 @@ public/clips/*.mp4
 
 # Lokale Kopien der erzeugten Bilder/Filme (server.js legt sie an).
 # Gehören dem jeweiligen Gerät, nicht dem Repository.
-media/
+#
+# OHNE Schrägstrich, und das ist der Punkt: `media/` passt NUR auf
+# Verzeichnisse. Am 16.08. lag hier zeitweise ein Symlink dieses Namens —
+# für git kein Verzeichnis, also nicht ignoriert, also von `git add -A`
+# mitgenommen und committet. Beim nächsten Auschecken hat git den echten
+# Ordner durch den Link ersetzt und dessen Inhalt gelöscht: ignorierte
+# Dateien räumt es beim Checkout kommentarlos weg. Die erzeugten Bilder
+# und Filme waren damit weg.
+#
+# `/media` ist an der Repo-Wurzel verankert und passt auf beides —
+# Verzeichnis wie Link. Wer diese Zeile wieder auf `media/` kürzt, stellt
+# dieselbe Falle erneut.
+/media

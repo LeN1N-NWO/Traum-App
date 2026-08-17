@@ -3,7 +3,7 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-16 (22:02) — Branch `session/2026-08-10-anton`, PR #11
+**Stand:** 2026-08-17 (00:03) — Branch `session/2026-08-16-anton`, PR #12
 
 ## Woran wird gearbeitet
 
@@ -39,7 +39,63 @@ sieht wie ein Versehen aus; genau deshalb steht das hier.
 `state/AppState.jsx:15`). Zwei Träume mit echten Bildern in jedem frischen
 Install. Vor einem Release zu entfernen; Anleitung im Kopf der Datei.
 Wer Code schreibt, der „hat der Nutzer schon Träume?" fragt: nach
-`e_seed`-Präfix filtern, sonst zählen die mit (siehe `Step6Result.jsx`).
+`e_seed`-Präfix filtern, sonst zählen die mit (siehe `Step6Result.jsx:138`).
+
+## ⚠ Verloren am 16.08.: der Ordner `media/`
+
+Die `.mov`-Originale der Faultier-Videos und der **gesamte lokale
+Render-Cache** sind weg — jedes Bild und jeder Film, den die App bis dahin
+erzeugt hatte. Träume im Browser-Tagebuch, die auf `/media/<hash>` zeigen,
+laufen ins Leere. Kein Backup vorhanden (keine Time Machine eingerichtet).
+
+**Nicht betroffen und weiterhin da:** `src/assets/home-faultier.mp4` und
+`intro-faultier.mp4` (was die App wirklich benutzt), Seed-Journal unter
+`public/clips/`.
+
+**Ursache, damit es sich nicht wiederholt:** `.gitignore` sagte `media/` —
+mit Schrägstrich, und das passt **nur auf Verzeichnisse**. Ein Symlink
+dieses Namens war damit nicht ignoriert, wurde committet, und der nächste
+Checkout ersetzte den echten Ordner durch den Link. Ignorierte Dateien
+räumt git dabei kommentarlos weg.
+
+Jetzt `/media` und `node_modules`, beide ohne Schrägstrich (`.gitignore:2`
+und `:41`). **Wer eine dieser Zeilen wieder auf die Schrägstrich-Form kürzt,
+stellt die Falle erneut.** Und allgemeiner: Was unter einem ignorierten Pfad
+liegt und nicht ersetzbar ist, gehört woandershin.
+
+## Das Kaufblatt — was es zeigt und woher
+
+**Zwei Kacheln statt zweier Strichsymbole** (`src/screens/Profile/Paywall.jsx:144`).
+Links laufen Standbilder im Wechsel mit langsamer Zufahrt, rechts ein Film,
+die Zahl sitzt unten als Bildunterschrift.
+
+Der Grund für den Umbau: Das Problem waren nicht die Zeichnungen, sondern die
+**Gattung**. Strichsymbole sind Bedienoberfläche — sie sagen „hier kannst du
+tippen", nicht „das bekommst du".
+
+**Die Auswahl steckt in `src/lib/showcase.js`, nicht in der Komponente**, und
+ist dreistufig:
+
+1. **Eigene Träume**, neuestes zuerst — das Blatt geht meist auf, WEIL das
+   Guthaben leer ist; wer dort ankommt, hat also schon geträumt
+2. **Seed-Bilder bzw. Dummy-Film** — liegen im Auslieferungsstand
+3. **Der gefüllte Glyph** (`ShowcaseGlyph.jsx`) — erst wenn gar nichts lädt
+
+⚠ **Stufe 2 greift auch dann, wenn Stufe 1 EXISTIERT, sich aber nicht laden
+lässt** — dafür gibt es `stillsBackup`/`filmsBackup` neben `stills`/`films`.
+Ohne das sähe die Kaufseite eines langjährigen Nutzers ärmer aus als die eines
+neuen, und zwar deshalb, WEIL er viel geträumt hat.
+
+⚠ **Der Dummy-Film ist ein Platzhalter** (`Paywall.jsx:25`, derzeit
+`home-faultier.mp4`). Austausch = eine Zeile; was hineingehört, steht im
+Kommentar darüber.
+
+⚠ **Die gefüllten Glyphen stehen NICHT in `icons.jsx`.** Dessen Kopf sagt
+„nothing filled", und genau das lässt eine Reihe davon als eine Familie lesen.
+
+**Das „oder" trägt Bedeutung**, keine Zierde: Das Guthaben gibt das eine ODER
+das andere her. Zentriert über `inset-inline: 0` plus automatische Ränder —
+nicht über `translate(-50%)`, das im Arabischen die falsche Kante verankert.
 
 ## Geld — Preise, Töpfe, Kaufwege
 
@@ -47,7 +103,7 @@ Wer Code schreibt, der „hat der Nutzer schon Träume?" fragt: nach
 kein serverseitiges Guthaben. Alles unten ist Fluss und Zahlenwerk, bereit
 zum Anschließen.
 
-**Preisliste** (`src/lib/plans.js`, neu gerechnet 16.08.):
+**Preisliste** (`src/lib/plans.js`):
 
 | | Preis | Credits | je Credit |
 |---|---|---|---|
@@ -148,6 +204,10 @@ und `share.js` teilt den Film unverändert.
 wiederholen. Vorher stand dort `credits / 5`, während ein Film 7 kostet — die
 Paywall versprach 9 Filme, wo 6 drin sind.
 
+**Wer Traum-Medien liest, nimmt `entryMedia.js`** (`filmOf`, `imagesOf`),
+niemals `entry.media` direkt: Vor dem 09.08. lag ein Film im `media`-Feld,
+seither daneben in `film`. Die zwei Leser verdecken die Naht.
+
 ## Die Serie belohnt, sie bestraft nie
 
 `streak.js`: Eine längere Serie verschiebt die Seltenheit der Wesen
@@ -161,11 +221,16 @@ alles unverändert vor. Begründung im Kopf der Datei.
 
 - Der Hintergrund existiert **einmal** als `--bg-rgb` in `tokens.css`.
 - **Warm ist selten und heißt „Weg nach vorn".** Immer mit `color: var(--bg)`.
-- Icons aus **einem** SVG-Satz, kein Emoji in Bedienelementen.
+- Icons aus **einem** SVG-Satz, kein Emoji in Bedienelementen. Der Satz ist
+  ungefüllt — Ausnahmen bekommen eine eigene Datei, nicht eine Zeile in
+  `icons.jsx`.
 - **Videos nie per `filter` dimmen**, immer Verlaufs-Scrim; per Vite-Import
   einbinden, nicht als `/public`-Pfad.
 - **RTL:** logische Eigenschaften überall, `scripts/test-rtl.mjs` erzwingt es.
   Zeichen, die eine Richtung MEINEN, tragen `[data-flip]`.
+  ⚠ **`transform` kennt keine logischen Achsen.** Wer mit `translate(-50%)`
+  zentriert, verankert im Arabischen die andere Kante — dann lieber
+  `inset-inline: 0` plus `margin-inline: auto`.
 - **Plural:** Wer eine Zahl neben ein Wort setzt, nimmt eine Funktion
   (`creditsN`, `yieldImages`, `yieldFilms`). Zweimal stand „1 Credits" bzw.
   „1 Filme" im Bild. Arabisch hat Einzahl, Zweizahl, Mehrzahl 3–10, dann
@@ -175,14 +240,15 @@ alles unverändert vor. Begründung im Kopf der Datei.
 
     bun run dev                       # Oberfläche 5173, API 8100, Hot Reload
     bun run build && bun server.js    # produktionsnah, alles auf 8100
-    bun run test                      # 114 Unit + 50 Freigabe + Hygiene + Kontrast + i18n + RTL
+    bun run test                      # 124 Unit + 50 Freigabe + Hygiene + Kontrast + i18n + RTL
 
 ⚠️ 5173 und 8100 sind für den Browser **verschiedene Herkünfte mit getrenntem
 `localStorage`**.
 
-⚠️ `preview_start` bedient das **Hauptrepo**, nicht den Worktree — beim
-Arbeiten im Worktree dort zusätzlich `bunx vite` starten, sonst prüft man
-Code, den man nicht geschrieben hat.
+⚠️ `preview_start` bedient das **Hauptrepo**, nicht den Worktree. Im Worktree
+zusätzlich `bunx vite --port 5174` starten — und vorher dort **`bun install`
+laufen lassen**, nicht `node_modules` verlinken (siehe die Symlink-Falle oben).
+5174 ist wieder eine eigene Herkunft, also ein frischer Install samt Sprachwahl.
 
 ## Provider und Preise
 
@@ -204,7 +270,7 @@ Die Rechnung in `plans.js` berücksichtigt **MwSt.** (geht in der EU vor der
 Store-Provision ab) und **Gratis-Credits pro Installation**. Mit beiden ist der
 30-%-Schnitt defizitär — **das Small Business Program (15 %) ist Voraussetzung,
 nicht Optimierung.** Break-even-Conversion ~4,5–5 %.
-Neuer Deckungsbeitrag Monat: **$4,44** (alte Liste: $1,42).
+Deckungsbeitrag Monat: **$4,44**.
 
 **Die Conversion ist die erste Kennzahl, die nach Launch gemessen gehört.**
 
@@ -223,6 +289,7 @@ Neuer Deckungsbeitrag Monat: **$4,44** (alte Liste: $1,42).
 ## Bekannte Baustellen
 
 - **Kein Zahlungsanbieter.** Der Kaufknopf sagt es ehrlich.
+- **Der Dummy-Film im Kaufblatt** ist noch das Faultier-Video (`Paywall.jsx:25`).
 - **Filme laufen über `queue.fal.run`.** `falSubmitVideo()` speichert
   `status_url`/`response_url` **wörtlich** — nicht aus dem Slug rekonstruieren,
   das machte fertige Filme unabholbar.
@@ -237,19 +304,21 @@ Neuer Deckungsbeitrag Monat: **$4,44** (alte Liste: $1,42).
 
 1. **Capacitor + StoreKit + RevenueCat** — Punkt 1 des Wachstumsplans. Alles
    andere multipliziert diesen.
-2. **Small Business Program beantragen**, sobald es einen Entwickleraccount gibt.
-3. **Push:** Morgen-Erinnerung und „Dein Film ist fertig" (braucht Capacitor).
-4. **Web-Funnel + Stripe** — die Sprach-Umfrage ist bereits ein Quiz-Funnel in
+2. **Dummy-Film ersetzen** (Anton), eine Zeile in `Paywall.jsx`.
+3. **Small Business Program beantragen**, sobald es einen Entwickleraccount gibt.
+4. **Push:** Morgen-Erinnerung und „Dein Film ist fertig" (braucht Capacitor).
+5. **Web-Funnel + Stripe** — die Sprach-Umfrage ist bereits ein Quiz-Funnel in
    sieben Sprachen, sie steht nur am falschen Ort.
-5. **Datenschutzerklärung und App-Privacy-Angaben** (Voraussetzung fürs
+6. **Datenschutzerklärung und App-Privacy-Angaben** (Voraussetzung fürs
    Einreichen, Liste in `docs/plans/2026-08-16-positionierung-und-store.md`).
-6. **Startmenü und Seed-Journal entfernen** — beides auf Antons Wort.
-7. Empfehlungsprogramm · Preise lokalisieren · Churn-Werkzeuge.
+7. **Startmenü und Seed-Journal entfernen** — beides auf Antons Wort.
+8. Empfehlungsprogramm · Preise lokalisieren · Churn-Werkzeuge.
 
-## Dokumente aus dieser Sitzung
+## Pläne aus früheren Sitzungen
 
 - `docs/plans/2026-08-16-wachstumsplan.md` — zehn Umsatzhebel nach
   Hebel÷Aufwand, mit Quellen und einer bewussten Nicht-Empfehlungs-Liste.
+  Umgesetzt: Punkte 2, 3, 6, 7, 9.
 - `docs/plans/2026-08-16-positionierung-und-store.md` — Store-Texte auf
   Englisch und Deutsch, Längen gegen Apples Grenzen geprüft, plus die Liste
   dessen, was vor einer Einreichung fehlt.

@@ -1,11 +1,28 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
 import { SUBSCRIPTIONS, PACKS, dreamsFor } from "../../lib/plans.js";
 import { totalCredits } from "../../lib/credits.js";
+import { showcaseFrom } from "../../lib/showcase.js";
 import { t } from "../../i18n/index.js";
 import Button from "../../components/Button.jsx";
-import { IconImages, IconFilm } from "../../components/icons.jsx";
+import ShowcaseTile from "./ShowcaseTile.jsx";
 import "./paywall.css";
+
+/* ⚠ PLATZHALTER — Anton ersetzt diese Datei durch einen echten Traumfilm.
+ *
+ * Sie steht nur in der rechten Kachel, und nur solange der Mensch noch
+ * keinen eigenen Film hat: also beim allerersten Öffnen. Sobald einer
+ * gerendert ist, greift showcaseFrom() auf dessen Film zu und diese Zeile
+ * wird nie wieder ausgeführt.
+ *
+ * Zum Austauschen genügt es, hier eine andere Datei zu importieren — der
+ * Rest hängt an `fallbackFilm`. Was hineingehört: ein kurzer, dunkler,
+ * langsamer Ausschnitt, der ohne Ton funktioniert und ohne Anfang und Ende
+ * gelesen werden kann; die Kachel ist 132 px hoch und zeigt einen
+ * Bildausschnitt, keine Komposition. Bitte als MP4 unter ~700 KB — das
+ * Repository trägt seine Medien selbst (siehe WORKLOG 10.08.).
+ */
+import fallbackFilm from "../../assets/home-faultier.mp4";
 
 /* The shop window. Opened from anywhere via openPaywall(reason) — the credits
  * pill, the wizard when the balance runs out, the avatar dialog, and once
@@ -34,6 +51,11 @@ export default function Paywall({ reason = "browse", onClose }) {
   const plans = tab === "sub" ? SUBSCRIPTIONS : PACKS;
   const plan = plans.find((p) => p.id === chosen) || plans[0];
   const got = dreamsFor(plan.credits);
+
+  /* Hängt am Tagebuch, nicht am gewählten Tarif: Beim Umschalten zwischen
+     Woche und Monat ändern sich die Zahlen, nicht das Material. Ohne das
+     Merken würden die Kacheln bei jedem Antippen von vorn anfangen. */
+  const show = useMemo(() => showcaseFrom(state.journal, fallbackFilm), [state.journal]);
 
   function pick(id) {
     setChosen(id);
@@ -106,30 +128,45 @@ export default function Paywall({ reason = "browse", onClose }) {
           ))}
         </div>
 
-        {/* Was der gewählte Tarif konkret hergibt — als zwei Zahlen mit
-            Symbol statt als Satz. Der Satz davor („45 Credits — etwa 9
-            Träume mit 5 Bildern, oder 15 mit 3…") stimmte zwar, aber er
-            musste gelesen und dann umgerechnet werden; hier steht die
-            Antwort schon da. Die Zahlen kommen aus dreamsFor(), also aus
-            derselben Quelle wie der echte Preis. */}
+        {/* Was der gewählte Tarif hergibt — als zwei Flächen, auf denen die
+            Ware selbst läuft, statt als Piktogramm davon.
+
+            Die Entwicklung dieser Zeilen ist der Punkt: Erst stand hier ein
+            Satz („45 Credits — etwa 9 Träume mit 5 Bildern…"), der stimmte,
+            aber gelesen und umgerechnet werden musste. Dann zwei Zahlen mit
+            Strichsymbol — schneller zu erfassen, aber Strichsymbole sind
+            Bedienoberfläche: Sie sagen „hier kannst du tippen", nicht „das
+            bekommst du". Jetzt laufen dort echte Bilder und ein echter Film,
+            und zwar möglichst SEINE (siehe showcase.js).
+
+            Die Zahlen kommen weiterhin aus dreamsFor(), also aus derselben
+            Quelle wie der echte Preis. */}
         <div className="pw-yield">
-          <span className="pw-yield-item">
-            <IconImages />
-            <b>{got.images}</b>
-            <small>{t.paywall.yieldImages(got.images)}</small>
-          </span>
-          {/* Kein Filmsymbol mit einer 0 daneben: Das kleinste Paket reicht
-              fuer keinen Film, und eine Null auf einer Kaufseite liest sich
-              als Mangel, nicht als Information. Dann steht dort nur, was das
-              Guthaben WIRKLICH hergibt. */}
+          <ShowcaseTile
+            kind="stills"
+            urls={show.stills}
+            backup={show.stillsBackup}
+            count={got.images}
+            label={t.paywall.yieldImages(got.images)}
+          />
+          {/* Keine Kachel mit einer 0: Das kleinste Paket reicht für keinen
+              Film, und eine Null auf einer Kaufseite liest sich als Mangel,
+              nicht als Information.
+
+              Das „oder" bleibt, obwohl es im Entwurf der Kacheln zunächst
+              wegfiel — und sein Fehlen war ein Sachfehler, kein
+              Gestaltungsdetail: Zwei Zahlen nebeneinander lesen sich als
+              „und", das Guthaben gibt aber das eine ODER das andere her. */}
           {got.films > 0 && (
             <>
               <span className="pw-yield-or">{t.paywall.yieldOr}</span>
-              <span className="pw-yield-item">
-                <IconFilm />
-                <b>{got.films}</b>
-                <small>{t.paywall.yieldFilms(got.films)}</small>
-              </span>
+              <ShowcaseTile
+                kind="film"
+                urls={show.films}
+                backup={show.filmsBackup}
+                count={got.films}
+                label={t.paywall.yieldFilms(got.films)}
+              />
             </>
           )}
         </div>

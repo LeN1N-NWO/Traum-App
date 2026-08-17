@@ -3,6 +3,104 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-17 00:03 — Anton — Branch `session/2026-08-16-anton` (PR #12) — Sitzungsabschluss
+
+**Commits:** `785c368` (Kacheln im Kaufblatt), `c6f1c1f` (media-Symlink)
+plus der Doku-Commit dieser Zeilen. Zustand: 124 Unit-Tests, 50
+Freigabe-Prüfungen, Prompt-Hygiene, 16 Kontrast-Paarungen, 7 Sprachdateien,
+22 Stilblätter — alles grün. `bun run lint` existiert weiterhin nicht.
+
+### ⚠ Datenverlust: der Ordner `media/` ist weg
+
+Das gehört an den Anfang, weil es niemandem sonst auffallen würde.
+
+Beim `git pull` nach dem Merge von PR #11 hat git den echten Ordner
+`media/` durch einen Symlink ersetzt und seinen Inhalt gelöscht. Verloren
+sind die `.mov`-Originale der Faultier-Videos und der gesamte lokale
+Render-Cache — jedes Bild und jeder Film, den die App bisher erzeugt hat.
+Träume im Browser-Tagebuch, die auf `/media/<hash>` zeigen, laufen ins
+Leere. Time Machine war auf dem Rechner nicht eingerichtet.
+
+**Nicht betroffen:** `src/assets/home-faultier.mp4` und `intro-faultier.mp4`
+(die Fassungen, die die App wirklich benutzt) sowie das Seed-Journal unter
+`public/clips/`. Beides ist versioniert.
+
+**Die Ursache ist eine Falle, die jeder stellt:** In `.gitignore` stand
+`media/` — **mit Schrägstrich, und das passt nur auf Verzeichnisse.** Als
+die Sitzung vom 16.08. dort einen Symlink anlegte (um Medien zwischen
+Worktree und Hauptrepo zu teilen), war es für git kein Verzeichnis mehr,
+die Regel griff nicht, und ein `git add -A` nahm ihn mit. Beim nächsten
+Auschecken ersetzte git dann den echten Ordner durch den Link: **ignorierte
+Dateien räumt git beim Checkout kommentarlos weg.**
+
+Behoben als `/media` — an der Wurzel verankert, passt auf Verzeichnis wie
+Link. `node_modules/` hatte dieselbe Falle und ist jetzt `node_modules`.
+Am Servercode war nichts zu tun, `Bun.write` legt fehlende Ordner selbst an.
+
+**Zwei Lehren, die über den Einzelfall hinausgehen:**
+
+1. **Ein Ignoriermuster mit Schrägstrich ist eine Wette darauf, dass dort
+   nie etwas anderes als ein Verzeichnis liegt.** Diese Wette verliert man
+   genau dann, wenn jemand einen Symlink anlegt — also im Moment der
+   größten Eile.
+2. **Ignoriert heißt für git „entbehrlich", nicht „unsichtbar".** Ein
+   Checkout darf ignorierte Dateien überschreiben und tut es auch. Was dort
+   liegt und nicht ersetzbar ist, gehört woandershin.
+
+### Die Symbole im Kaufblatt sind Kacheln geworden
+
+Anton: „die Icons sehen total billig aus." Erst fünf Varianten als
+laufende Vorschau (Artefakt, absichtlich NICHT im Repo — mit eingebetteten
+Medien 1,6 MB, und das Repo trägt seine Medien selbst, siehe 10.08.).
+Gewählt: A+B in E-Form — große Kacheln mit echtem Material, Leuchtglyph als
+Rückfall.
+
+Der Befund, der die Richtung vorgab: **Das Problem war nicht die Zeichnung,
+sondern die Gattung.** Strichsymbole sind Bedienoberfläche — sie sagen
+„hier kannst du tippen", nicht „das bekommst du". An der einzigen Stelle,
+an der die App etwas verkauft, ist das die falsche Stimme.
+
+Jetzt zwei Flächen mit der Ware selbst, und zwar möglichst **seiner**: Das
+Blatt geht meist auf, WEIL das Guthaben leer ist — wer dort ankommt, hat
+schon geträumt. Neu: `src/lib/showcase.js` (Auswahl), `ShowcaseTile.jsx`
+(Fläche), `ShowcaseGlyph.jsx` (Rückfall).
+
+**Der Fund beim Nachmessen im Browser, und der ist der wichtigste:** Ich
+habe einen eigenen Traum mit toten `/media/`-Verweisen untergeschoben — der
+Fall von heute Morgen — und **beide Kacheln fielen auf den Glyph, obwohl
+Seed-Bilder und Dummy-Film bereitlagen.** Die Rückfallkette war
+„eigenes ODER Rückfall", brauchte aber „eigenes, und wenn das nicht LÄDT,
+Rückfall". Daher `stillsBackup`/`filmsBackup` neben `stills`/`films`.
+Sonst sähe die Kaufseite eines langjährigen Nutzers ärmer aus als die eines
+neuen — und zwar deshalb, WEIL er viel geträumt hat.
+
+**Zwei kleinere Korrekturen unterwegs:**
+
+- Das **„oder"** war in meinem Kachel-Entwurf weggefallen. Das war ein
+  Sachfehler, kein Gestaltungsdetail: Zwei Zahlen nebeneinander lesen sich
+  als „und", das Guthaben gibt aber das eine ODER das andere her.
+- Zentriert wird es über `inset-inline: 0` plus automatische Ränder, nicht
+  über `translate(-50%)`. Letzteres verankert im Arabischen die rechte
+  Kante und zöge dann in die falsche Richtung — **`transform` kennt keine
+  logischen Achsen, automatische Ränder schon.** Nachgemessen: 0 px
+  Abweichung in beiden Leserichtungen.
+
+**Was der Nächste wissen muss:**
+
+- **Der Dummy-Film ist ein Platzhalter** und steht in genau einer Zeile:
+  `Paywall.jsx:25` importiert derzeit `home-faultier.mp4`. Anton ersetzt
+  ihn. Was hineingehört, steht im Kommentar darüber.
+- **Die gefüllten Glyphen stehen NICHT in `icons.jsx`**, sondern in
+  `ShowcaseGlyph.jsx`. Grund: Der Kopf von `icons.jsx` sagt „nothing
+  filled", und genau das lässt eine Reihe davon als eine Familie lesen.
+  Zwei Sorten in einer Datei wären der Anfang vom Ende dieses Satzes.
+- **Der Worktree braucht ein eigenes `bun install`.** Ein Symlink auf
+  `node_modules` des Hauptrepos wäre die Falle von oben ein drittes Mal.
+- **Wer im Worktree prüfen will**, startet dort `bunx vite --port 5174`.
+  `preview_start` bedient das Hauptrepo. 5174 ist für den Browser eine
+  eigene Herkunft mit eigenem `localStorage` — also ein frischer Install
+  samt Sprachwahl.
+
 ## 2026-08-16 22:02 — Anton — Branch `session/2026-08-10-anton` (PR #11) — Sitzungsabschluss
 
 **Commits (neuester zuerst):** `6eabb8a` (Paywall mit Symbolen),
