@@ -3,7 +3,34 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-17 (00:03) — Branch `session/2026-08-16-anton`, PR #12
+**Stand:** 2026-08-17 (23:50) — Branch `session/2026-08-17-anton`, PR #13
+
+## ⚠ Morgen geht es HIER weiter: der Film-Plan ist getestet, nicht umgesetzt
+
+`docs/plans/2026-08-17-film-regie.md` — drei Videomodell-Stufen (Lebendig
+1 Cr/s · Regie 4 Cr/s · Kino 6 Cr/s), ein destillierter CINEDANCE-Regisseur
+über DeepSeek Flash, Referenzen bis ins Videomodell. Die Machbarkeit ist
+**bewiesen** (Tests vom 17.08., zusammen ~$0,94):
+
+- **T0:** Regisseur-Prompts halten Bauplan und @Tag-Disziplin (mechanisch
+  geprüft). ⚠ DeepSeek OHNE `max_tokens` aufrufen — das Denkmodell schreibt
+  erst ins Denkfeld, ein Deckel lässt die Antwort leer zurückkommen.
+- **T1:** Seedance-R2V nimmt **data-URIs**; @Image-Zuordnung stimmt
+  (Figur aus Bild 1 im Raum aus Bild 2); AAC-Ton kommt mit.
+- **T4:** Ganze Produktkette (Charakterbogen → Regisseur → Mini-R2V 15 s):
+  **Identität hält über zwei Ortswechsel.** Ergebnisdateien in
+  `media/tests/` des Hauptrepos (ignoriert, gerätelokal).
+
+**Reihenfolge für morgen steht im Plan §9 — Schritt 1 ist der Bugfix:**
+Die Modellwahl erreicht den Server nicht (`Step5Style.jsx:100` schickt
+`videoModel` nicht mit, der Server liest kein `body.model`) — **Premium
+wird heute berechnet, minimax geliefert und auf 15 s geklemmt.** Außerdem
+bekommt der Film heute wörtlich einen STANDBILD-Prompt
+(`Step5Style.jsx:105`, „photoreal film still").
+
+**Offen, auf Antons Go:** T2 (Fast/Normal-Qualitätsvergleich, ~$2,20) —
+das Mini-Tier war so gut, dass „Regie" womöglich billiger geht als die
+geplanten 4 Cr/s. Und die vier Fragen in Plan §8.
 
 ## Woran wird gearbeitet
 
@@ -14,7 +41,7 @@ Wizard öffnet sich über der Tab-Leiste.
 | Tab | Inhalt |
 |---|---|
 | Home | Begrüßung, Faultier-Film als Posterkarte, Serien-Zeile, letzter Traum, Menagerie |
-| Journal | Kartenstapel **oder** Liste, Kalender, Detail mit Film+Bildern |
+| Journal | Kartenstapel **oder** Liste, Kalender, Detail mit Film+Bildern, **Besetzung** |
 | **⊕** | Der Wizard: Traum → Ausgabe → Personen → Orte → Style → Ergebnis |
 | Sleep | **Alles gratis:** Checkliste, Sound-Mixer, Klartraum-Leitfaden, Symbole |
 | Profil | Porträt, Guthaben-Pille (Kaufblatt), Zahnrad → Einstellungen, „Was du mir erzählt hast" |
@@ -44,64 +71,60 @@ Wer Code schreibt, der „hat der Nutzer schon Träume?" fragt: nach
 ## ⚠ Verloren am 16.08.: der Ordner `media/`
 
 Die `.mov`-Originale der Faultier-Videos und der **gesamte lokale
-Render-Cache** sind weg — jedes Bild und jeder Film, den die App bis dahin
-erzeugt hatte. Träume im Browser-Tagebuch, die auf `/media/<hash>` zeigen,
-laufen ins Leere. Kein Backup vorhanden (keine Time Machine eingerichtet).
-
-**Nicht betroffen und weiterhin da:** `src/assets/home-faultier.mp4` und
-`intro-faultier.mp4` (was die App wirklich benutzt), Seed-Journal unter
-`public/clips/`.
+Render-Cache** sind weg. Träume im Browser-Tagebuch, die auf `/media/<hash>`
+zeigen, laufen ins Leere. Kein Backup vorhanden (keine Time Machine).
 
 **Ursache, damit es sich nicht wiederholt:** `.gitignore` sagte `media/` —
-mit Schrägstrich, und das passt **nur auf Verzeichnisse**. Ein Symlink
-dieses Namens war damit nicht ignoriert, wurde committet, und der nächste
-Checkout ersetzte den echten Ordner durch den Link. Ignorierte Dateien
-räumt git dabei kommentarlos weg.
+mit Schrägstrich, das passt **nur auf Verzeichnisse**. Ein Symlink dieses
+Namens war nicht ignoriert, wurde committet, und der nächste Checkout
+ersetzte den echten Ordner durch den Link. Jetzt `/media` und
+`node_modules`, beide ohne Schrägstrich (`.gitignore:2` und `:41`). **Wer
+eine dieser Zeilen wieder kürzt, stellt die Falle erneut.** Und allgemeiner:
+Was unter einem ignorierten Pfad liegt und nicht ersetzbar ist, gehört
+woandershin.
 
-Jetzt `/media` und `node_modules`, beide ohne Schrägstrich (`.gitignore:2`
-und `:41`). **Wer eine dieser Zeilen wieder auf die Schrägstrich-Form kürzt,
-stellt die Falle erneut.** Und allgemeiner: Was unter einem ignorierten Pfad
-liegt und nicht ersetzbar ist, gehört woandershin.
+## Die Besetzung — eine Rollenliste (neu 17.08.)
+
+`Journal → Deine Besetzung`: Abspann-Form statt dreier Kachelraster. Name
+in Serife links, **Häufigkeit rechts, sortiert nach Häufigkeit** — die
+Zählung kommt aus `src/lib/castStats.js` und liest `entry.references`.
+Anzeige: `CastGroup.jsx`; `AvatarList.jsx` ist entfallen.
+
+Vier Regeln mit Begründung im Code:
+- **Ein Traum zählt einmal**, auch wenn die Figur doppelt drinsteht.
+- **Seed-Träume zählen nicht** — ohne Sonderfall, sie tragen `references: []`.
+- **Löschen sitzt im Dialog** (`AvatarDialog`), nicht an der Zeile — und die
+  Träume BEHALTEN ihre `references`: dass eine Figur vorkam, bleibt wahr.
+- **Die Gattungswahl** erscheint im Dialog, wenn KEINE `category` übergeben
+  wird — das Fehlen ist das Signal; der Wizard übergibt seine weiter.
+
+Ohne Foto steht der **Anfangsbuchstabe** (über den Zeichenpunkt gelesen,
+Emoji-sicher), nie ein Fragezeichen.
+
+**Das Muster dahinter, zweimal bestätigt (Kaufblatt, Besetzung):** Die App
+speichert mehr, als sie zeigt. Wer eine Ansicht anfasst, frage zuerst:
+Welche gespeicherte Information fehlt hier noch?
 
 ## Das Kaufblatt — was es zeigt und woher
 
-**Zwei Kacheln statt zweier Strichsymbole** (`src/screens/Profile/Paywall.jsx:144`).
-Links laufen Standbilder im Wechsel mit langsamer Zufahrt, rechts ein Film,
-die Zahl sitzt unten als Bildunterschrift.
+**Zwei Kacheln statt zweier Strichsymbole** (`Paywall.jsx:144`): links
+laufende Standbilder, rechts ein Film, Zahl als Bildunterschrift. Auswahl
+dreistufig in `src/lib/showcase.js`: eigene Träume → Seed/Dummy → Glyph.
 
-Der Grund für den Umbau: Das Problem waren nicht die Zeichnungen, sondern die
-**Gattung**. Strichsymbole sind Bedienoberfläche — sie sagen „hier kannst du
-tippen", nicht „das bekommst du".
+⚠ **Stufe 2 greift auch, wenn Stufe 1 existiert, aber nicht LÄDT**
+(`stillsBackup`/`filmsBackup`) — sonst wäre die Kaufseite eines
+Vielträumers ärmer als die eines neuen Nutzers.
 
-**Die Auswahl steckt in `src/lib/showcase.js`, nicht in der Komponente**, und
-ist dreistufig:
+⚠ **Der Dummy-Film ist ein Platzhalter** (`Paywall.jsx:25`,
+`home-faultier.mp4`). Austausch = eine Zeile; Anforderungen im Kommentar.
 
-1. **Eigene Träume**, neuestes zuerst — das Blatt geht meist auf, WEIL das
-   Guthaben leer ist; wer dort ankommt, hat also schon geträumt
-2. **Seed-Bilder bzw. Dummy-Film** — liegen im Auslieferungsstand
-3. **Der gefüllte Glyph** (`ShowcaseGlyph.jsx`) — erst wenn gar nichts lädt
-
-⚠ **Stufe 2 greift auch dann, wenn Stufe 1 EXISTIERT, sich aber nicht laden
-lässt** — dafür gibt es `stillsBackup`/`filmsBackup` neben `stills`/`films`.
-Ohne das sähe die Kaufseite eines langjährigen Nutzers ärmer aus als die eines
-neuen, und zwar deshalb, WEIL er viel geträumt hat.
-
-⚠ **Der Dummy-Film ist ein Platzhalter** (`Paywall.jsx:25`, derzeit
-`home-faultier.mp4`). Austausch = eine Zeile; was hineingehört, steht im
-Kommentar darüber.
-
-⚠ **Die gefüllten Glyphen stehen NICHT in `icons.jsx`.** Dessen Kopf sagt
-„nothing filled", und genau das lässt eine Reihe davon als eine Familie lesen.
-
-**Das „oder" trägt Bedeutung**, keine Zierde: Das Guthaben gibt das eine ODER
-das andere her. Zentriert über `inset-inline: 0` plus automatische Ränder —
-nicht über `translate(-50%)`, das im Arabischen die falsche Kante verankert.
+⚠ **Die gefüllten Glyphen stehen NICHT in `icons.jsx`** (dessen Satz ist
+ungefüllt — Ausnahmen bekommen eine eigene Datei: `ShowcaseGlyph.jsx`).
 
 ## Geld — Preise, Töpfe, Kaufwege
 
 **Es kassiert weiterhin niemand.** Kein Zahlungsanbieter, kein Store-Konto,
-kein serverseitiges Guthaben. Alles unten ist Fluss und Zahlenwerk, bereit
-zum Anschließen.
+kein serverseitiges Guthaben.
 
 **Preisliste** (`src/lib/plans.js`):
 
@@ -114,141 +137,85 @@ zum Anschließen.
 | Paket M | $7,99 | 18, bleiben | $0,444 |
 | Paket L | $14,99 | 32, bleiben | $0,468 |
 
-**Zwei Regeln, in `plans.test.js` festgenagelt:** Kein Paket teilt einen
-Preispunkt mit einem Abo, und jedes Paket ist je Credit teurer als jedes Abo.
-Beides gibt es, weil genau das schon einmal kaputt war — `pack-s` bot bei
-identischem Preis mehr Credits als das Wochen-Abo, und die damalige Prüfung
-ließ es durch, weil sie monatlich normierte statt den Kaufmoment zu messen.
-
-**Zwei Guthaben-Töpfe** (`src/lib/credits.js`):
-`credits` (Pakete + Willkommensgeschenk — bleiben) und `allowance` (Abo — wird
-zum Periodenbeginn **gesetzt**, nicht addiert). Ausgegeben wird **immer zuerst
-das Verfallende**; andersherum verlöre ein Abonnent bei jeder Abrechnung seine
-dazugekauften Credits. Angezeigt wird die Summe über `totalCredits()`.
-
-**Das Kaufblatt öffnet sich von überall** über `openPaywall(reason)` aus dem
-AppState, eingehängt einmal in `App.jsx`. Drei Anlässe: `browse` (selbst
-getippt), `spent` (Guthaben leer, an fünf Stellen) und `first` (genau einmal,
-wenn der erste **selbst gemachte** Traum fertig ist).
-
-⚠ Der Aha-Moment liegt bewusst NICHT am Ende des Onboardings, obwohl die
-Konversionszahlen das nahelegen: Dort verspricht die App „Dein erster Traum
-geht auf uns". Direkt danach nach Geld zu fragen wäre der Widerspruch, den
-man einer App nicht verzeiht.
+**Zwei Regeln in `plans.test.js`:** kein Paket teilt einen Preispunkt mit
+einem Abo, jedes Paket ist je Credit teurer als jedes Abo. **Zwei
+Guthaben-Töpfe** (`credits.js`): `credits` bleibt, `allowance` wird je
+Periode GESETZT; ausgegeben wird zuerst das Verfallende. **Das Kaufblatt
+öffnet von überall** über `openPaywall(reason)`; Anlässe `browse`/`spent`/
+`first`. Der Aha-Moment liegt bewusst NICHT am Onboarding-Ende („Dein
+erster Traum geht auf uns" — direkt danach Geld zu fordern wäre der
+Widerspruch).
 
 ## Schranke vor den teuren Endpunkten
 
-`src/lib/gatekeeper.js`, eingehängt ganz oben in `server.js`s `fetch`:
-
-- **Mengenbegrenzung je Absender**, greift immer. `generate` 20/min,
-  `text` 40/min, `cheap` 120/min.
-- **Optionales `API_TOKEN`.** Ohne gesetzte Variable bleibt alles offen —
-  eine Sicherung, die alle als Erstes abschalten, sichert nichts.
-
-⚠ **Die Voreinstellung ist die strengste:** Alles unter `/api/` wird begrenzt,
-sofern es nicht ausdrücklich in `UNLIMITED` steht (`/api/job`, `/api/voice`).
-Grund: Eine Liste kann einen vergessenen Endpunkt nicht verhindern — genau das
-passierte am 16.08. mit `/api/character`. Wer einen neuen Endpunkt baut,
-bekommt die Bremse geschenkt.
-
-**Bleibt trotzdem KEINE Benutzerverwaltung:** keine Konten, kein
-serverseitiges Guthaben, keine Zuordnung wer was ausgegeben hat.
+`src/lib/gatekeeper.js`, oben in `server.js`s `fetch`: Mengenbegrenzung je
+Absender (`generate` 20/min, `text` 40/min, `cheap` 120/min) plus
+optionales `API_TOKEN`. ⚠ **Voreinstellung ist die strengste:** alles
+unter `/api/` ist begrenzt, sofern nicht in `UNLIMITED` (`/api/job`,
+`/api/voice`). Eine Liste kann einen vergessenen Endpunkt nicht verhindern
+— eine Voreinstellung schon. Bleibt trotzdem KEINE Benutzerverwaltung.
 
 ## Die Persona — eine Stimme, überall dieselbe
 
-„Der coole Nachtportier": ruhig, trocken-warm, unaufgeregt. Ein `PERSONA`-Block
-in `server.js` speist **beide** Briefings.
-
-**Zwei Regeln, die Blut gekostet haben:**
-1. **Keine Beispielsätze im Prompt.** Zweimal hat das die Sprache verbogen.
-   Beschrieben wird die *Bewegung*, nie der Wortlaut.
-2. **Verbote allein erzeugen Neutralität.** Eine Fassung aus lauter „erwähne
-   nie…" lieferte farblose Begrüßungen.
-
+„Der coole Nachtportier", ein `PERSONA`-Block in `server.js` speist beide
+Briefings. **Zwei Regeln, die Blut gekostet haben:** keine Beispielsätze im
+Prompt (verbiegen die Sprache), und Verbote allein erzeugen Neutralität.
 Der Charakter fällt als Erstes weg, wenn ein Traum bedrückend wird.
+**Dieselben zwei Regeln gelten für den kommenden `DIRECTOR`-Block.**
 
 ## Der Sprachassistent (Gemini Live)
 
 Zwei Modi über denselben Relay (`/api/voice`): `dream` und `onboarding`.
-**Die Stimme wird genau einmal gewählt**, danach unter Profil → Zahnrad.
-Sechs Stimmen in `src/lib/voices.js`, gespiegelt als `VOICE_NAMES` in
-`server.js`.
-
-**Vorhören:** Die API bietet keine fertigen Proben. `/api/voice-sample` erzeugt
-sie per Gemini TTS — derselbe Stimmkatalog wie die Live-API, also ist die Probe
-exakt die spätere Stimme. Je (Stimme, Sprache) einmal, als WAV gecacht.
-
-**Zwei nicht offensichtliche Punkte:** Die Verbindung geht **direkt an den
-API-Port** (der Vite-Proxy reicht WebSockets unter Bun nicht durch), und Gemini
-antwortet **ausschließlich in Binärframes**, auch `setupComplete`.
+Stimme wird genau einmal gewählt, danach Profil → Zahnrad; sechs Stimmen in
+`voices.js`, gespiegelt in `server.js`. Vorhören über `/api/voice-sample`
+(Gemini TTS, gleicher Katalog, je Stimme+Sprache gecacht). ⚠ Verbindung
+**direkt an den API-Port** (Vite-Proxy reicht WebSockets unter Bun nicht
+durch); Gemini antwortet **ausschließlich in Binärframes**.
 
 ## Bilder, Filme, Teilen
 
-**Schnellvorschau** (`Step5Style.jsx:37`, `isPreview`): 3 Panels aus EINEM
-Rendering, **1 Credit**, sichtbare Kachel. Kostet ein Drittel der Auflösung
-(gemessen: 459×768 gegen 768×1376) — deshalb rendert der Gratis-Traum weiter
-in voller Größe.
+**Schnellvorschau** (`Step5Style.jsx:37`): 3 Panels aus EINEM Rendering,
+1 Credit, ein Drittel der Auflösung — der Gratis-Traum rendert voll.
 
-**Charakterbögen** (`/api/character`, 2 Credits): aus einer Beschreibung ein
-neutrales Referenzporträt, das ab da wie ein Foto wirkt. Ausdrücklich kein
-Szenenbild und ohne `styleId` — sonst ließe sich die Figur nicht in einem
-zweiten Traum mit anderem Stil verwenden.
+**Charakterbögen** (`/api/character`, 2 Credits): neutrales Referenzporträt
+ohne `styleId` — sonst wäre die Figur nicht stilübergreifend nutzbar.
+**T4 hat bewiesen, dass ein solcher Bogen als Videoreferenz trägt.**
 
-**Abspann beim Teilen** (`/api/film-outro`): zwei Sekunden Mond und Wortmarke
-an das Filmende. Karte im **Browser** gezeichnet (dort leben Schrift und
-Palette), zusammengefügt auf dem **Server** mit ffmpeg.
-⚠ **ffmpeg ist ein Systemprogramm, keine npm-Abhängigkeit.** Fehlt es → 501,
-und `share.js` teilt den Film unverändert.
+**Abspann beim Teilen** (`/api/film-outro`): Karte im Browser gezeichnet,
+zusammengefügt serverseitig. ⚠ **ffmpeg ist ein Systemprogramm** — fehlt es
+→ 501, und geteilt wird unverändert.
 
-**`dreamsFor` berechnet den Filmpreis aus `video.js`**, statt ihn zu
-wiederholen. Vorher stand dort `credits / 5`, während ein Film 7 kostet — die
-Paywall versprach 9 Filme, wo 6 drin sind.
-
-**Wer Traum-Medien liest, nimmt `entryMedia.js`** (`filmOf`, `imagesOf`),
-niemals `entry.media` direkt: Vor dem 09.08. lag ein Film im `media`-Feld,
-seither daneben in `film`. Die zwei Leser verdecken die Naht.
+**`dreamsFor` berechnet den Filmpreis aus `video.js`**, nie hart
+hinschreiben. **Traum-Medien liest man über `entryMedia.js`** (`filmOf`,
+`imagesOf`), nie `entry.media` direkt.
 
 ## Die Serie belohnt, sie bestraft nie
 
-`streak.js`: Eine längere Serie verschiebt die Seltenheit der Wesen
-(ohne Serie 55/25/12/6/2, bei 14 Nächten 25/41,7/20/10/3,3), gedeckelt bei 14.
-
-⚠ **Wer daran weiterbaut:** keine Countdowns, nichts Eingefrorenes, keine
-Verlustdrohung. Es geht nie etwas verloren — wer eine Woche aussetzt, findet
-alles unverändert vor. Begründung im Kopf der Datei.
+`streak.js`: Seltenheitsverschiebung, gedeckelt bei 14 Nächten. ⚠ Keine
+Countdowns, nichts Eingefrorenes, keine Verlustdrohung — Begründung im
+Kopf der Datei.
 
 ## Farben, Gestaltung, Sprache
 
-- Der Hintergrund existiert **einmal** als `--bg-rgb` in `tokens.css`.
+- Hintergrund existiert **einmal** als `--bg-rgb` in `tokens.css`.
 - **Warm ist selten und heißt „Weg nach vorn".** Immer mit `color: var(--bg)`.
-- Icons aus **einem** SVG-Satz, kein Emoji in Bedienelementen. Der Satz ist
-  ungefüllt — Ausnahmen bekommen eine eigene Datei, nicht eine Zeile in
-  `icons.jsx`.
-- **Videos nie per `filter` dimmen**, immer Verlaufs-Scrim; per Vite-Import
-  einbinden, nicht als `/public`-Pfad.
-- **RTL:** logische Eigenschaften überall, `scripts/test-rtl.mjs` erzwingt es.
-  Zeichen, die eine Richtung MEINEN, tragen `[data-flip]`.
-  ⚠ **`transform` kennt keine logischen Achsen.** Wer mit `translate(-50%)`
-  zentriert, verankert im Arabischen die andere Kante — dann lieber
-  `inset-inline: 0` plus `margin-inline: auto`.
-- **Plural:** Wer eine Zahl neben ein Wort setzt, nimmt eine Funktion
-  (`creditsN`, `yieldImages`, `yieldFilms`). Zweimal stand „1 Credits" bzw.
-  „1 Filme" im Bild. Arabisch hat Einzahl, Zweizahl, Mehrzahl 3–10, dann
-  wieder Einzahl.
+- Icons aus **einem** ungefüllten SVG-Satz; Ausnahmen in eigene Dateien.
+- **Videos nie per `filter` dimmen**, immer Verlaufs-Scrim; per Vite-Import.
+- **RTL:** logische Eigenschaften, `test-rtl.mjs` erzwingt es; `[data-flip]`
+  für richtungstragende Zeichen. ⚠ `transform` kennt keine logischen
+  Achsen — zentrieren mit `inset-inline: 0` + `margin-inline: auto`.
+- **Plural:** Zahl neben Wort ⇒ Funktion (`creditsN`, `yieldImages`,
+  `yieldFilms`, `castDreamsN`). Arabisch: Einzahl, Zweizahl, 3–10, Einzahl.
 
 ## Starten
 
     bun run dev                       # Oberfläche 5173, API 8100, Hot Reload
     bun run build && bun server.js    # produktionsnah, alles auf 8100
-    bun run test                      # 124 Unit + 50 Freigabe + Hygiene + Kontrast + i18n + RTL
+    bun run test                      # 133 Unit + 50 Freigabe + Hygiene + Kontrast + i18n + RTL
 
-⚠️ 5173 und 8100 sind für den Browser **verschiedene Herkünfte mit getrenntem
-`localStorage`**.
-
-⚠️ `preview_start` bedient das **Hauptrepo**, nicht den Worktree. Im Worktree
-zusätzlich `bunx vite --port 5174` starten — und vorher dort **`bun install`
-laufen lassen**, nicht `node_modules` verlinken (siehe die Symlink-Falle oben).
-5174 ist wieder eine eigene Herkunft, also ein frischer Install samt Sprachwahl.
+⚠️ 5173/8100/5174 sind **verschiedene Herkünfte mit getrenntem
+`localStorage`**. `preview_start` bedient das **Hauptrepo**; im Worktree
+`bun install` (nicht verlinken!) und `bunx vite --port 5174`.
 
 ## Provider und Preise
 
@@ -256,69 +223,59 @@ laufen lassen**, nicht `node_modules` verlinken (siehe die Symlink-Falle oben).
 |---|---|---|
 | Bild | `fal-ai/nano-banana-2` (1K) | **$0,08** je Bild |
 | Bild mit Referenz | `.../edit` — Pflicht | $0,08 |
-| Video | `minimax/h3/image-to-video` (768P) | **$0,08/s**, **5–15 s** |
+| Video heute | `minimax/h3/image-to-video` (768P) | **$0,08/s**, 5–15 s |
+| Video geplant | `bytedance/seedance-2.0/…/reference-to-video` | Mini $0,0433/s · Fast $0,2419/s, 4–15 s, 9 Refs, Ton |
+| Video geplant | `bytedance/seedance-2.5/image-to-video` | $0,473/s, 4–30 s, 1 Startbild, Ton |
 | Diktat | `fal-ai/wizper` | $0,0005 je Minute |
-| Analyse | `deepseek-v4-flash` | $0,00026 je Traum |
+| Analyse/Regie | `deepseek-v4-flash` | $0,00026 je Aufruf, **ohne max_tokens!** |
 | Stimmproben | `gemini-3.1-flash-tts-preview` | einmalig je Stimme+Sprache |
 
-⚠ `minimax/h3` verlangt **mindestens 5 Sekunden**; die Queue prüft das erst
-beim Rendern, ein zu kurzer Wert verbrennt Credits. `clampSeconds()` fängt es ab.
+⚠ Die Queue prüft Mindestdauern erst beim RENDERN — ein zu kurzer Wert
+verbrennt Credits. `clampSeconds()` fängt es clientseitig ab; die
+serverseitige Klemme je Modell kommt mit der Umsetzung.
+⚠ Renderzeiten der Queue schwanken stark (gemessen: 4 s → 6 min,
+15 s → 3,5 min) — die UI muss Wartezeit ehrlich behandeln.
 
 ## Geschäftsmodell
 
-Die Rechnung in `plans.js` berücksichtigt **MwSt.** (geht in der EU vor der
-Store-Provision ab) und **Gratis-Credits pro Installation**. Mit beiden ist der
-30-%-Schnitt defizitär — **das Small Business Program (15 %) ist Voraussetzung,
-nicht Optimierung.** Break-even-Conversion ~4,5–5 %.
-Deckungsbeitrag Monat: **$4,44**.
-
-**Die Conversion ist die erste Kennzahl, die nach Launch gemessen gehört.**
+MwSt. geht in der EU VOR der Store-Provision ab; mit Gratis-Credits je
+Install ist der 30-%-Schnitt defizitär — **Small Business Program (15 %)
+ist Voraussetzung.** Break-even-Conversion ~4,5–5 %, Deckungsbeitrag Monat
+$4,44. **Conversion ist die erste Kennzahl nach Launch.**
 
 ## Sicherheit
 
-- Web-Wurzel ist `dist/`. `/media/` hat eine eigene enge Prüfung
-  (`resolveMedia()`, nur Hash-plus-Endung) — Grundlage auch dafür, dass
-  Film-Keyframe und Abspann nur eigene Dateien verwenden können.
-- **Allowlisten statt Interpolation:** `voice`, `mode`, `lang`, `aspectRatio`
-  und `category` kommen vom Client und werden gegen feste Listen geprüft.
-- **Offen — Datenschutz:** Referenzfotos, Sprachaufnahmen und die Umfrage
-  (Geburtsdatum) gehen an fal.ai bzw. Google. Vor Veröffentlichung braucht es
-  Hinweis, Einwilligung und Speicherdauer.
+- Web-Wurzel `dist/`; `/media/` nur über `resolveMedia()` (Hash+Endung).
+- **Allowlisten statt Interpolation:** `voice`, `mode`, `lang`,
+  `aspectRatio`, `category` — und künftig `model` für den Film.
+- Auch der Regisseur-Ausgang läuft durch `sanitizePromptText` plus eine
+  mechanische @Tag-Prüfung — Modellausgabe ist so untrusted wie Nutzereingabe.
+- **Offen — Datenschutz:** Referenzfotos, Sprachaufnahmen, Umfrage gehen an
+  fal.ai/Google; vor Veröffentlichung Hinweis + Einwilligung nötig.
 - **Offen — Credits sind Buchhaltung, keine Zugangskontrolle.**
 
 ## Bekannte Baustellen
 
+- ⚠ **Premium-Film wird berechnet, minimax geliefert** — Befund 2 des
+  Film-Plans, Fix ist morgen Schritt 1 (siehe ganz oben).
 - **Kein Zahlungsanbieter.** Der Kaufknopf sagt es ehrlich.
-- **Der Dummy-Film im Kaufblatt** ist noch das Faultier-Video (`Paywall.jsx:25`).
-- **Filme laufen über `queue.fal.run`.** `falSubmitVideo()` speichert
-  `status_url`/`response_url` **wörtlich** — nicht aus dem Slug rekonstruieren,
-  das machte fertige Filme unabholbar.
-- **Die Bilderstrecke im Journal teilt nach Sätzen** — Beats liegen nur in der
-  (ggf. verworfenen) Analyse.
-- **Symbolerkennung nur auf Englisch** (`src/lib/symbols.js`).
-- Tagebuch wächst unbegrenzt; base64-Referenzfotos machen das
-  localStorage-Kontingent (~5 MB) zum Limit.
-- Kein `bun run lint`.
+- **Dummy-Film im Kaufblatt** (`Paywall.jsx:25`).
+- `status_url`/`response_url` **wörtlich speichern**, nie rekonstruieren.
+- Bilderstrecke teilt nach Sätzen; Symbolerkennung nur Englisch;
+  localStorage ~5 MB als Limit; kein `bun run lint`.
 
 ## Nächste Schritte
 
-1. **Capacitor + StoreKit + RevenueCat** — Punkt 1 des Wachstumsplans. Alles
-   andere multipliziert diesen.
-2. **Dummy-Film ersetzen** (Anton), eine Zeile in `Paywall.jsx`.
-3. **Small Business Program beantragen**, sobald es einen Entwickleraccount gibt.
-4. **Push:** Morgen-Erinnerung und „Dein Film ist fertig" (braucht Capacitor).
-5. **Web-Funnel + Stripe** — die Sprach-Umfrage ist bereits ein Quiz-Funnel in
-   sieben Sprachen, sie steht nur am falschen Ort.
-6. **Datenschutzerklärung und App-Privacy-Angaben** (Voraussetzung fürs
-   Einreichen, Liste in `docs/plans/2026-08-16-positionierung-und-store.md`).
-7. **Startmenü und Seed-Journal entfernen** — beides auf Antons Wort.
-8. Empfehlungsprogramm · Preise lokalisieren · Churn-Werkzeuge.
+1. **Film-Regie umsetzen** — Reihenfolge in Plan §9, Bugfix zuerst.
+   Danach T2 auf Antons Go.
+2. **Capacitor + StoreKit + RevenueCat** — der Hebel, der alles multipliziert.
+3. **Dummy-Film ersetzen** (Anton), eine Zeile.
+4. Small Business Program · Push · Web-Funnel + Stripe · Datenschutz
+   (Liste in `2026-08-16-positionierung-und-store.md`).
+5. **Startmenü und Seed-Journal entfernen** — beides auf Antons Wort.
 
-## Pläne aus früheren Sitzungen
+## Pläne
 
-- `docs/plans/2026-08-16-wachstumsplan.md` — zehn Umsatzhebel nach
-  Hebel÷Aufwand, mit Quellen und einer bewussten Nicht-Empfehlungs-Liste.
-  Umgesetzt: Punkte 2, 3, 6, 7, 9.
-- `docs/plans/2026-08-16-positionierung-und-store.md` — Store-Texte auf
-  Englisch und Deutsch, Längen gegen Apples Grenzen geprüft, plus die Liste
-  dessen, was vor einer Einreichung fehlt.
+- `docs/plans/2026-08-17-film-regie.md` — **aktiv, morgen dran.**
+- `docs/plans/2026-08-16-wachstumsplan.md` — umgesetzt: 2, 3, 6, 7, 9.
+- `docs/plans/2026-08-16-positionierung-und-store.md` — Store-Texte, offen.

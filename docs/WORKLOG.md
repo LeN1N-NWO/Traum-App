@@ -3,6 +3,92 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-17 23:50 — Anton — Branch `session/2026-08-17-anton` (PR #13) — Sitzungsabschluss
+
+**Commits:** `c753d0a` (Besetzung als Rollenliste), `d18b335` + `155b5df`
+(Film-Regie-Plan) plus der Doku-Commit dieser Zeilen. Zustand: 133
+Unit-Tests, 50 Freigabe-Prüfungen, Prompt-Hygiene, 16 Kontrast-Paarungen,
+7 Sprachdateien, 22 Stilblätter — alles grün. `bun run lint` existiert
+weiterhin nicht. **Morgen geht es mit der Umsetzung des Film-Plans weiter**
+(Anton, 23:47).
+
+### Die Besetzung ist eine Rollenliste
+
+Anton: „sieht noch richtig panne aus." Drei Varianten als Artefakt
+(Ensemble-Kacheln, Steckbrief, Abspann), gewählt: **C — der Abspann.** Name
+in Serife links, Häufigkeit rechts, sortiert nach Häufigkeit statt nach
+Anlagedatum. Neu: `castStats.js` + `CastGroup.jsx`; `AvatarList.jsx` und
+die `p-*`-Regeln sind weg (einziger Aufrufer).
+
+Derselbe Fund wie beim Kaufblatt, und das ist kein Zufall mehr, sondern ein
+Muster: **Die App wusste längst, in wie vielen Träumen jede Figur vorkam**
+(`entry.references`), und zeigte es nirgends. Wer eine neue Ansicht baut,
+frage zuerst: Welche gespeicherte Information zeigt die App noch nicht?
+
+Vier Entscheidungen mit Begründung im Code: Ein Traum zählt EINMAL, auch
+wenn die Figur doppelt drinsteht (sonst sortiert die Liste falsch).
+Seed-Träume zählen nicht — ohne Sonderfall, sie tragen `references: []`.
+**Löschen wanderte in den Dialog** und die Träume behalten ihre
+`references` (dass eine Figur in einer Nacht vorkam, bleibt wahr). Die
+Gattungswahl im Dialog wird durch das **Fehlen** von `category` ausgelöst —
+der Wizard übergibt seine weiter und bleibt unberührt.
+
+### Der Film-Plan (`docs/plans/2026-08-17-film-regie.md`)
+
+Anlass: der neue Seedance-Skill (CINEDANCE) plus Antons Ansage — mehrere
+Videomodelle zur Wahl, 15/30 Sekunden, teurer = mehr Credits, Referenzen
+müssen bis ins Videomodell. Drei Befunde aus der Analyse:
+
+1. **Der Film bekommt heute einen Standbild-Prompt** („photoreal film
+   still" an ein Videomodell, `Step5Style.jsx:105`).
+2. **Die Modellwahl erreicht den Server nicht** — Premium wird BERECHNET,
+   minimax GELIEFERT, auf 15 s geklemmt. Echter Fehler, kein fehlendes
+   Feature. **Der Fix ist morgen Schritt 1.**
+3. **Referenzen enden am Keyframe** — das Videomodell sieht ein Bild.
+
+Markt (fal.ai, 17.08.): `seedance-2.0/…/reference-to-video` nimmt bis zu
+**9 Referenzbilder** (`image_urls`, im Prompt `@Image1…9`) bei 4–15 s;
+die 2.5 kann 30 s mit nur EINEM Startbild. 9 Referenzen und 30 Sekunden
+gibt es nicht im selben Modell — daraus die drei Stufen Lebendig (1 Cr/s) /
+Regie (4 Cr/s) / Kino (6 Cr/s), Details und offene Fragen im Plan.
+
+### Die Tests (T0, T1, T4 — zusammen ~$0,94, auf Antons Sparregel minimal)
+
+- **T0** ($0,004): Der destillierte `DIRECTOR`-Block durch DeepSeek Flash,
+  drei Träume. @Tag-Disziplin dreimal fehlerfrei (mechanisch geprüft).
+  Drei Abdriften gefunden und per Regelzeile behoben: mm-Angaben trotz
+  Grad-Regel, wörtliches Zitieren des Traumtexts (Textrisiko im Bild),
+  erfundene Garderobe. ⚠ **DeepSeek-Falle:** `max_tokens: 1000` ließ die
+  Antwort LEER zurückkommen — das Denkmodell schreibt erst ins Denkfeld;
+  der Server ruft deshalb ohne Deckel auf. Nicht wieder einführen.
+- **T1** ($0,17): Mini-R2V, 4 s, 480p, zwei Referenzen. **data-URIs werden
+  angenommen** (wie minimax), die Frau aus @Image1 stand im Zimmer aus
+  @Image2, Aktionen exakt auf den Zeitblöcken, AAC-Ton vorhanden.
+- **T4** ($0,73): Antons Ansage — langer ausgedachter Traum, Anton als
+  Person. Die ganze Produktkette: Charakterbogen erzeugt → Regisseur
+  schrieb → Mini-R2V 15 s. **Identität hält über zwei Ortswechsel**
+  (Bahnsteig → Kinderzimmer-Waggon → Laternen-Nahaufnahme), der Schlussbeat
+  sitzt wörtlich. Renderzeiten: 4 s → 6 min, 15 s → 3,5 min (Queue
+  schwankt stark; UI muss Wartezeit ehrlich behandeln).
+
+**Die Preisfrage daraus:** Das Mini-Tier ($0,043/s ≈ 1–2 Credits/s) war
+sichtbar gut. Ob „Regie" wirklich das 4-Credits-Tier braucht, entscheidet
+T2 (Fast/Normal-Vergleich, ~$2,20) — **offen, auf Antons Go.**
+
+**Was der Nächste wissen muss:**
+
+- **Testartefakte liegen in `media/tests/` des HAUPTREPOS** (Film 15 s,
+  Film 4 s, Charakterbogen, Regisseur-Prompt) — bewusst nicht im
+  Scratchpad gelassen, der ist sitzungsflüchtig. `media/` ist ignoriert;
+  wer sie behalten will, sichert sie selbst.
+- Die Testskripte (`t0-director.mjs`, `t1-r2v-probe.mjs`,
+  `t4-anton-film.mjs`) liegen NUR im Scratchpad dieser Sitzung — bewusst
+  nicht im Repo (Wegwerf-Sonden). Der destillierte `DIRECTOR`-Block steckt
+  in `t4-anton-film.mjs` UND als Prompttext in
+  `media/tests/t4-director-prompt.txt`; die Serverfassung entsteht morgen
+  neu nach Plan §4.
+- **Umsetzungsreihenfolge steht im Plan §9** — der Befund-2-Bugfix zuerst.
+
 ## 2026-08-17 00:03 — Anton — Branch `session/2026-08-16-anton` (PR #12) — Sitzungsabschluss
 
 **Commits:** `785c368` (Kacheln im Kaufblatt), `c6f1c1f` (media-Symlink)
