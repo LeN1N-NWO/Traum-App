@@ -182,19 +182,26 @@ Reihenfolge und Deckelung sind Produktentscheidungen, keine Zufälle:
    Eintrag + ehrliche Beschriftungen in allen sieben Sprachen
    (`filmModels`-Struktur existiert, Arität beachten).
 
-## 7 · Testplan — der bezahlte Teil, erst nach Freigabe
+## 7 · Testplan — der bezahlte Teil
 
-Reihenfolge nach Erkenntnis je Dollar. Gesamtbudget für T0–T4: **unter $5.**
+**Antons Vorgabe (17.08., nach dem ersten Entwurf): alle Tests auf
+Minimaldauer.** Seedance erlaubt 4 Sekunden, minimax 5 — die 5 aus seiner
+Ansage wird bei Seedance also sogar zur 4. Länge beweist hier nichts:
+@Tag-Zuordnung, data-URIs, Tonspur und Qualitätsabstand sind in 4 Sekunden
+genauso sichtbar wie in 15. Nur T4 (das Produkterlebnis) bekommt 5 Sekunden,
+damit die Zeitblöcke des Regisseurs überhaupt zu sehen sind.
+
+Reihenfolge nach Erkenntnis je Dollar. Gesamtbudget T0–T4: **unter $4.**
 
 | # | Was | Kostet | Beweist |
 |---|---|---|---|
 | T0 | `directFilm()` trocken: 3 Beispielträume durch DeepSeek, Prompts nur ANSEHEN | ~$0,001 | Regie-Prompt hält Bauplan + @Tag-Disziplin |
-| T1 | R2V **Mini**, 4–5 s, 480p, 2 Referenzen (1 Bogen + 1 Ort) als data-URI | ~$0,22 | data-URIs ja/nein · @Image-Zuordnung stimmt · Ton kommt an |
-| T2 | Gleicher Auftrag auf **Fast** und **Normal**, je 5 s | ~$1,21 + $1,51 | Qualitätsabstand → welches Tier „Regie" wird (Credits gleich: 4/s) |
+| T1 | R2V **Mini**, **4 s**, 480p, 2 Referenzen als data-URI | ~$0,17 | data-URIs ja/nein · @Image-Zuordnung stimmt · Ton kommt an |
+| T2 | Gleicher Auftrag auf **Fast** und **Normal**, je **4 s**, 720p | ~$0,97 + $1,21 | Qualitätsabstand → welches Tier „Regie" wird (Credits gleich: 4/s) |
 | T3 | Outro-Anhang an einen Seedance-Film | 0 (ffmpeg lokal) | Tonspur übersteht das Zusammenfügen (AAC vorhanden?) |
-| T4 | Regie 10 s mit 4 Referenzen, echter Traum aus dem Seed-Journal | ~$2,42 | das Produkterlebnis, das wir verkaufen |
-| T5 | *(optional, später)* 2×15 s R2V verkettet über Video-Eingabe | ~$5,80 | ob „30 s MIT Referenzen" als Kette geht |
-| T6 | *(optional)* hailuo-02 statt h3 für „Lebendig" | ~$0,23 | ob der Standard-Preis halbierbar ist |
+| T4 | Regie **5 s** mit 4 Referenzen, echter Traum aus dem Seed-Journal | ~$1,21 | das Produkterlebnis, das wir verkaufen |
+| T5 | *(optional, später)* 2× R2V verkettet über Video-Eingabe, minimal | ~$1,60 | ob „30 s MIT Referenzen" als Kette geht |
+| T6 | *(optional)* hailuo-02 statt h3 für „Lebendig", **5 s** | ~$0,23 | ob der Standard-Preis halbierbar ist |
 | — | Kino 30 s voll | ~$14 | **bewusst NICHT im ersten Testlauf** — teuerster Einzeltest, erst wenn Regie sitzt |
 
 ## 8 · Offene Fragen an Anton
