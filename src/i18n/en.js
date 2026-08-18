@@ -44,7 +44,13 @@ export default {
     viewList: "Show as a list",
     viewDeck: "Show as cards",
     library: "Your cast",
-    libraryLede: "People, pets and places your dreams can draw on.",
+    libraryLede: "Who turns up in your dreams, most often first.",
+    /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie
+       in Serife gesetzt wird — deshalb liefert castDreamsN NUR das
+       Wort, so wie creditsN und yieldFilms es auch tun. */
+    castDreamsN: (n) => (n === 1 ? "dream" : "dreams"),
+    castNever: "not in a dream yet",
+    castNew: "Add a figure",
     libraryCount: (n) =>
       n === 0 ? "Nobody yet — add the faces your dreams should use"
               : `${n} ${n === 1 ? "entry" : "entries"} · people, pets, places`,
@@ -191,6 +197,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "Add a person", pet: "Add a pet", place: "Add a place" },
+    kindLabel: "What is this?",
+    kindFor: { person: "Person", pet: "Animal", place: "Place" },
+    delete: "Delete",
     drawFromDesc: "Draw them from your description",
     drawingNow: "Drawing…",
     drawHint: "One reference image, so they look the same in every picture",

@@ -49,6 +49,19 @@ export default function AvatarDialog({
   const [drawing, setDrawing] = useState(false);
   const fileRef = useRef(null);
 
+  /* Die Gattung, und warum sie manchmal hier gewählt wird.
+   *
+   * Der Wizard weiß aus dem Zusammenhang, was er anlegt — er fragt beim
+   * Personen-Schritt nach einer Person. Die Besetzungsliste weiß es nicht:
+   * Sie hat seit 17.08. EINEN Anlegen-Knopf statt drei Kacheln.
+   *
+   * Das Signal ist deshalb das FEHLEN der Angabe, nicht ein zusätzlicher
+   * Schalter: Wer `category` übergibt, bekommt alles wie bisher; wer nichts
+   * übergibt, bekommt die Wahl. Ein eigener `pickCategory`-Schalter wäre
+   * dieselbe Information zweimal — und die beiden könnten sich widersprechen. */
+  const [kind, setKind] = useState(existing?.category || category || "person");
+  const choosing = !isEdit && !isMe && !category;
+
   /* Der Charakterbogen. Ohne Foto reicht die Beschreibung als WORTE in
      jeden Bildauftrag, und der Renderer erfindet die Figur jedes Mal neu —
      eine Zehnerstrecke zeigt dann zehn verschiedene Menschen mit demselben
@@ -130,10 +143,22 @@ export default function AvatarDialog({
       return;
     }
 
-    const avatar = { id: genId("c"), tag: clean, category, desc: desc.trim(), img: image };
+    const avatar = { id: genId("c"), tag: clean, category: kind, desc: desc.trim(), img: image };
     update({ cast: [...(state.cast || []), avatar] });
     toast(t.avatarDialog.created(clean));
     onCreated?.(avatar);
+    onClose();
+  }
+
+  /* Löschen sitzt seit 17.08. hier statt an jeder Zeile der Liste. Vorher
+     hing an jeder Kachel ein × — die einzige unumkehrbare Handlung, und
+     zugleich das kontraststärkste Element darauf.
+     Die Träume behalten ihre `references`: Dass eine Figur in einer Nacht
+     vorkam, bleibt wahr, auch wenn man sie aus der Bibliothek nimmt. Alte
+     Einträge dürfen sich nicht rückwirkend ändern. */
+  function removeEntry() {
+    update({ cast: (state.cast || []).filter((p) => p.id !== existing.id) });
+    toast(t.profile.removed(existing.tag));
     onClose();
   }
 
@@ -141,7 +166,7 @@ export default function AvatarDialog({
     ? t.avatarDialog.meTitle
     : isEdit
       ? t.avatarDialog.editTitleFor[existing.category] || t.avatarDialog.editTitleFor.person
-      : t.avatarDialog.titleFor[category];
+      : t.avatarDialog.titleFor[kind];
 
   return (
     <div className="av-backdrop" onClick={onClose}>
@@ -153,6 +178,28 @@ export default function AvatarDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="av-title">{title}</h2>
+
+        {/* Steht VOR dem Namen, weil es die Überschrift mitbestimmt: Erst
+            entscheidet sich, was angelegt wird, dann wie es heißt. */}
+        {choosing && (
+          <div className="av-field">
+            <span>{t.avatarDialog.kindLabel}</span>
+            <div className="av-kinds" role="radiogroup" aria-label={t.avatarDialog.kindLabel}>
+              {["person", "pet", "place"].map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={kind === id}
+                  className={"av-kind" + (kind === id ? " av-kind-on" : "")}
+                  onClick={() => setKind(id)}
+                >
+                  {t.avatarDialog.kindFor[id]}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <label className="av-field">
           <span>{t.avatarDialog.nameLabel(cleanTag(tag) || "…")}</span>
@@ -237,6 +284,17 @@ export default function AvatarDialog({
             {isEdit ? t.avatarDialog.saveChanges : t.avatarDialog.save}
           </Button>
         </div>
+
+        {/* Getrennt von Abbrechen und Speichern, unter einer Linie und ohne
+            Fläche: Es ist die einzige Handlung hier, die sich nicht
+            zurücknehmen lässt, und sie soll nicht neben dem Speichern-Knopf
+            unter dem Daumen liegen. `isMe` bekommt sie nie — das eigene
+            Porträt gibt es genau einmal und es wird geändert, nicht gelöscht. */}
+        {isEdit && !isMe && (
+          <button className="av-delete" onClick={removeEntry}>
+            {t.avatarDialog.delete}
+          </button>
+        )}
       </div>
     </div>
   );

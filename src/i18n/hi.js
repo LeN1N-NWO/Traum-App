@@ -41,7 +41,13 @@ export default {
     viewList: "सूची के रूप में देखें",
     viewDeck: "कार्ड के रूप में देखें",
     library: "आपकी कास्ट",
-    libraryLede: "वे लोग, पालतू जानवर और जगहें जिनसे आपके सपने जुड़ सकते हैं।",
+    libraryLede: "आपके सपनों में कौन आता है — जितनी बार, उस क्रम में।",
+    /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie
+       in Serife gesetzt wird — deshalb liefert castDreamsN NUR das
+       Wort, so wie creditsN und yieldFilms es auch tun. */
+    castDreamsN: (n) => (n === 1 ? "सपना" : "सपने"),
+    castNever: "अभी किसी सपने में नहीं",
+    castNew: "किरदार जोड़ें",
     libraryCount: (n) =>
       n === 0 ? "अभी तक कोई नहीं — वे चेहरे जोड़ें जो आपके सपनों में इस्तेमाल हों"
               : `${n} प्रविष्टियाँ · लोग, पालतू जानवर, जगहें`,
@@ -185,6 +191,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "व्यक्ति जोड़ें", pet: "पालतू जानवर जोड़ें", place: "जगह जोड़ें" },
+    kindLabel: "यह क्या है?",
+    kindFor: { person: "व्यक्ति", pet: "जानवर", place: "जगह" },
+    delete: "हटाएँ",
     drawFromDesc: "आपके विवरण से बनाएँ",
     drawingNow: "बन रहा है…",
     drawHint: "एक संदर्भ चित्र, ताकि हर तस्वीर में वे एक जैसे दिखें",

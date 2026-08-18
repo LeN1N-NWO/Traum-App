@@ -42,7 +42,13 @@ export default {
     viewList: "Als Liste zeigen",
     viewDeck: "Als Karten zeigen",
     library: "Deine Besetzung",
-    libraryLede: "Personen, Tiere und Orte, aus denen deine Träume schöpfen können.",
+    libraryLede: "Wer in deinen Träumen auftritt, nach Häufigkeit.",
+    /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie
+       in Serife gesetzt wird — deshalb liefert castDreamsN NUR das
+       Wort, so wie creditsN und yieldFilms es auch tun. */
+    castDreamsN: (n) => (n === 1 ? "Traum" : "Träume"),
+    castNever: "noch in keinem Traum",
+    castNew: "Figur anlegen",
     libraryCount: (n) =>
       n === 0 ? "Noch niemand — füge die Gesichter hinzu, die deine Träume nutzen sollen"
               : `${n} ${n === 1 ? "Eintrag" : "Einträge"} · Personen, Tiere, Orte`,
@@ -186,6 +192,9 @@ export default {
 
   avatarDialog: {
     titleFor: { person: "Person hinzufügen", pet: "Tier hinzufügen", place: "Ort hinzufügen" },
+    kindLabel: "Was ist das?",
+    kindFor: { person: "Person", pet: "Tier", place: "Ort" },
+    delete: "Löschen",
     drawFromDesc: "Aus deiner Beschreibung zeichnen",
     drawingNow: "Wird gezeichnet…",
     drawHint: "Ein Referenzbild, damit sie in jedem Bild gleich aussehen",
