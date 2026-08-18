@@ -195,11 +195,11 @@ Reihenfolge nach Erkenntnis je Dollar. Gesamtbudget T0–T4: **unter $4.**
 
 | # | Was | Kostet | Beweist |
 |---|---|---|---|
-| T0 | `directFilm()` trocken: 3 Beispielträume durch DeepSeek, Prompts nur ANSEHEN | ~$0,001 | Regie-Prompt hält Bauplan + @Tag-Disziplin |
-| T1 | R2V **Mini**, **4 s**, 480p, 2 Referenzen als data-URI | ~$0,17 | data-URIs ja/nein · @Image-Zuordnung stimmt · Ton kommt an |
-| T2 | Gleicher Auftrag auf **Fast** und **Normal**, je **4 s**, 720p | ~$0,97 + $1,21 | Qualitätsabstand → welches Tier „Regie" wird (Credits gleich: 4/s) |
+| T0 | ✅ 17.08. — Regie-Prompts halten Bauplan + @Tag-Disziplin; drei Abdriften gefunden und als Regeln eingebaut | $0,004 | erledigt |
+| T1 | ✅ 17.08. — data-URIs werden angenommen, @Image-Zuordnung stimmt, AAC-Ton kommt an | $0,17 | erledigt |
+| T2 | ✅ 18.08. — Fast und Normal je 4 s, 720p: beide halten das Drehbuch, 720p klar über Mini, kein entscheidender Abstand → **Regie bleibt Fast** (gleiche Credits, bessere Marge) | $2,18 | erledigt |
 | T3 | Outro-Anhang an einen Seedance-Film | 0 (ffmpeg lokal) | Tonspur übersteht das Zusammenfügen (AAC vorhanden?) |
-| T4 | Regie **5 s** mit 4 Referenzen, echter Traum aus dem Seed-Journal | ~$1,21 | das Produkterlebnis, das wir verkaufen |
+| T4 | ✅ 17.08. — ganze Kette (Bogen → Regisseur → Mini 15 s): Identität hält über zwei Ortswechsel | $0,73 | erledigt |
 | T5 | *(optional, später)* 2× R2V verkettet über Video-Eingabe, minimal | ~$1,60 | ob „30 s MIT Referenzen" als Kette geht |
 | T6 | *(optional)* hailuo-02 statt h3 für „Lebendig", **5 s** | ~$0,23 | ob der Standard-Preis halbierbar ist |
 | — | Kino 30 s voll | ~$14 | **bewusst NICHT im ersten Testlauf** — teuerster Einzeltest, erst wenn Regie sitzt |
