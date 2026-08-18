@@ -36,7 +36,9 @@ import { guard } from "./src/lib/gatekeeper.js";
 import { buildCharacterPrompt } from "./src/lib/promptBuilder.js";
 // Die Filmbestellung je Modell — Slug, Klemme, Auflösung, Tonparameter —
 // kommt aus EINER Tabelle, die auch Preis und UI speist (video.test.js).
-import { videoSubmitBody } from "./src/lib/video.js";
+import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
+// Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
+import { DIRECTOR_MOTION, buildDirectorBrief, checkDirectedPrompt } from "./src/lib/director.js";
 
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
@@ -585,6 +587,57 @@ Output ONLY the finished prompt text. No preamble, no markdown, no quotes around
   // sanitise it exactly like user input, regardless of the source.
   const cleaned = sanitizePromptText(text).slice(0, MAX_CRAFTED_PROMPT);
   if (!cleaned) throw new Error("DEEPSEEK_FAILED");
+  return cleaned;
+}
+
+/* Der Regisseur: schreibt aus Traum + Startbild einen BEWEGUNGS-Prompt für
+ * das Videomodell. Bis 18.08.2026 bekam das Videomodell den Standbild-Prompt
+ * wörtlich weitergereicht („photoreal film still …") — was sich bewegte, war
+ * Zufall. Bauanleitung und Prüfung liegen in src/lib/director.js (getestet);
+ * hier steht nur der Aufruf.
+ *
+ * ⚠ KEIN max_tokens: deepseek-v4-flash denkt erst ins Denkfeld, ein Deckel
+ * lässt die eigentliche Antwort leer zurückkommen (gemessen 17.08., T0).
+ *
+ * Der Regisseur ist Kür, nie Pflicht: Jeder Fehler hier wird vom Aufrufer
+ * geschluckt und der Film läuft wie bisher — schlechter Film schlägt keinen
+ * Film. Deshalb wirft diese Funktion großzügig. */
+const MAX_DIRECTED_PROMPT = 6000; // T4 maß 5,5k Zeichen — die 3k-Grenze für
+                                  // Client-Prompts wäre hier eine Amputation
+async function directFilm({ dream, still, seconds, modelId }) {
+  const key = process.env.DEEPSEEK_KEY;
+  if (!key) throw new Error("NO_DEEPSEEK_KEY");
+
+  const m = videoModel(modelId);
+  const brief = buildDirectorBrief({
+    dream,
+    still,
+    seconds: clampSeconds(modelId, seconds),
+    audio: m.audio,
+  });
+
+  const res = await fetch(DEEPSEEK_API_URL, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      messages: [{ role: "system", content: DIRECTOR_MOTION }, { role: "user", content: brief }],
+      stream: false,
+    }),
+  });
+  if (!res.ok) throw new Error("DEEPSEEK_FAILED");
+  const data = await res.json().catch(() => null);
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text || typeof text !== "string") throw new Error("DEEPSEEK_FAILED");
+
+  // Modellausgabe ist so untrusted wie Nutzereingabe: erst dieselbe Hygiene,
+  // dann die mechanische Prüfung. Ein-Bild-Modelle haben KEINE Referenzen —
+  // jedes @Image wäre eine Anweisung ins Leere (refCount 0).
+  const cleaned = sanitizePromptText(text).slice(0, MAX_DIRECTED_PROMPT);
+  if (!checkDirectedPrompt(cleaned, 0).ok) throw new Error("DEEPSEEK_FAILED");
+  // Eine Zeile Sichtbarkeit für ein bezahltes Feature: lief der Regisseur,
+  // und wie viel hat er geschrieben? (Der Prompt selbst wird nicht geloggt.)
+  console.log(`[DreamRushes] film director wrote ${cleaned.length} chars for ${m.id}`);
   return cleaned;
 }
 // ---- prompt hygiene (end) ----
@@ -1181,19 +1234,26 @@ async function generateImages({ dream, namedRefs, prompt: readyPrompt, aspectRat
  *  cannot point this at an arbitrary file or host. fal gets the bytes as a
  *  data URI because the /media/ path only exists on this machine; fal could
  *  never fetch it (verified live 09.08.2026: minimax/h3 accepts data URIs). */
-async function startVideo({ dream, namedRefs, prompt, seconds, keyframe, modelId }) {
+/* Zwei Prompts, zwei Aufgaben — seit 18.08. getrennt: `prompt` beschreibt
+ * das STANDBILD (und rendert ggf. den Keyframe), `motionPrompt` kommt vom
+ * Regisseur und beschreibt die BEWEGUNG. Vorher bekam das Videomodell den
+ * Standbild-Prompt wörtlich — was sich bewegte, war Zufall. Fehlt der
+ * Regisseur (kein Schlüssel, Prüfung rot), fällt die Bestellung auf den
+ * alten Zustand zurück. */
+async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId }) {
+  const filmPrompt = motionPrompt || prompt || dream;
   if (keyframe) {
     const hit = resolveMedia(keyframe);
     const file = hit && Bun.file(resolve(MEDIA_DIR, hit.name));
     if (!hit || !(await file.exists())) throw new Error("GENERATION_FAILED");
     const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
     const dataUri = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
-    return falSubmitVideo({ modelId, imageUrl: dataUri, prompt: prompt || dream, seconds });
+    return falSubmitVideo({ modelId, imageUrl: dataUri, prompt: filmPrompt, seconds });
   }
   const stills = await generateImages({ dream, namedRefs, prompt });
   const first = stills[0];
   if (!first) throw new Error("GENERATION_FAILED");
-  return falSubmitVideo({ modelId, imageUrl: first, prompt: prompt || dream, seconds });
+  return falSubmitVideo({ modelId, imageUrl: first, prompt: filmPrompt, seconds });
 }
 
 // ---- static file serving ----
@@ -1602,7 +1662,19 @@ Bun.serve({
              harmlosere Fehler. "director" kommt erst dazu, wenn die
              R2V-Verdrahtung steht (Film-Plan §9, Schritt 4). */
           const modelId = body.model === "premium" ? "premium" : "standard";
-          const jobId = await startVideo({ dream, namedRefs: cast, prompt, seconds: body.seconds, keyframe, modelId });
+
+          /* Der Regisseur schreibt den Bewegungs-Prompt. Kür, nie Pflicht:
+             Jeder Fehler hier — kein DeepSeek-Schlüssel, Zeitüberschreitung,
+             rote @Tag-Prüfung — lässt den Film wie bisher laufen. Ein
+             schlechter Film schlägt keinen Film. */
+          let motionPrompt = null;
+          try {
+            motionPrompt = await directFilm({ dream, still: prompt, seconds: body.seconds, modelId });
+          } catch (e) {
+            console.error("[DreamRushes] film director skipped:", e.message);
+          }
+
+          const jobId = await startVideo({ dream, namedRefs: cast, prompt, motionPrompt, seconds: body.seconds, keyframe, modelId });
           return json({ ok: true, jobId });
         }
         const urls = await generateImages({ dream, namedRefs: cast, prompt, aspectRatio });
