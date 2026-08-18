@@ -403,8 +403,9 @@ export default {
       keyframeHint: "Le film part de cette image — son style se retrouve tout du long.",
       filmModelLabel: "Quel moteur de rendu",
       filmModels: {
-        standard: { name: "Standard", hint: "jusqu'à 15s · 1 crédit par seconde" },
-        premium:  { name: "Premium",  hint: "jusqu'à 30s en un seul plan · 6 par seconde" },
+        standard: { name: "Vivant", hint: "ton image commence à bouger · 1 crédit par seconde" },
+        director: { name: "Réalisé", hint: "les vrais visages et lieux, avec le son · 4 crédits par seconde" },
+        premium:  { name: "Cinéma", hint: "jusqu'à 30 secondes en un seul plan, avec le son · 6 par seconde" },
       },
       lengthLabel: "Quelle durée",
       posterLabel: "L'affiche",

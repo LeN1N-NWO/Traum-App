@@ -29,23 +29,13 @@ export const VIDEO_MODELS = [
                                   // also darf er auch nicht gesendet werden
   },
   {
-    id: "premium",
-    slug: "bytedance/seedance-2.5/image-to-video",
-    creditsPerSecond: 6,          // $0.473/s ÷ $0.08 — rounded up, never down
-    min: 5, max: 30, step: 5, preset: 15,
-    resolution: "720p",
-    audio: true,                  // nativer Ton über generate_audio
-  },
-  {
-    /* Referenz-Video: die Figuren aus der Besetzung sind IM Film sie selbst,
-     * nicht nur im Keyframe. Machbarkeit am 17.08. real bewiesen (T1/T4:
-     * data-URIs, @Image-Zuordnung, Identität hält über Ortswechsel).
+    /* „Regie" — Referenz-Video: die Figuren aus der Besetzung sind IM Film
+     * sie selbst, nicht nur im Keyframe. Machbarkeit am 17.08. real bewiesen
+     * (T1/T4: data-URIs, @Image-Zuordnung, Identität hält über Ortswechsel).
      *
      * Das Fast-Tier ist der Kandidat aus dem Plan; ob es Fast, Normal
-     * ($0,3024/s — nach Aufrundung DIESELBEN 4 Credits) oder das
-     * überraschend gute Mini wird, entscheidet T2. Bis dahin gilt: Slug
-     * ändern ist eine Zeile, der Credit-Preis bleibt.
-     * Noch ohne UI-Eintrag — die Stufe kommt zusammen mit Antons Copy. */
+     * ($0,3024/s — nach Aufrundung DIESELBEN 4 Credits) oder Mini wird,
+     * entscheidet T2. Slug ändern ist dann eine Zeile, der Preis bleibt. */
     id: "director",
     slug: "bytedance/seedance-2.0/fast/reference-to-video",
     creditsPerSecond: 4,          // $0.2419/s ÷ $0.08 → ceil = 4
@@ -54,7 +44,18 @@ export const VIDEO_MODELS = [
     audio: true,
     maxRefs: 9,                   // image_urls statt image_url — bis zu 9
   },
+  {
+    id: "premium",
+    slug: "bytedance/seedance-2.5/image-to-video",
+    creditsPerSecond: 6,          // $0.473/s ÷ $0.08 — rounded up, never down
+    min: 5, max: 30, step: 5, preset: 15,
+    resolution: "720p",
+    audio: true,                  // nativer Ton über generate_audio
+  },
 ];
+/* Reihenfolge = UI-Reihenfolge = aufsteigender Preis. Eintrag [0] muss
+ * "standard" bleiben: videoModel() fällt bei Unbekanntem dorthin zurück,
+ * und der falsche BILLIGE Film ist der harmlosere Fehler. */
 
 export function videoModel(id) {
   return VIDEO_MODELS.find((m) => m.id === id) || VIDEO_MODELS[0];

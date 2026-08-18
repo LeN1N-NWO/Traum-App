@@ -415,8 +415,9 @@ export default {
       keyframeHint: "The film starts from this picture — its look carries through.",
       filmModelLabel: "Which renderer",
       filmModels: {
-        standard: { name: "Standard", hint: "up to 15s · 1 credit a second" },
-        premium:  { name: "Premium",  hint: "up to 30s in one take · 6 a second" },
+        standard: { name: "Alive", hint: "your picture starts to move · 1 credit per second" },
+        director: { name: "Directed", hint: "the real faces and places, with sound · 4 credits per second" },
+        premium:  { name: "Cinema", hint: "up to 30 seconds in one take, with sound · 6 per second" },
       },
       lengthLabel: "How long",
       posterLabel: "The poster",

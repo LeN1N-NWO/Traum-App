@@ -404,8 +404,9 @@ export default {
       keyframeHint: "La película empieza desde esta imagen — su estilo se mantiene.",
       filmModelLabel: "Qué renderizador",
       filmModels: {
-        standard: { name: "Estándar", hint: "hasta 15s · 1 crédito por segundo" },
-        premium:  { name: "Premium",  hint: "hasta 30s en una sola toma · 6 por segundo" },
+        standard: { name: "Vivo", hint: "tu imagen empieza a moverse · 1 crédito por segundo" },
+        director: { name: "Dirigido", hint: "las caras y lugares reales, con sonido · 4 créditos por segundo" },
+        premium:  { name: "Cine", hint: "hasta 30 segundos en una sola toma, con sonido · 6 por segundo" },
       },
       lengthLabel: "Cuánto dura",
       posterLabel: "El póster",

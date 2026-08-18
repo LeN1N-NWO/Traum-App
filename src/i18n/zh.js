@@ -403,8 +403,9 @@ export default {
       keyframeHint: "影片从这张图片开始——它的观感会贯穿整段影片。",
       filmModelLabel: "选择渲染引擎",
       filmModels: {
-        standard: { name: "标准版", hint: "最长 15 秒 · 每秒 1 点数" },
-        premium:  { name: "高级版", hint: "最长 30 秒一镜到底 · 每秒 6 点数" },
+        standard: { name: "灵动", hint: "你的画面动起来 · 每秒 1 点数" },
+        director: { name: "导演", hint: "真实的面孔和地点，带声音 · 每秒 4 点数" },
+        premium:  { name: "影院", hint: "一镜到底最长 30 秒，带声音 · 每秒 6 点数" },
       },
       lengthLabel: "时长",
       posterLabel: "海报",

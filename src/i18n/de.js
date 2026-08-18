@@ -402,8 +402,9 @@ export default {
       keyframeHint: "Der Film beginnt bei diesem Bild — sein Look zieht sich durch.",
       filmModelLabel: "Welcher Renderer",
       filmModels: {
-        standard: { name: "Standard", hint: "bis 15s · 1 Credit pro Sekunde" },
-        premium:  { name: "Premium",  hint: "bis 30s in einer Einstellung · 6 pro Sekunde" },
+        standard: { name: "Lebendig", hint: "dein Bild beginnt sich zu bewegen · 1 Credit je Sekunde" },
+        director: { name: "Regie", hint: "echte Gesichter und Orte, mit Ton · 4 Credits je Sekunde" },
+        premium:  { name: "Kino", hint: "bis zu 30 Sekunden in einer Einstellung, mit Ton · 6 je Sekunde" },
       },
       lengthLabel: "Wie lang",
       posterLabel: "Das Poster",

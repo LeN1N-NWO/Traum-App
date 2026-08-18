@@ -80,7 +80,21 @@ export default function Step5Style({ w, patch }) {
     const beats = sceneCount > 0 ? beatsForCount(w.analysis?.beats || [w.text], sceneCount) : [];
     const allBeats = w.analysis?.beats || [w.text];
     const jobs = withPoster ? ["__poster__", ...beats] : beats;
-    const castForApi = references.map((r) => ({ tag: r.tag, category: "person", desc: "", img: r.img }));
+    /* Gattung und Beschreibung ECHT mitgeben, nicht plätten: Der Server
+       sortiert Referenz-Filme nach Gattung (Personen vor Tieren vor Orten,
+       filmReferences) und reicht die Beschreibung an den Regisseur weiter.
+       Bis 18.08. stand hier category: "person", desc: "" für alle — für
+       Bilder folgenlos, für Regie-Filme hätte es die Priorität zerstört.
+       Gleicher Filter wie buildReferences (nur mit Bild), damit die
+       Reihenfolge deckungsgleich bleibt. */
+    const castForApi = assignments
+      .filter((a) => a && a.avatar?.img)
+      .map((a) => ({
+        tag: a.avatar.tag,
+        category: a.kind === "pet" ? "pet" : a.kind === "place" ? "place" : "person",
+        desc: a.avatar.desc || "",
+        img: a.avatar.img,
+      }));
 
     /* The grid — one generation cut into several panels client-side — is now
      * exactly what "preview" MEANS, not something inferred from the shape of
