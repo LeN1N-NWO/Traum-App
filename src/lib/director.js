@@ -86,6 +86,40 @@ export function buildDirectorBrief({ dream, still, refs = [], seconds, audio, st
   return parts.join("\n\n");
 }
 
+/* Der erste Eintrag jeder Referenzliste eines Referenz-Films: das schon
+ * gerenderte Startbild. Es führt Look, Palette und Ort — deshalb steht es
+ * IMMER auf @Image1, vor allen Figuren. */
+export const KEYFRAME_REF = {
+  tag: "keyframe",
+  kind: "opening still",
+  desc: "the already-rendered first frame of the film; its look, palette and location lead",
+};
+
+/**
+ * Welche Besetzungsmitglieder in einen Referenz-Film mitkommen, und in
+ * welcher Reihenfolge. Eine reine Funktion, weil hier die Invariante aus
+ * promptBuilder.js weiterlebt: Die Position in dieser Liste IST die
+ * @Image-Nummer (um eins versetzt — @Image1 ist das Startbild). Wer die
+ * Reihenfolge zwischen Materialliste und image_urls-Array auseinanderlaufen
+ * lässt, gibt Menschen die Gesichter der anderen.
+ *
+ * Priorität bei mehr Einträgen als Plätzen (Plan §5): Personen vor Tieren
+ * vor Orten — Gesichter machen Identität aus, der Ort steckt ohnehin im
+ * Startbild. Innerhalb einer Gattung bleibt die gegebene Reihenfolge
+ * (stabile Sortierung). Ohne Bild keine Referenz — eine Beschreibung
+ * allein hat im image_urls-Array nichts beizutragen.
+ *
+ * @param {{tag,category,desc,img}[]} cast
+ * @param {number} [slots]  freie Plätze NEBEN dem Startbild
+ */
+export function filmReferences(cast = [], slots = 8) {
+  const rank = { person: 0, pet: 1, place: 2 };
+  return cast
+    .filter((c) => c && c.img && c.tag)
+    .sort((a, b) => (rank[a.category] ?? 0) - (rank[b.category] ?? 0))
+    .slice(0, slots);
+}
+
 /**
  * Die mechanische Prüfung der Regisseur-Antwort — Modellausgabe ist so
  * untrusted wie Nutzereingabe. Ein @ImageN über die Referenzzahl hinaus

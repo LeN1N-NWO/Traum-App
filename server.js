@@ -38,7 +38,10 @@ import { buildCharacterPrompt } from "./src/lib/promptBuilder.js";
 // kommt aus EINER Tabelle, die auch Preis und UI speist (video.test.js).
 import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
-import { DIRECTOR_MOTION, buildDirectorBrief, checkDirectedPrompt } from "./src/lib/director.js";
+import {
+  DIRECTOR_MOTION, DIRECTOR_FULL, KEYFRAME_REF,
+  buildDirectorBrief, checkDirectedPrompt, filmReferences,
+} from "./src/lib/director.js";
 
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
@@ -604,14 +607,19 @@ Output ONLY the finished prompt text. No preamble, no markdown, no quotes around
  * Film. Deshalb wirft diese Funktion großzügig. */
 const MAX_DIRECTED_PROMPT = 6000; // T4 maß 5,5k Zeichen — die 3k-Grenze für
                                   // Client-Prompts wäre hier eine Amputation
-async function directFilm({ dream, still, seconds, modelId }) {
+async function directFilm({ dream, still, seconds, modelId, refs = [] }) {
   const key = process.env.DEEPSEEK_KEY;
   if (!key) throw new Error("NO_DEEPSEEK_KEY");
 
   const m = videoModel(modelId);
+  /* Zwei Drehbücher: Ein-Bild-Modelle bekommen reine Bewegungsregie (das
+     Bild existiert schon), Referenzmodelle das volle Programm mit @ImageN.
+     `refs` ist bereits nummeriert-in-Reihenfolge — Zeile N wird @ImageN. */
+  const withRefs = refs.length > 0;
   const brief = buildDirectorBrief({
     dream,
-    still,
+    still: withRefs ? undefined : still,
+    refs,
     seconds: clampSeconds(modelId, seconds),
     audio: m.audio,
   });
@@ -621,7 +629,10 @@ async function directFilm({ dream, still, seconds, modelId }) {
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
-      messages: [{ role: "system", content: DIRECTOR_MOTION }, { role: "user", content: brief }],
+      messages: [
+        { role: "system", content: withRefs ? DIRECTOR_FULL : DIRECTOR_MOTION },
+        { role: "user", content: brief },
+      ],
       stream: false,
     }),
   });
@@ -631,13 +642,14 @@ async function directFilm({ dream, still, seconds, modelId }) {
   if (!text || typeof text !== "string") throw new Error("DEEPSEEK_FAILED");
 
   // Modellausgabe ist so untrusted wie Nutzereingabe: erst dieselbe Hygiene,
-  // dann die mechanische Prüfung. Ein-Bild-Modelle haben KEINE Referenzen —
-  // jedes @Image wäre eine Anweisung ins Leere (refCount 0).
+  // dann die mechanische Prüfung — jedes @ImageN muss eine der übergebenen
+  // Referenzen sein; ohne Referenzen ist JEDES @Image eine Anweisung ins
+  // Leere. Verstoß → Rückfall, nie ein halluziniertes Bild.
   const cleaned = sanitizePromptText(text).slice(0, MAX_DIRECTED_PROMPT);
-  if (!checkDirectedPrompt(cleaned, 0).ok) throw new Error("DEEPSEEK_FAILED");
+  if (!checkDirectedPrompt(cleaned, refs.length).ok) throw new Error("DEEPSEEK_FAILED");
   // Eine Zeile Sichtbarkeit für ein bezahltes Feature: lief der Regisseur,
   // und wie viel hat er geschrieben? (Der Prompt selbst wird nicht geloggt.)
-  console.log(`[DreamRushes] film director wrote ${cleaned.length} chars for ${m.id}`);
+  console.log(`[DreamRushes] film director wrote ${cleaned.length} chars for ${m.id} (${refs.length} refs)`);
   return cleaned;
 }
 // ---- prompt hygiene (end) ----
@@ -961,11 +973,11 @@ const writeJob = (id, job) => Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.st
  *  (server-side) through that same table: the queue only validates duration
  *  at RENDER time (re-measured 09.08.2026), so a bad value burns the fee
  *  and comes back as a failed job minutes later. */
-async function falSubmitVideo({ modelId, imageUrl, prompt, seconds }) {
+async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
-  const { slug, body } = videoSubmitBody(modelId, { imageUrl, prompt, seconds });
+  const { slug, body } = videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds });
   const res = await fetch(`https://queue.fal.run/${slug}`, {
     method: "POST",
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
@@ -1240,20 +1252,24 @@ async function generateImages({ dream, namedRefs, prompt: readyPrompt, aspectRat
  * Standbild-Prompt wörtlich — was sich bewegte, war Zufall. Fehlt der
  * Regisseur (kein Schlüssel, Prüfung rot), fällt die Bestellung auf den
  * alten Zustand zurück. */
-async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId }) {
+async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, refImages = [] }) {
   const filmPrompt = motionPrompt || prompt || dream;
+  /* `refImages` kommt aus filmReferences() und steht in EXAKT der
+   * Reihenfolge der Materialliste des Regisseurs — das Startbild davor
+   * macht @Image1 aus dem Keyframe, @Image2.. aus der Besetzung.
+   * Ein-Bild-Modelle ignorieren das Array (videoSubmitBody entscheidet). */
   if (keyframe) {
     const hit = resolveMedia(keyframe);
     const file = hit && Bun.file(resolve(MEDIA_DIR, hit.name));
     if (!hit || !(await file.exists())) throw new Error("GENERATION_FAILED");
     const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
     const dataUri = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
-    return falSubmitVideo({ modelId, imageUrl: dataUri, prompt: filmPrompt, seconds });
+    return falSubmitVideo({ modelId, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds });
   }
   const stills = await generateImages({ dream, namedRefs, prompt });
   const first = stills[0];
   if (!first) throw new Error("GENERATION_FAILED");
-  return falSubmitVideo({ modelId, imageUrl: first, prompt: filmPrompt, seconds });
+  return falSubmitVideo({ modelId, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds });
 }
 
 // ---- static file serving ----
@@ -1661,7 +1677,17 @@ Bun.serve({
              absichtlich zu "standard" — der falsche BILLIGE Film ist der
              harmlosere Fehler. "director" kommt erst dazu, wenn die
              R2V-Verdrahtung steht (Film-Plan §9, Schritt 4). */
-          const modelId = body.model === "premium" ? "premium" : "standard";
+          const modelId = ["premium", "director"].includes(body.model) ? body.model : "standard";
+
+          /* Referenz-Film: Auswahl und Reihenfolge kommen aus
+             filmReferences() — Position in der Liste ist @Image-Nummer
+             minus eins, @Image1 ist immer das Startbild. Materialliste
+             (für den Regisseur) und Bildliste (für fal) entstehen aus
+             DERSELBEN Auswahl, damit sie nicht auseinanderlaufen können. */
+          const kept = modelId === "director" ? filmReferences(cast) : [];
+          const refsForBrief = modelId === "director"
+            ? [KEYFRAME_REF, ...kept.map((c) => ({ tag: c.tag, kind: c.category, desc: c.desc }))]
+            : [];
 
           /* Der Regisseur schreibt den Bewegungs-Prompt. Kür, nie Pflicht:
              Jeder Fehler hier — kein DeepSeek-Schlüssel, Zeitüberschreitung,
@@ -1669,12 +1695,16 @@ Bun.serve({
              schlechter Film schlägt keinen Film. */
           let motionPrompt = null;
           try {
-            motionPrompt = await directFilm({ dream, still: prompt, seconds: body.seconds, modelId });
+            motionPrompt = await directFilm({ dream, still: prompt, seconds: body.seconds, modelId, refs: refsForBrief });
           } catch (e) {
             console.error("[DreamRushes] film director skipped:", e.message);
           }
 
-          const jobId = await startVideo({ dream, namedRefs: cast, prompt, motionPrompt, seconds: body.seconds, keyframe, modelId });
+          const jobId = await startVideo({
+            dream, namedRefs: cast, prompt, motionPrompt,
+            seconds: body.seconds, keyframe, modelId,
+            refImages: kept.map((c) => c.img),
+          });
           return json({ ok: true, jobId });
         }
         const urls = await generateImages({ dream, namedRefs: cast, prompt, aspectRatio });

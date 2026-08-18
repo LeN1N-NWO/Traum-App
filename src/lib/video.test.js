@@ -48,3 +48,36 @@ test("generate_audio goes only where the parameter exists", () => {
   expect("generate_audio" in videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6 }).body).toBe(false);
   expect(videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 15 }).body.generate_audio).toBe(true);
 });
+
+/* Das Referenzmodell bestellt mit einem ARRAY, die Ein-Bild-Modelle mit
+   einem FELD — und keins verzeiht das andere. Der nano-banana-Vorfall vom
+   07.08. (image_urls still ignoriert, gesichtslose Renders tagelang
+   bezahlt) ist die Fehlerklasse, die diese Zeilen fernhalten. */
+test("the reference model orders with image_urls, keyframe first, capped at 9", () => {
+  const got = videoSubmitBody("director", {
+    imageUrl: "keyframe",
+    imageUrls: ["keyframe", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j"],
+    prompt: "p", seconds: 10,
+  });
+  expect(got.slug).toBe("bytedance/seedance-2.0/fast/reference-to-video");
+  expect("image_url" in got.body).toBe(false);
+  expect(got.body.image_urls.length).toBe(9);
+  expect(got.body.image_urls[0]).toBe("keyframe");
+  expect(got.body.generate_audio).toBe(true);
+});
+
+test("without an explicit list, the reference model still gets its keyframe as an array", () => {
+  const got = videoSubmitBody("director", { imageUrl: "kf", prompt: "p", seconds: 8 });
+  expect(got.body.image_urls).toEqual(["kf"]);
+});
+
+test("single-image models never receive image_urls", () => {
+  const got = videoSubmitBody("standard", { imageUrl: "kf", imageUrls: ["kf", "x"], prompt: "p", seconds: 6 });
+  expect("image_urls" in got.body).toBe(false);
+  expect(got.body.image_url).toBe("kf");
+});
+
+test("director clamps to its own 5-15 range", () => {
+  expect(clampSeconds("director", 30)).toBe(15);
+  expect(clampSeconds("director", 1)).toBe(5);
+});

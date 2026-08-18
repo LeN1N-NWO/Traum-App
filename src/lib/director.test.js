@@ -73,3 +73,38 @@ test("both director briefs keep the three anti-drift rules", () => {
   }
   expect(DIRECTOR_FULL).toContain("no invented clothing");
 });
+
+/* filmReferences trägt die Reihenfolge-Invariante: Listenposition =
+   @Image-Nummer minus eins. Diese Tests sind die Fortsetzung der
+   promptBuilder-Tests eine Stufe später. */
+import { filmReferences } from "./director.js";
+
+test("people come before pets before places, stable within each kind", () => {
+  const cast = [
+    { tag: "bahnhof", category: "place", img: "d3" },
+    { tag: "luna", category: "pet", img: "d2" },
+    { tag: "anton", category: "person", img: "d1" },
+    { tag: "mama", category: "person", img: "d4" },
+  ];
+  expect(filmReferences(cast).map((c) => c.tag)).toEqual(["anton", "mama", "luna", "bahnhof"]);
+});
+
+test("an entry without an image contributes no reference", () => {
+  // Eine Beschreibung allein hat im image_urls-Array nichts beizutragen —
+  // sie würde die Nummerierung verschieben und Gesichter vertauschen.
+  const cast = [
+    { tag: "rex", category: "pet", img: "" },
+    { tag: "anton", category: "person", img: "d1" },
+  ];
+  expect(filmReferences(cast).map((c) => c.tag)).toEqual(["anton"]);
+});
+
+test("places fall off first when slots run out", () => {
+  const cast = [
+    { tag: "p1", category: "person", img: "a" },
+    { tag: "ort1", category: "place", img: "b" },
+    { tag: "tier1", category: "pet", img: "c" },
+    { tag: "p2", category: "person", img: "d" },
+  ];
+  expect(filmReferences(cast, 3).map((c) => c.tag)).toEqual(["p1", "p2", "tier1"]);
+});

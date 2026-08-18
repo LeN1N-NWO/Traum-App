@@ -36,6 +36,24 @@ export const VIDEO_MODELS = [
     resolution: "720p",
     audio: true,                  // nativer Ton über generate_audio
   },
+  {
+    /* Referenz-Video: die Figuren aus der Besetzung sind IM Film sie selbst,
+     * nicht nur im Keyframe. Machbarkeit am 17.08. real bewiesen (T1/T4:
+     * data-URIs, @Image-Zuordnung, Identität hält über Ortswechsel).
+     *
+     * Das Fast-Tier ist der Kandidat aus dem Plan; ob es Fast, Normal
+     * ($0,3024/s — nach Aufrundung DIESELBEN 4 Credits) oder das
+     * überraschend gute Mini wird, entscheidet T2. Bis dahin gilt: Slug
+     * ändern ist eine Zeile, der Credit-Preis bleibt.
+     * Noch ohne UI-Eintrag — die Stufe kommt zusammen mit Antons Copy. */
+    id: "director",
+    slug: "bytedance/seedance-2.0/fast/reference-to-video",
+    creditsPerSecond: 4,          // $0.2419/s ÷ $0.08 → ceil = 4
+    min: 5, max: 15, step: 1, preset: 10,
+    resolution: "720p",
+    audio: true,
+    maxRefs: 9,                   // image_urls statt image_url — bis zu 9
+  },
 ];
 
 export function videoModel(id) {
@@ -54,14 +72,26 @@ export function videoModel(id) {
  *
  * `duration` wird hier je Modell geklemmt. Der Server ruft DIESE Funktion —
  * der Client kann lügen, die Tabelle nicht. */
-export function videoSubmitBody(modelId, { imageUrl, prompt, seconds }) {
+export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds }) {
   const m = videoModel(modelId);
   const body = {
-    image_url: imageUrl,
     prompt,
     duration: clampSeconds(m.id, seconds),
     resolution: m.resolution,
   };
+
+  /* Referenzmodelle nehmen ein ARRAY (image_urls), Ein-Bild-Modelle ein
+   * FELD (image_url) — und keins von beiden verzeiht das jeweils andere:
+   * Der nano-banana-Vorfall vom 07.08. (image_urls still ignoriert, Renders
+   * ohne Gesichter tagelang bezahlt) ist genau die Fehlerklasse, die hier
+   * lauert. Deshalb entscheidet die Tabelle, nie der Aufrufer. */
+  if (m.maxRefs) {
+    const urls = (imageUrls?.length ? imageUrls : [imageUrl]).filter(Boolean).slice(0, m.maxRefs);
+    body.image_urls = urls;
+  } else {
+    body.image_url = imageUrl;
+  }
+
   // Nur senden, wo der Parameter existiert: ein unbekanntes Feld kann bei
   // einem strengen Validator den ganzen Auftrag kosten.
   if (m.audio) body.generate_audio = true;
