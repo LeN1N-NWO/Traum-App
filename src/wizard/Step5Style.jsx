@@ -98,6 +98,10 @@ export default function Step5Style({ w, patch }) {
       if (isFilm) {
         const { jobId } = await generate({
           dream: w.text, mode: "film", seconds: w.seconds,
+          /* Bis 18.08.2026 fehlte diese Zeile: Der Preis richtete sich nach
+             der Modellwahl, der Server renderte aber immer minimax — Premium
+             wurde bezahlt und nie geliefert (Befund 2 im Film-Regie-Plan). */
+          model: w.videoModel,
           cast: castForApi,
           // The chosen image, if any — the server then animates it directly
           // instead of rendering a fresh keyframe first.

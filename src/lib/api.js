@@ -60,8 +60,8 @@ export async function transcribe(audio) {
  *   film   → { jobId }  — minutes (a 15s render measured 280s), so the
  *                         server queues it and we collect it afterwards.
  */
-export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe }) {
-  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe });
+export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model }) {
+  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model });
   if (Array.isArray(data?.urls)) return { urls: data.urls };
   if (typeof data?.jobId === "string") return { jobId: data.jobId };
   throw new Error(t.errors.unexpected);

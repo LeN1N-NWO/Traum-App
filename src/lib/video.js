@@ -23,17 +23,49 @@ export const VIDEO_MODELS = [
     slug: "minimax/h3/image-to-video",
     creditsPerSecond: 1,          // $0.08/s ÷ $0.08 per credit
     min: 5, max: 15, step: 1, preset: 6,
+    resolution: "768P",
+    audio: false,                 // liefert von sich aus eine AAC-Spur; einen
+                                  // generate_audio-Parameter kennt es nicht,
+                                  // also darf er auch nicht gesendet werden
   },
   {
     id: "premium",
     slug: "bytedance/seedance-2.5/image-to-video",
     creditsPerSecond: 6,          // $0.473/s ÷ $0.08 — rounded up, never down
     min: 5, max: 30, step: 5, preset: 15,
+    resolution: "720p",
+    audio: true,                  // nativer Ton über generate_audio
   },
 ];
 
 export function videoModel(id) {
   return VIDEO_MODELS.find((m) => m.id === id) || VIDEO_MODELS[0];
+}
+
+/* Der komplette fal-Auftrag für einen Film, als reine Funktion — damit die
+ * Form je Modell TESTBAR ist, ohne das Netz zu berühren.
+ *
+ * Warum das nicht im Server inline steht: Bis 17.08.2026 war die
+ * 5–15-Sekunden-Klemme von minimax hart in falSubmitVideo verdrahtet.
+ * Solange nur ein Modell existierte, fiel das nicht auf; mit dem zweiten
+ * hätte sie Premiums 30 Sekunden stillschweigend auf 15 gedrückt — bezahlt
+ * worden wären die 30. Modellwissen gehört in die Modelltabelle, nicht in
+ * die Versandfunktion.
+ *
+ * `duration` wird hier je Modell geklemmt. Der Server ruft DIESE Funktion —
+ * der Client kann lügen, die Tabelle nicht. */
+export function videoSubmitBody(modelId, { imageUrl, prompt, seconds }) {
+  const m = videoModel(modelId);
+  const body = {
+    image_url: imageUrl,
+    prompt,
+    duration: clampSeconds(m.id, seconds),
+    resolution: m.resolution,
+  };
+  // Nur senden, wo der Parameter existiert: ein unbekanntes Feld kann bei
+  // einem strengen Validator den ganzen Auftrag kosten.
+  if (m.audio) body.generate_audio = true;
+  return { slug: m.slug, body };
 }
 
 /** What a film costs: the animation, plus a keyframe — unless the film

@@ -34,6 +34,9 @@ import { resolve, sep } from "node:path";
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
 import { guard } from "./src/lib/gatekeeper.js";
 import { buildCharacterPrompt } from "./src/lib/promptBuilder.js";
+// Die Filmbestellung je Modell — Slug, Klemme, Auflösung, Tonparameter —
+// kommt aus EINER Tabelle, die auch Preis und UI speist (video.test.js).
+import { videoSubmitBody } from "./src/lib/video.js";
 
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
@@ -58,10 +61,11 @@ const FAL_MODEL_IMAGE = process.env.FAL_MODEL_IMAGE || "fal-ai/nano-banana-2";
 // image_urls: 123 with a 200), so likenesses never reached the model. The
 // /edit endpoint takes image_urls and demonstrably reproduces them.
 const FAL_MODEL_IMAGE_EDIT = process.env.FAL_MODEL_IMAGE_EDIT || `${FAL_MODEL_IMAGE}/edit`;
-// Given directly by the product owner, not a guess — still worth confirming
-// the exact slug in the fal.ai dashboard before production use, model IDs
-// there are usually namespaced (e.g. "fal-ai/minimax/...").
-const FAL_MODEL_VIDEO = process.env.FAL_MODEL_VIDEO || "minimax/h3/image-to-video";
+/* Videomodelle stehen NICHT mehr hier: Slug, Dauergrenzen, Auflösung und
+ * Tonparameter je Modell leben in src/lib/video.js (videoSubmitBody) —
+ * dieselbe Tabelle, aus der auch der Preis und die UI kommen. Eine zweite
+ * Kopie hier war der halbe Weg zu Befund 2 des Film-Plans (Premium
+ * berechnet, minimax geliefert). */
 // Whisper v3 as hosted by fal.ai — used by /api/transcribe (dictation). Slug
 // confirmed against fal.ai/models/fal-ai/wizper on 2026-08-08.
 const FAL_MODEL_STT = process.env.FAL_MODEL_STT || "fal-ai/wizper";
@@ -896,26 +900,28 @@ async function readJob(id) {
 }
 const writeJob = (id, job) => Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.stringify(job));
 
-/** Hand the work to fal's queue and return our own job id. */
-async function falSubmitVideo({ imageUrl, prompt, seconds }) {
+/** Hand the work to fal's queue and return our own job id.
+ *
+ *  Which address, which duration clamp, which resolution and whether a
+ *  generate_audio flag exists — all of that is per-model knowledge and
+ *  comes from videoSubmitBody() in src/lib/video.js. The clamp runs HERE
+ *  (server-side) through that same table: the queue only validates duration
+ *  at RENDER time (re-measured 09.08.2026), so a bad value burns the fee
+ *  and comes back as a failed job minutes later. */
+async function falSubmitVideo({ modelId, imageUrl, prompt, seconds }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
-  const res = await fetch(`https://queue.fal.run/${FAL_MODEL_VIDEO}`, {
+  const { slug, body } = videoSubmitBody(modelId, { imageUrl, prompt, seconds });
+  const res = await fetch(`https://queue.fal.run/${slug}`, {
     method: "POST",
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({
-      image_url: imageUrl,
-      prompt,
-      // minimax/h3 accepts 5–15 ("ge: 5" per its validator, re-measured
-      // 09.08.2026 — the queue only enforces this at RENDER time, so a bad
-      // value here would burn the fee and come back as a failed job).
-      duration: Math.min(Math.max(Number(seconds) || 6, 5), 15),
-      resolution: "768P",
-    }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
-    console.error("[DreamRushes] fal.ai video submit failed:", res.status, await res.text().catch(() => ""));
+    // Mit Modelladresse: seit es mehrere Modelle gibt, ist "welches?" die
+    // erste Frage an jeden fehlgeschlagenen Submit.
+    console.error("[DreamRushes] fal.ai video submit failed:", slug, res.status, await res.text().catch(() => ""));
     throw new Error("GENERATION_FAILED");
   }
   const { request_id, status_url, response_url } = await res.json();
@@ -929,7 +935,7 @@ async function falSubmitVideo({ imageUrl, prompt, seconds }) {
    * COMPLETED render sat unclaimed behind exactly that 405. */
   const id = genJobId();
   await writeJob(id, {
-    requestId: request_id, model: FAL_MODEL_VIDEO,
+    requestId: request_id, model: slug,
     statusUrl: status_url, responseUrl: response_url,
     createdAt: Date.now(), status: "pending",
   });
@@ -1175,19 +1181,19 @@ async function generateImages({ dream, namedRefs, prompt: readyPrompt, aspectRat
  *  cannot point this at an arbitrary file or host. fal gets the bytes as a
  *  data URI because the /media/ path only exists on this machine; fal could
  *  never fetch it (verified live 09.08.2026: minimax/h3 accepts data URIs). */
-async function startVideo({ dream, namedRefs, prompt, seconds, keyframe }) {
+async function startVideo({ dream, namedRefs, prompt, seconds, keyframe, modelId }) {
   if (keyframe) {
     const hit = resolveMedia(keyframe);
     const file = hit && Bun.file(resolve(MEDIA_DIR, hit.name));
     if (!hit || !(await file.exists())) throw new Error("GENERATION_FAILED");
     const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
     const dataUri = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
-    return falSubmitVideo({ imageUrl: dataUri, prompt: prompt || dream, seconds });
+    return falSubmitVideo({ modelId, imageUrl: dataUri, prompt: prompt || dream, seconds });
   }
   const stills = await generateImages({ dream, namedRefs, prompt });
   const first = stills[0];
   if (!first) throw new Error("GENERATION_FAILED");
-  return falSubmitVideo({ imageUrl: first, prompt: prompt || dream, seconds });
+  return falSubmitVideo({ modelId, imageUrl: first, prompt: prompt || dream, seconds });
 }
 
 // ---- static file serving ----
@@ -1590,7 +1596,13 @@ Bun.serve({
           // Only a /media/-shaped name survives; startVideo re-validates it
           // against resolveMedia before touching the filesystem.
           const keyframe = typeof body.keyframe === "string" ? body.keyframe : undefined;
-          const jobId = await startVideo({ dream, namedRefs: cast, prompt, seconds: body.seconds, keyframe });
+          /* Allowlist statt Durchreichen, wie bei voice/lang/aspectRatio:
+             Der Client schickt eine ID, nie einen Slug. Unbekanntes wird
+             absichtlich zu "standard" — der falsche BILLIGE Film ist der
+             harmlosere Fehler. "director" kommt erst dazu, wenn die
+             R2V-Verdrahtung steht (Film-Plan §9, Schritt 4). */
+          const modelId = body.model === "premium" ? "premium" : "standard";
+          const jobId = await startVideo({ dream, namedRefs: cast, prompt, seconds: body.seconds, keyframe, modelId });
           return json({ ok: true, jobId });
         }
         const urls = await generateImages({ dream, namedRefs: cast, prompt, aspectRatio });
