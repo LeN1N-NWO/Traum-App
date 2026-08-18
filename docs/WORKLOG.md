@@ -3,6 +3,83 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-19 00:00 — Anton — Branch `session/2026-08-18-anton` (PR #14) — Sitzungsabschluss
+
+**Commits:** `d7223b8` (Bugfix Modellwahl), `ec749c6` (Regisseur),
+`cd058f0` (Referenz-Film serverseitig), `585c634` (Stufe Lebendig/Regie/
+Kino), `cd806a3` (Teststand) plus der Doku-Commit dieser Zeilen. Zustand:
+153 Unit-Tests (früh: 133), 50 Freigabe-Prüfungen, Prompt-Hygiene, 16
+Kontrast-Paarungen, 7 Sprachdateien, 22 Stilblätter — alles grün. Kein
+`bun run lint`. Testkosten der Sitzung: $2,18 (T2, von Anton freigegeben).
+
+### Der Film-Plan ist umgesetzt — §9 Schritte 1–4 komplett
+
+**1 · Bugfix zuerst (Befund 2):** Die Modellwahl erreicht jetzt den
+Server. Premium wurde bis dahin BERECHNET und minimax GELIEFERT, hart auf
+15 s geklemmt. Jetzt kommt die komplette Bestellung je Modell — Slug,
+Dauerklemme, Auflösung, Tonparameter — aus EINER Tabelle
+(`videoSubmitBody` in `src/lib/video.js`), aus der auch Preis und UI
+lesen. `video.test.js` nagelt fest: Preis und Bestellung klemmen
+dieselben Sekunden; `generate_audio` geht nur dorthin, wo der Parameter
+existiert (minimax kennt ihn nicht — unbekanntes Feld kann bei strengem
+Validator den bezahlten Auftrag kosten). Unbekannte IDs werden
+absichtlich zu `standard`: der falsche BILLIGE Film ist der harmlosere
+Fehler.
+
+**2 · Der Regisseur (Befund 1):** Jeder Film bekam bis dahin wörtlich
+einen STANDBILD-Prompt („photoreal film still…"). Jetzt schreibt
+`deepseek-v4-flash` einen Bewegungs-Prompt nach dem destillierten
+CINEDANCE-Bauplan. Bauanleitung + mechanische @Tag-Prüfung liegen in
+`src/lib/director.js` (getestet, wie gatekeeper.js); der Regisseur ist
+**Kür, nie Pflicht** — jeder Fehler fällt auf den alten Zustand zurück.
+⚠ KEIN `max_tokens` am DeepSeek-Aufruf (Denkmodell!), eigene Grenze
+`MAX_DIRECTED_PROMPT = 6000` (T4 maß 5,5k; die 3k-Client-Grenze wäre
+eine Amputation).
+
+**3 · Referenz-Filme (Befund 3):** Modell `director`
+(seedance-2.0 **Fast** R2V, 4 Cr/s, 5–15 s, bis 9 Referenzen, Ton).
+`filmReferences()` trägt die Reihenfolge-Invariante aus promptBuilder.js
+eine Stufe weiter: Personen vor Tieren vor Orten, Startbild fest auf
+@Image1, Materialliste und `image_urls` aus DERSELBEN Auswahl. Nebenbei
+behoben: Step 5 plättete Gattung und Beschreibung der Besetzung
+(`category: "person"`, `desc: ""` für alle) — für Bilder folgenlos, für
+Regie hätte es Priorität und Materialliste zerstört.
+
+**4 · Die Stufe (Antons Namen):** **Lebendig / Regie / Kino** in sieben
+Sprachen; VIDEO_MODELS jetzt in UI-Reihenfolge = aufsteigender Preis,
+Eintrag [0] bleibt `standard` (Rückfallziel). Im Wizard nachgemessen:
+Schieberegler je Modell (5–15/1 · 5–15/1 · 5–30/5), Preise 6/21/31
+Credits bei 5 s.
+
+**Verifikation ohne Kosten, dreimal dasselbe Muster:** Server mit
+absichtlich UNGÜLTIGEM fal-Schlüssel booten, echte Bestellung schicken,
+im Fehlerlog (der jetzt die Modelladresse nennt) die richtige Route
+ablesen. fals 401 bestätigt nebenbei, dass die Slugs existieren
+(„Authentication required", nicht „not found"). Der Regisseur lief dabei
+echt: 3344 Zeichen (premium, 0 Refs), 5296 Zeichen (director, 3 Refs,
+Personenpriorität griff).
+
+**T2 ($2,18):** Fast und Normal je 4 s / 720p, wörtlich der T1-Auftrag.
+Beide halten das Drehbuch, 720p klar über Mini, kein entscheidender
+Abstand → **Regie bleibt Fast** (gleiche 4 Credits nach Aufrundung,
+bessere Marge). Videos in `media/tests/`.
+
+**Was der Nächste wissen muss:**
+
+- **Der Schlussstein fehlt:** ein echter bezahlter Film durch die
+  App-Oberfläche (Lebendig 5 s ≈ $0,48, Regie 5 s ≈ $1,45). Auf Antons Go.
+- **T3 (Abspann an Seedance-Film) ist risikoarm, aber ungefahren** —
+  gleiche Codecs (h264+AAC) wie der verifizierte minimax-Fall.
+- **T5 offen:** „30 s MIT Referenzen" per Video-Verkettung — bis dahin
+  ist Kino ehrlich ein Ein-Bild-Angebot.
+- Wer am Regisseur formuliert: die drei Anti-Drift-Regeln (nur Grad,
+  keine Originalzitate, keine erfundene Garderobe) stammen aus ECHTEN
+  T0-Abdriften; `director.test.js` schlägt an, wenn eine beim
+  Umformulieren verloren geht.
+- Auf 8100 lief bis heute ein TAGE-alter Server einer früheren Sitzung
+  mit altem Code — wer „es geht nicht" debuggt: erst prüfen, WESSEN
+  Prozess auf dem Port liegt.
+
 ## 2026-08-17 23:50 — Anton — Branch `session/2026-08-17-anton` (PR #13) — Sitzungsabschluss
 
 **Commits:** `c753d0a` (Besetzung als Rollenliste), `d18b335` + `155b5df`
