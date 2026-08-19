@@ -226,3 +226,45 @@ Reihenfolge nach Erkenntnis je Dollar. Gesamtbudget T0–T4: **unter $4.**
 3. `DIRECTOR`-Block + `directFilm()` + mechanische @Tag-Prüfung + Rückfall.
 4. R2V-Verdrahtung (Referenzen bis ins Modell), UI-Dreier, i18n×7.
 5. Testplan T0–T4, dann Preise/Beschriftungen fixieren.
+
+## §10 — Nachtrag 19.08.: Der Stufen-Zuschnitt ist eine Endpoint-Wahl, kein Modelllimit
+
+Antons Einspruch („keine künstliche Verknappung — Modellpreise weitergeben,
+wie sie sind") hat sich bei der Recherche voll bestätigt:
+
+- **minimax/h3/reference-to-video** existiert auf fal — bis 9 Bilder plus
+  Motion-/Audio-Referenzen, 2K. Laut fal-Learn: $0,05/s @480p, **$0,06/s
+  @768p**, erste 5 Referenzbilder gratis, danach $0,08/Bild. Das ist bei
+  768p BILLIGER als unser jetziger H3-image-to-video ($0,08/s) — mit
+  Referenzen. Die „Lebendig"-Stufe verkauft also heute weniger fürs
+  gleiche Geld, als das Modell hergibt.
+- **bytedance/seedance-2.5/reference-to-video** existiert auf fal — bis 30
+  Bilder (50 Dateien inkl. Video/Audio), @Image1…-Adressierung. „Kino ist
+  ehrlich ein Ein-Bild-Angebot" (§ oben) stimmt seit diesem Endpoint nicht
+  mehr als Modellaussage. Preis token-basiert, Quellen streuen
+  (~$0,22–0,28/s @720p) — messen, nicht glauben.
+- **WAN 3.0**: seit 06.08. öffentliche Beta, aber nur Alibaba Cloud Model
+  Studio / Qwen Cloud mit Antrag. Auf fal nur Wan 2.x. Beobachten, nicht
+  verbauen.
+
+**Messauftrag (nur vom Rechner mit fal-Zugang möglich — die Sandbox ist
+für fal.ai gesperrt):** Für `minimax/h3/reference-to-video` und
+`bytedance/seedance-2.5/reference-to-video` am Validator bestätigen:
+exakte Slugs, Feldnamen (`image_urls`? `resolution`-Werte? `duration`?),
+Referenz-Adressierung im Prompt, und die echten Preise je Auflösung —
+dieselbe Methode wie am 08.08. (Validation-Responses). Der
+nano-banana-Vorfall bleibt die Hausregel: nie auf geratene Feldnamen
+bezahlt rendern.
+
+**Danach der Neuzuschnitt (Vorschlag, auf Antons Go):**
+- „Lebendig" → H3-R2V @768p: gleicher Verkaufspreis 1 Cr/s, aber mit bis
+  zu 5 Referenzfotos inklusive (kosten fal-seitig nichts). Ab dem 6. Foto
+  je 1 Credit ($0,08 durchgereicht).
+- „Regie" (Seedance 2.0 fast, 4 Cr/s) muss sich dann neu rechtfertigen —
+  T2-artiger Qualitätsvergleich H3-R2V vs. Seedance-R2V nötig, sonst ist
+  die Stufe nur noch teurer, nicht besser.
+- „Kino" → wahlweise 2.5-R2V (Referenzen UND 30 s) statt image-to-video;
+  Preis erst nach Messung festlegen.
+- Die UI-Infotexte sind seit 19.08. bereits so formuliert, dass sie den
+  App-Zustand beschreiben („diese Stufe"), nie das Modell — sie bleiben
+  beim Neuzuschnitt wahr.

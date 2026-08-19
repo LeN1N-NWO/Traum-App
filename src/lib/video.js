@@ -37,6 +37,28 @@ import { PRICES } from "./pricing.js";
  * Der Wert hier ist zugleich das Budget, das der Regisseur GENANNT bekommt
  * (buildDirectorBrief), und die Notbremse, an der der Server seine Antwort
  * kappt — eine Zahl, zwei Verwendungen, damit sie nie auseinanderlaufen. */
+/* ⚠ Der Zuschnitt „nur Regie kann Referenzen" ist eine ENDPOINT-Wahl dieser
+ * App, KEIN Modelllimit — Recherche 19.08.2026 auf Antons Einspruch hin
+ * („keine künstliche Verknappung, Modellpreise weitergeben wie sie sind"):
+ *
+ *   minimax/h3/reference-to-video   existiert auf fal: bis 9 Bilder, dazu
+ *     Motion-/Audio-Referenzen, 2K. Preis lt. fal-Learn-Artikel: $0.05/s
+ *     @480p, $0.06/s @768p, $0.13/s @2K — die ersten 5 Referenzbilder
+ *     GRATIS, jedes weitere $0.08. Bei 768p also BILLIGER als unser
+ *     jetziger image-to-video ($0.08/s) — mit Referenzen.
+ *   bytedance/seedance-2.5/reference-to-video   existiert auf fal: bis 30
+ *     Bilder (50 Dateien inkl. Video/Audio), @Image1…-Adressierung. Preis
+ *     token-basiert, Quellen streuen (~$0.22–0.28/s @720p).
+ *   WAN 3.0 (Alibaba, 30 s, Dokument-Inputs): seit 06.08. öffentliche Beta,
+ *     aber NUR über Alibaba Cloud Model Studio / Qwen Cloud mit Antrag —
+ *     auf fal gibt es bislang nur Wan 2.x. Kein Kandidat, bis fal es listet.
+ *
+ * Konsequenz steht als Messauftrag im Film-Regie-Plan §10: Feldnamen und
+ * Preise dieser Endpoints am echten fal-Validator bestätigen (aus der
+ * Arbeits-Sandbox ist fal.ai gesperrt), DANN die Stufen neu zuschneiden.
+ * Bis dahin beschreiben die UI-Infotexte den App-Zustand („diese Stufe"),
+ * nie eine Modell-Eigenschaft — nichts behaupten, was das Modell kann oder
+ * nicht kann, solange nur unsere Endpoint-Wahl es einschränkt. */
 export const VIDEO_MODELS = [
   {
     id: "standard",

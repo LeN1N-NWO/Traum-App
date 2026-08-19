@@ -407,17 +407,17 @@ export default {
         standard: {
           name: "Vivo", hint: "tu imagen empieza a moverse · 1 crédito por segundo",
           model: "MiniMax H3 · 768p",
-          info: "El nivel amable: da vida a una imagen de forma convincente, el sonido viene incluido y cada segundo cuesta solo un crédito. Su límite es esa única imagen — tu reparto aparece solo como se ve en ese fotograma, y las películas llegan como máximo a 15 segundos.",
+          info: "El nivel amable: da vida a tu imagen inicial de forma convincente, con sonido, por un crédito por segundo. En este nivel tu reparto aparece como se ve en ese único fotograma, y las películas llegan a 15 segundos como máximo.",
         },
         director: {
           name: "Dirigido", hint: "las caras y lugares reales, con sonido · 4 créditos por segundo",
           model: "Seedance 2.0 · 720p",
-          info: "El único nivel que lleva tus fotos de referencia DENTRO de la película — hasta nueve, para que los rostros y lugares reales sigan siendo ellos mismos en cada corte, con sonido. El precio de esa fidelidad: cuatro créditos por segundo, con un tope de 15 segundos.",
+          info: "Este nivel lleva tus fotos de referencia dentro de la película — hasta nueve, para que los rostros y lugares reales sigan siendo ellos mismos en cada corte, con sonido. Cuatro créditos por segundo; el tope es 15 segundos.",
         },
         premium: {
           name: "Cine", hint: "hasta 30 segundos en una sola toma, con sonido · 6 por segundo",
           model: "Seedance 2.5 · 720p",
-          info: "La historia más larga que la app puede contar: una toma continua de hasta 30 segundos, con sonido y tiempos precisos al segundo. Parte de una sola imagen inicial y no admite fotos de referencia — y es el nivel más caro de los tres.",
+          info: "La historia más larga: una toma continua de hasta 30 segundos, con sonido y tiempos precisos al segundo. En este nivel la película nace de una sola imagen inicial — y es el más caro de los tres.",
         },
       },
       aboutModel: "Sobre este modelo",
