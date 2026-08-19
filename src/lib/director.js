@@ -96,8 +96,12 @@ Write concrete physical language over poetry, measurable positions over vague ne
  * @param {number} p.seconds      bereits geklemmt (clampSeconds)
  * @param {boolean} [p.audio]     ob das Modell Ton erzeugt
  * @param {string} [p.style]      Stil-Anker in einer Zeile
+ * @param {number} [p.promptBudget]  Zeichenbudget des ZIELMODELLS (video.js
+ *   promptMax) — dem Regisseur genannt, statt seine Antwort still zu kappen:
+ *   ein Modell, das sein Limit kennt, priorisiert selbst; ein abgeschnittener
+ *   Prompt verliert immer das Ende, also Auflösung und Ton.
  */
-export function buildDirectorBrief({ dream, still, beats = [], refs = [], seconds, audio, style }) {
+export function buildDirectorBrief({ dream, still, beats = [], refs = [], seconds, audio, style, promptBudget }) {
   const parts = [
     `THE DREAM (in its original language; the film must depict it, your prompt is English):\n"${dream}"`,
   ];
@@ -133,7 +137,11 @@ export function buildDirectorBrief({ dream, still, beats = [], refs = [], second
   }
   parts.push(`DURATION: ${seconds} seconds.` +
     (refs.length ? ` MODEL: supports up to 9 image references${audio ? ", native ambient audio" : ""}, controlled multi-shot with restated continuity.`
-                 : audio ? " MODEL: renders native ambient audio." : ""));
+                 : audio ? " MODEL: renders native ambient audio." : "") +
+    /* Das Budget stammt aus video.js (promptMax je Modell). Mit etwas Luft
+       genannt, damit „knapp drüber" nicht schon in die Servernotbremse
+       läuft — Dichte soll aus Priorisierung kommen, nicht aus Kürzung. */
+    (promptBudget ? ` LENGTH BUDGET: the finished prompt must stay under ${Math.floor(promptBudget * 0.9)} characters — if space runs short, cut style prose first, never the timing blocks or the ending.` : ""));
   /* Der Stil-Anker beschreibt den BILD-Stil und nennt dort teils Brennweiten
      in Millimetern — die Optik entscheidet hier aber der Regisseur nach
      Inhalt. Deshalb ausdrücklich auf Farbe, Licht und Textur beschränkt,

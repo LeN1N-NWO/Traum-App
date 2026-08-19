@@ -81,3 +81,20 @@ test("director clamps to its own 5-15 range", () => {
   expect(clampSeconds("director", 30)).toBe(15);
   expect(clampSeconds("director", 1)).toBe(5);
 });
+
+/* promptMax: das Zeichenlimit des Modells für den Prompt — recherchiert
+   19.08.2026, je Modell verschieden (H3: 7000 laut offizieller API,
+   Seedance 2.0: 5000 modellseitig, 2.5: Annahme wie 2.0). Es speist zwei
+   Stellen zugleich: das Budget im Regisseur-Brief und die Server-Notbremse.
+   Fehlt es einem neuen Modell, würde der Regisseur ohne Budget schreiben
+   und die Notbremse mit undefined kappen — slice(0, undefined) kappt NICHTS,
+   und ein Über-Limit-Prompt geht raus. */
+test("every model declares a plausible promptMax", () => {
+  for (const m of VIDEO_MODELS) {
+    expect(typeof m.promptMax).toBe("number");
+    // Unter 2000 wäre enger als das älteste bekannte Modell — vermutlich ein
+    // Tippfehler; über 20000 vermutlich auch.
+    expect(m.promptMax).toBeGreaterThanOrEqual(2000);
+    expect(m.promptMax).toBeLessThanOrEqual(20000);
+  }
+});

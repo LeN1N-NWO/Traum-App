@@ -17,6 +17,22 @@
  */
 import { PRICES } from "./pricing.js";
 
+/* `promptMax`: wie viele Zeichen Prompt das MODELL verträgt — recherchiert
+ * 19.08.2026, je Modell verschieden, deshalb steht es in dieser Tabelle und
+ * nicht als eine Zahl im Server. Ein Prompt über dem Limit wird je nach
+ * Plattform abgelehnt (bezahlte Runde verloren) oder still abgeschnitten
+ * (der Schluss des Films fehlt, ohne dass es jemand merkt).
+ *
+ *   minimax/h3       7 000 (offizielle H3-API; ältere minimax-Modelle 2 000)
+ *   seedance 2.0     5 000 modellseitig — Plattformen klemmen unterschiedlich
+ *                    (3 000–10 000); fal dokumentiert im Schema KEINE Grenze,
+ *                    also gilt die modellseitige
+ *   seedance 2.5     nicht dokumentiert — Annahme: wie 2.0, gleiche Familie.
+ *                    Beim ersten echten Kino-Lauf gegenmessen.
+ *
+ * Der Wert hier ist zugleich das Budget, das der Regisseur GENANNT bekommt
+ * (buildDirectorBrief), und die Notbremse, an der der Server seine Antwort
+ * kappt — eine Zahl, zwei Verwendungen, damit sie nie auseinanderlaufen. */
 export const VIDEO_MODELS = [
   {
     id: "standard",
@@ -27,6 +43,7 @@ export const VIDEO_MODELS = [
     audio: false,                 // liefert von sich aus eine AAC-Spur; einen
                                   // generate_audio-Parameter kennt es nicht,
                                   // also darf er auch nicht gesendet werden
+    promptMax: 7000,              // offizielle H3-API-Grenze
   },
   {
     /* „Regie" — Referenz-Video: die Figuren aus der Besetzung sind IM Film
@@ -43,6 +60,7 @@ export const VIDEO_MODELS = [
     resolution: "720p",
     audio: true,
     maxRefs: 9,                   // image_urls statt image_url — bis zu 9
+    promptMax: 5000,              // modellseitige Seedance-2.0-Grenze
   },
   {
     id: "premium",
@@ -51,6 +69,7 @@ export const VIDEO_MODELS = [
     min: 5, max: 30, step: 5, preset: 15,
     resolution: "720p",
     audio: true,                  // nativer Ton über generate_audio
+    promptMax: 5000,              // ANNAHME: wie 2.0 — beim ersten Kino-Lauf messen
   },
 ];
 /* Reihenfolge = UI-Reihenfolge = aufsteigender Preis. Eintrag [0] muss

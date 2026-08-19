@@ -248,6 +248,7 @@ async function main() {
       refs: refsForBrief,
       seconds,
       audio: m.audio,
+      promptBudget: m.promptMax,
     });
     block("② User-Nachricht (die Materialliste)", brief, `${brief.length} Zeichen`);
 

@@ -611,14 +611,15 @@ Output ONLY the finished prompt text. No preamble, no markdown, no quotes around
  * Der Regisseur ist Kür, nie Pflicht: Jeder Fehler hier wird vom Aufrufer
  * geschluckt und der Film läuft wie bisher — schlechter Film schlägt keinen
  * Film. Deshalb wirft diese Funktion großzügig. */
-/* T4 maß 5,5k Zeichen bei knapper Materialliste. Seit 19.08. bekommt der
- * Regisseur Szenenbogen, Startbild und Stil dazu — dreimal so viel Material,
- * also auch längere Antworten. Bei 6000 hätte eine davon mitten im Satz
- * geendet, und ein halber Prompt geht ungeprüft an ein bezahltes Modell:
- * checkDirectedPrompt() sieht nur @Image-Nummern, keine Vollständigkeit.
- * Die Grenze ist eine Notbremse gegen Ausreißer, kein Sparziel — sie darf
- * nie der Grund sein, warum ein Film schlecht wird. */
-const MAX_DIRECTED_PROMPT = 9000;
+/* Die Länge der Regisseur-Antwort begrenzt nicht dieser Server, sondern das
+ * ZIELMODELL — und zwar je Modell verschieden (video.js, promptMax: minimax
+ * H3 verträgt 7 000 Zeichen, Seedance 2.0 modellseitig 5 000). Eine pauschale
+ * Zahl hier stand deshalb immer falsch: erst 6 000 (hätte gute lange
+ * Antworten amputiert), dann 9 000 (hätte Seedance einen Prompt über dessen
+ * eigenem Limit geschickt — je nach Plattform Ablehnung nach bezahlter Runde
+ * oder stilles Abschneiden des Endes). Jetzt bekommt der Regisseur sein
+ * Budget im Brief GENANNT (er priorisiert dann selbst) und die Notbremse
+ * kappt exakt am Limit des bestellten Modells. */
 async function directFilm({ dream, still, beats = [], style, seconds, modelId, refs = [] }) {
   const key = process.env.DEEPSEEK_KEY;
   if (!key) throw new Error("NO_DEEPSEEK_KEY");
@@ -654,6 +655,10 @@ async function directFilm({ dream, still, beats = [], style, seconds, modelId, r
     refs,
     seconds: secs,
     audio: m.audio,
+    /* Das Zeichenlimit des BESTELLTEN Modells (video.js) — dem Regisseur
+       genannt statt nur still gekappt: ein Modell, das sein Budget kennt,
+       kürzt Stilprosa; die Schere kürzt immer das Ende. */
+    promptBudget: m.promptMax,
   });
 
   const res = await fetch(DEEPSEEK_API_URL, {
@@ -677,7 +682,7 @@ async function directFilm({ dream, still, beats = [], style, seconds, modelId, r
   // dann die mechanische Prüfung — jedes @ImageN muss eine der übergebenen
   // Referenzen sein; ohne Referenzen ist JEDES @Image eine Anweisung ins
   // Leere. Verstoß → Rückfall, nie ein halluziniertes Bild.
-  const cleaned = sanitizePromptText(text).slice(0, MAX_DIRECTED_PROMPT);
+  const cleaned = sanitizePromptText(text).slice(0, m.promptMax);
   if (!checkDirectedPrompt(cleaned, refs.length).ok) throw new Error("DEEPSEEK_FAILED");
   // Eine Zeile Sichtbarkeit für ein bezahltes Feature: lief der Regisseur,
   // und wie viel hat er geschrieben? (Der Prompt selbst wird nicht geloggt.)

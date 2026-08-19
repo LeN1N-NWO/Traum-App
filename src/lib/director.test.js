@@ -103,6 +103,18 @@ test("the brief does the arithmetic — seconds per beat, not just a total", () 
   expect(b7).toContain("about 2.3 seconds each");
 });
 
+/* Das Zeichenbudget kommt aus video.js (promptMax je Modell) und wird dem
+   Regisseur GENANNT — mit Luft (90 %), damit „knapp drüber" nicht in die
+   Servernotbremse läuft, und mit einer Prioritätsregel: die Schere eines
+   slice() kürzt immer das Ende, also Auflösung und Ton. */
+test("the brief names the length budget with headroom and a priority rule", () => {
+  const brief = buildDirectorBrief({ dream: "x", seconds: 10, promptBudget: 5000 });
+  expect(brief).toContain("stay under 4500 characters");
+  expect(brief).toMatch(/never the timing blocks or the ending/i);
+  // Ohne Budget keine leere Floskel im Brief.
+  expect(buildDirectorBrief({ dream: "x", seconds: 10 })).not.toContain("LENGTH BUDGET");
+});
+
 test("the last beat must land — an unresolved ending is called out", () => {
   const brief = buildDirectorBrief({ dream: "x", seconds: 10, beats: ["a", "b"] });
   expect(brief).toMatch(/never leave the last beat unresolved/i);
