@@ -402,10 +402,23 @@ export default {
       keyframeHint: "Der Film beginnt bei diesem Bild — sein Look zieht sich durch.",
       filmModelLabel: "Welcher Renderer",
       filmModels: {
-        standard: { name: "Lebendig", hint: "dein Bild beginnt sich zu bewegen · 1 Credit je Sekunde" },
-        director: { name: "Regie", hint: "echte Gesichter und Orte, mit Ton · 4 Credits je Sekunde" },
-        premium:  { name: "Kino", hint: "bis zu 30 Sekunden in einer Einstellung, mit Ton · 6 je Sekunde" },
+        standard: {
+          name: "Lebendig", hint: "dein Bild beginnt sich zu bewegen · 1 Credit je Sekunde",
+          model: "MiniMax H3 · 768p",
+          info: "Die freundliche Stufe: Sie erweckt ein Bild überzeugend zum Leben, Ton ist dabei, und jede Sekunde kostet nur einen Credit. Ihre Grenze ist dieses eine Bild — deine Besetzung erscheint nur so, wie sie in diesem einen Rahmen aussieht, und bei 15 Sekunden ist Schluss.",
+        },
+        director: {
+          name: "Regie", hint: "echte Gesichter und Orte, mit Ton · 4 Credits je Sekunde",
+          model: "Seedance 2.0 · 720p",
+          info: "Die einzige Stufe, die deine Referenzfotos IN den Film mitnimmt — bis zu neun, damit die echten Gesichter und Orte durch jeden Schnitt sie selbst bleiben, mit Ton. Der Preis dieser Treue: vier Credits pro Sekunde, und bei 15 Sekunden ist Schluss.",
+        },
+        premium: {
+          name: "Kino", hint: "bis zu 30 Sekunden in einer Einstellung, mit Ton · 6 je Sekunde",
+          model: "Seedance 2.5 · 720p",
+          info: "Die längste Geschichte, die die App erzählen kann: eine ununterbrochene Einstellung von bis zu 30 Sekunden, mit Ton und sekundengenauem Timing. Sie arbeitet von einem einzigen Startbild aus und nimmt keine Referenzfotos — und sie ist die teuerste der drei Stufen.",
+        },
       },
+      aboutModel: "Über dieses Modell",
       lengthLabel: "Wie lang",
       ideal: "ideal",
       posterLabel: "Das Poster",

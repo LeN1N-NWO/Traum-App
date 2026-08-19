@@ -312,3 +312,20 @@
 .wiz-seconds-ideal-label {
   color: var(--warm); font-size: var(--t-micro); letter-spacing: .04em;
 }
+
+/* Renderer-Kachel mit Info-Punkt: Wrapper trägt die Position, der
+   Auswahlknopf füllt ihn, das ⓘ sitzt als eigener Knopf in der Ecke —
+   nie ein Knopf im Knopf. flex:1 wandert vom Knopf auf den Wrapper. */
+.wiz-model { position: relative; flex: 1; display: flex; }
+.wiz-model .wiz-format { flex: 1; }
+.wiz-model-name { color: var(--faint); font-size: var(--t-micro); }
+.wiz-model-info {
+  position: absolute; inset-block-start: var(--s-1); inset-inline-end: var(--s-1);
+  inline-size: 18px; block-size: 18px; padding: 0;
+  border-radius: 999px; border: 1px solid var(--panel-line);
+  background: var(--glass); color: var(--muted); cursor: pointer;
+  font: 600 11px/1 var(--serif); font-style: italic;
+}
+.wiz-model-info:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.wiz-model-title { margin-block: 0 var(--s-2); font-size: var(--t-h3); }
+.wiz-model-text { margin-block: 0 var(--s-3); color: var(--muted); font-size: var(--t-small); line-height: 1.55; }

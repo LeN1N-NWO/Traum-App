@@ -415,10 +415,23 @@ export default {
       keyframeHint: "The film starts from this picture — its look carries through.",
       filmModelLabel: "Which renderer",
       filmModels: {
-        standard: { name: "Alive", hint: "your picture starts to move · 1 credit per second" },
-        director: { name: "Directed", hint: "the real faces and places, with sound · 4 credits per second" },
-        premium:  { name: "Cinema", hint: "up to 30 seconds in one take, with sound · 6 per second" },
+        standard: {
+          name: "Alive", hint: "your picture starts to move · 1 credit per second",
+          model: "MiniMax H3 · 768p",
+          info: "The friendly tier: it brings one picture convincingly to life, sound comes along free, and every second costs just one credit. Its limit is that one picture — your cast appears only as they look in that single frame, and films top out at 15 seconds.",
+        },
+        director: {
+          name: "Directed", hint: "the real faces and places, with sound · 4 credits per second",
+          model: "Seedance 2.0 · 720p",
+          info: "The only tier that carries your reference photos INTO the film — up to nine, so the real faces and places stay themselves through every cut, with sound. The price of that fidelity: four credits per second, and 15 seconds is the ceiling.",
+        },
+        premium: {
+          name: "Cinema", hint: "up to 30 seconds in one take, with sound · 6 per second",
+          model: "Seedance 2.5 · 720p",
+          info: "The longest story the app can tell: one unbroken take of up to 30 seconds, with sound and second-precise timing. It works from a single starting image and takes no reference photos — and it is the most expensive tier of the three.",
+        },
       },
+      aboutModel: "About this model",
       lengthLabel: "How long",
       ideal: "ideal",
       posterLabel: "The poster",

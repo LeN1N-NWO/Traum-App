@@ -12,6 +12,7 @@ import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
 import Storyboard from "../components/Storyboard.jsx";
+import Sheet from "../components/Sheet.jsx";
 import "./wizard.css";
 
 // How many renders may be in flight at once. Three keeps a ten-image dream
@@ -21,6 +22,7 @@ const GENERATION_WINDOW = 3;
 export default function Step5Style({ w, patch }) {
   const { state, update, toast, openPaywall } = useAppState();
   const [busy, setBusy] = useState(false);
+  const [modelInfo, setModelInfo] = useState(null);  // Modell-id, deren ⓘ offen ist
   const [msg, setMsg] = useState(0);
   const [done, setDone] = useState(0);
   // Re-entry guard. `busy` cannot do this job: it is state, so it is still
@@ -318,17 +320,35 @@ export default function Step5Style({ w, patch }) {
           <h2 className="wiz-sub">{t.wizard.step5.filmModelLabel}</h2>
           <div className="wiz-formats" role="group" aria-label={t.wizard.step5.filmModelLabel}>
             {VIDEO_MODELS.map((m) => (
-              <button
-                key={m.id}
-                className={"wiz-format" + (w.videoModel === m.id ? " wiz-format-on" : "")}
-                onClick={() => patch({ videoModel: m.id, ...(w.secondsTouched ? { seconds: clampSeconds(m.id, w.seconds) } : {}) })}
-                aria-pressed={w.videoModel === m.id}
-              >
-                <span>{t.wizard.step5.filmModels[m.id].name}</span>
-                <small>{t.wizard.step5.filmModels[m.id].hint}</small>
-              </button>
+              /* Das ⓘ liegt NEBEN dem Auswahlknopf, absolut in dessen Ecke —
+                 ein Knopf im Knopf wäre derselbe Fehler wie der <div>-
+                 Löschknopf der Cast-Kacheln (STAND: Barrierefreiheit). */
+              <div key={m.id} className="wiz-model">
+                <button
+                  className={"wiz-format" + (w.videoModel === m.id ? " wiz-format-on" : "")}
+                  onClick={() => patch({ videoModel: m.id, ...(w.secondsTouched ? { seconds: clampSeconds(m.id, w.seconds) } : {}) })}
+                  aria-pressed={w.videoModel === m.id}
+                >
+                  <span>{t.wizard.step5.filmModels[m.id].name}</span>
+                  <small>{t.wizard.step5.filmModels[m.id].hint}</small>
+                  <small className="wiz-model-name">{t.wizard.step5.filmModels[m.id].model}</small>
+                </button>
+                <button
+                  className="wiz-model-info"
+                  aria-label={`${t.wizard.step5.aboutModel}: ${t.wizard.step5.filmModels[m.id].name}`}
+                  onClick={() => setModelInfo(m.id)}
+                >i</button>
+              </div>
             ))}
           </div>
+
+          {modelInfo && (
+            <Sheet label={t.wizard.step5.filmModels[modelInfo].name} onClose={() => setModelInfo(null)}>
+              <p className="sb-sheet-label">{t.wizard.step5.filmModels[modelInfo].model}</p>
+              <h3 className="wiz-model-title">{t.wizard.step5.filmModels[modelInfo].name}</h3>
+              <p className="wiz-model-text">{t.wizard.step5.filmModels[modelInfo].info}</p>
+            </Sheet>
+          )}
 
           <h2 className="wiz-sub">{t.wizard.step5.lengthLabel}</h2>
           <div className="wiz-seconds">

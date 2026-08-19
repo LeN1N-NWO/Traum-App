@@ -2,6 +2,7 @@ import { useState } from "react";
 import { mediaUrl } from "../lib/api.js";
 import { imageIndexForBeat } from "../lib/beats.js";
 import { t } from "../i18n/index.js";
+import Sheet from "./Sheet.jsx";
 import "./storyboard.css";
 
 /* Der Fünf-Szenen-Bogen als antippbare Leiste — Plan
@@ -59,21 +60,12 @@ export default function Storyboard({ beats = [], entry = null, active = null }) 
       </div>
 
       {open != null && (
-        <div className="sb-backdrop" onClick={() => setOpen(null)}>
-          <div
-            className="sb-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label={t.storyboard.scene(open + 1, beats.length)}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {imgFor(open) && <img className="sb-sheet-img" src={imgFor(open)} alt="" />}
-            <p className="sb-sheet-label">{t.storyboard.scene(open + 1, beats.length)}</p>
-            <p className="sb-sheet-beat">{beats[open]}</p>
-            {!imgFor(open) && <p className="sb-sheet-note">{t.storyboard.textOnly}</p>}
-            <button className="sb-sheet-close" onClick={() => setOpen(null)}>{t.journal.close}</button>
-          </div>
-        </div>
+        <Sheet label={t.storyboard.scene(open + 1, beats.length)} onClose={() => setOpen(null)}>
+          {imgFor(open) && <img className="sb-sheet-img" src={imgFor(open)} alt="" />}
+          <p className="sb-sheet-label">{t.storyboard.scene(open + 1, beats.length)}</p>
+          <p className="sb-sheet-beat">{beats[open]}</p>
+          {!imgFor(open) && <p className="sb-sheet-note">{t.storyboard.textOnly}</p>}
+        </Sheet>
       )}
     </>
   );
