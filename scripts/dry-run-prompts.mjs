@@ -22,10 +22,11 @@
  */
 
 import { beatsForCount } from "../src/lib/beats.js";
-import { buildReferences, buildImagePrompt, buildGridPrompt, buildPosterPrompt, buildCharacterPrompt } from "../src/lib/promptBuilder.js";
+import { buildReferences, buildImagePrompt, buildGridPrompt, buildPosterPrompt, buildCharacterPrompt, stripReferenceClauses } from "../src/lib/promptBuilder.js";
 import { buildDirectorBrief, filmReferences, checkDirectedPrompt, KEYFRAME_REF, DIRECTOR_MOTION, DIRECTOR_FULL } from "../src/lib/director.js";
 import { videoSubmitBody, videoModel, clampSeconds, VIDEO_MODELS } from "../src/lib/video.js";
 import { priceForFilm } from "../src/lib/video.js";
+import { styleById } from "../src/lib/styles.js";
 
 const LIVE = process.argv.includes("--live");
 const argDream = process.argv.slice(2).find((a) => !a.startsWith("--"));
@@ -236,9 +237,14 @@ async function main() {
     block(`① System-Prompt (${withRefs ? "DIRECTOR_FULL" : "DIRECTOR_MOTION"})`,
       withRefs ? DIRECTOR_FULL : DIRECTOR_MOTION);
 
+    /* Spiegelt den Aufruf in server.js directFilm(). Läuft der hier
+       auseinander, zeigt der Trockenlauf etwas anderes als die App tut —
+       director.test.js hält den Serveraufruf selbst fest. */
     const brief = buildDirectorBrief({
       dream: analysis.text,
-      still: withRefs ? undefined : stillPrompt,
+      still: stripReferenceClauses(stillPrompt),
+      beats: analysis.beats,
+      style: styleById(analysis.style).prompt,
       refs: refsForBrief,
       seconds,
       audio: m.audio,

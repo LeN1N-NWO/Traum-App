@@ -63,6 +63,78 @@ test("a refless brief mentions no reference block at all", () => {
   expect(brief).toContain("THE STILL");
 });
 
+/* Die drei Zutaten, die bis 19.08.2026 fehlten. Jede hat ihren eigenen
+   Schadensfall, deshalb je ein Test statt eines Sammeltests. */
+test("the style anchor reaches the brief, limited to colour and light", () => {
+  const brief = buildDirectorBrief({ dream: "x", seconds: 6, style: "Kodak Vision3, deep shadows" });
+  expect(brief).toContain("STYLE ANCHOR");
+  expect(brief).toContain("Kodak Vision3, deep shadows");
+  // Der Stiltext nennt teils Brennweiten in Millimetern; die Optik entscheidet
+  // aber der Regisseur nach Inhalt. Ohne diese Einschränkung kollidiert der
+  // Anker mit der Grad-Regel im Systemprompt.
+  expect(brief).toMatch(/colour, light and texture only/i);
+});
+
+test("the arc is handed over as shape, not as a cut list", () => {
+  const brief = buildDirectorBrief({
+    dream: "x", seconds: 6,
+    beats: ["He waits.", "Rabbits pour past.", "An alligator charges."],
+  });
+  expect(brief).toContain("1. He waits.");
+  expect(brief).toContain("3. An alligator charges.");
+  // Fünf Szenen dürfen nicht als fünf Schnitte gelesen werden — bei zehn
+  // Sekunden Film wären das zwei Sekunden je Einstellung.
+  expect(brief).toMatch(/not as a cut list/i);
+});
+
+test("with references, the still is declared as @Image1 rather than a second material", () => {
+  const brief = buildDirectorBrief({
+    dream: "x", seconds: 10, still: "a wide airport terminal at dusk",
+    refs: [{ tag: "keyframe", kind: "opening still" }, { tag: "anton", kind: "person" }],
+  });
+  expect(brief).toContain("a wide airport terminal at dusk");
+  expect(brief).toMatch(/@Image1/);
+  expect(brief).toMatch(/same picture as the first reference/i);
+});
+
+/* ⚠ Der Test, der den eigentlichen Fehler gefunden hätte.
+ *
+ * `style` war von Anfang an in der Signatur, der Systemprompt wies
+ * ausdrücklich an, den Anker einzuweben — und server.js übergab ihn nie. Ein
+ * Test von buildDirectorBrief ALLEIN kann das nicht sehen: er ruft die
+ * Funktion mit style auf und ist zufrieden, während in der App nichts
+ * ankommt. Die Lücke sitzt zwischen den Dateien, also muss der Test dorthin.
+ *
+ * Absichtlich generisch statt einer Liste bekannter Felder: So schlägt er
+ * auch beim NÄCHSTEN Parameter an, den jemand hinzufügt und zu verdrahten
+ * vergisst — dieselbe Fehlerklasse, nicht derselbe Fehler. */
+import { readFileSync } from "node:fs";
+test("every parameter the brief accepts is actually passed by server.js", () => {
+  const dir = new URL("./director.js", import.meta.url).pathname;
+  const srv = new URL("../../server.js", import.meta.url).pathname;
+
+  const sig = readFileSync(dir, "utf8")
+    .match(/export function buildDirectorBrief\(\{([^}]*)\}/)?.[1];
+  expect(sig).toBeTruthy();
+  const params = sig.split(",").map((s) => s.trim().split(/[=:]/)[0].trim()).filter(Boolean);
+
+  const call = readFileSync(srv, "utf8")
+    .match(/buildDirectorBrief\(\{([\s\S]*?)\n\s*\}\)/)?.[1];
+  expect(call).toBeTruthy();
+
+  const missing = params.filter((p) => !new RegExp(`(^|[\\s,{])${p}\\s*[,:}]`).test(call));
+  expect(missing).toEqual([]);
+});
+
+/* Der zweite Teil desselben Fehlers: `still` wurde zwar übergeben, aber bei
+ * Referenz-Modellen auf undefined gesetzt — ausgerechnet dort, wo der
+ * Systemprompt Bildpositionen in Metern verlangt. */
+test("the still is passed unconditionally, not only for single-image models", () => {
+  const call = readFileSync(new URL("../../server.js", import.meta.url).pathname, "utf8")
+    .match(/buildDirectorBrief\(\{([\s\S]*?)\n\s*\}\)/)?.[1];
+  expect(call).not.toMatch(/still:\s*\w+\s*\?/);
+});
+
 /* Beide Bauanleitungen tragen die drei Regeln, die aus echten T0-Abdriften
    stammen. Reine Textprüfung — aber sie schlägt an, wenn jemand die Regel
    beim Umformulieren verliert. */
@@ -72,6 +144,27 @@ test("both director briefs keep the three anti-drift rules", () => {
     expect(/never (use )?millimeters/i.test(d)).toBe(true);
   }
   expect(DIRECTOR_FULL).toContain("no invented clothing");
+});
+
+/* Die vier Stellen, an denen CINEDANCE die eigentliche Arbeit leistet und
+ * die Destillation vom 18.08. nur andeutete. Reine Textprüfung, aber sie
+ * schlägt an, wenn jemand beim Umformulieren eine davon verliert. */
+test("DIRECTOR_FULL carries the four CINEDANCE locks the distillation had dropped", () => {
+  // Geographie VOR dem Blocking — ohne Bezugspunkt sind Meterangaben Behauptungen.
+  expect(DIRECTOR_FULL).toContain("LOCATION MAP");
+  // Der Satz, der das Gesicht hält.
+  expect(DIRECTOR_FULL).toMatch(/matches its reference exactly/i);
+  // Eine Brennweite zu WÄHLEN heißt nicht, sie zu HALTEN.
+  expect(DIRECTOR_FULL).toMatch(/never from changing the lens/i);
+  // „Enthält die Figuren" ist schwächer als der Ausschluss des Establishers.
+  expect(DIRECTOR_FULL).toMatch(/no empty establishing frame/i);
+});
+
+test("both briefs ask for the style anchor without letting it override control", () => {
+  for (const d of [DIRECTOR_MOTION, DIRECTOR_FULL]) {
+    expect(d).toMatch(/style anchor/i);
+    expect(d).toMatch(/never let it override/i);
+  }
 });
 
 /* filmReferences trägt die Reihenfolge-Invariante: Listenposition =

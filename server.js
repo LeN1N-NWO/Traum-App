@@ -33,7 +33,10 @@ import { resolve, sep } from "node:path";
 // Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
 import { guard } from "./src/lib/gatekeeper.js";
-import { buildCharacterPrompt } from "./src/lib/promptBuilder.js";
+import { buildCharacterPrompt, stripReferenceClauses } from "./src/lib/promptBuilder.js";
+// Stiltexte sind Konstanten aus dem Repo — der Client schickt nur eine ID,
+// damit über dieses Feld kein Fremdtext in einen bezahlten Prompt wandert.
+import { styleById } from "./src/lib/styles.js";
 // Die Filmbestellung je Modell — Slug, Klemme, Auflösung, Tonparameter —
 // kommt aus EINER Tabelle, die auch Preis und UI speist (video.test.js).
 import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
@@ -605,9 +608,15 @@ Output ONLY the finished prompt text. No preamble, no markdown, no quotes around
  * Der Regisseur ist Kür, nie Pflicht: Jeder Fehler hier wird vom Aufrufer
  * geschluckt und der Film läuft wie bisher — schlechter Film schlägt keinen
  * Film. Deshalb wirft diese Funktion großzügig. */
-const MAX_DIRECTED_PROMPT = 6000; // T4 maß 5,5k Zeichen — die 3k-Grenze für
-                                  // Client-Prompts wäre hier eine Amputation
-async function directFilm({ dream, still, seconds, modelId, refs = [] }) {
+/* T4 maß 5,5k Zeichen bei knapper Materialliste. Seit 19.08. bekommt der
+ * Regisseur Szenenbogen, Startbild und Stil dazu — dreimal so viel Material,
+ * also auch längere Antworten. Bei 6000 hätte eine davon mitten im Satz
+ * geendet, und ein halber Prompt geht ungeprüft an ein bezahltes Modell:
+ * checkDirectedPrompt() sieht nur @Image-Nummern, keine Vollständigkeit.
+ * Die Grenze ist eine Notbremse gegen Ausreißer, kein Sparziel — sie darf
+ * nie der Grund sein, warum ein Film schlecht wird. */
+const MAX_DIRECTED_PROMPT = 9000;
+async function directFilm({ dream, still, beats = [], style, seconds, modelId, refs = [] }) {
   const key = process.env.DEEPSEEK_KEY;
   if (!key) throw new Error("NO_DEEPSEEK_KEY");
 
@@ -616,9 +625,21 @@ async function directFilm({ dream, still, seconds, modelId, refs = [] }) {
      Bild existiert schon), Referenzmodelle das volle Programm mit @ImageN.
      `refs` ist bereits nummeriert-in-Reihenfolge — Zeile N wird @ImageN. */
   const withRefs = refs.length > 0;
+  /* `still` geht seit 19.08.2026 an BEIDE Drehbücher. Vorher stand hier
+     `withRefs ? undefined : still` — ausgerechnet die teure Referenzstufe
+     bekam die Beschreibung ihres eigenen Startbilds nicht, sollte aber
+     Positionen darin in Metern angeben. buildDirectorBrief() weist das Bild
+     bei Referenz-Modellen ausdrücklich als @Image1 aus, damit daraus kein
+     zweites Material wird. */
   const brief = buildDirectorBrief({
     dream,
-    still: withRefs ? undefined : still,
+    /* Ohne die Referenzklauseln des Bildprompts: die zählen „Reference image
+       1…N" nach der Bildliste, das Videomodell zählt @Image1…9 nach seiner
+       eigenen — und dort ist @Image1 das Startbild. Beide Zählungen roh
+       nebeneinander vertauschen Gesichter. */
+    still: stripReferenceClauses(still),
+    beats,
+    style,
     refs,
     seconds: clampSeconds(modelId, seconds),
     audio: m.audio,
@@ -1665,6 +1686,21 @@ Bun.serve({
         // verbatim, so it is a value, never client-supplied text.
         const aspectRatio = body.aspectRatio === "16:9" ? "16:9" : undefined;
 
+        /* Der Stil für den Regisseur: der Client schickt eine ID, nie den
+           Text. styleById() fällt bei Unbekanntem auf "dreamlike" zurück, die
+           Stiltexte sind Konstanten aus dem Repo — damit kann über dieses
+           Feld kein fremder Text in einen bezahlten Prompt wandern. Gleiche
+           Bauart wie voice/lang/aspectRatio. */
+        const styleAnchor = body.styleId ? styleById(body.styleId).prompt : undefined;
+
+        /* Die fünf Szenen aus der Analyse. Sie kommen vom Client zurück, sind
+           also erneut Fremdtext und laufen durch dieselbe Hygiene wie alles
+           andere — Länge und Anzahl gedeckelt wie bei der Analyse selbst. */
+        const beats = (Array.isArray(body.beats) ? body.beats : [])
+          .slice(0, ANALYSIS_BEATS)
+          .map((b) => sanitizeFragment(b, MAX_FRAGMENT))
+          .filter(Boolean);
+
         // Two shapes come back from here, and the client handles both:
         //   images → { urls }   (fast enough to wait for)
         //   film   → { jobId }  (minutes; the client collects it later)
@@ -1695,7 +1731,10 @@ Bun.serve({
              schlechter Film schlägt keinen Film. */
           let motionPrompt = null;
           try {
-            motionPrompt = await directFilm({ dream, still: prompt, seconds: body.seconds, modelId, refs: refsForBrief });
+            motionPrompt = await directFilm({
+              dream, still: prompt, beats, style: styleAnchor,
+              seconds: body.seconds, modelId, refs: refsForBrief,
+            });
           } catch (e) {
             console.error("[DreamRushes] film director skipped:", e.message);
           }

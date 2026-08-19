@@ -172,3 +172,32 @@ test("each category gets its own framing", () => {
 test("an unknown category still yields a usable prompt", () => {
   expect(buildCharacterPrompt({ desc: "x", category: "spaceship" })).toContain("x");
 });
+
+/* Der Bildprompt dient dem Regisseur als Beschreibung des Startbilds — aber
+   seine Referenzklauseln zählen anders als das Videomodell (@Image1 ist dort
+   IMMER das Startbild). Ungefiltert nebeneinander vertauschen die beiden
+   Zählungen Gesichter, eine Stufe später als der Fall im Dateikopf. */
+import { stripReferenceClauses } from "./promptBuilder.js";
+
+test("the still handed to the director carries no reference clauses", () => {
+  const { clauses } = buildReferences([
+    { name: "Anton", kind: "person", avatar: { tag: "anton", img: "d1" } },
+    { name: "der Alligator", kind: "pet", free: true },
+  ]);
+  const prompt = buildImagePrompt({ beat: "A wide terminal at dusk.", styleId: "surreal", format: "9:16", clauses });
+
+  expect(prompt).toContain("Reference image 1 shows");
+  const stripped = stripReferenceClauses(prompt);
+  expect(stripped).not.toContain("Reference image 1 shows");
+  expect(stripped).not.toContain("Invent the appearance of");
+  // Die Bildbeschreibung selbst muss bleiben — sie ist der ganze Zweck.
+  expect(stripped).toContain("A wide terminal at dusk.");
+  expect(stripped).toContain("Surrealist composition");
+});
+
+test("stripping is safe on a prompt that never had clauses", () => {
+  const plain = buildImagePrompt({ beat: "Rain on a window.", styleId: "noir", format: "9:16" });
+  expect(stripReferenceClauses(plain)).toBe(plain.trim());
+  expect(stripReferenceClauses("")).toBe("");
+  expect(stripReferenceClauses(undefined)).toBe("");
+});

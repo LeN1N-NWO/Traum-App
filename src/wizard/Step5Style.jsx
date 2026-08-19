@@ -117,6 +117,14 @@ export default function Step5Style({ w, patch }) {
              wurde bezahlt und nie geliefert (Befund 2 im Film-Regie-Plan). */
           model: w.videoModel,
           cast: castForApi,
+          /* Stil und Szenenbogen für den Regisseur. Bis 19.08.2026 fehlten
+             beide Zeilen: Die Regieanweisung verlangte ausdrücklich einen
+             Stil-Anker, bekam nie einen — der Film wusste vom gewählten Stil
+             nichts. Und der Regisseur zerlegte den Traum ein zweites Mal in
+             Szenen, obwohl die Analyse das längst getan hatte. Nur die ID,
+             nie der Stiltext: der Server schlägt ihn selbst nach. */
+          styleId: w.styleId,
+          beats: allBeats,
           // The chosen image, if any — the server then animates it directly
           // instead of rendering a fresh keyframe first.
           keyframe: w.keyframe || undefined,

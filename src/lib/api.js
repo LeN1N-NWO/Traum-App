@@ -60,8 +60,12 @@ export async function transcribe(audio) {
  *   film   → { jobId }  — minutes (a 15s render measured 280s), so the
  *                         server queues it and we collect it afterwards.
  */
-export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model }) {
-  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model });
+/* Die Felder stehen hier einzeln statt als durchgereichtes Objekt, damit
+ * sichtbar bleibt, was den Server erreicht. Preis dieser Sichtbarkeit: ein
+ * neues Feld muss an BEIDEN Stellen stehen, sonst verschwindet es still —
+ * `styleId` und `beats` kamen am 19.08.2026 für den Regisseur dazu. */
+export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats }) {
+  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats });
   if (Array.isArray(data?.urls)) return { urls: data.urls };
   if (typeof data?.jobId === "string") return { jobId: data.jobId };
   throw new Error(t.errors.unexpected);

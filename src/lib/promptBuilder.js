@@ -41,6 +41,26 @@ export function buildReferences(assignments = []) {
   return { references, clauses };
 }
 
+/* Der Bildprompt OHNE seine Referenzklauseln.
+ *
+ * Wozu: Der fertige Bildprompt dient dem Regisseur als Beschreibung des
+ * Startbilds — aber er endet auf Sätzen wie „Reference image 1 shows @anton".
+ * Das Videomodell zählt seine eigenen Referenzen als @Image1…9, und dort ist
+ * @Image1 IMMER das Startbild. Beide Nummerierungen ungefiltert nebeneinander
+ * ergeben denselben Schaden, vor dem der Kopf dieser Datei warnt: Gesichter
+ * wandern zur falschen Figur, nur eine Stufe später.
+ *
+ * Steht bewusst NEBEN buildReferences(): Wer dort die Klausel umformuliert,
+ * sieht hier, dass sie auch wieder entfernt werden muss.
+ */
+export function stripReferenceClauses(prompt) {
+  return String(prompt || "")
+    .split("\n")
+    .filter((l) => !/^\s*(Reference image \d+ shows|Invent the appearance of)/.test(l.trim()))
+    .join("\n")
+    .trim();
+}
+
 /**
  * The title card that opens every dream: a theatrical film poster.
  *
