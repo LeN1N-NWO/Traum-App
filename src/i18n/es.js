@@ -404,10 +404,25 @@ export default {
       keyframeHint: "La película empieza desde esta imagen — su estilo se mantiene.",
       filmModelLabel: "Qué renderizador",
       filmModels: {
-        standard: { name: "Estándar", hint: "hasta 15s · 1 crédito por segundo" },
-        premium:  { name: "Premium",  hint: "hasta 30s en una sola toma · 6 por segundo" },
+        standard: {
+          name: "Vivo", hint: "tu imagen empieza a moverse · 1 crédito por segundo",
+          model: "MiniMax H3 · 768p",
+          info: "El nivel amable: da vida a tu imagen inicial de forma convincente, con sonido, por un crédito por segundo. En este nivel tu reparto aparece como se ve en ese único fotograma, y las películas llegan a 15 segundos como máximo.",
+        },
+        director: {
+          name: "Dirigido", hint: "las caras y lugares reales, con sonido · 4 créditos por segundo",
+          model: "Seedance 2.0 · 720p",
+          info: "Este nivel lleva tus fotos de referencia dentro de la película — hasta nueve, para que los rostros y lugares reales sigan siendo ellos mismos en cada corte, con sonido. Cuatro créditos por segundo; el tope es 15 segundos.",
+        },
+        premium: {
+          name: "Cine", hint: "hasta 30 segundos en una sola toma, con sonido · 6 por segundo",
+          model: "Seedance 2.5 · 720p",
+          info: "La historia más larga: una toma continua de hasta 30 segundos, con sonido y tiempos precisos al segundo. En este nivel la película nace de una sola imagen inicial — y es el más caro de los tres.",
+        },
       },
+      aboutModel: "Sobre este modelo",
       lengthLabel: "Cuánto dura",
+      ideal: "ideal",
       posterLabel: "El póster",
       posterTitleLabel: "Título de la película",
       posterTitlePlaceholder: "Título en el póster",
@@ -609,6 +624,12 @@ export default {
     balance: (n) => `Actualmente tienes ${n} créditos.`,
   },
 
+  storyboard: {
+    label: "Storyboard",
+    scene: (i, n) => `Escena ${i} de ${n}`,
+    cutNote: (s) => `Con ${s} segundos, las escenas atenuadas quedan fuera de la película — una más larga conserva más.`,
+    textOnly: "Esta escena aún no tiene imagen — la película la construye a partir de las palabras.",
+  },
   errors: {
     storageFull: "⚠ Almacenamiento lleno — elimina entradas antiguas o fotos de referencia.",
     unexpected: "Respuesta inesperada del servidor.",

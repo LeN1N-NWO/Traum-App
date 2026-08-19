@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { STYLES } from "../lib/styles.js";
-import { beatsForCount } from "../lib/beats.js";
+import { beatsForCount, beatCountForSeconds, evenIndices } from "../lib/beats.js";
 import { buildReferences, buildImagePrompt, buildPosterPrompt, buildGridPrompt } from "../lib/promptBuilder.js";
 import { generate, uploadPanel, mediaUrl } from "../lib/api.js";
 import { splitIntoPanels } from "../lib/splitGrid.js";
@@ -11,6 +11,8 @@ import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
+import Storyboard from "../components/Storyboard.jsx";
+import Sheet from "../components/Sheet.jsx";
 import "./wizard.css";
 
 // How many renders may be in flight at once. Three keeps a ten-image dream
@@ -20,6 +22,7 @@ const GENERATION_WINDOW = 3;
 export default function Step5Style({ w, patch }) {
   const { state, update, toast, openPaywall } = useAppState();
   const [busy, setBusy] = useState(false);
+  const [modelInfo, setModelInfo] = useState(null);  // Modell-id, deren ⓘ offen ist
   const [msg, setMsg] = useState(0);
   const [done, setDone] = useState(0);
   // Re-entry guard. `busy` cannot do this job: it is state, so it is still
@@ -45,6 +48,19 @@ export default function Step5Style({ w, patch }) {
     : priceForImages(w.imageCount);
   const assignments = Object.values(w.assignments);
   const named = assignments.filter((a) => a.avatar?.img).length;
+
+  /* Die von der Analyse empfohlene Filmlänge stellt den Regler vor, solange
+     der Mensch ihn nicht selbst bewegt hat (secondsTouched). Deklarativ hier
+     statt an den drei Stellen, an denen die Analyse in den Wizard fliesst —
+     so gilt dieselbe Regel auch nach einem Modellwechsel: 20 empfohlene
+     Sekunden werden bei „Lebendig" zu 15 geklemmt und bei „Kino" wieder 20,
+     statt am ersten Klemmwert kleben zu bleiben. */
+  const recommended = w.analysis?.filmSeconds || null;
+  useEffect(() => {
+    if (!isFilm || w.secondsTouched || !recommended) return;
+    const want = clampSeconds(w.videoModel, recommended);
+    if (want !== w.seconds) patch({ seconds: want });
+  }, [isFilm, recommended, w.videoModel, w.secondsTouched, w.seconds, patch]);
 
   useEffect(() => {
     if (!busy) return;
@@ -80,7 +96,21 @@ export default function Step5Style({ w, patch }) {
     const beats = sceneCount > 0 ? beatsForCount(w.analysis?.beats || [w.text], sceneCount) : [];
     const allBeats = w.analysis?.beats || [w.text];
     const jobs = withPoster ? ["__poster__", ...beats] : beats;
-    const castForApi = references.map((r) => ({ tag: r.tag, category: "person", desc: "", img: r.img }));
+    /* Gattung und Beschreibung ECHT mitgeben, nicht plätten: Der Server
+       sortiert Referenz-Filme nach Gattung (Personen vor Tieren vor Orten,
+       filmReferences) und reicht die Beschreibung an den Regisseur weiter.
+       Bis 18.08. stand hier category: "person", desc: "" für alle — für
+       Bilder folgenlos, für Regie-Filme hätte es die Priorität zerstört.
+       Gleicher Filter wie buildReferences (nur mit Bild), damit die
+       Reihenfolge deckungsgleich bleibt. */
+    const castForApi = assignments
+      .filter((a) => a && a.avatar?.img)
+      .map((a) => ({
+        tag: a.avatar.tag,
+        category: a.kind === "pet" ? "pet" : a.kind === "place" ? "place" : "person",
+        desc: a.avatar.desc || "",
+        img: a.avatar.img,
+      }));
 
     /* The grid — one generation cut into several panels client-side — is now
      * exactly what "preview" MEANS, not something inferred from the shape of
@@ -98,7 +128,19 @@ export default function Step5Style({ w, patch }) {
       if (isFilm) {
         const { jobId } = await generate({
           dream: w.text, mode: "film", seconds: w.seconds,
+          /* Bis 18.08.2026 fehlte diese Zeile: Der Preis richtete sich nach
+             der Modellwahl, der Server renderte aber immer minimax — Premium
+             wurde bezahlt und nie geliefert (Befund 2 im Film-Regie-Plan). */
+          model: w.videoModel,
           cast: castForApi,
+          /* Stil und Szenenbogen für den Regisseur. Bis 19.08.2026 fehlten
+             beide Zeilen: Die Regieanweisung verlangte ausdrücklich einen
+             Stil-Anker, bekam nie einen — der Film wusste vom gewählten Stil
+             nichts. Und der Regisseur zerlegte den Traum ein zweites Mal in
+             Szenen, obwohl die Analyse das längst getan hatte. Nur die ID,
+             nie der Stiltext: der Server schlägt ihn selbst nach. */
+          styleId: w.styleId,
+          beats: allBeats,
           // The chosen image, if any — the server then animates it directly
           // instead of rendering a fresh keyframe first.
           keyframe: w.keyframe || undefined,
@@ -132,7 +174,7 @@ export default function Step5Style({ w, patch }) {
           setDone((n) => n + 1);
         }
         update(paid);
-        patch({ urls: panelUrls, step: 6 });
+        patch({ urls: panelUrls, poster: false, step: 6 });
         running.current = false;
         setBusy(false);
         return;
@@ -156,7 +198,7 @@ export default function Step5Style({ w, patch }) {
         return urls;
       });
       update(paid);          // only charge once the images actually arrived
-      patch({ urls: perImage.flat(), step: 6 });
+      patch({ urls: perImage.flat(), poster: withPoster, step: 6 });
     } catch (err) {
       console.error("[DreamRushes] generation failed:", err);
       toast(`⚠ ${err.message}`);
@@ -278,17 +320,35 @@ export default function Step5Style({ w, patch }) {
           <h2 className="wiz-sub">{t.wizard.step5.filmModelLabel}</h2>
           <div className="wiz-formats" role="group" aria-label={t.wizard.step5.filmModelLabel}>
             {VIDEO_MODELS.map((m) => (
-              <button
-                key={m.id}
-                className={"wiz-format" + (w.videoModel === m.id ? " wiz-format-on" : "")}
-                onClick={() => patch({ videoModel: m.id, seconds: clampSeconds(m.id, w.seconds) })}
-                aria-pressed={w.videoModel === m.id}
-              >
-                <span>{t.wizard.step5.filmModels[m.id].name}</span>
-                <small>{t.wizard.step5.filmModels[m.id].hint}</small>
-              </button>
+              /* Das ⓘ liegt NEBEN dem Auswahlknopf, absolut in dessen Ecke —
+                 ein Knopf im Knopf wäre derselbe Fehler wie der <div>-
+                 Löschknopf der Cast-Kacheln (STAND: Barrierefreiheit). */
+              <div key={m.id} className="wiz-model">
+                <button
+                  className={"wiz-format" + (w.videoModel === m.id ? " wiz-format-on" : "")}
+                  onClick={() => patch({ videoModel: m.id, ...(w.secondsTouched ? { seconds: clampSeconds(m.id, w.seconds) } : {}) })}
+                  aria-pressed={w.videoModel === m.id}
+                >
+                  <span>{t.wizard.step5.filmModels[m.id].name}</span>
+                  <small>{t.wizard.step5.filmModels[m.id].hint}</small>
+                  <small className="wiz-model-name">{t.wizard.step5.filmModels[m.id].model}</small>
+                </button>
+                <button
+                  className="wiz-model-info"
+                  aria-label={`${t.wizard.step5.aboutModel}: ${t.wizard.step5.filmModels[m.id].name}`}
+                  onClick={() => setModelInfo(m.id)}
+                >i</button>
+              </div>
             ))}
           </div>
+
+          {modelInfo && (
+            <Sheet label={t.wizard.step5.filmModels[modelInfo].name} onClose={() => setModelInfo(null)}>
+              <p className="sb-sheet-label">{t.wizard.step5.filmModels[modelInfo].model}</p>
+              <h3 className="wiz-model-title">{t.wizard.step5.filmModels[modelInfo].name}</h3>
+              <p className="wiz-model-text">{t.wizard.step5.filmModels[modelInfo].info}</p>
+            </Sheet>
+          )}
 
           <h2 className="wiz-sub">{t.wizard.step5.lengthLabel}</h2>
           <div className="wiz-seconds">
@@ -299,14 +359,50 @@ export default function Step5Style({ w, patch }) {
               max={videoModel(w.videoModel).max}
               step={videoModel(w.videoModel).step}
               value={w.seconds}
-              onChange={(e) => patch({ seconds: clampSeconds(w.videoModel, e.target.value) })}
+              onChange={(e) => patch({ seconds: clampSeconds(w.videoModel, e.target.value), secondsTouched: true })}
               aria-label={t.wizard.step5.lengthLabel}
             />
+            {recommended && (() => {
+              const m = videoModel(w.videoModel);
+              const at = clampSeconds(w.videoModel, recommended);
+              const pct = ((at - m.min) / (m.max - m.min)) * 100;
+              return (
+                <div className="wiz-seconds-ideal" aria-hidden="true">
+                  <span className="wiz-seconds-ideal-pin" style={{ insetInlineStart: `${pct}%` }}>
+                    <span className="wiz-seconds-ideal-dot" />
+                    <span className="wiz-seconds-ideal-label">{t.wizard.step5.ideal}</span>
+                  </span>
+                </div>
+              );
+            })()}
             <div className="wiz-seconds-scale" aria-hidden="true">
               <span>{videoModel(w.videoModel).min}s</span>
               <span>{videoModel(w.videoModel).max}s</span>
             </div>
           </div>
+
+          {/* Das Storyboard zeigt, was die Länge KOSTET — nicht in Credits,
+              in Erzählung: beatCountForSeconds ist dieselbe Rechnung, mit
+              der der Server den Bogen zuschneidet (beatsForSeconds), nur
+              sichtbar gemacht. Wer von 15 auf 5 Sekunden zieht, sieht drei
+              Szenen verblassen, BEVOR er bezahlt. Thumbnails gibt es im
+              Resume-Fall (der Traum hat Bilder mit gespeicherter
+              Poster-Wahrheit, siehe beats.js imageIndexForBeat); ein
+              frischer Film-first-Lauf zeigt Nummern-Kacheln. */}
+          {(w.analysis?.beats?.length || 0) > 0 && (() => {
+            const arc = w.analysis.beats;
+            const secs = clampSeconds(w.videoModel, w.seconds);
+            const keep = Math.min(beatCountForSeconds(secs), arc.length);
+            const activeSet = new Set(evenIndices(arc.length, keep));
+            const entry = w.entryId ? state.journal.find((e) => e.id === w.entryId) : null;
+            return (
+              <>
+                <h2 className="wiz-sub">{t.storyboard.label}</h2>
+                <Storyboard beats={arc} entry={entry} active={activeSet} />
+                {keep < arc.length && <p className="wiz-hint">{t.storyboard.cutNote(secs)}</p>}
+              </>
+            );
+          })()}
         </>
       )}
 

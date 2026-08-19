@@ -415,10 +415,25 @@ export default {
       keyframeHint: "The film starts from this picture — its look carries through.",
       filmModelLabel: "Which renderer",
       filmModels: {
-        standard: { name: "Standard", hint: "up to 15s · 1 credit a second" },
-        premium:  { name: "Premium",  hint: "up to 30s in one take · 6 a second" },
+        standard: {
+          name: "Alive", hint: "your picture starts to move · 1 credit per second",
+          model: "MiniMax H3 · 768p",
+          info: "The friendly tier: it brings your opening image convincingly to life, sound included, at one credit per second. In this tier your cast appears as they look in that one frame, and films top out at 15 seconds.",
+        },
+        director: {
+          name: "Directed", hint: "the real faces and places, with sound · 4 credits per second",
+          model: "Seedance 2.0 · 720p",
+          info: "This tier carries your reference photos into the film itself — up to nine, so the real faces and places stay themselves through every cut, with sound. Four credits per second; 15 seconds is the ceiling.",
+        },
+        premium: {
+          name: "Cinema", hint: "up to 30 seconds in one take, with sound · 6 per second",
+          model: "Seedance 2.5 · 720p",
+          info: "The longest story: one unbroken take of up to 30 seconds, with sound and second-precise timing. In this tier the film grows from a single starting image — and it is the most expensive of the three.",
+        },
       },
+      aboutModel: "About this model",
       lengthLabel: "How long",
+      ideal: "ideal",
       posterLabel: "The poster",
       posterTitleLabel: "Film title",
       posterTitlePlaceholder: "Title on the poster",
@@ -627,6 +642,13 @@ export default {
     balance: (n) => `You currently have ${n} credits.`,
   },
 
+  storyboard: {
+    label: "Storyboard",
+    scene: (i, n) => `Scene ${i} of ${n}`,
+    // Zahl neben Wort ⇒ Funktion (Arität wird vom Shape-Check erzwungen).
+    cutNote: (s) => `At ${s} seconds the dimmed scenes stay out of the film — a longer film keeps more of them.`,
+    textOnly: "No picture is tied to this scene yet — the film builds it from the words.",
+  },
   errors: {
     storageFull: "⚠ Storage full — delete old entries or reference photos.",
     unexpected: "Unexpected response from the server.",

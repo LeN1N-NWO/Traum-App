@@ -1,0 +1,19 @@
+/* Das eine kleine Blatt (Sheet.jsx) — nur logische Eigenschaften, siehe
+   Storyboard: Overlays müssen in RTL-Sprachen mitlaufen. */
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 60;
+  background: var(--veil);
+  display: grid; place-items: center; padding: var(--s-4);
+}
+.sheet-card {
+  inline-size: min(420px, 100%); max-block-size: 86vh; overflow-y: auto;
+  background: var(--bg2); border: 1px solid var(--panel-line);
+  border-radius: var(--radius-lg); padding: var(--s-4);
+}
+.sheet-close {
+  display: block; margin-inline-start: auto;
+  border: 1px solid var(--panel-line); border-radius: 999px;
+  background: none; color: var(--muted); cursor: pointer;
+  padding: var(--s-2) var(--s-4); font-size: var(--t-small);
+}
+.sheet-close:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }

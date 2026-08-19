@@ -403,10 +403,25 @@ export default {
       keyframeHint: "影片从这张图片开始——它的观感会贯穿整段影片。",
       filmModelLabel: "选择渲染引擎",
       filmModels: {
-        standard: { name: "标准版", hint: "最长 15 秒 · 每秒 1 点数" },
-        premium:  { name: "高级版", hint: "最长 30 秒一镜到底 · 每秒 6 点数" },
+        standard: {
+          name: "灵动", hint: "你的画面动起来 · 每秒 1 点数",
+          model: "MiniMax H3 · 768p",
+          info: "亲民档：让你的起始图栩栩如生地动起来，带声音，每秒一个积分。在此档位中，角色只以那一帧中的样子出现，影片最长 15 秒。",
+        },
+        director: {
+          name: "导演", hint: "真实的面孔和地点，带声音 · 每秒 4 点数",
+          model: "Seedance 2.0 · 720p",
+          info: "此档位把你的参考照片带进影片本身——最多九张，让真实的面孔和场景在每个镜头切换中保持一致，并带声音。每秒四个积分，上限 15 秒。",
+        },
+        premium: {
+          name: "影院", hint: "一镜到底最长 30 秒，带声音 · 每秒 6 点数",
+          model: "Seedance 2.5 · 720p",
+          info: "最长的故事：一镜到底最长 30 秒，带声音，时间精确到秒。在此档位中，影片从一张起始图生长而来——也是三档中最贵的一档。",
+        },
       },
+      aboutModel: "关于此模型",
       lengthLabel: "时长",
+      ideal: "推荐",
       posterLabel: "海报",
       posterTitleLabel: "影片标题",
       posterTitlePlaceholder: "海报上的标题",
@@ -606,6 +621,12 @@ export default {
     balance: (n) => `你目前有 ${n} 点数。`,
   },
 
+  storyboard: {
+    label: "分镜",
+    scene: (i, n) => `第 ${i} 幕，共 ${n} 幕`,
+    cutNote: (s) => `${s} 秒的影片不包含变暗的场景——更长的影片会保留更多。`,
+    textOnly: "这一幕还没有对应的图片——影片将根据文字生成它。",
+  },
   errors: {
     storageFull: "⚠ 存储空间已满——请删除旧的条目或参考照片。",
     unexpected: "服务器返回了意外的响应。",

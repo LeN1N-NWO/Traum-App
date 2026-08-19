@@ -402,10 +402,25 @@ export default {
       keyframeHint: "Der Film beginnt bei diesem Bild — sein Look zieht sich durch.",
       filmModelLabel: "Welcher Renderer",
       filmModels: {
-        standard: { name: "Standard", hint: "bis 15s · 1 Credit pro Sekunde" },
-        premium:  { name: "Premium",  hint: "bis 30s in einer Einstellung · 6 pro Sekunde" },
+        standard: {
+          name: "Lebendig", hint: "dein Bild beginnt sich zu bewegen · 1 Credit je Sekunde",
+          model: "MiniMax H3 · 768p",
+          info: "Die freundliche Stufe: Sie erweckt dein Startbild überzeugend zum Leben, Ton inklusive, für einen Credit pro Sekunde. In dieser Stufe erscheint deine Besetzung so, wie sie in diesem einen Bild aussieht, und bei 15 Sekunden ist Schluss.",
+        },
+        director: {
+          name: "Regie", hint: "echte Gesichter und Orte, mit Ton · 4 Credits je Sekunde",
+          model: "Seedance 2.0 · 720p",
+          info: "Diese Stufe nimmt deine Referenzfotos mit in den Film — bis zu neun, damit die echten Gesichter und Orte durch jeden Schnitt sie selbst bleiben, mit Ton. Vier Credits pro Sekunde; bei 15 Sekunden ist Schluss.",
+        },
+        premium: {
+          name: "Kino", hint: "bis zu 30 Sekunden in einer Einstellung, mit Ton · 6 je Sekunde",
+          model: "Seedance 2.5 · 720p",
+          info: "Die längste Geschichte: eine ununterbrochene Einstellung von bis zu 30 Sekunden, mit Ton und sekundengenauem Timing. In dieser Stufe wächst der Film aus einem einzigen Startbild — und sie ist die teuerste der drei.",
+        },
       },
+      aboutModel: "Über dieses Modell",
       lengthLabel: "Wie lang",
+      ideal: "ideal",
       posterLabel: "Das Poster",
       posterTitleLabel: "Filmtitel",
       posterTitlePlaceholder: "Titel auf dem Poster",
@@ -607,6 +622,12 @@ export default {
     balance: (n) => `Du hast aktuell ${n} Credits.`,
   },
 
+  storyboard: {
+    label: "Storyboard",
+    scene: (i, n) => `Szene ${i} von ${n}`,
+    cutNote: (s) => `Bei ${s} Sekunden bleiben die abgedunkelten Szenen draußen — ein längerer Film nimmt mehr davon mit.`,
+    textOnly: "An dieser Szene hängt noch kein Bild — der Film baut sie aus den Worten.",
+  },
   errors: {
     storageFull: "⚠ Speicher voll — alte Einträge oder Referenzfotos löschen.",
     unexpected: "Unerwartete Antwort vom Server.",

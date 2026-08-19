@@ -9,6 +9,7 @@ import { spend } from "../../lib/credits.js";
 import { PRICES } from "../../lib/pricing.js";
 import { shareDream, downloadAll, canShareFiles } from "../../lib/share.js";
 import { t } from "../../i18n/index.js";
+import Storyboard from "../../components/Storyboard.jsx";
 import EntryMenu from "./EntryMenu.jsx";
 import RefineSheet from "./RefineSheet.jsx";
 import { IconImages, IconFilm, IconShare, IconSparkle, IconPencil, ChevronRight } from "../../components/icons.jsx";
@@ -317,6 +318,17 @@ export default function JournalDetail({ entry, onClose }) {
           </>
         ) : (
           <DreamStory text={entry.text} urls={images} type="image" />
+        )}
+
+        {/* Der Bogen, aus dem die Bilder entstanden — antippbar, mit dem
+            Bild je Szene, wo die Zuordnung sicher ist (Plan: Storyboard vor
+            dem Film, Stufe A). Nur wenn eine Analyse existiert: Seeds und
+            handgeschriebene Alt-Einträge haben keinen Bogen. */}
+        {!editing && !proposal && entry.analysis?.beats?.length > 0 && (
+          <div className="j-storyboard">
+            <p className="j-original-label">{t.storyboard.label}</p>
+            <Storyboard beats={entry.analysis.beats} entry={entry} />
+          </div>
         )}
 
         {entry.references?.length > 0 && (

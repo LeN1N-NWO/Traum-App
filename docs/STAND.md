@@ -3,34 +3,103 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-17 (23:50) — Branch `session/2026-08-17-anton`, PR #13
+**Stand:** 2026-08-19 (17:05) — Branch `claude/new-session-x9qv1w`
+⚠ **sitzt auf PR #14 auf und enthält dessen Commits mit.**
 
-## ⚠ Morgen geht es HIER weiter: der Film-Plan ist getestet, nicht umgesetzt
+## ⚠ Morgen geht es HIER weiter: messen, was nur der Rechner messen kann
 
-`docs/plans/2026-08-17-film-regie.md` — drei Videomodell-Stufen (Lebendig
-1 Cr/s · Regie 4 Cr/s · Kino 6 Cr/s), ein destillierter CINEDANCE-Regisseur
-über DeepSeek Flash, Referenzen bis ins Videomodell. Die Machbarkeit ist
-**bewiesen** (Tests vom 17.08., zusammen ~$0,94):
+Diese Sandbox erreicht **weder fal.ai noch api.deepseek.com** (Netzwerk-
+Policy, 403). Alles unten ist deshalb gebaut, getestet und dokumentiert —
+aber kein einziger echter Modellaufruf ist gelaufen. Drei Messungen warten:
 
-- **T0:** Regisseur-Prompts halten Bauplan und @Tag-Disziplin (mechanisch
-  geprüft). ⚠ DeepSeek OHNE `max_tokens` aufrufen — das Denkmodell schreibt
-  erst ins Denkfeld, ein Deckel lässt die Antwort leer zurückkommen.
-- **T1:** Seedance-R2V nimmt **data-URIs**; @Image-Zuordnung stimmt
-  (Figur aus Bild 1 im Raum aus Bild 2); AAC-Ton kommt mit.
-- **T4:** Ganze Produktkette (Charakterbogen → Regisseur → Mini-R2V 15 s):
-  **Identität hält über zwei Ortswechsel.** Ergebnisdateien in
-  `media/tests/` des Hauptrepos (ignoriert, gerätelokal).
+1. **Der Trockenlauf mit echten Antworten** — der billigste erste Schritt:
 
-**Reihenfolge für morgen steht im Plan §9 — Schritt 1 ist der Bugfix:**
-Die Modellwahl erreicht den Server nicht (`Step5Style.jsx:100` schickt
-`videoModel` nicht mit, der Server liest kein `body.model`) — **Premium
-wird heute berechnet, minimax geliefert und auf 15 s geklemmt.** Außerdem
-bekommt der Film heute wörtlich einen STANDBILD-Prompt
-(`Step5Style.jsx:105`, „photoreal film still").
+       DEEPSEEK_KEY=… node scripts/dry-run-prompts.mjs --live
 
-**Offen, auf Antons Go:** T2 (Fast/Normal-Qualitätsvergleich, ~$2,20) —
-das Mini-Tier war so gut, dass „Regie" womöglich billiger geht als die
-geplanten 4 Cr/s. Und die vier Fragen in Plan §8.
+   Kostet ~$0,0005, rendert NICHTS. Zeigt, was DeepSeek aus dem neuen
+   Material (Stil, Szenenbogen, Startbild, Zeitrechnung, Längenbudget)
+   wirklich macht.
+
+2. **Film-Endpoints** (`docs/plans/2026-08-17-film-regie.md` §10/§10a):
+   Slugs, Feldnamen und echte Preise von `minimax/h3/reference-to-video`
+   und `bytedance/seedance-2.5/reference-to-video`. Beide können
+   Referenzen — unser Stufen-Zuschnitt war eine Endpoint-Wahl, kein
+   Modelllimit.
+
+3. **Bildmodelle** (`docs/plans/2026-08-19-bildmodelle-preise.md`):
+   Hat fal einen `nano-banana-2-lite/edit`? Das Modell kostet **$0,0336
+   statt $0,08** — aber ohne Referenz-Pfad taugt es nur für Träume ohne
+   Besetzung.
+
+**Hausregel seit dem nano-banana-Vorfall (07.08.): nie auf geratene
+Feldnamen bezahlt rendern.** Deshalb ist nichts davon vorab umgebaut.
+
+## Was der Film heute bekommt (Stand 19.08., alles neu)
+
+Der Regisseur (`src/lib/director.js` + `server.js` `directFilm`) bekommt
+jetzt, was seine eigene Anweisung immer verlangt hat — bis heute früh kam
+nichts davon an:
+
+| Zutat | Woher | War bis 19.08. |
+|---|---|---|
+| Stil-Anker | `styleId` → `styles.js` | **fehlte ganz** |
+| Beschreibung des Startbilds | Bildprompt, ohne Referenzklauseln | fehlte bei „Regie" |
+| Szenenbogen | Analyse, auf die Filmlänge zugeschnitten | fehlte ganz |
+| Zeitrechnung je Szene | `beatsForSeconds` + Brief | Dauer stand nur als Gesamtzahl |
+| Zeichenbudget | `promptMax` je Modell | pauschale Zahl, für kein Modell richtig |
+
+**Die Filmlänge steuert die Erzählung:** 5 s → 2 Szenen, 9 s → 3, ab 15 s
+alle fünf; längere Filme bekommen mehr Zeit je Szene statt mehr Szenen.
+Erste und letzte Szene überleben jeden Zuschnitt (Anfang setzt den Ort,
+Ende löst auf). Die Analyse **empfiehlt** eine Länge (`filmSeconds`, 5–30)
+— der Regler startet dort, bis der Mensch ihn selbst bewegt.
+
+**Zeichenlimits je Modell** (recherchiert 19.08.): H3 7 000 · Seedance 2.0
+5 000 · Seedance 2.5 10 000. Eine Zahl, zwei Verwendungen — sie steht im
+Brief als Budget UND ist die Notbremse im Server.
+
+## Das Storyboard (neu 19.08.)
+
+Die fünf Szenen als antippbare Leiste — im Filmmenü und im Traum-Detail.
+Antippen öffnet ein Blatt mit Bild und Beat-Text. Im Filmmenü hängt die
+Leiste am Sekunden-Regler: **wer von 15 auf 5 Sekunden zieht, sieht drei
+Szenen verblassen, bevor er bezahlt.** Dieselbe Rechnung wie im Server,
+nur sichtbar gemacht.
+
+⚠ **Ein Thumbnail erscheint nur, wenn die Zuordnung SICHER ist.**
+`imageIndexForBeat` antwortet sonst `null` → Nummern-Kachel. Grund:
+Ob `urls[0]` ein Poster ist, war am Eintrag nicht ablesbar (ein
+Preview-Eintrag hat auch Titel und drei urls, Panel 1 ist aber eine
+Szene). Neue Einträge speichern `media.poster` als Wahrheit; ältere
+bekommen Textkacheln statt geratener Bilder.
+
+## ⚠ Ein Geld-Bug, der 19.08. starb — und was er lehrt
+
+`beatsForCount` kannte nur 3/5/10; jeder andere Wert fiel auf „alle fünf"
+durch. Das Poster ERSETZT das erste Bild (`sceneCount = count - 1`), also
+bestellte „3 Bilder mit Poster" intern `beatsForCount(_, 2)`, bekam fünf
+Szenen und renderte **6 bezahlte Generierungen bei 3 kassierten Credits.**
+Jetzt generisch über eine geteilte `evenIndices`-Formel; Zuordnung und
+Erzeugung teilen EINE Formel und können nicht auseinanderlaufen.
+
+## ⚠ Was Tests hier NICHT fangen (zweimal an einem Tag gelernt)
+
+**Ein Unit-Test der Funktion sieht die Lücke ZWISCHEN Dateien nicht.**
+`buildDirectorBrief` war immer korrekt — nur rief sie niemand richtig auf.
+Deshalb prüft `director.test.js` jetzt die **Verdrahtung**: Signatur gegen
+Aufruf in `server.js`, generisch, damit auch der nächste vergessene
+Parameter anschlägt.
+
+**Anwesenheit ist nicht Aufbereitung.** Beim Szenenbogen war derselbe Test
+mit einem blossen `beats,` zufrieden — die Rot-Probe lief durch. Wer einen
+Test schreibt, fahre die Rot-Probe wirklich; ein Test, der nie rot war,
+beweist nichts.
+
+**Und `check-i18n-shape.mjs` prüft Gleichheit, nicht Richtigkeit.** Ein
+Einfüge-Anker `"  errors: {"` traf als Substring die tiefer eingerückte
+`voice.errors`-Zeile; der Block sass in allen sieben Sprachen konsistent
+falsch und der Test blieb grün. Gefunden erst im Browser. **Blöcke per
+Skript immer am Zeilenanfang verankern.**
 
 ## Woran wird gearbeitet
 
@@ -41,7 +110,7 @@ Wizard öffnet sich über der Tab-Leiste.
 | Tab | Inhalt |
 |---|---|
 | Home | Begrüßung, Faultier-Film als Posterkarte, Serien-Zeile, letzter Traum, Menagerie |
-| Journal | Kartenstapel **oder** Liste, Kalender, Detail mit Film+Bildern, **Besetzung** |
+| Journal | Kartenstapel **oder** Liste, Kalender, Detail mit Film+Bildern, Besetzung |
 | **⊕** | Der Wizard: Traum → Ausgabe → Personen → Orte → Style → Ergebnis |
 | Sleep | **Alles gratis:** Checkliste, Sound-Mixer, Klartraum-Leitfaden, Symbole |
 | Profil | Porträt, Guthaben-Pille (Kaufblatt), Zahnrad → Einstellungen, „Was du mir erzählt hast" |
@@ -59,163 +128,121 @@ Doku und Commits deutsch.
 
 **Das Startmenü bleibt** (`src/App.jsx:15`, `screens/Onboarding/StartMenu.jsx`).
 Es fragt bei **jedem** Start „Onboarding oder App?". Stehende Entscheidung
-(Anton, 10.08.2026) — es bleibt, bis er ausdrücklich etwas anderes sagt. Es
-sieht wie ein Versehen aus; genau deshalb steht das hier.
+(Anton, 10.08.2026) — es bleibt, bis er ausdrücklich etwas anderes sagt.
 
 **Das Seed-Journal bleibt** (`src/lib/seedJournal.js`, eingehängt in
 `state/AppState.jsx:15`). Zwei Träume mit echten Bildern in jedem frischen
 Install. Vor einem Release zu entfernen; Anleitung im Kopf der Datei.
-Wer Code schreibt, der „hat der Nutzer schon Träume?" fragt: nach
-`e_seed`-Präfix filtern, sonst zählen die mit (siehe `Step6Result.jsx:138`).
+Wer „hat der Nutzer schon Träume?" fragt: nach `e_seed`-Präfix filtern
+(siehe `Step6Result.jsx:138`).
 
 ## ⚠ Verloren am 16.08.: der Ordner `media/`
 
-Die `.mov`-Originale der Faultier-Videos und der **gesamte lokale
-Render-Cache** sind weg. Träume im Browser-Tagebuch, die auf `/media/<hash>`
-zeigen, laufen ins Leere. Kein Backup vorhanden (keine Time Machine).
+`.mov`-Originale und der gesamte Render-Cache sind weg; alte
+`/media/<hash>`-Verweise laufen ins Leere. Ursache: `.gitignore` sagte
+`media/` — mit Schrägstrich, passt nur auf Verzeichnisse; ein committeter
+Symlink ersetzte beim Checkout den echten Ordner. Jetzt `/media` und
+`node_modules` (`.gitignore:2`, `:41`). **Wer eine der Zeilen wieder auf
+die Schrägstrich-Form kürzt, stellt die Falle erneut.** Was unter einem
+ignorierten Pfad liegt und nicht ersetzbar ist, gehört woandershin.
 
-**Ursache, damit es sich nicht wiederholt:** `.gitignore` sagte `media/` —
-mit Schrägstrich, das passt **nur auf Verzeichnisse**. Ein Symlink dieses
-Namens war nicht ignoriert, wurde committet, und der nächste Checkout
-ersetzte den echten Ordner durch den Link. Jetzt `/media` und
-`node_modules`, beide ohne Schrägstrich (`.gitignore:2` und `:41`). **Wer
-eine dieser Zeilen wieder kürzt, stellt die Falle erneut.** Und allgemeiner:
-Was unter einem ignorierten Pfad liegt und nicht ersetzbar ist, gehört
-woandershin.
+## Die Besetzung — eine Rollenliste
 
-## Die Besetzung — eine Rollenliste (neu 17.08.)
+`Journal → Deine Besetzung`: Abspann-Form, sortiert nach Häufigkeit
+(`castStats.js` liest `entry.references`, Anzeige `CastGroup.jsx`).
+Ein Traum zählt einmal; Seed-Träume zählen nicht (references leer);
+Löschen sitzt im Dialog und die Träume BEHALTEN ihre references;
+Gattungswahl erscheint, wenn KEINE `category` übergeben wird.
 
-`Journal → Deine Besetzung`: Abspann-Form statt dreier Kachelraster. Name
-in Serife links, **Häufigkeit rechts, sortiert nach Häufigkeit** — die
-Zählung kommt aus `src/lib/castStats.js` und liest `entry.references`.
-Anzeige: `CastGroup.jsx`; `AvatarList.jsx` ist entfallen.
+**Das Muster dahinter, dreimal bestätigt (Kaufblatt, Besetzung, Filme):**
+Die App speichert mehr, als sie zeigt. Wer eine Ansicht anfasst, frage
+zuerst: Welche gespeicherte Information fehlt hier noch?
 
-Vier Regeln mit Begründung im Code:
-- **Ein Traum zählt einmal**, auch wenn die Figur doppelt drinsteht.
-- **Seed-Träume zählen nicht** — ohne Sonderfall, sie tragen `references: []`.
-- **Löschen sitzt im Dialog** (`AvatarDialog`), nicht an der Zeile — und die
-  Träume BEHALTEN ihre `references`: dass eine Figur vorkam, bleibt wahr.
-- **Die Gattungswahl** erscheint im Dialog, wenn KEINE `category` übergeben
-  wird — das Fehlen ist das Signal; der Wizard übergibt seine weiter.
+## Das Kaufblatt
 
-Ohne Foto steht der **Anfangsbuchstabe** (über den Zeichenpunkt gelesen,
-Emoji-sicher), nie ein Fragezeichen.
-
-**Das Muster dahinter, zweimal bestätigt (Kaufblatt, Besetzung):** Die App
-speichert mehr, als sie zeigt. Wer eine Ansicht anfasst, frage zuerst:
-Welche gespeicherte Information fehlt hier noch?
-
-## Das Kaufblatt — was es zeigt und woher
-
-**Zwei Kacheln statt zweier Strichsymbole** (`Paywall.jsx:144`): links
-laufende Standbilder, rechts ein Film, Zahl als Bildunterschrift. Auswahl
-dreistufig in `src/lib/showcase.js`: eigene Träume → Seed/Dummy → Glyph.
-
-⚠ **Stufe 2 greift auch, wenn Stufe 1 existiert, aber nicht LÄDT**
-(`stillsBackup`/`filmsBackup`) — sonst wäre die Kaufseite eines
-Vielträumers ärmer als die eines neuen Nutzers.
-
-⚠ **Der Dummy-Film ist ein Platzhalter** (`Paywall.jsx:25`,
-`home-faultier.mp4`). Austausch = eine Zeile; Anforderungen im Kommentar.
-
-⚠ **Die gefüllten Glyphen stehen NICHT in `icons.jsx`** (dessen Satz ist
-ungefüllt — Ausnahmen bekommen eine eigene Datei: `ShowcaseGlyph.jsx`).
+Zwei Kacheln mit der Ware selbst (`Paywall.jsx:144`), Auswahl dreistufig
+in `src/lib/showcase.js` (eigene Träume → Seed/Dummy → Glyph), mit
+Rückhand `stillsBackup`/`filmsBackup` falls Eigenes nicht LÄDT.
+⚠ Dummy-Film ist Platzhalter (`Paywall.jsx:25`), Austausch = eine Zeile.
+⚠ Gefüllte Glyphen NICHT in `icons.jsx` (dessen Satz bleibt ungefüllt).
 
 ## Geld — Preise, Töpfe, Kaufwege
 
-**Es kassiert weiterhin niemand.** Kein Zahlungsanbieter, kein Store-Konto,
-kein serverseitiges Guthaben.
-
-**Preisliste** (`src/lib/plans.js`):
-
-| | Preis | Credits | je Credit |
-|---|---|---|---|
-| Woche | $4,99 | 12 / Woche | $0,416 |
-| Monat ★ | $9,99 | 45 / Monat | $0,222 |
-| Jahr | $79,99 | 45 / Monat | $0,148 |
-| Paket S | $2,99 | 6, bleiben | $0,498 |
-| Paket M | $7,99 | 18, bleiben | $0,444 |
-| Paket L | $14,99 | 32, bleiben | $0,468 |
-
-**Zwei Regeln in `plans.test.js`:** kein Paket teilt einen Preispunkt mit
-einem Abo, jedes Paket ist je Credit teurer als jedes Abo. **Zwei
-Guthaben-Töpfe** (`credits.js`): `credits` bleibt, `allowance` wird je
-Periode GESETZT; ausgegeben wird zuerst das Verfallende. **Das Kaufblatt
-öffnet von überall** über `openPaywall(reason)`; Anlässe `browse`/`spent`/
-`first`. Der Aha-Moment liegt bewusst NICHT am Onboarding-Ende („Dein
-erster Traum geht auf uns" — direkt danach Geld zu fordern wäre der
-Widerspruch).
+**Es kassiert weiterhin niemand.** Preisliste (`src/lib/plans.js`):
+Woche $4,99/12 · Monat ★ $9,99/45 · Jahr $79,99/45 p.M. · Pakete
+$2,99/6, $7,99/18, $14,99/32 (bleiben). Regeln in `plans.test.js`:
+kein geteilter Preispunkt, jedes Paket je Credit teurer als jedes Abo.
+Zwei Töpfe (`credits.js`): `allowance` wird je Periode GESETZT,
+ausgegeben wird zuerst das Verfallende. Kaufblatt öffnet von überall
+(`openPaywall(reason)`; browse/spent/first) — bewusst NICHT am
+Onboarding-Ende.
 
 ## Schranke vor den teuren Endpunkten
 
-`src/lib/gatekeeper.js`, oben in `server.js`s `fetch`: Mengenbegrenzung je
-Absender (`generate` 20/min, `text` 40/min, `cheap` 120/min) plus
-optionales `API_TOKEN`. ⚠ **Voreinstellung ist die strengste:** alles
-unter `/api/` ist begrenzt, sofern nicht in `UNLIMITED` (`/api/job`,
-`/api/voice`). Eine Liste kann einen vergessenen Endpunkt nicht verhindern
-— eine Voreinstellung schon. Bleibt trotzdem KEINE Benutzerverwaltung.
+`src/lib/gatekeeper.js`, oben in `server.js`s `fetch`: Mengenbegrenzung
+je Absender (generate 20/min, text 40/min, cheap 120/min), optionales
+`API_TOKEN`. ⚠ Voreinstellung ist die strengste: alles unter `/api/`
+begrenzt, außer `UNLIMITED` (`/api/job`, `/api/voice`). KEINE
+Benutzerverwaltung.
 
-## Die Persona — eine Stimme, überall dieselbe
+## Die Persona — und der Regisseur
 
-„Der coole Nachtportier", ein `PERSONA`-Block in `server.js` speist beide
-Briefings. **Zwei Regeln, die Blut gekostet haben:** keine Beispielsätze im
-Prompt (verbiegen die Sprache), und Verbote allein erzeugen Neutralität.
-Der Charakter fällt als Erstes weg, wenn ein Traum bedrückend wird.
-**Dieselben zwei Regeln gelten für den kommenden `DIRECTOR`-Block.**
+„Der coole Nachtportier" (`PERSONA`-Block in `server.js`) speist beide
+Gesprächs-Briefings. **Dieselben zwei Regeln tragen den `DIRECTOR`:**
+keine Beispielsätze (verbiegen die Sprache), Verbote allein erzeugen
+Neutralität. Der Regisseur hat drei eigene Anti-Drift-Regeln aus echten
+T0-Abdriften — `director.test.js` schlägt an, wenn eine verloren geht.
 
 ## Der Sprachassistent (Gemini Live)
 
-Zwei Modi über denselben Relay (`/api/voice`): `dream` und `onboarding`.
-Stimme wird genau einmal gewählt, danach Profil → Zahnrad; sechs Stimmen in
-`voices.js`, gespiegelt in `server.js`. Vorhören über `/api/voice-sample`
-(Gemini TTS, gleicher Katalog, je Stimme+Sprache gecacht). ⚠ Verbindung
-**direkt an den API-Port** (Vite-Proxy reicht WebSockets unter Bun nicht
-durch); Gemini antwortet **ausschließlich in Binärframes**.
+Zwei Modi über `/api/voice` (dream/onboarding), Stimme wird einmal
+gewählt, sechs Stimmen in `voices.js` (gespiegelt in `server.js`),
+Proben über `/api/voice-sample` (Gemini TTS, gecacht). ⚠ Verbindung
+direkt an den API-Port (Vite-Proxy reicht WebSockets unter Bun nicht
+durch); Gemini antwortet ausschließlich in Binärframes.
 
 ## Bilder, Filme, Teilen
 
-**Schnellvorschau** (`Step5Style.jsx:37`): 3 Panels aus EINEM Rendering,
-1 Credit, ein Drittel der Auflösung — der Gratis-Traum rendert voll.
-
-**Charakterbögen** (`/api/character`, 2 Credits): neutrales Referenzporträt
-ohne `styleId` — sonst wäre die Figur nicht stilübergreifend nutzbar.
-**T4 hat bewiesen, dass ein solcher Bogen als Videoreferenz trägt.**
-
-**Abspann beim Teilen** (`/api/film-outro`): Karte im Browser gezeichnet,
-zusammengefügt serverseitig. ⚠ **ffmpeg ist ein Systemprogramm** — fehlt es
-→ 501, und geteilt wird unverändert.
-
-**`dreamsFor` berechnet den Filmpreis aus `video.js`**, nie hart
-hinschreiben. **Traum-Medien liest man über `entryMedia.js`** (`filmOf`,
-`imagesOf`), nie `entry.media` direkt.
+- **Schnellvorschau** (`Step5Style.jsx`, `isPreview`): 3 Panels aus EINEM
+  Rendering, 1 Credit, ein Drittel der Auflösung.
+- **Charakterbögen** (`/api/character`, 2 Credits): neutrales
+  Referenzporträt ohne styleId. T4 bewies: trägt als Videoreferenz.
+- **Abspann** (`/api/film-outro`): Karte im Browser, ffmpeg auf dem
+  Server. ⚠ ffmpeg ist ein Systemprogramm; fehlt es → 501.
+- **`dreamsFor` berechnet den Filmpreis aus `video.js`** (Standard-Satz).
+- **Traum-Medien nur über `entryMedia.js`** lesen, nie `entry.media`.
+- **Filme über `queue.fal.run`:** `status_url`/`response_url` WÖRTLICH
+  speichern, nie aus dem Slug rekonstruieren.
+- ⚠ Renderzeiten schwanken stark (gemessen 4 s → 6 min, 15 s → 3,5 min).
 
 ## Die Serie belohnt, sie bestraft nie
 
-`streak.js`: Seltenheitsverschiebung, gedeckelt bei 14 Nächten. ⚠ Keine
-Countdowns, nichts Eingefrorenes, keine Verlustdrohung — Begründung im
-Kopf der Datei.
+`streak.js`: Seltenheitsverschiebung, Deckel 14 Nächte. Keine Countdowns,
+nichts Eingefrorenes, keine Verlustdrohung.
 
 ## Farben, Gestaltung, Sprache
 
-- Hintergrund existiert **einmal** als `--bg-rgb` in `tokens.css`.
-- **Warm ist selten und heißt „Weg nach vorn".** Immer mit `color: var(--bg)`.
-- Icons aus **einem** ungefüllten SVG-Satz; Ausnahmen in eigene Dateien.
-- **Videos nie per `filter` dimmen**, immer Verlaufs-Scrim; per Vite-Import.
-- **RTL:** logische Eigenschaften, `test-rtl.mjs` erzwingt es; `[data-flip]`
-  für richtungstragende Zeichen. ⚠ `transform` kennt keine logischen
-  Achsen — zentrieren mit `inset-inline: 0` + `margin-inline: auto`.
-- **Plural:** Zahl neben Wort ⇒ Funktion (`creditsN`, `yieldImages`,
-  `yieldFilms`, `castDreamsN`). Arabisch: Einzahl, Zweizahl, 3–10, Einzahl.
+- Hintergrund einmal als `--bg-rgb` in `tokens.css`; Warm ist selten und
+  heißt „Weg nach vorn" (immer mit `color: var(--bg)`).
+- Icons aus einem ungefüllten SVG-Satz; Ausnahmen in eigene Dateien.
+- Videos nie per `filter` dimmen; per Vite-Import einbinden.
+- RTL: logische Eigenschaften, `test-rtl.mjs` erzwingt es; `[data-flip]`
+  für richtungstragende Zeichen; zentrieren mit `inset-inline: 0` +
+  `margin-inline: auto`, nie `translate(-50%)`.
+- Plural: Zahl neben Wort ⇒ Funktion (`creditsN`, `yieldImages`,
+  `yieldFilms`, `castDreamsN`).
 
 ## Starten
 
     bun run dev                       # Oberfläche 5173, API 8100, Hot Reload
     bun run build && bun server.js    # produktionsnah, alles auf 8100
-    bun run test                      # 133 Unit + 50 Freigabe + Hygiene + Kontrast + i18n + RTL
+    bun run test                      # 153 Unit + 50 Freigabe + Hygiene + Kontrast + i18n + RTL
 
-⚠️ 5173/8100/5174 sind **verschiedene Herkünfte mit getrenntem
-`localStorage`**. `preview_start` bedient das **Hauptrepo**; im Worktree
-`bun install` (nicht verlinken!) und `bunx vite --port 5174`.
+⚠️ 5173/8100/5174 sind verschiedene Herkünfte mit getrenntem
+`localStorage`. `preview_start` bedient das Hauptrepo; im Worktree
+`bun install` (nie verlinken) und `bunx vite --port 5174`.
+⚠️ Vor dem Debuggen von „API antwortet komisch": prüfen, WESSEN Prozess
+auf 8100 liegt — am 18.08. lief dort ein tagealter Server mit altem Code.
 
 ## Provider und Preise
 
@@ -223,59 +250,94 @@ Kopf der Datei.
 |---|---|---|
 | Bild | `fal-ai/nano-banana-2` (1K) | **$0,08** je Bild |
 | Bild mit Referenz | `.../edit` — Pflicht | $0,08 |
-| Video heute | `minimax/h3/image-to-video` (768P) | **$0,08/s**, 5–15 s |
-| Video geplant | `bytedance/seedance-2.0/…/reference-to-video` | Mini $0,0433/s · Fast $0,2419/s, 4–15 s, 9 Refs, Ton |
-| Video geplant | `bytedance/seedance-2.5/image-to-video` | $0,473/s, 4–30 s, 1 Startbild, Ton |
+| Film Lebendig | `minimax/h3/image-to-video` 768P | $0,08/s · 5–15 s |
+| Film Regie | `bytedance/seedance-2.0/fast/reference-to-video` 720p | $0,2419/s · 4–15 s · 9 Refs · Ton |
+| Film Kino | `bytedance/seedance-2.5/image-to-video` 720p | $0,473/s · 4–30 s · Ton |
 | Diktat | `fal-ai/wizper` | $0,0005 je Minute |
 | Analyse/Regie | `deepseek-v4-flash` | $0,00026 je Aufruf, **ohne max_tokens!** |
 | Stimmproben | `gemini-3.1-flash-tts-preview` | einmalig je Stimme+Sprache |
 
-⚠ Die Queue prüft Mindestdauern erst beim RENDERN — ein zu kurzer Wert
-verbrennt Credits. `clampSeconds()` fängt es clientseitig ab; die
-serverseitige Klemme je Modell kommt mit der Umsetzung.
-⚠ Renderzeiten der Queue schwanken stark (gemessen: 4 s → 6 min,
-15 s → 3,5 min) — die UI muss Wartezeit ehrlich behandeln.
+⚠ Die Queue prüft Dauern erst beim RENDERN — die Klemme läuft
+serverseitig durch `videoSubmitBody` (dieselbe Tabelle wie der Preis).
+
+**Zeichenlimit je Modell** (`promptMax`, recherchiert 19.08.): H3 7 000 ·
+Seedance 2.0 5 000 · Seedance 2.5 10 000.
+
+⚠ **Die obige Zuordnung Stufe↔Endpoint ist unsere WAHL, kein Modelllimit**
+(19.08.). Es gibt auch `minimax/h3/reference-to-video` (9 Refs, $0,06/s
+@768p, erste 5 Refs gratis — **billiger als unser jetziger Lebendig-Pfad,
+MIT Referenzen**) und `seedance-2.5/reference-to-video` (30 Refs). H3
+adressiert dabei anders als Seedance: `<Picture N>` + `subject_definitions`
+statt `@ImageN`. Messen, dann neu zuschneiden — Plan §10/§10a.
+
+**Billigere Bildmodelle** (19.08.): `nano-banana-2-lite` $0,0336 statt
+$0,08 (nur 1K, für 9:16 ausreichend) — ob fal einen edit-/Referenz-Pfad
+dafür hat, ist UNGEPRÜFT. Plan `2026-08-19-bildmodelle-preise.md`.
 
 ## Geschäftsmodell
 
-MwSt. geht in der EU VOR der Store-Provision ab; mit Gratis-Credits je
-Install ist der 30-%-Schnitt defizitär — **Small Business Program (15 %)
-ist Voraussetzung.** Break-even-Conversion ~4,5–5 %, Deckungsbeitrag Monat
-$4,44. **Conversion ist die erste Kennzahl nach Launch.**
+MwSt. geht in der EU VOR der Store-Provision ab; **Small Business
+Program (15 %) ist Voraussetzung.** Break-even-Conversion ~4,5–5 %,
+Deckungsbeitrag Monat $4,44. Conversion ist die erste Kennzahl nach
+Launch.
 
 ## Sicherheit
 
-- Web-Wurzel `dist/`; `/media/` nur über `resolveMedia()` (Hash+Endung).
-- **Allowlisten statt Interpolation:** `voice`, `mode`, `lang`,
-  `aspectRatio`, `category` — und künftig `model` für den Film.
-- Auch der Regisseur-Ausgang läuft durch `sanitizePromptText` plus eine
-  mechanische @Tag-Prüfung — Modellausgabe ist so untrusted wie Nutzereingabe.
-- **Offen — Datenschutz:** Referenzfotos, Sprachaufnahmen, Umfrage gehen an
-  fal.ai/Google; vor Veröffentlichung Hinweis + Einwilligung nötig.
-- **Offen — Credits sind Buchhaltung, keine Zugangskontrolle.**
+- Web-Wurzel `dist/`; `/media/` nur über `resolveMedia()`.
+- Allowlisten statt Interpolation: `voice`, `mode`, `lang`,
+  `aspectRatio`, `category`, **`model`** (unbekannt → standard).
+- Regisseur-Ausgang: `sanitizePromptText` + mechanische @Tag-Prüfung —
+  Modellausgabe ist so untrusted wie Nutzereingabe.
+- Offen: Datenschutz (Referenzfotos/Sprachaufnahmen/Umfrage an
+  fal.ai/Google) · Credits sind Buchhaltung, keine Zugangskontrolle.
 
 ## Bekannte Baustellen
 
-- ⚠ **Premium-Film wird berechnet, minimax geliefert** — Befund 2 des
-  Film-Plans, Fix ist morgen Schritt 1 (siehe ganz oben).
 - **Kein Zahlungsanbieter.** Der Kaufknopf sagt es ehrlich.
-- **Dummy-Film im Kaufblatt** (`Paywall.jsx:25`).
-- `status_url`/`response_url` **wörtlich speichern**, nie rekonstruieren.
+- **Kein echter bezahlter Film durch die UI gefahren** (der Schlussstein).
+- Dummy-Film im Kaufblatt (`Paywall.jsx:25`).
+- **Schnellvorschau liefert 448 px breite Panels** — Nebenprodukt der
+  1K-Vorgabe, nie entschieden. Bei 2K wären es 896 px für $0,12 statt
+  $0,08 (Plan Bildmodelle §3).
+- **Kein einziger echter Modellaufruf ist gelaufen** — die Sandbox blockt
+  fal.ai und api.deepseek.com. Alles unten ist gebaut und getestet, nichts
+  ist live bestätigt.
 - Bilderstrecke teilt nach Sätzen; Symbolerkennung nur Englisch;
   localStorage ~5 MB als Limit; kein `bun run lint`.
 
 ## Nächste Schritte
 
-1. **Film-Regie umsetzen** — Reihenfolge in Plan §9, Bugfix zuerst.
-   Danach T2 auf Antons Go.
-2. **Capacitor + StoreKit + RevenueCat** — der Hebel, der alles multipliziert.
-3. **Dummy-Film ersetzen** (Anton), eine Zeile.
-4. Small Business Program · Push · Web-Funnel + Stripe · Datenschutz
+1. **Trockenlauf `--live`** (~$0,0005, rendert nichts) — der billigste
+   erste Schritt: zeigt die echten DeepSeek-Antworten auf das neue
+   Material.
+2. **Schlusstest:** ein echter Film je Stufe durch die App (~$2 gesamt),
+   dabei T3 (Abspann) gleich mit.
+3. **Die zwei Messungen** aus Plan §10 (Film-Endpoints) und Plan
+   Bildmodelle §4 (nano-banana-2-lite) — danach Stufen und Bildpreise neu
+   zuschneiden. Antons Linie: Modellpreise weitergeben, nicht künstlich
+   verknappen.
+4. **Capacitor + StoreKit + RevenueCat** — der Hebel, der alles
+   multipliziert. Ab hier ist die App feature-seitig bereit dafür.
+5. Dummy-Film ersetzen (Anton) · T5 (30 s mit Referenzen, verkettet).
+6. Small Business Program · Push · Web-Funnel + Stripe · Datenschutz
    (Liste in `2026-08-16-positionierung-und-store.md`).
-5. **Startmenü und Seed-Journal entfernen** — beides auf Antons Wort.
+7. Startmenü und Seed-Journal entfernen — beides auf Antons Wort.
 
 ## Pläne
 
-- `docs/plans/2026-08-17-film-regie.md` — **aktiv, morgen dran.**
+- `docs/plans/2026-08-17-film-regie.md` — umgesetzt; **§10/§10a sind der
+  offene Messauftrag** (Referenz-Endpoints, Adressierung je Modellfamilie).
+- `docs/plans/2026-08-19-bildmodelle-preise.md` — **neu, offen:**
+  Lite-Messung und die 448-px-Vorschau.
+- `docs/plans/2026-08-19-storyboard-vor-dem-film.md` — Stufe A umgesetzt;
+  Stufe B (Beats abwählen) liegt bewusst auf Eis, bis Stufe A benutzt wurde.
 - `docs/plans/2026-08-16-wachstumsplan.md` — umgesetzt: 2, 3, 6, 7, 9.
 - `docs/plans/2026-08-16-positionierung-und-store.md` — Store-Texte, offen.
+
+## Werkzeuge
+
+- `node scripts/dry-run-prompts.mjs [--live]` — der ganze Weg vom Traum
+  zum fal-Auftrag, jeder Prompt im Volltext. Ohne `--live` kostenlos und
+  ohne Netz; mit `--live` zwei echte DeepSeek-Aufrufe (~$0,0005). Bild und
+  Video werden NIE ausgelöst. **Vier der fünf Fehler vom 19.08. sind beim
+  Lesen dieser Ausgabe aufgefallen, nicht beim Lesen des Codes.**

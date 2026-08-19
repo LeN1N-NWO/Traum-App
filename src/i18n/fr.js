@@ -403,10 +403,25 @@ export default {
       keyframeHint: "Le film part de cette image — son style se retrouve tout du long.",
       filmModelLabel: "Quel moteur de rendu",
       filmModels: {
-        standard: { name: "Standard", hint: "jusqu'à 15s · 1 crédit par seconde" },
-        premium:  { name: "Premium",  hint: "jusqu'à 30s en un seul plan · 6 par seconde" },
+        standard: {
+          name: "Vivant", hint: "ton image commence à bouger · 1 crédit par seconde",
+          model: "MiniMax H3 · 768p",
+          info: "Le niveau accessible : il anime votre image de départ de façon convaincante, son inclus, pour un crédit par seconde. Dans ce niveau, vos personnages apparaissent tels qu'ils sont dans ce seul cadre, et les films s'arrêtent à 15 secondes.",
+        },
+        director: {
+          name: "Réalisé", hint: "les vrais visages et lieux, avec le son · 4 crédits par seconde",
+          model: "Seedance 2.0 · 720p",
+          info: "Ce niveau emporte vos photos de référence dans le film — jusqu'à neuf, pour que les vrais visages et lieux restent eux-mêmes à chaque coupe, avec le son. Quatre crédits par seconde ; plafond à 15 secondes.",
+        },
+        premium: {
+          name: "Cinéma", hint: "jusqu'à 30 secondes en un seul plan, avec le son · 6 par seconde",
+          model: "Seedance 2.5 · 720p",
+          info: "La plus longue histoire : un plan continu de 30 secondes au plus, avec son et minutage à la seconde. Dans ce niveau, le film naît d'une seule image de départ — et c'est le plus cher des trois.",
+        },
       },
+      aboutModel: "À propos de ce modèle",
       lengthLabel: "Quelle durée",
+      ideal: "idéal",
       posterLabel: "L'affiche",
       posterTitleLabel: "Titre du film",
       posterTitlePlaceholder: "Titre sur l'affiche",
@@ -608,6 +623,12 @@ export default {
     balance: (n) => `Tu as actuellement ${n} crédits.`,
   },
 
+  storyboard: {
+    label: "Storyboard",
+    scene: (i, n) => `Scène ${i} sur ${n}`,
+    cutNote: (s) => `À ${s} secondes, les scènes assombries restent hors du film — un film plus long en garde davantage.`,
+    textOnly: "Aucune image n'est encore liée à cette scène — le film la construit à partir des mots.",
+  },
   errors: {
     storageFull: "⚠ Stockage plein — supprime d'anciennes entrées ou photos de référence.",
     unexpected: "Réponse inattendue du serveur.",

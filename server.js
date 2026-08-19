@@ -33,7 +33,21 @@ import { resolve, sep } from "node:path";
 // Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
 import { guard } from "./src/lib/gatekeeper.js";
-import { buildCharacterPrompt } from "./src/lib/promptBuilder.js";
+import { buildCharacterPrompt, stripReferenceClauses } from "./src/lib/promptBuilder.js";
+// Stiltexte sind Konstanten aus dem Repo — der Client schickt nur eine ID,
+// damit über dieses Feld kein Fremdtext in einen bezahlten Prompt wandert.
+import { styleById } from "./src/lib/styles.js";
+// Wie viele Szenen in eine Filmlänge passen — drei Sekunden je Szene ist
+// die Untergrenze, darunter wird aus Regie eine Schnittfolge.
+import { beatsForSeconds } from "./src/lib/beats.js";
+// Die Filmbestellung je Modell — Slug, Klemme, Auflösung, Tonparameter —
+// kommt aus EINER Tabelle, die auch Preis und UI speist (video.test.js).
+import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
+// Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
+import {
+  DIRECTOR_MOTION, DIRECTOR_FULL, KEYFRAME_REF,
+  buildDirectorBrief, checkDirectedPrompt, filmReferences,
+} from "./src/lib/director.js";
 
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
@@ -58,10 +72,11 @@ const FAL_MODEL_IMAGE = process.env.FAL_MODEL_IMAGE || "fal-ai/nano-banana-2";
 // image_urls: 123 with a 200), so likenesses never reached the model. The
 // /edit endpoint takes image_urls and demonstrably reproduces them.
 const FAL_MODEL_IMAGE_EDIT = process.env.FAL_MODEL_IMAGE_EDIT || `${FAL_MODEL_IMAGE}/edit`;
-// Given directly by the product owner, not a guess — still worth confirming
-// the exact slug in the fal.ai dashboard before production use, model IDs
-// there are usually namespaced (e.g. "fal-ai/minimax/...").
-const FAL_MODEL_VIDEO = process.env.FAL_MODEL_VIDEO || "minimax/h3/image-to-video";
+/* Videomodelle stehen NICHT mehr hier: Slug, Dauergrenzen, Auflösung und
+ * Tonparameter je Modell leben in src/lib/video.js (videoSubmitBody) —
+ * dieselbe Tabelle, aus der auch der Preis und die UI kommen. Eine zweite
+ * Kopie hier war der halbe Weg zu Befund 2 des Film-Plans (Premium
+ * berechnet, minimax geliefert). */
 // Whisper v3 as hosted by fal.ai — used by /api/transcribe (dictation). Slug
 // confirmed against fal.ai/models/fal-ai/wizper on 2026-08-08.
 const FAL_MODEL_STT = process.env.FAL_MODEL_STT || "fal-ai/wizper";
@@ -583,6 +598,97 @@ Output ONLY the finished prompt text. No preamble, no markdown, no quotes around
   if (!cleaned) throw new Error("DEEPSEEK_FAILED");
   return cleaned;
 }
+
+/* Der Regisseur: schreibt aus Traum + Startbild einen BEWEGUNGS-Prompt für
+ * das Videomodell. Bis 18.08.2026 bekam das Videomodell den Standbild-Prompt
+ * wörtlich weitergereicht („photoreal film still …") — was sich bewegte, war
+ * Zufall. Bauanleitung und Prüfung liegen in src/lib/director.js (getestet);
+ * hier steht nur der Aufruf.
+ *
+ * ⚠ KEIN max_tokens: deepseek-v4-flash denkt erst ins Denkfeld, ein Deckel
+ * lässt die eigentliche Antwort leer zurückkommen (gemessen 17.08., T0).
+ *
+ * Der Regisseur ist Kür, nie Pflicht: Jeder Fehler hier wird vom Aufrufer
+ * geschluckt und der Film läuft wie bisher — schlechter Film schlägt keinen
+ * Film. Deshalb wirft diese Funktion großzügig. */
+/* Die Länge der Regisseur-Antwort begrenzt nicht dieser Server, sondern das
+ * ZIELMODELL — und zwar je Modell verschieden (video.js, promptMax: minimax
+ * H3 verträgt 7 000 Zeichen, Seedance 2.0 modellseitig 5 000). Eine pauschale
+ * Zahl hier stand deshalb immer falsch: erst 6 000 (hätte gute lange
+ * Antworten amputiert), dann 9 000 (hätte Seedance einen Prompt über dessen
+ * eigenem Limit geschickt — je nach Plattform Ablehnung nach bezahlter Runde
+ * oder stilles Abschneiden des Endes). Jetzt bekommt der Regisseur sein
+ * Budget im Brief GENANNT (er priorisiert dann selbst) und die Notbremse
+ * kappt exakt am Limit des bestellten Modells. */
+async function directFilm({ dream, still, beats = [], style, seconds, modelId, refs = [] }) {
+  const key = process.env.DEEPSEEK_KEY;
+  if (!key) throw new Error("NO_DEEPSEEK_KEY");
+
+  const m = videoModel(modelId);
+  /* Zwei Drehbücher: Ein-Bild-Modelle bekommen reine Bewegungsregie (das
+     Bild existiert schon), Referenzmodelle das volle Programm mit @ImageN.
+     `refs` ist bereits nummeriert-in-Reihenfolge — Zeile N wird @ImageN. */
+  const withRefs = refs.length > 0;
+  /* `still` geht seit 19.08.2026 an BEIDE Drehbücher. Vorher stand hier
+     `withRefs ? undefined : still` — ausgerechnet die teure Referenzstufe
+     bekam die Beschreibung ihres eigenen Startbilds nicht, sollte aber
+     Positionen darin in Metern angeben. buildDirectorBrief() weist das Bild
+     bei Referenz-Modellen ausdrücklich als @Image1 aus, damit daraus kein
+     zweites Material wird. */
+  /* Die Länge wird EINMAL geklemmt und dann überall dieselbe benutzt — der
+     Bogen wird danach zugeschnitten, und die Rechnung „Sekunden je Szene"
+     im Brief muss zu derselben Zahl passen, die auch bei fal.ai bestellt
+     wird (videoSubmitBody klemmt erneut, aus derselben Tabelle). */
+  const secs = clampSeconds(modelId, seconds);
+
+  const brief = buildDirectorBrief({
+    dream,
+    /* Ohne die Referenzklauseln des Bildprompts: die zählen „Reference image
+       1…N" nach der Bildliste, das Videomodell zählt @Image1…9 nach seiner
+       eigenen — und dort ist @Image1 das Startbild. Beide Zählungen roh
+       nebeneinander vertauschen Gesichter. */
+    still: stripReferenceClauses(still),
+    /* Auf die Filmlänge zugeschnitten: Fünf Szenen auf fünf Sekunden wären
+       eine Sekunde je Szene — darin wird keine Handlung lesbar. */
+    beats: beatsForSeconds(beats, secs),
+    style,
+    refs,
+    seconds: secs,
+    audio: m.audio,
+    /* Das Zeichenlimit des BESTELLTEN Modells (video.js) — dem Regisseur
+       genannt statt nur still gekappt: ein Modell, das sein Budget kennt,
+       kürzt Stilprosa; die Schere kürzt immer das Ende. */
+    promptBudget: m.promptMax,
+  });
+
+  const res = await fetch(DEEPSEEK_API_URL, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      messages: [
+        { role: "system", content: withRefs ? DIRECTOR_FULL : DIRECTOR_MOTION },
+        { role: "user", content: brief },
+      ],
+      stream: false,
+    }),
+  });
+  if (!res.ok) throw new Error("DEEPSEEK_FAILED");
+  const data = await res.json().catch(() => null);
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text || typeof text !== "string") throw new Error("DEEPSEEK_FAILED");
+
+  // Modellausgabe ist so untrusted wie Nutzereingabe: erst dieselbe Hygiene,
+  // dann die mechanische Prüfung — jedes @ImageN muss eine der übergebenen
+  // Referenzen sein; ohne Referenzen ist JEDES @Image eine Anweisung ins
+  // Leere. Verstoß → Rückfall, nie ein halluziniertes Bild.
+  const cleaned = sanitizePromptText(text).slice(0, m.promptMax);
+  if (!checkDirectedPrompt(cleaned, refs.length).ok) throw new Error("DEEPSEEK_FAILED");
+  // Eine Zeile Sichtbarkeit für ein bezahltes Feature: lief der Regisseur,
+  // und wie viel hat er geschrieben? (Der Prompt selbst wird nicht geloggt.)
+  console.log(`[DreamRushes] film director wrote ${cleaned.length} chars for ${m.id} (${refs.length} refs)`);
+  return cleaned;
+}
 // ---- prompt hygiene (end) ----
 
 /* ---- rewriting an existing dream ----
@@ -719,7 +825,8 @@ Schema (every key is required, exactly these names):
   "style": string,         // one of: ultrareal, noir, dreamlike, romantic, dark, surreal, nostalgic, adventurous
   "mood": string,          // one or two words, in the dream's language
   "title": string,         // a film title for this dream: 1-4 evocative words, in the dream's language, no quotes
-  "tagline": string        // one short poster tagline (under 10 words), in the dream's language — like "Nothing on earth could come between them."
+  "tagline": string,       // one short poster tagline (under 10 words), in the dream's language — like "Nothing on earth could come between them."
+  "filmSeconds": number    // ideal length of a film of this dream, in whole seconds, 5-30
 }
 
 Why the language split matters: "text", "people[].name", "places" and "mood" are SHOWN to the person and must stay in the language they wrote in — a German dream gets a German improved text. "beats" are rendering instructions for an image model and must be English regardless of the dream's language.
@@ -731,6 +838,8 @@ Rules for "people": include the dreamer only if they appear as a visible charact
 Rules for "places": one entry per distinct location. A dream that moves from a bedroom to the sky over the sea has TWO places. Empty array if there is no discernible location.
 
 Rules for "beats": exactly 5, always, even for a short dream — split it evenly. Each beat is one English sentence describing what is SEEN, not felt. Refer to people by their "name" so the app can bind reference images.
+
+Rules for "filmSeconds": judge from the dream itself how much screen time it needs to be told — a single quiet moment reads in 5-8 seconds, a dream that travels through several places or builds to a reveal needs 12-20, only a truly epic arc justifies up to 30. Every scene needs about 3 seconds to breathe. Whole number, 5 to 30.
 
 Rules for "title" and "tagline": they go on a film poster for this dream. The title is what a great director would call this film — short, concrete, evocative; never generic ("My Dream", "A Strange Night" are failures). The tagline is one line that makes a stranger want to watch — it hints at the emotional core without summarising the plot. Both stay in the dream's language.`;
 
@@ -828,6 +937,15 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
     // plain scene images instead of a poster.
     title: sanitizeFragment(parsed.title || "", 60),
     tagline: sanitizeFragment(parsed.tagline || "", 120),
+    /* Die vom Modell empfohlene Filmlänge. Nur eine ganze Zahl in 5–30
+       überlebt — alles andere wird null, und null heisst für den Client
+       „keine Empfehlung", nie 0 Sekunden. Die Modell-Klemme je Renderer
+       (clampSeconds) passiert erst im Wizard: Die Empfehlung ist bewusst
+       renderer-unabhängig, damit ein Modellwechsel sie neu auslegen kann. */
+    filmSeconds: (() => {
+      const n = Math.round(Number(parsed.filmSeconds));
+      return Number.isFinite(n) && n >= 5 && n <= 30 ? n : null;
+    })(),
   };
 }
 
@@ -896,26 +1014,28 @@ async function readJob(id) {
 }
 const writeJob = (id, job) => Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.stringify(job));
 
-/** Hand the work to fal's queue and return our own job id. */
-async function falSubmitVideo({ imageUrl, prompt, seconds }) {
+/** Hand the work to fal's queue and return our own job id.
+ *
+ *  Which address, which duration clamp, which resolution and whether a
+ *  generate_audio flag exists — all of that is per-model knowledge and
+ *  comes from videoSubmitBody() in src/lib/video.js. The clamp runs HERE
+ *  (server-side) through that same table: the queue only validates duration
+ *  at RENDER time (re-measured 09.08.2026), so a bad value burns the fee
+ *  and comes back as a failed job minutes later. */
+async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
-  const res = await fetch(`https://queue.fal.run/${FAL_MODEL_VIDEO}`, {
+  const { slug, body } = videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds });
+  const res = await fetch(`https://queue.fal.run/${slug}`, {
     method: "POST",
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({
-      image_url: imageUrl,
-      prompt,
-      // minimax/h3 accepts 5–15 ("ge: 5" per its validator, re-measured
-      // 09.08.2026 — the queue only enforces this at RENDER time, so a bad
-      // value here would burn the fee and come back as a failed job).
-      duration: Math.min(Math.max(Number(seconds) || 6, 5), 15),
-      resolution: "768P",
-    }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
-    console.error("[DreamRushes] fal.ai video submit failed:", res.status, await res.text().catch(() => ""));
+    // Mit Modelladresse: seit es mehrere Modelle gibt, ist "welches?" die
+    // erste Frage an jeden fehlgeschlagenen Submit.
+    console.error("[DreamRushes] fal.ai video submit failed:", slug, res.status, await res.text().catch(() => ""));
     throw new Error("GENERATION_FAILED");
   }
   const { request_id, status_url, response_url } = await res.json();
@@ -929,7 +1049,7 @@ async function falSubmitVideo({ imageUrl, prompt, seconds }) {
    * COMPLETED render sat unclaimed behind exactly that 405. */
   const id = genJobId();
   await writeJob(id, {
-    requestId: request_id, model: FAL_MODEL_VIDEO,
+    requestId: request_id, model: slug,
     statusUrl: status_url, responseUrl: response_url,
     createdAt: Date.now(), status: "pending",
   });
@@ -1175,19 +1295,30 @@ async function generateImages({ dream, namedRefs, prompt: readyPrompt, aspectRat
  *  cannot point this at an arbitrary file or host. fal gets the bytes as a
  *  data URI because the /media/ path only exists on this machine; fal could
  *  never fetch it (verified live 09.08.2026: minimax/h3 accepts data URIs). */
-async function startVideo({ dream, namedRefs, prompt, seconds, keyframe }) {
+/* Zwei Prompts, zwei Aufgaben — seit 18.08. getrennt: `prompt` beschreibt
+ * das STANDBILD (und rendert ggf. den Keyframe), `motionPrompt` kommt vom
+ * Regisseur und beschreibt die BEWEGUNG. Vorher bekam das Videomodell den
+ * Standbild-Prompt wörtlich — was sich bewegte, war Zufall. Fehlt der
+ * Regisseur (kein Schlüssel, Prüfung rot), fällt die Bestellung auf den
+ * alten Zustand zurück. */
+async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, refImages = [] }) {
+  const filmPrompt = motionPrompt || prompt || dream;
+  /* `refImages` kommt aus filmReferences() und steht in EXAKT der
+   * Reihenfolge der Materialliste des Regisseurs — das Startbild davor
+   * macht @Image1 aus dem Keyframe, @Image2.. aus der Besetzung.
+   * Ein-Bild-Modelle ignorieren das Array (videoSubmitBody entscheidet). */
   if (keyframe) {
     const hit = resolveMedia(keyframe);
     const file = hit && Bun.file(resolve(MEDIA_DIR, hit.name));
     if (!hit || !(await file.exists())) throw new Error("GENERATION_FAILED");
     const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
     const dataUri = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
-    return falSubmitVideo({ imageUrl: dataUri, prompt: prompt || dream, seconds });
+    return falSubmitVideo({ modelId, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds });
   }
   const stills = await generateImages({ dream, namedRefs, prompt });
   const first = stills[0];
   if (!first) throw new Error("GENERATION_FAILED");
-  return falSubmitVideo({ imageUrl: first, prompt: prompt || dream, seconds });
+  return falSubmitVideo({ modelId, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds });
 }
 
 // ---- static file serving ----
@@ -1583,6 +1714,21 @@ Bun.serve({
         // verbatim, so it is a value, never client-supplied text.
         const aspectRatio = body.aspectRatio === "16:9" ? "16:9" : undefined;
 
+        /* Der Stil für den Regisseur: der Client schickt eine ID, nie den
+           Text. styleById() fällt bei Unbekanntem auf "dreamlike" zurück, die
+           Stiltexte sind Konstanten aus dem Repo — damit kann über dieses
+           Feld kein fremder Text in einen bezahlten Prompt wandern. Gleiche
+           Bauart wie voice/lang/aspectRatio. */
+        const styleAnchor = body.styleId ? styleById(body.styleId).prompt : undefined;
+
+        /* Die fünf Szenen aus der Analyse. Sie kommen vom Client zurück, sind
+           also erneut Fremdtext und laufen durch dieselbe Hygiene wie alles
+           andere — Länge und Anzahl gedeckelt wie bei der Analyse selbst. */
+        const beats = (Array.isArray(body.beats) ? body.beats : [])
+          .slice(0, ANALYSIS_BEATS)
+          .map((b) => sanitizeFragment(b, MAX_FRAGMENT))
+          .filter(Boolean);
+
         // Two shapes come back from here, and the client handles both:
         //   images → { urls }   (fast enough to wait for)
         //   film   → { jobId }  (minutes; the client collects it later)
@@ -1590,7 +1736,42 @@ Bun.serve({
           // Only a /media/-shaped name survives; startVideo re-validates it
           // against resolveMedia before touching the filesystem.
           const keyframe = typeof body.keyframe === "string" ? body.keyframe : undefined;
-          const jobId = await startVideo({ dream, namedRefs: cast, prompt, seconds: body.seconds, keyframe });
+          /* Allowlist statt Durchreichen, wie bei voice/lang/aspectRatio:
+             Der Client schickt eine ID, nie einen Slug. Unbekanntes wird
+             absichtlich zu "standard" — der falsche BILLIGE Film ist der
+             harmlosere Fehler. "director" kommt erst dazu, wenn die
+             R2V-Verdrahtung steht (Film-Plan §9, Schritt 4). */
+          const modelId = ["premium", "director"].includes(body.model) ? body.model : "standard";
+
+          /* Referenz-Film: Auswahl und Reihenfolge kommen aus
+             filmReferences() — Position in der Liste ist @Image-Nummer
+             minus eins, @Image1 ist immer das Startbild. Materialliste
+             (für den Regisseur) und Bildliste (für fal) entstehen aus
+             DERSELBEN Auswahl, damit sie nicht auseinanderlaufen können. */
+          const kept = modelId === "director" ? filmReferences(cast) : [];
+          const refsForBrief = modelId === "director"
+            ? [KEYFRAME_REF, ...kept.map((c) => ({ tag: c.tag, kind: c.category, desc: c.desc }))]
+            : [];
+
+          /* Der Regisseur schreibt den Bewegungs-Prompt. Kür, nie Pflicht:
+             Jeder Fehler hier — kein DeepSeek-Schlüssel, Zeitüberschreitung,
+             rote @Tag-Prüfung — lässt den Film wie bisher laufen. Ein
+             schlechter Film schlägt keinen Film. */
+          let motionPrompt = null;
+          try {
+            motionPrompt = await directFilm({
+              dream, still: prompt, beats, style: styleAnchor,
+              seconds: body.seconds, modelId, refs: refsForBrief,
+            });
+          } catch (e) {
+            console.error("[DreamRushes] film director skipped:", e.message);
+          }
+
+          const jobId = await startVideo({
+            dream, namedRefs: cast, prompt, motionPrompt,
+            seconds: body.seconds, keyframe, modelId,
+            refImages: kept.map((c) => c.img),
+          });
           return json({ ok: true, jobId });
         }
         const urls = await generateImages({ dream, namedRefs: cast, prompt, aspectRatio });

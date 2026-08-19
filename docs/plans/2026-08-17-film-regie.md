@@ -195,11 +195,11 @@ Reihenfolge nach Erkenntnis je Dollar. Gesamtbudget T0–T4: **unter $4.**
 
 | # | Was | Kostet | Beweist |
 |---|---|---|---|
-| T0 | `directFilm()` trocken: 3 Beispielträume durch DeepSeek, Prompts nur ANSEHEN | ~$0,001 | Regie-Prompt hält Bauplan + @Tag-Disziplin |
-| T1 | R2V **Mini**, **4 s**, 480p, 2 Referenzen als data-URI | ~$0,17 | data-URIs ja/nein · @Image-Zuordnung stimmt · Ton kommt an |
-| T2 | Gleicher Auftrag auf **Fast** und **Normal**, je **4 s**, 720p | ~$0,97 + $1,21 | Qualitätsabstand → welches Tier „Regie" wird (Credits gleich: 4/s) |
+| T0 | ✅ 17.08. — Regie-Prompts halten Bauplan + @Tag-Disziplin; drei Abdriften gefunden und als Regeln eingebaut | $0,004 | erledigt |
+| T1 | ✅ 17.08. — data-URIs werden angenommen, @Image-Zuordnung stimmt, AAC-Ton kommt an | $0,17 | erledigt |
+| T2 | ✅ 18.08. — Fast und Normal je 4 s, 720p: beide halten das Drehbuch, 720p klar über Mini, kein entscheidender Abstand → **Regie bleibt Fast** (gleiche Credits, bessere Marge) | $2,18 | erledigt |
 | T3 | Outro-Anhang an einen Seedance-Film | 0 (ffmpeg lokal) | Tonspur übersteht das Zusammenfügen (AAC vorhanden?) |
-| T4 | Regie **5 s** mit 4 Referenzen, echter Traum aus dem Seed-Journal | ~$1,21 | das Produkterlebnis, das wir verkaufen |
+| T4 | ✅ 17.08. — ganze Kette (Bogen → Regisseur → Mini 15 s): Identität hält über zwei Ortswechsel | $0,73 | erledigt |
 | T5 | *(optional, später)* 2× R2V verkettet über Video-Eingabe, minimal | ~$1,60 | ob „30 s MIT Referenzen" als Kette geht |
 | T6 | *(optional)* hailuo-02 statt h3 für „Lebendig", **5 s** | ~$0,23 | ob der Standard-Preis halbierbar ist |
 | — | Kino 30 s voll | ~$14 | **bewusst NICHT im ersten Testlauf** — teuerster Einzeltest, erst wenn Regie sitzt |
@@ -226,3 +226,68 @@ Reihenfolge nach Erkenntnis je Dollar. Gesamtbudget T0–T4: **unter $4.**
 3. `DIRECTOR`-Block + `directFilm()` + mechanische @Tag-Prüfung + Rückfall.
 4. R2V-Verdrahtung (Referenzen bis ins Modell), UI-Dreier, i18n×7.
 5. Testplan T0–T4, dann Preise/Beschriftungen fixieren.
+
+## §10 — Nachtrag 19.08.: Der Stufen-Zuschnitt ist eine Endpoint-Wahl, kein Modelllimit
+
+Antons Einspruch („keine künstliche Verknappung — Modellpreise weitergeben,
+wie sie sind") hat sich bei der Recherche voll bestätigt:
+
+- **minimax/h3/reference-to-video** existiert auf fal — bis 9 Bilder plus
+  Motion-/Audio-Referenzen, 2K. Laut fal-Learn: $0,05/s @480p, **$0,06/s
+  @768p**, erste 5 Referenzbilder gratis, danach $0,08/Bild. Das ist bei
+  768p BILLIGER als unser jetziger H3-image-to-video ($0,08/s) — mit
+  Referenzen. Die „Lebendig"-Stufe verkauft also heute weniger fürs
+  gleiche Geld, als das Modell hergibt.
+- **bytedance/seedance-2.5/reference-to-video** existiert auf fal — bis 30
+  Bilder (50 Dateien inkl. Video/Audio), @Image1…-Adressierung. „Kino ist
+  ehrlich ein Ein-Bild-Angebot" (§ oben) stimmt seit diesem Endpoint nicht
+  mehr als Modellaussage. Preis token-basiert, Quellen streuen
+  (~$0,22–0,28/s @720p) — messen, nicht glauben.
+- **WAN 3.0**: seit 06.08. öffentliche Beta, aber nur Alibaba Cloud Model
+  Studio / Qwen Cloud mit Antrag. Auf fal nur Wan 2.x. Beobachten, nicht
+  verbauen.
+
+**Messauftrag (nur vom Rechner mit fal-Zugang möglich — die Sandbox ist
+für fal.ai gesperrt):** Für `minimax/h3/reference-to-video` und
+`bytedance/seedance-2.5/reference-to-video` am Validator bestätigen:
+exakte Slugs, Feldnamen (`image_urls`? `resolution`-Werte? `duration`?),
+Referenz-Adressierung im Prompt, und die echten Preise je Auflösung —
+dieselbe Methode wie am 08.08. (Validation-Responses). Der
+nano-banana-Vorfall bleibt die Hausregel: nie auf geratene Feldnamen
+bezahlt rendern.
+
+**Danach der Neuzuschnitt (Vorschlag, auf Antons Go):**
+- „Lebendig" → H3-R2V @768p: gleicher Verkaufspreis 1 Cr/s, aber mit bis
+  zu 5 Referenzfotos inklusive (kosten fal-seitig nichts). Ab dem 6. Foto
+  je 1 Credit ($0,08 durchgereicht).
+- „Regie" (Seedance 2.0 fast, 4 Cr/s) muss sich dann neu rechtfertigen —
+  T2-artiger Qualitätsvergleich H3-R2V vs. Seedance-R2V nötig, sonst ist
+  die Stufe nur noch teurer, nicht besser.
+- „Kino" → wahlweise 2.5-R2V (Referenzen UND 30 s) statt image-to-video;
+  Preis erst nach Messung festlegen.
+- Die UI-Infotexte sind seit 19.08. bereits so formuliert, dass sie den
+  App-Zustand beschreiben („diese Stufe"), nie das Modell — sie bleiben
+  beim Neuzuschnitt wahr.
+
+### §10a — Präzisierung 19.08.: Wie H3-R2V Referenzen adressiert
+
+Offizielle MiniMax-Doku (HuggingFace `MiniMaxAI/MiniMax-H3`,
+`VIDEO_PROMPT_WRITING_GUIDE_ref_en.md`): H3-R2V nimmt Charaktere, Orte,
+Produkte und Stil als EINZELNE Referenzen wahr — kein Startbild-Zwang.
+Der Prompt trägt einen `subject_definitions`-Block, Referenzen heißen
+`<Picture N>` / `<Subject N>` / `<Video N>` / `<Audio N>`, nummeriert in
+EINGABEREIHENFOLGE (dieselbe Invariante wie bei uns: Reihenfolge =
+Nummer), und die Rolle jeder Referenz wird ausdrücklich benannt
+(„Picture 1 locks identity, Picture 2 is the environment").
+
+Folge für den Umbau: Der Regisseur braucht JE MODELLFAMILIE das richtige
+Adressformat — Seedance sagt `@Image1`, H3 sagt `<Picture 1>` plus
+Definitionsblock. Das gehört in die Modelltabelle (z. B. `refStyle:
+"seedance" | "h3"`) und in zwei Varianten der DIRECTOR_FULL-Anweisung,
+NICHT in eine Weiche im Servercode. checkDirectedPrompt() muss dann beide
+Formate mechanisch prüfen können.
+
+Preislogik fal-seitig (Learn-Artikel, am Validator zu bestätigen):
+berechnet wird je Sekunde AUSGABE ($0,06/s @768p) PLUS je Referenz-Input —
+Bilder 1–5 kostenlos, ab dem 6. je $0,08; Video-Referenzen $0,26/s
+Eingabematerial; Audio-Referenzen kostenlos.

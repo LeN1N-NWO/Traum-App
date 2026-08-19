@@ -291,3 +291,41 @@
 }
 .wiz-topup:hover { border-color: var(--accent-soft); }
 .wiz-topup:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+/* Die von der Analyse empfohlene Filmlänge als Punkt unter dem Regler.
+   Ein In-Flow-Streifen in voller Content-Breite (gleiche Breite wie der
+   Slider), der Punkt absolut darin — absolute gegen .wiz-seconds hätte
+   sich auf die Padding-Box bezogen und daneben gelegen. inset-inline,
+   damit der Punkt in RTL mit dem gespiegelten Regler mitläuft; translate
+   zentriert ihn über seiner Prozentposition. */
+.wiz-seconds-ideal { position: relative; block-size: 16px; pointer-events: none; }
+.wiz-seconds-ideal-pin {
+  position: absolute; inset-block-start: 0;
+  translate: -50% 0; text-align: center;
+}
+[dir="rtl"] .wiz-seconds-ideal-pin { translate: 50% 0; }
+.wiz-seconds-ideal-dot {
+  display: block; margin-inline: auto;
+  inline-size: 6px; block-size: 6px; border-radius: 999px;
+  background: var(--warm);
+}
+.wiz-seconds-ideal-label {
+  color: var(--warm); font-size: var(--t-micro); letter-spacing: .04em;
+}
+
+/* Renderer-Kachel mit Info-Punkt: Wrapper trägt die Position, der
+   Auswahlknopf füllt ihn, das ⓘ sitzt als eigener Knopf in der Ecke —
+   nie ein Knopf im Knopf. flex:1 wandert vom Knopf auf den Wrapper. */
+.wiz-model { position: relative; flex: 1; display: flex; }
+.wiz-model .wiz-format { flex: 1; }
+.wiz-model-name { color: var(--faint); font-size: var(--t-micro); }
+.wiz-model-info {
+  position: absolute; inset-block-start: var(--s-1); inset-inline-end: var(--s-1);
+  inline-size: 18px; block-size: 18px; padding: 0;
+  border-radius: 999px; border: 1px solid var(--panel-line);
+  background: var(--glass); color: var(--muted); cursor: pointer;
+  font: 600 11px/1 var(--serif); font-style: italic;
+}
+.wiz-model-info:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.wiz-model-title { margin-block: 0 var(--s-2); font-size: var(--t-h3); }
+.wiz-model-text { margin-block: 0 var(--s-3); color: var(--muted); font-size: var(--t-small); line-height: 1.55; }

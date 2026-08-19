@@ -1,0 +1,42 @@
+/* Das Storyboard: der Fünf-Szenen-Bogen als antippbare Filmstreifen-Leiste.
+   Nur logische Eigenschaften — die Leiste läuft in RTL-Sprachen von rechts
+   nach links, und die Erzählrichtung muss der Leserichtung folgen. */
+
+.sb { display: flex; gap: var(--s-2); overflow-x: auto; padding-block: var(--s-1); }
+
+.sb-tile {
+  position: relative; flex: 0 0 auto;
+  inline-size: 64px; aspect-ratio: 4 / 5;
+  padding: 0; overflow: hidden; cursor: pointer;
+  border-radius: 12px; border: 1px solid var(--panel-line);
+  background: var(--sky);
+  transition: opacity .25s ease;
+}
+.sb-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sb-tile:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+/* Szenen ohne zuordenbares Bild: die Nummer, nie ein Fragezeichen — dieselbe
+   Entscheidung wie beim Besetzungs-Avatar ohne Foto. */
+.sb-tile-n {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font: 600 var(--t-h3) var(--serif); color: var(--muted);
+}
+
+/* Vom Sekunden-Slider ausgeschlossene Szenen: sichtbar bleiben, aber
+   erkennbar nicht im Film — Information, keine Sperre, antippen geht weiter. */
+.sb-dim { opacity: .32; }
+
+/* Das Blatt selbst kommt aus Sheet.jsx — hier nur sein Inhalt. */
+.sb-sheet-img {
+  width: 100%; border-radius: var(--radius); display: block;
+  margin-block-end: var(--s-3);
+}
+.sb-sheet-label {
+  font-size: var(--t-micro); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--faint); margin-block: 0 var(--s-2);
+}
+/* Der Beat ist englisch — eine Render-Anweisung, kein Erzähltext. Er wird
+   trotzdem gezeigt (dieselbe Ehrlichkeit wie im Trockenlauf-Werkzeug),
+   aber als Arbeitsmaterial gesetzt, nicht als Prosa. */
+.sb-sheet-beat { color: var(--text); font-size: var(--t-body); line-height: 1.5; margin-block: 0 var(--s-3); }
+.sb-sheet-note { color: var(--faint); font-size: var(--t-small); margin-block: 0 var(--s-3); }

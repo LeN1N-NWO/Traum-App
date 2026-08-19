@@ -3,6 +3,221 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-19 17:05 — Anton — Branch `claude/new-session-x9qv1w` (PR folgt) — Sitzungsabschluss
+
+**Commits:** `d3e6265` (Trockenlauf-Werkzeug), `f7a3357` (vier Regisseur-Fehler),
+`57d88c1` (Filmlänge steuert den Bogen), `90ff7b4` + `91d2f3a` (Prompt-Limit je
+Modell), `a484e10` + `f344172` (Storyboard), `830aaba` (Ideallänge), `93f088c`
+(Modellname + ⓘ), `6cfd1d8` + `b0d44a0` (Referenz-Korrektur), `0ea34f6`
+(Bildmodell-Preise) plus dieser Doku-Commit. Zustand: 178 Unit-Tests, 50
+Freigabe-Prüfungen, Prompt-Hygiene, 16 Kontrast-Paarungen, 7 Sprachdateien,
+24 Stilblätter — alles grün. `bun run lint` gibt es weiterhin nicht.
+
+⚠ **Dieser Branch sitzt auf PR #14 auf** und enthält dessen 7 Commits mit.
+Wer ihn mergt, mergt #14 mit.
+
+### Der Anlass: ein Trockenlauf, weil niemand die Prompts je gelesen hatte
+
+Antons Ausgangsfrage war nicht „baue etwas", sondern „ich habe keine
+Übersicht, was mit meinem Traum passiert". Daraus wurde
+`scripts/dry-run-prompts.mjs`: der ganze Weg vom Diktat bis zum
+fal-Auftrag, jeder Prompt im Volltext, ohne einen Credit. Es importiert
+die Bausteine und liest `ANALYSIS_SYSTEM` aus `server.js`, statt sie zu
+kopieren — eine Kopie bliebe grün, während der Server längst anders fragt.
+
+**Das Werkzeug hat sich sofort bezahlt gemacht: alle vier Regisseur-Fehler
+unten sind beim LESEN der Ausgabe aufgefallen, nicht beim Lesen des Codes.**
+Im Code sieht jede der Stellen harmlos aus.
+
+### Vier Fehler derselben Bauart: die Anweisung verlangte, was nie ankam
+
+1. **Stil.** `buildDirectorBrief` nimmt seit jeher `style`, der Systemprompt
+   wies ausdrücklich an, den Anker einzuweben — `server.js` übergab ihn
+   nirgends. Der Film wusste vom gewählten Stil nichts.
+2. **Startbild.** `still: withRefs ? undefined : still` liess ausgerechnet
+   die teure Referenzstufe ohne Beschreibung ihres eigenen Startbilds —
+   während derselbe Prompt Positionen darin in Metern verlangt.
+3. **Szenenbogen.** Die Analyse zerlegt jeden Traum in fünf Szenen; der
+   Regisseur bekam sie nicht und zerlegte ihn ein zweites Mal.
+4. **Doppelte Nummerierung.** Der Bildprompt endet auf „Reference image 1
+   shows @anton", das Videomodell zählt @Image1…9 und dort ist @Image1
+   IMMER das Startbild. Beide Zählungen standen roh nebeneinander —
+   dieselbe Fehlerklasse wie der Gesichtertausch im promptBuilder, eine
+   Stufe später. `stripReferenceClauses()` steht bewusst NEBEN
+   `buildReferences()`: wer die Klausel umformuliert, sieht die Gegenstelle.
+
+Ausserdem die CINEDANCE-Destillation nachgezogen: LOCATION MAP fehlte ganz
+(ohne Geographie sind Meterangaben Behauptungen), ebenso der
+Identitäts-Satz je Figurenzeile, die Optik-Drift-Sperre und der
+ausdrückliche Ausschluss von Establisher und verzögertem Auftritt.
+
+### Was der Nächste über TESTS wissen muss (die eigentliche Lehre)
+
+**Der Stil-Bug war für jeden Unit-Test unsichtbar.** `buildDirectorBrief`
+war korrekt; nur rief sie niemand richtig auf. Die Lücke sass ZWISCHEN den
+Dateien. Der neue Test vergleicht deshalb die Signatur der Funktion mit dem
+Aufruf in `server.js` — generisch, damit er auch beim nächsten vergessenen
+Parameter anschlägt. Er hat den `promptBudget`-Parameter später automatisch
+miterfasst.
+
+**Und einmal hat meine eigene Rot-Probe NICHT angeschlagen:** Beim
+Szenenbogen-Zuschnitt war der Verdrahtungstest mit einem blossen `beats,`
+zufrieden. Ein Test, der die Anwesenheit prüft, prüft nicht die
+Aufbereitung. Nachgeschärft, beide Proben schlagen jetzt an — inklusive des
+subtilen Falls, dass Zuschnitt und Bestellung mit VERSCHIEDENEN Sekunden
+rechnen.
+
+### Die Filmlänge steuert jetzt die Erzählung
+
+Fünf Szenen auf fünf Sekunden sind eine Sekunde je Szene — kein Film, ein
+Stroboskop. `beatsForSeconds()` schneidet den Bogen auf die Länge zu (drei
+Sekunden je Szene als Untergrenze), erste und letzte Szene überleben immer.
+Der Brief rechnet die Zeit vor, statt sie erraten zu lassen. Und die
+Analyse EMPFIEHLT jetzt eine Länge (`filmSeconds`, 5–30, kostet nichts —
+sie reist im einen Analyse-Aufruf mit); der Regler startet dort, bis der
+Mensch ihn selbst bewegt.
+
+### Das Prompt-Limit gehörte nie uns
+
+Antons Frage „für welches Modell gilt das 6000er-Limit?" hatte die Antwort
+„für keins" — die Zahl war frei gewählt. Recherchiert: minimax H3 7 000,
+Seedance 2.0 5 000, Seedance 2.5 **10 000** (Antons Einspruch, dass 5 000
+zu wenig sei, war richtig). `promptMax` wohnt jetzt in der Modelltabelle
+und speist zwei Stellen aus einer Zahl: das Budget, das der Regisseur
+GENANNT bekommt, und die Notbremse.
+
+### Das Storyboard — und ein Geld-Bug im Beifang
+
+Stufe A des Plans: die fünf Szenen als antippbare Leiste, im Filmmenü an
+den Sekunden-Slider gekoppelt (wer von 15 auf 5 zieht, SIEHT drei Szenen
+verblassen, bevor er bezahlt). Dabei gefunden: **`beatsForCount` kannte nur
+3/5/10, jeder andere Wert fiel auf „alle fünf" durch.** Das Poster ersetzt
+das erste Bild, also bestellte „3 Bilder mit Poster" intern
+`beatsForCount(_, 2)`, bekam fünf Szenen und renderte **6 bezahlte
+Generierungen bei 3 kassierten Credits.**
+
+⚠ **Ob `urls[0]` ein Poster ist, war am Eintrag NICHT ablesbar** (ein
+Preview-Eintrag hat auch Titel und drei urls, Panel 1 ist aber eine Szene).
+Neue Einträge speichern `media.poster` als Wahrheit; `imageIndexForBeat`
+antwortet für ältere Einträge mit `null` — Textkachel statt raten.
+
+### Zwei Korrekturen an dem, was wir über Modelle GLAUBTEN
+
+- **„Regie ist die einzige Stufe mit Referenzen" war falsch.** Auf fal gibt
+  es `minimax/h3/reference-to-video` (bis 9 Bilder, $0,06/s @768p, erste 5
+  Bilder gratis — **billiger als unser jetziger Pfad, mit Referenzen**) und
+  `seedance-2.5/reference-to-video` (bis 30 Bilder). Der Zuschnitt war
+  unsere Endpoint-Wahl, kein Modelllimit. Die UI-Infotexte sagen deshalb
+  jetzt „diese Stufe", nie „das Modell kann nicht".
+- **H3 adressiert Referenzen ANDERS als Seedance:** `<Picture N>` plus
+  `subject_definitions`-Block statt `@ImageN`. Beim Umbau braucht der
+  Regisseur je Modellfamilie das richtige Format (Plan §10a).
+
+### Offene Messungen — gehen NUR vom Rechner (die Sandbox blockt fal.ai)
+
+1. **Film-Endpoints** (Plan §10): Slugs, Feldnamen und echte Preise von
+   `minimax/h3/reference-to-video` und `seedance-2.5/reference-to-video`.
+   Danach Stufen neu zuschneiden — „Lebendig" könnte 5 Referenzen
+   umsonst tragen.
+2. **Bildmodelle** (neuer Plan `2026-08-19-bildmodelle-preise.md`):
+   `nano-banana-2-lite` kostet **$0,0336 statt $0,08** (58 % weniger), kann
+   laut Google Referenzen — **fal listet es aber als „(Text to Image)"**.
+   Und: unsere Schnellvorschau liefert **448 px breite Panels**, weil 1K
+   die Vorgabe ist; bei 2K wären es 896 px für $0,12 statt $0,08.
+3. **Der echte Durchlauf**, den Anton als Nächstes macht:
+   `DEEPSEEK_KEY=… node scripts/dry-run-prompts.mjs --live` (~$0,0005)
+   zeigt die wahren Modellantworten, ohne ein Bild zu rendern.
+
+**Hausregel bleibt (nano-banana-Vorfall 07.08.): nie auf geratene
+Feldnamen bezahlt rendern.**
+
+### Lehrgeld dieser Sitzung, damit es niemand wiederholt
+
+Ein i18n-Einfüge-Anker `"  errors: {"` traf als **Substring** auch die
+tiefer eingerückte `voice.errors`-Zeile. Der Block landete in allen sieben
+Sprachen konsistent eine Ebene zu tief — und `check-i18n-shape.mjs` blieb
+GRÜN, weil er Gleichheit prüft, nicht Richtigkeit. Gefunden erst am
+Laufzeitfehler im Browser. **Wer Blöcke per Skript einfügt: am Zeilenanfang
+verankern (`^`), nie am blanken Substring.** Und: die App wirklich öffnen,
+nicht den Tests glauben.
+
+## 2026-08-19 00:00 — Anton — Branch `session/2026-08-18-anton` (PR #14) — Sitzungsabschluss
+
+**Commits:** `d7223b8` (Bugfix Modellwahl), `ec749c6` (Regisseur),
+`cd058f0` (Referenz-Film serverseitig), `585c634` (Stufe Lebendig/Regie/
+Kino), `cd806a3` (Teststand) plus der Doku-Commit dieser Zeilen. Zustand:
+153 Unit-Tests (früh: 133), 50 Freigabe-Prüfungen, Prompt-Hygiene, 16
+Kontrast-Paarungen, 7 Sprachdateien, 22 Stilblätter — alles grün. Kein
+`bun run lint`. Testkosten der Sitzung: $2,18 (T2, von Anton freigegeben).
+
+### Der Film-Plan ist umgesetzt — §9 Schritte 1–4 komplett
+
+**1 · Bugfix zuerst (Befund 2):** Die Modellwahl erreicht jetzt den
+Server. Premium wurde bis dahin BERECHNET und minimax GELIEFERT, hart auf
+15 s geklemmt. Jetzt kommt die komplette Bestellung je Modell — Slug,
+Dauerklemme, Auflösung, Tonparameter — aus EINER Tabelle
+(`videoSubmitBody` in `src/lib/video.js`), aus der auch Preis und UI
+lesen. `video.test.js` nagelt fest: Preis und Bestellung klemmen
+dieselben Sekunden; `generate_audio` geht nur dorthin, wo der Parameter
+existiert (minimax kennt ihn nicht — unbekanntes Feld kann bei strengem
+Validator den bezahlten Auftrag kosten). Unbekannte IDs werden
+absichtlich zu `standard`: der falsche BILLIGE Film ist der harmlosere
+Fehler.
+
+**2 · Der Regisseur (Befund 1):** Jeder Film bekam bis dahin wörtlich
+einen STANDBILD-Prompt („photoreal film still…"). Jetzt schreibt
+`deepseek-v4-flash` einen Bewegungs-Prompt nach dem destillierten
+CINEDANCE-Bauplan. Bauanleitung + mechanische @Tag-Prüfung liegen in
+`src/lib/director.js` (getestet, wie gatekeeper.js); der Regisseur ist
+**Kür, nie Pflicht** — jeder Fehler fällt auf den alten Zustand zurück.
+⚠ KEIN `max_tokens` am DeepSeek-Aufruf (Denkmodell!), eigene Grenze
+`MAX_DIRECTED_PROMPT = 6000` (T4 maß 5,5k; die 3k-Client-Grenze wäre
+eine Amputation).
+
+**3 · Referenz-Filme (Befund 3):** Modell `director`
+(seedance-2.0 **Fast** R2V, 4 Cr/s, 5–15 s, bis 9 Referenzen, Ton).
+`filmReferences()` trägt die Reihenfolge-Invariante aus promptBuilder.js
+eine Stufe weiter: Personen vor Tieren vor Orten, Startbild fest auf
+@Image1, Materialliste und `image_urls` aus DERSELBEN Auswahl. Nebenbei
+behoben: Step 5 plättete Gattung und Beschreibung der Besetzung
+(`category: "person"`, `desc: ""` für alle) — für Bilder folgenlos, für
+Regie hätte es Priorität und Materialliste zerstört.
+
+**4 · Die Stufe (Antons Namen):** **Lebendig / Regie / Kino** in sieben
+Sprachen; VIDEO_MODELS jetzt in UI-Reihenfolge = aufsteigender Preis,
+Eintrag [0] bleibt `standard` (Rückfallziel). Im Wizard nachgemessen:
+Schieberegler je Modell (5–15/1 · 5–15/1 · 5–30/5), Preise 6/21/31
+Credits bei 5 s.
+
+**Verifikation ohne Kosten, dreimal dasselbe Muster:** Server mit
+absichtlich UNGÜLTIGEM fal-Schlüssel booten, echte Bestellung schicken,
+im Fehlerlog (der jetzt die Modelladresse nennt) die richtige Route
+ablesen. fals 401 bestätigt nebenbei, dass die Slugs existieren
+(„Authentication required", nicht „not found"). Der Regisseur lief dabei
+echt: 3344 Zeichen (premium, 0 Refs), 5296 Zeichen (director, 3 Refs,
+Personenpriorität griff).
+
+**T2 ($2,18):** Fast und Normal je 4 s / 720p, wörtlich der T1-Auftrag.
+Beide halten das Drehbuch, 720p klar über Mini, kein entscheidender
+Abstand → **Regie bleibt Fast** (gleiche 4 Credits nach Aufrundung,
+bessere Marge). Videos in `media/tests/`.
+
+**Was der Nächste wissen muss:**
+
+- **Der Schlussstein fehlt:** ein echter bezahlter Film durch die
+  App-Oberfläche (Lebendig 5 s ≈ $0,48, Regie 5 s ≈ $1,45). Auf Antons Go.
+- **T3 (Abspann an Seedance-Film) ist risikoarm, aber ungefahren** —
+  gleiche Codecs (h264+AAC) wie der verifizierte minimax-Fall.
+- **T5 offen:** „30 s MIT Referenzen" per Video-Verkettung — bis dahin
+  ist Kino ehrlich ein Ein-Bild-Angebot.
+- Wer am Regisseur formuliert: die drei Anti-Drift-Regeln (nur Grad,
+  keine Originalzitate, keine erfundene Garderobe) stammen aus ECHTEN
+  T0-Abdriften; `director.test.js` schlägt an, wenn eine beim
+  Umformulieren verloren geht.
+- Auf 8100 lief bis heute ein TAGE-alter Server einer früheren Sitzung
+  mit altem Code — wer „es geht nicht" debuggt: erst prüfen, WESSEN
+  Prozess auf dem Port liegt.
+
 ## 2026-08-17 23:50 — Anton — Branch `session/2026-08-17-anton` (PR #13) — Sitzungsabschluss
 
 **Commits:** `c753d0a` (Besetzung als Rollenliste), `d18b335` + `155b5df`
