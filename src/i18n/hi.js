@@ -406,6 +406,7 @@ export default {
         premium:  { name: "सिनेमा", hint: "एक ही शॉट में 30 सेकंड तक, आवाज़ के साथ · 6 प्रति सेकंड" },
       },
       lengthLabel: "कितनी लंबी",
+      ideal: "आदर्श",
       posterLabel: "पोस्टर",
       posterTitleLabel: "फ़िल्म का शीर्षक",
       posterTitlePlaceholder: "पोस्टर पर शीर्षक",

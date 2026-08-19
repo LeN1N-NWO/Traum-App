@@ -413,6 +413,7 @@ export default {
         premium:  { name: "سينما", hint: "حتى 30 ثانية بلقطة واحدة، مع الصوت · 6 للثانية" },
       },
       lengthLabel: "المدة",
+      ideal: "الأمثل",
       posterLabel: "الملصق",
       posterTitleLabel: "عنوان الفيلم",
       posterTitlePlaceholder: "العنوان على الملصق",

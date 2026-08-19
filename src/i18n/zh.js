@@ -408,6 +408,7 @@ export default {
         premium:  { name: "影院", hint: "一镜到底最长 30 秒，带声音 · 每秒 6 点数" },
       },
       lengthLabel: "时长",
+      ideal: "推荐",
       posterLabel: "海报",
       posterTitleLabel: "影片标题",
       posterTitlePlaceholder: "海报上的标题",

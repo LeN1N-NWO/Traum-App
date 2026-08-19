@@ -825,7 +825,8 @@ Schema (every key is required, exactly these names):
   "style": string,         // one of: ultrareal, noir, dreamlike, romantic, dark, surreal, nostalgic, adventurous
   "mood": string,          // one or two words, in the dream's language
   "title": string,         // a film title for this dream: 1-4 evocative words, in the dream's language, no quotes
-  "tagline": string        // one short poster tagline (under 10 words), in the dream's language — like "Nothing on earth could come between them."
+  "tagline": string,       // one short poster tagline (under 10 words), in the dream's language — like "Nothing on earth could come between them."
+  "filmSeconds": number    // ideal length of a film of this dream, in whole seconds, 5-30
 }
 
 Why the language split matters: "text", "people[].name", "places" and "mood" are SHOWN to the person and must stay in the language they wrote in — a German dream gets a German improved text. "beats" are rendering instructions for an image model and must be English regardless of the dream's language.
@@ -837,6 +838,8 @@ Rules for "people": include the dreamer only if they appear as a visible charact
 Rules for "places": one entry per distinct location. A dream that moves from a bedroom to the sky over the sea has TWO places. Empty array if there is no discernible location.
 
 Rules for "beats": exactly 5, always, even for a short dream — split it evenly. Each beat is one English sentence describing what is SEEN, not felt. Refer to people by their "name" so the app can bind reference images.
+
+Rules for "filmSeconds": judge from the dream itself how much screen time it needs to be told — a single quiet moment reads in 5-8 seconds, a dream that travels through several places or builds to a reveal needs 12-20, only a truly epic arc justifies up to 30. Every scene needs about 3 seconds to breathe. Whole number, 5 to 30.
 
 Rules for "title" and "tagline": they go on a film poster for this dream. The title is what a great director would call this film — short, concrete, evocative; never generic ("My Dream", "A Strange Night" are failures). The tagline is one line that makes a stranger want to watch — it hints at the emotional core without summarising the plot. Both stay in the dream's language.`;
 
@@ -934,6 +937,15 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
     // plain scene images instead of a poster.
     title: sanitizeFragment(parsed.title || "", 60),
     tagline: sanitizeFragment(parsed.tagline || "", 120),
+    /* Die vom Modell empfohlene Filmlänge. Nur eine ganze Zahl in 5–30
+       überlebt — alles andere wird null, und null heisst für den Client
+       „keine Empfehlung", nie 0 Sekunden. Die Modell-Klemme je Renderer
+       (clampSeconds) passiert erst im Wizard: Die Empfehlung ist bewusst
+       renderer-unabhängig, damit ein Modellwechsel sie neu auslegen kann. */
+    filmSeconds: (() => {
+      const n = Math.round(Number(parsed.filmSeconds));
+      return Number.isFinite(n) && n >= 5 && n <= 30 ? n : null;
+    })(),
   };
 }
 

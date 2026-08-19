@@ -291,3 +291,24 @@
 }
 .wiz-topup:hover { border-color: var(--accent-soft); }
 .wiz-topup:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+/* Die von der Analyse empfohlene Filmlänge als Punkt unter dem Regler.
+   Ein In-Flow-Streifen in voller Content-Breite (gleiche Breite wie der
+   Slider), der Punkt absolut darin — absolute gegen .wiz-seconds hätte
+   sich auf die Padding-Box bezogen und daneben gelegen. inset-inline,
+   damit der Punkt in RTL mit dem gespiegelten Regler mitläuft; translate
+   zentriert ihn über seiner Prozentposition. */
+.wiz-seconds-ideal { position: relative; block-size: 16px; pointer-events: none; }
+.wiz-seconds-ideal-pin {
+  position: absolute; inset-block-start: 0;
+  translate: -50% 0; text-align: center;
+}
+[dir="rtl"] .wiz-seconds-ideal-pin { translate: 50% 0; }
+.wiz-seconds-ideal-dot {
+  display: block; margin-inline: auto;
+  inline-size: 6px; block-size: 6px; border-radius: 999px;
+  background: var(--warm);
+}
+.wiz-seconds-ideal-label {
+  color: var(--warm); font-size: var(--t-micro); letter-spacing: .04em;
+}

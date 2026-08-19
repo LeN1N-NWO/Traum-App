@@ -409,6 +409,7 @@ export default {
         premium:  { name: "Cine", hint: "hasta 30 segundos en una sola toma, con sonido · 6 por segundo" },
       },
       lengthLabel: "Cuánto dura",
+      ideal: "ideal",
       posterLabel: "El póster",
       posterTitleLabel: "Título de la película",
       posterTitlePlaceholder: "Título en el póster",

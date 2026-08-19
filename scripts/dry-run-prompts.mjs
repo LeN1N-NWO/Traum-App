@@ -78,6 +78,7 @@ const SAMPLE_ANALYSIS = {
   mood: "aufgewühlt",
   title: "Der Strom",
   tagline: "Manche rennen mit. Manche werden verschlungen.",
+  filmSeconds: 14, // die Reise durch drei Orte plus das Finale — kein 6-Sekünder
 };
 
 /* ---------- echte Aufrufe, nur mit --live ---------- */

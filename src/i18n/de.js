@@ -407,6 +407,7 @@ export default {
         premium:  { name: "Kino", hint: "bis zu 30 Sekunden in einer Einstellung, mit Ton · 6 je Sekunde" },
       },
       lengthLabel: "Wie lang",
+      ideal: "ideal",
       posterLabel: "Das Poster",
       posterTitleLabel: "Filmtitel",
       posterTitlePlaceholder: "Titel auf dem Poster",

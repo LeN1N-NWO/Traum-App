@@ -47,6 +47,19 @@ export default function Step5Style({ w, patch }) {
   const assignments = Object.values(w.assignments);
   const named = assignments.filter((a) => a.avatar?.img).length;
 
+  /* Die von der Analyse empfohlene Filmlänge stellt den Regler vor, solange
+     der Mensch ihn nicht selbst bewegt hat (secondsTouched). Deklarativ hier
+     statt an den drei Stellen, an denen die Analyse in den Wizard fliesst —
+     so gilt dieselbe Regel auch nach einem Modellwechsel: 20 empfohlene
+     Sekunden werden bei „Lebendig" zu 15 geklemmt und bei „Kino" wieder 20,
+     statt am ersten Klemmwert kleben zu bleiben. */
+  const recommended = w.analysis?.filmSeconds || null;
+  useEffect(() => {
+    if (!isFilm || w.secondsTouched || !recommended) return;
+    const want = clampSeconds(w.videoModel, recommended);
+    if (want !== w.seconds) patch({ seconds: want });
+  }, [isFilm, recommended, w.videoModel, w.secondsTouched, w.seconds, patch]);
+
   useEffect(() => {
     if (!busy) return;
     const id = setInterval(() => setMsg((i) => i + 1), 1400);
@@ -308,7 +321,7 @@ export default function Step5Style({ w, patch }) {
               <button
                 key={m.id}
                 className={"wiz-format" + (w.videoModel === m.id ? " wiz-format-on" : "")}
-                onClick={() => patch({ videoModel: m.id, seconds: clampSeconds(m.id, w.seconds) })}
+                onClick={() => patch({ videoModel: m.id, ...(w.secondsTouched ? { seconds: clampSeconds(m.id, w.seconds) } : {}) })}
                 aria-pressed={w.videoModel === m.id}
               >
                 <span>{t.wizard.step5.filmModels[m.id].name}</span>
@@ -326,9 +339,22 @@ export default function Step5Style({ w, patch }) {
               max={videoModel(w.videoModel).max}
               step={videoModel(w.videoModel).step}
               value={w.seconds}
-              onChange={(e) => patch({ seconds: clampSeconds(w.videoModel, e.target.value) })}
+              onChange={(e) => patch({ seconds: clampSeconds(w.videoModel, e.target.value), secondsTouched: true })}
               aria-label={t.wizard.step5.lengthLabel}
             />
+            {recommended && (() => {
+              const m = videoModel(w.videoModel);
+              const at = clampSeconds(w.videoModel, recommended);
+              const pct = ((at - m.min) / (m.max - m.min)) * 100;
+              return (
+                <div className="wiz-seconds-ideal" aria-hidden="true">
+                  <span className="wiz-seconds-ideal-pin" style={{ insetInlineStart: `${pct}%` }}>
+                    <span className="wiz-seconds-ideal-dot" />
+                    <span className="wiz-seconds-ideal-label">{t.wizard.step5.ideal}</span>
+                  </span>
+                </div>
+              );
+            })()}
             <div className="wiz-seconds-scale" aria-hidden="true">
               <span>{videoModel(w.videoModel).min}s</span>
               <span>{videoModel(w.videoModel).max}s</span>
