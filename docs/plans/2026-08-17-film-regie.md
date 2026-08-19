@@ -268,3 +268,26 @@ bezahlt rendern.
 - Die UI-Infotexte sind seit 19.08. bereits so formuliert, dass sie den
   App-Zustand beschreiben („diese Stufe"), nie das Modell — sie bleiben
   beim Neuzuschnitt wahr.
+
+### §10a — Präzisierung 19.08.: Wie H3-R2V Referenzen adressiert
+
+Offizielle MiniMax-Doku (HuggingFace `MiniMaxAI/MiniMax-H3`,
+`VIDEO_PROMPT_WRITING_GUIDE_ref_en.md`): H3-R2V nimmt Charaktere, Orte,
+Produkte und Stil als EINZELNE Referenzen wahr — kein Startbild-Zwang.
+Der Prompt trägt einen `subject_definitions`-Block, Referenzen heißen
+`<Picture N>` / `<Subject N>` / `<Video N>` / `<Audio N>`, nummeriert in
+EINGABEREIHENFOLGE (dieselbe Invariante wie bei uns: Reihenfolge =
+Nummer), und die Rolle jeder Referenz wird ausdrücklich benannt
+(„Picture 1 locks identity, Picture 2 is the environment").
+
+Folge für den Umbau: Der Regisseur braucht JE MODELLFAMILIE das richtige
+Adressformat — Seedance sagt `@Image1`, H3 sagt `<Picture 1>` plus
+Definitionsblock. Das gehört in die Modelltabelle (z. B. `refStyle:
+"seedance" | "h3"`) und in zwei Varianten der DIRECTOR_FULL-Anweisung,
+NICHT in eine Weiche im Servercode. checkDirectedPrompt() muss dann beide
+Formate mechanisch prüfen können.
+
+Preislogik fal-seitig (Learn-Artikel, am Validator zu bestätigen):
+berechnet wird je Sekunde AUSGABE ($0,06/s @768p) PLUS je Referenz-Input —
+Bilder 1–5 kostenlos, ab dem 6. je $0,08; Video-Referenzen $0,26/s
+Eingabematerial; Audio-Referenzen kostenlos.
