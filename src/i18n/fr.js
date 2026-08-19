@@ -609,6 +609,12 @@ export default {
     balance: (n) => `Tu as actuellement ${n} crédits.`,
   },
 
+  storyboard: {
+    label: "Storyboard",
+    scene: (i, n) => `Scène ${i} sur ${n}`,
+    cutNote: (s) => `À ${s} secondes, les scènes assombries restent hors du film — un film plus long en garde davantage.`,
+    textOnly: "Aucune image n'est encore liée à cette scène — le film la construit à partir des mots.",
+  },
   errors: {
     storageFull: "⚠ Stockage plein — supprime d'anciennes entrées ou photos de référence.",
     unexpected: "Réponse inattendue du serveur.",

@@ -52,7 +52,11 @@ export default function Step6Result({ w, patch }) {
      * lib/entryMedia.js for the readers that hide the old shape. */
     const madeNow = isFilm
       ? { film: { urls, source: "api" } }
-      : { media: { type: "image", urls, source: "api" } };
+      /* `poster` is stored truth, not derivable later: a preview entry also
+         has a title and three urls, but its panel 1 is a scene, not a title
+         card. The storyboard (beats.js imageIndexForBeat) refuses to map
+         images for entries that lack this field rather than guess. */
+      : { media: { type: "image", urls, source: "api", poster: w.poster === true } };
 
     /* Resumed from the journal: this dream already exists. It has its date,
      * its creature and its place in the streak — only the pictures are new,

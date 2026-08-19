@@ -628,6 +628,13 @@ export default {
     balance: (n) => `You currently have ${n} credits.`,
   },
 
+  storyboard: {
+    label: "Storyboard",
+    scene: (i, n) => `Scene ${i} of ${n}`,
+    // Zahl neben Wort ⇒ Funktion (Arität wird vom Shape-Check erzwungen).
+    cutNote: (s) => `At ${s} seconds the dimmed scenes stay out of the film — a longer film keeps more of them.`,
+    textOnly: "No picture is tied to this scene yet — the film builds it from the words.",
+  },
   errors: {
     storageFull: "⚠ Storage full — delete old entries or reference photos.",
     unexpected: "Unexpected response from the server.",

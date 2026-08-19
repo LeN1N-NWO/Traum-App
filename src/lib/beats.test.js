@@ -81,3 +81,76 @@ test("garbage in, empty out — never a crash", () => {
   // Weniger Szenen als Plätze: nimm, was da ist.
   expect(beatsForSeconds(["only one"], 30)).toEqual(["only one"]);
 });
+
+/* ⚠ Der Geld-Bug vom 19.08.: beatsForCount kannte nur 3/5/10, jeder andere
+   Wert fiel auf „alle fünf" durch. Das Poster ERSETZT aber das erste Bild
+   (Step5: sceneCount = count - 1) — „3 Bilder mit Poster" bestellte also
+   beatsForCount(_, 2), bekam 5 Szenen, und renderte 1 Poster + 5 Szenen =
+   6 bezahlte Generierungen bei 3 kassierten Credits. */
+test("every count means what it says — the poster money bug stays dead", () => {
+  expect(beatsForCount(ARC, 2).length).toBe(2);   // 3 Bilder mit Poster
+  expect(beatsForCount(ARC, 4).length).toBe(4);   // 5 Bilder mit Poster
+  expect(beatsForCount(ARC, 9).length).toBe(9);   // 10 Bilder mit Poster
+  // Erzählregel auch hier: Anfang und Auflösung überleben jede Verdichtung.
+  expect(beatsForCount(ARC, 2)).toEqual(["waiting", "takeoff"]);
+  expect(beatsForCount(ARC, 4)[0]).toBe("waiting");
+  expect(beatsForCount(ARC, 4)[3]).toBe("takeoff");
+});
+
+/* Die Storyboard-Zuordnung: welches gespeicherte Bild zeigt Beat i?
+   null ist eine absichtliche Antwort („Textkachel, nicht raten") — eine
+   falsche Zuordnung legte das Alligator-Bild auf die Abflug-Szene, dieselbe
+   Fehlerklasse wie der Gesichtertausch im promptBuilder, eine Ebene höher. */
+import { imageIndexForBeat, beatOfSceneImage } from "./beats.js";
+
+test("5 scene images map 1:1, a poster shifts everything by one", () => {
+  for (let b = 0; b < 5; b++) {
+    expect(imageIndexForBeat(b, { imageCount: 5, poster: false, urlCount: 5 })).toBe(b);
+    expect(imageIndexForBeat(b, { imageCount: 6, poster: true, urlCount: 6 })).toBe(b + 1);
+  }
+});
+
+test("3 images cover beats 1/3/5; the beats between get text tiles", () => {
+  const p = { imageCount: 3, poster: false, urlCount: 3 };
+  expect(imageIndexForBeat(0, p)).toBe(0);
+  expect(imageIndexForBeat(2, p)).toBe(1);
+  expect(imageIndexForBeat(4, p)).toBe(2);
+  expect(imageIndexForBeat(1, p)).toBe(null);
+  expect(imageIndexForBeat(3, p)).toBe(null);
+});
+
+test("10 images: each beat answers with the FIRST of its two moments", () => {
+  const p = { imageCount: 10, poster: false, urlCount: 10 };
+  expect(imageIndexForBeat(0, p)).toBe(0);
+  expect(imageIndexForBeat(1, p)).toBe(2);
+  expect(imageIndexForBeat(4, p)).toBe(8);
+});
+
+test("unknown poster truth or a shape mismatch answers null, never a guess", () => {
+  // Einträge von vor dem 19.08. tragen kein poster-Feld — und es ist NICHT
+  // rekonstruierbar (ein Preview-Eintrag hat auch Titel + 3 urls, aber
+  // Panel 1 ist eine Szene, kein Plakat).
+  expect(imageIndexForBeat(0, { imageCount: 5, poster: undefined, urlCount: 5 })).toBe(null);
+  // Film-first: bestellt 5, gespeichert 0 urls.
+  expect(imageIndexForBeat(0, { imageCount: 5, poster: false, urlCount: 0 })).toBe(null);
+  // Halb gescheiterter Render: 5 bestellt, 4 angekommen.
+  expect(imageIndexForBeat(0, { imageCount: 5, poster: false, urlCount: 4 })).toBe(null);
+});
+
+test("mapping and generation share one formula and cannot disagree", () => {
+  // Für jede Szenenzahl: Bild j entstand aus Beat beatOfSceneImage(j, n) —
+  // geprüft gegen die tatsächliche beatsForCount-Ausgabe.
+  for (const n of [2, 3, 4, 5]) {
+    const scenes = beatsForCount(ARC, n);
+    for (let j = 0; j < n; j++) {
+      expect(scenes[j]).toBe(ARC[beatOfSceneImage(j, n)]);
+    }
+  }
+  // Über 5: Bild j ist ein Moment VON Beat beatOfSceneImage(j, n).
+  for (const n of [9, 10]) {
+    const scenes = beatsForCount(ARC, n);
+    for (let j = 0; j < n; j++) {
+      expect(scenes[j].startsWith(ARC[beatOfSceneImage(j, n)])).toBe(true);
+    }
+  }
+});

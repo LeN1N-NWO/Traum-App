@@ -607,6 +607,12 @@ export default {
     balance: (n) => `你目前有 ${n} 点数。`,
   },
 
+  storyboard: {
+    label: "分镜",
+    scene: (i, n) => `第 ${i} 幕，共 ${n} 幕`,
+    cutNote: (s) => `${s} 秒的影片不包含变暗的场景——更长的影片会保留更多。`,
+    textOnly: "这一幕还没有对应的图片——影片将根据文字生成它。",
+  },
   errors: {
     storageFull: "⚠ 存储空间已满——请删除旧的条目或参考照片。",
     unexpected: "服务器返回了意外的响应。",

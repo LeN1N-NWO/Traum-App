@@ -608,6 +608,12 @@ export default {
     balance: (n) => `Du hast aktuell ${n} Credits.`,
   },
 
+  storyboard: {
+    label: "Storyboard",
+    scene: (i, n) => `Szene ${i} von ${n}`,
+    cutNote: (s) => `Bei ${s} Sekunden bleiben die abgedunkelten Szenen draußen — ein längerer Film nimmt mehr davon mit.`,
+    textOnly: "An dieser Szene hängt noch kein Bild — der Film baut sie aus den Worten.",
+  },
   errors: {
     storageFull: "⚠ Speicher voll — alte Einträge oder Referenzfotos löschen.",
     unexpected: "Unerwartete Antwort vom Server.",

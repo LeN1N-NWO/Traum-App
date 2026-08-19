@@ -610,6 +610,12 @@ export default {
     balance: (n) => `Actualmente tienes ${n} créditos.`,
   },
 
+  storyboard: {
+    label: "Storyboard",
+    scene: (i, n) => `Escena ${i} de ${n}`,
+    cutNote: (s) => `Con ${s} segundos, las escenas atenuadas quedan fuera de la película — una más larga conserva más.`,
+    textOnly: "Esta escena aún no tiene imagen — la película la construye a partir de las palabras.",
+  },
   errors: {
     storageFull: "⚠ Almacenamiento lleno — elimina entradas antiguas o fotos de referencia.",
     unexpected: "Respuesta inesperada del servidor.",

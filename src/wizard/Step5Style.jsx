@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { STYLES } from "../lib/styles.js";
-import { beatsForCount } from "../lib/beats.js";
+import { beatsForCount, beatCountForSeconds, evenIndices } from "../lib/beats.js";
 import { buildReferences, buildImagePrompt, buildPosterPrompt, buildGridPrompt } from "../lib/promptBuilder.js";
 import { generate, uploadPanel, mediaUrl } from "../lib/api.js";
 import { splitIntoPanels } from "../lib/splitGrid.js";
@@ -11,6 +11,7 @@ import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
+import Storyboard from "../components/Storyboard.jsx";
 import "./wizard.css";
 
 // How many renders may be in flight at once. Three keeps a ten-image dream
@@ -158,7 +159,7 @@ export default function Step5Style({ w, patch }) {
           setDone((n) => n + 1);
         }
         update(paid);
-        patch({ urls: panelUrls, step: 6 });
+        patch({ urls: panelUrls, poster: false, step: 6 });
         running.current = false;
         setBusy(false);
         return;
@@ -182,7 +183,7 @@ export default function Step5Style({ w, patch }) {
         return urls;
       });
       update(paid);          // only charge once the images actually arrived
-      patch({ urls: perImage.flat(), step: 6 });
+      patch({ urls: perImage.flat(), poster: withPoster, step: 6 });
     } catch (err) {
       console.error("[DreamRushes] generation failed:", err);
       toast(`⚠ ${err.message}`);
@@ -333,6 +334,29 @@ export default function Step5Style({ w, patch }) {
               <span>{videoModel(w.videoModel).max}s</span>
             </div>
           </div>
+
+          {/* Das Storyboard zeigt, was die Länge KOSTET — nicht in Credits,
+              in Erzählung: beatCountForSeconds ist dieselbe Rechnung, mit
+              der der Server den Bogen zuschneidet (beatsForSeconds), nur
+              sichtbar gemacht. Wer von 15 auf 5 Sekunden zieht, sieht drei
+              Szenen verblassen, BEVOR er bezahlt. Thumbnails gibt es im
+              Resume-Fall (der Traum hat Bilder mit gespeicherter
+              Poster-Wahrheit, siehe beats.js imageIndexForBeat); ein
+              frischer Film-first-Lauf zeigt Nummern-Kacheln. */}
+          {(w.analysis?.beats?.length || 0) > 0 && (() => {
+            const arc = w.analysis.beats;
+            const secs = clampSeconds(w.videoModel, w.seconds);
+            const keep = Math.min(beatCountForSeconds(secs), arc.length);
+            const activeSet = new Set(evenIndices(arc.length, keep));
+            const entry = w.entryId ? state.journal.find((e) => e.id === w.entryId) : null;
+            return (
+              <>
+                <h2 className="wiz-sub">{t.storyboard.label}</h2>
+                <Storyboard beats={arc} entry={entry} active={activeSet} />
+                {keep < arc.length && <p className="wiz-hint">{t.storyboard.cutNote(secs)}</p>}
+              </>
+            );
+          })()}
         </>
       )}
 
