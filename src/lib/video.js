@@ -27,8 +27,12 @@ import { PRICES } from "./pricing.js";
  *   seedance 2.0     5 000 modellseitig — Plattformen klemmen unterschiedlich
  *                    (3 000–10 000); fal dokumentiert im Schema KEINE Grenze,
  *                    also gilt die modellseitige
- *   seedance 2.5     nicht dokumentiert — Annahme: wie 2.0, gleiche Familie.
- *                    Beim ersten echten Kino-Lauf gegenmessen.
+ *   seedance 2.5     10 000 (Runware-API-Doku; Runway erweitert auf 15 000 —
+ *                    die 2.5-Prompts mit Sekunden-Timestamps über 30 s sind
+ *                    absichtlich lang). Die erste Fassung nahm „wie 2.0" an
+ *                    und hätte dem Kino-Regisseur die Hälfte seines echten
+ *                    Budgets vorenthalten. fal-seitig weiter ungemessen —
+ *                    beim ersten echten Kino-Lauf gegenprüfen.
  *
  * Der Wert hier ist zugleich das Budget, das der Regisseur GENANNT bekommt
  * (buildDirectorBrief), und die Notbremse, an der der Server seine Antwort
@@ -69,7 +73,7 @@ export const VIDEO_MODELS = [
     min: 5, max: 30, step: 5, preset: 15,
     resolution: "720p",
     audio: true,                  // nativer Ton über generate_audio
-    promptMax: 5000,              // ANNAHME: wie 2.0 — beim ersten Kino-Lauf messen
+    promptMax: 10000,             // Runware-API-Doku (19.08.2026); fal ungemessen
   },
 ];
 /* Reihenfolge = UI-Reihenfolge = aufsteigender Preis. Eintrag [0] muss
