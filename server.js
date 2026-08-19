@@ -37,6 +37,9 @@ import { buildCharacterPrompt, stripReferenceClauses } from "./src/lib/promptBui
 // Stiltexte sind Konstanten aus dem Repo — der Client schickt nur eine ID,
 // damit über dieses Feld kein Fremdtext in einen bezahlten Prompt wandert.
 import { styleById } from "./src/lib/styles.js";
+// Wie viele Szenen in eine Filmlänge passen — drei Sekunden je Szene ist
+// die Untergrenze, darunter wird aus Regie eine Schnittfolge.
+import { beatsForSeconds } from "./src/lib/beats.js";
 // Die Filmbestellung je Modell — Slug, Klemme, Auflösung, Tonparameter —
 // kommt aus EINER Tabelle, die auch Preis und UI speist (video.test.js).
 import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
@@ -631,6 +634,12 @@ async function directFilm({ dream, still, beats = [], style, seconds, modelId, r
      Positionen darin in Metern angeben. buildDirectorBrief() weist das Bild
      bei Referenz-Modellen ausdrücklich als @Image1 aus, damit daraus kein
      zweites Material wird. */
+  /* Die Länge wird EINMAL geklemmt und dann überall dieselbe benutzt — der
+     Bogen wird danach zugeschnitten, und die Rechnung „Sekunden je Szene"
+     im Brief muss zu derselben Zahl passen, die auch bei fal.ai bestellt
+     wird (videoSubmitBody klemmt erneut, aus derselben Tabelle). */
+  const secs = clampSeconds(modelId, seconds);
+
   const brief = buildDirectorBrief({
     dream,
     /* Ohne die Referenzklauseln des Bildprompts: die zählen „Reference image
@@ -638,10 +647,12 @@ async function directFilm({ dream, still, beats = [], style, seconds, modelId, r
        eigenen — und dort ist @Image1 das Startbild. Beide Zählungen roh
        nebeneinander vertauschen Gesichter. */
     still: stripReferenceClauses(still),
-    beats,
+    /* Auf die Filmlänge zugeschnitten: Fünf Szenen auf fünf Sekunden wären
+       eine Sekunde je Szene — darin wird keine Handlung lesbar. */
+    beats: beatsForSeconds(beats, secs),
     style,
     refs,
-    seconds: clampSeconds(modelId, seconds),
+    seconds: secs,
     audio: m.audio,
   });
 

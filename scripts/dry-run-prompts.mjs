@@ -21,7 +21,7 @@
  * je Sekunde und sind genau das, was hier vermieden werden soll.
  */
 
-import { beatsForCount } from "../src/lib/beats.js";
+import { beatsForCount, beatsForSeconds } from "../src/lib/beats.js";
 import { buildReferences, buildImagePrompt, buildGridPrompt, buildPosterPrompt, buildCharacterPrompt, stripReferenceClauses } from "../src/lib/promptBuilder.js";
 import { buildDirectorBrief, filmReferences, checkDirectedPrompt, KEYFRAME_REF, DIRECTOR_MOTION, DIRECTOR_FULL } from "../src/lib/director.js";
 import { videoSubmitBody, videoModel, clampSeconds, VIDEO_MODELS } from "../src/lib/video.js";
@@ -243,7 +243,7 @@ async function main() {
     const brief = buildDirectorBrief({
       dream: analysis.text,
       still: stripReferenceClauses(stillPrompt),
-      beats: analysis.beats,
+      beats: beatsForSeconds(analysis.beats, seconds),
       style: styleById(analysis.style).prompt,
       refs: refsForBrief,
       seconds,

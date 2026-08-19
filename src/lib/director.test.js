@@ -87,6 +87,27 @@ test("the arc is handed over as shape, not as a cut list", () => {
   expect(brief).toMatch(/not as a cut list/i);
 });
 
+/* Die Dauer stand bis 19.08.2026 nur als Gesamtzahl im Brief und blieb
+   folgenlos: dieselben fünf Szenen wurden auf fünf wie auf dreißig Sekunden
+   verteilt. Jetzt steht die Rechnung im Text. */
+test("the brief does the arithmetic — seconds per beat, not just a total", () => {
+  const b10 = buildDirectorBrief({ dream: "x", seconds: 10, beats: ["a", "b", "c", "d", "e"] });
+  expect(b10).toContain("5 beats have to fill 10 seconds");
+  expect(b10).toContain("about 2 seconds each");
+
+  const b30 = buildDirectorBrief({ dream: "x", seconds: 30, beats: ["a", "b", "c", "d", "e"] });
+  expect(b30).toContain("about 6 seconds each");
+
+  // Krumme Teilung bleibt lesbar statt zu einer Zahlenwurst zu werden.
+  const b7 = buildDirectorBrief({ dream: "x", seconds: 7, beats: ["a", "b", "c"] });
+  expect(b7).toContain("about 2.3 seconds each");
+});
+
+test("the last beat must land — an unresolved ending is called out", () => {
+  const brief = buildDirectorBrief({ dream: "x", seconds: 10, beats: ["a", "b"] });
+  expect(brief).toMatch(/never leave the last beat unresolved/i);
+});
+
 test("with references, the still is declared as @Image1 rather than a second material", () => {
   const brief = buildDirectorBrief({
     dream: "x", seconds: 10, still: "a wide airport terminal at dusk",
@@ -133,6 +154,23 @@ test("the still is passed unconditionally, not only for single-image models", ()
   const call = readFileSync(new URL("../../server.js", import.meta.url).pathname, "utf8")
     .match(/buildDirectorBrief\(\{([\s\S]*?)\n\s*\}\)/)?.[1];
   expect(call).not.toMatch(/still:\s*\w+\s*\?/);
+});
+
+/* Ein Feld zu ÜBERGEBEN heisst nicht, es richtig zu übergeben. Der Test
+ * darüber ist mit einem blossen `beats,` zufrieden — und genau so lief es
+ * bis 19.08.: alle fünf Szenen, auch für einen Fünf-Sekunden-Film. Die
+ * Rot-Probe deckte die Lücke auf, also prüft dieser Test die Aufbereitung
+ * und nicht nur die Anwesenheit. */
+test("the arc reaching the director is cut to the film's length", () => {
+  const src = readFileSync(new URL("../../server.js", import.meta.url).pathname, "utf8");
+  const call = src.match(/buildDirectorBrief\(\{([\s\S]*?)\n\s*\}\)/)?.[1];
+  expect(call).toMatch(/beats:\s*beatsForSeconds\(/);
+  // …und die Sekundenzahl im Zuschnitt muss dieselbe sein, die auch im Brief
+  // steht und bei fal.ai bestellt wird. Zwei verschiedene Zahlen hier hiessen:
+  // der Regisseur rechnet mit einer Länge, gerendert wird eine andere.
+  const secs = call.match(/beats:\s*beatsForSeconds\([^,]+,\s*(\w+)\)/)?.[1];
+  expect(secs).toBeTruthy();
+  expect(call).toMatch(new RegExp(`seconds:\\s*${secs}\\b`));
 });
 
 /* Beide Bauanleitungen tragen die drei Regeln, die aus echten T0-Abdriften

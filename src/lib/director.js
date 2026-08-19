@@ -107,8 +107,17 @@ export function buildDirectorBrief({ dream, still, beats = [], refs = [], second
      soll daraus Zeitblöcke machen, keine Schnitte je Zeile. */
   const scenes = beats.filter((b) => typeof b === "string" && b.trim());
   if (scenes.length) {
+    /* Die Zeit je Szene ausrechnen statt sie erraten zu lassen. Der Bogen
+       ist schon auf die Länge zugeschnitten (beatsForSeconds), aber ohne
+       die Rechnung im Text verteilt das Modell fünf Szenen genauso auf
+       fünf wie auf dreißig Sekunden — die Dauer stand bisher nur als
+       Gesamtzahl weiter unten und blieb folgenlos. */
+    const each = Math.round((seconds / scenes.length) * 10) / 10;
     parts.push(`THE ARC the dream was already broken into (use it as the shape of the shot, not as a cut list):\n`
-      + scenes.map((b, i) => `${i + 1}. ${b}`).join("\n"));
+      + scenes.map((b, i) => `${i + 1}. ${b}`).join("\n")
+      + `\nThese ${scenes.length} beats have to fill ${seconds} seconds — about ${each} seconds each. `
+      + `Pace the time blocks so the whole duration is covered and every beat gets room to read; `
+      + `stretch or compress them where the action needs it, but never leave the last beat unresolved at the end.`);
   }
   if (still) {
     parts.push(refs.length
