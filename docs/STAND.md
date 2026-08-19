@@ -3,50 +3,103 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-19 (00:00) — Branch `session/2026-08-18-anton`, PR #14
+**Stand:** 2026-08-19 (17:05) — Branch `claude/new-session-x9qv1w`
+⚠ **sitzt auf PR #14 auf und enthält dessen Commits mit.**
 
-## Die Filmstufen sind LIVE — es fehlt nur der Schlussstein
+## ⚠ Morgen geht es HIER weiter: messen, was nur der Rechner messen kann
 
-Der Film-Plan (`docs/plans/2026-08-17-film-regie.md`) ist umgesetzt,
-§9 Schritte 1–4. Drei Stufen, wählbar im Wizard, in sieben Sprachen:
+Diese Sandbox erreicht **weder fal.ai noch api.deepseek.com** (Netzwerk-
+Policy, 403). Alles unten ist deshalb gebaut, getestet und dokumentiert —
+aber kein einziger echter Modellaufruf ist gelaufen. Drei Messungen warten:
 
-| Stufe | dahinter | Credits/s | Dauer | kann |
-|---|---|---|---|---|
-| **Lebendig** | minimax/h3 (768P) | 1 | 5–15 s | 1 Bild animieren, Ton |
-| **Regie** | seedance-2.0 **Fast** R2V (720p) | 4 | 5–15 s | **bis 9 Referenzen** — die Besetzung ist IM Film sie selbst, Ton |
-| **Kino** | seedance-2.5 (720p) | 6 | 5–30 s | lange Einstellung, 1 Startbild, Ton |
+1. **Der Trockenlauf mit echten Antworten** — der billigste erste Schritt:
 
-**Jeder Film bekommt einen Regisseur:** `deepseek-v4-flash` schreibt aus
-Traum + Startbild (+ Referenzen) einen Bewegungs-Prompt nach dem
-destillierten CINEDANCE-Bauplan (`src/lib/director.js`, getestet). Kür,
-nie Pflicht — jeder Fehler fällt auf den alten Zustand zurück.
-⚠ KEIN `max_tokens` am DeepSeek-Aufruf (Denkmodell — Antwort käme leer).
+       DEEPSEEK_KEY=… node scripts/dry-run-prompts.mjs --live
 
-**Die Reihenfolge-Invariante lebt jetzt zweistufig:** `filmReferences()`
-wählt und ordnet (Personen vor Tieren vor Orten, Startbild fest auf
-@Image1); Materialliste des Regisseurs und `image_urls` an fal entstehen
-aus DERSELBEN Auswahl. Wer sie auseinanderlaufen lässt, gibt Menschen die
-Gesichter der anderen (siehe promptBuilder.js-Kopf).
+   Kostet ~$0,0005, rendert NICHTS. Zeigt, was DeepSeek aus dem neuen
+   Material (Stil, Szenenbogen, Startbild, Zeitrechnung, Längenbudget)
+   wirklich macht.
 
-**Bestellwissen wohnt in EINER Tabelle** (`videoSubmitBody`,
-`src/lib/video.js`): Slug, Dauerklemme je Modell, Auflösung, ob
-`generate_audio` existiert (minimax kennt es nicht — unbekanntes Feld
-kann den bezahlten Auftrag kosten). Preis, UI und Server lesen dieselbe
-Tabelle; `video.test.js` nagelt fest, dass Preis und Bestellung dieselben
-Sekunden klemmen. Eintrag [0] muss `standard` bleiben (Rückfallziel für
-unbekannte IDs — der falsche BILLIGE Film ist der harmlosere Fehler).
+2. **Film-Endpoints** (`docs/plans/2026-08-17-film-regie.md` §10/§10a):
+   Slugs, Feldnamen und echte Preise von `minimax/h3/reference-to-video`
+   und `bytedance/seedance-2.5/reference-to-video`. Beide können
+   Referenzen — unser Stufen-Zuschnitt war eine Endpoint-Wahl, kein
+   Modelllimit.
 
-**Was fehlt:**
-- **Der Schlussstein: ein echter bezahlter Film durch die App-Oberfläche**
-  (Lebendig 5 s ≈ $0,48 · Regie 5 s ≈ $1,45). Auf Antons Go.
-- T3 (Abspann an Seedance-Film): risikoarm — gleiche Codecs (h264+AAC)
-  wie der verifizierte minimax-Fall — aber ungefahren.
-- T5: „30 s MIT Referenzen" per Video-Verkettung. Bis dahin ist Kino
-  ehrlich ein Ein-Bild-Angebot.
+3. **Bildmodelle** (`docs/plans/2026-08-19-bildmodelle-preise.md`):
+   Hat fal einen `nano-banana-2-lite/edit`? Das Modell kostet **$0,0336
+   statt $0,08** — aber ohne Referenz-Pfad taugt es nur für Träume ohne
+   Besetzung.
 
-**Teststand:** T0/T1/T2/T4 erledigt (zusammen ~$3,10, Ergebnisse in
-`media/tests/` des Hauptrepos — gerätelokal, ignoriert). T2-Urteil:
-Fast und Normal gleichwertig, 720p klar über Mini → Regie bleibt Fast.
+**Hausregel seit dem nano-banana-Vorfall (07.08.): nie auf geratene
+Feldnamen bezahlt rendern.** Deshalb ist nichts davon vorab umgebaut.
+
+## Was der Film heute bekommt (Stand 19.08., alles neu)
+
+Der Regisseur (`src/lib/director.js` + `server.js` `directFilm`) bekommt
+jetzt, was seine eigene Anweisung immer verlangt hat — bis heute früh kam
+nichts davon an:
+
+| Zutat | Woher | War bis 19.08. |
+|---|---|---|
+| Stil-Anker | `styleId` → `styles.js` | **fehlte ganz** |
+| Beschreibung des Startbilds | Bildprompt, ohne Referenzklauseln | fehlte bei „Regie" |
+| Szenenbogen | Analyse, auf die Filmlänge zugeschnitten | fehlte ganz |
+| Zeitrechnung je Szene | `beatsForSeconds` + Brief | Dauer stand nur als Gesamtzahl |
+| Zeichenbudget | `promptMax` je Modell | pauschale Zahl, für kein Modell richtig |
+
+**Die Filmlänge steuert die Erzählung:** 5 s → 2 Szenen, 9 s → 3, ab 15 s
+alle fünf; längere Filme bekommen mehr Zeit je Szene statt mehr Szenen.
+Erste und letzte Szene überleben jeden Zuschnitt (Anfang setzt den Ort,
+Ende löst auf). Die Analyse **empfiehlt** eine Länge (`filmSeconds`, 5–30)
+— der Regler startet dort, bis der Mensch ihn selbst bewegt.
+
+**Zeichenlimits je Modell** (recherchiert 19.08.): H3 7 000 · Seedance 2.0
+5 000 · Seedance 2.5 10 000. Eine Zahl, zwei Verwendungen — sie steht im
+Brief als Budget UND ist die Notbremse im Server.
+
+## Das Storyboard (neu 19.08.)
+
+Die fünf Szenen als antippbare Leiste — im Filmmenü und im Traum-Detail.
+Antippen öffnet ein Blatt mit Bild und Beat-Text. Im Filmmenü hängt die
+Leiste am Sekunden-Regler: **wer von 15 auf 5 Sekunden zieht, sieht drei
+Szenen verblassen, bevor er bezahlt.** Dieselbe Rechnung wie im Server,
+nur sichtbar gemacht.
+
+⚠ **Ein Thumbnail erscheint nur, wenn die Zuordnung SICHER ist.**
+`imageIndexForBeat` antwortet sonst `null` → Nummern-Kachel. Grund:
+Ob `urls[0]` ein Poster ist, war am Eintrag nicht ablesbar (ein
+Preview-Eintrag hat auch Titel und drei urls, Panel 1 ist aber eine
+Szene). Neue Einträge speichern `media.poster` als Wahrheit; ältere
+bekommen Textkacheln statt geratener Bilder.
+
+## ⚠ Ein Geld-Bug, der 19.08. starb — und was er lehrt
+
+`beatsForCount` kannte nur 3/5/10; jeder andere Wert fiel auf „alle fünf"
+durch. Das Poster ERSETZT das erste Bild (`sceneCount = count - 1`), also
+bestellte „3 Bilder mit Poster" intern `beatsForCount(_, 2)`, bekam fünf
+Szenen und renderte **6 bezahlte Generierungen bei 3 kassierten Credits.**
+Jetzt generisch über eine geteilte `evenIndices`-Formel; Zuordnung und
+Erzeugung teilen EINE Formel und können nicht auseinanderlaufen.
+
+## ⚠ Was Tests hier NICHT fangen (zweimal an einem Tag gelernt)
+
+**Ein Unit-Test der Funktion sieht die Lücke ZWISCHEN Dateien nicht.**
+`buildDirectorBrief` war immer korrekt — nur rief sie niemand richtig auf.
+Deshalb prüft `director.test.js` jetzt die **Verdrahtung**: Signatur gegen
+Aufruf in `server.js`, generisch, damit auch der nächste vergessene
+Parameter anschlägt.
+
+**Anwesenheit ist nicht Aufbereitung.** Beim Szenenbogen war derselbe Test
+mit einem blossen `beats,` zufrieden — die Rot-Probe lief durch. Wer einen
+Test schreibt, fahre die Rot-Probe wirklich; ein Test, der nie rot war,
+beweist nichts.
+
+**Und `check-i18n-shape.mjs` prüft Gleichheit, nicht Richtigkeit.** Ein
+Einfüge-Anker `"  errors: {"` traf als Substring die tiefer eingerückte
+`voice.errors`-Zeile; der Block sass in allen sieben Sprachen konsistent
+falsch und der Test blieb grün. Gefunden erst im Browser. **Blöcke per
+Skript immer am Zeilenanfang verankern.**
 
 ## Woran wird gearbeitet
 
@@ -207,6 +260,20 @@ auf 8100 liegt — am 18.08. lief dort ein tagealter Server mit altem Code.
 ⚠ Die Queue prüft Dauern erst beim RENDERN — die Klemme läuft
 serverseitig durch `videoSubmitBody` (dieselbe Tabelle wie der Preis).
 
+**Zeichenlimit je Modell** (`promptMax`, recherchiert 19.08.): H3 7 000 ·
+Seedance 2.0 5 000 · Seedance 2.5 10 000.
+
+⚠ **Die obige Zuordnung Stufe↔Endpoint ist unsere WAHL, kein Modelllimit**
+(19.08.). Es gibt auch `minimax/h3/reference-to-video` (9 Refs, $0,06/s
+@768p, erste 5 Refs gratis — **billiger als unser jetziger Lebendig-Pfad,
+MIT Referenzen**) und `seedance-2.5/reference-to-video` (30 Refs). H3
+adressiert dabei anders als Seedance: `<Picture N>` + `subject_definitions`
+statt `@ImageN`. Messen, dann neu zuschneiden — Plan §10/§10a.
+
+**Billigere Bildmodelle** (19.08.): `nano-banana-2-lite` $0,0336 statt
+$0,08 (nur 1K, für 9:16 ausreichend) — ob fal einen edit-/Referenz-Pfad
+dafür hat, ist UNGEPRÜFT. Plan `2026-08-19-bildmodelle-preise.md`.
+
 ## Geschäftsmodell
 
 MwSt. geht in der EU VOR der Store-Provision ab; **Small Business
@@ -229,24 +296,48 @@ Launch.
 - **Kein Zahlungsanbieter.** Der Kaufknopf sagt es ehrlich.
 - **Kein echter bezahlter Film durch die UI gefahren** (der Schlussstein).
 - Dummy-Film im Kaufblatt (`Paywall.jsx:25`).
+- **Schnellvorschau liefert 448 px breite Panels** — Nebenprodukt der
+  1K-Vorgabe, nie entschieden. Bei 2K wären es 896 px für $0,12 statt
+  $0,08 (Plan Bildmodelle §3).
+- **Kein einziger echter Modellaufruf ist gelaufen** — die Sandbox blockt
+  fal.ai und api.deepseek.com. Alles unten ist gebaut und getestet, nichts
+  ist live bestätigt.
 - Bilderstrecke teilt nach Sätzen; Symbolerkennung nur Englisch;
   localStorage ~5 MB als Limit; kein `bun run lint`.
 
 ## Nächste Schritte
 
-1. **Schlusstest:** ein echter Film je Stufe durch die App (~$2 gesamt),
+1. **Trockenlauf `--live`** (~$0,0005, rendert nichts) — der billigste
+   erste Schritt: zeigt die echten DeepSeek-Antworten auf das neue
+   Material.
+2. **Schlusstest:** ein echter Film je Stufe durch die App (~$2 gesamt),
    dabei T3 (Abspann) gleich mit.
-2. **Capacitor + StoreKit + RevenueCat** — der Hebel, der alles
+3. **Die zwei Messungen** aus Plan §10 (Film-Endpoints) und Plan
+   Bildmodelle §4 (nano-banana-2-lite) — danach Stufen und Bildpreise neu
+   zuschneiden. Antons Linie: Modellpreise weitergeben, nicht künstlich
+   verknappen.
+4. **Capacitor + StoreKit + RevenueCat** — der Hebel, der alles
    multipliziert. Ab hier ist die App feature-seitig bereit dafür.
-3. Dummy-Film ersetzen (Anton) · T5 (30 s mit Referenzen, verkettet) ·
-   T6 (hailuo-02 als billigerer Lebendig-Unterbau).
-4. Small Business Program · Push · Web-Funnel + Stripe · Datenschutz
+5. Dummy-Film ersetzen (Anton) · T5 (30 s mit Referenzen, verkettet).
+6. Small Business Program · Push · Web-Funnel + Stripe · Datenschutz
    (Liste in `2026-08-16-positionierung-und-store.md`).
-5. Startmenü und Seed-Journal entfernen — beides auf Antons Wort.
+7. Startmenü und Seed-Journal entfernen — beides auf Antons Wort.
 
 ## Pläne
 
-- `docs/plans/2026-08-17-film-regie.md` — **umgesetzt** bis auf
-  Schlusstest/T3/T5/T6; Teststand im Dokument nachgeführt.
+- `docs/plans/2026-08-17-film-regie.md` — umgesetzt; **§10/§10a sind der
+  offene Messauftrag** (Referenz-Endpoints, Adressierung je Modellfamilie).
+- `docs/plans/2026-08-19-bildmodelle-preise.md` — **neu, offen:**
+  Lite-Messung und die 448-px-Vorschau.
+- `docs/plans/2026-08-19-storyboard-vor-dem-film.md` — Stufe A umgesetzt;
+  Stufe B (Beats abwählen) liegt bewusst auf Eis, bis Stufe A benutzt wurde.
 - `docs/plans/2026-08-16-wachstumsplan.md` — umgesetzt: 2, 3, 6, 7, 9.
 - `docs/plans/2026-08-16-positionierung-und-store.md` — Store-Texte, offen.
+
+## Werkzeuge
+
+- `node scripts/dry-run-prompts.mjs [--live]` — der ganze Weg vom Traum
+  zum fal-Auftrag, jeder Prompt im Volltext. Ohne `--live` kostenlos und
+  ohne Netz; mit `--live` zwei echte DeepSeek-Aufrufe (~$0,0005). Bild und
+  Video werden NIE ausgelöst. **Vier der fünf Fehler vom 19.08. sind beim
+  Lesen dieser Ausgabe aufgefallen, nicht beim Lesen des Codes.**
