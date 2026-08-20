@@ -47,6 +47,25 @@ es beantwortet Antons Sorge „wenn jemand viele Charaktere hat" komplett:
 50 angelegte, nie benutzte Figuren kosten $0. Der Bogen wird danach für
 immer wiederverwendet (im Cast-Eintrag gespeichert, Feld `sheet`).
 
+**Stresstest, von Anton am 20.08. ausdrücklich verlangt („1.000
+Charaktere anlegen und Minus generieren"):**
+
+- Anlegen = lokale Speicherung im Gerät. Kein API-Aufruf, kein Bogen,
+  $0 — beim Anlegen gibt es strukturell nichts zu farmen.
+- Benutzen = der Bogen hängt IMMER an einem bezahlten Render. Ein Traum
+  trägt maximal 6 Referenzen; der feindseligste Fall (3-Bilder-Traum,
+  6 frische Figuren) kostet $0,38 gegen $0,66 Erlös — der Angreifer
+  erzeugt Umsatz, kein Minus. Ab Traum zwei sind die Bögen schon da.
+- Restloch 1, alt: die 3 Willkommens-Credits. Der Gratis-Traum eines
+  Neulings steigt schlimmstenfalls von $0,24 auf $0,38, einmalig je
+  Installation; das Wiederholen per Datenlöschung ist die bekannte
+  localStorage-Schwäche der Willkommens-Credits selbst (credits.js) und
+  wird erst vom Konten-Backend geschlossen, nicht von diesem Plan.
+- Restloch 2, verriegelt: den Server direkt hämmern. Der Gatekeeper
+  steckt `/api/character` per Voreinstellung in die strengste Klasse
+  (20/min je Absender, optional API_TOKEN) — der Foto→Bogen-Pfad
+  erweitert denselben Endpunkt und erbt die Bremse.
+
 ### b) Preis: 1 Credit? Halber Credit? → NULL. Wir schlucken die Kosten.
 
 - Antons Instinkt „halber Credit, keine Marge" trifft die Lite-Kosten
