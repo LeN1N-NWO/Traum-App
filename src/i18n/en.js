@@ -418,17 +418,17 @@ export default {
         standard: {
           name: "Alive", hint: "your picture starts to move · 1 credit per second",
           model: "MiniMax H3 · 768p",
-          info: "The friendly tier: it brings your opening image convincingly to life, sound included, at one credit per second. In this tier your cast appears as they look in that one frame, and films top out at 15 seconds.",
+          info: "The friendly tier: it brings your opening image convincingly to life, sound included, at one credit per second — and your reference photos now ride along (up to four beside the opening frame), so the real faces stay themselves. Films top out at 15 seconds.",
         },
         director: {
           name: "Directed", hint: "the real faces and places, with sound · 4 credits per second",
           model: "Seedance 2.0 · 720p",
-          info: "This tier carries your reference photos into the film itself — up to nine, so the real faces and places stay themselves through every cut, with sound. Four credits per second; 15 seconds is the ceiling.",
+          info: "This tier carries your reference photos into the film itself — up to eight beside your opening frame, so the real faces and places stay themselves through every cut, with sound. Four credits per second; 15 seconds is the ceiling.",
         },
         premium: {
           name: "Cinema", hint: "up to 30 seconds in one take, with sound · 6 per second",
           model: "Seedance 2.5 · 720p",
-          info: "The longest story: one unbroken take of up to 30 seconds, with sound and second-precise timing. In this tier the film grows from a single starting image — and it is the most expensive of the three.",
+          info: "The longest story: one unbroken take of up to 30 seconds, with sound and second-precise timing — and your reference photos stay in the film the whole way. It is the most expensive of the three.",
         },
       },
       aboutModel: "About this model",
@@ -444,6 +444,7 @@ export default {
                   "scene images only.",
       generate: "Create it",
       progress: (done, total) => `${done} of ${total} done`,
+      preparingRef: (tag) => `Preparing @${tag}…`,
       summaryImages: (n) => `${n} images in one continuous sequence.`,
       summaryPreview: (n) => `A quick look: ${n} smaller images from one render.`,
       summaryFilm: "One still, brought to life.",

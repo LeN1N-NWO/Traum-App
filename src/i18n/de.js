@@ -405,17 +405,17 @@ export default {
         standard: {
           name: "Lebendig", hint: "dein Bild beginnt sich zu bewegen · 1 Credit je Sekunde",
           model: "MiniMax H3 · 768p",
-          info: "Die freundliche Stufe: Sie erweckt dein Startbild überzeugend zum Leben, Ton inklusive, für einen Credit pro Sekunde. In dieser Stufe erscheint deine Besetzung so, wie sie in diesem einen Bild aussieht, und bei 15 Sekunden ist Schluss.",
+          info: "Die freundliche Stufe: Sie erweckt dein Startbild überzeugend zum Leben, Ton inklusive, für einen Credit pro Sekunde — und deine Referenzfotos fahren jetzt mit (bis zu vier neben dem Startbild), damit die echten Gesichter sie selbst bleiben. Bei 15 Sekunden ist Schluss.",
         },
         director: {
           name: "Regie", hint: "echte Gesichter und Orte, mit Ton · 4 Credits je Sekunde",
           model: "Seedance 2.0 · 720p",
-          info: "Diese Stufe nimmt deine Referenzfotos mit in den Film — bis zu neun, damit die echten Gesichter und Orte durch jeden Schnitt sie selbst bleiben, mit Ton. Vier Credits pro Sekunde; bei 15 Sekunden ist Schluss.",
+          info: "Diese Stufe nimmt deine Referenzfotos mit in den Film — bis zu acht neben dem Startbild, damit die echten Gesichter und Orte durch jeden Schnitt sie selbst bleiben, mit Ton. Vier Credits pro Sekunde; bei 15 Sekunden ist Schluss.",
         },
         premium: {
           name: "Kino", hint: "bis zu 30 Sekunden in einer Einstellung, mit Ton · 6 je Sekunde",
           model: "Seedance 2.5 · 720p",
-          info: "Die längste Geschichte: eine ununterbrochene Einstellung von bis zu 30 Sekunden, mit Ton und sekundengenauem Timing. In dieser Stufe wächst der Film aus einem einzigen Startbild — und sie ist die teuerste der drei.",
+          info: "Die längste Geschichte: eine ununterbrochene Einstellung von bis zu 30 Sekunden, mit Ton und sekundengenauem Timing — und deine Referenzfotos bleiben den ganzen Film über dabei. Sie ist die teuerste der drei.",
         },
       },
       aboutModel: "Über dieses Modell",
@@ -430,6 +430,7 @@ export default {
                   "mit diesem Titel darauf. Titel leeren, wenn du lieber nur Szenenbilder willst.",
       generate: "Erstellen",
       progress: (done, total) => `${done} von ${total} fertig`,
+      preparingRef: (tag) => `@${tag} wird vorbereitet …`,
       summaryImages: (n) => `${n} Bilder in einer durchgehenden Abfolge.`,
       summaryPreview: (n) => `Ein schneller Blick: ${n} kleinere Bilder aus einem Rendering.`,
       summaryFilm: "Ein Standbild, zum Leben erweckt.",

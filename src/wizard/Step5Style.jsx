@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { STYLES } from "../lib/styles.js";
 import { beatsForCount, beatCountForSeconds, evenIndices } from "../lib/beats.js";
 import { buildReferences, buildImagePrompt, buildPosterPrompt, buildGridPrompt } from "../lib/promptBuilder.js";
-import { generate, uploadPanel, mediaUrl } from "../lib/api.js";
+import { generate, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
+import { needsSheet, renderRef, sheetFingerprint, compactDataUrl } from "../lib/sheets.js";
 import { splitIntoPanels } from "../lib/splitGrid.js";
 import { mapWithLimit } from "../lib/parallel.js";
 import { priceForImages, PRICES, IMAGE_COUNTS, PREVIEW_COUNT } from "../lib/pricing.js";
@@ -25,6 +26,7 @@ export default function Step5Style({ w, patch }) {
   const [modelInfo, setModelInfo] = useState(null);  // Modell-id, deren ⓘ offen ist
   const [msg, setMsg] = useState(0);
   const [done, setDone] = useState(0);
+  const [prep, setPrep] = useState("");  // Figur, deren Bogen gerade entsteht
   // Re-entry guard. `busy` cannot do this job: it is state, so it is still
   // false for a second call that arrives in the same tick — and two runs mean
   // the credits are spent twice and every image is rendered twice. Seen for
@@ -103,14 +105,68 @@ export default function Step5Style({ w, patch }) {
        Bilder folgenlos, für Regie-Filme hätte es die Priorität zerstört.
        Gleicher Filter wie buildReferences (nur mit Bild), damit die
        Reihenfolge deckungsgleich bleibt. */
-    const castForApi = assignments
+    const members = assignments
       .filter((a) => a && a.avatar?.img)
       .map((a) => ({
-        tag: a.avatar.tag,
-        category: a.kind === "pet" ? "pet" : a.kind === "place" ? "place" : "person",
-        desc: a.avatar.desc || "",
-        img: a.avatar.img,
+        avatar: a.avatar,
+        member: {
+          tag: a.avatar.tag,
+          category: a.kind === "pet" ? "pet" : a.kind === "place" ? "place" : "person",
+          desc: a.avatar.desc || "",
+          img: a.avatar.img,
+          sheet: a.avatar.sheet,
+          sheetOf: a.avatar.sheetOf,
+        },
       }));
+
+    /* Die Bogen-Pflicht (Plan 2026-08-20-charakterbogen-pflicht.md): Fotos
+       von Personen und Tieren werden VOR dem Render einmalig zu einem Bogen
+       normalisiert — grau, Ganzkörper + Gesicht — und ab da referenziert der
+       Bogen, nicht das Foto. Bezahlt bewiesen: das Foto blutet seine
+       Umgebung in die Szenen (Lenas Segelboot), der Bogen nicht.
+
+       TRÄGE und GENAU HIER, nie beim Anlegen: so hängen die Kosten immer an
+       einem bezahlten Render und 1000 angelegte Figuren kosten $0 (Antons
+       Stresstest). GRATIS für den Menschen — finanziert aus der
+       Lite-Ersparnis. Und wie der Regisseur Kür, nie Pflicht: schlägt ein
+       Bogen fehl, geht das rohe Foto raus, wie all die Monate zuvor. */
+    /* Arbeitskopien statt state.cast in jedem Patch: Der zweite Bogen einer
+       Runde würde sonst über die VERALTETE Liste mappen und den ersten
+       stillschweigend wieder löschen. */
+    let workingCast = state.cast || [];
+    let workingMe = state.me;
+    for (const { avatar, member } of members) {
+      if (!needsSheet(member)) continue;
+      setPrep(member.tag);
+      try {
+        const url = await characterSheet({ photo: member.img, desc: member.desc, category: member.category });
+        /* Als kompakter data:-URI gespeichert: nur den versteht fal sicher
+           (ein /media/-Pfad zeigt auf diesen Rechner), und als JPEG belastet
+           er die localStorage-Quota weniger als das Foto selbst. */
+        member.sheet = await compactDataUrl(mediaUrl(url));
+        member.sheetOf = sheetFingerprint(member);
+        // Am richtigen Ort festschreiben: Besetzungs-Einträge haben eine id,
+        // das eigene Porträt lebt in state.me.
+        if (avatar.id) {
+          workingCast = workingCast.map((p) =>
+            p.id === avatar.id ? { ...p, sheet: member.sheet, sheetOf: member.sheetOf } : p);
+          update({ cast: workingCast });
+        } else if (workingMe?.tag === member.tag) {
+          workingMe = { ...workingMe, sheet: member.sheet, sheetOf: member.sheetOf };
+          update({ me: workingMe });
+        }
+      } catch (err) {
+        console.error("[DreamRushes] character sheet skipped:", err);
+      }
+    }
+    setPrep("");
+
+    const castForApi = members.map(({ member }) => ({
+      tag: member.tag,
+      category: member.category,
+      desc: member.desc,
+      img: renderRef(member),
+    }));
 
     /* The grid — one generation cut into several panels client-side — is now
      * exactly what "preview" MEANS, not something inferred from the shape of
@@ -212,7 +268,10 @@ export default function Step5Style({ w, patch }) {
       <section className="wiz-body wiz-busy" role="status" aria-live="polite">
         <div className="wiz-spinner" aria-hidden="true" />
         <p className="wiz-busy-text">{t.dream.loading[msg % t.dream.loading.length]}</p>
-        {count > 1 && <p className="wiz-busy-count">{t.wizard.step5.progress(done, count)}</p>}
+        {/* Der einmalige Bogen-Moment einer neuen Figur erklärt sich selbst,
+            statt wie eine hängende Generierung auszusehen. */}
+        {prep && <p className="wiz-busy-count">{t.wizard.step5.preparingRef(prep)}</p>}
+        {!prep && count > 1 && <p className="wiz-busy-count">{t.wizard.step5.progress(done, count)}</p>}
       </section>
     );
   }

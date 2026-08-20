@@ -407,17 +407,17 @@ export default {
         standard: {
           name: "Vivo", hint: "tu imagen empieza a moverse · 1 crédito por segundo",
           model: "MiniMax H3 · 768p",
-          info: "El nivel amable: da vida a tu imagen inicial de forma convincente, con sonido, por un crédito por segundo. En este nivel tu reparto aparece como se ve en ese único fotograma, y las películas llegan a 15 segundos como máximo.",
+          info: "El nivel amable: da vida a tu imagen inicial de forma convincente, con sonido, por un crédito por segundo — y ahora tus fotos de referencia viajan con ella (hasta cuatro junto a la imagen inicial), para que los rostros reales sigan siendo ellos mismos. Las películas llegan a 15 segundos como máximo.",
         },
         director: {
           name: "Dirigido", hint: "las caras y lugares reales, con sonido · 4 créditos por segundo",
           model: "Seedance 2.0 · 720p",
-          info: "Este nivel lleva tus fotos de referencia dentro de la película — hasta nueve, para que los rostros y lugares reales sigan siendo ellos mismos en cada corte, con sonido. Cuatro créditos por segundo; el tope es 15 segundos.",
+          info: "Este nivel lleva tus fotos de referencia dentro de la película — hasta ocho junto a la imagen inicial, para que los rostros y lugares reales sigan siendo ellos mismos en cada corte, con sonido. Cuatro créditos por segundo; el tope es 15 segundos.",
         },
         premium: {
           name: "Cine", hint: "hasta 30 segundos en una sola toma, con sonido · 6 por segundo",
           model: "Seedance 2.5 · 720p",
-          info: "La historia más larga: una toma continua de hasta 30 segundos, con sonido y tiempos precisos al segundo. En este nivel la película nace de una sola imagen inicial — y es el más caro de los tres.",
+          info: "La historia más larga: una toma continua de hasta 30 segundos, con sonido y tiempos precisos al segundo — y tus fotos de referencia acompañan la película de principio a fin. Es el más caro de los tres.",
         },
       },
       aboutModel: "Sobre este modelo",
@@ -432,6 +432,7 @@ export default {
                   "con este título en ella. Borra el título si prefieres solo imágenes de escena.",
       generate: "Crearlo",
       progress: (done, total) => `${done} de ${total} listas`,
+      preparingRef: (tag) => `Preparando a @${tag}…`,
       summaryImages: (n) => `${n} imágenes en una secuencia continua.`,
       summaryPreview: (n) => `Un vistazo rápido: ${n} imágenes más pequeñas de un solo renderizado.`,
       summaryFilm: "Una imagen fija, cobrando vida.",

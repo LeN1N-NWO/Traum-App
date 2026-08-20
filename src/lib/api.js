@@ -73,9 +73,12 @@ export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio
 
 /** Ein Referenzbild aus einer Beschreibung — der Charakterbogen.
  *  Gibt einen /media/-Pfad zurück, also genau das, was auch ein hochgeladenes
- *  Foto wäre: ab hier behandelt alles Weitere beides gleich. */
-export async function characterSheet({ desc, category }) {
-  const data = await post("/api/character", { desc, category });
+ *  Foto wäre: ab hier behandelt alles Weitere beides gleich.
+ *  Mit `photo` (data:image-URI) wird stattdessen ein vorhandenes Foto zum
+ *  Bogen NORMALISIERT (grau, Ganzkörper + Gesicht) — gratis, nur aus einem
+ *  bezahlten Render heraus aufgerufen (sheets.js hat die Regeln). */
+export async function characterSheet({ desc, category, photo }) {
+  const data = await post("/api/character", { desc, category, photo });
   const url = Array.isArray(data?.urls) ? data.urls[0] : null;
   if (typeof url !== "string") throw new Error(t.errors.unexpected);
   return url;

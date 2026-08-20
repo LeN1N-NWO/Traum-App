@@ -33,7 +33,7 @@ import { resolve, sep } from "node:path";
 // Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
 import { guard } from "./src/lib/gatekeeper.js";
-import { buildCharacterPrompt, stripReferenceClauses } from "./src/lib/promptBuilder.js";
+import { buildCharacterPrompt, buildSheetFromPhotoPrompt, stripReferenceClauses } from "./src/lib/promptBuilder.js";
 // Stiltexte sind Konstanten aus dem Repo — der Client schickt nur eine ID,
 // damit über dieses Feld kein Fremdtext in einen bezahlten Prompt wandert.
 import { styleById } from "./src/lib/styles.js";
@@ -45,7 +45,7 @@ import { beatsForSeconds } from "./src/lib/beats.js";
 import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
-  DIRECTOR_MOTION, DIRECTOR_FULL, KEYFRAME_REF,
+  DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
   buildDirectorBrief, checkDirectedPrompt, filmReferences,
 } from "./src/lib/director.js";
 
@@ -63,10 +63,16 @@ const MAX_DREAM = 2000;
 const MAX_FRAGMENT = 120; // per pet/place description, mirrors the client-side cap
 const MAX_CRAFTED_PROMPT = 3000; // ceiling on what DeepSeek is allowed to hand to fal.ai
 
-// fal.ai model slugs. UNVERIFIED against fal.ai's actual model catalog —
-// confirm at fal.ai/models before relying on this in production. Override via
-// env without editing code.
-const FAL_MODEL_IMAGE = process.env.FAL_MODEL_IMAGE || "fal-ai/nano-banana-2";
+// fal.ai model slugs. Override via env without editing code.
+//
+// Seit 20.08.2026 ist Lite die Vorgabe (Antons Entscheidung nach den Tests
+// vom 19./20.08., Plan 2026-08-19-bildmodelle-preise.md §6–§8): ~$0,042
+// statt $0,08 je Bild bei fester 1K-Ausgabe, Identität und Mehrfach-
+// Referenzen bezahlt bewiesen (Drift-Dreierstrecke, Multi-Ref-A/B, Lena-
+// Bogen-Strecke). Verkaufspreise bleiben unverändert — die Ersparnis
+// finanziert die Gratis-Charakterbögen, der Rest ist Sicherheitsmarge.
+// Rückweg bei Befund: FAL_MODEL_IMAGE=fal-ai/nano-banana-2 in .env.
+const FAL_MODEL_IMAGE = process.env.FAL_MODEL_IMAGE || "google/nano-banana-2-lite";
 // Reference photos need the EDIT variant of the model. Diagnosed 07.08.: the
 // text-to-image endpoint silently ignores image_urls (it even accepts
 // image_urls: 123 with a 200), so likenesses never reached the model. The
@@ -648,6 +654,11 @@ async function directFilm({ dream, still, beats = [], style, seconds, modelId, r
        eigenen — und dort ist @Image1 das Startbild. Beide Zählungen roh
        nebeneinander vertauschen Gesichter. */
     still: stripReferenceClauses(still),
+    /* Adressformat und Referenzbudget des BESTELLTEN Modells — seit 20.08.
+       spricht jede Stufe ihre eigene Syntax (Filmplan §10b: @Image1 /
+       [Image1] / „Image 1"). */
+    refStyle: m.refStyle,
+    maxRefs: m.maxRefs,
     /* Auf die Filmlänge zugeschnitten: Fünf Szenen auf fünf Sekunden wären
        eine Sekunde je Szene — darin wird keine Handlung lesbar. */
     beats: beatsForSeconds(beats, secs),
@@ -667,7 +678,7 @@ async function directFilm({ dream, still, beats = [], style, seconds, modelId, r
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
       messages: [
-        { role: "system", content: withRefs ? DIRECTOR_FULL : DIRECTOR_MOTION },
+        { role: "system", content: withRefs ? directorFull(m.refStyle) : DIRECTOR_MOTION },
         { role: "user", content: brief },
       ],
       stream: false,
@@ -1644,13 +1655,34 @@ Bun.serve({
         }
         const body = await req.json();
         const desc = sanitizePromptText(body.desc);
+        // Allowlist: die Kategorie wählt die Bildaufteilung, nichts wird
+        // interpoliert.
+        const category = ["person", "pet", "place"].includes(body.category) ? body.category : "person";
+
+        /* Zwei Wege, ein Endpunkt (Plan 2026-08-20-charakterbogen-pflicht.md):
+         * MIT Foto wird eine vorhandene Figur zum Bogen NORMALISIERT (grau,
+         * geteilt: Ganzkörper + Gesicht) — der edit-Pfad, für den Nutzer
+         * gratis, ausgelöst nur aus einem bezahlten Render heraus. OHNE Foto
+         * bleibt es das sichtbare 2-Credit-Zeichnen aus der Beschreibung.
+         * Nur ein data:image-URI zählt als Foto — dieselbe Form, in der der
+         * Client auch an /api/generate Referenzen schickt; eine URL wäre ein
+         * Auftrag an fal, Fremdes zu laden. */
+        const photo = typeof body.photo === "string" && body.photo.startsWith("data:image/")
+          ? body.photo : "";
+
+        if (photo) {
+          const urls = await falGenerateImage({
+            prompt: buildSheetFromPhotoPrompt({ desc, category }),
+            namedRefs: [{ img: photo }],
+            aspectRatio: "16:9",   // zwei Panels nebeneinander
+          });
+          return json({ ok: true, urls: await storeAll(urls) });
+        }
+
         // Kurze Beschreibungen ergeben keine brauchbare Referenz — und der
         // Aufruf kostet trotzdem. Die Grenze fängt „x" ab, bevor Geld fließt.
         if (desc.length < 10) return json({ error: "Describe them a little more first." }, 400);
         if (desc.length > 400) return json({ error: "Description too long." }, 400);
-        // Allowlist: die Kategorie wählt die Bildaufteilung, nichts wird
-        // interpoliert.
-        const category = ["person", "pet", "place"].includes(body.category) ? body.category : "person";
 
         const urls = await falGenerateImage({
           prompt: buildCharacterPrompt({ desc, category }),
@@ -1660,7 +1692,11 @@ Bun.serve({
       } catch (e) {
         const map = {
           NO_FAL_KEY: [503, "Backend has no fal.ai key. Set FAL_KEY and restart."],
-          GENERATE_FAILED: [502, "Could not draw them. Try again."],
+          /* Der Schlüssel muss heißen, was falGenerateImage WIRFT. Bis 20.08.
+             stand hier GENERATE_FAILED — nie geworfen, also fiel jeder
+             fal-Fehler auf das generische 500 durch. Gefunden mit der
+             Nullkosten-Probe (ungültiger Schlüssel) beim Bogen-Umbau. */
+          GENERATION_FAILED: [502, "Could not draw them. Try again."],
         };
         const hit = map[e.message];
         if (hit) return json({ error: hit[1] }, hit[0]);
@@ -1739,17 +1775,19 @@ Bun.serve({
           /* Allowlist statt Durchreichen, wie bei voice/lang/aspectRatio:
              Der Client schickt eine ID, nie einen Slug. Unbekanntes wird
              absichtlich zu "standard" — der falsche BILLIGE Film ist der
-             harmlosere Fehler. "director" kommt erst dazu, wenn die
-             R2V-Verdrahtung steht (Film-Plan §9, Schritt 4). */
+             harmlosere Fehler. */
           const modelId = ["premium", "director"].includes(body.model) ? body.model : "standard";
+          const filmModel = videoModel(modelId);
 
-          /* Referenz-Film: Auswahl und Reihenfolge kommen aus
-             filmReferences() — Position in der Liste ist @Image-Nummer
-             minus eins, @Image1 ist immer das Startbild. Materialliste
-             (für den Regisseur) und Bildliste (für fal) entstehen aus
-             DERSELBEN Auswahl, damit sie nicht auseinanderlaufen können. */
-          const kept = modelId === "director" ? filmReferences(cast) : [];
-          const refsForBrief = modelId === "director"
+          /* Referenz-Film — seit dem Neuzuschnitt vom 20.08. sind das ALLE
+             Stufen: Auswahl und Reihenfolge kommen aus filmReferences() —
+             Position in der Liste ist Referenznummer minus eins, Referenz 1
+             ist immer das Startbild. Materialliste (für den Regisseur) und
+             Bildliste (für fal) entstehen aus DERSELBEN Auswahl, damit sie
+             nicht auseinanderlaufen können. Die Platzzahl kommt aus der
+             Modelltabelle: H3 nimmt 5 (die gratis-Grenze), Seedance 9. */
+          const kept = filmModel.maxRefs ? filmReferences(cast, filmModel.maxRefs - 1) : [];
+          const refsForBrief = filmModel.maxRefs
             ? [KEYFRAME_REF, ...kept.map((c) => ({ tag: c.tag, kind: c.category, desc: c.desc }))]
             : [];
 
