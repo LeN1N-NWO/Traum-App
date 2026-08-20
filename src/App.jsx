@@ -14,6 +14,8 @@ import SoundDock from "./components/SoundDock.jsx";
 import Onboarding from "./screens/Onboarding/Onboarding.jsx";
 import StartMenu from "./screens/Onboarding/StartMenu.jsx";
 import LanguagePicker from "./screens/Onboarding/LanguagePicker.jsx";
+import ConsentGate from "./components/ConsentGate.jsx";
+import { needsConsent } from "./lib/consent.js";
 
 /* HashRouter, not BrowserRouter: Capacitor will load the app over file://,
    where the History API is unreliable. */
@@ -57,6 +59,7 @@ export default function App() {
  * user should be asked neither "onboarding or app?" nor "which language?"
  * on every open. */
 function Gate() {
+  const { state } = useAppState();
   const [phase, setPhase] = useState("menu");   // menu | language | onboarding | app
 
   if (phase === "menu") {
@@ -64,6 +67,16 @@ function Gate() {
   }
   if (phase === "language-onboarding" || phase === "language-app") {
     return <LanguagePicker onChosen={() => setPhase(phase === "language-onboarding" ? "onboarding" : "app")} />;
+  }
+  /* Das Einwilligungs-Tor: NACH der Sprachwahl (übersetzt), VOR Onboarding
+     UND App — schon das Stimm-Interview schickt Daten an Google. Kein
+     eigener phase-Zustand: sobald die Zustimmung in state.consent liegt,
+     fällt diese Bedingung von selbst und die gewählte Phase erscheint.
+     Anders als StartMenu/Sprachwahl wiederholt es sich NICHT je Start —
+     eine erteilte Einwilligung erneut abzufragen wäre Theater; es kommt
+     nur wieder, wenn sich die Texte ändern (CONSENT_VERSION). */
+  if (needsConsent(state)) {
+    return <ConsentGate />;
   }
   if (phase === "onboarding") {
     return <Onboarding onExit={() => setPhase("app")} />;

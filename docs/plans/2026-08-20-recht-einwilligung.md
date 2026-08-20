@@ -140,7 +140,59 @@ Vollständig lösen kann das keine App der Welt; der Standard ist:
   Consent-Banner-Orgie: Die App hat keine Tracking-Cookies; wenn das so
   bleibt, bleibt auch die Erklärung kurz.
 
-## 6. Quellen (20.08.2026)
+## 6. Nachtrag 20.08. abends — Antons drei Nachfragen, recherchiert
+
+### a) Trainieren die Anbieter mit unseren Daten?
+
+| Anbieter | Trainingslage (recherchiert 20.08.) |
+|---|---|
+| **Google** (Gemini API, bezahlt) | Trainiert NICHT mit Prompts/Antworten; im EWR gelten die Bezahlbedingungen sogar für die Gratis-Stufe. Beste Lage. |
+| **DeepSeek** (bezahlte API) | Seit der Richtlinien-Aktualisierung 03/2026 standardmäßig KEIN Training mit API-Daten; „de-identifizierte" Nutzung zur Dienstverbesserung bleibt möglich, Opt-out-Rechte je nach Region. China-Transfer bleibt das größere Problem (§2c). |
+| **fal.ai** (Standard-API) | Grauzone: Kunde behält Rechte am Input, aber fal darf „Usage Data" — anonymisiert/aggregiert, auch AUS Kundeninput abgeleitet — zur Entwicklung eigener Produkte und KI-Modelle nutzen. Ein ausdrückliches „wir trainieren nicht auf euren Inhalten" gibt es nur für Enterprise-Verträge. |
+
+Konsequenz: Die Trainingslage steht jetzt WÖRTLICH im Aufklapp-Teil des
+Consent-Gates (t.consent.details) — kein Kleingedrucktes. Bei Wachstum:
+fal auf einen Enterprise-/DPA-Vertrag mit No-Training-Zusage heben, oder
+die Direktanbieter-Schwellen aus 2026-08-20-direktanbieter-preise.md §5
+ziehen (Google direkt trainiert nicht).
+
+### b) 16+ oder 18+? → 18+, selbst erklärt
+
+Die 16 aus der Erstfassung war das DSGVO-Einwilligungsalter (Art. 8,
+Deutschland: 16). Antons Entscheidung: **18+** — einfacher und strenger.
+Umsetzung nach Branchenstandard (FaceApp, Lensa, Remini machen es genauso):
+**Selbsterklärung als eigenes Häkchen** im Consent-Gate plus die
+**Alterseinstufung im App Store** (Apple gated darüber die Apple-ID).
+Eine echte Altersverifikation (Ausweis) ist für diese App-Kategorie
+unverhältnismäßig und macht niemand Vergleichbares.
+
+### c) Muss ein PRIVATER Nutzer seinen Traum auf Instagram kennzeichnen?
+
+Antons Instinkt stimmt weitgehend: Der AI-Act nimmt natürliche Personen
+bei „rein persönlicher, nicht beruflicher Tätigkeit" aus (Art. 2), und
+für offensichtlich künstlerisch-kreative Inhalte ist die Offenlegung
+abgeschwächt. **Die Kennzeichnungspflicht aus §2d trifft UNS als
+Anbieter/Betreiber, nicht den privaten Endnutzer.** ABER: Instagram/Meta
+verlangt plattformseitig die Kennzeichnung realistischer KI-Inhalte —
+und erkennt eingebettete Herkunfts-Metadaten (C2PA) automatisch. Genau
+deshalb ist unsere maschinenlesbare Markierung der elegante Weg: Trägt
+unser Export die Marke, kennzeichnet Instagram von selbst, und der
+Nutzer muss gar nichts wissen oder tun. Der Satz dazu steht im
+Consent-Gate („wird beim Teilen so gekennzeichnet") — einlösen müssen
+wir ihn über Punkt 3 der Baull-Liste (§4).
+
+### d) Stand der Umsetzung
+
+**Punkt 1 der Liste aus §4 ist seit 20.08. GEBAUT:** ConsentGate.jsx
+nach der Sprachwahl, vor Onboarding UND App (auch das Stimm-Interview
+sendet Daten), drei eigene Häkchen, nichts vorangekreuzt, Aufklapp-Teil
+mit Anbieter- und Trainingslage, gespeichert als state.consent
+{v, at} (consent.js, CONSENT_VERSION öffnet das Tor bei Textänderungen
+erneut). Offen aus der Liste: 2 (Upload-Zusicherung), 3 (Kennzeichnung),
+4 (Speicherfristen), 5 (DeepSeek), 6 (Dokumente + Anwalt) — dazu ein
+Widerrufsweg im Profil (Art. 7: Widerruf so leicht wie Erteilung).
+
+## 7. Quellen (20.08.2026)
 
 - AI-Act Art. 50 anwendbar seit 02.08.2026, finale Leitlinien 20.07.2026,
   Deepfake-Label auch ohne Täuschungsabsicht, bis 15 Mio. €/3 %:

@@ -521,6 +521,22 @@ export default {
     soundsUnmute: "Activar sonidos para dormir",
   },
 
+  consent: {
+    title: "Antes de tu primer sueño",
+    intro: "Dream Rushes convierte tus palabras y fotos en imágenes y películas — con ayuda de servicios de IA externos. Para eso necesitamos tu permiso, con honestidad y por adelantado:",
+    terms: "Acepto las condiciones de uso y he leído la información de privacidad de abajo.",
+    processing: "Mis textos de sueños y las fotos que subo pueden enviarse a los servicios de IA nombrados abajo (fal.ai, Google, DeepSeek) para crear mis imágenes y películas.",
+    adult: "Tengo 18 años o más.",
+    more: "¿A dónde van mis datos?",
+    details: [
+      "Tu texto del sueño va a fal.ai y a DeepSeek (que ayuda a redactar las instrucciones de imagen). Las fotos subidas van solo a fal.ai y Google. Tu diario se queda en este dispositivo.",
+      "Las imágenes y películas generadas se guardan en nuestro servidor para que la app pueda mostrártelas.",
+      "Entrenamiento: la API de pago de Google no entrena con tus contenidos. La API de pago de DeepSeek no se usa para entrenamiento por defecto. fal.ai puede usar datos de uso anonimizados para mejorar sus servicios.",
+      "Sube solo fotos que tengas derecho a usar — para fotos de otras personas, pídeles permiso antes.",
+      "Todo lo que creas es generado por IA y se marca como tal al compartirlo.",
+    ],
+    cta: "Empezar a soñar",
+  },
   onboarding: {
     tagline: "Cada noche ruedas películas. Empieza a quedártelas.",
     kicker: "el diario de sueños",

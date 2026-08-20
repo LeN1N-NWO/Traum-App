@@ -519,6 +519,22 @@ export default {
     soundsUnmute: "Einschlafgeräusche an",
   },
 
+  consent: {
+    title: "Vor deinem ersten Traum",
+    intro: "Dream Rushes macht aus deinen Worten und Fotos Bilder und Filme — mit Hilfe externer KI-Dienste. Dafür brauchen wir dein Okay, ehrlich und vorab:",
+    terms: "Ich akzeptiere die Nutzungsbedingungen und habe die Datenschutzhinweise unten gelesen.",
+    processing: "Meine Traumtexte und hochgeladenen Fotos dürfen an die unten genannten KI-Dienste (fal.ai, Google, DeepSeek) übermittelt werden, um meine Bilder und Filme zu erzeugen.",
+    adult: "Ich bin mindestens 18 Jahre alt.",
+    more: "Wohin gehen meine Daten?",
+    details: [
+      "Dein Traumtext geht an fal.ai und DeepSeek (hilft beim Formulieren der Bildanweisungen). Hochgeladene Fotos gehen nur an fal.ai und Google. Dein Journal selbst bleibt auf diesem Gerät.",
+      "Gerenderte Bilder und Filme liegen auf unserem Server, damit die App sie dir zeigen kann.",
+      "Training: Googles bezahlte API trainiert nicht mit deinen Inhalten. DeepSeeks bezahlte API wird standardmäßig nicht zum Training genutzt. fal.ai darf anonymisierte Nutzungsdaten zur Verbesserung seiner Dienste verwenden.",
+      "Lade nur Fotos hoch, die du verwenden darfst — bei Fotos anderer Personen frag sie vorher.",
+      "Alles, was du erzeugst, ist KI-generiert und wird beim Teilen so gekennzeichnet.",
+    ],
+    cta: "Träumen beginnen",
+  },
   onboarding: {
     tagline: "Jede Nacht drehst du Filme. Fang an, sie zu behalten.",
     kicker: "das Traumtagebuch",

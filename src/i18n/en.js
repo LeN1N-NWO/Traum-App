@@ -537,6 +537,22 @@ export default {
     soundsUnmute: "Unmute sleep sounds",
   },
 
+  consent: {
+    title: "Before your first dream",
+    intro: "Dream Rushes turns your words and photos into images and films with the help of outside AI services. That needs your okay — honestly, up front:",
+    terms: "I accept the Terms of Use and have read the privacy information below.",
+    processing: "My dream texts and the photos I upload may be sent to the AI services named below (fal.ai, Google, DeepSeek) to create my images and films.",
+    adult: "I am 18 or older.",
+    more: "Where does my data go?",
+    details: [
+      "Your dream text goes to fal.ai and DeepSeek (which helps write the image instructions). Photos you upload go to fal.ai and Google only. Your journal itself stays on this device.",
+      "Rendered images and films are stored on our server so the app can show them to you.",
+      "Training: Google's paid API does not train on your content. DeepSeek's paid API is not used for training by default. fal.ai may use anonymized usage data to improve its services.",
+      "Only upload photos you are allowed to use — for photos of other people, ask them first.",
+      "Everything you create is AI-generated and is marked as such when you share it.",
+    ],
+    cta: "Start dreaming",
+  },
   onboarding: {
     tagline: "Every night you make films. Start keeping them.",
     kicker: "the dream journal",

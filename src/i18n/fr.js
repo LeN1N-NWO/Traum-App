@@ -520,6 +520,22 @@ export default {
     soundsUnmute: "Réactiver les sons d'endormissement",
   },
 
+  consent: {
+    title: "Avant ton premier rêve",
+    intro: "Dream Rushes transforme tes mots et tes photos en images et en films — à l'aide de services d'IA externes. Pour cela, il nous faut ton accord, honnêtement et d'avance :",
+    terms: "J'accepte les conditions d'utilisation et j'ai lu les informations de confidentialité ci-dessous.",
+    processing: "Mes textes de rêve et les photos que je télécharge peuvent être transmis aux services d'IA nommés ci-dessous (fal.ai, Google, DeepSeek) pour créer mes images et mes films.",
+    adult: "J'ai 18 ans ou plus.",
+    more: "Où vont mes données ?",
+    details: [
+      "Ton texte de rêve va à fal.ai et à DeepSeek (qui aide à rédiger les instructions d'image). Les photos téléchargées ne vont qu'à fal.ai et Google. Ton journal reste sur cet appareil.",
+      "Les images et films générés sont stockés sur notre serveur pour que l'appli puisse te les montrer.",
+      "Entraînement : l'API payante de Google n'entraîne pas ses modèles sur tes contenus. L'API payante de DeepSeek n'est pas utilisée pour l'entraînement par défaut. fal.ai peut utiliser des données d'usage anonymisées pour améliorer ses services.",
+      "Ne télécharge que des photos que tu as le droit d'utiliser — pour les photos d'autres personnes, demande-leur d'abord.",
+      "Tout ce que tu crées est généré par IA et est signalé comme tel lors du partage.",
+    ],
+    cta: "Commencer à rêver",
+  },
   onboarding: {
     tagline: "Chaque nuit, tu tournes des films. Commence à les garder.",
     kicker: "le journal de rêves",
