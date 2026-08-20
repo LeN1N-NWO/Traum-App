@@ -119,3 +119,12 @@ Die vier Fragen aus §4, beantwortet über fals eigene OpenAPI-Schemata
 
 **Damit ist §5 nur noch von einem bezahlten Drift-Test (~$0,17) und
 Antons Preisentscheidung abhängig.**
+
+## 7. Der Drift-Test vom 19.08. abends ($0,13) — BESTANDEN
+
+Dreierstrecke mit dem Anton-Charakterbogen als `image_urls`-Referenz
+(Totale Bahnsteig → Fensterbank → Laternen-Nahaufnahme, `media/tests/
+t-lite-1…3.png`): **dasselbe Gesicht in allen dreien**, Mantel und
+Statur konsistent, Bildqualität auf 1K tadellos. Der Vorbehalt aus §4
+ist damit komplett ausgeräumt — §5 hängt nur noch an Antons
+Preisentscheidung (Marge behalten oder weitergeben).

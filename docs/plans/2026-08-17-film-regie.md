@@ -331,3 +331,24 @@ mit diesen drei Werten; checkDirectedPrompt() muss alle drei lesen.
   „Regie" nur teurer, nicht sicher besser. (~$0,30 + $0,97 für je 5 s.)
 - Ob 2.5-R2V die `[Image1]`-Zuordnung so sauber hält wie 2.0 das
   `@Image1` (T1-artiger 4-s-Test @480p, ~$0,88).
+
+### §10c — Die bezahlten Tests vom 19.08. abends ($1,31, Antons Go „step by step")
+
+Alle drei bestanden, Artefakte in `media/tests/` (t-h3r2v-5s.mp4,
+t-25r2v-4s.mp4):
+
+- **H3-R2V** (5 s, 768P, $0,30): der wörtliche T1-Auftrag in
+  „Image 1"-Syntax. Zuordnung stimmt, beide Zeitblöcke getroffen,
+  AAC-Ton, 768×1344. `enable_prompt_expansion: false` gesetzt.
+  **Renderzeit 2:14 — ein Drittel von Seedance.** Qualität auf Augenhöhe
+  mit Seedance-2.0-Fast (t2-fast-4s.mp4 als Vergleich, gleicher Auftrag).
+- **Seedance-2.5-R2V** (4 s, 480p, $0,88): `[Image1]`-Klammern tragen,
+  Aktion und Ton da. Der 30-s-Volltest bleibt bewusst offen (Antons
+  Sparregel) — aber Syntax, Felder und Zuordnung sind bewiesen.
+- **data-URIs** funktionieren in BEIDEN neuen Endpoints.
+
+**Damit ist der Neuzuschnitt aus §10 vollständig entriegelt:** Lebendig →
+H3-R2V (1 Cr/s, bis 5 Referenzen inklusive, 25 % bessere Marge) · Regie →
+muss sich neu rechtfertigen oder wird zur Seedance-Qualitätsstufe ·
+Kino → 2.5-R2V (6 Cr/s, 30 s MIT Referenzen). Nur noch Antons Produkt-Go
+fehlt.
