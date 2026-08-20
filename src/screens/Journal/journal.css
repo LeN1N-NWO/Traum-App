@@ -478,3 +478,65 @@
    (Komponente in components/Storyboard.jsx, Stil in components/storyboard.css
    — hier nur die Einpassung in die Seite). */
 .j-storyboard { margin-block: var(--s-5) 0; }
+
+/* ── Die Kino-Ansicht des Traum-Details (Antons Wahl 20./21.08. aus drei
+   Layout-Varianten): Vollbild-Panels, Untertitel auf dem Bild, gesnappt. */
+
+.j-slimhead { position: relative; padding: var(--s-3) var(--s-4) 0; }
+.j-modal-tools-inline { position: static; display: flex; justify-content: flex-end; gap: var(--s-2); }
+
+/* Punkte unter jeder gesnappten Strecke. */
+.j-dots { display: flex; justify-content: center; gap: 6px; padding-block: var(--s-3); }
+.j-dot { inline-size: 6px; block-size: 6px; border-radius: 50%; background: var(--panel-line); transition: background .2s, transform .2s; }
+.j-dot-on { background: var(--accent-soft); transform: scale(1.3); }
+
+/* ── A · Kino: Vollbild-Panels, Text als Untertitel auf dem Bild. */
+.j-cine { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.j-cine::-webkit-scrollbar { display: none; }
+.j-cine-panel {
+  position: relative; flex: 0 0 100%; scroll-snap-align: center;
+  block-size: min(72vh, 640px); overflow: hidden;
+  margin: 0;   /* figure bringt 40px Seitenrand von Haus aus mit */
+}
+.j-cine-media { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; background: var(--bg2); }
+.j-cine-scrim {
+  position: absolute; inset-inline: 0; inset-block-end: 0; block-size: 55%;
+  background: linear-gradient(to top, rgb(var(--bg-rgb) / .88), rgb(var(--bg-rgb) / 0));
+  pointer-events: none;
+}
+.j-cine-text {
+  position: absolute; inset-inline: 0; inset-block-end: 0; margin: 0;
+  padding: var(--s-4); font-size: 16px; line-height: 1.55;
+  text-shadow: 0 1px 8px rgb(var(--bg-rgb) / .8);
+}
+
+/* ── Die Besetzung mit Gesichtern (CastChips) — ersetzt die @tag-Zeile. */
+.j-cast { margin-block: var(--s-4) 0; }
+.j-cast-label { margin: 0 0 var(--s-2); color: var(--faint); font-size: var(--t-small); letter-spacing: .06em; text-transform: uppercase; }
+.j-cast-row { display: flex; gap: var(--s-3); flex-wrap: wrap; }
+.j-cast-chip { margin: 0; display: flex; flex-direction: column; align-items: center; gap: var(--s-1); }
+.j-cast-face {
+  inline-size: 56px; block-size: 56px; border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--panel-line); background: var(--panel);
+  display: grid; place-items: center; box-shadow: 0 0 0 3px rgb(var(--bg-rgb) / .6);
+}
+.j-cast-initial { color: var(--accent-soft); font-size: 1.2rem; font-weight: 600; }
+.j-cast-name { color: var(--muted); font-size: var(--t-small); }
+
+/* ── Der Ornament-Titel (Antons Wahl 21.08. aus drei Varianten):
+   der KI-erdachte Traumname mittig in der Serifen-Schrift der Karten,
+   ✦-Zierlinie, die Tagline als kursiver kleiner Satz darunter. */
+.j-title-block { text-align: center; padding: var(--s-2) var(--s-4) var(--s-4); }
+.j-title-eyebrow {
+  margin: 0 0 var(--s-2); color: var(--faint); font-size: 11px;
+  letter-spacing: .18em; text-transform: uppercase;
+}
+.j-title-serif {
+  margin: 0; font-family: var(--serif); font-weight: 400;
+  font-size: clamp(30px, 8vw, 42px); line-height: 1.12;
+  letter-spacing: -.015em; text-wrap: balance;
+}
+.j-title-tagline { margin: var(--s-2) 0 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.j-title-tagline-italic { font-style: italic; font-family: var(--serif); font-size: 16px; }
+.j-title-orn { display: flex; align-items: center; justify-content: center; gap: var(--s-3); margin-block-start: var(--s-2); color: var(--gold); font-size: 11px; }
+.j-title-orn::before, .j-title-orn::after { content: ""; block-size: 1px; inline-size: 44px; background: var(--panel-line); }
