@@ -352,3 +352,16 @@ H3-R2V (1 Cr/s, bis 5 Referenzen inklusive, 25 % bessere Marge) · Regie →
 muss sich neu rechtfertigen oder wird zur Seedance-Qualitätsstufe ·
 Kino → 2.5-R2V (6 Cr/s, 30 s MIT Referenzen). Nur noch Antons Produkt-Go
 fehlt.
+
+### §10d — Antons Produkt-Go, 20.08.
+
+**Regie bleibt.** Antons Bedingung dazu: JEDE Stufe ist ein EIGENES
+Modell — keine zwei Stufen auf demselben Endpoint. Der Zuschnitt erfüllt
+das: Lebendig = MiniMax H3-R2V · Regie = Seedance-2.0-Fast-R2V · Kino =
+Seedance-2.5-R2V. Drei Modelle, drei Looks, drei Preise; „Regie" muss
+sich nicht mehr gegen Lebendig rechtfertigen, sondern IST die
+Seedance-Qualitätsstufe mit Director-Brief.
+
+Die Lite-Entscheidung hat Anton an die Charakterbogen-Verrechnung
+geknüpft — Prüfstein und Rechnung stehen in
+2026-08-20-charakterbogen-pflicht.md §7/§8.

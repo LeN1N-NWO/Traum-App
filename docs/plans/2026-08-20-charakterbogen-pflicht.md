@@ -132,3 +132,42 @@ Der Bogen-Preis $0,042 setzt den Lite-Neuzuschnitt voraus
 Entscheidungen (Regie behalten/streichen · Lite-Ersparnis behalten/
 weitergeben). Bis dahin kostete ein Bogen $0,08 auf nano-banana-2, was
 an keiner Empfehlung hier etwas ändert.
+
+## 7. Der Prüfstein vom 20.08. ($0,25, Antons Go „mach erst mal den Test") — BESTANDEN
+
+Aufbau: Lenas Foto (Segelboot-Umgebung) → Bogen nach §5.1 auf Lite →
+dieselbe Quallenlicht-Strecke mit dem BOGEN als Referenz → dazu eine
+Kontrolle: Szene 3 mit identischem Prompt, aber ROHEM Foto, auf demselben
+Modell. Artefakte in `media/tests/` (t-sheet-lena, t-sheetlena-1…3,
+t-ctrl-rawlena-3; die Rohfoto-Strecke vom 19.08. liegt als t-lena-1…3
+daneben).
+
+- **Der Bogen selbst:** ein Aufruf, ein Treffer — grauer Hintergrund,
+  links Ganzkörper, rechts Porträt, Kleid/Hut/Gesicht eindeutig Lena.
+  Der Prompt aus §5.1 funktioniert wörtlich.
+- **Die Strecke über den Bogen:** kein Boot, kein Strand — Szene 1 setzt
+  Lena in die Riesenrad-Gondel (samt zweiter Figur für „ich"), Szene 2
+  hält die Lachen-Nahaufnahme, Szene 3 erfindet eine neutrale Traumkulisse
+  unter dem Wal. Die Ähnlichkeit hält, obwohl der Bogen schon eine
+  GENERATION vom Originalfoto entfernt ist — der Umweg kostet keine
+  erkennbare Identität.
+- **Die Kontrolle beweist die Ursache:** gleicher Prompt, rohes Foto →
+  wieder eine Meer/Strand-Kulisse aus dem Referenzfoto (am 19.08. auf
+  nano-banana-2 war es ein wörtliches Segelboot). Der Bleed folgt dem
+  FOTO, nicht dem Modell — und der Bogen unterbindet ihn.
+- **Fußnote:** Der Kontroll-Aufruf mit dem rohen Foto wurde von fals
+  Content-Checker EINMAL abgelehnt (422, zweiter Versuch lief durch).
+  Die Bogen-Aufrufe wurden nie beanstandet — neutrale Bögen sind auch
+  gegenüber Filtern die berechenbarere Referenz.
+
+## 8. Die Verrechnung, nach der Anton gefragt hat
+
+Antons Bedingung für die Lite-Entscheidung: „hängt davon ab, ob wir das
+gut mit diesen Charakter-Dingen verrechnen können." Die Rechnung ist
+kurz: **Lite spart $0,038 je Bild ($0,08 → $0,042); ein Bogen kostet
+einmalig $0,042 je Figur. Schon das ERSTE Bild einer Figur auf Lite
+spart den Bogen fast vollständig wieder ein** — jedes weitere ist
+Reingewinn. Vorschlag daraus: Preise und Credits bleiben für den Kunden
+exakt wie heute (Marge behalten), und aus der Lite-Ersparnis werden die
+Gratis-Bögen finanziert — mit deutlichem Rest, der als Sicherheitsmarge
+bleibt. Die Kopfrechenregel „1 Credit = 1 Bild" bleibt unangetastet.
