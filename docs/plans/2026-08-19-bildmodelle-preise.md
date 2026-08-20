@@ -97,3 +97,25 @@ Hausregel: **nie auf geratene Feldnamen bezahlt rendern.**
   eindeutig — „Modellpreise an den Endkunden weitergeben, wie sie sind" —
   aber die Credit-Definition hängt mit dem Filmpreis zusammen und will
   bewusst entschieden werden, nicht nebenbei.
+
+## 6. GEMESSEN 19.08. abends (fal-OpenAPI, dieser Rechner)
+
+Die vier Fragen aus §4, beantwortet über fals eigene OpenAPI-Schemata
+(`…?endpoint_id=google/nano-banana-2-lite/edit`):
+
+1. **`google/nano-banana-2-lite/edit` EXISTIERT** — fals Modellliste
+   („Text to Image") war unvollständig, nicht das Angebot.
+2. **Er nimmt `image_urls`** (Array), dazu `aspect_ratio` inkl. 9:16 und
+   16:9, `num_images` 1–4. Der Referenz-Pfad ist also da — der Vorbehalt
+   aus §4 ist vom Tisch.
+3. **Identitätsdrift bleibt die offene Frage** — das kann kein Schema
+   beantworten. Bezahlter Test: eine Dreierstrecke mit Charakterbogen
+   (~$0,17), Gesicht gegen nano-banana-2 halten.
+4. **Preis auf fal: ~$0,042/Bild** (1120 Ausgabe-Tokens × $37,50/1M) —
+   nicht die $0,0336 aus §1; das war Googles Direktpreis. Immer noch
+   **47 % unter** unseren $0,08. Ausgabe fest 1K.
+   Und nano-banana-2 bestätigt: 2K = 1,5× ($0,12), 4K = 2× ($0,16),
+   0.5K = 0,75× ($0,06) — die Staffel aus §3 stimmt.
+
+**Damit ist §5 nur noch von einem bezahlten Drift-Test (~$0,17) und
+Antons Preisentscheidung abhängig.**

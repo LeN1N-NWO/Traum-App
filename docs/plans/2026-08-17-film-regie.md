@@ -291,3 +291,43 @@ Preislogik fal-seitig (Learn-Artikel, am Validator zu bestätigen):
 berechnet wird je Sekunde AUSGABE ($0,06/s @768p) PLUS je Referenz-Input —
 Bilder 1–5 kostenlos, ab dem 6. je $0,08; Video-Referenzen $0,26/s
 Eingabematerial; Audio-Referenzen kostenlos.
+
+### §10b — GEMESSEN 19.08. abends (fal-OpenAPI-Schemata, dieser Rechner)
+
+Der Messauftrag aus §10 ist erledigt — nicht am Validator, sondern eine
+Stufe verlässlicher: fal veröffentlicht je Endpoint ein OpenAPI-Schema
+(`fal.ai/api/openapi/queue/openapi.json?endpoint_id=…`). Das sind die
+Feldnamen, gegen die der Validator selbst prüft.
+
+**`minimax/h3/reference-to-video` (Schema gelesen):**
+- `reference_image_urls` — **nicht** `image_urls`! — max **9**; dazu
+  `reference_video_urls` (max 3) und `reference_audio_urls` (max 3),
+  zusammen höchstens 12 Dateien.
+- `duration` 5–15 (Ganzzahl, Vorgabe 5) · `resolution` `"480P" | "768P" |
+  "2K" | "4K"` — **Vorgabe ist „2K"**, wir müssen 768P ausdrücklich
+  setzen, sonst zahlen wir $0,13/s statt $0,06/s.
+- `aspect_ratio` `"adaptive"` (Vorgabe) … `"9:16"` ✓.
+- ⚠ `enable_prompt_expansion` steht **standardmäßig AN** — fremde
+  Umformulierung unserer Regie-Prompts. Beim Umbau ausdrücklich `false`.
+- **Adressierung: schlicht „Image 1", „Image 2"** — §10a lag falsch:
+  kein `<Picture N>`, kein `subject_definitions`-Block auf fal. (Die
+  HuggingFace-Doku beschreibt die MiniMax-eigene API, nicht fals Fassung.)
+
+**`bytedance/seedance-2.5/reference-to-video` (Modellseite + Schema):**
+- Existiert: `image_urls`, **4–30 s**, bis 50 Referenz-Dateien,
+  `generate_audio` (Vorgabe true), 9:16 ✓.
+- Preis: **$0,473/s @720p — identisch zum Ein-Bild-2.5.** Referenzen
+  kosten dort nichts extra. ceil → dieselben 6 Credits/s.
+- Adressierung laut Schema: **`[Image1]` in eckigen Klammern.**
+- **Folge: T5 (Verkettung) ist tot.** „30 s MIT echten Gesichtern" ist
+  ein Endpoint, kein Experiment.
+
+**Drei Syntaxfamilien, endgültig:** Seedance 2.0 `@Image1` · Seedance 2.5
+`[Image1]` · H3 „Image 1". Der `refStyle` aus §10a bleibt richtig, nur
+mit diesen drei Werten; checkDirectedPrompt() muss alle drei lesen.
+
+**Was WEITER ungemessen ist (kostet Geld, auf Antons Go):**
+- Qualität H3-R2V @768P gegen Seedance-2.0-Fast — ohne den Vergleich ist
+  „Regie" nur teurer, nicht sicher besser. (~$0,30 + $0,97 für je 5 s.)
+- Ob 2.5-R2V die `[Image1]`-Zuordnung so sauber hält wie 2.0 das
+  `@Image1` (T1-artiger 4-s-Test @480p, ~$0,88).
