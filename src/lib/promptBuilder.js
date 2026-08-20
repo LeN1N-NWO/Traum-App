@@ -200,3 +200,39 @@ export function buildCharacterPrompt({ desc, category = "person" }) {
     "Do not add props, weather, story or mood — this is a reference sheet, not a scene.",
   ].join(" ");
 }
+
+/* Der Bogen aus einem FOTO — die Umkehrung von buildCharacterPrompt: dort
+ * erschafft eine Beschreibung die Figur, hier wird eine vorhandene
+ * normalisiert. Warum überhaupt, steht im Plan (2026-08-20-charakterbogen-
+ * pflicht.md) und ist bezahlt bewiesen: Ein Foto mit Umgebung blutet seine
+ * Umgebung in jede Szene (Lenas Segelboot, 19./20.08.); derselbe Auftrag
+ * über den Bogen ist sauber, und die Ähnlichkeit hält trotz der einen
+ * Generation Abstand. Der Wortlaut hier IST der getestete Prompt des
+ * Prüfsteins (§7), nur die Gattung ist parametrisiert.
+ *
+ * Orte bekommen absichtlich KEINEN Bogen — ein Ort ist seine Umgebung, ihn
+ * zu neutralisieren löschte genau das, was referenziert werden soll. Der
+ * Aufrufer filtert; kommt trotzdem "place" an, gilt die Personenform, denn
+ * ein grauer Bogen ist immer noch besser als ein ungeprüfter Durchlauf.
+ *
+ * `desc` legt die Garderobe EINMAL im Bogen fest statt in jedem Bild neu —
+ * dieselbe Anti-Drift-Linie wie beim Regisseur (keine erfundene Garderobe). */
+export function buildSheetFromPhotoPrompt({ desc, category = "person" } = {}) {
+  const clean = String(desc || "").trim();
+  const panels = category === "pet"
+    ? "left panel the whole animal standing, side-on to three-quarter view; "
+      + "right panel a close view of its head, eyes clearly visible. "
+      + "Same animal, same likeness, same coat in both panels."
+    : "left panel the full body standing, facing the camera; "
+      + "right panel a head-and-shoulders portrait, neutral expression, eyes open and visible. "
+      + "Same person, same likeness, same outfit in both panels.";
+
+  return [
+    `Reference sheet of the ${category === "pet" ? "animal" : "person"} shown in reference image 1, `
+      + `split into two panels side by side: ${panels}`,
+    clean ? `Look and wardrobe: ${clean}. Depict exactly this in both panels.` : "",
+    "Plain mid-grey background in both panels, even soft lighting, no shadows cast on the background.",
+    "Sharp focus, natural colour, photographic. No text, no logos, no border decorations.",
+    "Do not add props, scenery, weather, story or mood — this is a reference sheet, not a scene.",
+  ].filter(Boolean).join(" ");
+}

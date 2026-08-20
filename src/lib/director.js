@@ -34,6 +34,21 @@ AUDIO — ambient sound and effects only; no speech, no subtitles, no music unle
 
 Introduce no new people, objects or places that are not visible in the still. Never quote the dream's original wording in any language — no written text may appear in the frame. Write concrete physical language over poetry and desired visual outcomes over camera hardware. Where a style anchor is given, weave its colour, light and texture in after the control blocks — never let it override the optics or lighting you just set. Close with a short line asking for sharp clarity, natural colour and a stable picture. Output only the prompt.`;
 
+/* Drei Adressformate, eine Invariante. Wie ein Videomodell eine Referenz im
+ * Prompt angesprochen haben will, ist eine Familieneigenschaft (gemessen
+ * 19.08.2026 an fals OpenAPI-Schemata, Filmplan §10b):
+ *   "at"      → @Image1    (Seedance 2.0)
+ *   "bracket" → [Image1]   (Seedance 2.5)
+ *   "plain"   → Image 1    (MiniMax H3)
+ * Der Wert steht in der Modelltabelle (video.js, refStyle) — hier lebt nur
+ * die Übersetzung, damit Brief, Anweisung und Prüfung dieselbe benutzen und
+ * nie auseinanderlaufen können. */
+export function refHandle(refStyle, n) {
+  if (refStyle === "bracket") return `[Image${n}]`;
+  if (refStyle === "plain") return `Image ${n}`;
+  return `@Image${n}`;
+}
+
 /* Für Referenz-Modelle (Regie, Seedance R2V): das volle Programm mit
  * @ImageN-Verweisen.
  *
@@ -51,12 +66,19 @@ Introduce no new people, objects or places that are not visible in the still. Ne
  *   Erstes Bild — „enthält die Figuren" ist schwächer als der ausdrückliche
  *     Ausschluss von Establisher und verzögertem Auftritt.
  * POSITIVE CONSTRAINTS bleibt bewusst draußen: das Original nennt es selbst
- * optional und rät zu lokalen Sperren statt eines Schlussblocks. */
-export const DIRECTOR_FULL = `You are the film director for a dream-film renderer. From the dream and the materials below, write ONE production-ready video prompt in clear cinematic English. Describe only what is visible or audible in this single shot sequence — no scene numbers, no references to other shots, no text overlays, and never quote the dream's original wording in any language.
+ * optional und rät zu lokalen Sperren statt eines Schlussblocks.
+ *
+ * Seit 20.08. eine Funktion statt einer Konstante: Die Anweisung nennt das
+ * Adressformat der Referenzen, und das ist je Modellfamilie verschieden
+ * (refHandle). DIRECTOR_FULL bleibt als @Image-Fassung exportiert — für
+ * Tests und als das Format, in dem die Anweisung geschrieben wurde. */
+export function directorFull(refStyle = "at") {
+  const handle = refHandle(refStyle, "N");
+  return `You are the film director for a dream-film renderer. From the dream and the materials below, write ONE production-ready video prompt in clear cinematic English. Describe only what is visible or audible in this single shot sequence — no scene numbers, no references to other shots, no text overlays, and never quote the dream's original wording in any language.
 
 Structure the prompt as short labeled blocks, in this order:
 SCENE CONTEXT — one or two sentences: what happens in this shot only.
-ACTIVE REFERENCES — one line per provided reference, addressed by its @ImageN handle, built as: type + current state + the visible anchors that must match. Close every line with a statement that the subject matches its reference exactly. Describe nothing a reference line does not give you — no invented clothing, props or features. Leave out any reference that does not appear in this shot.
+ACTIVE REFERENCES — one line per provided reference, addressed by its ${handle} handle exactly as written in the materials, built as: type + current state + the visible anchors that must match. Close every line with a statement that the subject matches its reference exactly. Describe nothing a reference line does not give you — no invented clothing, props or features. Leave out any reference that does not appear in this shot.
 LOCATION MAP — before placing anyone, fix the geography: where the camera stands and which way it faces, what occupies foreground, midground and background, where the landmarks sit, and which way the light comes from. Every distance in the next block refers to this map.
 FIRST FRAME AND BLOCKING — the first visible frame already contains every required subject in position, readable immediately. No empty establishing frame, no delayed entrance. Give each subject a screen position, a distance to a landmark in meters or by physical contact, and body facing and gaze direction as two separate statements.
 FORMAT — a single continuous take by default. Use two or three hard cuts only if the beats demand it, and then restate positions, gaze lines and lighting direction after every cut. Hard cuts only — no fades, dissolves or transition effects.
@@ -68,6 +90,9 @@ LIGHTING — treat light as a constraint, not as decoration: the primary source 
 AUDIO — ambient sound and effects only; no speech, no subtitles, no music unless the dream itself contains it.
 
 Write concrete physical language over poetry, measurable positions over vague nearness, and desired visual outcomes over camera hardware. Where a style anchor is given, weave its colour, light and texture in after the control blocks — never let it override the optics, blocking or lighting you just set. Close with a short line asking for sharp clarity, natural colour and a stable picture. Output only the prompt.`;
+}
+
+export const DIRECTOR_FULL = directorFull("at");
 
 /**
  * Die Materialliste für den Regisseur — der User-Teil des Aufrufs.
@@ -100,8 +125,12 @@ Write concrete physical language over poetry, measurable positions over vague ne
  *   promptMax) — dem Regisseur genannt, statt seine Antwort still zu kappen:
  *   ein Modell, das sein Limit kennt, priorisiert selbst; ein abgeschnittener
  *   Prompt verliert immer das Ende, also Auflösung und Ton.
+ * @param {string} [p.refStyle]   Adressformat des Zielmodells (refHandle)
+ * @param {number} [p.maxRefs]    wie viele Bildreferenzen das Modell nimmt —
+ *   stand bis 20.08. als „9" fest im Text und hätte H3 (5) angelogen
  */
-export function buildDirectorBrief({ dream, still, beats = [], refs = [], seconds, audio, style, promptBudget }) {
+export function buildDirectorBrief({ dream, still, beats = [], refs = [], seconds, audio, style, promptBudget, refStyle = "at", maxRefs = 9 }) {
+  const h1 = refHandle(refStyle, 1);
   const parts = [
     `THE DREAM (in its original language; the film must depict it, your prompt is English):\n"${dream}"`,
   ];
@@ -125,18 +154,19 @@ export function buildDirectorBrief({ dream, still, beats = [], refs = [], second
   }
   if (still) {
     parts.push(refs.length
-      /* Bei Referenz-Modellen IST dieses Bild @Image1. Ohne den Zusatz läse
-         das Modell zwei getrennte Materialien, wo nur eines existiert. */
-      ? `WHAT @Image1 SHOWS (the already-rendered opening still — this is the same picture as the first reference below):\n${still}`
+      /* Bei Referenz-Modellen IST dieses Bild die erste Referenz. Ohne den
+         Zusatz läse das Modell zwei getrennte Materialien, wo nur eines
+         existiert. */
+      ? `WHAT ${h1} SHOWS (the already-rendered opening still — this is the same picture as the first reference below):\n${still}`
       : `THE STILL the film starts from (already rendered):\n${still}`);
   }
   if (refs.length) {
     const lines = refs.map((r, i) =>
-      `@Image${i + 1} — ${r.kind || "person"} "${r.tag}"${r.desc ? `: ${r.desc}` : ""}`);
-    parts.push(`REFERENCES (address by handle; use each only where it appears):\n${lines.join("\n")}`);
+      `${refHandle(refStyle, i + 1)} — ${r.kind || "person"} "${r.tag}"${r.desc ? `: ${r.desc}` : ""}`);
+    parts.push(`REFERENCES (address by handle, written exactly as shown; use each only where it appears):\n${lines.join("\n")}`);
   }
   parts.push(`DURATION: ${seconds} seconds.` +
-    (refs.length ? ` MODEL: supports up to 9 image references${audio ? ", native ambient audio" : ""}, controlled multi-shot with restated continuity.`
+    (refs.length ? ` MODEL: supports up to ${maxRefs} image references${audio ? ", native ambient audio" : ""}, controlled multi-shot with restated continuity.`
                  : audio ? " MODEL: renders native ambient audio." : "") +
     /* Das Budget stammt aus video.js (promptMax je Modell). Mit etwas Luft
        genannt, damit „knapp drüber" nicht schon in die Servernotbremse
@@ -186,15 +216,24 @@ export function filmReferences(cast = [], slots = 8) {
 
 /**
  * Die mechanische Prüfung der Regisseur-Antwort — Modellausgabe ist so
- * untrusted wie Nutzereingabe. Ein @ImageN über die Referenzzahl hinaus
+ * untrusted wie Nutzereingabe. Ein Handle über die Referenzzahl hinaus
  * heißt: Das Modell hat eine Referenz halluziniert, und das Videomodell
  * würde sie durch IRGENDEIN Bild füllen. Dann lieber der Rückfall.
  *
+ * Geprüft wird in JEDER Syntaxfamilie, nicht nur der des Zielmodells: ein
+ * @Image7 in einem [ImageN]-Prompt ist genauso ein Halluzinationsbeweis —
+ * das Zielmodell läse ihn zwar als Text, aber der Regisseur hat dann über
+ * Material geschrieben, das es nicht gibt, und der Prompt lügt.
+ * „plain" ist bewusst eng gefasst (Großes I, genau ein Leerzeichen), damit
+ * normale Prosa wie "images" nie zur Fehlprüfung wird.
+ *
  * @returns {{ok: boolean, used: number[], bad: number[]}}
  */
+const HANDLE_PATTERNS = [/@Image(\d+)/g, /\[Image(\d+)\]/g, /\bImage (\d+)\b/g];
 export function checkDirectedPrompt(text, refCount) {
-  const used = [...new Set([...String(text || "").matchAll(/@Image(\d+)/g)].map((m) => Number(m[1])))];
+  const s = String(text || "");
+  const used = [...new Set(HANDLE_PATTERNS.flatMap((re) => [...s.matchAll(re)].map((m) => Number(m[1]))))];
   const bad = used.filter((n) => n < 1 || n > refCount);
-  const ok = Boolean(String(text || "").trim()) && bad.length === 0;
+  const ok = Boolean(s.trim()) && bad.length === 0;
   return { ok, used, bad };
 }

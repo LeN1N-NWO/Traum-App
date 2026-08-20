@@ -173,6 +173,35 @@ test("an unknown category still yields a usable prompt", () => {
   expect(buildCharacterPrompt({ desc: "x", category: "spaceship" })).toContain("x");
 });
 
+/* Der Bogen aus einem FOTO — der Wortlaut ist der bezahlte Prüfstein vom
+   20.08. (Plan charakterbogen-pflicht §7: Segelboot weg, Ähnlichkeit hält).
+   Was hier festgenagelt wird, sind die Eigenschaften, an denen der Test
+   hing: geteiltes Bild, grauer Grund, keine Szene. */
+import { buildSheetFromPhotoPrompt } from "./promptBuilder.js";
+
+test("the photo sheet asks for two panels on grey, not a scene", () => {
+  const p = buildSheetFromPhotoPrompt({ category: "person" });
+  expect(p).toContain("reference image 1");
+  expect(p).toContain("two panels");
+  expect(p.toLowerCase()).toContain("full body");
+  expect(p.toLowerCase()).toContain("head-and-shoulders");
+  expect(p.toLowerCase()).toContain("mid-grey background");
+  expect(p.toLowerCase()).toContain("not a scene");
+});
+
+test("the photo sheet fixes wardrobe once, from the description", () => {
+  const p = buildSheetFromPhotoPrompt({ desc: "wearing a red coat", category: "person" });
+  expect(p).toContain("wearing a red coat");
+  // Ohne Beschreibung keine leere Garderoben-Floskel.
+  expect(buildSheetFromPhotoPrompt({ category: "person" }).includes("Look and wardrobe")).toBe(false);
+});
+
+test("pets get their own panel framing", () => {
+  const p = buildSheetFromPhotoPrompt({ category: "pet" });
+  expect(p.toLowerCase()).toContain("whole animal");
+  expect(p.toLowerCase()).toContain("head");
+});
+
 /* Der Bildprompt dient dem Regisseur als Beschreibung des Startbilds — aber
    seine Referenzklauseln zählen anders als das Videomodell (@Image1 ist dort
    IMMER das Startbild). Ungefiltert nebeneinander vertauschen die beiden

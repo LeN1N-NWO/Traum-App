@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useAppState } from "../state/AppState.jsx";
 import { genId } from "../lib/storage.js";
 import { characterSheet, mediaUrl } from "../lib/api.js";
+import { compactDataUrl } from "../lib/sheets.js";
 import { PRICES } from "../lib/pricing.js";
 import { spend, canAfford } from "../lib/credits.js";
 import { t } from "../i18n/index.js";
@@ -78,7 +79,11 @@ export default function AvatarDialog({
     setDrawing(true);
     try {
       const url = await characterSheet({ desc: text, category: existing?.category || category });
-      setImage(mediaUrl(url));
+      /* Als data:-URI gespeichert, nicht als /media/-Pfad: Cast-Bilder gehen
+         später WÖRTLICH als image_urls zu fal, und ein /media/-Pfad zeigt auf
+         diesen Rechner — fal hätte die gezeichnete Figur nie laden können.
+         Gefunden 20.08. beim Bau der Bogen-Pflicht (dieselbe Fehlerklasse). */
+      setImage(await compactDataUrl(mediaUrl(url)));
       update(spend(state, sheetPrice));
     } catch (err) {
       toast(`⚠ ${err.message}`);

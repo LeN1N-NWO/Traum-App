@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { buildDirectorBrief, checkDirectedPrompt, DIRECTOR_MOTION, DIRECTOR_FULL } from "./director.js";
+import { buildDirectorBrief, checkDirectedPrompt, DIRECTOR_MOTION, DIRECTOR_FULL, directorFull, refHandle } from "./director.js";
 
 /* Die Prüfung existiert, weil Modellausgabe so untrusted ist wie
    Nutzereingabe: Ein @ImageN über die Referenzzahl hinaus ist eine
@@ -20,10 +20,31 @@ test("a hallucinated reference index fails, and says which", () => {
 });
 
 test("with zero references, any @Image mention fails", () => {
-  // Ein-Bild-Modelle (Lebendig, Kino) haben kein image_urls-Array — jedes
+  // Der Bewegungs-Pfad (DIRECTOR_MOTION) hat kein Referenz-Array — jedes
   // @Image dort wäre eine Anweisung ins Leere.
   expect(checkDirectedPrompt("@Image1 appears.", 0).ok).toBe(false);
   expect(checkDirectedPrompt("The curtains move slowly.", 0).ok).toBe(true);
+});
+
+/* Seit dem Neuzuschnitt vom 20.08. spricht jede Stufe ihre eigene Syntax
+   (Filmplan §10b: @Image1 / [Image1] / „Image 1") — die Prüfung liest alle
+   drei, denn eine halluzinierte Referenz ist in jeder Schreibweise dieselbe
+   Lüge über nicht vorhandenes Material. */
+test("bracket and plain handles are checked like @-handles", () => {
+  expect(checkDirectedPrompt("[Image1] stands left, [Image2] behind.", 2).ok).toBe(true);
+  expect(checkDirectedPrompt("[Image1] walks toward [Image4].", 3).bad).toEqual([4]);
+  expect(checkDirectedPrompt("The woman from Image 1 enters the room from Image 2.", 2).ok).toBe(true);
+  expect(checkDirectedPrompt("The woman from Image 7 enters.", 2).bad).toEqual([7]);
+});
+
+test("a hallucinated handle in a FOREIGN syntax still fails", () => {
+  // Ein @Image9 in einem [ImageN]-Prompt liest das Zielmodell zwar als Text —
+  // aber der Regisseur hat dann über Material geschrieben, das es nicht gibt.
+  expect(checkDirectedPrompt("[Image1] turns while @Image9 waits.", 2).ok).toBe(false);
+});
+
+test("plain matching stays narrow — ordinary prose never trips it", () => {
+  expect(checkDirectedPrompt("The images blur; three images of light pass by.", 0).ok).toBe(true);
 });
 
 test("an empty answer never passes", () => {
@@ -215,6 +236,36 @@ test("both briefs ask for the style anchor without letting it override control",
     expect(d).toMatch(/style anchor/i);
     expect(d).toMatch(/never let it override/i);
   }
+});
+
+/* Brief und Anweisung müssen DIESELBE Syntax sprechen wie das bestellte
+   Modell — sonst schreibt der Regisseur @Image1 und H3 liest Prosa. */
+test("the brief numbers references in the target model's syntax", () => {
+  const refs = [{ tag: "keyframe", kind: "opening still" }, { tag: "anton", kind: "person" }];
+  const plain = buildDirectorBrief({ dream: "x", still: "a room", refs, seconds: 6, refStyle: "plain" });
+  expect(plain).toContain('Image 1 — opening still "keyframe"');
+  expect(plain).toContain('Image 2 — person "anton"');
+  expect(plain).toContain("WHAT Image 1 SHOWS");
+  expect(plain.includes("@Image")).toBe(false);
+
+  const bracket = buildDirectorBrief({ dream: "x", refs, seconds: 6, refStyle: "bracket" });
+  expect(bracket).toContain('[Image1] — opening still "keyframe"');
+  expect(bracket.includes("@Image")).toBe(false);
+});
+
+test("directorFull names the handle format of its family", () => {
+  expect(directorFull("at")).toContain("@ImageN handle");
+  expect(directorFull("bracket")).toContain("[ImageN] handle");
+  expect(directorFull("plain")).toContain("Image N handle");
+  expect(refHandle("bracket", 3)).toBe("[Image3]");
+});
+
+/* Das Referenzbudget im Brief kommt aus der Modelltabelle — die alte feste
+   „9" hätte H3 (5 Plätze) systematisch angelogen. */
+test("the brief states the ordered model's own reference budget", () => {
+  const refs = [{ tag: "keyframe", kind: "opening still" }];
+  expect(buildDirectorBrief({ dream: "x", refs, seconds: 6, maxRefs: 5 }))
+    .toContain("up to 5 image references");
 });
 
 /* filmReferences trägt die Reihenfolge-Invariante: Listenposition =

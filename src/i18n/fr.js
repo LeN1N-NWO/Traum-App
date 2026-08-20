@@ -406,17 +406,17 @@ export default {
         standard: {
           name: "Vivant", hint: "ton image commence à bouger · 1 crédit par seconde",
           model: "MiniMax H3 · 768p",
-          info: "Le niveau accessible : il anime votre image de départ de façon convaincante, son inclus, pour un crédit par seconde. Dans ce niveau, vos personnages apparaissent tels qu'ils sont dans ce seul cadre, et les films s'arrêtent à 15 secondes.",
+          info: "Le niveau accessible : il anime votre image de départ de façon convaincante, son inclus, pour un crédit par seconde — et vos photos de référence l'accompagnent désormais (jusqu'à quatre en plus de l'image de départ), pour que les vrais visages restent eux-mêmes. Les films s'arrêtent à 15 secondes.",
         },
         director: {
           name: "Réalisé", hint: "les vrais visages et lieux, avec le son · 4 crédits par seconde",
           model: "Seedance 2.0 · 720p",
-          info: "Ce niveau emporte vos photos de référence dans le film — jusqu'à neuf, pour que les vrais visages et lieux restent eux-mêmes à chaque coupe, avec le son. Quatre crédits par seconde ; plafond à 15 secondes.",
+          info: "Ce niveau emporte vos photos de référence dans le film — jusqu'à huit en plus de l'image de départ, pour que les vrais visages et lieux restent eux-mêmes à chaque coupe, avec le son. Quatre crédits par seconde ; plafond à 15 secondes.",
         },
         premium: {
           name: "Cinéma", hint: "jusqu'à 30 secondes en un seul plan, avec le son · 6 par seconde",
           model: "Seedance 2.5 · 720p",
-          info: "La plus longue histoire : un plan continu de 30 secondes au plus, avec son et minutage à la seconde. Dans ce niveau, le film naît d'une seule image de départ — et c'est le plus cher des trois.",
+          info: "La plus longue histoire : un plan continu de 30 secondes au plus, avec son et minutage à la seconde — et vos photos de référence restent dans le film du début à la fin. C'est le plus cher des trois.",
         },
       },
       aboutModel: "À propos de ce modèle",
@@ -431,6 +431,7 @@ export default {
                   "avec ce titre dessus. Efface le titre si tu préfères juste des images de scène.",
       generate: "Le créer",
       progress: (done, total) => `${done} sur ${total} terminées`,
+      preparingRef: (tag) => `Préparation de @${tag}…`,
       summaryImages: (n) => `${n} images dans une séquence continue.`,
       summaryPreview: (n) => `Un aperçu rapide : ${n} images plus petites issues d'un seul rendu.`,
       summaryFilm: "Une image fixe, prenant vie.",
@@ -519,6 +520,22 @@ export default {
     soundsUnmute: "Réactiver les sons d'endormissement",
   },
 
+  consent: {
+    title: "Avant ton premier rêve",
+    intro: "Dream Rushes transforme tes mots et tes photos en images et en films — à l'aide de services d'IA externes. Pour cela, il nous faut ton accord, honnêtement et d'avance :",
+    terms: "J'accepte les conditions d'utilisation et j'ai lu les informations de confidentialité ci-dessous.",
+    processing: "Mes textes de rêve et les photos que je télécharge peuvent être transmis aux services d'IA nommés ci-dessous (fal.ai, Google, DeepSeek) pour créer mes images et mes films.",
+    adult: "J'ai 18 ans ou plus.",
+    more: "Où vont mes données ?",
+    details: [
+      "Ton texte de rêve va à fal.ai et à DeepSeek (qui aide à rédiger les instructions d'image). Les photos téléchargées ne vont qu'à fal.ai et Google. Ton journal reste sur cet appareil.",
+      "Les images et films générés sont stockés sur notre serveur pour que l'appli puisse te les montrer.",
+      "Entraînement : l'API payante de Google n'entraîne pas ses modèles sur tes contenus. L'API payante de DeepSeek n'est pas utilisée pour l'entraînement par défaut. fal.ai peut utiliser des données d'usage anonymisées pour améliorer ses services.",
+      "Ne télécharge que des photos que tu as le droit d'utiliser — pour les photos d'autres personnes, demande-leur d'abord.",
+      "Tout ce que tu crées est généré par IA et est signalé comme tel lors du partage.",
+    ],
+    cta: "Commencer à rêver",
+  },
   onboarding: {
     tagline: "Chaque nuit, tu tournes des films. Commence à les garder.",
     kicker: "le journal de rêves",

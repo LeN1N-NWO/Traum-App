@@ -32,13 +32,33 @@ test("price and order agree on the seconds, for every model", () => {
 
 test("each model orders at its own address with its own resolution", () => {
   const std = videoSubmitBody("standard", { imageUrl: "img", prompt: "p", seconds: 6 });
-  expect(std.slug).toBe("minimax/h3/image-to-video");
+  expect(std.slug).toBe("minimax/h3/reference-to-video");
+  /* "768P" ist Geld, nicht Geschmack: die Schema-Vorgabe ist "2K" und
+     kostet $0,13/s statt $0,06/s (Filmplan §10b). */
   expect(std.body.resolution).toBe("768P");
 
   const prem = videoSubmitBody("premium", { imageUrl: "img", prompt: "p", seconds: 30 });
-  expect(prem.slug).toBe("bytedance/seedance-2.5/image-to-video");
+  expect(prem.slug).toBe("bytedance/seedance-2.5/reference-to-video");
   expect(prem.body.resolution).toBe("720p");
   expect(prem.body.duration).toBe(30);
+});
+
+/* Antons Bedingung zum Neuzuschnitt (§10d): jede Stufe ein EIGENES Modell.
+   Zwei Stufen auf demselben Endpoint wären eine Preisliste, die zweimal
+   dasselbe verkauft. */
+test("every tier orders from a different model", () => {
+  const slugs = VIDEO_MODELS.map((m) => m.slug);
+  expect(new Set(slugs).size).toBe(slugs.length);
+});
+
+/* H3 formuliert Prompts standardmäßig selbst um (enable_prompt_expansion
+   steht im Schema AN) — bliebe das an, überschriebe ein fremdes Modell die
+   Arbeit unseres Regisseurs. Seedance kennt den Parameter nicht, und ein
+   unbekanntes Feld kann einen bezahlten Auftrag kosten. */
+test("prompt expansion is switched off exactly where it exists", () => {
+  expect(videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6 }).body.enable_prompt_expansion).toBe(false);
+  expect("enable_prompt_expansion" in videoSubmitBody("director", { imageUrl: "x", prompt: "p", seconds: 6 }).body).toBe(false);
+  expect("enable_prompt_expansion" in videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 6 }).body).toBe(false);
 });
 
 /* minimax kennt generate_audio nicht — ein unbekanntes Feld kann bei einem
@@ -49,11 +69,12 @@ test("generate_audio goes only where the parameter exists", () => {
   expect(videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 15 }).body.generate_audio).toBe(true);
 });
 
-/* Das Referenzmodell bestellt mit einem ARRAY, die Ein-Bild-Modelle mit
-   einem FELD — und keins verzeiht das andere. Der nano-banana-Vorfall vom
-   07.08. (image_urls still ignoriert, gesichtslose Renders tagelang
-   bezahlt) ist die Fehlerklasse, die diese Zeilen fernhalten. */
-test("the reference model orders with image_urls, keyframe first, capped at 9", () => {
+/* Referenzmodelle bestellen mit einem ARRAY — und der Array-NAME ist selbst
+   Modellwissen: H3 will reference_image_urls, Seedance will image_urls, und
+   keins versteht das jeweils andere. Der nano-banana-Vorfall vom 07.08.
+   (image_urls still ignoriert, gesichtslose Renders tagelang bezahlt) ist
+   die Fehlerklasse, die diese Zeilen fernhalten. */
+test("seedance orders with image_urls, keyframe first, capped at 9", () => {
   const got = videoSubmitBody("director", {
     imageUrl: "keyframe",
     imageUrls: ["keyframe", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j"],
@@ -61,20 +82,39 @@ test("the reference model orders with image_urls, keyframe first, capped at 9", 
   });
   expect(got.slug).toBe("bytedance/seedance-2.0/fast/reference-to-video");
   expect("image_url" in got.body).toBe(false);
+  expect("reference_image_urls" in got.body).toBe(false);
   expect(got.body.image_urls.length).toBe(9);
   expect(got.body.image_urls[0]).toBe("keyframe");
   expect(got.body.generate_audio).toBe(true);
 });
 
-test("without an explicit list, the reference model still gets its keyframe as an array", () => {
-  const got = videoSubmitBody("director", { imageUrl: "kf", prompt: "p", seconds: 8 });
-  expect(got.body.image_urls).toEqual(["kf"]);
+test("h3 orders with reference_image_urls, keyframe first, capped at its 5 free slots", () => {
+  const got = videoSubmitBody("standard", {
+    imageUrl: "keyframe",
+    imageUrls: ["keyframe", "a", "b", "c", "d", "e", "f"],
+    prompt: "p", seconds: 6,
+  });
+  expect("image_url" in got.body).toBe(false);
+  expect("image_urls" in got.body).toBe(false);
+  /* Die 5 ist die gratis-Grenze: ab dem 6. Bild berechnet fal $0,08 je
+     Referenz, und ein Festpreis, der von der Besetzungsgröße abhängt,
+     wäre keiner mehr. */
+  expect(got.body.reference_image_urls).toEqual(["keyframe", "a", "b", "c", "d"]);
 });
 
-test("single-image models never receive image_urls", () => {
-  const got = videoSubmitBody("standard", { imageUrl: "kf", imageUrls: ["kf", "x"], prompt: "p", seconds: 6 });
-  expect("image_urls" in got.body).toBe(false);
-  expect(got.body.image_url).toBe("kf");
+test("without an explicit list, reference models still get their keyframe as an array", () => {
+  expect(videoSubmitBody("director", { imageUrl: "kf", prompt: "p", seconds: 8 }).body.image_urls).toEqual(["kf"]);
+  expect(videoSubmitBody("standard", { imageUrl: "kf", prompt: "p", seconds: 8 }).body.reference_image_urls).toEqual(["kf"]);
+});
+
+/* R2V hat kein Startbild, aus dem sich das Format ableiten ließe — wo das
+   Schema 9:16 bestätigt, wird es gesetzt (H3 stünde sonst auf "adaptive").
+   Für Seedance 2.0 ist der Parameter ungemessen und wird darum NICHT
+   gesendet (T4 lief ohne ihn sauber 9:16). */
+test("aspect_ratio goes only where the schema confirmed it", () => {
+  expect(videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6 }).body.aspect_ratio).toBe("9:16");
+  expect(videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 10 }).body.aspect_ratio).toBe("9:16");
+  expect("aspect_ratio" in videoSubmitBody("director", { imageUrl: "x", prompt: "p", seconds: 6 }).body).toBe(false);
 });
 
 test("director clamps to its own 5-15 range", () => {

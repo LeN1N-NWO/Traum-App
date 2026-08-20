@@ -3,6 +3,94 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-20 23:35 — Anton — Branch `session/2026-08-19-anton` (PR #16) — Sitzungsabschluss
+
+**Commits:** `4485f9c` (Eröffnung) · `3c550c6` `0a714b9` `acc2c95` (Messungen
+vom Rechner, 19.08.) · `cb374b7` `2f83812` `24d6c31` (Charakterbogen-Plan,
+Prüfstein, Stresstest) · `3582d72` (**der Neuzuschnitt**) · `2d5ba24`
+(Direktanbieter-Recherche) · `37440d3` (Rechtsplan) · `7f5e6bd`
+(**Einwilligungs-Tor**) plus dieser Doku-Commit. Zustand: 200 Unit-Tests,
+Build sauber, `bun run lint` gibt es weiterhin nicht.
+**Bezahlte Tests dieser Session: ~$2,05** (fal), jeder einzeln begründet.
+
+### Erst gemessen, dann geschnitten — die Reihenfolge war der Punkt
+
+Die Sandbox-Session (#15) hatte alles gebaut, aber nichts durfte ins Netz.
+Diese Session hat vom Rechner aus **erst die fal-OpenAPI-Schemata gelesen**
+(Filmplan §10b: `reference_image_urls` ≠ `image_urls`; H3-Vorgabe ist „2K"
+für $0,13/s; `enable_prompt_expansion` steht AN; drei Adress-Syntaxen
+@Image1/[Image1]/„Image 1"), **dann für $1,31 die Syntax-Beweise gefahren**
+(§10c), dann Lite geprüft (Drift-Dreierstrecke, Multi-Ref-A/B, Lena durch
+die echte Pipeline) — **und erst dann umgebaut.**
+
+### Der Neuzuschnitt (`3582d72`) — was jetzt gilt
+
+- **Jede Filmstufe ihr eigenes Referenzmodell** (Antons Bedingung, §10d):
+  Lebendig → `minimax/h3/reference-to-video` (1 Cr/s, Einkauf sinkt auf
+  $0,06/s, bis 4 Referenzen neben dem Startbild GRATIS) · Regie bleibt
+  Seedance 2.0 fast R2V · Kino → `seedance-2.5/reference-to-video`
+  (30 s MIT Gesichtern, gleicher Preis). Modellwissen in der Tabelle:
+  `refsField`/`refStyle`/`aspect`/`noExpand` (`video.js`); Regisseur-Brief,
+  Anweisung und `checkDirectedPrompt` sprechen die Syntax des bestellten
+  Modells, die Prüfung liest alle drei Familien.
+- **Bilder auf `google/nano-banana-2-lite`** (~$0,042 statt $0,08).
+  Preise/Credits unverändert — Antons Entscheidung: Die Ersparnis
+  finanziert die Gratis-Bögen, der Rest bleibt Marge.
+- **Bogen-Pflicht** (Plan `2026-08-20-charakterbogen-pflicht.md`, bezahlt
+  bewiesen in §7): Fotos von Personen/Tieren werden beim ERSTEN bezahlten
+  Render zum Bogen normalisiert (grau, geteilt Ganzkörper+Gesicht) —
+  träge (1000 angelegte Figuren kosten $0, nichts farmbar), gratis,
+  veraltbar über Fingerabdruck (`sheets.js`), Orte ausgenommen, Fallback
+  rohes Foto. Der Anlass: Lenas Segelboot — **der Umgebungs-Bleed folgt
+  dem FOTO, nicht dem Modell** (Kontrolltest), der Bogen unterbindet ihn.
+
+### Das Einwilligungs-Tor (`7f5e6bd`) — Recht wird Produkt
+
+Plan `2026-08-20-recht-einwilligung.md` (kein Rechtsrat; Anwalt vor
+Launch): ConsentGate nach Sprachwahl, vor Onboarding UND App — drei eigene
+Häkchen (AGB/Datenschutz · Datenverarbeitung · **18+**, Antons
+Entscheidung, Selbsterklärung nach Branchenstandard), Aufklapp-Teil nennt
+Anbieter UND Trainingslage (Google bezahlt: kein Training · DeepSeek
+bezahlt: standardmäßig nicht · fal: anonymisierte „Usage Data" möglich).
+`state.consent {v, at}`; CONSENT_VERSION öffnet das Tor bei Textänderung
+erneut. **AI-Act Art. 50 gilt seit 02.08.2026** — die Kennzeichnung trifft
+UNS, nicht private Nutzer; C2PA-Metadaten ließen Instagram automatisch
+labeln (offen, Rechtsplan §4 Punkt 3).
+
+### Nebenfunde, alle behoben oder notiert
+
+- **Gezeichnete Figuren waren als Referenz tot:** AvatarDialog speicherte
+  einen `/media/`-Pfad, den fal nie laden kann — jetzt kompakter
+  data:-URI (`compactDataUrl`, entlastet auch die localStorage-Quota).
+- `/api/character` fing `GENERATE_FAILED` statt des geworfenen
+  `GENERATION_FAILED` — jeder fal-Fehler fiel aufs generische 500.
+- Stufen-Infotexte in 7 Sprachen logen nach dem Neuzuschnitt
+  („Besetzung nur wie im Startbild") — nachgezogen.
+- fals Content-Checker lehnte EINEN Aufruf mit Rohfoto ab (422,
+  Wiederholung lief) — neutrale Bögen sind auch gegenüber Filtern
+  berechenbarer.
+- **Direktanbieter-Recherche** (`2026-08-20-direktanbieter-preise.md`):
+  Kino wäre direkt bei BytePlus ~55 % billiger (Kino für 3 statt 6 Cr/s
+  möglich), Bilder bei Google −20 % — aber **H3 ist bei fal BILLIGER als
+  beim Hersteller** ($0,06 vs. $0,08/s). Empfehlung: bleiben, Schwellen
+  stehen in §5.
+
+### Was der Nächste wissen muss
+
+1. **Der Schlussstein steht weiter aus:** je ein echter bezahlter Film pro
+   Stufe durch die App-UI (Lebendig 5 s ≈ $0,34 · Regie 5 s ≈ $1,25 ·
+   Kino kurz), T3 (Abspann) gleich mit. Alle Slugs sind per
+   Nullkosten-Probe (ungültiger Schlüssel → 401 mit Modellnamen) als
+   existent und richtig verdrahtet bewiesen — aber kein Render lief.
+2. Rechtsplan §4, Punkte 2–6 offen: Upload-Zusicherung, Kennzeichnung/
+   C2PA, Speicherfristen für /media, DeepSeek-China-Entscheidung,
+   Dokumente in docs/legal/ + Widerrufsweg im Profil.
+3. Vorschau im Worktree: `preview_start` bedient das HAUPTREPO (alte
+   Codebasis!) — im Worktree `bun run dev:web` von Hand starten. Genau so
+   ist heute fast der falsche Stand verifiziert worden.
+4. Testartefakte in `media/tests/` (gerätelokal, gitignored): t-sheet-lena,
+   t-sheetlena-1…3, t-ctrl-rawlena-3, t-lena-1…3 u. a.
+
 ## 2026-08-19 17:05 — Anton — Branch `claude/new-session-x9qv1w` (PR folgt) — Sitzungsabschluss
 
 **Commits:** `d3e6265` (Trockenlauf-Werkzeug), `f7a3357` (vier Regisseur-Fehler),

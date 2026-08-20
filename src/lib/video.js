@@ -4,16 +4,18 @@
  * rate — so a price change is a single edit and the credit figures cannot
  * drift away from what we actually pay.
  *
- * Rates confirmed 08.08.2026 (fal.ai model pages); minimax duration range
- * re-measured 09.08.2026 — the queue ACCEPTS any duration at submit and only
- * validates at render time, so a wrong minimum here costs real credits and
- * comes back as a failed job minutes later:
- *   minimax/h3   768P   $0.08 / second   5–15s  ("ge: 5" per its validator)
- *   seedance 2.5 720p   $0.473 / second  up to 30s, native single take
+ * Rates re-measured 19.08.2026 (fal OpenAPI schemas + paid tests, film plan
+ * §10b/§10c); the queue ACCEPTS any duration at submit and only validates at
+ * render time, so a wrong minimum here costs real credits and comes back as
+ * a failed job minutes later:
+ *   minimax/h3 R2V   768P  $0.06 / second  5–15s, first 5 reference images free
+ *   seedance 2.0 fast R2V  $0.2419 / s     5–15s
+ *   seedance 2.5 R2V 720p  $0.473 / second up to 30s, native single take
  *
- * 1 credit = $0.08 = one image, so minimax/h3 works out at exactly one
- * credit per second of film. That is a happy accident worth keeping: it is
- * the rare pricing rule a person can hold in their head.
+ * 1 credit = $0.08 = one image, so minimax/h3 works out at one credit per
+ * second of film. That is a happy accident worth keeping: it is the rare
+ * pricing rule a person can hold in their head. (Since the move to H3-R2V it
+ * even under-charges us nothing — $0.06 buys the second AND the references.)
  */
 import { PRICES } from "./pricing.js";
 
@@ -59,26 +61,55 @@ import { PRICES } from "./pricing.js";
  * Bis dahin beschreiben die UI-Infotexte den App-Zustand („diese Stufe"),
  * nie eine Modell-Eigenschaft — nichts behaupten, was das Modell kann oder
  * nicht kann, solange nur unsere Endpoint-Wahl es einschränkt. */
+/* Neuzuschnitt 20.08.2026 (Antons Go, Filmplan §10d): ALLE drei Stufen sind
+ * jetzt Referenz-Modelle — der Zuschnitt „nur Regie kann Referenzen" war eine
+ * Endpoint-Wahl, kein Modelllimit (§10). Jede Stufe ist ein EIGENES Modell
+ * (Antons Bedingung): MiniMax H3 · Seedance 2.0 · Seedance 2.5.
+ *
+ * Vier Felder tragen das Modellwissen, das vorher niemand brauchte:
+ *   refsField  — wie das Referenz-Array beim Modell heißt. H3-R2V sagt
+ *                reference_image_urls, Seedance sagt image_urls, und keins
+ *                versteht das jeweils andere (nano-banana-Fehlerklasse).
+ *   refStyle   — wie der Prompt eine Referenz adressiert. Drei Familien,
+ *                gemessen an fals OpenAPI-Schemata 19.08. (§10b):
+ *                "at" = @Image1 · "bracket" = [Image1] · "plain" = Image 1.
+ *   aspect     — R2V-Modelle haben kein Startbild, aus dem sie das Format
+ *                ableiten könnten; wo das Schema 9:16 bestätigt, wird es
+ *                ausdrücklich gesetzt (H3-Vorgabe wäre "adaptive").
+ *   noExpand   — H3 formuliert Prompts standardmäßig selbst um
+ *                (enable_prompt_expansion steht AN); für Regie-Prompts
+ *                ausdrücklich abgeschaltet, sonst überschreibt ein fremdes
+ *                Modell die Arbeit unseres Regisseurs. */
 export const VIDEO_MODELS = [
   {
+    /* „Lebendig" — H3-R2V @768P kostet $0,06/s, WENIGER als das alte
+     * image-to-video ($0,08/s), und die ersten 5 Referenzbilder sind gratis.
+     * Verkaufspreis bleibt 1 Cr/s (ceil), die Marge steigt um 25 % und die
+     * Besetzung ist ab jetzt in jeder Stufe im Film sie selbst.
+     * maxRefs bleibt bei 5 — ab dem 6. Bild berechnet fal $0,08/Referenz,
+     * und eine Stufe, deren Einkaufspreis von der Besetzungsgröße abhängt,
+     * kann kein ehrlicher Festpreis mehr sein.
+     * ⚠ resolution "768P" MUSS gesetzt bleiben: die Schema-Vorgabe ist "2K"
+     * und kostet $0,13/s (§10b). */
     id: "standard",
-    slug: "minimax/h3/image-to-video",
-    creditsPerSecond: 1,          // $0.08/s ÷ $0.08 per credit
+    slug: "minimax/h3/reference-to-video",
+    creditsPerSecond: 1,          // $0.06/s ÷ $0.08 → ceil = 1
     min: 5, max: 15, step: 1, preset: 6,
     resolution: "768P",
     audio: false,                 // liefert von sich aus eine AAC-Spur; einen
                                   // generate_audio-Parameter kennt es nicht,
                                   // also darf er auch nicht gesendet werden
+    maxRefs: 5,                   // die gratis-Grenze, siehe oben
+    refsField: "reference_image_urls",
+    refStyle: "plain",            // „Image 1" — bezahlt bewiesen 19.08. (§10c)
+    aspect: "9:16",
+    noExpand: true,
     promptMax: 7000,              // offizielle H3-API-Grenze
   },
   {
-    /* „Regie" — Referenz-Video: die Figuren aus der Besetzung sind IM Film
-     * sie selbst, nicht nur im Keyframe. Machbarkeit am 17.08. real bewiesen
-     * (T1/T4: data-URIs, @Image-Zuordnung, Identität hält über Ortswechsel).
-     *
-     * Das Fast-Tier ist der Kandidat aus dem Plan; ob es Fast, Normal
-     * ($0,3024/s — nach Aufrundung DIESELBEN 4 Credits) oder Mini wird,
-     * entscheidet T2. Slug ändern ist dann eine Zeile, der Preis bleibt. */
+    /* „Regie" — die Seedance-Qualitätsstufe mit Director-Brief. Machbarkeit
+     * am 17.08. real bewiesen (T1/T4: data-URIs, @Image-Zuordnung, Identität
+     * hält über Ortswechsel); Fast vs. Normal hat T2 entschieden. */
     id: "director",
     slug: "bytedance/seedance-2.0/fast/reference-to-video",
     creditsPerSecond: 4,          // $0.2419/s ÷ $0.08 → ceil = 4
@@ -86,15 +117,28 @@ export const VIDEO_MODELS = [
     resolution: "720p",
     audio: true,
     maxRefs: 9,                   // image_urls statt image_url — bis zu 9
+    refsField: "image_urls",
+    refStyle: "at",               // @Image1 — bezahlt bewiesen 17.08. (T1/T4)
+    /* KEIN aspect: das 2.0-Schema ist der eine ungemessene Punkt, und T4
+     * lief ohne den Parameter sauber 9:16 (adaptiv nach dem Startbild).
+     * Nichts senden, was der Validator nicht bestätigt hat. */
     promptMax: 5000,              // modellseitige Seedance-2.0-Grenze
   },
   {
+    /* „Kino" — 2.5-R2V: 30 Sekunden MIT echten Gesichtern, gleicher
+     * Sekundenpreis wie das alte Ein-Bild-2.5 ($0,473/s, §10b) — Referenzen
+     * kosten dort nichts extra. Damit ist T5 (Verkettung) endgültig tot. */
     id: "premium",
-    slug: "bytedance/seedance-2.5/image-to-video",
+    slug: "bytedance/seedance-2.5/reference-to-video",
     creditsPerSecond: 6,          // $0.473/s ÷ $0.08 — rounded up, never down
     min: 5, max: 30, step: 5, preset: 15,
     resolution: "720p",
     audio: true,                  // nativer Ton über generate_audio
+    maxRefs: 9,                   // Schema erlaubt mehr; 9 hält die Brief-Form
+                                  // aller Stufen gleich (Keyframe + 8 Plätze)
+    refsField: "image_urls",
+    refStyle: "bracket",          // [Image1] — bezahlt bewiesen 19.08. (§10c)
+    aspect: "9:16",
     promptMax: 10000,             // Runware-API-Doku (19.08.2026); fal ungemessen
   },
 ];
@@ -126,14 +170,16 @@ export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds 
     resolution: m.resolution,
   };
 
-  /* Referenzmodelle nehmen ein ARRAY (image_urls), Ein-Bild-Modelle ein
-   * FELD (image_url) — und keins von beiden verzeiht das jeweils andere:
-   * Der nano-banana-Vorfall vom 07.08. (image_urls still ignoriert, Renders
-   * ohne Gesichter tagelang bezahlt) ist genau die Fehlerklasse, die hier
-   * lauert. Deshalb entscheidet die Tabelle, nie der Aufrufer. */
+  /* Referenzmodelle nehmen ein ARRAY, Ein-Bild-Modelle ein FELD (image_url) —
+   * und der Array-NAME ist selbst Modellwissen: H3-R2V will
+   * reference_image_urls, Seedance will image_urls, und keins von beiden
+   * verzeiht das jeweils andere. Der nano-banana-Vorfall vom 07.08.
+   * (image_urls still ignoriert, Renders ohne Gesichter tagelang bezahlt)
+   * ist genau die Fehlerklasse, die hier lauert. Deshalb entscheidet die
+   * Tabelle, nie der Aufrufer. */
   if (m.maxRefs) {
     const urls = (imageUrls?.length ? imageUrls : [imageUrl]).filter(Boolean).slice(0, m.maxRefs);
-    body.image_urls = urls;
+    body[m.refsField || "image_urls"] = urls;
   } else {
     body.image_url = imageUrl;
   }
@@ -141,6 +187,12 @@ export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds 
   // Nur senden, wo der Parameter existiert: ein unbekanntes Feld kann bei
   // einem strengen Validator den ganzen Auftrag kosten.
   if (m.audio) body.generate_audio = true;
+  // R2V hat kein Startbild als Formatgeber; nur setzen, wo das Schema den
+  // Wert bestätigt (H3 stünde sonst auf "adaptive").
+  if (m.aspect) body.aspect_ratio = m.aspect;
+  // H3 formuliert Prompts standardmäßig um — für Regie-Prompts ausdrücklich
+  // aus, sonst überschreibt fremde Umformulierung unseren Regisseur (§10b).
+  if (m.noExpand) body.enable_prompt_expansion = false;
   return { slug: m.slug, body };
 }
 

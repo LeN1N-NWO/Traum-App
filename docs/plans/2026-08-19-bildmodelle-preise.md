@@ -97,3 +97,48 @@ Hausregel: **nie auf geratene Feldnamen bezahlt rendern.**
   eindeutig — „Modellpreise an den Endkunden weitergeben, wie sie sind" —
   aber die Credit-Definition hängt mit dem Filmpreis zusammen und will
   bewusst entschieden werden, nicht nebenbei.
+
+## 6. GEMESSEN 19.08. abends (fal-OpenAPI, dieser Rechner)
+
+Die vier Fragen aus §4, beantwortet über fals eigene OpenAPI-Schemata
+(`…?endpoint_id=google/nano-banana-2-lite/edit`):
+
+1. **`google/nano-banana-2-lite/edit` EXISTIERT** — fals Modellliste
+   („Text to Image") war unvollständig, nicht das Angebot.
+2. **Er nimmt `image_urls`** (Array), dazu `aspect_ratio` inkl. 9:16 und
+   16:9, `num_images` 1–4. Der Referenz-Pfad ist also da — der Vorbehalt
+   aus §4 ist vom Tisch.
+3. **Identitätsdrift bleibt die offene Frage** — das kann kein Schema
+   beantworten. Bezahlter Test: eine Dreierstrecke mit Charakterbogen
+   (~$0,17), Gesicht gegen nano-banana-2 halten.
+4. **Preis auf fal: ~$0,042/Bild** (1120 Ausgabe-Tokens × $37,50/1M) —
+   nicht die $0,0336 aus §1; das war Googles Direktpreis. Immer noch
+   **47 % unter** unseren $0,08. Ausgabe fest 1K.
+   Und nano-banana-2 bestätigt: 2K = 1,5× ($0,12), 4K = 2× ($0,16),
+   0.5K = 0,75× ($0,06) — die Staffel aus §3 stimmt.
+
+**Damit ist §5 nur noch von einem bezahlten Drift-Test (~$0,17) und
+Antons Preisentscheidung abhängig.**
+
+## 7. Der Drift-Test vom 19.08. abends ($0,13) — BESTANDEN
+
+Dreierstrecke mit dem Anton-Charakterbogen als `image_urls`-Referenz
+(Totale Bahnsteig → Fensterbank → Laternen-Nahaufnahme, `media/tests/
+t-lite-1…3.png`): **dasselbe Gesicht in allen dreien**, Mantel und
+Statur konsistent, Bildqualität auf 1K tadellos. Der Vorbehalt aus §4
+ist damit komplett ausgeräumt — §5 hängt nur noch an Antons
+Preisentscheidung (Marge behalten oder weitergeben).
+
+## 8. Mehrfach-Referenzen ($0,12, 19.08. spät) — BESTANDEN, direkter A/B
+
+Antons Nachfrage („schafft das Modell in Bildern auch Referenzbilder?")
+traf die Lücke: §7 bewies EINE Referenz, die App schickt bis zu sechs.
+Deshalb derselbe Auftrag — @anton (Bogen) + @frau (Seed-Foto) + @zimmer
+(Ort), wörtlich in der buildReferences-Klauselform — einmal an Lite,
+einmal an nano-banana-2/edit (`media/tests/t-multiref-lite.png` / `-nb2.png`):
+
+**Beide halten alle drei Referenzen in einem Bild.** Beide Gesichter
+wiedererkennbar, der Raum stimmt, Lite steht dem Produktionsmodell nicht
+nach. Damit ist die Modellfrage vollständig beantwortet; was bleibt, ist
+der End-to-End-Durchlauf durch die App-Oberfläche (der ohnehin geplante
+Schlussstein) und Antons Preisentscheidung aus §5.

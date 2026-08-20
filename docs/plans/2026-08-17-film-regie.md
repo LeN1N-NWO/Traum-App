@@ -291,3 +291,77 @@ Preislogik fal-seitig (Learn-Artikel, am Validator zu bestätigen):
 berechnet wird je Sekunde AUSGABE ($0,06/s @768p) PLUS je Referenz-Input —
 Bilder 1–5 kostenlos, ab dem 6. je $0,08; Video-Referenzen $0,26/s
 Eingabematerial; Audio-Referenzen kostenlos.
+
+### §10b — GEMESSEN 19.08. abends (fal-OpenAPI-Schemata, dieser Rechner)
+
+Der Messauftrag aus §10 ist erledigt — nicht am Validator, sondern eine
+Stufe verlässlicher: fal veröffentlicht je Endpoint ein OpenAPI-Schema
+(`fal.ai/api/openapi/queue/openapi.json?endpoint_id=…`). Das sind die
+Feldnamen, gegen die der Validator selbst prüft.
+
+**`minimax/h3/reference-to-video` (Schema gelesen):**
+- `reference_image_urls` — **nicht** `image_urls`! — max **9**; dazu
+  `reference_video_urls` (max 3) und `reference_audio_urls` (max 3),
+  zusammen höchstens 12 Dateien.
+- `duration` 5–15 (Ganzzahl, Vorgabe 5) · `resolution` `"480P" | "768P" |
+  "2K" | "4K"` — **Vorgabe ist „2K"**, wir müssen 768P ausdrücklich
+  setzen, sonst zahlen wir $0,13/s statt $0,06/s.
+- `aspect_ratio` `"adaptive"` (Vorgabe) … `"9:16"` ✓.
+- ⚠ `enable_prompt_expansion` steht **standardmäßig AN** — fremde
+  Umformulierung unserer Regie-Prompts. Beim Umbau ausdrücklich `false`.
+- **Adressierung: schlicht „Image 1", „Image 2"** — §10a lag falsch:
+  kein `<Picture N>`, kein `subject_definitions`-Block auf fal. (Die
+  HuggingFace-Doku beschreibt die MiniMax-eigene API, nicht fals Fassung.)
+
+**`bytedance/seedance-2.5/reference-to-video` (Modellseite + Schema):**
+- Existiert: `image_urls`, **4–30 s**, bis 50 Referenz-Dateien,
+  `generate_audio` (Vorgabe true), 9:16 ✓.
+- Preis: **$0,473/s @720p — identisch zum Ein-Bild-2.5.** Referenzen
+  kosten dort nichts extra. ceil → dieselben 6 Credits/s.
+- Adressierung laut Schema: **`[Image1]` in eckigen Klammern.**
+- **Folge: T5 (Verkettung) ist tot.** „30 s MIT echten Gesichtern" ist
+  ein Endpoint, kein Experiment.
+
+**Drei Syntaxfamilien, endgültig:** Seedance 2.0 `@Image1` · Seedance 2.5
+`[Image1]` · H3 „Image 1". Der `refStyle` aus §10a bleibt richtig, nur
+mit diesen drei Werten; checkDirectedPrompt() muss alle drei lesen.
+
+**Was WEITER ungemessen ist (kostet Geld, auf Antons Go):**
+- Qualität H3-R2V @768P gegen Seedance-2.0-Fast — ohne den Vergleich ist
+  „Regie" nur teurer, nicht sicher besser. (~$0,30 + $0,97 für je 5 s.)
+- Ob 2.5-R2V die `[Image1]`-Zuordnung so sauber hält wie 2.0 das
+  `@Image1` (T1-artiger 4-s-Test @480p, ~$0,88).
+
+### §10c — Die bezahlten Tests vom 19.08. abends ($1,31, Antons Go „step by step")
+
+Alle drei bestanden, Artefakte in `media/tests/` (t-h3r2v-5s.mp4,
+t-25r2v-4s.mp4):
+
+- **H3-R2V** (5 s, 768P, $0,30): der wörtliche T1-Auftrag in
+  „Image 1"-Syntax. Zuordnung stimmt, beide Zeitblöcke getroffen,
+  AAC-Ton, 768×1344. `enable_prompt_expansion: false` gesetzt.
+  **Renderzeit 2:14 — ein Drittel von Seedance.** Qualität auf Augenhöhe
+  mit Seedance-2.0-Fast (t2-fast-4s.mp4 als Vergleich, gleicher Auftrag).
+- **Seedance-2.5-R2V** (4 s, 480p, $0,88): `[Image1]`-Klammern tragen,
+  Aktion und Ton da. Der 30-s-Volltest bleibt bewusst offen (Antons
+  Sparregel) — aber Syntax, Felder und Zuordnung sind bewiesen.
+- **data-URIs** funktionieren in BEIDEN neuen Endpoints.
+
+**Damit ist der Neuzuschnitt aus §10 vollständig entriegelt:** Lebendig →
+H3-R2V (1 Cr/s, bis 5 Referenzen inklusive, 25 % bessere Marge) · Regie →
+muss sich neu rechtfertigen oder wird zur Seedance-Qualitätsstufe ·
+Kino → 2.5-R2V (6 Cr/s, 30 s MIT Referenzen). Nur noch Antons Produkt-Go
+fehlt.
+
+### §10d — Antons Produkt-Go, 20.08.
+
+**Regie bleibt.** Antons Bedingung dazu: JEDE Stufe ist ein EIGENES
+Modell — keine zwei Stufen auf demselben Endpoint. Der Zuschnitt erfüllt
+das: Lebendig = MiniMax H3-R2V · Regie = Seedance-2.0-Fast-R2V · Kino =
+Seedance-2.5-R2V. Drei Modelle, drei Looks, drei Preise; „Regie" muss
+sich nicht mehr gegen Lebendig rechtfertigen, sondern IST die
+Seedance-Qualitätsstufe mit Director-Brief.
+
+Die Lite-Entscheidung hat Anton an die Charakterbogen-Verrechnung
+geknüpft — Prüfstein und Rechnung stehen in
+2026-08-20-charakterbogen-pflicht.md §7/§8.
