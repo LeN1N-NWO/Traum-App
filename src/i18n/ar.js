@@ -47,6 +47,17 @@ export default {
   journal: {
     viewList: "عرض كقائمة",
     viewDeck: "عرض كبطاقات",
+    atlas: "أطلس الأحلام",
+    atlasLede: "رموز متكررة، أمزجة، شهرك",
+    atlasEmpty: "تظهر أنماطك ما إن تتجمع بضعة أحلام.",
+    atlasMonth: "هذا الشهر",
+    atlasDreamsN: (n) => (n === 1 ? "حلم" : "أحلام"),
+    atlasSymbols: "رموز متكررة",
+    atlasMoods: "أمزجة",
+    reflectTitle: "تأمل",
+    reflectCta: "ما الذي قد يريد هذا الحلم قوله؟",
+    reflectHint: "قراءة محتملة، مستمدة من دفترك أنت — مجانًا",
+    reflectNote: "مرآة لا عرّافة: قراءة واحدة من قراءات عدة، تُقدَّم بلطف.",
     library: "طاقم شخصياتك",
     libraryLede: "من يظهر في أحلامك، مرتَّبين حسب التكرار.",
     /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie

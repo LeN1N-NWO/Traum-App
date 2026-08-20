@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Button from "../../components/Button.jsx";
 import TagField from "../../components/TagField.jsx";
 import { useAppState } from "../../state/AppState.jsx";
-import { refine, mediaUrl, jobStatus } from "../../lib/api.js";
+import { refine, reflect, mediaUrl, jobStatus } from "../../lib/api.js";
+import { reflectionContext } from "../../lib/atlas.js";
 import { filmOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
 import { spend } from "../../lib/credits.js";
 import { PRICES } from "../../lib/pricing.js";
@@ -75,15 +76,38 @@ export default function JournalDetail({ entry, onClose }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry.jobId, entry.id]);
 
-  /** Write a new text onto the entry. The first version is never touched. */
+  /** Write a new text onto the entry. The first version is never touched.
+   *  Die Reflection fällt dabei weg: sie beschreibt den ALTEN Wortlaut,
+   *  und eine Deutung zum falschen Text ist schlechter als keine. */
   function commitText(text) {
     update({
       journal: state.journal.map((e) =>
         e.id === entry.id
-          ? { ...e, text, originalText: e.originalText || e.text, editedAt: new Date().toISOString() }
+          ? { ...e, text, reflection: undefined, originalText: e.originalText || e.text, editedAt: new Date().toISOString() }
           : e
       ),
     });
+  }
+
+  /* Die Reflection — gratis (Textarbeit), einmal je Wortlaut: das Ergebnis
+     wird AM EINTRAG gespeichert, damit Wiederlesen keinen zweiten Aufruf
+     kostet und die Deutung stabil bleibt, statt bei jedem Öffnen eine
+     andere zu sein. Der Kontext kommt aus dem eigenen Journal (atlas.js) —
+     das, was kein Lexikon-Deuter hat. */
+  async function runReflect() {
+    setBusy(true);
+    try {
+      const text = await reflect(entry.text, reflectionContext(state.journal, entry));
+      update({
+        journal: state.journal.map((e) =>
+          e.id === entry.id ? { ...e, reflection: { text, at: new Date().toISOString() } } : e
+        ),
+      });
+    } catch (err) {
+      console.error("[DreamRushes] reflect failed:", err);
+      toast(`⚠ ${err.message}`);
+    }
+    setBusy(false);
   }
 
   function saveEdit() {
@@ -370,6 +394,30 @@ export default function JournalDetail({ entry, onClose }) {
         {/* Die Besetzung mit Gesichtern statt der nackten @tag-Zeile. */}
         {entry.references?.length > 0 && (
           <CastChips refs={entry.references} cast={state.cast || []} me={state.me} />
+        )}
+
+        {/* Die Reflection: Spiegel, nicht Orakel (Mehrwert-Plan P1a). Ein
+            ruhiger Absatzblock unter der Besetzung — erst auf Wunsch, dann
+            dauerhaft. Der Hinweis darunter sagt ehrlich, was das ist: EINE
+            mögliche Lesart, keine Wahrheit über den Menschen. */}
+        {!editing && !proposal && (
+          <div className="j-reflect">
+            {entry.reflection ? (
+              <>
+                <p className="j-original-label">{t.journal.reflectTitle}</p>
+                <p className="j-reflect-text">{entry.reflection.text}</p>
+                <p className="j-reflect-note">{t.journal.reflectNote}</p>
+              </>
+            ) : (
+              <button className="j-reflect-btn" onClick={runReflect} disabled={busy}>
+                <IconSparkle />
+                <span className="j-reflect-btn-body">
+                  <span>{t.journal.reflectCta}</span>
+                  <small>{t.journal.reflectHint}</small>
+                </span>
+              </button>
+            )}
+          </div>
         )}
 
         {/* The first thing they wrote stays reachable, however often it is

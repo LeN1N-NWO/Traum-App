@@ -5,6 +5,7 @@ import ScreenHeader from "../../components/ScreenHeader.jsx";
 import JournalCard from "./JournalCard.jsx";
 import JournalDetail from "./JournalDetail.jsx";
 import CastLibrary from "./CastLibrary.jsx";
+import Atlas from "./Atlas.jsx";
 import DreamCalendar from "./DreamCalendar.jsx";
 import "./journal.css";
 
@@ -14,6 +15,7 @@ export default function JournalScreen() {
   const [openId, setOpenId] = useState(null);
   const [index, setIndex] = useState(0);
   const [library, setLibrary] = useState(false);
+  const [atlas, setAtlas] = useState(false);
   const trackRef = useRef(null);
 
   // The chosen view outlives the visit — it is a preference, not a mood.
@@ -55,12 +57,27 @@ export default function JournalScreen() {
 
   const total = state.journal?.length || 0;
   const castCount = (state.cast?.length || 0) + (state.me ? 1 : 0);
+  const realDreamCount = (state.journal || []).filter((e) => !String(e.id).startsWith("e_seed")).length;
   const open = entries.find((e) => e.id === openId) || null;
 
   if (library) {
     return (
       <main className="screen">
         <CastLibrary onBack={() => setLibrary(false)} />
+      </main>
+    );
+  }
+
+  if (atlas) {
+    return (
+      <main className="screen">
+        {/* Ein Traum aus dem Atlas geöffnet schließt den Atlas — das Detail
+            wohnt am Hauptschirm, und „zurück" führt dann dorthin, wo die
+            Träume sind, nicht in eine verschachtelte Statistik. */}
+        <Atlas
+          onBack={() => setAtlas(false)}
+          onOpen={(id) => { setAtlas(false); setOpenId(id); }}
+        />
       </main>
     );
   }
@@ -101,6 +118,19 @@ export default function JournalScreen() {
         </span>
         <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
       </button>
+
+      {/* Der Atlas daneben, aus demselben Grund: Muster ÜBER Träumen
+          gehören neben die Träume. Erst ab dem zweiten echten Traum —
+          eine Statistik über einen Eintrag wäre ein leeres Versprechen. */}
+      {realDreamCount >= 2 && (
+        <button className="j-library" onClick={() => setAtlas(true)}>
+          <span className="j-library-body">
+            <span className="j-library-title">{t.journal.atlas}</span>
+            <span className="j-library-text">{t.journal.atlasLede}</span>
+          </span>
+          <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
+        </button>
+      )}
 
       {entries.length === 0 ? (
         <p className="j-empty">{query ? t.journal.emptySearch : t.journal.empty}</p>

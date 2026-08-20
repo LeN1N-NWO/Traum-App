@@ -41,6 +41,17 @@ export default {
   journal: {
     viewList: "Afficher en liste",
     viewDeck: "Afficher en cartes",
+    atlas: "Atlas des rêves",
+    atlasLede: "Symboles récurrents, humeurs, ton mois",
+    atlasEmpty: "Tes motifs apparaissent dès que quelques rêves sont là.",
+    atlasMonth: "Ce mois-ci",
+    atlasDreamsN: (n) => (n === 1 ? "rêve" : "rêves"),
+    atlasSymbols: "Symboles récurrents",
+    atlasMoods: "Humeurs",
+    reflectTitle: "Réflexion",
+    reflectCta: "Que pourrait dire ce rêve ?",
+    reflectHint: "Une lecture possible, tirée de ton propre journal — gratuit",
+    reflectNote: "Un miroir, pas un oracle : une lecture parmi d'autres, proposée avec douceur.",
     library: "Ta distribution",
     libraryLede: "Qui revient dans tes rêves, du plus fréquent au moins.",
     /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie

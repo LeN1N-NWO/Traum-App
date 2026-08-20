@@ -40,6 +40,17 @@ export default {
   journal: {
     viewList: "सूची के रूप में देखें",
     viewDeck: "कार्ड के रूप में देखें",
+    atlas: "स्वप्न-मानचित्र",
+    atlasLede: "बार-बार आने वाले प्रतीक, मनोदशाएँ, आपका महीना",
+    atlasEmpty: "कुछ सपने दर्ज होते ही आपके पैटर्न दिखने लगेंगे।",
+    atlasMonth: "इस महीने",
+    atlasDreamsN: (n) => (n === 1 ? "सपना" : "सपने"),
+    atlasSymbols: "बार-बार आने वाले प्रतीक",
+    atlasMoods: "मनोदशाएँ",
+    reflectTitle: "प्रतिबिंब",
+    reflectCta: "यह सपना क्या कहना चाह सकता है?",
+    reflectHint: "आपकी अपनी डायरी से एक संभावित व्याख्या — निःशुल्क",
+    reflectNote: "आईना, भविष्यवाणी नहीं: कई में से एक व्याख्या, सहजता से प्रस्तुत।",
     library: "आपकी कास्ट",
     libraryLede: "आपके सपनों में कौन आता है — जितनी बार, उस क्रम में।",
     /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie

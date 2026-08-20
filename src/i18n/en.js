@@ -43,6 +43,17 @@ export default {
   journal: {
     viewList: "Show as a list",
     viewDeck: "Show as cards",
+    atlas: "Dream atlas",
+    atlasLede: "Recurring symbols, moods, your month",
+    atlasEmpty: "Your patterns appear once a few dreams are in.",
+    atlasMonth: "This month",
+    atlasDreamsN: (n) => (n === 1 ? "dream" : "dreams"),
+    atlasSymbols: "Recurring symbols",
+    atlasMoods: "Moods",
+    reflectTitle: "Reflection",
+    reflectCta: "What might this dream be saying?",
+    reflectHint: "One possible reading, drawn from your own journal — free",
+    reflectNote: "A mirror, not an oracle: one way of reading it, offered gently.",
     library: "Your cast",
     libraryLede: "Who turns up in your dreams, most often first.",
     /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie

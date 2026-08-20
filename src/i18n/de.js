@@ -41,6 +41,17 @@ export default {
   journal: {
     viewList: "Als Liste zeigen",
     viewDeck: "Als Karten zeigen",
+    atlas: "Traumatlas",
+    atlasLede: "Wiederkehrende Symbole, Stimmungen, dein Monat",
+    atlasEmpty: "Deine Muster erscheinen, sobald ein paar Träume da sind.",
+    atlasMonth: "Dieser Monat",
+    atlasDreamsN: (n) => (n === 1 ? "Traum" : "Träume"),
+    atlasSymbols: "Wiederkehrende Symbole",
+    atlasMoods: "Stimmungen",
+    reflectTitle: "Reflexion",
+    reflectCta: "Was könnte dieser Traum sagen wollen?",
+    reflectHint: "Eine mögliche Lesart, aus deinem eigenen Journal — gratis",
+    reflectNote: "Ein Spiegel, kein Orakel: eine Lesart von vielen, behutsam angeboten.",
     library: "Deine Besetzung",
     libraryLede: "Wer in deinen Träumen auftritt, nach Häufigkeit.",
     /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie

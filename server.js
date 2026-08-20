@@ -766,6 +766,64 @@ const REFINE_MODES = {
     REFINE_SHARED_RULES,
 };
 
+/* Die Reflection — der Spiegel, nicht das Orakel (Mehrwert-Plan P1a).
+ *
+ * Die größte dokumentierte Schwäche der Konkurrenz sind generische
+ * Lexikon-Deutungen („Wasser bedeutet…"). Deshalb sind die Regeln hier
+ * die halbe Funktion: Angebots-Sprache statt Behauptung, keine Diagnose,
+ * keine Zukunft, keine Universalsymbolik — und der einzige Kontext, den
+ * das Lexikon nie hat: die wiederkehrenden Muster aus dem EIGENEN Journal
+ * (atlas.js baut sie clientseitig, der Server reicht sie gewaschen durch).
+ *
+ * Dieselbe Persona-Lehre wie überall: keine Beispielsätze im Prompt, und
+ * Verbote allein erzeugen Neutralität — deshalb sagt der Prompt zuerst,
+ * WAS die drei Absätze tun, und sperrt erst danach. */
+const REFLECT_SYSTEM = `You are the quiet, warm reflective voice of a dream journal, reading one dream back to the person who dreamt it. Write exactly three short paragraphs, each two to three sentences, separated by blank lines:
+1. What stands out — the images, tensions and feelings actually present in THIS dream, named plainly and specifically.
+2. One possible reading. Offer it as a possibility, in the language of "could", "might" and "many people find" — never as a fact about the dreamer. If recurring patterns from their journal are provided below the dream, weave in at most one where it genuinely fits.
+3. One gentle, open question back to the dreamer — something the dream leaves them to sit with.
+
+Hard rules: never diagnose or give medical, psychological or life advice; never predict the future; never claim a symbol has one universal meaning; never moralise; never quote the dream's exact wording back. If the dream touches violence, death or distress, stay calm and matter-of-fact — name the feeling, don't dramatise it. Write in the same language as the dream. No headings, no lists, no emoji. Output only the three paragraphs.`;
+
+async function reflectDream(dream, contextLines = []) {
+  const key = process.env.DEEPSEEK_KEY;
+  if (!key) throw new Error("NO_DEEPSEEK_KEY");
+
+  const context = contextLines.length
+    ? `\n\nRECURRING PATTERNS from this person's journal (background, use at most one):\n${contextLines.map((l) => `- ${l}`).join("\n")}`
+    : "";
+  const res = await fetch(DEEPSEEK_API_URL, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      messages: [
+        { role: "system", content: REFLECT_SYSTEM },
+        { role: "user", content: `THE DREAM:\n"${dream}"${context}` },
+      ],
+      stream: false,
+    }),
+  });
+  if (!res.ok) {
+    console.error("[DreamRushes] reflect request failed:", res.status, await res.text().catch(() => ""));
+    throw new Error("REFLECT_FAILED");
+  }
+  const data = await res.json().catch(() => null);
+  const text = data?.choices?.[0]?.message?.content;
+  if (typeof text !== "string") throw new Error("REFLECT_FAILED");
+  /* sanitizePromptText plättet Zeilenumbrüche — hier tragen sie aber die
+     Absatzstruktur, die die Anweisung ausdrücklich verlangt. Deshalb je
+     Absatz waschen und die Struktur wieder zusammensetzen. */
+  const cleaned = text
+    .split(/\n{2,}/)
+    .map((p) => sanitizePromptText(p))
+    .filter(Boolean)
+    .join("\n\n")
+    .slice(0, 1600);
+  if (!cleaned) throw new Error("REFLECT_FAILED");
+  return cleaned;
+}
+
 async function refineDream(dream, mode) {
   const system = REFINE_MODES[mode];
   if (!system) throw new Error("BAD_MODE");
@@ -1570,6 +1628,37 @@ Bun.serve({
         const hit = map[e.message];
         if (hit) return json({ error: hit[1] }, hit[0]);
         console.error("[DreamRushes] /api/refine failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    /* Die Reflection zu einem Traum. Kostenlos wie alle Textarbeit
+       (pricing.js: „the one step that should never deter anyone"), aber
+       gebremst wie jeder DeepSeek-Pfad (gatekeeper: text-Klasse). */
+    if (url.pathname === "/api/reflect" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json();
+        const dream = sanitizePromptText(body.dream);
+        if (dream.length < 8) return json({ error: "Dream too short." }, 400);
+        if (dream.length > MAX_DREAM) return json({ error: "Dream too long." }, 400);
+        // Kontextzeilen kommen vom Client (atlas.js) — gewaschen und
+        // gedeckelt wie jede Nutzereingabe, die einen Prompt erreicht.
+        const context = (Array.isArray(body.context) ? body.context : [])
+          .slice(0, 5)
+          .map((l) => sanitizeFragment(l, 90))
+          .filter(Boolean);
+        return json({ ok: true, text: await reflectDream(dream, context) });
+      } catch (e) {
+        const map = {
+          NO_DEEPSEEK_KEY: [503, "Backend has no DeepSeek key. Set DEEPSEEK_KEY and restart."],
+          REFLECT_FAILED: [502, "Could not reflect on that dream. Try again."],
+        };
+        const hit = map[e.message];
+        if (hit) return json({ error: hit[1] }, hit[0]);
+        console.error("[DreamRushes] /api/reflect failed:", e);
         return json({ error: "Server error." }, 500);
       }
     }

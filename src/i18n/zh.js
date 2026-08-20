@@ -42,6 +42,17 @@ export default {
   journal: {
     viewList: "以列表显示",
     viewDeck: "以卡片显示",
+    atlas: "梦境图谱",
+    atlasLede: "反复出现的符号、情绪、你的这个月",
+    atlasEmpty: "记下几个梦之后，你的模式就会显现。",
+    atlasMonth: "本月",
+    atlasDreamsN: (n) => "个梦",
+    atlasSymbols: "反复出现的符号",
+    atlasMoods: "情绪",
+    reflectTitle: "回响",
+    reflectCta: "这个梦可能想说什么？",
+    reflectHint: "一种可能的解读，来自你自己的日记——免费",
+    reflectNote: "是镜子，不是神谕：只是诸多解读中的一种，轻轻呈上。",
     library: "你的角色库",
     libraryLede: "谁常出现在你的梦里，按次数排列。",
     /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie

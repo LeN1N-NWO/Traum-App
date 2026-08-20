@@ -540,3 +540,63 @@
 .j-title-tagline-italic { font-style: italic; font-family: var(--serif); font-size: 16px; }
 .j-title-orn { display: flex; align-items: center; justify-content: center; gap: var(--s-3); margin-block-start: var(--s-2); color: var(--gold); font-size: 11px; }
 .j-title-orn::before, .j-title-orn::after { content: ""; block-size: 1px; inline-size: 44px; background: var(--panel-line); }
+
+/* ── Die Reflection: ein ruhiger Absatzblock, erst auf Wunsch. */
+.j-reflect { margin-block: var(--s-5) 0; }
+.j-reflect-btn {
+  display: flex; align-items: center; gap: var(--s-3); inline-size: 100%;
+  padding: var(--s-3) var(--s-4); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font: inherit; text-align: start; cursor: pointer;
+}
+.j-reflect-btn:disabled { opacity: .55; cursor: default; }
+.j-reflect-btn-body { display: flex; flex-direction: column; gap: 2px; }
+.j-reflect-btn-body small { color: var(--faint); font-size: var(--t-small); }
+.j-reflect-text { margin: 0; white-space: pre-wrap; font-size: 16px; line-height: 1.6; }
+.j-reflect-note { margin: var(--s-3) 0 0; color: var(--faint); font-size: var(--t-small); font-style: italic; }
+
+/* ── Der Traumatlas. */
+.at-month { margin-block-end: var(--s-5); }
+.at-month-row {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: var(--s-3);
+}
+.at-fact {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: var(--s-3) var(--s-2); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--panel-line);
+  min-inline-size: 0;
+}
+.at-fact-n { font-size: 1.35rem; line-height: 1.2; font-family: var(--serif); }
+.at-fact-label {
+  color: var(--muted); font-size: var(--t-small); text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-inline-size: 100%;
+}
+
+.at-symbols { display: flex; flex-direction: column; margin-block-end: var(--s-5); }
+.at-symbol { border-bottom: 1px solid var(--panel-line); }
+.at-symbol-row {
+  display: flex; align-items: center; gap: var(--s-3); inline-size: 100%;
+  padding: var(--s-3) 0; background: none; border: none; cursor: pointer;
+  color: var(--text); font: inherit; text-align: start;
+}
+.at-symbol-emoji { font-size: 1.2rem; }
+.at-symbol-label { flex: 1; }
+.at-symbol-count { color: var(--faint); font-variant-numeric: tabular-nums; }
+.at-symbol-dreams { padding: 0 0 var(--s-3); display: flex; flex-direction: column; gap: var(--s-1); }
+.at-symbol-meaning { margin: 0 0 var(--s-2); color: var(--muted); font-size: var(--t-small); line-height: 1.5; }
+.at-dream {
+  display: flex; justify-content: space-between; gap: var(--s-3);
+  padding: var(--s-2) var(--s-3); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font: inherit; cursor: pointer; text-align: start;
+}
+.at-dream-title { font-family: var(--serif); }
+.at-dream-date { color: var(--faint); font-size: var(--t-small); white-space: nowrap; }
+
+.at-moods { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-block-end: var(--s-5); }
+.at-mood {
+  padding: 6px 12px; border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  font-size: var(--t-small);
+}
