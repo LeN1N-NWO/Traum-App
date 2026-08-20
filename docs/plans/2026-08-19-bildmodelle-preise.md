@@ -128,3 +128,17 @@ t-lite-1…3.png`): **dasselbe Gesicht in allen dreien**, Mantel und
 Statur konsistent, Bildqualität auf 1K tadellos. Der Vorbehalt aus §4
 ist damit komplett ausgeräumt — §5 hängt nur noch an Antons
 Preisentscheidung (Marge behalten oder weitergeben).
+
+## 8. Mehrfach-Referenzen ($0,12, 19.08. spät) — BESTANDEN, direkter A/B
+
+Antons Nachfrage („schafft das Modell in Bildern auch Referenzbilder?")
+traf die Lücke: §7 bewies EINE Referenz, die App schickt bis zu sechs.
+Deshalb derselbe Auftrag — @anton (Bogen) + @frau (Seed-Foto) + @zimmer
+(Ort), wörtlich in der buildReferences-Klauselform — einmal an Lite,
+einmal an nano-banana-2/edit (`media/tests/t-multiref-lite.png` / `-nb2.png`):
+
+**Beide halten alle drei Referenzen in einem Bild.** Beide Gesichter
+wiedererkennbar, der Raum stimmt, Lite steht dem Produktionsmodell nicht
+nach. Damit ist die Modellfrage vollständig beantwortet; was bleibt, ist
+der End-to-End-Durchlauf durch die App-Oberfläche (der ohnehin geplante
+Schlussstein) und Antons Preisentscheidung aus §5.
