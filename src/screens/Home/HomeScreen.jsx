@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppState } from "../../state/AppState.jsx";
 import { refreshStreak, streakAtRisk, STREAK_CAP } from "../../lib/streak.js";
+import StreakBoard from "../../components/StreakBoard.jsx";
 import { t } from "../../i18n/index.js";
 // Vite-gebündelt wie das Intro-Video: 666 KB, ohne Ton, transkodiert aus
 // media/video/Faultier-002.mov (7,3 MB).
@@ -54,15 +55,23 @@ export default function HomeScreen() {
      heute noch nicht. An jedem anderen Tag waere er entweder ueberfluessig
      oder eine Mahnung an etwas, das ohnehin vorbei ist. */
   const atRisk = streakAtRisk(state);
+  const [board, setBoard] = useState(false);
 
   return (
     <main className="screen h-screen">
       <div className="h-top">
         <p className="h-greeting">{greeting}</p>
+        {/* Antippbar seit 22.08. (Antons Go): dahinter liegt die
+            Meilenstein-Leiter — was die Serie schon gebracht hat und
+            was auf dem Weg wartet. */}
         {streak > 0 && (
-          <p className={"h-streak" + (atRisk ? " h-streak-risk" : "")}>
-            <span aria-hidden="true">✦</span> {t.home.streak(streak)}
-          </p>
+          <button
+            className={"h-streak" + (atRisk ? " h-streak-risk" : "")}
+            onClick={() => setBoard(true)}
+            aria-haspopup="dialog"
+          >
+            <span aria-hidden="true">✦</span> {t.home.streak(streak)} <span aria-hidden="true" data-flip>›</span>
+          </button>
         )}
       </div>
 
@@ -101,6 +110,8 @@ export default function HomeScreen() {
       {/* Die Menagerie wohnt seit 21.08. im Journal (Antons Entscheidung):
           Sammlungen zu Sammlungen — die Titelseite hat EINEN Zweck, den
           nächsten Traum anfangen. */}
+
+      {board && <StreakBoard streak={streak} onClose={() => setBoard(false)} />}
     </main>
   );
 }

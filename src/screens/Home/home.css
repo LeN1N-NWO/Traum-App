@@ -43,6 +43,9 @@
   background: var(--glass); backdrop-filter: blur(8px);
   border: 1px solid var(--panel-line);
   padding: 5px 12px; border-radius: 999px;
+  /* Seit 22.08. ein Knopf (öffnet die Meilenstein-Leiter) — die
+     Reset-Zeilen halten die Pillen-Optik. */
+  font: inherit; cursor: pointer;
 }
 .h-streak span { color: var(--gold); }
 

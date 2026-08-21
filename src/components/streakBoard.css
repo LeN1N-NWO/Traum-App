@@ -1,0 +1,33 @@
+/* Die Meilenstein-Leiter — ruhige Liste, kein Feuerwerk: die App ist
+   nachts offen, und die Leiter soll neugierig machen, nicht blinken. */
+.stb-count { margin: 0; display: flex; align-items: baseline; gap: 8px; }
+.stb-count-n { font: 600 44px var(--serif); line-height: 1; color: var(--gold); }
+.stb-lede { margin: 4px 0 var(--s-4); color: var(--muted); font-size: var(--t-small); }
+
+.stb-ladder {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: var(--s-2);
+}
+.stb-rung {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-3); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--panel-line);
+}
+.stb-check {
+  flex: none; inline-size: 30px; block-size: 30px; border-radius: 50%;
+  display: grid; place-items: center;
+  font: 600 var(--t-small) var(--serif);
+  background: var(--glass); border: 1px solid var(--panel-line);
+  color: var(--muted);
+}
+.stb-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stb-rung-title { font-size: var(--t-body); font-weight: 600; }
+.stb-rung-reward { color: var(--muted); font-size: var(--t-small); line-height: 1.4; }
+
+.stb-done { opacity: .75; }
+.stb-done .stb-check { background: var(--ok); color: var(--bg); border-color: transparent; }
+.stb-next { border-color: var(--gold); background: color-mix(in oklab, var(--gold) 9%, transparent); }
+.stb-next .stb-check { border-color: var(--gold); color: var(--gold); }
+.stb-far { opacity: .55; }
+
+.stb-note { margin: var(--s-4) 0 var(--s-3); color: var(--faint); font-size: var(--t-micro); line-height: 1.5; }

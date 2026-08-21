@@ -40,6 +40,26 @@ export default {
     untitled: "Untitled dream",
   },
 
+
+  /* Die Meilenstein-Leiter hinter der Streak-Pille. Ehrlich: nur, was
+     existiert — die Wesen-Rarität steigt wirklich mit der Serie. */
+  streakBoard: {
+    title: "Your streak",
+    nights: (n) => (n === 1 ? "night" : "nights"),
+    next: (n) => (n === 1 ? "1 more night to the next milestone." : `${n} more nights to the next milestone.`),
+    done: "Every milestone reached. You are the calendar now.",
+    rung: (n) => `${n} nights`,
+    rewards: {
+      warm: "Rarer creatures begin to stir in your menagerie.",
+      epic: "Epic creatures come within reach.",
+      steady: "Peak odds — from here every creature rolls with your full streak bonus.",
+      legendary: "Legendary territory: a month of nights, told.",
+      keeper: "Keeper of dreams — two months, few ever get here.",
+      hundred: "One hundred nights. Your journal is a book now.",
+    },
+    note: "The streak counts nights with a written dream — never the amount. A hundred dreams in one day is still one night.",
+  },
+
   journal: {
     viewList: "Show as a list",
     viewDeck: "Show as cards",

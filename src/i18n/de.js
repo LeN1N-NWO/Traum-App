@@ -38,6 +38,24 @@ export default {
     untitled: "Unbenannter Traum",
   },
 
+
+  streakBoard: {
+    title: "Deine Serie",
+    nights: (n) => (n === 1 ? "Nacht" : "Nächte"),
+    next: (n) => (n === 1 ? "Noch 1 Nacht bis zum nächsten Meilenstein." : `Noch ${n} Nächte bis zum nächsten Meilenstein.`),
+    done: "Alle Meilensteine erreicht. Du bist jetzt der Kalender.",
+    rung: (n) => `${n} Nächte`,
+    rewards: {
+      warm: "Seltenere Wesen beginnen sich in deiner Menagerie zu zeigen.",
+      epic: "Epische Wesen kommen in Reichweite.",
+      steady: "Volle Gewichte — ab hier würfelt jedes Wesen mit deinem ganzen Serien-Bonus.",
+      legendary: "Legendäres Gebiet: ein Monat Nächte, erzählt.",
+      keeper: "Hüter der Träume — zwei Monate, kaum jemand kommt hierher.",
+      hundred: "Hundert Nächte. Dein Journal ist jetzt ein Buch.",
+    },
+    note: "Die Serie zählt Nächte mit einem aufgeschriebenen Traum — nie die Menge. Hundert Träume an einem Tag bleiben eine Nacht.",
+  },
+
   journal: {
     viewList: "Als Liste zeigen",
     viewDeck: "Als Karten zeigen",
