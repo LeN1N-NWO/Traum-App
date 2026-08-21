@@ -99,3 +99,22 @@
    heute schreiben. Kein Rot, kein Ausrufezeichen. */
 .h-streak-risk { border-color: color-mix(in oklab, var(--warm) 45%, var(--panel-line)); }
 .h-streak-risk span { color: var(--warm); }
+
+/* „Wird gerade erstellt" — ruhige Statuszeile, führt ins Journal. */
+.h-rendering, .h-sounds {
+  display: flex; align-items: center; gap: var(--s-3); width: 100%;
+  margin-block-start: var(--s-3);
+  padding: var(--s-3) var(--s-4); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font: inherit; font-size: var(--t-small);
+  cursor: pointer; text-align: start;
+}
+.h-rendering { border-color: color-mix(in oklab, var(--accent-soft) 35%, var(--panel-line)); }
+.h-rendering-text, .h-sounds-text { flex: 1; }
+.h-rendering-dot {
+  flex: none; inline-size: 8px; block-size: 8px; border-radius: 50%;
+  background: var(--accent-soft);
+  animation: h-render-pulse 1.4s ease-in-out infinite;
+}
+@keyframes h-render-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .h-rendering-dot { animation: none; } }

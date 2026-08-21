@@ -24,7 +24,7 @@ export default {
       night: "Noch wach",
       morning: "Guten Morgen",
       afternoon: "Guten Tag",
-      evening: "Guten Abend",
+      evening: "Gleich ist Traumzeit",
     },
     title: "Was hast du geträumt?",
     lede: "Erzähl es, solange es noch warm ist — halb wach klappt am besten.",
@@ -36,6 +36,15 @@ export default {
     menagerieHeading: "Deine Menagerie",
     menagerieEmpty: "Noch keine Wesen. Jeder aufgeschriebene Traum lässt eines zurück.",
     untitled: "Unbenannter Traum",
+    renderingLine: "Dein Traum wird gerade erstellt — schau zu",
+    soundsShortcut: "Einschlafgeräusche starten",
+  },
+
+  checkin: {
+    question: "Wie hast du geschlafen?",
+    levels: { 1: "schwer", 2: "okay", 3: "gut" },
+    emoji: { 1: "🌑", 2: "🌗", 3: "🌕" },
+    thanks: "Notiert — Schlaf und Träume treffen sich in deinem Atlas.",
   },
 
 

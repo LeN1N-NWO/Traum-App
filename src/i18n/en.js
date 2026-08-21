@@ -26,7 +26,7 @@ export default {
       night: "Still awake",
       morning: "Good morning",
       afternoon: "Good afternoon",
-      evening: "Good evening",
+      evening: "Almost dream time",
     },
     title: "What did you dream?",
     lede: "Tell it while it's still warm — half-asleep works best.",
@@ -38,6 +38,17 @@ export default {
     menagerieHeading: "Your menagerie",
     menagerieEmpty: "No creatures yet. Every dream you write down leaves one behind.",
     untitled: "Untitled dream",
+    renderingLine: "Your dream is being made — take a look",
+    soundsShortcut: "Start the sleep sounds",
+  },
+
+  /* Der Morgen-Check-in (Mehrwert P2a): eine Frage, drei grobe Stufen —
+     beantwortbar, bevor man wach ist. */
+  checkin: {
+    question: "How did you sleep?",
+    levels: { 1: "rough", 2: "okay", 3: "well" },
+    emoji: { 1: "🌑", 2: "🌗", 3: "🌕" },
+    thanks: "Noted — sleep and dreams meet in your atlas.",
   },
 
 

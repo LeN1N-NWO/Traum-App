@@ -1,0 +1,18 @@
+/* Der Morgen-Check-in: eine Frage, drei Knöpfe — beantwortbar, bevor man
+   wach ist. Nach dem Tipp bleibt eine stille Bestätigung stehen. */
+.mc {
+  background: var(--panel); border: 1px solid var(--panel-line);
+  border-radius: var(--radius); padding: var(--s-3) var(--s-4);
+  margin-block-start: var(--s-3);
+}
+.mc-q { margin: 0 0 var(--s-2); font-size: var(--t-body); font-weight: 600; }
+.mc-row { display: flex; gap: var(--s-2); }
+.mc-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: var(--s-2); border-radius: 12px; cursor: pointer;
+  background: var(--glass); border: 1px solid var(--panel-line);
+  color: var(--muted); font-family: var(--sans); font-size: var(--t-micro);
+}
+.mc-btn:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.mc-emoji { font-size: 19px; line-height: 1; }
+.mc-done { margin: 0; color: var(--muted); font-size: var(--t-small); }

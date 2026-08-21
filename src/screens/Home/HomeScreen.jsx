@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAppState } from "../../state/AppState.jsx";
 import { refreshStreak, streakAtRisk, STREAK_CAP } from "../../lib/streak.js";
 import StreakBoard from "../../components/StreakBoard.jsx";
+import MorningCheckin from "../../components/MorningCheckin.jsx";
+import { hasPendingJobs } from "../../lib/collector.js";
 import { t } from "../../i18n/index.js";
 // Vite-gebündelt wie das Intro-Video: 666 KB, ohne Ton, transkodiert aus
 // media/video/Faultier-002.mov (7,3 MB).
@@ -49,7 +51,14 @@ export default function HomeScreen() {
   const last = [...(state.journal || [])]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
 
-  const greeting = t.home.greeting[greetingKey(new Date().getHours())];
+  /* Die Startseite kennt zwei Momente (Antons „mach mal", 22.08.):
+     morgens ist sie der Erzähl-Moment, abends der Einschlaf-Moment —
+     dieselbe Seite, andere Betonung. `evening` steuert den Gruß und
+     den Einschlafgeräusche-Kurzweg. */
+  const hourKey = greetingKey(new Date().getHours());
+  const evening = hourKey === "evening" || hourKey === "night";
+  const greeting = t.home.greeting[hourKey];
+  const rendering = hasPendingJobs(state.journal);
   const streak = state.streak || 0;
   /* Der einzige Tag, an dem ein Hinweis etwas nuetzt: gestern geschrieben,
      heute noch nicht. An jedem anderen Tag waere er entweder ueberfluessig
@@ -87,6 +96,30 @@ export default function HomeScreen() {
           </button>
         </div>
       </section>
+
+      {/* Läuft gerade ein Auftrag, sagt die Startseite es — der Collector
+          arbeitet überall, also darf man hier ruhig weiterziehen. */}
+      {rendering && (
+        <button className="h-rendering" onClick={() => navigate("/journal")}>
+          <span className="h-rendering-dot" aria-hidden="true" />
+          <span className="h-rendering-text">{t.home.renderingLine}</span>
+          <span aria-hidden="true" data-flip>›</span>
+        </button>
+      )}
+
+      {/* Der Morgen-Check-in (Mehrwert P2a): eine Frage, drei Stufen —
+          nur solange der heutige Eintrag fehlt bzw. als stille
+          Bestätigung danach. Abends fragt niemand nach dem Schlaf. */}
+      {!evening && <MorningCheckin />}
+
+      {/* Abends der Weg ins Einschlafen — die Brücke zum Schlaf-Tab. */}
+      {evening && (
+        <button className="h-sounds" onClick={() => navigate("/sleep")}>
+          <span aria-hidden="true">🌊</span>
+          <span className="h-sounds-text">{t.home.soundsShortcut}</span>
+          <span aria-hidden="true" data-flip>›</span>
+        </button>
+      )}
 
       {/* Was die Serie einbringt — und nur, solange sie noch etwas einbringt.
           Kein Countdown, keine Drohung: die Zeile sagt, was BESSER wird, nie
