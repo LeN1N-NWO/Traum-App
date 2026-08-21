@@ -149,3 +149,41 @@ export function selectionBeats(beats, order) {
   const src = Array.isArray(beats) ? beats : [];
   return [...order].sort((a, b) => a - b).map((i) => src[i]).filter(Boolean);
 }
+
+/* Das Kachel-Stichwort (Storyboard Variante A, Antons Wahl 22.08.):
+ * Eine 84-Pixel-Kachel trägt keinen Satz — sie trägt zwei, drei Worte,
+ * der ganze Satz wartet im Blatt dahinter. Aus dem englischen Beat wird
+ * der Anfang genommen, Artikel fallen weg, geschnitten wird an einer
+ * Wortgrenze, und ein Stoppwort bleibt nie als letztes Wort stehen
+ * („Paper boat floats", nie „Paper boat floats on"). */
+const KEYWORD_MAX = 26;
+const KEYWORD_STOPWORDS = new Set([
+  "a", "an", "the", "on", "in", "at", "of", "to", "and", "or", "as",
+  "with", "into", "onto", "over", "under", "through", "from", "by",
+  "is", "are", "was", "were", "his", "her", "its", "their",
+]);
+
+export function beatKeyword(beat) {
+  // Nur der erste Halbsatz: das Komma trennt in den Beats fast immer
+  // Haupthandlung von Ausschmückung — „Ich rows the boat, the oars…"
+  // soll „Ich rows the boat" ergeben, nicht über das Komma hinweg kleben.
+  const clause = String(beat || "").split(/[,;.!?]/)[0];
+  const words = clause
+    .replace(/["'()]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  // Führende Artikel weg — „A paper boat" beginnt bei „paper".
+  while (words.length && ["a", "an", "the"].includes(words[0].toLowerCase())) words.shift();
+
+  const kept = [];
+  for (const w of words) {
+    if ((kept.join(" ") + " " + w).trim().length > KEYWORD_MAX) break;
+    kept.push(w);
+  }
+  // Kein Stoppwort als Schlusswort — es verspricht einen Satz, der fehlt.
+  while (kept.length > 1 && KEYWORD_STOPWORDS.has(kept[kept.length - 1].toLowerCase())) kept.pop();
+  if (!kept.length) return clause.slice(0, KEYWORD_MAX);
+
+  const out = kept.join(" ");
+  return out.charAt(0).toUpperCase() + out.slice(1);
+}

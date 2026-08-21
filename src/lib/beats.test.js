@@ -171,3 +171,20 @@ test("the film plays chronologically whatever order scenes were tapped in", () =
   expect(selectionBeats(["a", "b", "c", "d", "e"], [4, 0, 2])).toEqual(["a", "c", "e"]);
   expect(selectionBeats(["a", "b"], [5, 1])).toEqual(["b"]);   // Geister-Index fällt still raus
 });
+
+/* Variante A: die Kachel trägt ein Stichwort, nie einen halben Satz. */
+import { beatKeyword } from "./beats.js";
+
+test("a beat shrinks to a few leading words without dangling stopwords", () => {
+  expect(beatKeyword("A paper boat floats on an ink lake, ich sitting inside."))
+    .toBe("Paper boat floats");
+  expect(beatKeyword("The lighthouse melts slowly, wax dripping into the ink."))
+    .toBe("Lighthouse melts slowly");
+  expect(beatKeyword("Ich rows the boat, the oars stirring dark liquid."))
+    .toBe("Ich rows the boat");
+});
+
+test("short beats pass through, empty stays harmless", () => {
+  expect(beatKeyword("Falling.")).toBe("Falling");
+  expect(beatKeyword("")).toBe("");
+});
