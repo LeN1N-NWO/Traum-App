@@ -178,6 +178,10 @@
 
 /* — step 5 — */
 .wiz-styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s-2); }
+/* Wrapper nach dem Muster von .wiz-model: die Kachel füllt ihn, das ⓘ
+   sitzt als eigener Knopf in der Ecke — nie ein Knopf im Knopf. */
+.wiz-style-wrap { position: relative; display: flex; }
+.wiz-style-wrap .wiz-style { flex: 1; }
 .wiz-style {
   display: flex; flex-direction: column; align-items: center; gap: var(--s-1);
   padding: var(--s-3) var(--s-2); border-radius: var(--radius); cursor: pointer;
@@ -329,3 +333,21 @@
 .wiz-model-info:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 .wiz-model-title { margin-block: 0 var(--s-2); font-size: var(--t-h3); }
 .wiz-model-text { margin-block: 0 var(--s-3); color: var(--muted); font-size: var(--t-small); line-height: 1.55; }
+
+/* Der Fehlerblock in Schritt 5: bleibt stehen, bis der nächste Versuch
+   läuft — ein Toast wäre nach vier Sekunden weg. Ruhige Karte, kein
+   Alarm-Rot (siehe .vi-error in voice.css, gleiche Haltung). */
+.wiz-error {
+  display: flex; flex-direction: column; gap: var(--s-2);
+  background: var(--panel); border: 1px solid var(--panel-line);
+  border-radius: var(--radius); padding: var(--s-4);
+}
+.wiz-error-title { margin: 0; font-size: var(--t-h3); }
+.wiz-error-msg   { margin: 0; color: var(--warm); font-size: var(--t-body); line-height: 1.5; }
+.wiz-error-note  { margin: 0; color: var(--muted); font-size: var(--t-small); }
+.wiz-error-home {
+  align-self: start; margin-block-start: var(--s-1);
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--accent-soft); font: inherit; font-size: var(--t-small);
+  text-decoration: underline; text-underline-offset: .2em;
+}

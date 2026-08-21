@@ -32,6 +32,9 @@ export default function VoiceInterview({ onDone, onCancel }) {
     isVoice(app.voice) ? app.voice : null);
   const [state, setState] = useState("connecting");   // connecting|live|error
   const [error, setError] = useState(null);
+  // Zählt „Nochmal versuchen" hoch — der Session-Effekt hängt daran und
+  // baut die Verbindung sauber neu auf, statt an der toten zu kleben.
+  const [attempt, setAttempt] = useState(0);
   const [level, setLevel] = useState(0);
   const [speaking, setSpeaking] = useState(false);
   const [lines, setLines] = useState([]);
@@ -88,9 +91,31 @@ export default function VoiceInterview({ onDone, onCancel }) {
     session.current = s;
     return () => s.stop();
     // Runs once when the picker confirms (null → id) — a second session
-    // would open a second microphone.
+    // would open a second microphone. `attempt` re-runs it deliberately,
+    // after the person pressed "try again" on the error panel.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voice]);
+  }, [voice, attempt]);
+
+  /* Die Uhr gegen die tote Schleife: Antwortet der Voice-Dienst nicht
+     binnen 12 Sekunden mit „ready" (kein Server, kein Schlüssel, kaputtes
+     Netz), wird aus dem wortlosen „Waking up…" ein Fehler mit Auswegen.
+     Antons Befund 21.08.: ohne API hing der Schirm einfach still. */
+  useEffect(() => {
+    if (!voice || state !== "connecting") return;
+    const id = setTimeout(() => {
+      session.current?.stop();
+      setError("TIMEOUT");
+      setState("error");
+    }, 12000);
+    return () => clearTimeout(id);
+  }, [voice, state, attempt]);
+
+  function retry() {
+    setLines([]);
+    setError(null);
+    setState("connecting");
+    setAttempt((a) => a + 1);
+  }
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [lines]);
 
@@ -133,8 +158,18 @@ export default function VoiceInterview({ onDone, onCancel }) {
 
       <div className="vi-talk">
         {state === "connecting" && <p className="vi-status">{t.voice.connecting}</p>}
+        {/* Gestaltet statt einer kleinen roten Zeile: Überschrift, was
+            passiert ist, und zwei Auswege — nochmal, oder zurück. */}
         {state === "error" && (
-          <p className="vi-status vi-status-bad">{t.voice.errors[error] || t.voice.errors.SOCKET}</p>
+          <div className="vi-error" role="alert">
+            <p className="vi-error-title">{t.voice.errorTitle}</p>
+            <p className="vi-error-msg">{t.voice.errors[error] || t.voice.errors.SOCKET}</p>
+            <p className="vi-error-hint">{t.voice.errorHint}</p>
+            <div className="vi-error-actions">
+              <button className="vi-error-btn vi-error-primary" onClick={retry}>{t.voice.retry}</button>
+              <button className="vi-error-btn" onClick={onCancel}>{t.voice.back}</button>
+            </div>
+          </div>
         )}
 
         {lines.map((l, i) => (
@@ -145,7 +180,9 @@ export default function VoiceInterview({ onDone, onCancel }) {
         <div ref={endRef} />
       </div>
 
-      {typing ? (
+      {/* Im Fehlerzustand keine Bedienleiste: Das Mikro ist tot und
+          Getipptes ginge ins Leere — die Auswege stehen im Fehler-Feld. */}
+      {state === "error" ? null : typing ? (
         <div className="vi-compose">
           <input
             className="vi-input"

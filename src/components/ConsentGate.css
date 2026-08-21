@@ -39,6 +39,20 @@
   accent-color: var(--accent);
 }
 
+/* Die zwei Rechtstext-Links im Häkchen-Satz: sehen aus wie Links, sind
+   aber Buttons (sie öffnen die LegalPage, keine URL) — und sie liegen in
+   einem <label>, deshalb fangen sie ihre Klicks selbst ab (JSX). */
+.consent-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent-soft);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+}
+
 .consent-more {
   background: none;
   border: none;

@@ -1,0 +1,71 @@
+/* Die Rechtsseite: Vollbild über allem (auch über dem Consent-Gate),
+   gleiche Flächen wie der Rest der App — Kleingedrucktes, das nicht wie
+   Kleingedrucktes aussieht. */
+.lp {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.lp-top {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: calc(env(safe-area-inset-top) + var(--s-3)) var(--s-4) var(--s-3);
+  border-block-end: 1px solid var(--panel-line);
+}
+
+.lp-toptitle {
+  text-align: center;
+  font-size: .85rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.lp-close {
+  inline-size: 2.2rem;
+  block-size: 2.2rem;
+  border-radius: 50%;
+  border: 1px solid var(--panel-line);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.lp-close-ghost { visibility: hidden; }
+
+.lp-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--s-5) var(--s-4)
+           calc(env(safe-area-inset-bottom) + var(--s-6));
+}
+
+.lp-title,
+.lp-meta,
+.lp-draft,
+.lp-section {
+  inline-size: min(34rem, 100%);
+  margin-inline: auto;
+}
+
+.lp-title { font-size: 1.5rem; margin-block: 0 var(--s-2); }
+.lp-meta  { color: var(--faint); font-size: .85rem; margin-block: 0 var(--s-2); }
+.lp-draft {
+  color: var(--muted);
+  font-size: .9rem;
+  line-height: 1.5;
+  border-inline-start: 2px solid var(--accent-soft);
+  padding-inline-start: var(--s-3);
+  margin-block: 0 var(--s-5);
+}
+
+.lp-section { margin-block-end: var(--s-5); }
+.lp-h { font-size: 1.05rem; margin-block: 0 var(--s-2); }
+.lp-p { color: var(--muted); line-height: 1.6; margin: 0; }

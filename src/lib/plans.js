@@ -93,11 +93,18 @@ export const CREDIT_COST_USD = 0.08;
  * Anlegen der Store-Produkte unverändert übernommen werden können.
  */
 
-/** Subscriptions: the allowance refills each period and does not roll over. */
+/** Subscriptions: the allowance refills each period and does not roll over.
+ *
+ *  saveHint: EINE Bezugsgröße für beide Badges — der Preis je Credit
+ *  gegenüber der Woche ($0,416). Monat $0,222 → 47 %, Jahr $0,148 → 64 %.
+ *  Vorher trug nur das Jahr ein Badge (33 %, gerechnet gegen den Monat):
+ *  zwei Badges mit zwei Bezugsgrößen wären Zahlen, die niemand nachrechnen
+ *  kann. Antons Ansage 21.08.: der Monatsrabatt soll SICHTBAR sein — er
+ *  existierte längst, stand nur nirgends. plans.test.js rechnet beide nach. */
 export const SUBSCRIPTIONS = [
   { id: "weekly",    price: "$4.99",  period: "week",  credits: 12 },
-  { id: "monthly",   price: "$9.99",  period: "month", credits: 45, featured: true },
-  { id: "yearly",    price: "$79.99", period: "year",  credits: 45, perMonth: true, saveHint: "33%" },
+  { id: "monthly",   price: "$9.99",  period: "month", credits: 45, featured: true, saveHint: "47%" },
+  { id: "yearly",    price: "$79.99", period: "year",  credits: 45, perMonth: true, saveHint: "64%" },
 ];
 
 /* One-off packs: bought once, never expire, no commitment.

@@ -13,7 +13,11 @@
  * für alle wieder. Die Zustimmung liegt im selben localStorage wie alles
  * andere — gerätelokal, wie es zu einer App ohne Konten passt.
  */
-export const CONSENT_VERSION = 1;
+/* Version 2 (21.08.2026): Nutzungsbedingungen und Datenschutzhinweise sind
+ * jetzt lesbare Seiten hinter Links, und die Datenaufklärung nennt neu die
+ * Film-Renderer MiniMax und ByteDance (Seedance) — inhaltliche Änderung,
+ * also wird die Zustimmung allen neu vorgelegt. */
+export const CONSENT_VERSION = 2;
 
 /** Steht das Tor? Auch nach einer Textänderung (Versionssprung) wieder. */
 export function needsConsent(state) {
@@ -23,4 +27,11 @@ export function needsConsent(state) {
 /** Der Patch für update(), wenn alle Häkchen gesetzt sind. */
 export function consentPatch(now = Date.now()) {
   return { consent: { v: CONSENT_VERSION, at: now } };
+}
+
+/** Der Widerruf (DSGVO Art. 7 Abs. 3, „so einfach wie die Erteilung"):
+ *  löscht die gespeicherte Zustimmung, das Tor steht sofort wieder —
+ *  bis dahin verlässt nichts mehr das Gerät. Sitzt in Profil → Einstellungen. */
+export function withdrawPatch() {
+  return { consent: null };
 }

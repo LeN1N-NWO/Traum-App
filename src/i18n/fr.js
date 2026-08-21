@@ -180,6 +180,31 @@ export default {
     untitled: "Rêve sans titre",
   },
 
+  /* Namen und Beschreibungen der Bildstile — gleiche Bauart wie
+   * symbols.byId: styles.js behält die englischen Render-Prompts (die
+   * sieht nie ein Mensch), die Sprachdateien tragen, was auf der Kachel
+   * und hinter dem ⓘ steht. */
+  styles: {
+    byId: {
+      ultrareal: { label: "Ultra réel",
+        info: "Comme un photogramme d'un film calme et cher : une seule source de lumière honnête, des ombres naturelles profondes, rien de décoratif. Choisis-le quand le rêve doit avoir l'air d'être vraiment arrivé." },
+      noir: { label: "Film noir",
+        info: "Noir et blanc dur, ombres de stores vénitiens, rues mouillées, fumée qui dérive — le look détective des années 40. Choisis-le pour les rêves pleins de secrets, de poursuite ou de pluie." },
+      dreamlike: { label: "Onirique",
+        info: "Brume douce, clair de lune bleu-violet, des contours qui se dissolvent là où la lumière s'éteint. Le style maison — fait pour les rêves doux, flottants ou à moitié souvenus." },
+      romantic: { label: "Romantique",
+        info: "Contre-jour d'heure dorée, ambre chaud et rose tendre, cadrages proches et délicats. Choisis-le pour les rêves sur les gens que tu aimes — ou que tu voulais près de toi." },
+      dark: { label: "Sombre",
+        info: "Ombres froides et écrasées, espaces menaçants, une seule lumière pâle dans le noir. Choisis-le pour les cauchemars et les rêves qui ressemblaient à un thriller." },
+      surreal: { label: "Surréaliste",
+        info: "Échelles impossibles, couleurs saturées, tout d'une netteté troublante — calme et faux à la fois, comme un tableau de Magritte. Choisis-le quand le rêve a enfreint les lois de la physique." },
+      nostalgic: { label: "Nostalgique",
+        info: "Pellicule 35 mm passée, couleurs chaudes et délavées, la lumière d'une vieille photo d'été. Choisis-le pour les rêves d'enfance, de lieux anciens, de gens d'avant." },
+      adventurous: { label: "Aventure",
+        info: "Panoramas épiques, soleil dramatique, poussière dans l'air — le look expédition grand écran. Choisis-le pour les rêves où tu voyageais, grimpais ou courais vers quelque chose." },
+    },
+  },
+
   dreamer: {
     title: "Ce que tu m'as raconté",
     retake: "Raconte-moi encore",
@@ -225,6 +250,8 @@ export default {
     settings: "Réglages",
     voiceSetting: "Voix de l'assistant",
     voiceSettingHint: "Qui te parle",
+    withdrawConsent: "Retirer mon consentement",
+    withdrawConsentHint: "Rien ne quitte ton appareil jusqu'à ce que tu acceptes de nouveau",
     done: "Terminé",
     credits: "crédits",
     creditsSoon: "La recharge arrive bientôt",
@@ -475,6 +502,7 @@ export default {
         },
       },
       aboutModel: "À propos de ce modèle",
+      aboutStyle: "À propos de ce style",
       lengthLabel: "Quelle durée",
       ideal: "idéal",
       posterLabel: "L'affiche",
@@ -495,6 +523,11 @@ export default {
         n === 0 ? "Aucune photo de référence — tout est inventé."
                 : n === 1 ? "1 photo de référence sera utilisée."
                           : `${n} photos de référence seront utilisées.`,
+      /* Der sichtbare Fehlerblock statt eines flüchtigen Toasts: sagt, dass
+         nichts abgebucht wurde, und bietet den Weg zurück an. */
+      failedTitle: "Ça n'a pas marché",
+      failedNote: "Rien n'a été débité — tes crédits sont intacts.",
+      failedHome: "Retour au début",
     },
 
     step6: {
@@ -578,18 +611,86 @@ export default {
   consent: {
     title: "Avant ton premier rêve",
     intro: "Dream Rushes transforme tes mots et tes photos en images et en films — à l'aide de services d'IA externes. Pour cela, il nous faut ton accord, honnêtement et d'avance :",
-    terms: "J'accepte les conditions d'utilisation et j'ai lu les informations de confidentialité ci-dessous.",
-    processing: "Mes textes de rêve et les photos que je télécharge peuvent être transmis aux services d'IA nommés ci-dessous (fal.ai, Google, DeepSeek) pour créer mes images et mes films.",
+    /* Das erste Häkchen ist ein Satz mit zwei Links darin — deshalb in
+       fünf Teile zerlegt statt als ein String: jede Sprache kann ihre
+       eigene Wortstellung bauen, und die zwei Link-Wörter bleiben
+       einzeln ansteuerbar (ConsentGate.jsx setzt sie als Buttons). */
+    termsPre: "J'accepte les ",
+    termsLink: "Conditions d'utilisation",
+    termsMid: " et j'ai lu la ",
+    privacyLink: "Politique de confidentialité",
+    termsPost: ".",
+    processing: "Mes textes de rêve et les photos que je télécharge peuvent être transmis aux services d'IA nommés ci-dessous (fal.ai, Google, DeepSeek — et pour les films MiniMax ou ByteDance) pour créer mes images et mes films.",
     adult: "J'ai 18 ans ou plus.",
     more: "Où vont mes données ?",
     details: [
       "Ton texte de rêve va à fal.ai et à DeepSeek (qui aide à rédiger les instructions d'image). Les photos téléchargées ne vont qu'à fal.ai et Google. Ton journal reste sur cet appareil.",
+      "Les films sont rendus par MiniMax (Hailuo) ou ByteDance (Seedance), selon le niveau de qualité que tu choisis — fal.ai leur transmet tes images et tes textes de scène pour ce rendu précis, et pour rien d'autre.",
       "Les images et films générés sont stockés sur notre serveur pour que l'appli puisse te les montrer.",
       "Entraînement : l'API payante de Google n'entraîne pas ses modèles sur tes contenus. L'API payante de DeepSeek n'est pas utilisée pour l'entraînement par défaut. fal.ai peut utiliser des données d'usage anonymisées pour améliorer ses services.",
       "Ne télécharge que des photos que tu as le droit d'utiliser — pour les photos d'autres personnes, demande-leur d'abord.",
       "Tout ce que tu crées est généré par IA et est signalé comme tel lors du partage.",
     ],
     cta: "Commencer à rêver",
+  },
+
+  /* Die lesbaren Rechtstexte hinter den zwei Links im Consent-Gate.
+   * Verständlichkeit vor Juristendeutsch — redigiert vor dem Store-Launch
+   * ein Anwalt (der Hinweis dazu steht sichtbar IM Text). */
+  legal: {
+    close: "Fermer",
+    updated: "Dernière mise à jour : 21 août 2026",
+    draftNote: "Écrit volontairement dans une langue claire. Un avocat relira ces textes avant l'arrivée de l'app dans les magasins d'applications.",
+    terms: {
+      title: "Conditions d'utilisation",
+      sections: [
+        { h: "Ce qu'est Dream Rushes",
+          p: "Dream Rushes est un journal de rêves qui peut transformer tes descriptions de rêves et tes photos de référence en images et films générés par IA. Le journal lui-même fonctionne entièrement sur ton appareil ; le rendu passe par des services d'IA externes." },
+        { h: "Ton contenu reste le tien",
+          p: "Tu conserves tous les droits sur tes textes de rêve, tes photos et les résultats générés. Tu nous accordes, à nous et aux services d'IA nommés dans la Politique de confidentialité, une permission limitée de traiter ton matériel dans un seul but : créer les images et les films que tu as demandés. Nous ne vendons jamais ton contenu, et cette permission prend fin une fois le traitement terminé." },
+        { h: "Ce que tu nous promets",
+          p: "Tu ne télécharges que des photos que tu as le droit d'utiliser — pour les photos d'autres personnes, tu leur demandes d'abord. Tu n'utilises pas l'app pour créer du contenu illégal, trompeur ou abusif, et tu ne présentes pas des scènes générées avec des personnes réelles comme des événements réels." },
+        { h: "Âge",
+          p: "Dream Rushes s'adresse aux adultes. En utilisant l'app, tu confirmes avoir 18 ans ou plus." },
+        { h: "Crédits et achats",
+          p: "Créer des images et des films coûte des crédits ; l'écriture, la voix et tout l'onglet Sommeil sont gratuits. Les prix sont toujours affichés avant que tu paies. Les crédits n'ont pas de valeur monétaire et ne peuvent pas être versés en argent ; les crédits d'abonnement expirent à la fin de chaque période, les packs achetés non." },
+        { h: "Contenu généré par IA",
+          p: "Tout ce que produit le moteur de rendu est synthétique. Le résultat peut être faux, étrange ou différent de ce que tu imaginais — c'est la nature de la technologie, pas un défaut. Les films partagés portent une mention indiquant qu'ils sont créés par IA ; laisse-la en place, dans certains pays la loi l'exige." },
+        { h: "Disponibilité",
+          p: "Le rendu dépend de services externes que nous ne contrôlons pas. Nous travaillons à garder l'app disponible, mais nous ne pouvons pas promettre un service ininterrompu ; si un rendu payant échoue, tes crédits ne sont pas débités." },
+        { h: "Modifications de ces conditions",
+          p: "Nous pouvons adapter ces conditions à mesure que l'app évolue. Si un changement compte, l'app te montrera la nouvelle version et te redemandera ton accord avant de continuer." },
+        { h: "Responsabilité",
+          p: "Nous sommes responsables sans limite en cas de faute intentionnelle, de négligence grave et d'atteinte à la vie, au corps ou à la santé. En cas de négligence simple, nous ne répondons que de la violation d'obligations contractuelles essentielles, dans la limite du dommage prévisible et typique du contrat. Tes droits légaux de consommateur restent intacts." },
+        { h: "Droit applicable",
+          p: "Le droit allemand s'applique, sans préjudice des protections impératives des consommateurs du pays où tu vis." },
+      ],
+    },
+    privacy: {
+      title: "Politique de confidentialité",
+      sections: [
+        { h: "Qui est responsable",
+          p: "Dream Rushes est le responsable du traitement décrit ici. Tu peux retirer ton consentement à tout moment, directement dans l'app sous Profil → Réglages — ensuite, plus rien ne quitte ton appareil jusqu'à ce que tu acceptes de nouveau." },
+        { h: "Ce que nous traitons",
+          p: "Tes textes de rêve, les photos que tu télécharges, ta voix pendant que tu parles à l'assistante, et les images et films créés à partir d'eux. Ton journal, tes réglages et ton solde de crédits restent sur ton appareil — il n'y a ni compte ni copie de ton journal dans le cloud." },
+        { h: "Où vont tes données",
+          p: "Le rendu se fait chez des services d'IA nommés, chacun pour sa seule tâche : DeepSeek aide à écrire et analyser le texte, Google gère la conversation vocale et le rendu des images, fal.ai rend les images et transmet les films à MiniMax (Hailuo) ou ByteDance (Seedance) selon le niveau que tu choisis. Aucun d'eux ne reçoit plus que le matériel nécessaire à ton rendu précis." },
+        { h: "Entraînement",
+          p: "L'API payante de Google n'utilise pas ton contenu pour entraîner des modèles. L'API payante de DeepSeek n'est pas utilisée pour l'entraînement par défaut. fal.ai peut utiliser des données d'usage anonymisées pour améliorer ses services. Nous-mêmes n'entraînons jamais quoi que ce soit avec ton matériel." },
+        { h: "Stockage et suppression",
+          p: "Les images et films rendus sont stockés sur notre serveur pour que l'app puisse te les montrer et les partager. Supprimer un rêve dans ton journal le retire de ton appareil ; la suppression automatique des anciens rendus sur le serveur est en cours de construction et sera en place avant le lancement public." },
+        { h: "Base juridique",
+          p: "Nous traitons ton matériel sur la base de ton consentement (art. 6, §1, a du RGPD), que tu donnes au portail avant ton premier rêve, et du contrat conclu avec toi (art. 6, §1, b du RGPD) pour tout ce qui est nécessaire à la livraison de ce que tu as commandé." },
+        { h: "Transferts hors de l'UE",
+          p: "fal.ai et Google traitent des données aux États-Unis ; le rendu des films par MiniMax ou ByteDance et le traitement du texte par DeepSeek peuvent impliquer des transferts vers d'autres pays tiers, dont la Chine. Ces transferts reposent sur les garanties contractuelles des prestataires (clauses contractuelles types). Si cela ne te convient pas, ne télécharge pas de photos — le journal fonctionne sans." },
+        { h: "Tes droits",
+          p: "Tu peux demander ce que nous détenons sur toi, le faire corriger ou supprimer, retirer ton consentement à tout moment et te plaindre auprès d'une autorité de protection des données. Le retrait arrête les traitements futurs ; il n'annule pas les rendus déjà créés." },
+        { h: "Âge",
+          p: "L'app s'adresse aux adultes (18+). Nous ne traitons pas sciemment les données de mineurs." },
+        { h: "Modifications de cette politique",
+          p: "Si cette politique change en substance, l'app te la montrera de nouveau et te demandera un consentement frais avant ton prochain rêve." },
+      ],
+    },
   },
   onboarding: {
     tagline: "Chaque nuit, tu tournes des films. Commence à les garder.",
@@ -644,7 +745,14 @@ export default {
       UPSTREAM: "⚠ Le service vocal s'est interrompu. Réessaie.",
       SOCKET: "⚠ Impossible de joindre le service vocal.",
       CLOSED: "⚠ La connexion s'est fermée. Réessaie.",
+      TIMEOUT: "⚠ Le service vocal n'a pas répondu.",
     },
+    /* Das gestaltete Fehler-Feld statt der toten Schleife: Überschrift,
+       ein ruhiger Satz, zwei Wege raus. */
+    errorTitle: "Ça n'a pas marché",
+    errorHint: "Rien n'est perdu — tu peux réessayer, ou écrire ton rêve à la place.",
+    retry: "Réessayer",
+    back: "Retour",
   },
 
   paywall: {
@@ -684,6 +792,9 @@ export default {
     yieldOr: "ou",
     packNote: "Ceux-ci n'expirent jamais : pas d'abonnement, pas de remise à zéro. C'est ce qui les rend plus chers par crédit.",
     packYield: (i, f) => (f ? `${i} images, ou ${f} films` : `${i} images`),
+    /* Unter den Ertrags-Kacheln, nur beim Jahresabo: die Kacheln zeigen
+       die Jahressumme, diese Zeile hält die ehrliche Mechanik daneben fest. */
+    yieldYearNote: "Toute ton année — 45 crédits frais arrivent chaque mois.",
     included: "Toujours inclus, gratuit",
     chips: [
       "Journal illimité", "Enregistrement vocal", "Réécriture par IA",
@@ -705,5 +816,8 @@ export default {
     storageFull: "⚠ Stockage plein — supprime d'anciennes entrées ou photos de référence.",
     unexpected: "Réponse inattendue du serveur.",
     serverStatus: (s) => `Le serveur a répondu avec ${s}.`,
+    /* Für den Abbruch nach Zeit (AbortSignal in api.js): sagt, WAS man tun
+       kann, nicht nur dass etwas schiefging. */
+    timeout: "Le service n'a pas répondu. Vérifie ta connexion et réessaie dans un instant.",
   },
 };

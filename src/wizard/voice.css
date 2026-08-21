@@ -43,6 +43,39 @@
 .vi-status { color: var(--muted); font-size: var(--t-body); margin: 0; }
 .vi-status-bad { color: var(--warm); }
 
+/* Das Fehler-Feld: eine ruhige Karte mitten im Gesprächsbereich — kein
+   Alarm-Rot, die App ist nachts offen. Zwei Auswege, der wärmere zuerst. */
+.vi-error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  background: var(--panel);
+  border: 1px solid var(--panel-line);
+  border-radius: var(--radius);
+  padding: var(--s-5) var(--s-4);
+  margin-block: var(--s-4);
+}
+.vi-error-title { margin: 0; font-size: var(--t-h3); color: var(--text); }
+.vi-error-msg   { margin: 0; color: var(--warm); font-size: var(--t-body); line-height: 1.5; }
+.vi-error-hint  { margin: 0; color: var(--muted); font-size: var(--t-small); line-height: 1.5; }
+.vi-error-actions { display: flex; gap: var(--s-3); margin-block-start: var(--s-2); }
+.vi-error-btn {
+  flex: 1;
+  padding: var(--s-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--panel-line);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.vi-error-primary {
+  background: var(--warm-grad);
+  border: none;
+  color: var(--bg);
+  font-weight: 600;
+}
+
 /* — the controls — */
 .vi-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); }
 .vi-action {

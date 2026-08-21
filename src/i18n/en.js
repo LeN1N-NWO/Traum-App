@@ -185,6 +185,32 @@ export default {
     untitled: "Untitled dream",
   },
 
+  /* Namen und Beschreibungen der Bildstile — gleiche Bauart wie
+   * symbols.byId: styles.js behält die englischen Render-Prompts (die
+   * sieht nie ein Mensch), die Sprachdateien tragen, was auf der Kachel
+   * und hinter dem ⓘ steht. Vorher standen die Stilnamen englisch fest
+   * verdrahtet im UI — derselbe Fehlertyp wie beim Traumatlas (21.08.). */
+  styles: {
+    byId: {
+      ultrareal: { label: "Ultra Real",
+        info: "Like a still from a quiet, expensive film: one honest light source, deep natural shadows, nothing ornamental. Pick it when the dream should look like it actually happened." },
+      noir: { label: "Film Noir",
+        info: "Hard black-and-white, venetian-blind shadows, wet streets, drifting smoke — the 1940s detective look. Pick it for dreams with secrets, pursuit or rain in them." },
+      dreamlike: { label: "Dreamlike",
+        info: "Soft haze, violet-blue moonlight, edges that dissolve where the light fades. The house style — made for dreams that felt gentle, floating or half-remembered." },
+      romantic: { label: "Romantic",
+        info: "Golden-hour backlight, warm amber and rose, tender close framing. Pick it for dreams about people you love — or wanted near." },
+      dark: { label: "Dark",
+        info: "Cold, crushed shadows and looming spaces, a single pale light in the dark. Pick it for nightmares and dreams that felt like a thriller." },
+      surreal: { label: "Surreal",
+        info: "Impossible scale, saturated colour, everything unnervingly sharp — calm and wrong at once, like a Magritte painting. Pick it when the dream broke the rules of physics." },
+      nostalgic: { label: "Nostalgic",
+        info: "Faded 35mm film, warm washed-out colour, the light of an old summer photograph. Pick it for dreams about childhood, old places, people from before." },
+      adventurous: { label: "Adventure",
+        info: "Wide epic vistas, dramatic sunlight, dust in the air — the big-screen expedition look. Pick it for dreams where you travelled, climbed or ran toward something." },
+    },
+  },
+
   dreamer: {
     title: "What you told me",
     retake: "Tell me again",
@@ -230,6 +256,8 @@ export default {
     settings: "Settings",
     voiceSetting: "Assistant voice",
     voiceSettingHint: "Which voice talks to you",
+    withdrawConsent: "Withdraw consent",
+    withdrawConsentHint: "Nothing leaves your device until you agree again",
     done: "Done",
     credits: "credits",
     creditsSoon: "Top-up coming soon",
@@ -487,6 +515,7 @@ export default {
         },
       },
       aboutModel: "About this model",
+      aboutStyle: "About this style",
       lengthLabel: "How long",
       ideal: "ideal",
       posterLabel: "The poster",
@@ -508,6 +537,12 @@ export default {
         n === 0 ? "No reference photos — everything is invented."
                 : n === 1 ? "1 reference photo will be used."
                           : `${n} reference photos will be used.`,
+      /* Der sichtbare Fehlerblock statt eines flüchtigen Toasts: sagt, dass
+         nichts abgebucht wurde, und bietet den Weg zurück an — Antons
+         Befund 21.08. („toter Loop", keine gestaltete Fehlermeldung). */
+      failedTitle: "That didn't work",
+      failedNote: "Nothing was charged — your credits are untouched.",
+      failedHome: "Back to start",
     },
 
     step6: {
@@ -595,18 +630,88 @@ export default {
   consent: {
     title: "Before your first dream",
     intro: "Dream Rushes turns your words and photos into images and films with the help of outside AI services. That needs your okay — honestly, up front:",
-    terms: "I accept the Terms of Use and have read the privacy information below.",
-    processing: "My dream texts and the photos I upload may be sent to the AI services named below (fal.ai, Google, DeepSeek) to create my images and films.",
+    /* Das erste Häkchen ist ein Satz mit zwei Links darin — deshalb in
+       fünf Teile zerlegt statt als ein String: jede Sprache kann ihre
+       eigene Wortstellung bauen, und die zwei Link-Wörter bleiben
+       einzeln ansteuerbar (ConsentGate.jsx setzt sie als Buttons). */
+    termsPre: "I accept the ",
+    termsLink: "Terms of Use",
+    termsMid: " and have read the ",
+    privacyLink: "Privacy Notice",
+    termsPost: ".",
+    processing: "My dream texts and the photos I upload may be sent to the AI services named below (fal.ai, Google, DeepSeek — and for films MiniMax or ByteDance) to create my images and films.",
     adult: "I am 18 or older.",
     more: "Where does my data go?",
     details: [
       "Your dream text goes to fal.ai and DeepSeek (which helps write the image instructions). Photos you upload go to fal.ai and Google only. Your journal itself stays on this device.",
+      "Films are rendered by MiniMax (Hailuo) or ByteDance (Seedance), depending on the quality tier you pick — fal.ai passes your images and scene text on to them for exactly that render, nothing else.",
       "Rendered images and films are stored on our server so the app can show them to you.",
       "Training: Google's paid API does not train on your content. DeepSeek's paid API is not used for training by default. fal.ai may use anonymized usage data to improve its services.",
       "Only upload photos you are allowed to use — for photos of other people, ask them first.",
       "Everything you create is AI-generated and is marked as such when you share it.",
     ],
     cta: "Start dreaming",
+  },
+
+  /* Die lesbaren Rechtstexte hinter den zwei Links im Consent-Gate.
+   * Verständlichkeit vor Juristendeutsch: kurze Abschnitte, ehrliche
+   * Aussagen — redigiert vor dem Store-Launch ein Anwalt (der Hinweis
+   * dazu steht sichtbar IM Text, nicht nur hier im Kommentar). Ändert
+   * sich der Inhalt wesentlich, zählt CONSENT_VERSION hoch. */
+  legal: {
+    close: "Close",
+    updated: "Last updated: 21 August 2026",
+    draftNote: "Written in plain language on purpose. A lawyer will review these texts before the app reaches the app stores.",
+    terms: {
+      title: "Terms of Use",
+      sections: [
+        { h: "What Dream Rushes is",
+          p: "Dream Rushes is a dream journal that can turn your dream descriptions and reference photos into AI-generated images and films. The journal itself works entirely on your device; rendering happens through outside AI services." },
+        { h: "Your content stays yours",
+          p: "You keep all rights to your dream texts, photos and generated results. You grant us and the AI services we name in the Privacy Notice a limited permission to process your material for one purpose only: creating the images and films you asked for. We never sell your content, and this permission ends when the processing is done." },
+        { h: "What you promise us",
+          p: "You only upload photos you are allowed to use — for photos of other people, you ask them first. You do not use the app to create unlawful, deceptive or abusive material, and you do not present generated scenes of real people as real events." },
+        { h: "Age",
+          p: "Dream Rushes is for adults. By using the app you confirm that you are 18 or older." },
+        { h: "Credits and purchases",
+          p: "Creating images and films costs credits; writing, voice and everything in the Sleep tab is free. Prices are always shown before you pay. Credits have no cash value and cannot be paid out; subscription credits expire at the end of each period, purchased packs do not." },
+        { h: "AI-generated content",
+          p: "Everything the renderer produces is synthetic. It can be wrong, strange or unlike what you imagined — that is the nature of the technology, not a defect. Shared films carry a label that says they are AI-made; please leave it in place, in some countries the law requires it." },
+        { h: "Availability",
+          p: "Rendering depends on outside services we do not control. We work to keep the app available but cannot promise uninterrupted service; if a paid render fails, your credits are not charged." },
+        { h: "Changes to these terms",
+          p: "We may update these terms as the app evolves. If a change matters, the app will show you the new version and ask for your agreement again before you continue." },
+        { h: "Liability",
+          p: "We are liable without limit for intent, gross negligence, and harm to life, body or health. For ordinary negligence we are liable only for the breach of essential contractual duties, limited to the foreseeable, typical damage. Your statutory consumer rights remain untouched." },
+        { h: "Applicable law",
+          p: "German law applies, without prejudice to the mandatory consumer protections of the country you live in." },
+      ],
+    },
+    privacy: {
+      title: "Privacy Notice",
+      sections: [
+        { h: "Who is responsible",
+          p: "Dream Rushes is the controller for the processing described here. You can withdraw your consent at any time directly in the app under Profile → Settings — after that, nothing leaves your device until you agree again." },
+        { h: "What we process",
+          p: "Your dream texts, the photos you upload, your voice while you talk to the assistant, and the images and films made from them. Your journal, your settings and your credit balance stay on your device — there is no account and no cloud copy of your diary." },
+        { h: "Where your data goes",
+          p: "Rendering happens at named AI services, each only for its job: DeepSeek helps write and analyse text, Google handles the voice conversation and image rendering, fal.ai renders images and passes films on to MiniMax (Hailuo) or ByteDance (Seedance) depending on the tier you choose. None of them receives more than the material needed for your specific render." },
+        { h: "Training",
+          p: "Google's paid API does not use your content to train models. DeepSeek's paid API is not used for training by default. fal.ai may use anonymized usage data to improve its services. We ourselves never use your material to train anything." },
+        { h: "Storage and deletion",
+          p: "Rendered images and films are stored on our server so the app can show and share them. Deleting a dream in your journal removes it from your device; automatic deletion of old renders on the server is being built and will be in place before public launch." },
+        { h: "Legal basis",
+          p: "We process your material based on your consent (Art. 6(1)(a) GDPR), which you give at the gate before your first dream, and on the contract with you (Art. 6(1)(b) GDPR) for everything needed to deliver what you ordered." },
+        { h: "Transfers outside the EU",
+          p: "fal.ai and Google process data in the United States; film rendering by MiniMax or ByteDance and text processing by DeepSeek can involve transfers to other third countries, including China. These transfers rest on the providers' contractual safeguards (standard contractual clauses). If you are not comfortable with that, do not upload photos — the journal works without them." },
+        { h: "Your rights",
+          p: "You can ask what we hold about you, have it corrected or deleted, take back your consent at any time, and complain to a data-protection authority. Withdrawing consent stops future processing; it does not undo renders already made." },
+        { h: "Age",
+          p: "The app is intended for adults (18+). We do not knowingly process the data of minors." },
+        { h: "Changes to this notice",
+          p: "If this notice changes in substance, the app will show it to you again and ask for fresh consent before your next dream." },
+      ],
+    },
   },
   onboarding: {
     tagline: "Every night you make films. Start keeping them.",
@@ -663,7 +768,15 @@ export default {
       UPSTREAM: "⚠ The voice service dropped out. Try again.",
       SOCKET: "⚠ Could not reach the voice service.",
       CLOSED: "⚠ The connection closed. Try again.",
+      TIMEOUT: "⚠ The voice service didn't answer.",
     },
+    /* Das gestaltete Fehler-Feld statt der toten Schleife: Überschrift,
+       ein ruhiger Satz, zwei Wege raus. Antons Befund 21.08.: ohne
+       Schlüssel hing der Schirm wortlos bei „Waking up…". */
+    errorTitle: "That didn't work",
+    errorHint: "Nothing is lost — you can try again, or type your dream instead.",
+    retry: "Try again",
+    back: "Back",
   },
 
   paywall: {
@@ -703,6 +816,10 @@ export default {
     yieldOr: "or",
     packNote: "These never expire — no subscription, no reset. That is what makes them dearer per credit.",
     packYield: (i, f) => (f ? `${i} images, or ${f} films` : `${i} images`),
+    /* Unter den Ertrags-Kacheln, nur beim Jahresabo: die Kacheln zeigen
+       die Jahressumme (Antons Wunsch: „hochrechnen, damit es nach viel
+       aussieht"), diese Zeile hält die ehrliche Mechanik daneben fest. */
+    yieldYearNote: "Your whole year — 45 fresh credits land every month.",
     included: "Always included, free",
     chips: [
       "Unlimited journaling", "Voice recording", "AI rewriting",
@@ -725,5 +842,8 @@ export default {
     storageFull: "⚠ Storage full — delete old entries or reference photos.",
     unexpected: "Unexpected response from the server.",
     serverStatus: (s) => `Server responded with ${s}.`,
+    /* Für den Abbruch nach Zeit (AbortSignal in api.js): sagt, WAS man tun
+       kann, nicht nur dass etwas schiefging. */
+    timeout: "The service didn't answer. Check your connection and try again in a moment.",
   },
 };

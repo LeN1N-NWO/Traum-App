@@ -50,7 +50,13 @@ export default function Paywall({ reason = "browse", onClose }) {
 
   const plans = tab === "sub" ? SUBSCRIPTIONS : PACKS;
   const plan = plans.find((p) => p.id === chosen) || plans[0];
-  const got = dreamsFor(plan.credits);
+  /* Das Jahresabo zeigt in den Ertrags-Kacheln die JAHRESSUMME (540 Bilder,
+     77 Filme), nicht die Monatsration — Antons Ansage 21.08.: „hochrechnen,
+     damit es nach viel aussieht". Es ist dieselbe ehrliche Rechnung, nur
+     über den Zeitraum, für den man tatsächlich bezahlt; die Zeile unter den
+     Kacheln (yieldYearNote) hält die monatliche Mechanik daneben fest. */
+  const yearly = plan.period === "year";
+  const got = dreamsFor(plan.credits * (yearly ? 12 : 1));
 
   /* Hängt am Tagebuch, nicht am gewählten Tarif: Beim Umschalten zwischen
      Woche und Monat ändern sich die Zahlen, nicht das Material. Ohne das
@@ -170,6 +176,7 @@ export default function Paywall({ reason = "browse", onClose }) {
             </>
           )}
         </div>
+        {yearly && <p className="pw-yield-note">{t.paywall.yieldYearNote}</p>}
 
         <div className="pw-included">
           <h2 className="pw-included-title">{t.paywall.included}</h2>

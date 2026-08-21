@@ -98,6 +98,18 @@ test("exactly one subscription is featured", () => {
   expect(SUBSCRIPTIONS.filter((p) => p.featured).length).toBe(1);
 });
 
+/* Die Rabatt-Badges sind BEHAUPTUNGEN über die Preisliste, und Behauptungen
+   driften: Ändert jemand einen Preis oder eine Credit-Zahl, muss das Badge
+   mitwandern — dieser Test rechnet beide gegen dieselbe Bezugsgröße nach
+   (Preis je Credit gegenüber der Woche, siehe Kommentar in plans.js). */
+test("every save badge states the real per-credit saving vs the weekly plan", () => {
+  const week = SUBSCRIPTIONS.find((p) => p.period === "week");
+  for (const plan of SUBSCRIPTIONS.filter((p) => p.saveHint)) {
+    const real = Math.round((1 - termPerCredit(plan) / termPerCredit(week)) * 100);
+    expect(plan.saveHint).toBe(`${real}%`);
+  }
+});
+
 /* Die zwei Zahlen auf der Paywall. Der Filmpreis wird aus video.js
    BERECHNET, nicht hier wiederholt — bis zum 16.08. stand in dreamsFor
    `credits / 5`, weil ein Film einmal fuenf Credits kostete. Er kostet

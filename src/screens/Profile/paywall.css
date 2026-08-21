@@ -103,6 +103,13 @@
   background: rgb(var(--bg-rgb) / .78); border: 1px solid var(--panel-line);
 }
 
+/* Nur unterm Jahresabo: die Kacheln zeigen die Jahressumme, diese Zeile
+   sagt ehrlich dazu, wie sie sich füllt (45 Credits je Monat). */
+.pw-yield-note {
+  margin: var(--s-2) 0 0;
+  color: var(--faint); font-size: var(--t-micro); text-align: center;
+}
+
 .pw-tile {
   flex: 1; position: relative; min-width: 0; height: 132px;
   border-radius: var(--radius); overflow: hidden;

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { STYLES } from "../lib/styles.js";
 import { beatsForCount, beatCountForSeconds, evenIndices } from "../lib/beats.js";
 import { buildReferences, buildImagePrompt, buildPosterPrompt, buildGridPrompt } from "../lib/promptBuilder.js";
@@ -21,12 +22,18 @@ import "./wizard.css";
 const GENERATION_WINDOW = 3;
 
 export default function Step5Style({ w, patch }) {
-  const { state, update, toast, openPaywall } = useAppState();
+  const { state, update, openPaywall } = useAppState();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [modelInfo, setModelInfo] = useState(null);  // Modell-id, deren ⓘ offen ist
+  const [styleInfo, setStyleInfo] = useState(null);  // Stil-id, deren ⓘ offen ist
   const [msg, setMsg] = useState(0);
   const [done, setDone] = useState(0);
   const [prep, setPrep] = useState("");  // Figur, deren Bogen gerade entsteht
+  // Der letzte Fehler, als sichtbarer Block im Formular statt als Toast:
+  // ein Toast ist nach vier Sekunden weg, und wer auf den Spinner gestarrt
+  // hat, sieht danach nur ein wortloses Formular (Antons Befund 21.08.).
+  const [fail, setFail] = useState(null);
   // Re-entry guard. `busy` cannot do this job: it is state, so it is still
   // false for a second call that arrives in the same tick — and two runs mean
   // the credits are spent twice and every image is rendered twice. Seen for
@@ -78,6 +85,7 @@ export default function Step5Style({ w, patch }) {
     setBusy(true);
     setDone(0);
     setMsg(0);
+    setFail(null);
 
     // Everything below is local: no LLM call. The beats came from the single
     // analysis, the style is a constant, the reference clauses are built from
@@ -257,7 +265,7 @@ export default function Step5Style({ w, patch }) {
       patch({ urls: perImage.flat(), poster: withPoster, step: 6 });
     } catch (err) {
       console.error("[DreamRushes] generation failed:", err);
-      toast(`⚠ ${err.message}`);
+      setFail(err.message);
     }
     running.current = false;
     setBusy(false);
@@ -280,19 +288,55 @@ export default function Step5Style({ w, patch }) {
     <section className="wiz-body">
       <h1 className="wiz-title">{t.wizard.step5.title}</h1>
 
+      {/* Der Fehler des letzten Versuchs, mit dem Weg zurück. Der
+          Generieren-Knopf unten IST das „nochmal" — nichts wurde
+          abgebucht, das Formular steht noch genauso da. */}
+      {fail && (
+        <div className="wiz-error" role="alert">
+          <p className="wiz-error-title">{t.wizard.step5.failedTitle}</p>
+          <p className="wiz-error-msg">{fail}</p>
+          <p className="wiz-error-note">{t.wizard.step5.failedNote}</p>
+          <button className="wiz-error-home" onClick={() => navigate("/")}>
+            {t.wizard.step5.failedHome}
+          </button>
+        </div>
+      )}
+
       <div className="wiz-styles" role="group" aria-label={t.wizard.step5.styleLabel}>
         {STYLES.map((s) => (
-          <button
-            key={s.id}
-            className={"wiz-style" + (w.styleId === s.id ? " wiz-style-on" : "")}
-            onClick={() => patch({ styleId: s.id })}
-            aria-pressed={w.styleId === s.id}
-          >
-            <span className="wiz-style-emoji" aria-hidden="true">{s.emoji}</span>
-            <span>{s.label}</span>
-          </button>
+          /* Gleiches Muster wie bei den Filmmodellen: das ⓘ liegt NEBEN
+             dem Auswahlknopf in dessen Ecke, nie als Knopf im Knopf.
+             Name aus den Sprachdateien, styles.js bleibt der Fallback —
+             vorher standen die Stilnamen englisch fest im UI (derselbe
+             Fehlertyp wie beim Traumatlas, 21.08.). */
+          <div key={s.id} className="wiz-style-wrap">
+            <button
+              className={"wiz-style" + (w.styleId === s.id ? " wiz-style-on" : "")}
+              onClick={() => patch({ styleId: s.id })}
+              aria-pressed={w.styleId === s.id}
+            >
+              <span className="wiz-style-emoji" aria-hidden="true">{s.emoji}</span>
+              <span>{t.styles.byId[s.id]?.label || s.label}</span>
+            </button>
+            <button
+              className="wiz-model-info"
+              aria-label={`${t.wizard.step5.aboutStyle}: ${t.styles.byId[s.id]?.label || s.label}`}
+              onClick={() => setStyleInfo(s.id)}
+            >i</button>
+          </div>
         ))}
       </div>
+
+      {styleInfo && (
+        <Sheet label={t.styles.byId[styleInfo]?.label || styleInfo} onClose={() => setStyleInfo(null)}>
+          <p className="sb-sheet-label">{t.wizard.step5.styleLabel}</p>
+          <h3 className="wiz-model-title">
+            {STYLES.find((s) => s.id === styleInfo)?.emoji}{" "}
+            {t.styles.byId[styleInfo]?.label || styleInfo}
+          </h3>
+          <p className="wiz-model-text">{t.styles.byId[styleInfo]?.info}</p>
+        </Sheet>
+      )}
 
       {/* The poster opens an image sequence (it replaces the first image, so
           the count and price stay untouched). Clearing the title is the
