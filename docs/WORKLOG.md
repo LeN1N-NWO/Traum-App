@@ -3,6 +3,68 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-21 09:55 — Anton — Branch `session/2026-08-20-anton` (PR #17) — Sitzungsabschluss
+
+**Commits:** `2d05bcd` (Eröffnung, nach Merge von #16) · `8eff57a`
+(**Traum-Detail als Kino-Strecke**) · `8c8774d` (Mehrwert-Plan) ·
+`a474411` (**Reflection + Traumatlas**) · `71d7578` (Symbol-i18n +
+Entrümpelung) plus dieser Doku-Commit. Zustand: 207 Unit-Tests, Build
+sauber, `bun run lint` gibt es weiterhin nicht.
+
+### Das Traum-Detail swipet jetzt (Antons Wahl aus je drei Varianten)
+
+Statt der vertikalen Bild-Text-Wurst: randlose Vollbild-Panels mit dem
+Text als Untertitel auf dem Bild (`DreamViews.jsx`, scroll-snap,
+Punktezeile), der KI-erdachte Traumname als Buchtitelblatt (mittig,
+Serife, ✦-Zierlinie, Tagline kursiv), und die nackte
+„References used: @lena"-Zeile ist eine **Besetzungszeile mit echten
+Avatar-Fotos** (CastChips). Träume ohne Bilder behalten die alte Seite.
+⚠ Gelernt: `.j-deck` gehörte schon dem Kartenstapel der Übersicht —
+die neuen Klassen heißen `j-cine-*`. Klassennamen im Journal-CSS vor
+Gebrauch grep-en.
+
+### Reflection + Traumatlas (Mehrwert-Plan P1, live bestanden)
+
+- **`/api/reflect`** (DeepSeek, gratis, text-Klasse im Gatekeeper):
+  drei Absätze je Traum — was auffällt, EINE Lesart in Angebots-Sprache,
+  eine Frage zurück. Die Regeln sind die halbe Funktion (Spiegel statt
+  Orakel: keine Diagnose, keine Zukunft, keine Universalsymbolik), der
+  Kontext kommt aus dem eigenen Journal (`atlas.js`
+  reflectionContext — englisch, weil er an DeepSeek geht). Ergebnis
+  wird AM EINTRAG gespeichert (`entry.reflection`), bei Textänderung
+  verworfen. Live-Test: deutscher Traum → deutsche Reflection, Muster
+  („Wasser auch in einem früheren Traum") von selbst eingewoben.
+- **Traumatlas** (Journal-Unterschirm, ab dem zweiten echten Traum):
+  Monat in vier Kacheln, wiederkehrende Symbole mit Lesart und
+  antippbaren Träumen, Stimmungs-Chips. Reine Rechnung über
+  state.journal je Render (ADR-0001-konform). ⚠ Erkannt wird auf Text
+  UND den ENGLISCHEN Beats der Analyse — sonst wäre der Atlas für
+  deutsche Träume leer; `atlas.test.js` nagelt genau das fest.
+
+### Symbol-i18n: die Altlast ist raus
+
+Antons Befund („Atlas ist englisch, obwohl ich deutsch drin bin"):
+Labels/Lesarten aller 20 Symbole lagen hart englisch in `symbols.js`.
+Jetzt in allen 7 Sprachdateien (`t.symbols.byId`/`categories`);
+Atlas, Symbolseite (Sleep-Tab) und Symbol-Detail lesen daraus,
+symbols.js bleibt Stichwortlisten + Fallback. Und gegen das Überladene:
+Besetzung + Atlas als zwei halbe Kacheln in EINER Zeile, Atlas zeigt
+6 Symbole × max. 4 Träume — Spitze statt Inventar.
+
+### Was der Nächste wissen muss
+
+1. **Mehrwert-Plan** (`2026-08-21-mehrwert-inhalte.md`): P1a+P1b sind
+   gebaut. Offen: P2a Morgen-Check-in, P2b „Du träumst wieder von …",
+   P2c Traumzeichen-Karten, P3a Albtraum-Umschreiben (Wortlaut mit dem
+   Rechtsplan abstimmen), P3b Einschlaf-Timer.
+2. **Schlussstein weiter offen:** je ein echter bezahlter Film pro Stufe
+   durch die App-UI. Der 8100-Server läuft derzeit aus dem WORKTREE
+   (mit kopierter .env) — nach dem Merge auf dem Hauptrepo neu starten.
+3. Rechtsplan §4, Punkte 2–6 unverändert offen.
+4. Vite-Falle: Der Dev-Server beobachtet `.env` — eine nachträglich
+   kopierte .env löst einen Doppel-Restart aus, der ihn töten kann.
+   Danach einfach `bun run dev:web` neu starten.
+
 ## 2026-08-20 23:35 — Anton — Branch `session/2026-08-19-anton` (PR #16) — Sitzungsabschluss
 
 **Commits:** `4485f9c` (Eröffnung) · `3c550c6` `0a714b9` `acc2c95` (Messungen

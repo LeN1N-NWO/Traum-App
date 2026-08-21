@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Button from "../../components/Button.jsx";
 import TagField from "../../components/TagField.jsx";
 import { useAppState } from "../../state/AppState.jsx";
-import { refine, mediaUrl, jobStatus } from "../../lib/api.js";
+import { refine, reflect, mediaUrl, jobStatus } from "../../lib/api.js";
+import { reflectionContext } from "../../lib/atlas.js";
 import { filmOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
 import { spend } from "../../lib/credits.js";
 import { PRICES } from "../../lib/pricing.js";
@@ -12,6 +13,7 @@ import { t } from "../../i18n/index.js";
 import Storyboard from "../../components/Storyboard.jsx";
 import EntryMenu from "./EntryMenu.jsx";
 import RefineSheet from "./RefineSheet.jsx";
+import { DeckView, CastChips } from "./DreamViews.jsx";
 import { IconImages, IconFilm, IconShare, IconSparkle, IconPencil, ChevronRight } from "../../components/icons.jsx";
 import "./journal.css";
 
@@ -74,15 +76,38 @@ export default function JournalDetail({ entry, onClose }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry.jobId, entry.id]);
 
-  /** Write a new text onto the entry. The first version is never touched. */
+  /** Write a new text onto the entry. The first version is never touched.
+   *  Die Reflection fällt dabei weg: sie beschreibt den ALTEN Wortlaut,
+   *  und eine Deutung zum falschen Text ist schlechter als keine. */
   function commitText(text) {
     update({
       journal: state.journal.map((e) =>
         e.id === entry.id
-          ? { ...e, text, originalText: e.originalText || e.text, editedAt: new Date().toISOString() }
+          ? { ...e, text, reflection: undefined, originalText: e.originalText || e.text, editedAt: new Date().toISOString() }
           : e
       ),
     });
+  }
+
+  /* Die Reflection — gratis (Textarbeit), einmal je Wortlaut: das Ergebnis
+     wird AM EINTRAG gespeichert, damit Wiederlesen keinen zweiten Aufruf
+     kostet und die Deutung stabil bleibt, statt bei jedem Öffnen eine
+     andere zu sein. Der Kontext kommt aus dem eigenen Journal (atlas.js) —
+     das, was kein Lexikon-Deuter hat. */
+  async function runReflect() {
+    setBusy(true);
+    try {
+      const text = await reflect(entry.text, reflectionContext(state.journal, entry));
+      update({
+        journal: state.journal.map((e) =>
+          e.id === entry.id ? { ...e, reflection: { text, at: new Date().toISOString() } } : e
+        ),
+      });
+    } catch (err) {
+      console.error("[DreamRushes] reflect failed:", err);
+      toast(`⚠ ${err.message}`);
+    }
+    setBusy(false);
   }
 
   function saveEdit() {
@@ -174,6 +199,15 @@ export default function JournalDetail({ entry, onClose }) {
   const hero = mediaUrl(film || images[0]) || null;
   const heroIsVideo = !!film;
 
+  /* Antons Wahl vom 21.08. aus je drei Varianten: die Kino-Strecke
+     (DreamViews.jsx) mit dem Ornament-Titel — Traumname mittig in der
+     Serifen-Schrift der Karten, ✦-Zierlinie, Tagline kursiv darunter.
+     Nur Träume MIT Bildern swipen — reiner Text bleibt die alte Seite. */
+  const hasMedia = images.length > 0;
+  const swipes = hasMedia && !editing && !proposal;
+  const slimHead = swipes;
+  const dateLabel = d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
   return (
     <div className="j-backdrop" onClick={onClose}>
       <div
@@ -188,6 +222,27 @@ export default function JournalDetail({ entry, onClose }) {
             the title itself: on a poster the rendered title sits in the lower
             third, below this crop, so the two never collide. The full poster
             is still right there in the carousel underneath. */}
+        {slimHead ? (
+          /* Kompakter Kopf: nur die Werkzeuge — der Titel bekommt je nach
+             gewählter Behandlung seinen eigenen Auftritt (unten bzw. im
+             ersten Panel). */
+          <div className="j-slimhead">
+            <div className="j-modal-tools j-modal-tools-inline">
+              <button className="j-close" onClick={() => setMenuOpen(true)} aria-label={t.journal.menu}>⋯</button>
+              <button ref={closeRef} className="j-close" onClick={onClose} aria-label={t.journal.close}>×</button>
+            </div>
+            {/* Der Titel: mittig, Serife, Ornament — der KI-erdachte
+                Traumname bekommt den Auftritt eines Buchtitelblatts. */}
+            <header className="j-title-block">
+              <p className="j-title-eyebrow">{dateLabel}</p>
+              <h2 className="j-title-serif">{entry.title || t.journal.untitled}</h2>
+              <div className="j-title-orn" aria-hidden="true"><span>✦</span></div>
+              {entry.tagline && (
+                <p className="j-title-tagline j-title-tagline-italic">{entry.tagline}</p>
+              )}
+            </header>
+          </div>
+        ) : (
         <div className="j-hero">
           {hero && !heroIsVideo && <img className="j-hero-img" src={hero} alt="" />}
           {hero && heroIsVideo && <video className="j-hero-img" src={hero} muted loop autoPlay playsInline />}
@@ -207,6 +262,11 @@ export default function JournalDetail({ entry, onClose }) {
             {entry.tagline && <p className="j-hero-tagline">{entry.tagline}</p>}
           </div>
         </div>
+        )}
+
+        {/* Die Kino-Strecke liegt VOLLBREIT über dem Inhalt — Bild zuerst,
+            alles Sekundäre darunter. */}
+        {swipes && <DeckView entry={entry} film={film} images={images} />}
 
         <div className="j-content">
         {/* The one action that spends credits leads the page — moved up from
@@ -275,7 +335,7 @@ export default function JournalDetail({ entry, onClose }) {
             from: it is the finished piece, they are the working material.
             Controls on, unmuted, no autoplay — a film someone paid for is
             watched deliberately, not glimpsed as a silent loop. */}
-        {film && (
+        {film && !swipes && (
           <video className="j-film" src={mediaUrl(film)} controls playsInline preload="metadata" />
         )}
 
@@ -316,7 +376,7 @@ export default function JournalDetail({ entry, onClose }) {
               <Button onClick={saveEdit}>{t.journal.save}</Button>
             </div>
           </>
-        ) : (
+        ) : swipes ? null : (
           <DreamStory text={entry.text} urls={images} type="image" />
         )}
 
@@ -331,10 +391,33 @@ export default function JournalDetail({ entry, onClose }) {
           </div>
         )}
 
+        {/* Die Besetzung mit Gesichtern statt der nackten @tag-Zeile. */}
         {entry.references?.length > 0 && (
-          <p className="j-references">
-            {t.journal.referencesUsed} {entry.references.map((r) => "@" + r.tag).join(", ")}
-          </p>
+          <CastChips refs={entry.references} cast={state.cast || []} me={state.me} />
+        )}
+
+        {/* Die Reflection: Spiegel, nicht Orakel (Mehrwert-Plan P1a). Ein
+            ruhiger Absatzblock unter der Besetzung — erst auf Wunsch, dann
+            dauerhaft. Der Hinweis darunter sagt ehrlich, was das ist: EINE
+            mögliche Lesart, keine Wahrheit über den Menschen. */}
+        {!editing && !proposal && (
+          <div className="j-reflect">
+            {entry.reflection ? (
+              <>
+                <p className="j-original-label">{t.journal.reflectTitle}</p>
+                <p className="j-reflect-text">{entry.reflection.text}</p>
+                <p className="j-reflect-note">{t.journal.reflectNote}</p>
+              </>
+            ) : (
+              <button className="j-reflect-btn" onClick={runReflect} disabled={busy}>
+                <IconSparkle />
+                <span className="j-reflect-btn-body">
+                  <span>{t.journal.reflectCta}</span>
+                  <small>{t.journal.reflectHint}</small>
+                </span>
+              </button>
+            )}
+          </div>
         )}
 
         {/* The first thing they wrote stays reachable, however often it is

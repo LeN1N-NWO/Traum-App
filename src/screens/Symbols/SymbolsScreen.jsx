@@ -19,9 +19,14 @@ export default function SymbolsScreen({ embedded = false }) {
   // enriches old dreams retroactively, with no migration.
   const occurrences = useMemo(() => symbolOccurrences(state.journal), [state.journal]);
 
+  /* Namen und Lesarten kommen seit 21.08. aus den Sprachdateien
+     (t.symbols.byId/categories) — symbols.js behält nur die englischen
+     Stichwortlisten und Fallbacks. Vorher stand der Atlas in einer
+     deutschen App voller englischer Symbolnamen. */
   const groups = Object.entries(SYMBOL_CATEGORIES)
     .map(([key, cat]) => ({
       key, ...cat,
+      label: t.symbols.categories[key] || cat.label,
       symbols: SYMBOLS.filter((s) => s.category === key && occurrences.has(s.id)),
     }))
     .filter((g) => g.symbols.length > 0);
@@ -44,7 +49,7 @@ export default function SymbolsScreen({ embedded = false }) {
               {g.symbols.map((s) => (
                 <Card as="button" key={s.id} className="s-tile" onClick={() => setOpenId(s.id)}>
                   <span className="s-emoji" aria-hidden="true">{s.emoji}</span>
-                  <span className="s-label">{s.label}</span>
+                  <span className="s-label">{t.symbols.byId[s.id]?.label || s.label}</span>
                   <span className="s-count">{occurrences.get(s.id).length}×</span>
                 </Card>
               ))}

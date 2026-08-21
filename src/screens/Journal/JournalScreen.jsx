@@ -5,6 +5,7 @@ import ScreenHeader from "../../components/ScreenHeader.jsx";
 import JournalCard from "./JournalCard.jsx";
 import JournalDetail from "./JournalDetail.jsx";
 import CastLibrary from "./CastLibrary.jsx";
+import Atlas from "./Atlas.jsx";
 import DreamCalendar from "./DreamCalendar.jsx";
 import "./journal.css";
 
@@ -14,6 +15,7 @@ export default function JournalScreen() {
   const [openId, setOpenId] = useState(null);
   const [index, setIndex] = useState(0);
   const [library, setLibrary] = useState(false);
+  const [atlas, setAtlas] = useState(false);
   const trackRef = useRef(null);
 
   // The chosen view outlives the visit — it is a preference, not a mood.
@@ -55,12 +57,27 @@ export default function JournalScreen() {
 
   const total = state.journal?.length || 0;
   const castCount = (state.cast?.length || 0) + (state.me ? 1 : 0);
+  const realDreamCount = (state.journal || []).filter((e) => !String(e.id).startsWith("e_seed")).length;
   const open = entries.find((e) => e.id === openId) || null;
 
   if (library) {
     return (
       <main className="screen">
         <CastLibrary onBack={() => setLibrary(false)} />
+      </main>
+    );
+  }
+
+  if (atlas) {
+    return (
+      <main className="screen">
+        {/* Ein Traum aus dem Atlas geöffnet schließt den Atlas — das Detail
+            wohnt am Hauptschirm, und „zurück" führt dann dorthin, wo die
+            Träume sind, nicht in eine verschachtelte Statistik. */}
+        <Atlas
+          onBack={() => setAtlas(false)}
+          onOpen={(id) => { setAtlas(false); setOpenId(id); }}
+        />
       </main>
     );
   }
@@ -93,14 +110,29 @@ export default function JournalScreen() {
       />
 
       {/* The cast lives here, not in the profile: these entries exist to be
-          referenced by dreams, so they belong next to them. */}
-      <button className="j-library" onClick={() => setLibrary(true)}>
-        <span className="j-library-body">
-          <span className="j-library-title">{t.journal.library}</span>
-          <span className="j-library-text">{t.journal.libraryCount(castCount)}</span>
-        </span>
-        <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
-      </button>
+          referenced by dreams, so they belong next to them. Der Atlas
+          daneben, aus demselben Grund — als ZWEI halbe Kacheln in EINER
+          Zeile, nicht zwei gestapelte volle (Antons Rückmeldung 21.08.:
+          „wirkt überladen"). Der Atlas erscheint erst ab dem zweiten
+          echten Traum; bis dahin nimmt die Besetzung die ganze Breite. */}
+      <div className="j-shortcuts">
+        <button className="j-library" onClick={() => setLibrary(true)}>
+          <span className="j-library-body">
+            <span className="j-library-title">{t.journal.library}</span>
+            <span className="j-library-text">{t.journal.libraryCount(castCount)}</span>
+          </span>
+          <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
+        </button>
+        {realDreamCount >= 2 && (
+          <button className="j-library" onClick={() => setAtlas(true)}>
+            <span className="j-library-body">
+              <span className="j-library-title">{t.journal.atlas}</span>
+              <span className="j-library-text">{t.journal.atlasShort}</span>
+            </span>
+            <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
+          </button>
+        )}
+      </div>
 
       {entries.length === 0 ? (
         <p className="j-empty">{query ? t.journal.emptySearch : t.journal.empty}</p>

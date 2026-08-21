@@ -46,6 +46,15 @@ export async function refine(dream, mode) {
   return data.text;
 }
 
+/** Die Reflection zu einem Traum — Spiegel, nicht Orakel. `context` sind
+ *  die Musterzeilen aus atlas.js (reflectionContext), gratis wie alle
+ *  Textarbeit. */
+export async function reflect(dream, context = []) {
+  const data = await post("/api/reflect", { dream, context });
+  if (typeof data?.text !== "string") throw new Error(t.errors.unexpected);
+  return data.text;
+}
+
 /** Dictation: audio as a base64 data URI in, spoken words as text out. */
 export async function transcribe(audio) {
   const data = await post("/api/transcribe", { audio });
