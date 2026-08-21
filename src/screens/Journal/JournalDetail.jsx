@@ -247,55 +247,49 @@ export default function JournalDetail({ entry, onClose }) {
             would look like. The film is offered once there ARE pictures,
             when they know what they are animating. Both hidden while a film
             renders: that one is on its way, not missing. */}
-        {!entry.jobId && !pendingImages && !editing && !proposal && images.length === 0 && (
-          <div className="j-make">
-            <p className="j-make-lede">{t.journal.makeLede}</p>
-            <button className="j-make-btn" onClick={() => make("images")}>
-              <IconImages />
-              <span className="j-make-title">{t.journal.makeImages}</span>
-              <ChevronRight />
-            </button>
-          </div>
-        )}
-
-        {!entry.jobId && !film && !editing && !proposal && images.length > 0 && (
-          <div className="j-make">
-            <p className="j-make-lede">{t.journal.makeFilmLede}</p>
-            <button className="j-make-btn" onClick={() => make("film")}>
-              <IconFilm />
-              <span className="j-make-title">{t.journal.makeFilm}</span>
-              <ChevronRight />
-            </button>
-          </div>
-        )}
-
-        {/* The things you can do TO this dream, as one row underneath. They
-            are all cheap or free and all reversible, which is why they read
-            as secondary to the warm button above it — deleting stays in the
-            ⋯ menu where a mis-tap cannot reach it.
-
-            WRAPS rather than scrolling sideways. The sideways-scrolling
-            version hid "Share" off the right edge in German ("Teilen" after
-            "Umschreiben" and "Bearbeiten") — reachable by dragging, but
-            nobody drags a row they cannot see the end of, so it read as a
-            cut-off button twice over. Wrapping is the only version that
-            cannot clip a label in ANY of the seven languages. */}
-        {!editing && !proposal && (
-          <div className="j-acts">
-            <button className="j-act" onClick={() => setRefinePick(true)} disabled={busy}>
-              <IconSparkle />
-              <span>{t.journal.actRewrite}</span>
-            </button>
-            <button className="j-act" onClick={() => setEditing(true)}>
-              <IconPencil />
-              <span>{t.journal.actEdit}</span>
-            </button>
-            <button className="j-act" onClick={doShare} disabled={busy || allMediaOf(entry).length === 0}>
-              <IconShare />
-              <span>{t.journal.actShare}</span>
-            </button>
-          </div>
-        )}
+        {/* Eine Zeile statt drei Blöcke (Antons Ansage 21.08.): der warme
+            Hauptknopf (Bilder machen ODER Kurzfilm machen) nimmt nicht mehr
+            die ganze Breite, die stillen Werkzeuge (Umschreiben, Bearbeiten,
+            Teilen) stehen transparent daneben und wickeln auf schmalen
+            Schirmen darunter. Löschen bleibt bewusst allein im ⋯-Menü. */}
+        {!editing && !proposal && (() => {
+          const offerImages = !entry.jobId && !pendingImages && images.length === 0;
+          const offerFilm = !entry.jobId && !film && !pendingImages && images.length > 0;
+          return (
+            <div className="j-make">
+              {offerImages && <p className="j-make-lede">{t.journal.makeLede}</p>}
+              {offerFilm && <p className="j-make-lede">{t.journal.makeFilmLede}</p>}
+              <div className="j-acts">
+                {offerImages && (
+                  <button className="j-make-btn" onClick={() => make("images")}>
+                    <IconImages />
+                    <span className="j-make-title">{t.journal.makeImages}</span>
+                    <ChevronRight />
+                  </button>
+                )}
+                {offerFilm && (
+                  <button className="j-make-btn" onClick={() => make("film")}>
+                    <IconFilm />
+                    <span className="j-make-title">{t.journal.makeFilm}</span>
+                    <ChevronRight />
+                  </button>
+                )}
+                <button className="j-act" onClick={() => setRefinePick(true)} disabled={busy}>
+                  <IconSparkle />
+                  <span>{t.journal.actRewrite}</span>
+                </button>
+                <button className="j-act" onClick={() => setEditing(true)}>
+                  <IconPencil />
+                  <span>{t.journal.actEdit}</span>
+                </button>
+                <button className="j-act" onClick={doShare} disabled={busy || allMediaOf(entry).length === 0}>
+                  <IconShare />
+                  <span>{t.journal.actShare}</span>
+                </button>
+              </div>
+            </div>
+          );
+        })()}
 
         {busy && <p className="j-working">{t.journal.working}</p>}
 

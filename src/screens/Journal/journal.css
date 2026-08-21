@@ -352,7 +352,10 @@
    — „ab 3" sagt niemandem, dass Credits gemeint sind. Die Zahl steht im
    Schritt danach, zusammen mit dem, wofür sie gilt. */
 .j-make-btn {
-  display: flex; align-items: center; gap: var(--s-3); width: 100%;
+  /* In der Aktionszeile: wächst, nimmt aber nicht mehr alles — die
+     stillen Werkzeuge stehen daneben (Antons Ansage 21.08.). Auf
+     schmalen Schirmen wickelt die Zeile und er wird wieder voll breit. */
+  display: flex; align-items: center; gap: var(--s-3); flex: 1 1 240px;
   padding: 14px var(--s-4); cursor: pointer; text-align: start;
   border-radius: 999px; border: 1px solid transparent;
   background: var(--warm-grad); color: var(--bg); font-family: inherit;
@@ -647,3 +650,24 @@
 .j-shortcuts .j-library-text {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* — die Menagerie (seit 21.08. hier statt auf der Titelseite) — */
+.j-menagerie { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s-3); }
+.j-creature {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: var(--s-3) var(--s-2); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--panel-line);
+  text-align: center;
+}
+.j-creature-emoji { font-size: 26px; line-height: 1; }
+.j-creature-name { font-size: var(--t-small); font-weight: 600; }
+.j-creature-rare { font-size: var(--t-micro); }
+.j-creature-date { font-size: var(--t-micro); color: var(--faint); }
+
+/* Raritätsfarben der Wesen — mitgezogen aus home.css, ihrer einzigen Nutzerin. */
+/* Rarity colours — unchanged from the pre-React stylesheet. */
+.rare-common { color: var(--faint); }
+.rare-uncommon { color: var(--ok); }
+.rare-rare { color: var(--cyan); }
+.rare-epic { color: var(--accent); }
+.rare-legendary { color: var(--gold); }

@@ -6,6 +6,7 @@ import JournalCard from "./JournalCard.jsx";
 import JournalDetail from "./JournalDetail.jsx";
 import CastLibrary from "./CastLibrary.jsx";
 import Atlas from "./Atlas.jsx";
+import Menagerie from "./Menagerie.jsx";
 import DreamCalendar from "./DreamCalendar.jsx";
 import "./journal.css";
 
@@ -19,6 +20,7 @@ export default function JournalScreen() {
   const [index, setIndex] = useState(0);
   const [library, setLibrary] = useState(false);
   const [atlas, setAtlas] = useState(false);
+  const [menagerie, setMenagerie] = useState(false);
   const trackRef = useRef(null);
 
   // The chosen view outlives the visit — it is a preference, not a mood.
@@ -67,6 +69,14 @@ export default function JournalScreen() {
     return (
       <main className="screen">
         <CastLibrary onBack={() => setLibrary(false)} />
+      </main>
+    );
+  }
+
+  if (menagerie) {
+    return (
+      <main className="screen">
+        <Menagerie onBack={() => setMenagerie(false)} />
       </main>
     );
   }
@@ -173,6 +183,17 @@ export default function JournalScreen() {
             <span className="j-library-body">
               <span className="j-library-title">{t.journal.atlas}</span>
               <span className="j-library-text">{t.journal.atlasShort}</span>
+            </span>
+            <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
+          </button>
+        )}
+        {/* Die Menagerie — dritter Nebenraum (von der Titelseite umgezogen,
+            Antons Entscheidung 21.08.). Erscheint erst, wenn es Wesen gibt. */}
+        {(state.creatures?.length || 0) > 0 && (
+          <button className="j-library" onClick={() => setMenagerie(true)}>
+            <span className="j-library-body">
+              <span className="j-library-title">{t.home.menagerieHeading}</span>
+              <span className="j-library-text">{t.journal.menagerieCount(state.creatures.length)}</span>
             </span>
             <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
           </button>

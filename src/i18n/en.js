@@ -46,6 +46,8 @@ export default {
     atlas: "Dream atlas",
     atlasLede: "Recurring symbols, moods, your month",
     atlasShort: "Symbols & moods",
+    menagerieLede: "One creature for every dream you wrote down.",
+    menagerieCount: (n) => (n === 1 ? "1 creature" : `${n} creatures`),
     atlasEmpty: "Your patterns appear once a few dreams are in.",
     atlasMonth: "This month",
     atlasDreamsN: (n) => (n === 1 ? "dream" : "dreams"),

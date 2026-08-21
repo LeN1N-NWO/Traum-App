@@ -44,6 +44,8 @@ export default {
     atlas: "Traumatlas",
     atlasLede: "Wiederkehrende Symbole, Stimmungen, dein Monat",
     atlasShort: "Symbole & Stimmungen",
+    menagerieLede: "Ein Wesen für jeden aufgeschriebenen Traum.",
+    menagerieCount: (n) => (n === 1 ? "1 Wesen" : `${n} Wesen`),
     atlasEmpty: "Deine Muster erscheinen, sobald ein paar Träume da sind.",
     atlasMonth: "Dieser Monat",
     atlasDreamsN: (n) => (n === 1 ? "Traum" : "Träume"),
