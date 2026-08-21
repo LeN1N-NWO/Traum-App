@@ -388,19 +388,13 @@ export default function JournalDetail({ entry, onClose }) {
           </div>
         )}
 
-        {/* The first thing they wrote stays reachable, however often it is
-            reworked afterwards. */}
-        {entry.originalText && entry.originalText !== entry.text && (
+        {/* Der erste Wortlaut — aufgerufen über das ⋯-Menü (der frühere
+            Link unten am Eintrag wirkte „verloren angeheftet", Antons
+            Befund 21.08.). Nochmaliges Antippen im Menü blendet ihn aus. */}
+        {showOriginal && entry.originalText && entry.originalText !== entry.text && (
           <div className="j-original">
-            <button className="j-original-toggle" onClick={() => setShowOriginal((v) => !v)}>
-              {showOriginal ? t.journal.hideOriginal : t.journal.showOriginal}
-            </button>
-            {showOriginal && (
-              <>
-                <p className="j-original-label">{t.journal.original}</p>
-                <p className="j-original-text">{entry.originalText}</p>
-              </>
-            )}
+            <p className="j-original-label">{t.journal.original}</p>
+            <p className="j-original-text">{entry.originalText}</p>
           </div>
         )}
         </div>
@@ -411,6 +405,9 @@ export default function JournalDetail({ entry, onClose }) {
             onEdit={() => { setMenuOpen(false); setEditing(true); }}
             onRefine={runRefine}
             onShare={doShare}
+            onOriginal={entry.originalText && entry.originalText !== entry.text
+              ? () => { setMenuOpen(false); setShowOriginal((v) => !v); }
+              : null}
             onDelete={() => { setMenuOpen(false); remove(); }}
             onClose={() => setMenuOpen(false)}
           />

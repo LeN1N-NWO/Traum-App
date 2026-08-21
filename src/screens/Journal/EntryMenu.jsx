@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
-import { PRICES } from "../../lib/pricing.js";
 import { t } from "../../i18n/index.js";
-import { IconPencil, IconSpellcheck, IconSparkle, IconBook, IconShare, IconTrash } from "../../components/icons.jsx";
+import { IconPencil, IconSpellcheck, IconSparkle, IconBook, IconShare, IconTrash, IconHistory } from "../../components/icons.jsx";
 import "./journal.css";
 
 /* The full list, reached from the ⋯ button. The three rewrite modes also
@@ -12,7 +11,11 @@ import "./journal.css";
    Icons from the shared set rather than emoji, same as everywhere else —
    emoji render at a different weight and colour on every platform, which
    is what made this menu the last screen that looked borrowed. */
-export default function EntryMenu({ onEdit, onRefine, onShare, onDelete, onClose, canShare }) {
+/* Keine „Gratis"-Schilder mehr (Antons Frage 21.08.: „Müsst ihr
+   überhaupt gratis hinschreiben?"): In einem Menü, in dem ALLES gratis
+   ist, ist das Schild Rauschen — gratis wirkt nur neben Bezahltem.
+   Kommt je ein bezahlter Punkt hierher, bekommt NUR er ein Preisschild. */
+export default function EntryMenu({ onEdit, onRefine, onShare, onDelete, onClose, canShare, onOriginal }) {
   const firstRef = useRef(null);
 
   useEffect(() => {
@@ -27,26 +30,31 @@ export default function EntryMenu({ onEdit, onRefine, onShare, onDelete, onClose
       <div className="j-menu" role="menu" aria-label={t.journal.menu} onClick={(e) => e.stopPropagation()}>
         <button ref={firstRef} role="menuitem" className="j-menu-item" onClick={onEdit}>
           <span className="j-menu-label"><IconPencil />{t.journal.edit}</span>
-          <span className="j-menu-free">{t.wizard.free}</span>
         </button>
 
         <button role="menuitem" className="j-menu-item" onClick={() => onRefine("correct")}>
           <span className="j-menu-label"><IconSpellcheck />{t.journal.correct}</span>
-          <span className={PRICES.correct ? "j-menu-price" : "j-menu-free"}>{PRICES.correct || t.wizard.free}</span>
         </button>
         <button role="menuitem" className="j-menu-item" onClick={() => onRefine("rewrite")}>
           <span className="j-menu-label"><IconSparkle />{t.journal.rewrite}</span>
-          <span className={PRICES.rewrite ? "j-menu-price" : "j-menu-free"}>{PRICES.rewrite || t.wizard.free}</span>
         </button>
         <button role="menuitem" className="j-menu-item" onClick={() => onRefine("elaborate")}>
           <span className="j-menu-label"><IconBook />{t.journal.elaborate}</span>
-          <span className={PRICES.elaborate ? "j-menu-price" : "j-menu-free"}>{PRICES.elaborate || t.wizard.free}</span>
         </button>
+
+        {/* Der erste Wortlaut, jederzeit nachlesbar — hierher verschoben,
+            weil der Link unten am Eintrag „verloren angeheftet" wirkte
+            (Antons Befund 21.08.). Erscheint nur, wenn es überhaupt ein
+            abweichendes Original gibt. */}
+        {onOriginal && (
+          <button role="menuitem" className="j-menu-item" onClick={onOriginal}>
+            <span className="j-menu-label"><IconHistory />{t.journal.showOriginal}</span>
+          </button>
+        )}
 
         {canShare && (
           <button role="menuitem" className="j-menu-item" onClick={onShare}>
             <span className="j-menu-label"><IconShare />{t.journal.share}</span>
-            <span className="j-menu-free">{t.wizard.free}</span>
           </button>
         )}
 

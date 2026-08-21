@@ -298,6 +298,7 @@ export default {
     nameLabel: (tag) => `Name (becomes @${tag})`,
     photoLabel: "Reference photo",
     photoAdd: "Add a photo",
+    photoTake: "Take a photo",
     photoReplace: "Replace the photo",
     photoRemove: "Remove photo",
     descLabel: "Describe them",
@@ -309,7 +310,7 @@ export default {
     save: "Save",
     saveChanges: "Save changes",
     needName: "⚠ Please use letters or numbers for the name.",
-    needPhotoOrDesc: "⚠ Add a photo or describe them — the renderer needs one of the two.",
+    needPhotoOrDesc: "⚠ Add a photo or describe them — the AI needs one of the two.",
     needPhotoOrDescHint: "Add a photo or a description. Without either there is nothing to draw from.",
     exists: (tag) => `⚠ @${tag} already exists.`,
     created: (tag) => `@${tag} added`,
@@ -503,7 +504,7 @@ export default {
       landscape: "Widescreen",
       keyframeLabel: "Which image comes to life?",
       keyframeHint: "The film starts from this picture — its look carries through.",
-      filmModelLabel: "Which renderer",
+      filmModelLabel: "Which model",
       filmModels: {
         standard: {
           name: "Alive", hint: "your picture starts to move · 1 credit per second",
@@ -683,7 +684,7 @@ export default {
         { h: "Credits and purchases",
           p: "Creating images and films costs credits; writing, voice and everything in the Sleep tab is free. Prices are always shown before you pay. Credits have no cash value and cannot be paid out; subscription credits expire at the end of each period, purchased packs do not." },
         { h: "AI-generated content",
-          p: "Everything the renderer produces is synthetic. It can be wrong, strange or unlike what you imagined — that is the nature of the technology, not a defect. Shared films carry a label that says they are AI-made; please leave it in place, in some countries the law requires it." },
+          p: "Everything the AI produces is synthetic. It can be wrong, strange or unlike what you imagined — that is the nature of the technology, not a defect. Shared films carry a label that says they are AI-made; please leave it in place, in some countries the law requires it." },
         { h: "Availability",
           p: "Rendering depends on outside services we do not control. We work to keep the app available but cannot promise uninterrupted service; if a paid render fails, your credits are not charged." },
         { h: "Changes to these terms",
@@ -790,7 +791,7 @@ export default {
     title: "Dream Rushes Plus",
     close: "Close",
     headline: "Your dreams, as films.",
-    lede: "Writing, voice and everything in the Sleep tab stay free. Credits are only for what a renderer has to draw.",
+    lede: "Writing, voice and everything in the Sleep tab stay free. Credits are only for what the AI has to generate.",
     /* Die Ueberschrift richtet sich nach dem Anlass: wer selbst geoeffnet
        hat, bekommt das Angebot; wem das Blatt in den Weg gesprungen ist,
        bekommt zuerst den Grund. Siehe Paywall.jsx. */
@@ -821,7 +822,7 @@ export default {
     yieldImages: (n) => (n === 1 ? "image" : "images"),
     yieldFilms: (n) => (n === 1 ? "film" : "films"),
     yieldOr: "or",
-    packNote: "These never expire — no subscription, no reset. That is what makes them dearer per credit.",
+    packNote: "Never expire — a little dearer per credit for it.",
     packYield: (i, f) => (f ? `${i} images, or ${f} films` : `${i} images`),
     /* Unter den Ertrags-Kacheln, nur beim Jahresabo: die Kacheln zeigen
        die Jahressumme (Antons Wunsch: „hochrechnen, damit es nach viel
@@ -832,7 +833,7 @@ export default {
       "Unlimited journaling", "Voice recording", "AI rewriting",
       "Sleep sounds", "Wind-down checklist", "Lucid guide", "Dream symbols",
     ],
-    freeNote: "Only image and film generation costs credits — that is the part we pay a renderer for.",
+    freeNote: "Only image and film generation costs credits — that is the part we pay the generative AI for.",
     cta: "Continue",
     notYet: "⚠ Payment is not connected yet — this is a preview of the plans.",
     balance: (n) => `You currently have ${n} credits.`,
@@ -857,6 +858,6 @@ export default {
     timeout: "The service didn't answer. Check your connection and try again in a moment.",
     // Der Auftrag kam als gescheitert zurück — anders als ein Aussetzer,
     // den awaitJob einfach weiter versucht.
-    renderFailed: "The renderer couldn't finish this one. Try again.",
+    renderFailed: "The generation didn't work out this time. Try again.",
   },
 };

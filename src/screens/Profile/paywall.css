@@ -186,11 +186,9 @@
 /* Warum Pakete teurer sind. Warm abgesetzt, weil es eine Einschränkung
    erklärt und keine Eigenschaft anpreist. */
 .pw-packnote {
-  margin: var(--s-3) 0 0; padding: var(--s-3) var(--s-4);
-  border-inline-start: 2px solid color-mix(in oklab, var(--warm) 60%, transparent);
-  background: color-mix(in oklab, var(--warm) 8%, transparent);
-  border-radius: 0 var(--radius) var(--radius) 0;
-  color: var(--muted); font-size: var(--t-small); line-height: 1.5;
+  margin: var(--s-2) 0 0;
+  color: var(--faint); font-size: var(--t-micro);
+  text-align: center;
 }
 
 .pw-included { margin-top: var(--s-5); }

@@ -7,7 +7,7 @@ import { PRICES } from "../lib/pricing.js";
 import { spend, canAfford } from "../lib/credits.js";
 import { t } from "../i18n/index.js";
 import Button from "./Button.jsx";
-import { IconImages, IconSparkle } from "./icons.jsx";
+import { IconImages, IconCamera, IconSparkle } from "./icons.jsx";
 import "./AvatarDialog.css";
 
 // Mirrors sanitizeTag() in server.js: [a-z0-9] only, 12 chars max. The server
@@ -49,6 +49,10 @@ export default function AvatarDialog({
   const [image, setImage] = useState(existing?.img || "");
   const [drawing, setDrawing] = useState(false);
   const fileRef = useRef(null);
+  // Eigener Input fürs direkte Fotografieren: `capture` öffnet auf
+  // iOS/Android sofort die Kamera (Rückkamera — man fotografiert die
+  // anderen, nicht sich selbst); am Desktop bleibt es ein Dateidialog.
+  const cameraRef = useRef(null);
 
   /* Die Gattung, und warum sie manchmal hier gewählt wird.
    *
@@ -235,10 +239,18 @@ export default function AvatarDialog({
             </div>
           ) : (
             <>
-              <button type="button" className="av-upload" onClick={() => fileRef.current?.click()}>
-                <IconImages />
-                <span>{t.avatarDialog.photoAdd}</span>
-              </button>
+              <div className="av-photo-row">
+                <button type="button" className="av-upload" onClick={() => fileRef.current?.click()}>
+                  <IconImages />
+                  <span>{t.avatarDialog.photoAdd}</span>
+                </button>
+                {/* „Foto erstellen" (Antons Wunsch 21.08.): auf dem Handy
+                    direkt die Kamera, am Desktop ein normaler Dateidialog. */}
+                <button type="button" className="av-upload" onClick={() => cameraRef.current?.click()}>
+                  <IconCamera />
+                  <span>{t.avatarDialog.photoTake}</span>
+                </button>
+              </div>
 
               {/* Erscheint erst, wenn es etwas zu zeichnen GIBT. Vorher wäre
                   es ein Knopf, der nur „beschreib erst mal" sagen kann. */}
@@ -260,6 +272,16 @@ export default function AvatarDialog({
             className="av-file-hidden"
             type="file"
             accept="image/*"
+            onChange={readFile}
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+          <input
+            ref={cameraRef}
+            className="av-file-hidden"
+            type="file"
+            accept="image/*"
+            capture="environment"
             onChange={readFile}
             tabIndex={-1}
             aria-hidden="true"

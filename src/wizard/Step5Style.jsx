@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { STYLES } from "../lib/styles.js";
 import { beatsForCount, beatCountForSeconds, evenIndices, trimSelection, selectionBeats } from "../lib/beats.js";
-import { buildReferences, buildImagePrompt, buildPosterPrompt, buildGridPrompt } from "../lib/promptBuilder.js";
+import { buildReferences, buildImagePrompt, buildGridPrompt } from "../lib/promptBuilder.js";
 import { generate, renderImages, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
 import { needsSheet, renderRef, sheetFingerprint, compactDataUrl } from "../lib/sheets.js";
 import { splitIntoPanels } from "../lib/splitGrid.js";
@@ -117,20 +117,16 @@ export default function Step5Style({ w, patch }) {
     // what the person assigned.
     const { references, clauses } = buildReferences(assignments);
 
-    // The poster replaces the first image (same count, same price) — for
-    // IMAGES only. A film no longer opens on it: large poster typography,
-    // run through image-to-video, animates as a warping mess rather than a
-    // title sequence — decided 09.08.2026 after the first version tried the
-    // opposite. No title (analysis empty, field cleared) means no poster
-    // either way.
-    const title = (w.title || "").trim();
-    // A preview has no poster — its three panels come out of one image, and
-    // spending one of them on a title card would leave two scenes.
-    const withPoster = !isFilm && !isPreview && title.length > 0;
-    const sceneCount = withPoster ? count - 1 : count;
-    const beats = sceneCount > 0 ? beatsForCount(w.analysis?.beats || [w.text], sceneCount) : [];
+    /* Kein Poster mehr (Antons Ansage 21.08.: „Wir gehen ganz weg von
+       dieser Titelbildgenerierung mit dem Text — das kommt komisch
+       rüber"): Jedes Bild ist eine Szene, der Titel lebt weiter auf der
+       Journal-Kachel — als echte Typografie der App statt als gemalte
+       Buchstaben, die je nach Modell-Laune mal Deutsch, mal Kauderwelsch
+       waren. Alte Einträge mit Poster bleiben lesbar: media.poster wird
+       weiter GELESEN (beats.js, Storyboard), nur nie mehr geschrieben. */
+    const beats = count > 0 ? beatsForCount(w.analysis?.beats || [w.text], count) : [];
     const allBeats = w.analysis?.beats || [w.text];
-    const jobs = withPoster ? ["__poster__", ...beats] : beats;
+    const jobs = beats;
     /* Gattung und Beschreibung ECHT mitgeben, nicht plätten: Der Server
        sortiert Referenz-Filme nach Gattung (Personen vor Tieren vor Orten,
        filmReferences) und reicht die Beschreibung an den Regisseur weiter.
@@ -291,15 +287,10 @@ export default function Step5Style({ w, patch }) {
       let submitError = null;
       for (let i = 0; i < jobs.length; i++) {
         const beat = jobs[i];
-        const prompt = beat === "__poster__"
-          ? buildPosterPrompt({
-              title, tagline: (w.tagline || "").trim(),
-              essence: allBeats.join(" "), styleId: w.styleId, format: w.format, clauses,
-            })
-          : buildImagePrompt({
-              beat, styleId: w.styleId, format: w.format,
-              clauses, index: withPoster ? i : i + 1, total: beats.length,
-            });
+        const prompt = buildImagePrompt({
+          beat, styleId: w.styleId, format: w.format,
+          clauses, index: i + 1, total: beats.length,
+        });
         try {
           const res = await generate({ dream: w.text, mode: "image", cast: castForApi, prompt });
           if (res.jobId) submitted.push({ id: res.jobId });
@@ -316,7 +307,7 @@ export default function Step5Style({ w, patch }) {
       const references = assignments
         .filter((a) => a.avatar?.tag)
         .map((a) => ({ tag: a.avatar.tag, category: a.kind }));
-      const pendingMedia = { type: "image", urls: readyUrls, source: "api", poster: withPoster };
+      const pendingMedia = { type: "image", urls: readyUrls, source: "api", poster: false };
 
       if (w.entryId) {
         // Aus dem Journal fortgesetzt: der Traum existiert schon — er
@@ -444,37 +435,6 @@ export default function Step5Style({ w, patch }) {
           </h3>
           <p className="wiz-model-text">{t.styles.byId[styleInfo]?.info}</p>
         </Sheet>
-      )}
-
-      {/* The poster opens an image sequence (it replaces the first image, so
-          the count and price stay untouched). Clearing the title is the
-          opt-out: no title, no poster. Video-only, w.title/w.tagline still
-          hold whatever "Improve with AI" found — that is also the journal
-          card's title, so it is kept either way, just not offered for
-          editing here when there is no poster left for it to describe. */}
-      {!isFilm && !isPreview && (
-        <>
-          <h2 className="wiz-sub">{t.wizard.step5.posterLabel}</h2>
-          <div className="wiz-poster-fields">
-            <input
-              className="wiz-input"
-              value={w.title}
-              onChange={(e) => patch({ title: e.target.value })}
-              placeholder={t.wizard.step5.posterTitlePlaceholder}
-              maxLength={60}
-              aria-label={t.wizard.step5.posterTitleLabel}
-            />
-            <input
-              className="wiz-input"
-              value={w.tagline}
-              onChange={(e) => patch({ tagline: e.target.value })}
-              placeholder={t.wizard.step5.posterTaglinePlaceholder}
-              maxLength={120}
-              aria-label={t.wizard.step5.posterTaglineLabel}
-            />
-            <p className="wiz-hint">{t.wizard.step5.posterHint}</p>
-          </div>
-        </>
       )}
 
       {/* Hidden during a preview: the grid is 16:9 by construction and its

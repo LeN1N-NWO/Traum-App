@@ -12,6 +12,9 @@ import "./journal.css";
 export default function JournalScreen() {
   const { state, update } = useAppState();
   const [query, setQuery] = useState("");
+  // Die Suche ist ein Werkzeug, kein Dauerzustand: eingeklappt hinter der
+  // Lupe im Kopf (Antons Ansage 21.08.), aufgeklappt nur solange gesucht wird.
+  const [searching, setSearching] = useState(false);
   const [openId, setOpenId] = useState(null);
   const [index, setIndex] = useState(0);
   const [library, setLibrary] = useState(false);
@@ -88,51 +91,41 @@ export default function JournalScreen() {
         title={t.journal.title}
         subtitle={t.journal.count(total)}
         action={
-          /* One button, two states: it shows the view you would switch TO,
-             which is why the icon flips on every press. */
-          <button
-            className="j-view-toggle"
-            onClick={() => update({ journalView: deck ? "list" : "deck" })}
-            aria-label={deck ? t.journal.viewList : t.journal.viewDeck}
-          >
-            {deck ? <ListIcon /> : <DeckIcon />}
-          </button>
+          <span className="j-head-actions">
+            {/* Die Lupe öffnet und schließt das Suchfeld — zu, wenn die
+                Suche leer ist, sonst bleibt sie sichtbar. */}
+            <button
+              className="j-view-toggle"
+              onClick={() => setSearching((v) => { if (v) setQuery(""); return !v; })}
+              aria-label={t.journal.searchLabel}
+              aria-expanded={searching}
+            >
+              <SearchIcon />
+            </button>
+            {/* One button, two states: it shows the view you would switch TO,
+               which is why the icon flips on every press. */}
+            <button
+              className="j-view-toggle"
+              onClick={() => update({ journalView: deck ? "list" : "deck" })}
+              aria-label={deck ? t.journal.viewList : t.journal.viewDeck}
+            >
+              {deck ? <ListIcon /> : <DeckIcon />}
+            </button>
+          </span>
         }
       />
 
-      <input
-        className="j-search"
-        type="search"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder={t.journal.search}
-        aria-label={t.journal.searchLabel}
-      />
-
-      {/* The cast lives here, not in the profile: these entries exist to be
-          referenced by dreams, so they belong next to them. Der Atlas
-          daneben, aus demselben Grund — als ZWEI halbe Kacheln in EINER
-          Zeile, nicht zwei gestapelte volle (Antons Rückmeldung 21.08.:
-          „wirkt überladen"). Der Atlas erscheint erst ab dem zweiten
-          echten Traum; bis dahin nimmt die Besetzung die ganze Breite. */}
-      <div className="j-shortcuts">
-        <button className="j-library" onClick={() => setLibrary(true)}>
-          <span className="j-library-body">
-            <span className="j-library-title">{t.journal.library}</span>
-            <span className="j-library-text">{t.journal.libraryCount(castCount)}</span>
-          </span>
-          <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
-        </button>
-        {realDreamCount >= 2 && (
-          <button className="j-library" onClick={() => setAtlas(true)}>
-            <span className="j-library-body">
-              <span className="j-library-title">{t.journal.atlas}</span>
-              <span className="j-library-text">{t.journal.atlasShort}</span>
-            </span>
-            <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
-          </button>
-        )}
-      </div>
+      {searching && (
+        <input
+          className="j-search"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t.journal.search}
+          aria-label={t.journal.searchLabel}
+          autoFocus
+        />
+      )}
 
       {entries.length === 0 ? (
         <p className="j-empty">{query ? t.journal.emptySearch : t.journal.empty}</p>
@@ -159,6 +152,33 @@ export default function JournalScreen() {
         </div>
       )}
 
+      {/* Unter den Träumen, nicht darüber (Antons Ansage 21.08.: „Die
+          Kacheln mit den Träumen kommen höher"): Die Träume sind die Ware,
+          Besetzung und Atlas sind Nebenräume. The cast lives here, not in
+          the profile: these entries exist to be referenced by dreams. Der Atlas
+          daneben, aus demselben Grund — als ZWEI halbe Kacheln in EINER
+          Zeile, nicht zwei gestapelte volle (Antons Rückmeldung 21.08.:
+          „wirkt überladen"). Der Atlas erscheint erst ab dem zweiten
+          echten Traum; bis dahin nimmt die Besetzung die ganze Breite. */}
+      <div className="j-shortcuts">
+        <button className="j-library" onClick={() => setLibrary(true)}>
+          <span className="j-library-body">
+            <span className="j-library-title">{t.journal.library}</span>
+            <span className="j-library-text">{t.journal.libraryCount(castCount)}</span>
+          </span>
+          <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
+        </button>
+        {realDreamCount >= 2 && (
+          <button className="j-library" onClick={() => setAtlas(true)}>
+            <span className="j-library-body">
+              <span className="j-library-title">{t.journal.atlas}</span>
+              <span className="j-library-text">{t.journal.atlasShort}</span>
+            </span>
+            <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
+          </button>
+        )}
+      </div>
+
       {/* Below the dreams, not above them: the calendar is the second way in
           — for the night you remember by date rather than by name. It shows
           the whole journal, so the search above deliberately does not touch
@@ -172,6 +192,15 @@ export default function JournalScreen() {
 
 /* Inline SVG rather than an emoji: these two need to read as one control in
    two states, and emoji render differently on every platform. */
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="M20 20l-4.2-4.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function DeckIcon() {
   return (
     <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
