@@ -111,6 +111,11 @@ export default {
     elaborateHint: "Mehr Details und ein klarerer Bogen — ohne etwas zu erfinden.",
     filmRendering: "Dein Film wird noch gerendert — er landet hier, sobald er fertig ist.",
     filmArrived: "✦ Dein Film ist fertig",
+    renderingTile: "Dein Traum wird gerade erstellt — du bekommst eine Nachricht, wenn er fertig ist.",
+    dreamReady: (title) => (title ? `✦ „${title}" ist fertig` : "✦ Dein Traum ist fertig"),
+    imagesRefunded: (n) => (n === 1
+      ? "1 Bild ist nicht angekommen — der Credit ist zurück auf deinem Konto."
+      : `${n} Bilder sind nicht angekommen — die Credits sind zurück auf deinem Konto.`),
     makeLede: "Noch keine Bilder. Welche machen?",
     makeImages: "Bilder machen",
     makeFilmLede: "Jetzt zum Leben erwecken.",

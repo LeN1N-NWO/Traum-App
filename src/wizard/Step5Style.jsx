@@ -6,7 +6,9 @@ import { buildReferences, buildImagePrompt, buildPosterPrompt, buildGridPrompt }
 import { generate, renderImages, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
 import { needsSheet, renderRef, sheetFingerprint, compactDataUrl } from "../lib/sheets.js";
 import { splitIntoPanels } from "../lib/splitGrid.js";
-import { mapWithLimit } from "../lib/parallel.js";
+import { genId } from "../lib/storage.js";
+import { bumpStreak, refreshStreak } from "../lib/streak.js";
+import { newCreature } from "../lib/creatures.js";
 import { priceForImages, PRICES, IMAGE_COUNTS, PREVIEW_COUNT } from "../lib/pricing.js";
 import { VIDEO_MODELS, priceForFilm, clampSeconds, videoModel } from "../lib/video.js";
 import { spend, canAfford } from "../lib/credits.js";
@@ -17,12 +19,8 @@ import Storyboard from "../components/Storyboard.jsx";
 import Sheet from "../components/Sheet.jsx";
 import "./wizard.css";
 
-// How many renders may be in flight at once. Three keeps a ten-image dream
-// under a minute without firing ten paid calls simultaneously.
-const GENERATION_WINDOW = 3;
-
 export default function Step5Style({ w, patch }) {
-  const { state, update, openPaywall } = useAppState();
+  const { state, update, toast, openPaywall } = useAppState();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [modelInfo, setModelInfo] = useState(null);  // Modell-id, deren ⓘ offen ist
@@ -276,10 +274,23 @@ export default function Step5Style({ w, patch }) {
         return;
       }
 
-      // Rendering runs a few at a time, not one after another: sequentially,
-      // ten images meant minutes of staring at a spinner. The cap keeps us
-      // from firing ten simultaneous paid calls at the provider.
-      const perImage = await mapWithLimit(jobs, GENERATION_WINDOW, async (beat, i) => {
+      /* Aufträge abgeben statt warten (Antons Ansage 21.08.: „Wir sollten
+         einfach weiter die App benutzen können"): Jeder Submit dauert
+         unter einer Sekunde — gewartet wird nicht hier, sondern im
+         Journal. Der Traum steht dort sofort als Kachel „wird gerade
+         erstellt", der Abholer in AppState sammelt die Bilder ein, und
+         ein Toast meldet sich, wenn alles da ist.
+
+         Scheitert ein Submit MITTENDRIN, werden die schon abgegebenen
+         Aufträge trotzdem zum Eintrag — sie rendern ja bereits und sind
+         sonst bezahltes Treibgut. Bezahlt wird deshalb NACH der
+         Schleife und nur, was wirklich abgegeben wurde (1 Credit = 1
+         Bild, pricing.js). */
+      const submitted = [];
+      const readyUrls = [];   // ältere Serverstände antworten noch direkt mit urls
+      let submitError = null;
+      for (let i = 0; i < jobs.length; i++) {
+        const beat = jobs[i];
         const prompt = beat === "__poster__"
           ? buildPosterPrompt({
               title, tagline: (w.tagline || "").trim(),
@@ -289,12 +300,77 @@ export default function Step5Style({ w, patch }) {
               beat, styleId: w.styleId, format: w.format,
               clauses, index: withPoster ? i : i + 1, total: beats.length,
             });
-        const urls = await renderImages({ dream: w.text, mode: "image", cast: castForApi, prompt });
+        try {
+          const res = await generate({ dream: w.text, mode: "image", cast: castForApi, prompt });
+          if (res.jobId) submitted.push({ id: res.jobId });
+          else if (res.urls) readyUrls.push(...res.urls);
+        } catch (err) {
+          submitError = err;
+          break;
+        }
         setDone((n) => n + 1);
-        return urls;
-      });
-      update(paid);          // only charge once the images actually arrived
-      patch({ urls: perImage.flat(), poster: withPoster, step: 6 });
+      }
+      if (submitError && submitted.length === 0 && readyUrls.length === 0) throw submitError;
+
+      const charge = spend(state, submitted.length + readyUrls.length) || {};
+      const references = assignments
+        .filter((a) => a.avatar?.tag)
+        .map((a) => ({ tag: a.avatar.tag, category: a.kind }));
+      const pendingMedia = { type: "image", urls: readyUrls, source: "api", poster: withPoster };
+
+      if (w.entryId) {
+        // Aus dem Journal fortgesetzt: der Traum existiert schon — er
+        // bekommt nur Zuschnitt und offene Aufträge (Regeln wie Step6).
+        update({
+          ...charge,
+          journal: (state.journal || []).map((e) => (e.id === w.entryId ? {
+            ...e,
+            mode: "images", style: w.styleId, format: w.format, imageCount: w.imageCount,
+            media: pendingMedia,
+            ...(submitted.length ? { imageJobs: submitted } : {}),
+            references,
+            analysis: w.analysis || e.analysis || null,
+            title: (w.title || "").trim() || e.title,
+            tagline: (w.tagline || "").trim() || e.tagline || "",
+          } : e)),
+        });
+      } else {
+        // Der Stand VOR dem Hochzählen — wie in Step2/Step6: die Serie,
+        // die man sich verdient hat, zählt für diesen Wurf.
+        const creature = newCreature(w.text, refreshStreak(state).streak);
+        const entry = {
+          id: genId("e"),
+          createdAt: new Date().toISOString(),
+          text: w.text,
+          originalText: w.originalText || w.text,
+          title: (w.title || "").trim() || creature.title,
+          tagline: (w.tagline || "").trim(),
+          mode: "images", style: w.styleId, format: w.format, imageCount: w.imageCount,
+          media: pendingMedia,
+          ...(submitted.length ? { imageJobs: submitted } : {}),
+          analysis: w.analysis || null,
+          references,
+          creatureId: creature.id,
+        };
+        update({
+          ...charge,
+          journal: [...(state.journal || []), entry],
+          creatures: [...(state.creatures || []), creature],
+          ...bumpStreak(state),
+        });
+      }
+
+      toast(t.wizard.step5.queuedNote);
+      navigate("/journal");
+
+      /* Das Erster-Traum-Kaufblatt — die ganze Begründung steht in
+         Step6Result. Der Moment wandert mit hierher: der Traum steht
+         sichtbar im Journal, die App hat geliefert, bevor sie fragt. */
+      const own = (state.journal || []).filter((e) => !String(e.id).startsWith("e_seed"));
+      if (!state.paywallSeen && own.length === 0) {
+        update({ paywallSeen: true });
+        setTimeout(() => openPaywall("first"), 900);
+      }
     } catch (err) {
       console.error("[DreamRushes] generation failed:", err);
       setFail(err.message);

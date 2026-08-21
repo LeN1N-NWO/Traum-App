@@ -116,6 +116,13 @@ export default {
     elaborateHint: "Richer detail and a clearer arc — without inventing anything new.",
     filmRendering: "Your film is still rendering — it lands here when it's done.",
     filmArrived: "✦ Your film is ready",
+    /* Hintergrund-Rendern (21.08.): die Kachel eines Traums, dessen
+       Bilder noch unterwegs sind, und der Toast, wenn sie ankommen. */
+    renderingTile: "Your dream is being made — you'll get a note when it's ready.",
+    dreamReady: (title) => (title ? `✦ “${title}” is ready` : "✦ Your dream is ready"),
+    imagesRefunded: (n) => (n === 1
+      ? "1 image didn't come through — the credit is back in your balance."
+      : `${n} images didn't come through — the credits are back in your balance.`),
     makeLede: "No pictures yet. Want some?",
     makeImages: "Make the images",
     makeFilmLede: "Now bring it to life.",

@@ -53,6 +53,21 @@ als LETZTE Kachel, sozusagen ein Easter Egg."
   Referenzen wären dann witzlos) oder begleitet es sie? Das entscheidet,
   ob der Stil mit der Bogen-Pflicht und den Referenzbildern kollidiert.
 
+## 4. „Wird gerade erstellt"-Kachel bekommt die Faultier-Animation
+
+Seit dem Hintergrund-Rendern (21.08. abends) steht ein Traum, dessen
+Bilder noch unterwegs sind, sofort als Journal-Kachel da — heute mit
+leise atmender Fläche und pulsierendem Punkt („Dein Traum wird gerade
+erstellt"). Antons Plan: Hier kommt eine kleine Faultier-Animation hin
+(„Okay, das wird generiert").
+
+- **Wo:** `src/screens/Journal/JournalCard.jsx` (`.j-tile-cooking` /
+  `.j-tile-pending` in journal.css) und das Wartefeld im Traum-Detail
+  (`.j-film-wait` in JournalDetail.jsx).
+- **Einbau:** kurzer Loop-Clip oder Lottie/animiertes Bild, gleiche
+  Größenregeln wie die Onboarding-Clips (Punkt 1).
+- **Offen:** Asset existiert noch nicht. Anton generiert es.
+
 ## Warum jetzt nicht gebaut
 
 Alle drei Punkte hängen an Assets bzw. an einer Stil-Prompt-Entscheidung,

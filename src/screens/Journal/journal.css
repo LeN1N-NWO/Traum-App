@@ -74,6 +74,31 @@
   position: absolute; inset: 0;
   background: linear-gradient(160deg, var(--sky), var(--bg2) 70%);
 }
+
+/* Ein Traum, dessen Bilder noch unterwegs sind: die Fläche atmet leise
+   (kein Spinner — die Kachel ist ein Versprechen, kein Ladebalken), und
+   eine kleine Zeile mit pulsierendem Punkt sagt, was passiert. Hierhin
+   kommt später Antons Faultier-Animation (faultier-assets.md). */
+.j-tile-cooking { animation: j-cooking 2.6s ease-in-out infinite; }
+@keyframes j-cooking {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .55; }
+}
+.j-tile-pending {
+  display: inline-flex; align-items: center; gap: 7px;
+  align-self: flex-start;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--glass); border: 1px solid var(--panel-line);
+  color: var(--accent-soft); font-size: var(--t-micro);
+}
+.j-tile-pending-dot {
+  inline-size: 7px; block-size: 7px; border-radius: 50%;
+  background: var(--accent-soft);
+  animation: j-cooking 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .j-tile-cooking, .j-tile-pending-dot { animation: none; }
+}
 /* Two stops rather than one: a single fade leaves the title sitting on the
    busiest part of the image. This keeps the lower third genuinely dark. */
 .j-tile-scrim {

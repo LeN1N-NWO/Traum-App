@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Button from "../../components/Button.jsx";
 import TagField from "../../components/TagField.jsx";
 import { useAppState } from "../../state/AppState.jsx";
-import { refine, reflect, mediaUrl, jobStatus } from "../../lib/api.js";
+import { refine, reflect, mediaUrl } from "../../lib/api.js";
 import { reflectionContext } from "../../lib/atlas.js";
 import { filmOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
 import { spend } from "../../lib/credits.js";
@@ -37,44 +37,12 @@ export default function JournalDetail({ entry, onClose }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose, menuOpen]);
 
-  /* Collecting a film that was still rendering when the wizard was left.
-   *
-   * Saving mid-render is offered on purpose ("Save — I'll come back for it"),
-   * but nothing ever came back for it: the entry kept its job id and the
-   * finished film was never fetched. This is the collector. It runs while the
-   * dream is open and stops the moment the film lands — a render measured
-   * 280s, so six seconds between asks is plenty. */
-  useEffect(() => {
-    if (!entry.jobId) return;
-    let alive = true;
-    const tick = async () => {
-      try {
-        const r = await jobStatus(entry.jobId);
-        if (!alive) return;
-        if (r.status === "done" && r.urls?.length) {
-          update({
-            journal: state.journal.map((e) =>
-              e.id === entry.id
-                ? { ...e, film: { urls: r.urls, source: "api" }, jobId: undefined }
-                : e
-            ),
-          });
-          toast(t.journal.filmArrived);
-        } else if (r.status === "failed" || r.status === "unknown") {
-          // Drop the id rather than asking forever about a job that is gone.
-          update({
-            journal: state.journal.map((e) => (e.id === entry.id ? { ...e, jobId: undefined } : e)),
-          });
-        }
-      } catch { /* a hiccup is not a failure — the next tick asks again */ }
-    };
-    tick();
-    const id = setInterval(tick, 6000);
-    return () => { alive = false; clearInterval(id); };
-    // state.journal is deliberately not a dependency: update() replaces it on
-    // every write, which would tear this down and restart it in a loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entry.jobId, entry.id]);
+  /* Kein eigener Abholer mehr: Offene Aufträge (Film UND Bilder) sammelt
+     seit dem 21.08. der App-weite Collector in AppState ein — vorher kam
+     ein „Speichern — ich hole ihn später ab"-Film nur an, solange genau
+     dieser Bildschirm offen blieb. Wer im Startscreen wartete, wartete
+     umsonst. Eine Mechanik, ein Ort (collector.js). */
+  const pendingImages = (entry.imageJobs || []).length > 0;
 
   /** Write a new text onto the entry. The first version is never touched.
    *  Die Reflection fällt dabei weg: sie beschreibt den ALTEN Wortlaut,
@@ -279,7 +247,7 @@ export default function JournalDetail({ entry, onClose }) {
             would look like. The film is offered once there ARE pictures,
             when they know what they are animating. Both hidden while a film
             renders: that one is on its way, not missing. */}
-        {!entry.jobId && !editing && !proposal && images.length === 0 && (
+        {!entry.jobId && !pendingImages && !editing && !proposal && images.length === 0 && (
           <div className="j-make">
             <p className="j-make-lede">{t.journal.makeLede}</p>
             <button className="j-make-btn" onClick={() => make("images")}>
@@ -339,12 +307,12 @@ export default function JournalDetail({ entry, onClose }) {
           <video className="j-film" src={mediaUrl(film)} controls playsInline preload="metadata" />
         )}
 
-        {/* Still rendering: it was saved mid-render on purpose, and the
-            collector above is asking for it while this stays open. */}
-        {!film && entry.jobId && (
+        {/* Noch unterwegs (Film oder Bilder): der App-weite Collector
+            fragt nach — dieser Bildschirm zeigt es nur an. */}
+        {((!film && entry.jobId) || pendingImages) && (
           <div className="j-film-wait" role="status" aria-live="polite">
             <span className="wiz-spinner" aria-hidden="true" />
-            <span>{t.journal.filmRendering}</span>
+            <span>{pendingImages ? t.journal.renderingTile : t.journal.filmRendering}</span>
           </div>
         )}
 
