@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAppState } from "../../state/AppState.jsx";
 import { refreshStreak, streakAtRisk, STREAK_CAP } from "../../lib/streak.js";
 import { t } from "../../i18n/index.js";
-import Menagerie from "./Menagerie.jsx";
 // Vite-gebündelt wie das Intro-Video: 666 KB, ohne Ton, transkodiert aus
 // media/video/Faultier-002.mov (7,3 MB).
 import homeVideo from "../../assets/home-faultier.mp4";
@@ -99,8 +98,9 @@ export default function HomeScreen() {
         </button>
       )}
 
-      <h2 className="h-section">{t.home.menagerieHeading}</h2>
-      <Menagerie />
+      {/* Die Menagerie wohnt seit 21.08. im Journal (Antons Entscheidung):
+          Sammlungen zu Sammlungen — die Titelseite hat EINEN Zweck, den
+          nächsten Traum anfangen. */}
     </main>
   );
 }

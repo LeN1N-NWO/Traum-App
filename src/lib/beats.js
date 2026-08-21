@@ -132,3 +132,20 @@ export function beatsForSeconds(beats, seconds) {
      das dieselbe Auswahl wie beatsForCount(3), also 1/3/5. */
   return evenIndices(src.length, want).map((i) => src[i]);
 }
+
+/* Die Regie-Auswahl im Storyboard (Stufe B, Antons Go 21.08.): `order`
+ * sind Beat-Indizes in ANTIPP-Reihenfolge, `cap` ist, was die Filmlänge
+ * trägt (beatCountForSeconds). Läuft die Auswahl über, fällt die ÄLTESTE
+ * Wahl raus, nicht die neueste — wer eine sechste Szene antippt, meint
+ * sie ernst; die App soll seinem letzten Wort glauben, nicht seinem
+ * ersten. Der Film selbst spielt chronologisch: fürs Senden sortiert
+ * selectionBeats nach Beat-Index, nicht nach Tipp-Reihenfolge. */
+export function trimSelection(order, cap) {
+  const seen = [...new Set(order)].filter((i) => Number.isInteger(i) && i >= 0);
+  return cap > 0 ? seen.slice(Math.max(0, seen.length - cap)) : [];
+}
+
+export function selectionBeats(beats, order) {
+  const src = Array.isArray(beats) ? beats : [];
+  return [...order].sort((a, b) => a - b).map((i) => src[i]).filter(Boolean);
+}

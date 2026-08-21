@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { STYLES } from "../lib/styles.js";
-import { beatsForCount, beatCountForSeconds, evenIndices } from "../lib/beats.js";
-import { buildReferences, buildImagePrompt, buildPosterPrompt, buildGridPrompt } from "../lib/promptBuilder.js";
-import { generate, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
+import { beatsForCount, beatCountForSeconds, evenIndices, trimSelection, selectionBeats } from "../lib/beats.js";
+import { buildReferences, buildImagePrompt, buildGridPrompt } from "../lib/promptBuilder.js";
+import { generate, renderImages, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
 import { needsSheet, renderRef, sheetFingerprint, compactDataUrl } from "../lib/sheets.js";
 import { splitIntoPanels } from "../lib/splitGrid.js";
-import { mapWithLimit } from "../lib/parallel.js";
+import { genId } from "../lib/storage.js";
+import { bumpStreak, refreshStreak } from "../lib/streak.js";
+import { newCreature } from "../lib/creatures.js";
 import { priceForImages, PRICES, IMAGE_COUNTS, PREVIEW_COUNT } from "../lib/pricing.js";
 import { VIDEO_MODELS, priceForFilm, clampSeconds, videoModel } from "../lib/video.js";
 import { spend, canAfford } from "../lib/credits.js";
@@ -16,17 +19,24 @@ import Storyboard from "../components/Storyboard.jsx";
 import Sheet from "../components/Sheet.jsx";
 import "./wizard.css";
 
-// How many renders may be in flight at once. Three keeps a ten-image dream
-// under a minute without firing ten paid calls simultaneously.
-const GENERATION_WINDOW = 3;
-
 export default function Step5Style({ w, patch }) {
   const { state, update, toast, openPaywall } = useAppState();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [modelInfo, setModelInfo] = useState(null);  // Modell-id, deren ⓘ offen ist
+  const [styleInfo, setStyleInfo] = useState(null);  // Stil-id, deren ⓘ offen ist
   const [msg, setMsg] = useState(0);
   const [done, setDone] = useState(0);
   const [prep, setPrep] = useState("");  // Figur, deren Bogen gerade entsteht
+  // Der letzte Fehler, als sichtbarer Block im Formular statt als Toast:
+  // ein Toast ist nach vier Sekunden weg, und wer auf den Spinner gestarrt
+  // hat, sieht danach nur ein wortloses Formular (Antons Befund 21.08.).
+  const [fail, setFail] = useState(null);
+  /* Die Regie-Auswahl im Storyboard (Stufe B, Antons Go 21.08.): Beat-
+     Indizes in Tipp-Reihenfolge. null heißt Automatik — dann wählt
+     weiterhin evenIndices, und zwar bei jedem Längenwechsel neu; erst
+     der erste Tipp friert die Wahl als Antons eigene ein. */
+  const [pick, setPick] = useState(null);
   // Re-entry guard. `busy` cannot do this job: it is state, so it is still
   // false for a second call that arrives in the same tick — and two runs mean
   // the credits are spent twice and every image is rendered twice. Seen for
@@ -50,6 +60,28 @@ export default function Step5Style({ w, patch }) {
     : priceForImages(w.imageCount);
   const assignments = Object.values(w.assignments);
   const named = assignments.filter((a) => a.avatar?.img).length;
+
+  /* Der Szenenbogen und was die gewählte Länge davon trägt — für das
+     Storyboard UND für den Film-Aufruf, deshalb hier oben statt im JSX.
+     `order` ist immer schon auf die Kappung gestutzt: schrumpft die
+     Länge, fällt die älteste eigene Wahl raus (trimSelection). */
+  const arc = w.analysis?.beats || [];
+  const filmSecs = clampSeconds(w.videoModel, w.seconds);
+  const sceneCap = Math.max(1, Math.min(beatCountForSeconds(filmSecs), arc.length));
+  const order = trimSelection(pick ?? evenIndices(arc.length, sceneCap), sceneCap);
+
+  function toggleScene(i) {
+    // Funktional statt über den Render-Abschluss: zwei Tipps im selben
+    // Tick würden sonst beide vom selben alten Stand rechnen und der
+    // erste ginge still verloren (React batcht setState).
+    setPick((prev) => {
+      const base = trimSelection(prev ?? evenIndices(arc.length, sceneCap), sceneCap);
+      const has = base.includes(i);
+      // Die letzte Szene bleibt: ein Film aus null Szenen ist keiner.
+      if (has && base.length <= 1) return base;
+      return trimSelection(has ? base.filter((x) => x !== i) : [...base, i], sceneCap);
+    });
+  }
 
   /* Die von der Analyse empfohlene Filmlänge stellt den Regler vor, solange
      der Mensch ihn nicht selbst bewegt hat (secondsTouched). Deklarativ hier
@@ -78,26 +110,23 @@ export default function Step5Style({ w, patch }) {
     setBusy(true);
     setDone(0);
     setMsg(0);
+    setFail(null);
 
     // Everything below is local: no LLM call. The beats came from the single
     // analysis, the style is a constant, the reference clauses are built from
     // what the person assigned.
     const { references, clauses } = buildReferences(assignments);
 
-    // The poster replaces the first image (same count, same price) — for
-    // IMAGES only. A film no longer opens on it: large poster typography,
-    // run through image-to-video, animates as a warping mess rather than a
-    // title sequence — decided 09.08.2026 after the first version tried the
-    // opposite. No title (analysis empty, field cleared) means no poster
-    // either way.
-    const title = (w.title || "").trim();
-    // A preview has no poster — its three panels come out of one image, and
-    // spending one of them on a title card would leave two scenes.
-    const withPoster = !isFilm && !isPreview && title.length > 0;
-    const sceneCount = withPoster ? count - 1 : count;
-    const beats = sceneCount > 0 ? beatsForCount(w.analysis?.beats || [w.text], sceneCount) : [];
+    /* Kein Poster mehr (Antons Ansage 21.08.: „Wir gehen ganz weg von
+       dieser Titelbildgenerierung mit dem Text — das kommt komisch
+       rüber"): Jedes Bild ist eine Szene, der Titel lebt weiter auf der
+       Journal-Kachel — als echte Typografie der App statt als gemalte
+       Buchstaben, die je nach Modell-Laune mal Deutsch, mal Kauderwelsch
+       waren. Alte Einträge mit Poster bleiben lesbar: media.poster wird
+       weiter GELESEN (beats.js, Storyboard), nur nie mehr geschrieben. */
+    const beats = count > 0 ? beatsForCount(w.analysis?.beats || [w.text], count) : [];
     const allBeats = w.analysis?.beats || [w.text];
-    const jobs = withPoster ? ["__poster__", ...beats] : beats;
+    const jobs = beats;
     /* Gattung und Beschreibung ECHT mitgeben, nicht plätten: Der Server
        sortiert Referenz-Filme nach Gattung (Personen vor Tieren vor Orten,
        filmReferences) und reicht die Beschreibung an den Regisseur weiter.
@@ -196,7 +225,12 @@ export default function Step5Style({ w, patch }) {
              Szenen, obwohl die Analyse das längst getan hatte. Nur die ID,
              nie der Stiltext: der Server schlägt ihn selbst nach. */
           styleId: w.styleId,
-          beats: allBeats,
+          /* Die Regie-Auswahl aus dem Storyboard, chronologisch sortiert —
+             ohne Beats der ganze Text wie zuvor. Der Server schneidet mit
+             beatsForSeconds nach: für eine Auswahl, die die Kappung schon
+             einhält, ist das die Identität (evenIndices(n, n)) — er reicht
+             Antons Wahl unverändert an den Regisseur durch. */
+          beats: arc.length ? selectionBeats(arc, order) : allBeats,
           // The chosen image, if any — the server then animates it directly
           // instead of rendering a fresh keyframe first.
           keyframe: w.keyframe || undefined,
@@ -214,7 +248,7 @@ export default function Step5Style({ w, patch }) {
       // One request, one $0.08 generation, cut into three afterwards instead
       // of three separate $0.08 requests for the same three pictures.
       if (useGrid) {
-        const { urls: gridUrls } = await generate({
+        const gridUrls = await renderImages({
           dream: w.text,
           mode: "image",
           cast: castForApi,
@@ -236,28 +270,101 @@ export default function Step5Style({ w, patch }) {
         return;
       }
 
-      // Rendering runs a few at a time, not one after another: sequentially,
-      // ten images meant minutes of staring at a spinner. The cap keeps us
-      // from firing ten simultaneous paid calls at the provider.
-      const perImage = await mapWithLimit(jobs, GENERATION_WINDOW, async (beat, i) => {
-        const prompt = beat === "__poster__"
-          ? buildPosterPrompt({
-              title, tagline: (w.tagline || "").trim(),
-              essence: allBeats.join(" "), styleId: w.styleId, format: w.format, clauses,
-            })
-          : buildImagePrompt({
-              beat, styleId: w.styleId, format: w.format,
-              clauses, index: withPoster ? i : i + 1, total: beats.length,
-            });
-        const { urls } = await generate({ dream: w.text, mode: "image", cast: castForApi, prompt });
+      /* Aufträge abgeben statt warten (Antons Ansage 21.08.: „Wir sollten
+         einfach weiter die App benutzen können"): Jeder Submit dauert
+         unter einer Sekunde — gewartet wird nicht hier, sondern im
+         Journal. Der Traum steht dort sofort als Kachel „wird gerade
+         erstellt", der Abholer in AppState sammelt die Bilder ein, und
+         ein Toast meldet sich, wenn alles da ist.
+
+         Scheitert ein Submit MITTENDRIN, werden die schon abgegebenen
+         Aufträge trotzdem zum Eintrag — sie rendern ja bereits und sind
+         sonst bezahltes Treibgut. Bezahlt wird deshalb NACH der
+         Schleife und nur, was wirklich abgegeben wurde (1 Credit = 1
+         Bild, pricing.js). */
+      const submitted = [];
+      const readyUrls = [];   // ältere Serverstände antworten noch direkt mit urls
+      let submitError = null;
+      for (let i = 0; i < jobs.length; i++) {
+        const beat = jobs[i];
+        const prompt = buildImagePrompt({
+          beat, styleId: w.styleId, format: w.format,
+          clauses, index: i + 1, total: beats.length,
+        });
+        try {
+          const res = await generate({ dream: w.text, mode: "image", cast: castForApi, prompt });
+          if (res.jobId) submitted.push({ id: res.jobId });
+          else if (res.urls) readyUrls.push(...res.urls);
+        } catch (err) {
+          submitError = err;
+          break;
+        }
         setDone((n) => n + 1);
-        return urls;
-      });
-      update(paid);          // only charge once the images actually arrived
-      patch({ urls: perImage.flat(), poster: withPoster, step: 6 });
+      }
+      if (submitError && submitted.length === 0 && readyUrls.length === 0) throw submitError;
+
+      const charge = spend(state, submitted.length + readyUrls.length) || {};
+      const references = assignments
+        .filter((a) => a.avatar?.tag)
+        .map((a) => ({ tag: a.avatar.tag, category: a.kind }));
+      const pendingMedia = { type: "image", urls: readyUrls, source: "api", poster: false };
+
+      if (w.entryId) {
+        // Aus dem Journal fortgesetzt: der Traum existiert schon — er
+        // bekommt nur Zuschnitt und offene Aufträge (Regeln wie Step6).
+        update({
+          ...charge,
+          journal: (state.journal || []).map((e) => (e.id === w.entryId ? {
+            ...e,
+            mode: "images", style: w.styleId, format: w.format, imageCount: w.imageCount,
+            media: pendingMedia,
+            ...(submitted.length ? { imageJobs: submitted } : {}),
+            references,
+            analysis: w.analysis || e.analysis || null,
+            title: (w.title || "").trim() || e.title,
+            tagline: (w.tagline || "").trim() || e.tagline || "",
+          } : e)),
+        });
+      } else {
+        // Der Stand VOR dem Hochzählen — wie in Step2/Step6: die Serie,
+        // die man sich verdient hat, zählt für diesen Wurf.
+        const creature = newCreature(w.text, refreshStreak(state).streak);
+        const entry = {
+          id: genId("e"),
+          createdAt: new Date().toISOString(),
+          text: w.text,
+          originalText: w.originalText || w.text,
+          title: (w.title || "").trim() || creature.title,
+          tagline: (w.tagline || "").trim(),
+          mode: "images", style: w.styleId, format: w.format, imageCount: w.imageCount,
+          media: pendingMedia,
+          ...(submitted.length ? { imageJobs: submitted } : {}),
+          analysis: w.analysis || null,
+          references,
+          creatureId: creature.id,
+        };
+        update({
+          ...charge,
+          journal: [...(state.journal || []), entry],
+          creatures: [...(state.creatures || []), creature],
+          ...bumpStreak(state),
+        });
+      }
+
+      toast(t.wizard.step5.queuedNote);
+      navigate("/journal");
+
+      /* Das Erster-Traum-Kaufblatt — die ganze Begründung steht in
+         Step6Result. Der Moment wandert mit hierher: der Traum steht
+         sichtbar im Journal, die App hat geliefert, bevor sie fragt. */
+      const own = (state.journal || []).filter((e) => !String(e.id).startsWith("e_seed"));
+      if (!state.paywallSeen && own.length === 0) {
+        update({ paywallSeen: true });
+        setTimeout(() => openPaywall("first"), 900);
+      }
     } catch (err) {
       console.error("[DreamRushes] generation failed:", err);
-      toast(`⚠ ${err.message}`);
+      setFail(err.message);
     }
     running.current = false;
     setBusy(false);
@@ -280,49 +387,54 @@ export default function Step5Style({ w, patch }) {
     <section className="wiz-body">
       <h1 className="wiz-title">{t.wizard.step5.title}</h1>
 
+      {/* Der Fehler des letzten Versuchs, mit dem Weg zurück. Der
+          Generieren-Knopf unten IST das „nochmal" — nichts wurde
+          abgebucht, das Formular steht noch genauso da. */}
+      {fail && (
+        <div className="wiz-error" role="alert">
+          <p className="wiz-error-title">{t.wizard.step5.failedTitle}</p>
+          <p className="wiz-error-msg">{fail}</p>
+          <p className="wiz-error-note">{t.wizard.step5.failedNote}</p>
+          <button className="wiz-error-home" onClick={() => navigate("/")}>
+            {t.wizard.step5.failedHome}
+          </button>
+        </div>
+      )}
+
       <div className="wiz-styles" role="group" aria-label={t.wizard.step5.styleLabel}>
         {STYLES.map((s) => (
-          <button
-            key={s.id}
-            className={"wiz-style" + (w.styleId === s.id ? " wiz-style-on" : "")}
-            onClick={() => patch({ styleId: s.id })}
-            aria-pressed={w.styleId === s.id}
-          >
-            <span className="wiz-style-emoji" aria-hidden="true">{s.emoji}</span>
-            <span>{s.label}</span>
-          </button>
+          /* Gleiches Muster wie bei den Filmmodellen: das ⓘ liegt NEBEN
+             dem Auswahlknopf in dessen Ecke, nie als Knopf im Knopf.
+             Name aus den Sprachdateien, styles.js bleibt der Fallback —
+             vorher standen die Stilnamen englisch fest im UI (derselbe
+             Fehlertyp wie beim Traumatlas, 21.08.). */
+          <div key={s.id} className="wiz-style-wrap">
+            <button
+              className={"wiz-style" + (w.styleId === s.id ? " wiz-style-on" : "")}
+              onClick={() => patch({ styleId: s.id })}
+              aria-pressed={w.styleId === s.id}
+            >
+              <span className="wiz-style-emoji" aria-hidden="true">{s.emoji}</span>
+              <span>{t.styles.byId[s.id]?.label || s.label}</span>
+            </button>
+            <button
+              className="wiz-model-info"
+              aria-label={`${t.wizard.step5.aboutStyle}: ${t.styles.byId[s.id]?.label || s.label}`}
+              onClick={() => setStyleInfo(s.id)}
+            >i</button>
+          </div>
         ))}
       </div>
 
-      {/* The poster opens an image sequence (it replaces the first image, so
-          the count and price stay untouched). Clearing the title is the
-          opt-out: no title, no poster. Video-only, w.title/w.tagline still
-          hold whatever "Improve with AI" found — that is also the journal
-          card's title, so it is kept either way, just not offered for
-          editing here when there is no poster left for it to describe. */}
-      {!isFilm && !isPreview && (
-        <>
-          <h2 className="wiz-sub">{t.wizard.step5.posterLabel}</h2>
-          <div className="wiz-poster-fields">
-            <input
-              className="wiz-input"
-              value={w.title}
-              onChange={(e) => patch({ title: e.target.value })}
-              placeholder={t.wizard.step5.posterTitlePlaceholder}
-              maxLength={60}
-              aria-label={t.wizard.step5.posterTitleLabel}
-            />
-            <input
-              className="wiz-input"
-              value={w.tagline}
-              onChange={(e) => patch({ tagline: e.target.value })}
-              placeholder={t.wizard.step5.posterTaglinePlaceholder}
-              maxLength={120}
-              aria-label={t.wizard.step5.posterTaglineLabel}
-            />
-            <p className="wiz-hint">{t.wizard.step5.posterHint}</p>
-          </div>
-        </>
+      {styleInfo && (
+        <Sheet label={t.styles.byId[styleInfo]?.label || styleInfo} onClose={() => setStyleInfo(null)}>
+          <p className="sb-sheet-label">{t.wizard.step5.styleLabel}</p>
+          <h3 className="wiz-model-title">
+            {STYLES.find((s) => s.id === styleInfo)?.emoji}{" "}
+            {t.styles.byId[styleInfo]?.label || styleInfo}
+          </h3>
+          <p className="wiz-model-text">{t.styles.byId[styleInfo]?.info}</p>
+        </Sheet>
       )}
 
       {/* Hidden during a preview: the grid is 16:9 by construction and its
@@ -440,25 +552,19 @@ export default function Step5Style({ w, patch }) {
             </div>
           </div>
 
-          {/* Das Storyboard zeigt, was die Länge KOSTET — nicht in Credits,
-              in Erzählung: beatCountForSeconds ist dieselbe Rechnung, mit
-              der der Server den Bogen zuschneidet (beatsForSeconds), nur
-              sichtbar gemacht. Wer von 15 auf 5 Sekunden zieht, sieht drei
-              Szenen verblassen, BEVOR er bezahlt. Thumbnails gibt es im
-              Resume-Fall (der Traum hat Bilder mit gespeicherter
-              Poster-Wahrheit, siehe beats.js imageIndexForBeat); ein
-              frischer Film-first-Lauf zeigt Nummern-Kacheln. */}
-          {(w.analysis?.beats?.length || 0) > 0 && (() => {
-            const arc = w.analysis.beats;
-            const secs = clampSeconds(w.videoModel, w.seconds);
-            const keep = Math.min(beatCountForSeconds(secs), arc.length);
-            const activeSet = new Set(evenIndices(arc.length, keep));
+          {/* Das Storyboard zeigt, was die Länge trägt — und seit Stufe B
+              (21.08.) entscheidet der Mensch selbst, WELCHE Szenen das
+              sind: Antippen schaltet eine Szene an oder aus, die Auswahl
+              ersetzt den Automatik-Schnitt und geht so an den Regisseur.
+              Solange niemand tippt, wählt weiter evenIndices — dieselbe
+              Rechnung wie auf dem Server, nur sichtbar gemacht. */}
+          {arc.length > 0 && (() => {
             const entry = w.entryId ? state.journal.find((e) => e.id === w.entryId) : null;
             return (
               <>
                 <h2 className="wiz-sub">{t.storyboard.label}</h2>
-                <Storyboard beats={arc} entry={entry} active={activeSet} />
-                {keep < arc.length && <p className="wiz-hint">{t.storyboard.cutNote(secs)}</p>}
+                <Storyboard beats={arc} entry={entry} active={new Set(order)} onToggle={toggleScene} />
+                <p className="wiz-hint">{t.storyboard.pickNote(order.length, sceneCap)}</p>
               </>
             );
           })()}

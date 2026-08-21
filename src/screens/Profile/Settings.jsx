@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
 import { isVoice, DEFAULT_VOICE } from "../../lib/voices.js";
+import { withdrawPatch } from "../../lib/consent.js";
 import { t } from "../../i18n/index.js";
 import VoicePicker from "../../components/VoicePicker.jsx";
+import LegalPage from "../../components/LegalPage.jsx";
 import { ChevronRight } from "../../components/icons.jsx";
 import "./profile.css";
 
@@ -19,6 +21,7 @@ import "./profile.css";
 export default function Settings({ onClose }) {
   const { state, update } = useAppState();
   const [picking, setPicking] = useState(false);
+  const [legalDoc, setLegalDoc] = useState(null);   // "terms" | "privacy" | null
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -56,8 +59,40 @@ export default function Settings({ onClose }) {
           <ChevronRight />
         </button>
 
+        {/* Die Rechtstexte, die man am Tor akzeptiert hat — jederzeit
+            wieder lesbar, nicht nur im Moment der Zustimmung. */}
+        <button className="p-set-row" onClick={() => setLegalDoc("terms")}>
+          <span className="p-set-body">
+            <span className="p-set-label">{t.legal.terms.title}</span>
+          </span>
+          <ChevronRight />
+        </button>
+        <button className="p-set-row" onClick={() => setLegalDoc("privacy")}>
+          <span className="p-set-body">
+            <span className="p-set-label">{t.legal.privacy.title}</span>
+          </span>
+          <ChevronRight />
+        </button>
+
+        {/* Der Widerruf (Art. 7 Abs. 3: so einfach wie die Erteilung).
+            Kein Bestätigungsdialog: Das Tor steht danach sofort wieder,
+            und erneutes Zustimmen ist genau ein Häkchen-Screen — die
+            Handlung ist vollständig umkehrbar. */}
+        <button
+          className="p-set-row"
+          onClick={() => { update(withdrawPatch()); onClose(); }}
+        >
+          <span className="p-set-body">
+            <span className="p-set-label">{t.profile.withdrawConsent}</span>
+            <span className="p-set-hint">{t.profile.withdrawConsentHint}</span>
+          </span>
+          <ChevronRight />
+        </button>
+
         <button className="p-set-close" onClick={onClose}>{t.profile.done}</button>
       </div>
+
+      {legalDoc && <LegalPage doc={legalDoc} onClose={() => setLegalDoc(null)} />}
     </div>
   );
 }

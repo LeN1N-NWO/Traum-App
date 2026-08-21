@@ -21,6 +21,10 @@ export default function JournalCard({ entry, onOpen, variant = "tile" }) {
   const media = mediaUrl(film || imagesOf(entry)[0]);
   const isVideo = !!film;
   const title = entry.title || t.journal.untitled;
+  /* Offene Aufträge (Bilder oder Film): die Kachel sagt es, statt leer
+     auszusehen — der Traum ist unterwegs, nicht fehlend. Hierhin kommt
+     später Antons Faultier-Animation (Vermerk: faultier-assets.md). */
+  const pending = (entry.imageJobs || []).length > 0 || (!film && !!entry.jobId);
 
   if (variant === "row") {
     return (
@@ -31,7 +35,9 @@ export default function JournalCard({ entry, onOpen, variant = "tile" }) {
         </span>
         <span className="j-row-body">
           <span className="j-row-title">{title}</span>
-          <span className="j-row-text">{entry.tagline || entry.text}</span>
+          <span className="j-row-text">
+            {pending ? t.journal.renderingTile : (entry.tagline || entry.text)}
+          </span>
         </span>
         {media && !isVideo && <img className="j-row-thumb" src={media} alt="" loading="lazy" />}
         {media && isVideo && <video className="j-row-thumb" src={media} muted playsInline preload="metadata" />}
@@ -45,7 +51,7 @@ export default function JournalCard({ entry, onOpen, variant = "tile" }) {
       {/* Muted, no autoplay: a wall of playing videos would be noise and
           battery. The still first frame is all the tile needs. */}
       {media && isVideo && <video className="j-tile-img" src={media} muted playsInline preload="metadata" />}
-      {!media && <span className="j-tile-blank" aria-hidden="true" />}
+      {!media && <span className={"j-tile-blank" + (pending ? " j-tile-cooking" : "")} aria-hidden="true" />}
 
       <span className="j-tile-scrim" aria-hidden="true" />
 
@@ -54,6 +60,12 @@ export default function JournalCard({ entry, onOpen, variant = "tile" }) {
       </span>
 
       <span className="j-tile-body">
+        {pending && (
+          <span className="j-tile-pending" role="status">
+            <span className="j-tile-pending-dot" aria-hidden="true" />
+            {t.journal.renderingTile}
+          </span>
+        )}
         <span className="j-tile-title">{title}</span>
         <span className="j-tile-sub">{entry.tagline || entry.text}</span>
       </span>

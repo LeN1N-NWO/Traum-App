@@ -6,25 +6,51 @@
 
 .sb-tile {
   position: relative; flex: 0 0 auto;
-  inline-size: 64px; aspect-ratio: 4 / 5;
+  inline-size: 84px; aspect-ratio: 3 / 4;
   padding: 0; overflow: hidden; cursor: pointer;
   border-radius: 12px; border: 1px solid var(--panel-line);
   background: var(--sky);
-  transition: opacity .25s ease;
+  transition: opacity .25s ease, border-color .25s ease, background .25s ease;
+  text-align: start;
 }
-.sb-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sb-tile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 .sb-tile:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 
-/* Szenen ohne zuordenbares Bild: die Nummer, nie ein Fragezeichen — dieselbe
-   Entscheidung wie beim Besetzungs-Avatar ohne Foto. */
-.sb-tile-n {
-  position: absolute; inset: 0; display: grid; place-items: center;
-  font: 600 var(--t-h3) var(--serif); color: var(--muted);
+/* Seit 21.08. trägt jede Kachel ihren Szenentext (Antons Befund: die
+   nackte Zahl erzählte nichts). Nummer oben, Text unten; liegt ein
+   Thumbnail dahinter, sorgt der Schleier für Lesbarkeit. */
+.sb-n {
+  position: absolute; inset-block-start: 5px; inset-inline-start: 7px;
+  font: 600 var(--t-micro) var(--serif); color: var(--faint);
+  z-index: 1;
+}
+.sb-text {
+  position: absolute; inset-inline: 0; inset-block-end: 0;
+  padding: 14px 7px 6px;
+  font-family: var(--sans); font-size: 10px; line-height: 1.35;
+  color: var(--text);
+  background: linear-gradient(to top, rgb(var(--bg-rgb) / .82) 55%, transparent);
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-/* Vom Sekunden-Slider ausgeschlossene Szenen: sichtbar bleiben, aber
-   erkennbar nicht im Film — Information, keine Sperre, antippen geht weiter. */
+/* Vom Sekunden-Slider ausgeschlossene Szenen (Nur-Lese-Modus im Journal):
+   sichtbar bleiben, aber erkennbar nicht im Film — Information, keine
+   Sperre, antippen geht weiter. */
 .sb-dim { opacity: .32; }
+
+/* Auswahlmodus (Schritt 5): gewählt = akzentgerahmt mit Haken,
+   abgewählt = gestrichelt und gedimmt — draußen, aber zurückholbar. */
+.sb-on { border-color: var(--accent-soft); background: var(--accent-wash); }
+.sb-off { opacity: .45; border-style: dashed; }
+.sb-check {
+  position: absolute; inset-block-start: 4px; inset-inline-end: 4px;
+  inline-size: 16px; block-size: 16px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--accent); color: var(--bg);
+  font-size: 10px; line-height: 1;
+  z-index: 1;
+}
 
 /* Das Blatt selbst kommt aus Sheet.jsx — hier nur sein Inhalt. */
 .sb-sheet-img {
@@ -40,3 +66,23 @@
    aber als Arbeitsmaterial gesetzt, nicht als Prosa. */
 .sb-sheet-beat { color: var(--text); font-size: var(--t-body); line-height: 1.5; margin-block: 0 var(--s-3); }
 .sb-sheet-note { color: var(--faint); font-size: var(--t-small); margin-block: 0 var(--s-3); }
+
+/* Der Nachfüll-Knopf im Szenen-Blatt — warm, denn er kostet einen Credit. */
+.sb-sheet-fill {
+  display: block; width: 100%;
+  padding: var(--s-3); margin-block-end: var(--s-3);
+  border: none; border-radius: 999px; cursor: pointer;
+  background: var(--warm-grad); color: var(--bg);
+  font: 600 var(--t-body) var(--sans);
+}
+.sb-sheet-fill:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+/* Eine Szene, deren Einzelbild gerade entsteht. */
+.sb-cooking-dot {
+  position: absolute; inset-block-end: 6px; inset-inline-end: 6px;
+  inline-size: 8px; block-size: 8px; border-radius: 50%;
+  background: var(--accent-soft);
+  animation: sb-cook 1.4s ease-in-out infinite;
+}
+@keyframes sb-cook { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .sb-cooking-dot { animation: none; } }

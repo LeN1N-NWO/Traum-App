@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { CONSENT_VERSION, needsConsent, consentPatch } from "./consent.js";
+import { CONSENT_VERSION, needsConsent, consentPatch, withdrawPatch } from "./consent.js";
 
 test("a fresh install needs consent", () => {
   expect(needsConsent({})).toBe(true);
@@ -17,4 +17,12 @@ test("granted consent satisfies the gate and records version + time", () => {
    vorgelegt werden — eine alte Zustimmung deckt keinen neuen Text. */
 test("an older consent version re-opens the gate", () => {
   expect(needsConsent({ consent: { v: CONSENT_VERSION - 1, at: 1 } })).toBe(true);
+});
+
+/* Widerruf muss so einfach wirken wie die Erteilung (Art. 7 Abs. 3):
+   nach dem Patch steht das Tor sofort wieder. */
+test("withdrawing consent re-opens the gate immediately", () => {
+  const granted = consentPatch(1);
+  const withdrawn = { ...granted, ...withdrawPatch() };
+  expect(needsConsent(withdrawn)).toBe(true);
 });

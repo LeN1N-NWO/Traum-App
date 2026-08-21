@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import Button from "../../components/Button.jsx";
 import TagField from "../../components/TagField.jsx";
 import { useAppState } from "../../state/AppState.jsx";
-import { refine, reflect, mediaUrl, jobStatus } from "../../lib/api.js";
+import { refine, reflect, mediaUrl, generate } from "../../lib/api.js";
 import { reflectionContext } from "../../lib/atlas.js";
 import { filmOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
 import { spend } from "../../lib/credits.js";
 import { PRICES } from "../../lib/pricing.js";
 import { shareDream, downloadAll, canShareFiles } from "../../lib/share.js";
+import { buildReferences, buildImagePrompt } from "../../lib/promptBuilder.js";
+import { renderRef } from "../../lib/sheets.js";
 import { t } from "../../i18n/index.js";
 import Storyboard from "../../components/Storyboard.jsx";
 import EntryMenu from "./EntryMenu.jsx";
@@ -37,44 +39,12 @@ export default function JournalDetail({ entry, onClose }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose, menuOpen]);
 
-  /* Collecting a film that was still rendering when the wizard was left.
-   *
-   * Saving mid-render is offered on purpose ("Save — I'll come back for it"),
-   * but nothing ever came back for it: the entry kept its job id and the
-   * finished film was never fetched. This is the collector. It runs while the
-   * dream is open and stops the moment the film lands — a render measured
-   * 280s, so six seconds between asks is plenty. */
-  useEffect(() => {
-    if (!entry.jobId) return;
-    let alive = true;
-    const tick = async () => {
-      try {
-        const r = await jobStatus(entry.jobId);
-        if (!alive) return;
-        if (r.status === "done" && r.urls?.length) {
-          update({
-            journal: state.journal.map((e) =>
-              e.id === entry.id
-                ? { ...e, film: { urls: r.urls, source: "api" }, jobId: undefined }
-                : e
-            ),
-          });
-          toast(t.journal.filmArrived);
-        } else if (r.status === "failed" || r.status === "unknown") {
-          // Drop the id rather than asking forever about a job that is gone.
-          update({
-            journal: state.journal.map((e) => (e.id === entry.id ? { ...e, jobId: undefined } : e)),
-          });
-        }
-      } catch { /* a hiccup is not a failure — the next tick asks again */ }
-    };
-    tick();
-    const id = setInterval(tick, 6000);
-    return () => { alive = false; clearInterval(id); };
-    // state.journal is deliberately not a dependency: update() replaces it on
-    // every write, which would tear this down and restart it in a loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entry.jobId, entry.id]);
+  /* Kein eigener Abholer mehr: Offene Aufträge (Film UND Bilder) sammelt
+     seit dem 21.08. der App-weite Collector in AppState ein — vorher kam
+     ein „Speichern — ich hole ihn später ab"-Film nur an, solange genau
+     dieser Bildschirm offen blieb. Wer im Startscreen wartete, wartete
+     umsonst. Eine Mechanik, ein Ort (collector.js). */
+  const pendingImages = (entry.imageJobs || []).length > 0;
 
   /** Write a new text onto the entry. The first version is never touched.
    *  Die Reflection fällt dabei weg: sie beschreibt den ALTEN Wortlaut,
@@ -152,6 +122,57 @@ export default function JournalDetail({ entry, onClose }) {
       // "cancelled" is a normal outcome — say nothing.
     } catch (err) {
       console.error("[DreamRushes] share failed:", err);
+      toast(`⚠ ${err.message}`);
+    }
+    setBusy(false);
+  }
+
+  /* Eine leere Storyboard-Kachel nachfüllen (Antons Go 21.08.): EIN Bild
+   * für GENAU diese Szene — 1 Credit, als Hintergrund-Auftrag; der
+   * Collector schreibt es nach sceneImages[beat] und meldet sich. Die
+   * Referenzen werden aus entry.references + Bibliothek rekonstruiert,
+   * damit die echten Gesichter auch im Nachzügler-Bild stimmen. */
+  async function renderScene(i) {
+    const beats = entry.analysis?.beats || [];
+    if (!beats[i]) return;
+    const paid = spend(state, PRICES.scene);
+    if (!paid) return openPaywall("spent");
+
+    const pool = [...(state.cast || []), ...(state.me ? [state.me] : [])];
+    const byTag = new Map(pool.filter((a) => a?.tag).map((a) => [a.tag, a]));
+    const assigns = (entry.references || [])
+      .map((r) => ({ kind: r.category || "person", avatar: byTag.get(r.tag) }))
+      .filter((a) => a.avatar?.img);
+    const { clauses } = buildReferences(assigns);
+    const cast = assigns.map(({ kind, avatar }) => {
+      const category = kind === "pet" ? "pet" : kind === "place" ? "place" : "person";
+      return {
+        tag: avatar.tag, category, desc: avatar.desc || "",
+        img: renderRef({ ...avatar, category, desc: avatar.desc || "" }),
+      };
+    });
+
+    setBusy(true);
+    try {
+      const res = await generate({
+        dream: entry.text, mode: "image", cast,
+        prompt: buildImagePrompt({
+          beat: beats[i], styleId: entry.style || entry.analysis?.style || "dreamlike",
+          format: entry.format || "9:16", clauses, index: i + 1, total: beats.length,
+        }),
+      });
+      update({
+        ...paid,
+        journal: state.journal.map((e) => (e.id === entry.id ? {
+          ...e,
+          ...(res.jobId
+            ? { sceneJobs: [...(e.sceneJobs || []), { id: res.jobId, beat: i }] }
+            : { sceneImages: { ...(e.sceneImages || {}), [i]: res.urls?.[0] } }),
+        } : e)),
+      });
+      toast(t.storyboard.scenePending);
+    } catch (err) {
+      console.error("[DreamRushes] scene render failed:", err);
       toast(`⚠ ${err.message}`);
     }
     setBusy(false);
@@ -279,55 +300,60 @@ export default function JournalDetail({ entry, onClose }) {
             would look like. The film is offered once there ARE pictures,
             when they know what they are animating. Both hidden while a film
             renders: that one is on its way, not missing. */}
-        {!entry.jobId && !editing && !proposal && images.length === 0 && (
-          <div className="j-make">
-            <p className="j-make-lede">{t.journal.makeLede}</p>
-            <button className="j-make-btn" onClick={() => make("images")}>
-              <IconImages />
-              <span className="j-make-title">{t.journal.makeImages}</span>
-              <ChevronRight />
-            </button>
+        {/* Der Bogen, aus dem die Bilder entstanden — antippbar, mit dem
+            Bild je Szene, wo die Zuordnung sicher ist (Plan: Storyboard vor
+            dem Film, Stufe A). Nur wenn eine Analyse existiert: Seeds und
+            handgeschriebene Alt-Einträge haben keinen Bogen. */}
+        {!editing && !proposal && entry.analysis?.beats?.length > 0 && (
+          <div className="j-storyboard">
+            <p className="j-original-label">{t.storyboard.label}</p>
+            <Storyboard beats={entry.analysis.beats} entry={entry} onRenderScene={renderScene} />
           </div>
         )}
 
-        {!entry.jobId && !film && !editing && !proposal && images.length > 0 && (
-          <div className="j-make">
-            <p className="j-make-lede">{t.journal.makeFilmLede}</p>
-            <button className="j-make-btn" onClick={() => make("film")}>
-              <IconFilm />
-              <span className="j-make-title">{t.journal.makeFilm}</span>
-              <ChevronRight />
-            </button>
-          </div>
-        )}
-
-        {/* The things you can do TO this dream, as one row underneath. They
-            are all cheap or free and all reversible, which is why they read
-            as secondary to the warm button above it — deleting stays in the
-            ⋯ menu where a mis-tap cannot reach it.
-
-            WRAPS rather than scrolling sideways. The sideways-scrolling
-            version hid "Share" off the right edge in German ("Teilen" after
-            "Umschreiben" and "Bearbeiten") — reachable by dragging, but
-            nobody drags a row they cannot see the end of, so it read as a
-            cut-off button twice over. Wrapping is the only version that
-            cannot clip a label in ANY of the seven languages. */}
-        {!editing && !proposal && (
-          <div className="j-acts">
-            <button className="j-act" onClick={() => setRefinePick(true)} disabled={busy}>
-              <IconSparkle />
-              <span>{t.journal.actRewrite}</span>
-            </button>
-            <button className="j-act" onClick={() => setEditing(true)}>
-              <IconPencil />
-              <span>{t.journal.actEdit}</span>
-            </button>
-            <button className="j-act" onClick={doShare} disabled={busy || allMediaOf(entry).length === 0}>
-              <IconShare />
-              <span>{t.journal.actShare}</span>
-            </button>
-          </div>
-        )}
+        {/* Eine Zeile statt drei Blöcke (Antons Ansage 21.08.): der warme
+            Hauptknopf (Bilder machen ODER Kurzfilm machen) nimmt nicht mehr
+            die ganze Breite, die stillen Werkzeuge (Umschreiben, Bearbeiten,
+            Teilen) stehen transparent daneben und wickeln auf schmalen
+            Schirmen darunter. Löschen bleibt bewusst allein im ⋯-Menü. */}
+        {!editing && !proposal && (() => {
+          const offerImages = !entry.jobId && !pendingImages && images.length === 0;
+          const offerFilm = !entry.jobId && !film && !pendingImages && images.length > 0;
+          return (
+            <div className="j-make">
+              {offerImages && <p className="j-make-lede">{t.journal.makeLede}</p>}
+              {offerFilm && <p className="j-make-lede">{t.journal.makeFilmLede}</p>}
+              <div className="j-acts">
+                {offerImages && (
+                  <button className="j-make-btn" onClick={() => make("images")}>
+                    <IconImages />
+                    <span className="j-make-title">{t.journal.makeImages}</span>
+                    <ChevronRight />
+                  </button>
+                )}
+                {offerFilm && (
+                  <button className="j-make-btn" onClick={() => make("film")}>
+                    <IconFilm />
+                    <span className="j-make-title">{t.journal.makeFilm}</span>
+                    <ChevronRight />
+                  </button>
+                )}
+                <button className="j-act" onClick={() => setRefinePick(true)} disabled={busy}>
+                  <IconSparkle />
+                  <span>{t.journal.actRewrite}</span>
+                </button>
+                <button className="j-act" onClick={() => setEditing(true)}>
+                  <IconPencil />
+                  <span>{t.journal.actEdit}</span>
+                </button>
+                <button className="j-act" onClick={doShare} disabled={busy || allMediaOf(entry).length === 0}>
+                  <IconShare />
+                  <span>{t.journal.actShare}</span>
+                </button>
+              </div>
+            </div>
+          );
+        })()}
 
         {busy && <p className="j-working">{t.journal.working}</p>}
 
@@ -339,12 +365,12 @@ export default function JournalDetail({ entry, onClose }) {
           <video className="j-film" src={mediaUrl(film)} controls playsInline preload="metadata" />
         )}
 
-        {/* Still rendering: it was saved mid-render on purpose, and the
-            collector above is asking for it while this stays open. */}
-        {!film && entry.jobId && (
+        {/* Noch unterwegs (Film oder Bilder): der App-weite Collector
+            fragt nach — dieser Bildschirm zeigt es nur an. */}
+        {((!film && entry.jobId) || pendingImages) && (
           <div className="j-film-wait" role="status" aria-live="polite">
             <span className="wiz-spinner" aria-hidden="true" />
-            <span>{t.journal.filmRendering}</span>
+            <span>{pendingImages ? t.journal.renderingTile : t.journal.filmRendering}</span>
           </div>
         )}
 
@@ -380,17 +406,6 @@ export default function JournalDetail({ entry, onClose }) {
           <DreamStory text={entry.text} urls={images} type="image" />
         )}
 
-        {/* Der Bogen, aus dem die Bilder entstanden — antippbar, mit dem
-            Bild je Szene, wo die Zuordnung sicher ist (Plan: Storyboard vor
-            dem Film, Stufe A). Nur wenn eine Analyse existiert: Seeds und
-            handgeschriebene Alt-Einträge haben keinen Bogen. */}
-        {!editing && !proposal && entry.analysis?.beats?.length > 0 && (
-          <div className="j-storyboard">
-            <p className="j-original-label">{t.storyboard.label}</p>
-            <Storyboard beats={entry.analysis.beats} entry={entry} />
-          </div>
-        )}
-
         {/* Die Besetzung mit Gesichtern statt der nackten @tag-Zeile. */}
         {entry.references?.length > 0 && (
           <CastChips refs={entry.references} cast={state.cast || []} me={state.me} />
@@ -420,19 +435,13 @@ export default function JournalDetail({ entry, onClose }) {
           </div>
         )}
 
-        {/* The first thing they wrote stays reachable, however often it is
-            reworked afterwards. */}
-        {entry.originalText && entry.originalText !== entry.text && (
+        {/* Der erste Wortlaut — aufgerufen über das ⋯-Menü (der frühere
+            Link unten am Eintrag wirkte „verloren angeheftet", Antons
+            Befund 21.08.). Nochmaliges Antippen im Menü blendet ihn aus. */}
+        {showOriginal && entry.originalText && entry.originalText !== entry.text && (
           <div className="j-original">
-            <button className="j-original-toggle" onClick={() => setShowOriginal((v) => !v)}>
-              {showOriginal ? t.journal.hideOriginal : t.journal.showOriginal}
-            </button>
-            {showOriginal && (
-              <>
-                <p className="j-original-label">{t.journal.original}</p>
-                <p className="j-original-text">{entry.originalText}</p>
-              </>
-            )}
+            <p className="j-original-label">{t.journal.original}</p>
+            <p className="j-original-text">{entry.originalText}</p>
           </div>
         )}
         </div>
@@ -443,6 +452,9 @@ export default function JournalDetail({ entry, onClose }) {
             onEdit={() => { setMenuOpen(false); setEditing(true); }}
             onRefine={runRefine}
             onShare={doShare}
+            onOriginal={entry.originalText && entry.originalText !== entry.text
+              ? () => { setMenuOpen(false); setShowOriginal((v) => !v); }
+              : null}
             onDelete={() => { setMenuOpen(false); remove(); }}
             onClose={() => setMenuOpen(false)}
           />

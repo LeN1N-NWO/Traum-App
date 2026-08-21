@@ -136,6 +136,24 @@ export function ChevronRight() {
 
 /* Settings: six teeth, not the usual twelve — at 24px a fine-toothed gear
    turns into a fuzzy circle. Fewer, larger teeth still read as "gear". */
+export function IconCamera() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+      <path d="M4 8.5h3l1.6-2.3h6.8L17 8.5h3a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1Z" strokeLinejoin="round" />
+      <circle cx="12" cy="13.4" r="3.1" />
+    </svg>
+  );
+}
+
+export function IconHistory() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+      <path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 8v4.5l3 1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function IconGear() {
   return (
     <svg {...base}>

@@ -3,6 +3,7 @@ import { useAppState } from "../state/AppState.jsx";
 import { consentPatch } from "../lib/consent.js";
 import { t } from "../i18n/index.js";
 import Button from "./Button.jsx";
+import LegalPage from "./LegalPage.jsx";
 import "./ConsentGate.css";
 
 /* Das Einwilligungs-Tor — steht NACH der Sprachwahl (damit es übersetzt
@@ -31,9 +32,33 @@ export default function ConsentGate() {
   const [processing, setProcessing] = useState(false);
   const [adult, setAdult] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [legalDoc, setLegalDoc] = useState(null);   // "terms" | "privacy" | null
+
+  /* Die zwei Links im ersten Häkchen-Satz. stopPropagation, denn der Satz
+     ist zugleich das <label> der Checkbox — ohne sie würde „lesen wollen"
+     als „zustimmen" gewertet. Der Satz ist in fünf i18n-Teile zerlegt,
+     damit jede Sprache ihre eigene Wortstellung bauen kann. */
+  const openDoc = (doc) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLegalDoc(doc);
+  };
+  const termsLabel = (
+    <span>
+      {t.consent.termsPre}
+      <button type="button" className="consent-link" onClick={openDoc("terms")}>
+        {t.consent.termsLink}
+      </button>
+      {t.consent.termsMid}
+      <button type="button" className="consent-link" onClick={openDoc("privacy")}>
+        {t.consent.privacyLink}
+      </button>
+      {t.consent.termsPost}
+    </span>
+  );
 
   const rows = [
-    { key: "terms", checked: terms, set: setTerms, label: t.consent.terms },
+    { key: "terms", checked: terms, set: setTerms, label: termsLabel },
     { key: "processing", checked: processing, set: setProcessing, label: t.consent.processing },
     { key: "adult", checked: adult, set: setAdult, label: t.consent.adult },
   ];
@@ -74,6 +99,8 @@ export default function ConsentGate() {
           {t.consent.cta}
         </Button>
       </div>
+
+      {legalDoc && <LegalPage doc={legalDoc} onClose={() => setLegalDoc(null)} />}
     </main>
   );
 }

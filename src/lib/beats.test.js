@@ -154,3 +154,20 @@ test("mapping and generation share one formula and cannot disagree", () => {
     }
   }
 });
+
+/* Die Regie-Auswahl (Storyboard Stufe B): läuft sie über, fällt die
+   ÄLTESTE Wahl raus — die App glaubt dem letzten Wort. Gesendet wird
+   chronologisch, nie in Tipp-Reihenfolge. */
+import { trimSelection, selectionBeats } from "./beats.js";
+
+test("overflowing a selection drops the oldest pick, not the newest", () => {
+  expect(trimSelection([0, 1, 2, 4], 3)).toEqual([1, 2, 4]);
+  expect(trimSelection([3, 0], 2)).toEqual([3, 0]);
+  expect(trimSelection([1, 1, 2], 2)).toEqual([1, 2]);   // Doppel-Tipp zählt einmal
+  expect(trimSelection([0, 1], 0)).toEqual([]);
+});
+
+test("the film plays chronologically whatever order scenes were tapped in", () => {
+  expect(selectionBeats(["a", "b", "c", "d", "e"], [4, 0, 2])).toEqual(["a", "c", "e"]);
+  expect(selectionBeats(["a", "b"], [5, 1])).toEqual(["b"]);   // Geister-Index fällt still raus
+});
