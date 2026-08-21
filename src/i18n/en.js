@@ -848,5 +848,8 @@ export default {
     /* Für den Abbruch nach Zeit (AbortSignal in api.js): sagt, WAS man tun
        kann, nicht nur dass etwas schiefging. */
     timeout: "The service didn't answer. Check your connection and try again in a moment.",
+    // Der Auftrag kam als gescheitert zurück — anders als ein Aussetzer,
+    // den awaitJob einfach weiter versucht.
+    renderFailed: "The renderer couldn't finish this one. Try again.",
   },
 };

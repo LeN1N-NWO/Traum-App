@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { STYLES } from "../lib/styles.js";
 import { beatsForCount, beatCountForSeconds, evenIndices, trimSelection, selectionBeats } from "../lib/beats.js";
 import { buildReferences, buildImagePrompt, buildPosterPrompt, buildGridPrompt } from "../lib/promptBuilder.js";
-import { generate, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
+import { generate, renderImages, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
 import { needsSheet, renderRef, sheetFingerprint, compactDataUrl } from "../lib/sheets.js";
 import { splitIntoPanels } from "../lib/splitGrid.js";
 import { mapWithLimit } from "../lib/parallel.js";
@@ -254,7 +254,7 @@ export default function Step5Style({ w, patch }) {
       // One request, one $0.08 generation, cut into three afterwards instead
       // of three separate $0.08 requests for the same three pictures.
       if (useGrid) {
-        const { urls: gridUrls } = await generate({
+        const gridUrls = await renderImages({
           dream: w.text,
           mode: "image",
           cast: castForApi,
@@ -289,7 +289,7 @@ export default function Step5Style({ w, patch }) {
               beat, styleId: w.styleId, format: w.format,
               clauses, index: withPoster ? i : i + 1, total: beats.length,
             });
-        const { urls } = await generate({ dream: w.text, mode: "image", cast: castForApi, prompt });
+        const urls = await renderImages({ dream: w.text, mode: "image", cast: castForApi, prompt });
         setDone((n) => n + 1);
         return urls;
       });

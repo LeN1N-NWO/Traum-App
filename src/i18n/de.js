@@ -800,5 +800,6 @@ export default {
     unexpected: "Unerwartete Antwort vom Server.",
     serverStatus: (s) => `Server antwortete mit ${s}.`,
     timeout: "Der Dienst hat nicht geantwortet. Prüf deine Verbindung und versuch es gleich noch mal.",
+    renderFailed: "Der Renderer hat es diesmal nicht geschafft. Versuch es noch mal.",
   },
 };

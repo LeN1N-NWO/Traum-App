@@ -24,10 +24,14 @@ export function mediaUrl(u) {
 /* Jeder Aufruf hat eine Uhr. Ohne sie wartet fetch unbegrenzt, und ein
  * Server, der nie antwortet (kein Schlüssel, falsches Netz, Dienst weg),
  * wird zur toten Schleife mit Spinner — Antons Befund vom 21.08. in der
- * Cloud-Session. Die Budgets sind bewusst großzügig: ein Bild braucht
- * schon mal 30 Sekunden, der Regisseur (DeepSeek denkt nach) auch länger —
- * die Uhr soll Hänger melden, nicht langsame Erfolge abschießen. */
-const TIMEOUTS = { default: 60_000, render: 180_000 };
+ * Cloud-Session.
+ *
+ * EINE Zahl reicht, seit das Rendern in der Warteschlange läuft
+ * (awaitJob weiter unten): Keine Anfrage wartet mehr auf eine
+ * Generierung — sie geben nur einen Auftrag ab oder fragen dessen Stand
+ * ab, und das sind Millisekunden. Eine Minute ist deshalb kein Budget
+ * mehr, sondern eine großzügige Obergrenze für „der Server lebt". */
+const TIMEOUTS = { default: 60_000 };
 
 function friendly(err) {
   // TimeoutError: die Uhr. TypeError: Netz/Server gar nicht erreichbar.
@@ -98,11 +102,59 @@ export async function transcribe(audio) {
  * neues Feld muss an BEIDEN Stellen stehen, sonst verschwindet es still —
  * `styleId` und `beats` kamen am 19.08.2026 für den Regisseur dazu. */
 export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats }) {
-  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats },
-    { timeout: TIMEOUTS.render });
+  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats });
   if (Array.isArray(data?.urls)) return { urls: data.urls };
   if (typeof data?.jobId === "string") return { jobId: data.jobId };
   throw new Error(t.errors.unexpected);
+}
+
+/* Warten, ohne eine Verbindung offen zu halten (Antons Ansage 21.08.:
+ * „Die App muss im Hintergrund immer wieder eine Abfrage durchführen").
+ *
+ * Jede einzelne Abfrage ist winzig und dauert Millisekunden — nur die
+ * SUMME darf lange sein. Das ist der ganze Unterschied zum vorherigen
+ * Bau: Vorher hing eine Anfrage 30 Sekunden in der Luft und starb an
+ * jedem Leerlauf-Timeout zwischen Handy und Server; jetzt gibt es nichts
+ * mehr, das sterben könnte.
+ *
+ * Ein Aussetzer ist kein Abbruch: Fehlgeschlagene Abfragen (Funkloch,
+ * Serverneustart) werden gezählt und weiter versucht — erst nach
+ * MAX_MISSES hintereinander gibt die Schleife auf. `onTick` meldet jede
+ * Runde nach oben, damit die Oberfläche zeigen kann, dass etwas läuft.
+ */
+const POLL_MS = 2000;
+const MAX_MISSES = 12;          // ~24 s durchgehende Funkstille
+const MAX_WAIT_MS = 15 * 60_000; // Notbremse gegen ewige Schleifen
+
+export async function awaitJob(jobId, { onTick } = {}) {
+  const started = Date.now();
+  let misses = 0;
+  for (let round = 0; ; round++) {
+    await new Promise((r) => setTimeout(r, POLL_MS));
+    if (Date.now() - started > MAX_WAIT_MS) throw new Error(t.errors.timeout);
+    try {
+      const r = await jobStatus(jobId);
+      misses = 0;
+      if (r.status === "done") return r.urls || [];
+      if (r.status === "failed") throw new Error(t.errors.renderFailed);
+      // "pending" und "unknown": weiter fragen. "unknown" heisst bei einem
+      // gerade erst angelegten Auftrag oft nur, dass die Datei noch nicht
+      // auf der Platte war.
+      onTick?.(round);
+    } catch (err) {
+      if (err.message === t.errors.renderFailed) throw err;
+      if (++misses >= MAX_MISSES) throw err;
+    }
+  }
+}
+
+/** Bild(er) rendern: Auftrag abgeben, im Hintergrund abholen. Eine
+ *  Funktion für beide Hälften, damit kein Aufrufer das Nachfragen
+ *  vergessen kann. */
+export async function renderImages(params, { onTick } = {}) {
+  const res = await generate(params);
+  if (res.urls) return res.urls;            // ältere Serverstände
+  return awaitJob(res.jobId, { onTick });
 }
 
 /** Ein Referenzbild aus einer Beschreibung — der Charakterbogen.
@@ -112,7 +164,13 @@ export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio
  *  Bogen NORMALISIERT (grau, Ganzkörper + Gesicht) — gratis, nur aus einem
  *  bezahlten Render heraus aufgerufen (sheets.js hat die Regeln). */
 export async function characterSheet({ desc, category, photo }) {
-  const data = await post("/api/character", { desc, category, photo }, { timeout: TIMEOUTS.render });
+  const data = await post("/api/character", { desc, category, photo });
+  // Auftrag (seit 21.08.) oder fertige URL (ältere Serverstände).
+  if (typeof data?.jobId === "string") {
+    const urls = await awaitJob(data.jobId);
+    if (typeof urls[0] !== "string") throw new Error(t.errors.unexpected);
+    return urls[0];
+  }
   const url = Array.isArray(data?.urls) ? data.urls[0] : null;
   if (typeof url !== "string") throw new Error(t.errors.unexpected);
   return url;

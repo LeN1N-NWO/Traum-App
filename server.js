@@ -1125,6 +1125,54 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds })
   return id;
 }
 
+/* Bilder gehen seit dem 21.08.2026 durch DIESELBE Warteschlange wie Filme
+ * — Antons Ansage nach einer 500 mitten im Rendern: „Die App muss im
+ * Hintergrund immer wieder eine Abfrage durchführen, solange der Traum
+ * nicht auftaucht."
+ *
+ * Der Grund ist grundsätzlicher als der Bun-Timeout, der ihn ausgelöst
+ * hat: Eine Verbindung 30 Sekunden offen zu halten, während nichts
+ * fliesst, ist überall zerbrechlich — Server-Leerlauf, Mobilfunkwechsel,
+ * App im Hintergrund, ein Proxy dazwischen. Ein Auftrag mit Nummer
+ * überlebt das alles, auch einen Neustart dieses Servers, weil er auf
+ * der Platte liegt und die Arbeit bei fal.
+ *
+ * Bewusst dieselbe Maschinerie und nicht eine zweite daneben: readJob,
+ * jobStatus und /api/job kennen keinen Unterschied zwischen Bild und
+ * Film — nur die Antwort von fal sieht anders aus (images[] statt
+ * video), und genau diese eine Stelle steht in jobStatus. */
+async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16" }) {
+  const key = process.env.FAL_KEY;
+  if (!key) throw new Error("NO_FAL_KEY");
+
+  const input = { prompt, aspect_ratio: aspectRatio };
+  const imageUrls = namedRefs.map((r) => r.img).filter(Boolean);
+  if (imageUrls.length) input.image_urls = imageUrls;
+  // Gleiche Regel wie im Sofort-Pfad: mit Referenzen MUSS es das
+  // Edit-Modell sein, sonst verschwinden die Ähnlichkeiten lautlos.
+  const model = imageUrls.length ? FAL_MODEL_IMAGE_EDIT : FAL_MODEL_IMAGE;
+
+  const res = await fetch(`https://queue.fal.run/${model}`, {
+    method: "POST",
+    headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    console.error("[DreamRushes] fal.ai image submit failed:", model, res.status, await res.text().catch(() => ""));
+    throw new Error("GENERATION_FAILED");
+  }
+  const { request_id, status_url, response_url } = await res.json();
+  if (!request_id) throw new Error("GENERATION_FAILED");
+
+  const id = genJobId();
+  await writeJob(id, {
+    requestId: request_id, model,
+    statusUrl: status_url, responseUrl: response_url,
+    createdAt: Date.now(), status: "pending",
+  });
+  return id;
+}
+
 function genJobId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
@@ -1156,12 +1204,17 @@ async function jobStatus(id) {
 
   const r = await fetch(base, { headers: { Authorization: `Key ${key}` } });
   const data = await r.json().catch(() => null);
-  const url = data?.video?.url || data?.videos?.[0]?.url;
-  if (!url) {
+  /* Film ODER Bild — die einzige Stelle, an der sich die beiden Auftrags-
+     arten überhaupt unterscheiden. Bildmodelle antworten mit images[],
+     und zwar auch dann mit mehreren, wenn wir eines bestellt haben. */
+  const found = data?.video?.url || data?.videos?.[0]?.url
+    ? [data?.video?.url || data?.videos?.[0]?.url]
+    : (data?.images || []).map((img) => img?.url).filter(Boolean);
+  if (!found.length) {
     await writeJob(id, { ...job, status: "failed" });
     return { status: "failed" };
   }
-  const urls = await storeAll([url]);
+  const urls = await storeAll(found);
   await writeJob(id, { ...job, status: "done", urls });
   return { status: "done", urls };
 }
@@ -1429,6 +1482,23 @@ async function serveStatic(pathname) {
 
 Bun.serve({
   port: PORT,
+
+  /* ⚠ OHNE DIESE ZEILE STIRBT JEDE GENERIERUNG (gefunden 21.08.2026, als
+   * Anton „nur ein paar Bilder" wollte und eine 500 bekam).
+   *
+   * Bun.serve trennt eine Verbindung nach 10 Sekunden ohne Datenverkehr —
+   * und genau so sieht ein Bild-Render von aussen aus: Wir warten still
+   * auf fal, es fliesst nichts, die Uhr laeuft ab. Der Fehler traegt den
+   * Namen der Folge, nicht der Ursache („AbortError: The connection was
+   * closed"), was ihn so schwer zu lesen macht: Es sah aus, als haette
+   * fal abgebrochen — abgebrochen hat unser eigener Server.
+   *
+   * 255 ist Buns Maximum. Es MUSS ueber den Uhren des Clients liegen
+   * (api.js: 60 s normal, 180 s Render), sonst gewinnt der Server das
+   * Wettrennen und der Mensch sieht eine 500 statt der ehrlichen
+   * „Der Dienst hat nicht geantwortet"-Meldung. Filme sind davon nicht
+   * betroffen — die kommen als Job-ID sofort zurueck. */
+  idleTimeout: 255,
 
   /* The voice interview runs through here rather than browser-to-Google.
    *
@@ -1759,13 +1829,16 @@ Bun.serve({
         const photo = typeof body.photo === "string" && body.photo.startsWith("data:image/")
           ? body.photo : "";
 
+        /* Auch der Bogen geht seit 21.08. in die Warteschlange (er war der
+           erste, der am 10-Sekunden-Timeout starb) — Antwort ist eine
+           Auftragsnummer, der Client fragt nach. */
         if (photo) {
-          const urls = await falGenerateImage({
+          const jobId = await falSubmitImage({
             prompt: buildSheetFromPhotoPrompt({ desc, category }),
             namedRefs: [{ img: photo }],
             aspectRatio: "16:9",   // zwei Panels nebeneinander
           });
-          return json({ ok: true, urls: await storeAll(urls) });
+          return json({ ok: true, jobId });
         }
 
         // Kurze Beschreibungen ergeben keine brauchbare Referenz — und der
@@ -1773,11 +1846,11 @@ Bun.serve({
         if (desc.length < 10) return json({ error: "Describe them a little more first." }, 400);
         if (desc.length > 400) return json({ error: "Description too long." }, 400);
 
-        const urls = await falGenerateImage({
+        const jobId = await falSubmitImage({
           prompt: buildCharacterPrompt({ desc, category }),
-          aspectRatio: category === "place" ? "16:9" : undefined,
+          aspectRatio: category === "place" ? "16:9" : "9:16",
         });
-        return json({ ok: true, urls: await storeAll(urls) });
+        return json({ ok: true, jobId });
       } catch (e) {
         const map = {
           NO_FAL_KEY: [503, "Backend has no fal.ai key. Set FAL_KEY and restart."],
@@ -1854,9 +1927,12 @@ Bun.serve({
           .map((b) => sanitizeFragment(b, MAX_FRAGMENT))
           .filter(Boolean);
 
-        // Two shapes come back from here, and the client handles both:
-        //   images → { urls }   (fast enough to wait for)
-        //   film   → { jobId }  (minutes; the client collects it later)
+        /* Seit dem 21.08.2026 gibt es nur noch EINE Antwort: { jobId }.
+           Bild wie Film wandern in die Warteschlange, der Client fragt
+           nach, bis etwas da ist. Vorher hiess es hier „images sind
+           schnell genug zum Warten" — bis eine Bildstrecke unter Last
+           genau daran starb (Bun trennt nach 10 s Stille). Warten ist
+           kein Zustand, den man dem Netz zumuten sollte. */
         if (body.mode === "film") {
           // Only a /media/-shaped name survives; startVideo re-validates it
           // against resolveMedia before touching the filesystem.
@@ -1901,10 +1977,21 @@ Bun.serve({
           });
           return json({ ok: true, jobId });
         }
-        const urls = await generateImages({ dream, namedRefs: cast, prompt, aspectRatio });
-        // Hand back local paths where the copy worked, provider URLs where it
-        // did not — the client stores whatever it gets.
-        return json({ ok: true, urls: await storeAll(urls) });
+        /* Der Prompt entsteht noch HIER (der Wizard schickt ihn meist
+           fertig mit; nur die alte Einzelform lässt DeepSeek formulieren)
+           — das dauert Sekundenbruchteile. In die Warteschlange geht nur
+           das Rendern selbst. */
+        let imagePrompt = prompt;
+        if (!imagePrompt) {
+          try {
+            imagePrompt = await craftPromptViaDeepseek(dream, cast);
+          } catch (e) {
+            console.error("[DreamRushes] DeepSeek prompt crafting unavailable, using local template:", e.message);
+            imagePrompt = buildFallbackPrompt(dream, cast);
+          }
+        }
+        const imageJob = await falSubmitImage({ prompt: imagePrompt, namedRefs: cast, aspectRatio });
+        return json({ ok: true, jobId: imageJob });
       } catch (e) {
         const map = {
           NO_FAL_KEY: [503, "Backend has no fal.ai key. Set FAL_KEY and restart."],
