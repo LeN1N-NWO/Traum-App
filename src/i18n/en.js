@@ -836,6 +836,9 @@ export default {
     scene: (i, n) => `Scene ${i} of ${n}`,
     // Zahl neben Wort ⇒ Funktion (Arität wird vom Shape-Check erzwungen).
     cutNote: (s) => `At ${s} seconds the dimmed scenes stay out of the film — a longer film keeps more of them.`,
+    /* Stufe B: die Zeile unter der antippbaren Leiste — sagt Stand UND
+       Grenze in einem Satz. */
+    pickNote: (n, max) => `${n} of up to ${max} scenes at this length — tap a tile to swap it in or out.`,
     textOnly: "No picture is tied to this scene yet — the film builds it from the words.",
   },
   errors: {

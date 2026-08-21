@@ -792,6 +792,7 @@ export default {
     label: "Storyboard",
     scene: (i, n) => `Szene ${i} von ${n}`,
     cutNote: (s) => `Bei ${s} Sekunden bleiben die abgedunkelten Szenen draußen — ein längerer Film nimmt mehr davon mit.`,
+    pickNote: (n, max) => `${n} von höchstens ${max} Szenen bei dieser Länge — tippe eine Kachel an oder ab.`,
     textOnly: "An dieser Szene hängt noch kein Bild — der Film baut sie aus den Worten.",
   },
   errors: {

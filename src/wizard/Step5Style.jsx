@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { STYLES } from "../lib/styles.js";
-import { beatsForCount, beatCountForSeconds, evenIndices } from "../lib/beats.js";
+import { beatsForCount, beatCountForSeconds, evenIndices, trimSelection, selectionBeats } from "../lib/beats.js";
 import { buildReferences, buildImagePrompt, buildPosterPrompt, buildGridPrompt } from "../lib/promptBuilder.js";
 import { generate, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
 import { needsSheet, renderRef, sheetFingerprint, compactDataUrl } from "../lib/sheets.js";
@@ -34,6 +34,11 @@ export default function Step5Style({ w, patch }) {
   // ein Toast ist nach vier Sekunden weg, und wer auf den Spinner gestarrt
   // hat, sieht danach nur ein wortloses Formular (Antons Befund 21.08.).
   const [fail, setFail] = useState(null);
+  /* Die Regie-Auswahl im Storyboard (Stufe B, Antons Go 21.08.): Beat-
+     Indizes in Tipp-Reihenfolge. null heißt Automatik — dann wählt
+     weiterhin evenIndices, und zwar bei jedem Längenwechsel neu; erst
+     der erste Tipp friert die Wahl als Antons eigene ein. */
+  const [pick, setPick] = useState(null);
   // Re-entry guard. `busy` cannot do this job: it is state, so it is still
   // false for a second call that arrives in the same tick — and two runs mean
   // the credits are spent twice and every image is rendered twice. Seen for
@@ -57,6 +62,28 @@ export default function Step5Style({ w, patch }) {
     : priceForImages(w.imageCount);
   const assignments = Object.values(w.assignments);
   const named = assignments.filter((a) => a.avatar?.img).length;
+
+  /* Der Szenenbogen und was die gewählte Länge davon trägt — für das
+     Storyboard UND für den Film-Aufruf, deshalb hier oben statt im JSX.
+     `order` ist immer schon auf die Kappung gestutzt: schrumpft die
+     Länge, fällt die älteste eigene Wahl raus (trimSelection). */
+  const arc = w.analysis?.beats || [];
+  const filmSecs = clampSeconds(w.videoModel, w.seconds);
+  const sceneCap = Math.max(1, Math.min(beatCountForSeconds(filmSecs), arc.length));
+  const order = trimSelection(pick ?? evenIndices(arc.length, sceneCap), sceneCap);
+
+  function toggleScene(i) {
+    // Funktional statt über den Render-Abschluss: zwei Tipps im selben
+    // Tick würden sonst beide vom selben alten Stand rechnen und der
+    // erste ginge still verloren (React batcht setState).
+    setPick((prev) => {
+      const base = trimSelection(prev ?? evenIndices(arc.length, sceneCap), sceneCap);
+      const has = base.includes(i);
+      // Die letzte Szene bleibt: ein Film aus null Szenen ist keiner.
+      if (has && base.length <= 1) return base;
+      return trimSelection(has ? base.filter((x) => x !== i) : [...base, i], sceneCap);
+    });
+  }
 
   /* Die von der Analyse empfohlene Filmlänge stellt den Regler vor, solange
      der Mensch ihn nicht selbst bewegt hat (secondsTouched). Deklarativ hier
@@ -204,7 +231,12 @@ export default function Step5Style({ w, patch }) {
              Szenen, obwohl die Analyse das längst getan hatte. Nur die ID,
              nie der Stiltext: der Server schlägt ihn selbst nach. */
           styleId: w.styleId,
-          beats: allBeats,
+          /* Die Regie-Auswahl aus dem Storyboard, chronologisch sortiert —
+             ohne Beats der ganze Text wie zuvor. Der Server schneidet mit
+             beatsForSeconds nach: für eine Auswahl, die die Kappung schon
+             einhält, ist das die Identität (evenIndices(n, n)) — er reicht
+             Antons Wahl unverändert an den Regisseur durch. */
+          beats: arc.length ? selectionBeats(arc, order) : allBeats,
           // The chosen image, if any — the server then animates it directly
           // instead of rendering a fresh keyframe first.
           keyframe: w.keyframe || undefined,
@@ -484,25 +516,19 @@ export default function Step5Style({ w, patch }) {
             </div>
           </div>
 
-          {/* Das Storyboard zeigt, was die Länge KOSTET — nicht in Credits,
-              in Erzählung: beatCountForSeconds ist dieselbe Rechnung, mit
-              der der Server den Bogen zuschneidet (beatsForSeconds), nur
-              sichtbar gemacht. Wer von 15 auf 5 Sekunden zieht, sieht drei
-              Szenen verblassen, BEVOR er bezahlt. Thumbnails gibt es im
-              Resume-Fall (der Traum hat Bilder mit gespeicherter
-              Poster-Wahrheit, siehe beats.js imageIndexForBeat); ein
-              frischer Film-first-Lauf zeigt Nummern-Kacheln. */}
-          {(w.analysis?.beats?.length || 0) > 0 && (() => {
-            const arc = w.analysis.beats;
-            const secs = clampSeconds(w.videoModel, w.seconds);
-            const keep = Math.min(beatCountForSeconds(secs), arc.length);
-            const activeSet = new Set(evenIndices(arc.length, keep));
+          {/* Das Storyboard zeigt, was die Länge trägt — und seit Stufe B
+              (21.08.) entscheidet der Mensch selbst, WELCHE Szenen das
+              sind: Antippen schaltet eine Szene an oder aus, die Auswahl
+              ersetzt den Automatik-Schnitt und geht so an den Regisseur.
+              Solange niemand tippt, wählt weiter evenIndices — dieselbe
+              Rechnung wie auf dem Server, nur sichtbar gemacht. */}
+          {arc.length > 0 && (() => {
             const entry = w.entryId ? state.journal.find((e) => e.id === w.entryId) : null;
             return (
               <>
                 <h2 className="wiz-sub">{t.storyboard.label}</h2>
-                <Storyboard beats={arc} entry={entry} active={activeSet} />
-                {keep < arc.length && <p className="wiz-hint">{t.storyboard.cutNote(secs)}</p>}
+                <Storyboard beats={arc} entry={entry} active={new Set(order)} onToggle={toggleScene} />
+                <p className="wiz-hint">{t.storyboard.pickNote(order.length, sceneCap)}</p>
               </>
             );
           })()}
