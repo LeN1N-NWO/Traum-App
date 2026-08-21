@@ -1,9 +1,19 @@
 #!/usr/bin/env node
-/* Structural check: every locale file must mirror en.js exactly — same
- * keys, same nesting, same function arity, same array length. A missing
- * key does not fail loudly; it renders `undefined` somewhere in the app
- * or throws deep inside a component far from here. Run this after writing
- * or editing ANY src/i18n/*.js file. */
+/* Structural check: locale files must mirror en.js — same keys, same
+ * nesting, same function arity, same array length. Run this after writing
+ * or editing ANY src/i18n/*.js file.
+ *
+ * Zwei Strengegrade seit dem 21.08. (Antons Regel: neue Texte werden bis
+ * kurz vor Launch nur in en.js und de.js gepflegt; es/fr/zh/hi/ar
+ * bekommen am Ende EINE Sammelübersetzung):
+ *   de           — STRENG: jeder fehlende Schlüssel ist ein Fehler.
+ *   es fr zh hi ar — NACHSICHTIG: fehlende Schlüssel sind erlaubt (die
+ *                  App fällt auf Englisch zurück, siehe withFallback in
+ *                  src/i18n/index.js) und werden nur GEZÄHLT — das ist
+ *                  zugleich die Arbeitsliste für die Sammelübersetzung.
+ *                  Alles andere bleibt ein Fehler: falsche Form, falsche
+ *                  Arität, falsche Array-Länge, Schlüssel, die en.js
+ *                  nicht kennt (Tippfehler). */
 import en from "../src/i18n/en.js";
 import de from "../src/i18n/de.js";
 import es from "../src/i18n/es.js";
@@ -13,6 +23,7 @@ import hi from "../src/i18n/hi.js";
 import ar from "../src/i18n/ar.js";
 
 const LOCALES = { de, es, fr, zh, hi, ar };
+const STRICT = new Set(["de"]);
 let failed = false;
 
 function shapeOf(v) {
@@ -30,17 +41,22 @@ function shapeOf(v) {
   return typeof v;
 }
 
-function walk(enNode, otherNode, path, id, errors) {
+function walk(enNode, otherNode, path, id, errors, missing) {
   const enShape = shapeOf(enNode);
   const otherShape = otherNode === undefined ? "MISSING" : shapeOf(otherNode);
 
+  if (otherShape === "MISSING" && !STRICT.has(id)) {
+    // Erlaubte Lücke: zur Laufzeit englisch. Nur zählen, nicht meckern.
+    missing.push(path);
+    return;
+  }
   if (enShape !== otherShape) {
     errors.push(`${id}: ${path} — expected ${enShape}, got ${otherShape}`);
     return;
   }
   if (enShape === "object") {
     for (const key of Object.keys(enNode)) {
-      walk(enNode[key], otherNode?.[key], path ? `${path}.${key}` : key, id, errors);
+      walk(enNode[key], otherNode?.[key], path ? `${path}.${key}` : key, id, errors, missing);
     }
     // Also flag keys the translation added that en.js does not have —
     // usually a typo'd key name, which otherwise fails silently (the app
@@ -51,17 +67,20 @@ function walk(enNode, otherNode, path, id, errors) {
   }
   if (enShape === "array" && enNode.length && typeof enNode[0] === "object" && !Array.isArray(enNode[0])) {
     // Arrays of objects (guide, checklist items, slides): check each entry's shape too.
-    enNode.forEach((item, i) => walk(item, otherNode[i], `${path}[${i}]`, id, errors));
+    enNode.forEach((item, i) => walk(item, otherNode[i], `${path}[${i}]`, id, errors, missing));
   }
 }
 
 for (const [id, locale] of Object.entries(LOCALES)) {
   const errors = [];
-  walk(en, locale, "", id, errors);
+  const missing = [];
+  walk(en, locale, "", id, errors, missing);
   if (errors.length) {
     failed = true;
     console.log(`✗ ${id}.js — ${errors.length} problem(s)`);
     for (const e of errors) console.log(`    ${e}`);
+  } else if (missing.length) {
+    console.log(`ok    ${id}.js — ${missing.length} key(s) untranslated (fall back to English)`);
   } else {
     console.log(`ok    ${id}.js matches en.js exactly`);
   }

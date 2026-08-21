@@ -65,6 +65,14 @@ Ohne Namen keine Änderung.
     Fehlermeldungen. Deutsch ist als *zweite* Sprache geplant, nicht als
     Ersatz. Alle Texte stehen in `src/i18n/en.js` — nirgends sonst; das macht
     die zweite Sprache zu einer neuen Datei statt zu einem Umbau.
+  - **Übersetzungs-Stopp (Antons Ansage 21.08.2026):** Neue Texte werden nur
+    noch in `en.js` und `de.js` gepflegt. Die übrigen fünf Sprachen
+    (es/fr/zh/hi/ar) bekommen EINE Sammelübersetzung, wenn die App fast
+    fertig ist — nicht bei jedem Feature („sonst übersetzen wir uns dumm
+    und dämlich"). Fehlende Schlüssel fallen zur Laufzeit auf Englisch
+    zurück (`withFallback` in `src/i18n/index.js`);
+    `scripts/check-i18n-shape.mjs` zählt sie nur noch, statt zu meckern —
+    diese Zählung ist die Arbeitsliste für die Sammelübersetzung.
   - **Doku und Commit-Nachrichten: Deutsch** (Conventional Commits:
     feat/fix/docs/chore). Codekommentare und Bezeichner: Englisch.
 - Stack: Bun + Vanilla HTML/JS + Higgsfield-API-Proxy — siehe `docs/decisions/ADR-0002-stack-bun-vanilla-higgsfield.md`.
