@@ -904,7 +904,7 @@ Rules for "text": FIRST understand what actually happened in the dream, then ret
 
 Rules for "people": include the dreamer only if they appear as a visible character (then name them as the dream does — "ich"/"I" is fine). A dog, cat or other animal is kind "pet". Empty array if nobody appears.
 
-Rules for "places": one entry per distinct location. A dream that moves from a bedroom to the sky over the sea has TWO places. Empty array if there is no discernible location.
+Rules for "places": one entry per distinct SETTING — a location a film crew would have to build separately. Different parts, angles or heights of the SAME setting are ONE entry: a mountain's summit and the sky above that mountain are one place, a house and the rooms inside it are one place. The sky, air or water directly around a setting is never its own entry. List a second place only when the dream truly moves somewhere else (a bedroom, then later the open sea). Never let two entries share the same core location. Empty array if there is no discernible location.
 
 Rules for "beats": exactly 5, always, even for a short dream — split it evenly. Each beat is one English sentence describing what is SEEN, not felt. Refer to people by their "name" so the app can bind reference images.
 

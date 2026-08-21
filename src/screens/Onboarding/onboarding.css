@@ -182,6 +182,15 @@
 }
 .ob-actions .btn { width: 100%; }
 
+/* Der Testguthaben-Knopf im Dev-Startmenü — bewusst unscheinbar (er ist
+   Werkzeug, kein Angebot) und stirbt mit StartMenu.jsx. */
+.ob-dev-credits {
+  margin-top: var(--s-4);
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--faint); font: inherit; font-size: var(--t-small);
+  text-decoration: underline; text-underline-offset: .2em;
+}
+
 .ob-mascot { margin-bottom: var(--s-4); animation: ob-float 3.6s ease-in-out infinite; }
 @keyframes ob-float {
   0%, 100% { transform: translateY(0); }

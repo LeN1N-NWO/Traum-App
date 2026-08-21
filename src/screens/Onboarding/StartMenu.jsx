@@ -1,3 +1,5 @@
+import { useAppState } from "../../state/AppState.jsx";
+import { totalCredits } from "../../lib/credits.js";
 import Button from "../../components/Button.jsx";
 import Mascot from "./Mascot.jsx";
 import "./onboarding.css";
@@ -29,6 +31,7 @@ import "./onboarding.css";
  * state.language and state.onboarded again (both already exist and are
  * already written on the happy path). */
 export default function StartMenu({ onOnboarding, onSkip }) {
+  const { state, update } = useAppState();
   return (
     <main className="ob ob-center" lang="en" dir="ltr">
       <Mascot />
@@ -38,6 +41,19 @@ export default function StartMenu({ onOnboarding, onSkip }) {
         <Button onClick={onOnboarding}>Show onboarding</Button>
         <Button variant="ghost" onClick={onSkip}>Skip to app</Button>
       </div>
+      {/* Testguthaben (Antons Bitte 21.08.: „Skip to app" überspringt das
+          Onboarding und damit das Willkommensgeschenk — dann ist jeder
+          Generieren-Knopf grau). Wohnt bewusst HIER: dieses Menü ist das
+          Dev-Werkzeug, das vor dem Launch komplett gelöscht wird — der
+          Knopf stirbt mit ihm und kann keinen Kunden erreichen. Ins
+          Kauf-Töpfchen (credits), nicht ins Abo (allowance): gekaufte
+          Credits verfallen nie, so bleibt der Teststand stabil. */}
+      <button
+        className="ob-dev-credits"
+        onClick={() => update({ credits: (state.credits ?? 0) + 100 })}
+      >
+        ⚡ +100 test credits — you have {totalCredits(state)}
+      </button>
     </main>
   );
 }
