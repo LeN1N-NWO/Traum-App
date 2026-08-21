@@ -3,6 +3,83 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-21 12:01 — Anton — Branch `claude/new-session-x9qv1w` (PR #18, Entwurf) — Sitzungsabschluss
+
+**Commits:** `773d9c5` (Eröffnung) · `0b7033f` (**Fundament Morgen-Check-in
++ Wiederkehr-Erkennung**) plus dieser Doku-Commit. Zustand: **225**
+Unit-Tests grün (in UTC UND in Europe/Berlin), Build sauber,
+`bun run lint` gibt es weiterhin nicht.
+
+### Was gebaut wurde (Mehrwert-Plan P2, Rechenteil)
+
+- **`lib/checkin.js` + Test (12 Tests, neu):** der Morgen-Check-in als
+  reine Rechnung über `state.checkins` — `checkinOn`, `setCheckin`
+  (kappt bei 400 Einträgen), `sleepAverage`, `sleepByMood`.
+  ⚠ **Der Plan wollte ZWEI Fragen** („Wie geschlafen?" + „Stimmung des
+  Traums?"). Gebaut ist nur die erste — Antons Entscheidung: die
+  Stimmung liefert `analysis.mood` ohnehin für jeden Traum, und morgens
+  auf Home geht die zweite Frage meistens ins Leere. Die interessante
+  Korrelation (Schlaf × Stimmung) entsteht trotzdem, siehe
+  `sleepByMood()`.
+- **`lib/atlas.js` → `recurrenceFor(journal, entry)` + 6 Tests:** was an
+  DIESEM Traum schon einmal da war, in UI-Form (mit `entryIds` zum
+  Antippen). Dieselbe Zählung wie `reflectionContext` darunter, damit
+  die beiden Aussagen nicht auseinanderlaufen. `minCount` ist bewusst 1:
+  beim ZWEITEN Auftreten ist die Wiederkehr die Nachricht.
+- **`package.json`:** `"test": "TZ=Europe/Berlin bun test && …"`.
+
+### ⚠ Drei Rot-Proben, die zuerst NICHT feuerten — das ist der Ertrag
+
+1. **Der Zeitzonen-Test war in der CI wertlos.** Er verglich schlicht
+   mit `"2026-08-21"`; der Container läuft auf UTC, dort sind Ortszeit
+   und UTC identisch, also lief die Rot-Probe (Schlüssel über
+   `toISOString`) glatt durch. Neu geschrieben als **Invariante** (der
+   Schlüssel muss zu den lokalen Datumsfeldern passen — das gilt in
+   jeder Zone) und `TZ=Europe/Berlin` im Test-Skript festgenagelt.
+   Merksatz: *ein Test, der nur auf manchen Maschinen etwas bewacht,
+   bewacht nichts.*
+2. **Die Rot-Probe traf die falsche Funktion:** `perl` ersetzte
+   `const others = …` in `reflectionContext` (Zeile 92) statt in
+   `recurrenceFor` (Zeile 139). Bei gleichlautenden Zeilen gezielt
+   ersetzen, sonst beweist die Probe nichts.
+3. **Ein Test verlangte das Falsche:** er wollte, dass `"2"` abgelehnt
+   wird. Knöpfe und Radios liefern ihren Wert IMMER als String —
+   korrigiert wurde der TEST, nicht der Code.
+
+### Die App läuft jetzt als klickbare Wolken-Vorschau
+
+Anton wollte die App über die Cloud ansehen. Gebaut: `dist/` zu EINER
+eigenständigen HTML-Datei zusammengefasst (CSS inline, MP4s als
+data-URI, drei Beispielträume vorbefüllt) und als Artifact
+veröffentlicht — **https://claude.ai/code/artifact/7a42cf64-fe13-49f2-a31e-46b67afb5616**.
+Alles Lokale funktioniert dort (Journal, Atlas, Storyboard, Filmmenü,
+Sleep, Consent-Tor); **Erzeugen geht nicht** — dafür braucht es den
+Server mit den Schlüsseln. Das Bündelskript liegt im Scratchpad, nicht
+im Repo (es ist ein Vorschau-Werkzeug, kein Produkt).
+
+### Was der Nächste wissen muss
+
+- **Die Oberfläche zu P2a/P2b fehlt noch** — nur die Rechnung steht.
+  Angekündigter Wirkungsradius für den Rest:
+  `components/MorningCheckin.jsx` (+CSS), `components/Recurrence.jsx`
+  (+CSS), `Home/HomeScreen.jsx` + `home.css`,
+  `Journal/JournalDetail.jsx`, `lib/storage.js` (neues Feld `checkins`),
+  `i18n/*.js` (alle sieben), `docs/`.
+- **Beim i18n-Einfügen zeilenverankert (`^`) suchen.** Die Falle vom
+  20.08. wiederholt sich sonst: `"  errors: {"` traf als Teilzeichenkette
+  das tiefer eingerückte `voice.errors`, der Block landete in allen
+  sieben Sprachen eine Ebene zu tief — und `check-i18n-shape.mjs` blieb
+  GRÜN, weil es Gleichheit prüft, nicht Richtigkeit.
+- Playwright: Chromium liegt unter
+  `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`, Ablauf ist
+  Startmenü („Skip to app") → Sprachwahl → Consent-Tor (drei Häkchen) →
+  Tabs über `[aria-label="Journal"]`. Ein zweites `goto` startet den
+  Ablauf von vorn. `dump()` mit großzügigem Ausschnitt lesen — das
+  Traum-Detail ist ein Blatt ÜBER der Liste, sein Text steht weit unten
+  im `innerText`.
+- fal.ai und api.deepseek.com sind aus dieser Sandbox weiterhin
+  gesperrt (403). Nie umgehen; strukturell prüfen.
+
 ## 2026-08-21 09:55 — Anton — Branch `session/2026-08-20-anton` (PR #17) — Sitzungsabschluss
 
 **Commits:** `2d05bcd` (Eröffnung, nach Merge von #16) · `8eff57a`
