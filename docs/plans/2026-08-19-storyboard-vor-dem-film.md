@@ -124,3 +124,35 @@ trotzdem Szenen tauschen wollen, weiß man es aus echter Beobachtung.
 - Sekundenzahl JE BEAT einstellen (der Regisseur verteilt die Zeit
   absichtlich selbst; feste Marken je Szene würden mit „stretch or
   compress where the action needs it" kollidieren).
+
+## 6. Nachtrag 21.08.2026 — Stufe B gebaut, und die größere Frage dahinter
+
+Stufe B ist umgesetzt (Commit 88792ee): Kacheln tragen ihren Szenentext,
+im Film-Schritt sind Szenen an-/abwählbar, die Auswahl ersetzt den
+Automatik-Schnitt. Server unverändert (beatsForSeconds reicht passende
+Listen als Identität durch).
+
+Antons Anschlussfrage aus derselben Session: Braucht es nach dem
+Einsprechen einen Prüf-/Approve-Schritt — und passt man dort den GANZEN
+Traum an oder einzelne Beats? Einschätzung (Empfehlung ausgesprochen,
+Entscheidung offen):
+
+- **Kein Pflicht-Gate.** Der Wizard ist für den 3-Uhr-nachts-Nutzer
+  gebaut; ein Approve-Schritt vor jedem Traum ist eine Mautstelle.
+  Kontrolle als Kür, nie Pflicht — dasselbe Muster wie Regisseur und
+  Bogen-Pflicht.
+- **Der Traumtext bleibt die einzige Quelle.** Wer etwas falsch findet,
+  ändert den TEXT (geht heute schon: Schritt 1 ist editierbar) — die
+  Re-Analyse kostet ~$0,0003 und Sekunden, DeepSeek-Durchläufe sind
+  KEIN Sparggrund. Dann bleiben Journal, Atlas, Reflection und Film
+  automatisch deckungsgleich.
+- **Kür-Vorschlag für die Sichtbarkeit:** in Schritt 2 eine eingeklappte
+  Zeile „5 Szenen erkannt — ansehen" → Storyboard + Weg zurück zu
+  Schritt 1 („Traum anpassen"). Wer prüfen will, kann; wer schlafen
+  will, wischt weiter. Noch nicht gebaut.
+- **Beat-Text editieren (Stufe C) erst nach Antons Regel-Entscheidung:**
+  Ein geänderter Beat weicht vom Journal-Traum ab. Empfehlung, falls C
+  kommt: die Änderung ist eine reine FILM-Fassung (Regieanweisung für
+  diesen einen Render), der Traum im Journal bleibt unberührt.
+- Merken: Beats treiben auch die BILDER (beatsForCount) — das Storyboard
+  könnte im Bild-Modus genauso stehen wie im Film-Modus.
