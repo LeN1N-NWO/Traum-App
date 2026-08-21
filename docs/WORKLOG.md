@@ -3,6 +3,56 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-22 01:07 — Anton — Branch `session/2026-08-22-anton` (PR #20) — Sitzungsabschluss
+
+**Commits:** `5e01279` (Eröffnung) · `0131fac` (Storyboard Variante A) ·
+`613055b` (Streak-Board Stufe 1) · `9b3eb85` (Home: zwei Momente) ·
+`42ee145` (Wanderlicht auf der Streak-Pille) + dieser Doku-Commit.
+Zustand: 239 Tests grün, Build sauber, Shape-Check grün.
+
+⚠ Diese Session lief OHNE eigenen Worktree direkt im Hauptrepo (der
+Doppel-Merge davor hatte den Worktree aufgeräumt; die Dev-Server
+servieren dieses Checkout). Nach dem Merge von #20: `git checkout main
+&& git pull` — sonst servieren die Server einen toten Branch.
+
+### Storyboard Variante A (Antons Wahl aus drei Widget-Varianten)
+
+Kacheln ohne Bild tragen ein STICHWORT statt eines gequetschten Satzes:
+`beatKeyword` (beats.js, getestet) nimmt den ersten Halbsatz bis zum
+Komma, wirft führende Artikel weg, schneidet an der Wortgrenze, lässt
+nie ein Stoppwort („on", „the") als Schlusswort stehen. Große
+Serifen-Nummer oben. Mit Bild bleibt die Kachel clean (Bild + Nummer).
+
+### Streak-Board Stufe 1 (Plan streak-board-gamification §4)
+
+Die ✦-Pille auf Home ist ein Knopf: Blatt mit Serie groß, Zeile zum
+nächsten Meilenstein, Leiter 3/7/14/30/60/100 (erreicht ✓ · nächster
+golden · ferne gedimmt). Zeigt NUR Existierendes — die Stufentexte sind
+an creatures.js/STREAK_CAP 14 ausgerichtet. **Offen bei Anton:** Ja/Nein
+zu Mini-Credit-Geschenken (7→1, 30→3) und zur Schlummernacht (§5/§6).
+Dazu: das wandernde Licht der Onboarding-Belohnungspille umfährt jetzt
+die Streak-Pille (gleiche conic-gradient-Bauart, gold; warm bei Risiko).
+
+### Home kennt zwei Momente (P2a-Oberfläche gebaut!)
+
+- Morgens: Karte „Wie hast du geschlafen?" (drei Mond-Stufen, ein Tipp,
+  danach stille Bestätigung) — die UI zum Cloud-Rechenteil checkin.js;
+  Antworten landen in `state.checkins`.
+- Abends/nachts: Gruß „Gleich ist Traumzeit" (ersetzt „Guten Abend",
+  Antons Befund) + Einschlafgeräusche-Kurzweg statt der Morgen-Frage.
+- Läuft ein Auftrag: pulsierende Zeile „Dein Traum wird gerade
+  erstellt — schau zu" → Journal (hasPendingJobs).
+
+### Was der Nächste wissen muss
+
+1. **P2 fertigstellen:** Die Atlas-Kachel zur Schlaf-Auswertung fehlt
+   noch (sleepAverage/sleepByMood warten) und der Wiederkehr-Hinweis
+   (recurrenceFor) im Traum-Detail ÜBER der Reflection.
+2. Streak-Board Stufe 2 erst nach Antons Ja/Nein (Credits/Schlummernacht
+   + „Nichts hängengeblieben"-Eintrag, Plan §3).
+3. Schlussstein weiter offen (echte Filme je Stufe, ~$4, nur lokal).
+4. Faultier-Frage weiter offen (ersetzt oder begleitet, faultier-assets.md).
+
 ## 2026-08-22 00:18 — Anton — Branch `session/2026-08-21-anton` (PR #19) — Sitzungsabschluss
 
 **Commits:** `468dcaf` (Eröffnung) · `0b75e8b` (Rechtstexte + Uhren +

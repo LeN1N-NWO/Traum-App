@@ -3,8 +3,11 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-22 (00:30) — Merge von #18 (Cloud, P2-Rechenteil) und
-#19 (Antons Testrunde) zu EINEM Stand, auf Antons Ansage.
+**Stand:** 2026-08-22 (01:07) — Ende `session/2026-08-22-anton` (PR #20,
+freigegeben, wartet auf Antons Merge-Klick).
+⚠ Session lief ohne Worktree direkt im Hauptrepo — nach dem Merge:
+`git checkout main && git pull`, sonst servieren die Dev-Server einen
+toten Branch.
 
 ## Wo wir stehen
 
@@ -40,15 +43,13 @@ Aus der Cloud (#18) ist der **Mehrwert-P2-Rechenteil** da und getestet:
 
 ## Nächste Schritte
 
-1. **P2-Oberfläche** (der Rechenteil wartet darauf):
-   `components/MorningCheckin.jsx` (+CSS) · `components/Recurrence.jsx`
-   (+CSS) · `screens/Home/HomeScreen.jsx` + `home.css` ·
-   `screens/Journal/JournalDetail.jsx` (Hinweis ÜBER der Reflection) ·
-   `lib/storage.js` (neues Feld `checkins: []`) · i18n **nur en+de**.
-2. **Streak-Board** (Plan `2026-08-21-streak-board-gamification.md`):
-   war absichtlich hinter den P2-Merge gestellt — jetzt frei. Offen:
-   Antons Ja/Nein zu den zwei Mini-Credit-Geschenken (7→1, 30→3).
-   Mit der P2-Oberfläche abstimmen: EIN Morgen-Ritual, nicht zwei.
+1. **P2 fertigstellen:** Atlas-Kachel zur Schlaf-Auswertung
+   (`sleepAverage`/`sleepByMood` warten in checkin.js) und der
+   Wiederkehr-Hinweis (`recurrenceFor`) im Traum-Detail ÜBER der
+   Reflection · `components/Recurrence.jsx` fehlt noch.
+2. **Streak-Board Stufe 2** erst nach Antons Ja/Nein: Mini-Credit-
+   Geschenke (7→1, 30→3) · Schlummernacht · „Nichts hängengeblieben"-
+   Eintrag (Plan §3/§5/§6).
 3. **Schlussstein:** je ein echter bezahlter Film pro Stufe durch die
    App-UI (~$4; Lebendig/Regie/Kino + Abspann T3). Nur von Antons
    Rechner möglich (Cloud erreicht fal nicht).
