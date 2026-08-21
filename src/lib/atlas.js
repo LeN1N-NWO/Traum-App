@@ -113,3 +113,48 @@ export function reflectionContext(journal, entry) {
   }
   return lines;
 }
+
+/** Was an DIESEM Traum schon einmal da war — Plan P2b („Du träumst wieder
+ *  von …").
+ *
+ *  Der Unterschied zu reflectionContext(): Der schreibt fünf englische
+ *  Zeilen für DeepSeek, dieser liefert Daten für die Oberfläche — mit
+ *  `entryIds`, damit die anderen Träume antippbar sind. Zwei Verbraucher,
+ *  zwei Formen, EINE Zählung darunter (symbolCounts), damit die Aussagen
+ *  nicht auseinanderlaufen.
+ *
+ *  `minCount` ist bewusst 1 (= mindestens ein FRÜHERER Traum): Beim zweiten
+ *  Auftreten ist die Wiederkehr die Nachricht. Wer erst ab dem dritten
+ *  meldet, verschweigt genau den Moment, in dem ein Mensch stutzt.
+ *
+ *  Ohne Analyse-Beats erkennt symbols.js nur englische Stichwörter — ein
+ *  deutscher Traum OHNE Analyse liefert hier also nichts. Das ist kein
+ *  Fehler, sondern dieselbe Grenze wie im ganzen Atlas (Dateikopf).
+ *
+ *  @returns {{symbols: {id,count,entryIds}[], cast: {tag,count,entryIds}[]}}
+ *           beide häufigste zuerst, `count` = Anzahl FRÜHERER Träume.
+ */
+export function recurrenceFor(journal, entry) {
+  if (!entry) return { symbols: [], cast: [] };
+  const others = realDreams(journal).filter((e) => e.id !== entry.id);
+
+  const own = new Set(detectSymbols(detectableText(entry)));
+  const symbols = symbolCounts(others).filter((s) => own.has(s.id));
+
+  const castMap = new Map();
+  for (const e of others
+    .slice()
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))) {
+    for (const r of e.references || []) {
+      if (!castMap.has(r.tag)) castMap.set(r.tag, []);
+      castMap.get(r.tag).push(e.id);
+    }
+  }
+  const ownTags = new Set((entry.references || []).map((r) => r.tag));
+  const cast = [...castMap.entries()]
+    .filter(([tag]) => ownTags.has(tag))
+    .map(([tag, entryIds]) => ({ tag, count: entryIds.length, entryIds }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+
+  return { symbols, cast };
+}

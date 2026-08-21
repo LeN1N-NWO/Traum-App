@@ -3,7 +3,8 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-22 (00:18) — Ende `session/2026-08-21-anton` (PR #19, Entwurf, merge-bereit nach #18)
+**Stand:** 2026-08-22 (00:30) — Merge von #18 (Cloud, P2-Rechenteil) und
+#19 (Antons Testrunde) zu EINEM Stand, auf Antons Ansage.
 
 ## Wo wir stehen
 
@@ -16,59 +17,108 @@ Kein Wartebildschirm mehr, keine gehaltene Verbindung — und damit auch
 kein 10-Sekunden-Bun-Timeout mehr (Notbremse `idleTimeout: 255` in
 server.js, festgenagelt in `src/lib/timeouts.test.js`).
 
-Dazu: Poster abgeschafft (Titel ist wieder App-Typografie), Storyboard
+Dazu aus derselben Runde: Poster abgeschafft (Titel ist wieder
+App-Typografie; `media.poster` wird nur noch GELESEN), Storyboard
 Stufe B (Szenen an-/abwählbar, leere Szenen für 1 Credit nachfüllbar →
 `sceneJobs`/`sceneImages`), Rechtstexte als lesbare Seiten hinter den
 Consent-Links (CONSENT_VERSION 2, Widerruf im Profil), Übersetzungs-Stopp
 als Projektregel (nur noch en+de pflegen, Rest fällt auf Englisch
-zurück), Journal aufgeräumt (Suche als Lupe, Träume oben, Besetzung/
-Atlas/Menagerie darunter), Ortsregel im Analyse-Prompt repariert
-(Schauplatz statt „Himmel über X"), Kamera-Knopf im AvatarDialog.
+zurück — AGENTS.md), Journal aufgeräumt (Suche als Lupe, Träume oben,
+Besetzung/Atlas/Menagerie darunter), Ortsregel im Analyse-Prompt
+repariert (Schauplatz statt „Himmel über X"), Kamera-Knopf im
+AvatarDialog, Test-Credits im Dev-Startmenü.
 
-216 Unit-Tests grün, Build sauber. 100 Test-Credits gibt es im
-Dev-Startmenü (Knopf stirbt mit StartMenu.jsx beim Launch).
+Aus der Cloud (#18) ist der **Mehrwert-P2-Rechenteil** da und getestet:
 
-## Das EINE, das jetzt ansteht: der Doppel-Merge
+- `src/lib/checkin.js` — Morgen-Check-in („Wie hast du geschlafen?",
+  drei Stufen): `checkinOn` · `setCheckin` (kappt bei 400) ·
+  `sleepAverage` · `sleepByMood`. ⚠ Nur EINE Frage (Antons
+  Entscheidung): die Stimmung kommt aus `analysis.mood`.
+- `src/lib/atlas.js:137` — `recurrenceFor(journal, entry)`: was an
+  DIESEM Traum schon einmal da war, mit `entryIds` zum Antippen.
+- `package.json` — Tests laufen unter `TZ=Europe/Berlin`.
 
-Anton will #18 (Cloud: Mehrwert-P2-Rechenteil — checkin.js, atlas.js)
-und #19 (diese Session) „zu einem Ding" mergen. `gh pr merge` ist für
-Agenten gesperrt — **Anton klickt selbst**, Reihenfolge:
+## Nächste Schritte
 
-1. PR #18 mergen (stand zuletzt auf MERGEABLE).
-2. Dann in `../Traum-App-anton`: `git merge origin/main` — Konflikte in
-   `src/i18n/en.js` + `de.js` sind sicher (beide Seiten fügen nur
-   hinzu; beides behalten), danach `bun scripts/check-i18n-shape.mjs`
-   und `bun test`.
-3. PR #19 mergen, Worktree entfernen (`git worktree remove
-   ../Traum-App-anton && git worktree prune`).
+1. **P2-Oberfläche** (der Rechenteil wartet darauf):
+   `components/MorningCheckin.jsx` (+CSS) · `components/Recurrence.jsx`
+   (+CSS) · `screens/Home/HomeScreen.jsx` + `home.css` ·
+   `screens/Journal/JournalDetail.jsx` (Hinweis ÜBER der Reflection) ·
+   `lib/storage.js` (neues Feld `checkins: []`) · i18n **nur en+de**.
+2. **Streak-Board** (Plan `2026-08-21-streak-board-gamification.md`):
+   war absichtlich hinter den P2-Merge gestellt — jetzt frei. Offen:
+   Antons Ja/Nein zu den zwei Mini-Credit-Geschenken (7→1, 30→3).
+   Mit der P2-Oberfläche abstimmen: EIN Morgen-Ritual, nicht zwei.
+3. **Schlussstein:** je ein echter bezahlter Film pro Stufe durch die
+   App-UI (~$4; Lebendig/Regie/Kino + Abspann T3). Nur von Antons
+   Rechner möglich (Cloud erreicht fal nicht).
+
+## Klickbare Wolken-Vorschau (aus #18)
+
+Der Build als eigenständige HTML-Datei, veröffentlicht als Artifact:
+**https://claude.ai/code/artifact/7a42cf64-fe13-49f2-a31e-46b67afb5616**
+Alles Lokale funktioniert, Erzeugen nicht (braucht den Server). Zum
+Auffrischen: `bun run build` + Bündelskript, denselben Pfad erneut
+veröffentlichen. Bewusst NICHT im Repo.
 
 ## Bekannte Baustellen
 
-- **Streak-Board** (Plan `docs/plans/2026-08-21-streak-board-gamification.md`):
-  wartet ABSICHTLICH auf den P2-Merge (sonst zwei Morgen-Rituale).
-  Offen: Antons Ja/Nein zu den zwei Mini-Credit-Geschenken (7→1, 30→3).
-- **Schlussstein weiter offen:** je ein echter bezahlter Film pro Stufe
-  durch die App-UI (~$4; Lebendig/Regie/Kino + Abspann T3). Nur von
-  diesem Rechner möglich (Cloud erreicht fal nicht).
-- **Recht** (Plan 2026-08-20-recht-einwilligung.md, §4): Punkt 1 gebaut;
-  offen: Upload-Zusicherung im AvatarDialog (Punkt 2), C2PA/Kennzeichnung
-  (3), Speicherfristen /media (4, server.js speichert unbegrenzt),
-  DeepSeek-China-Entscheid (5), Anwalt vor Store-Launch.
-- **Antons offene Antworten:** „Guten Abend"-Gruß ersetzen?
+- **Mehrwert-Plan** (`2026-08-21-mehrwert-inhalte.md`): P1 gebaut; P2a/b
+  halb (Rechnung ja, Oberfläche nein); offen P2c Traumzeichen-Karten ·
+  P3a Albtraum-Umschreiben (Wortlaut mit Rechtsplan abstimmen) · P3b
+  Einschlaf-Timer.
+- **Recht** (Plan recht-einwilligung §4): Punkt 1 gebaut; offen
+  Upload-Zusicherung im AvatarDialog (2) · KI-Kennzeichnung/C2PA (3) ·
+  Speicherfristen /media (4, server.js speichert unbegrenzt) ·
+  DeepSeek-China-Entscheidung (5). Anwalt vor Store-Launch.
+- **Antons offene Antworten:** „Guten Abend"-Gruß ersetzen? ·
   Faultier-Easter-Egg: ersetzt oder begleitet echte Figuren?
-  (`docs/plans/2026-08-21-faultier-assets.md`).
-- **Mehrwert-Plan:** P2 (Cloud) nach Merge ins UI bringen; P2c
-  Traumzeichen-Karten, P3a Albtraum-Umschreiben, P3b Einschlaf-Timer
-  ungebaut.
-- Dev-Umgebung: `preview_start`/launch.json servt das HAUPTREPO —
-  im Worktree immer `bun run dev:web` von Hand; Server auf 8100 mit
+  (`faultier-assets.md`) · Preislinie (85 % Marge halten vs.
+  Modellpreise durchreichen — seine Linie ist Durchreichen, die
+  Preisliste ist noch nicht danach gerechnet).
+- **Kein Zahlungsanbieter.** Dummy-Film im Kaufblatt (`Paywall.jsx`).
+- Symbol-ERKENNUNG weiter nur englische Stichwörter (`symbols.js`) —
+  abgefedert über die englischen Beats; ein deutscher Traum OHNE Analyse
+  liefert im Atlas nichts. Deutsche Stichwortlisten wären der Vollausbau.
+- Direktanbieter-Schwellen (Plan direktanbieter-preise §5): Kino-Nutzung
+  ⇒ BytePlus messen (2 Mio. Gratis-Tokens) · >$200 fal/Monat ⇒ Bilder zu
+  Google direkt · H3 nie direkt.
+- Bilderstrecke teilt nach Sätzen; localStorage ~5 MB; kein `bun run lint`.
+- Dev-Umgebung: `preview_start`/launch.json servt das HAUPTREPO — im
+  Worktree `bun run dev:web` von Hand; Server auf 8100 mit
   .env-Variablen aus dem Hauptrepo starten (Datei NICHT kopieren,
   Vite-Watch-Falle).
 
-## Standing (unverändert)
+## Was die App ist
 
-Capacitor + StoreKit + RevenueCat vor Launch · Dummy-Film ersetzt Anton
-(Paywall.jsx) · Startmenü + Seed-Journal fliegen nur auf Antons Wort ·
-Direktanbieter-Schwellen (Kino→BytePlus messen, >$200/Monat→Google
-direkt, H3 nie direkt) · DeepSeek immer ohne max_tokens, stream:false ·
-nie auf geratene Feldnamen bezahlt rendern.
+„Dream Rushes" ist eine React-SPA: Traum aufschreiben oder sprechen → KI
+macht daraus Bildstrecke, optional Film, Reflection und Muster. **Vier
+Tabs**, Wizard über der Tab-Leiste.
+
+| Tab | Inhalt |
+|---|---|
+| Home | Begrüßung, Faultier-Film, Serien-Zeile, letzter Traum |
+| Journal | Kartenstapel/Liste, Kalender, Kino-Detail mit Storyboard + Reflection, Besetzung + Traumatlas + Menagerie |
+| **⊕** | Wizard: Traum → Ausgabe → Personen → Orte → Style → Auftrag ins Journal |
+| Sleep | Alles gratis: Checkliste, Sound-Mixer, Klartraum-Leitfaden, Symbole |
+| Profil | Porträt, Guthaben-Pille, Einstellungen (Stimme · Rechtstexte · Widerruf), „Was du mir erzählt hast" |
+
+**Stack:** Bun + Vite + React 18 + react-router-dom (HashRouter);
+`server.js` als schlüsselhaltender Proxy (fal.ai, DeepSeek, Gemini).
+Zustand in `localStorage` (`dreamrushes_v1`). Sieben Sprachen, gepflegt
+werden **en+de** (`check-i18n-shape.mjs`: de streng, Rest zählt Lücken).
+Doku und Commits deutsch.
+
+## ⚠ Stehende Entscheidungen und Fallen
+
+- **Startmenü bleibt** (fragt jeden Start) und **Seed-Journal bleibt** —
+  beides fliegt nur auf Antons ausdrückliches Wort.
+- Modellwissen lebt in `video.js` (`refsField`/`refStyle`/`aspect`/
+  `noExpand`); der Regisseur spricht je Modell die richtige Syntax,
+  `checkDirectedPrompt` liest alle drei. H3-Geldfallen verriegelt
+  („768P" ausdrücklich, `enable_prompt_expansion:false`).
+- **Bogen-Pflicht** (`lib/sheets.js`): Fotos werden beim ersten BEZAHLTEN
+  Render zum Charakterbogen normalisiert (träge · gratis · veraltbar;
+  Orte ausgenommen; Fallback rohes Foto).
+- Capacitor + StoreKit + RevenueCat vor Launch · DeepSeek immer ohne
+  max_tokens, stream:false · nie auf geratene Feldnamen bezahlt rendern.

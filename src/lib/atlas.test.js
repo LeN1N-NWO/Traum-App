@@ -89,3 +89,66 @@ test("a lone first dream gets an empty context, not an error", () => {
   const entry = dream("only", { text: "ocean waves" });
   expect(reflectionContext([entry], entry)).toEqual([]);
 });
+
+/* recurrenceFor — Plan P2b. Liefert dieselbe Zählung wie reflectionContext,
+   aber in UI-Form (mit entryIds zum Antippen). */
+import { recurrenceFor } from "./atlas.js";
+
+test("recurrence names what came before, most frequent first", () => {
+  const j = [
+    dream("alt1", { text: "the ocean waves again", createdAt: "2026-08-01T08:00:00.000Z" }),
+    dream("alt2", { text: "a calm lake, water everywhere", createdAt: "2026-08-05T08:00:00.000Z" }),
+    dream("alt3", { text: "I was falling", createdAt: "2026-08-06T08:00:00.000Z" }),
+    dream("neu",  { text: "falling into the sea", createdAt: "2026-08-10T08:00:00.000Z" }),
+  ];
+  const got = recurrenceFor(j, j[3]);
+  const water = got.symbols.find((s) => s.id === "water");
+  expect(water.count).toBe(2);
+  // Der aktuelle Traum zählt sich NIE selbst mit — sonst stünde bei jedem
+  // ersten Auftreten „schon einmal da gewesen".
+  expect(water.entryIds).not.toContain("neu");
+  expect(got.symbols.find((s) => s.id === "falling").count).toBe(1);
+});
+
+test("a symbol only in THIS dream is not a recurrence", () => {
+  const j = [
+    dream("alt", { text: "a quiet room" }),
+    dream("neu", { text: "the ocean waves" }),
+  ];
+  expect(recurrenceFor(j, j[1]).symbols.find((s) => s.id === "water")).toBeUndefined();
+});
+
+test("the second appearance already counts — that is when a person notices", () => {
+  const j = [
+    dream("alt", { text: "water everywhere" }),
+    dream("neu", { text: "the sea again" }),
+  ];
+  expect(recurrenceFor(j, j[1]).symbols[0].count).toBe(1);
+});
+
+test("cast recurrence follows the same rule, newest dream first", () => {
+  const j = [
+    dream("a", { references: [{ tag: "lena" }], createdAt: "2026-08-01T08:00:00.000Z" }),
+    dream("b", { references: [{ tag: "lena" }, { tag: "rex" }], createdAt: "2026-08-07T08:00:00.000Z" }),
+    dream("neu", { references: [{ tag: "lena" }], createdAt: "2026-08-10T08:00:00.000Z" }),
+  ];
+  const got = recurrenceFor(j, j[2]);
+  expect(got.cast).toEqual([{ tag: "lena", count: 2, entryIds: ["b", "a"] }]);
+  // rex kommt in DIESEM Traum nicht vor — also keine Wiederkehr.
+  expect(got.cast.find((c) => c.tag === "rex")).toBeUndefined();
+});
+
+test("seed dreams never create a recurrence", () => {
+  const j = [
+    dream("e_seed1", { text: "ocean water waves", references: [{ tag: "lena" }] }),
+    dream("neu", { text: "the sea", references: [{ tag: "lena" }] }),
+  ];
+  const got = recurrenceFor(j, j[1]);
+  expect(got.symbols).toEqual([]);
+  expect(got.cast).toEqual([]);
+});
+
+test("no entry, no journal, no crash", () => {
+  expect(recurrenceFor([], null)).toEqual({ symbols: [], cast: [] });
+  expect(recurrenceFor(null, dream("x"))).toEqual({ symbols: [], cast: [] });
+});
