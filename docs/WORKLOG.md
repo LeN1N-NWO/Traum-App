@@ -3,6 +3,77 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-22 00:18 — Anton — Branch `session/2026-08-21-anton` (PR #19) — Sitzungsabschluss
+
+**Commits:** `468dcaf` (Eröffnung) · `0b75e8b` (Rechtstexte + Uhren +
+Paywall + Stil-ⓘ) · `21375c2` (Übersetzungs-Stopp) · `88792ee`
+(Storyboard Stufe B) · `2682fa9` (Everest-Ortsregel + Test-Credits) ·
+`ba7336c`/`f6fe334` (**Hintergrund-Rendern**) · `7e49269` (Poster
+abgeschafft u. a.) · `be87b98` (Menagerie ins Journal) · `9689f58`
+(Streak-Board-Plan) · `e190bbd` (Szenenbild-Nachfüllen) + dieser
+Doku-Commit. Zustand: 216 Unit-Tests grün, Build sauber, Shape-Check
+grün (5 Sprachen mit gewollten Lücken), lint gibt es weiterhin nicht.
+
+### Die große Linie: Anton hat getestet, die Session hat repariert
+
+Die ganze Sitzung war eine Live-Testrunde Antons mit ~20 Befunden.
+Die wichtigsten Umbauten:
+
+- **Hintergrund-Rendern (der große Umbau):** Bilder gehen wie Filme in
+  fals Warteschlange (`falSubmitImage`, /api/generate + /api/character
+  antworten nur noch `{jobId}`). Der Wizard gibt Aufträge ab, legt den
+  Traum SOFORT als Journal-Kachel „wird gerade erstellt" an und
+  navigiert weg; ein App-weiter **Collector** (`src/lib/collector.js`,
+  verdrahtet in AppState) holt alle 3 s nach — auch Filme, deren
+  Abholer vorher am offenen Detail hing. Gescheiterte Bilder werden
+  erstattet (1 Cr = 1 Bild), Teilfortschritt wird festgeschrieben.
+  Auslöser: Bun.serve trennt Verbindungen nach 10 s Stille
+  (`idleTimeout: 255` in server.js ist die Notbremse; timeouts.test.js
+  nagelt Server>Client fest).
+- **Poster abgeschafft** (Antons Entscheidung): kein Titelbild mit
+  gemaltem Text mehr — media.poster wird nur noch GELESEN (Altbestand).
+- **Storyboard Stufe B:** Kacheln tragen Szenentext (nur ohne Bild —
+  mit Bild ist das Bild die Erzählung), im Film-Schritt an-/abwählbar
+  (trimSelection: Überlauf wirft die ÄLTESTE Wahl). Leere Szenen im
+  Detail sind nachfüllbar: „Bild für diese Szene erzeugen · 1 Credit"
+  → sceneJobs/sceneImages am Eintrag, Collector liefert.
+- **Übersetzungs-Stopp (neue Projektregel, AGENTS.md):** neue Texte nur
+  noch en+de; fehlende Schlüssel fallen zur Laufzeit auf Englisch
+  zurück (withFallback in i18n/index.js), der Shape-Check zählt sie nur.
+- **Rechtstexte klickbar** (LegalPage hinter beiden Consent-Links + im
+  Profil, Widerruf-Zeile in den Einstellungen, CONSENT_VERSION 2,
+  MiniMax/ByteDance in der Aufklärung).
+- **Ortsregel repariert:** „Himmel über dem Everest" war ein zweiter
+  Ort, WEIL unser Analyse-Prompt es so vormachte — neue Schauplatz-
+  Regel, live bewiesen (1 Ort Everest; Kinderzimmer→Meer bleiben 2).
+- Journal: Suche hinter Lupe, Träume oben, Besetzung/Atlas/**Menagerie**
+  (von Home umgezogen) darunter; Original-Text im ⋯-Menü; „Gratis"-
+  Schilder nur noch, wo Bezahltes daneben steht; Detail-Bilder contain
+  statt cover; Aktionszeile vereint (warmer Hauptknopf + stille Pillen).
+- Kleinigkeiten: „Renderer"→KI/Generierung, Kamera-Knopf im
+  AvatarDialog (capture), Test-Credits-Knopf im Dev-Startmenü,
+  Kino-Slider ging schon immer bis 30 s (bestätigt).
+
+### Was der Nächste wissen muss
+
+1. **Merge-Reihenfolge:** Anton will #18 (Cloud, Mehrwert P2) und #19
+   „zu einem Ding" mergen. gh pr merge ist für Agenten gesperrt — Anton
+   klickt. NACH #18 muss main in #19 geholt werden; in `src/i18n/en.js`
+   + `de.js` sind Konflikte sicher (beide Seiten fügen nur hinzu), danach
+   `bun scripts/check-i18n-shape.mjs`.
+2. **Streak-Board wartet absichtlich** (Plan
+   2026-08-21-streak-board-gamification.md): erst nach dem P2-Merge
+   bauen, sonst zwei Morgen-Rituale; Antons Ja/Nein zu den zwei
+   Mini-Credit-Geschenken steht aus.
+3. Offene Antworten Antons: „Guten Abend"-Gruß ersetzen? · Faultier-
+   Easter-Egg-Stil ersetzt oder begleitet echte Figuren?
+   (faultier-assets.md).
+4. Der Schlussstein (ein echter bezahlter Film je Stufe durch die UI)
+   ist WEITER offen — die Sitzung wurde von Antons Testrunde gekapert.
+5. Server-Neustarts: Worktree-Server auf 8100 läuft mit .env-Variablen
+   aus dem Hauptrepo (nicht kopiert!); 5173 ist der Worktree-Vite.
+   preview_start/launch.json würde das HAUPTREPO serven — Falle.
+
 ## 2026-08-21 09:55 — Anton — Branch `session/2026-08-20-anton` (PR #17) — Sitzungsabschluss
 
 **Commits:** `2d05bcd` (Eröffnung, nach Merge von #16) · `8eff57a`
