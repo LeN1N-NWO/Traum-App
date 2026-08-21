@@ -26,7 +26,7 @@ export default {
       night: "Still awake",
       morning: "Good morning",
       afternoon: "Good afternoon",
-      evening: "Good evening",
+      evening: "Almost dream time",
     },
     title: "What did you dream?",
     lede: "Tell it while it's still warm — half-asleep works best.",
@@ -38,6 +38,37 @@ export default {
     menagerieHeading: "Your menagerie",
     menagerieEmpty: "No creatures yet. Every dream you write down leaves one behind.",
     untitled: "Untitled dream",
+    renderingLine: "Your dream is being made — take a look",
+    soundsShortcut: "Start the sleep sounds",
+  },
+
+  /* Der Morgen-Check-in (Mehrwert P2a): eine Frage, drei grobe Stufen —
+     beantwortbar, bevor man wach ist. */
+  checkin: {
+    question: "How did you sleep?",
+    levels: { 1: "rough", 2: "okay", 3: "well" },
+    emoji: { 1: "🌑", 2: "🌗", 3: "🌕" },
+    thanks: "Noted — sleep and dreams meet in your atlas.",
+  },
+
+
+  /* Die Meilenstein-Leiter hinter der Streak-Pille. Ehrlich: nur, was
+     existiert — die Wesen-Rarität steigt wirklich mit der Serie. */
+  streakBoard: {
+    title: "Your streak",
+    nights: (n) => (n === 1 ? "night" : "nights"),
+    next: (n) => (n === 1 ? "1 more night to the next milestone." : `${n} more nights to the next milestone.`),
+    done: "Every milestone reached. You are the calendar now.",
+    rung: (n) => `${n} nights`,
+    rewards: {
+      warm: "Rarer creatures begin to stir in your menagerie.",
+      epic: "Epic creatures come within reach.",
+      steady: "Peak odds — from here every creature rolls with your full streak bonus.",
+      legendary: "Legendary territory: a month of nights, told.",
+      keeper: "Keeper of dreams — two months, few ever get here.",
+      hundred: "One hundred nights. Your journal is a book now.",
+    },
+    note: "The streak counts nights with a written dream — never the amount. A hundred dreams in one day is still one night.",
   },
 
   journal: {

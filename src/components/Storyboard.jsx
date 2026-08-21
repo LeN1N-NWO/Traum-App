@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { mediaUrl } from "../lib/api.js";
-import { imageIndexForBeat } from "../lib/beats.js";
+import { imageIndexForBeat, beatKeyword } from "../lib/beats.js";
 import { t } from "../i18n/index.js";
 import Sheet from "./Sheet.jsx";
 import "./storyboard.css";
@@ -73,10 +73,10 @@ export default function Storyboard({ beats = [], entry = null, active = null, on
               {img && <img src={img} alt="" loading="lazy" />}
               {onToggle && on && <span className="sb-check" aria-hidden="true">✓</span>}
               <span className="sb-n" aria-hidden="true">{i + 1}</span>
-              {/* Text nur, wo KEIN Bild ist (Antons Befund 21.08.: Bild
-                  plus Text ist too much) — mit Bild erzählt das Bild,
-                  der Text wartet im Blatt dahinter. */}
-              {!img && <span className="sb-text">{b}</span>}
+              {/* Variante A (Antons Wahl 22.08.): ohne Bild trägt die
+                  Kachel ein STICHWORT, keinen halben Satz — der ganze
+                  Satz wartet im Blatt. Mit Bild erzählt das Bild. */}
+              {!img && <span className="sb-text">{beatKeyword(b)}</span>}
               {cooking.has(i) && <span className="sb-cooking-dot" aria-hidden="true" />}
             </button>
           );

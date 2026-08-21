@@ -24,7 +24,7 @@ export default {
       night: "Noch wach",
       morning: "Guten Morgen",
       afternoon: "Guten Tag",
-      evening: "Guten Abend",
+      evening: "Gleich ist Traumzeit",
     },
     title: "Was hast du geträumt?",
     lede: "Erzähl es, solange es noch warm ist — halb wach klappt am besten.",
@@ -36,6 +36,33 @@ export default {
     menagerieHeading: "Deine Menagerie",
     menagerieEmpty: "Noch keine Wesen. Jeder aufgeschriebene Traum lässt eines zurück.",
     untitled: "Unbenannter Traum",
+    renderingLine: "Dein Traum wird gerade erstellt — schau zu",
+    soundsShortcut: "Einschlafgeräusche starten",
+  },
+
+  checkin: {
+    question: "Wie hast du geschlafen?",
+    levels: { 1: "schwer", 2: "okay", 3: "gut" },
+    emoji: { 1: "🌑", 2: "🌗", 3: "🌕" },
+    thanks: "Notiert — Schlaf und Träume treffen sich in deinem Atlas.",
+  },
+
+
+  streakBoard: {
+    title: "Deine Serie",
+    nights: (n) => (n === 1 ? "Nacht" : "Nächte"),
+    next: (n) => (n === 1 ? "Noch 1 Nacht bis zum nächsten Meilenstein." : `Noch ${n} Nächte bis zum nächsten Meilenstein.`),
+    done: "Alle Meilensteine erreicht. Du bist jetzt der Kalender.",
+    rung: (n) => `${n} Nächte`,
+    rewards: {
+      warm: "Seltenere Wesen beginnen sich in deiner Menagerie zu zeigen.",
+      epic: "Epische Wesen kommen in Reichweite.",
+      steady: "Volle Gewichte — ab hier würfelt jedes Wesen mit deinem ganzen Serien-Bonus.",
+      legendary: "Legendäres Gebiet: ein Monat Nächte, erzählt.",
+      keeper: "Hüter der Träume — zwei Monate, kaum jemand kommt hierher.",
+      hundred: "Hundert Nächte. Dein Journal ist jetzt ein Buch.",
+    },
+    note: "Die Serie zählt Nächte mit einem aufgeschriebenen Traum — nie die Menge. Hundert Träume an einem Tag bleiben eine Nacht.",
   },
 
   journal: {
