@@ -600,3 +600,16 @@
   background: var(--panel); border: 1px solid var(--panel-line);
   font-size: var(--t-small);
 }
+
+/* Besetzung + Atlas als EINE Zeile aus halben Kacheln (21.08., gegen das
+   Gestapelte). Mit nur einem Kind (unter zwei echten Träumen) nimmt die
+   Besetzung die volle Breite — auto-fit statt fester Spalten. */
+.j-shortcuts {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--s-3); margin-bottom: var(--s-4);
+}
+.j-shortcuts .j-library { margin-bottom: 0; min-inline-size: 0; }
+.j-shortcuts .j-library-body { min-inline-size: 0; }
+.j-shortcuts .j-library-text {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}

@@ -6,6 +6,9 @@ import "./symbols.css";
 export default function SymbolDetail({ symbolId, occurrences, onClose }) {
   const symbol = symbolById(symbolId);
   const closeRef = useRef(null);
+  // Name und Lesart aus den Sprachdateien; symbols.js bleibt der Fallback.
+  const label = t.symbols.byId[symbolId]?.label || symbol?.label;
+  const meaning = t.symbols.byId[symbolId]?.meaning || symbol?.meaning;
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -22,7 +25,7 @@ export default function SymbolDetail({ symbolId, occurrences, onClose }) {
         className="s-modal"
         role="dialog"
         aria-modal="true"
-        aria-label={symbol.label}
+        aria-label={label}
         onClick={(e) => e.stopPropagation()}
       >
         <button ref={closeRef} className="s-close" onClick={onClose} aria-label={t.symbols.close}>
@@ -30,8 +33,8 @@ export default function SymbolDetail({ symbolId, occurrences, onClose }) {
         </button>
 
         <p className="s-modal-emoji" aria-hidden="true">{symbol.emoji}</p>
-        <h2 className="s-modal-title">{symbol.label}</h2>
-        <p className="s-meaning">{symbol.meaning}</p>
+        <h2 className="s-modal-title">{label}</h2>
+        <p className="s-meaning">{meaning}</p>
         <p className="s-disclaimer">{t.symbols.disclaimer}</p>
 
         <h3 className="s-occ-title">{t.symbols.occurrences(occurrences.length)}</h3>

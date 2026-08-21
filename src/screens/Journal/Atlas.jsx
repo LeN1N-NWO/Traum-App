@@ -46,7 +46,7 @@ export default function Atlas({ onBack, onOpen }) {
                 {month.topSymbol && (
                   <div className="at-fact">
                     <span className="at-fact-n" aria-hidden="true">{symbolById(month.topSymbol.id)?.emoji}</span>
-                    <span className="at-fact-label">{symbolById(month.topSymbol.id)?.label}</span>
+                    <span className="at-fact-label">{t.symbols.byId[month.topSymbol.id]?.label}</span>
                   </div>
                 )}
                 {month.topMood && (
@@ -69,7 +69,11 @@ export default function Atlas({ onBack, onOpen }) {
             <section>
               <p className="j-original-label">{t.journal.atlasSymbols}</p>
               <div className="at-symbols">
-                {symbols.slice(0, 8).map((s) => {
+                {/* Sechs statt allem: der Atlas zeigt die Spitze, nicht das
+                    Inventar — Antons Rückmeldung vom 21.08. („wirkt
+                    überladen"). Der Rest bleibt über die Symbolseite im
+                    Sleep-Tab erreichbar. */}
+                {symbols.slice(0, 6).map((s) => {
                   const sym = symbolById(s.id);
                   const open = openSymbol === s.id;
                   return (
@@ -80,16 +84,17 @@ export default function Atlas({ onBack, onOpen }) {
                         onClick={() => setOpenSymbol(open ? null : s.id)}
                       >
                         <span className="at-symbol-emoji" aria-hidden="true">{sym?.emoji}</span>
-                        <span className="at-symbol-label">{sym?.label || s.id}</span>
+                        <span className="at-symbol-label">{t.symbols.byId[s.id]?.label || s.id}</span>
                         <span className="at-symbol-count">×{s.count}</span>
                       </button>
                       {open && (
                         <div className="at-symbol-dreams">
-                          {/* Die gängige Lesart aus symbols.js — dieselbe
-                              Selbstbeobachtungs-Haltung wie die Symbolseite,
-                              ausdrücklich keine Diagnose. */}
-                          {sym?.meaning && <p className="at-symbol-meaning">{sym.meaning}</p>}
-                          {s.entryIds.map((id) => {
+                          {/* Die gängige Lesart — dieselbe Selbstbeobachtungs-
+                              Haltung wie die Symbolseite, keine Diagnose. */}
+                          {t.symbols.byId[s.id]?.meaning && (
+                            <p className="at-symbol-meaning">{t.symbols.byId[s.id].meaning}</p>
+                          )}
+                          {s.entryIds.slice(0, 4).map((id) => {
                             const e = byId.get(id);
                             if (!e) return null;
                             return (

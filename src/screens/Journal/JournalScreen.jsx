@@ -110,27 +110,29 @@ export default function JournalScreen() {
       />
 
       {/* The cast lives here, not in the profile: these entries exist to be
-          referenced by dreams, so they belong next to them. */}
-      <button className="j-library" onClick={() => setLibrary(true)}>
-        <span className="j-library-body">
-          <span className="j-library-title">{t.journal.library}</span>
-          <span className="j-library-text">{t.journal.libraryCount(castCount)}</span>
-        </span>
-        <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
-      </button>
-
-      {/* Der Atlas daneben, aus demselben Grund: Muster ÜBER Träumen
-          gehören neben die Träume. Erst ab dem zweiten echten Traum —
-          eine Statistik über einen Eintrag wäre ein leeres Versprechen. */}
-      {realDreamCount >= 2 && (
-        <button className="j-library" onClick={() => setAtlas(true)}>
+          referenced by dreams, so they belong next to them. Der Atlas
+          daneben, aus demselben Grund — als ZWEI halbe Kacheln in EINER
+          Zeile, nicht zwei gestapelte volle (Antons Rückmeldung 21.08.:
+          „wirkt überladen"). Der Atlas erscheint erst ab dem zweiten
+          echten Traum; bis dahin nimmt die Besetzung die ganze Breite. */}
+      <div className="j-shortcuts">
+        <button className="j-library" onClick={() => setLibrary(true)}>
           <span className="j-library-body">
-            <span className="j-library-title">{t.journal.atlas}</span>
-            <span className="j-library-text">{t.journal.atlasLede}</span>
+            <span className="j-library-title">{t.journal.library}</span>
+            <span className="j-library-text">{t.journal.libraryCount(castCount)}</span>
           </span>
           <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
         </button>
-      )}
+        {realDreamCount >= 2 && (
+          <button className="j-library" onClick={() => setAtlas(true)}>
+            <span className="j-library-body">
+              <span className="j-library-title">{t.journal.atlas}</span>
+              <span className="j-library-text">{t.journal.atlasShort}</span>
+            </span>
+            <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
+          </button>
+        )}
+      </div>
 
       {entries.length === 0 ? (
         <p className="j-empty">{query ? t.journal.emptySearch : t.journal.empty}</p>
