@@ -122,6 +122,7 @@ export default {
        Bilder noch unterwegs sind, und der Toast, wenn sie ankommen. */
     renderingTile: "Your dream is being made — you'll get a note when it's ready.",
     dreamReady: (title) => (title ? `✦ “${title}” is ready` : "✦ Your dream is ready"),
+    sceneReady: (n) => `✦ Scene ${n} is in`,
     imagesRefunded: (n) => (n === 1
       ? "1 image didn't come through — the credit is back in your balance."
       : `${n} images didn't come through — the credits are back in your balance.`),
@@ -850,6 +851,8 @@ export default {
        Grenze in einem Satz. */
     pickNote: (n, max) => `${n} of up to ${max} scenes at this length — tap a tile to swap it in or out.`,
     textOnly: "No picture is tied to this scene yet — the film builds it from the words.",
+    fillScene: "Create this scene's image",
+    scenePending: "This scene is being made — you'll get a note when it lands.",
   },
   errors: {
     storageFull: "⚠ Storage full — delete old entries or reference photos.",

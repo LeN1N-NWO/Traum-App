@@ -28,6 +28,9 @@ export const PRICES = {
   images: { 3: 3, 5: 5, 10: 10 },   // one credit per image, no bulk discount:
                                      // every image costs us exactly the same
   keyframe: 1,       // the still a film is animated from — it IS an image
+  scene: 1,          // ein einzelnes Szenenbild, nachgeliefert aus dem
+                     // Storyboard (leere Kachel → „Bild erzeugen") — es IST
+                     // ein Bild, also kostet es genau eines
 
   /* The quick look: three panels cut out of ONE rendered image, so it costs
    * us one image and is priced as one. See PREVIEW_COUNT below.

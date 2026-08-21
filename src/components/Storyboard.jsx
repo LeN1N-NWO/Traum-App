@@ -32,12 +32,17 @@ import "./storyboard.css";
  * @param {Set<number>} [active]  Beats, die in den Film kommen; ohne = alle
  * @param {function} [onToggle]   (i) => void — macht die Kacheln zu Schaltern
  */
-export default function Storyboard({ beats = [], entry = null, active = null, onToggle = null }) {
+export default function Storyboard({ beats = [], entry = null, active = null, onToggle = null, onRenderScene = null }) {
   const [open, setOpen] = useState(null);
   if (!beats.length) return null;
 
   const urls = entry?.media?.urls || [];
   const imgFor = (i) => {
+    /* Nachgelieferte Einzelbilder (leere Kachel → „Bild erzeugen") gehen
+       vor: sie wurden GENAU für diese Szene gemacht, die Sequenz-Zuordnung
+       ist nur abgeleitet. */
+    const scene = entry?.sceneImages?.[i];
+    if (scene) return mediaUrl(scene);
     const idx = imageIndexForBeat(i, {
       imageCount: entry?.imageCount ?? 0,
       poster: entry?.media?.poster,
@@ -45,6 +50,8 @@ export default function Storyboard({ beats = [], entry = null, active = null, on
     });
     return idx == null ? null : mediaUrl(urls[idx]);
   };
+  // Szenen, deren Einzelbild gerade entsteht (Collector holt es ab).
+  const cooking = new Set((entry?.sceneJobs || []).map((j) => j.beat));
 
   return (
     <>
@@ -66,7 +73,11 @@ export default function Storyboard({ beats = [], entry = null, active = null, on
               {img && <img src={img} alt="" loading="lazy" />}
               {onToggle && on && <span className="sb-check" aria-hidden="true">✓</span>}
               <span className="sb-n" aria-hidden="true">{i + 1}</span>
-              <span className="sb-text">{b}</span>
+              {/* Text nur, wo KEIN Bild ist (Antons Befund 21.08.: Bild
+                  plus Text ist too much) — mit Bild erzählt das Bild,
+                  der Text wartet im Blatt dahinter. */}
+              {!img && <span className="sb-text">{b}</span>}
+              {cooking.has(i) && <span className="sb-cooking-dot" aria-hidden="true" />}
             </button>
           );
         })}
@@ -77,7 +88,22 @@ export default function Storyboard({ beats = [], entry = null, active = null, on
           {imgFor(open) && <img className="sb-sheet-img" src={imgFor(open)} alt="" />}
           <p className="sb-sheet-label">{t.storyboard.scene(open + 1, beats.length)}</p>
           <p className="sb-sheet-beat">{beats[open]}</p>
-          {!imgFor(open) && <p className="sb-sheet-note">{t.storyboard.textOnly}</p>}
+          {/* Leere Szene: nachfüllen lassen (Antons Go 21.08.) — 1 Credit,
+              läuft als Hintergrund-Auftrag, der Collector meldet sich. */}
+          {!imgFor(open) && cooking.has(open) && (
+            <p className="sb-sheet-note">{t.storyboard.scenePending}</p>
+          )}
+          {!imgFor(open) && !cooking.has(open) && onRenderScene && (
+            <button
+              className="sb-sheet-fill"
+              onClick={() => { onRenderScene(open); setOpen(null); }}
+            >
+              {t.storyboard.fillScene} · 1 {t.wizard.creditsN(1)}
+            </button>
+          )}
+          {!imgFor(open) && !cooking.has(open) && !onRenderScene && (
+            <p className="sb-sheet-note">{t.storyboard.textOnly}</p>
+          )}
         </Sheet>
       )}
     </>

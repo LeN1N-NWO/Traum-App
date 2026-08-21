@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import Button from "../../components/Button.jsx";
 import TagField from "../../components/TagField.jsx";
 import { useAppState } from "../../state/AppState.jsx";
-import { refine, reflect, mediaUrl } from "../../lib/api.js";
+import { refine, reflect, mediaUrl, generate } from "../../lib/api.js";
 import { reflectionContext } from "../../lib/atlas.js";
 import { filmOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
 import { spend } from "../../lib/credits.js";
 import { PRICES } from "../../lib/pricing.js";
 import { shareDream, downloadAll, canShareFiles } from "../../lib/share.js";
+import { buildReferences, buildImagePrompt } from "../../lib/promptBuilder.js";
+import { renderRef } from "../../lib/sheets.js";
 import { t } from "../../i18n/index.js";
 import Storyboard from "../../components/Storyboard.jsx";
 import EntryMenu from "./EntryMenu.jsx";
@@ -120,6 +122,57 @@ export default function JournalDetail({ entry, onClose }) {
       // "cancelled" is a normal outcome — say nothing.
     } catch (err) {
       console.error("[DreamRushes] share failed:", err);
+      toast(`⚠ ${err.message}`);
+    }
+    setBusy(false);
+  }
+
+  /* Eine leere Storyboard-Kachel nachfüllen (Antons Go 21.08.): EIN Bild
+   * für GENAU diese Szene — 1 Credit, als Hintergrund-Auftrag; der
+   * Collector schreibt es nach sceneImages[beat] und meldet sich. Die
+   * Referenzen werden aus entry.references + Bibliothek rekonstruiert,
+   * damit die echten Gesichter auch im Nachzügler-Bild stimmen. */
+  async function renderScene(i) {
+    const beats = entry.analysis?.beats || [];
+    if (!beats[i]) return;
+    const paid = spend(state, PRICES.scene);
+    if (!paid) return openPaywall("spent");
+
+    const pool = [...(state.cast || []), ...(state.me ? [state.me] : [])];
+    const byTag = new Map(pool.filter((a) => a?.tag).map((a) => [a.tag, a]));
+    const assigns = (entry.references || [])
+      .map((r) => ({ kind: r.category || "person", avatar: byTag.get(r.tag) }))
+      .filter((a) => a.avatar?.img);
+    const { clauses } = buildReferences(assigns);
+    const cast = assigns.map(({ kind, avatar }) => {
+      const category = kind === "pet" ? "pet" : kind === "place" ? "place" : "person";
+      return {
+        tag: avatar.tag, category, desc: avatar.desc || "",
+        img: renderRef({ ...avatar, category, desc: avatar.desc || "" }),
+      };
+    });
+
+    setBusy(true);
+    try {
+      const res = await generate({
+        dream: entry.text, mode: "image", cast,
+        prompt: buildImagePrompt({
+          beat: beats[i], styleId: entry.style || entry.analysis?.style || "dreamlike",
+          format: entry.format || "9:16", clauses, index: i + 1, total: beats.length,
+        }),
+      });
+      update({
+        ...paid,
+        journal: state.journal.map((e) => (e.id === entry.id ? {
+          ...e,
+          ...(res.jobId
+            ? { sceneJobs: [...(e.sceneJobs || []), { id: res.jobId, beat: i }] }
+            : { sceneImages: { ...(e.sceneImages || {}), [i]: res.urls?.[0] } }),
+        } : e)),
+      });
+      toast(t.storyboard.scenePending);
+    } catch (err) {
+      console.error("[DreamRushes] scene render failed:", err);
       toast(`⚠ ${err.message}`);
     }
     setBusy(false);
@@ -247,6 +300,17 @@ export default function JournalDetail({ entry, onClose }) {
             would look like. The film is offered once there ARE pictures,
             when they know what they are animating. Both hidden while a film
             renders: that one is on its way, not missing. */}
+        {/* Der Bogen, aus dem die Bilder entstanden — antippbar, mit dem
+            Bild je Szene, wo die Zuordnung sicher ist (Plan: Storyboard vor
+            dem Film, Stufe A). Nur wenn eine Analyse existiert: Seeds und
+            handgeschriebene Alt-Einträge haben keinen Bogen. */}
+        {!editing && !proposal && entry.analysis?.beats?.length > 0 && (
+          <div className="j-storyboard">
+            <p className="j-original-label">{t.storyboard.label}</p>
+            <Storyboard beats={entry.analysis.beats} entry={entry} onRenderScene={renderScene} />
+          </div>
+        )}
+
         {/* Eine Zeile statt drei Blöcke (Antons Ansage 21.08.): der warme
             Hauptknopf (Bilder machen ODER Kurzfilm machen) nimmt nicht mehr
             die ganze Breite, die stillen Werkzeuge (Umschreiben, Bearbeiten,
@@ -340,17 +404,6 @@ export default function JournalDetail({ entry, onClose }) {
           </>
         ) : swipes ? null : (
           <DreamStory text={entry.text} urls={images} type="image" />
-        )}
-
-        {/* Der Bogen, aus dem die Bilder entstanden — antippbar, mit dem
-            Bild je Szene, wo die Zuordnung sicher ist (Plan: Storyboard vor
-            dem Film, Stufe A). Nur wenn eine Analyse existiert: Seeds und
-            handgeschriebene Alt-Einträge haben keinen Bogen. */}
-        {!editing && !proposal && entry.analysis?.beats?.length > 0 && (
-          <div className="j-storyboard">
-            <p className="j-original-label">{t.storyboard.label}</p>
-            <Storyboard beats={entry.analysis.beats} entry={entry} />
-          </div>
         )}
 
         {/* Die Besetzung mit Gesichtern statt der nackten @tag-Zeile. */}

@@ -66,3 +66,23 @@
    aber als Arbeitsmaterial gesetzt, nicht als Prosa. */
 .sb-sheet-beat { color: var(--text); font-size: var(--t-body); line-height: 1.5; margin-block: 0 var(--s-3); }
 .sb-sheet-note { color: var(--faint); font-size: var(--t-small); margin-block: 0 var(--s-3); }
+
+/* Der Nachfüll-Knopf im Szenen-Blatt — warm, denn er kostet einen Credit. */
+.sb-sheet-fill {
+  display: block; width: 100%;
+  padding: var(--s-3); margin-block-end: var(--s-3);
+  border: none; border-radius: 999px; cursor: pointer;
+  background: var(--warm-grad); color: var(--bg);
+  font: 600 var(--t-body) var(--sans);
+}
+.sb-sheet-fill:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+/* Eine Szene, deren Einzelbild gerade entsteht. */
+.sb-cooking-dot {
+  position: absolute; inset-block-end: 6px; inset-inline-end: 6px;
+  inline-size: 8px; block-size: 8px; border-radius: 50%;
+  background: var(--accent-soft);
+  animation: sb-cook 1.4s ease-in-out infinite;
+}
+@keyframes sb-cook { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .sb-cooking-dot { animation: none; } }

@@ -89,6 +89,7 @@ export function AppStateProvider({ children }) {
         for (const [kind, extra] of res.messages) {
           if (kind === "dreamReady") toast(t.journal.dreamReady(extra || ""));
           else if (kind === "filmArrived") toast(t.journal.filmArrived);
+          else if (kind === "sceneReady") toast(t.journal.sceneReady(extra));
           else if (kind === "refunded") toast(t.journal.imagesRefunded(extra));
           else if (kind === "renderFailed") toast(`⚠ ${t.errors.renderFailed}`);
         }

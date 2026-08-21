@@ -115,6 +115,7 @@ export default {
     filmArrived: "✦ Dein Film ist fertig",
     renderingTile: "Dein Traum wird gerade erstellt — du bekommst eine Nachricht, wenn er fertig ist.",
     dreamReady: (title) => (title ? `✦ „${title}" ist fertig` : "✦ Dein Traum ist fertig"),
+    sceneReady: (n) => `✦ Szene ${n} ist da`,
     imagesRefunded: (n) => (n === 1
       ? "1 Bild ist nicht angekommen — der Credit ist zurück auf deinem Konto."
       : `${n} Bilder sind nicht angekommen — die Credits sind zurück auf deinem Konto.`),
@@ -802,6 +803,8 @@ export default {
     cutNote: (s) => `Bei ${s} Sekunden bleiben die abgedunkelten Szenen draußen — ein längerer Film nimmt mehr davon mit.`,
     pickNote: (n, max) => `${n} von höchstens ${max} Szenen bei dieser Länge — tippe eine Kachel an oder ab.`,
     textOnly: "An dieser Szene hängt noch kein Bild — der Film baut sie aus den Worten.",
+    fillScene: "Bild für diese Szene erzeugen",
+    scenePending: "Diese Szene wird gerade erstellt — du bekommst eine Nachricht, wenn sie da ist.",
   },
   errors: {
     storageFull: "⚠ Speicher voll — alte Einträge oder Referenzfotos löschen.",

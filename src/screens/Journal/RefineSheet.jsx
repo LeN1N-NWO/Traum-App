@@ -53,11 +53,13 @@ export default function RefineSheet({ onPick, onClose }) {
             onClick={() => onPick(mode)}
           >
             <span className="j-sheet-icon"><Icon /></span>
+            {/* Kein „Gratis"-Schild mehr (Anton, 21.08.): alle drei
+                Optionen sind gratis — ohne Bezahltes daneben ist das
+                Schild Rauschen. Das Blatt-Lede sagt das Wesentliche. */}
             <span className="j-sheet-body">
               <span className="j-sheet-name">{title}</span>
               <span className="j-sheet-hint">{hint}</span>
             </span>
-            <span className="j-sheet-free">{t.wizard.free}</span>
           </button>
         ))}
       </div>

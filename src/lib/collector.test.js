@@ -81,3 +81,23 @@ test("the fingerprint ignores everything except open orders", () => {
   expect(pendingFingerprint(journal)).toBe("a,c");
   expect(pendingFingerprint([{ id: "b", text: "x" }])).toBe("");
 });
+
+/* Szenenbilder (Storyboard-Nachfüllung): landen an ihrem Beat, nicht in
+   der Sequenz — und ein gescheitertes wird erstattet. */
+test("a scene job lands on its beat and a failed one is refunded", async () => {
+  const journal = [{
+    id: "e1", title: "T",
+    media: { type: "image", urls: ["/media/a.png"] },
+    sceneImages: { 0: "/media/a.png" },
+    sceneJobs: [{ id: "s2", beat: 1 }, { id: "s4", beat: 3 }],
+  }];
+  const res = await collectTick(journal, askWith({
+    s2: { status: "done", urls: ["/media/scene2.png"] },
+    s4: { status: "failed" },
+  }));
+  expect(res.journal[0].sceneImages).toEqual({ 0: "/media/a.png", 1: "/media/scene2.png" });
+  expect(res.journal[0].sceneJobs).toBeUndefined();
+  expect(res.journal[0].media.urls).toEqual(["/media/a.png"]);   // Sequenz unberührt
+  expect(res.refund).toBe(1);
+  expect(res.messages).toContainEqual(["sceneReady", 2]);
+});

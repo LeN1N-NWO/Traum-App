@@ -28,14 +28,15 @@
 
 /** Steht irgendwo noch etwas aus? (Steuert, ob AppState überhaupt tickt.) */
 export function hasPendingJobs(journal) {
-  return (journal || []).some((e) => e.jobId || (e.imageJobs || []).length > 0);
+  return (journal || []).some((e) =>
+    e.jobId || (e.imageJobs || []).length > 0 || (e.sceneJobs || []).length > 0);
 }
 
 /** Fingerabdruck der offenen Aufträge — stabil über fremde Statewechsel,
  *  damit der Poll-Effekt nicht bei jedem Tippen neu startet. */
 export function pendingFingerprint(journal) {
   return (journal || [])
-    .filter((e) => e.jobId || (e.imageJobs || []).length > 0)
+    .filter((e) => e.jobId || (e.imageJobs || []).length > 0 || (e.sceneJobs || []).length > 0)
     .map((e) => e.id)
     .join(",");
 }
@@ -119,6 +120,36 @@ export async function collectTick(journal, ask) {
         if (failed > 0 && urls.length > 0) messages.push(["refunded", failed]);
       } else if (dirty) {
         next.push({ ...e, imageJobs: jobs });
+        changed = true;
+      } else {
+        next.push(e);
+      }
+      continue;
+    }
+
+    // ── Einzelne Szenenbilder (Storyboard: leere Kachel nachgefüllt) ────
+    if ((e.sceneJobs || []).length > 0) {
+      const scenes = { ...(e.sceneImages || {}) };
+      const left = [];
+      let dirty = false, fails = 0;
+      for (const j of e.sceneJobs) {
+        const r = await ask(j.id).catch(() => null);
+        if (!r || (r.status !== "done" && r.status !== "failed" && r.status !== "unknown")) {
+          left.push(j);
+          continue;
+        }
+        dirty = true;
+        if (r.status === "done" && r.urls?.length) {
+          scenes[j.beat] = r.urls[0];
+          messages.push(["sceneReady", j.beat + 1]);
+        } else {
+          fails++;
+        }
+      }
+      if (dirty) {
+        refund += fails;
+        if (fails) messages.push(["renderFailed"]);
+        next.push({ ...e, sceneImages: scenes, sceneJobs: left.length ? left : undefined });
         changed = true;
       } else {
         next.push(e);
