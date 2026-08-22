@@ -35,6 +35,10 @@
 
 .stb-done { opacity: .75; }
 .stb-done .stb-check { background: var(--ok); color: var(--bg); border-color: transparent; }
+/* Die nächste Sprosse trägt zusätzlich das wandernde Licht (Klasse
+   `orbit`, src/styles/orbit.css). Der goldene Rand bleibt: Ohne ihn wäre
+   die Sprosse in der Sekunde, in der das Licht auf der Rückseite läuft,
+   nicht mehr als „die nächste" zu erkennen. */
 .stb-next { border-color: var(--gold); background: color-mix(in oklab, var(--gold) 9%, transparent); }
 .stb-next .stb-check { border-color: var(--gold); color: var(--gold); }
 .stb-far { opacity: .55; }

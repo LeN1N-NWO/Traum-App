@@ -92,7 +92,7 @@ export default function HomeScreen() {
             was auf dem Weg wartet. */}
         {streak > 0 && (
           <button
-            className={"h-streak" + (atRisk ? " h-streak-risk" : "")}
+            className={"h-streak orbit" + (atRisk ? " h-streak-risk" : "")}
             onClick={() => setBoard(true)}
             aria-haspopup="dialog"
           >

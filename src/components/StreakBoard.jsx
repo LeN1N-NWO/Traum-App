@@ -29,7 +29,11 @@ export default function StreakBoard({ streak = 0, snoozes = 0, nextIn = null, on
         {MILESTONES.map((m) => {
           const state = streak >= m.nights ? "done" : nxt && m.nights === nxt.nights ? "next" : "far";
           return (
-            <li key={m.nights} className={"stb-rung stb-" + state}>
+            /* Das wandernde Licht auf der NÄCHSTEN Sprosse (Antons Wunsch
+               22.08.: „das will ich hier wieder sehen") — dieselbe Technik
+               wie an der Pille, src/styles/orbit.css. Nur die eine Sprosse:
+               Wanderte es an mehreren, zeigte es nirgendwohin. */
+            <li key={m.nights} className={"stb-rung stb-" + state + (state === "next" ? " orbit" : "")}>
               <span className="stb-check" aria-hidden="true">
                 {state === "done" ? "✓" : m.nights}
               </span>
