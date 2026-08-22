@@ -4,7 +4,8 @@ import { buildSeedJournal } from "../lib/seedJournal.js";
 import { collectTick, pendingFingerprint } from "../lib/collector.js";
 import { giftFor } from "../lib/streakBoard.js";
 import { snoozeCheck } from "../lib/streak.js";
-import { jobStatus } from "../lib/api.js";
+import { jobStatus, backupJournal } from "../lib/api.js";
+import { backupPayload, backupFingerprint } from "../lib/journalBackup.js";
 import { t } from "../i18n/index.js";
 
 /* The whole app state in one place. Every change goes through update() and is
@@ -156,6 +157,23 @@ export function AppStateProvider({ children }) {
     update(saved.patch);
     toast(t.streakBoard.snoozeUsed(saved.used));
   }, [state.lastDream, state.snoozes, update, toast]);
+
+  /* Die Traum-Sicherung (Antons Ansage 22.08.: „Meine Testträume bitte hier
+     abspeichern … und drinnen bleiben"). Sie läuft still: Ändert sich etwas
+     am INHALT der Träume, wandern sie als Dateien zum Server. Der
+     Fingerabdruck sorgt dafür, dass ein Tastendruck irgendwo im State nicht
+     schon eine Runde auslöst.
+
+     Kein Zustand, keine Meldung, kein Fehlerfall: Scheitert die Sicherung
+     (Server aus, kein Netz), passiert nichts weiter — beim nächsten Start
+     wird es nachgeholt. Ein Tagebuch, das wegen seiner Sicherung stockt,
+     wäre die schlechtere Krankheit. */
+  const backupPrint = backupFingerprint(state.journal);
+  useEffect(() => {
+    if (!backupPrint) return;
+    const id = setTimeout(() => backupJournal(backupPayload(stateRef.current.journal)), 1200);
+    return () => clearTimeout(id);
+  }, [backupPrint]);
 
   return (
     <Ctx.Provider value={{

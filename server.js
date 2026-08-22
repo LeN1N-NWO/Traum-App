@@ -71,6 +71,12 @@ const MEDIA_DIR = mediaRootFrom(
   process.env.DREAMRUSHES_MEDIA,
 );
 
+/* Wohin die gesicherten Träume gehen. Neben dem Medienordner und aus
+   demselben Grund über mediaRootFrom(): Aus einem Worktree heraus gehören
+   sie ins Hauptrepo, sonst nimmt `git worktree remove` sie mit — genau so
+   sind am 21.08. die Bilder verschwunden. */
+const BACKUP_DIR = resolve(MEDIA_DIR, "..", "data", "traeume");
+
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
 // und der Servercode selbst ausserhalb dessen, was ueberhaupt aufloesbar ist —
@@ -2070,6 +2076,43 @@ Bun.serve({
     // content-type maps to a real image extension, so nothing about the
     // request — not its size, not its declared type — reaches the filesystem
     // unchecked.
+    /* Träume als Dateien sichern (Antons Ansage 22.08.2026: „Meine
+       Testträume bitte hier abspeichern … und drinnen bleiben, bis ich
+       ausdrücklich sage, dass man die Memory löschen soll.").
+       Regeln in src/lib/journalBackup.js — hier gilt vor allem eine:
+       ⚠ ES WIRD NUR GESCHRIEBEN, NIE GELÖSCHT. Verschwindet ein Traum aus
+       der App, bleibt seine Datei stehen. Aufgeräumt wird von Hand, auf
+       Antons Wort. */
+    if (url.pathname === "/api/journal-backup" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json().catch(() => null);
+        const eintraege = Array.isArray(body?.entries) ? body.entries : null;
+        if (!eintraege) return json({ error: "Nothing to store." }, 400);
+
+        let geschrieben = 0, unveraendert = 0;
+        for (const { datei, traum } of eintraege) {
+          /* Der Dateiname kommt vom Client — also wird er hier neu geprüft
+             und nicht geglaubt. Ein „../" darin schriebe sonst irgendwohin. */
+          if (typeof datei !== "string" || !/^[0-9a-zA-Z_.-]+\.json$/.test(datei) || datei.includes("..")) continue;
+          if (!traum || typeof traum !== "object") continue;
+          const ziel = resolve(BACKUP_DIR, datei);
+          if (!ziel.startsWith(BACKUP_DIR + sep)) continue;
+          const inhalt = JSON.stringify(traum, null, 2) + "\n";
+          const alt = Bun.file(ziel);
+          if (await alt.exists() && (await alt.text()) === inhalt) { unveraendert++; continue; }
+          await Bun.write(ziel, inhalt);
+          geschrieben++;
+        }
+        return json({ ok: true, geschrieben, unveraendert, ordner: "data/traeume" });
+      } catch (e) {
+        console.error("[DreamRushes] /api/journal-backup failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
     if (url.pathname === "/api/panel" && req.method === "POST") {
       try {
         if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {

@@ -39,3 +39,18 @@ public/clips/*.mp4
 # Verzeichnis wie Link. Wer diese Zeile wieder auf `media/` kürzt, stellt
 # dieselbe Falle erneut.
 /media
+
+# Die gesicherten Träume (server.js schreibt sie, siehe
+# src/lib/journalBackup.js). ⚠ VORLÄUFIG ignoriert, und der Grund gehört
+# hierher, damit ihn niemand versehentlich entfernt:
+#
+# Dieses Repository ist ÖFFENTLICH. Ein Traumtagebuch dort abzulegen heißt,
+# es zu veröffentlichen — und Git vergisst nichts: Ein späteres Löschen
+# nimmt es aus der aktuellen Fassung, nicht aus der Historie, nicht aus
+# Klonen, nicht aus Suchmaschinen. Antons Wunsch („soll drinbleiben, bis
+# ich sage, dass es weg soll") wäre damit genau dann nicht erfüllbar, wenn
+# er ihn braucht.
+#
+# Diese Zeile fällt, sobald die Träume ein PRIVATES Ziel haben — dann ist
+# alles andere schon gebaut.
+/data
