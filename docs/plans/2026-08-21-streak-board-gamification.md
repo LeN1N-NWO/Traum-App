@@ -88,10 +88,12 @@ später auftauchen (faultier-assets.md).
 > - Mini-Credit-Geschenke 7→1, 30→3, Deckel 4: **gebaut** (Antons „Mini-
 >   Geschenke, okay"). `giftFor()` in streakBoard.js, vergeben in AppState,
 >   Schwellen in `state.streakGifts`.
-> - **Offen:** Schlummernacht (§6) und „Nichts hängengeblieben" (§3) —
->   dazu fehlt Antons Wort. Das garantierte Sonderwesen je Meilenstein
->   (§5) ist ebenfalls noch nicht gebaut; die Leiter nennt bisher nur die
->   Raritätsschwellen, die creatures.js wirklich kennt.
+> - Schlummernacht (§6): **gebaut** (Antons Ja 22.08.). `snoozeCheck()` in
+>   streak.js, springt beim App-Start ein; Vorrat und Weg stehen im Board.
+> - „Nichts hängengeblieben" (§3): **gebaut**. `src/lib/blankNight.js`,
+>   Knopf auf der Startseite, im Kalender als Ring sichtbar.
+> - **Offen:** das garantierte Sonderwesen je Meilenstein (§5) — die Leiter
+>   nennt bisher nur die Raritätsschwellen, die creatures.js wirklich kennt.
 
 - `src/lib/streakBoard.js`: Meilenstein-Tabelle, verdiente/verbrauchte
   Schlummernächte, Belohnungs-Vergabe (idempotent, Flags am State wie
