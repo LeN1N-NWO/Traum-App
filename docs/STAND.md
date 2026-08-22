@@ -3,11 +3,10 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-22 (10:30) — Ende `session/2026-08-22-anton-2`,
-PR #21 freigegeben, wartet auf Antons Merge-Klick.
-⚠ Session lief ohne Worktree direkt im Hauptrepo — nach dem Merge:
-`git checkout main && git pull`, sonst servieren die Dev-Server einen
-toten Branch.
+**Stand:** 2026-08-22 (14:20) — PR #21 ist gemerged, main ist `a66e9d9`.
+Laufende Sitzung: `session/2026-08-22-anton-3` (PR #22, Entwurf).
+⚠ Auch diese Sitzung arbeitet ohne eigenen Worktree direkt im Hauptrepo —
+Begründung unten unter „Fallen".
 
 ## Wo wir stehen
 
@@ -83,6 +82,13 @@ eigene Profilbild, Stimmproben liegen als 516 KB AAC im Repo.
   `vite.config.js`). Beide auf `PORT` zu hören band die API an Vites
   Port — IPv4 gegen IPv6, Oberfläche mal aus Vite, mal aus altem dist/.
 - Erzeugte Medien NIE im Worktree (`src/lib/mediaRoot.js`, AGENTS.md).
+- **Warum die Sitzungen trotz AGENTS.md ohne Worktree laufen:** Die
+  Browser-Vorschau startet den Dev-Server immer aus dem HAUPT-Checkout
+  (`.claude/launch.json` liegt dort). Aus einem Worktree heraus würde sie
+  also fremden Code servieren, und die Live-Prüfung — das Werkzeug, mit
+  dem hier jeder Befund entstanden ist — wäre blind. Deshalb: Branch ja,
+  Worktree nein, und das gehört in jeden Worklog-Eintrag. Wer ohne
+  Live-Prüfung arbeitet, legt den Worktree wie vorgesehen an.
 
 ## Klickbare Wolken-Vorschau (aus #18)
 
