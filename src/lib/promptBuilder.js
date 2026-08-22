@@ -127,9 +127,12 @@ export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 
      den Bildaufbau: sonst klebt jede Szene in der Komposition der ersten. */
   const anchor = prevFrame
     ? "\nThe LAST reference image is the previous frame of this exact dream sequence. " +
-      "Match its colour grade, light, weather, environment and overall world precisely — " +
-      "these are consecutive stills from one film. Do not copy its composition; stage this " +
-      "scene's own action. Every named character must still match their own reference photo."
+      "Use it ONLY for continuity of world and look: colour grade, light quality, time of day, " +
+      "weather, environment and wardrobe. Do not copy its composition, and never cut out, paste " +
+      "or re-use any figure from it. Every character is re-photographed from scratch for THIS " +
+      "scene — new pose, new angle, lit by THIS scene's own light — while still matching their " +
+      "own reference photo for face and build. The result must read as the next shot of the same " +
+      "film, never as a montage."
     : "";
   const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
 

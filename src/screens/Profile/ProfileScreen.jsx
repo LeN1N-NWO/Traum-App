@@ -62,10 +62,21 @@ export default function ProfileScreen() {
           onClick={() => setEditingMe(true)}
           aria-label={me?.img ? t.profile.changePhoto : t.profile.addPhoto}
         >
-          <span className="p-face-glow" aria-hidden="true" />
+          {/* ⚠ Der Lichtschein NUR ohne Foto (Antons Befund 22.08.: „das Bild
+              wird nicht verändert"). Er war absolut positioniert, das <img>
+              nicht — und positionierte Elemente werden nach den fließenden
+              gezeichnet. Der deckende Verlauf lag damit ÜBER dem Porträt und
+              hat es vollständig verdeckt. Es war also immer da, nur nie zu
+              sehen. Als Hintergrund des leeren Zustands ist der Schein
+              richtig; hinter einem deckenden Foto wäre er ohnehin unsichtbar. */}
           {me?.img
             ? <img className="p-face-img" src={me.img} alt="" />
-            : <span className="p-face-empty" aria-hidden="true">+</span>}
+            : (
+              <>
+                <span className="p-face-glow" aria-hidden="true" />
+                <span className="p-face-empty" aria-hidden="true">+</span>
+              </>
+            )}
         </button>
 
         <p className="p-hero-name">{me?.tag ? `@${me.tag}` : t.profile.you}</p>

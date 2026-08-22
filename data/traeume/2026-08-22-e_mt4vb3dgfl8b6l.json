@@ -1,0 +1,64 @@
+{
+  "id": "e_mt4vb3dgfl8b6l",
+  "createdAt": "2026-08-22T21:05:48.245Z",
+  "kind": "dream",
+  "title": "Techno über den Wolken",
+  "tagline": "Ein Traum, der abhebt.",
+  "text": "Ich stand auf und merkte, dass ich träumte. Wie Superman flog ich durch die Luft, von Dresden nach Ibiza. Unterwegs überholte ich Flugzeuge und glitt an Wolken vorbei – es war großartig, und ich war überglücklich. Dort legte ich zusammen mit Carl Cox hinter den Decks auf. Wir freuten uns beide riesig und spielten die besten Techno-Tunes vor 10.000 Menschen.",
+  "originalText": "Ich bin aufgestanden und habe dann rausgefunden, dass ich im Traum bin. Ich bin wie Superman durch die Luft geflogen von Dresden nach Ibiza. Auf dem Weg bin ich an Flugzeugen und Wolken vorbeigeflogen, das war super und ich war super fröhlich. Dort habe ich dann zusammen mit Carl Cox auf einer Party aufgelegt, hinter den Decks. Wir haben uns beide super gefreut und die besten Techno Tunes vor 10.000 Menschen gespielt.",
+  "analysis": {
+    "language": "de",
+    "text": "Ich stand auf und merkte, dass ich träumte. Wie Superman flog ich durch die Luft, von Dresden nach Ibiza. Unterwegs überholte ich Flugzeuge und glitt an Wolken vorbei – es war großartig, und ich war überglücklich. Dort legte ich zusammen mit Carl Cox hinter den Decks auf. Wir freuten uns beide riesig und spielten die besten Techno-Tunes vor 10.000 Menschen.",
+    "people": [
+      {
+        "name": "ich",
+        "kind": "person",
+        "desc": ""
+      },
+      {
+        "name": "Carl Cox",
+        "kind": "person",
+        "desc": ""
+      }
+    ],
+    "places": [
+      "Dresden",
+      "Luft",
+      "Ibiza",
+      "Party"
+    ],
+    "beats": [
+      "ich gets up from a bed and slowly lifts off the floor, realizing he is dreaming.",
+      "ich soars above Dresden, flying like Superman.",
+      "ich speeds past a passenger airplane and through a sea of clouds, laughing.",
+      "ich lands at a huge party in Ibiza where Carl Cox stands behind the DJ decks.",
+      "ich and Carl Cox play pounding techno together as a crowd of 10,000 dances before them."
+    ],
+    "style": "dreamlike",
+    "mood": "euphorisch",
+    "title": "Techno über den Wolken",
+    "tagline": "Ein Traum, der abhebt.",
+    "filmSeconds": 15
+  },
+  "style": "ultrareal",
+  "format": "9:16",
+  "mode": "images",
+  "imageCount": 5,
+  "creatureId": "cr_mt4vb3dhah8ij8",
+  "references": [
+    {
+      "tag": "me",
+      "category": "person"
+    }
+  ],
+  "medien": {
+    "bilder": [
+      "/media/2gv78esbt1qeh.png",
+      "/media/p5tkyn65hj8f.png",
+      "/media/31vqer8ukly2r.png",
+      "/media/2m4e2ftcvxr2l.png",
+      "/media/prdjgebc2ldi.png"
+    ],
+    "film": []
+  }
+}

@@ -65,6 +65,12 @@ test("mit Anker trägt der Prompt die Weltanker-Klausel, ohne nicht", () => {
   const mit = buildChainSubmission(kette(), {});
   expect(mit.sequenceRef).toBe("/media/a.png");
   expect(mit.prompt).toContain("The LAST reference image is the previous frame");
+  /* ⚠ Antons Befund 22.08.: „das sieht aus wie Photoshop, wenn die Person
+     aus dem Bild davor übernommen worden ist." Der Anker darf Welt und
+     Garderobe vorgeben, aber die Figur muss für JEDE Szene neu gestellt und
+     neu ausgeleuchtet werden — sonst wird aus einem Film eine Montage. */
+  expect(mit.prompt).toContain("never cut out, paste");
+  expect(mit.prompt).toContain("re-photographed from scratch");
   const ohne = buildChainSubmission(kette({ imageJobs: [{ id: "j1", failed: true }] }), {});
   expect(ohne.prompt).not.toContain("previous frame");
 });

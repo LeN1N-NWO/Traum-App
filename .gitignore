@@ -57,3 +57,9 @@ public/clips/*.mp4
 #
 # ⚠ Wer die App veröffentlicht, entfernt den Ordner UND den Ladepfad in
 # AppState.jsx. Bis dahin gehört beides dazu.
+
+# Der A/B-Vergleich zweier Bildmodelle (scripts/modell-ab.mjs). Rohmaterial
+# einer Messung, kein App-Bestandteil — und mit 1,5 MB je Bild nichts fürs
+# Repository. Die Zahlen daraus stehen im Worklog, die Bilder auf dem
+# Rechner, der sie bezahlt hat.
+/media/ab-test

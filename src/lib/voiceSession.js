@@ -66,6 +66,9 @@ export function startVoiceSession(h = {}, who = {}) {
 
   let ctx, mic, node, stream;
   let playCtx, playHead = 0;
+  // Wann zuletzt ein Tonstück eingereiht wurde — die Gnadenfrist in drain()
+  // unterscheidet damit ein noch streamendes Ende von einem echten.
+  let lastQueuedAt = 0;
   let closed = false;
 
   ws.onerror = () => h.onError?.("SOCKET");
@@ -178,7 +181,45 @@ export function startVoiceSession(h = {}, who = {}) {
     const at = Math.max(playCtx.currentTime, playHead);
     src.start(at);
     playHead = at + buf.duration;
+    lastQueuedAt = Date.now();
     h.onSpeaking?.(true);
+  }
+
+  /* Ausklingen lassen (Antons Befund 22.08.: „sie konnte nicht mal
+   * aussprechen, schon waren wir weiter").
+   *
+   * stop() schließt den AudioContext, und das schneidet alles ab, was noch
+   * in der Warteschlange steht — der Abschiedssatz war also gesprochen,
+   * bloß nie zu hören. drain() wartet, bis der letzte eingereihte Ton
+   * wirklich verklungen ist.
+   *
+   * Zwei Feinheiten, ohne die es nicht reicht:
+   * - GNADENFRIST: Gemini streamt den Satz in Stücken, und der finish-Aufruf
+   *   kann VOR dem letzten Stück eintreffen. Ein leerer Puffer heißt also
+   *   nicht „fertig". Erst wenn eine Weile lang nichts Neues mehr kam UND
+   *   nichts mehr aussteht, ist Schluss.
+   * - DECKEL: Bleibt der Dienst hängen, wartet hier niemand ewig — nach
+   *   `maxMs` geht es weiter. Ein abgeschnittener Satz ist ärgerlich, ein
+   *   eingefrorener Bildschirm ist schlimmer. */
+  const GRACE_MS = 700;
+  async function drain(maxMs = 9000) {
+    const started = Date.now();
+    while (Date.now() - started < maxMs) {
+      const offen = playCtx ? playHead - playCtx.currentTime : 0;
+      const stillSeit = Date.now() - lastQueuedAt;
+      if (offen <= 0.05 && stillSeit >= GRACE_MS) return;
+      const warte = offen > 0.05 ? Math.min(offen * 1000 + 40, 400) : 120;
+      await new Promise((r) => setTimeout(r, warte));
+    }
+  }
+
+  /** Das Mikrofon sofort abschalten, den Rest weiterlaufen lassen: Wer
+   *  „fertig" gesagt hat, will nicht, dass weiter mitgehört wird — die
+   *  Stimme darf ihren Satz trotzdem zu Ende sprechen. */
+  function stopListening() {
+    try { node?.disconnect(); mic?.disconnect(); } catch {}
+    for (const track of stream?.getTracks() || []) track.stop();
+    try { ctx?.close(); } catch {}
   }
 
   /** Typed answers go in on the same socket — one conversation, two ways in. */
@@ -198,5 +239,5 @@ export function startVoiceSession(h = {}, who = {}) {
     try { ws.close(); } catch {}
   }
 
-  return { say, stop };
+  return { say, stop, drain, stopListening };
 }
