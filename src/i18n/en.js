@@ -516,11 +516,15 @@ export default {
 
     step1: {
       title: "What did you dream?",
-      improve: "Improve with AI",
+      /* ⚠ Begründung in de.js: Der Knopf ist der einzige Weg weiter, klang
+         aber nach einem Extra — und „improve" ist das Kleinste, was hier
+         geschieht. Er sagt jetzt, was er tut. */
+      improve: "Read my dream",
       reading: "Reading your dream…",
-      why: "The AI retells your dream in your own language and works out who and " +
-           "where appears in it. Everything after this — the characters, the " +
-           "places, the images — is built on that.",
+      why: "The app reads your dream: who is in it, where it plays, which scenes " +
+           "make it up — and retells it cleanly in your own language along the way. " +
+           "Everything after this is built on that, which is why the path goes " +
+           "through here. Your own words are kept either way.",
       previewTitle: "Here it is, tidied up",
       previewLede: "Your own words are always kept, whichever you choose.",
       yours: "As you wrote it",

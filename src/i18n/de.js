@@ -483,10 +483,17 @@ export default {
 
     step1: {
       title: "Was hast du geträumt?",
-      improve: "Mit KI verbessern",
+      /* ⚠ Hieß bis 22.08. „Mit KI verbessern" — und log damit doppelt
+         (Antons Befund): Es ist der EINZIGE Weg weiter, klingt aber nach
+         einem Extra, das man auch weglassen könnte. Und „verbessern" ist
+         das Kleinste, was hier passiert: Die App liest den Traum aus,
+         findet Figuren, Orte und Szenen. Ohne das hat der nächste Schritt
+         nichts zu zeigen. Der Knopf sagt jetzt, was er tut. */
+      improve: "Traum auswerten",
       reading: "Dein Traum wird gelesen…",
-      why: "Die KI erzählt deinen Traum in deiner eigenen Sprache neu und findet heraus, wer und " +
-           "wo darin vorkommt. Alles danach — die Figuren, die Orte, die Bilder — baut darauf auf.",
+      why: "Die App liest deinen Traum: wer darin vorkommt, wo er spielt, welche Szenen ihn " +
+           "ausmachen — und erzählt ihn dabei in deiner Sprache sauber nach. Alles danach baut " +
+           "darauf auf, deshalb geht es hier lang. Deine eigenen Worte bleiben erhalten.",
       previewTitle: "Hier ist er, aufgeräumt",
       previewLede: "Deine eigenen Worte bleiben so oder so erhalten.",
       yours: "Wie du es geschrieben hast",

@@ -34,6 +34,9 @@ import { statSync, readFileSync } from "node:fs";
 // Wo die Bilder liegen dürfen — eigene Datei, weil daran schon einmal echte
 // Träume verloren gegangen sind (src/lib/mediaRoot.test.js).
 import { mediaRootFrom } from "./src/lib/mediaRoot.js";
+// Doppelte Figuren aussortieren — eigene Datei, damit sie ohne laufenden
+// Server prüfbar ist (src/lib/people.test.js).
+import { dedupePeople } from "./src/lib/people.js";
 // Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
 import { guard } from "./src/lib/gatekeeper.js";
@@ -945,7 +948,13 @@ Why the language split matters: "text", "people[].name", "places" and "mood" are
 
 Rules for "text": FIRST understand what actually happened in the dream, then retell it. The input is often dictated speech — fragmented, repetitive, thoughts spoken over each other, false starts. Do not just patch spelling: rewrite it as one flowing, well-told account in the dreamer's language. Merge repetitions, complete fragments, untangle sentences that ran into each other, and make the wording vivid and easy to picture. You may restructure sentences freely as long as the DREAM itself stays untouched: never invent events, people or places that are not there, never drop any, never change the emotional tone, never add interpretation. Keep it first person if it was first person.
 
-Rules for "people": include the dreamer only if they appear as a visible character (then name them as the dream does — "ich"/"I" is fine). A dog, cat or other animal is kind "pet". Empty array if nobody appears.
+Rules for "people": ONE ENTRY PER DISTINCT PERSON. The same person mentioned again later is the SAME entry — "ein Arzt" at the start and "der Arzt" three sentences on are one doctor, not two. Only list a second entry when the dream itself marks someone as different ("ein ANDERER Arzt", "eine zweite Frau"). Two entries that describe the same role in the same scene are always a mistake.
+
+Name each person the way a casting list would: the bare noun or name, no articles and no possessives — "Arzt", not "ein Arzt" or "der Arzt"; "Anton", not "mein Freund Anton" (put "Freund" in "desc" instead). If a dream truly has two of the same role, distinguish them by something visible ("Arzt mit Brille", "junger Arzt"), never by "anderer".
+
+If the dream is told in the FIRST PERSON, the dreamer is a character and belongs in this list as the FIRST entry, named exactly as the dream names them ("ich" / "I"). This holds even when the dreamer never describes their own appearance — the app binds that entry to the person's own photo, and without it they cannot cast themselves.
+
+A dog, cat or other animal is kind "pet". Empty array only if truly nobody appears.
 
 Rules for "places": one entry per distinct SETTING — a location a film crew would have to build separately. Different parts, angles or heights of the SAME setting are ONE entry: a mountain's summit and the sky above that mountain are one place, a house and the rooms inside it are one place. The sky, air or water directly around a setting is never its own entry. List a second place only when the dream truly moves somewhere else (a bedroom, then later the open sea). Never let two entries share the same core location. Empty array if there is no discernible location.
 
@@ -1022,6 +1031,7 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
       };
     })
     .filter((p) => p && p.name)
+    .filter(dedupePeople())
     .slice(0, MAX_ANALYSIS_ITEMS);
 
   // Beats drive the image count, so their number is pinned, not trusted.
