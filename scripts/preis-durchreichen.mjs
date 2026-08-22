@@ -138,3 +138,45 @@ for (const m of VIDEO_MODELS) {
   );
 }
 console.log();
+
+/* ── 6. Was ein einzelner Film wirklich kosten muss (Nachtrag 22.08.)
+ *
+ * Antons Auflage: „Auf jeden Fall die 15 % von Apple berücksichtigen."
+ * Sie stehen oben schon in Abschnitt 2 — aber die Frage dahinter ist
+ * größer als eine Prozentzahl: **15 % gibt es nur im Small Business
+ * Program** (bis 1 Mio. $ Auszahlung im Jahr). Wer Erfolg hat, zahlt 30 %.
+ * Eine Preisliste, die nur bei 15 % trägt, bestraft also das Wachstum.
+ * Deshalb rechnet dieser Abschnitt JEDEN Film in beiden Welten.
+ *
+ * Und er beantwortet die Frage, an der Weg B im Plan hängengeblieben ist:
+ * Nicht „wie viele Credits kostet ein Kino-Film", sondern „was müsste ein
+ * Mensch bezahlen, um ihn EINMAL kaufen zu können". Das ist die Zahl, die
+ * über ein Großpaket entscheidet — und sie hängt nicht an der Stückelung
+ * des Credits, sondern am Einkauf. */
+console.log("\n=== 6. Ein einzelner Film als Einzelkauf — was er kosten MUSS ===\n");
+
+const AUFSCHLAG = 2.21;   // heutiger Korb-Aufschlag, siehe Abschnitt 4
+console.log(`Aufschlag ${AUFSCHLAG}× · Preis inkl. MwSt., je Store-Anteil\n`);
+console.log("Stufe        Sek   Einkauf   nötig @15 %   nötig @30 %   größtes Paket heute");
+
+const groesstesPaket = PACKS.reduce((a, b) => (num(a.price) > num(b.price) ? a : b));
+for (const m of VIDEO_MODELS) {
+  for (const secs of [m.preset, m.max]) {
+    const einkauf = secs * EINKAUF_PRO_SEKUNDE[m.id] + BILD_EINKAUF;   // + Keyframe
+    const noetig15 = brutto(einkauf * AUFSCHLAG, 0.15);
+    const noetig30 = brutto(einkauf * AUFSCHLAG, 0.30);
+    console.log(
+      `${m.id.padEnd(10)} ${String(secs).padStart(4)}   ${einkauf.toFixed(3).padStart(7)}   ` +
+      `${("$" + noetig15.toFixed(2)).padStart(11)}   ${("$" + noetig30.toFixed(2)).padStart(11)}   ` +
+      `${groesstesPaket.price}`,
+    );
+    if (secs === m.max && m.preset === m.max) break;
+  }
+}
+
+console.log(
+  "\nLesart: Solange die nötige Summe über dem größten Paket liegt, ist die\n" +
+  "Stufe in voller Länge nicht in EINEM Kauf erreichbar — egal, wie der\n" +
+  "Credit gestückelt wird. Umstückeln verschiebt nur die Zahl auf dem\n" +
+  "Knopf, nicht den Einkauf dahinter.",
+);

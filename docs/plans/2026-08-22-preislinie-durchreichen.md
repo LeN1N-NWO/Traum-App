@@ -1,6 +1,8 @@
 # Preislinie: Modellpreise durchreichen — was das rechnerisch heißt
 
 **Stand:** 2026-08-22 · offen, wartet auf Antons Entscheidung
+**Nachtrag 22.08. (Anton):** „Auf jeden Fall die 15 % von Apple
+berücksichtigen." — siehe Abschnitt 8 unten.
 **Anlass:** Antons Ansage (21.08.): *„Ich will nie künstlich eine Verknappung
 erstellen und künstlich die Produkte einschränken. Es geht mir wirklich
 darum, diese Modellpreise an den Endkunden weiterzugeben, wie sie sind."*
@@ -171,3 +173,60 @@ Nachgerechnet werden kann alles hier mit den Zahlen aus `video.js`
 (`creditsPerSecond` plus die Einkaufspreise in den Kommentaren) und
 `plans.js` (`SUBSCRIPTIONS`, `PACKS`); die Formel ist
 `netto = brutto ÷ 1,19 × (1 − Store-Anteil)`.
+
+## 8. Nachtrag: Der Store-Anteil, und was er über die Kaufbarkeit sagt
+
+Antons Auflage vom 22.08.: die 15 % von Apple berücksichtigen.
+
+**Sie sind schon drin** — Abschnitt 3 rechnet 15 % als Hauptfall und 30 %
+als Gegenprobe. Wichtiger ist die Nuance dahinter, die eine Preisliste
+überleben muss:
+
+> **15 % gibt es nur im Small Business Program** (bis 1 Mio. $ Auszahlung
+> im Jahr, Apple wie Google). Darüber sind es 30 %. Eine Preisliste, die
+> nur bei 15 % trägt, bestraft also genau den Erfolg, den sie ermöglichen
+> soll.
+
+Deshalb rechnet `scripts/preis-durchreichen.mjs` seit heute jeden Film in
+beiden Welten — und beantwortet damit die Frage, an der Weg B hing:
+nicht „wie viele Credits kostet ein Kino-Film", sondern **was ein Mensch
+zahlen muss, um ihn einmal kaufen zu können.**
+
+| Stufe | Sek | Einkauf | nötig @15 % | nötig @30 % | größtes Paket heute |
+|---|---|---|---|---|---|
+| Lebendig | 6 | $0,40 | $1,24 | $1,51 | $14,99 |
+| Lebendig | 15 | $0,94 | $2,91 | $3,54 | $14,99 |
+| Regie | 10 | $2,46 | $7,61 | $9,25 | $14,99 |
+| Regie | 15 | $3,67 | $11,36 | $13,79 | $14,99 |
+| **Kino** | **15** | $7,14 | **$22,08** | **$26,81** | $14,99 |
+| **Kino** | **30** | $14,23 | **$44,03** | **$53,47** | $14,99 |
+
+### Was das ändert
+
+1. **Regie ist NICHT das Problem.** In voller Länge liegt sie bei $11,36
+   (15 %) bzw. $13,79 (30 %) — beides unter dem größten Paket. Der
+   Befund aus Abschnitt 6 („Regie 15 s = 61 Credits, nicht kaufbar") war
+   eine Folge der Credit-Stückelung, nicht des Einkaufs. Umstückeln
+   verschiebt die Zahl auf dem Knopf, nicht die Kosten dahinter.
+2. **Kino ist das Problem, und zwar unabhängig von A/B/C.** Ein
+   Kino-Film in Voreinstellungslänge braucht mehr Geld, als das größte
+   Angebot der Liste hergibt. Bei 30 % Store-Anteil fehlen $12.
+3. Die 30-Sekunden-Obergrenze, die die Oberfläche anbietet, kostet
+   $44–$53. Das ist kein Preisproblem mehr, das ist eine Einladung zur
+   Enttäuschung.
+
+### Empfehlung
+
+**Weg C** (ehrlich rechnen, Marge je Stufe halten) **plus ein Paket XL,
+das einen ganzen Kino-Film trägt** — bemessen am 30-%-Fall, nicht am
+15-%-Fall, sonst muss die Liste beim Wachstum neu gemacht werden.
+$29,99 deckt Kino 15 s in beiden Welten.
+
+Alternative, falls kein viertes Paket gewünscht ist: **Kino auf 10
+Sekunden begrenzen** ($14,76 bei 15 %, $17,92 bei 30 %) und die
+30-Sekunden-Option aus der Oberfläche nehmen. Ehrlich benannt ist das
+besser als eine Länge, die niemand kaufen kann.
+
+⚠ Was NICHT hilft: den Credit anders stückeln. Der Einkauf bleibt, was
+er ist — die Stückelung verschiebt nur, wie viele Credits auf dem Knopf
+stehen.
