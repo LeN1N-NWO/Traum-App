@@ -40,6 +40,12 @@ export default {
     untitled: "Untitled dream",
     renderingLine: "Your dream is being made — take a look",
     soundsShortcut: "Start the sleep sounds",
+    /* „Nichts hängengeblieben" — der Knopf sagt, was WAR, nie was fehlt.
+       „No dream today" wäre ein Mangel; „nothing stayed" ist eine Nacht wie
+       jede andere, nur ohne Fund. */
+    blankCta: "Nothing stayed with me",
+    blankHint: "Keeps your streak — no dream invented",
+    blankDone: "🌙 Noted. The night counts.",
   },
 
   /* Der Morgen-Check-in (Mehrwert P2a): eine Frage, drei grobe Stufen —
@@ -61,6 +67,16 @@ export default {
     gift: (nights, credits) =>
       `✦ ${nights} nights — ${credits} ${credits === 1 ? "credit" : "credits"} from us`,
     giftBadge: (credits) => `+${credits} ${credits === 1 ? "credit" : "credits"}`,
+    /* Die Schlummernacht — der Ton ist bewusst entlastend, nicht mahnend:
+       Sie ist eingesprungen, es ist nichts passiert, weiter geht's. */
+    snoozeUsed: (n) => (n === 1
+      ? "🌙 A snooze night stepped in — your streak is safe."
+      : `🌙 ${n} snooze nights stepped in — your streak is safe.`),
+    snoozeTitle: (n) => (n === 1 ? "1 snooze night" : `${n} snooze nights`),
+    snoozeNext: (n) => (n === 1
+      ? "One more night earns another one."
+      : `${n} more nights earn another one.`),
+    snoozeFull: "Your shelf is full — a missed night costs you nothing.",
     nights: (n) => (n === 1 ? "night" : "nights"),
     next: (n) => (n === 1 ? "1 more night to the next milestone." : `${n} more nights to the next milestone.`),
     done: "Every milestone reached. You are the calendar now.",
@@ -93,6 +109,7 @@ export default {
        nicht die Zahl — dieselbe Sprache wie die Morgenfrage, sonst antwortet
        man in Worten und liest eine Note ab. */
     atlasSleep: "Sleep",
+    calBlank: "Nothing stayed that night",
     atlasSleepAvg: (word) => `Mostly ${word}`,
     atlasSleepNote: (nights, avg) =>
       `${nights} ${nights === 1 ? "night" : "nights"} noted · ${avg.toFixed(1)} of 3`,

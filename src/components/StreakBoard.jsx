@@ -1,4 +1,5 @@
 import { MILESTONES, nextMilestone, giftAt } from "../lib/streakBoard.js";
+import { SNOOZE_MAX } from "../lib/streak.js";
 import { t } from "../i18n/index.js";
 import Sheet from "./Sheet.jsx";
 import "./streakBoard.css";
@@ -6,10 +7,12 @@ import "./streakBoard.css";
 /* Das Blatt hinter der Streak-Pille (Antons Go 22.08.): die Serie groß,
  * darunter die Meilenstein-Leiter — erreichte abgehakt, der nächste
  * hervorgehoben, ferne angedeutet. Es zeigt nur, was existiert: die
- * Wesen-Rarität steigt wirklich mit der Serie (creatures.js). Credits
- * und Schlummernacht kommen erst nach Antons Entscheidung dazu
- * (Plan streak-board-gamification §5/§6). */
-export default function StreakBoard({ streak = 0, onClose }) {
+ * Wesen-Rarität steigt wirklich mit der Serie (creatures.js).
+ *
+ * Seit dem 22.08. (Antons Ja) trägt die Leiter zusätzlich die zwei Sprossen
+ * mit echtem Guthaben, und darunter steht der Schutz: die Schlummernächte.
+ * Beides ist gebaut, nicht versprochen — genau das war die Bedingung. */
+export default function StreakBoard({ streak = 0, snoozes = 0, nextIn = null, onClose }) {
   const nxt = nextMilestone(streak);
 
   return (
@@ -46,6 +49,21 @@ export default function StreakBoard({ streak = 0, onClose }) {
           );
         })}
       </ol>
+
+      {/* Zone 3 des Plans: der Schutz. Er steht UNTER der Leiter, weil er
+          kein Ziel ist, sondern ein Netz — man arbeitet nicht darauf hin,
+          man ist froh, dass es da ist. */}
+      <div className="stb-shield">
+        <p className="stb-shield-row">
+          <span className="stb-shield-moons" aria-hidden="true">
+            {Array.from({ length: SNOOZE_MAX }, (_, i) => (i < snoozes ? "🌙" : "◦")).join(" ")}
+          </span>
+          <span className="stb-shield-title">{t.streakBoard.snoozeTitle(snoozes)}</span>
+        </p>
+        <p className="stb-shield-note">
+          {nextIn == null ? t.streakBoard.snoozeFull : t.streakBoard.snoozeNext(nextIn)}
+        </p>
+      </div>
 
       <p className="stb-note">{t.streakBoard.note}</p>
     </Sheet>

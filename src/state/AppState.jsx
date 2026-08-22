@@ -3,6 +3,7 @@ import { loadState, saveState, DB_KEY } from "../lib/storage.js";
 import { buildSeedJournal } from "../lib/seedJournal.js";
 import { collectTick, pendingFingerprint } from "../lib/collector.js";
 import { giftFor } from "../lib/streakBoard.js";
+import { snoozeCheck } from "../lib/streak.js";
 import { jobStatus } from "../lib/api.js";
 import { t } from "../i18n/index.js";
 
@@ -142,6 +143,19 @@ export function AppStateProvider({ children }) {
     update(gift.patch);
     toast(t.streakBoard.gift(gift.nights, gift.credits));
   }, [state.streak, state.streakGifts, update, toast]);
+
+  /* Die Schlummernacht springt beim Start ein (Antons Ja 22.08., Plan §6) —
+     hier und nirgends sonst: Es ist der einzige Moment, in dem die App
+     merkt, dass eine Nacht fehlt, und der Mensch soll es als Erstes
+     erfahren, nicht beim nächsten Traum. snoozeCheck() ist idempotent
+     (danach ist die Lücke geschlossen), der Effekt darf also gefahrlos bei
+     jedem Datumswechsel erneut laufen. */
+  useEffect(() => {
+    const saved = snoozeCheck(stateRef.current);
+    if (!saved) return;
+    update(saved.patch);
+    toast(t.streakBoard.snoozeUsed(saved.used));
+  }, [state.lastDream, state.snoozes, update, toast]);
 
   return (
     <Ctx.Provider value={{

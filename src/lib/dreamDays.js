@@ -23,6 +23,11 @@ export function dreamsByDay(journal = []) {
   const days = new Map();
   for (const e of journal) {
     if (!e?.createdAt) continue;
+    /* Leere Nächte gehören nicht in diese Karte: Der Kalender öffnet beim
+       Antippen einen Traum, und ein Eintrag ohne Text hätte nichts zu
+       zeigen. Sie kommen als eigene Menge zurück (blankDays unten) und
+       erscheinen als blasser Punkt — anwesend, aber nicht antippbar. */
+    if (e.kind === "blank") continue;
     const key = localDateKey(e.createdAt);
     const list = days.get(key);
     if (list) list.push(e);
@@ -46,4 +51,15 @@ export function monthCells(year, month /* 0-based */) {
   const cells = Array(lead).fill(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   return cells;
+}
+
+/** Die Tage, an denen „nichts hängengeblieben" vermerkt wurde.
+ *  Getrennt von dreamsByDay, weil sie im Kalender anders aussehen und sich
+ *  anders verhalten: sichtbar, aber nicht antippbar. */
+export function blankDays(journal = []) {
+  const days = new Set();
+  for (const e of journal || []) {
+    if (e?.kind === "blank" && e.createdAt) days.add(localDateKey(e.createdAt));
+  }
+  return days;
 }

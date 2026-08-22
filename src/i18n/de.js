@@ -38,6 +38,9 @@ export default {
     untitled: "Unbenannter Traum",
     renderingLine: "Dein Traum wird gerade erstellt — schau zu",
     soundsShortcut: "Einschlafgeräusche starten",
+    blankCta: "Nichts hängengeblieben",
+    blankHint: "Hält deine Serie — ohne einen Traum zu erfinden",
+    blankDone: "🌙 Notiert. Die Nacht zählt.",
   },
 
   checkin: {
@@ -53,6 +56,14 @@ export default {
     gift: (nights, credits) =>
       `✦ ${nights} Nächte — ${credits} ${credits === 1 ? "Credit" : "Credits"} von uns`,
     giftBadge: (credits) => `+${credits} ${credits === 1 ? "Credit" : "Credits"}`,
+    snoozeUsed: (n) => (n === 1
+      ? "🌙 Eine Schlummernacht ist eingesprungen — deine Serie steht."
+      : `🌙 ${n} Schlummernächte sind eingesprungen — deine Serie steht.`),
+    snoozeTitle: (n) => (n === 1 ? "1 Schlummernacht" : `${n} Schlummernächte`),
+    snoozeNext: (n) => (n === 1
+      ? "Noch eine Nacht, dann kommt die nächste dazu."
+      : `Noch ${n} Nächte, dann kommt die nächste dazu.`),
+    snoozeFull: "Dein Vorrat ist voll — eine verpasste Nacht kostet dich nichts.",
     nights: (n) => (n === 1 ? "Nacht" : "Nächte"),
     next: (n) => (n === 1 ? "Noch 1 Nacht bis zum nächsten Meilenstein." : `Noch ${n} Nächte bis zum nächsten Meilenstein.`),
     done: "Alle Meilensteine erreicht. Du bist jetzt der Kalender.",
@@ -84,6 +95,7 @@ export default {
     /* Die Schlaf-Kachel. Das Komma im Schnitt ist Absicht: 2.4 liest sich
        im Deutschen als Datum, nicht als Zahl. */
     atlasSleep: "Schlaf",
+    calBlank: "In dieser Nacht ist nichts hängengeblieben",
     atlasSleepAvg: (word) => `Meistens ${word}`,
     atlasSleepNote: (nights, avg) =>
       `${nights} ${nights === 1 ? "Nacht" : "Nächte"} notiert · ${avg.toFixed(1).replace(".", ",")} von 3`,

@@ -12,15 +12,67 @@ export function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** Call after a dream is saved. Returns {streak, lastDream}. */
+/* ── Die Schlummernacht (Antons Ja vom 22.08., Plan §6)
+ *
+ * Duolingos wichtigste Lehre, in unserem Ton: Eine verpasste Nacht löscht
+ * nicht alles. Verlustangst bindet nur bis zu dem Tag, an dem sie zuschlägt —
+ * danach deinstalliert man. Bei einer TRAUM-App ist das besonders scharf:
+ * Man träumt nicht auf Kommando, und eine Serie, die an „jede Nacht ein
+ * erinnerter Traum" hängt, bestraft Biologie statt Nachlässigkeit.
+ *
+ * Regel: Je sieben Nächte verdient man EINE Schlummernacht, höchstens zwei
+ * auf Vorrat. Fehlt eine Nacht und ist eine da, lebt die Serie weiter und
+ * die Schlummernacht ist verbraucht. Kein Kauf, kein Ansparen ohne Ende —
+ * sonst wäre die Serie irgendwann unzerstörbar und damit bedeutungslos. */
+export const SNOOZE_EVERY = 7;
+export const SNOOZE_MAX = 2;
+
+/** Call after a dream is saved. Returns {streak, lastDream, snoozes?}. */
 export function bumpStreak(state) {
   const today = todayStr();
   if (state.lastDream === today) return { streak: state.streak, lastDream: today };
   const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
-  return {
-    streak: state.lastDream === yesterday ? (state.streak || 0) + 1 : 1,
-    lastDream: today,
-  };
+  const streak = state.lastDream === yesterday ? (state.streak || 0) + 1 : 1;
+  const patch = { streak, lastDream: today };
+  /* Verdient wird beim Erreichen jeder siebten Nacht — und nach einem
+     Serienbruch wieder von vorn. Anders als die Credit-Geschenke ist das
+     Absicht: Die Schlummernacht kostet uns nichts, sie ist der Schutz für
+     genau die Serie, die man gerade aufbaut. Der Deckel von zwei verhindert
+     das Horten. */
+  if (streak % SNOOZE_EVERY === 0) {
+    patch.snoozes = Math.min((state.snoozes || 0) + 1, SNOOZE_MAX);
+  }
+  return patch;
+}
+
+/** Springt eine Schlummernacht ein? Rein — der Aufrufer speichert.
+ *
+ *  Läuft beim App-Start (AppState). Verpasste Nächte werden EINZELN
+ *  überbrückt, eine Schlummernacht je Nacht; reicht der Vorrat nicht für
+ *  ALLE, wird keine verbraucht. Eine Teilrettung gibt es nicht: Sie kostete
+ *  den Vorrat und rettete trotzdem nichts.
+ *
+ *  Idempotent ohne Extra-Merker: Nach dem Patch steht `lastDream` auf
+ *  gestern, damit ist die Lücke geschlossen und der nächste Aufruf findet
+ *  nichts mehr.
+ *
+ *  @returns {{used: number, patch: {lastDream: string, snoozes: number}}|null}
+ */
+export function snoozeCheck(state, today = todayStr()) {
+  const have = state?.snoozes || 0;
+  if (!have || !state?.lastDream || !(state?.streak > 0)) return null;
+  const missed = Math.round((new Date(today) - new Date(state.lastDream)) / 864e5) - 1;
+  if (missed <= 0 || missed > have) return null;
+  const bridged = new Date(new Date(today) - 864e5).toISOString().slice(0, 10);
+  return { used: missed, patch: { lastDream: bridged, snoozes: have - missed } };
+}
+
+/** Wie viele Nächte bis zur nächsten Schlummernacht — für das Board.
+ *  Null, wenn der Vorrat schon voll ist. */
+export function nextSnoozeIn(state) {
+  if ((state?.snoozes || 0) >= SNOOZE_MAX) return null;
+  const streak = state?.streak || 0;
+  return SNOOZE_EVERY - (streak % SNOOZE_EVERY);
 }
 
 /** Call when displaying: a broken streak falls back to 0. */

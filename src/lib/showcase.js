@@ -70,7 +70,7 @@ export function showcaseFrom(journal, fallbackFilm = null) {
   /* Das Tagebuch wächst hinten (siehe Step6Result.jsx), die letzten Träume
      stehen also am Ende. Gezeigt wird das Neueste zuerst. */
   const newestFirst = [...(journal || [])].reverse();
-  const own = newestFirst.filter((e) => !isSeed(e));
+  const own = newestFirst.filter((e) => !isSeed(e) && e?.kind !== "blank");
   const seed = newestFirst.filter(isSeed);
 
   const ownStills = collect(own, imagesOf, MAX_STILLS);
