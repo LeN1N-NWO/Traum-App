@@ -18,7 +18,7 @@ import "./voice.css";
  * fails but as an equal way in — some things are easier to write than to say
  * out loud, and a dream is often one of them.
  */
-export default function VoiceInterview({ onDone, onEarly, onCancel }) {
+export default function VoiceInterview({ onDone, onEarly, onDraft, onCancel }) {
   const { state: app, update } = useAppState();
   /* The chosen voice, or null while the picker is up — the session must not
    * open (and the microphone must not turn on) until one is settled.
@@ -78,7 +78,7 @@ export default function VoiceInterview({ onDone, onEarly, onCancel }) {
         }),
       onTool: ({ name, args }) => {
         const c = collected.current;
-        if (name === "setDreamText" && args.text) c.text = args.text;
+        if (name === "setDreamText" && args.text) { c.text = args.text; draftSettled(); }
         if (name === "addPerson" && args.name) {
           if (!c.people.some((p) => p.name === args.name)) {
             c.people.push({ name: args.name, kind: args.kind === "pet" ? "pet" : "person", desc: args.desc || "" });
@@ -118,6 +118,39 @@ export default function VoiceInterview({ onDone, onEarly, onCancel }) {
   }
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [lines]);
+
+  /* Vorauslesen, während noch geredet wird (Antons Wunsch 22.08.: „schon
+   * eher laufen lassen").
+   *
+   * Die Stimme ruft setDreamText, sobald der Traum Form annimmt — meist
+   * lange vor dem Abschied. Steht dieser Text ein paar Sekunden still, ist
+   * er mit hoher Wahrscheinlichkeit der endgültige, und die Auswertung kann
+   * JETZT loslaufen statt nach dem letzten Wort. Damit ist sie oft schon
+   * fertig, wenn der Bildschirm umschaltet.
+   *
+   * Der Preis für einen Fehlgriff ist bekannt und winzig: Ändert sich der
+   * Text danach doch noch, wirft der Aufrufer das Ergebnis weg und liest neu
+   * — ein DeepSeek-Aufruf kostet $0,00026. Der Deckel unten verhindert
+   * trotzdem, dass ein Mensch, der in kurzen Sätzen erzählt, ein Dutzend
+   * Läufe auslöst. */
+  const draftTimer = useRef(null);
+  const drafts = useRef(0);
+  const MAX_DRAFTS = 3;
+  const DRAFT_STILL_MS = 2500;
+
+  function draftSettled() {
+    if (!onDraft || drafts.current >= MAX_DRAFTS) return;
+    clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(() => {
+      const text = (collected.current.text || "").trim();
+      // Unter 80 Zeichen ist es noch kein Traum, sondern ein Satzanfang.
+      if (text.length < 80) return;
+      drafts.current += 1;
+      onDraft(text);
+    }, DRAFT_STILL_MS);
+  }
+
+  useEffect(() => () => clearTimeout(draftTimer.current), []);
 
   /* Der Abschied (Antons Befund 22.08.: „sie konnte nicht mal aussprechen,
    * schon waren wir weiter").
