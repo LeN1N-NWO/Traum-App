@@ -3,7 +3,10 @@ import react from "@vitejs/plugin-react";
 
 // Der Dev-Server liefert nur die Oberfläche. Alles unter /api geht an
 // server.js — dort und nur dort liegen FAL_KEY, DEEPSEEK_KEY und GEMINI_KEY.
-const API_PORT = Number(process.env.PORT) || 8100;
+// ⚠ API_PORT, NICHT PORT: PORT gehört der Oberfläche und wird von
+// Vorschau-Umgebungen gesetzt (22.08.2026: PORT=5173 schickte den
+// Proxy auf Vite selbst und band die API an Vites Port).
+const API_PORT = Number(process.env.API_PORT) || 8100;
 const API_TARGET = `http://127.0.0.1:${API_PORT}`;
 
 export default defineConfig({
