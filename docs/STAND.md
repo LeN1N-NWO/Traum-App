@@ -3,56 +3,86 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-22 (01:07) — Ende `session/2026-08-22-anton` (PR #20,
-freigegeben, wartet auf Antons Merge-Klick).
+**Stand:** 2026-08-22 (10:30) — Ende `session/2026-08-22-anton-2`,
+PR #21 freigegeben, wartet auf Antons Merge-Klick.
 ⚠ Session lief ohne Worktree direkt im Hauptrepo — nach dem Merge:
 `git checkout main && git pull`, sonst servieren die Dev-Server einen
 toten Branch.
 
 ## Wo wir stehen
 
-Antons große Live-Testrunde ist eingearbeitet. Die App rendert jetzt
-**alles im Hintergrund**: Bilder und Filme gehen als Aufträge in fals
-Warteschlange, der Traum steht sofort als Journal-Kachel („wird gerade
-erstellt"), ein App-weiter Collector (`src/lib/collector.js`, verdrahtet
-in `AppState.jsx`) holt ab, meldet per Toast und erstattet Gescheitertes.
-Kein Wartebildschirm mehr, keine gehaltene Verbindung — und damit auch
-kein 10-Sekunden-Bun-Timeout mehr (Notbremse `idleTimeout: 255` in
-server.js, festgenagelt in `src/lib/timeouts.test.js`).
+Zwei Datenverluste aus Antons Testrunde sind an der Wurzel repariert,
+und der Mehrwert-Plan ist bis P2 fertig plus P3b.
 
-Dazu aus derselben Runde: Poster abgeschafft (Titel ist wieder
-App-Typografie; `media.poster` wird nur noch GELESEN), Storyboard
-Stufe B (Szenen an-/abwählbar, leere Szenen für 1 Credit nachfüllbar →
-`sceneJobs`/`sceneImages`), Rechtstexte als lesbare Seiten hinter den
-Consent-Links (CONSENT_VERSION 2, Widerruf im Profil), Übersetzungs-Stopp
-als Projektregel (nur noch en+de pflegen, Rest fällt auf Englisch
-zurück — AGENTS.md), Journal aufgeräumt (Suche als Lupe, Träume oben,
-Besetzung/Atlas/Menagerie darunter), Ortsregel im Analyse-Prompt
-repariert (Schauplatz statt „Himmel über X"), Kamera-Knopf im
-AvatarDialog, Test-Credits im Dev-Startmenü.
+**Der Traum entsteht beim Druck auf Erzeugen** (`src/wizard/Step5Style.jsx`),
+nicht mehr erst wenn die Bilder da sind. Er trägt die Marke `pending`,
+die Aufträge hängen sich einzeln an, abgerechnet wird je abgegebenem
+Auftrag, und der Collector holt überall in der App ab. Wer mittendrin
+wegklickt, verliert nichts mehr.
 
-Aus der Cloud (#18) ist der **Mehrwert-P2-Rechenteil** da und getestet:
+**Bilder liegen immer im Hauptrepo** (`src/lib/mediaRoot.js`): Aus einem
+Worktree heraus biegt der Server MEDIA_DIR auf die Hauptwurzel um. Die
+Bilder vom 21.08. sind trotzdem verloren — sie lagen im entfernten
+Worktree, die Auftragsnummern gleich mit.
 
-- `src/lib/checkin.js` — Morgen-Check-in („Wie hast du geschlafen?",
-  drei Stufen): `checkinOn` · `setCheckin` (kappt bei 400) ·
-  `sleepAverage` · `sleepByMood`. ⚠ Nur EINE Frage (Antons
-  Entscheidung): die Stimmung kommt aus `analysis.mood`.
-- `src/lib/atlas.js:137` — `recurrenceFor(journal, entry)`: was an
-  DIESEM Traum schon einmal da war, mit `entryIds` zum Antippen.
-- `package.json` — Tests laufen unter `TZ=Europe/Berlin`.
+Dazu fertig: Schlafkachel und Wiederkehr-Hinweis (Mehrwert P2),
+Einschlaf-Timer (P3b), Szenentext vor dem Erzeugen anpassbar,
+Mini-Credit-Geschenke der Serie, „ich"/„I" verknüpft automatisch das
+eigene Profilbild, Stimmproben liegen als 516 KB AAC im Repo.
 
 ## Nächste Schritte
 
-1. **P2 fertigstellen:** Atlas-Kachel zur Schlaf-Auswertung
-   (`sleepAverage`/`sleepByMood` warten in checkin.js) und der
-   Wiederkehr-Hinweis (`recurrenceFor`) im Traum-Detail ÜBER der
-   Reflection · `components/Recurrence.jsx` fehlt noch.
-2. **Streak-Board Stufe 2** erst nach Antons Ja/Nein: Mini-Credit-
-   Geschenke (7→1, 30→3) · Schlummernacht · „Nichts hängengeblieben"-
-   Eintrag (Plan §3/§5/§6).
-3. **Schlussstein:** je ein echter bezahlter Film pro Stufe durch die
-   App-UI (~$4; Lebendig/Regie/Kino + Abspann T3). Nur von Antons
-   Rechner möglich (Cloud erreicht fal nicht).
+1. **Antons Entscheidungen abwarten** (siehe unten) — ohne sie ist der
+   Streak-Ausbau und die Preset-Frage blockiert.
+2. **Traumzeichen-Karten:** Anton erzeugt die 20 Symbolbilder selbst
+   (Liste und Prompts: `docs/plans/2026-08-22-traumzeichen-karten.md`).
+   Danach zu bauen: Bild statt Emoji auf Symbolseite und Atlas, Karte
+   teilbar. Ablage `public/symbols/<id>.webp`, Dateiname IST die ID.
+3. **Schlussstein** (je ein bezahlter Film pro Stufe) — von Anton
+   ausdrücklich vertagt: „noch nicht machen".
+
+## Bekannte Baustellen
+
+- **Streak-Board Stufe 2** (`docs/plans/2026-08-21-streak-board-gamification.md`):
+  Schlummernacht (§6) und „Nichts hängengeblieben"-Eintrag (§3) warten
+  auf Antons Ja/Nein. Das garantierte Sonderwesen je Meilenstein (§5)
+  ist ebenfalls offen.
+- **Klang-Presets** (P3b-Rest): „Regennacht"/„Zugfahrt" brauchen
+  lizenzierte Audiodateien. Nur CC0 nehmen — Pixabay und Mixkit
+  verbieten die Weitergabe der Datei „as standalone", und ein Mixer ist
+  genau dieser Grenzfall. Quelle + Lizenz gehören dann ins Repo.
+- **Mehrwert-Plan** (`2026-08-21-mehrwert-inhalte.md`): P1, P2a, P2b und
+  P3b gebaut. Offen: P2c (Traumzeichen, s. o.), P3a Albtraum-Umschreiben
+  (Wortlaut mit dem Rechtsplan abstimmen).
+- **Recht** (Plan recht-einwilligung §4): Punkt 1 gebaut; offen
+  Upload-Zusicherung im AvatarDialog (2) · KI-Kennzeichnung/C2PA (3) ·
+  Speicherfristen /media (4, server.js speichert unbegrenzt) ·
+  DeepSeek-China-Entscheidung (5). Anwalt vor Store-Launch.
+- **Antons offene Antworten:** Faultier-Easter-Egg — ersetzt oder
+  begleitet echte Figuren? (`faultier-assets.md`) · Preislinie (85 %
+  Marge halten vs. Modellpreise durchreichen; seine Linie ist
+  Durchreichen, die Preisliste ist noch nicht danach gerechnet) ·
+  Stil der Traumzeichen-Karten.
+- **Kein Zahlungsanbieter.** Dummy-Film im Kaufblatt (`Paywall.jsx`).
+
+## Fallen, die man nur einmal sieht
+
+- `update()` in `src/state/AppState.jsx:50` nimmt auch Funktionen:
+  `(prev) => patch`. Wer in Schritten arbeitet (Wizard, Schleifen), MUSS
+  das benutzen — die veraltete Journalliste aus dem Renderzeitpunkt hat
+  am 22.08. einen ganzen Traum gelöscht.
+- `clearStalePending()` (`AppState.jsx:36`) räumt beim Start hängende
+  „wird erstellt"-Marken. Beim Start läuft kein Wizard, also ist jede
+  gefundene Marke ein Abbruch.
+- `recurrenceFor()` (`src/lib/atlas.js:142`) zählt ALLE anderen Träume,
+  nicht nur ältere — die Oberfläche sagt deshalb „weitere Träume".
+- `key={open.id}` am JournalDetail (`JournalScreen.jsx`) ist Pflicht:
+  ohne ihn trägt der Bearbeiten-Entwurf beim Sprung in einen anderen
+  Traum den alten Wortlaut mit und überschreibt ihn beim Speichern.
+- `PORT` gehört der Oberfläche, `API_PORT` der API (`scripts/dev.mjs`,
+  `vite.config.js`). Beide auf `PORT` zu hören band die API an Vites
+  Port — IPv4 gegen IPv6, Oberfläche mal aus Vite, mal aus altem dist/.
+- Erzeugte Medien NIE im Worktree (`src/lib/mediaRoot.js`, AGENTS.md).
 
 ## Klickbare Wolken-Vorschau (aus #18)
 
@@ -60,66 +90,4 @@ Der Build als eigenständige HTML-Datei, veröffentlicht als Artifact:
 **https://claude.ai/code/artifact/7a42cf64-fe13-49f2-a31e-46b67afb5616**
 Alles Lokale funktioniert, Erzeugen nicht (braucht den Server). Zum
 Auffrischen: `bun run build` + Bündelskript, denselben Pfad erneut
-veröffentlichen. Bewusst NICHT im Repo.
-
-## Bekannte Baustellen
-
-- **Mehrwert-Plan** (`2026-08-21-mehrwert-inhalte.md`): P1 gebaut; P2a/b
-  halb (Rechnung ja, Oberfläche nein); offen P2c Traumzeichen-Karten ·
-  P3a Albtraum-Umschreiben (Wortlaut mit Rechtsplan abstimmen) · P3b
-  Einschlaf-Timer.
-- **Recht** (Plan recht-einwilligung §4): Punkt 1 gebaut; offen
-  Upload-Zusicherung im AvatarDialog (2) · KI-Kennzeichnung/C2PA (3) ·
-  Speicherfristen /media (4, server.js speichert unbegrenzt) ·
-  DeepSeek-China-Entscheidung (5). Anwalt vor Store-Launch.
-- **Antons offene Antworten:** „Guten Abend"-Gruß ersetzen? ·
-  Faultier-Easter-Egg: ersetzt oder begleitet echte Figuren?
-  (`faultier-assets.md`) · Preislinie (85 % Marge halten vs.
-  Modellpreise durchreichen — seine Linie ist Durchreichen, die
-  Preisliste ist noch nicht danach gerechnet).
-- **Kein Zahlungsanbieter.** Dummy-Film im Kaufblatt (`Paywall.jsx`).
-- Symbol-ERKENNUNG weiter nur englische Stichwörter (`symbols.js`) —
-  abgefedert über die englischen Beats; ein deutscher Traum OHNE Analyse
-  liefert im Atlas nichts. Deutsche Stichwortlisten wären der Vollausbau.
-- Direktanbieter-Schwellen (Plan direktanbieter-preise §5): Kino-Nutzung
-  ⇒ BytePlus messen (2 Mio. Gratis-Tokens) · >$200 fal/Monat ⇒ Bilder zu
-  Google direkt · H3 nie direkt.
-- Bilderstrecke teilt nach Sätzen; localStorage ~5 MB; kein `bun run lint`.
-- Dev-Umgebung: `preview_start`/launch.json servt das HAUPTREPO — im
-  Worktree `bun run dev:web` von Hand; Server auf 8100 mit
-  .env-Variablen aus dem Hauptrepo starten (Datei NICHT kopieren,
-  Vite-Watch-Falle).
-
-## Was die App ist
-
-„Dream Rushes" ist eine React-SPA: Traum aufschreiben oder sprechen → KI
-macht daraus Bildstrecke, optional Film, Reflection und Muster. **Vier
-Tabs**, Wizard über der Tab-Leiste.
-
-| Tab | Inhalt |
-|---|---|
-| Home | Begrüßung, Faultier-Film, Serien-Zeile, letzter Traum |
-| Journal | Kartenstapel/Liste, Kalender, Kino-Detail mit Storyboard + Reflection, Besetzung + Traumatlas + Menagerie |
-| **⊕** | Wizard: Traum → Ausgabe → Personen → Orte → Style → Auftrag ins Journal |
-| Sleep | Alles gratis: Checkliste, Sound-Mixer, Klartraum-Leitfaden, Symbole |
-| Profil | Porträt, Guthaben-Pille, Einstellungen (Stimme · Rechtstexte · Widerruf), „Was du mir erzählt hast" |
-
-**Stack:** Bun + Vite + React 18 + react-router-dom (HashRouter);
-`server.js` als schlüsselhaltender Proxy (fal.ai, DeepSeek, Gemini).
-Zustand in `localStorage` (`dreamrushes_v1`). Sieben Sprachen, gepflegt
-werden **en+de** (`check-i18n-shape.mjs`: de streng, Rest zählt Lücken).
-Doku und Commits deutsch.
-
-## ⚠ Stehende Entscheidungen und Fallen
-
-- **Startmenü bleibt** (fragt jeden Start) und **Seed-Journal bleibt** —
-  beides fliegt nur auf Antons ausdrückliches Wort.
-- Modellwissen lebt in `video.js` (`refsField`/`refStyle`/`aspect`/
-  `noExpand`); der Regisseur spricht je Modell die richtige Syntax,
-  `checkDirectedPrompt` liest alle drei. H3-Geldfallen verriegelt
-  („768P" ausdrücklich, `enable_prompt_expansion:false`).
-- **Bogen-Pflicht** (`lib/sheets.js`): Fotos werden beim ersten BEZAHLTEN
-  Render zum Charakterbogen normalisiert (träge · gratis · veraltbar;
-  Orte ausgenommen; Fallback rohes Foto).
-- Capacitor + StoreKit + RevenueCat vor Launch · DeepSeek immer ohne
-  max_tokens, stream:false · nie auf geratene Feldnamen bezahlt rendern.
+veröffentlichen. Bewusst NICHT im Repo. Stand: vor dieser Sitzung.
