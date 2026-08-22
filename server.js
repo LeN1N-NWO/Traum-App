@@ -456,7 +456,16 @@ function voiceSystem({ name = "", cast = [], lang = "", mode = "" } = {}) {
 
     "TOOLS\n" +
     "Call addPerson and addPlace the moment someone or somewhere is named — do not wait for the end. " +
-    "Call finish when they are done, and call setDreamText one last time before you do."
+    /* Der Abschiedssatz (Antons Wunsch 22.08.): Vorher hörte die Stimme
+       einfach auf und die App sprang weiter — ein Gespräch, das mitten im
+       Satz endet, fühlt sich nach Absturz an, nicht nach Abschluss. EIN
+       kurzer Satz, kein Ritual: gesagt wird er VOR finish, sonst ist die
+       Sitzung schon zu, bevor er ausgesprochen ist. */
+    "Call finish when they are done, and call setDreamText one last time before you do. " +
+    "BEFORE calling finish, say one short warm closing line in their language — that you have " +
+    "everything and the dream is now being taken care of (in the spirit of: 'Alles drin. Ich " +
+    "kümmere mich jetzt um deinen Traum — bis gleich.'). One sentence, then finish. Never end " +
+    "the conversation silently."
   );
 }
 
@@ -1194,12 +1203,19 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds })
  * jobStatus und /api/job kennen keinen Unterschied zwischen Bild und
  * Film — nur die Antwort von fal sieht anders aus (images[] statt
  * video), und genau diese eine Stelle steht in jobStatus. */
-async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16" }) {
+async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", sequenceRef = null }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
   const input = { prompt, aspect_ratio: aspectRatio };
   const imageUrls = namedRefs.map((r) => r.img).filter(Boolean);
+  /* Der Weltanker der Bildkette: der vorige Frame, als LETZTES Bild.
+     ⚠ Die Position ist Vertrag, nicht Zufall — buildImagePrompt sagt dem
+     Modell „the LAST reference image is the previous frame". Die Besetzung
+     bleibt davor in ihrer gewohnten Reihenfolge, damit ihre Bindungs-
+     Klauseln („shown in his reference photo") weiter dieselben Bilder
+     treffen wie in einer Strecke ohne Kette. */
+  if (sequenceRef) imageUrls.push(sequenceRef);
   if (imageUrls.length) input.image_urls = imageUrls;
   // Gleiche Regel wie im Sofort-Pfad: mit Referenzen MUSS es das
   // Edit-Modell sein, sonst verschwinden die Ähnlichkeiten lautlos.
@@ -2051,7 +2067,23 @@ Bun.serve({
             imagePrompt = buildFallbackPrompt(dream, cast);
           }
         }
-        const imageJob = await falSubmitImage({ prompt: imagePrompt, namedRefs: cast, aspectRatio });
+        /* Der Anker der Bildkette: ein /media/-Pfad, NIE eine URL — dieselbe
+           Regel und dieselbe Begründung wie beim Film-Keyframe: resolveMedia
+           matcht nur Namen, die dieser Server selbst geschrieben hat, und
+           fal bekommt die Bytes als data-URI, weil es den lokalen Pfad nie
+           erreichen könnte. Fehlt die Datei, rendert die Szene OHNE Anker
+           weiter — ein fehlender Anker ist ein Schönheitsfehler, eine
+           geplatzte Szene wäre ein Loch in der Strecke. */
+        let seqRef = null;
+        if (typeof body.sequenceRef === "string" && body.sequenceRef) {
+          const hit = resolveMedia(body.sequenceRef);
+          const file = hit && Bun.file(resolve(MEDIA_DIR, hit.name));
+          if (hit && (await file.exists())) {
+            const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
+            seqRef = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
+          }
+        }
+        const imageJob = await falSubmitImage({ prompt: imagePrompt, namedRefs: cast, aspectRatio, sequenceRef: seqRef });
         return json({ ok: true, jobId: imageJob });
       } catch (e) {
         const map = {

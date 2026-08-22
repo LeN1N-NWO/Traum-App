@@ -129,8 +129,8 @@ export async function transcribe(audio) {
  * sichtbar bleibt, was den Server erreicht. Preis dieser Sichtbarkeit: ein
  * neues Feld muss an BEIDEN Stellen stehen, sonst verschwindet es still —
  * `styleId` und `beats` kamen am 19.08.2026 für den Regisseur dazu. */
-export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats }) {
-  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats });
+export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats, sequenceRef }) {
+  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats, sequenceRef });
   if (Array.isArray(data?.urls)) return { urls: data.urls };
   if (typeof data?.jobId === "string") return { jobId: data.jobId };
   throw new Error(t.errors.unexpected);

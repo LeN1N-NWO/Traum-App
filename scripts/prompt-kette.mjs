@@ -65,7 +65,8 @@ linie("STUFE 4 — Der Bildauftrag, Szene für Szene");
 console.log(`Stilblock (styles.js → ${stil}):\n  ${styleById(stil).prompt}\n`);
 beats.forEach((beat, i) => {
   console.log(`┌─ Szene ${i + 1} von ${beats.length} ` + "─".repeat(40));
-  console.log(buildImagePrompt({ beat, styleId: stil, format, clauses, index: i + 1, total: beats.length })
+  // Ab Szene 2 hängt der vorige Frame als Weltanker dran (Bildkette, 22.08.).
+  console.log(buildImagePrompt({ beat, styleId: stil, format, clauses, index: i + 1, total: beats.length, prevFrame: i > 0 })
     .split("\n").map((z) => "│ " + z).join("\n"));
   console.log("└" + "─".repeat(60) + "\n");
 });
@@ -75,8 +76,8 @@ console.log(`Gleich in jedem Bild:  Stilblock, Format, Referenz-Klauseln, der Sa
                         „image N of ${beats.length} in one continuous dream sequence"
 Unterschiedlich:        nur die Szene selbst (Stufe 1, Zeile ${1}–${beats.length})
 
-⚠ Was FEHLT (Antons Befund 22.08.): Jedes Bild geht einzeln raus und kennt
-   die vorherigen nicht. Die Konsistenz hängt allein an den Worten oben und
-   an den Figuren-Referenzen — Licht, Palette und Ort werden jedes Mal neu
-   erfunden. Die Reihe soll stattdessen verkettet werden: Bild 1 wird zur
-   Referenz für Bild 2 und so weiter. Siehe docs/plans/.`);
+Seit dem 22.08. ist die Strecke eine KETTE: Szene n+1 wartet auf Szene n
+und bekommt deren Bild als letztes Referenzbild mit — der Satz „The LAST
+reference image is the previous frame" oben ist die andere Hälfte davon.
+Der Anker gibt Welt, Licht und Farbe vor; die Figuren bleiben trotzdem in
+jedem Bild an ihre eigenen Fotos gebunden (imageChain.js).`);

@@ -112,16 +112,31 @@ export function buildGridPrompt({ beats, styleId, clauses = [] }) {
   );
 }
 
-export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 1, total = 1 }) {
+export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 1, total = 1, prevFrame = false }) {
   const style = styleById(styleId);
   const framing = format === "16:9" ? "16:9 widescreen framing" : "9:16 vertical framing";
   const place = total > 1 ? ` This is image ${index} of ${total} in one continuous dream sequence; keep characters, wardrobe and palette consistent across all of them.` : "";
+  /* Der Weltanker der Bildkette (Antons Ansage 22.08.). Die Struktur folgt
+     dem, was Nano Banana versteht: Referenzen werden ÜBER IHRE POSITION
+     angesprochen. Der Server hängt den vorigen Frame als LETZTES Bild an
+     (falSubmitImage) — dieser Satz hier benennt genau diese Position. Wer
+     die Reihenfolge dort ändert, macht diesen Satz zur Lüge.
+     Zwei Aufgaben, sauber getrennt: Der Frame gibt Welt, Licht und Farbe
+     vor — die FIGUREN bleiben an ihre eigenen Fotos gebunden (clauses).
+     Ein Anker ersetzt keine Besetzung. Und er gibt nur die Welt vor, nie
+     den Bildaufbau: sonst klebt jede Szene in der Komposition der ersten. */
+  const anchor = prevFrame
+    ? "\nThe LAST reference image is the previous frame of this exact dream sequence. " +
+      "Match its colour grade, light, weather, environment and overall world precisely — " +
+      "these are consecutive stills from one film. Do not copy its composition; stage this " +
+      "scene's own action. Every named character must still match their own reference photo."
+    : "";
   const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
 
   return (
     `A cinematic, photoreal film still: ${beat}` +
     `\n${style.prompt}` +
-    `\n${framing}, ultra-detailed, accurate hands and faces.${place}${refs}`
+    `\n${framing}, ultra-detailed, accurate hands and faces.${place}${refs}${anchor}`
   );
 }
 

@@ -26,19 +26,23 @@
  *   läse das Storyboard das erste SZENENBILD als Titelkarte.
  */
 
+import { chainRemaining } from "./imageChain.js";
+
+/* Eine Kette mit offenen Szenen zählt als „steht aus", auch wenn gerade
+   kein Auftrag läuft — zwischen „Bild n ist da" und „Szene n+1 ist
+   eingereicht" liegt genau der Moment, in dem sonst alles einschliefe. */
+const pending = (e) =>
+  e.jobId || (e.imageJobs || []).length > 0 || (e.sceneJobs || []).length > 0 || chainRemaining(e);
+
 /** Steht irgendwo noch etwas aus? (Steuert, ob AppState überhaupt tickt.) */
 export function hasPendingJobs(journal) {
-  return (journal || []).some((e) =>
-    e.jobId || (e.imageJobs || []).length > 0 || (e.sceneJobs || []).length > 0);
+  return (journal || []).some(pending);
 }
 
 /** Fingerabdruck der offenen Aufträge — stabil über fremde Statewechsel,
  *  damit der Poll-Effekt nicht bei jedem Tippen neu startet. */
 export function pendingFingerprint(journal) {
-  return (journal || [])
-    .filter((e) => e.jobId || (e.imageJobs || []).length > 0 || (e.sceneJobs || []).length > 0)
-    .map((e) => e.id)
-    .join(",");
+  return (journal || []).filter(pending).map((e) => e.id).join(",");
 }
 
 /**
@@ -99,7 +103,13 @@ export async function collectTick(journal, ask) {
       }
 
       const settled = jobs.every((j) => j.url || j.failed);
-      if (settled) {
+      /* ⚠ Eine Kette mit offenen Szenen ist NICHT fertig, auch wenn alle
+         bisherigen Aufträge entschieden sind — der Läufer in AppState
+         reicht die nächste Szene gleich nach. Ohne diesen Guard erklärte
+         der Collector die Strecke nach Szene 1 für abgeschlossen, schrieb
+         media.urls und meldete „dein Traum ist da" — mit einem Bild von
+         fünf. */
+      if (settled && !chainRemaining(e)) {
         const urls = jobs.map((j) => j.url).filter(Boolean);
         const failed = jobs.length - urls.length;
         refund += failed;
@@ -113,6 +123,7 @@ export async function collectTick(journal, ask) {
             poster: e.media?.poster === true && !!jobs[0]?.url,
           },
           imageJobs: undefined,
+          chain: undefined,
         });
         changed = true;
         if (urls.length) messages.push(["dreamReady", e.title]);

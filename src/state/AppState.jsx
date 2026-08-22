@@ -4,7 +4,9 @@ import { buildSeedJournal } from "../lib/seedJournal.js";
 import { collectTick, pendingFingerprint } from "../lib/collector.js";
 import { giftFor } from "../lib/streakBoard.js";
 import { snoozeCheck } from "../lib/streak.js";
-import { jobStatus, backupJournal, sharedDreams } from "../lib/api.js";
+import { jobStatus, backupJournal, sharedDreams, generate } from "../lib/api.js";
+import { spend } from "../lib/credits.js";
+import { chainStep, chainFingerprint, buildChainSubmission } from "../lib/imageChain.js";
 import { backupPayload, backupFingerprint, mergeShared } from "../lib/journalBackup.js";
 import { t } from "../i18n/index.js";
 
@@ -129,6 +131,69 @@ export function AppStateProvider({ children }) {
     // Der Fingerabdruck ändert sich nur, wenn Aufträge dazukommen oder
     // fertig werden — nicht bei jedem Tastendruck irgendwo im State.
   }, [fingerprint, update, toast]);
+
+  /* Der Ketten-Läufer (Antons Ansage 22.08.: das fertige Bild wird zur
+     Referenz des nächsten). Die andere Hälfte des Abholers: Der Collector
+     holt Bilder AB, der Läufer reicht die nächste Szene EIN, sobald ihr
+     Vorgänger entschieden ist — mit dem jüngsten gelungenen Bild als
+     Weltanker (imageChain.js).
+
+     HIER und nicht im Wizard, aus demselben Grund wie alles andere in
+     dieser Datei: Die Kette muss weiterlaufen, egal wo man gerade ist —
+     und sie überlebt so auch einen Neustart, weil sie am Journal-Eintrag
+     hängt und nicht an einem offenen Bildschirm.
+
+     Scheitert die EINREICHUNG (nicht das Rendern — das erstattet der
+     Collector), bricht die Kette ehrlich ab: Marke weg, Meldung, die
+     fertigen Szenen bleiben, der Rest ist über „Bild erzeugen" im
+     Storyboard einzeln nachholbar. Endlos stumm neu versuchen hieße, im
+     Funkloch unbemerkt Kosten anzuhäufen, sobald es wiederkommt. */
+  const chainPrint = chainFingerprint(state.journal);
+  useEffect(() => {
+    if (!chainPrint) return;
+    let alive = true;
+    (async () => {
+      const s = stateRef.current;
+      const entry = (s.journal || []).find((e) => chainStep(e));
+      if (!entry) return;
+      const sub = buildChainSubmission(entry, { cast: s.cast, me: s.me });
+      if (!sub) {
+        // Kette ohne Szenentext — kann nur ein alter/kaputter Eintrag sein.
+        update((prev) => ({
+          journal: (prev.journal || []).map((e) => (e.id === entry.id ? { ...e, chain: undefined } : e)),
+        }));
+        return;
+      }
+      try {
+        const res = await generate({
+          dream: entry.text, mode: "image", cast: sub.cast, prompt: sub.prompt,
+          sequenceRef: sub.sequenceRef || undefined,
+        });
+        if (!alive) return;
+        update((prev) => ({
+          ...(spend(prev, 1) || {}),
+          journal: (prev.journal || []).map((e) => (e.id === entry.id ? {
+            ...e,
+            imageJobs: [
+              ...(e.imageJobs || []),
+              // Alt-Server antwortet sofort: als bereits entschiedener
+              // Auftrag einreihen, dann bleibt die Mechanik eine.
+              res.jobId ? { id: res.jobId } : { id: `sync${sub.beatIndex}`, url: res.urls?.[0] },
+            ],
+            chain: { ...e.chain, next: e.chain.next + 1 },
+          } : e)),
+        }));
+      } catch (err) {
+        if (!alive) return;
+        console.error("[DreamRushes] chain submit failed:", err);
+        update((prev) => ({
+          journal: (prev.journal || []).map((e) => (e.id === entry.id ? { ...e, chain: undefined } : e)),
+        }));
+        toast(`⚠ ${t.errors.renderFailed}`);
+      }
+    })();
+    return () => { alive = false; };
+  }, [chainPrint, update, toast]);
 
   /* Die Mini-Geschenke der Serie (Antons Ja 22.08., Plan §5) — HIER, aus
      demselben Grund wie der Abholer: Die Serie wächst an drei Stellen

@@ -101,3 +101,50 @@ test("a scene job lands on its beat and a failed one is refunded", async () => {
   expect(res.refund).toBe(1);
   expect(res.messages).toContainEqual(["sceneReady", 2]);
 });
+
+/* ── Der Ketten-Guard (22.08.) ───────────────────────────────────────────
+   Ohne ihn erklärte der Collector eine Strecke nach Szene 1 für fertig,
+   schrieb media.urls und meldete „dein Traum ist da" — mit einem Bild von
+   fünf. Die Kette (entry.chain) hält den Abschluss offen, bis alle Szenen
+   eingereicht UND entschieden sind. */
+test("a chain with open scenes is never finalised early", async () => {
+  const journal = [{
+    id: "e1", title: "Kette",
+    imageJobs: [{ id: "j1" }],
+    chain: { next: 1, total: 3, beats: ["A", "B", "C"] },
+  }];
+  const done = async () => ({ status: "done", urls: ["/media/a.png"] });
+  const res = await collectTick(journal, done);
+  const e = res.journal[0];
+  // Das Bild ist notiert, aber die Strecke bleibt offen: kein media.urls,
+  // keine dreamReady-Meldung, die Kette steht noch.
+  expect(e.imageJobs[0].url).toBe("/media/a.png");
+  expect(e.chain).toBeTruthy();
+  expect(e.media?.urls).toBeUndefined();
+  expect(res.messages.find(([k]) => k === "dreamReady")).toBeUndefined();
+});
+
+test("a finished chain finalises normally and is cleaned off the entry", async () => {
+  const journal = [{
+    id: "e1", title: "Kette",
+    imageJobs: [{ id: "j1", url: "/media/a.png" }, { id: "j2" }],
+    chain: { next: 2, total: 2, beats: ["A", "B"] },
+  }];
+  const done = async () => ({ status: "done", urls: ["/media/b.png"] });
+  const res = await collectTick(journal, done);
+  const e = res.journal[0];
+  expect(e.media.urls).toEqual(["/media/a.png", "/media/b.png"]);
+  expect(e.chain).toBeUndefined();
+  expect(e.imageJobs).toBeUndefined();
+  expect(res.messages).toContainEqual(["dreamReady", "Kette"]);
+});
+
+test("hasPendingJobs counts an idle chain as pending", async () => {
+  const e = {
+    id: "e1",
+    imageJobs: [{ id: "j1", url: "/media/a.png" }],
+    chain: { next: 1, total: 3, beats: ["A", "B", "C"] },
+  };
+  expect(hasPendingJobs([e])).toBe(true);
+  expect(pendingFingerprint([e])).toBe("e1");
+});
