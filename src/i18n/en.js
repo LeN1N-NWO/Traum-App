@@ -84,6 +84,23 @@ export default {
     atlasDreamsN: (n) => (n === 1 ? "dream" : "dreams"),
     atlasSymbols: "Recurring symbols",
     atlasMoods: "Moods",
+    /* Die Schlaf-Kachel. atlasSleepAvg bekommt das WORT aus checkin.levels,
+       nicht die Zahl — dieselbe Sprache wie die Morgenfrage, sonst antwortet
+       man in Worten und liest eine Note ab. */
+    atlasSleep: "Sleep",
+    atlasSleepAvg: (word) => `Mostly ${word}`,
+    atlasSleepNote: (nights, avg) =>
+      `${nights} ${nights === 1 ? "night" : "nights"} noted · ${avg.toFixed(1)} of 3`,
+    atlasSleepEmpty: "Answer the morning question on your home screen — sleep and dreams meet here.",
+    /* Der Wiederkehr-Befund im Traum-Detail. Kurz und klein gesetzt wie die
+       anderen Etiketten; die Zahl steht auf der Marke selbst.
+
+       ⚠ „other", nicht „earlier": recurrenceFor zählt ALLE anderen Träume.
+       Beim frisch geschriebenen Traum sind das die früheren — beim Öffnen
+       eines alten Eintrags aber auch spätere, und „2 frühere Träume" wäre
+       dann schlicht gelogen. */
+    recurrenceTitle: "Turns up again",
+    recurrenceIn: (n, what) => `${what} — in ${n} other ${n === 1 ? "dream" : "dreams"}`,
     reflectTitle: "Reflection",
     reflectCta: "What might this dream be saying?",
     reflectHint: "One possible reading, drawn from your own journal — free",

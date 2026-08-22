@@ -13,13 +13,14 @@ import { buildReferences, buildImagePrompt } from "../../lib/promptBuilder.js";
 import { renderRef } from "../../lib/sheets.js";
 import { t } from "../../i18n/index.js";
 import Storyboard from "../../components/Storyboard.jsx";
+import Recurrence from "../../components/Recurrence.jsx";
 import EntryMenu from "./EntryMenu.jsx";
 import RefineSheet from "./RefineSheet.jsx";
 import { DeckView, CastChips } from "./DreamViews.jsx";
 import { IconImages, IconFilm, IconShare, IconSparkle, IconPencil, ChevronRight } from "../../components/icons.jsx";
 import "./journal.css";
 
-export default function JournalDetail({ entry, onClose }) {
+export default function JournalDetail({ entry, onClose, onOpen }) {
   const { state, update, toast, openPaywall } = useAppState();
   const navigate = useNavigate();
   const closeRef = useRef(null);
@@ -409,6 +410,13 @@ export default function JournalDetail({ entry, onClose }) {
         {/* Die Besetzung mit Gesichtern statt der nackten @tag-Zeile. */}
         {entry.references?.length > 0 && (
           <CastChips refs={entry.references} cast={state.cast || []} me={state.me} />
+        )}
+
+        {/* Was an diesem Traum schon einmal da war — gezählt, nicht gedeutet,
+            und deshalb ÜBER der Reflection: erst der Befund, dann die
+            Lesart. Antippen führt in den früheren Traum (Mehrwert-Plan P2b). */}
+        {!editing && !proposal && onOpen && (
+          <Recurrence journal={state.journal || []} entry={entry} onOpen={onOpen} />
         )}
 
         {/* Die Reflection: Spiegel, nicht Orakel (Mehrwert-Plan P1a). Ein

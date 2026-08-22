@@ -110,6 +110,21 @@ test("recurrence names what came before, most frequent first", () => {
   expect(got.symbols.find((s) => s.id === "falling").count).toBe(1);
 });
 
+/* ⚠ Die Zählung kennt keine Richtung: Wer einen ALTEN Traum aufschlägt,
+   bekommt auch spätere mitgezählt. Das ist gewollt (eine Wiederkehr ist eine
+   Wiederkehr, egal in welche Richtung man blättert) — aber es verbietet der
+   Oberfläche das Wort „frühere Träume". Genau daran ist die erste Fassung des
+   Wiederkehr-Hinweises gescheitert: „in 2 früheren Träumen" stand über einem
+   Traum, von dem einer der beiden von HEUTE war. */
+test("a dream opened later counts the newer ones too — hence 'other', not 'earlier'", () => {
+  const j = [
+    dream("alt", { text: "water everywhere", createdAt: "2026-08-01T08:00:00.000Z" }),
+    dream("neu", { text: "the sea again", createdAt: "2026-08-10T08:00:00.000Z" }),
+  ];
+  // Aufgeschlagen wird der ÄLTERE — der einzige andere Traum ist neuer.
+  expect(recurrenceFor(j, j[0]).symbols[0].entryIds).toEqual(["neu"]);
+});
+
 test("a symbol only in THIS dream is not a recurrence", () => {
   const j = [
     dream("alt", { text: "a quiet room" }),

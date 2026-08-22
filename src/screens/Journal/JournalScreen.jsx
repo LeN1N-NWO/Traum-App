@@ -206,7 +206,23 @@ export default function JournalScreen() {
           it; filtering the map would hide the very days you are looking for. */}
       {total > 0 && <DreamCalendar onOpen={setOpenId} />}
 
-      {open && <JournalDetail entry={open} onClose={() => setOpenId(null)} />}
+      {/* onOpen: aus einem Traum in einen früheren springen (der
+          Wiederkehr-Hinweis im Detail). Dasselbe setOpenId — der Bildschirm
+          bleibt stehen, nur der Eintrag darin wechselt.
+
+          ⚠ key={open.id} ist Pflicht, nicht Kosmetik: Das Detail hält den
+          Bearbeiten-Entwurf in useState(entry.text), und ein useState-
+          Startwert wird nur beim MONTEN gelesen. Ohne den Schlüssel trüge
+          man beim Sprung den Wortlaut des alten Traums mit — und
+          überschriebe beim Speichern den neuen damit. */}
+      {open && (
+        <JournalDetail
+          key={open.id}
+          entry={open}
+          onClose={() => setOpenId(null)}
+          onOpen={setOpenId}
+        />
+      )}
     </main>
   );
 }

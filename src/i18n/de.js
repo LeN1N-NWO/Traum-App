@@ -78,6 +78,16 @@ export default {
     atlasDreamsN: (n) => (n === 1 ? "Traum" : "Träume"),
     atlasSymbols: "Wiederkehrende Symbole",
     atlasMoods: "Stimmungen",
+    /* Die Schlaf-Kachel. Das Komma im Schnitt ist Absicht: 2.4 liest sich
+       im Deutschen als Datum, nicht als Zahl. */
+    atlasSleep: "Schlaf",
+    atlasSleepAvg: (word) => `Meistens ${word}`,
+    atlasSleepNote: (nights, avg) =>
+      `${nights} ${nights === 1 ? "Nacht" : "Nächte"} notiert · ${avg.toFixed(1).replace(".", ",")} von 3`,
+    atlasSleepEmpty: "Beantworte morgens die Frage auf der Startseite — hier treffen sich Schlaf und Träume.",
+    /* ⚠ „weitere", nicht „frühere" — Begründung in en.js. */
+    recurrenceTitle: "Kommt öfter vor",
+    recurrenceIn: (n, what) => `${what} — in ${n} ${n === 1 ? "weiteren Traum" : "weiteren Träumen"}`,
     reflectTitle: "Reflexion",
     reflectCta: "Was könnte dieser Traum sagen wollen?",
     reflectHint: "Eine mögliche Lesart, aus deinem eigenen Journal — gratis",

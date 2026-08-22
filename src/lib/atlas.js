@@ -123,16 +123,21 @@ export function reflectionContext(journal, entry) {
  *  zwei Formen, EINE Zählung darunter (symbolCounts), damit die Aussagen
  *  nicht auseinanderlaufen.
  *
- *  `minCount` ist bewusst 1 (= mindestens ein FRÜHERER Traum): Beim zweiten
+ *  `minCount` ist bewusst 1 (= mindestens ein ANDERER Traum): Beim zweiten
  *  Auftreten ist die Wiederkehr die Nachricht. Wer erst ab dem dritten
  *  meldet, verschweigt genau den Moment, in dem ein Mensch stutzt.
+ *
+ *  ⚠ Gezählt werden ALLE anderen Träume, nicht nur ältere — beim gerade
+ *  geschriebenen Traum ist das dasselbe, beim Öffnen eines alten Eintrags
+ *  nicht. Die Oberfläche sagt deshalb „weitere Träume" statt „frühere"
+ *  (i18n recurrenceIn); festgenagelt im Test „a dream opened later …".
  *
  *  Ohne Analyse-Beats erkennt symbols.js nur englische Stichwörter — ein
  *  deutscher Traum OHNE Analyse liefert hier also nichts. Das ist kein
  *  Fehler, sondern dieselbe Grenze wie im ganzen Atlas (Dateikopf).
  *
  *  @returns {{symbols: {id,count,entryIds}[], cast: {tag,count,entryIds}[]}}
- *           beide häufigste zuerst, `count` = Anzahl FRÜHERER Träume.
+ *           beide häufigste zuerst, `count` = Anzahl ANDERER Träume.
  */
 export function recurrenceFor(journal, entry) {
   if (!entry) return { symbols: [], cast: [] };
