@@ -13,7 +13,7 @@ für Sachen, die Mehrwert bringen; was andere machen, will ich auch haben")
 | P2b Wiederkehr | gebaut | `components/Recurrence.jsx` im Traum-Detail |
 | P2c Luzid-Werkzeuge | offen | Traumzeichen-Karten kosten 1 Credit — Antons Wort fehlt |
 | P3a Albtraum umschreiben | offen | Wortlaut erst mit dem Rechtsplan abstimmen |
-| P3b Einschlaf-Timer | offen | — |
+| P3b Einschlaf-Timer | gebaut (Presets offen) | Schlaf → Klänge, `soundMixer.js` |
 
 ## 1. Das Marktbild (recherchiert 21.08.)
 
@@ -129,6 +129,18 @@ selbst ein Verkaufsargument („bei uns kostet das Einschlafen nichts,
 Credits kosten nur Bilder"). Klein nachlegen: Einschlaf-Timer (Ausblenden
 nach n Minuten), 2–3 Presets („Regennacht", „Zugfahrt") — mehr nicht;
 keine 300-Sounds-Bibliothek, keine eingekauften Sleep Stories.
+
+> **Timer gebaut am 22.08.** — „Ausblenden nach": Aus · 15 · 30 · 60 Min,
+> Ausblenden über eine Minute. Still wird nur der Klang, die gespeicherte
+> Mischung bleibt. Gezählt wird ab der letzten Berührung.
+>
+> **Presets offen** — und dafür fehlt eine Zutat: „Regennacht" und
+> „Zugfahrt" sind KEINE Rauschfarben. Der Mixer erzeugt drei Rauschen
+> synthetisch (`noise.js`), Regen und Zug wären Audiodateien, die jemand
+> lizenzieren und ausliefern muss (Größe, Rechte, App-Store-Gewicht).
+> Solange das nicht entschieden ist, wären „Presets" nur drei
+> Regler-Voreinstellungen mit hübschen Namen — das verspricht mehr, als
+> es hält. Antons Wort nötig.
 
 ## 3. Reihenfolge und Aufwand
 
