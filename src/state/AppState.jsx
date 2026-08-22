@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef } f
 import { loadState, saveState, DB_KEY } from "../lib/storage.js";
 import { buildSeedJournal } from "../lib/seedJournal.js";
 import { collectTick, pendingFingerprint } from "../lib/collector.js";
+import { giftFor } from "../lib/streakBoard.js";
 import { jobStatus } from "../lib/api.js";
 import { t } from "../i18n/index.js";
 
@@ -103,6 +104,21 @@ export function AppStateProvider({ children }) {
     // Der Fingerabdruck ändert sich nur, wenn Aufträge dazukommen oder
     // fertig werden — nicht bei jedem Tastendruck irgendwo im State.
   }, [fingerprint, update, toast]);
+
+  /* Die Mini-Geschenke der Serie (Antons Ja 22.08., Plan §5) — HIER, aus
+     demselben Grund wie der Abholer: Die Serie wächst an drei Stellen
+     (Wizard-Schritt 2, 5 und 6), und drei Kopien derselben Vergabe wären
+     drei Gelegenheiten, sie falsch zu machen. Eine Mechanik, ein Ort.
+
+     giftFor() ist idempotent (die vergebenen Schwellen stehen im State),
+     also kann dieser Effekt gefahrlos bei jeder Serienänderung laufen —
+     nach dem Patch findet er nichts mehr. */
+  useEffect(() => {
+    const gift = giftFor(stateRef.current);
+    if (!gift) return;
+    update(gift.patch);
+    toast(t.streakBoard.gift(gift.nights, gift.credits));
+  }, [state.streak, state.streakGifts, update, toast]);
 
   return (
     <Ctx.Provider value={{

@@ -56,6 +56,11 @@ export default {
      existiert — die Wesen-Rarität steigt wirklich mit der Serie. */
   streakBoard: {
     title: "Your streak",
+    /* Die Mini-Geschenke (Antons Ja 22.08.). Der Ton ist bewusst nüchtern:
+       ein Credit ist ein Bild, keine Konfetti-Kanone. */
+    gift: (nights, credits) =>
+      `✦ ${nights} nights — ${credits} ${credits === 1 ? "credit" : "credits"} from us`,
+    giftBadge: (credits) => `+${credits} ${credits === 1 ? "credit" : "credits"}`,
     nights: (n) => (n === 1 ? "night" : "nights"),
     next: (n) => (n === 1 ? "1 more night to the next milestone." : `${n} more nights to the next milestone.`),
     done: "Every milestone reached. You are the calendar now.",

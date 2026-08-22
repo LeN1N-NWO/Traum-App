@@ -50,6 +50,9 @@ export default {
 
   streakBoard: {
     title: "Deine Serie",
+    gift: (nights, credits) =>
+      `✦ ${nights} Nächte — ${credits} ${credits === 1 ? "Credit" : "Credits"} von uns`,
+    giftBadge: (credits) => `+${credits} ${credits === 1 ? "Credit" : "Credits"}`,
     nights: (n) => (n === 1 ? "Nacht" : "Nächte"),
     next: (n) => (n === 1 ? "Noch 1 Nacht bis zum nächsten Meilenstein." : `Noch ${n} Nächte bis zum nächsten Meilenstein.`),
     done: "Alle Meilensteine erreicht. Du bist jetzt der Kalender.",
