@@ -907,6 +907,13 @@ export default {
     textOnly: "No picture is tied to this scene yet — the film builds it from the words.",
     fillScene: "Create this scene's image",
     scenePending: "This scene is being made — you'll get a note when it lands.",
+    /* Den Szenentext vor dem Erzeugen anpassen (Antons Wunsch 22.08.).
+       Der Hinweis sagt bewusst, dass die Änderung BLEIBT: Wer hier tippt,
+       ändert den Bogen des Traums, nicht nur diesen einen Bildauftrag. */
+    editBeat: "Adjust the wording",
+    editHint: "Kept with the dream — the film uses these words too.",
+    editSave: "Save wording",
+    editCancel: "Leave it",
   },
   errors: {
     storageFull: "⚠ Storage full — delete old entries or reference photos.",

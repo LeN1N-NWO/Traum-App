@@ -128,6 +128,31 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
     setBusy(false);
   }
 
+  /* Den Wortlaut einer Szene ändern (Antons Wunsch 22.08.: „damit man den
+   * Text nochmal anpassen kann, direkt bevor man generiert").
+   *
+   * Gespeichert wird am TRAUM, in analysis.beats — genau deshalb, weil er
+   * „nicht irgendwie ein Problem später" wollte: Aus diesem einen Feld
+   * lesen die Kacheln, der Bildauftrag (renderScene unten) und der
+   * Filmschnitt. Eine zweite Fassung nur für den Bildauftrag wären zwei
+   * Wahrheiten, die ab dem nächsten Film auseinanderlaufen.
+   *
+   * ⚠ Nur der TEXT ändert sich, nie die ANZAHL der Szenen: An der Länge
+   * von beats hängen die Beat↔Bild-Zuordnung (imageIndexForBeat), die
+   * Szenenwahl im Film-Schritt und die Sekundenrechnung. Wer hier später
+   * Hinzufügen oder Löschen einbaut, muss diese drei mitdenken. */
+  function editBeat(i, text) {
+    const clean = String(text || "").trim();
+    const beats = entry.analysis?.beats || [];
+    if (!clean || !beats[i] || clean === beats[i]) return;
+    update({
+      journal: state.journal.map((e) => (e.id === entry.id ? {
+        ...e,
+        analysis: { ...e.analysis, beats: beats.map((b, k) => (k === i ? clean : b)) },
+      } : e)),
+    });
+  }
+
   /* Eine leere Storyboard-Kachel nachfüllen (Antons Go 21.08.): EIN Bild
    * für GENAU diese Szene — 1 Credit, als Hintergrund-Auftrag; der
    * Collector schreibt es nach sceneImages[beat] und meldet sich. Die
@@ -308,7 +333,12 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
         {!editing && !proposal && entry.analysis?.beats?.length > 0 && (
           <div className="j-storyboard">
             <p className="j-original-label">{t.storyboard.label}</p>
-            <Storyboard beats={entry.analysis.beats} entry={entry} onRenderScene={renderScene} />
+            <Storyboard
+              beats={entry.analysis.beats}
+              entry={entry}
+              onRenderScene={renderScene}
+              onEditBeat={editBeat}
+            />
           </div>
         )}
 

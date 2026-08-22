@@ -845,6 +845,10 @@ export default {
     textOnly: "An dieser Szene hängt noch kein Bild — der Film baut sie aus den Worten.",
     fillScene: "Bild für diese Szene erzeugen",
     scenePending: "Diese Szene wird gerade erstellt — du bekommst eine Nachricht, wenn sie da ist.",
+    editBeat: "Wortlaut anpassen",
+    editHint: "Bleibt am Traum gespeichert — der Film nimmt diese Worte ebenfalls.",
+    editSave: "Übernehmen",
+    editCancel: "Doch nicht",
   },
   errors: {
     storageFull: "⚠ Speicher voll — alte Einträge oder Referenzfotos löschen.",
