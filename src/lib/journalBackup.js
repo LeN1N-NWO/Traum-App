@@ -92,3 +92,45 @@ export function backupFingerprint(journal) {
       `:${(x.traum.medien?.bilder || []).length}:${x.traum.reflection ? 1 : 0}`)
     .join("|");
 }
+
+/** Aus einem gesicherten Traum wieder einen Journal-Eintrag machen.
+ *
+ *  Die Umkehrung von backupEntry(), und bewusst NICHT symmetrisch: Was in
+ *  der Sicherung fehlt, fehlt aus gutem Grund (Fotos) und darf hier nicht
+ *  erfunden werden. Die Medienpfade zeigen auf /media dieses Rechners —
+ *  fehlt die Datei, zeigt die App eine leere Kachel und bietet „Bilder
+ *  machen" an. Das ist die ehrliche Anzeige, kein Fehler. */
+export function restoreEntry(gesichert) {
+  if (!gesichert?.id) return null;
+  const e = {
+    id: gesichert.id,
+    createdAt: gesichert.createdAt,
+    title: gesichert.title || "",
+    tagline: gesichert.tagline || "",
+    text: gesichert.text || "",
+    originalText: gesichert.originalText || "",
+    references: gesichert.references || [],
+    media: { type: "image", urls: gesichert.medien?.bilder || [], source: "api", poster: false },
+  };
+  if (gesichert.kind && gesichert.kind !== "dream") e.kind = gesichert.kind;
+  for (const feld of ["analysis", "reflection", "style", "format", "mode", "imageCount", "creatureId", "editedAt"]) {
+    if (gesichert[feld] !== undefined) e[feld] = gesichert[feld];
+  }
+  if (gesichert.medien?.film?.length) e.film = { urls: gesichert.medien.film, source: "api" };
+  if (gesichert.medien?.szenen) e.sceneImages = gesichert.medien.szenen;
+  return e;
+}
+
+/** Welche geteilten Träume in ein bestehendes Journal gehören: die, die es
+ *  noch nicht kennt. Nie überschreiben — der Stand im Gerät ist der neuere,
+ *  die Sicherung ist das Archiv. */
+export function mergeShared(journal, gesicherte) {
+  const bekannt = new Set((journal || []).map((e) => e?.id));
+  const neue = (gesicherte || [])
+    .filter((g) => g?.id && !bekannt.has(g.id))
+    .map(restoreEntry)
+    .filter(Boolean);
+  if (!neue.length) return null;
+  return [...(journal || []), ...neue]
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+}

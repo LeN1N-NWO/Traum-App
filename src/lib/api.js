@@ -81,6 +81,20 @@ export async function backupJournal(entries) {
   }
 }
 
+/* Die geteilten Testträume holen (nur im Entwicklungsmodus aufgerufen,
+ * siehe AppState). Scheitert lautlos: Ein frischer Klon ohne Ordner ist
+ * der Normalfall, kein Fehler. */
+export async function sharedDreams() {
+  try {
+    const res = await fetch(`${API_BASE}/api/journal-backup`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data?.traeume) ? data.traeume : [];
+  } catch {
+    return [];
+  }
+}
+
 /** Rework an existing dream. mode: "correct" | "rewrite" | "elaborate". */
 export async function refine(dream, mode) {
   const data = await post("/api/refine", { dream, mode });

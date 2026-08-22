@@ -141,7 +141,15 @@ export default function HomeScreen() {
 
       {/* Abends der Weg ins Einschlafen — die Brücke zum Schlaf-Tab. */}
       {evening && (
-        <button className="h-sounds" onClick={() => navigate("/sleep")}>
+        <button
+          className="h-sounds"
+          /* Direkt in die Klänge, nicht auf die Übersicht: Der Knopf
+             verspricht „Einschlafgeräusche starten", und ein Zwischenhalt,
+             an dem man dasselbe noch einmal antippt, macht aus einer
+             Abkürzung einen Umweg (Antons Befund 22.08.). Der Wunsch reist
+             im Router-Zustand — dieselbe Technik wie beim Atlas. */
+          onClick={() => navigate("/sleep", { state: { view: "sounds" } })}
+        >
           <span aria-hidden="true">🌊</span>
           <span className="h-sounds-text">{t.home.soundsShortcut}</span>
           <span aria-hidden="true" data-flip>›</span>

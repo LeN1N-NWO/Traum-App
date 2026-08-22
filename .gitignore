@@ -40,17 +40,20 @@ public/clips/*.mp4
 # dieselbe Falle erneut.
 /media
 
-# Die gesicherten Träume (server.js schreibt sie, siehe
-# src/lib/journalBackup.js). ⚠ VORLÄUFIG ignoriert, und der Grund gehört
-# hierher, damit ihn niemand versehentlich entfernt:
+# Die gesicherten Träume (data/traeume/, geschrieben von server.js, Regeln
+# in src/lib/journalBackup.js) liegen ABSICHTLICH im Repository und sind
+# deshalb hier NICHT ignoriert.
 #
-# Dieses Repository ist ÖFFENTLICH. Ein Traumtagebuch dort abzulegen heißt,
-# es zu veröffentlichen — und Git vergisst nichts: Ein späteres Löschen
-# nimmt es aus der aktuellen Fassung, nicht aus der Historie, nicht aus
-# Klonen, nicht aus Suchmaschinen. Antons Wunsch („soll drinbleiben, bis
-# ich sage, dass es weg soll") wäre damit genau dann nicht erfüllbar, wenn
-# er ihn braucht.
+# Antons Entscheidung vom 22.08.2026, gefällt nachdem der Einwand auf dem
+# Tisch lag (dieses Repository ist öffentlich, und Git vergisst nichts):
+# „Ich möchte, dass alle, die jetzt an der App entwickeln, diese Träume
+# sehen. Später, wenn wir die App entwickeln, nehmen wir diese Regel raus."
 #
-# Diese Zeile fällt, sobald die Träume ein PRIVATES Ziel haben — dann ist
-# alles andere schon gebaut.
-/data
+# Es sind also TESTDATEN für die Entwicklung, keine Nutzerdaten im Betrieb.
+# Zwei Grenzen gelten trotzdem und stehen nicht zur Disposition:
+#   1. KEINE FOTOS — journalBackup.js lässt sie nie in die Sicherung.
+#   2. Geladen werden sie NUR im Entwicklungsmodus (import.meta.env.DEV);
+#      ein ausgelieferter Build zeigt sie niemandem.
+#
+# ⚠ Wer die App veröffentlicht, entfernt den Ordner UND den Ladepfad in
+# AppState.jsx. Bis dahin gehört beides dazu.

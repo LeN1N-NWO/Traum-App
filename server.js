@@ -2083,6 +2083,31 @@ Bun.serve({
        ⚠ ES WIRD NUR GESCHRIEBEN, NIE GELÖSCHT. Verschwindet ein Traum aus
        der App, bleibt seine Datei stehen. Aufgeräumt wird von Hand, auf
        Antons Wort. */
+    /* Die Rückrichtung: die geteilten Träume herausgeben (Antons Ansage
+       22.08.: „alle, die jetzt an der App entwickeln, sollen diese Träume
+       sehen"). Ohne sie wäre die Sicherung eine Einbahnstraße — geschrieben,
+       eingecheckt, und ein frischer Checkout sähe trotzdem nichts.
+
+       ⚠ Der Ladepfad im Client hängt an import.meta.env.DEV. Dieser Endpunkt
+       liefert also auch im Betrieb, aber niemand fragt ihn dann. Wer die App
+       veröffentlicht, nimmt beides heraus — Ordner und Ladepfad. */
+    if (url.pathname === "/api/journal-backup" && req.method === "GET") {
+      try {
+        const glob = new Bun.Glob("*.json");
+        const traeume = [];
+        for await (const datei of glob.scan({ cwd: BACKUP_DIR, onlyFiles: true })) {
+          const inhalt = await Bun.file(resolve(BACKUP_DIR, datei)).json().catch(() => null);
+          if (inhalt?.id) traeume.push(inhalt);
+        }
+        traeume.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        return json({ traeume });
+      } catch (e) {
+        // Kein Ordner, keine Träume — das ist kein Fehler, das ist der
+        // Normalfall bei einem frischen Klon ohne Testdaten.
+        return json({ traeume: [] });
+      }
+    }
+
     if (url.pathname === "/api/journal-backup" && req.method === "POST") {
       try {
         if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
