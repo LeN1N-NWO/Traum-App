@@ -169,6 +169,21 @@ function pcmToWav(pcm, rate) {
 
 /** The sample for one (voice, language), from disk or freshly generated. */
 async function voiceSample(voice, lang) {
+  /* Drei Stufen, von billig nach teuer:
+     1. MITGELIEFERT — public/voice/<Stimme>-<Sprache>.m4a. Einmal erzeugt
+        (scripts/make-voice-samples.mjs), eingecheckt, ausgeliefert: keine
+        Wartezeit, kein Gemini-Schlüssel, kein Netz. Antons Wunsch vom
+        22.08.: „damit das nicht immer neu geladen wird."
+     2. LOKAL GEMERKT — media/voice-sample-…wav vom letzten Mal.
+     3. Erst dann Gemini. */
+  for (const shipped of [
+    resolve(import.meta.dir, "public", "voice", `${voice}-${lang}.m4a`),
+    resolve(import.meta.dir, "public", "voice", `${voice}-${lang}.wav`),
+  ]) {
+    const f = Bun.file(shipped);
+    if (await f.exists()) return f;
+  }
+
   const path = resolve(MEDIA_DIR, `voice-sample-${voice}-${lang}.wav`);
   const cached = Bun.file(path);
   if (await cached.exists()) return cached;
@@ -1667,8 +1682,16 @@ Bun.serve({
       if (!VOICE_NAMES.has(voice)) return json({ error: "Unknown voice." }, 400);
       if (!VOICE_SAMPLE_LINES[lang]) return json({ error: "Unknown language." }, 400);
       try {
-        return new Response(await voiceSample(voice, lang), {
-          headers: { "content-type": "audio/wav", "cache-control": "public, max-age=86400" },
+        const sample = await voiceSample(voice, lang);
+        return new Response(sample, {
+          headers: {
+            // Der Typ kommt aus der Datei — mitgelieferte Proben sind AAC.
+            "content-type": sample.type?.startsWith("audio/") ? sample.type : "audio/wav",
+            /* Eine Stimmprobe ändert sich nie: Stimme und Sprache stehen in
+               der Adresse. Ein Jahr und `immutable` sparen dem Browser jede
+               Rückfrage — vorher fragte er nach einem Tag wieder nach. */
+            "cache-control": "public, max-age=31536000, immutable",
+          },
         });
       } catch (e) {
         if (e.message === "NO_GEMINI_KEY") {
