@@ -31,9 +31,17 @@ import "./storyboard.css";
  *                           media.urls, media.poster) — ohne ihn Textkacheln
  * @param {Set<number>} [active]  Beats, die in den Film kommen; ohne = alle
  * @param {function} [onToggle]   (i) => void — macht die Kacheln zu Schaltern
+ * @param {function} [onRenderScene] (i) => void — leere Szene nachfüllen
+ * @param {function} [onEditBeat] (i, text) => void — Wortlaut der Szene
+ *                   ändern; der Aufrufer speichert ihn AM TRAUM, damit
+ *                   Storyboard, Film und Bildauftrag dieselbe Fassung lesen
  */
-export default function Storyboard({ beats = [], entry = null, active = null, onToggle = null, onRenderScene = null }) {
+export default function Storyboard({
+  beats = [], entry = null, active = null,
+  onToggle = null, onRenderScene = null, onEditBeat = null,
+}) {
   const [open, setOpen] = useState(null);
+  const [draft, setDraft] = useState(null);   // null = nur lesen
   if (!beats.length) return null;
 
   const urls = entry?.media?.urls || [];
@@ -84,16 +92,61 @@ export default function Storyboard({ beats = [], entry = null, active = null, on
       </div>
 
       {open != null && (
-        <Sheet label={t.storyboard.scene(open + 1, beats.length)} onClose={() => setOpen(null)}>
+        <Sheet
+          label={t.storyboard.scene(open + 1, beats.length)}
+          onClose={() => { setOpen(null); setDraft(null); }}
+        >
           {imgFor(open) && <img className="sb-sheet-img" src={imgFor(open)} alt="" />}
           <p className="sb-sheet-label">{t.storyboard.scene(open + 1, beats.length)}</p>
-          <p className="sb-sheet-beat">{beats[open]}</p>
+
+          {/* Der Wortlaut, anpassbar vor dem Erzeugen (Antons Wunsch 22.08.).
+              Gespeichert wird am TRAUM, nicht am Bildauftrag: Die Szenen sind
+              der Bogen, aus dem später auch der Film schneidet — zwei
+              Wahrheiten nebeneinander wären genau das Problem, das er
+              vermeiden wollte. Die Anzahl der Szenen bleibt unberührt. */}
+          {draft == null ? (
+            <>
+              <p className="sb-sheet-beat">{beats[open]}</p>
+              {onEditBeat && (
+                <button className="sb-sheet-edit" onClick={() => setDraft(beats[open])}>
+                  <span aria-hidden="true">✎</span> {t.storyboard.editBeat}
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="sb-sheet-editor">
+              <textarea
+                className="sb-sheet-area"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={3}
+                autoFocus
+                aria-label={t.storyboard.editBeat}
+              />
+              <p className="sb-sheet-hint">{t.storyboard.editHint}</p>
+              <div className="sb-sheet-editrow">
+                <button className="sb-sheet-ghost" onClick={() => setDraft(null)}>
+                  {t.storyboard.editCancel}
+                </button>
+                <button
+                  className="sb-sheet-fill"
+                  disabled={!draft.trim() || draft.trim() === beats[open]}
+                  onClick={() => { onEditBeat(open, draft.trim()); setDraft(null); }}
+                >
+                  {t.storyboard.editSave}
+                </button>
+              </div>
+            </div>
+          )}
           {/* Leere Szene: nachfüllen lassen (Antons Go 21.08.) — 1 Credit,
-              läuft als Hintergrund-Auftrag, der Collector meldet sich. */}
-          {!imgFor(open) && cooking.has(open) && (
+              läuft als Hintergrund-Auftrag, der Collector meldet sich.
+              Während des Bearbeitens verschwindet der Knopf: Erst der
+              Wortlaut, dann das Bild — sonst zahlt jemand für den Text,
+              den er gerade verwirft. */}
+          {draft == null && !imgFor(open) && cooking.has(open) && (
             <p className="sb-sheet-note">{t.storyboard.scenePending}</p>
           )}
-          {!imgFor(open) && !cooking.has(open) && onRenderScene && (
+          {draft == null && !imgFor(open) && !cooking.has(open) && onRenderScene && (
             <button
               className="sb-sheet-fill"
               onClick={() => { onRenderScene(open); setOpen(null); }}
@@ -101,7 +154,7 @@ export default function Storyboard({ beats = [], entry = null, active = null, on
               {t.storyboard.fillScene} · 1 {t.wizard.creditsN(1)}
             </button>
           )}
-          {!imgFor(open) && !cooking.has(open) && !onRenderScene && (
+          {draft == null && !imgFor(open) && !cooking.has(open) && !onRenderScene && (
             <p className="sb-sheet-note">{t.storyboard.textOnly}</p>
           )}
         </Sheet>

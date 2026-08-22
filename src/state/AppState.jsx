@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef } f
 import { loadState, saveState, DB_KEY } from "../lib/storage.js";
 import { buildSeedJournal } from "../lib/seedJournal.js";
 import { collectTick, pendingFingerprint } from "../lib/collector.js";
+import { giftFor } from "../lib/streakBoard.js";
 import { jobStatus } from "../lib/api.js";
 import { t } from "../i18n/index.js";
 
@@ -15,11 +16,27 @@ const Ctx = createContext(null);
 // key is null, not just an empty journal), so it can never overwrite a
 // journal someone actually built or deliberately emptied.
 function loadInitialState() {
-  const s = loadState();
+  const s = clearStalePending(loadState());
   const fresh = typeof localStorage !== "undefined" && localStorage.getItem(DB_KEY) === null;
   if (!fresh || s.journal.length > 0) return s;
   const seed = buildSeedJournal();
   return { ...s, journal: seed.journal, creatures: [...(s.creatures || []), ...seed.creatures] };
+}
+
+/* `pending` heißt „der Wizard gibt gerade Aufträge ab". Beim Start läuft kein
+   Wizard — was hier noch steht, stammt also aus einer Sitzung, die mitten im
+   Abgeben abgebrochen wurde (Neuladen, Absturz, geschlossener Tab). Die Marke
+   wird geräumt, der Traum selbst bleibt: Er hat seinen Text, seine Analyse und
+   sein Wesen, und im Journal steht wieder „Bilder machen" statt einer Kachel,
+   die bis in alle Ewigkeit behauptet, sie arbeite noch.
+
+   Bezahlt ist dabei nichts verloren: Abgerechnet wird je abgegebenem Auftrag,
+   und abgegebene Aufträge hängen als imageJobs/jobId am Eintrag — die holt der
+   Collector auch nach dem Neustart noch ab. */
+function clearStalePending(s) {
+  const journal = s.journal || [];
+  if (!journal.some((e) => e && e.pending)) return s;
+  return { ...s, journal: journal.map(({ pending, ...e }) => e) };
 }
 
 export function AppStateProvider({ children }) {
@@ -37,11 +54,18 @@ export function AppStateProvider({ children }) {
     setTimeout(() => setToastText(""), 2600);
   }, []);
 
-  // Always build a new object, never mutate the existing one — otherwise
-  // React skips the re-render and the bug becomes near-impossible to find.
+  /* Always build a new object, never mutate the existing one — otherwise
+     React skips the re-render and the bug becomes near-impossible to find.
+
+     `patch` darf auch eine FUNKTION sein: (prev) => patch. Das ist kein
+     Zuckerguss, sondern die Rettung für alles, was in Schritten arbeitet.
+     Ein Wizard, der ein Bild nach dem anderen abgibt, hält `state` aus dem
+     Renderzeitpunkt fest — sein zweiter Patch rechnete sonst über die
+     VERALTETE Journalliste und löschte den ersten stillschweigend wieder.
+     Genau daran ist am 22.08.2026 ein ganzer Traum verschwunden. */
   const update = useCallback((patch) => {
     setState((prev) => {
-      const next = { ...prev, ...patch };
+      const next = { ...prev, ...(typeof patch === "function" ? patch(prev) : patch) };
       if (!saveState(next)) toast(t.errors.storageFull);
       return next;
     });
@@ -103,6 +127,21 @@ export function AppStateProvider({ children }) {
     // Der Fingerabdruck ändert sich nur, wenn Aufträge dazukommen oder
     // fertig werden — nicht bei jedem Tastendruck irgendwo im State.
   }, [fingerprint, update, toast]);
+
+  /* Die Mini-Geschenke der Serie (Antons Ja 22.08., Plan §5) — HIER, aus
+     demselben Grund wie der Abholer: Die Serie wächst an drei Stellen
+     (Wizard-Schritt 2, 5 und 6), und drei Kopien derselben Vergabe wären
+     drei Gelegenheiten, sie falsch zu machen. Eine Mechanik, ein Ort.
+
+     giftFor() ist idempotent (die vergebenen Schwellen stehen im State),
+     also kann dieser Effekt gefahrlos bei jeder Serienänderung laufen —
+     nach dem Patch findet er nichts mehr. */
+  useEffect(() => {
+    const gift = giftFor(stateRef.current);
+    if (!gift) return;
+    update(gift.patch);
+    toast(t.streakBoard.gift(gift.nights, gift.credits));
+  }, [state.streak, state.streakGifts, update, toast]);
 
   return (
     <Ctx.Provider value={{

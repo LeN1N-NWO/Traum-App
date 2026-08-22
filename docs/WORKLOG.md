@@ -3,6 +3,91 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-22 10:30 — Anton — Branch `session/2026-08-22-anton-2` (PR #21) — Sitzungsabschluss
+
+**Commits:** `50a5ece` (Atlas-Schlafkachel + Wiederkehr) · `da70cf6`
+(Check-in führt in den Atlas) · `0c5d924` (Einschlaf-Timer) · `c5a3c30`
+(Plan-Stände) · `2cce380` (Medienordner-Fix) · `7249391` (Szenentext
+anpassen) · `ad12f43` (Mini-Geschenke) · `425b1c7` (Traumzeichen-Plan) ·
+`8196466` (PORT/API_PORT) · `eb59663` (Traum entsteht beim Erzeugen) ·
+`23c7a3f` (Stimmproben mitgeliefert) + dieser Doku-Commit.
+Zustand: 259 Tests grün, Shape-Check grün, Build sauber.
+
+⚠ Auch diese Session lief OHNE eigenen Worktree direkt im Hauptrepo
+(die Dev-Server servieren dieses Checkout). Nach dem Merge von #21:
+`git checkout main && git pull`.
+
+### Zwei Datenverluste, beide an der Wurzel repariert
+
+**1. Die Bilder vom 21.08. sind weg** — Antons Befund („all diese
+Traumfelder leer"). Ursache nachgeprüft, nicht geraten: Der Server lief
+im Sitzungs-Worktree, schrieb seine Bilder nach
+`../Traum-App-anton/media/`, und `git worktree remove` nahm sie nach dem
+Merge mit. Belege: `media/jobs` im Hauptrepo leer und seit 17.08.
+unberührt, jüngstes Bild vom 20.08. 16:04, Suche über Projektordner und
+Papierkorb ohne Fund vom 21.08. Nicht wiederherstellbar — die
+Auftragsnummern lagen im selben Ordner.
+Reparatur: `src/lib/mediaRoot.js` biegt MEDIA_DIR aus jedem Worktree
+aufs Hauptrepo um (Erkennung über `.git` als DATEI mit
+`gitdir: …/worktrees/…`), `DREAMRUSHES_MEDIA` schlägt alles. 5 Tests,
+Regel zusätzlich in AGENTS.md.
+
+**2. Der abgebrochene Traum** — Antons zweiter Befund: erzeugen
+gedrückt, weggeklickt, Journal leer. Der Eintrag entstand bisher erst
+NACH dem letzten Submit; davor liegen Bogen-Erzeugung (bis zu einer
+Minute) und fünf Submits. In diesem Fenster gab es den Traum nirgends.
+Reparatur (`eb59663`): Der Eintrag entsteht ZUERST, mit `pending` als
+Marke; Aufträge hängen sich einzeln an; abgerechnet wird je abgegebenem
+Auftrag; der Film hängt seine Nummer sofort an den Traum statt auf
+„Speichern" in Schritt 6 zu warten. `clearStalePending()` in
+AppState.jsx räumt hängende Marken beim Start.
+⚠ Dafür nimmt `update()` jetzt auch Funktionen: `(prev) => patch`. Wer
+in Schritten arbeitet, MUSS das benutzen — die veraltete Journalliste
+aus dem Renderzeitpunkt hat genau diesen Traum gelöscht.
+
+### Mehrwert-P2 fertig, P3b dazu
+
+- Atlas-Schlafkachel (`sleepAverage`/`sleepNights`/`sleepByMood`) und
+  Wiederkehr-Hinweis (`components/Recurrence.jsx`) im Traum-Detail über
+  der Reflection. ⚠ Wortlaut „weitere Träume", nicht „frühere":
+  `recurrenceFor` zählt ALLE anderen Träume, auch neuere.
+- ⚠ `key={open.id}` am JournalDetail ist Pflicht (JournalScreen.jsx):
+  ohne den Schlüssel trägt der Bearbeiten-Entwurf beim Sprung in einen
+  anderen Traum den alten Wortlaut mit.
+- Check-in-Bestätigung führt in den Atlas (Router-Zustand, nicht Adresse).
+- Einschlaf-Timer (`soundMixer.js`): Aus/15/30/60, eine Minute
+  Ausblenden, still wird nur der Klang. ⚠ Das Modul hat jetzt doch einen
+  Melder (`subscribe`) — Begründung im Dateikopf.
+
+### Antons Wünsche aus der Testrunde
+
+- Szenentext vor dem Erzeugen anpassbar, gespeichert in
+  `analysis.beats` (ein Feld für Kacheln, Bildauftrag, Filmschnitt).
+  ⚠ Nur der Text, nie die Anzahl der Szenen.
+- Mini-Geschenke: 7 Nächte → 1 Credit, 30 → 3, Deckel 4 je Installation,
+  idempotent über `state.streakGifts` (Liste, kein Zähler — sonst zahlt
+  eine gerissene und neu gewachsene Serie doppelt).
+- „ich"/„I" → eigenes Profilbild: Die Selbstwortliste in `useWizard.js`
+  war rein englisch, die Analyse antwortet aber in Traumsprache.
+- Stimmproben liegen als AAC in `public/voice/` (12 Stück, 516 KB).
+  Server sucht mitgeliefert → gemerkt → Gemini.
+  ⚠ Nur die AUSWAHL, das Gespräch bleibt live.
+
+### Dev-Umgebung
+
+`PORT` gehört der Oberfläche, `API_PORT` der API. Vorher lasen beide
+`PORT`; mit `PORT=5173` aus dem Vorschau-Start band sich die API an
+Vites Port, und die Oberfläche kam mal aus Vite, mal aus altem `dist/` —
+IPv4 gegen IPv6, ein Fehlerbild wie Spuk.
+
+### Was der Nächste wissen muss
+
+1. Nach dem Merge: `git checkout main && git pull`.
+2. Antons offene Entscheidungen stehen im STAND — Schlummernacht,
+   „Nichts hängengeblieben", Klang-Presets (Lizenz!), Traumzeichen-Stil.
+3. Der Schlussstein (bezahlte Testfilme) ist von Anton ausdrücklich
+   vertagt: „noch nicht machen".
+
 ## 2026-08-22 01:07 — Anton — Branch `session/2026-08-22-anton` (PR #20) — Sitzungsabschluss
 
 **Commits:** `5e01279` (Eröffnung) · `0131fac` (Storyboard Variante A) ·

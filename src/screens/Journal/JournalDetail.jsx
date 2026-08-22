@@ -13,13 +13,14 @@ import { buildReferences, buildImagePrompt } from "../../lib/promptBuilder.js";
 import { renderRef } from "../../lib/sheets.js";
 import { t } from "../../i18n/index.js";
 import Storyboard from "../../components/Storyboard.jsx";
+import Recurrence from "../../components/Recurrence.jsx";
 import EntryMenu from "./EntryMenu.jsx";
 import RefineSheet from "./RefineSheet.jsx";
 import { DeckView, CastChips } from "./DreamViews.jsx";
 import { IconImages, IconFilm, IconShare, IconSparkle, IconPencil, ChevronRight } from "../../components/icons.jsx";
 import "./journal.css";
 
-export default function JournalDetail({ entry, onClose }) {
+export default function JournalDetail({ entry, onClose, onOpen }) {
   const { state, update, toast, openPaywall } = useAppState();
   const navigate = useNavigate();
   const closeRef = useRef(null);
@@ -43,8 +44,12 @@ export default function JournalDetail({ entry, onClose }) {
      seit dem 21.08. der App-weite Collector in AppState ein — vorher kam
      ein „Speichern — ich hole ihn später ab"-Film nur an, solange genau
      dieser Bildschirm offen blieb. Wer im Startscreen wartete, wartete
-     umsonst. Eine Mechanik, ein Ort (collector.js). */
-  const pendingImages = (entry.imageJobs || []).length > 0;
+     umsonst. Eine Mechanik, ein Ort (collector.js).
+
+     Die Marke `pending` zählt mit: Zwischen „Erzeugen" gedrückt und der
+     ersten Auftragsnummer liegt die Bogen-Erzeugung, und in diesem Fenster
+     darf das Detail nicht „Bilder machen" anbieten, als wäre nichts los. */
+  const pendingImages = (entry.imageJobs || []).length > 0 || !!entry.pending;
 
   /** Write a new text onto the entry. The first version is never touched.
    *  Die Reflection fällt dabei weg: sie beschreibt den ALTEN Wortlaut,
@@ -125,6 +130,31 @@ export default function JournalDetail({ entry, onClose }) {
       toast(`⚠ ${err.message}`);
     }
     setBusy(false);
+  }
+
+  /* Den Wortlaut einer Szene ändern (Antons Wunsch 22.08.: „damit man den
+   * Text nochmal anpassen kann, direkt bevor man generiert").
+   *
+   * Gespeichert wird am TRAUM, in analysis.beats — genau deshalb, weil er
+   * „nicht irgendwie ein Problem später" wollte: Aus diesem einen Feld
+   * lesen die Kacheln, der Bildauftrag (renderScene unten) und der
+   * Filmschnitt. Eine zweite Fassung nur für den Bildauftrag wären zwei
+   * Wahrheiten, die ab dem nächsten Film auseinanderlaufen.
+   *
+   * ⚠ Nur der TEXT ändert sich, nie die ANZAHL der Szenen: An der Länge
+   * von beats hängen die Beat↔Bild-Zuordnung (imageIndexForBeat), die
+   * Szenenwahl im Film-Schritt und die Sekundenrechnung. Wer hier später
+   * Hinzufügen oder Löschen einbaut, muss diese drei mitdenken. */
+  function editBeat(i, text) {
+    const clean = String(text || "").trim();
+    const beats = entry.analysis?.beats || [];
+    if (!clean || !beats[i] || clean === beats[i]) return;
+    update({
+      journal: state.journal.map((e) => (e.id === entry.id ? {
+        ...e,
+        analysis: { ...e.analysis, beats: beats.map((b, k) => (k === i ? clean : b)) },
+      } : e)),
+    });
   }
 
   /* Eine leere Storyboard-Kachel nachfüllen (Antons Go 21.08.): EIN Bild
@@ -307,7 +337,12 @@ export default function JournalDetail({ entry, onClose }) {
         {!editing && !proposal && entry.analysis?.beats?.length > 0 && (
           <div className="j-storyboard">
             <p className="j-original-label">{t.storyboard.label}</p>
-            <Storyboard beats={entry.analysis.beats} entry={entry} onRenderScene={renderScene} />
+            <Storyboard
+              beats={entry.analysis.beats}
+              entry={entry}
+              onRenderScene={renderScene}
+              onEditBeat={editBeat}
+            />
           </div>
         )}
 
@@ -409,6 +444,13 @@ export default function JournalDetail({ entry, onClose }) {
         {/* Die Besetzung mit Gesichtern statt der nackten @tag-Zeile. */}
         {entry.references?.length > 0 && (
           <CastChips refs={entry.references} cast={state.cast || []} me={state.me} />
+        )}
+
+        {/* Was an diesem Traum schon einmal da war — gezählt, nicht gedeutet,
+            und deshalb ÜBER der Reflection: erst der Befund, dann die
+            Lesart. Antippen führt in den früheren Traum (Mehrwert-Plan P2b). */}
+        {!editing && !proposal && onOpen && (
+          <Recurrence journal={state.journal || []} entry={entry} onOpen={onOpen} />
         )}
 
         {/* Die Reflection: Spiegel, nicht Orakel (Mehrwert-Plan P1a). Ein

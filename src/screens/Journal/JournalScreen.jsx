@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useAppState } from "../../state/AppState.jsx";
 import { t } from "../../i18n/index.js";
 import ScreenHeader from "../../components/ScreenHeader.jsx";
@@ -12,6 +13,7 @@ import "./journal.css";
 
 export default function JournalScreen() {
   const { state, update } = useAppState();
+  const routeState = useLocation().state;
   const [query, setQuery] = useState("");
   // Die Suche ist ein Werkzeug, kein Dauerzustand: eingeklappt hinter der
   // Lupe im Kopf (Antons Ansage 21.08.), aufgeklappt nur solange gesucht wird.
@@ -19,7 +21,12 @@ export default function JournalScreen() {
   const [openId, setOpenId] = useState(null);
   const [index, setIndex] = useState(0);
   const [library, setLibrary] = useState(false);
-  const [atlas, setAtlas] = useState(false);
+  /* Der Atlas kann von außen aufgerufen werden (Startseite → Bestätigung des
+     Morgen-Check-ins). Der Wunsch reist im Router-Zustand, nicht in der
+     Adresse: er gilt für DIESEN Sprung, nicht für ein Lesezeichen — und weil
+     das Journal beim Routenwechsel ohnehin neu montiert, genügt der
+     Startwert. */
+  const [atlas, setAtlas] = useState(routeState?.view === "atlas");
   const [menagerie, setMenagerie] = useState(false);
   const trackRef = useRef(null);
 
@@ -206,7 +213,23 @@ export default function JournalScreen() {
           it; filtering the map would hide the very days you are looking for. */}
       {total > 0 && <DreamCalendar onOpen={setOpenId} />}
 
-      {open && <JournalDetail entry={open} onClose={() => setOpenId(null)} />}
+      {/* onOpen: aus einem Traum in einen früheren springen (der
+          Wiederkehr-Hinweis im Detail). Dasselbe setOpenId — der Bildschirm
+          bleibt stehen, nur der Eintrag darin wechselt.
+
+          ⚠ key={open.id} ist Pflicht, nicht Kosmetik: Das Detail hält den
+          Bearbeiten-Entwurf in useState(entry.text), und ein useState-
+          Startwert wird nur beim MONTEN gelesen. Ohne den Schlüssel trüge
+          man beim Sprung den Wortlaut des alten Traums mit — und
+          überschriebe beim Speichern den neuen damit. */}
+      {open && (
+        <JournalDetail
+          key={open.id}
+          entry={open}
+          onClose={() => setOpenId(null)}
+          onOpen={setOpenId}
+        />
+      )}
     </main>
   );
 }

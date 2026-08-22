@@ -31,6 +31,12 @@ Ohne Namen keine Änderung.
   anhalten und Bescheid sagen, wenn er überschritten werden muss.
 - Merge nur per Pull Request, nie direkt auf main.
 - Am Ende: `git push` UND `git push --tags` — Tags gehen bei normalem Push nicht mit.
+- **Erzeugte Bilder und Filme gehören NIE in einen Worktree.** `media/` ist
+  ignoriert, entsteht also in jedem Checkout neu — und `git worktree remove`
+  löscht es nach dem Merge mitsamt Inhalt. Am 21.08.2026 sind so echte,
+  bezahlte Bilder verschwunden. Der Server biegt den Medienordner deshalb
+  selbst auf das Hauptrepository um (`src/lib/mediaRoot.js`); wer daran
+  arbeitet, liest erst den Dateikopf dort.
 
 ## Sitzungsende (Pflicht)
 

@@ -610,6 +610,38 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-inline-size: 100%;
 }
 
+/* Die Schlaf-Kachel: EIN Mond, EIN Satz, darunter die Zeilen. Bewusst keine
+   Kurve — drei Stufen über dreißig Tage ergeben ein Zackenband, das mehr
+   Genauigkeit vortäuscht, als in der Frage steckt. */
+.at-sleep { margin-block-end: var(--s-5); }
+/* Mond UND Satz stecken in EINER Kachel: außen stehend zog der Mond die
+   Kachel nach rechts und brach die Fluchtlinie, an der Monat, Symbole und
+   Stimmungen hängen. */
+.at-sleep-head {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-3); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--panel-line);
+}
+.at-sleep-head .at-fact {
+  align-items: start; flex: 1; padding: 0; min-inline-size: 0;
+  background: none; border: 0; border-radius: 0;
+}
+.at-sleep-head .at-fact-label { text-align: start; font-variant-numeric: tabular-nums; }
+.at-sleep-moon { font-size: 2rem; line-height: 1; }
+.at-sleep-empty { margin: 0; color: var(--muted); font-size: var(--t-small); line-height: 1.5; }
+
+.at-sleep-rows { display: flex; flex-direction: column; margin-block-start: var(--s-2); }
+.at-sleep-row {
+  display: flex; align-items: baseline; gap: var(--s-3);
+  padding: var(--s-2) 0; border-bottom: 1px solid var(--panel-line);
+  font-size: var(--t-small);
+}
+.at-sleep-row-moon { font-size: 1rem; }
+/* 7ch, damit die Stimmungen untereinander stehen: „schwer" ist länger als
+   „gut", und eine wandernde Spalte liest sich wie ein Fehler. */
+.at-sleep-row-level { min-inline-size: 7ch; color: var(--muted); }
+.at-sleep-row-moods { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .at-symbols { display: flex; flex-direction: column; margin-block-end: var(--s-5); }
 .at-symbol { border-bottom: 1px solid var(--panel-line); }
 .at-symbol-row {

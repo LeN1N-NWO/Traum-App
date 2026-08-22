@@ -184,6 +184,15 @@ test("a beat shrinks to a few leading words without dangling stopwords", () => {
     .toBe("Ich rows the boat");
 });
 
+/* Seit dem 22.08. schreibt der Mensch diese Sätze selbst („Wortlaut
+   anpassen" im Szenen-Blatt) — und selbstgeschriebene Sätze hängen öfter an
+   einem Bindewort ab als die knappen Sätze aus der Analyse. */
+test("a hand-written beat does not end on a conjunction", () => {
+  expect(beatKeyword("Water rising until the kitchen becomes a lake"))
+    .toBe("Water rising");
+  expect(beatKeyword("She waits while the train passes")).toBe("She waits");
+});
+
 test("short beats pass through, empty stays harmless", () => {
   expect(beatKeyword("Falling.")).toBe("Falling");
   expect(beatKeyword("")).toBe("");

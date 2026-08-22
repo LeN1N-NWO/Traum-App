@@ -163,11 +163,24 @@ const KEYWORD_STOPWORDS = new Set([
   "is", "are", "was", "were", "his", "her", "its", "their",
 ]);
 
+/* Nebensatz-Anfänge trennen wie ein Komma. Dazugekommen, als der Wortlaut
+   von Hand bearbeitbar wurde (22.08., Antons Wunsch): Selbstgeschriebene
+   Sätze tragen ihre Ausschmückung öfter ohne Komma an — „Water rising until
+   the kitchen becomes a lake" soll auf der Kachel „Water rising" heißen,
+   nicht „Water rising until".
+   Bewusst nur eindeutige Einleiter: „that" oder „but" stehen auch mitten in
+   der Haupthandlung („The man that follows me"), und lieber ein Wort zu viel
+   als ein halbierter Sinn. */
+const KEYWORD_BREAK = /\b(?:until|while|when|before|after|because|though|although)\b/i;
+
 export function beatKeyword(beat) {
   // Nur der erste Halbsatz: das Komma trennt in den Beats fast immer
   // Haupthandlung von Ausschmückung — „Ich rows the boat, the oars…"
   // soll „Ich rows the boat" ergeben, nicht über das Komma hinweg kleben.
-  const clause = String(beat || "").split(/[,;.!?]/)[0];
+  const first = String(beat || "").split(/[,;.!?]/)[0];
+  // …und ein Nebensatz ohne Komma zählt genauso, solange davor etwas steht.
+  const brk = first.search(KEYWORD_BREAK);
+  const clause = brk > 0 ? first.slice(0, brk) : first;
   const words = clause
     .replace(/["'()]/g, " ")
     .split(/\s+/)

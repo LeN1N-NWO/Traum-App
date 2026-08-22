@@ -50,6 +50,9 @@ export default {
 
   streakBoard: {
     title: "Deine Serie",
+    gift: (nights, credits) =>
+      `✦ ${nights} Nächte — ${credits} ${credits === 1 ? "Credit" : "Credits"} von uns`,
+    giftBadge: (credits) => `+${credits} ${credits === 1 ? "Credit" : "Credits"}`,
     nights: (n) => (n === 1 ? "Nacht" : "Nächte"),
     next: (n) => (n === 1 ? "Noch 1 Nacht bis zum nächsten Meilenstein." : `Noch ${n} Nächte bis zum nächsten Meilenstein.`),
     done: "Alle Meilensteine erreicht. Du bist jetzt der Kalender.",
@@ -78,6 +81,16 @@ export default {
     atlasDreamsN: (n) => (n === 1 ? "Traum" : "Träume"),
     atlasSymbols: "Wiederkehrende Symbole",
     atlasMoods: "Stimmungen",
+    /* Die Schlaf-Kachel. Das Komma im Schnitt ist Absicht: 2.4 liest sich
+       im Deutschen als Datum, nicht als Zahl. */
+    atlasSleep: "Schlaf",
+    atlasSleepAvg: (word) => `Meistens ${word}`,
+    atlasSleepNote: (nights, avg) =>
+      `${nights} ${nights === 1 ? "Nacht" : "Nächte"} notiert · ${avg.toFixed(1).replace(".", ",")} von 3`,
+    atlasSleepEmpty: "Beantworte morgens die Frage auf der Startseite — hier treffen sich Schlaf und Träume.",
+    /* ⚠ „weitere", nicht „frühere" — Begründung in en.js. */
+    recurrenceTitle: "Kommt öfter vor",
+    recurrenceIn: (n, what) => `${what} — in ${n} ${n === 1 ? "weiteren Traum" : "weiteren Träumen"}`,
     reflectTitle: "Reflexion",
     reflectCta: "Was könnte dieser Traum sagen wollen?",
     reflectHint: "Eine mögliche Lesart, aus deinem eigenen Journal — gratis",
@@ -628,6 +641,9 @@ export default {
             "bis du sie stoppst — und weiter, während du den Rest der App nutzt.",
       names: { white: "Weißes Rauschen", pink: "Rosa Rauschen", brown: "Braunes Rauschen" },
       descs: { white: "helles Rauschen, überdeckt alles", pink: "wie stetiger Regen", brown: "wie ein fernes Meer" },
+      timer: "Ausblenden nach",
+      timerOff: "Aus",
+      timerMin: (m) => `${m} Min`,
       autoStart: "Meine Mischung beim App-Start starten",
       autoStartHint: "Browser wollen erst eine Berührung — deine Mischung startet mit dem ersten Antippen.",
       background: "Die Mischung läuft weiter, egal wohin du in der App gehst. Der Lautsprecher-" +
@@ -832,6 +848,10 @@ export default {
     textOnly: "An dieser Szene hängt noch kein Bild — der Film baut sie aus den Worten.",
     fillScene: "Bild für diese Szene erzeugen",
     scenePending: "Diese Szene wird gerade erstellt — du bekommst eine Nachricht, wenn sie da ist.",
+    editBeat: "Wortlaut anpassen",
+    editHint: "Bleibt am Traum gespeichert — der Film nimmt diese Worte ebenfalls.",
+    editSave: "Übernehmen",
+    editCancel: "Doch nicht",
   },
   errors: {
     storageFull: "⚠ Speicher voll — alte Einträge oder Referenzfotos löschen.",

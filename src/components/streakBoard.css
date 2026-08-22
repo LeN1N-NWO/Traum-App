@@ -22,6 +22,15 @@
 }
 .stb-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .stb-rung-title { font-size: var(--t-body); font-weight: 600; }
+/* Die beiden Sprossen mit echtem Guthaben — warm, weil Credits Geld sind,
+   aber klein, weil zwei Credits keine Fanfare verdienen. */
+.stb-gift {
+  margin-inline-start: var(--s-2); padding: 2px 8px; border-radius: 999px;
+  background: color-mix(in srgb, var(--gold) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  color: var(--gold); font-size: var(--t-micro); font-weight: 600;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
 .stb-rung-reward { color: var(--muted); font-size: var(--t-small); line-height: 1.4; }
 
 .stb-done { opacity: .75; }

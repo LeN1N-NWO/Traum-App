@@ -1,0 +1,37 @@
+/* Der Wiederkehr-Befund im Traum-Detail — leise. Er sitzt zwischen der
+   Besetzung und der Reflection und darf keine von beiden übertönen:
+   Marken in Umrisslinie, geöffnet ein warmer Anflug, sonst nichts. */
+
+.j-rec { margin-block: var(--s-3); }
+
+.j-rec-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+
+.j-rec-chip {
+  display: inline-flex; align-items: center; gap: var(--s-1);
+  padding: 6px 10px; border-radius: 999px;
+  border: 1px solid var(--panel-line); background: transparent;
+  color: var(--text); font: inherit; font-size: var(--t-small);
+  cursor: pointer; transition: border-color .2s, background .2s;
+}
+.j-rec-chip:hover { border-color: var(--faint); }
+.j-rec-chip-on {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.j-rec-chip-icon { font-size: .95rem; line-height: 1; }
+/* 16ch: „Haus & Zuhause" ist der längste Symbolname und passt damit ganz —
+   ein abgeschnittenes „Haus & Zuhau…" sieht nach Fehler aus, nicht nach
+   Platzsparen. Erst Namen darüber (freie @-Tags) werden gekürzt. */
+.j-rec-chip-label { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.j-rec-chip-n { color: var(--faint); font-variant-numeric: tabular-nums; }
+
+.j-rec-dreams { display: flex; flex-direction: column; gap: var(--s-1); margin-block-start: var(--s-2); }
+.j-rec-lede { margin: 0 0 var(--s-1); color: var(--muted); font-size: var(--t-small); }
+
+.j-rec-dream {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-2);
+  width: 100%; padding: var(--s-2) 0; border: 0; border-top: 1px solid var(--panel-line);
+  background: transparent; color: var(--text); font: inherit; text-align: start; cursor: pointer;
+}
+.j-rec-dream-title { font-family: var(--serif); }
+.j-rec-dream-date { color: var(--faint); font-size: var(--t-small); white-space: nowrap; }

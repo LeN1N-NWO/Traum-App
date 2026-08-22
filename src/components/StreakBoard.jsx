@@ -1,4 +1,4 @@
-import { MILESTONES, nextMilestone } from "../lib/streakBoard.js";
+import { MILESTONES, nextMilestone, giftAt } from "../lib/streakBoard.js";
 import { t } from "../i18n/index.js";
 import Sheet from "./Sheet.jsx";
 import "./streakBoard.css";
@@ -31,7 +31,15 @@ export default function StreakBoard({ streak = 0, onClose }) {
                 {state === "done" ? "✓" : m.nights}
               </span>
               <span className="stb-body">
-                <span className="stb-rung-title">{t.streakBoard.rung(m.nights)}</span>
+                <span className="stb-rung-title">
+                  {t.streakBoard.rung(m.nights)}
+                  {/* Die zwei Sprossen, an denen wirklich Credits fließen
+                      (Plan §5) — sichtbar, damit die Leiter nicht mehr
+                      verspricht, als sie hält, und nicht weniger. */}
+                  {giftAt(m.nights) > 0 && (
+                    <span className="stb-gift">{t.streakBoard.giftBadge(giftAt(m.nights))}</span>
+                  )}
+                </span>
                 <span className="stb-rung-reward">{t.streakBoard.rewards[m.reward]}</span>
               </span>
             </li>

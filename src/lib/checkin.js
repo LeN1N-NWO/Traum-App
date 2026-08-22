@@ -48,15 +48,32 @@ export function setCheckin(checkins, sleep, date = new Date()) {
     .slice(-MAX_CHECKINS);
 }
 
-/** Der Schnitt der letzten `days` Tage, oder null wenn nichts da ist.
- *  Für die Atlas-Kachel: eine Zahl, keine Kurve. */
-export function sleepAverage(checkins, days = 30, now = new Date()) {
+/** Die beantworteten Nächte im Fenster — die Grundlage beider Zahlen
+ *  darunter. Eine Filterung, zwei Verbraucher: sonst zeigt die Kachel
+ *  irgendwann einen Schnitt über ein anderes Fenster als die Anzahl,
+ *  die daneben steht. */
+function inWindow(checkins, days, now) {
   const cutoff = new Date(now);
   cutoff.setDate(cutoff.getDate() - days);
   const key = localDateKey(cutoff);
-  const recent = (checkins || []).filter((c) => c && c.date >= key && SLEEP_LEVELS.includes(c.sleep));
+  return (checkins || []).filter((c) => c && c.date >= key && SLEEP_LEVELS.includes(c.sleep));
+}
+
+/** Der Schnitt der letzten `days` Tage, oder null wenn nichts da ist.
+ *  Für die Atlas-Kachel: eine Zahl, keine Kurve. */
+export function sleepAverage(checkins, days = 30, now = new Date()) {
+  const recent = inWindow(checkins, days, now);
   if (!recent.length) return null;
   return recent.reduce((s, c) => s + c.sleep, 0) / recent.length;
+}
+
+/** Wie viele Nächte im selben Fenster überhaupt beantwortet wurden.
+ *
+ *  Steht in der Kachel neben dem Schnitt, und das ist kein Beiwerk: Ein
+ *  Schnitt aus zwei Nächten sieht genauso selbstbewusst aus wie einer aus
+ *  dreißig. Die Anzahl daneben sagt, wie viel er wert ist. */
+export function sleepNights(checkins, days = 30, now = new Date()) {
+  return inWindow(checkins, days, now).length;
 }
 
 /** Die Korrelation, für die der Check-in überhaupt existiert: Welche

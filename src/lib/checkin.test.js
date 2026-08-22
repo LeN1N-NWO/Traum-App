@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { checkinOn, setCheckin, sleepAverage, sleepByMood, SLEEP_LEVELS } from "./checkin.js";
+import { checkinOn, setCheckin, sleepAverage, sleepNights, sleepByMood, SLEEP_LEVELS } from "./checkin.js";
 
 /* Der Check-in ist winzig — aber er hängt an zwei Stellen, an denen dieses
    Projekt schon einmal geblutet hat: Kalendertage in Ortszeit (der
@@ -92,6 +92,21 @@ test("the average covers only the window asked for", () => {
   list = setCheckin(list, 1, d("2026-01-05T07:00:00"));   // weit draußen
   expect(sleepAverage(list, 30, now)).toBe(3);
   expect(sleepAverage([], 30, now)).toBe(null);
+});
+
+/* Schnitt und Anzahl stehen in der Atlas-Kachel NEBENEINANDER. Laufen sie
+   über verschiedene Fenster, lügt die Kachel leise: „2,0 von 3 · 30 Nächte
+   notiert", obwohl der Schnitt aus zweien stammt. Deshalb teilen sich beide
+   dieselbe Filterung — hier festgenagelt. */
+test("count and average always describe the same nights", () => {
+  const now = d("2026-08-21T09:00:00");
+  let list = setCheckin([], 3, d("2026-08-20T07:00:00"));
+  list = setCheckin(list, 1, d("2026-08-19T07:00:00"));
+  list = setCheckin(list, 1, d("2026-01-05T07:00:00"));   // weit draußen
+  expect(sleepNights(list, 30, now)).toBe(2);
+  expect(sleepAverage(list, 30, now)).toBe(2);
+  expect(sleepNights(list, 365, now)).toBe(3);
+  expect(sleepNights([], 30, now)).toBe(0);
 });
 
 /* Die Korrelation, für die der Check-in existiert. Die Stimmung kommt aus

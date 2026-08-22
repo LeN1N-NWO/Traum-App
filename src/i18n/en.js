@@ -56,6 +56,11 @@ export default {
      existiert — die Wesen-Rarität steigt wirklich mit der Serie. */
   streakBoard: {
     title: "Your streak",
+    /* Die Mini-Geschenke (Antons Ja 22.08.). Der Ton ist bewusst nüchtern:
+       ein Credit ist ein Bild, keine Konfetti-Kanone. */
+    gift: (nights, credits) =>
+      `✦ ${nights} nights — ${credits} ${credits === 1 ? "credit" : "credits"} from us`,
+    giftBadge: (credits) => `+${credits} ${credits === 1 ? "credit" : "credits"}`,
     nights: (n) => (n === 1 ? "night" : "nights"),
     next: (n) => (n === 1 ? "1 more night to the next milestone." : `${n} more nights to the next milestone.`),
     done: "Every milestone reached. You are the calendar now.",
@@ -84,6 +89,23 @@ export default {
     atlasDreamsN: (n) => (n === 1 ? "dream" : "dreams"),
     atlasSymbols: "Recurring symbols",
     atlasMoods: "Moods",
+    /* Die Schlaf-Kachel. atlasSleepAvg bekommt das WORT aus checkin.levels,
+       nicht die Zahl — dieselbe Sprache wie die Morgenfrage, sonst antwortet
+       man in Worten und liest eine Note ab. */
+    atlasSleep: "Sleep",
+    atlasSleepAvg: (word) => `Mostly ${word}`,
+    atlasSleepNote: (nights, avg) =>
+      `${nights} ${nights === 1 ? "night" : "nights"} noted · ${avg.toFixed(1)} of 3`,
+    atlasSleepEmpty: "Answer the morning question on your home screen — sleep and dreams meet here.",
+    /* Der Wiederkehr-Befund im Traum-Detail. Kurz und klein gesetzt wie die
+       anderen Etiketten; die Zahl steht auf der Marke selbst.
+
+       ⚠ „other", nicht „earlier": recurrenceFor zählt ALLE anderen Träume.
+       Beim frisch geschriebenen Traum sind das die früheren — beim Öffnen
+       eines alten Eintrags aber auch spätere, und „2 frühere Träume" wäre
+       dann schlicht gelogen. */
+    recurrenceTitle: "Turns up again",
+    recurrenceIn: (n, what) => `${what} — in ${n} other ${n === 1 ? "dream" : "dreams"}`,
     reflectTitle: "Reflection",
     reflectCta: "What might this dream be saying?",
     reflectHint: "One possible reading, drawn from your own journal — free",
@@ -660,6 +682,12 @@ export default {
             "until you stop them — and keep playing while you use the rest of the app.",
       names: { white: "White noise", pink: "Pink noise", brown: "Brown noise" },
       descs: { white: "bright static, masks everything", pink: "like steady rain", brown: "like a far-off ocean" },
+      /* Der Einschlaf-Timer. „Fade out after" statt „Stop after": Er hört
+         nicht auf, er wird leiser — und genau das ist der Unterschied
+         zwischen Einschlafen und Aufwachen. */
+      timer: "Fade out after",
+      timerOff: "Off",
+      timerMin: (m) => `${m} min`,
       autoStart: "Start my mix when the app opens",
       autoStartHint: "Browsers want one tap first — your mix starts with the first touch.",
       background: "The mix keeps playing wherever you go in the app. The speaker " +
@@ -884,6 +912,13 @@ export default {
     textOnly: "No picture is tied to this scene yet — the film builds it from the words.",
     fillScene: "Create this scene's image",
     scenePending: "This scene is being made — you'll get a note when it lands.",
+    /* Den Szenentext vor dem Erzeugen anpassen (Antons Wunsch 22.08.).
+       Der Hinweis sagt bewusst, dass die Änderung BLEIBT: Wer hier tippt,
+       ändert den Bogen des Traums, nicht nur diesen einen Bildauftrag. */
+    editBeat: "Adjust the wording",
+    editHint: "Kept with the dream — the film uses these words too.",
+    editSave: "Save wording",
+    editCancel: "Leave it",
   },
   errors: {
     storageFull: "⚠ Storage full — delete old entries or reference photos.",

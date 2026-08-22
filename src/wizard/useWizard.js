@@ -8,17 +8,40 @@ import { useAppState } from "../state/AppState.jsx";
  * an avatar, marked free (the model invents it), or still undecided.
  */
 
-/** Words a first-person mention can take, mapped to the @me avatar. */
-const SELF_WORDS = new Set(["i", "me", "myself", "the dreamer", "myself (the dreamer)"]);
+/* Wörter, hinter denen der Träumer selbst steckt — sie führen aufs eigene
+ * Profilbild (@me).
+ *
+ * ⚠ Die Liste war bis zum 22.08.2026 rein englisch, die Analyse antwortet
+ * aber in der SPRACHE DES TRAUMS: Ein deutsch erzählter Traum liefert „Ich",
+ * und „Ich" stand nicht drin — Anton bekam für sich selbst eine Fremdfigur
+ * angeboten, obwohl sein Porträt längst hinterlegt war („damit er sofort
+ * weiß: das bist du"). Deutsch und Englisch werden gepflegt (Übersetzungs-
+ * Stopp, AGENTS.md); kommen weitere Sprachen dazu, kommen ihre Selbstwörter
+ * hierher.
+ *
+ * Verglichen wird über normalise(), also ohne Satzzeichen und Leerraum —
+ * „Ich (der Träumer)" trifft damit genauso wie „ich". */
+const SELF_WORDS = new Set([
+  // Englisch
+  "i", "me", "myself", "thedreamer", "myselfthedreamer", "ithedreamer",
+  // Deutsch
+  "ich", "mich", "mir", "ichselbst", "dertraumer", "dietraumerin",
+  "ichdertraumer", "ichdietraumerin", "dertraeumer", "dietraeumerin",
+]);
 
 function normalise(name) {
-  return String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return String(name || "")
+    .toLowerCase()
+    // Umlaute zusammenfalten, damit „Träumer" und „Traeumer" denselben
+    // Schlüssel ergeben — sonst hinge die Erkennung an der Schreibweise,
+    // die das Modell gerade wählt.
+    .replace(/ä/g, "a").replace(/ö/g, "o").replace(/ü/g, "u").replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]/g, "");
 }
 
 /** Find an existing avatar whose tag matches the analysed name unambiguously. */
 export function autoMatch(name, cast, me) {
-  const plain = String(name || "").trim().toLowerCase();
-  if (SELF_WORDS.has(plain) && me?.img) {
+  if (SELF_WORDS.has(normalise(name)) && me?.img) {
     return { tag: "me", img: me.img, desc: "", id: "me" };
   }
   const key = normalise(name);

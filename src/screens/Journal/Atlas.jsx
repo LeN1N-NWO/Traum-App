@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import ScreenHeader from "../../components/ScreenHeader.jsx";
 import { useAppState } from "../../state/AppState.jsx";
 import { symbolCounts, moodCounts, monthReview, realDreams } from "../../lib/atlas.js";
+import { sleepAverage, sleepNights, sleepByMood } from "../../lib/checkin.js";
 import { symbolById } from "../../lib/symbols.js";
 import { t } from "../../i18n/index.js";
 import "./journal.css";
@@ -24,6 +25,15 @@ export default function Atlas({ onBack, onOpen }) {
   const moods = useMemo(() => moodCounts(journal), [journal]);
   const month = useMemo(() => monthReview(journal), [journal]);
   const byId = useMemo(() => new Map(journal.map((e) => [e.id, e])), [journal]);
+
+  /* Der Schlaf (Mehrwert-Plan P2a): die Antworten auf die Morgenfrage,
+     hier zu Ende gerechnet. Der Check-in fragt bewusst nur EINS ab — die
+     Stimmung liefert die Analyse, deshalb entsteht die Korrelation unten
+     ohne eine zweite Frage. */
+  const checkins = state.checkins || [];
+  const sleepAvg = useMemo(() => sleepAverage(checkins), [checkins]);
+  const nights = useMemo(() => sleepNights(checkins), [checkins]);
+  const byMood = useMemo(() => sleepByMood(checkins, journal), [checkins, journal]);
 
   return (
     <>
@@ -64,6 +74,42 @@ export default function Atlas({ onBack, onOpen }) {
               </div>
             </section>
           )}
+
+          {/* Der Schlaf direkt unter dem Monat: beides sind Zusammenfassungen,
+              die Listen kommen danach. Ohne eine einzige Antwort steht hier
+              nur der Weg zur Frage — eine leere Kachel zu verstecken macht
+              das Feature unauffindbar. */}
+          <section className="at-sleep">
+            <p className="j-original-label">{t.journal.atlasSleep}</p>
+            {sleepAvg == null ? (
+              <p className="at-sleep-empty">{t.journal.atlasSleepEmpty}</p>
+            ) : (
+              <>
+                <div className="at-sleep-head">
+                  <span className="at-sleep-moon" aria-hidden="true">{t.checkin.emoji[Math.round(sleepAvg)]}</span>
+                  <div className="at-fact">
+                    <span className="at-fact-n">{t.journal.atlasSleepAvg(t.checkin.levels[Math.round(sleepAvg)])}</span>
+                    {/* Die Anzahl steht bewusst daneben: Ein Schnitt aus zwei
+                        Nächten sieht sonst so sicher aus wie einer aus dreißig. */}
+                    <span className="at-fact-label">{t.journal.atlasSleepNote(nights, sleepAvg)}</span>
+                  </div>
+                </div>
+                {byMood.length > 0 && (
+                  <div className="at-sleep-rows">
+                    {byMood.map((row) => (
+                      <div key={row.sleep} className="at-sleep-row">
+                        <span className="at-sleep-row-moon" aria-hidden="true">{t.checkin.emoji[row.sleep]}</span>
+                        <span className="at-sleep-row-level">{t.checkin.levels[row.sleep]}</span>
+                        <span className="at-sleep-row-moods">
+                          {row.moods.slice(0, 3).map((m) => m.mood).join(" · ")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </section>
 
           {symbols.length > 0 && (
             <section>
