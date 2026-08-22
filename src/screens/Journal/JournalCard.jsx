@@ -24,7 +24,12 @@ export default function JournalCard({ entry, onOpen, variant = "tile" }) {
   /* Offene Aufträge (Bilder oder Film): die Kachel sagt es, statt leer
      auszusehen — der Traum ist unterwegs, nicht fehlend. Hierhin kommt
      später Antons Faultier-Animation (Vermerk: faultier-assets.md). */
-  const pending = (entry.imageJobs || []).length > 0 || (!film && !!entry.jobId);
+  /* „Wird gerade erstellt" gilt ab dem Moment, in dem der Wizard den Traum
+     anlegt (entry.pending) — nicht erst, wenn die Auftragsnummern da sind.
+     Genau diese Lücke ließ Anton am 22.08. in ein leeres Journal schauen. */
+  const pending = !!entry.pending
+    || (entry.imageJobs || []).length > 0
+    || (!film && !!entry.jobId);
 
   if (variant === "row") {
     return (

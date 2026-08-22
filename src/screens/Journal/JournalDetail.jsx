@@ -44,8 +44,12 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
      seit dem 21.08. der App-weite Collector in AppState ein — vorher kam
      ein „Speichern — ich hole ihn später ab"-Film nur an, solange genau
      dieser Bildschirm offen blieb. Wer im Startscreen wartete, wartete
-     umsonst. Eine Mechanik, ein Ort (collector.js). */
-  const pendingImages = (entry.imageJobs || []).length > 0;
+     umsonst. Eine Mechanik, ein Ort (collector.js).
+
+     Die Marke `pending` zählt mit: Zwischen „Erzeugen" gedrückt und der
+     ersten Auftragsnummer liegt die Bogen-Erzeugung, und in diesem Fenster
+     darf das Detail nicht „Bilder machen" anbieten, als wäre nichts los. */
+  const pendingImages = (entry.imageJobs || []).length > 0 || !!entry.pending;
 
   /** Write a new text onto the entry. The first version is never touched.
    *  Die Reflection fällt dabei weg: sie beschreibt den ALTEN Wortlaut,

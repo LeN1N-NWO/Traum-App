@@ -104,8 +104,10 @@ export default function Step5Style({ w, patch }) {
 
   async function run() {
     if (running.current) return;
-    const paid = spend(state, price);
-    if (!paid) return openPaywall("spent");
+    /* Nur die Kassenprüfung — abgebucht wird später, Auftrag für Auftrag
+       (Bilder) bzw. beim erfolgreichen Absenden (Film/Vorschau). Wer den
+       Preis nicht aufbringt, kommt gar nicht erst bis zur Anlage. */
+    if (!spend(state, price)) return openPaywall("spent");
     running.current = true;
     setBusy(true);
     setDone(0);
@@ -127,6 +129,74 @@ export default function Step5Style({ w, patch }) {
     const beats = count > 0 ? beatsForCount(w.analysis?.beats || [w.text], count) : [];
     const allBeats = w.analysis?.beats || [w.text];
     const jobs = beats;
+
+    /* ⚠ DER TRAUM ENTSTEHT HIER — nicht wenn die Bilder fertig sind.
+     *
+     * Antons Befund vom 22.08.: Er drückte auf Erzeugen, ging ins Journal
+     * und fand nichts. Kein Wunder: Bis heute wurde der Eintrag erst NACH
+     * dem letzten Submit geschrieben, und davor liegt noch die
+     * Bogen-Erzeugung, die eine Minute dauern kann. Wer in diesem Fenster
+     * wegklickt oder neu lädt, verliert seinen Traum — obwohl längst
+     * bezahlt und beauftragt war.
+     *
+     * Jetzt: Eintrag zuerst, mit `pending` als Marke „Aufträge gehen
+     * gerade raus". Ab dieser Zeile überlebt der Traum jeden Bildschirm-
+     * wechsel; die Aufträge hängen sich einzeln an, der Collector in
+     * AppState holt sie überall in der App ab. Bricht die Sitzung mitten
+     * im Abgeben ab, räumt clearStalePending() beim nächsten Start die
+     * Marke weg und der Traum steht da — ohne Bilder, aber da. */
+    const entryId = w.entryId || genId("e");
+    const isNewEntry = !w.entryId;
+    const entryRefs = assignments
+      .filter((a) => a.avatar?.tag)
+      .map((a) => ({ tag: a.avatar.tag, category: a.kind }));
+    const commonFields = {
+      mode: isFilm ? "film" : "images",
+      style: w.styleId, format: w.format,
+      imageCount: isFilm ? 0 : w.imageCount,
+      analysis: w.analysis || null,
+      references: entryRefs,
+      pending: { kind: isFilm ? "film" : "images", n: isFilm ? 1 : jobs.length },
+    };
+
+    if (isNewEntry) {
+      // Der Stand VOR dem Hochzählen — wie in Step2/Step6: die Serie, die
+      // man sich verdient hat, zählt für diesen Wurf.
+      const creature = newCreature(w.text, refreshStreak(state).streak);
+      update((prev) => ({
+        journal: [...(prev.journal || []), {
+          id: entryId,
+          createdAt: new Date().toISOString(),
+          text: w.text,
+          originalText: w.originalText || w.text,
+          title: (w.title || "").trim() || creature.title,
+          tagline: (w.tagline || "").trim(),
+          media: { type: "image", urls: [], source: "none" },
+          creatureId: creature.id,
+          ...commonFields,
+        }],
+        creatures: [...(prev.creatures || []), creature],
+        ...bumpStreak(prev),
+      }));
+      patch({ entryId });
+    } else {
+      update((prev) => ({
+        journal: (prev.journal || []).map((e) => (e.id === entryId ? {
+          ...e, ...commonFields,
+          title: (w.title || "").trim() || e.title,
+          tagline: (w.tagline || "").trim() || e.tagline || "",
+        } : e)),
+      }));
+    }
+
+    /* Alle Patches ab hier gehen über prev, nie über das `state` aus dem
+       Renderzeitpunkt: Zwischen zwei Submits liegt ein Netzwerkaufruf, und
+       die veraltete Journalliste würde den gerade angelegten Traum wieder
+       überschreiben. */
+    const patchEntry = (fields) => update((prev) => ({
+      journal: (prev.journal || []).map((e) => (e.id === entryId ? { ...e, ...fields } : e)),
+    }));
+    const clearPending = () => patchEntry({ pending: undefined });
     /* Gattung und Beschreibung ECHT mitgeben, nicht plätten: Der Server
        sortiert Referenz-Filme nach Gattung (Personen vor Tieren vor Orten,
        filmReferences) und reicht die Beschreibung an den Regisseur weiter.
@@ -238,7 +308,15 @@ export default function Step5Style({ w, patch }) {
             beat: beats[0] || w.text, styleId: w.styleId, format: w.format, clauses, index: 1, total: 1,
           }),
         });
-        update(paid);
+        /* Der Auftrag hängt SOFORT am Traum, nicht erst wenn jemand in
+           Schritt 6 auf Speichern drückt: Bis heute war ein Film, den man
+           nicht abwartete, verloren — Auftrag bezahlt, Ergebnis nirgends.
+           Jetzt sammelt ihn der Collector ein, egal wo man gerade ist. */
+        update((prev) => ({
+          ...(spend(prev, price) || {}),
+          journal: (prev.journal || []).map((e) => (e.id === entryId
+            ? { ...e, jobId, pending: undefined } : e)),
+        }));
         patch({ jobId, urls: [], step: 6 });
         running.current = false;
         setBusy(false);
@@ -263,7 +341,13 @@ export default function Step5Style({ w, patch }) {
           panelUrls.push(await uploadPanel(blob));
           setDone((n) => n + 1);
         }
-        update(paid);
+        update((prev) => ({
+          ...(spend(prev, price) || {}),
+          journal: (prev.journal || []).map((e) => (e.id === entryId ? {
+            ...e, pending: undefined,
+            media: { type: "image", urls: panelUrls, source: "api", poster: false },
+          } : e)),
+        }));
         patch({ urls: panelUrls, poster: false, step: 6 });
         running.current = false;
         setBusy(false);
@@ -293,63 +377,49 @@ export default function Step5Style({ w, patch }) {
         });
         try {
           const res = await generate({ dream: w.text, mode: "image", cast: castForApi, prompt });
-          if (res.jobId) submitted.push({ id: res.jobId });
-          else if (res.urls) readyUrls.push(...res.urls);
+          /* Abrechnen und anhängen im selben Atemzug, Auftrag für Auftrag —
+             nicht gesammelt am Ende. Wer mittendrin wegklickt oder neu lädt,
+             hat dann genau das bezahlt, was auch wirklich läuft, und der
+             Traum trägt die Auftragsnummern schon. */
+          if (res.jobId) {
+            submitted.push({ id: res.jobId });
+            update((prev) => ({
+              ...(spend(prev, 1) || {}),
+              journal: (prev.journal || []).map((e) => (e.id === entryId
+                ? { ...e, imageJobs: [...(e.imageJobs || []), { id: res.jobId }] } : e)),
+            }));
+          } else if (res.urls?.length) {
+            readyUrls.push(...res.urls);
+            update((prev) => ({
+              ...(spend(prev, res.urls.length) || {}),
+              journal: (prev.journal || []).map((e) => (e.id === entryId ? {
+                ...e,
+                media: {
+                  type: "image", source: "api", poster: false,
+                  urls: [...(e.media?.urls || []), ...res.urls],
+                },
+              } : e)),
+            }));
+          }
         } catch (err) {
           submitError = err;
           break;
         }
         setDone((n) => n + 1);
       }
-      if (submitError && submitted.length === 0 && readyUrls.length === 0) throw submitError;
-
-      const charge = spend(state, submitted.length + readyUrls.length) || {};
-      const references = assignments
-        .filter((a) => a.avatar?.tag)
-        .map((a) => ({ tag: a.avatar.tag, category: a.kind }));
-      const pendingMedia = { type: "image", urls: readyUrls, source: "api", poster: false };
-
-      if (w.entryId) {
-        // Aus dem Journal fortgesetzt: der Traum existiert schon — er
-        // bekommt nur Zuschnitt und offene Aufträge (Regeln wie Step6).
-        update({
-          ...charge,
-          journal: (state.journal || []).map((e) => (e.id === w.entryId ? {
-            ...e,
-            mode: "images", style: w.styleId, format: w.format, imageCount: w.imageCount,
-            media: pendingMedia,
-            ...(submitted.length ? { imageJobs: submitted } : {}),
-            references,
-            analysis: w.analysis || e.analysis || null,
-            title: (w.title || "").trim() || e.title,
-            tagline: (w.tagline || "").trim() || e.tagline || "",
-          } : e)),
-        });
-      } else {
-        // Der Stand VOR dem Hochzählen — wie in Step2/Step6: die Serie,
-        // die man sich verdient hat, zählt für diesen Wurf.
-        const creature = newCreature(w.text, refreshStreak(state).streak);
-        const entry = {
-          id: genId("e"),
-          createdAt: new Date().toISOString(),
-          text: w.text,
-          originalText: w.originalText || w.text,
-          title: (w.title || "").trim() || creature.title,
-          tagline: (w.tagline || "").trim(),
-          mode: "images", style: w.styleId, format: w.format, imageCount: w.imageCount,
-          media: pendingMedia,
-          ...(submitted.length ? { imageJobs: submitted } : {}),
-          analysis: w.analysis || null,
-          references,
-          creatureId: creature.id,
-        };
-        update({
-          ...charge,
-          journal: [...(state.journal || []), entry],
-          creatures: [...(state.creatures || []), creature],
-          ...bumpStreak(state),
-        });
+      if (submitError && submitted.length === 0 && readyUrls.length === 0) {
+        /* Kein Auftrag ist rausgegangen, also gibt es auch nichts zu warten:
+           Der Traum bleibt stehen (Text, Analyse, Wesen), nur die Marke geht
+           weg — sonst behauptete die Kachel für immer, sie arbeite. */
+        clearPending();
+        throw submitError;
       }
+
+      /* Bezahlt und angehängt ist längst alles (Schleife oben) — hier
+         bleibt nur noch, die Marke zu löschen: Ab jetzt wartet der Traum
+         nicht mehr auf Aufträge, sondern auf Bilder, und dafür gibt es die
+         Auftragsnummern am Eintrag. */
+      clearPending();
 
       toast(t.wizard.step5.queuedNote);
       navigate("/journal");
@@ -364,6 +434,9 @@ export default function Step5Style({ w, patch }) {
       }
     } catch (err) {
       console.error("[DreamRushes] generation failed:", err);
+      /* Die Marke muss weg, egal woran es lag — eine Kachel, die ewig
+         „wird erstellt" behauptet, ist schlimmer als ein Traum ohne Bild. */
+      clearPending();
       setFail(err.message);
     }
     running.current = false;
