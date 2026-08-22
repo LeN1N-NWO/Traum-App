@@ -118,6 +118,28 @@
   pointer-events: none; font-size: var(--t-small); font-weight: 600;
   color: var(--text); mix-blend-mode: difference;
 }
+/* Der Einschlaf-Timer: dieselbe Kachel wie der Autostart darunter, damit die
+   beiden Einstellungen als Paar lesbar sind. Große Ziele — der Finger sucht
+   sie im Dunkeln. */
+.sl-timer {
+  display: flex; flex-direction: column; gap: var(--s-2);
+  padding: var(--s-4); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--panel-line);
+  margin-block-end: var(--s-3);
+}
+.sl-timer-label { font-size: var(--t-small); color: var(--muted); }
+.sl-timer-row { display: flex; gap: var(--s-2); }
+.sl-timer-btn {
+  flex: 1; padding: 10px var(--s-2); border-radius: 12px; cursor: pointer;
+  background: var(--glass); border: 1px solid var(--panel-line);
+  color: var(--muted); font-family: var(--sans); font-size: var(--t-small);
+  font-variant-numeric: tabular-nums;
+}
+.sl-timer-btn:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.sl-timer-on {
+  background: var(--accent-wash); border-color: var(--accent-ring); color: var(--text);
+}
+
 .sl-autostart {
   display: flex; gap: var(--s-3); align-items: flex-start; cursor: pointer;
   padding: var(--s-4); border-radius: var(--radius);

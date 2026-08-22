@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAppState } from "../state/AppState.jsx";
-import { applyMix, isActive, setMuted, getMuted } from "../lib/soundMixer.js";
+import { applyMix, isActive, setMuted, getMuted, startTimer, subscribe } from "../lib/soundMixer.js";
 import { t } from "../i18n/index.js";
 import "./SoundDock.css";
 
@@ -21,12 +21,17 @@ export default function SoundDock() {
     const mix = state.soundMix;
     if (!mix?.autoStart) return;
     if (!Object.values(mix.volumes || {}).some((v) => v > 0)) return;
-    const arm = () => { applyMix(mix.volumes); rerender(); };
+    const arm = () => { applyMix(mix.volumes); startTimer(mix.timer); rerender(); };
     window.addEventListener("pointerdown", arm, { once: true });
     return () => window.removeEventListener("pointerdown", arm);
     // Mount-only on purpose: this is "when the app opens", not a live sync.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* Der Timer bringt die Stille ohne Zutun — ohne diesen Melder bliebe der
+     Lautsprecher über einem stummen Mix stehen, bis irgendetwas anderes ein
+     Neuzeichnen auslöst. */
+  useEffect(() => subscribe(rerender), []);
 
   if (!isActive()) return null;
 

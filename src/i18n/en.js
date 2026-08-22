@@ -677,6 +677,12 @@ export default {
             "until you stop them — and keep playing while you use the rest of the app.",
       names: { white: "White noise", pink: "Pink noise", brown: "Brown noise" },
       descs: { white: "bright static, masks everything", pink: "like steady rain", brown: "like a far-off ocean" },
+      /* Der Einschlaf-Timer. „Fade out after" statt „Stop after": Er hört
+         nicht auf, er wird leiser — und genau das ist der Unterschied
+         zwischen Einschlafen und Aufwachen. */
+      timer: "Fade out after",
+      timerOff: "Off",
+      timerMin: (m) => `${m} min`,
       autoStart: "Start my mix when the app opens",
       autoStartHint: "Browsers want one tap first — your mix starts with the first touch.",
       background: "The mix keeps playing wherever you go in the app. The speaker " +

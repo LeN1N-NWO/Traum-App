@@ -638,6 +638,9 @@ export default {
             "bis du sie stoppst — und weiter, während du den Rest der App nutzt.",
       names: { white: "Weißes Rauschen", pink: "Rosa Rauschen", brown: "Braunes Rauschen" },
       descs: { white: "helles Rauschen, überdeckt alles", pink: "wie stetiger Regen", brown: "wie ein fernes Meer" },
+      timer: "Ausblenden nach",
+      timerOff: "Aus",
+      timerMin: (m) => `${m} Min`,
       autoStart: "Meine Mischung beim App-Start starten",
       autoStartHint: "Browser wollen erst eine Berührung — deine Mischung startet mit dem ersten Antippen.",
       background: "Die Mischung läuft weiter, egal wohin du in der App gehst. Der Lautsprecher-" +
