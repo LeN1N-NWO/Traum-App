@@ -402,10 +402,12 @@ export default {
     lede: "Lucid dreaming means noticing you're dreaming while it happens — and sometimes steering what comes next. It can be learned: in the largest comparison study to date, one week of practice was enough for many people. Here is what the evidence actually supports, including the part that contradicts most advice you'll find online.",
     leversTitle: "What actually moves the needle",
     levers: [
-      { stat: "18 % vs 11 %", title: "Get back to sleep fast",
-        text: "The biggest single difference in the whole study wasn't which technique people used — it was falling asleep again within ten minutes of doing it. Lie down straight away. No phone." },
-      { stat: "18 % vs 6 %", title: "Wake after about five hours",
-        text: "Nights with a short wake-up produced three times as many lucid dreams as nights without. Nearly every method below is built on this one moment." },
+      /* ⚠ Begründung in de.js: Eine Prozentzahl ohne Bezugsgröße ist keine
+         Aussage. Oben die Wirkung in Worten, unten die Zahl mit Einheit. */
+      { stat: "nearly twice as often", title: "Get back to sleep fast",
+        text: "The biggest single difference in the whole study wasn't which technique people used — it was falling asleep again within ten minutes of doing it. That turned 18 attempts in 100 lucid, against 11 without. Lie down straight away. No phone." },
+      { stat: "three times as often", title: "Wake after about five hours",
+        text: "A short wake-up in the middle of the night lifts the yield from 6 to 18 nights in 100. Nearly every method below is built on this one moment." },
       { stat: "the groundwork", title: "Keep writing dreams down",
         text: "People who remembered more dreams had more lucid ones — before learning any technique at all. You're already doing this. That's the point of this app." },
     ],
@@ -423,8 +425,8 @@ export default {
         note: "This is the one that costs you something: interrupted sleep. Two or three nights a week is plenty — every night is how people quit.",
       },
       {
-        id: "ssild", name: "SSILD — Senses initiated", rate: "16.9 %",
-        summary: "Cycle through sight, sound and touch until you drift off. The best result in the study, and the least effort.",
+        id: "ssild", name: "SSILD — Senses initiated", rate: "17 nights in 100",
+        summary: "Cycle through sight, sound and touch until you drift off. As good as MILD — for noticeably less effort.",
         steps: [
           "After the five-hour wake-up, lie down comfortably.",
           "Four quick rounds: eyes (whatever you see behind closed lids), ears (whatever you can hear), body (the weight of the blanket). Two or three seconds each — don't linger.",
@@ -434,7 +436,7 @@ export default {
         note: "Trying hard is the classic mistake. The rounds are meant to leave you drowsy, not alert — if you're still concentrating, you've overdone it. Falling asleep during the slow rounds is a success, not a failure.",
       },
       {
-        id: "mild", name: "MILD — Intention before sleep", rate: "16.5 %",
+        id: "mild", name: "MILD — Intention before sleep", rate: "17 nights in 100",
         summary: "Fall asleep holding one sentence, and a picture of catching yourself.",
         steps: [
           "After the five-hour wake-up, recall a dream from tonight or a recent one, as vividly as you can.",
