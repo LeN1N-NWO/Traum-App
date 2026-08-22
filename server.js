@@ -34,6 +34,9 @@ import { statSync, readFileSync } from "node:fs";
 // Wo die Bilder liegen dürfen — eigene Datei, weil daran schon einmal echte
 // Träume verloren gegangen sind (src/lib/mediaRoot.test.js).
 import { mediaRootFrom } from "./src/lib/mediaRoot.js";
+// Doppelte Figuren aussortieren — eigene Datei, damit sie ohne laufenden
+// Server prüfbar ist (src/lib/people.test.js).
+import { dedupePeople } from "./src/lib/people.js";
 // Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
 import { guard } from "./src/lib/gatekeeper.js";
@@ -70,6 +73,12 @@ const MEDIA_DIR = mediaRootFrom(
   })(),
   process.env.DREAMRUSHES_MEDIA,
 );
+
+/* Wohin die gesicherten Träume gehen. Neben dem Medienordner und aus
+   demselben Grund über mediaRootFrom(): Aus einem Worktree heraus gehören
+   sie ins Hauptrepo, sonst nimmt `git worktree remove` sie mit — genau so
+   sind am 21.08. die Bilder verschwunden. */
+const BACKUP_DIR = resolve(MEDIA_DIR, "..", "data", "traeume");
 
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
@@ -939,7 +948,13 @@ Why the language split matters: "text", "people[].name", "places" and "mood" are
 
 Rules for "text": FIRST understand what actually happened in the dream, then retell it. The input is often dictated speech — fragmented, repetitive, thoughts spoken over each other, false starts. Do not just patch spelling: rewrite it as one flowing, well-told account in the dreamer's language. Merge repetitions, complete fragments, untangle sentences that ran into each other, and make the wording vivid and easy to picture. You may restructure sentences freely as long as the DREAM itself stays untouched: never invent events, people or places that are not there, never drop any, never change the emotional tone, never add interpretation. Keep it first person if it was first person.
 
-Rules for "people": include the dreamer only if they appear as a visible character (then name them as the dream does — "ich"/"I" is fine). A dog, cat or other animal is kind "pet". Empty array if nobody appears.
+Rules for "people": ONE ENTRY PER DISTINCT PERSON. The same person mentioned again later is the SAME entry — "ein Arzt" at the start and "der Arzt" three sentences on are one doctor, not two. Only list a second entry when the dream itself marks someone as different ("ein ANDERER Arzt", "eine zweite Frau"). Two entries that describe the same role in the same scene are always a mistake.
+
+Name each person the way a casting list would: the bare noun or name, no articles and no possessives — "Arzt", not "ein Arzt" or "der Arzt"; "Anton", not "mein Freund Anton" (put "Freund" in "desc" instead). If a dream truly has two of the same role, distinguish them by something visible ("Arzt mit Brille", "junger Arzt"), never by "anderer".
+
+If the dream is told in the FIRST PERSON, the dreamer is a character and belongs in this list as the FIRST entry, named exactly as the dream names them ("ich" / "I"). This holds even when the dreamer never describes their own appearance — the app binds that entry to the person's own photo, and without it they cannot cast themselves.
+
+A dog, cat or other animal is kind "pet". Empty array only if truly nobody appears.
 
 Rules for "places": one entry per distinct SETTING — a location a film crew would have to build separately. Different parts, angles or heights of the SAME setting are ONE entry: a mountain's summit and the sky above that mountain are one place, a house and the rooms inside it are one place. The sky, air or water directly around a setting is never its own entry. List a second place only when the dream truly moves somewhere else (a bedroom, then later the open sea). Never let two entries share the same core location. Empty array if there is no discernible location.
 
@@ -1016,6 +1031,7 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
       };
     })
     .filter((p) => p && p.name)
+    .filter(dedupePeople())
     .slice(0, MAX_ANALYSIS_ITEMS);
 
   // Beats drive the image count, so their number is pinned, not trusted.
@@ -2070,6 +2086,68 @@ Bun.serve({
     // content-type maps to a real image extension, so nothing about the
     // request — not its size, not its declared type — reaches the filesystem
     // unchecked.
+    /* Träume als Dateien sichern (Antons Ansage 22.08.2026: „Meine
+       Testträume bitte hier abspeichern … und drinnen bleiben, bis ich
+       ausdrücklich sage, dass man die Memory löschen soll.").
+       Regeln in src/lib/journalBackup.js — hier gilt vor allem eine:
+       ⚠ ES WIRD NUR GESCHRIEBEN, NIE GELÖSCHT. Verschwindet ein Traum aus
+       der App, bleibt seine Datei stehen. Aufgeräumt wird von Hand, auf
+       Antons Wort. */
+    /* Die Rückrichtung: die geteilten Träume herausgeben (Antons Ansage
+       22.08.: „alle, die jetzt an der App entwickeln, sollen diese Träume
+       sehen"). Ohne sie wäre die Sicherung eine Einbahnstraße — geschrieben,
+       eingecheckt, und ein frischer Checkout sähe trotzdem nichts.
+
+       ⚠ Der Ladepfad im Client hängt an import.meta.env.DEV. Dieser Endpunkt
+       liefert also auch im Betrieb, aber niemand fragt ihn dann. Wer die App
+       veröffentlicht, nimmt beides heraus — Ordner und Ladepfad. */
+    if (url.pathname === "/api/journal-backup" && req.method === "GET") {
+      try {
+        const glob = new Bun.Glob("*.json");
+        const traeume = [];
+        for await (const datei of glob.scan({ cwd: BACKUP_DIR, onlyFiles: true })) {
+          const inhalt = await Bun.file(resolve(BACKUP_DIR, datei)).json().catch(() => null);
+          if (inhalt?.id) traeume.push(inhalt);
+        }
+        traeume.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        return json({ traeume });
+      } catch (e) {
+        // Kein Ordner, keine Träume — das ist kein Fehler, das ist der
+        // Normalfall bei einem frischen Klon ohne Testdaten.
+        return json({ traeume: [] });
+      }
+    }
+
+    if (url.pathname === "/api/journal-backup" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json().catch(() => null);
+        const eintraege = Array.isArray(body?.entries) ? body.entries : null;
+        if (!eintraege) return json({ error: "Nothing to store." }, 400);
+
+        let geschrieben = 0, unveraendert = 0;
+        for (const { datei, traum } of eintraege) {
+          /* Der Dateiname kommt vom Client — also wird er hier neu geprüft
+             und nicht geglaubt. Ein „../" darin schriebe sonst irgendwohin. */
+          if (typeof datei !== "string" || !/^[0-9a-zA-Z_.-]+\.json$/.test(datei) || datei.includes("..")) continue;
+          if (!traum || typeof traum !== "object") continue;
+          const ziel = resolve(BACKUP_DIR, datei);
+          if (!ziel.startsWith(BACKUP_DIR + sep)) continue;
+          const inhalt = JSON.stringify(traum, null, 2) + "\n";
+          const alt = Bun.file(ziel);
+          if (await alt.exists() && (await alt.text()) === inhalt) { unveraendert++; continue; }
+          await Bun.write(ziel, inhalt);
+          geschrieben++;
+        }
+        return json({ ok: true, geschrieben, unveraendert, ordner: "data/traeume" });
+      } catch (e) {
+        console.error("[DreamRushes] /api/journal-backup failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
     if (url.pathname === "/api/panel" && req.method === "POST") {
       try {
         if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {

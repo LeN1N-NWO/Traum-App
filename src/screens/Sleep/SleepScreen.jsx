@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useAppState } from "../../state/AppState.jsx";
 import { setVolume, getVolumes, startTimer, subscribe } from "../../lib/soundMixer.js";
 import { SOUND_IDS } from "../../lib/noise.js";
@@ -19,7 +20,13 @@ const SECTIONS = ["checklist", "sounds", "guide", "symbols"];
 const TIMER_CHOICES = [0, 15, 30, 60];
 
 export default function SleepScreen() {
-  const [view, setView] = useState(null);   // null | one of SECTIONS
+  /* Der Abschnitt kann von außen gewünscht werden (Startseite →
+     „Einschlafgeräusche starten"). Wie beim Atlas reist der Wunsch im
+     Router-Zustand und nicht in der Adresse: Er gilt für DIESEN Sprung,
+     nicht für ein Lesezeichen — und weil der Bildschirm beim Routenwechsel
+     ohnehin neu montiert, genügt der Startwert. */
+  const gewuenscht = useLocation().state?.view;
+  const [view, setView] = useState(SECTIONS.includes(gewuenscht) ? gewuenscht : null);
 
   if (view) {
     const section = t.sleep.tiles[view];

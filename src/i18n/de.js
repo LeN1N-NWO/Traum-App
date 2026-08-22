@@ -372,10 +372,16 @@ export default {
     lede: "Klarträumen heißt zu merken, dass man träumt, während es passiert — und manchmal zu lenken, was als Nächstes kommt. Es ist erlernbar: In der bisher größten Vergleichsstudie genügte vielen eine Woche Übung. Hier steht, was die Belege wirklich hergeben. Auch der Teil, der dem widerspricht, was im Netz überall empfohlen wird.",
     leversTitle: "Was wirklich den Ausschlag gibt",
     levers: [
-      { stat: "18 % vs 11 %", title: "Schnell wieder einschlafen",
-        text: "Der größte einzelne Unterschied in der ganzen Studie war nicht die gewählte Methode — sondern ob man danach innerhalb von zehn Minuten wieder einschlief. Sofort hinlegen. Kein Handy." },
-      { stat: "18 % vs 6 %", title: "Nach etwa fünf Stunden aufwachen",
-        text: "Nächte mit kurzem Aufstehen brachten dreimal so viele Klarträume wie Nächte ohne. Fast jede Methode hier unten baut auf diesem einen Moment auf." },
+      /* ⚠ Die Zahl gehört in den Satz, nicht in die Überschrift (Antons
+         Befund 22.08.: „18 % vs 11 % — die Information bringt niemand,
+         ich verstehe nicht, was gemeint ist"). Zu Recht: Eine Prozentzahl
+         ohne Bezugsgröße ist keine Aussage. Oben steht jetzt die Wirkung
+         in Worten, unten die Zahl mit ihrer Einheit — einmal, im Fließtext,
+         wo sie belegt statt behauptet. */
+      { stat: "fast doppelt so oft", title: "Schnell wieder einschlafen",
+        text: "Der größte einzelne Unterschied in der ganzen Studie war nicht die gewählte Methode — sondern ob man danach innerhalb von zehn Minuten wieder einschlief. Dann wurden 18 von 100 Versuchen luzid, sonst 11. Sofort hinlegen. Kein Handy." },
+      { stat: "dreimal so oft", title: "Nach etwa fünf Stunden aufwachen",
+        text: "Ein kurzes Aufstehen mitten in der Nacht hebt die Ausbeute von 6 auf 18 von 100 Nächten. Fast jede Methode hier unten baut auf diesem einen Moment auf." },
       { stat: "die Grundlage", title: "Träume weiter aufschreiben",
         text: "Wer sich an mehr Träume erinnerte, hatte mehr Klarträume — noch bevor er irgendeine Methode gelernt hatte. Du machst das ohnehin schon. Genau dafür gibt es diese App." },
     ],
@@ -393,8 +399,8 @@ export default {
         note: "Das ist die Methode, die dich etwas kostet: unterbrochenen Schlaf. Zwei, drei Nächte pro Woche reichen völlig — jede Nacht ist der Weg, auf dem Leute aufgeben.",
       },
       {
-        id: "ssild", name: "SSILD — über die Sinne", rate: "16,9 %",
-        summary: "Sehen, Hören, Fühlen im Wechsel, bis du wegdriftest. Das beste Ergebnis der Studie, und der geringste Aufwand.",
+        id: "ssild", name: "SSILD — über die Sinne", rate: "17 von 100 Nächten",
+        summary: "Sehen, Hören, Fühlen im Wechsel, bis du wegdriftest. So gut wie MILD — bei deutlich weniger Aufwand.",
         steps: [
           "Nach dem Aufwachen bei fünf Stunden bequem hinlegen.",
           "Vier schnelle Runden: Augen (was du hinter den Lidern siehst), Ohren (was du hörst), Körper (das Gewicht der Decke). Zwei, drei Sekunden je Sinn — nicht verweilen.",
@@ -404,7 +410,7 @@ export default {
         note: "Sich anzustrengen ist der klassische Fehler. Die Runden sollen dich schläfrig machen, nicht wach — wenn du noch konzentriert bist, hast du es übertrieben. Während der langsamen Runden einzuschlafen ist ein Erfolg, kein Versagen.",
       },
       {
-        id: "mild", name: "MILD — Vorsatz vor dem Einschlafen", rate: "16,5 %",
+        id: "mild", name: "MILD — Vorsatz vor dem Einschlafen", rate: "17 von 100 Nächten",
         summary: "Mit einem Satz einschlafen — und mit dem Bild, wie du dich selbst ertappst.",
         steps: [
           "Nach dem Aufwachen bei fünf Stunden einen Traum von heute Nacht oder einen jüngeren erinnern, so lebhaft es geht.",
@@ -477,10 +483,17 @@ export default {
 
     step1: {
       title: "Was hast du geträumt?",
-      improve: "Mit KI verbessern",
+      /* ⚠ Hieß bis 22.08. „Mit KI verbessern" — und log damit doppelt
+         (Antons Befund): Es ist der EINZIGE Weg weiter, klingt aber nach
+         einem Extra, das man auch weglassen könnte. Und „verbessern" ist
+         das Kleinste, was hier passiert: Die App liest den Traum aus,
+         findet Figuren, Orte und Szenen. Ohne das hat der nächste Schritt
+         nichts zu zeigen. Der Knopf sagt jetzt, was er tut. */
+      improve: "Traum auswerten",
       reading: "Dein Traum wird gelesen…",
-      why: "Die KI erzählt deinen Traum in deiner eigenen Sprache neu und findet heraus, wer und " +
-           "wo darin vorkommt. Alles danach — die Figuren, die Orte, die Bilder — baut darauf auf.",
+      why: "Die App liest deinen Traum: wer darin vorkommt, wo er spielt, welche Szenen ihn " +
+           "ausmachen — und erzählt ihn dabei in deiner Sprache sauber nach. Alles danach baut " +
+           "darauf auf, deshalb geht es hier lang. Deine eigenen Worte bleiben erhalten.",
       previewTitle: "Hier ist er, aufgeräumt",
       previewLede: "Deine eigenen Worte bleiben so oder so erhalten.",
       yours: "Wie du es geschrieben hast",

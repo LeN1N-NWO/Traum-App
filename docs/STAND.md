@@ -3,10 +3,10 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-22 (17:50) — Ende `session/2026-08-22-anton-3`,
-PR #22 freigegeben, wartet auf Antons Merge-Klick.
-⚠ Nach dem Merge: `git checkout main && git pull` — die Sitzung lief ohne
-Worktree, die Dev-Server servieren dieses Checkout.
+**Stand:** 2026-08-22 (18:00) — PR #22 ist gemerged, main ist `17e0b4c`.
+Laufende Sitzung: `session/2026-08-22-anton-4` (PR #23, Entwurf).
+⚠ Wieder ohne eigenen Worktree im Hauptrepo — Begründung unten unter
+„Fallen".
 
 ## Wo wir stehen
 

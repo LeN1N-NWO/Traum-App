@@ -1,0 +1,56 @@
+{
+  "id": "e_mt4m1pgjyth7mc",
+  "createdAt": "2026-08-22T16:46:33.766Z",
+  "kind": "dream",
+  "title": "Die hölzerne Rettung",
+  "tagline": "Sie waren weg, bis der rote Hubschrauber kam.",
+  "text": "Ich stand auf dem Mount Everest. Der Himmel war heiter, aber ich hatte Angst. Ich sah mich um: niemand war da. Alle waren weg, nur ein Zelt stand noch hinter mir. Plötzlich tauchte ein Hubschrauber auf und warf eine Holzleiter herab. In der Nahaufnahme winkte ein Arzt mich zu sich. Ich griff nach der Leiter, und der Hubschrauber flog in die Abendsonne davon. Es war ein roter Rot-Kreuz-Hubschrauber.",
+  "originalText": "Ich war auf dem Mount Everest, der Himmel war heiter. Ich hatte Angst und guckte mich um, sah aber niemanden. Alle waren weg, aber hinter mir war noch ein Zelt. Plötzlich kam ein Hubschrauber, schmiss eine Holzleiter herunter und da war als Nahaufnahme ein Arzt, der mich hochwinkte. Ich griff diese Holzleiter und der Hubschrauber flog weg in die Abendsonne. Es war ein roter Hubschrauber, so ein rot Kreuz Hubschrauber.",
+  "analysis": {
+    "language": "de",
+    "text": "Ich stand auf dem Mount Everest. Der Himmel war heiter, aber ich hatte Angst. Ich sah mich um: niemand war da. Alle waren weg, nur ein Zelt stand noch hinter mir. Plötzlich tauchte ein Hubschrauber auf und warf eine Holzleiter herab. In der Nahaufnahme winkte ein Arzt mich zu sich. Ich griff nach der Leiter, und der Hubschrauber flog in die Abendsonne davon. Es war ein roter Rot-Kreuz-Hubschrauber.",
+    "people": [
+      {
+        "name": "ein Arzt",
+        "kind": "person",
+        "desc": ""
+      },
+      {
+        "name": "Arzt",
+        "kind": "person",
+        "desc": "winkte mich hoch"
+      }
+    ],
+    "places": [
+      "Mount Everest"
+    ],
+    "beats": [
+      "The empty snowfield of the Everest summit, with a lone tent and no people.",
+      "A red helicopter with a Red Cross symbol appears in the clear sky.",
+      "The helicopter drops a wooden ladder, and a close-up shows ein Arzt waving.",
+      "A hand reaches out and grabs the wooden ladder.",
+      "The helicopter flies away into the evening sun, with the ladder dangling."
+    ],
+    "style": "adventurous",
+    "mood": "angstvoll",
+    "title": "Die hölzerne Rettung",
+    "tagline": "Sie waren weg, bis der rote Hubschrauber kam.",
+    "filmSeconds": 12
+  },
+  "style": "ultrareal",
+  "format": "9:16",
+  "mode": "images",
+  "imageCount": 5,
+  "creatureId": "cr_mt4m1pgk8zz5ln",
+  "references": [],
+  "medien": {
+    "bilder": [
+      "/media/38ggp39g5wzpx.png",
+      "/media/hqc156fa7mz0.png",
+      "/media/2teh3oyspp667.png",
+      "/media/3nc52bvw3pm5x.png",
+      "/media/2ve73wwyc0gh6.png"
+    ],
+    "film": []
+  }
+}
