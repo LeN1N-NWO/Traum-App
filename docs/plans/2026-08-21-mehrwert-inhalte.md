@@ -3,7 +3,17 @@
 **Stand:** 2026-08-21 · Anlass: Antons Auftrag („es gibt genug andere
 Traum-Apps, die Traumdeutung machen und bla bla — ich brauche einen Plan
 für Sachen, die Mehrwert bringen; was andere machen, will ich auch haben")
-**Status: PLAN. Nichts umgesetzt.**
+**Status (22.08.2026): P1 und P2a/P2b sind gebaut, der Rest ist Plan.**
+
+| Punkt | Stand | Wo |
+|---|---|---|
+| P1a Reflection | gebaut | Traum-Detail, `reflect` in api.js |
+| P1b Traumatlas | gebaut (ohne Monats-Collage) | `screens/Journal/Atlas.jsx` |
+| P2a Morgen-Check-in | gebaut | `MorningCheckin.jsx` + Schlaf-Kachel im Atlas · ⚠ nur EINE Frage, siehe unten |
+| P2b Wiederkehr | gebaut | `components/Recurrence.jsx` im Traum-Detail |
+| P2c Luzid-Werkzeuge | offen | Traumzeichen-Karten kosten 1 Credit — Antons Wort fehlt |
+| P3a Albtraum umschreiben | offen | Wortlaut erst mit dem Rechtsplan abstimmen |
+| P3b Einschlaf-Timer | offen | — |
 
 ## 1. Das Marktbild (recherchiert 21.08.)
 
@@ -66,6 +76,15 @@ Beim Öffnen nach einer Nacht: „Wie hast du geschlafen?" (3 Gesichter) +
 (Stimmung × Schlafqualität ist die interessanteste Korrelation) und gibt
 der Serie einen zweiten Grund. Lokal, gratis, klein.
 
+> **Gebaut am 22.08. — mit einer Abweichung:** Es ist EIN Tap, nicht zwei.
+> Die zweite Frage („Stimmung des Traums?") entfällt, weil die Analyse
+> `analysis.mood` ohnehin für jeden Traum liefert und die Frage morgens ins
+> Leere geht, solange noch kein Traum eingetragen ist (Antons Entscheidung
+> 21.08.). Die Korrelation entsteht trotzdem — `sleepByMood()` holt die
+> Stimmung aus der Analyse. Zu sehen: Startseite morgens (Karte) und
+> Traumatlas (Kachel „Schlaf": Schnitt, Anzahl der Nächte, Stimmung je
+> Schlafstufe).
+
 ### P2b · „Du träumst wieder von …" — Wiederkehr-Erkennung
 
 Beim Speichern eines neuen Traums vergleicht die App Symbole/Personen
@@ -73,6 +92,15 @@ mit dem Bestand (lokaler Index über die vorhandenen Analysen — KEIN
 externes Gedächtnis, ADR-0001 bleibt): „Der Aufzug taucht zum vierten
 Mal auf — hier sind die anderen drei." Das ist Oniris stärkstes Feature,
 und wir haben die Daten schon strukturiert.
+
+> **Gebaut am 22.08.** — als ruhiger Block im Traum-Detail (zwischen
+> Besetzung und Reflection), nicht als Meldung beim Speichern: Der
+> Augenblick nach dem Aufschreiben gehört dem Traum, nicht der Statistik.
+> Marken antippen öffnet die anderen Träume.
+>
+> ⚠ Der Wortlaut heißt „weitere Träume", nicht „frühere": `recurrenceFor()`
+> zählt alle anderen Träume, und wer einen alten Eintrag aufschlägt, bekommt
+> auch neuere mitgezählt.
 
 ### P2c · Luzid-Werkzeuge (der Ausbau des Leitfadens)
 

@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../lib/checkin.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
@@ -10,6 +11,7 @@ import "./morningCheckin.css";
  * sonst wirkt der Tipp wie verschluckt. */
 export default function MorningCheckin() {
   const { state, update } = useAppState();
+  const navigate = useNavigate();
   const today = checkinOn(state.checkins);
 
   function pick(level) {
@@ -19,9 +21,14 @@ export default function MorningCheckin() {
   return (
     <div className="mc" role="group" aria-label={t.checkin.question}>
       {today ? (
-        <p className="mc-done">
-          <span aria-hidden="true">{t.checkin.emoji[today.sleep]}</span> {t.checkin.thanks}
-        </p>
+        /* Die Bestätigung verspricht „…treffen sich in deinem Atlas" — also
+           führt sie auch dorthin. Ein Satz, der einen Ort nennt und nicht
+           hingeht, lässt den Menschen suchen. */
+        <button className="mc-done" onClick={() => navigate("/journal", { state: { view: "atlas" } })}>
+          <span aria-hidden="true">{t.checkin.emoji[today.sleep]}</span>
+          <span className="mc-done-text">{t.checkin.thanks}</span>
+          <span className="mc-done-go" data-flip aria-hidden="true">›</span>
+        </button>
       ) : (
         <>
           <p className="mc-q">{t.checkin.question}</p>

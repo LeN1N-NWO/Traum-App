@@ -15,4 +15,11 @@
 }
 .mc-btn:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 .mc-emoji { font-size: 19px; line-height: 1; }
-.mc-done { margin: 0; color: var(--muted); font-size: var(--t-small); }
+.mc-done {
+  display: flex; align-items: center; gap: var(--s-2); inline-size: 100%;
+  padding: 0; background: none; border: 0; cursor: pointer;
+  color: var(--muted); font: inherit; font-size: var(--t-small); text-align: start;
+}
+.mc-done-text { flex: 1; }
+.mc-done-go { color: var(--faint); }
+.mc-done:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 4px; }
