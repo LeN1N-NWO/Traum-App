@@ -3,6 +3,63 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-22 17:50 — Anton — Branch `session/2026-08-22-anton-3` (PR #22) — Sitzungsabschluss
+
+**Commits:** `f6eb321` (Eröffnung) · `baf0279` (Schlummernacht +
+„Nichts hängengeblieben") · `b85b564` (Merge der Wolken-Preisrechnung) ·
+`202f155` (Store-Anteil) · `b5f05d5` (Pläne fortgeschrieben) ·
+`30b1a98` (28 Klang-Kandidaten) · `45ec013` (Wanderlicht, ausgelagert) ·
+`d297c32` (Marge bei 10.000 €) + dieser Doku-Commit.
+Zustand: 269 Tests grün, Shape-Check grün, Build sauber.
+
+⚠ Wieder ohne eigenen Worktree im Hauptrepo — die Begründung steht jetzt
+EINMAL im STAND unter „Fallen" statt in jedem Eintrag neu. Nach dem
+Merge von #22: `git checkout main && git pull`.
+
+### Antons vier Entscheidungen, abgearbeitet
+
+**1+2 Schlummernacht und „Nichts hängengeblieben" — beide ja, beide
+gebaut.** `snoozeCheck()` in streak.js springt beim App-Start ein (der
+einzige Moment, in dem die App die fehlende Nacht bemerkt). Je sieben
+Nächte eine, höchstens zwei auf Vorrat.
+⚠ Zwei Regeln, die im Test stehen und nicht aufgeweicht werden dürfen:
+KEINE Teilrettung (zwei Lücken mit einer Schlummernacht verbrauchen sie
+nicht), und nach einem Serienbruch wird wieder von vorn verdient —
+anders als bei den Credit-Geschenken, weil der Schutz uns nichts kostet.
+
+`src/lib/blankNight.js` ist neu. ⚠ Die wichtigste Regel steht in seinem
+Dateikopf: Eine leere Nacht ist KEIN TRAUM. Kein Wesen, keine Analyse,
+kein Atlas-Zähler, keine Traumliste. Die Erkennung hängt an EINEM Feld
+(`kind: "blank"`), alle Filter lesen ausschließlich `isBlank()` — wer
+das aufweicht, verwässert Atlas, Menagerie, Showcase und Statistik
+gleichzeitig. Sichtbar ist sie nur im Kalender als Ring.
+
+**3 Klang-Presets:** 28 CC0-Aufnahmen in sieben Themen liegen unter
+`media/klang-kandidaten/` (66 MB, bewusst außerhalb des Repos), die
+Liste mit Quellen im Plan `2026-08-22-klang-presets.md`. Nur CC0, und
+jede Seite wird nach dem Suchfilter noch einmal gegengeprüft.
+
+**4 Traumzeichen-Karten und Faultier-Assets:** auf Antons Wort vertagt,
+in beiden Plänen so vermerkt.
+
+**5 Preislinie:** Die Wolken-Arbeit (`claude/new-session-x9qv1w`) ist
+GEMERGT, nicht nachgebaut. Ergänzt um Antons Auflage (15 % Apple) und
+die Nuance dahinter: 15 % gilt nur im Small Business Program bis 1 Mio. $
+im Jahr. Dabei kippt ein Befund der Vorlage — Regie ist kaufbar
+($11–14), Kino ist es nicht ($22–27 für 15 s, $44–53 für 30 s).
+
+### Was der Nächste wissen muss
+
+1. **Die Preisentscheidung ist der einzige echte Blocker.** Anton wählt
+   zwischen Weg C + Paket XL ($29,99) und Kino auf 10 Sekunden begrenzen.
+   Ohne sie ist jede Zahlenänderung in plans.js/video.js Raten.
+2. Das wandernde Licht steht seit heute EINMAL in `src/styles/orbit.css`
+   (Klasse `orbit`, global geladen). Wer es woanders braucht, setzt die
+   Klasse — nicht die vierte Kopie.
+3. `scripts/marge-bei-umsatz.mjs` beantwortet „was bleibt bei X Umsatz".
+   Die Annahmen stehen benannt im Dateikopf; wer andere hat, ändert sie
+   dort und lässt neu rechnen.
+
 ## 2026-08-22 10:30 — Anton — Branch `session/2026-08-22-anton-2` (PR #21) — Sitzungsabschluss
 
 **Commits:** `50a5ece` (Atlas-Schlafkachel + Wiederkehr) · `da70cf6`
