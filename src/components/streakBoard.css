@@ -35,8 +35,24 @@
 
 .stb-done { opacity: .75; }
 .stb-done .stb-check { background: var(--ok); color: var(--bg); border-color: transparent; }
+/* Die nächste Sprosse trägt zusätzlich das wandernde Licht (Klasse
+   `orbit`, src/styles/orbit.css). Der goldene Rand bleibt: Ohne ihn wäre
+   die Sprosse in der Sekunde, in der das Licht auf der Rückseite läuft,
+   nicht mehr als „die nächste" zu erkennen. */
 .stb-next { border-color: var(--gold); background: color-mix(in oklab, var(--gold) 9%, transparent); }
 .stb-next .stb-check { border-color: var(--gold); color: var(--gold); }
 .stb-far { opacity: .55; }
 
 .stb-note { margin: var(--s-4) 0 var(--s-3); color: var(--faint); font-size: var(--t-micro); line-height: 1.5; }
+
+/* Der Schutz unter der Leiter: zwei Monde, gefüllt = vorrätig. Kühl statt
+   golden — das hier ist kein Preis, sondern ein Netz. */
+.stb-shield {
+  margin-block-start: var(--s-4); padding: var(--s-3) var(--s-4);
+  border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--panel-line);
+}
+.stb-shield-row { display: flex; align-items: center; gap: var(--s-3); margin: 0; }
+.stb-shield-moons { font-size: 1rem; letter-spacing: .1em; }
+.stb-shield-title { font-size: var(--t-body); font-weight: 600; }
+.stb-shield-note { margin: 4px 0 0; color: var(--muted); font-size: var(--t-small); line-height: 1.45; }

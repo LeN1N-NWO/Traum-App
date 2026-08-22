@@ -1,5 +1,10 @@
 # Faultier-Assets — Antons Vermerk vom 21.08.2026
 
+**Stand 22.08.2026: VERTAGT, zusammen mit den Traumzeichen-Karten.** Antons
+Wort: „Das soll ausgearbeitet werden, aber merken wir uns für später."
+Code-seitig ist nichts zu tun, bis die Assets da sind — die Einbaustellen
+stehen unten.
+
 Das Faultier ist die Figur der App (Startscreen-Video, Paywall-Platzhalter).
 Anton baut es zur durchgängigen Marke aus. **Alle drei Punkte sind
 Asset-Arbeit, die Anton selbst macht bzw. generiert** — dieser Vermerk hält

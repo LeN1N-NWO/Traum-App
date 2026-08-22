@@ -1,6 +1,8 @@
 # Traumzeichen-Karten (Mehrwert-Plan P2c) — Bilder vorab statt pro Nutzer
 
-**Stand:** 2026-08-22 · Anlass: Antons Frage („Vielleicht werde ich die
+**Stand:** 2026-08-22 · **VERTAGT auf Antons Wort** („soll ausgearbeitet
+werden, aber merken wir uns für später") — der Plan ist fertig, die Bilder
+fehlen. Anlass: Antons Frage („Vielleicht werde ich die
 Symbole davor generieren. Wie viele sind es denn? Ich könnte das davor
 generieren und einfach in die App einpflegen.")
 

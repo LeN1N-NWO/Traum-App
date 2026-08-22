@@ -119,50 +119,23 @@
 @keyframes h-render-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .h-rendering-dot { animation: none; } }
 
-/* Das wandernde Licht um die Streak-Pille (Antons Wunsch 22.08.) —
-   dieselbe Bauart wie die Belohnungs-Pille im Onboarding (.ob-reward):
-   conic-gradient im ::before, per Maske auf einen 1,5px-Ring beschnitten,
-   animiert wird nur der Startwinkel. Eigene @property-Registrierung,
-   damit die Pille nicht an onboarding.css hängt. Gold, nicht Akzentblau:
-   die Serie ist der warme Stolz der Seite. */
-@property --h-orbit {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
+/* Das wandernde Licht um die Streak-Pille (Antons Wunsch 22.08.).
+   Die Technik steht seit dem 22.08. EINMAL in src/styles/orbit.css — hier
+   bleibt nur, was diese Stelle ausmacht: Bei gefährdeter Serie wird die
+   Spur warm, dieselbe Sprache wie der Rand. */
+.h-streak-risk { --orbit-color: var(--warm); }
+
+/* „Nichts hängengeblieben" — die Notausfahrt unter der Schlaf-Frage.
+   Bewusst ohne Farbe und ohne Rand: Sie darf neben dem großen Erzähl-Knopf
+   nie wie die eigentliche Antwort aussehen. */
+.h-blank {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  inline-size: 100%; margin-block-start: var(--s-3);
+  padding: var(--s-3) var(--s-4); border-radius: var(--radius);
+  background: transparent; border: 1px dashed var(--panel-line);
+  color: var(--muted); font: inherit; text-align: start; cursor: pointer;
 }
-.h-streak { position: relative; }
-.h-streak::before {
-  content: ""; position: absolute; inset: -3px; border-radius: 999px;
-  padding: 1.5px;
-  background: conic-gradient(from var(--h-orbit),
-    transparent 0turn, transparent .62turn,
-    color-mix(in oklab, var(--gold) 55%, transparent) .8turn,
-    var(--gold) .9turn,
-    transparent 1turn);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
-  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--gold) 65%, transparent));
-  animation: h-orbit 3.4s linear infinite;
-  pointer-events: none;
-}
-@keyframes h-orbit {
-  to { --h-orbit: 360deg; }
-}
-/* Gefährdete Serie: das Licht wird warm — dieselbe Sprache wie der Rand. */
-.h-streak-risk::before {
-  background: conic-gradient(from var(--h-orbit),
-    transparent 0turn, transparent .62turn,
-    color-mix(in oklab, var(--warm) 55%, transparent) .8turn,
-    var(--warm) .9turn,
-    transparent 1turn);
-  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--warm) 65%, transparent));
-}
-/* Ohne Bewegung: stiller Schimmer statt Wanderlinie. */
-@media (prefers-reduced-motion: reduce) {
-  .h-streak::before {
-    animation: none;
-    background: color-mix(in oklab, var(--gold) 30%, transparent);
-  }
-}
+.h-blank:hover { border-color: var(--faint); }
+.h-blank:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.h-blank-text { font-size: var(--t-body); }
+.h-blank-hint { font-size: var(--t-small); color: var(--faint); }

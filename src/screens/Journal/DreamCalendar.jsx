@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
-import { dreamsByDay, monthCells, localDateKey } from "../../lib/dreamDays.js";
+import { dreamsByDay, blankDays, monthCells, localDateKey } from "../../lib/dreamDays.js";
 import { t } from "../../i18n/index.js";
 import Card from "../../components/Card.jsx";
 import JournalCard from "./JournalCard.jsx";
@@ -20,6 +20,9 @@ export default function DreamCalendar({ onOpen }) {
   const [picked, setPicked] = useState(null);   // only set for days with several
 
   const byDay = useMemo(() => dreamsByDay(state.journal), [state.journal]);
+  // Nächte mit „nichts hängengeblieben": sichtbar als blasser Punkt, aber
+  // kein Knopf — dahinter liegt nichts zu öffnen.
+  const blanks = useMemo(() => blankDays(state.journal), [state.journal]);
   const cells = monthCells(year, month);
   const todayKey = localDateKey(now);
 
@@ -65,12 +68,20 @@ export default function DreamCalendar({ onOpen }) {
           const list = byDay.get(key);
           const cls = "j-cal-day"
             + (list ? " j-cal-dreamt" : "")
+            + (!list && blanks.has(key) ? " j-cal-blank" : "")
             + (key === todayKey ? " j-cal-today" : "")
             + (key === picked ? " j-cal-picked" : "");
 
           // An empty day is not a control: nothing happens when it is
           // pressed, so it must not take focus or announce itself as one.
-          if (!list) return <span key={key} className={cls}>{day}</span>;
+          if (!list) {
+            return (
+              <span key={key} className={cls}
+                    title={blanks.has(key) ? t.journal.calBlank : undefined}>
+                {day}
+              </span>
+            );
+          }
 
           return (
             <button key={key} className={cls} onClick={() => pick(key)}

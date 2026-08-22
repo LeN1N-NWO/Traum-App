@@ -12,13 +12,20 @@
  * IMMER englisch. Ohne sie wäre der Atlas für deutsche Träume leer.
  */
 import { detectSymbols, symbolById } from "./symbols.js";
+import { isBlank } from "./blankNight.js";
 
 // Seed-Träume erzählen nichts über den Menschen (dieselbe Linie wie
 // castStats: references leer, id mit e_seed-Präfix).
 const isSeed = (e) => String(e?.id || "").startsWith("e_seed");
 
 export function realDreams(journal) {
-  return (journal || []).filter((e) => e && !isSeed(e));
+  /* Zwei Sorten fallen raus: die Beispielträume (e_seed…) und die leeren
+     Nächte („Nichts hängengeblieben", 22.08.). Beide sind KEINE Träume
+     dieses Menschen — die einen sind Dekoration, die anderen ein
+     Anwesenheitsvermerk. Diese eine Zeile hält Atlas, Monatsrückblick,
+     Symbolzählung, Stimmungen, Wiederkehr und die Schlaf-Korrelation
+     sauber; sie ist der einzige Ort, an dem das entschieden wird. */
+  return (journal || []).filter((e) => e && !isSeed(e) && !isBlank(e));
 }
 
 function detectableText(e) {

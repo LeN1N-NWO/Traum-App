@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { isBlank } from "../../lib/blankNight.js";
 import { useAppState } from "../../state/AppState.jsx";
 import { t } from "../../i18n/index.js";
 import ScreenHeader from "../../components/ScreenHeader.jsx";
@@ -38,6 +39,11 @@ export default function JournalScreen() {
   const entries = useMemo(() => {
     const q = query.trim().toLowerCase();
     return [...(state.journal || [])]
+      /* Leere Nächte („Nichts hängengeblieben") stehen NICHT in der
+         Traumliste — sie haben keinen Text und kein Bild, eine Kachel wäre
+         eine leere Behauptung. Sichtbar sind sie im Kalender als blasser
+         Punkt: dort ist ihre Aussage („die Nacht war da") die richtige. */
+      .filter((e) => !isBlank(e))
       .filter((e) => !q || (e.text + " " + (e.title || "")).toLowerCase().includes(q))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }, [state.journal, query]);
@@ -67,9 +73,11 @@ export default function JournalScreen() {
 
   useEffect(() => { if (deck) restyle(); }, [entries, deck, restyle]);
 
-  const total = state.journal?.length || 0;
+  const total = entries.length;
   const castCount = (state.cast?.length || 0) + (state.me ? 1 : 0);
-  const realDreamCount = (state.journal || []).filter((e) => !String(e.id).startsWith("e_seed")).length;
+  // Ohne Beispielträume UND ohne leere Nächte: Der Atlas lohnt erst, wenn
+  // wirklich zwei eigene Träume da sind, an denen er Muster finden kann.
+  const realDreamCount = entries.filter((e) => !String(e.id).startsWith("e_seed")).length;
   const open = entries.find((e) => e.id === openId) || null;
 
   if (library) {

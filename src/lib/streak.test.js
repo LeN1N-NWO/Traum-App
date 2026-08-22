@@ -74,3 +74,65 @@ test("at risk only on the one day a hint would help", () => {
   expect(streakAtRisk({ lastDream: gestern, streak: 0 }, heute)).toBe(false); // nichts zu halten
   expect(streakAtRisk({}, heute)).toBe(false);
 });
+
+/* ── Die Schlummernacht (Antons Ja vom 22.08., Plan §6) ──────────────────
+   Sie ist das Netz unter der Serie. Wenn sie falsch rechnet, passiert genau
+   das, was sie verhindern soll: Jemand verliert eine Serie, die er sich
+   verdient hat — oder er behält eine, die längst gerissen ist. */
+import { snoozeCheck, nextSnoozeIn, SNOOZE_EVERY, SNOOZE_MAX } from "./streak.js";
+
+const tag = (iso) => iso;   // Lesbarkeit: Tagesschlüssel sind Strings
+
+test("jede siebte Nacht bringt eine Schlummernacht, höchstens zwei", () => {
+  // Serie 6 → 7: verdient.
+  const s6 = { streak: 6, lastDream: "2026-08-21", snoozes: 0 };
+  // bumpStreak rechnet gegen HEUTE, also wird der Zustand relativ gebaut.
+  const heute = todayStr();
+  const gestern = new Date(new Date(heute) - 864e5).toISOString().slice(0, 10);
+  expect(bumpStreak({ ...s6, lastDream: gestern }).snoozes).toBe(1);
+  // Serie 13 → 14: die zweite.
+  expect(bumpStreak({ streak: 13, lastDream: gestern, snoozes: 1 }).snoozes).toBe(2);
+  // Serie 20 → 21 mit vollem Vorrat: bleibt bei zwei.
+  expect(bumpStreak({ streak: 20, lastDream: gestern, snoozes: SNOOZE_MAX }).snoozes).toBe(SNOOZE_MAX);
+  // Eine Nacht, die keine Siebte ist, bringt nichts.
+  expect(bumpStreak({ streak: 3, lastDream: gestern, snoozes: 1 }).snoozes).toBeUndefined();
+});
+
+test("eine verpasste Nacht wird überbrückt, die Serie lebt", () => {
+  const zustand = { streak: 9, lastDream: "2026-08-20", snoozes: 1 };
+  const rettung = snoozeCheck(zustand, tag("2026-08-22"));
+  expect(rettung.used).toBe(1);
+  expect(rettung.patch).toEqual({ lastDream: "2026-08-21", snoozes: 0 });
+  // Danach ist die Lücke geschlossen: kein zweiter Zugriff.
+  expect(snoozeCheck({ ...zustand, ...rettung.patch }, tag("2026-08-22"))).toBe(null);
+});
+
+test("ohne Lücke passiert nichts", () => {
+  expect(snoozeCheck({ streak: 5, lastDream: "2026-08-22", snoozes: 2 }, tag("2026-08-22"))).toBe(null);
+  expect(snoozeCheck({ streak: 5, lastDream: "2026-08-21", snoozes: 2 }, tag("2026-08-22"))).toBe(null);
+});
+
+/* ⚠ Keine Teilrettung: Zwei fehlende Nächte mit nur einer Schlummernacht
+   verbrauchen sie NICHT. Sie zu opfern und die Serie trotzdem zu verlieren
+   wäre der schlechteste aller Ausgänge. */
+test("reicht der Vorrat nicht für alle Lücken, wird nichts verbraucht", () => {
+  expect(snoozeCheck({ streak: 9, lastDream: "2026-08-19", snoozes: 1 }, tag("2026-08-22"))).toBe(null);
+  // Mit zweien reicht es genau.
+  const rettung = snoozeCheck({ streak: 9, lastDream: "2026-08-19", snoozes: 2 }, tag("2026-08-22"));
+  expect(rettung).toEqual({ used: 2, patch: { lastDream: "2026-08-21", snoozes: 0 } });
+});
+
+test("ohne Vorrat, ohne Serie oder ohne Datum gibt es nichts zu retten", () => {
+  expect(snoozeCheck({ streak: 9, lastDream: "2026-08-20", snoozes: 0 }, tag("2026-08-22"))).toBe(null);
+  expect(snoozeCheck({ streak: 0, lastDream: "2026-08-20", snoozes: 2 }, tag("2026-08-22"))).toBe(null);
+  expect(snoozeCheck({ streak: 9, snoozes: 2 }, tag("2026-08-22"))).toBe(null);
+  expect(snoozeCheck(null, tag("2026-08-22"))).toBe(null);
+});
+
+test("der Weg zur nächsten Schlummernacht zählt rückwärts", () => {
+  expect(nextSnoozeIn({ streak: 0, snoozes: 0 })).toBe(SNOOZE_EVERY);
+  expect(nextSnoozeIn({ streak: 5, snoozes: 0 })).toBe(2);
+  expect(nextSnoozeIn({ streak: 8, snoozes: 1 })).toBe(6);
+  // Voller Vorrat: kein Weg mehr, es gibt nichts zu holen.
+  expect(nextSnoozeIn({ streak: 5, snoozes: SNOOZE_MAX })).toBe(null);
+});

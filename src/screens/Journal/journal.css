@@ -703,3 +703,10 @@
 .rare-rare { color: var(--cyan); }
 .rare-epic { color: var(--accent); }
 .rare-legendary { color: var(--gold); }
+
+/* Eine Nacht mit „nichts hängengeblieben": anwesend, aber leer — ein
+   Ring statt einer gefüllten Fläche. Kein Knopf, also auch kein Zeiger. */
+.j-cal-blank {
+  color: var(--faint);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--faint) 45%, transparent);
+}

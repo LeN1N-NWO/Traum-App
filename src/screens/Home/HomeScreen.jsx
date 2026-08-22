@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppState } from "../../state/AppState.jsx";
-import { refreshStreak, streakAtRisk, STREAK_CAP } from "../../lib/streak.js";
+import { refreshStreak, streakAtRisk, bumpStreak, nextSnoozeIn, STREAK_CAP } from "../../lib/streak.js";
 import StreakBoard from "../../components/StreakBoard.jsx";
 import MorningCheckin from "../../components/MorningCheckin.jsx";
 import { hasPendingJobs } from "../../lib/collector.js";
+import { blankNight, nightMarked, isBlank } from "../../lib/blankNight.js";
 import { t } from "../../i18n/index.js";
 // Vite-gebündelt wie das Intro-Video: 666 KB, ohne Ton, transkodiert aus
 // media/video/Faultier-002.mov (7,3 MB).
@@ -35,7 +36,7 @@ function greetingKey(hour) {
  * than at a caption underneath it.
  */
 export default function HomeScreen() {
-  const { state, update } = useAppState();
+  const { state, update, toast } = useAppState();
   const navigate = useNavigate();
 
   // A broken streak drops to 0 when you look at it — otherwise the app keeps
@@ -48,7 +49,10 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Der letzte TRAUM, nie eine leere Nacht: „Zuletzt geträumt" über einem
+  // Eintrag ohne Text wäre genau die Lüge, die der Vermerk vermeiden soll.
   const last = [...(state.journal || [])]
+    .filter((e) => !isBlank(e))
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
 
   /* Die Startseite kennt zwei Momente (Antons „mach mal", 22.08.):
@@ -66,6 +70,19 @@ export default function HomeScreen() {
   const atRisk = streakAtRisk(state);
   const [board, setBoard] = useState(false);
 
+  /* „Nichts hängengeblieben" (Antons Ja 22.08., Plan §3): Ein Tipp, der die
+     Serie hält, ohne einen Traum zu erfinden. Er erscheint nur, solange die
+     heutige Nacht noch keinen Vermerk hat — und abends nicht, denn abends
+     ist die Nacht noch nicht vorbei. */
+  const nachtOffen = !evening && !nightMarked(state.journal);
+  function markBlankNight() {
+    update({
+      journal: [...(state.journal || []), blankNight()],
+      ...bumpStreak(state),
+    });
+    toast(t.home.blankDone);
+  }
+
   return (
     <main className="screen h-screen">
       <div className="h-top">
@@ -75,7 +92,7 @@ export default function HomeScreen() {
             was auf dem Weg wartet. */}
         {streak > 0 && (
           <button
-            className={"h-streak" + (atRisk ? " h-streak-risk" : "")}
+            className={"h-streak orbit" + (atRisk ? " h-streak-risk" : "")}
             onClick={() => setBoard(true)}
             aria-haspopup="dialog"
           >
@@ -112,6 +129,16 @@ export default function HomeScreen() {
           Bestätigung danach. Abends fragt niemand nach dem Schlaf. */}
       {!evening && <MorningCheckin />}
 
+      {/* Direkt unter der Schlaf-Frage, weil er zum selben Moment gehört:
+          aufgewacht, kurz hineingehorcht, nichts da. Bewusst leise gesetzt —
+          er ist die Notausfahrt, nicht die Hauptstraße. */}
+      {nachtOffen && (
+        <button className="h-blank" onClick={markBlankNight}>
+          <span className="h-blank-text">{t.home.blankCta}</span>
+          <span className="h-blank-hint">{t.home.blankHint}</span>
+        </button>
+      )}
+
       {/* Abends der Weg ins Einschlafen — die Brücke zum Schlaf-Tab. */}
       {evening && (
         <button className="h-sounds" onClick={() => navigate("/sleep")}>
@@ -144,7 +171,14 @@ export default function HomeScreen() {
           Sammlungen zu Sammlungen — die Titelseite hat EINEN Zweck, den
           nächsten Traum anfangen. */}
 
-      {board && <StreakBoard streak={streak} onClose={() => setBoard(false)} />}
+      {board && (
+        <StreakBoard
+          streak={streak}
+          snoozes={state.snoozes || 0}
+          nextIn={nextSnoozeIn(state)}
+          onClose={() => setBoard(false)}
+        />
+      )}
     </main>
   );
 }

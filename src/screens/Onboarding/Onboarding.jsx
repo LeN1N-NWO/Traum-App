@@ -99,7 +99,7 @@ export default function Onboarding({ onExit }) {
         <Mascot />
         <h1 className="ob-title">{t.onboarding.gateTitle}</h1>
         <p className="ob-text">{t.onboarding.gateText}</p>
-        <p className="ob-reward">{t.onboarding.gateReward}</p>
+        <p className="ob-reward orbit">{t.onboarding.gateReward}</p>
         <div className="ob-actions">
           <Button onClick={() => setPhase("survey")}>{t.onboarding.gateStart}</Button>
           <Button variant="ghost" onClick={() => complete()}>{t.onboarding.gateLater}</Button>
