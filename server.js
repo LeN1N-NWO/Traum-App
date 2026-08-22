@@ -30,6 +30,10 @@
 // braucht es zusätzlich API_TOKEN und einen Proxy, der TLS beendet.
 
 import { resolve, sep } from "node:path";
+import { statSync, readFileSync } from "node:fs";
+// Wo die Bilder liegen dürfen — eigene Datei, weil daran schon einmal echte
+// Träume verloren gegangen sind (src/lib/mediaRoot.test.js).
+import { mediaRootFrom } from "./src/lib/mediaRoot.js";
 // Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
 import { guard } from "./src/lib/gatekeeper.js";
@@ -48,6 +52,24 @@ import {
   DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
   buildDirectorBrief, checkDirectedPrompt, filmReferences,
 } from "./src/lib/director.js";
+
+/* Wohin die erzeugten Dateien gehen. ⚠ NICHT einfach `import.meta.dir` —
+   aus einem Sitzungs-Worktree heraus zeigt der Ordner auf das Hauptrepo,
+   sonst löscht `git worktree remove` nach dem Merge die Bilder mit weg.
+   Genau das ist am 21.08.2026 passiert; die Regel steht in
+   src/lib/mediaRoot.js und ist dort festgenagelt. */
+const MEDIA_DIR = mediaRootFrom(
+  import.meta.dir,
+  (() => {
+    try {
+      const dotGit = resolve(import.meta.dir, ".git");
+      return statSync(dotGit).isFile() ? readFileSync(dotGit, "utf8") : null;
+    } catch {
+      return null;      // kein .git (installierte Kopie) — dann eben hier
+    }
+  })(),
+  process.env.DREAMRUSHES_MEDIA,
+);
 
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
@@ -1073,7 +1095,7 @@ async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16" }
  * Jobs live on disk rather than in a Map, because a server restart during a
  * five-minute render would otherwise orphan something the person paid for.
  */
-const JOBS_DIR = resolve(import.meta.dir, "media", "jobs");
+const JOBS_DIR = resolve(MEDIA_DIR, "jobs");
 const JOB_ID = /^[a-z0-9]{6,32}$/;
 
 async function readJob(id) {
@@ -1246,7 +1268,7 @@ async function falTranscribe(audioDataUri) {
 // stay reachable. A dream journal that quietly empties out months later is
 // worthless, so every generated file is copied here and the journal is given
 // the local path instead. The fal URL is the fallback, not the record.
-const MEDIA_DIR = resolve(import.meta.dir, "media");
+// (MEDIA_DIR steht ganz oben — es muss VOR JOBS_DIR feststehen.)
 const MEDIA_TYPES = {
   "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp",
   "video/mp4": "mp4", "video/quicktime": "mp4",
