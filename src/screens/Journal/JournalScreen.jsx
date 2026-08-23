@@ -202,6 +202,26 @@ export default function JournalScreen() {
             <span className="j-library-chev" aria-hidden="true" data-flip>›</span>
           </button>
         )}
+        {/* Der Atlas kündigt sich an, statt aus dem Nichts aufzutauchen
+            (Antons Ansage 23.08.).
+
+            Warum genau bei EINEM Traum und nicht schon bei null: Mit null
+            wäre es eine Ankündigung für jemanden, der noch gar nichts
+            getan hat — dieselbe Sorte Bildschirm voller Nullen, die bei
+            der Konkurrenz erklären muss, warum sie leer ist. Mit einem
+            Traum ist das Versprechen genau einen Schritt entfernt, und
+            der Schritt ist der, den die App ohnehin will.
+
+            Kein <button>: Es gibt nichts zu öffnen. Ein Knopf, der auf
+            Tippen nicht reagiert, ist schlimmer als kein Knopf. */}
+        {realDreamCount === 1 && (
+          <div className="j-library j-library-soon" aria-disabled="true">
+            <span className="j-library-body">
+              <span className="j-library-title">{t.journal.atlas}</span>
+              <span className="j-library-text">{t.journal.atlasSoon}</span>
+            </span>
+          </div>
+        )}
         {/* Die Menagerie — dritter Nebenraum (von der Titelseite umgezogen,
             Antons Entscheidung 21.08.). Erscheint erst, wenn es Wesen gibt. */}
         {(state.creatures?.length || 0) > 0 && (
