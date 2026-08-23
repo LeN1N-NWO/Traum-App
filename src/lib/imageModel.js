@@ -102,25 +102,54 @@ export const IMAGE_MODELS = {
        danach an der falschen Stelle. */
     aspects: ["21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16"],
   },
-  /* GPT Image 2 (OpenAI ueber fal). Rechnet in QUALITAETSSTUFEN statt in
-     Aufloesungen, und die Spanne ist gewaltig: dasselbe 16:9-Bild kostet
-     $0,017 in „low" und $0,158 in „high" — Faktor neun. Wer hier „auto"
-     laesst, bekommt „high" und zahlt es auch (fal-Vorgabe).
-     Preise geprueft 23.08.2026 fuer 1920x1080, den 16:9-Fall, den der
-     Charakterbogen braucht. */
+  /* GPT Image 2 (OpenAI über fal).
+   *
+   * Es rechnet ANDERS als alles andere hier: nicht ein Preis je Bild und
+   * nicht ein Faktor je Auflösung, sondern eine MATRIX aus Qualitätsstufe
+   * MAL Auflösung — und obendrein token-basiert, weshalb die Zahlen keine
+   * glatten Vielfachen sind.
+   *
+   * ⚠⚠ ZWEI PREISTABELLEN, und wir zahlen die teurere. fal weist für den
+   * Bearbeitungs-Endpunkt (`/edit`) höhere Preise aus als für Text-zu-Bild,
+   * ausdrücklich „including one input image" — das Eingabebild wird als
+   * Token mitberechnet. Beispiel 1024×768: $0,005 rein aus Text, $0,011 mit
+   * einem Bild. Unser Weg ist IMMER `/edit` (wir schicken eine Referenz),
+   * also gilt hier die Edit-Tabelle. Wer die Text-zu-Bild-Preise zitiert,
+   * rechnet uns systematisch zu billig. Beide geprüft 23.08.2026.
+   *
+   * ⚠ Die Vorgabe bei fal ist „high" — die TEUERSTE Stufe. Wer die Stufe
+   * vergisst, zahlt bei 4K das Siebzehnfache von „low".
+   *
+   * ⚠ Grenzen: längste Kante 3840 px, Gesamtfläche 655 360 bis 8 294 400 px,
+   * Seitenverhältnis bis 3:1, beide Kanten Vielfache von 16. Ein 9:16-Bild
+   * an der Obergrenze ist deshalb 2160×3840 — dieselbe Fläche wie 3840×2160
+   * und damit dieselbe Preiszeile. */
   "gpt-image-2": {
     id: "gpt-image-2",
     label: "GPT Image 2",
     t2i: "fal-ai/gpt-image-2",
     edit: "fal-ai/gpt-image-2/edit",
-    usd: 0.158,
-    usdBy: { low: 0.017, medium: 0.053, high: 0.158 },
+    usd: 0.178,                       // 9:16 in „high", unser Normalfall
     qualities: ["low", "medium", "high"],
     maxRefs: 16,
+    maxPixels: 8294400,
+    maxSide: 3840,
     aspect: true,
-    /* ⚠ Es nimmt keine Verhaeltnisse, sondern NAMEN. „16:9" waere hier ein
-       unbekannter Wert — und fal rundet Unbekanntes still, statt es
-       abzulehnen. Deshalb die Uebersetzung in der Tabelle, nicht im Aufrufer. */
+    /* Preis je Bild am EDIT-Endpunkt, nach Fläche und Stufe. Der Schlüssel
+       ist die Auflösung als „BxH"; `imagePrice` findet über die Fläche die
+       passende Zeile, damit auch ein hochkantes 2160×3840 richtig landet. */
+    preise: {
+      "1024x768":  { low: 0.011, medium: 0.043, high: 0.151 },
+      "1024x1024": { low: 0.015, medium: 0.061, high: 0.219 },
+      "1024x1536": { low: 0.018, medium: 0.054, high: 0.178 },
+      "1920x1080": { low: 0.017, medium: 0.053, high: 0.158 },
+      "2560x1440": { low: 0.019, medium: 0.068, high: 0.234 },
+      "3840x2160": { low: 0.024, medium: 0.113, high: 0.413 },
+    },
+    /* ⚠ Es nimmt keine Verhaeltnisse, sondern NAMEN — und die Presets sind
+       KLEIN: `portrait_16_9` ist 576×1024, nicht etwa 1080×1920. Für alles
+       Größere muss ein Pixelmaß gesetzt werden. „16:9" waere hier ein
+       unbekannter Wert, und fal rundet Unbekanntes still statt abzulehnen. */
     sizeNames: { "16:9": "landscape_16_9", "9:16": "portrait_16_9", "1:1": "square_hd" },
   },
   "nano-banana-2-lite": {
@@ -212,9 +241,29 @@ export function imageSubmitBody(id, { prompt, imageUrls = [], aspectRatio = "9:1
 /** Was EIN Bild dieses Modells bei dieser Aufloesung kostet.
  *  Nie abschreiben, immer hier fragen — bei Nano Banana Pro verdoppelt 4K
  *  den Preis, und eine Konstante daneben waere nach einem Tag falsch. */
-export function imagePrice(id, stufe = null) {
+export function imagePrice(id, stufe = null, size = null) {
   const m = imageModel(id);
+  /* Modelle mit Preismatrix (GPT Image 2): die Zeile wird über die FLÄCHE
+     gesucht, nicht über die Maße. Ein hochkantes 2160×3840 kostet dasselbe
+     wie ein querformatiges 3840×2160 — es ist dieselbe Zahl Tokens. Ohne
+     Maßangabe gilt die Zeile, die unserem Normalfall entspricht. */
+  if (m.preise) {
+    const zeile = size
+      ? naechsteZeile(m.preise, size.width * size.height)
+      : m.preise["1024x1536"];
+    return zeile?.[stufe] ?? zeile?.high ?? m.usd;
+  }
   return m.usdBy?.[stufe] ?? m.usd;
+}
+
+function naechsteZeile(preise, flaeche) {
+  let beste = null, abstand = Infinity;
+  for (const [k, v] of Object.entries(preise)) {
+    const [w, h] = k.split("x").map(Number);
+    const d = Math.abs(w * h - flaeche);
+    if (d < abstand) { abstand = d; beste = v; }
+  }
+  return beste;
 }
 
 /** Vertraegt dieses Modell dieses Seitenverhaeltnis?
