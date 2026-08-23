@@ -102,6 +102,27 @@ export const IMAGE_MODELS = {
        danach an der falschen Stelle. */
     aspects: ["21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16"],
   },
+  /* GPT Image 2 (OpenAI ueber fal). Rechnet in QUALITAETSSTUFEN statt in
+     Aufloesungen, und die Spanne ist gewaltig: dasselbe 16:9-Bild kostet
+     $0,017 in „low" und $0,158 in „high" — Faktor neun. Wer hier „auto"
+     laesst, bekommt „high" und zahlt es auch (fal-Vorgabe).
+     Preise geprueft 23.08.2026 fuer 1920x1080, den 16:9-Fall, den der
+     Charakterbogen braucht. */
+  "gpt-image-2": {
+    id: "gpt-image-2",
+    label: "GPT Image 2",
+    t2i: "fal-ai/gpt-image-2",
+    edit: "fal-ai/gpt-image-2/edit",
+    usd: 0.158,
+    usdBy: { low: 0.017, medium: 0.053, high: 0.158 },
+    qualities: ["low", "medium", "high"],
+    maxRefs: 16,
+    aspect: true,
+    /* ⚠ Es nimmt keine Verhaeltnisse, sondern NAMEN. „16:9" waere hier ein
+       unbekannter Wert — und fal rundet Unbekanntes still, statt es
+       abzulehnen. Deshalb die Uebersetzung in der Tabelle, nicht im Aufrufer. */
+    sizeNames: { "16:9": "landscape_16_9", "9:16": "portrait_16_9", "1:1": "square_hd" },
+  },
   "nano-banana-2-lite": {
     id: "nano-banana-2-lite",
     label: "Nano Banana 2 Lite",
@@ -160,7 +181,7 @@ export function imageEndpoint(id, hasRefs) {
  *  ganze Zählung, auf die sich die Klauseln („Reference image 2") beziehen,
  *  und dann trägt der Falsche das falsche Gesicht.
  */
-export function imageSubmitBody(id, { prompt, imageUrls = [], aspectRatio = "9:16", size = null, resolution = null }) {
+export function imageSubmitBody(id, { prompt, imageUrls = [], aspectRatio = "9:16", size = null, resolution = null, quality = null }) {
   const m = imageModel(id);
   const alle = imageUrls.filter(Boolean);
   const refs = m.maxRefs ? alle.slice(0, m.maxRefs) : alle;
@@ -172,12 +193,17 @@ export function imageSubmitBody(id, { prompt, imageUrls = [], aspectRatio = "9:1
      weiter sein Verhaeltnis, sonst schickten wir ihm ein Feld, das es
      stillschweigend ignoriert. */
   if (m.sizes) input.image_size = size || m.sizes[aspectRatio] || m.sizes["9:16"];
+  else if (m.sizeNames) input.image_size = m.sizeNames[aspectRatio] || m.sizeNames["9:16"];
   else input.aspect_ratio = aspectRatio;
 
   /* Nur senden, wo der Parameter existiert, und nur mit einem Wert, den das
      Modell kennt. Ein unbekannter Wert waere hier besonders teuer: 4K
      kostet doppelt, und wer ihn falsch schreibt, bezahlt einfach 1K. */
   if (m.resolutions && m.resolutions.includes(resolution)) input.resolution = resolution;
+  /* Dieselbe Regel eine Ebene tiefer: `quality` gibt es nur bei GPT Image 2,
+     und ein unbekannter Wert faellt dort auf „high" zurueck — die teuerste
+     Stufe. Ein Tippfehler kostet hier das Neunfache. */
+  if (m.qualities && m.qualities.includes(quality)) input.quality = quality;
 
   if (refs.length) input.image_urls = refs;
   return { model: imageEndpoint(m.id, refs.length > 0), input };
@@ -186,9 +212,9 @@ export function imageSubmitBody(id, { prompt, imageUrls = [], aspectRatio = "9:1
 /** Was EIN Bild dieses Modells bei dieser Aufloesung kostet.
  *  Nie abschreiben, immer hier fragen — bei Nano Banana Pro verdoppelt 4K
  *  den Preis, und eine Konstante daneben waere nach einem Tag falsch. */
-export function imagePrice(id, resolution = null) {
+export function imagePrice(id, stufe = null) {
   const m = imageModel(id);
-  return m.usdBy?.[resolution] ?? m.usd;
+  return m.usdBy?.[stufe] ?? m.usd;
 }
 
 /** Vertraegt dieses Modell dieses Seitenverhaeltnis?
