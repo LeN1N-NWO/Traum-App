@@ -189,11 +189,11 @@
    Telefon, und der „fertig"-Knopf muss trotzdem erreichbar bleiben, ohne am
    unteren Rand zu kleben, wo die Tastatur ihn verdeckt. */
 .ob-form-screen {
-  display: block; overflow-y: auto; text-align: left;
+  display: block; overflow-y: auto; text-align: start;
   padding: var(--s-5) var(--s-5) calc(var(--s-6) * 2);
 }
 .ob-form-screen .ob-title,
-.ob-form-screen .ob-text { text-align: left; max-width: 34ch; }
+.ob-form-screen .ob-text { text-align: start; max-width: 34ch; }
 
 .ob-form-top {
   display: flex; align-items: center; gap: var(--s-4);

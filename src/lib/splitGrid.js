@@ -10,6 +10,7 @@
  * the panel next door. See buildGridPrompt() for the prompt that depends on
  * this being true.
  */
+import { tileBoxes } from "./gridLayout.js";
 
 /* How much of each edge the letterbox trim may eat, at most. The bars the
  * model paints are ~3–4% of the height; anything past 12% is scene, not
@@ -74,6 +75,49 @@ export async function splitIntoPanels(url, count) {
     canvas.width = sw;
     canvas.height = box.h;
     ctx.drawImage(img, sx, box.y, sw, box.h, 0, 0, sw, box.h);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (blob) blobs.push(blob);
+  }
+  return blobs;
+}
+
+/** Der zweidimensionale Schnitt: EIN Bild in cols × rows Kacheln.
+ *
+ *  ⚠ Das ist bewusst eine eigene Funktion und keine Verallgemeinerung von
+ *  `splitIntoPanels()`. Der Dreier-Streifen ist an echten Renders belegt,
+ *  sein Prompt ist woertlich abgestimmt auf genau diesen Schnitt, und er
+ *  laeuft im bezahlten Alltag. Ihn umzubauen, um ein ungemessenes Raster
+ *  mitzubedienen, waere ein Umbau am tragenden Teil fuer den Versuch.
+ *
+ *  Die Kachelgrenzen kommen aus `tileBoxes()` in gridLayout.js — dieselbe
+ *  Rechnung, die auch der Prompt und die Kostenschaetzung benutzen. Sie
+ *  rechnet aus 0 heraus statt aufzuaddieren; drei gerundete Drittel landen
+ *  sonst einen Pixel vor dem Rand.
+ *
+ *  Rueckgabe in LESEREIHENFOLGE: erst die obere Reihe von links nach
+ *  rechts. Genau die Reihenfolge benennt `slotName()` im Prompt — sonst
+ *  wuesste hinterher niemand, welche Kachel welcher Beat ist.
+ */
+export async function splitIntoTiles(url, cols, rows) {
+  const img = await loadImage(url);
+  const W = img.naturalWidth, H = img.naturalHeight;
+
+  const probe = document.createElement("canvas");
+  probe.width = W; probe.height = H;
+  const pctx = probe.getContext("2d", { willReadFrequently: true });
+  pctx.drawImage(img, 0, 0);
+  const box = findContentBox(pctx, W, H);
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const blobs = [];
+
+  for (const b of tileBoxes(box.w, box.h, cols, rows)) {
+    canvas.width = b.w;
+    canvas.height = b.h;
+    // Versatz des Inhaltsrahmens draufrechnen: tileBoxes kennt nur die
+    // Flaeche, nicht den schwarzen Rand, den das Modell darum gemalt hat.
+    ctx.drawImage(img, box.x + b.x, box.y + b.y, b.w, b.h, 0, 0, b.w, b.h);
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
     if (blob) blobs.push(blob);
   }

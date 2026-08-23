@@ -49,6 +49,53 @@ export const IMAGE_MODELS = {
     usd: 0.035,
     maxRefs: 10, // fal-Schema, geprüft 23.08.2026
     sizes: SEEDREAM_SIZES,
+    /* Vorsichtsdeckel für die lange Seite. Das fal-Schema erlaubt 4096;
+       die Doku des Modells nennt 3072. Wo die Wahrheit liegt, ist am
+       23.08. NICHT sauber gemessen worden — die Läufe, aus denen ich es
+       ablesen wollte, waren von den Ablehnungen unten verseucht. 3072 ist
+       deshalb die konservative Zahl, keine bewiesene Grenze.
+
+       ⚠⚠ WICHTIGER als die Zahl, und der eigentliche Befund des Tages:
+       Seedream lehnt Aufträge MIT REFERENZFOTO unregelmäßig ab. Die
+       Antwort ist ein `content_policy_violation` auf `body.image` mit
+       `reason: "partner_validation_failed"` — und sie kommt bei WÖRTLICH
+       identischen Aufträgen mal und mal nicht. Am 23.08. gemessen: mit
+       Referenz 4× durch, 8× abgelehnt; ohne Referenz durch; und dieselbe
+       Einzelszene, die morgens durch die App lief, wurde nachmittags
+       abgelehnt. Es ist also weder die Größe, noch der Rasterprompt, noch
+       ein genannter Prominenter (alle drei einzeln ausgeschlossen).
+
+       Was das praktisch heißt: Ein abgelehnter Auftrag kommt bei fal als
+       COMPLETED mit leerem `images[]` zurück. jobStatus() macht daraus
+       „failed" und der Collector erstattet den Credit — es geht also kein
+       Geld verloren. Verloren geht das BILD, und zwar bei genau den
+       Träumen, in denen Menschen vorkommen.
+
+       Bevor das jemand als gelöst abhakt: erst eine Messreihe über einen
+       Tag, dann entscheiden, ob Seedream die Vorgabe bleibt. */
+    maxSide: 3072,
+  },
+  /* Nur fuer Messungen im Raster (Antons 4K-Test, 23.08.). NICHT die
+     Vorgabe: Ein 4K-Bild kostet das Achtfache eines Seedream-Lite-Bildes.
+     Slugs am fal-Schema abgeschrieben, nicht geraten — der nackte Slug ist
+     hier ausnahmsweise der Text-zu-Bild-Endpunkt, anders als bei Seedream. */
+  "nano-banana-pro": {
+    id: "nano-banana-pro",
+    label: "Nano Banana Pro",
+    t2i: "fal-ai/nano-banana-pro",
+    edit: "fal-ai/nano-banana-pro/edit",
+    usd: 0.15,
+    /* ⚠ Der Preis haengt hier an der Aufloesung, nicht am Modell: 4K wird
+       laut fal „at double the standard rate" berechnet. Eine flache Zahl
+       waere nach dem ersten 4K-Lauf falsch — und zwar um 100 %. */
+    usdBy: { "1K": 0.15, "2K": 0.15, "4K": 0.30 },
+    resolutions: ["1K", "2K", "4K"],
+    aspect: true,
+    /* Feste Seitenverhaeltnisse, aus dem fal-Schema. Steht hier, damit
+       niemand ein krummes Rasterformat (3x2 = 27:32) hinschickt: fal lehnt
+       das nicht ab, es rundet still — und der Schnitt sucht die Kacheln
+       danach an der falschen Stelle. */
+    aspects: ["21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16"],
   },
   "nano-banana-2-lite": {
     id: "nano-banana-2-lite",
@@ -99,15 +146,45 @@ export function imageEndpoint(id, hasRefs) {
  *  ganze Zählung, auf die sich die Klauseln („Reference image 2") beziehen,
  *  und dann trägt der Falsche das falsche Gesicht.
  */
-export function imageSubmitBody(id, { prompt, imageUrls = [], aspectRatio = "9:16" }) {
+export function imageSubmitBody(id, { prompt, imageUrls = [], aspectRatio = "9:16", size = null, resolution = null }) {
   const m = imageModel(id);
   const alle = imageUrls.filter(Boolean);
   const refs = m.maxRefs ? alle.slice(0, m.maxRefs) : alle;
   const input = { prompt };
 
-  if (m.sizes) input.image_size = m.sizes[aspectRatio] || m.sizes["9:16"];
+  /* `size` ist der Weg fuer das Raster: dort ist der Behaelter kein
+     App-Format, sondern eine ausgerechnete Pixelflaeche. Er gilt NUR bei
+     Modellen mit freien Pixelmaszen — ein Modell mit fester Liste bekommt
+     weiter sein Verhaeltnis, sonst schickten wir ihm ein Feld, das es
+     stillschweigend ignoriert. */
+  if (m.sizes) input.image_size = size || m.sizes[aspectRatio] || m.sizes["9:16"];
   else input.aspect_ratio = aspectRatio;
+
+  /* Nur senden, wo der Parameter existiert, und nur mit einem Wert, den das
+     Modell kennt. Ein unbekannter Wert waere hier besonders teuer: 4K
+     kostet doppelt, und wer ihn falsch schreibt, bezahlt einfach 1K. */
+  if (m.resolutions && m.resolutions.includes(resolution)) input.resolution = resolution;
 
   if (refs.length) input.image_urls = refs;
   return { model: imageEndpoint(m.id, refs.length > 0), input };
+}
+
+/** Was EIN Bild dieses Modells bei dieser Aufloesung kostet.
+ *  Nie abschreiben, immer hier fragen — bei Nano Banana Pro verdoppelt 4K
+ *  den Preis, und eine Konstante daneben waere nach einem Tag falsch. */
+export function imagePrice(id, resolution = null) {
+  const m = imageModel(id);
+  return m.usdBy?.[resolution] ?? m.usd;
+}
+
+/** Vertraegt dieses Modell dieses Seitenverhaeltnis?
+ *
+ *  ⚠ Die Frage ist nicht akademisch. fal lehnt ein unbekanntes Verhaeltnis
+ *  NICHT ab, es rundet still auf etwas Aehnliches — bezahlt, und der
+ *  Schnitt findet die Kacheln danach nicht mehr dort, wo er sie sucht.
+ *  Modelle mit freien Pixelmaszen (`sizes`) koennen jedes Verhaeltnis. */
+export function supportsAspect(id, ratio) {
+  const m = imageModel(id);
+  if (m.sizes) return true;
+  return m.aspects ? m.aspects.includes(ratio) : ratio === "9:16" || ratio === "16:9";
 }

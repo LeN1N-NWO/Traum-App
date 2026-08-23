@@ -1,6 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import {
   IMAGE_MODELS, DEFAULT_IMAGE_MODEL, imageModel, imageEndpoint, imageSubmitBody,
+  imagePrice, supportsAspect,
 } from "./imageModel.js";
 
 describe("imageModel", () => {
@@ -87,5 +88,56 @@ describe("imageSubmitBody", () => {
     const viele = Array.from({ length: 14 }, (_, i) => `bild-${i}`);
     const { input } = imageSubmitBody("nano-banana-2-lite", { prompt: "x", imageUrls: viele });
     expect(input.image_urls).toHaveLength(14);
+  });
+});
+
+describe("Aufloesung und Preis (Nano Banana Pro)", () => {
+  test("4K wird gesendet — und kostet das Doppelte", () => {
+    const { input } = imageSubmitBody("nano-banana-pro", { prompt: "x", resolution: "4K" });
+    expect(input.resolution).toBe("4K");
+    expect(imagePrice("nano-banana-pro", "4K")).toBe(0.30);
+    expect(imagePrice("nano-banana-pro", "1K")).toBe(0.15);
+  });
+
+  /* Ein unbekannter Wert waere hier besonders teuer: fal faellt auf 1K
+     zurueck, man bezahlt weniger als erwartet und misst das falsche Bild. */
+  test("ein unbekannter Aufloesungswert wird gar nicht erst gesendet", () => {
+    const { input } = imageSubmitBody("nano-banana-pro", { prompt: "x", resolution: "8K" });
+    expect("resolution" in input).toBe(false);
+  });
+
+  test("Modelle ohne Aufloesungsstufen bekommen das Feld nie", () => {
+    for (const id of ["seedream-5-lite", "nano-banana-2-lite", "nano-banana-2"]) {
+      const { input } = imageSubmitBody(id, { prompt: "x", resolution: "4K" });
+      expect("resolution" in input).toBe(false);
+    }
+    // …und ohne Stufen faellt der Preis auf den flachen Wert zurueck.
+    expect(imagePrice("seedream-5-lite", "4K")).toBe(0.035);
+  });
+});
+
+describe("Rasterformate", () => {
+  test("freie Pixelmasze schlagen das App-Format — das braucht der Behaelter", () => {
+    const { input } = imageSubmitBody("seedream-5-lite", {
+      prompt: "x", aspectRatio: "9:16", size: { width: 3456, height: 4096 },
+    });
+    expect(input.image_size).toEqual({ width: 3456, height: 4096 });
+  });
+
+  test("ein Modell mit fester Liste bekommt KEIN Pixelmasz untergeschoben", () => {
+    const { input } = imageSubmitBody("nano-banana-pro", {
+      prompt: "x", aspectRatio: "9:16", size: { width: 3456, height: 4096 },
+    });
+    expect("image_size" in input).toBe(false);
+    expect(input.aspect_ratio).toBe("9:16");
+  });
+
+  /* ⚠ Der Kern des Rasters: 3x2 ergibt 27:32, und das kennt Nano Banana
+     nicht. fal wuerde es still runden — bezahlt, und der Schnitt suchte
+     die Kacheln danach an der falschen Stelle. */
+  test("27:32 kann nur Seedream — Nano Banana Pro muss hier nein sagen", () => {
+    expect(supportsAspect("seedream-5-lite", "27:32")).toBe(true);
+    expect(supportsAspect("nano-banana-pro", "27:32")).toBe(false);
+    expect(supportsAspect("nano-banana-pro", "9:16")).toBe(true);
   });
 });

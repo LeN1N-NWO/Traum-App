@@ -40,7 +40,9 @@ export function containerRatio(cols, rows) {
 }
 
 /** Die konkreten Pixelmaße des Behälters, wenn die lange Seite bei
- *  `maxLongSide` gedeckelt ist (jedes Modell hat so eine Grenze).
+ *  `maxLongSide` gedeckelt ist (jedes Modell hat so eine Grenze — bei
+ *  Seedream 5 Lite steht sie als `maxSide` in imageModel.js und ist
+ *  GEMESSEN, weil das Schema dort etwas anderes behauptet).
  *  Beide Maße werden auf ein Vielfaches von `cols` bzw. `rows` abgerundet,
  *  damit das Schneiden später ohne Rundungsrest aufgeht. */
 export function containerSize(cols, rows, maxLongSide) {
