@@ -222,7 +222,11 @@ export function imageSubmitBody(id, { prompt, imageUrls = [], aspectRatio = "9:1
      weiter sein Verhaeltnis, sonst schickten wir ihm ein Feld, das es
      stillschweigend ignoriert. */
   if (m.sizes) input.image_size = size || m.sizes[aspectRatio] || m.sizes["9:16"];
-  else if (m.sizeNames) input.image_size = m.sizeNames[aspectRatio] || m.sizeNames["9:16"];
+  /* ⚠ Ein ausdrueckliches Masz schlaegt den Preset-NAMEN. Die Presets von
+     GPT Image 2 sind winzig (`portrait_16_9` = 576×1024); ein Raster
+     braucht 2160×3840, und das gibt es nur als Zahlenpaar. Ohne diese
+     Zeile bekaeme das Raster Kacheln von 288×512. */
+  else if (m.sizeNames) input.image_size = size || m.sizeNames[aspectRatio] || m.sizeNames["9:16"];
   else input.aspect_ratio = aspectRatio;
 
   /* Nur senden, wo der Parameter existiert, und nur mit einem Wert, den das

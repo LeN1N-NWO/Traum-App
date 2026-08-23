@@ -27,6 +27,10 @@ import { imageModel, imageSubmitBody, imagePrice, supportsAspect } from "../src/
 
 const [traumDatei, refDatei, modellId, ...rest] = process.argv.slice(2);
 const JA = rest.includes("--ja");
+/* Qualitaetsstufe fuer Modelle, die danach abrechnen (GPT Image 2).
+   Ohne Angabe entscheidet die Tabelle — und bei fal waere das „high",
+   also die teuerste. Hier lieber ausdruecklich. */
+const STUFE_ARG = (rest.find((r) => r.startsWith("--stufe=")) || "").split("=")[1] || null;
 if (!traumDatei || !refDatei || !modellId) {
   console.error("Aufruf: bun scripts/raster-rendern.mjs <traum.json> <referenz.png> <modell> [--ja]");
   process.exit(1);
@@ -40,7 +44,7 @@ if (m.id !== modellId) { console.error(`Unbekanntes Modell "${modellId}".`); pro
 /* Die höchste Auflösung, die das Modell hergibt — das IST der Test.
  * Seedream rechnet in Pixeln (Grenze: 4096×4096 Gesamtfläche laut fal-Schema),
  * Nano Banana Pro in Stufen. */
-const STUFE = m.resolutions ? "4K" : null;
+const STUFE = STUFE_ARG || (m.resolutions ? "4K" : null);
 /* ⚠ `maxSide` schlägt die Wunschzahl. Seedream 5 Lite ist bei 3072 dicht,
    obwohl sein Schema 4096 verspricht — bezahlt gemessen am 23.08. Ohne
    diesen Deckel kommt eine „content_policy_violation" zurück, die nach
@@ -65,7 +69,7 @@ if (!supportsAspect(m.id, containerRatio(cols, rows, format))) {
 const verhaeltnis = containerRatio(cols, rows, format);
 const behaelter = containerSize(cols, rows, LANGE_SEITE, format);
 const imRaster = Math.min(beats.length, cols * rows);
-const stueck = imagePrice(m.id, STUFE);
+const stueck = imagePrice(m.id, STUFE, behaelter);
 const aufrufe = 1 + Math.max(0, einzeln);
 
 console.log(`\n╔══ Raster-Lauf ═══════════════════════════════════════════`);
@@ -117,14 +121,15 @@ async function rendern(body) {
   return url;
 }
 
-const OUT = resolve(import.meta.dir, "..", "media", "ab-test", `raster-${m.id}`);
+const OUT = resolve(import.meta.dir, "..", "media", "ab-test", `raster-${m.id}${STUFE ? `-${STUFE}` : ""}`);
 const name = (s) => s.replace(/[^a-z0-9]+/gi, "-");
 
 /* ── Das Raster ──────────────────────────────────────────────────────── */
 const gitter = buildGridPrompt({ beats: beats.slice(0, imRaster), styleId: stil, clauses, cols, rows, tile: format });
 const auftrag = imageSubmitBody(m.id, {
   prompt: gitter, imageUrls: [refUri], aspectRatio: verhaeltnis,
-  size: { width: behaelter.width, height: behaelter.height }, resolution: STUFE,
+  size: { width: behaelter.width, height: behaelter.height },
+  resolution: STUFE, quality: STUFE,
 });
 process.stdout.write(`Raster ${cols}×${rows} … `);
 const gitterUrl = await rendern(auftrag);
@@ -139,7 +144,7 @@ for (let i = imRaster; i < beats.length; i++) {
   });
   process.stdout.write(`Szene ${i + 1} einzeln … `);
   const url = await rendern(imageSubmitBody(m.id, {
-    prompt, imageUrls: [refUri], aspectRatio: format, resolution: STUFE,
+    prompt, imageUrls: [refUri], aspectRatio: format, resolution: STUFE, quality: STUFE,
   }));
   const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
   await Bun.write(resolve(OUT, `${name(m.id)}-szene-${i + 1}.png`), bytes);
