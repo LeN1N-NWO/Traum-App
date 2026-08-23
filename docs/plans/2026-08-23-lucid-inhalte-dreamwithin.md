@@ -137,6 +137,28 @@ nachgerechnet und mit Quelle, nicht abgeschrieben.
 
 ## 4. Was ich ausdrücklich NICHT kopieren würde
 
+> ⚠ **RICHTIGSTELLUNG (Anton, 23.08., noch am selben Tag).** Die beiden
+> ersten Absätze dieses Abschnitts stehen auf einem Lesefehler: Ich habe
+> „meet your crush" und „talk with someone who passed away" als
+> **Bildgenerierung aus hochgeladenen Fotos** gelesen. Es sind
+> **Trauminhalt-Ziele** — man wählt aus, wovon man träumen will, und
+> bekommt die Übungen dazu. Kein Upload, kein Video, keine fremde Person
+> im Datensatz.
+>
+> Damit ist die Begründung hinfällig. Beide Themen sind erforscht und
+> gehören zum Kern einer Klartraum-App; Träume von Verstorbenen gelten
+> in der Trauerforschung (Continuing Bonds) überwiegend als hilfreich.
+> Was bleibt, ist eine Sorgfaltspflicht in der Umsetzung, keine
+> Ablehnung — ausgeführt in
+> `2026-08-23-traumziele-und-einstiegspreis.md`.
+>
+> Ebenfalls hinfällig: mein Einwand in Abschnitt 1, die Gratis-Zusage im
+> Sleep-Reiter binde uns. Die App ist nicht veröffentlicht.
+>
+> Die beiden Absätze bleiben stehen, statt gelöscht zu werden — sonst
+> läse der Nächste eine Bewertung, ohne zu wissen, dass sie einmal falsch
+> war und warum.
+
 **„Learn how to meet your crush in a dream" / „Have a date with my crush"**
 Bei ihnen ist das eine Illustration. Bei uns wäre es eine Aufforderung,
 **das Foto einer realen Person hochzuladen, die davon nichts weiß**, und
