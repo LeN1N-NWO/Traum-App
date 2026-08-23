@@ -3,117 +3,171 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-23 (10:35) — laufende Sitzung
-`session/2026-08-22-anton-4` (PR #23), main ist `17e0b4c`.
-⚠ Ohne eigenen Worktree im Hauptrepo — Begründung unten unter „Fallen".
+**Stand:** 2026-08-23 (15:49) — Ende der Cloud-Sitzung
+`claude/new-session-x9qv1w`, aufgesetzt auf `fceabc5`.
+340 Tests grün, Shape-Check grün, Build sauber.
 
 ## Wo wir stehen
 
-**Die Bildstrecke ist ein Film geworden, kein Zufallsstapel.** Jede Szene
-ankert am vorigen Bild (`src/lib/imageChain.js`), und der Anker ist als
-LETZTES Referenzbild Vertrag mit dem Prompt. Antons „das sieht aus wie
-Photoshop" ist behoben: die Klausel in `promptBuilder.js` sagt jetzt
-ausdrücklich, dass der vorige Frame nur Welt und Licht liefert und jede
-Figur für DIESE Szene neu fotografiert wird.
+Die App selbst ist unverändert stark: Bilder und Filme rendern im
+Hintergrund (`collector.js`), die Bildstrecke ist eine Kette
+(`imageChain.js`), das Bildmodell ist **Seedream 5 Lite** ($0,035 bei
+1440×2560), Mehrwert P1/P2a/P2b/P3b stehen.
 
-**Das Bildmodell ist Seedream 5 Lite** (`src/lib/imageModel.js`, seit
-23.08.). $0,035 statt $0,042 je Bild bei 1440×2560 statt 768×1376 —
-billiger UND sechsmal so viele Pixel. Endpunkte, Adressformat und
-Referenzbudget stehen in EINER Tabelle; Bogen und Szene nehmen denselben
-Weg, ein Modellwechsel trifft also beide oder keinen.
+Diese Sitzung war eine **Denk- und Rechensitzung**: Was kostet uns was,
+wo lässt sich sparen, was machen die Wettbewerber. Dazu ein gebauter
+Teil im Onboarding.
 
-**Die Wartezeit nach dem Sprachgespräch ist versteckt.** Die Auswertung
-startet mitten im Erzählen, nicht beim Abschied.
-
-Die Preislinie ist weiter durchgerechnet, aber **nicht entschieden** —
-sie ist der einzige echte Blocker.
+**⏰ ERINNERUNG AN ANTON (er hat ausdrücklich darum gebeten):
+Die 28 Klang-Kandidaten durchhören.** Er wählt 2–3 aus, holt die
+Originale über sein Freesound-Konto; danach `public/sounds/<preset>.m4a`
+und ein zweiter Puffer-Lieferant in `src/lib/noise.js`.
+**Das gehört beim nächsten Start als Erstes angesprochen.**
 
 ## Nächste Schritte
 
-1. **Antons Preisentscheidung** — Weg C + Paket XL ($29,99, bemessen am
-   30-%-Fall) ODER Kino ehrlich auf 10 Sekunden begrenzen. Danach:
-   `plans.js`, `video.js` und die Paywall-Texte in einem Zug.
-2. **Seedream an echten Träumen prüfen.** Bisher steht EIN A/B-Lauf über
-   fünf Szenen dahinter, plus zwei Einzelaufträge durch die App. Zwei,
-   drei echte Träume von Anton, bevor das als erledigt gilt.
-3. **Antons Bogen erneuern** (Foto neu hochladen) — oder entscheiden, ob
-   das Modell in den Fingerabdruck soll. Siehe „Baustellen".
-4. **⏰ ERINNERUNG AN ANTON (er hat ausdrücklich darum gebeten, 23.08.):
-   Die Klang-Kandidaten durchhören.** Die 28 Stück liegen aus Sitzung #22
-   bereit. Er wählt 2–3 aus, holt die Originale über sein Freesound-Konto;
-   danach `public/sounds/<preset>.m4a` und ein zweiter Puffer-Lieferant in
-   `src/lib/noise.js`. **Das gehört beim nächsten Sitzungsstart als Erstes
-   angesprochen.**
-5. **Traumzeichen-Karten** (`2026-08-22-traumzeichen-karten.md`): 20
-   Bilder von Anton. Vertagt auf sein Wort.
+1. **Antons Messrunde am eigenen Rechner** (die Cloud erreicht fal nicht),
+   zusammen unter $5:
+   - **Raster:** `node scripts/raster-prompt.mjs 5`, Prompt kopieren, EIN
+     Bild rendern ($0,035), von Hand in sechs Kacheln schneiden. Frage:
+     Halten Gesichter und Hände bei 864×1536?
+   - **Atlas Cloud** (Seedance 2.5 zu $0,134/s?): ein 5-Sekünder (~$0,67),
+     die fünf Prüfpunkte aus `2026-08-23-guenstiger-anbieten.md` §6.
+   - **fal-Slugs** für Seedream 5 Pro und Nano Banana Pro abschreiben —
+     dann trage ich sie in `imageModel.js` ein, vorher nicht.
+2. **Preisentscheidung** — jetzt auf aktueller Grundlage:
+   Weg A/B/C plus die Rabattleiter (Jahr auf 50 Credits?).
+3. **Capacitor/Xcode** — und dabei ⚠ die Vorab-Frage zur Benachrichtigung
+   (siehe „Fallen"). Nach dem Start nicht mehr nachholbar.
+4. **P3a Albtraum-Umschreiben** — das Ziel ist jetzt im Fragebogen
+   wählbar, die Antwort darauf fehlt noch.
+5. **Schlussstein:** je ein echter bezahlter Film pro Stufe.
+
+## Was diese Sitzung gebracht hat
+
+**Rechnung (Pläne, nichts umgesetzt):**
+- `2026-08-22-preislinie-durchreichen.md` — auf Seedream nachgezogen. Ein
+  Kino-Credit kostet uns **125 % mehr** als ein Bild-Credit.
+- `2026-08-23-guenstiger-anbieten.md` — Sparhebel nach Größe; der größte
+  ist der Kino-EINKAUF, nicht das Bild. Rabattleiter: 72 % des Rabatts
+  liegen schon im Monat.
+- `2026-08-23-raster-test.md` — Geometrie, Kosten, Messauftrag.
+- `2026-08-23-lucid-inhalte-dreamwithin.md`, `2026-08-23-shape-auswertung.md`,
+  `2026-08-23-traumziele-und-einstiegspreis.md` — Wettbewerb.
+
+**Gebaut:**
+- `src/lib/gridLayout.js` + `buildGridPrompt({cols, rows})` +
+  `scripts/raster-prompt.mjs` — fünf Szenen in EINEM Bild, 16 Tests.
+- `src/lib/reminders.js` — Wunsch ≠ Erlaubnis, 9 Tests.
+- Onboarding: **Albträume als Ziel**, Ziel an zweiter Stelle,
+  Schlafdauer, Zeitbudget, Erinnerungswunsch (`server.js`,
+  `OnboardingSurvey.jsx`, `DreamerCard.jsx`, en+de).
+- Der **Traumatlas kündigt sich an** („Ab deinem 2. Traum").
 
 ## Bekannte Baustellen
 
-- **Vorhandene Charakterbögen überleben einen Modellwechsel**
-  (`src/lib/sheets.js:31`). Der Fingerabdruck ist Foto + Beschreibung,
-  das Modell steht nicht drin. Antons Bogen stammt darum noch von Nano
-  Banana Lite. Reparatur ohne Code: Foto neu hochladen. Die Alternative
-  (Modell in den Fingerabdruck) ist bewusst nicht gebaut — sie kostet bei
-  jedem Wechsel einen Gratis-Bogen je Figur.
-- **Synthetische Testträume schreiben sich zurück.** `e_leer`, `e_test1`,
-  `e_test2` liegen wieder unversioniert in `data/traeume/`, obwohl
-  `3c23b65` sie entfernt hat: sie stehen in Antons localStorage und
-  landen bei jedem App-Start erneut auf der Platte. Nicht committet.
-  Wirklich weg sind sie erst, wenn er sie in der App löscht.
-- **Preislinie** (`2026-08-22-preislinie-durchreichen.md`, Abschnitt 8):
-  Kino ist in voller Länge mit keinem Angebot in einem Kauf erreichbar.
-  ⚠ Neu dazu: Im JAHRESPLAN bleiben je Fünf-Bilder-Traum nach MwSt. und
-  Apple nur $0,53. Mit Seedream ($0,175 Einkauf) trägt das; mit vollem
-  Nano Banana ($0,40) blieben $0,13. Wer je zurückwechselt, muss den
-  Jahrespreis mitnehmen.
-- **Streak §5 offen:** das garantierte Sonderwesen je Meilenstein.
-- **Mehrwert-Plan:** P1, P2a, P2b, P3b gebaut. Offen: P2c (Traumzeichen),
-  P3a Albtraum-Umschreiben (Wortlaut mit dem Rechtsplan abstimmen).
-- **Recht** (Plan recht-einwilligung §4): Punkt 1 gebaut; offen
-  Upload-Zusicherung im AvatarDialog (2) · KI-Kennzeichnung/C2PA (3) ·
-  Speicherfristen /media (4, server.js speichert unbegrenzt) ·
-  DeepSeek-China-Entscheidung (5) · Klang-Lizenzliste (6).
-- **`data/traeume/` muss vor Veröffentlichung raus** — Ordner UND
-  Ladepfad in `AppState.jsx`. Begründung steht in `.gitignore`.
+- **Preislinie nicht entschieden** — weiter der einzige echte Blocker.
+  Neu dazu: Jahresabo × Kino ist bei 30 % Store-Anteil ein Nullgeschäft;
+  Regie 15 s (61 Cr) und Kino 30 s (181 Cr) sind mit KEINEM Einzelkauf
+  erreichbar (bester: 45).
+- **Das Raster ist ungemessen.** Es kauft den Preis mit Auflösung
+  (864×1536 statt 1440×2560); der Vorbehalt vom 19.08. — Gesichter und
+  Hände zerfallen zuerst — ist nicht widerlegt, nur billiger geworden.
+- **Der zweidimensionale Schnitt fehlt.** `splitIntoPanels()` kann nur
+  senkrechte Streifen; die Rechnung steht fertig in `tileBoxes()`,
+  verdrahtet wird sie erst nach der Messung.
+- **Seedream 5 Pro und Nano Banana Pro sind NICHT in `imageModel.js`** —
+  mir fehlen die bestätigten fal-Slugs. Ein geratener Slug ist der
+  07.08.-Fehler.
+- **Die Einführungsumfrage ist nur gesprochen.** Ohne `GEMINI_KEY`, ohne
+  Mikrofon oder ohne stabile Verbindung gibt es GAR KEIN Profil — kein
+  Ziel, keine Themen, nichts, worauf das Spätere aufbaut. Ein getippter
+  Rückfallweg (vier, fünf Fragen) schließt ein echtes Loch.
+- **P3a Albtraum-Umschreiben:** Das Ziel ist wählbar, die Antwort fehlt.
+- **Recht** (Plan §4): Upload-Zusicherung (2) · KI-Kennzeichnung (3) ·
+  Speicherfristen /media (4) · DeepSeek-China (5) · Klang-Lizenzen (6).
 - **Kein Zahlungsanbieter.** Dummy-Film im Kaufblatt (`Paywall.jsx`).
+- **`data/traeume/` muss vor Veröffentlichung raus** — Ordner UND
+  Ladepfad in `AppState.jsx`.
+- Vorhandene Charakterbögen überleben einen Modellwechsel
+  (`sheets.js:31`) — Antons Bogen stammt noch von Nano Banana Lite.
+- Symbol-Erkennung nur englische Stichwörter; abgefedert über die Beats.
 
 ## Fallen, die man nur einmal sieht
 
-- **`FAL_MODEL_IMAGE` ist ein NAME, kein fal-Slug** (seit 23.08.).
-  Erlaubt: `seedream-5-lite`, `nano-banana-2-lite`, `nano-banana-2`. Ein
-  unbekannter Wert fällt auf die Vorgabe zurück — der Server warnt beim
-  Start und nennt in jedem Fall das laufende Modell samt Stückpreis.
-- **Ein falscher Feldname wirft bei fal keinen Fehler.** Er liefert still
-  das Falsche. Deshalb entscheidet `imageModel.js` über Endpunkt und
-  Adressformat, nie der Aufrufer. Mit Referenzen MUSS es der
-  Edit-Endpunkt sein; der Text-zu-Bild-Pfad ignoriert `image_urls`
-  wortlos (07.08.: tagelang Bilder ohne Gesichter, bezahlt).
+- **⚠ iOS gibt für die Benachrichtigungs-Erlaubnis genau EINEN Versuch.**
+  Wer den Systemdialog kalt zeigt, verliert jeden, der im falschen Moment
+  ablehnt — und darf nie wieder fragen. Deshalb: erst in der App fragen
+  (`lib/reminders.js`), dann der Systemdialog, und **nie aus dem
+  Sprachgespräch heraus** (verhörte Silbe = Funktion für immer weg).
+  Nach dem Xcode-Start nicht mehr nachholbar.
+- **Ein Test, der im Kommentar fündig wird, prüft den Kommentar.**
+  `toolBlock.toContain("nightmares")` war grün, weil der Kommentar über
+  `setGoal` das Wort enthält — der Wert selbst hätte fehlen dürfen
+  (`onboardingTools.test.js`, 23.08.).
+- **Der Bildpreis wird IMPORTIERT, nie abgeschrieben.** Als Konstante war
+  er nach einem Tag falsch (`preis-durchreichen.mjs`).
+- **Ein falscher Feldname wirft bei fal keinen Fehler** — er liefert still
+  das Falsche. `imageModel.js` entscheidet über Endpunkt und Format, nie
+  der Aufrufer. `scripts/raster-prompt.mjs` verweigert deshalb die
+  Ausgabe, wenn das Seitenverhältnis nicht zum Modell passt.
+- **Der bewährte Dreier-Streifen in `buildGridPrompt` ist unantastbar** —
+  er ist an echten Renders belegt und `splitIntoPanels()` schneidet genau
+  seine Formulierung. Das Raster ist ein eigener Zweig.
 - **Der Weltanker der Bildkette steht als LETZTES Bild.**
-  `buildImagePrompt` sagt dem Modell genau das. Wer die Reihenfolge in
-  `falSubmitImage` ändert, bricht die Kette lautlos.
-- **Eine leere Nacht ist KEIN TRAUM** (`src/lib/blankNight.js:27`). Die
-  Erkennung hängt an EINEM Feld, alle Filter lesen `isBlank()`.
+- **Eine leere Nacht ist KEIN TRAUM** (`blankNight.js:27`).
 - **Keine Teilrettung bei der Schlummernacht** (`streak.js:61`).
-- **Das wandernde Licht steht EINMAL** in `src/styles/orbit.css`. Der
-  Winkel MUSS `@property` bleiben — sonst interpoliert er nicht.
-- `update()` (`src/state/AppState.jsx`) nimmt auch Funktionen:
-  `(prev) => patch`. Wer in Schritten arbeitet, MUSS das benutzen.
-- `clearStalePending()` räumt beim Start hängende „wird erstellt"-Marken.
-- `recurrenceFor()` (`src/lib/atlas.js`) zählt ALLE anderen Träume.
-- `key={open.id}` am JournalDetail ist Pflicht (JournalScreen.jsx).
+- `update()` (`AppState.jsx`) nimmt auch Funktionen: `(prev) => patch`.
+- `key={open.id}` am JournalDetail ist Pflicht.
 - `PORT` gehört der Oberfläche, `API_PORT` der API.
-- Erzeugte Medien NIE im Worktree (`src/lib/mediaRoot.js`, AGENTS.md).
-- **`scripts/modell-ab.mjs` rendert echt und kostet Geld** ($0,18–0,40 je
-  Lauf). Es nimmt den Modellnamen als drittes Argument.
-- **Warum die Sitzungen trotz AGENTS.md ohne Worktree laufen:** Die
-  Browser-Vorschau startet den Dev-Server immer aus dem HAUPT-Checkout
-  (`.claude/launch.json` liegt dort). Aus einem Worktree heraus würde sie
-  fremden Code servieren, und die Live-Prüfung wäre blind. Wer ohne
-  Live-Prüfung arbeitet, legt den Worktree wie vorgesehen an.
+- Erzeugte Medien NIE im Worktree (`mediaRoot.js`, AGENTS.md).
+- **`scripts/modell-ab.mjs` rendert echt und kostet Geld.**
+- DeepSeek immer ohne `max_tokens`, mit `stream:false`.
+- fal.ai und api.deepseek.com sind aus der Cloud gesperrt (403). Nie
+  umgehen; dort strukturell prüfen, bezahlt auf Antons Rechner.
 
-## Klickbare Wolken-Vorschau (aus #18)
+## Was die App ist
 
-**https://claude.ai/code/artifact/7a42cf64-fe13-49f2-a31e-46b67afb5616**
-Alles Lokale funktioniert, Erzeugen nicht (braucht den Server). Zum
-Auffrischen: `bun run build` + Bündelskript, denselben Pfad erneut
-veröffentlichen. Bewusst NICHT im Repo. Stand: 22.08. vormittags.
+React-SPA: Traum aufschreiben oder sprechen → KI macht Bildstrecke,
+optional Film, Reflection und Muster. Vier Tabs (Home · Journal · ⊕ ·
+Sleep · Profil), Wizard über der Tab-Leiste.
+**Stack:** Bun + Vite + React 18 (HashRouter); `server.js` als
+schlüsselhaltender Proxy (fal.ai, DeepSeek, Gemini). Zustand in
+`localStorage` (`dreamrushes_v1`). Sieben Sprachen, gepflegt werden
+**en+de**. Doku und Commits deutsch.
+
+## Geld
+
+Preisliste (`plans.js`): Woche $4,99/12 · Monat ★ $9,99/45 · Jahr
+$79,99/45 p.M. · Pakete $2,99/6 · $7,99/18 · $14,99/32.
+**Pro Tag:** Jahr $0,219 · Monat $0,328 · Woche $0,713 (nur Abos).
+Einkauf: Bild $0,035 · Lebendig $0,06/s · Regie $0,2419/s · Kino
+$0,473/s · DeepSeek ~$0,0003.
+Alles nachrechenbar: `node scripts/preis-durchreichen.mjs`.
+
+## Starten
+
+    bun run dev                       # Oberfläche 5173, API 8100
+    bun run build && bun server.js    # produktionsnah, alles auf 8100
+    bun run test                      # 340 Unit + Hygiene + Kontrast + i18n + RTL
+
+## Werkzeuge
+
+- `node scripts/preis-durchreichen.mjs` — Einkauf, Marge, Rabattleiter,
+  Tagespreis. Verkaufsseite und Bildpreis importiert, kann nicht driften.
+- `node scripts/raster-geometrie.mjs` — Rasterformate und Kachelgrößen.
+- `node scripts/raster-prompt.mjs [n] [modell]` — fertiger Raster-Prompt,
+  fal-Parameter, Schnittkoordinaten. Ruft nichts auf.
+- `node scripts/dry-run-prompts.mjs [--live]` — der ganze Weg vom Traum
+  zum fal-Auftrag; rendert NIE.
+
+## Pläne
+
+- `2026-08-23-guenstiger-anbieten.md` · `2026-08-23-raster-test.md` ·
+  `2026-08-23-shape-auswertung.md` ·
+  `2026-08-23-lucid-inhalte-dreamwithin.md` ·
+  `2026-08-23-traumziele-und-einstiegspreis.md` — alle offen, alle
+  Entscheidungsvorlagen.
+- `2026-08-22-preislinie-durchreichen.md` — offen, Antons Entscheidung.
+- `2026-08-21-mehrwert-inhalte.md` — P1/P2a/P2b/P3b gebaut; P2c und P3a offen.
+- `2026-08-20-recht-einwilligung.md` — Punkt 1 gebaut; 2–6 offen.

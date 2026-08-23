@@ -3,6 +3,142 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-23 15:49 — Anton — Branch `claude/new-session-x9qv1w` (Cloud) — Sitzungsabschluss
+
+**Commits:** `4807bba` (Preisrechnung auf Seedream) · `5c10c60`
+(**Raster: fünf Szenen in einem Bild**) · `144fa3b` (DreamWithin) ·
+`5450a54` (Traumziele + Einstiegspreis) · `3ec1e76` · `f5a3724` ·
+`6ba0484` (Shape, drei Stapel) · `132746a` (**Onboarding: Albträume,
+Schlaf, Zeit, Erinnerungswunsch**) plus dieser Doku-Commit.
+Zustand: **340 Tests grün**, Shape-Check grün, Build sauber.
+
+⚠ Cloud-Sitzung: fal.ai und api.deepseek.com sind von dort gesperrt.
+Alles unten ist strukturell geprüft oder im Browser live durchgegangen —
+**kein einziger bezahlter Render**.
+
+### Der teuerste Fund: die Preisrechnung war nach EINEM Tag falsch
+
+`preis-durchreichen.mjs` trug den Bildpreis als Konstante ($0,042). Am
+23.08. wurde Seedream 5 Lite ($0,035) das Bildmodell — und die ganze
+Rechnung behauptete weiter den alten Wert. Genau davor warnte der
+Dateikopf des Skripts. Jetzt wird der Preis aus `imageModel.js`
+importiert und kann nicht mehr driften.
+Der Befund wird dadurch schärfer: **Ein Kino-Credit kostet uns 125 %
+mehr als ein Bild-Credit** (vorher 88 %).
+
+**Antons Rabatt-Verdacht stimmt:** Vom gesamten Rabatt (64 % Woche→Jahr)
+liegen **72 % schon im Monat**. Das Jahr verlangt zwölf Monate Bindung
+und bietet nur den Rest. ⚠ Die naheliegende Reparatur wäre falsch — den
+Monat zu verteuern widerspricht dem Auftrag „günstiger anbieten".
+Empfehlung: das JAHR großzügiger machen, 50 Credits (40-%-Schritt).
+Bei 30 % Store-Anteil ist 50 die Obergrenze, 55 trägt dann nicht mehr.
+
+### Sparhebel, nach Größe (`2026-08-23-guenstiger-anbieten.md`)
+
+Der größte ist **nicht das Bild, sondern der Kino-Einkauf**: fal nimmt
+$0,473/s für Seedance 2.5, Atlas Cloud listet $0,134/s pauschal — $5,09
+je 15-Sekünder. ⚠ Anbieterangabe, nicht gemessen; und **Seedance ist ein
+geschlossenes Modell**, also ist der Preis eine Handelsspanne, keine
+Technologie. Fünf Prüfpunkte im Plan, einer davon: ein vierter Anbieter
+heißt **CONSENT_VERSION +1**.
+Wan 3.0 ist angekündigt, ohne Preis, nicht buchbar. **Wan 2.7 wird auf
+Antons Wort nicht angefangen.**
+
+### Das Raster ist zurück — und diesmal ohne Haken
+
+Am 19.08. verworfen, weil bei Nano Banana mehr Auflösung mehr kostete.
+**Seedream rechnet flach je Bild bis 3K** — damit dreht sich die
+Rechnung um: fünf Szenen in EINEM Bild für $0,035 statt $0,175 (−80 %).
+
+Die Geometrie ist eine Zeile Bruchrechnung: Ein Behälter im Verhältnis
+(Spalten × 9) : (Zeilen × 16) zerfällt in exakte 9:16-Kacheln. **2×2
+ergibt wieder 9:16** — der einzige Fall ohne Sonderformat. Für fünf
+Szenen ist **3×2 (27:32)** die Antwort, sechs Plätze, einer frei.
+Neu: `src/lib/gridLayout.js` (10 Tests), `buildGridPrompt` mit
+`cols`/`rows` (6 Tests), `scripts/raster-prompt.mjs`.
+
+⚠ **Der bewährte Dreier-Streifen bleibt WÖRTLICH, wie er war** — er ist
+an echten Renders belegt und `splitIntoPanels()` schneidet genau seine
+Formulierung. Das Raster ist ein eigener Zweig, keine umformulierte Kopie.
+⚠ **Das Raster kauft den Preis mit Auflösung:** 864×1536 statt 1440×2560.
+Der Vorbehalt vom 19.08. (Gesichter und Hände zerfallen zuerst) ist nicht
+widerlegt, nur billiger geworden. **Messauftrag, keine Entscheidung.**
+⚠ Nicht eingetragen: Seedream 5 Pro und Nano Banana Pro — mir fehlen die
+bestätigten fal-Slugs, und ein geratener Slug ist der 07.08.-Fehler.
+Der Plan sagt außerdem, warum Pro als SPARtest nicht taugt (Pro rechnet
+nach Fläche und ist im Raster teurer UND kleiner als Lite).
+
+### Wettbewerb ausgewertet: DreamWithin und Shape
+
+**Der wichtigste Fund ist technisch:** Shape fragt die
+Benachrichtigungs-Erlaubnis ZWEIMAL — erst in der App, dann im System.
+**iOS gibt genau einen Versuch.** Wer den Systemdialog kalt zeigt,
+verliert jeden, der im falschen Moment ablehnt, und darf nie wieder
+fragen. ⚠ **Das ist nach dem Xcode-Start nicht mehr nachholbar.**
+
+Weiteres: der Tagespreis (Jahr $0,219/Tag — ⚠ nur für Abos, ein Paket
+hat keinen Zeitraum) · ein Fortschrittsort statt drei verstreuter
+Stellen · „Am-I-Dreaming" statt „Reality check" · und die Lücke, die uns
+wirklich fehlt: **unsere Einführungsumfrage ist ausschließlich
+gesprochen** — ohne GEMINI_KEY oder Mikrofon gibt es GAR KEIN Profil.
+
+⚠ **Zwei Fehler von mir, die Anton richtiggestellt hat** (beide im
+DreamWithin-Plan als Richtigstellung vermerkt, nicht gelöscht):
+Ich habe „talk to your crush" als Bildgenerierung aus hochgeladenen Fotos
+gelesen — es ist ein TRAUMINHALT-ZIEL, kein Upload. Und ich habe mit der
+Gratis-Zusage im Sleep-Reiter argumentiert, obwohl die App nicht
+veröffentlicht ist und sie deshalb niemanden bindet.
+
+**Gegen den 1-Euro-Tarif** (Antons Frage): Ein 1-€-Abonnent bringt netto
+37,15 €/Jahr, gut ein Drittel eines Monatsabonnenten; der billige Anker
+steht neben dem echten Produkt; zwei Währungen brauchen eine Tabelle, wo
+heute ein Satz reicht. Vor allem: **Das Verschenken IST die Waffe.**
+Ein Gratis-Preis ist nicht unterbietbar. Sequenz-Entscheidung — ein
+billiger Tarif ist jederzeit nachrüstbar, aber kaum zurückzunehmen.
+
+### Gebaut: Onboarding (`132746a`)
+
+- **Albträume sind jetzt ein Ziel.** Echte Lücke: bei zwei Wettbewerbern
+  unter den fünf Hauptzielen, bei uns gar nicht. IRT ist die bestbelegte
+  Selbsthilfe-Methode im Feld. Das Briefing verbietet dabei ausdrücklich
+  zu beraten oder Heilung anzudeuten. Was danach angeboten wird, ist P3a.
+- **Das Ziel steht an zweiter Stelle**, direkt nach dem Namen — wer wegen
+  Albträumen kommt, soll nicht fünf Fragen warten. Test nagelt es fest.
+- **Schlafdauer und Zeitbudget** — ohne sie heißt ein Plan nur „persönlich".
+- **Der Erinnerungswunsch** (`src/lib/reminders.js`, 9 Tests): Die Stimme
+  sammelt die ABSICHT, der Finger gibt sie frei. Antons Frage war, ob der
+  Assistent gleich freischalten kann — technisch ja, gemacht nicht: ein
+  verhörtes „nein" kostet die Funktion für immer, und der Systemdialog
+  käme mitten ins laufende Mikrofon-Gespräch. `wants` ≠ `granted`,
+  `askedAt` heißt „wurde gefragt", nicht „wurde abgelehnt".
+- **Der Traumatlas kündigt sich an**: bei genau EINEM Traum eine gedämpfte
+  Kachel „Ab deinem 2. Traum". Nicht bei null — das wäre dieselbe Sorte
+  leerer Bildschirm, die bei Shape erklären muss, warum sie leer ist.
+  Live geprüft bei 0, 1 und 2 Träumen.
+
+### ⚠ Was der Nächste über Rot-Proben wissen muss
+
+**Zwei Proben am neuen Verdrahtungstest feuerten zuerst NICHT, und beide
+Male lag es am TEST:**
+
+1. `toolBlock.toContain("nightmares")` — **mein eigener Kommentar, der
+   den Wert begründet, enthält das Wort.** Der Test wäre grün geblieben,
+   wenn der Wert entfernt wird. Merksatz: *Ein Test, der im Kommentar
+   fündig wird, prüft den Kommentar.*
+2. Beim Reparieren kam der zweite heraus: Der erste Treffer für
+   `description` nach `name: "setGoal"` ist die des WERKZEUGS, nicht die
+   der Werte.
+
+Dazu drei Proben, die sauber gefeuert haben (gridLayout: Verhältnis
+vertauscht, Grenzen aufaddiert, Streifen statt kompakt) und drei bei
+`reminders.js` (Wunsch gilt als Erlaubnis, askedAt nur bei Ablehnung,
+granted im Wunsch mitgeführt).
+
+### Antons offene Bitte
+
+**⏰ Beim nächsten Sitzungsstart an die Klang-Kandidaten erinnern** — er
+hat ausdrücklich darum gebeten. Steht als Punkt 4 im STAND.
+
 ## 2026-08-23 10:35 — Anton — Branch `session/2026-08-22-anton-4` (PR #23) — Sitzungsabschluss
 
 **Commits:** `68a43ed` (Eröffnung) · `b5bee97` + `f7a07f4` (Träume als
