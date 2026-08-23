@@ -1,4 +1,4 @@
-# Shape ausgewertet — fünfzehn Screenshots, was davon taugt
+# Shape ausgewertet — zwanzig Screenshots, was davon taugt
 
 **Stand:** 2026-08-23 · Analyse, **nichts gebaut**
 **Anlass:** Antons Screenshots der App „Shape" (Klartraum, Jahresabo
@@ -267,6 +267,64 @@ vier oder fünf Angaben einsammeln, ohne die der Rest nicht funktioniert:
 Erinnerungshäufigkeit, Schlafdauer, Zeitbudget, Ziel — und, falls „Träume
 sind unangenehm", die Weiche aus 9b.
 
+### 9e. Der dritte Stapel: der ANFANG der Strecke — und eine Lücke bei uns
+
+Die letzten fünf Bildschirme sind die ersten der App (Fortschrittsbalken
+fast leer). Damit ist die Reihenfolge vollständig:
+
+| # | Frage | Antworten |
+|---|---|---|
+| 1 | **Was ist dein Hauptziel?** | Träume erinnern · meinen Geist verstehen · **Albträume überwinden** · einen Klartraum haben · Klarträumen meistern |
+| 2 | Hattest du schon einen Klartraum? | ja · nein · **nicht sicher** |
+| 3 | Was würdest du am liebsten im Traum tun? | fliegen/surfen · Wünsche erfüllen · **eine Person oder einen Ort besuchen** · Rat suchen · meditieren |
+| 4 | Hast du schon einmal Tagebuch geführt? | ja · nein |
+| 5 | Wie oft erinnerst du Träume? | … |
+
+**Die Reihenfolge ist selbst die Botschaft: Das Ziel steht ganz vorn.**
+Alles danach liest sich als Dienst an diesem Ziel. Unsere gesprochene
+Umfrage fragt das Ziel auch — aber irgendwo im Gespräch. Es zuerst zu
+fragen kostet nichts und rahmt den Rest.
+
+#### ⚠ Die Lücke: Albträume kommen bei uns gar nicht vor
+
+„Albträume überwinden" steht bei Shape an **dritter Stelle der ersten
+Frage** — und in der Qualitätsfrage taucht „unangenehm" ein zweites Mal
+auf. Zwei von zwölf Bildschirmen zielen darauf.
+
+Unsere `goalValues` (`src/i18n/en.js`) kennen: *Träume erinnern ·
+verstehen · in Bilder verwandeln · besser schlafen.* **Albträume: nichts.**
+
+Das ist keine Kleinigkeit. Alptraum-Umschreiben (IRT) ist die
+bestbelegte Selbsthilfe-Methode im ganzen Traumfeld — besser belegt als
+jede Klartraum-Technik — und sie steht bei uns seit dem 21.08. als P3a im
+Mehrwert-Plan, ungebaut. **Ein Mensch, der wegen Albträumen kommt, findet
+bei uns aktuell weder die Frage noch die Antwort.**
+
+#### Der Fund, der meine frühere Sorge auflöst
+
+Frage 3 ist dieselbe wie DreamWithins „Triff deinen Schwarm" — aber
+**nüchtern formuliert**: *„eine Person oder einen Ort besuchen"*.
+
+Dieselbe Funktion, ohne den anzüglichen Beigeschmack und ohne jemanden
+namentlich zum Ziel zu machen. Die Kategorie deckt den Schwarm und den
+Verstorbenen ab, ohne beides auszusprechen — der Mensch füllt sie selbst,
+und die App muss nichts versprechen. **Das ist die Fassung, die ich uns
+empfehlen würde**, und sie beantwortet meinen Einwand vom 23.08. sauberer,
+als ich es getan habe.
+
+#### Drei kleine Griffe, die ich mitnehmen würde
+
+- **Jede Frage lehrt beim Fragen.** Unter der Klartraum-Frage steht in
+  einer Zeile, was ein Klartraum ist; unter der Tagebuch-Frage, warum
+  Aufschreiben die Erinnerung verbessert. Das ist besser als getrennte
+  „Did you know?"-Karten — es unterrichtet genau dort, wo die Frage sonst
+  ratlos macht.
+- **„Nicht sicher" als dritte Antwort.** Viele hatten einen Klartraum,
+  ohne das Wort dafür zu kennen. Ein erzwungenes Ja/Nein erzeugt an
+  dieser Stelle Datenmüll.
+- **Der Weiter-Knopf bleibt grau, bis etwas gewählt ist.** Kein Dialog,
+  keine Fehlermeldung — der Knopf sagt es selbst.
+
 ## 10. Vorschlag für die Reihenfolge
 
 1. **Vorab-Frage zur Benachrichtigung** — in den Capacitor-Plan
@@ -279,8 +337,12 @@ sind unangenehm", die Weiche aus 9b.
 4. **Getippter Rückfallweg für die Einführungsumfrage** — schließt ein
    echtes Loch, nicht nur eine Bequemlichkeitslücke. Vier, fünf Fragen,
    nicht Shapes zwölf (§9d).
-5. **Traumqualität als Weiche** (§9b) — wer „unangenehm" sagt, bekommt
-   das Albtraum-Umschreiben angeboten, nicht „Flieg zum Mars".
+5. **Albträume als Ziel aufnehmen** (§9e) — die Lücke, die mich am
+   meisten stört: Bei Shape ist es das dritte von fünf Hauptzielen, bei
+   uns kommt es nicht vor. Dazu die Traumqualität als Weiche (§9b): Wer
+   „unangenehm" sagt, bekommt das Albtraum-Umschreiben angeboten, nicht
+   „Flieg zum Mars". ⚠ Beides zeigt auf P3a, das noch ungebaut ist —
+   und IRT ist die bestbelegte Methode im ganzen Feld.
 6. **Ein Fortschrittsort**, der erst erscheint, wenn es etwas zu zeigen
    gibt.
 7. **Umbenennung** „Reality check" → die Frage selbst.
