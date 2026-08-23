@@ -1,4 +1,4 @@
-# Shape ausgewertet — zehn Screenshots, sieben brauchbare Ideen
+# Shape ausgewertet — fünfzehn Screenshots, was davon taugt
 
 **Stand:** 2026-08-23 · Analyse, **nichts gebaut**
 **Anlass:** Antons Screenshots der App „Shape" (Klartraum, Jahresabo
@@ -176,17 +176,115 @@ Kennzeichnung ohnehin (Art. 50, gilt seit 02.08.2026).
   bittet man nach einem Erfolg, nicht davor. (Der Aufruf selbst ist
   richtig — nur der Zeitpunkt ist es nicht.)
 
-## 9. Vorschlag für die Reihenfolge
+## 9. Nachtrag: der zweite Stapel — Shapes ganze Fragestrecke
+
+Fünf weitere Fragen, je ein Bildschirm, Fortschrittsbalken oben:
+
+| Frage | Antworten |
+|---|---|
+| Wie oft erinnerst du Träume? | jede Nacht · wöchentlich · monatlich · paarmal im Jahr · selten/nie |
+| Wie beschreibst du die Qualität deiner Träume? | normal · unangenehm · fesselnd · bizarr · glücklich |
+| Wie viele Stunden schläfst du? | <6 · 6–7 · 7–8 · 8–9 · 9+ |
+| Wie viel Zeit kannst du täglich aufwenden? | 5 · 10 · 20 · 30 Min · 1 Std+ |
+| Aus welcher Tradition willst du lernen? | moderne Wissenschaft · tibetisches Yoga · Traumpsychologie · Schamanismus |
+
+### 9a. Zwei davon sind bei uns Gold — weil sie den Plan erst persönlich machen
+
+**Schlafdauer** und **Zeitbudget** sind keine Neugier, das sind die
+**Parameter**, aus denen ein Plan überhaupt erst gerechnet werden kann:
+
+- **Schlafdauer ist inhaltlich relevant, nicht nur statistisch.** REM
+  ballt sich im letzten Drittel der Nacht. Wer unter sechs Stunden
+  schläft, hat strukturell weniger und kürzere REM-Phasen — also weniger
+  Traum, weniger Erinnerung, weniger Gelegenheit für Luzidität. Das ist
+  eine wahre, nützliche und für den Menschen wahrscheinlich neue Auskunft.
+  **Bei jemandem mit fünf Stunden Schlaf ist die wirksamste
+  Klartraum-Maßnahme: länger schlafen.** Das kann man ihm sagen, und es
+  ist ehrlicher als jede Technik.
+- **Zeitbudget entscheidet, welche Technik überhaupt vorgeschlagen werden
+  darf.** WBTB verlangt ein nächtliches Aufwachen; MILD braucht Minuten
+  vor dem Einschlafen. Wer „5 Minuten oder weniger" sagt, dem WBTB zu
+  empfehlen, ist ein Plan, der von vornherein scheitert.
+
+Unser Fragebogen sammelt heute `recall`, `lucid`, `themes`, `goal` — beide
+fehlen. Sie sind der billigste Zuwachs an Personalisierung im ganzen
+Stapel.
+
+### 9b. Traumqualität — die Frage, die den Einstieg umleiten sollte
+
+Shape fragt nach der Qualität und tut damit nichts Erkennbares. **Bei uns
+wäre eine Antwort davon ein Weichenschalter:** Wer „unangenehm" wählt,
+sollte nicht als Erstes „Flieg zum Mars" angeboten bekommen, sondern das
+Albtraum-Umschreiben (Mehrwert-Plan P3a, noch offen).
+
+Der Rest ist ohnehin schon da: `analysis.mood` liefert die Stimmung je
+Traum, der Atlas zählt sie. Die Frage im Fragebogen wäre der **Startwert**
+vor dem ersten Traum — und damit auch die Zeile, an der man später sieht,
+ob sich etwas verändert hat.
+
+### 9c. Die Traditionsfrage — die interessanteste, und die heikelste
+
+*„Aus welcher Tradition willst du lernen?"* Vier gleichrangige Kacheln:
+moderne Wissenschaft, tibetisches Traumyoga, Traumpsychologie,
+Schamanismus.
+
+Das ist geschickt: Dieselbe Sache in dem Register erzählt, dem der Mensch
+vertraut. Und es ist billig — ein Textbaustein, kein neuer Inhalt.
+
+⚠ **Für uns ist es genau deshalb gefährlich.** Unser Unterscheidungs-
+merkmal ist, dass `LucidGuide.jsx` auf einer Studie steht und sogar
+berichtet, was NICHT funktioniert hat. Schamanismus gleichrangig neben
+„moderne Wissenschaft" zu stellen, sagt: alles vier ist gleich wahr. Das
+zerlegt genau die Haltung, die uns von Shape unterscheidet.
+
+**Die brauchbare Fassung ist enger und ehrlicher:** Nicht *„was ist
+wahr?"*, sondern *„wie sollen wir mit dir reden?"*. Die **Fakten bleiben
+identisch**, nur die Sprache ändert sich — und ausschließlich dort, wo es
+ohnehin um Deutung geht (die Reflection, die Symbolseite), nie im
+Leitfaden mit den Zahlen.
+
+Konkret: Jemand, der Jungs Sprache mag, bekommt „Schatten" und
+„Anima" statt „wiederkehrendes Motiv" — dieselbe Beobachtung, anderes
+Vokabular. Das ist zulässig, weil unsere Deutung ohnehin ausdrücklich als
+**Angebot** formuliert ist („Spiegel, nicht Orakel") und nie behauptet,
+die Wahrheit über den Menschen zu kennen.
+
+Was NICHT geht: eine Kachel „Schamanismus", hinter der dann steht, was
+Träume „bedeuten". Das wäre das Lexikon der Konkurrenz mit Federschmuck.
+
+### 9d. Die Länge der Strecke ist selbst eine Entscheidung
+
+Zusammengezählt sind es **zwölf und mehr Bildschirme** vor dem Kaufblatt.
+Das ist bewusst: Wer zehn Fragen beantwortet hat, hat investiert und
+kauft eher — ein bekanntes Muster, das nachweislich funktioniert und
+gleichzeitig Leute unterwegs verliert.
+
+**Unsere gesprochene Umfrage ist hier im Vorteil**, und das ist kein
+Zufall: Ein Gespräch sammelt dieselben Angaben in einem Zug, ohne dass
+sich jemand durch zwölf Bildschirme tippt. Der Rückfallweg aus Abschnitt 6
+sollte deshalb **nicht** Shapes zwölf Bildschirme nachbauen, sondern die
+vier oder fünf Angaben einsammeln, ohne die der Rest nicht funktioniert:
+Erinnerungshäufigkeit, Schlafdauer, Zeitbudget, Ziel — und, falls „Träume
+sind unangenehm", die Weiche aus 9b.
+
+## 10. Vorschlag für die Reihenfolge
 
 1. **Vorab-Frage zur Benachrichtigung** — in den Capacitor-Plan
    schreiben, BEVOR die erste Benachrichtigung gebaut wird. Kostet nichts,
    ist später nicht nachholbar.
 2. **Tagespreis als zweite Zeile** auf dem Kaufblatt, nur bei Abos.
-3. **Getippter Rückfallweg für die Einführungsumfrage** — schließt ein
-   echtes Loch, nicht nur eine Bequemlichkeitslücke.
-4. **Ein Fortschrittsort**, der erst erscheint, wenn es etwas zu zeigen
+3. **Zwei Fragen ergänzen: Schlafdauer und Zeitbudget** (§9a). Billigster
+   Zuwachs an Personalisierung im ganzen Stapel — und die Schlafdauer
+   erlaubt eine ehrliche Auskunft, die sonst niemand gibt.
+4. **Getippter Rückfallweg für die Einführungsumfrage** — schließt ein
+   echtes Loch, nicht nur eine Bequemlichkeitslücke. Vier, fünf Fragen,
+   nicht Shapes zwölf (§9d).
+5. **Traumqualität als Weiche** (§9b) — wer „unangenehm" sagt, bekommt
+   das Albtraum-Umschreiben angeboten, nicht „Flieg zum Mars".
+6. **Ein Fortschrittsort**, der erst erscheint, wenn es etwas zu zeigen
    gibt.
-5. **Umbenennung** „Reality check" → die Frage selbst.
-6. **Reflection zum Gespräch ausbauen**, ausdrücklich als KI gekennzeichnet.
+7. **Umbenennung** „Reality check" → die Frage selbst.
+8. **Reflection zum Gespräch ausbauen**, ausdrücklich als KI gekennzeichnet.
+   Die Registerwahl aus §9c gehört hierhin — und NUR hierhin.
 
-Punkte 1–5 kosten keine laufenden Kosten. Punkt 6 kostet Cent-Beträge.
+Punkte 1–7 kosten keine laufenden Kosten. Punkt 8 kostet Cent-Beträge.
