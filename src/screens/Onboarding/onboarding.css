@@ -182,3 +182,85 @@
 .lp-btn:hover { background: rgba(255, 255, 255, .08); border-color: var(--accent-soft); }
 .lp-btn:active { transform: scale(.985); }
 .lp-btn:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+/* — Die getippte Umfrage —
+   Gleicher Bau wie die Sprachumfrage, andere Eingabe. ⚠ Sie scrollt, im
+   Gegensatz zu allen anderen Onboarding-Seiten: Acht Fragen passen auf kein
+   Telefon, und der „fertig"-Knopf muss trotzdem erreichbar bleiben, ohne am
+   unteren Rand zu kleben, wo die Tastatur ihn verdeckt. */
+.ob-form-screen {
+  display: block; overflow-y: auto; text-align: left;
+  padding: var(--s-5) var(--s-5) calc(var(--s-6) * 2);
+}
+.ob-form-screen .ob-title,
+.ob-form-screen .ob-text { text-align: left; max-width: 34ch; }
+
+.ob-form-top {
+  display: flex; align-items: center; gap: var(--s-4);
+  margin-bottom: var(--s-4);
+}
+
+.ob-form {
+  display: flex; flex-direction: column; gap: var(--s-5);
+  margin: var(--s-6) 0;
+}
+/* fieldset bringt eigene Ränder und Polster mit — beide weg, damit die
+   Frage mit Legende genauso sitzt wie die mit Label. */
+.ob-q { display: flex; flex-direction: column; gap: var(--s-3); border: 0; margin: 0; padding: 0; }
+.ob-q-label {
+  font-size: var(--t-small); font-weight: 600; letter-spacing: .01em;
+  color: var(--text); padding: 0;
+}
+.ob-q-hint { font-size: var(--t-small); color: var(--faint); }
+
+.ob-input {
+  width: 100%; padding: 13px var(--s-4); font-family: inherit; font-size: 16px;
+  color: var(--text); background: var(--panel);
+  border: 1px solid var(--panel-line); border-radius: var(--radius);
+}
+.ob-input::placeholder { color: var(--faint); }
+.ob-input:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 1px; }
+
+.ob-choices { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.ob-choice {
+  padding: 9px var(--s-4); cursor: pointer; font-family: inherit; font-size: 15px;
+  color: var(--muted); background: var(--panel);
+  border: 1px solid var(--panel-line); border-radius: 999px;
+  transition: background .14s ease-out, border-color .14s ease-out, color .14s ease-out;
+}
+.ob-choice:hover { border-color: var(--accent-soft); }
+.ob-choice-on {
+  background: var(--accent-wash); border-color: var(--accent-soft); color: var(--accent-soft);
+  font-weight: 600;
+}
+.ob-choice:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+.ob-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.ob-chip {
+  padding: 8px var(--s-3); cursor: pointer; font-family: inherit; font-size: 14px;
+  color: var(--accent-soft); background: var(--accent-wash);
+  border: 1px solid var(--accent-soft); border-radius: 999px;
+}
+.ob-chip:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+.ob-chip-add { display: flex; gap: var(--s-2); }
+.ob-chip-go {
+  flex: none; padding: 0 var(--s-4); cursor: pointer; font-family: inherit;
+  font-size: 15px; font-weight: 600; color: var(--text);
+  background: var(--panel); border: 1px solid var(--panel-line);
+  border-radius: var(--radius);
+}
+.ob-chip-go:disabled { opacity: .4; cursor: default; }
+.ob-chip-go:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+.ob-form-actions { margin-top: var(--s-6); }
+
+/* Der Ausgang aus der Fehlerzeile der Sprachumfrage. Ruhig gehalten: Er ist
+   ein Angebot, keine Warnung — die Warnung steht schon darüber. */
+.vi-fallback {
+  display: block; margin: var(--s-4) auto 0; padding: 10px var(--s-5);
+  cursor: pointer; font-family: inherit; font-size: 15px; font-weight: 600;
+  color: var(--accent-soft); background: var(--accent-wash);
+  border: 1px solid var(--accent-soft); border-radius: 999px;
+}
+.vi-fallback:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }

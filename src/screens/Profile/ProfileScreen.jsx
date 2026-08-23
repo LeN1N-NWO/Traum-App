@@ -4,6 +4,7 @@ import { welcomeGrant, totalCredits } from "../../lib/credits.js";
 import { t } from "../../i18n/index.js";
 import AvatarDialog from "../../components/AvatarDialog.jsx";
 import OnboardingSurvey from "../Onboarding/OnboardingSurvey.jsx";
+import OnboardingForm from "../Onboarding/OnboardingForm.jsx";
 import Settings from "./Settings.jsx";
 import DreamerCard from "./DreamerCard.jsx";
 import { IconGear } from "../../components/icons.jsx";
@@ -18,7 +19,7 @@ import "./profile.css";
 export default function ProfileScreen() {
   const { state, update, toast, openPaywall } = useAppState();
   const [editingMe, setEditingMe] = useState(false);
-  const [survey, setSurvey] = useState(false);
+  const [survey, setSurvey] = useState(false);   // false | "voice" | "form"
   const [settings, setSettings] = useState(false);
 
   const me = state.me;
@@ -98,7 +99,7 @@ export default function ProfileScreen() {
           here rather than expiring. Gone once done: a finished survey is
           not an achievement to look at. */}
       {!state.surveyDone && (
-        <button className="p-survey" onClick={() => setSurvey(true)}>
+        <button className="p-survey" onClick={() => setSurvey("voice")}>
           <span className="p-survey-body">
             <span className="p-survey-title">{t.onboarding.profileCard}</span>
             <span className="p-survey-hint">{t.onboarding.profileCardHint}</span>
@@ -109,10 +110,26 @@ export default function ProfileScreen() {
 
       {/* What they told the assistant, shown back — see DreamerCard for why
           this exists and why it stops short of astrology. */}
-      <DreamerCard profile={state.profile} onRetake={() => setSurvey(true)} />
+      <DreamerCard profile={state.profile} onRetake={() => setSurvey("voice")} />
 
-      {survey && (
-        <OnboardingSurvey onDone={surveyDone} onCancel={() => setSurvey(false)} />
+      {/* ⚠ Beide Wege, auch hier. Bis zum 23.08. öffnete das Profil nur die
+          Sprachumfrage — und wer keinen GEMINI_KEY, kein Mikrofon oder keine
+          Verbindung hatte, stand vor derselben Sackgasse wie beim ersten
+          Start: Fehlerzeile, „fertig" ausgeschaltet, zurück ohne Profil.
+          `survey` trägt deshalb den WEG, nicht nur ein Ja/Nein. */}
+      {survey === "voice" && (
+        <OnboardingSurvey
+          onDone={surveyDone}
+          onCancel={() => setSurvey(false)}
+          onTypeInstead={() => setSurvey("form")}
+        />
+      )}
+      {survey === "form" && (
+        <OnboardingForm
+          onDone={surveyDone}
+          onCancel={() => setSurvey(false)}
+          onVoiceInstead={() => setSurvey("voice")}
+        />
       )}
 
       {editingMe && (

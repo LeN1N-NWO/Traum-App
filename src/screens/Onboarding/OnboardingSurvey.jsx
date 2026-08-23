@@ -15,7 +15,7 @@ import "../../wizard/voice.css";
  *
  * Every field stays optional. onDone receives whatever was actually
  * answered; the caller decides nothing here beyond "they finished". */
-export default function OnboardingSurvey({ onDone, onCancel }) {
+export default function OnboardingSurvey({ onDone, onCancel, onTypeInstead }) {
   const { state: app, update } = useAppState();
   /* Same contract as VoiceInterview.jsx: no socket and no microphone until
    * a voice is settled, and asked only when none is stored yet. For a new
@@ -129,7 +129,21 @@ export default function OnboardingSurvey({ onDone, onCancel }) {
       <div className="vi-talk">
         {state === "connecting" && <p className="vi-status">{t.voice.connecting}</p>}
         {state === "error" && (
-          <p className="vi-status vi-status-bad">{t.voice.errors[error] || t.voice.errors.SOCKET}</p>
+          <>
+            <p className="vi-status vi-status-bad">{t.voice.errors[error] || t.voice.errors.SOCKET}</p>
+            {/* ⚠ Der Ausgang, der bis zum 23.08. fehlte. Ohne Schlüssel, ohne
+                Mikrofon oder ohne Verbindung war das × der einzige Weg von
+                hier weg — und damit gab es GAR KEIN Profil und auch die
+                Willkommens-Credits nicht (die hängen an `surveyDone`). Der
+                „fertig"-Knopf unten hilft nicht: er ist ausgeschaltet,
+                solange die Verbindung nicht steht, und das ist richtig so —
+                er würde ein leeres Gespräch abschließen. */}
+            {onTypeInstead && (
+              <button className="vi-fallback" onClick={onTypeInstead}>
+                {t.onboarding.gateType} ›
+              </button>
+            )}
+          </>
         )}
 
         {lines.map((l, i) => (
