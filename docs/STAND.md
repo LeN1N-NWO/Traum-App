@@ -38,9 +38,12 @@ sie ist der einzige echte Blocker.
    drei echte Träume von Anton, bevor das als erledigt gilt.
 3. **Antons Bogen erneuern** (Foto neu hochladen) — oder entscheiden, ob
    das Modell in den Fingerabdruck soll. Siehe „Baustellen".
-4. **Klang-Presets:** Anton hört durch, wählt 2–3, holt die Originale
-   über sein Freesound-Konto. Danach `public/sounds/<preset>.m4a` und
-   ein zweiter Puffer-Lieferant in `src/lib/noise.js`.
+4. **⏰ ERINNERUNG AN ANTON (er hat ausdrücklich darum gebeten, 23.08.):
+   Die Klang-Kandidaten durchhören.** Die 28 Stück liegen aus Sitzung #22
+   bereit. Er wählt 2–3 aus, holt die Originale über sein Freesound-Konto;
+   danach `public/sounds/<preset>.m4a` und ein zweiter Puffer-Lieferant in
+   `src/lib/noise.js`. **Das gehört beim nächsten Sitzungsstart als Erstes
+   angesprochen.**
 5. **Traumzeichen-Karten** (`2026-08-22-traumzeichen-karten.md`): 20
    Bilder von Anton. Vertagt auf sein Wort.
 
