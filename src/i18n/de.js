@@ -357,6 +357,12 @@ export default {
     editTitleFor: { person: "Person bearbeiten", pet: "Tier bearbeiten", place: "Ort bearbeiten" },
     meTitle: "Das bist du",
     nameLabel: (tag) => `Name (wird zu @${tag})`,
+    photoHint: "Zwei Fotos treffen am besten: eine Nahaufnahme vom Gesicht, eine vom ganzen Körper. Das Gesichtsfoto ist Pflicht, das Ganzkörperfoto freiwillig.",
+    photoLabelClose: "Gesichtsfoto",
+    photoLabelBody: "Ganzkörperfoto (freiwillig)",
+    photoBodyAdd: "Ganzkörperfoto hinzufügen",
+    photoBodyWhy: "Daran erkennt der Renderer deine Größe und Statur.",
+
     photoLabel: "Referenzfoto",
     photoAdd: "Foto hinzufügen",
     photoTake: "Foto erstellen",

@@ -191,8 +191,8 @@ export async function renderImages(params, { onTick } = {}) {
  *  Mit `photo` (data:image-URI) wird stattdessen ein vorhandenes Foto zum
  *  Bogen NORMALISIERT (grau, Ganzkörper + Gesicht) — gratis, nur aus einem
  *  bezahlten Render heraus aufgerufen (sheets.js hat die Regeln). */
-export async function characterSheet({ desc, category, photo }) {
-  const data = await post("/api/character", { desc, category, photo });
+export async function characterSheet({ desc, category, photo, photo2 }) {
+  const data = await post("/api/character", { desc, category, photo, photo2 });
   // Auftrag (seit 21.08.) oder fertige URL (ältere Serverstände).
   if (typeof data?.jobId === "string") {
     const urls = await awaitJob(data.jobId);

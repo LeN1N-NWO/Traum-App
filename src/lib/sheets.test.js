@@ -52,3 +52,26 @@ test("the fingerprint is stable and order-independent of unrelated fields", () =
   expect(sheetFingerprint({ img: "I2", desc: "D" })).not.toBe(a);
   expect(sheetFingerprint({ img: "I", desc: "D2" })).not.toBe(a);
 });
+
+/* ⚠ Ein echtes NUL-Byte im Quelltext laesst Git die Datei fuer BINAER
+   halten: `git diff` sagt dann nur noch „Binary files differ", und niemand
+   kann eine Aenderung daran mehr pruefen. Genau das war am 24.08.2026 bei
+   sheets.js und gatekeeper.js der Fall — beide benutzen NUL als Trenner,
+   hatten es aber als Byte statt als Escape `\0` geschrieben. Zur Laufzeit
+   identisch, in der Durchsicht der Unterschied zwischen lesbar und blind. */
+test("kein Quelltext enthaelt ein echtes NUL-Byte", async () => {
+  const { readdirSync, readFileSync, statSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const wurzel = new URL("../..", import.meta.url).pathname;
+  const treffer = [];
+  (function lauf(dir) {
+    for (const name of readdirSync(dir)) {
+      if (name === "node_modules" || name === ".git" || name === "dist" || name === "media") continue;
+      const voll = join(dir, name);
+      if (statSync(voll).isDirectory()) { lauf(voll); continue; }
+      if (!/\.(js|jsx|mjs|json|css|md)$/.test(name)) continue;
+      if (readFileSync(voll, "utf8").includes("\0")) treffer.push(voll.slice(wurzel.length));
+    }
+  })(join(wurzel, "src"));
+  expect(treffer).toEqual([]);
+});

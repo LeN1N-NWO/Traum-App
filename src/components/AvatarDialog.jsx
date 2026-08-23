@@ -47,8 +47,15 @@ export default function AvatarDialog({
   const [tag, setTag] = useState(cleanTag(existing?.tag || suggestedName));
   const [desc, setDesc] = useState(existing?.desc || suggestedDesc);
   const [image, setImage] = useState(existing?.img || "");
+  /* Das zweite Foto: Ganzkörper. Freiwillig, und bewusst als EIGENES Feld
+     statt als Mehrfachauswahl — die beiden Bilder haben verschiedene
+     Aufgaben (Gesicht bzw. Statur), und der Bogen-Prompt spricht sie über
+     ihre Position an. Eine Liste, in der man die Reihenfolge nicht sieht,
+     wäre hier eine Fehlerquelle ohne Gewinn. */
+  const [image2, setImage2] = useState(existing?.img2 || "");
   const [drawing, setDrawing] = useState(false);
   const fileRef = useRef(null);
+  const bodyRef = useRef(null);
   // Eigener Input fürs direkte Fotografieren: `capture` öffnet auf
   // iOS/Android sofort die Kamera (Rückkamera — man fotografiert die
   // anderen, nicht sich selbst); am Desktop bleibt es ein Dateidialog.
@@ -95,13 +102,18 @@ export default function AvatarDialog({
     setDrawing(false);
   }
 
-  function readFile(e) {
+  /* `setzen` sagt, in welchen Slot das Bild geht — Gesicht oder Ganzkörper.
+     Vorher schrieb diese Funktion fest in `setImage`; mit zwei Feldern wäre
+     das der Fehler gewesen, bei dem das zweite Foto das erste überschreibt. */
+  function readFile(e, setzen = setImage) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => setImage(String(reader.result));
+    reader.onload = () => setzen(String(reader.result));
     reader.onerror = () => toast(t.avatarDialog.readFailed);
     reader.readAsDataURL(file);
+    // Damit dieselbe Datei ein zweites Mal gewaehlt werden kann.
+    e.target.value = "";
   }
 
   // A name on its own gives the renderer nothing to work from — it needs
@@ -115,7 +127,7 @@ export default function AvatarDialog({
     if (!hasSubstance) return toast(t.avatarDialog.needPhotoOrDesc);
 
     if (isMe) {
-      const saved = { tag: clean, desc: desc.trim(), img: image };
+      const saved = { tag: clean, desc: desc.trim(), img: image, img2: image2 };
       update({ me: saved });
       toast(t.avatarDialog.saved(clean));
       onCreated?.(saved);
@@ -128,7 +140,7 @@ export default function AvatarDialog({
     if (collides) return toast(t.avatarDialog.exists(clean));
 
     if (isEdit) {
-      const saved = { ...existing, tag: clean, desc: desc.trim(), img: image };
+      const saved = { ...existing, tag: clean, desc: desc.trim(), img: image, img2: image2 };
       const patch = {
         cast: (state.cast || []).map((p) => (p.id === existing.id ? saved : p)),
       };
@@ -152,7 +164,7 @@ export default function AvatarDialog({
       return;
     }
 
-    const avatar = { id: genId("c"), tag: clean, category: kind, desc: desc.trim(), img: image };
+    const avatar = { id: genId("c"), tag: clean, category: kind, desc: desc.trim(), img: image, img2: image2 };
     update({ cast: [...(state.cast || []), avatar] });
     toast(t.avatarDialog.created(clean));
     onCreated?.(avatar);
@@ -220,7 +232,13 @@ export default function AvatarDialog({
             thing that read as out of place here. It still does the actual
             picking; the button just proxies the click onto it. */}
         <div className="av-field">
-          <span>{t.avatarDialog.photoLabel}</span>
+          <span>{isMe || kind === "person" ? t.avatarDialog.photoLabelClose : t.avatarDialog.photoLabel}</span>
+          {/* ⚠ Der Hinweis steht hier, weil ihn sonst niemand bekommt: Aus
+              EINEM Selfie von schräg oben lässt sich die Statur nicht
+              ablesen, und der Charakterbogen — die Quelle jeder späteren
+              Ähnlichkeit — rät sie dann. Gemessen am 24.08.2026 an Antons
+              eigenem Bogen. */}
+          {kind !== "place" && <small className="av-hint">{t.avatarDialog.photoHint}</small>}
 
           {image ? (
             <div className="av-photo-set">
@@ -267,12 +285,56 @@ export default function AvatarDialog({
             </>
           )}
 
+          {/* Der zweite Slot erscheint erst, wenn das Gesichtsfoto steht —
+              vorher waere er eine Frage nach dem zweiten Schritt, bevor der
+              erste getan ist. Und ohne Gesichtsfoto kann der Server ihn
+              ohnehin nicht verwerten. */}
+          {image && kind !== "place" && (
+            <div className="av-body-slot">
+              <span className="av-body-label">{t.avatarDialog.photoLabelBody}</span>
+              {image2 ? (
+                <div className="av-photo-set">
+                  <img className="av-preview av-preview-body" src={image2}
+                       alt={t.avatarDialog.previewAlt} />
+                  <div className="av-photo-row">
+                    <button type="button" className="av-photo-btn"
+                            onClick={() => bodyRef.current?.click()}>
+                      {t.avatarDialog.photoReplace}
+                    </button>
+                    <button type="button" className="av-photo-btn av-photo-btn-ghost"
+                            onClick={() => setImage2("")}>
+                      {t.avatarDialog.photoRemove}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" className="av-upload av-upload-body"
+                        onClick={() => bodyRef.current?.click()}>
+                  <IconImages />
+                  <span>
+                    {t.avatarDialog.photoBodyAdd}
+                    <small>{t.avatarDialog.photoBodyWhy}</small>
+                  </span>
+                </button>
+              )}
+            </div>
+          )}
+
           <input
             ref={fileRef}
             className="av-file-hidden"
             type="file"
             accept="image/*"
             onChange={readFile}
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+          <input
+            ref={bodyRef}
+            className="av-file-hidden"
+            type="file"
+            accept="image/*"
+            onChange={(e) => readFile(e, setImage2)}
             tabIndex={-1}
             aria-hidden="true"
           />

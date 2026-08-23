@@ -277,8 +277,18 @@ export function buildCharacterPrompt({ desc, category = "person" }) {
  *
  * `desc` legt die Garderobe EINMAL im Bogen fest statt in jedem Bild neu —
  * dieselbe Anti-Drift-Linie wie beim Regisseur (keine erfundene Garderobe). */
-export function buildSheetFromPhotoPrompt({ desc, category = "person" } = {}) {
+export function buildSheetFromPhotoPrompt({ desc, category = "person", photos = 1 } = {}) {
   const clean = String(desc || "").trim();
+  /* Zwei Fotos, zwei Aufgaben — und sie MÜSSEN benannt werden. Ohne diesen
+     Satz mittelt das Modell über beide Bilder und bekommt aus einem
+     Selfie-von-schräg-oben plus einem Ganzkörperbild einen Menschen, der
+     weder das Gesicht noch die Statur trifft. Die Reihenfolge ist Vertrag
+     mit photosOf() in sheets.js. */
+  const zwei = photos > 1
+    ? "Reference image 1 is a close view of their face — take the face, hair and skin from it. "
+      + "Reference image 2 shows their whole body — take height, build and posture from it. "
+      + "Where the two disagree, the face image wins for the head and the body image for the body. "
+    : "";
   const panels = category === "pet"
     ? "left panel the whole animal standing, side-on to three-quarter view; "
       + "right panel a close view of its head, eyes clearly visible. "
@@ -288,9 +298,25 @@ export function buildSheetFromPhotoPrompt({ desc, category = "person" } = {}) {
       + "Same person, same likeness, same outfit in both panels.";
 
   return [
-    `Reference sheet of the ${category === "pet" ? "animal" : "person"} shown in reference image 1, `
-      + `split into two panels side by side: ${panels}`,
-    clean ? `Look and wardrobe: ${clean}. Depict exactly this in both panels.` : "",
+    `Reference sheet of the ${category === "pet" ? "animal" : "person"} shown in reference image 1`
+      + `${photos > 1 ? " and reference image 2" : ""}, split into two panels side by side: ${panels}`,
+    zwei,
+    /* ⚠ Ohne Angabe NEUTRALE Alltagskleidung, nicht das, was auf dem Foto
+       zufällig an war. Antons Bogen vom 23.08. kam in Badehose und
+       Sonnenbrille zurück, weil das Foto am Strand entstand — und ein Bogen
+       trägt seine Kleidung in JEDEN künftigen Traum. Ein Urlaubsfoto darf
+       nicht die Garderobe eines Jahres bestimmen. */
+    clean
+      ? `Look and wardrobe: ${clean}. Depict exactly this in both panels.`
+      : "Dress them in plain, neutral everyday clothing — a simple long-sleeved top and plain "
+        + "trousers in muted colours — regardless of what they happen to wear in the reference "
+        + "photo. This is a neutral reference, not a snapshot of one particular day.",
+    /* Und das Gesicht muss FREI sein. Der Bogen ist die Quelle jeder
+       späteren Ähnlichkeit; was hier verdeckt ist, fehlt für immer. */
+    category === "pet" ? "" :
+      "Remove any sunglasses, glasses, hat, cap or hood: the whole face must be visible and "
+      + "both eyes open. If the reference photo hides the eyes, reconstruct them plausibly from "
+      + "the rest of the face.",
     "Plain mid-grey background in both panels, even soft lighting, no shadows cast on the background.",
     "Sharp focus, natural colour, photographic. No text, no logos, no border decorations.",
     "Do not add props, scenery, weather, story or mood — this is a reference sheet, not a scene.",

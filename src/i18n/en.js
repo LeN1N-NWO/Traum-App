@@ -387,6 +387,12 @@ export default {
     editTitleFor: { person: "Edit person", pet: "Edit pet", place: "Edit place" },
     meTitle: "This is you",
     nameLabel: (tag) => `Name (becomes @${tag})`,
+    photoHint: "Two photos give the best likeness: one close-up of the face, one full body. The face photo is required, the body photo is optional.",
+    photoLabelClose: "Face photo",
+    photoLabelBody: "Full-body photo (optional)",
+    photoBodyAdd: "Add a full-body photo",
+    photoBodyWhy: "It is what tells the renderer your height and build.",
+
     photoLabel: "Reference photo",
     photoAdd: "Add a photo",
     photoTake: "Take a photo",
