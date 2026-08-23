@@ -58,12 +58,12 @@ const format = traum.format || "9:16";
    gerundetes Format den ganzen Lauf wertlos machen würde. */
 let { cols, rows } = layoutFor(beats.length);
 let einzeln = 0;
-if (!supportsAspect(m.id, containerRatio(cols, rows))) {
+if (!supportsAspect(m.id, containerRatio(cols, rows, format))) {
   ({ cols, rows } = layoutFor(4));                 // 2×2 = 9:16, das kann jeder
   einzeln = beats.length - cols * rows;
 }
-const verhaeltnis = containerRatio(cols, rows);
-const behaelter = containerSize(cols, rows, LANGE_SEITE);
+const verhaeltnis = containerRatio(cols, rows, format);
+const behaelter = containerSize(cols, rows, LANGE_SEITE, format);
 const imRaster = Math.min(beats.length, cols * rows);
 const stueck = imagePrice(m.id, STUFE);
 const aufrufe = 1 + Math.max(0, einzeln);
@@ -121,7 +121,7 @@ const OUT = resolve(import.meta.dir, "..", "media", "ab-test", `raster-${m.id}`)
 const name = (s) => s.replace(/[^a-z0-9]+/gi, "-");
 
 /* ── Das Raster ──────────────────────────────────────────────────────── */
-const gitter = buildGridPrompt({ beats: beats.slice(0, imRaster), styleId: stil, clauses, cols, rows });
+const gitter = buildGridPrompt({ beats: beats.slice(0, imRaster), styleId: stil, clauses, cols, rows, tile: format });
 const auftrag = imageSubmitBody(m.id, {
   prompt: gitter, imageUrls: [refUri], aspectRatio: verhaeltnis,
   size: { width: behaelter.width, height: behaelter.height }, resolution: STUFE,

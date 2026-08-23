@@ -7,6 +7,7 @@
  * wrong and people get each other's faces. Hence the tests.
  */
 import { styleById } from "./styles.js";
+import { shotClause } from "./cinematography.js";
 import { slotName } from "./gridLayout.js";
 
 /**
@@ -108,7 +109,7 @@ export function stripReferenceClauses(prompt) {
  * @param {number} [p.cols]      Spalten; Vorgabe: so viele wie Beats
  * @param {number} [p.rows]      Zeilen; 1 = der bewährte Streifen
  */
-export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1 }) {
+export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1, tile = "9:16" }) {
   const style = styleById(styleId);
   const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
   const spalten = cols || beats.length;
@@ -148,8 +149,13 @@ export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1 }
        3. Kein Überlaufen zwischen den Kacheln. Genau dafür steht die
           Trennlinie da; sie ist keine Zierde, sie ist die Schnittkante. */
   const zeilen = rows;
+  /* ⚠ JEDE Kachel bekommt ihre EIGENE Einstellung. Genau hier entscheidet
+     sich, ob ein Raster ein Film wird oder eine Kontaktbogen-Seite: Ohne
+     diesen Zusatz malt das Modell vier Varianten derselben Aufnahme, weil
+     nichts es davon abhält — und das ist der Fehler, den ein Raster
+     STÄRKER macht als Einzelbilder, weil alle vier in einem Zug entstehen. */
   const plaetze = beats
-    .map((b, i) => `${slotName(i, spalten, zeilen)}: ${b}`)
+    .map((b, i) => `${slotName(i, spalten, zeilen)}: ${b}\n  ${shotClause(i + 1, beats.length)}`)
     .join("\n");
   const frei = spalten * zeilen - beats.length;
   const leer = frei > 0
@@ -161,7 +167,13 @@ export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1 }
   return (
     `A single image laid out as an EXACT ${spalten}×${zeilen} grid of ${spalten * zeilen} equally ` +
     `sized tiles (${spalten} columns, ${zeilen} rows), separated by thin solid black divider lines ` +
-    `running the full width and height between them. Every tile is a VERTICAL 9:16 portrait frame ` +
+    /* ⚠ Das KACHELFORMAT steht hier, nicht das Behälterformat. Ein
+       quadratisches Raster hat beide gleich (2×2 aus 9:16 ergibt 9:16, 2×2
+       aus 16:9 ergibt 16:9) — bei 3×2 laufen sie auseinander, und dann ist
+       genau diese Zeile der Unterschied zwischen einem Schnitt, der passt,
+       und sechs Kacheln im falschen Format. */
+    `running the full width and height between them. Every tile is ` +
+    `${tile === "16:9" ? "a HORIZONTAL 16:9 landscape frame" : "a VERTICAL 9:16 portrait frame"} ` +
     `and is completely filled edge to edge — no letterboxing inside a tile, no black bars, no outer ` +
     `frame or margin around the grid. Each tile is a self-contained cinematic photoreal film still ` +
     `with no bleed, no shared elements and no continuing scenery across the divider lines.` +
@@ -196,8 +208,17 @@ export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 
     : "";
   const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
 
+  /* Die EINSTELLUNG (cinematography.js) steht vor dem Stil, nicht danach:
+     Zuerst was für ein Bild das ist, dann wie es aussieht. Ohne sie kam
+     jede Szene als dieselbe Aufnahme zurück — Person mittig, frontal,
+     formatfüllend —, und vier davon sind kein Film, sondern vier Passfotos
+     an vier Orten (Antons Befund 23.08.).
+     ⚠ Sie nennt bewusst KEINE Optik; die gehört dem Stil, und die Stile
+     widersprechen sich darin. Zwei Brennweiten in einem Prompt sind
+     schlechter als eine. */
   return (
     `A cinematic, photoreal film still: ${beat}` +
+    `\n${shotClause(index, total)}` +
     `\n${style.prompt}` +
     `\n${framing}, ultra-detailed, accurate hands and faces.${place}${refs}${anchor}`
   );

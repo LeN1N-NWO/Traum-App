@@ -30,10 +30,25 @@ export function layoutFor(count) {
   return { cols, rows, slots: cols * rows, spare: cols * rows - n };
 }
 
+/* Das Kachelformat als Zahlenpaar. Vorgabe ist Hochkant, weil die App
+ * hochkant ist — aber NICHT fest verdrahtet: Wer 16:9 wählt, bekommt
+ * 16:9-Kacheln, und dann muss der Behälter anders aussehen. */
+function seiten(tile) {
+  const m = /^(\d+):(\d+)$/.exec(String(tile || "9:16"));
+  return m ? [Number(m[1]), Number(m[2])] : [9, 16];
+}
+
 /** Das Seitenverhältnis, das der Behälter haben MUSS, damit jede Kachel
- *  exakt 9:16 wird — gekürzt, als Zeichenkette („9:16", „27:32"). */
-export function containerRatio(cols, rows) {
-  const w = cols * 9, h = rows * 16;
+ *  exakt das Kachelformat bekommt — gekürzt, als Zeichenkette.
+ *
+ *  ⚠ Der angenehme Sonderfall: Bei einem QUADRATISCHen Raster (cols === rows)
+ *  ist der Behälter im selben Verhältnis wie die Kachel. 2×2 aus 9:16 ergibt
+ *  wieder 9:16, 2×2 aus 16:9 wieder 16:9 — beides Formate, die jedes Modell
+ *  kennt. Deshalb ist 2×2 das einzige Raster, das ohne Sonderformat
+ *  auskommt, und deshalb funktioniert der Rastertrick in BEIDEN Formaten. */
+export function containerRatio(cols, rows, tile = "9:16") {
+  const [tw, th] = seiten(tile);
+  const w = cols * tw, h = rows * th;
   const teiler = (a, b) => (b ? teiler(b, a % b) : a);
   const g = teiler(w, h);
   return `${w / g}:${h / g}`;
@@ -45,8 +60,9 @@ export function containerRatio(cols, rows) {
  *  GEMESSEN, weil das Schema dort etwas anderes behauptet).
  *  Beide Maße werden auf ein Vielfaches von `cols` bzw. `rows` abgerundet,
  *  damit das Schneiden später ohne Rundungsrest aufgeht. */
-export function containerSize(cols, rows, maxLongSide) {
-  const ratio = (cols * 9) / (rows * 16);
+export function containerSize(cols, rows, maxLongSide, tile = "9:16") {
+  const [tw, th] = seiten(tile);
+  const ratio = (cols * tw) / (rows * th);
   let w, h;
   if (ratio >= 1) { w = maxLongSide; h = Math.round(w / ratio); }
   else { h = maxLongSide; w = Math.round(h * ratio); }
@@ -54,8 +70,8 @@ export function containerSize(cols, rows, maxLongSide) {
 }
 
 /** Die Kachelgröße, die dabei herauskommt. */
-export function tileSize(cols, rows, maxLongSide) {
-  const { width, height } = containerSize(cols, rows, maxLongSide);
+export function tileSize(cols, rows, maxLongSide, tile = "9:16") {
+  const { width, height } = containerSize(cols, rows, maxLongSide, tile);
   return { width: width / cols, height: height / rows };
 }
 
