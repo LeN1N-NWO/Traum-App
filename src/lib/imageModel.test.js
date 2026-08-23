@@ -106,13 +106,32 @@ describe("Aufloesung und Preis (Nano Banana Pro)", () => {
     expect("resolution" in input).toBe(false);
   });
 
-  test("Modelle ohne Aufloesungsstufen bekommen das Feld nie", () => {
-    for (const id of ["seedream-5-lite", "nano-banana-2-lite", "nano-banana-2"]) {
-      const { input } = imageSubmitBody(id, { prompt: "x", resolution: "4K" });
+  /* Aus der TABELLE abgeleitet, nicht aufgezaehlt. Die erste Fassung listete
+     die Modelle von Hand — und wurde falsch, sobald Nano Banana 2 Stufen
+     bekam: der Test behauptete weiter, es habe keine. Ein Test, der eine
+     Aufzaehlung pflegt, prueft irgendwann die Aufzaehlung. */
+  test("wer keine Aufloesungsstufen hat, bekommt das Feld nie", () => {
+    const ohne = Object.values(IMAGE_MODELS).filter((m) => !m.resolutions);
+    expect(ohne.length).toBeGreaterThan(0);
+    for (const m of ohne) {
+      const { input } = imageSubmitBody(m.id, { prompt: "x", resolution: "4K" });
       expect("resolution" in input).toBe(false);
+      // …und ohne Stufen faellt der Preis auf den flachen Wert zurueck.
+      expect(imagePrice(m.id, "4K")).toBe(m.usd);
     }
-    // …und ohne Stufen faellt der Preis auf den flachen Wert zurueck.
-    expect(imagePrice("seedream-5-lite", "4K")).toBe(0.035);
+  });
+
+  /* ⚠ Die beiden Nano-Bananas rechnen NICHT gleich. Bei Nano Banana 2 kostet
+     2K das 1,5-Fache, bei Pro steht fuer 2K kein Aufschlag. Wer das eine vom
+     anderen abschreibt, liegt um 50 % daneben. */
+  test("jede Stufe hat einen Preis, und die Modelle teilen ihn sich nicht", () => {
+    for (const m of Object.values(IMAGE_MODELS).filter((x) => x.resolutions)) {
+      for (const stufe of m.resolutions) {
+        expect(typeof imagePrice(m.id, stufe)).toBe("number");
+      }
+    }
+    expect(imagePrice("nano-banana-2", "2K")).toBe(0.12);
+    expect(imagePrice("nano-banana-pro", "2K")).toBe(0.15);
   });
 });
 
