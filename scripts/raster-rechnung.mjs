@@ -35,30 +35,38 @@ const SZENEN = Math.max(1, Math.min(12, Number(process.argv[2]) || 5));
    deshalb 1533 statt 1536. (Beide Modelle, 23.08.2026.) */
 const GEMESSEN = { breite: 3072, hoehe: 5504, kachel: "1533×2734" };
 
+/* ⚠ 2×2 ist die EINHEIT, nicht 3×3. Ein 3×3 fasst neun Szenen in einem
+   Aufruf und wäre je Szene billiger — aber die Kachel fiele auf 1024×1834
+   und damit UNTER das, was die App heute liefert (1440×2560). Ein Raster,
+   das kleinere Bilder macht als der Weg, den es ersetzen soll, ist kein
+   Fortschritt, sondern eine Verschlechterung mit Rabatt.
+   Bei 2×2 bleibt die Kachel bei 1533×2734 — größer als heute. Deshalb:
+   vier Szenen = ein Raster, acht Szenen = zwei. Genau das ist der Grund,
+   warum 4 und 8 als Bildzahlen besser passen als 5 und 10. */
+const RASTER = [2, 2];
+const PLAETZE = RASTER[0] * RASTER[1];
+
 const wege = [
   { name: "Seedream 5 Lite, einzeln", modell: "seedream-5-lite", stufe: null,
-    raster: null, bild: "1440×2560", note: "heute" },
-  { name: "Seedream 5 Lite, 3×2-Raster", modell: "seedream-5-lite", stufe: null,
-    raster: [3, 2], bild: "864×1536", note: "⚠ Ablehnungen" },
-  { name: "Nano Banana 2, einzeln 1K", modell: "nano-banana-2", stufe: "1K",
-    raster: null, bild: "768×1376", note: "" },
-  { name: "Nano Banana 2, einzeln 4K", modell: "nano-banana-2", stufe: "4K",
-    raster: null, bild: `${GEMESSEN.breite}×${GEMESSEN.hoehe}`, note: "" },
+    raster: false, bild: "1440×2560", note: "heute" },
   { name: "Nano Banana 2, 2×2-Raster 4K", modell: "nano-banana-2", stufe: "4K",
-    raster: [2, 2], bild: GEMESSEN.kachel, note: "⚠ Raster 1 von 2 verfehlt" },
+    raster: true, bild: GEMESSEN.kachel, note: "⚠ Raster 1 von 2 verfehlt" },
   { name: "Nano Banana Pro, 2×2-Raster 4K", modell: "nano-banana-pro", stufe: "4K",
-    raster: [2, 2], bild: GEMESSEN.kachel, note: "" },
+    raster: true, bild: GEMESSEN.kachel, note: "" },
+  { name: "Nano Banana 2, einzeln 4K", modell: "nano-banana-2", stufe: "4K",
+    raster: false, bild: `${GEMESSEN.breite}×${GEMESSEN.hoehe}`, note: "" },
+  { name: "Nano Banana 2, einzeln 1K", modell: "nano-banana-2", stufe: "1K",
+    raster: false, bild: "768×1376", note: "" },
   { name: "Nano Banana Pro, einzeln 4K", modell: "nano-banana-pro", stufe: "4K",
-    raster: null, bild: `${GEMESSEN.breite}×${GEMESSEN.hoehe}`, note: "" },
+    raster: false, bild: `${GEMESSEN.breite}×${GEMESSEN.hoehe}`, note: "" },
 ];
 
-/* Wie viele Aufrufe ein Weg braucht. Ein Raster fasst cols×rows Szenen; was
-   nicht hineinpasst, geht einzeln — das ist keine Feinheit, sondern der
-   ganze Unterschied zwischen 2×2 (vier Plätze) und 3×2 (sechs). */
+/** Wie viele Aufrufe ein Weg für n Szenen braucht.
+ *  Beim Raster wird AUFGERUNDET: ein angefangenes Raster ist ein voller
+ *  Aufruf, egal wie viele Plätze frei bleiben. Genau das macht 4 und 8 zu
+ *  den effizienten Zahlen — und 5 und 10 zu den teuren. */
 function aufrufe(weg, n) {
-  if (!weg.raster) return n;
-  const plaetze = weg.raster[0] * weg.raster[1];
-  return 1 + Math.max(0, n - plaetze);
+  return weg.raster ? Math.ceil(n / PLAETZE) : n;
 }
 
 console.log(`\n╔══ Ein Traum mit ${SZENEN} Szenen — was jeder Weg kostet ═══════════════════\n`);
