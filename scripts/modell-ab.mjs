@@ -31,7 +31,34 @@ if (!KEY) { console.error("FAL_KEY fehlt."); process.exit(1); }
 
 /* Einkaufspreise je Bild bei 1K (fal.ai, Stand 19.08.2026 — Quelle:
    docs/plans/2026-08-19-bildmodelle-preise.md und der Kopf von server.js). */
-const PREIS = { "google/nano-banana-2-lite": 0.042, "fal-ai/nano-banana-2": 0.08 };
+const PREIS = {
+  "google/nano-banana-2-lite": 0.042,
+  "fal-ai/nano-banana-2": 0.08,
+  "fal-ai/bytedance/seedream/v5/lite": 0.035,
+  "fal-ai/bytedance/seedream/v5/pro": 0.0675,
+};
+
+/* Seedream spricht ein anderes Adressformat als Nano Banana: kein
+ * `aspect_ratio`, sondern `image_size` — und es hat eine UNTERGRENZE von
+ * 2560×1440 Gesamtpixeln (fal-Schema, geprüft 23.08.2026). Ein 9:16-Bild
+ * an genau dieser Grenze ist 1440×2560; alles Kleinere würde fal ohnehin
+ * hochskalieren. Wir setzen die Maße deshalb selbst, statt ein Preset zu
+ * raten — sonst vergleicht man am Ende zwei Auflösungen statt zwei Modelle.
+ *
+ * ⚠ Damit ist die Auflösung die EINE Ungleichheit, die dieser Vergleich
+ * nicht wegbekommt: Nano Banana Lite liefert 1K, Seedream mindestens 2K.
+ * Das gehört in jede Bewertung des Ergebnisses hinein. */
+const SEEDREAM_MASSE = {
+  "9:16": { width: 1440, height: 2560 },
+  "16:9": { width: 2560, height: 1440 },
+  "1:1":  { width: 1920, height: 1920 },
+};
+const istSeedream = (slug) => slug.includes("seedream");
+
+/* Dateiname aus dem Slug. NICHT nur das letzte Wegstück: bei
+ * `.../seedream/v5/lite` hieße das „lite" — und läge damit im selben Ordner
+ * wie eine spätere Nano-Banana-Lite-Messung. Der ganze Slug, entschärft. */
+const dateiName = (slug) => slug.replace(/^fal-ai\//, "").replace(/[^a-z0-9]+/gi, "-");
 
 const traum = JSON.parse(readFileSync(traumDatei, "utf8"));
 const beats = traum.analysis?.beats || [];
@@ -57,7 +84,11 @@ async function rendern(prompt, bilder) {
   const res = await fetch(`https://queue.fal.run/${MODELL}/edit`, {
     method: "POST",
     headers: { Authorization: `Key ${KEY}`, "content-type": "application/json" },
-    body: JSON.stringify({ prompt, image_urls: bilder, aspect_ratio: format }),
+    body: JSON.stringify(
+      istSeedream(MODELL)
+        ? { prompt, image_urls: bilder, image_size: SEEDREAM_MASSE[format] || SEEDREAM_MASSE["9:16"] }
+        : { prompt, image_urls: bilder, aspect_ratio: format },
+    ),
   });
   if (!res.ok) throw new Error(`Submit ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const { status_url, response_url } = await res.json();
@@ -90,7 +121,7 @@ for (let i = 0; i < beats.length; i++) {
   try {
     const url = await rendern(prompt, bilder);
     const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
-    const ziel = resolve(OUT, `${MODELL.split("/").pop()}-${i + 1}.png`);
+    const ziel = resolve(OUT, `${dateiName(MODELL)}-${i + 1}.png`);
     await Bun.write(ziel, bytes);
     anker = `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
     gerendert++;
@@ -107,5 +138,6 @@ if (stueck) {
   const voll = stueck * gerendert;
   console.log(`Einkauf dieses Laufs: ${gerendert} × $${stueck.toFixed(3)} = $${voll.toFixed(2)}`);
   console.log(`Zum Vergleich Lite:   ${gerendert} × $0.042 = $${lite.toFixed(2)}`);
-  console.log(`Unterschied je Bild:  $${(stueck - 0.042).toFixed(3)} (${Math.round((stueck / 0.042 - 1) * 100)} % teurer)`);
+  const delta = Math.round((stueck / 0.042 - 1) * 100);
+  console.log(`Unterschied je Bild:  $${(stueck - 0.042).toFixed(3)} (${Math.abs(delta)} % ${delta >= 0 ? "teurer" : "billiger"})`);
 }
