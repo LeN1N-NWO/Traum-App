@@ -188,3 +188,63 @@ test("stripping is safe on a prompt that never had clauses", () => {
   expect(stripReferenceClauses("")).toBe("");
   expect(stripReferenceClauses(undefined)).toBe("");
 });
+
+/* — das echte Raster (rows > 1), Antons Test vom 23.08. —
+   Der Streifen bleibt, wie er war; hier wird nur der zweite Zweig geprüft.
+   Das Wichtigste zuerst: Die Plätze müssen in LESEREIHENFOLGE stehen, weil
+   tileBoxes() genau so schneidet. Läuft das auseinander, bekommt jeder Beat
+   das Bild seines Nachbarn — derselbe Schaden, vor dem der Dateikopf warnt,
+   nur eine Ebene höher. */
+test("the grid names every tile in reading order", () => {
+  const prompt = buildGridPrompt({
+    beats: ["Eins.", "Zwei.", "Drei.", "Vier."],
+    styleId: "dark", cols: 2, rows: 2,
+  });
+  const pos = (s) => prompt.indexOf(s);
+  expect(pos("top left tile: Eins.")).toBeGreaterThan(-1);
+  expect(pos("top right tile: Zwei.")).toBeGreaterThan(pos("top left tile: Eins."));
+  expect(pos("bottom left tile: Drei.")).toBeGreaterThan(pos("top right tile: Zwei."));
+  expect(pos("bottom right tile: Vier.")).toBeGreaterThan(pos("bottom left tile: Drei."));
+});
+
+test("the grid demands vertical tiles — a sideways tile makes the cut worthless", () => {
+  const prompt = buildGridPrompt({ beats: ["a", "b", "c", "d"], styleId: "dark", cols: 2, rows: 2 });
+  expect(prompt).toContain("VERTICAL 9:16");
+  expect(prompt).toContain("2×2 grid");
+  expect(prompt).toContain("no bleed");
+});
+
+/* Fünf Beats auf sechs Plätzen: Der freie Platz muss BENANNT werden. Ohne
+   Ansage füllt das Modell ihn mit Schwarz, einem Muster oder — am
+   schlimmsten — einer sechsten erfundenen Szene, die dann jemand für einen
+   Beat hält. */
+test("a spare tile gets an explicit job, never silence", () => {
+  const prompt = buildGridPrompt({
+    beats: ["a", "b", "c", "d", "e"], styleId: "dreamlike", cols: 3, rows: 2,
+  });
+  expect(prompt).toContain("3×2 grid");
+  expect(prompt).toContain("The remaining tile");
+  expect(prompt).toContain("Never leave a tile blank");
+});
+
+test("a full grid says nothing about spare tiles", () => {
+  const prompt = buildGridPrompt({ beats: ["a", "b", "c", "d"], styleId: "dark", cols: 2, rows: 2 });
+  expect(prompt).not.toContain("remaining");
+});
+
+/* Der bewährte Dreier-Streifen darf sich durch den Umbau NICHT verändert
+   haben — er ist an echten Renders belegt und splitIntoPanels() schneidet
+   genau seine Formulierung. */
+test("the proven three-panel strip is untouched by the grid branch", () => {
+  const prompt = buildGridPrompt({ beats: ["a", "b", "c"], styleId: "dark" });
+  expect(prompt).toContain("exactly THREE equal vertical panels");
+  expect(prompt).toContain("Panel 1 (leftmost third)");
+  expect(prompt).not.toContain("grid of");
+});
+
+test("grid reference clauses ride along in the 2D branch too", () => {
+  const { clauses } = buildReferences([anton]);
+  const prompt = buildGridPrompt({ beats: ["a", "b", "c", "d"], styleId: "ultrareal", clauses, cols: 2, rows: 2 });
+  expect(prompt).toContain("Reference image 1");
+  expect(prompt).toContain("@anton");
+});
