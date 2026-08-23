@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { analyze } from "../lib/api.js";
 import { PRICES } from "../lib/pricing.js";
 import { spend } from "../lib/credits.js";
@@ -83,23 +83,71 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
    *
    * The people and places named out loud are folded into the analysis, so a
    * name that only ever came up in conversation still gets a tile in step 3. */
+  /* Die Auswertung startet, SOBALD die Stimme fertig ist — nicht erst, wenn
+     der Bildschirm umschaltet (Antons Frage 22.08.: „warum dauert das so
+     lange?").
+     Der Grund für die Wartezeit ist kein Fehler: Es ist der eine DeepSeek-
+     Aufruf, aus dem alles Weitere lebt (Text, Figuren, Orte, fünf Szenen,
+     Stil, Titel). Ein Modell, das einen ganzen Traum liest und strukturiert
+     antwortet, braucht dafür ein paar Sekunden — das lässt sich nicht
+     wegoptimieren, nur VERSTECKEN. Genau das passiert hier: Der Aufruf läuft
+     los, während die Assistentin noch ihren Abschiedssatz spricht, und das
+     Ergebnis liegt meist schon da, wenn der Bildschirm wechselt. */
+  /* Was gerade gelesen wird — samt dem Text, ZU DEM es gehört. Ohne diese
+     Kopplung wäre Vorauslesen gefährlich: Der Mensch erzählt weiter, der
+     Traum wächst, und man zeigte am Ende die Auswertung einer alten
+     Fassung. Stimmt der Text nicht mehr, wird er einfach neu gelesen —
+     ein Aufruf kostet $0,00026. */
+  const laufendeAnalyse = useRef(null);   // { text, promise }
+
+  function leseVor(text) {
+    const clean = String(text || "").trim();
+    if (!clean || laufendeAnalyse.current?.text === clean) return;
+    laufendeAnalyse.current = {
+      text: clean,
+      promise: analyze(clean).catch((err) => {
+        console.error("[DreamRushes] Vorauslesen fehlgeschlagen:", err);
+        return null;
+      }),
+    };
+  }
+
+  // Während des Gesprächs, sobald der Traumtext eine Weile stillsteht.
+  function fromInterviewDraft(text) { leseVor(text); }
+  // Beim Abschied — falls die Stimme nie stillstand oder der Text sich
+  // zuletzt noch geändert hat.
+  function fromInterviewEarly({ text }) { leseVor(text); }
+
   async function fromInterview({ text, people, places }) {
     setInterview(false);
     if (!text) return;
     patch({ text });
     setReading(true);
     try {
-      setPreview(mergeInterview(await analyze(text), people, places));
+      /* Der Treffer: Läuft schon eine Lesung zu GENAU diesem Text, wird sie
+         abgewartet statt neu gestartet — das ist der Moment, in dem die
+         13 bis 22 Sekunden auf null schrumpfen, weil sie längst während des
+         Gesprächs vergangen sind. Sonst: frisch lesen. */
+      const passend = laufendeAnalyse.current?.text === text.trim();
+      const result = await (passend ? laufendeAnalyse.current.promise : analyze(text));
+      if (!result) throw new Error(t.errors.unexpected);
+      setPreview(mergeInterview(result, people, places));
     } catch (err) {
       console.error("[DreamRushes] analyze after interview failed:", err);
       // The dream itself is safe in the field — this only costs the polish.
       toast(`⚠ ${err.message}`);
     }
+    laufendeAnalyse.current = null;
     setReading(false);
   }
 
   if (interview) {
-    return <VoiceInterview onDone={fromInterview} onCancel={() => setInterview(false)} />;
+    return <VoiceInterview
+        onDone={fromInterview}
+        onEarly={fromInterviewEarly}
+        onDraft={fromInterviewDraft}
+        onCancel={() => setInterview(false)}
+      />;
   }
 
   /* Between the last word spoken and the comparison. Without this the empty

@@ -5,6 +5,7 @@ import TagField from "../../components/TagField.jsx";
 import { useAppState } from "../../state/AppState.jsx";
 import { refine, reflect, mediaUrl, generate } from "../../lib/api.js";
 import { reflectionContext } from "../../lib/atlas.js";
+import { imageIndexForBeat } from "../../lib/beats.js";
 import { filmOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
 import { spend } from "../../lib/credits.js";
 import { PRICES } from "../../lib/pricing.js";
@@ -182,13 +183,32 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
       };
     });
 
+    /* Der Weltanker auch beim Nachzügler (22.08., Bildkette): das
+       nächstgelegene FRÜHERE Szenenbild — nachgefüllte Einzelbilder zuerst,
+       sonst die abgeleitete Sequenz-Zuordnung. So fügt sich die neue Szene
+       in die Welt der Strecke ein, statt eine eigene zu erfinden. */
+    let anchor = null;
+    for (let j = i - 1; j >= 0 && !anchor; j--) {
+      anchor = entry.sceneImages?.[j] || null;
+      if (!anchor) {
+        const idx = imageIndexForBeat(j, {
+          imageCount: entry.imageCount ?? 0,
+          poster: entry.media?.poster,
+          urlCount: (entry.media?.urls || []).length,
+        });
+        if (idx != null) anchor = entry.media.urls[idx];
+      }
+    }
+
     setBusy(true);
     try {
       const res = await generate({
         dream: entry.text, mode: "image", cast,
+        sequenceRef: anchor || undefined,
         prompt: buildImagePrompt({
           beat: beats[i], styleId: entry.style || entry.analysis?.style || "dreamlike",
           format: entry.format || "9:16", clauses, index: i + 1, total: beats.length,
+          prevFrame: !!anchor,
         }),
       });
       update({

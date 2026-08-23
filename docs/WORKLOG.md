@@ -3,6 +3,115 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-23 10:35 — Anton — Branch `session/2026-08-22-anton-4` (PR #23) — Sitzungsabschluss
+
+**Commits:** `68a43ed` (Eröffnung) · `b5bee97` + `f7a07f4` (Träume als
+Dateien, geteilt) · `2005eb5` (Lucid-Text) · `3c23b65` (synthetische
+Testträume raus) · `69144c1` (Personenerkennung) · `b0a2d23` (Bildkette) ·
+`c89c37c` (Abschiedssatz + Profilfoto) · `1b69d4c` (Traum wird gelesen,
+während noch erzählt wird) · `c59c5af` (Seedream im A/B) · `ea9b20e`
+(Seedream 5 Lite wird das Bildmodell) + dieser Doku-Commit.
+Zustand: 309 Tests grün, fünf Skriptprüfungen grün, Build sauber.
+
+⚠ Wieder ohne eigenen Worktree im Hauptrepo — Begründung steht EINMAL im
+STAND unter „Fallen". Nach dem Merge von #23: `git checkout main && git pull`.
+
+### Das Bildmodell ist jetzt Seedream 5 Lite
+
+Antons Ansage nach dem A/B: umstellen. Gemessen wurde mit EINER Variable —
+dieselbe Kette, dieselben Prompts aus `promptBuilder.js`, dasselbe
+Referenzbild (`media/z3n7fvhk3zl9.png`, Antons Bogen), nur der Modellname
+anders. Ergebnis je fünf Bilder: Nano Banana 2 voll $0,40 · Nano Banana 2
+Lite $0,21 · **Seedream 5 Lite $0,18**. Dazu 1440×2560 statt 768×1376.
+
+⚠ Der Vergleich ist an EINER Stelle nicht sauber, und das gehört in jede
+spätere Bewertung: Seedream hat eine Untergrenze von 2560×1440
+Gesamtpixeln, kann also gar nicht in 1K antreten. Es startet mit sechsmal
+so vielen Pixeln.
+
+**Warum das kein Slug-Tausch war.** Seedream spricht eine andere Sprache
+als Nano Banana: der nackte Slug ist bei fal ein 404 (Text-zu-Bild heißt
+`.../text-to-image`), und statt `aspect_ratio` will es `image_size`. Beides
+steht jetzt in EINER Tabelle, `src/lib/imageModel.js`, statt in zwei
+Konstanten im Server — der Aufrufer entscheidet nichts mehr selbst. Der
+Grund ist der Vorfall vom 07.08.: ein falscher Feldname wirft bei fal
+keinen Fehler, er liefert nur still das Falsche.
+
+⚠ **`FAL_MODEL_IMAGE` ist seit heute ein NAME aus dieser Tabelle, kein
+roher fal-Slug mehr.** Erlaubt: `seedream-5-lite` (Vorgabe),
+`nano-banana-2-lite`, `nano-banana-2`. Eine alte `.env` fiele stumm auf die
+Vorgabe zurück, deshalb warnt der Server beim Start bei unbekanntem Wert
+und nennt seither in jedem Fall das laufende Modell samt Stückpreis.
+
+Verkaufspreise bleiben unverändert, wie schon beim Wechsel auf Lite am
+20.08.: die Ersparnis verbreitert die Marge, sie verbilligt nichts.
+`plans.js` sagt jetzt im Kopf, dass seine $0,08 der Einkaufspreis von
+DAMALS sind, auf dem die Credit-Skala gebaut wurde — nicht der von heute.
+
+**Geprüft, nicht angenommen.** Zwei echte Aufträge durch die App selbst,
+nicht durchs Testskript: `/api/generate` mit Referenzfoto kam als
+1440×2560 mit getroffenem Gesicht zurück, `/api/character` lieferte einen
+sauberen Zwei-Panel-Bogen in 2560×1440. Kosten der Sitzung insgesamt: rund
+$0,80 für alle Messläufe.
+
+⚠ Mitgeprüft, weil es hätte brechen können: Der Bogen wandert als
+data-URI in den localStorage (~5 MB Quota) und ist jetzt sechsmal so groß.
+`compactDataUrl` klemmt bei 1600 px Breite — er wird auf 1600×900
+heruntergerechnet. Die Grenze hält.
+
+### Direkt bei ByteDance ist nichts zu holen
+
+Antons Frage, recherchiert: **BytePlus** (ByteDances internationale
+Plattform) verlangt für Seedream 5 Lite **$0,035 je Bild — denselben Preis
+wie fal.** fal verkauft hier zum Listenpreis weiter, es liegt gar keine
+Marge drauf. Nur die Festland-Plattform **Volcengine** ist mit ¥0,22
+(≈ $0,031) billiger — dafür bräuchte es ein chinesisches Firmenkonto und
+dieselbe China-Datenfrage, die im Rechtsplan noch offen ist, für 1,7 Cent
+je Traum. Wiederverkäufer bei $0,028–0,032 sind Zwischenhändler, kein
+ByteDance-Konto.
+
+Zum Vergleich, weil die Frage wiederkommt: Bei **Nano Banana** wäre Google
+direkt ~16 % billiger ($0,067 statt $0,080) — das war die Zahl, die diese
+Frage ausgelöst hat. Sie gilt für Nano Banana, nicht für Seedream.
+
+### Was der Kunde für fünf Bilder zahlt
+
+Fünf Bilder sind fünf Credits. Nach 19 % MwSt. und 15 % Apple bleiben je
+Traum: Woche $1,49 · **Monat $0,79** · Jahr $0,53 · Paket M $1,59.
+Gegen $0,175 Einkauf heißt das im Monatsabo Faktor 4,5 (vorher 3,8).
+⚠ Der Jahresplan bleibt der enge Fall: dort blieben bei vollem Nano Banana
+nur $0,13 je Traum. Wer je auf das teure Modell zurückgeht, muss den
+Jahrespreis mitnehmen.
+
+### Die Wartezeit nach dem Sprachgespräch ist verschoben
+
+Antons Befund („was passiert in diesem Schritt?"). Die Auswertung startet
+nicht mehr beim Abschied, sondern MITTEN im Gespräch: steht der Traumtext
+2,5 Sekunden still, läuft sie los. Wer auflegt, findet sie oft fertig vor.
+
+⚠ Der Kern ist die Kopplung, nicht das Vorziehen: Gemerkt wird
+`{ text, promise }` — nicht nur die laufende Lesung, sondern der Text, zu
+dem sie gehört. Erzählt jemand weiter, wird das Ergebnis verworfen und neu
+gelesen. Ein Fehlgriff kostet $0,00026, eine Auswertung der falschen
+Fassung kostet Vertrauen.
+
+### Was der Nächste wissen muss
+
+- **Antons Bogen ist noch der alte.** Der Fingerabdruck (`sheets.js`)
+  besteht aus Foto + Beschreibung, das MODELL steht nicht drin. Der
+  Modellwechsel macht vorhandene Bögen also NICHT ungültig. Wer einen
+  Seedream-Bogen will: Foto neu hochladen. Die Alternative — Modell in den
+  Fingerabdruck aufnehmen — ist bewusst NICHT gebaut; sie kostet bei jedem
+  Wechsel einen Gratis-Bogen je Figur. Antons Wort steht aus.
+- **Die synthetischen Testträume kommen zurück.** `e_leer`, `e_test1`,
+  `e_test2` lagen wieder unversioniert in `data/traeume/`, obwohl `3c23b65`
+  sie entfernt hat. Sie stehen in Antons localStorage und schreiben sich
+  bei jedem App-Start zurück. Nicht committet. Wirklich weg sind sie erst,
+  wenn er sie in der App löscht.
+- **`scripts/modell-ab.mjs` nimmt jetzt jedes der drei Modelle** als
+  drittes Argument und rechnet den Preis selbst aus. Ein Lauf über fünf
+  Szenen kostet $0,18–0,40, je nach Modell. Das Skript rendert echt.
+
 ## 2026-08-22 17:50 — Anton — Branch `session/2026-08-22-anton-3` (PR #22) — Sitzungsabschluss
 
 **Commits:** `f6eb321` (Eröffnung) · `baf0279` (Schlummernacht +

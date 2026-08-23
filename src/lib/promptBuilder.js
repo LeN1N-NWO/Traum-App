@@ -112,16 +112,34 @@ export function buildGridPrompt({ beats, styleId, clauses = [] }) {
   );
 }
 
-export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 1, total = 1 }) {
+export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 1, total = 1, prevFrame = false }) {
   const style = styleById(styleId);
   const framing = format === "16:9" ? "16:9 widescreen framing" : "9:16 vertical framing";
   const place = total > 1 ? ` This is image ${index} of ${total} in one continuous dream sequence; keep characters, wardrobe and palette consistent across all of them.` : "";
+  /* Der Weltanker der Bildkette (Antons Ansage 22.08.). Die Struktur folgt
+     dem, was Nano Banana versteht: Referenzen werden ÜBER IHRE POSITION
+     angesprochen. Der Server hängt den vorigen Frame als LETZTES Bild an
+     (falSubmitImage) — dieser Satz hier benennt genau diese Position. Wer
+     die Reihenfolge dort ändert, macht diesen Satz zur Lüge.
+     Zwei Aufgaben, sauber getrennt: Der Frame gibt Welt, Licht und Farbe
+     vor — die FIGUREN bleiben an ihre eigenen Fotos gebunden (clauses).
+     Ein Anker ersetzt keine Besetzung. Und er gibt nur die Welt vor, nie
+     den Bildaufbau: sonst klebt jede Szene in der Komposition der ersten. */
+  const anchor = prevFrame
+    ? "\nThe LAST reference image is the previous frame of this exact dream sequence. " +
+      "Use it ONLY for continuity of world and look: colour grade, light quality, time of day, " +
+      "weather, environment and wardrobe. Do not copy its composition, and never cut out, paste " +
+      "or re-use any figure from it. Every character is re-photographed from scratch for THIS " +
+      "scene — new pose, new angle, lit by THIS scene's own light — while still matching their " +
+      "own reference photo for face and build. The result must read as the next shot of the same " +
+      "film, never as a montage."
+    : "";
   const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
 
   return (
     `A cinematic, photoreal film still: ${beat}` +
     `\n${style.prompt}` +
-    `\n${framing}, ultra-detailed, accurate hands and faces.${place}${refs}`
+    `\n${framing}, ultra-detailed, accurate hands and faces.${place}${refs}${anchor}`
   );
 }
 

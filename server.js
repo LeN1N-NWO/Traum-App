@@ -34,6 +34,9 @@ import { statSync, readFileSync } from "node:fs";
 // Wo die Bilder liegen dürfen — eigene Datei, weil daran schon einmal echte
 // Träume verloren gegangen sind (src/lib/mediaRoot.test.js).
 import { mediaRootFrom } from "./src/lib/mediaRoot.js";
+// Doppelte Figuren aussortieren — eigene Datei, damit sie ohne laufenden
+// Server prüfbar ist (src/lib/people.test.js).
+import { dedupePeople } from "./src/lib/people.js";
 // Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
 import { guard } from "./src/lib/gatekeeper.js";
@@ -47,6 +50,11 @@ import { beatsForSeconds } from "./src/lib/beats.js";
 // Die Filmbestellung je Modell — Slug, Klemme, Auflösung, Tonparameter —
 // kommt aus EINER Tabelle, die auch Preis und UI speist (video.test.js).
 import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
+/* Bildmodell: Endpunkte, Adressformat und Referenzbudget stehen seit dem
+ * 23.08. in EINER Tabelle (src/lib/imageModel.js) — Seedream und Nano Banana
+ * sprechen nicht dieselbe Sprache, und ein falscher Feldname wirft keinen
+ * Fehler, er liefert nur das Falsche. */
+import { imageSubmitBody, imageModel, IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from "./src/lib/imageModel.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
   DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
@@ -71,6 +79,12 @@ const MEDIA_DIR = mediaRootFrom(
   process.env.DREAMRUSHES_MEDIA,
 );
 
+/* Wohin die gesicherten Träume gehen. Neben dem Medienordner und aus
+   demselben Grund über mediaRootFrom(): Aus einem Worktree heraus gehören
+   sie ins Hauptrepo, sonst nimmt `git worktree remove` sie mit — genau so
+   sind am 21.08. die Bilder verschwunden. */
+const BACKUP_DIR = resolve(MEDIA_DIR, "..", "data", "traeume");
+
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
 // und der Servercode selbst ausserhalb dessen, was ueberhaupt aufloesbar ist —
@@ -85,21 +99,23 @@ const MAX_DREAM = 2000;
 const MAX_FRAGMENT = 120; // per pet/place description, mirrors the client-side cap
 const MAX_CRAFTED_PROMPT = 3000; // ceiling on what DeepSeek is allowed to hand to fal.ai
 
-// fal.ai model slugs. Override via env without editing code.
-//
-// Seit 20.08.2026 ist Lite die Vorgabe (Antons Entscheidung nach den Tests
-// vom 19./20.08., Plan 2026-08-19-bildmodelle-preise.md §6–§8): ~$0,042
-// statt $0,08 je Bild bei fester 1K-Ausgabe, Identität und Mehrfach-
-// Referenzen bezahlt bewiesen (Drift-Dreierstrecke, Multi-Ref-A/B, Lena-
-// Bogen-Strecke). Verkaufspreise bleiben unverändert — die Ersparnis
-// finanziert die Gratis-Charakterbögen, der Rest ist Sicherheitsmarge.
-// Rückweg bei Befund: FAL_MODEL_IMAGE=fal-ai/nano-banana-2 in .env.
-const FAL_MODEL_IMAGE = process.env.FAL_MODEL_IMAGE || "google/nano-banana-2-lite";
-// Reference photos need the EDIT variant of the model. Diagnosed 07.08.: the
-// text-to-image endpoint silently ignores image_urls (it even accepts
-// image_urls: 123 with a 200), so likenesses never reached the model. The
-// /edit endpoint takes image_urls and demonstrably reproduces them.
-const FAL_MODEL_IMAGE_EDIT = process.env.FAL_MODEL_IMAGE_EDIT || `${FAL_MODEL_IMAGE}/edit`;
+/* Welches Bildmodell. Der Name zeigt in die Tabelle in imageModel.js —
+ * NICHT mehr ein roher fal-Slug, denn davon gibt es je Modell zwei
+ * (Text-zu-Bild und Edit), und bei Seedream ist der nackte Slug ein 404.
+ *
+ * Seit 23.08.2026 ist Seedream 5 Lite die Vorgabe (Antons Entscheidung nach
+ * dem A/B mit derselben Kette, denselben Prompts und demselben Referenzbild,
+ * media/ab-test/): $0,035 statt $0,042 je Bild — 17 % billiger — bei
+ * 1440×2560 statt 768×1376, also der sechsfachen Pixelzahl. Die Bildkette
+ * hielt, der Photoshop-Effekt blieb weg. Davor galt seit 20.08. Nano Banana
+ * Lite, davor das volle Nano Banana zu $0,08.
+ *
+ * Verkaufspreise bleiben unverändert — das war schon beim letzten Wechsel so
+ * entschieden: die Ersparnis verbreitert die Marge, sie verbilligt nichts.
+ *
+ * Rückweg bei Befund, ohne Codeänderung:
+ *   FAL_MODEL_IMAGE=nano-banana-2-lite   (oder nano-banana-2) in .env */
+const FAL_MODEL_IMAGE = process.env.FAL_MODEL_IMAGE || DEFAULT_IMAGE_MODEL;
 /* Videomodelle stehen NICHT mehr hier: Slug, Dauergrenzen, Auflösung und
  * Tonparameter je Modell leben in src/lib/video.js (videoSubmitBody) —
  * dieselbe Tabelle, aus der auch der Preis und die UI kommen. Eine zweite
@@ -447,7 +463,16 @@ function voiceSystem({ name = "", cast = [], lang = "", mode = "" } = {}) {
 
     "TOOLS\n" +
     "Call addPerson and addPlace the moment someone or somewhere is named — do not wait for the end. " +
-    "Call finish when they are done, and call setDreamText one last time before you do."
+    /* Der Abschiedssatz (Antons Wunsch 22.08.): Vorher hörte die Stimme
+       einfach auf und die App sprang weiter — ein Gespräch, das mitten im
+       Satz endet, fühlt sich nach Absturz an, nicht nach Abschluss. EIN
+       kurzer Satz, kein Ritual: gesagt wird er VOR finish, sonst ist die
+       Sitzung schon zu, bevor er ausgesprochen ist. */
+    "Call finish when they are done, and call setDreamText one last time before you do. " +
+    "BEFORE calling finish, say one short warm closing line in their language — that you have " +
+    "everything and the dream is now being taken care of (in the spirit of: 'Alles drin. Ich " +
+    "kümmere mich jetzt um deinen Traum — bis gleich.'). One sentence, then finish. Never end " +
+    "the conversation silently."
   );
 }
 
@@ -939,7 +964,13 @@ Why the language split matters: "text", "people[].name", "places" and "mood" are
 
 Rules for "text": FIRST understand what actually happened in the dream, then retell it. The input is often dictated speech — fragmented, repetitive, thoughts spoken over each other, false starts. Do not just patch spelling: rewrite it as one flowing, well-told account in the dreamer's language. Merge repetitions, complete fragments, untangle sentences that ran into each other, and make the wording vivid and easy to picture. You may restructure sentences freely as long as the DREAM itself stays untouched: never invent events, people or places that are not there, never drop any, never change the emotional tone, never add interpretation. Keep it first person if it was first person.
 
-Rules for "people": include the dreamer only if they appear as a visible character (then name them as the dream does — "ich"/"I" is fine). A dog, cat or other animal is kind "pet". Empty array if nobody appears.
+Rules for "people": ONE ENTRY PER DISTINCT PERSON. The same person mentioned again later is the SAME entry — "ein Arzt" at the start and "der Arzt" three sentences on are one doctor, not two. Only list a second entry when the dream itself marks someone as different ("ein ANDERER Arzt", "eine zweite Frau"). Two entries that describe the same role in the same scene are always a mistake.
+
+Name each person the way a casting list would: the bare noun or name, no articles and no possessives — "Arzt", not "ein Arzt" or "der Arzt"; "Anton", not "mein Freund Anton" (put "Freund" in "desc" instead). If a dream truly has two of the same role, distinguish them by something visible ("Arzt mit Brille", "junger Arzt"), never by "anderer".
+
+If the dream is told in the FIRST PERSON, the dreamer is a character and belongs in this list as the FIRST entry, named exactly as the dream names them ("ich" / "I"). This holds even when the dreamer never describes their own appearance — the app binds that entry to the person's own photo, and without it they cannot cast themselves.
+
+A dog, cat or other animal is kind "pet". Empty array only if truly nobody appears.
 
 Rules for "places": one entry per distinct SETTING — a location a film crew would have to build separately. Different parts, angles or heights of the SAME setting are ONE entry: a mountain's summit and the sky above that mountain are one place, a house and the rooms inside it are one place. The sky, air or water directly around a setting is never its own entry. List a second place only when the dream truly moves somewhere else (a bedroom, then later the open sea). Never let two entries share the same core location. Empty array if there is no discernible location.
 
@@ -1016,6 +1047,7 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
       };
     })
     .filter((p) => p && p.name)
+    .filter(dedupePeople())
     .slice(0, MAX_ANALYSIS_ITEMS);
 
   // Beats drive the image count, so their number is pinned, not trusted.
@@ -1070,17 +1102,14 @@ async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16" }
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
-  const input = {
+  /* Endpunkt UND Rumpf kommen aus der Tabelle: welches Feld das Format
+     trägt (`aspect_ratio` oder `image_size`) und ob es der Edit-Endpunkt
+     sein muss, ist Modellwissen, kein Aufruferwissen. */
+  const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, {
     prompt,
-    aspect_ratio: aspectRatio, // unverified param name/value for this model, see FAL_MODEL_IMAGE note above
-  };
-  const imageUrls = namedRefs.map((r) => r.img).filter(Boolean);
-  if (imageUrls.length) input.image_urls = imageUrls;
-
-  // With references the request MUST go to the edit endpoint — the plain
-  // text-to-image endpoint ignores image_urls without erroring, which is how
-  // likenesses silently went missing for days. See FAL_MODEL_IMAGE_EDIT note.
-  const model = imageUrls.length ? FAL_MODEL_IMAGE_EDIT : FAL_MODEL_IMAGE;
+    aspectRatio,
+    imageUrls: namedRefs.map((r) => r.img),
+  });
 
   const res = await fetch(`https://fal.run/${model}`, {
     method: "POST",
@@ -1178,16 +1207,20 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds })
  * jobStatus und /api/job kennen keinen Unterschied zwischen Bild und
  * Film — nur die Antwort von fal sieht anders aus (images[] statt
  * video), und genau diese eine Stelle steht in jobStatus. */
-async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16" }) {
+async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", sequenceRef = null }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
-  const input = { prompt, aspect_ratio: aspectRatio };
+  /* Der Weltanker der Bildkette: der vorige Frame, als LETZTES Bild.
+     ⚠ Die Position ist Vertrag, nicht Zufall — buildImagePrompt sagt dem
+     Modell „the LAST reference image is the previous frame". Die Besetzung
+     bleibt davor in ihrer gewohnten Reihenfolge, damit ihre Bindungs-
+     Klauseln („shown in his reference photo") weiter dieselben Bilder
+     treffen wie in einer Strecke ohne Kette. */
   const imageUrls = namedRefs.map((r) => r.img).filter(Boolean);
-  if (imageUrls.length) input.image_urls = imageUrls;
-  // Gleiche Regel wie im Sofort-Pfad: mit Referenzen MUSS es das
-  // Edit-Modell sein, sonst verschwinden die Ähnlichkeiten lautlos.
-  const model = imageUrls.length ? FAL_MODEL_IMAGE_EDIT : FAL_MODEL_IMAGE;
+  if (sequenceRef) imageUrls.push(sequenceRef);
+  // Endpunkt und Adressformat entscheidet die Tabelle, nicht diese Funktion.
+  const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, { prompt, aspectRatio, imageUrls });
 
   const res = await fetch(`https://queue.fal.run/${model}`, {
     method: "POST",
@@ -2035,7 +2068,23 @@ Bun.serve({
             imagePrompt = buildFallbackPrompt(dream, cast);
           }
         }
-        const imageJob = await falSubmitImage({ prompt: imagePrompt, namedRefs: cast, aspectRatio });
+        /* Der Anker der Bildkette: ein /media/-Pfad, NIE eine URL — dieselbe
+           Regel und dieselbe Begründung wie beim Film-Keyframe: resolveMedia
+           matcht nur Namen, die dieser Server selbst geschrieben hat, und
+           fal bekommt die Bytes als data-URI, weil es den lokalen Pfad nie
+           erreichen könnte. Fehlt die Datei, rendert die Szene OHNE Anker
+           weiter — ein fehlender Anker ist ein Schönheitsfehler, eine
+           geplatzte Szene wäre ein Loch in der Strecke. */
+        let seqRef = null;
+        if (typeof body.sequenceRef === "string" && body.sequenceRef) {
+          const hit = resolveMedia(body.sequenceRef);
+          const file = hit && Bun.file(resolve(MEDIA_DIR, hit.name));
+          if (hit && (await file.exists())) {
+            const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
+            seqRef = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
+          }
+        }
+        const imageJob = await falSubmitImage({ prompt: imagePrompt, namedRefs: cast, aspectRatio, sequenceRef: seqRef });
         return json({ ok: true, jobId: imageJob });
       } catch (e) {
         const map = {
@@ -2070,6 +2119,68 @@ Bun.serve({
     // content-type maps to a real image extension, so nothing about the
     // request — not its size, not its declared type — reaches the filesystem
     // unchecked.
+    /* Träume als Dateien sichern (Antons Ansage 22.08.2026: „Meine
+       Testträume bitte hier abspeichern … und drinnen bleiben, bis ich
+       ausdrücklich sage, dass man die Memory löschen soll.").
+       Regeln in src/lib/journalBackup.js — hier gilt vor allem eine:
+       ⚠ ES WIRD NUR GESCHRIEBEN, NIE GELÖSCHT. Verschwindet ein Traum aus
+       der App, bleibt seine Datei stehen. Aufgeräumt wird von Hand, auf
+       Antons Wort. */
+    /* Die Rückrichtung: die geteilten Träume herausgeben (Antons Ansage
+       22.08.: „alle, die jetzt an der App entwickeln, sollen diese Träume
+       sehen"). Ohne sie wäre die Sicherung eine Einbahnstraße — geschrieben,
+       eingecheckt, und ein frischer Checkout sähe trotzdem nichts.
+
+       ⚠ Der Ladepfad im Client hängt an import.meta.env.DEV. Dieser Endpunkt
+       liefert also auch im Betrieb, aber niemand fragt ihn dann. Wer die App
+       veröffentlicht, nimmt beides heraus — Ordner und Ladepfad. */
+    if (url.pathname === "/api/journal-backup" && req.method === "GET") {
+      try {
+        const glob = new Bun.Glob("*.json");
+        const traeume = [];
+        for await (const datei of glob.scan({ cwd: BACKUP_DIR, onlyFiles: true })) {
+          const inhalt = await Bun.file(resolve(BACKUP_DIR, datei)).json().catch(() => null);
+          if (inhalt?.id) traeume.push(inhalt);
+        }
+        traeume.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        return json({ traeume });
+      } catch (e) {
+        // Kein Ordner, keine Träume — das ist kein Fehler, das ist der
+        // Normalfall bei einem frischen Klon ohne Testdaten.
+        return json({ traeume: [] });
+      }
+    }
+
+    if (url.pathname === "/api/journal-backup" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json().catch(() => null);
+        const eintraege = Array.isArray(body?.entries) ? body.entries : null;
+        if (!eintraege) return json({ error: "Nothing to store." }, 400);
+
+        let geschrieben = 0, unveraendert = 0;
+        for (const { datei, traum } of eintraege) {
+          /* Der Dateiname kommt vom Client — also wird er hier neu geprüft
+             und nicht geglaubt. Ein „../" darin schriebe sonst irgendwohin. */
+          if (typeof datei !== "string" || !/^[0-9a-zA-Z_.-]+\.json$/.test(datei) || datei.includes("..")) continue;
+          if (!traum || typeof traum !== "object") continue;
+          const ziel = resolve(BACKUP_DIR, datei);
+          if (!ziel.startsWith(BACKUP_DIR + sep)) continue;
+          const inhalt = JSON.stringify(traum, null, 2) + "\n";
+          const alt = Bun.file(ziel);
+          if (await alt.exists() && (await alt.text()) === inhalt) { unveraendert++; continue; }
+          await Bun.write(ziel, inhalt);
+          geschrieben++;
+        }
+        return json({ ok: true, geschrieben, unveraendert, ordner: "data/traeume" });
+      } catch (e) {
+        console.error("[DreamRushes] /api/journal-backup failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
     if (url.pathname === "/api/panel" && req.method === "POST") {
       try {
         if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
@@ -2102,3 +2213,21 @@ console.log(`Dream Rushes running → http://localhost:${PORT}`);
 console.log(process.env.FAL_KEY ? "fal.ai key: loaded ✓ (images + video)" : "fal.ai key: MISSING (generation disabled)");
 console.log(process.env.DEEPSEEK_KEY ? "DeepSeek key: loaded ✓ (LLM-crafted prompts)" : "DeepSeek key: MISSING (using local prompt template)");
 console.log(process.env.GEMINI_KEY ? "Gemini key: loaded ✓ (voice interview)" : "Gemini key: MISSING (voice interview disabled)");
+/* Welches Bildmodell gerade wirklich läuft, und was es je Bild kostet.
+ * Ein Slug in .env ist unsichtbar, bis die Rechnung kommt — diese Zeile
+ * macht einen versehentlichen Rückweg auf das doppelt so teure Modell
+ * beim Start sichtbar statt am Monatsende. */
+{
+  const m = imageModel(FAL_MODEL_IMAGE);
+  /* ⚠ Seit 23.08. ist FAL_MODEL_IMAGE ein NAME aus der Tabelle, kein roher
+     fal-Slug mehr. Eine alte .env mit "fal-ai/nano-banana-2" darin fiele
+     sonst stumm auf die Vorgabe zurück — und man bekäme monatelang ein
+     anderes Modell, als man bestellt hat. Also laut sagen. */
+  if (process.env.FAL_MODEL_IMAGE && m.id !== process.env.FAL_MODEL_IMAGE) {
+    console.warn(
+      `[DreamRushes] FAL_MODEL_IMAGE="${process.env.FAL_MODEL_IMAGE}" kennt niemand — ` +
+      `erlaubt sind: ${Object.keys(IMAGE_MODELS).join(", ")}. Es läuft die Vorgabe.`,
+    );
+  }
+  console.log(`Bildmodell: ${m.label} → $${m.usd.toFixed(3)} je Bild`);
+}

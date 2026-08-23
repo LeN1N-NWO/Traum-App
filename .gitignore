@@ -39,3 +39,27 @@ public/clips/*.mp4
 # Verzeichnis wie Link. Wer diese Zeile wieder auf `media/` kürzt, stellt
 # dieselbe Falle erneut.
 /media
+
+# Die gesicherten Träume (data/traeume/, geschrieben von server.js, Regeln
+# in src/lib/journalBackup.js) liegen ABSICHTLICH im Repository und sind
+# deshalb hier NICHT ignoriert.
+#
+# Antons Entscheidung vom 22.08.2026, gefällt nachdem der Einwand auf dem
+# Tisch lag (dieses Repository ist öffentlich, und Git vergisst nichts):
+# „Ich möchte, dass alle, die jetzt an der App entwickeln, diese Träume
+# sehen. Später, wenn wir die App entwickeln, nehmen wir diese Regel raus."
+#
+# Es sind also TESTDATEN für die Entwicklung, keine Nutzerdaten im Betrieb.
+# Zwei Grenzen gelten trotzdem und stehen nicht zur Disposition:
+#   1. KEINE FOTOS — journalBackup.js lässt sie nie in die Sicherung.
+#   2. Geladen werden sie NUR im Entwicklungsmodus (import.meta.env.DEV);
+#      ein ausgelieferter Build zeigt sie niemandem.
+#
+# ⚠ Wer die App veröffentlicht, entfernt den Ordner UND den Ladepfad in
+# AppState.jsx. Bis dahin gehört beides dazu.
+
+# Der A/B-Vergleich zweier Bildmodelle (scripts/modell-ab.mjs). Rohmaterial
+# einer Messung, kein App-Bestandteil — und mit 1,5 MB je Bild nichts fürs
+# Repository. Die Zahlen daraus stehen im Worklog, die Bilder auf dem
+# Rechner, der sie bezahlt hat.
+/media/ab-test

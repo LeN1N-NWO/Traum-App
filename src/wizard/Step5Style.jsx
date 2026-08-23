@@ -366,29 +366,50 @@ export default function Step5Style({ w, patch }) {
          sonst bezahltes Treibgut. Bezahlt wird deshalb NACH der
          Schleife und nur, was wirklich abgegeben wurde (1 Credit = 1
          Bild, pricing.js). */
+      /* Die Strecke ist seit dem 22.08. eine KETTE (Antons Ansage: das
+         fertige Bild wird zur Referenz des nächsten — sonst „sieht alles
+         nicht wie ein Film aus, sondern wie verschiedene Sachen"). Hier
+         geht deshalb nur SZENE 1 raus; sobald ihr Bild da ist, reicht der
+         Ketten-Läufer in AppState die nächste nach, mit dem Bild als
+         Weltanker. Abgerechnet wird weiter je Einreichung.
+
+         Die Szenentexte wandern MIT in die Kette: Wer 3 von 5 Szenen
+         bestellt, rendert eine Auswahl — die Analyse-Liste wäre für
+         Szene 2 und 3 die falsche Quelle.
+
+         Alt-Server, der sofort mit urls antwortet: dann läuft die Kette
+         gleich hier in der Schleife weiter, mit der frischen URL als
+         Anker — dieselbe Logik, nur ohne Warten. */
       const submitted = [];
-      const readyUrls = [];   // ältere Serverstände antworten noch direkt mit urls
+      const readyUrls = [];
       let submitError = null;
+      let lastSyncUrl = null;
       for (let i = 0; i < jobs.length; i++) {
         const beat = jobs[i];
         const prompt = buildImagePrompt({
           beat, styleId: w.styleId, format: w.format,
-          clauses, index: i + 1, total: beats.length,
+          clauses, index: i + 1, total: jobs.length, prevFrame: !!lastSyncUrl,
         });
         try {
-          const res = await generate({ dream: w.text, mode: "image", cast: castForApi, prompt });
-          /* Abrechnen und anhängen im selben Atemzug, Auftrag für Auftrag —
-             nicht gesammelt am Ende. Wer mittendrin wegklickt oder neu lädt,
-             hat dann genau das bezahlt, was auch wirklich läuft, und der
-             Traum trägt die Auftragsnummern schon. */
+          const res = await generate({
+            dream: w.text, mode: "image", cast: castForApi, prompt,
+            sequenceRef: lastSyncUrl || undefined,
+          });
           if (res.jobId) {
             submitted.push({ id: res.jobId });
             update((prev) => ({
               ...(spend(prev, 1) || {}),
-              journal: (prev.journal || []).map((e) => (e.id === entryId
-                ? { ...e, imageJobs: [...(e.imageJobs || []), { id: res.jobId }] } : e)),
+              journal: (prev.journal || []).map((e) => (e.id === entryId ? {
+                ...e,
+                imageJobs: [...(e.imageJobs || []), { id: res.jobId }],
+                ...(jobs.length > 1 ? { chain: { next: i + 1, total: jobs.length, beats: jobs } } : {}),
+              } : e)),
             }));
+            // Warteschlangen-Welt: ab hier übernimmt der Ketten-Läufer.
+            setDone((n) => n + 1);
+            break;
           } else if (res.urls?.length) {
+            lastSyncUrl = res.urls[0];
             readyUrls.push(...res.urls);
             update((prev) => ({
               ...(spend(prev, res.urls.length) || {}),

@@ -18,7 +18,7 @@ import "./voice.css";
  * fails but as an equal way in — some things are easier to write than to say
  * out loud, and a dream is often one of them.
  */
-export default function VoiceInterview({ onDone, onCancel }) {
+export default function VoiceInterview({ onDone, onEarly, onDraft, onCancel }) {
   const { state: app, update } = useAppState();
   /* The chosen voice, or null while the picker is up — the session must not
    * open (and the microphone must not turn on) until one is settled.
@@ -78,7 +78,7 @@ export default function VoiceInterview({ onDone, onCancel }) {
         }),
       onTool: ({ name, args }) => {
         const c = collected.current;
-        if (name === "setDreamText" && args.text) c.text = args.text;
+        if (name === "setDreamText" && args.text) { c.text = args.text; draftSettled(); }
         if (name === "addPerson" && args.name) {
           if (!c.people.some((p) => p.name === args.name)) {
             c.people.push({ name: args.name, kind: args.kind === "pet" ? "pet" : "person", desc: args.desc || "" });
@@ -119,13 +119,70 @@ export default function VoiceInterview({ onDone, onCancel }) {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [lines]);
 
-  function finish() {
-    session.current?.stop();
+  /* Vorauslesen, während noch geredet wird (Antons Wunsch 22.08.: „schon
+   * eher laufen lassen").
+   *
+   * Die Stimme ruft setDreamText, sobald der Traum Form annimmt — meist
+   * lange vor dem Abschied. Steht dieser Text ein paar Sekunden still, ist
+   * er mit hoher Wahrscheinlichkeit der endgültige, und die Auswertung kann
+   * JETZT loslaufen statt nach dem letzten Wort. Damit ist sie oft schon
+   * fertig, wenn der Bildschirm umschaltet.
+   *
+   * Der Preis für einen Fehlgriff ist bekannt und winzig: Ändert sich der
+   * Text danach doch noch, wirft der Aufrufer das Ergebnis weg und liest neu
+   * — ein DeepSeek-Aufruf kostet $0,00026. Der Deckel unten verhindert
+   * trotzdem, dass ein Mensch, der in kurzen Sätzen erzählt, ein Dutzend
+   * Läufe auslöst. */
+  const draftTimer = useRef(null);
+  const drafts = useRef(0);
+  const MAX_DRAFTS = 3;
+  const DRAFT_STILL_MS = 2500;
+
+  function draftSettled() {
+    if (!onDraft || drafts.current >= MAX_DRAFTS) return;
+    clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(() => {
+      const text = (collected.current.text || "").trim();
+      // Unter 80 Zeichen ist es noch kein Traum, sondern ein Satzanfang.
+      if (text.length < 80) return;
+      drafts.current += 1;
+      onDraft(text);
+    }, DRAFT_STILL_MS);
+  }
+
+  useEffect(() => () => clearTimeout(draftTimer.current), []);
+
+  /* Der Abschied (Antons Befund 22.08.: „sie konnte nicht mal aussprechen,
+   * schon waren wir weiter").
+   *
+   * Drei Dinge in dieser Reihenfolge, und die Reihenfolge ist der Punkt:
+   *   1. Mikrofon aus — wer „fertig" gesagt hat, will nicht weiter belauscht
+   *      werden. Die Verbindung bleibt offen, sonst kämen die letzten
+   *      Tonstücke des Abschiedssatzes nie an.
+   *   2. Der Traum geht SOFORT an den Aufrufer (onEarly) — die Analyse läuft
+   *      damit los, WÄHREND die Stimme noch spricht. Genau die Sekunden, die
+   *      man vorher als Ladebalken absaß, sind jetzt der Abschied.
+   *   3. Erst wenn der letzte Ton verklungen ist, wird umgeschaltet.
+   *
+   * `closing` ist der Riegel dagegen, dass das zweimal läuft: Die Stimme
+   * ruft `finish` als Werkzeug auf, und der Mensch kann gleichzeitig auf
+   * „Fertig" tippen. */
+  const closing = useRef(false);
+  async function finish() {
+    if (closing.current) return;
+    closing.current = true;
+
+    session.current?.stopListening();
     const c = collected.current;
     // Whatever was actually said beats whatever the model summarised — if it
     // never called setDreamText, the transcript is still a dream.
-    const text = c.text || lines.filter((l) => l.who === "you").map((l) => l.text).join(" ");
-    onDone({ text: text.trim(), people: c.people, places: c.places });
+    const text = (c.text || lines.filter((l) => l.who === "you").map((l) => l.text).join(" ")).trim();
+    const payload = { text, people: c.people, places: c.places };
+
+    onEarly?.(payload);
+    await session.current?.drain();
+    session.current?.stop();
+    onDone(payload);
   }
 
   function send() {

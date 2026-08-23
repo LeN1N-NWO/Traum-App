@@ -4,7 +4,10 @@ import { buildSeedJournal } from "../lib/seedJournal.js";
 import { collectTick, pendingFingerprint } from "../lib/collector.js";
 import { giftFor } from "../lib/streakBoard.js";
 import { snoozeCheck } from "../lib/streak.js";
-import { jobStatus } from "../lib/api.js";
+import { jobStatus, backupJournal, sharedDreams, generate } from "../lib/api.js";
+import { spend } from "../lib/credits.js";
+import { chainStep, chainFingerprint, buildChainSubmission } from "../lib/imageChain.js";
+import { backupPayload, backupFingerprint, mergeShared } from "../lib/journalBackup.js";
 import { t } from "../i18n/index.js";
 
 /* The whole app state in one place. Every change goes through update() and is
@@ -129,6 +132,69 @@ export function AppStateProvider({ children }) {
     // fertig werden — nicht bei jedem Tastendruck irgendwo im State.
   }, [fingerprint, update, toast]);
 
+  /* Der Ketten-Läufer (Antons Ansage 22.08.: das fertige Bild wird zur
+     Referenz des nächsten). Die andere Hälfte des Abholers: Der Collector
+     holt Bilder AB, der Läufer reicht die nächste Szene EIN, sobald ihr
+     Vorgänger entschieden ist — mit dem jüngsten gelungenen Bild als
+     Weltanker (imageChain.js).
+
+     HIER und nicht im Wizard, aus demselben Grund wie alles andere in
+     dieser Datei: Die Kette muss weiterlaufen, egal wo man gerade ist —
+     und sie überlebt so auch einen Neustart, weil sie am Journal-Eintrag
+     hängt und nicht an einem offenen Bildschirm.
+
+     Scheitert die EINREICHUNG (nicht das Rendern — das erstattet der
+     Collector), bricht die Kette ehrlich ab: Marke weg, Meldung, die
+     fertigen Szenen bleiben, der Rest ist über „Bild erzeugen" im
+     Storyboard einzeln nachholbar. Endlos stumm neu versuchen hieße, im
+     Funkloch unbemerkt Kosten anzuhäufen, sobald es wiederkommt. */
+  const chainPrint = chainFingerprint(state.journal);
+  useEffect(() => {
+    if (!chainPrint) return;
+    let alive = true;
+    (async () => {
+      const s = stateRef.current;
+      const entry = (s.journal || []).find((e) => chainStep(e));
+      if (!entry) return;
+      const sub = buildChainSubmission(entry, { cast: s.cast, me: s.me });
+      if (!sub) {
+        // Kette ohne Szenentext — kann nur ein alter/kaputter Eintrag sein.
+        update((prev) => ({
+          journal: (prev.journal || []).map((e) => (e.id === entry.id ? { ...e, chain: undefined } : e)),
+        }));
+        return;
+      }
+      try {
+        const res = await generate({
+          dream: entry.text, mode: "image", cast: sub.cast, prompt: sub.prompt,
+          sequenceRef: sub.sequenceRef || undefined,
+        });
+        if (!alive) return;
+        update((prev) => ({
+          ...(spend(prev, 1) || {}),
+          journal: (prev.journal || []).map((e) => (e.id === entry.id ? {
+            ...e,
+            imageJobs: [
+              ...(e.imageJobs || []),
+              // Alt-Server antwortet sofort: als bereits entschiedener
+              // Auftrag einreihen, dann bleibt die Mechanik eine.
+              res.jobId ? { id: res.jobId } : { id: `sync${sub.beatIndex}`, url: res.urls?.[0] },
+            ],
+            chain: { ...e.chain, next: e.chain.next + 1 },
+          } : e)),
+        }));
+      } catch (err) {
+        if (!alive) return;
+        console.error("[DreamRushes] chain submit failed:", err);
+        update((prev) => ({
+          journal: (prev.journal || []).map((e) => (e.id === entry.id ? { ...e, chain: undefined } : e)),
+        }));
+        toast(`⚠ ${t.errors.renderFailed}`);
+      }
+    })();
+    return () => { alive = false; };
+  }, [chainPrint, update, toast]);
+
   /* Die Mini-Geschenke der Serie (Antons Ja 22.08., Plan §5) — HIER, aus
      demselben Grund wie der Abholer: Die Serie wächst an drei Stellen
      (Wizard-Schritt 2, 5 und 6), und drei Kopien derselben Vergabe wären
@@ -156,6 +222,49 @@ export function AppStateProvider({ children }) {
     update(saved.patch);
     toast(t.streakBoard.snoozeUsed(saved.used));
   }, [state.lastDream, state.snoozes, update, toast]);
+
+  /* Die geteilten Testträume laden — Antons Ansage vom 22.08.: „Ich möchte,
+     dass alle, die jetzt an der App entwickeln, diese Träume sehen."
+
+     ⚠ NUR IM ENTWICKLUNGSMODUS. Ein ausgelieferter Build zieht sich keine
+     fremden Träume ins Tagebuch — das wäre aus Testdaten plötzlich der
+     Traum eines anderen Menschen im eigenen Journal. `import.meta.env.DEV`
+     ist in einem Produktionsbau `false`, der ganze Block fällt beim Bauen
+     heraus. Wer die App veröffentlicht, entfernt ihn trotzdem ganz, samt
+     Ordner (siehe .gitignore).
+
+     Gemergt wird nur, was das Gerät noch nicht kennt: Der lokale Stand ist
+     immer der neuere, die Sicherung ist das Archiv. */
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let alive = true;
+    sharedDreams().then((gesicherte) => {
+      if (!alive || !gesicherte.length) return;
+      const journal = mergeShared(stateRef.current.journal, gesicherte);
+      if (journal) update({ journal });
+    });
+    return () => { alive = false; };
+    // Einmal beim Start, nicht bei jeder Änderung — sonst kämen gelöschte
+    // Träume beim nächsten Tastendruck wieder zurück.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* Die Traum-Sicherung (Antons Ansage 22.08.: „Meine Testträume bitte hier
+     abspeichern … und drinnen bleiben"). Sie läuft still: Ändert sich etwas
+     am INHALT der Träume, wandern sie als Dateien zum Server. Der
+     Fingerabdruck sorgt dafür, dass ein Tastendruck irgendwo im State nicht
+     schon eine Runde auslöst.
+
+     Kein Zustand, keine Meldung, kein Fehlerfall: Scheitert die Sicherung
+     (Server aus, kein Netz), passiert nichts weiter — beim nächsten Start
+     wird es nachgeholt. Ein Tagebuch, das wegen seiner Sicherung stockt,
+     wäre die schlechtere Krankheit. */
+  const backupPrint = backupFingerprint(state.journal);
+  useEffect(() => {
+    if (!backupPrint) return;
+    const id = setTimeout(() => backupJournal(backupPayload(stateRef.current.journal)), 1200);
+    return () => clearTimeout(id);
+  }, [backupPrint]);
 
   return (
     <Ctx.Provider value={{
