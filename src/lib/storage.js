@@ -15,7 +15,13 @@ export const DEFAULT_STATE = {
   allowance: 0,          // aus einem Abo — wird zum Periodenbeginn gesetzt, nicht addiert
   onboarded: false,      // first-run flow seen (slides + survey offer)
   surveyDone: false,     // welcome survey finished — that is what earns the grant
-  profile: null,         // { name, birthday, zodiac, recall, lucid, themes, goal }
+  /* Das ganze Umfrage-Ergebnis, so wie OnboardingSurvey es liefert:
+     { name, birthday, zodiac, recall, lucid, themes, goal, sleepHours,
+       timeBudget, reminders }
+     ⚠ reminders ist ein WUNSCH, keine Erlaubnis — siehe lib/reminders.js.
+     Neue Felder brauchen hier nichts: Das Objekt wird als Ganzes
+     gespeichert, jedes fehlende Feld ist schlicht undefined. */
+  profile: null,
   language: null,        // chosen once, before anything else — see LanguagePicker.jsx
   voice: null,           // the assistant's voice, chosen in VoicePicker — a Gemini voice id
   paywallSeen: false,    // das Kaufblatt kam einmal von selbst — siehe Step6Result.jsx

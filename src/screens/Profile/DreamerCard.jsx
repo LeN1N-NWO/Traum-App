@@ -30,6 +30,8 @@ export default function DreamerCard({ profile, onRetake }) {
     profile.recall && [t.dreamer.recall, t.dreamer.recallValues[profile.recall] || profile.recall],
     profile.lucid && [t.dreamer.lucid, t.dreamer.lucidValues[profile.lucid] || profile.lucid],
     profile.goal && [t.dreamer.goal, t.dreamer.goalValues[profile.goal] || profile.goal],
+    profile.sleepHours && [t.dreamer.sleep, t.dreamer.sleepValues[profile.sleepHours] || profile.sleepHours],
+    profile.timeBudget && [t.dreamer.time, t.dreamer.timeValues[profile.timeBudget] || profile.timeBudget],
   ].filter(Boolean);
 
   if (!sign && !themes.length && !facts.length) return null;

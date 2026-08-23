@@ -7,6 +7,7 @@
  * wrong and people get each other's faces. Hence the tests.
  */
 import { styleById } from "./styles.js";
+import { slotName } from "./gridLayout.js";
 
 /**
  * @param {object[]} assignments  one per character/place the person kept, in order.
@@ -86,29 +87,88 @@ export function stripReferenceClauses(prompt) {
  * single images; cutting a tall one would yield unusable slivers. The
  * caller must request that aspect ratio; this function only writes English.
  *
+ * ── Seit 23.08.2026 zusätzlich: das echte Raster (rows > 1) ──────────────
+ * Der Grund für den zweiten Zweig ist ein Preiswechsel, keine Laune:
+ * Seedream rechnet FLACH je Bild bis 3K — Auflösung kostet dort nichts
+ * mehr. Damit dreht sich die Rechnung von 2026-08-19 um, die den Streifen
+ * auf drei Panels festgenagelt hat: Ein 3×2-Raster liefert sechs Szenen
+ * für den Preis von einer.
+ *
+ * ⚠ Der Vorbehalt von damals gilt UNVERÄNDERT und ist nicht widerlegt:
+ * Jeder zusätzliche Platz verkleinert jede Szene, und Gesichter und Hände
+ * zerfallen zuerst. Bewiesen ist bis heute nur der Dreier-Streifen. Das
+ * Raster ist ein MESSAUFTRAG (docs/plans/2026-08-23-raster-test.md), kein
+ * Ersatz — deshalb ändert dieser Zweig auch nichts an dem, was die App
+ * heute tut: Er wird bisher nur vom Prüfskript aufgerufen.
+ *
  * @param {object} p
- * @param {string[]} p.beats     exactly 3, one per panel, left to right
+ * @param {string[]} p.beats     einer je Platz, in LESEREIHENFOLGE
  * @param {string} p.styleId
  * @param {string[]} p.clauses   from buildReferences()
+ * @param {number} [p.cols]      Spalten; Vorgabe: so viele wie Beats
+ * @param {number} [p.rows]      Zeilen; 1 = der bewährte Streifen
  */
-export function buildGridPrompt({ beats, styleId, clauses = [] }) {
+export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1 }) {
   const style = styleById(styleId);
   const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
-  const panels = beats
-    .map((b, i) => `Panel ${i + 1} (${["leftmost", "middle", "rightmost"][i]} third): ${b}`)
+  const spalten = cols || beats.length;
+
+  /* Der bewährte Dreier-Streifen bleibt WÖRTLICH, wie er war (eine Reihe).
+     Er ist an echten Renders belegt (09.08.) und splitIntoPanels() schneidet
+     genau diese Formulierung. Ein zweidimensionales Raster ist ein anderes
+     Bild und bekommt deshalb einen eigenen Zweig — nicht dieselben Sätze mit
+     ein paar ausgetauschten Wörtern. */
+  if (rows === 1) {
+    const panels = beats
+      .map((b, i) => `Panel ${i + 1} (${["leftmost", "middle", "rightmost"][i]} third): ${b}`)
+      .join("\n");
+
+    return (
+      `A single 16:9 image divided into exactly THREE equal vertical panels side by side, ` +
+      `separated by a thin solid black divider line running the full height between each panel — ` +
+      `like a triptych or a 3-panel comic strip. The panels fill the ENTIRE canvas edge to edge: ` +
+      `no letterboxing, no black bars above or below, no outer frame or margin of any kind. ` +
+      `Each panel is a self-contained cinematic photoreal ` +
+      `film still with no bleed or shared elements across the divider lines.` +
+      `\n${panels}` +
+      `\nConsistent color grade and lighting across all three panels so they read as one continuous ` +
+      `sequence, in this style: ${style.prompt}` +
+      `\nUltra-detailed, accurate hands and faces. No text, no captions, no watermarks.${refs}`
+    );
+  }
+
+  /* Das zweidimensionale Raster (Antons Test vom 23.08.).
+     Drei Dinge, die der Prompt leisten MUSS, weil sonst der Schnitt danach
+     Unsinn ergibt:
+       1. Die Plätze werden in LESEREIHENFOLGE benannt — dieselbe, die
+          tileBoxes() schneidet. Läuft das auseinander, bekommt jeder Beat
+          das Bild seines Nachbarn.
+       2. Jede Kachel ist HOCHKANT 9:16 und randlos. Ein Modell, das die
+          Kacheln quer füllt, macht den Schnitt wertlos.
+       3. Kein Überlaufen zwischen den Kacheln. Genau dafür steht die
+          Trennlinie da; sie ist keine Zierde, sie ist die Schnittkante. */
+  const zeilen = rows;
+  const plaetze = beats
+    .map((b, i) => `${slotName(i, spalten, zeilen)}: ${b}`)
     .join("\n");
+  const frei = spalten * zeilen - beats.length;
+  const leer = frei > 0
+    ? `\nThe remaining ${frei === 1 ? "tile" : `${frei} tiles`} must show a quiet establishing ` +
+      `shot of the same world — same place, same light, no characters. Never leave a tile blank, ` +
+      `black or filled with a pattern.`
+    : "";
 
   return (
-    `A single 16:9 image divided into exactly THREE equal vertical panels side by side, ` +
-    `separated by a thin solid black divider line running the full height between each panel — ` +
-    `like a triptych or a 3-panel comic strip. The panels fill the ENTIRE canvas edge to edge: ` +
-    `no letterboxing, no black bars above or below, no outer frame or margin of any kind. ` +
-    `Each panel is a self-contained cinematic photoreal ` +
-    `film still with no bleed or shared elements across the divider lines.` +
-    `\n${panels}` +
-    `\nConsistent color grade and lighting across all three panels so they read as one continuous ` +
-    `sequence, in this style: ${style.prompt}` +
-    `\nUltra-detailed, accurate hands and faces. No text, no captions, no watermarks.${refs}`
+    `A single image laid out as an EXACT ${spalten}×${zeilen} grid of ${spalten * zeilen} equally ` +
+    `sized tiles (${spalten} columns, ${zeilen} rows), separated by thin solid black divider lines ` +
+    `running the full width and height between them. Every tile is a VERTICAL 9:16 portrait frame ` +
+    `and is completely filled edge to edge — no letterboxing inside a tile, no black bars, no outer ` +
+    `frame or margin around the grid. Each tile is a self-contained cinematic photoreal film still ` +
+    `with no bleed, no shared elements and no continuing scenery across the divider lines.` +
+    `\n${plaetze}${leer}` +
+    `\nConsistent color grade, lighting and wardrobe across all tiles so they read as one continuous ` +
+    `sequence from the same film, in this style: ${style.prompt}` +
+    `\nUltra-detailed, accurate hands and faces. No text, no captions, no numbers, no watermarks.${refs}`
   );
 }
 

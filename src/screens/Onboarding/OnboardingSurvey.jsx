@@ -32,7 +32,15 @@ export default function OnboardingSurvey({ onDone, onCancel }) {
   const [draft, setDraft] = useState("");
 
   const session = useRef(null);
-  const collected = useRef({ name: "", birthday: "", zodiac: null, recall: "", lucid: "", themes: [], goal: "" });
+  /* ⚠ Jedes Feld ist optional und bleibt leer, wenn die Frage übersprungen
+     wurde — genau das ist der Vertrag mit onDone(). Wer hier ein Feld
+     ergänzt, muss es auch in ONBOARDING_TOOLS (server.js) und im Briefing
+     eintragen: Ein Werkzeug ohne Frage wird nie aufgerufen, eine Frage
+     ohne Werkzeug landet nirgends. */
+  const collected = useRef({
+    name: "", birthday: "", zodiac: null, recall: "", lucid: "", themes: [], goal: "",
+    sleepHours: "", timeBudget: "", reminders: null,
+  });
   const endRef = useRef(null);
 
   useEffect(() => {
@@ -64,6 +72,15 @@ export default function OnboardingSurvey({ onDone, onCancel }) {
           if (!c.themes.includes(theme)) c.themes.push(theme);
         }
         if (name === "setGoal" && args.goal) c.goal = String(args.goal).slice(0, 20);
+        if (name === "setSleepHours" && args.hours) c.sleepHours = String(args.hours).slice(0, 10);
+        if (name === "setTimeBudget" && args.minutes) c.timeBudget = String(args.minutes).slice(0, 10);
+        /* ⚠ Hier wird NICHTS eingeschaltet, hier wird notiert. Die
+           System-Erlaubnis holt später ein bewusster Tipp ab — eine
+           verhörte Silbe darf den einen Versuch nicht verbrauchen, den
+           iOS vergibt. Siehe reminderWish() in lib/reminders.js. */
+        if (name === "setReminderWish" && typeof args.wants === "boolean") {
+          c.reminders = { wants: args.wants, perDay: Number(args.perDay) || null };
+        }
         if (name === "finish") finish();
       },
     }, { mode: "onboarding", lang: app.language || "", voice });

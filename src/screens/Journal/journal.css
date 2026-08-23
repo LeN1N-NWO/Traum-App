@@ -710,3 +710,13 @@
   color: var(--faint);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--faint) 45%, transparent);
 }
+
+/* Der angekündigte Atlas: sichtbar, aber ausdrücklich noch nicht da.
+   Gedämpft statt ausgegraut — es ist ein Versprechen, keine gesperrte
+   Funktion. Kein Zeiger-Cursor und kein Chevron, weil beides eine
+   Bedienbarkeit behaupten würde, die es nicht gibt. */
+.j-library-soon {
+  opacity: .55;
+  cursor: default;
+  border-style: dashed;
+}

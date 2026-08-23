@@ -280,12 +280,67 @@ const ONBOARDING_TOOLS = [{
       parameters: { type: "OBJECT", properties: { name: { type: "STRING" } }, required: ["name"] },
     },
     {
+      /* ⚠ "nightmares" kam am 23.08. dazu und ist kein Nachtrag, sondern
+         eine Lücke: Bei zwei untersuchten Wettbewerbern steht „Albträume
+         überwinden" unter den fünf HAUPTZIELEN, bei uns fehlte es ganz.
+         Imagery Rehearsal Therapy ist die bestbelegte Selbsthilfe-Methode
+         im ganzen Traumfeld — besser belegt als jede Klartraum-Technik.
+         Wer deswegen kommt, muss die Frage wenigstens gestellt bekommen.
+         Was danach angeboten wird, ist P3a im Mehrwert-Plan. */
       name: "setGoal",
       description: "What draws them to their dreams.",
       parameters: {
         type: "OBJECT",
-        properties: { goal: { type: "STRING", description: "remember | understand | create | sleep-better" } },
+        properties: { goal: { type: "STRING", description: "remember | understand | create | sleep-better | nightmares" } },
         required: ["goal"],
+      },
+    },
+    {
+      /* Schlafdauer ist NICHT Statistik, sondern inhaltlich relevant: REM
+         ballt sich im letzten Drittel der Nacht. Wer unter sechs Stunden
+         schläft, hat strukturell weniger und kürzere REM-Phasen — weniger
+         Traum, weniger Erinnerung. Bei so jemandem ist die wirksamste
+         Maßnahme „länger schlafen", und das ist ehrlicher als jede
+         Technik, die man ihm stattdessen empfehlen könnte. */
+      name: "setSleepHours",
+      description: "Roughly how long they sleep on a normal night.",
+      parameters: {
+        type: "OBJECT",
+        properties: { hours: { type: "STRING", description: "under-6 | 6-7 | 7-8 | 8-9 | over-9" } },
+        required: ["hours"],
+      },
+    },
+    {
+      /* Das Zeitbudget entscheidet, welche Technik überhaupt vorgeschlagen
+         werden DARF. WBTB verlangt ein nächtliches Aufwachen, MILD ein
+         paar Minuten vor dem Einschlafen. Wer „fünf Minuten" sagt, dem
+         WBTB zu empfehlen, ist ein Plan, der von vornherein scheitert. */
+      name: "setTimeBudget",
+      description: "How much time a day they can spend on dream practice.",
+      parameters: {
+        type: "OBJECT",
+        properties: { minutes: { type: "STRING", description: "5 | 10 | 20 | 30 | 60plus" } },
+        required: ["minutes"],
+      },
+    },
+    {
+      /* ⚠ Diese Antwort löst NICHTS aus. Sie merkt sich nur den Wunsch.
+         Der Grund steht in docs/plans/2026-08-23-benachrichtigungen.md:
+         iOS gibt für die Benachrichtigungs-Erlaubnis genau EINEN Versuch,
+         und eine verhörte Silbe wäre unwiderruflich. Der Systemdialog
+         gehört deshalb hinter einen bewussten Tipp — die Stimme sammelt
+         die Absicht, der Finger gibt sie frei. */
+      name: "setReminderWish",
+      description:
+        "Whether they would like gentle reminders, and how many a day. Only record what " +
+        "they say — this does not switch anything on.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          wants: { type: "BOOLEAN" },
+          perDay: { type: "NUMBER", description: "1 to 4, only if they gave a number" },
+        },
+        required: ["wants"],
       },
     },
     {
@@ -496,21 +551,35 @@ function onboardingSystem({ lang = "" } = {}) {
 
     "THE QUESTIONS, in this order, one tool call the moment each is answered:\n" +
     "1. What should I call you? → setName\n" +
-    "2. When were you born? Day, month and year — the year also gives their star sign. If they " +
+    "2. What brings you here — remembering more, understanding what dreams mean, turning them " +
+    "into pictures, sleeping better, or getting out from under bad dreams? → setGoal\n" +
+    "3. When were you born? Day, month and year — the year also gives their star sign. If they " +
     "prefer not to say the year, day and month are enough (year 0000). → setBirthday\n" +
-    "3. How often do you remember your dreams? → setDreamRecall\n" +
-    "4. Have you heard of lucid dreaming — knowing you're dreaming while it happens? Where are " +
+    "4. How often do you remember your dreams? → setDreamRecall\n" +
+    "5. How long do you usually sleep? → setSleepHours\n" +
+    "6. Have you heard of lucid dreaming — knowing you're dreaming while it happens? Where are " +
     "they on that journey? → setLucidLevel\n" +
-    "5. Is there a dream, place or person that keeps coming back at night? → addTheme, once per " +
+    "7. Only if question 6 says anything other than never-heard: how much time a day could they " +
+    "give it? → setTimeBudget\n" +
+    "8. Is there a dream, place or person that keeps coming back at night? → addTheme, once per " +
     "thing they name\n" +
-    "6. What brings you here — remembering more, understanding what dreams mean, turning them " +
-    "into pictures, or sleeping better? → setGoal\n\n" +
+    "9. Would a gentle nudge help — a reminder to write the dream down in the morning? Would " +
+    "they want one, and how many a day? → setReminderWish\n\n" +
+
+    "WHY THE ORDER MATTERS\n" +
+    "The goal comes second, right after their name, because everything after it is in service " +
+    "of that goal — and because someone who is here about nightmares should not have to sit " +
+    "through five questions before anyone asks what they came for.\n\n" +
 
     "RULES\n" +
     "Any question may be skipped the moment they hesitate or decline — move on cheerfully, never " +
     "press, never ask why. Never interpret their dreams or make health claims; if they share " +
-    "something heavy, acknowledge it kindly in a few words and continue. After question 6, thank " +
-    "them, tell them their bonus credits are in, and call finish."
+    "something heavy, acknowledge it kindly in a few words and continue.\n" +
+    "If their goal is nightmares, say plainly that there is something here for that and move on. " +
+    "Do not counsel, do not ask what the nightmares are about, and never suggest it can be cured.\n" +
+    "⚠ Question 9 only WRITES DOWN a wish. Never say reminders are now on, never say they will " +
+    "start tonight — they still have to be switched on with a tap afterwards.\n" +
+    "After the last question, thank them, tell them their bonus credits are in, and call finish."
   );
 }
 
