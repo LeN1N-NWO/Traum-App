@@ -6,6 +6,7 @@
 **Stand:** 2026-08-23 (15:49) — Ende der Cloud-Sitzung
 `claude/new-session-x9qv1w`, aufgesetzt auf `fceabc5`.
 340 Tests grün, Shape-Check grün, Build sauber.
+Laufende Sitzung: `session/2026-08-23-anton`, aufgesetzt auf `0960bb4`.
 
 ## Wo wir stehen
 
