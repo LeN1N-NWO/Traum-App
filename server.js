@@ -50,6 +50,11 @@ import { beatsForSeconds } from "./src/lib/beats.js";
 // Die Filmbestellung je Modell — Slug, Klemme, Auflösung, Tonparameter —
 // kommt aus EINER Tabelle, die auch Preis und UI speist (video.test.js).
 import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
+/* Bildmodell: Endpunkte, Adressformat und Referenzbudget stehen seit dem
+ * 23.08. in EINER Tabelle (src/lib/imageModel.js) — Seedream und Nano Banana
+ * sprechen nicht dieselbe Sprache, und ein falscher Feldname wirft keinen
+ * Fehler, er liefert nur das Falsche. */
+import { imageSubmitBody, imageModel, IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from "./src/lib/imageModel.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
   DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
@@ -94,21 +99,23 @@ const MAX_DREAM = 2000;
 const MAX_FRAGMENT = 120; // per pet/place description, mirrors the client-side cap
 const MAX_CRAFTED_PROMPT = 3000; // ceiling on what DeepSeek is allowed to hand to fal.ai
 
-// fal.ai model slugs. Override via env without editing code.
-//
-// Seit 20.08.2026 ist Lite die Vorgabe (Antons Entscheidung nach den Tests
-// vom 19./20.08., Plan 2026-08-19-bildmodelle-preise.md §6–§8): ~$0,042
-// statt $0,08 je Bild bei fester 1K-Ausgabe, Identität und Mehrfach-
-// Referenzen bezahlt bewiesen (Drift-Dreierstrecke, Multi-Ref-A/B, Lena-
-// Bogen-Strecke). Verkaufspreise bleiben unverändert — die Ersparnis
-// finanziert die Gratis-Charakterbögen, der Rest ist Sicherheitsmarge.
-// Rückweg bei Befund: FAL_MODEL_IMAGE=fal-ai/nano-banana-2 in .env.
-const FAL_MODEL_IMAGE = process.env.FAL_MODEL_IMAGE || "google/nano-banana-2-lite";
-// Reference photos need the EDIT variant of the model. Diagnosed 07.08.: the
-// text-to-image endpoint silently ignores image_urls (it even accepts
-// image_urls: 123 with a 200), so likenesses never reached the model. The
-// /edit endpoint takes image_urls and demonstrably reproduces them.
-const FAL_MODEL_IMAGE_EDIT = process.env.FAL_MODEL_IMAGE_EDIT || `${FAL_MODEL_IMAGE}/edit`;
+/* Welches Bildmodell. Der Name zeigt in die Tabelle in imageModel.js —
+ * NICHT mehr ein roher fal-Slug, denn davon gibt es je Modell zwei
+ * (Text-zu-Bild und Edit), und bei Seedream ist der nackte Slug ein 404.
+ *
+ * Seit 23.08.2026 ist Seedream 5 Lite die Vorgabe (Antons Entscheidung nach
+ * dem A/B mit derselben Kette, denselben Prompts und demselben Referenzbild,
+ * media/ab-test/): $0,035 statt $0,042 je Bild — 17 % billiger — bei
+ * 1440×2560 statt 768×1376, also der sechsfachen Pixelzahl. Die Bildkette
+ * hielt, der Photoshop-Effekt blieb weg. Davor galt seit 20.08. Nano Banana
+ * Lite, davor das volle Nano Banana zu $0,08.
+ *
+ * Verkaufspreise bleiben unverändert — das war schon beim letzten Wechsel so
+ * entschieden: die Ersparnis verbreitert die Marge, sie verbilligt nichts.
+ *
+ * Rückweg bei Befund, ohne Codeänderung:
+ *   FAL_MODEL_IMAGE=nano-banana-2-lite   (oder nano-banana-2) in .env */
+const FAL_MODEL_IMAGE = process.env.FAL_MODEL_IMAGE || DEFAULT_IMAGE_MODEL;
 /* Videomodelle stehen NICHT mehr hier: Slug, Dauergrenzen, Auflösung und
  * Tonparameter je Modell leben in src/lib/video.js (videoSubmitBody) —
  * dieselbe Tabelle, aus der auch der Preis und die UI kommen. Eine zweite
@@ -1095,17 +1102,14 @@ async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16" }
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
-  const input = {
+  /* Endpunkt UND Rumpf kommen aus der Tabelle: welches Feld das Format
+     trägt (`aspect_ratio` oder `image_size`) und ob es der Edit-Endpunkt
+     sein muss, ist Modellwissen, kein Aufruferwissen. */
+  const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, {
     prompt,
-    aspect_ratio: aspectRatio, // unverified param name/value for this model, see FAL_MODEL_IMAGE note above
-  };
-  const imageUrls = namedRefs.map((r) => r.img).filter(Boolean);
-  if (imageUrls.length) input.image_urls = imageUrls;
-
-  // With references the request MUST go to the edit endpoint — the plain
-  // text-to-image endpoint ignores image_urls without erroring, which is how
-  // likenesses silently went missing for days. See FAL_MODEL_IMAGE_EDIT note.
-  const model = imageUrls.length ? FAL_MODEL_IMAGE_EDIT : FAL_MODEL_IMAGE;
+    aspectRatio,
+    imageUrls: namedRefs.map((r) => r.img),
+  });
 
   const res = await fetch(`https://fal.run/${model}`, {
     method: "POST",
@@ -1207,19 +1211,16 @@ async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", se
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
-  const input = { prompt, aspect_ratio: aspectRatio };
-  const imageUrls = namedRefs.map((r) => r.img).filter(Boolean);
   /* Der Weltanker der Bildkette: der vorige Frame, als LETZTES Bild.
      ⚠ Die Position ist Vertrag, nicht Zufall — buildImagePrompt sagt dem
      Modell „the LAST reference image is the previous frame". Die Besetzung
      bleibt davor in ihrer gewohnten Reihenfolge, damit ihre Bindungs-
      Klauseln („shown in his reference photo") weiter dieselben Bilder
      treffen wie in einer Strecke ohne Kette. */
+  const imageUrls = namedRefs.map((r) => r.img).filter(Boolean);
   if (sequenceRef) imageUrls.push(sequenceRef);
-  if (imageUrls.length) input.image_urls = imageUrls;
-  // Gleiche Regel wie im Sofort-Pfad: mit Referenzen MUSS es das
-  // Edit-Modell sein, sonst verschwinden die Ähnlichkeiten lautlos.
-  const model = imageUrls.length ? FAL_MODEL_IMAGE_EDIT : FAL_MODEL_IMAGE;
+  // Endpunkt und Adressformat entscheidet die Tabelle, nicht diese Funktion.
+  const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, { prompt, aspectRatio, imageUrls });
 
   const res = await fetch(`https://queue.fal.run/${model}`, {
     method: "POST",
@@ -2212,3 +2213,21 @@ console.log(`Dream Rushes running → http://localhost:${PORT}`);
 console.log(process.env.FAL_KEY ? "fal.ai key: loaded ✓ (images + video)" : "fal.ai key: MISSING (generation disabled)");
 console.log(process.env.DEEPSEEK_KEY ? "DeepSeek key: loaded ✓ (LLM-crafted prompts)" : "DeepSeek key: MISSING (using local prompt template)");
 console.log(process.env.GEMINI_KEY ? "Gemini key: loaded ✓ (voice interview)" : "Gemini key: MISSING (voice interview disabled)");
+/* Welches Bildmodell gerade wirklich läuft, und was es je Bild kostet.
+ * Ein Slug in .env ist unsichtbar, bis die Rechnung kommt — diese Zeile
+ * macht einen versehentlichen Rückweg auf das doppelt so teure Modell
+ * beim Start sichtbar statt am Monatsende. */
+{
+  const m = imageModel(FAL_MODEL_IMAGE);
+  /* ⚠ Seit 23.08. ist FAL_MODEL_IMAGE ein NAME aus der Tabelle, kein roher
+     fal-Slug mehr. Eine alte .env mit "fal-ai/nano-banana-2" darin fiele
+     sonst stumm auf die Vorgabe zurück — und man bekäme monatelang ein
+     anderes Modell, als man bestellt hat. Also laut sagen. */
+  if (process.env.FAL_MODEL_IMAGE && m.id !== process.env.FAL_MODEL_IMAGE) {
+    console.warn(
+      `[DreamRushes] FAL_MODEL_IMAGE="${process.env.FAL_MODEL_IMAGE}" kennt niemand — ` +
+      `erlaubt sind: ${Object.keys(IMAGE_MODELS).join(", ")}. Es läuft die Vorgabe.`,
+    );
+  }
+  console.log(`Bildmodell: ${m.label} → $${m.usd.toFixed(3)} je Bild`);
+}

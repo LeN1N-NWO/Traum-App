@@ -8,6 +8,14 @@
  * ── How the numbers were derived (prices checked 08.08.2026) ──────────────
  * Our own cost per dream is almost entirely image generation:
  *   fal.ai nano-banana-2, 1K            $0.08 per image
+ *   ⚠ Das ist der EINKAUFSPREIS VON DAMALS und bleibt hier stehen, weil die
+ *     ganze Credit-Skala darauf gebaut wurde. Tatsächlich gekauft wird seit
+ *     20.08. Nano Banana Lite ($0,042) und seit 23.08. Seedream 5 Lite
+ *     ($0,035, dafür 1440×2560 statt 768×1376) — siehe imageModel.js.
+ *     Die Verkaufspreise haben sich BEWUSST nicht mitbewegt: die Ersparnis
+ *     verbreitert die Marge und trägt die Gratis-Charakterbögen, sie
+ *     verbilligt nichts für den Kunden. Wer die Skala je neu rechnet,
+ *     rechnet sie gegen das Modell, das dann WIRKLICH läuft.
  *   fal.ai Hailuo 02 standard, 6s       $0.27 per video   ⚠ slug unconfirmed
  *   DeepSeek v4-flash, one analysis     $0.00026          → 0.065 % of a
  *                                                          five-image dream
