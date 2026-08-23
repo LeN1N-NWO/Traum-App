@@ -88,6 +88,11 @@ export const IMAGE_MODELS = {
     /* ⚠ Der Preis haengt hier an der Aufloesung, nicht am Modell: 4K wird
        laut fal „at double the standard rate" berechnet. Eine flache Zahl
        waere nach dem ersten 4K-Lauf falsch — und zwar um 100 %. */
+    /* fal nennt bei Pro NUR den 4K-Aufschlag („4K outputs will be charged
+       at double the standard rate"); für 2K steht dort kein Faktor, also
+       gilt der Grundpreis. ⚠ Anders als bei Nano Banana 2, wo 2K
+       ausdrücklich das 1,5-Fache kostet — die beiden Modelle rechnen NICHT
+       gleich, und wer das eine vom anderen abschreibt, liegt daneben. */
     usdBy: { "1K": 0.15, "2K": 0.15, "4K": 0.30 },
     resolutions: ["1K", "2K", "4K"],
     aspect: true,
@@ -111,7 +116,16 @@ export const IMAGE_MODELS = {
     t2i: "fal-ai/nano-banana-2",
     edit: "fal-ai/nano-banana-2/edit",
     usd: 0.08,
+    /* Es KANN 4K — anders als seine Lite-Fassung, die den Parameter gar
+       nicht kennt und deshalb bei 1K festhängt. fal rechnet in Faktoren
+       auf den Grundpreis: „2K and 4K outputs will be charged at 1.5 times
+       and 2 times the standard rate, respectively. 0.5K (512px) resolution
+       outputs will be charged at 0.75 times." (fal, geprüft 23.08.2026) */
+    usdBy: { "0.5K": 0.06, "1K": 0.08, "2K": 0.12, "4K": 0.16 },
+    resolutions: ["0.5K", "1K", "2K", "4K"],
     aspect: true,
+    aspects: ["21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16",
+              "4:1", "1:4", "8:1", "1:8"],
   },
 };
 
