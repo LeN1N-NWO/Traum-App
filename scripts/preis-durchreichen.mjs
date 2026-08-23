@@ -285,3 +285,32 @@ console.log(
   "  die Grenze — Wachstum kostet den Spielraum, nicht der Kunde."
 );
 console.log();
+
+/* ── 8. Der Tagespreis (Antons Beobachtung 23.08.)
+ *
+ * „Ich finde diese Anzeige gut, die das runterbricht auf den Tag."
+ * Der Grund, warum das funktioniert, ist kein Trick: Ein Abo ist eine
+ * LAUFENDE Ausgabe, und laufende Ausgaben vergleicht man mit anderen
+ * laufenden Ausgaben — ein Kaffee, ein Brötchen. 79,99 $ im Jahr klingt
+ * nach einer Anschaffung; 0,22 $ am Tag klingt nach dem, was es ist.
+ *
+ * ⚠ Und genau deshalb gilt es NUR für Abos. Ein Paket ist kein Zeitraum:
+ * „6 Credits für 2,99 $" auf Tage zu rechnen hieße, sich einen Nenner
+ * auszudenken, den es nicht gibt. Wer das trotzdem tut, rechnet schön. */
+console.log("\n=== 8. Was ein Abo am Tag kostet ===\n");
+const TAGE = { week: 7, month: 30.44, year: 365 };
+console.log("Plan       Preis      Tage   $/Tag    $/Credit");
+for (const p of SUBSCRIPTIONS) {
+  const tage = TAGE[p.period];
+  const proTag = num(p.price) / tage;
+  const proCredit = p.period === "year" ? num(p.price) / (12 * p.credits) : num(p.price) / p.credits;
+  console.log(
+    `${p.id.padEnd(10)} ${p.price.padEnd(9)} ${String(tage).padStart(6)}   ` +
+    `$${proTag.toFixed(3)}   $${proCredit.toFixed(4)}`
+  );
+}
+console.log(
+  "\nFür die Pakete gibt es KEINEN Tagespreis — sie haben keinen Zeitraum.\n" +
+  "Einen zu erfinden wäre Schönrechnen, nicht Verständlichmachen."
+);
+console.log();
