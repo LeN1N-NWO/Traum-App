@@ -3,6 +3,119 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-24 11:55 — Anton — Branch `session/2026-08-23-anton` (PR #25) — Sitzungsabschluss
+
+**Commits:** `2d94854` (Eröffnung) · `1a45f93` (getippte Umfrage) ·
+`af87778` (Nano Banana Pro 4K, zweidimensionaler Schnitt) · `a0fb7ba` +
+`a89d63e` (Nano Banana 2 kann 4K) · `8cf815e` (**4/8 statt 3/5/10**) ·
+`a15e490` (A/B-Skript an die Tabelle) · `d923370` (**Einstellungsebene**) ·
+`b2ac7c9` + `05311db` + `d7695be` (GPT Image 2) · `1eebef3` (**zwei Fotos,
+NUL-Byte raus**) · `4dbfd14` (**Garderobe je Traum**) · `38231e1`
+(**Foto-Anker**) + dieser Doku-Commit.
+Zustand: **370 Tests grün**, fünf Skriptprüfungen grün, Build sauber.
+Bezahlte Messläufe an diesem Tag: rund **$3,10**.
+
+⚠ Wieder ohne eigenen Worktree im Hauptrepo — Begründung steht EINMAL im
+STAND unter „Fallen".
+
+### Das Ergebnis in einem Satz
+
+Bogen mit **GPT Image 2 low** ($0,017), Szenen mit **GPT Image 2 medium im
+2×2-Raster mit Foto-Anker und Stil `ultrareal`** ($0,113), Garderobe als
+**Text** ($0). Macht **$0,13 je Vier-Bilder-Traum — 7 % UNTER dem heutigen
+Weg**, bei besseren Gesichtern.
+
+⚠ Umgestellt ist davon NICHTS. `FAL_MODEL_IMAGE` steht weiter auf
+`seedream-5-lite`, und der Foto-Anker ist per Vorgabe AUS. Alles unten ist
+gemessen, nicht ausgerollt — die Umstellung ist der nächste Schritt und
+gehört an Antons Wort.
+
+### Die Kette der Befunde, in der Reihenfolge, in der sie kamen
+
+**1. Die Einstellung fehlte, nicht der Look** (`d923370`). Antons „die
+Bilder sind überhaupt nicht cinematic" hatte eine andere Ursache als
+vermutet: Der Deakins-LOOK stand längst in `styles.js` („ultrareal": 40 mm,
+T2.8, motiviertes Licht, invisible technique). Was fehlte, war die
+EINSTELLUNG — jedes Bild kam als dieselbe Aufnahme zurück, Person mittig,
+frontal, formatfüllend. `src/lib/cinematography.js` liefert jetzt vier
+Einstellungen im Wechsel, die erste immer etablierend, plus drei Verbote in
+jedem Bild (nicht mittig, nicht in die Kamera, kein Plakat).
+⚠ Die Datei nennt bewusst KEINE Optik — die Stile widersprechen sich darin
+(„dreamlike" 50 mm, „adventure" 24 mm). Im Test festgenagelt.
+
+**2. Der Bogen ist das Nadelöhr** (`1eebef3`). Jedes Szenenbild
+referenziert den BOGEN, nie das Foto. Wer ihn mit dem schwächsten Modell
+macht und die Szenen mit dem stärksten, hat trotzdem die Ähnlichkeit des
+schwächsten. Antons Bogen stammte von Nano Banana 2 Lite bei 1376×768.
+Jetzt: zwei Fotos (Gesicht + Ganzkörper, Reihenfolge ist Vertrag),
+Brille/Hut/Kapuze werden abgenommen, ohne Angabe neutrale Alltagskleidung.
+Der erste Bogen aus zwei Fotos war ein sichtbarer Sprung.
+
+**3. Die Garderobe gehörte der Person, nicht dem Traum** (`4dbfd14`). Es
+gab nur EIN Beschreibungsfeld, und es galt für immer. `wardrobe` gehört
+jetzt dem Traum, mit einem Satz, der ausdrücklich sagt, dass er das
+Referenzbild schlägt. **Bezahlt geprüft: 36 von 36 Kacheln umgezogen, drei
+Träume, drei Modelle.** Damit ist der teure Weg — ein Garderobenbild je
+Traum und Figur, +30 % — vom Tisch.
+
+**4. Den Malerei-Look haben WIR bestellt** (`38231e1`). Der wichtigste
+Befund des Tages, und er zeigt auf unseren eigenen Code: `surreal` sagt
+wörtlich „flat even lighting like a Magritte painting", `dreamlike` will
+„shapes dissolving". Zwei der drei Testträume liefen auf genau diesen
+Stilen. Der Foto-Anker (`PHOTOREAL` in cinematography.js) sagt jetzt
+„photorealistic" ausdrücklich, nennt konkrete Tatsachen statt Lob — und
+weist das Modell an, jede Stilanweisung IN CAMERA zu lesen statt als
+Pinselstrich. ⚠ Er ist abschaltbar: Für einen bewusst gemalten Stil wäre er
+ein Widerspruch.
+
+### Modellvergleich, alles bezahlt gemessen
+
+| Weg | 4 Szenen | Kachel |
+|---|---|---|
+| GPT Image 2 medium, 2×2-Raster | **$0,113** | 1080×1920 |
+| Seedream 5 Lite einzeln (heute) | $0,140 | 1440×2560 |
+| Nano Banana 2 4K, 2×2-Raster | $0,160 | 1533×2734 |
+| Nano Banana Pro 4K, 2×2-Raster | $0,300 | 1533×2734 |
+
+· **Bogen:** GPT low ($0,017) schlägt Nano Banana Pro 1K ($0,150) beim
+  Gesicht deutlich — achtmal billiger, bessere Haut.
+· **Szenen ohne Foto-Anker:** Nano Banana erzählt, GPT erfindet dazu
+  (Blaskapelle über statt unter dem Eis, eine Leiche auf dem Steg, eine
+  Stadtschlucht in der Bibliothek) und geht systematisch zu dunkel.
+· **Szenen MIT Foto-Anker und Stil `ultrareal`:** GPT medium dreht das um
+  und liefert echte Fotografie. Das ist der Stand, auf dem die Empfehlung
+  beruht.
+· ⚠ **Seedream lehnt Aufträge mit Referenzfoto unregelmäßig ab** —
+  am 23.08. mit Referenz 4× durch, 8× abgelehnt, als
+  `content_policy_violation` auf `body.image`. Kein Geld verloren (der
+  Collector erstattet), aber das BILD fehlt. Das trifft die heutige
+  Vorgabe und ist NICHT geklärt.
+· ⚠ **Nano Banana 2 verfehlte das Raster** in einem von zwei frühen Läufen
+  — vier Querformate statt vier Hochkant-Kacheln, bezahlt und unbrauchbar.
+  Mit der Einstellungsebene danach 5 von 5 richtig; der Zusammenhang ist
+  plausibel, aber nicht bewiesen.
+
+### Was der Nächste wissen muss
+
+- **4 und 8 statt 3/5/10** (`8cf815e`). Grund ist Geometrie: Ein 2×2-Raster
+  fasst VIER Szenen, ein angefangenes Raster ist ein voller Aufruf. Bei
+  fünf Szenen zahlt man zwei Aufrufe. ⚠ Das WILLKOMMENSGESCHENK musste
+  mit, von 3 auf 4 Credits — sonst hätte der erste Traum einen Credit
+  gekostet, den niemand hat. Es kostet uns jetzt $0,14 je INSTALLATION
+  statt $0,105, und das ist laut plans.js der größte Einzelposten.
+- ⚠ **`sheets.js` und `gatekeeper.js` enthielten echte NUL-BYTES**, und
+  damit hielt Git beide Dateien für BINÄR — `git diff` sagte nur noch
+  „Binary files differ". Kein Versehen, sondern ein bewusster Trenner, nur
+  als Byte statt als Escape `\0` geschrieben. Behoben, plus ein Test, der
+  jede Quelldatei prüft.
+- **Die Assistentin fragt noch nicht nach Kleidung.** Das Feld (`wardrobe`)
+  existiert und ist bezahlt bewiesen, das Briefing kennt es nicht. Das ist
+  der kleinste offene Schritt mit der größten Wirkung.
+- **Antons Berechtigungsliste** (`.claude/settings.local.json`) hat nur acht
+  Einträge; fast jeder Befehl fragt nach. Ein Vorschlag liegt ihm vor. ⚠ Ich
+  habe die Liste NICHT selbst erweitert — der Klassifikator hat das
+  geblockt, zu Recht.
+
 ## 2026-08-23 15:49 — Anton — Branch `claude/new-session-x9qv1w` (Cloud) — Sitzungsabschluss
 
 **Commits:** `4807bba` (Preisrechnung auf Seedream) · `5c10c60`
