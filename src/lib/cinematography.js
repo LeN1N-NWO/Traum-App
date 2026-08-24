@@ -110,3 +110,46 @@ export function shotPlan(total) {
 }
 
 export { SHOTS };
+
+/* ── Der Foto-Anker ───────────────────────────────────────────────────────
+ *
+ * Antons Befund vom 24.08.2026: GPT Image 2 liefert schöne Bilder, die aber
+ * gemalt aussehen statt fotografiert. Die Recherche zeigt, dass die Ursache
+ * bei UNS liegt, nicht beim Modell:
+ *
+ * ⚠ Unsere eigenen Stiltexte BESTELLEN den Malerei-Look. `surreal` sagt
+ * wörtlich „flat even lighting like a Magritte painting", `dreamlike` will
+ * „shapes dissolving slightly where the light fades". Das Modell hat
+ * gehorcht. Zwei der drei Testträume liefen auf genau diesen Stilen.
+ *
+ * Die Prompt-Leitfäden zu GPT Image 2 sagen dazu zwei Dinge, die hier
+ * eingebaut sind:
+ *   1. „photorealistic" ist der zuverlässigste einzelne Auslöser — es muss
+ *      dastehen, nicht umschrieben werden.
+ *   2. Lob rendert nicht. „stunning", „epic", „masterpiece" schieben ins
+ *      Malerische; konkrete fotografische Tatsachen (Hautporen, Gewebe,
+ *      Belichtung) ziehen zurück.
+ *
+ * Der letzte Satz ist der wichtigste und der unübliche: Er sagt dem Modell,
+ * wie es die STILWÖRTER lesen soll. „Auflösende Formen" darf ein Objektiv-
+ * und Dunstphänomen sein, aber kein Pinselstrich. So bleibt der Stil
+ * erhalten, ohne dass er die Fotografie frisst.
+ */
+export const PHOTOREAL =
+  "Photorealistic. This is a photograph taken with a real camera on real film or a real sensor — "
+  + "not a painting, not an illustration, not a 3D render, not digital art and not concept art. "
+  + "Real skin with visible pores, fine hair and uneven texture; real fabric with a visible weave; "
+  + "real surfaces with dust, wear and fingerprints. Correct exposure with detail held in the "
+  + "shadows and no crushed blacks, no added vignette, no HDR glow, no bloom beyond what a lens "
+  + "actually does. "
+  + "Read every stylistic instruction above as something achieved IN CAMERA — through light, "
+  + "lens, atmosphere, weather and film stock — never through brushwork, painterly texture or "
+  + "post-production effects.";
+
+/** Der Foto-Anker, wenn er gewünscht ist. Eigene Funktion statt einer
+ *  Konstante im Prompt, damit er sich abschalten lässt: Für einen bewusst
+ *  gemalten Stil wäre er ein Widerspruch, und ein Prompt, der sich
+ *  widerspricht, ist schlechter als einer, der schweigt. */
+export function photorealClause(an = true) {
+  return an ? `\n${PHOTOREAL}` : "";
+}

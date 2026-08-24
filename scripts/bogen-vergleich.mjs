@@ -24,7 +24,11 @@ import { readFileSync } from "node:fs";
 import { buildSheetFromPhotoPrompt } from "../src/lib/promptBuilder.js";
 import { imageModel, imageSubmitBody, imagePrice } from "../src/lib/imageModel.js";
 
-const [foto, ...rest] = process.argv.slice(2);
+const [foto, foto2Arg, ...rest0] = process.argv.slice(2);
+/* Zweites Foto nur, wenn es KEIN Schalter ist — sonst wäre
+   `bogen-vergleich.mjs bild.jpg --ja` ein Ganzkörperfoto namens „--ja". */
+const foto2 = foto2Arg && !foto2Arg.startsWith("--") ? foto2Arg : null;
+const rest = foto2 ? rest0 : [foto2Arg, ...rest0].filter(Boolean);
 const JA = rest.includes("--ja");
 /* Nur EIN Kandidat, wenn man ihn nennt: `--nur=gpt-image-2`. Ein zweites
    Modell mitzurendern, das man gar nicht sehen will, ist bezahltes Rauschen. */
@@ -52,15 +56,23 @@ if (!KANDIDATEN.length) { console.error(`Kein Kandidat "${NUR}".`); process.exit
    Figur in jedem Traum etwas Erfundenes. */
 const BESCHREIBUNG = process.env.BOGEN_DESC || "";
 
-const bytes = readFileSync(resolve(foto));
-const typ = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-              ".webp": "image/webp" }[extname(foto).toLowerCase()] || "image/jpeg";
-const fotoUri = `data:${typ};base64,${bytes.toString("base64")}`;
-const prompt = buildSheetFromPhotoPrompt({ desc: BESCHREIBUNG, category: "person" });
+const alsUri = (pfad) => {
+  const b = readFileSync(resolve(pfad));
+  const typ = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                ".webp": "image/webp" }[extname(pfad).toLowerCase()] || "image/jpeg";
+  return { uri: `data:${typ};base64,${b.toString("base64")}`, kb: Math.round(b.length / 1024) };
+};
+/* ⚠ Reihenfolge ist Vertrag: 1 = Gesicht, 2 = Ganzkörper. Der Prompt spricht
+   sie über genau diese Nummern an (buildSheetFromPhotoPrompt). */
+const fotos = [alsUri(foto), ...(foto2 ? [alsUri(foto2)] : [])];
+const prompt = buildSheetFromPhotoPrompt({
+  desc: BESCHREIBUNG, category: "person", photos: fotos.length,
+});
 
 const summe = KANDIDATEN.reduce((n, k) => n + imagePrice(k.id, k.stufe, k.size), 0);
 console.log(`\n╔══ Charakterbogen aus einem Foto ═════════════════════════`);
-console.log(`║ Foto     ${foto} (${Math.round(bytes.length / 1024)} KB)`);
+console.log(`║ Gesicht  ${foto} (${fotos[0].kb} KB)`);
+if (foto2) console.log(`║ Körper   ${foto2} (${fotos[1].kb} KB)`);
 for (const k of KANDIDATEN) {
   console.log(`║ ${imageModel(k.id).label.padEnd(18)} ${k.stufe.padEnd(6)} $${imagePrice(k.id, k.stufe, k.size).toFixed(3)}`);
 }
@@ -72,7 +84,7 @@ const OUT = resolve(import.meta.dir, "..", "media", "ab-test", "bogen");
 
 async function bogen(k) {
   const { model, input } = imageSubmitBody(k.id, {
-    prompt, imageUrls: [fotoUri], aspectRatio: "16:9",   // zwei Panels nebeneinander
+    prompt, imageUrls: fotos.map((f) => f.uri), aspectRatio: "16:9",   // zwei Panels nebeneinander
     size: k.size || null, [k.feld]: k.stufe,
   });
   const res = await fetch(`https://queue.fal.run/${model}`, {

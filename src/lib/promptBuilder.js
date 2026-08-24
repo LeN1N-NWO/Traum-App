@@ -7,7 +7,7 @@
  * wrong and people get each other's faces. Hence the tests.
  */
 import { styleById } from "./styles.js";
-import { shotClause } from "./cinematography.js";
+import { shotClause, photorealClause } from "./cinematography.js";
 import { slotName } from "./gridLayout.js";
 
 /**
@@ -129,7 +129,7 @@ export function stripReferenceClauses(prompt) {
  * @param {number} [p.cols]      Spalten; Vorgabe: so viele wie Beats
  * @param {number} [p.rows]      Zeilen; 1 = der bewährte Streifen
  */
-export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1, tile = "9:16" }) {
+export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1, tile = "9:16", photoreal = false }) {
   const style = styleById(styleId);
   const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
   const spalten = cols || beats.length;
@@ -200,11 +200,12 @@ export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1, 
     `\n${plaetze}${leer}` +
     `\nConsistent color grade, lighting and wardrobe across all tiles so they read as one continuous ` +
     `sequence from the same film, in this style: ${style.prompt}` +
-    `\nUltra-detailed, accurate hands and faces. No text, no captions, no numbers, no watermarks.${refs}`
+    `\nUltra-detailed, accurate hands and faces. No text, no captions, no numbers, no watermarks.` +
+    `${photorealClause(photoreal)}${refs}`
   );
 }
 
-export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 1, total = 1, prevFrame = false }) {
+export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 1, total = 1, prevFrame = false, photoreal = false }) {
   const style = styleById(styleId);
   const framing = format === "16:9" ? "16:9 widescreen framing" : "9:16 vertical framing";
   const place = total > 1 ? ` This is image ${index} of ${total} in one continuous dream sequence; keep characters, wardrobe and palette consistent across all of them.` : "";
@@ -240,7 +241,7 @@ export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 
     `A cinematic, photoreal film still: ${beat}` +
     `\n${shotClause(index, total)}` +
     `\n${style.prompt}` +
-    `\n${framing}, ultra-detailed, accurate hands and faces.${place}${refs}${anchor}`
+    `\n${framing}, ultra-detailed, accurate hands and faces.${photorealClause(photoreal)}${place}${refs}${anchor}`
   );
 }
 

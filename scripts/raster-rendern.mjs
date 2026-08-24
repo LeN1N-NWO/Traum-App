@@ -31,6 +31,11 @@ const JA = rest.includes("--ja");
    Ohne Angabe entscheidet die Tabelle — und bei fal waere das „high",
    also die teuerste. Hier lieber ausdruecklich. */
 const STUFE_ARG = (rest.find((r) => r.startsWith("--stufe=")) || "").split("=")[1] || null;
+/* `--foto` haengt den Foto-Anker an (cinematography.js), `--stil=` ersetzt
+   den Stil des Traums. Beides nur fuer Messungen — die App entscheidet das
+   sonst selbst. */
+const FOTO = rest.includes("--foto");
+const STIL_ARG = (rest.find((r) => r.startsWith("--stil=")) || "").split("=")[1] || null;
 if (!traumDatei || !refDatei || !modellId) {
   console.error("Aufruf: bun scripts/raster-rendern.mjs <traum.json> <referenz.png> <modell> [--ja]");
   process.exit(1);
@@ -53,7 +58,7 @@ const LANGE_SEITE = m.maxSide || 4096;
 
 const traum = JSON.parse(readFileSync(traumDatei, "utf8"));
 const beats = traum.analysis?.beats || [];
-const stil = traum.style || "dreamlike";
+const stil = STIL_ARG || traum.style || "dreamlike";
 const format = traum.format || "9:16";
 
 /* ⚠ Nano Banana Pro kann nur feste Verhältnisse. Für fünf Szenen wäre 3×2
@@ -74,7 +79,7 @@ const aufrufe = 1 + Math.max(0, einzeln);
 
 console.log(`\n╔══ Raster-Lauf ═══════════════════════════════════════════`);
 console.log(`║ Traum      ${traum.title} — ${beats.length} Szenen`);
-console.log(`║ Modell     ${m.label}${STUFE ? ` · ${STUFE}` : ""}`);
+console.log(`║ Modell     ${m.label}${STUFE ? ` · ${STUFE}` : ""}  · Stil ${stil}${FOTO ? " · Foto-Anker" : ""}`);
 console.log(`║ Raster     ${cols}×${rows} (${verhaeltnis})  ${imRaster} Szenen im Bild` +
             `${einzeln > 0 ? `, ${einzeln} einzeln` : ""}`);
 console.log(`║ Behälter   ${behaelter.width}×${behaelter.height}` +
@@ -127,11 +132,11 @@ async function rendern(body) {
   return url;
 }
 
-const OUT = resolve(import.meta.dir, "..", "media", "ab-test", `raster-${m.id}${STUFE ? `-${STUFE}` : ""}`);
+const OUT = resolve(import.meta.dir, "..", "media", "ab-test", `raster-${m.id}${STUFE ? `-${STUFE}` : ""}${FOTO ? "-foto" : ""}`);
 const name = (s) => s.replace(/[^a-z0-9]+/gi, "-");
 
 /* ── Das Raster ──────────────────────────────────────────────────────── */
-const gitter = buildGridPrompt({ beats: beats.slice(0, imRaster), styleId: stil, clauses, cols, rows, tile: format });
+const gitter = buildGridPrompt({ beats: beats.slice(0, imRaster), styleId: stil, clauses, cols, rows, tile: format, photoreal: FOTO });
 const auftrag = imageSubmitBody(m.id, {
   prompt: gitter, imageUrls: [refUri], aspectRatio: verhaeltnis,
   size: { width: behaelter.width, height: behaelter.height },
