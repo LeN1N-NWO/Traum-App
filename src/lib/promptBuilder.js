@@ -27,9 +27,29 @@ export function buildReferences(assignments = []) {
     references.push({ tag: a.avatar.tag, img: a.avatar.img });
     const kind = a.kind === "pet" ? "pet" : a.kind === "place" ? "place" : "person";
     const desc = a.avatar.desc ? `, described as: ${a.avatar.desc}` : "";
+    /* Die Garderobe DIESES Traums — nicht die der Figur.
+     *
+     * ⚠ Der Unterschied ist der ganze Punkt: `avatar.desc` gehört der Person
+     * für immer und steht in jedem Traum; `wardrobe` gehört diesem einen
+     * Traum. Bis zum 24.08.2026 gab es nur das erste, und deshalb trug jede
+     * Figur in Traum 40 dasselbe wie in Traum 1 — nämlich das, was der Bogen
+     * zeigte.
+     *
+     * Der Satz sagt AUSDRÜCKLICH, dass er das Referenzbild schlägt. Ohne das
+     * gewinnt das Bild: Ein Modell glaubt eher, was es sieht, als was es
+     * liest. Gemessen am 23.08. — GPT hat die Badehose aus dem Bogen in eine
+     * nächtliche Bibliothek mitgenommen, Nano Banana nicht.
+     *
+     * Und er nennt zuerst, was BLEIBT: Gesicht, Haare, Statur. Sonst liest
+     * sich „trägt etwas anderes" wie „ist jemand anderes". */
+    const garderobe = a.wardrobe
+      ? ` In THIS dream they are wearing: ${a.wardrobe}. This overrides the clothing visible in ` +
+        `the reference image — keep the face, hair and build from it, but dress them as described here.`
+      : "";
     clauses.push(
       `Reference image ${references.length} shows @${a.avatar.tag} (${kind}${desc}) — ` +
-      `wherever "${a.name}" appears, depict them with this exact likeness, not a generic stand-in.`
+      `wherever "${a.name}" appears, depict them with this exact likeness, not a generic stand-in.` +
+      garderobe
     );
   }
 

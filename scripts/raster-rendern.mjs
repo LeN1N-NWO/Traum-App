@@ -89,8 +89,14 @@ if (!JA) {
 
 const refBytes = readFileSync(resolve(refDatei));
 const refUri = `data:image/png;base64,${refBytes.toString("base64")}`;
+/* ⚠ `wardrobe` kommt aus dem TRAUM, nicht aus der Figur — genau die
+   Trennung, die am 24.08. eingebaut wurde. Steht nichts da, bleibt die
+   Klausel wie vorher, und der Bogen bestimmt die Kleidung. */
 const { clauses } = buildReferences(
-  (traum.references || []).map((r) => ({ kind: "person", avatar: { tag: r.tag, desc: "", img: refUri } })),
+  (traum.references || []).map((r) => ({
+    kind: "person", avatar: { tag: r.tag, desc: "", img: refUri },
+    wardrobe: r.wardrobe || traum.wardrobe || "",
+  })),
 );
 
 async function rendern(body) {
