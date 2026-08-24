@@ -375,6 +375,11 @@ const VOICE_TOOLS = [{
           name: { type: "STRING" },
           kind: { type: "STRING", description: "person or pet" },
           desc: { type: "STRING", description: "short visual description, empty if the dream gives none" },
+          /* ⚠ Getrennt von `desc`, und das ist der ganze Punkt: `desc` ist,
+             wie jemand AUSSIEHT, und gilt in jedem Traum; `wearing` gehoert
+             dieser einen Nacht. Wer beides in ein Feld wirft, traegt die
+             Badehose aus Traum 1 bis in Traum 40. */
+          wearing: { type: "STRING", description: "what they wear IN THIS dream, empty unless the dream says" },
         },
         required: ["name", "kind"],
       },
@@ -526,6 +531,13 @@ function voiceSystem({ name = "", cast = [], lang = "", mode = "" } = {}) {
 
     "TOOLS\n" +
     "Call addPerson and addPlace the moment someone or somewhere is named — do not wait for the end. " +
+    /* Die Kleiderfrage (Antons Punkt 1 vom 24.08.). Sie ist EINE Frage,
+       nicht ein Verhoer: gefragt wird nur, wenn der Traum selbst nichts
+       sagt, und nur einmal. Ohne sie bleibt `wearing` leer, und dann
+       traegt jede Figur wieder das, was ihr Bogen zeigt. */
+    "If someone is described as wearing something, put it in addPerson's `wearing` — and if the " +
+    "dream mentions nobody's clothing at all, ask ONCE, lightly, what people were wearing; take " +
+    "whatever comes, including 'no idea', and move on. Never invent clothes they did not name. " + +
     /* Der Abschiedssatz (Antons Wunsch 22.08.): Vorher hörte die Stimme
        einfach auf und die App sprang weiter — ein Gespräch, das mitten im
        Satz endet, fühlt sich nach Absturz an, nicht nach Abschluss. EIN
@@ -1025,7 +1037,8 @@ Schema (every key is required, exactly these names):
     {
       "name": string,      // the name if the dream gives one ("Anton", "Rex"), else a short description in the dream's language ("eine fremde Frau")
       "kind": string,      // "person" or "pet" — an animal is "pet"
-      "desc": string       // short VISUAL description if the dream provides one, else ""
+      "desc": string,      // short VISUAL description if the dream provides one, else ""
+      "wearing": string    // what they wear IN THIS DREAM, if the dream says — else ""
     }
   ],
   "places": string[],      // every distinct location, in order, in the dream's language
@@ -1042,6 +1055,8 @@ Why the language split matters: "text", "people[].name", "places" and "mood" are
 Rules for "text": FIRST understand what actually happened in the dream, then retell it. The input is often dictated speech — fragmented, repetitive, thoughts spoken over each other, false starts. Do not just patch spelling: rewrite it as one flowing, well-told account in the dreamer's language. Merge repetitions, complete fragments, untangle sentences that ran into each other, and make the wording vivid and easy to picture. You may restructure sentences freely as long as the DREAM itself stays untouched: never invent events, people or places that are not there, never drop any, never change the emotional tone, never add interpretation. Keep it first person if it was first person.
 
 Rules for "people": ONE ENTRY PER DISTINCT PERSON. The same person mentioned again later is the SAME entry — "ein Arzt" at the start and "der Arzt" three sentences on are one doctor, not two. Only list a second entry when the dream itself marks someone as different ("ein ANDERER Arzt", "eine zweite Frau"). Two entries that describe the same role in the same scene are always a mistake.
+
+Rules for "wearing": ONLY what the dream itself says about clothing — "im Bademantel", "in einem roten Kleid", "barfuss". Never guess, never dress anyone the dream leaves undressed by description: an empty string is the correct answer for most people in most dreams. This is deliberately separate from "desc": "desc" is what the person LOOKS LIKE and stays true across every dream, "wearing" belongs to THIS ONE NIGHT. Mixing them puts a bathrobe into every future dream.
 
 Name each person the way a casting list would: the bare noun or name, no articles and no possessives — "Arzt", not "ein Arzt" or "der Arzt"; "Anton", not "mein Freund Anton" (put "Freund" in "desc" instead). If a dream truly has two of the same role, distinguish them by something visible ("Arzt mit Brille", "junger Arzt"), never by "anderer".
 
@@ -1121,6 +1136,11 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
         name: sanitizeFragment(p.name, MAX_FRAGMENT),
         kind: p.kind === "pet" ? "pet" : "person",
         desc: sanitizeFragment(p.desc || "", MAX_FRAGMENT),
+        /* Die Garderobe DIESES Traums. Bezahlt bewiesen am 24.08.: 36 von
+           36 Kacheln zogen um, wenn der Satz im Prompt steht. Bis heute
+           konnte ihn niemand fuellen — das Feld existierte, gefragt hat
+           danach nichts. */
+        wearing: sanitizeFragment(p.wearing || "", MAX_FRAGMENT),
       };
     })
     .filter((p) => p && p.name)

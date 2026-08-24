@@ -91,8 +91,15 @@ export function useWizard() {
         if (!name) return acc;
         const kind = typeof item === "object" && item?.kind === "pet" ? "pet" : fallbackKind;
         const hint = (typeof item === "object" && item?.desc) || "";
+        /* Die Garderobe reist als `wardrobe` weiter, weil buildReferences()
+           sie so nennt. ⚠ Der Namenswechsel ist Absicht und kein Schlamperei:
+           Was aus dem Traum kommt, heisst `wearing` (die Analyse und das
+           Sprachwerkzeug sagen so), was in den Prompt geht, heisst
+           `wardrobe`. Wer beide gleich benennt, verliert die Stelle, an der
+           man sieht, dass hier uebersetzt wird. */
+        const wardrobe = (typeof item === "object" && item?.wearing) || "";
         const avatar = autoMatch(name, state.cast, state.me);
-        acc[name] = { name, kind, hint, ...(avatar ? { avatar } : {}) };
+        acc[name] = { name, kind, hint, ...(wardrobe ? { wardrobe } : {}), ...(avatar ? { avatar } : {}) };
         return acc;
       }, {});
     setW((prev) => ({
