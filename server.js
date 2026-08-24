@@ -888,6 +888,45 @@ const REFINE_SHARED_RULES =
   "marks around it, no commentary about what you changed.";
 
 const REFINE_MODES = {
+  /* ── Der Namens-Entschärfer (Antons Ansage 24.08.2026) ──────────────────
+   *
+   * „Nicht, weil es vom User zu viel verlangt, dass er das selbst doch
+   * editieren muss … Dann soll er einfach auf den Button klicken, und die AI
+   * soll die Lösung umschreiben, dass dieser Name nicht vorkommt. Das
+   * erwarte ich von einer smarten App."
+   *
+   * Er hat recht. Die erste Fassung der Fehlermeldung sagte „beschreibe die
+   * Figur, statt sie zu nennen" — ein Rat, der die Arbeit zurückgibt. Ein
+   * Bildmodell lehnt „Freddy Krüger" ab und rendert „ein Mann mit einem
+   * verbrannten Gesicht und Klingen an der rechten Hand" anstandslos; genau
+   * diese Übersetzung kann die KI machen, und zwar besser als der Mensch um
+   * halb drei nachts.
+   *
+   * ⚠ Der Modus ist ABSICHTLICH der engste von allen. Er darf NUR Namen
+   * ersetzen. Sobald er anfängt, nebenbei zu verbessern, hat jemand seinen
+   * Traum gegen einen fremden getauscht — und gemerkt hätte er es erst, wenn
+   * die Bilder da sind.
+   *
+   * ⚠ Und er beschreibt, was zu SEHEN ist, nicht wer es ist. „Der Killer aus
+   * einem bekannten Horrorfilm" wäre dieselbe Ablehnung mit mehr Wörtern:
+   * Die Prüfer erkennen die Umschreibung genauso. Nur eine rein körperliche
+   * Beschreibung kommt durch. */
+  unname:
+    "The dream below was REJECTED by an image generator's content filter, almost " +
+    "certainly because it names a protected character, brand, or well-known real " +
+    "person. Your ONLY job is to replace those names with what they LOOK LIKE.\n" +
+    "- Replace each such name with a short, concrete, PHYSICAL description: what a " +
+    "camera would see. Clothing, face, build, what they carry.\n" +
+    "- Describe, never allude. Do NOT write 'the killer from a famous horror film' " +
+    "or 'a well-known wizard boy' — a filter reads those exactly like the name.\n" +
+    "- Ordinary first names of the dreamer's own friends and family are NOT the " +
+    "problem and MUST stay untouched. Only famous or fictional figures, brands and " +
+    "trademarks.\n" +
+    "- Change NOTHING else: not one other word, not the order, not the tone, not " +
+    "the length beyond what the replacement itself needs.\n" +
+    "- If you find no such name, return the dream completely unchanged." +
+    REFINE_SHARED_RULES,
+
   /* The lightest touch there is. Deliberately forbids improvement of any
    * kind — someone who asks for spelling and gets their voice rewritten
    * has lost something they cannot get back except via "show original". */
@@ -2286,6 +2325,12 @@ Bun.serve({
            "false" aus einem Formular nicht als Ja durchgeht. */
         const imageJob = await falSubmitImage({
           prompt: imagePrompt, namedRefs: cast, aspectRatio, sequenceRef: seqRef,
+          /* ⚠ `grid` entscheidet ueber das PIXELMASZ. Ohne es nimmt fal den
+             Preset-NAMEN, und `portrait_16_9` ist 576×1024 — ein 2×2 daraus
+             hat Kacheln von 288×512, bezahlt und unbrauchbar. Bis zum
+             24.08.2026 kam das Feld gar nicht bis hierher: `falSubmitImage`
+             kannte es, der Aufrufer gab es nie mit. */
+          grid: body.grid === true,
           fallback: body.fallback === true,
         });
         return json({ ok: true, jobId: imageJob });

@@ -73,6 +73,12 @@ const EMPTY = {
   urls: null,
   jobId: null,         // set while a film renders in fal's queue
   sourceUrls: null,    // the dream's existing images, when resumed for a film
+  /* Plan B: mit dem Ausweichmodell rendern statt mit dem Hauptmodell.
+     Wird NUR aus dem Journal gesetzt, nachdem ein Traum an der
+     Inhaltsprüfung gescheitert ist — es gibt keinen Knopf dafür im
+     normalen Ablauf, und das ist Absicht: Plan B ist teurer und liefert
+     kleinere Kacheln (pricing.js). Er ist ein Ausweg, kein Angebot. */
+  fallback: false,
   keyframe: null,      // which of them the film animates ("/media/…")
 };
 

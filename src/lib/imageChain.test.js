@@ -15,7 +15,7 @@ const kette = (over = {}) => ({
 });
 
 test("fällig ist der nächste Schritt erst, wenn der Vorgänger entschieden ist", () => {
-  expect(chainStep(kette())).toEqual({ beatIndex: 1, sequenceRef: "/media/a.png" });
+  expect(chainStep(kette())).toEqual({ beatIndex: 1, sequenceRef: "/media/a.png", step: 1 });
   // Vorgänger rendert noch: warten — genau das ist der Sinn der Kette.
   expect(chainStep(kette({ imageJobs: [{ id: "j1" }] }))).toBe(null);
 });
@@ -38,12 +38,12 @@ test("eine gescheiterte Szene bricht die Kette nicht — der Anker rückt zurüc
     imageJobs: [{ id: "j1", url: "/media/a.png" }, { id: "j2", failed: true }],
     chain: { next: 2, total: 3, beats: ["A", "B", "C"] },
   }));
-  expect(s).toEqual({ beatIndex: 2, sequenceRef: "/media/a.png" });
+  expect(s).toEqual({ beatIndex: 2, sequenceRef: "/media/a.png", step: 1 });
 });
 
 test("scheitert sogar die erste Szene, läuft die Kette ohne Anker weiter", () => {
   const s = chainStep(kette({ imageJobs: [{ id: "j1", failed: true }] }));
-  expect(s).toEqual({ beatIndex: 1, sequenceRef: null });
+  expect(s).toEqual({ beatIndex: 1, sequenceRef: null, step: 1 });
 });
 
 test("eine fertige oder fehlende Kette ist nie fällig", () => {
@@ -90,4 +90,65 @@ test("die Besetzung wird aus Referenzen und Bibliothek rekonstruiert", () => {
 test("der Fingerabdruck nennt nur fällige Ketten", () => {
   expect(chainFingerprint([kette(), { id: "e2" }])).toBe("e1:1");
   expect(chainFingerprint([kette({ imageJobs: [{ id: "j1" }] })])).toBe("");
+});
+
+
+/* ── Der Rasterweg (24.08.2026) ───────────────────────────────────────────
+   Ein Auftrag traegt jetzt VIER Szenen. `chain.next` zaehlt weiter Szenen,
+   `chain.step` sagt, wie viele auf einen Auftrag gehen. Die Tests hier
+   bewachen die drei Stellen, an denen ein Rechenfehler bezahlte Auftraege
+   kostet: doppelt einreichen, zu frueh einreichen, falsch ankern. */
+
+const raster = (over = {}) => ({
+  id: "e1", text: "T", style: "ultrareal", format: "9:16", references: [],
+  chain: { next: 4, total: 8, step: 4, beats: ["A", "B", "C", "D", "E", "F", "G", "H"] },
+  /* ⚠ Der Schnitt haengt am AUFTRAG, nicht am Traum: `tileUrls`. Bei acht
+     Szenen schreibt der Collector `media.urls` erst am ENDE — haette der
+     Anker dort gestanden, haette Raster 2 nie eine Kachel gefunden. */
+  imageJobs: [{
+    id: "g1", url: "/media/raster1.png", tiles: 4,
+    tileUrls: ["/media/t1.png", "/media/t2.png", "/media/t3.png", "/media/t4.png"],
+  }],
+  ...over,
+});
+
+test("beim Raster ist EIN Auftrag fuer vier Szenen genug", () => {
+  const s = chainStep(raster());
+  expect(s.beatIndex).toBe(4);
+  expect(s.step).toBe(4);
+  // ⚠ Der Anker ist die LETZTE KACHEL, nicht das ganze Rasterbild.
+  expect(s.sequenceRef).toBe("/media/t4.png");
+});
+
+/* ⚠ Der teuerste Fehler, den es hier geben koennte: den zweiten Block
+   einreichen, BEVOR der erste geschnitten ist. Der Anker waere dann ein
+   Bild mit vier Szenen darin — das Modell baut ein Raster im Raster, und
+   bezahlt ist es trotzdem. */
+test("die Kette wartet auf den SCHNITT, nicht nur auf das Bild", () => {
+  expect(chainStep(raster({
+    imageJobs: [{ id: "g1", url: "/media/raster1.png", tiles: 4 }],   // ungeschnitten
+  }))).toBe(null);
+});
+
+test("vier Szenen sind mit EINEM Rasterauftrag fertig — nichts steht mehr aus", () => {
+  expect(chainRemaining(raster({
+    chain: { next: 4, total: 4, step: 4, beats: ["A", "B", "C", "D"] },
+  }))).toBe(false);
+});
+
+test("der Rasterauftrag traegt VIER Szenentexte, nicht einen", () => {
+  const sub = buildChainSubmission(raster(), { cast: [], me: null });
+  expect(sub.tiles).toBe(4);
+  for (const b of ["E", "F", "G", "H"]) expect(sub.prompt).toContain(b);
+  // Und es ist wirklich ein RASTER-Prompt, kein Einzelbild-Prompt.
+  expect(sub.prompt.toLowerCase()).toContain("grid");
+});
+
+/* ⚠ Alte Eintraege, die beim Umstellen noch offen im Journal lagen, haben
+   kein `step`. Sie muessen sich exakt wie vorher verhalten — sonst rechnet
+   der Laeufer ihre Auftragszahl falsch und reicht doppelt ein. */
+test("ohne `step` bleibt alles beim Alten", () => {
+  const s = chainStep(kette());
+  expect(s.step).toBe(1);
+  expect(s.beatIndex).toBe(1);
 });

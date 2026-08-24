@@ -133,7 +133,17 @@ export const GRID_SLOTS = GRID_COLS * GRID_ROWS;
  *
  *  ⚠ Das Pixelmaß ist Pflicht, kein Feinschliff: GPTs Presets sind winzig
  *  (`portrait_16_9` = 576×1024). Ohne ausdrückliches Maß käme ein Raster mit
- *  Kacheln von 288×512 zurück — bezahlt und unbrauchbar. */
+ *  Kacheln von 288×512 zurück — bezahlt und unbrauchbar.
+ *
+ *  ⚠⚠ `size` und `tile` sind nur bei Modellen mit FREIEM PIXELMASZ eine
+ *  Zusage. Nano Banana nimmt kein `image_size`, sondern eine Stufe
+ *  (`resolution: "4K"`), und wie groß das Bild dann wirklich wird,
+ *  entscheidet fal — bei 9:16 rund 1533×2734, nicht die 1152×2048, die diese
+ *  Funktion ausrechnet. Für den Auftrag ist das folgenlos (das Feld wird gar
+ *  nicht gesendet) und für den SCHNITT auch: `splitIntoTiles` misst das
+ *  gelieferte Bild selbst und rechnet nie mit dieser Vorhersage. Wer die
+ *  Zahl aber für eine Preis- oder Qualitätsaussage benutzt, rechnet für
+ *  solche Modelle falsch. */
 export function appGrid(modelId) {
   const m = imageModel(modelId);
   const size = containerSize(GRID_COLS, GRID_ROWS, m.maxSide || 2048, "9:16");

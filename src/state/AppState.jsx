@@ -5,7 +5,9 @@ import { collectTick, pendingFingerprint } from "../lib/collector.js";
 import { failureTextKey } from "../lib/falError.js";
 import { giftFor } from "../lib/streakBoard.js";
 import { snoozeCheck } from "../lib/streak.js";
-import { jobStatus, backupJournal, sharedDreams, generate } from "../lib/api.js";
+import { jobStatus, backupJournal, sharedDreams, generate, uploadPanel, mediaUrl } from "../lib/api.js";
+import { splitIntoTiles } from "../lib/splitGrid.js";
+import { GRID_COLS, GRID_ROWS } from "../lib/gridLayout.js";
 import { spend } from "../lib/credits.js";
 import { chainStep, chainFingerprint, buildChainSubmission } from "../lib/imageChain.js";
 import { backupPayload, backupFingerprint, mergeShared } from "../lib/journalBackup.js";
@@ -155,6 +157,65 @@ export function AppStateProvider({ children }) {
      fertigen Szenen bleiben, der Rest ist über „Bild erzeugen" im
      Storyboard einzeln nachholbar. Endlos stumm neu versuchen hieße, im
      Funkloch unbemerkt Kosten anzuhäufen, sobald es wiederkommt. */
+  /* ── Der Schnitt: ein Rasterbild wird zu vier Traumbildern ──────────────
+   *
+   * Warum HIER und nicht im Collector: Der Collector ist bewusst DOM-frei
+   * und ohne Browser testbar. Schneiden ist Canvas-Arbeit — sie gehört in
+   * die Schicht, die ohnehin einen Browser voraussetzt.
+   *
+   * ⚠ ABBRUCHSICHER, und das ist der ganze Punkt. Zwischen „Rasterbild da"
+   * und „vier Kacheln hochgeladen" liegen Sekunden. Wer die App genau dann
+   * schließt, darf beim nächsten Start kein Rasterbild als Traumbild sehen:
+   * Der Auftrag trägt `tiles` und noch kein `tileUrls`, gilt dem Collector
+   * damit als unentschieden, und dieser Effekt macht weiter. Dieselbe Lehre
+   * wie bei clearStalePending().
+   *
+   * ⚠ Und deshalb wird der Fingerabdruck aus den AUFTRÄGEN gebildet, nicht
+   * aus einem Zähler: Solange etwas ungeschnitten ist, steht es drin — auch
+   * nach einem Neustart, an dem kein Effekt „noch lief".
+   */
+  const schnittPrint = (state.journal || [])
+    .flatMap((e) => (e.imageJobs || [])
+      .filter((j) => j.url && j.tiles > 1 && !j.tileUrls)
+      .map((j) => `${e.id}:${j.id}`))
+    .join(",");
+
+  useEffect(() => {
+    if (!schnittPrint) return;
+    let alive = true;
+    (async () => {
+      const [entryId, jobId] = schnittPrint.split(",")[0].split(":");
+      const entry = (stateRef.current.journal || []).find((e) => e.id === entryId);
+      const job = (entry?.imageJobs || []).find((j) => j.id === jobId);
+      if (!job?.url) return;
+
+      let tileUrls;
+      try {
+        const blobs = await splitIntoTiles(mediaUrl(job.url), GRID_COLS, GRID_ROWS);
+        if (!alive) return;
+        tileUrls = [];
+        for (const blob of blobs) tileUrls.push(await uploadPanel(blob));
+      } catch (err) {
+        /* ⚠ Nicht endlos wiederholen. Ein Schnitt scheitert praktisch nur,
+           wenn das Bild gar nicht ladbar ist — und dann hilft der zehnte
+           Versuch so wenig wie der erste, während der Traum ewig „wird
+           erstellt" anzeigt. Lieber das Rasterbild selbst als EIN Bild
+           stehen lassen: sichtbar falsch, aber sichtbar und abgeschlossen,
+           und der Mensch kann Szenen einzeln nachbestellen. */
+        console.error("[DreamRushes] Rasterschnitt fehlgeschlagen:", err);
+        tileUrls = [job.url];
+      }
+      if (!alive || !tileUrls?.length) return;
+      update((prev) => ({
+        journal: (prev.journal || []).map((e) => (e.id === entryId ? {
+          ...e,
+          imageJobs: (e.imageJobs || []).map((j) => (j.id === jobId ? { ...j, tileUrls } : j)),
+        } : e)),
+      }));
+    })();
+    return () => { alive = false; };
+  }, [schnittPrint, update]);
+
   const chainPrint = chainFingerprint(state.journal);
   useEffect(() => {
     if (!chainPrint) return;
@@ -175,19 +236,31 @@ export function AppStateProvider({ children }) {
         const res = await generate({
           dream: entry.text, mode: "image", cast: sub.cast, prompt: sub.prompt,
           sequenceRef: sub.sequenceRef || undefined,
+          /* ⚠ `grid` ist Pflicht, nicht Feinschliff: Erst daran setzt der
+             Server das Pixelmaß aus appGrid(). Ohne es käme der Preset-Name
+             zurück — `portrait_16_9` ist 576×1024, und ein 2×2 daraus hat
+             Kacheln von 288×512. Bezahlt und unbrauchbar. */
+          grid: sub.tiles > 1,
+          fallback: entry.fallback === true,
         });
         if (!alive) return;
         update((prev) => ({
-          ...(spend(prev, 1) || {}),
+          // Ein Rasterauftrag trägt vier Szenen — und kostet vier Credits.
+          ...(spend(prev, sub.tiles) || {}),
           journal: (prev.journal || []).map((e) => (e.id === entry.id ? {
             ...e,
             imageJobs: [
               ...(e.imageJobs || []),
               // Alt-Server antwortet sofort: als bereits entschiedener
               // Auftrag einreihen, dann bleibt die Mechanik eine.
-              res.jobId ? { id: res.jobId } : { id: `sync${sub.beatIndex}`, url: res.urls?.[0] },
+              res.jobId
+                ? { id: res.jobId, tiles: sub.tiles }
+                : { id: `sync${sub.beatIndex}`, url: res.urls?.[0], tiles: sub.tiles },
             ],
-            chain: { ...e.chain, next: e.chain.next + 1 },
+            /* ⚠ `next` zählt SZENEN, springt beim Raster also um vier.
+               Um eins zu erhöhen hieße, denselben Vierer-Block gleich noch
+               dreimal zu bestellen — vier bezahlte Aufträge für ein Bild. */
+            chain: { ...e.chain, next: e.chain.next + sub.tiles },
           } : e)),
         }));
       } catch (err) {

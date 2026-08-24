@@ -191,6 +191,23 @@ export default {
     filmArrived: "✦ Your film is ready",
     /* Hintergrund-Rendern (21.08.): die Kachel eines Traums, dessen
        Bilder noch unterwegs sind, und der Toast, wenn sie ankommen. */
+    /* Der Ausweg, wenn das Hauptmodell einen Traum ablehnt. Bewusst
+       „another model" und nicht „the one that allows it": Nano Banana ist
+       bei geschuetzten Figuren anders streng, nicht weniger — hier wird
+       nichts versprochen. Der Preis steht im Knopf, weil er hoeher ist. */
+    /* Der Knopf, der die URSACHE anfasst — und deshalb der erste ist.
+       Gratis, weil Textarbeit in dieser App immer gratis ist: Fuer einen
+       Fehler Geld zu nehmen, den unser eigenes Modell verursacht hat, waere
+       die falsche Reihenfolge. */
+    fixNames: "Let AI replace the name — free",
+    fixNamesTitle: "Same dream, without the name",
+    fixNamesLede: "The figure is described instead of named. Nothing else was changed — "
+      + "check it, then create the images.",
+    acceptAndMake: "Use this and create the images",
+    /* Der stille Nebenknopf. „Anyway", weil unveraendert noch einmal senden
+       garantiert dieselbe Ablehnung bringt — das soll man ihm ansehen. */
+    tryAgainAnyway: "Send it again unchanged",
+    tryOtherModel: (n) => `Try another model — ${n} credits`,
     renderingTile: "Your dream is being made — you'll get a note when it's ready.",
     dreamReady: (title) => (title ? `✦ “${title}” is ready` : "✦ Your dream is ready"),
     sceneReady: (n) => `✦ Scene ${n} is in`,
@@ -1012,9 +1029,13 @@ export default {
        schickt die Hälfte der Leute an die Stelle, an der nichts zu ändern
        ist. Deshalb rät falError.js beim Ort NICHT: Ist er unklar, kommt
        `policyPlain`. */
-    policyPrompt: "Our image model turned this dream down — usually a "
-      + "protected character or brand name in the text. Describing them "
-      + "instead of naming them almost always gets through.",
+    /* ⚠ Kein Rat mehr, was man selbst tun koennte. Antons Einwand vom
+       24.08.: „Nicht, weil es vom User zu viel verlangt, dass er das selbst
+       doch editieren muss … Das erwarte ich von einer smarten App." Der
+       Satz sagt jetzt nur noch, WAS passiert ist — was zu tun ist, steht
+       auf dem Knopf direkt darunter. */
+    policyPrompt: "Our image model turned this dream down — almost always a "
+      + "protected character or brand name in the text.",
     policyImage: "Our image model turned the reference photo down. A "
       + "different picture of the same person usually works.",
     policyPlain: "Our image model turned this dream down. Rewording it, or "
@@ -1022,6 +1043,11 @@ export default {
     /* Steht UNTER der Erklärung, nicht darin: Was zurückkam, ist Trost,
        kein Vorwurf. Die Zahl kommt aus dem Collector, der bereits erstattet
        hat, bevor dieser Satz erscheint. */
+    /* Beide Modelle haben abgelehnt. Ab hier ist ein drittes Modell kein
+       Angebot mehr, sondern eine Wette — der Text ist der einzige Hebel,
+       der noch wirkt. */
+    policyBothModels: "Both of our image models turned this dream down — it's the "
+      + "wording, not the model. Letting the AI replace the name is the way through.",
     policyRefunded: (n) => `Nothing was charged — ${n} credit${n === 1 ? "" : "s"} went back to your balance.`,
   },
 };

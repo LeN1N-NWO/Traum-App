@@ -138,8 +138,17 @@ export async function transcribe(audio) {
  * sichtbar bleibt, was den Server erreicht. Preis dieser Sichtbarkeit: ein
  * neues Feld muss an BEIDEN Stellen stehen, sonst verschwindet es still —
  * `styleId` und `beats` kamen am 19.08.2026 für den Regisseur dazu. */
-export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats, sequenceRef }) {
-  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats, sequenceRef });
+/* ⚠ Was hier nicht in der Liste steht, kommt beim Server NICHT an — auch
+   wenn der Aufrufer es brav mitgibt. Diese Zeile ist ein stiller Filter, und
+   genau daran ist am 24.08. beinahe der Rasterweg gescheitert: `grid` fehlte,
+   der Server setzte kein Pixelmaß, und ein 2×2 wäre mit Kacheln von 288×512
+   zurückgekommen — bezahlt und unbrauchbar.
+     grid     — ein Bild mit mehreren Szenen darin (2×2). Der Server setzt
+                daraufhin das Rastermaß aus appGrid().
+     fallback — Plan B: das Ausweichmodell. Bewusst ein JA/NEIN und kein
+                Modellname; die Auflösung steht im Server (modelFor). */
+export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats, sequenceRef, grid, fallback }) {
+  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats, sequenceRef, grid, fallback });
   if (Array.isArray(data?.urls)) return { urls: data.urls };
   if (typeof data?.jobId === "string") return { jobId: data.jobId };
   throw new Error(t.errors.unexpected);

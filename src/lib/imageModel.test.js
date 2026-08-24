@@ -1,8 +1,9 @@
 import { describe, test, expect } from "bun:test";
 import {
-  IMAGE_MODELS, DEFAULT_IMAGE_MODEL, imageModel, imageEndpoint, imageSubmitBody,
-  imagePrice, supportsAspect,
+  IMAGE_MODELS, DEFAULT_IMAGE_MODEL, FALLBACK_IMAGE_MODEL, imageModel, imageEndpoint,
+  imageSubmitBody, imagePrice, supportsAspect,
 } from "./imageModel.js";
+import { priceForImages } from "./pricing.js";
 
 describe("imageModel", () => {
   test("faellt bei unbekanntem Namen auf die Vorgabe zurueck, nicht auf undefined", () => {
@@ -278,4 +279,60 @@ test("das Ausweichmodell steht im Server, nicht im Auftrag", () => {
 test("die Filmstufe aus dem Auftrag bleibt auf eine Liste beschraenkt", () => {
   const srv = readFileSync(new URL("../../server.js", import.meta.url), "utf8");
   expect(srv).toMatch(/\[[^\]]*"premium"[^\]]*\]\.includes\(body\.model\)/);
+});
+
+/* ⚠ Der Verdrahtungstest fuer den Rasterweg (24.08.2026). Beim Bauen kam
+   `grid` NICHT bis zum Server durch — zweimal hintereinander, an zwei
+   verschiedenen Stellen:
+     1. `generate()` in api.js listet die Felder einzeln auf und liess es weg.
+     2. Der /api/generate-Zweig in server.js reichte es nicht an
+        falSubmitImage weiter, obwohl die Funktion es kennt.
+   In beiden Faellen haette es keine Fehlermeldung gegeben: Das Raster waere
+   ohne Pixelmass gerendert worden, also mit Kacheln von 288×512 — bezahlt
+   und unbrauchbar. Genau die Fehlerklasse, vor der imageModel.js im Kopf
+   warnt: „Ein falscher Feldname wirft bei fal keinen Fehler." */
+test("das Rasterkennzeichen kommt vom Browser bis zum fal-Auftrag durch", () => {
+  const api = readFileSync(new URL("./api.js", import.meta.url), "utf8");
+  const srv = readFileSync(new URL("../../server.js", import.meta.url), "utf8");
+
+  // 1. generate() nimmt es an UND schickt es weiter.
+  const sig = api.match(/export async function generate\(\{([^}]*)\}/)?.[1] || "";
+  expect(sig).toContain("grid");
+  const body = api.match(/post\("\/api\/generate", \{([^}]*)\}/)?.[1] || "";
+  expect(body).toContain("grid");
+
+  // 2. Der Server liest es und gibt es an den Bildauftrag weiter.
+  expect(srv).toMatch(/grid:\s*body\.grid === true/);
+
+  // 3. Und der Bildauftrag setzt daraus wirklich ein Mass.
+  expect(srv).toMatch(/grid \? appGrid\(/);
+});
+
+/* ── Plan B: Preis und Verdrahtung (24.08.2026) ───────────────────────────
+   Der Ausweg kostet mehr, WEIL er uns mehr kostet. Die Zahl ist am
+   Jahresabo nachgerechnet — dem engsten Plan der ganzen Liste: Zum gleichen
+   Preis laege Plan B dort bei 1,19× statt der angepeilten 1,5×. */
+test("Plan B kostet anderthalbmal so viel — und deckt den Mehrpreis", () => {
+  const g = appGrid(FALLBACK_IMAGE_MODEL);
+  const einkaufB = imagePrice(FALLBACK_IMAGE_MODEL, imageStage(FALLBACK_IMAGE_MODEL), g.size);
+  const einkaufA = imagePrice(DEFAULT_IMAGE_MODEL, imageStage(DEFAULT_IMAGE_MODEL),
+                              appGrid(DEFAULT_IMAGE_MODEL).size);
+
+  // Der Aufschlag im Verkauf muss den Aufschlag im Einkauf mindestens decken.
+  const verkauf = priceForImages(4, true) / priceForImages(4, false);
+  expect(verkauf).toBeGreaterThanOrEqual(einkaufB / einkaufA);
+
+  // Und acht Szenen kosten genau das Doppelte von vier — keine Mengenrabatte.
+  expect(priceForImages(8, true)).toBe(priceForImages(4, true) * 2);
+});
+
+/* ⚠ Ohne Stufe rendert Nano Banana in 1K statt 4K: Kacheln von 384×683
+   statt ~766×1367. Bezahlt und unbrauchbar — und ohne Fehlermeldung. */
+test("das Ausweichmodell kennt seine Stufe", () => {
+  expect(imageStage(FALLBACK_IMAGE_MODEL)).toBeTruthy();
+  const { input } = imageSubmitBody(FALLBACK_IMAGE_MODEL, {
+    prompt: "x", imageUrls: ["data:a"], aspectRatio: "9:16",
+    quality: imageStage(FALLBACK_IMAGE_MODEL), resolution: imageStage(FALLBACK_IMAGE_MODEL),
+  });
+  expect(input.resolution).toBe("4K");
 });

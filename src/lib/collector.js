@@ -108,7 +108,13 @@ export async function collectTick(journal, ask) {
         }
       }
 
-      const settled = jobs.every((j) => j.url || j.failed);
+      /* ⚠ Ein Rasterauftrag ist erst entschieden, wenn er auch GESCHNITTEN
+         ist. Ohne diese Bedingung schriebe der Collector das ganze Raster als
+         Traumbild fort — ein Bild mit vier Szenen darin, und der Traum wäre
+         „fertig". Der Schnitt selbst steht in AppState (Canvas); der
+         Collector bleibt DOM-frei und wartet nur. */
+      const geschnitten = (j) => !(j.tiles > 1) || !!j.tileUrls;
+      const settled = jobs.every((j) => j.failed || (j.url && geschnitten(j)));
 
       /* ── ⚠ Der Abbruch bei chancenlosen Fehlern (24.08.2026) ───────────
          Antons Freddy-Krüger-Traum: Szene 1 wurde als
@@ -144,9 +150,22 @@ export async function collectTick(journal, ask) {
          media.urls und meldete „dein Traum ist da" — mit einem Bild von
          fünf. */
       if (settled && (!chainRemaining(e) || chancenlos)) {
-        const urls = jobs.map((j) => j.url).filter(Boolean);
-        const failed = jobs.length - urls.length;
+        /* ⚠ Die Kacheln, nicht das Rasterbild. `tileUrls` setzt der
+           Schnitt-Effekt in AppState; bis dahin gilt der Auftrag als nicht
+           entschieden (siehe `settled` oben). Bei Einzelbildern gibt es kein
+           `tileUrls`, und `url` ist schon das fertige Bild. */
+        const urls = jobs.flatMap((j) => j.tileUrls || (j.url ? [j.url] : []));
+
+        /* ⚠ Erstattet wird in SZENEN, nicht in Aufträgen (seit dem Rasterweg,
+           24.08.2026). Ein Rasterauftrag trägt vier Szenen und ist mit vier
+           Credits bezahlt; ihn als EINEN zu erstatten hieße, drei Viertel
+           des Geldes für ein Bild zu behalten, das es nie gab. Vor dem
+           Raster war `tiles` überall 1 und die Rechnung dieselbe. */
+        const szenen = (j) => Math.max(1, j.tiles || 1);
+        const failed = jobs.filter((j) => !j.url).reduce((n, j) => n + szenen(j), 0);
         refund += failed + nieBestellt;
+
+
         next.push({
           ...e,
           media: {

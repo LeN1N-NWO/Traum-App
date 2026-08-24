@@ -6,6 +6,7 @@ import { buildReferences, buildImagePrompt, buildGridPrompt } from "../lib/promp
 import { generate, renderImages, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
 import { needsSheet, renderRef, sheetFingerprint, compactDataUrl } from "../lib/sheets.js";
 import { splitIntoPanels } from "../lib/splitGrid.js";
+import { GRID_COLS, GRID_ROWS, GRID_SLOTS } from "../lib/gridLayout.js";
 import { genId } from "../lib/storage.js";
 import { bumpStreak, refreshStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
@@ -57,7 +58,10 @@ export default function Step5Style({ w, patch }) {
   const price = isFilm
     ? priceForFilm(w.videoModel, w.seconds, { ownKeyframe })
     : isPreview ? PRICES.preview
-    : priceForImages(w.imageCount);
+    /* ⚠ Plan B kostet mehr, weil er uns mehr kostet: Nano Banana im
+       4K-Raster $0,16 gegen $0,113. Die Zahl steht in pricing.js, nicht
+       hier — und sie ist am Jahresabo nachgerechnet, dem engsten Plan. */
+    : priceForImages(w.imageCount, w.fallback);
   const assignments = Object.values(w.assignments);
   const named = assignments.filter((a) => a.avatar?.img).length;
 
@@ -157,6 +161,13 @@ export default function Step5Style({ w, patch }) {
       analysis: w.analysis || null,
       references: entryRefs,
       pending: { kind: isFilm ? "film" : "images", n: isFilm ? 1 : jobs.length },
+      /* ⚠ Am TRAUM, nicht nur im Wizard: Bei acht Szenen reicht der
+         Ketten-Läufer in AppState den zweiten Block nach, und der liest
+         allein den Journaleintrag. Stünde die Marke nur hier, ginge Block 2
+         zum Hauptmodell — also genau zu dem, das eben abgelehnt hat. */
+      fallback: w.fallback === true ? true : undefined,
+      // Ein neuer Versuch beginnt ohne den alten Grund.
+      failReason: undefined,
     };
 
     if (isNewEntry) {
@@ -382,47 +393,99 @@ export default function Step5Style({ w, patch }) {
          Alt-Server, der sofort mit urls antwortet: dann läuft die Kette
          gleich hier in der Schleife weiter, mit der frischen URL als
          Anker — dieselbe Logik, nur ohne Warten. */
+      /* ── Der Rasterweg (Antons Entscheidung 24.08.2026) ─────────────────
+       *
+       * Vier Szenen entstehen in EINEM Bild, nicht in vier. Der Grund ist
+       * gemessen, nicht ästhetisch: $0,113 für ein 2×2 gegen $0,272 für vier
+       * Einzelbilder derselben Stufe — und die vier Kacheln teilen sich von
+       * selbst Licht, Palette und Welt, wofür die Kette sonst vier Runden
+       * und vier Wartezeiten braucht.
+       *
+       * ⚠ 2×2 ist die Rastereinheit, nicht 3×3: Ein Behälter im Verhältnis
+       * (2×9):(2×16) zerfällt in exakte 9:16-Kacheln — dasselbe Format wie
+       * die App. Deshalb ist es der einzige Zuschnitt, der ohne Sonderformat
+       * auskommt (gridLayout.js).
+       *
+       * ⚠ Der Preis bleibt 1 Credit JE SZENE, nicht je Auftrag. Vier Credits
+       * für ein Rasterbild ist richtig: Der Mensch bekommt vier Bilder. Was
+       * sich geändert hat, ist unser Einkauf — nicht sein Preis.
+       *
+       * Bei acht Szenen gehen zwei Raster raus, das zweite verankert auf der
+       * LETZTEN KACHEL des ersten. Deshalb wartet die Kette dort nicht nur
+       * auf das Bild, sondern auf den Schnitt (imageChain.js).
+       */
+      const SCHRITT = GRID_SLOTS;
+
       const submitted = [];
       const readyUrls = [];
       let submitError = null;
-      let lastSyncUrl = null;
-      for (let i = 0; i < jobs.length; i++) {
-        const beat = jobs[i];
-        const prompt = buildImagePrompt({
-          beat, styleId: w.styleId, format: w.format,
-          clauses, index: i + 1, total: jobs.length, prevFrame: !!lastSyncUrl,
-        });
+      /* ⚠ Kein `lastSyncUrl` mehr. Es hielt das zuletzt SOFORT gelieferte Bild
+         als Anker für die nächste Runde fest — seit der Alt-Server-Zweig wie
+         die Warteschlange abbricht, gibt es keine nächste Runde mehr, die es
+         lesen könnte. Beim Raster wäre es ohnehin das falsche Bild gewesen:
+         das ungeschnittene Raster statt seiner letzten Kachel. Den Anker
+         setzt jetzt ausschließlich die Kette (imageChain.js). */
+      for (let i = 0; i < jobs.length; i += SCHRITT) {
+        const block = jobs.slice(i, i + SCHRITT);
+        const prompt = SCHRITT > 1
+          ? buildGridPrompt({
+              beats: block, styleId: w.styleId, clauses,
+              cols: GRID_COLS, rows: GRID_ROWS, tile: w.format,
+            })
+          : buildImagePrompt({
+              beat: block[0], styleId: w.styleId, format: w.format,
+              clauses, index: i + 1, total: jobs.length, prevFrame: false,
+            });
         try {
           const res = await generate({
             dream: w.text, mode: "image", cast: castForApi, prompt,
-            sequenceRef: lastSyncUrl || undefined,
+            grid: SCHRITT > 1,
+            fallback: w.fallback === true,
           });
           if (res.jobId) {
-            submitted.push({ id: res.jobId });
+            submitted.push({ id: res.jobId, tiles: SCHRITT });
             update((prev) => ({
-              ...(spend(prev, 1) || {}),
+              // Je SZENE bezahlt, nicht je Auftrag — siehe oben.
+              ...(spend(prev, block.length) || {}),
               journal: (prev.journal || []).map((e) => (e.id === entryId ? {
                 ...e,
-                imageJobs: [...(e.imageJobs || []), { id: res.jobId }],
-                ...(jobs.length > 1 ? { chain: { next: i + 1, total: jobs.length, beats: jobs } } : {}),
+                imageJobs: [...(e.imageJobs || []), { id: res.jobId, tiles: SCHRITT }],
+                /* Eine Kette gibt es nur, wenn nach diesem Block noch etwas
+                   kommt. Bei vier Szenen im 2×2 ist das nie der Fall — sie
+                   entstehen in einem Zug, genau wie Anton es entworfen hat. */
+                ...(jobs.length > i + block.length
+                  ? { chain: { next: i + block.length, total: jobs.length, beats: jobs, step: SCHRITT } }
+                  : {}),
               } : e)),
             }));
             // Warteschlangen-Welt: ab hier übernimmt der Ketten-Läufer.
             setDone((n) => n + 1);
             break;
           } else if (res.urls?.length) {
-            lastSyncUrl = res.urls[0];
+            /* Alt-Server, der sofort mit Bildern antwortet.
+             *
+             * ⚠ Seit dem Rasterweg darf das Ergebnis NICHT mehr direkt nach
+             * media.urls: Es ist ein Bild mit vier Szenen darin, und
+             * ungeschnitten wäre es ein Rasterbild als Traumbild. Also
+             * genauso einreihen wie einen Warteschlangen-Auftrag — als
+             * bereits entschieden — und den Schnitt-Effekt in AppState
+             * dieselbe Arbeit tun lassen. Eine Mechanik statt zwei. */
             readyUrls.push(...res.urls);
             update((prev) => ({
-              ...(spend(prev, res.urls.length) || {}),
+              ...(spend(prev, block.length) || {}),
               journal: (prev.journal || []).map((e) => (e.id === entryId ? {
                 ...e,
-                media: {
-                  type: "image", source: "api", poster: false,
-                  urls: [...(e.media?.urls || []), ...res.urls],
-                },
+                imageJobs: [
+                  ...(e.imageJobs || []),
+                  { id: `sync${i}`, url: res.urls[0], tiles: SCHRITT },
+                ],
+                ...(jobs.length > i + block.length
+                  ? { chain: { next: i + block.length, total: jobs.length, beats: jobs, step: SCHRITT } }
+                  : {}),
               } : e)),
             }));
+            setDone((n) => n + 1);
+            break;
           }
         } catch (err) {
           submitError = err;
