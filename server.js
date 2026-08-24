@@ -57,6 +57,7 @@ import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
 import { imageSubmitBody, imageModel, IMAGE_MODELS, DEFAULT_IMAGE_MODEL,
          pickImageModel, retiredReason, lieferbareModelle, imageStage, imagePrice }
   from "./src/lib/imageModel.js";
+import { failureReason } from "./src/lib/falError.js";
 import { appGrid, GRID_SLOTS } from "./src/lib/gridLayout.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
@@ -1219,14 +1220,32 @@ async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", 
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
     body: JSON.stringify(input),
   });
+  /* ⚠ Der Grund muss aus dem RUMPF kommen, nicht aus dem Status. Bei einem
+     Policy-Verstoß antwortet fal.run mit 4xx UND einer Begründung im Body;
+     `res.text()` in eine Konsolenzeile zu kippen hat sie bis zum 24.08.2026
+     an genau der Stelle verloren, an der der Kunde sie gebraucht hätte.
+     Derselbe Fehler wie im Warteschlangen-Weg (jobStatus), nur synchron. */
+  const roh = await res.text().catch(() => "");
+  const data = (() => { try { return JSON.parse(roh); } catch { return null; } })();
   if (!res.ok) {
-    console.error("[DreamRushes] fal.ai image request failed:", res.status, await res.text().catch(() => ""));
-    throw new Error("GENERATION_FAILED");
+    console.error("[DreamRushes] fal.ai image request failed:", res.status, roh.slice(0, 400));
+    throw imageFailure(data);
   }
-  const data = await res.json().catch(() => null);
   const urls = (data?.images || []).map((img) => img?.url).filter(Boolean);
-  if (!urls.length) throw new Error("GENERATION_FAILED");
+  if (!urls.length) throw imageFailure(data);
   return urls;
+}
+
+/** Ein GENERATION_FAILED, das seinen Grund mitträgt.
+ *
+ *  Warum ein Fehler-OBJEKT und kein zweiter Rückgabewert: Dieser Pfad ist
+ *  über `throw` verdrahtet, quer durch mehrere Aufrufer. Ein zusätzlicher
+ *  Rückgabewert hätte jeden davon geändert; ein Feld am Fehler reist von
+ *  selbst mit, und wer es nicht liest, verhält sich exakt wie vorher. */
+function imageFailure(data) {
+  const err = new Error("GENERATION_FAILED");
+  err.reason = failureReason(data);
+  return err;
 }
 
 /* ---- the queue path ----
@@ -1345,8 +1364,12 @@ async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", se
     body: JSON.stringify(input),
   });
   if (!res.ok) {
-    console.error("[DreamRushes] fal.ai image submit failed:", model, res.status, await res.text().catch(() => ""));
-    throw new Error("GENERATION_FAILED");
+    /* Manches lehnt fal schon beim EINREICHEN ab, nicht erst beim Rendern —
+       dann gibt es nie einen Auftrag, den der Collector nachfassen könnte,
+       und dies ist die einzige Gelegenheit, den Grund zu erfahren. */
+    const roh = await res.text().catch(() => "");
+    console.error("[DreamRushes] fal.ai image submit failed:", model, res.status, roh.slice(0, 400));
+    throw imageFailure((() => { try { return JSON.parse(roh); } catch { return null; } })());
   }
   const { request_id, status_url, response_url } = await res.json();
   if (!request_id) throw new Error("GENERATION_FAILED");
@@ -1370,7 +1393,7 @@ async function jobStatus(id) {
   const job = await readJob(id);
   if (!job) return { status: "unknown" };
   if (job.status === "done") return { status: "done", urls: job.urls };
-  if (job.status === "failed") return { status: "failed" };
+  if (job.status === "failed") return { status: "failed", reason: job.reason || null };
 
   const key = process.env.FAL_KEY;
   /* Jobs written since 09.08.2026 carry fal's own URLs. Older ones fall back
@@ -1384,8 +1407,16 @@ async function jobStatus(id) {
   const st = await s.json();
 
   if (st.status === "FAILED") {
-    await writeJob(id, { ...job, status: "failed" });
-    return { status: "failed" };
+    /* ⚠ Auch hier die Antwort HOLEN, bevor der Auftrag als gescheitert
+       weggeschrieben wird. fal legt den Grund in den Response-Rumpf, nicht
+       in den Status — wer nur den Status liest, verliert ihn endgültig.
+       Ein Aussetzer beim Nachfassen darf den Fehler nicht verschlucken:
+       dann eben ohne Grund, aber nie ohne „gescheitert". */
+    const roh = await fetch(base, { headers: { Authorization: `Key ${key}` } })
+      .then((x) => x.json()).catch(() => null);
+    const reason = failureReason(roh);
+    await writeJob(id, { ...job, status: "failed", reason });
+    return { status: "failed", reason };
   }
   if (st.status !== "COMPLETED") return { status: "pending" };
 
@@ -1398,8 +1429,15 @@ async function jobStatus(id) {
     ? [data?.video?.url || data?.videos?.[0]?.url]
     : (data?.images || []).map((img) => img?.url).filter(Boolean);
   if (!found.length) {
-    await writeJob(id, { ...job, status: "failed" });
-    return { status: "failed" };
+    /* ⚠⚠ HIER ist Antons Freddy-Krüger-Fehler gestorben (24.08.2026).
+       `data` enthält in genau diesem Fall fals Begründung —
+       `{detail:[{type:"content_policy_violation", loc:["body","prompt"], …}]}` —
+       und diese Zeilen haben sie weggeworfen. Der Kunde bekam „Versuch es
+       noch mal", was bei einem Policy-Verstoß der einzige Rat ist, der
+       garantiert nicht funktioniert. */
+    const reason = failureReason(data);
+    await writeJob(id, { ...job, status: "failed", reason });
+    return { status: "failed", reason };
   }
   const urls = await storeAll(found);
   await writeJob(id, { ...job, status: "done", urls });
@@ -2216,7 +2254,11 @@ Bun.serve({
           GENERATION_FAILED: [502, "Image/video generation did not complete."],
         };
         const hit = map[e.message];
-        if (hit) return json({ error: hit[1] }, hit[0]);
+        /* ⚠ `reason` MUSS mit. Der Text in `map` ist Englisch und technisch —
+           er ist die Notbremse, nicht die Meldung, die jemand liest. Was die
+           App übersetzt anzeigt, baut sie aus `reason.kind`; ohne dieses Feld
+           bliebe ihr nur wieder „versuch es noch mal". */
+        if (hit) return json({ error: hit[1], reason: e.reason || null }, hit[0]);
         // Don't echo internals (paths, key fragments) to the client.
         console.error("[DreamRushes] /api/generate failed:", e);
         return json({ error: "Server error." }, 500);

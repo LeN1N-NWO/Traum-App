@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef } f
 import { loadState, saveState, DB_KEY } from "../lib/storage.js";
 import { buildSeedJournal } from "../lib/seedJournal.js";
 import { collectTick, pendingFingerprint } from "../lib/collector.js";
+import { failureTextKey } from "../lib/falError.js";
 import { giftFor } from "../lib/streakBoard.js";
 import { snoozeCheck } from "../lib/streak.js";
 import { jobStatus, backupJournal, sharedDreams, generate } from "../lib/api.js";
@@ -119,7 +120,13 @@ export function AppStateProvider({ children }) {
           else if (kind === "filmArrived") toast(t.journal.filmArrived);
           else if (kind === "sceneReady") toast(t.journal.sceneReady(extra));
           else if (kind === "refunded") toast(t.journal.imagesRefunded(extra));
-          else if (kind === "renderFailed") toast(`⚠ ${t.errors.renderFailed}`);
+          /* ⚠ `extra` ist hier der GRUND (falError.js), nicht die Anzahl.
+             Vor dem 24.08.2026 stand hier ein fester Satz, der auf „versuch
+             es noch mal" endete — bei einem Policy-Verstoß der einzige Rat,
+             der garantiert nicht funktioniert. Der Grund kommt vom Server
+             durch bis hierher; die Zuordnung zum Text macht falError.js,
+             damit Toast und Journal denselben Satz zeigen. */
+          else if (kind === "renderFailed") toast(`⚠ ${t.errors[failureTextKey(extra)]}`);
         }
       } finally {
         busy = false;
@@ -186,10 +193,16 @@ export function AppStateProvider({ children }) {
       } catch (err) {
         if (!alive) return;
         console.error("[DreamRushes] chain submit failed:", err);
+        /* Auch der Einreichungs-Fehler trägt seinen Grund: fal lehnt manches
+           schon beim Einreichen ab, und dann gibt es nie einen Auftrag, den
+           der Collector nachfassen könnte. `err.reason` kommt aus dem Server
+           (imageFailure) durch api.js hierher. */
+        const grund = err?.reason || null;
         update((prev) => ({
-          journal: (prev.journal || []).map((e) => (e.id === entry.id ? { ...e, chain: undefined } : e)),
+          journal: (prev.journal || []).map((e) => (e.id === entry.id
+            ? { ...e, chain: undefined, failReason: grund } : e)),
         }));
-        toast(`⚠ ${t.errors.renderFailed}`);
+        toast(`⚠ ${t.errors[failureTextKey(grund)]}`);
       }
     })();
     return () => { alive = false; };

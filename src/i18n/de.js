@@ -927,5 +927,13 @@ export default {
     serverStatus: (s) => `Server antwortete mit ${s}.`,
     timeout: "Der Dienst hat nicht geantwortet. Prüf deine Verbindung und versuch es gleich noch mal.",
     renderFailed: "Die Generierung hat diesmal nicht geklappt. Versuch es noch mal.",
+    policyPrompt: "Unser Bildmodell hat diesen Traum abgelehnt — meist wegen "
+      + "einer geschützten Figur oder eines Markennamens im Text. Sie zu "
+      + "beschreiben statt sie zu nennen, geht fast immer durch.",
+    policyImage: "Unser Bildmodell hat das Referenzfoto abgelehnt. Ein "
+      + "anderes Bild derselben Person klappt meistens.",
+    policyPlain: "Unser Bildmodell hat diesen Traum abgelehnt. Anders "
+      + "formulieren oder ein Referenzfoto tauschen hilft meistens.",
+    policyRefunded: (n) => `Nichts berechnet — ${n} Credit${n === 1 ? "" : "s"} sind zurück auf deinem Konto.`,
   },
 };

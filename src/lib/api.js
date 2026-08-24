@@ -56,7 +56,16 @@ async function post(path, body, { timeout = TIMEOUTS.default } = {}) {
     throw friendly(err);
   }
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.error || t.errors.serverStatus(res.status));
+  if (!res.ok) {
+    /* ⚠ Der GRUND muss am Fehler hängen bleiben (24.08.2026). Der Server
+       schickt bei einer inhaltlichen Ablehnung `reason` mit; ein blankes
+       `new Error(text)` hätte ihn hier verloren, und die App wäre wieder
+       bei „versuch es noch mal" gelandet — genau dem Rat, der bei einem
+       Policy-Verstoß nicht funktioniert. */
+    const err = new Error(data?.error || t.errors.serverStatus(res.status));
+    if (data?.reason) err.reason = data.reason;
+    throw err;
+  }
   return data;
 }
 
@@ -164,7 +173,12 @@ export async function awaitJob(jobId, { onTick } = {}) {
       const r = await jobStatus(jobId);
       misses = 0;
       if (r.status === "done") return r.urls || [];
-      if (r.status === "failed") throw new Error(t.errors.renderFailed);
+      if (r.status === "failed") {
+        // Derselbe Grund wie oben, nur auf dem Warteschlangen-Weg.
+        const err = new Error(t.errors.renderFailed);
+        err.reason = r.reason || null;
+        throw err;
+      }
       // "pending" und "unknown": weiter fragen. "unknown" heisst bei einem
       // gerade erst angelegten Auftrag oft nur, dass die Datei noch nicht
       // auf der Platte war.

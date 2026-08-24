@@ -1000,5 +1000,28 @@ export default {
     // Der Auftrag kam als gescheitert zurück — anders als ein Aussetzer,
     // den awaitJob einfach weiter versucht.
     renderFailed: "The generation didn't work out this time. Try again.",
+
+    /* ── Warum es nicht ging (24.08.2026) ────────────────────────────────
+       Bis hierher gab es genau EINEN Satz für jeden Fehlschlag, und er
+       endete auf „Try again." Bei einem Policy-Verstoß ist das der einzige
+       Rat, der garantiert nicht funktioniert: Der Text bleibt derselbe,
+       also bleibt die Ablehnung dieselbe.
+
+       ⚠ Die beiden Sätze unten sind GEGENSÄTZLICH — der eine schickt
+       jemanden zum Traumtext, der andere zum Foto. Wer den falschen zeigt,
+       schickt die Hälfte der Leute an die Stelle, an der nichts zu ändern
+       ist. Deshalb rät falError.js beim Ort NICHT: Ist er unklar, kommt
+       `policyPlain`. */
+    policyPrompt: "Our image model turned this dream down — usually a "
+      + "protected character or brand name in the text. Describing them "
+      + "instead of naming them almost always gets through.",
+    policyImage: "Our image model turned the reference photo down. A "
+      + "different picture of the same person usually works.",
+    policyPlain: "Our image model turned this dream down. Rewording it, or "
+      + "swapping a reference photo, usually gets it through.",
+    /* Steht UNTER der Erklärung, nicht darin: Was zurückkam, ist Trost,
+       kein Vorwurf. Die Zahl kommt aus dem Collector, der bereits erstattet
+       hat, bevor dieser Satz erscheint. */
+    policyRefunded: (n) => `Nothing was charged — ${n} credit${n === 1 ? "" : "s"} went back to your balance.`,
   },
 };
