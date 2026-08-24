@@ -152,7 +152,22 @@
   text-decoration: underline; text-underline-offset: .2em;
 }
 
-.ob-mascot { margin-bottom: var(--s-4); animation: ob-float 3.6s ease-in-out infinite; }
+/* ⚠ Die Schwebe-Animation ist am 24.08.2026 WEG, nicht vergessen worden:
+   Das Maskottchen ist jetzt ein Film, der sich selbst bewegt (Mascot.jsx).
+   Zwei Bewegungen übereinander sahen aus wie ein Fehler — und ein Frosch,
+   der schwebt, sowieso. Die Keyframes bleiben stehen, weil der
+   Wisch-Hinweis sie mitbenutzt. */
+.ob-mascot { margin-bottom: var(--s-4); }
+
+/* Der Trick, der ohne Alphakanal auskommt: `screen` rechnet das Schwarz der
+   Quelle auf Null, der Seitenhintergrund scheint durch. Begründung und
+   Grenzen stehen im Kopf von Mascot.jsx. */
+.ob-mascot-film {
+  display: block;
+  width: 160px; height: 160px;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
 @keyframes ob-float {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-9px); }
