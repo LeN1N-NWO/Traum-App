@@ -81,7 +81,15 @@ export default function VoiceInterview({ onDone, onEarly, onDraft, onCancel }) {
         if (name === "setDreamText" && args.text) { c.text = args.text; draftSettled(); }
         if (name === "addPerson" && args.name) {
           if (!c.people.some((p) => p.name === args.name)) {
-            c.people.push({ name: args.name, kind: args.kind === "pet" ? "pet" : "person", desc: args.desc || "" });
+            c.people.push({
+              name: args.name,
+              kind: args.kind === "pet" ? "pet" : "person",
+              desc: args.desc || "",
+              /* Die Garderobe DIESES Traums — nicht die der Figur.
+                 ⚠ Getrennt von `desc` halten: `desc` gilt fuer immer,
+                 `wearing` fuer diese eine Nacht. Siehe buildReferences(). */
+              wearing: args.wearing || "",
+            });
           }
         }
         if (name === "addPlace" && args.name && !c.places.includes(args.name)) c.places.push(args.name);

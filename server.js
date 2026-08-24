@@ -54,7 +54,10 @@ import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
  * 23.08. in EINER Tabelle (src/lib/imageModel.js) — Seedream und Nano Banana
  * sprechen nicht dieselbe Sprache, und ein falscher Feldname wirft keinen
  * Fehler, er liefert nur das Falsche. */
-import { imageSubmitBody, imageModel, IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from "./src/lib/imageModel.js";
+import { imageSubmitBody, imageModel, IMAGE_MODELS, DEFAULT_IMAGE_MODEL,
+         pickImageModel, retiredReason, lieferbareModelle, imageStage, imagePrice }
+  from "./src/lib/imageModel.js";
+import { appGrid, GRID_SLOTS } from "./src/lib/gridLayout.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
   DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
@@ -115,7 +118,12 @@ const MAX_CRAFTED_PROMPT = 3000; // ceiling on what DeepSeek is allowed to hand 
  *
  * Rückweg bei Befund, ohne Codeänderung:
  *   FAL_MODEL_IMAGE=nano-banana-2-lite   (oder nano-banana-2) in .env */
-const FAL_MODEL_IMAGE = process.env.FAL_MODEL_IMAGE || DEFAULT_IMAGE_MODEL;
+/* ⚠ EINE Stelle für die Auswahl (seit 24.08.). `pickImageModel` gibt ein
+ * außer Dienst gestelltes Modell nicht mehr heraus — Seedream fliegt damit
+ * auch dann raus, wenn es in einer alten .env noch dranstehen sollte. Die
+ * Startmeldung unten sagt, dass und warum. */
+const IMAGE_PICK = pickImageModel(process.env.FAL_MODEL_IMAGE);
+const FAL_MODEL_IMAGE = IMAGE_PICK.id;
 /* Videomodelle stehen NICHT mehr hier: Slug, Dauergrenzen, Auflösung und
  * Tonparameter je Modell leben in src/lib/video.js (videoSubmitBody) —
  * dieselbe Tabelle, aus der auch der Preis und die UI kommen. Eine zweite
@@ -367,6 +375,11 @@ const VOICE_TOOLS = [{
           name: { type: "STRING" },
           kind: { type: "STRING", description: "person or pet" },
           desc: { type: "STRING", description: "short visual description, empty if the dream gives none" },
+          /* ⚠ Getrennt von `desc`, und das ist der ganze Punkt: `desc` ist,
+             wie jemand AUSSIEHT, und gilt in jedem Traum; `wearing` gehoert
+             dieser einen Nacht. Wer beides in ein Feld wirft, traegt die
+             Badehose aus Traum 1 bis in Traum 40. */
+          wearing: { type: "STRING", description: "what they wear IN THIS dream, empty unless the dream says" },
         },
         required: ["name", "kind"],
       },
@@ -518,6 +531,13 @@ function voiceSystem({ name = "", cast = [], lang = "", mode = "" } = {}) {
 
     "TOOLS\n" +
     "Call addPerson and addPlace the moment someone or somewhere is named — do not wait for the end. " +
+    /* Die Kleiderfrage (Antons Punkt 1 vom 24.08.). Sie ist EINE Frage,
+       nicht ein Verhoer: gefragt wird nur, wenn der Traum selbst nichts
+       sagt, und nur einmal. Ohne sie bleibt `wearing` leer, und dann
+       traegt jede Figur wieder das, was ihr Bogen zeigt. */
+    "If someone is described as wearing something, put it in addPerson's `wearing` — and if the " +
+    "dream mentions nobody's clothing at all, ask ONCE, lightly, what people were wearing; take " +
+    "whatever comes, including 'no idea', and move on. Never invent clothes they did not name. " + +
     /* Der Abschiedssatz (Antons Wunsch 22.08.): Vorher hörte die Stimme
        einfach auf und die App sprang weiter — ein Gespräch, das mitten im
        Satz endet, fühlt sich nach Absturz an, nicht nach Abschluss. EIN
@@ -1017,7 +1037,8 @@ Schema (every key is required, exactly these names):
     {
       "name": string,      // the name if the dream gives one ("Anton", "Rex"), else a short description in the dream's language ("eine fremde Frau")
       "kind": string,      // "person" or "pet" — an animal is "pet"
-      "desc": string       // short VISUAL description if the dream provides one, else ""
+      "desc": string,      // short VISUAL description if the dream provides one, else ""
+      "wearing": string    // what they wear IN THIS DREAM, if the dream says — else ""
     }
   ],
   "places": string[],      // every distinct location, in order, in the dream's language
@@ -1034,6 +1055,8 @@ Why the language split matters: "text", "people[].name", "places" and "mood" are
 Rules for "text": FIRST understand what actually happened in the dream, then retell it. The input is often dictated speech — fragmented, repetitive, thoughts spoken over each other, false starts. Do not just patch spelling: rewrite it as one flowing, well-told account in the dreamer's language. Merge repetitions, complete fragments, untangle sentences that ran into each other, and make the wording vivid and easy to picture. You may restructure sentences freely as long as the DREAM itself stays untouched: never invent events, people or places that are not there, never drop any, never change the emotional tone, never add interpretation. Keep it first person if it was first person.
 
 Rules for "people": ONE ENTRY PER DISTINCT PERSON. The same person mentioned again later is the SAME entry — "ein Arzt" at the start and "der Arzt" three sentences on are one doctor, not two. Only list a second entry when the dream itself marks someone as different ("ein ANDERER Arzt", "eine zweite Frau"). Two entries that describe the same role in the same scene are always a mistake.
+
+Rules for "wearing": ONLY what the dream itself says about clothing — "im Bademantel", "in einem roten Kleid", "barfuss". Never guess, never dress anyone the dream leaves undressed by description: an empty string is the correct answer for most people in most dreams. This is deliberately separate from "desc": "desc" is what the person LOOKS LIKE and stays true across every dream, "wearing" belongs to THIS ONE NIGHT. Mixing them puts a bathrobe into every future dream.
 
 Name each person the way a casting list would: the bare noun or name, no articles and no possessives — "Arzt", not "ein Arzt" or "der Arzt"; "Anton", not "mein Freund Anton" (put "Freund" in "desc" instead). If a dream truly has two of the same role, distinguish them by something visible ("Arzt mit Brille", "junger Arzt"), never by "anderer".
 
@@ -1113,6 +1136,11 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
         name: sanitizeFragment(p.name, MAX_FRAGMENT),
         kind: p.kind === "pet" ? "pet" : "person",
         desc: sanitizeFragment(p.desc || "", MAX_FRAGMENT),
+        /* Die Garderobe DIESES Traums. Bezahlt bewiesen am 24.08.: 36 von
+           36 Kacheln zogen um, wenn der Satz im Prompt steht. Bis heute
+           konnte ihn niemand fuellen — das Feld existierte, gefragt hat
+           danach nichts. */
+        wearing: sanitizeFragment(p.wearing || "", MAX_FRAGMENT),
       };
     })
     .filter((p) => p && p.name)
@@ -1167,17 +1195,23 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
 // Anything longer needs queue.fal.run: submit, poll status_url, fetch
 // response_url. Do that BEFORE offering film lengths above ~10 seconds.
 // Revisit if a model runs long enough to need the queue+polling flow.
-async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16" }) {
+async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", grid = false }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
   /* Endpunkt UND Rumpf kommen aus der Tabelle: welches Feld das Format
      trägt (`aspect_ratio` oder `image_size`) und ob es der Edit-Endpunkt
-     sein muss, ist Modellwissen, kein Aufruferwissen. */
+     sein muss, ist Modellwissen, kein Aufruferwissen.
+     ⚠ Stufe und Maß genauso wie im Warteschlangen-Weg — dieser hier ist
+     der ZWEITE Aufrufer, und er wurde beim Umstellen am 24.08. zuerst
+     vergessen. Ein Verdrahtungstest hat ihn gefunden; ohne ihn hätte der
+     synchrone Pfad still „high" bezahlt. */
   const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, {
     prompt,
     aspectRatio,
     imageUrls: namedRefs.map((r) => r.img),
+    quality: imageStage(FAL_MODEL_IMAGE),
+    size: grid ? appGrid(FAL_MODEL_IMAGE).size : null,
   });
 
   const res = await fetch(`https://fal.run/${model}`, {
@@ -1276,7 +1310,7 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds })
  * jobStatus und /api/job kennen keinen Unterschied zwischen Bild und
  * Film — nur die Antwort von fal sieht anders aus (images[] statt
  * video), und genau diese eine Stelle steht in jobStatus. */
-async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", sequenceRef = null }) {
+async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", sequenceRef = null, grid = false }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
@@ -1288,8 +1322,22 @@ async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", se
      treffen wie in einer Strecke ohne Kette. */
   const imageUrls = namedRefs.map((r) => r.img).filter(Boolean);
   if (sequenceRef) imageUrls.push(sequenceRef);
-  // Endpunkt und Adressformat entscheidet die Tabelle, nicht diese Funktion.
-  const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, { prompt, aspectRatio, imageUrls });
+  /* Endpunkt und Adressformat entscheidet die Tabelle, nicht diese Funktion.
+   *
+   * ⚠⚠ STUFE UND MASZ SIND PFLICHT, nicht Feinschliff (seit 24.08.). Bis
+   * hierher gingen beide Felder ungesetzt raus, und das kostete doppelt:
+   *   · Ohne `quality` nimmt fal bei GPT Image 2 „high" — in unserem
+   *     Rasterfall $0,413 statt $0,113. Das Dreieinhalbfache, still.
+   *   · Ohne Maß nimmt es den Preset-NAMEN, und `portrait_16_9` ist
+   *     576×1024. Ein 2×2 daraus hat Kacheln von 288×512 — bezahlt und
+   *     unbrauchbar.
+   * Beides kommt jetzt aus einer Hand: `imageStage` sagt, welche Stufe wir
+   * kaufen, `appGrid` sagt, wie groß der Behälter ist. */
+  const stufe = imageStage(FAL_MODEL_IMAGE);
+  const size = grid ? appGrid(FAL_MODEL_IMAGE).size : null;
+  const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, {
+    prompt, aspectRatio, imageUrls, quality: stufe, size,
+  });
 
   const res = await fetch(`https://queue.fal.run/${model}`, {
     method: "POST",
@@ -2299,11 +2347,23 @@ console.log(process.env.GEMINI_KEY ? "Gemini key: loaded ✓ (voice interview)" 
      fal-Slug mehr. Eine alte .env mit "fal-ai/nano-banana-2" darin fiele
      sonst stumm auf die Vorgabe zurück — und man bekäme monatelang ein
      anderes Modell, als man bestellt hat. Also laut sagen. */
-  if (process.env.FAL_MODEL_IMAGE && m.id !== process.env.FAL_MODEL_IMAGE) {
+  if (IMAGE_PICK.reason === "unknown") {
     console.warn(
-      `[DreamRushes] FAL_MODEL_IMAGE="${process.env.FAL_MODEL_IMAGE}" kennt niemand — ` +
-      `erlaubt sind: ${Object.keys(IMAGE_MODELS).join(", ")}. Es läuft die Vorgabe.`,
+      `[DreamRushes] FAL_MODEL_IMAGE="${IMAGE_PICK.asked}" kennt niemand — ` +
+      `erlaubt sind: ${lieferbareModelle().join(", ")}. Es läuft die Vorgabe.`,
     );
   }
-  console.log(`Bildmodell: ${m.label} → $${m.usd.toFixed(3)} je Bild`);
+  /* ⚠ Kein „kennt niemand": Das Modell GAB es, es ist bewusst stillgelegt.
+     Wer das verwechselt, sucht den Tippfehler statt den Grund. */
+  if (IMAGE_PICK.reason === "retired") {
+    console.warn(
+      `[DreamRushes] FAL_MODEL_IMAGE="${IMAGE_PICK.asked}" ist außer Dienst — ` +
+      `${retiredReason(IMAGE_PICK.asked)}. Es läuft ${m.label}.`,
+    );
+  }
+  const stufe = imageStage(m.id);
+  console.log(
+    `Bildmodell: ${m.label}${stufe ? ` (${stufe})` : ""} → ` +
+    `$${imagePrice(m.id, stufe, appGrid(m.id).size).toFixed(3)} je Rasterbild mit ${GRID_SLOTS} Szenen`,
+  );
 }

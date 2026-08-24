@@ -14,6 +14,22 @@
  * hierarchy — tagline top, motif middle, title in the lower third, fine-print
  * billing block at the bottom.
  */
+/** Verträgt dieser Stil den Foto-Anker?
+ *
+ *  Die Frage stand seit dem 24.08. als Produktentscheidung im STAND: Was
+ *  wird aus `dreamlike` und `surreal`, die den Malerei-Look wörtlich
+ *  bestellen? Die Antwort braucht keine Entscheidung, sondern eine
+ *  Unterscheidung: Ein gemalter Stil BLEIBT gemalt und bekommt den Anker
+ *  einfach nicht. So muss niemand zwischen „fotografisch" und „diesen Stil
+ *  behalten" wählen.
+ *
+ *  ⚠ Die Vorgabe ist `true`: Ein unbekannter Stil ist eher ein neuer
+ *  fotografischer als ein neuer gemalter, und der Anker ist der Grund,
+ *  warum die Bilder seit dem 24.08. nach Fotografie aussehen. */
+export function photorealFor(styleId) {
+  return !styleById(styleId)?.painterly;
+}
+
 export const STYLES = [
   {
     id: "ultrareal",
@@ -49,6 +65,13 @@ export const STYLES = [
   },
   {
     id: "dreamlike",
+    /* ⚠ Bewusst GEMALT — und deshalb ohne Foto-Anker (siehe photorealFor()).
+       Dieser Stil bestellt den Malerei-Look wörtlich; ihm zusätzlich zu
+       sagen „das ist eine Fotografie, kein Gemälde" wäre ein Prompt, der
+       sich selbst widerspricht, und ein widersprüchlicher Prompt ist
+       schlechter als ein schweigender. Wer das ändern will, ändert zuerst
+       den Prompttext darunter. */
+    painterly: true,
     label: "Dreamlike",
     emoji: "🌙",
     prompt: "Soft dreamlike realism: gentle haze and bloom around every light source, " +
@@ -90,6 +113,13 @@ export const STYLES = [
   },
   {
     id: "surreal",
+    /* ⚠ Bewusst GEMALT — und deshalb ohne Foto-Anker (siehe photorealFor()).
+       Dieser Stil bestellt den Malerei-Look wörtlich; ihm zusätzlich zu
+       sagen „das ist eine Fotografie, kein Gemälde" wäre ein Prompt, der
+       sich selbst widerspricht, und ein widersprüchlicher Prompt ist
+       schlechter als ein schweigender. Wer das ändern will, ändert zuerst
+       den Prompttext darunter. */
+    painterly: true,
     label: "Surreal",
     emoji: "🌀",
     prompt: "Surrealist composition: impossible scale and geometry, saturated unnatural colour, " +

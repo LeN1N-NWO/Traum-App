@@ -160,3 +160,84 @@ describe("Rasterformate", () => {
     expect(supportsAspect("nano-banana-pro", "9:16")).toBe(true);
   });
 });
+
+/* ── Die Umstellung vom 24.08.2026 ────────────────────────────────────────
+   Drei Zusagen, an denen echtes Geld hängt. */
+
+import { pickImageModel, retiredReason, lieferbareModelle, imageStage } from "./imageModel.js";
+import { appGrid, gridRuns, GRID_SLOTS } from "./gridLayout.js";
+import { readFileSync } from "node:fs";
+
+test("Seedream ist ausser Dienst und wird nicht mehr gewaehlt", () => {
+  const p = pickImageModel("seedream-5-lite");
+  expect(p.id).toBe(DEFAULT_IMAGE_MODEL);
+  expect(p.reason).toBe("retired");
+  expect(retiredReason("seedream-5-lite")).toBeTruthy();
+  expect(lieferbareModelle()).not.toContain("seedream-5-lite");
+});
+
+/* ⚠ „Unbekannt" und „ausser Dienst" duerfen nicht dasselbe melden: Beim
+   einen sucht man den Tippfehler, beim anderen den Grund. */
+test("unbekannt und stillgelegt sind zwei verschiedene Nachrichten", () => {
+  expect(pickImageModel("gibtsnicht").reason).toBe("unknown");
+  expect(pickImageModel("seedream-5-lite").reason).toBe("retired");
+  expect(pickImageModel("").reason).toBe("ok");
+  expect(pickImageModel("gpt-image-2").id).toBe("gpt-image-2");
+});
+
+/* ⚠ Die teuerste Zeile der App. fals Vorgabe bei GPT Image 2 ist „high":
+   ohne Stufe zahlt ein Rasterbild $0,413 statt $0,113 — das
+   Dreieinhalbfache, und zwar lautlos. */
+test("die Stufe steht am Modell und ist medium", () => {
+  expect(imageStage("gpt-image-2")).toBe("medium");
+  const { input } = imageSubmitBody("gpt-image-2", {
+    prompt: "x", quality: imageStage("gpt-image-2"), imageUrls: ["a"],
+  });
+  expect(input.quality).toBe("medium");
+});
+
+/* ⚠ Ohne ausdrueckliches Mass nimmt GPT seinen Preset-NAMEN, und
+   `portrait_16_9` ist 576×1024. Ein 2×2 daraus haette Kacheln von
+   288×512 — bezahlt und unbrauchbar. */
+test("das Raster schickt Pixelmasse, keinen Preset-Namen", () => {
+  const g = appGrid("gpt-image-2");
+  expect(g.size).toEqual({ width: 2160, height: 3840 });
+  expect(g.tile).toEqual({ width: 1080, height: 1920 });
+  const { input } = imageSubmitBody("gpt-image-2", { prompt: "x", size: g.size, imageUrls: ["a"] });
+  expect(input.image_size).toEqual({ width: 2160, height: 3840 });
+  expect(typeof input.image_size).not.toBe("string");
+});
+
+test("der Rasterpreis ist der gemessene", () => {
+  const g = appGrid("gpt-image-2");
+  expect(imagePrice("gpt-image-2", "medium", g.size)).toBeCloseTo(0.113, 3);
+  // je Szene, und damit unter dem alten Einzelweg
+  expect(imagePrice("gpt-image-2", "medium", g.size) / GRID_SLOTS).toBeLessThan(0.035);
+});
+
+/* Ein angefangenes Raster ist ein voller, bezahlter Aufruf — daran haengt,
+   warum vier und acht die Traumgroessen sind. */
+test("vier und acht gehen ohne Verschnitt auf, fuenf nicht", () => {
+  expect(gridRuns(4)).toEqual({ runs: 1, slots: 4, spare: 0 });
+  expect(gridRuns(8)).toEqual({ runs: 2, slots: 8, spare: 0 });
+  expect(gridRuns(5)).toEqual({ runs: 2, slots: 8, spare: 3 });
+});
+
+/* ⚠ Verdrahtungstest: Die Tabelle kann die Stufe kennen, so viel sie will —
+   wenn der Auftrag sie nicht mitschickt, zahlt fal „high". Genau das war
+   bis zum 24.08. der Fall. */
+test("JEDER Aufrufer schickt Stufe UND Mass mit", () => {
+  const srv = readFileSync(new URL("../../server.js", import.meta.url), "utf8");
+  /* ⚠ ALLE Aufrufe pruefen, nicht den ersten. Genau daran ist die
+     Umstellung am 24.08. fast gescheitert: Der Warteschlangen-Weg war
+     umgestellt, der synchrone nicht, und ein Test, der nur den ersten
+     Treffer ansieht, haette gruen gemeldet. */
+  const aufrufe = [...srv.matchAll(
+    /imageSubmitBody\(FAL_MODEL_IMAGE, \{([\s\S]*?)\}\)/g)].map((m) => m[1]);
+  expect(aufrufe.length).toBeGreaterThanOrEqual(2);
+  for (const a of aufrufe) {
+    expect(a).toMatch(/quality:/);
+    // `size: …` oder die Kurzschreibweise `size,` — beides zaehlt.
+    expect(a).toMatch(/\bsize\s*[:,]/);
+  }
+});

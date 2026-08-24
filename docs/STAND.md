@@ -3,65 +3,66 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-24 (11:55) — `session/2026-08-23-anton` (PR #25),
-aufgesetzt auf `0960bb4`. 370 Tests grün, fünf Skriptprüfungen grün,
-Build sauber.
-⚠ Ohne eigenen Worktree im Hauptrepo — Begründung unten unter „Fallen".
+**Stand:** 2026-08-24 (16:30) — Ende der Cloud-Sitzung
+`claude/new-session-x9qv1w` (PR #26), aufgesetzt auf `097fdba`.
+384 Tests grün, Shape-Check grün, Build sauber.
 
 ## Wo wir stehen
 
-**Die Bildkette ist durchgemessen, aber noch nicht umgestellt.** Ein Tag
-bezahlter Vergleiche (~$3,10) hat einen klaren Sieger ergeben:
+**Die Umstellung ist gemacht — bis auf den Rasterweg.** Antons
+Entscheidung nach dem Modellvergleich: „Der Test hat es ergeben, deswegen
+stellen wir alles um. Seedream fliegt komplett raus."
 
-| Schritt | Modell | Kosten |
-|---|---|---|
-| Bogen (einmal je Person, aus zwei Fotos) | GPT Image 2 **low** | $0,017 |
-| Szenen (4 im 2×2-Raster, Foto-Anker, Stil `ultrareal`) | GPT Image 2 **medium** | $0,113 |
-| Garderobe dieses Traums | Text | $0 |
+| Schalter | Stand |
+|---|---|
+| Bildmodell **GPT Image 2, Stufe `medium`** | ✅ Vorgabe |
+| **Foto-Anker** an (folgt jetzt dem Stil) | ✅ |
+| Stil **`ultrareal`** als Vorgabe | ✅ |
+| **Raster statt Einzelbildern** | ⬜ Bauanleitung, Antons Rechner |
+| Garderobe je Traum (Antons Punkt 1) | ✅ verdrahtet |
 
-**$0,13 je Vier-Bilder-Traum — 7 % unter dem heutigen Weg**, bei besseren
-Gesichtern und echter Fotografie statt Malerei.
+**Einkauf: $0,113 für ein 2×2-Raster mit vier Szenen = $0,0283 je Szene.**
+Nachrechenbar mit `node scripts/preis-durchreichen.mjs`.
 
-⚠⚠ **UMGESTELLT IST NICHTS.** `FAL_MODEL_IMAGE` steht weiter auf
-`seedream-5-lite`, der Foto-Anker ist per Vorgabe AUS, und die App rendert
-weiter einzeln statt im Raster. Alles oben ist gemessen, nicht ausgerollt.
-
-Dazu neu und live: die **getippte Einführungsumfrage** (ohne Mikrofon gab
-es vorher gar kein Profil), die **Einstellungsebene** für Bildprompts, und
-**vier statt fünf Bilder** als kleinste Traumgröße.
+⚠ **Seedream ist außer Dienst, nicht gelöscht.** Der Riegel sitzt in
+`pickImageModel()`; eine alte `.env` mit `FAL_MODEL_IMAGE=seedream-5-lite`
+bekommt beim Start eine eigene Meldung samt Grund und läuft auf GPT.
 
 ## Nächste Schritte
 
-1. **Die Assistentin nach der Kleidung fragen lassen.** Das Feld
-   (`wardrobe`) existiert und ist bezahlt bewiesen — 36 von 36 Kacheln
-   zogen um. Das Briefing in `server.js` (`VOICE_TOOLS`, `addPerson`) kennt
-   es noch nicht. Kleinster Schritt, größte Wirkung.
-2. **Antons Entscheidung zur Umstellung.** Vier Schalter hängen zusammen:
-   Bildmodell auf GPT, Foto-Anker an, Raster statt Einzelbilder, Stil
-   `ultrareal` als Vorgabe. Einzeln sinnlos, zusammen der ganze Gewinn.
-3. **Was wird aus `dreamlike` und `surreal`?** Sie bestellen wörtlich den
-   Malerei-Look (siehe „Fallen"). Entweder als bewusst gemalte Stile
-   behalten — dann ohne Foto-Anker — oder fotografisch neu schreiben.
-   Produktentscheidung, keine technische.
-4. **Preisentscheidung** — weiter offen, weiter der einzige echte Blocker
-   für die Veröffentlichung.
-5. **Klang-Presets:** 28 CC0-Kandidaten warten unter
-   `media/klang-kandidaten/` auf Antons Auswahl.
+1. **Der Rasterweg** (`2026-08-24-raster-als-hauptweg.md`) — der letzte
+   Schalter, auf Antons Rechner. Sein Entwurf steht im Plan: bei vier
+   Szenen KEINE Kette (sie entstehen in einem Zug), bei acht ankert
+   Raster 2 auf der letzten Kachel von Raster 1.
+   ⚠ Der erste bezahlte Lauf mit EINEM Traum, nicht mit fünf.
+2. **Erster echter Traum mit dem neuen Weg** — GPT medium, Foto-Anker,
+   `ultrareal`. Bisher steht dahinter nur der Messtag vom 24.08., nichts
+   durch die App.
+3. **Preisentscheidung** — weiter offen, weiter der einzige echte Blocker
+   für die Veröffentlichung. Die Grundlage ist jetzt aktuell.
+4. **Klang-Presets:** 28 CC0-Kandidaten unter `media/klang-kandidaten/`
+   warten auf Antons Auswahl.
+5. **Was wird aus dem Dreier-Streifen?** (`PREVIEW_COUNT = 3`,
+   `splitIntoPanels`) — eine 16:9-Schnellvorschau aus der Seedream-Zeit.
+   Mit 2×2 als Hauptweg ist sie doppelt gemoppelt. Umstellen oder
+   streichen: Antons Entscheidung.
 
 ## Bekannte Baustellen
 
-- **Seedream lehnt Aufträge mit Referenzfoto unregelmäßig ab.** Am 23.08.
-  gemessen: mit Referenz 4× durch, 8× abgelehnt, als
-  `content_policy_violation` auf `body.image` mit
-  `reason: "partner_validation_failed"` — bei wörtlich identischen
-  Aufträgen. Kein Geld verloren (`jobStatus` → „failed", der Collector
-  erstattet), aber das BILD fehlt, und zwar bei genau den Träumen, in denen
-  Menschen vorkommen. ⚠ Das trifft die HEUTIGE Vorgabe und ist nicht
-  geklärt. Ein weiterer Grund, die Umstellung nicht liegenzulassen.
+- **Der Rasterweg fehlt noch.** Die App rendert weiter einzeln; alle
+  Bausteine dafür stehen (`appGrid`, `gridRuns`, `buildGridPrompt` 2×2,
+  `splitIntoTiles`, `grid: true` im Auftrag). Was fehlt, ist der ORT des
+  Schneidens — der Collector ist bewusst DOM-frei, also gehört es in einen
+  eigenen Effekt in `AppState.jsx`. Siehe Plan §2c.
+- **Seedream-Ablehnungen: erledigt durch Stilllegung.** Der Befund vom
+  23.08. (mit Referenz 4× durch, 8× abgelehnt) war der Grund für den
+  Wechsel. Bleibt als Warnung in `imageModel.js` stehen.
 - **Nano Banana 2 verfehlte das Raster** in einem von zwei frühen Läufen
   (vier Querformate statt vier Hochkant-Kacheln — bezahlt, unbrauchbar).
   Nach der Einstellungsebene 5 von 5 richtig; der Zusammenhang ist
   plausibel, aber nicht bewiesen.
+- **Noch kein echter Traum durch den neuen Weg.** Hinter GPT medium +
+  Foto-Anker + `ultrareal` steht der Messtag vom 24.08., nicht die App.
 - **GPT erfindet dazu, und geht zu dunkel.** Ohne Foto-Anker: Blaskapelle
   über statt unter dem Eis, eine Leiche auf einem Steg, eine Stadtschlucht
   in einer Bibliothek. Mit Anker deutlich besser, in Nachtszenen weiter
@@ -100,16 +101,29 @@ es vorher gar kein Profil), die **Einstellungsebene** für Bildprompts, und
   2 = Ganzkörper (`photosOf` in sheets.js, benannt in
   `buildSheetFromPhotoPrompt`). Wer sie dreht, holt die Statur aus dem
   Gesichtsfoto.
-- **`FAL_MODEL_IMAGE` ist ein NAME, kein fal-Slug.** Erlaubt:
-  `seedream-5-lite`, `gpt-image-2`, `nano-banana-pro`, `nano-banana-2`,
-  `nano-banana-2-lite`. Der Server warnt beim Start bei Unbekanntem.
+- **`FAL_MODEL_IMAGE` ist ein NAME, kein fal-Slug.** Wählbar sind
+  `gpt-image-2`, `nano-banana-pro`, `nano-banana-2`, `nano-banana-2-lite`.
+  `seedream-5-lite` ist stillgelegt und wird abgelehnt — mit eigener
+  Meldung, nicht als „kennt niemand".
 - **Ein falscher Feldname wirft bei fal keinen Fehler** — er liefert still
   das Falsche. `imageModel.js` entscheidet über Endpunkt, Adressformat,
   Stufe und Preis, nie der Aufrufer.
 - **GPTs Presets sind winzig:** `portrait_16_9` ist 576×1024. Ohne
   ausdrückliches Pixelmaß liefert ein Raster Kacheln von 288×512.
 - **fal-Vorgabe bei GPT ist „high"** — die teuerste Stufe. Bei 4K das
-  Siebzehnfache von „low".
+  Siebzehnfache von „low". Deshalb sendet JEDER Auftrag `quality` aus
+  `imageStage()`; ein Test prüft ALLE Aufrufer.
+- **⚠ Ein Verdrahtungstest muss `matchAll` nehmen, nie `match`.** Am
+  24.08. gab es ZWEI Aufrufer von `imageSubmitBody`, und nur einer war
+  umgestellt — ein Test auf den ersten Treffer hätte grün gemeldet.
+- **⚠ `BILD.usd` ist NICHT unser Einkaufspreis.** Bei GPT Image 2 ist das
+  ein Einzelbild in „high" ($0,178). Wir kaufen ein 2×2 in „medium":
+  $0,113 für vier Szenen. Die Tabelle kennt mehrere Preise für dasselbe
+  Modell — richtig ist der, den unser Auftrag auslöst.
+- **Der Foto-Anker folgt dem STIL** (`photorealFor`), nicht dem Aufrufer.
+  `dreamlike` und `surreal` sind `painterly` und bekommen ihn nicht: Ein
+  Prompt, der erst „wie ein Magritte-Gemälde" und dann „das ist eine
+  Fotografie" sagt, ist schlechter als einer, der schweigt.
 - **2×2 ist die Rastereinheit, nicht 3×3.** Ein 3×3 wäre je Szene billiger,
   fiele aber auf 1024×1834 und damit UNTER das, was wir heute liefern.
 - **Der Weltanker der Bildkette steht als LETZTES Bild.**

@@ -62,7 +62,11 @@ const EMPTY = {
   imageCount: 5,
   preview: false,      // the cheap look: one render cut into three, see pricing.js
   assignments: {},     // name -> { name, kind, avatar?, free? }
-  styleId: "dreamlike",
+  /* ⚠ Seit 24.08. `ultrareal` statt `dreamlike`. Der alte Vorgabewert war
+     ausgerechnet der Stil, der den Malerei-Look WÖRTLICH bestellt
+     („shapes dissolving") — wer nie einen Stil wählte, bekam garantiert
+     gemalte Bilder und hielt das für das Können des Modells. */
+  styleId: "ultrareal",
   format: "9:16",
   videoModel: "standard",
   seconds: 6,          // film length; see lib/video.js for each model's range
@@ -91,8 +95,15 @@ export function useWizard() {
         if (!name) return acc;
         const kind = typeof item === "object" && item?.kind === "pet" ? "pet" : fallbackKind;
         const hint = (typeof item === "object" && item?.desc) || "";
+        /* Die Garderobe reist als `wardrobe` weiter, weil buildReferences()
+           sie so nennt. ⚠ Der Namenswechsel ist Absicht und kein Schlamperei:
+           Was aus dem Traum kommt, heisst `wearing` (die Analyse und das
+           Sprachwerkzeug sagen so), was in den Prompt geht, heisst
+           `wardrobe`. Wer beide gleich benennt, verliert die Stelle, an der
+           man sieht, dass hier uebersetzt wird. */
+        const wardrobe = (typeof item === "object" && item?.wearing) || "";
         const avatar = autoMatch(name, state.cast, state.me);
-        acc[name] = { name, kind, hint, ...(avatar ? { avatar } : {}) };
+        acc[name] = { name, kind, hint, ...(wardrobe ? { wardrobe } : {}), ...(avatar ? { avatar } : {}) };
         return acc;
       }, {});
     setW((prev) => ({

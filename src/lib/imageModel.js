@@ -42,6 +42,33 @@ export const IMAGE_MODELS = {
      schärfer als Nano Banana Lite — $0,035 statt $0,042 bei 1440×2560 statt
      768×1376. Die Kette hielt, der Photoshop-Effekt blieb weg. */
   "seedream-5-lite": {
+    /* ⚠⚠ AUSSER DIENST seit 24.08.2026 (Antons Entscheidung nach dem
+       Modellvergleich): „Seedream fliegt komplett raus, das erfüllt nicht
+       unsere Anforderung."
+
+       Der Grund ist nicht der Preis, sondern die Verlässlichkeit: Seedream
+       lehnte Aufträge MIT Referenzfoto unregelmäßig ab — am 23.08. gemessen
+       4× durch, 8× abgelehnt, als `content_policy_violation` auf
+       `body.image` mit `reason: "partner_validation_failed"`, bei WÖRTLICH
+       identischen Aufträgen. Geld ging keins verloren (der Collector
+       erstattet), aber das Bild fehlte — und zwar ausgerechnet bei den
+       Träumen, in denen Menschen vorkommen. Ein Bildmodell, das bei zwei
+       Dritteln der Aufträge mit Gesichtern aussteigt, ist für diese App
+       kein Bildmodell.
+
+       ⚠ Warum die Zeile trotzdem stehen bleibt, statt gelöscht zu werden:
+       Seedream ist das EINZIGE Modell mit freien Pixelmaßen (`sizes`).
+       Löschte man den Eintrag, verlöre `imageSubmitBody` seinen einzigen
+       Prüfling für diesen Zweig — und der Zweig ist genau das, was ein
+       künftiges Pixelmaß-Modell wieder brauchen wird.
+
+       Unwählbar wird es durch `pickImageModel()` — die eine Stelle, an der
+       der Server sein Modell aussucht. `imageModel()` bleibt bewusst ein
+       reines Nachschlagewerk und gibt den Eintrag weiter heraus; sonst
+       baute `imageSubmitBody` heimlich einen Auftrag für ein anderes
+       Modell als das genannte. Das ist „raus" im Sinne der Wirkung, ohne
+       das Gemessene wegzuwerfen. */
+    retired: "unzuverlässig mit Referenzfotos (23.08.2026: 8 von 12 abgelehnt)",
     id: "seedream-5-lite",
     label: "Seedream 5 Lite",
     t2i: "fal-ai/bytedance/seedream/v5/lite/text-to-image",
@@ -131,6 +158,12 @@ export const IMAGE_MODELS = {
     edit: "fal-ai/gpt-image-2/edit",
     usd: 0.178,                       // 9:16 in „high", unser Normalfall
     qualities: ["low", "medium", "high"],
+    /* Die Stufe, die wir kaufen (Antons Entscheidung 24.08. nach dem
+       Vergleich). „medium" ist der Punkt, an dem die Gesichter halten und
+       der Preis noch unter dem alten Weg liegt; „high" kostet das
+       Dreieinhalbfache für einen Unterschied, den auf einem Telefon
+       niemand sieht. */
+    stufe: "medium",
     maxRefs: 16,
     maxPixels: 8294400,
     maxSide: 3840,
@@ -179,10 +212,61 @@ export const IMAGE_MODELS = {
   },
 };
 
-export const DEFAULT_IMAGE_MODEL = "seedream-5-lite";
+/* Seit 24.08.2026: GPT Image 2, Stufe „medium", im 2×2-Raster mit
+ * Foto-Anker und Stil `ultrareal`. Das ist keine Meinung, sondern das
+ * Ergebnis eines Tages bezahlter Vergleiche (~$3,10, siehe WORKLOG):
+ * $0,113 für vier Szenen statt $0,140 einzeln — 7 % billiger bei besseren
+ * Gesichtern und echter Fotografie statt Malerei. */
+export const DEFAULT_IMAGE_MODEL = "gpt-image-2";
 
+/** Welche Qualitätsstufe wir bei diesem Modell kaufen — `null`, wo es
+ *  keine gibt.
+ *
+ *  ⚠ Die Stufe steht hier und NUR hier. fals Vorgabe ist „high", also die
+ *  teuerste: Wer sie im Auftrag vergisst, zahlt bei 4K das Siebzehnfache
+ *  von „low" und bei unserem Normalfall das Dreifache von „medium". Eine
+ *  zweite Stelle, an der eine Stufe steht, wäre eine Stelle, an der sie
+ *  irgendwann fehlt. */
+export function imageStage(id) {
+  const m = imageModel(id);
+  return m.stufe || null;
+}
+
+/* ⚠ Bewusst ein reines NACHSCHLAGEWERK: Es gibt heraus, was in der Tabelle
+   steht, auch ein außer Dienst gestelltes Modell. Der Riegel gehört nicht
+   hierher, sondern dorthin, wo das Modell GEWÄHLT wird — `pickImageModel()`
+   direkt darunter, und die ist im Server genau einmal aufgerufen.
+
+   Der Unterschied ist nicht akademisch: `imageSubmitBody` baut über diese
+   Funktion den Auftragsrumpf. Würde sie bei einem stillgelegten Modell
+   etwas anderes zurückgeben, baute der Formatierer heimlich einen Auftrag
+   für ein Modell, das der Aufrufer nie genannt hat — dieselbe Klasse
+   stiller Verwechslung, vor der der Dateikopf warnt. */
 export function imageModel(id) {
   return IMAGE_MODELS[id] || IMAGE_MODELS[DEFAULT_IMAGE_MODEL];
+}
+
+/** Warum dieses Modell nicht mehr benutzt wird — oder `null`. */
+export function retiredReason(id) {
+  return IMAGE_MODELS[id]?.retired || null;
+}
+
+/** Welches Modell die App tatsächlich fährt.
+ *
+ *  EINE Stelle für die Auswahl, damit ein stillgelegtes Modell nirgends
+ *  mehr durchrutscht: Wer `FAL_MODEL_IMAGE=seedream-5-lite` in einer alten
+ *  `.env` stehen hat, bekommt die Vorgabe — und der Server sagt beim Start,
+ *  dass und warum.
+ *
+ *  @returns {{id: string, reason: "ok"|"retired"|"unknown", asked: string}}
+ */
+export function pickImageModel(asked) {
+  const gewuenscht = String(asked || "").trim();
+  if (!gewuenscht) return { id: DEFAULT_IMAGE_MODEL, reason: "ok", asked: gewuenscht };
+  const m = IMAGE_MODELS[gewuenscht];
+  if (!m) return { id: DEFAULT_IMAGE_MODEL, reason: "unknown", asked: gewuenscht };
+  if (m.retired) return { id: DEFAULT_IMAGE_MODEL, reason: "retired", asked: gewuenscht };
+  return { id: gewuenscht, reason: "ok", asked: gewuenscht };
 }
 
 /** Der Endpunkt für diesen Auftrag.
@@ -280,4 +364,11 @@ export function supportsAspect(id, ratio) {
   const m = imageModel(id);
   if (m.sizes) return true;
   return m.aspects ? m.aspects.includes(ratio) : ratio === "9:16" || ratio === "16:9";
+}
+
+/** Die Modelle, die man heute noch wählen kann — für Fehlermeldungen und
+ *  Skripte. Ein stillgelegtes gehört nicht in eine Liste, aus der jemand
+ *  auswählen soll. */
+export function lieferbareModelle() {
+  return Object.keys(IMAGE_MODELS).filter((id) => !IMAGE_MODELS[id].retired);
 }

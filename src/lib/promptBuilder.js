@@ -6,7 +6,7 @@
  * AI decide" contributes NO image — so it must not consume an index. Get this
  * wrong and people get each other's faces. Hence the tests.
  */
-import { styleById } from "./styles.js";
+import { styleById, photorealFor } from "./styles.js";
 import { shotClause, photorealClause } from "./cinematography.js";
 import { slotName } from "./gridLayout.js";
 
@@ -129,7 +129,13 @@ export function stripReferenceClauses(prompt) {
  * @param {number} [p.cols]      Spalten; Vorgabe: so viele wie Beats
  * @param {number} [p.rows]      Zeilen; 1 = der bewährte Streifen
  */
-export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1, tile = "9:16", photoreal = false }) {
+/* ⚠ Der Foto-Anker ist seit dem 24.08. AN, und zwar per Stil statt per
+   Aufrufer: `photoreal` ohne Angabe folgt jetzt dem Stil (photorealFor).
+   Vorher stand hier `= false`, und damit war der Anker in der ganzen App
+   aus — gemessen war er zu dem Zeitpunkt längst der Unterschied zwischen
+   Fotografie und Malerei. Eine Vorgabe, die das Gegenteil des Gemessenen
+   tut, ist die teuerste Sorte Zeile. */
+export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1, tile = "9:16", photoreal = photorealFor(styleId) }) {
   const style = styleById(styleId);
   const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
   const spalten = cols || beats.length;
@@ -205,7 +211,7 @@ export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1, 
   );
 }
 
-export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 1, total = 1, prevFrame = false, photoreal = false }) {
+export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 1, total = 1, prevFrame = false, photoreal = photorealFor(styleId) }) {
   const style = styleById(styleId);
   const framing = format === "16:9" ? "16:9 widescreen framing" : "9:16 vertical framing";
   const place = total > 1 ? ` This is image ${index} of ${total} in one continuous dream sequence; keep characters, wardrobe and palette consistent across all of them.` : "";
