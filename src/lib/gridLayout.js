@@ -118,7 +118,7 @@ export function slotName(index, cols, rows) {
  * Schnitt die Kacheln an der falschen Stelle — und niemand sieht einen
  * Fehler, nur schlechte Bilder.
  */
-import { imageModel } from "./imageModel.js";
+import { imageModel, imagePrice, imageStage, DEFAULT_IMAGE_MODEL } from "./imageModel.js";
 
 /* 2×2, nicht 3×3. Der Grund ist gemessen, nicht ästhetisch: Ein 3×3 wäre je
  * Szene billiger, fiele aber auf 1024×1834 je Kachel und damit UNTER das,
@@ -145,6 +145,31 @@ export function appGrid(modelId) {
     tile: tileSize(GRID_COLS, GRID_ROWS, m.maxSide || 2048, "9:16"),
     boxes: tileBoxes(size.width, size.height, GRID_COLS, GRID_ROWS),
   };
+}
+
+/** Was uns EIN CREDIT im Einkauf kostet — die Zahl, aus der die ganze
+ *  Preisliste hergeleitet ist (plans.js, video.js).
+ *
+ *  Ein Credit ist ein Bild (pricing.js). Ein Bild ist seit dem 24.08.2026
+ *  EINE SZENE AUS EINEM RASTER — also der Rasterpreis geteilt durch die
+ *  Plätze, nicht der Preis eines Einzelbildes.
+ *
+ *  ⚠⚠ Genau hier ist am 24.08. schon einmal die falsche Zahl gezogen
+ *  worden: `imageModel(id).usd` ist bei GPT Image 2 ein EINZELBILD in
+ *  „high" ($0,178) — das Sechsfache dessen, was wir wirklich zahlen. Die
+ *  Tabelle kennt mehrere Preise für dasselbe Modell; richtig ist der, den
+ *  UNSER Auftrag auslöst: Stufe mal Rastermaß, geteilt durch die Plätze.
+ *  Deshalb rechnet diese Funktion es aus, statt es irgendwo hinzuschreiben.
+ *
+ *  ⚠ Und deshalb steht sie HIER und nicht in plans.js: Sie braucht das
+ *  Rastermaß (`appGrid`) und die Stufe (`imageStage`). Eine Konstante in
+ *  plans.js war bis zum 24.08.2026 `0.08` — der Nano-Banana-Preis vom
+ *  8. August, drei Modellwechsel alt. Eine abgeschriebene Zahl veraltet
+ *  still; eine hergeleitete kann es nicht.
+ */
+export function creditCostUsd(modelId = DEFAULT_IMAGE_MODEL) {
+  const raster = appGrid(modelId);
+  return imagePrice(modelId, imageStage(modelId), raster.size) / raster.slots;
 }
 
 /** Wie viele Rasteraufrufe eine Traumgröße kostet — und wie viele Plätze

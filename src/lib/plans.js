@@ -63,9 +63,22 @@
  */
 
 import { priceForFilm, videoModel } from "./video.js";
+import { creditCostUsd } from "./gridLayout.js";
 
-// What one credit costs us, in USD. Every price below derives from it.
-export const CREDIT_COST_USD = 0.08;
+/** Was uns ein Credit im Einkauf kostet. Jeder Preis unten leitet sich daraus ab.
+ *
+ *  ⚠ Bis zum 24.08.2026 stand hier `0.08` — der nano-banana-2-Preis vom
+ *  8. August, DREI Modellwechsel alt (Lite $0,042 → Seedream $0,035 → GPT
+ *  Image 2 im Raster $0,0283). Der ganze Herleitungs-Kommentar oben rechnete
+ *  gegen diese tote Zahl, und die Datei warnt sogar selbst davor („Wer die
+ *  Skala je neu rechnet, rechnet sie gegen das Modell, das dann WIRKLICH
+ *  läuft") — nur war sie selbst nicht nachgezogen worden.
+ *
+ *  Eine abgeschriebene Zahl veraltet still. Deshalb wird sie jetzt gerechnet:
+ *  `creditCostUsd()` nimmt Stufe und Rastermaß des Modells, das WIRKLICH
+ *  läuft, und teilt durch die Rasterplätze. Der nächste Modellwechsel zieht
+ *  die ganze Preisliste von allein nach. */
+export const CREDIT_COST_USD = creditCostUsd();
 
 /* ── Preisliste, neu gerechnet 16.08.2026 ─────────────────────────────────
  *
@@ -86,16 +99,39 @@ export const CREDIT_COST_USD = 0.08;
  *    unterschreiben.
  *
  * Die Preise je Credit sind ABSICHTLICH gestaffelt — Bindung wird belohnt:
- *   Woche   $4,99 / 12 Cr = $0,416   (Impuls, jederzeit weg)
- *   Monat   $9,99 / 45 Cr = $0,222   (der Normalfall, deshalb hervorgehoben)
- *   Jahr   $79,99 / 45 Cr = $0,148   (33 % billiger als zwölf Monate)
- *   Pakete                           teurer je Credit als jedes Abo, weil
- *                                    ohne Bindung — sonst wäre das Abo dumm.
+ *   Woche   $4,99 /  25 Cr = $0,200   (Impuls, jederzeit weg)
+ *   Monat   $9,99 / 100 Cr = $0,100   (der Normalfall, deshalb hervorgehoben)
+ *   Jahr   $79,99 / 100 Cr = $0,067   (67 % billiger je Credit als die Woche)
+ *   Pakete                            teurer je Credit als jedes Abo, weil
+ *                                     ohne Bindung — sonst wäre das Abo dumm.
  *
- * Deckungsbeitrag beim realistischen Fall (19 % MwSt., 15 % Small Business
- * Program, 75 % Verbrauch): Monat $9,99 → netto $7,14 − $2,70 Credits =
- * $4,44. Zum Vergleich die alte Liste: $1,42. Das ist der Unterschied
- * zwischen „trägt sich ab 4,5 % Conversion" und „trägt sich früher".
+ * ── ⚠ Warum die Credit-ZAHLEN am 24.08.2026 gestiegen sind ───────────────
+ * Die PREISE stehen unverändert; was sich verdoppelt hat, ist, wie viele
+ * Credits man dafür bekommt (12→25, 45→100, 6/18/32→13/36/70).
+ *
+ * Grund: Ein Bild kostet uns seit dem 2×2-Raster $0,0283 statt $0,08 — ein
+ * Drittel. Bisher galt „die Ersparnis verbreitert die Marge, sie verbilligt
+ * nichts" (20.08.). Antons Entscheidung vom 24.08. kehrt das für BILDER um:
+ * „Die Credits müssen steigen, vor allem für Bilder."
+ *
+ * ⚠⚠ Der Haken, an dem die Rechnung fast gescheitert wäre: Ein Credit kauft
+ * ZWEI Dinge. Bilder sind billiger geworden, Film nicht. Hätten wir nur die
+ * Zahlen erhöht und die Filmpreise gelassen, hätten wir nicht Bilder
+ * verschenkt, sondern FILM — und beim Kino-Film lag das Jahresabo schon
+ * vorher bei 1,3× statt der angepeilten 1,5×. Deshalb sind die
+ * `creditsPerSecond` in video.js MITGEZOGEN (1/4/6 → 3/9/17), aus derselben
+ * Quelle hergeleitet. Erst danach ist die Erhöhung tragbar.
+ *
+ * Was der Kunde davon merkt (Monat, 45 → 100 Cr):
+ *   Bilder:  11 Traumstrecken à 4  →  25 Traumstrecken à 4   (mehr als doppelt)
+ *   Filme:    6 × „lebendig" 6 s   →   5 × „lebendig" 6 s    (annähernd gleich)
+ * Genau so soll es sein: Die Ersparnis ist beim Bild entstanden und wird
+ * beim Bild ausgezahlt.
+ *
+ * ⚠ Das Jahresabo ist und bleibt die BINDENDE Grenze der ganzen Liste — bei
+ * 100 Credits liegt es auf 1,7×, bei 120 fiele es unter 1,5×. Wer die Zahlen
+ * je wieder anfasst, rechnet ZUERST das Jahr gegen die teuerste Verwendung.
+ * `node scripts/preis-durchreichen.mjs` rechnet alles nach.
  *
  * ⚠ Noch nichts davon kassiert. Die Zahlen sind so gebaut, dass sie beim
  * Anlegen der Store-Produkte unverändert übernommen werden können.
@@ -104,15 +140,15 @@ export const CREDIT_COST_USD = 0.08;
 /** Subscriptions: the allowance refills each period and does not roll over.
  *
  *  saveHint: EINE Bezugsgröße für beide Badges — der Preis je Credit
- *  gegenüber der Woche ($0,416). Monat $0,222 → 47 %, Jahr $0,148 → 64 %.
+ *  gegenüber der Woche ($0,200). Monat $0,100 → 50 %, Jahr $0,067 → 67 %.
  *  Vorher trug nur das Jahr ein Badge (33 %, gerechnet gegen den Monat):
  *  zwei Badges mit zwei Bezugsgrößen wären Zahlen, die niemand nachrechnen
  *  kann. Antons Ansage 21.08.: der Monatsrabatt soll SICHTBAR sein — er
  *  existierte längst, stand nur nirgends. plans.test.js rechnet beide nach. */
 export const SUBSCRIPTIONS = [
-  { id: "weekly",    price: "$4.99",  period: "week",  credits: 12 },
-  { id: "monthly",   price: "$9.99",  period: "month", credits: 45, featured: true, saveHint: "47%" },
-  { id: "yearly",    price: "$79.99", period: "year",  credits: 45, perMonth: true, saveHint: "64%" },
+  { id: "weekly",    price: "$4.99",  period: "week",  credits: 25 },
+  { id: "monthly",   price: "$9.99",  period: "month", credits: 100, featured: true, saveHint: "50%" },
+  { id: "yearly",    price: "$79.99", period: "year",  credits: 100, perMonth: true, saveHint: "67%" },
 ];
 
 /* One-off packs: bought once, never expire, no commitment.
@@ -138,9 +174,9 @@ export const SUBSCRIPTIONS = [
  *      besseres Geschäft, sondern als eines ohne Bindung.
  */
 export const PACKS = [
-  { id: "pack-s", price: "$2.99",  credits: 6 },
-  { id: "pack-m", price: "$7.99",  credits: 18 },
-  { id: "pack-l", price: "$14.99", credits: 32 },
+  { id: "pack-s", price: "$2.99",  credits: 13 },
+  { id: "pack-m", price: "$7.99",  credits: 36 },
+  { id: "pack-l", price: "$14.99", credits: 70 },
 ];
 
 /** Was ein Guthaben konkret hergibt — die Zahlen hinter den zwei Symbolen
