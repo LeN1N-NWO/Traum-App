@@ -106,3 +106,55 @@ export function slotName(index, cols, rows) {
   const teile = [zeile, spalte].filter(Boolean);
   return teile.length ? `${teile.join(" ")} tile` : "the single tile";
 }
+
+/* ── Das Raster, das die App tatsächlich fährt (seit 24.08.2026) ──────────
+ *
+ * Bis hierher ist diese Datei reine Geometrie: Sie rechnet jedes Raster aus,
+ * das man ihr nennt. Was jetzt folgt, ist die ENTSCHEIDUNG — welches davon
+ * die App benutzt. Sie steht bewusst hier und nirgends sonst, weil sie an
+ * ZWEI weit auseinanderliegenden Stellen gebraucht wird: Der Server baut
+ * damit den Auftrag (Pixelmaß, Preis), der Browser schneidet damit das
+ * Ergebnis (`splitIntoTiles`). Laufen die beiden auseinander, sucht der
+ * Schnitt die Kacheln an der falschen Stelle — und niemand sieht einen
+ * Fehler, nur schlechte Bilder.
+ */
+import { imageModel } from "./imageModel.js";
+
+/* 2×2, nicht 3×3. Der Grund ist gemessen, nicht ästhetisch: Ein 3×3 wäre je
+ * Szene billiger, fiele aber auf 1024×1834 je Kachel und damit UNTER das,
+ * was wir heute ausliefern. 2×2 ist die größte Ersparnis, die keine
+ * Auflösung kostet. */
+export const GRID_COLS = 2;
+export const GRID_ROWS = 2;
+export const GRID_SLOTS = GRID_COLS * GRID_ROWS;
+
+/** Wie EIN Rasterauftrag für dieses Modell aussieht: Behältermaß, Kachelmaß
+ *  und die Schnittkästen dazu.
+ *
+ *  ⚠ Das Pixelmaß ist Pflicht, kein Feinschliff: GPTs Presets sind winzig
+ *  (`portrait_16_9` = 576×1024). Ohne ausdrückliches Maß käme ein Raster mit
+ *  Kacheln von 288×512 zurück — bezahlt und unbrauchbar. */
+export function appGrid(modelId) {
+  const m = imageModel(modelId);
+  const size = containerSize(GRID_COLS, GRID_ROWS, m.maxSide || 2048, "9:16");
+  return {
+    cols: GRID_COLS,
+    rows: GRID_ROWS,
+    slots: GRID_SLOTS,
+    size,
+    tile: tileSize(GRID_COLS, GRID_ROWS, m.maxSide || 2048, "9:16"),
+    boxes: tileBoxes(size.width, size.height, GRID_COLS, GRID_ROWS),
+  };
+}
+
+/** Wie viele Rasteraufrufe eine Traumgröße kostet — und wie viele Plätze
+ *  dabei leer bleiben.
+ *
+ *  ⚠ Ein angefangenes Raster ist ein VOLLER, bezahlter Aufruf. Genau daran
+ *  hängt, warum vier und acht die Traumgrößen sind (pricing.js): Bei fünf
+ *  Szenen zahlt man zwei Aufrufe, je Szene 60 % mehr als bei vier. */
+export function gridRuns(count) {
+  const n = Math.max(1, Math.floor(Number(count) || 1));
+  const runs = Math.ceil(n / GRID_SLOTS);
+  return { runs, slots: runs * GRID_SLOTS, spare: runs * GRID_SLOTS - n };
+}

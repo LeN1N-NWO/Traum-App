@@ -54,7 +54,10 @@ import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
  * 23.08. in EINER Tabelle (src/lib/imageModel.js) — Seedream und Nano Banana
  * sprechen nicht dieselbe Sprache, und ein falscher Feldname wirft keinen
  * Fehler, er liefert nur das Falsche. */
-import { imageSubmitBody, imageModel, IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from "./src/lib/imageModel.js";
+import { imageSubmitBody, imageModel, IMAGE_MODELS, DEFAULT_IMAGE_MODEL,
+         pickImageModel, retiredReason, lieferbareModelle, imageStage, imagePrice }
+  from "./src/lib/imageModel.js";
+import { appGrid, GRID_SLOTS } from "./src/lib/gridLayout.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
   DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
@@ -115,7 +118,12 @@ const MAX_CRAFTED_PROMPT = 3000; // ceiling on what DeepSeek is allowed to hand 
  *
  * Rückweg bei Befund, ohne Codeänderung:
  *   FAL_MODEL_IMAGE=nano-banana-2-lite   (oder nano-banana-2) in .env */
-const FAL_MODEL_IMAGE = process.env.FAL_MODEL_IMAGE || DEFAULT_IMAGE_MODEL;
+/* ⚠ EINE Stelle für die Auswahl (seit 24.08.). `pickImageModel` gibt ein
+ * außer Dienst gestelltes Modell nicht mehr heraus — Seedream fliegt damit
+ * auch dann raus, wenn es in einer alten .env noch dranstehen sollte. Die
+ * Startmeldung unten sagt, dass und warum. */
+const IMAGE_PICK = pickImageModel(process.env.FAL_MODEL_IMAGE);
+const FAL_MODEL_IMAGE = IMAGE_PICK.id;
 /* Videomodelle stehen NICHT mehr hier: Slug, Dauergrenzen, Auflösung und
  * Tonparameter je Modell leben in src/lib/video.js (videoSubmitBody) —
  * dieselbe Tabelle, aus der auch der Preis und die UI kommen. Eine zweite
@@ -1167,17 +1175,23 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
 // Anything longer needs queue.fal.run: submit, poll status_url, fetch
 // response_url. Do that BEFORE offering film lengths above ~10 seconds.
 // Revisit if a model runs long enough to need the queue+polling flow.
-async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16" }) {
+async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", grid = false }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
   /* Endpunkt UND Rumpf kommen aus der Tabelle: welches Feld das Format
      trägt (`aspect_ratio` oder `image_size`) und ob es der Edit-Endpunkt
-     sein muss, ist Modellwissen, kein Aufruferwissen. */
+     sein muss, ist Modellwissen, kein Aufruferwissen.
+     ⚠ Stufe und Maß genauso wie im Warteschlangen-Weg — dieser hier ist
+     der ZWEITE Aufrufer, und er wurde beim Umstellen am 24.08. zuerst
+     vergessen. Ein Verdrahtungstest hat ihn gefunden; ohne ihn hätte der
+     synchrone Pfad still „high" bezahlt. */
   const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, {
     prompt,
     aspectRatio,
     imageUrls: namedRefs.map((r) => r.img),
+    quality: imageStage(FAL_MODEL_IMAGE),
+    size: grid ? appGrid(FAL_MODEL_IMAGE).size : null,
   });
 
   const res = await fetch(`https://fal.run/${model}`, {
@@ -1276,7 +1290,7 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds })
  * jobStatus und /api/job kennen keinen Unterschied zwischen Bild und
  * Film — nur die Antwort von fal sieht anders aus (images[] statt
  * video), und genau diese eine Stelle steht in jobStatus. */
-async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", sequenceRef = null }) {
+async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", sequenceRef = null, grid = false }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
@@ -1288,8 +1302,22 @@ async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", se
      treffen wie in einer Strecke ohne Kette. */
   const imageUrls = namedRefs.map((r) => r.img).filter(Boolean);
   if (sequenceRef) imageUrls.push(sequenceRef);
-  // Endpunkt und Adressformat entscheidet die Tabelle, nicht diese Funktion.
-  const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, { prompt, aspectRatio, imageUrls });
+  /* Endpunkt und Adressformat entscheidet die Tabelle, nicht diese Funktion.
+   *
+   * ⚠⚠ STUFE UND MASZ SIND PFLICHT, nicht Feinschliff (seit 24.08.). Bis
+   * hierher gingen beide Felder ungesetzt raus, und das kostete doppelt:
+   *   · Ohne `quality` nimmt fal bei GPT Image 2 „high" — in unserem
+   *     Rasterfall $0,413 statt $0,113. Das Dreieinhalbfache, still.
+   *   · Ohne Maß nimmt es den Preset-NAMEN, und `portrait_16_9` ist
+   *     576×1024. Ein 2×2 daraus hat Kacheln von 288×512 — bezahlt und
+   *     unbrauchbar.
+   * Beides kommt jetzt aus einer Hand: `imageStage` sagt, welche Stufe wir
+   * kaufen, `appGrid` sagt, wie groß der Behälter ist. */
+  const stufe = imageStage(FAL_MODEL_IMAGE);
+  const size = grid ? appGrid(FAL_MODEL_IMAGE).size : null;
+  const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, {
+    prompt, aspectRatio, imageUrls, quality: stufe, size,
+  });
 
   const res = await fetch(`https://queue.fal.run/${model}`, {
     method: "POST",
@@ -2299,11 +2327,23 @@ console.log(process.env.GEMINI_KEY ? "Gemini key: loaded ✓ (voice interview)" 
      fal-Slug mehr. Eine alte .env mit "fal-ai/nano-banana-2" darin fiele
      sonst stumm auf die Vorgabe zurück — und man bekäme monatelang ein
      anderes Modell, als man bestellt hat. Also laut sagen. */
-  if (process.env.FAL_MODEL_IMAGE && m.id !== process.env.FAL_MODEL_IMAGE) {
+  if (IMAGE_PICK.reason === "unknown") {
     console.warn(
-      `[DreamRushes] FAL_MODEL_IMAGE="${process.env.FAL_MODEL_IMAGE}" kennt niemand — ` +
-      `erlaubt sind: ${Object.keys(IMAGE_MODELS).join(", ")}. Es läuft die Vorgabe.`,
+      `[DreamRushes] FAL_MODEL_IMAGE="${IMAGE_PICK.asked}" kennt niemand — ` +
+      `erlaubt sind: ${lieferbareModelle().join(", ")}. Es läuft die Vorgabe.`,
     );
   }
-  console.log(`Bildmodell: ${m.label} → $${m.usd.toFixed(3)} je Bild`);
+  /* ⚠ Kein „kennt niemand": Das Modell GAB es, es ist bewusst stillgelegt.
+     Wer das verwechselt, sucht den Tippfehler statt den Grund. */
+  if (IMAGE_PICK.reason === "retired") {
+    console.warn(
+      `[DreamRushes] FAL_MODEL_IMAGE="${IMAGE_PICK.asked}" ist außer Dienst — ` +
+      `${retiredReason(IMAGE_PICK.asked)}. Es läuft ${m.label}.`,
+    );
+  }
+  const stufe = imageStage(m.id);
+  console.log(
+    `Bildmodell: ${m.label}${stufe ? ` (${stufe})` : ""} → ` +
+    `$${imagePrice(m.id, stufe, appGrid(m.id).size).toFixed(3)} je Rasterbild mit ${GRID_SLOTS} Szenen`,
+  );
 }
