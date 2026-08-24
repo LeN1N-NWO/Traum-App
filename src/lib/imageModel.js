@@ -206,6 +206,14 @@ export const IMAGE_MODELS = {
        outputs will be charged at 0.75 times." (fal, geprüft 23.08.2026) */
     usdBy: { "0.5K": 0.06, "1K": 0.08, "2K": 0.12, "4K": 0.16 },
     resolutions: ["0.5K", "1K", "2K", "4K"],
+    /* ⚠ Ohne diese Zeile gab `imageStage()` hier `null` zurück, und ein
+       Auftrag ohne `resolution` rendert bei fal in 1K. Als Ausweichmodell
+       (FALLBACK_IMAGE_MODEL) waere Plan B damit stumm auf Kacheln von
+       384x683 gefallen — bezahlt und unbrauchbar, genau die Fehlerklasse,
+       vor der der Dateikopf warnt. 4K ist die Stufe, in der Nano Banana 2
+       am 23.08. gegen GPT angetreten ist; alles darunter waere ein
+       anderer Vergleich. */
+    stufe: "4K",
     aspect: true,
     aspects: ["21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16",
               "4:1", "1:4", "8:1", "1:8"],
@@ -218,6 +226,43 @@ export const IMAGE_MODELS = {
  * $0,113 für vier Szenen statt $0,140 einzeln — 7 % billiger bei besseren
  * Gesichtern und echter Fotografie statt Malerei. */
 export const DEFAULT_IMAGE_MODEL = "gpt-image-2";
+
+/* ── Der Ausweg, wenn das Hauptmodell den Traum ablehnt (24.08.2026) ──────
+ *
+ * Antons Vorschlag, nachdem GPT seinen Freddy-Krüger-Traum als
+ * `content_policy_violation` zurückgewiesen hatte: „In dieser Fehlermeldung
+ * gibt es dem User die Möglichkeit, ein anderes Modell zu verwenden, und
+ * zwar sozusagen Plan B."
+ *
+ * Nano Banana 2 im 4K-Raster, weil es die einzige gemessene Alternative
+ * ist, die dieselbe Rasterform liefert: 2×2, vier Szenen aus einem Aufruf,
+ * $0,16 statt $0,113 — also 1,42× unser Einkauf.
+ *
+ * ⚠⚠ Drei Dinge, die man hier NICHT missverstehen darf:
+ *
+ * 1. Das ist kein Schlupfloch, sondern ein anderes Modell. Nano Banana ist
+ *    Google und bei geschützten Figuren ANDERS streng, nicht WENIGER. Es
+ *    kann klappen; versprochen wird es nirgends, und die Texte in i18n
+ *    formulieren es entsprechend. Eine App, die damit wirbt, Inhaltsfilter
+ *    zu umgehen, fliegt beim Anbieter raus — zu Recht.
+ * 2. Scheitert auch Plan B, erstattet der Collector wie immer. Deshalb darf
+ *    er angeboten werden, ohne jemanden in ein Risiko zu locken.
+ * 3. ⚠ Es ist EINE Ausweichadresse, keine freie Modellwahl. Der Client
+ *    schickt nur ein Ja/Nein (`fallback: true`), nie einen Modellnamen —
+ *    sonst könnte er sich Nano Banana Pro bestellen ($0,30) und wir
+ *    berechneten den Preis von Plan B. Deshalb steht die Auflösung hier im
+ *    Code und nicht im Auftrag.
+ */
+export const FALLBACK_IMAGE_MODEL = "nano-banana-2";
+
+/** Das Ausweichmodell — oder `null`, wenn es keines gibt (weil es dasselbe
+ *  wäre wie das Hauptmodell oder außer Dienst steht). Ein `null` hier
+ *  bedeutet für die Oberfläche schlicht: kein Plan-B-Knopf. */
+export function fallbackModel(hauptmodell = DEFAULT_IMAGE_MODEL) {
+  const m = IMAGE_MODELS[FALLBACK_IMAGE_MODEL];
+  if (!m || m.retired || FALLBACK_IMAGE_MODEL === hauptmodell) return null;
+  return FALLBACK_IMAGE_MODEL;
+}
 
 /** Welche Qualitätsstufe wir bei diesem Modell kaufen — `null`, wo es
  *  keine gibt.

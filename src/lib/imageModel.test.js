@@ -232,12 +232,50 @@ test("JEDER Aufrufer schickt Stufe UND Mass mit", () => {
      Umstellung am 24.08. fast gescheitert: Der Warteschlangen-Weg war
      umgestellt, der synchrone nicht, und ein Test, der nur den ersten
      Treffer ansieht, haette gruen gemeldet. */
+  /* ⚠ Das erste Argument wird NICHT festgenagelt. Am 24.08. hiess es noch
+     `FAL_MODEL_IMAGE`; seit Plan B (Ausweichmodell) heisst es `id`, und der
+     Test meldete rot, obwohl die Verdrahtung stimmte. Ein Test, der den
+     Variablennamen prueft statt der Sache, wird beim naechsten Umbenennen
+     wieder falsch — also greift er jeden Aufruf. */
   const aufrufe = [...srv.matchAll(
-    /imageSubmitBody\(FAL_MODEL_IMAGE, \{([\s\S]*?)\}\)/g)].map((m) => m[1]);
+    /imageSubmitBody\([A-Za-z_$][\w$]*, \{([\s\S]*?)\}\)/g)].map((m) => m[1]);
   expect(aufrufe.length).toBeGreaterThanOrEqual(2);
   for (const a of aufrufe) {
     expect(a).toMatch(/quality:/);
+    /* ⚠ `resolution` ist seit Plan B genauso Pflicht wie `quality`: Bei GPT
+       heisst die Stufe `quality` ("medium"), bei Nano Banana `resolution`
+       ("4K"). Wer nur `quality` schickt, rendert beim Ausweichmodell still
+       in 1K — Kacheln von 384x683, bezahlt und unbrauchbar. Welches Feld
+       WIRKLICH rausgeht, entscheidet die Tabelle; hier zaehlt nur, dass der
+       Aufrufer beide anbietet. */
+    expect(a).toMatch(/resolution:/);
     // `size: …` oder die Kurzschreibweise `size,` — beides zaehlt.
     expect(a).toMatch(/\bsize\s*[:,]/);
   }
+});
+
+/* ⚠ Der Riegel vor der offenen Kasse: Der Client darf ein JA/NEIN schicken,
+   nie einen Modellnamen. Mit einem freien Feld koennte er sich Nano Banana
+   Pro bestellen ($0,30) und bekaeme es zum Preis von Plan B ($0,16). */
+test("das Ausweichmodell steht im Server, nicht im Auftrag", () => {
+  const srv = readFileSync(new URL("../../server.js", import.meta.url), "utf8");
+  // Der einzige Weg zu einem anderen Modell fuehrt ueber modelFor().
+  expect(srv).toMatch(/function modelFor\(/);
+  expect(srv).toMatch(/body\.fallback === true/);
+  // modelFor loest NUR auf: Ausweichmodell oder Hauptmodell. Nichts sonst.
+  const koerper = srv.match(/function modelFor\(fallback\) \{([\s\S]*?)\n\}/)?.[1] || "";
+  expect(koerper).toMatch(/fallbackModel\(/);
+  expect(koerper).toMatch(/FAL_MODEL_IMAGE/);
+  // Und nie ein Modellname aus dem Auftragskoerper in einen Bildauftrag.
+  expect(srv).not.toMatch(/imageSubmitBody\(body\./);
+});
+
+/* ⚠ Dieselbe Gefahr beim FILM, und dort war sie schon vorher richtig
+   geloest: `body.model` DARF der Client schicken — aber der Server nimmt es
+   nur, wenn es in der Liste steht. Ohne diese Zeile faellt beim naechsten
+   Umbau vielleicht die Liste weg und der Client bestellt sich „premium"
+   zum Preis von „standard". */
+test("die Filmstufe aus dem Auftrag bleibt auf eine Liste beschraenkt", () => {
+  const srv = readFileSync(new URL("../../server.js", import.meta.url), "utf8");
+  expect(srv).toMatch(/\[[^\]]*"premium"[^\]]*\]\.includes\(body\.model\)/);
 });

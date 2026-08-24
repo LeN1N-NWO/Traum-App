@@ -55,7 +55,8 @@ import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
  * sprechen nicht dieselbe Sprache, und ein falscher Feldname wirft keinen
  * Fehler, er liefert nur das Falsche. */
 import { imageSubmitBody, imageModel, IMAGE_MODELS, DEFAULT_IMAGE_MODEL,
-         pickImageModel, retiredReason, lieferbareModelle, imageStage, imagePrice }
+         pickImageModel, retiredReason, lieferbareModelle, imageStage, imagePrice,
+         fallbackModel }
   from "./src/lib/imageModel.js";
 import { failureReason } from "./src/lib/falError.js";
 import { appGrid, GRID_SLOTS } from "./src/lib/gridLayout.js";
@@ -1196,7 +1197,23 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
 // Anything longer needs queue.fal.run: submit, poll status_url, fetch
 // response_url. Do that BEFORE offering film lengths above ~10 seconds.
 // Revisit if a model runs long enough to need the queue+polling flow.
-async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", grid = false }) {
+/** Welches Bildmodell dieser eine Auftrag benutzt.
+ *
+ *  ⚠⚠ Der Client schickt ein JA/NEIN, nie einen Modellnamen. Das ist der
+ *  ganze Unterschied zwischen einem Ausweg und einer offenen Kasse: Mit
+ *  einem freien Feld könnte er `nano-banana-pro` bestellen ($0,30) und
+ *  bekäme es zum Preis von Plan B. Die Auflösung des Ja/Nein steht deshalb
+ *  hier im Server, und der einzige erreichbare Wert ist
+ *  FALLBACK_IMAGE_MODEL.
+ *
+ *  Gibt es kein Ausweichmodell (weil es außer Dienst steht oder dasselbe
+ *  wäre), fällt es still auf das Hauptmodell zurück — ein Plan B, der
+ *  nicht existiert, darf keinen Auftrag scheitern lassen. */
+function modelFor(fallback) {
+  return (fallback && fallbackModel(FAL_MODEL_IMAGE)) || FAL_MODEL_IMAGE;
+}
+
+async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", grid = false, fallback = false }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
@@ -1207,12 +1224,21 @@ async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", 
      der ZWEITE Aufrufer, und er wurde beim Umstellen am 24.08. zuerst
      vergessen. Ein Verdrahtungstest hat ihn gefunden; ohne ihn hätte der
      synchrone Pfad still „high" bezahlt. */
-  const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, {
+  const modellId = modelFor(fallback);
+  /* ⚠ Die Stufe geht an BEIDE Felder, und das ist Absicht: Bei GPT heißt
+     sie `quality` ("medium"), bei Nano Banana `resolution` ("4K"). Welches
+     Feld wirklich gesendet wird, entscheidet die Tabelle (`imageSubmitBody`
+     prüft `qualities`/`resolutions`) — nicht diese Funktion. Wer hier von
+     Hand zuordnete, hätte beim Ausweichmodell ein leeres `quality` gesendet
+     und still in 1K gerendert. */
+  const stufe = imageStage(modellId);
+  const { model, input } = imageSubmitBody(modellId, {
     prompt,
     aspectRatio,
     imageUrls: namedRefs.map((r) => r.img),
-    quality: imageStage(FAL_MODEL_IMAGE),
-    size: grid ? appGrid(FAL_MODEL_IMAGE).size : null,
+    quality: stufe,
+    resolution: stufe,
+    size: grid ? appGrid(modellId).size : null,
   });
 
   const res = await fetch(`https://fal.run/${model}`, {
@@ -1329,7 +1355,7 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds })
  * jobStatus und /api/job kennen keinen Unterschied zwischen Bild und
  * Film — nur die Antwort von fal sieht anders aus (images[] statt
  * video), und genau diese eine Stelle steht in jobStatus. */
-async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", sequenceRef = null, grid = false }) {
+async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", sequenceRef = null, grid = false, fallback = false }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
@@ -1352,10 +1378,15 @@ async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", se
    *     unbrauchbar.
    * Beides kommt jetzt aus einer Hand: `imageStage` sagt, welche Stufe wir
    * kaufen, `appGrid` sagt, wie groß der Behälter ist. */
-  const stufe = imageStage(FAL_MODEL_IMAGE);
-  const size = grid ? appGrid(FAL_MODEL_IMAGE).size : null;
-  const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, {
-    prompt, aspectRatio, imageUrls, quality: stufe, size,
+  /* ⚠ `modellId`, nicht `id`: Weiter unten IST `id` die Auftragsnummer
+     (`const id = genJobId()`). Zwei Bedeutungen für denselben Namen in der
+     Funktion, die Geld ausgibt, sind eine Frage zu viel. */
+  const modellId = modelFor(fallback);
+  const stufe = imageStage(modellId);
+  const size = grid ? appGrid(modellId).size : null;
+  /* Stufe an beide Felder — Begründung steht bei falGenerateImage. */
+  const { model, input } = imageSubmitBody(modellId, {
+    prompt, aspectRatio, imageUrls, quality: stufe, resolution: stufe, size,
   });
 
   const res = await fetch(`https://queue.fal.run/${model}`, {
@@ -2101,7 +2132,10 @@ Bun.serve({
           GENERATION_FAILED: [502, "Could not draw them. Try again."],
         };
         const hit = map[e.message];
-        if (hit) return json({ error: hit[1] }, hit[0]);
+        /* Der Grund muss auch hier mit. Beim Bogen ist es sogar haeufiger
+           der Foto-Fall (`where: "image"`) als der Text-Fall — und dort
+           lautet der richtige Rat „anderes Bild", nicht „anderer Text". */
+        if (hit) return json({ error: hit[1], reason: e.reason || null }, hit[0]);
         console.error("[DreamRushes] /api/character failed:", e);
         return json({ error: "Server error." }, 500);
       }
@@ -2246,7 +2280,14 @@ Bun.serve({
             seqRef = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
           }
         }
-        const imageJob = await falSubmitImage({ prompt: imagePrompt, namedRefs: cast, aspectRatio, sequenceRef: seqRef });
+        /* Plan B (24.08.2026): Ein JA/NEIN, kein Modellname — `modelFor()`
+           loest es auf, und der einzige erreichbare Wert ist das eine
+           Ausweichmodell. `=== true` statt truthy, damit ein versehentliches
+           "false" aus einem Formular nicht als Ja durchgeht. */
+        const imageJob = await falSubmitImage({
+          prompt: imagePrompt, namedRefs: cast, aspectRatio, sequenceRef: seqRef,
+          fallback: body.fallback === true,
+        });
         return json({ ok: true, jobId: imageJob });
       } catch (e) {
         const map = {
