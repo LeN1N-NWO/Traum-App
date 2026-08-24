@@ -6,7 +6,19 @@
  * switch to a server-side balance touches one file.
  *
  * ── The rule the whole scale rests on (08.08.2026) ────────────────────────
- *   1 CREDIT = 1 IMAGE = $0.08 of our cost (fal.ai nano-banana-2 at 1K).
+ *   1 CREDIT = 1 IMAGE.
+ *
+ * ⚠ Was ein Bild uns KOSTET, hat sich seitdem viermal geändert und steht
+ * längst nicht mehr hier: $0,08 (nano-banana-2) → $0,042 (Lite) → $0,035
+ * (Seedream) → **$0,0283** (GPT Image 2 „medium", eine Szene aus einem
+ * 2×2-Raster, seit 24.08.2026). Die Zahl gehört in imageModel.js und wird
+ * von dort gelesen (`node scripts/preis-durchreichen.mjs`); jede Kopie
+ * hier wäre nach dem nächsten Modellwechsel falsch — genau das ist am
+ * 23.08. passiert.
+ *
+ * Was BLEIBT, ist die Regel darüber: ein Credit ist ein Bild. Der Einkauf
+ * bestimmt die Marge, nicht den Preis — ein billigeres Modell verbreitert
+ * die Marge, es verbilligt nichts für den Kunden. So entschieden am 20.08.
  *
  * Everything else is that number divided into. Before this, the scale had
  * drifted badly: a film cost 9 credits but only $0.35 to make, while ten

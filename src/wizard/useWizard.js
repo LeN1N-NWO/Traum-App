@@ -62,7 +62,11 @@ const EMPTY = {
   imageCount: 5,
   preview: false,      // the cheap look: one render cut into three, see pricing.js
   assignments: {},     // name -> { name, kind, avatar?, free? }
-  styleId: "dreamlike",
+  /* ⚠ Seit 24.08. `ultrareal` statt `dreamlike`. Der alte Vorgabewert war
+     ausgerechnet der Stil, der den Malerei-Look WÖRTLICH bestellt
+     („shapes dissolving") — wer nie einen Stil wählte, bekam garantiert
+     gemalte Bilder und hielt das für das Können des Modells. */
+  styleId: "ultrareal",
   format: "9:16",
   videoModel: "standard",
   seconds: 6,          // film length; see lib/video.js for each model's range

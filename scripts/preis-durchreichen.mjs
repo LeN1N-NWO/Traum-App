@@ -15,7 +15,8 @@
  */
 import { VIDEO_MODELS, videoModel, priceForFilm } from "../src/lib/video.js";
 import { SUBSCRIPTIONS, PACKS } from "../src/lib/plans.js";
-import { imageModel, DEFAULT_IMAGE_MODEL } from "../src/lib/imageModel.js";
+import { imageModel, DEFAULT_IMAGE_MODEL, imagePrice, imageStage } from "../src/lib/imageModel.js";
+import { appGrid } from "../src/lib/gridLayout.js";
 
 const VAT = 1.19;                 // Deutschland, aus dem Schildpreis heraus
 
@@ -26,7 +27,21 @@ const VAT = 1.19;                 // Deutschland, aus dem Schildpreis heraus
    der Dateikopf — und genau das ist trotzdem passiert. Jetzt kann es
    nicht mehr: `imageModel.js` trägt den Preis, dieses Skript liest ihn. */
 const BILD = imageModel(DEFAULT_IMAGE_MODEL);
-const BILD_EINKAUF = BILD.usd;
+/* ⚠⚠ NICHT `BILD.usd` — das ist bei GPT Image 2 der Preis eines EINZELNEN
+   Bildes in „high" ($0,178). So kaufen wir nicht ein.
+   Wir kaufen ein 2×2-Raster in „medium": EIN Bild zu $0,113, in dem VIER
+   Szenen stecken — also $0,0283 je Szene. Wer hier `usd` nähme, rechnete
+   den Einkauf um das Sechsfache zu hoch und käme zu genau der falschen
+   Schlussfolgerung: dass die Bilder zu teuer sind.
+
+   Dieselbe Lehre wie am 23.08., nur andersherum: Damals stand der Preis
+   als Konstante und war nach einem Tag falsch; jetzt steht er in der
+   Tabelle und wäre trotzdem falsch, weil die Tabelle mehrere Preise für
+   dasselbe Modell kennt. Der richtige ist der, den unser Auftrag auslöst —
+   also Stufe MAL Rastermaß, geteilt durch die Plätze. */
+const RASTER = appGrid(DEFAULT_IMAGE_MODEL);
+const BILD_EINKAUF = imagePrice(DEFAULT_IMAGE_MODEL, imageStage(DEFAULT_IMAGE_MODEL), RASTER.size)
+  / RASTER.slots;
 
 /* Einkauf je Sekunde, nach Modell-Id — Quellen in den Kommentaren von
    video.js, dort jeweils mit Datum belegt. */
@@ -54,7 +69,7 @@ const PLAENE = [
 ];
 
 const PRODUKTE = [
-  { name: BILD.label, einkauf: BILD_EINKAUF, credits: 1 },
+  { name: `${BILD.label} 2×2`, einkauf: BILD_EINKAUF, credits: 1 },
   ...VIDEO_MODELS.map((m) => ({
     name: m.id,
     einkauf: EINKAUF_PRO_SEKUNDE[m.id],
@@ -72,7 +87,7 @@ for (const p of PRODUKTE) {
   const ggü = (proCredit / BILD_EINKAUF - 1) * 100;
   console.log(
     `${p.name.padEnd(18)}${f(p.einkauf)}   ${String(p.credits).padStart(4)}   ${f(proCredit)}   ` +
-    (p.name === BILD.label ? "—" : `+${ggü.toFixed(0)} %`)
+    (p.einkauf === BILD_EINKAUF ? "—" : `+${ggü.toFixed(0)} %`)
   );
 }
 
