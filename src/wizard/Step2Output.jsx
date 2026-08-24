@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { PRICES } from "../lib/pricing.js";
+import { IMAGE_COUNTS, priceForImages } from "../lib/pricing.js";
 import { priceForFilm } from "../lib/video.js";
 import { useAppState } from "../state/AppState.jsx";
 import { genId } from "../lib/storage.js";
@@ -68,10 +68,14 @@ export default function Step2Output({ w, patch }) {
           <span className="wiz-choice-title">{t.wizard.step2.images}</span>
           <span className="wiz-choice-hint">{t.wizard.step2.imagesHint}</span>
         </span>
-        {/* The count (3/5/10) is chosen in step 5, after the characters are
-            settled — deciding it here would front-load a detail the person
-            cannot judge yet. Show the entry price only. */}
-        <span className="wiz-price">{t.wizard.from} {PRICES.images[3]}</span>
+        {/* The count is chosen in step 5, after the characters are settled —
+            deciding it here would front-load a detail the person cannot
+            judge yet. Show the entry price only.
+            ⚠ Aus IMAGE_COUNTS abgeleitet, nicht hingeschrieben: hier stand
+            bis zum 23.08. `PRICES.images[3]`, und die 3 gibt es seit der
+            Umstellung auf 4/8 nicht mehr — die Zeile hätte „ab undefined"
+            angezeigt. */}
+        <span className="wiz-price">{t.wizard.from} {priceForImages(Math.min(...IMAGE_COUNTS))}</span>
       </Card>
 
       <Card as="button" className="wiz-choice" onClick={() => choose("film")}>

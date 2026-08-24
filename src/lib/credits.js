@@ -42,9 +42,9 @@
  * dream, no less and no more. credits.test.js pins that relationship,
  * because the promise and the numbers live in nine different files.
  *
- * It also settles the grid question. The 3-image tier CAN be rendered as one
- * wide image cut into three (Step5Style's `useGrid`), which would make this
- * giveaway cost $0.08 instead of $0.24 — tempting, given how thin the
+ * It also settles the grid question. The smallest tier CAN be rendered as one
+ * wide image cut into panels (Step5Style's `useGrid`), which would make this
+ * giveaway cost one render instead of four — tempting, given how thin the
  * margins in plans.js are. Measured on a real render: the panels come out
  * 459×768 against 768×1376 for a normal still, a third of the pixels. So
  * that saving would be taken precisely on the one dream that has to be
@@ -52,7 +52,19 @@
  * full-size. If the grid is ever wanted, it belongs in front of someone as
  * a labelled cheaper choice, not behind their first impression.
  */
-export const WELCOME_CREDITS = 3;
+/* ⚠ Von 3 auf 4 mitgezogen am 23.08.2026, als die Bildzahlen auf 4/8
+ * umgestellt wurden. Die Regel ist die Beziehung, nicht die Zahl: Das
+ * Geschenk zahlt GENAU EINEN kleinsten Traum. Wäre es bei 3 geblieben,
+ * hätte der erste Traum plötzlich einen Credit gekostet, den niemand hat —
+ * und das Versprechen „dein erster Traum geht auf uns" wäre eine Lüge mit
+ * einem ✦ davor gewesen. credits.test.js nagelt die Beziehung fest.
+ *
+ * ⚠ Es KOSTET auch mehr: 4 × $0,035 = $0,14 je Installation statt $0,105.
+ * Das Geschenk wird PRO INSTALLATION gezahlt, nicht pro Kunde — laut
+ * plans.js ist es damit der größte einzelne Kostenposten überhaupt, und
+ * ein Drittel mehr davon ist keine Kleinigkeit. Wer die Conversion misst,
+ * misst gegen diese Zahl. */
+export const WELCOME_CREDITS = 4;
 
 /* ── Zwei Töpfe, nicht einer (16.08.2026) ─────────────────────────────────
  *

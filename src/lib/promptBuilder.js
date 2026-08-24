@@ -7,6 +7,7 @@
  * wrong and people get each other's faces. Hence the tests.
  */
 import { styleById } from "./styles.js";
+import { shotClause, photorealClause } from "./cinematography.js";
 import { slotName } from "./gridLayout.js";
 
 /**
@@ -26,9 +27,29 @@ export function buildReferences(assignments = []) {
     references.push({ tag: a.avatar.tag, img: a.avatar.img });
     const kind = a.kind === "pet" ? "pet" : a.kind === "place" ? "place" : "person";
     const desc = a.avatar.desc ? `, described as: ${a.avatar.desc}` : "";
+    /* Die Garderobe DIESES Traums — nicht die der Figur.
+     *
+     * ⚠ Der Unterschied ist der ganze Punkt: `avatar.desc` gehört der Person
+     * für immer und steht in jedem Traum; `wardrobe` gehört diesem einen
+     * Traum. Bis zum 24.08.2026 gab es nur das erste, und deshalb trug jede
+     * Figur in Traum 40 dasselbe wie in Traum 1 — nämlich das, was der Bogen
+     * zeigte.
+     *
+     * Der Satz sagt AUSDRÜCKLICH, dass er das Referenzbild schlägt. Ohne das
+     * gewinnt das Bild: Ein Modell glaubt eher, was es sieht, als was es
+     * liest. Gemessen am 23.08. — GPT hat die Badehose aus dem Bogen in eine
+     * nächtliche Bibliothek mitgenommen, Nano Banana nicht.
+     *
+     * Und er nennt zuerst, was BLEIBT: Gesicht, Haare, Statur. Sonst liest
+     * sich „trägt etwas anderes" wie „ist jemand anderes". */
+    const garderobe = a.wardrobe
+      ? ` In THIS dream they are wearing: ${a.wardrobe}. This overrides the clothing visible in ` +
+        `the reference image — keep the face, hair and build from it, but dress them as described here.`
+      : "";
     clauses.push(
       `Reference image ${references.length} shows @${a.avatar.tag} (${kind}${desc}) — ` +
-      `wherever "${a.name}" appears, depict them with this exact likeness, not a generic stand-in.`
+      `wherever "${a.name}" appears, depict them with this exact likeness, not a generic stand-in.` +
+      garderobe
     );
   }
 
@@ -108,7 +129,7 @@ export function stripReferenceClauses(prompt) {
  * @param {number} [p.cols]      Spalten; Vorgabe: so viele wie Beats
  * @param {number} [p.rows]      Zeilen; 1 = der bewährte Streifen
  */
-export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1 }) {
+export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1, tile = "9:16", photoreal = false }) {
   const style = styleById(styleId);
   const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
   const spalten = cols || beats.length;
@@ -148,8 +169,13 @@ export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1 }
        3. Kein Überlaufen zwischen den Kacheln. Genau dafür steht die
           Trennlinie da; sie ist keine Zierde, sie ist die Schnittkante. */
   const zeilen = rows;
+  /* ⚠ JEDE Kachel bekommt ihre EIGENE Einstellung. Genau hier entscheidet
+     sich, ob ein Raster ein Film wird oder eine Kontaktbogen-Seite: Ohne
+     diesen Zusatz malt das Modell vier Varianten derselben Aufnahme, weil
+     nichts es davon abhält — und das ist der Fehler, den ein Raster
+     STÄRKER macht als Einzelbilder, weil alle vier in einem Zug entstehen. */
   const plaetze = beats
-    .map((b, i) => `${slotName(i, spalten, zeilen)}: ${b}`)
+    .map((b, i) => `${slotName(i, spalten, zeilen)}: ${b}\n  ${shotClause(i + 1, beats.length)}`)
     .join("\n");
   const frei = spalten * zeilen - beats.length;
   const leer = frei > 0
@@ -161,18 +187,25 @@ export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1 }
   return (
     `A single image laid out as an EXACT ${spalten}×${zeilen} grid of ${spalten * zeilen} equally ` +
     `sized tiles (${spalten} columns, ${zeilen} rows), separated by thin solid black divider lines ` +
-    `running the full width and height between them. Every tile is a VERTICAL 9:16 portrait frame ` +
+    /* ⚠ Das KACHELFORMAT steht hier, nicht das Behälterformat. Ein
+       quadratisches Raster hat beide gleich (2×2 aus 9:16 ergibt 9:16, 2×2
+       aus 16:9 ergibt 16:9) — bei 3×2 laufen sie auseinander, und dann ist
+       genau diese Zeile der Unterschied zwischen einem Schnitt, der passt,
+       und sechs Kacheln im falschen Format. */
+    `running the full width and height between them. Every tile is ` +
+    `${tile === "16:9" ? "a HORIZONTAL 16:9 landscape frame" : "a VERTICAL 9:16 portrait frame"} ` +
     `and is completely filled edge to edge — no letterboxing inside a tile, no black bars, no outer ` +
     `frame or margin around the grid. Each tile is a self-contained cinematic photoreal film still ` +
     `with no bleed, no shared elements and no continuing scenery across the divider lines.` +
     `\n${plaetze}${leer}` +
     `\nConsistent color grade, lighting and wardrobe across all tiles so they read as one continuous ` +
     `sequence from the same film, in this style: ${style.prompt}` +
-    `\nUltra-detailed, accurate hands and faces. No text, no captions, no numbers, no watermarks.${refs}`
+    `\nUltra-detailed, accurate hands and faces. No text, no captions, no numbers, no watermarks.` +
+    `${photorealClause(photoreal)}${refs}`
   );
 }
 
-export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 1, total = 1, prevFrame = false }) {
+export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 1, total = 1, prevFrame = false, photoreal = false }) {
   const style = styleById(styleId);
   const framing = format === "16:9" ? "16:9 widescreen framing" : "9:16 vertical framing";
   const place = total > 1 ? ` This is image ${index} of ${total} in one continuous dream sequence; keep characters, wardrobe and palette consistent across all of them.` : "";
@@ -196,10 +229,19 @@ export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 
     : "";
   const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
 
+  /* Die EINSTELLUNG (cinematography.js) steht vor dem Stil, nicht danach:
+     Zuerst was für ein Bild das ist, dann wie es aussieht. Ohne sie kam
+     jede Szene als dieselbe Aufnahme zurück — Person mittig, frontal,
+     formatfüllend —, und vier davon sind kein Film, sondern vier Passfotos
+     an vier Orten (Antons Befund 23.08.).
+     ⚠ Sie nennt bewusst KEINE Optik; die gehört dem Stil, und die Stile
+     widersprechen sich darin. Zwei Brennweiten in einem Prompt sind
+     schlechter als eine. */
   return (
     `A cinematic, photoreal film still: ${beat}` +
+    `\n${shotClause(index, total)}` +
     `\n${style.prompt}` +
-    `\n${framing}, ultra-detailed, accurate hands and faces.${place}${refs}${anchor}`
+    `\n${framing}, ultra-detailed, accurate hands and faces.${photorealClause(photoreal)}${place}${refs}${anchor}`
   );
 }
 
@@ -256,8 +298,18 @@ export function buildCharacterPrompt({ desc, category = "person" }) {
  *
  * `desc` legt die Garderobe EINMAL im Bogen fest statt in jedem Bild neu —
  * dieselbe Anti-Drift-Linie wie beim Regisseur (keine erfundene Garderobe). */
-export function buildSheetFromPhotoPrompt({ desc, category = "person" } = {}) {
+export function buildSheetFromPhotoPrompt({ desc, category = "person", photos = 1 } = {}) {
   const clean = String(desc || "").trim();
+  /* Zwei Fotos, zwei Aufgaben — und sie MÜSSEN benannt werden. Ohne diesen
+     Satz mittelt das Modell über beide Bilder und bekommt aus einem
+     Selfie-von-schräg-oben plus einem Ganzkörperbild einen Menschen, der
+     weder das Gesicht noch die Statur trifft. Die Reihenfolge ist Vertrag
+     mit photosOf() in sheets.js. */
+  const zwei = photos > 1
+    ? "Reference image 1 is a close view of their face — take the face, hair and skin from it. "
+      + "Reference image 2 shows their whole body — take height, build and posture from it. "
+      + "Where the two disagree, the face image wins for the head and the body image for the body. "
+    : "";
   const panels = category === "pet"
     ? "left panel the whole animal standing, side-on to three-quarter view; "
       + "right panel a close view of its head, eyes clearly visible. "
@@ -267,9 +319,25 @@ export function buildSheetFromPhotoPrompt({ desc, category = "person" } = {}) {
       + "Same person, same likeness, same outfit in both panels.";
 
   return [
-    `Reference sheet of the ${category === "pet" ? "animal" : "person"} shown in reference image 1, `
-      + `split into two panels side by side: ${panels}`,
-    clean ? `Look and wardrobe: ${clean}. Depict exactly this in both panels.` : "",
+    `Reference sheet of the ${category === "pet" ? "animal" : "person"} shown in reference image 1`
+      + `${photos > 1 ? " and reference image 2" : ""}, split into two panels side by side: ${panels}`,
+    zwei,
+    /* ⚠ Ohne Angabe NEUTRALE Alltagskleidung, nicht das, was auf dem Foto
+       zufällig an war. Antons Bogen vom 23.08. kam in Badehose und
+       Sonnenbrille zurück, weil das Foto am Strand entstand — und ein Bogen
+       trägt seine Kleidung in JEDEN künftigen Traum. Ein Urlaubsfoto darf
+       nicht die Garderobe eines Jahres bestimmen. */
+    clean
+      ? `Look and wardrobe: ${clean}. Depict exactly this in both panels.`
+      : "Dress them in plain, neutral everyday clothing — a simple long-sleeved top and plain "
+        + "trousers in muted colours — regardless of what they happen to wear in the reference "
+        + "photo. This is a neutral reference, not a snapshot of one particular day.",
+    /* Und das Gesicht muss FREI sein. Der Bogen ist die Quelle jeder
+       späteren Ähnlichkeit; was hier verdeckt ist, fehlt für immer. */
+    category === "pet" ? "" :
+      "Remove any sunglasses, glasses, hat, cap or hood: the whole face must be visible and "
+      + "both eyes open. If the reference photo hides the eyes, reconstruct them plausibly from "
+      + "the rest of the face.",
     "Plain mid-grey background in both panels, even soft lighting, no shadows cast on the background.",
     "Sharp focus, natural colour, photographic. No text, no logos, no border decorations.",
     "Do not add props, scenery, weather, story or mood — this is a reference sheet, not a scene.",

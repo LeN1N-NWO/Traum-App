@@ -19,45 +19,33 @@
 import { resolve } from "node:path";
 import { readFileSync } from "node:fs";
 import { buildImagePrompt, buildReferences } from "../src/lib/promptBuilder.js";
+/* ⚠ Adresse, Adressformat und Preis kommen aus der Tabelle — seit dem
+ * 23.08. gibt es sie (src/lib/imageModel.js). Vorher baute dieses Skript
+ * `${slug}/edit` selbst zusammen und kannte eine eigene Preisliste. Beides
+ * ging schief, sobald Seedream dazukam: dessen Text-zu-Bild-Endpunkt heisst
+ * nicht `<slug>`, und `<slug>/edit` gibt es nur bei Nano Banana. Ein Skript,
+ * das seine eigene Wahrheit ueber Endpunkte pflegt, driftet von dem weg,
+ * was die App tut — und misst dann etwas anderes als den Alltag. */
+import { imageModel, imageSubmitBody, imagePrice, IMAGE_MODELS } from "../src/lib/imageModel.js";
+const IMAGE_MODELS_KEYS = Object.keys(IMAGE_MODELS);
 
 const [traumDatei, refDatei, slugArg] = process.argv.slice(2);
 if (!traumDatei || !refDatei) {
   console.error("Aufruf: bun scripts/modell-ab.mjs <traum.json> <referenz.png> [modell-slug]");
   process.exit(1);
 }
-const MODELL = slugArg || "fal-ai/nano-banana-2";
+const MODELL = slugArg || "seedream-5-lite";
+const m = imageModel(MODELL);
+if (m.id !== MODELL) {
+  console.error(`Unbekanntes Modell "${MODELL}". Bekannt: ${IMAGE_MODELS_KEYS.join(", ")}`);
+  process.exit(1);
+}
+/* Hoechste Stufe, wo es welche gibt — sonst misst man das Modell in einer
+   Aufloesung, die es gar nicht meint. */
+const STUFE = m.resolutions ? m.resolutions[m.resolutions.length - 1] : null;
 const KEY = process.env.FAL_KEY;
 if (!KEY) { console.error("FAL_KEY fehlt."); process.exit(1); }
 
-/* Einkaufspreise je Bild bei 1K (fal.ai, Stand 19.08.2026 — Quelle:
-   docs/plans/2026-08-19-bildmodelle-preise.md und der Kopf von server.js). */
-const PREIS = {
-  "google/nano-banana-2-lite": 0.042,
-  "fal-ai/nano-banana-2": 0.08,
-  "fal-ai/bytedance/seedream/v5/lite": 0.035,
-  "fal-ai/bytedance/seedream/v5/pro": 0.0675,
-};
-
-/* Seedream spricht ein anderes Adressformat als Nano Banana: kein
- * `aspect_ratio`, sondern `image_size` — und es hat eine UNTERGRENZE von
- * 2560×1440 Gesamtpixeln (fal-Schema, geprüft 23.08.2026). Ein 9:16-Bild
- * an genau dieser Grenze ist 1440×2560; alles Kleinere würde fal ohnehin
- * hochskalieren. Wir setzen die Maße deshalb selbst, statt ein Preset zu
- * raten — sonst vergleicht man am Ende zwei Auflösungen statt zwei Modelle.
- *
- * ⚠ Damit ist die Auflösung die EINE Ungleichheit, die dieser Vergleich
- * nicht wegbekommt: Nano Banana Lite liefert 1K, Seedream mindestens 2K.
- * Das gehört in jede Bewertung des Ergebnisses hinein. */
-const SEEDREAM_MASSE = {
-  "9:16": { width: 1440, height: 2560 },
-  "16:9": { width: 2560, height: 1440 },
-  "1:1":  { width: 1920, height: 1920 },
-};
-const istSeedream = (slug) => slug.includes("seedream");
-
-/* Dateiname aus dem Slug. NICHT nur das letzte Wegstück: bei
- * `.../seedream/v5/lite` hieße das „lite" — und läge damit im selben Ordner
- * wie eine spätere Nano-Banana-Lite-Messung. Der ganze Slug, entschärft. */
 const dateiName = (slug) => slug.replace(/^fal-ai\//, "").replace(/[^a-z0-9]+/gi, "-");
 
 const traum = JSON.parse(readFileSync(traumDatei, "utf8"));
@@ -75,33 +63,34 @@ const { clauses } = buildReferences(
   tags.map((tag) => ({ kind: "person", avatar: { tag, desc: "", img: refUri } })),
 );
 
-console.log(`\nModell:   ${MODELL}`);
+console.log(`\nModell:   ${m.label}${STUFE ? ` · ${STUFE}` : ""}  ($${imagePrice(MODELL, STUFE).toFixed(3)} je Bild)`);
 console.log(`Traum:    ${traum.title}`);
 console.log(`Referenz: ${refDatei} (${Math.round(refBytes.length / 1024)} KB)`);
 console.log(`Szenen:   ${beats.length} · Stil ${stil} · ${format}\n`);
 
 async function rendern(prompt, bilder) {
-  const res = await fetch(`https://queue.fal.run/${MODELL}/edit`, {
+  const { model, input } = imageSubmitBody(MODELL, {
+    prompt, imageUrls: bilder, aspectRatio: format, resolution: STUFE,
+  });
+  const res = await fetch(`https://queue.fal.run/${model}`, {
     method: "POST",
     headers: { Authorization: `Key ${KEY}`, "content-type": "application/json" },
-    body: JSON.stringify(
-      istSeedream(MODELL)
-        ? { prompt, image_urls: bilder, image_size: SEEDREAM_MASSE[format] || SEEDREAM_MASSE["9:16"] }
-        : { prompt, image_urls: bilder, aspect_ratio: format },
-    ),
+    body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error(`Submit ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const { status_url, response_url } = await res.json();
 
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < 200; i++) {
     await new Promise((r) => setTimeout(r, 2000));
     const st = await (await fetch(status_url, { headers: { Authorization: `Key ${KEY}` } })).json();
-    if (st.status === "COMPLETED") break;
-    if (st.status === "FAILED") throw new Error("FAILED");
+    if (st.status === "COMPLETED" || st.status === "FAILED") break;
   }
-  const data = await (await fetch(response_url, { headers: { Authorization: `Key ${KEY}` } })).json();
+  const roh = await (await fetch(response_url, { headers: { Authorization: `Key ${KEY}` } })).text();
+  const data = (() => { try { return JSON.parse(roh); } catch { return null; } })();
   const url = data?.images?.[0]?.url;
-  if (!url) throw new Error("keine Bild-URL in der Antwort");
+  // Die Antwort MITSAGEN: eine stumme Absage bei einem bezahlten Aufruf
+  // laesst einen blind weiterprobieren, statt zu lesen.
+  if (!url) throw new Error(roh.includes("content_policy") ? "abgelehnt (content_policy)" : roh.slice(0, 160));
   return url;
 }
 
@@ -131,13 +120,6 @@ for (let i = 0; i < beats.length; i++) {
   }
 }
 
-const stueck = PREIS[MODELL];
+const stueck = imagePrice(MODELL, STUFE);
 console.log(`\n${gerendert} Bilder in media/ab-test/`);
-if (stueck) {
-  const lite = PREIS["google/nano-banana-2-lite"] * gerendert;
-  const voll = stueck * gerendert;
-  console.log(`Einkauf dieses Laufs: ${gerendert} × $${stueck.toFixed(3)} = $${voll.toFixed(2)}`);
-  console.log(`Zum Vergleich Lite:   ${gerendert} × $0.042 = $${lite.toFixed(2)}`);
-  const delta = Math.round((stueck / 0.042 - 1) * 100);
-  console.log(`Unterschied je Bild:  $${(stueck - 0.042).toFixed(3)} (${Math.abs(delta)} % ${delta >= 0 ? "teurer" : "billiger"})`);
-}
+console.log(`Einkauf dieses Laufs: ${gerendert} × $${stueck.toFixed(3)} = $${(gerendert * stueck).toFixed(3)}`);

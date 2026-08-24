@@ -238,7 +238,9 @@ export default function Step5Style({ w, patch }) {
       if (!needsSheet(member)) continue;
       setPrep(member.tag);
       try {
-        const url = await characterSheet({ photo: member.img, desc: member.desc, category: member.category });
+        const url = await characterSheet({
+          photo: member.img, photo2: member.img2, desc: member.desc, category: member.category,
+        });
         /* Als kompakter data:-URI gespeichert: nur den versteht fal sicher
            (ein /media/-Pfad zeigt auf diesen Rechner), und als JPEG belastet
            er die localStorage-Quota weniger als das Foto selbst. */

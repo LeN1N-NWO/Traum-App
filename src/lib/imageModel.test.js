@@ -1,6 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import {
   IMAGE_MODELS, DEFAULT_IMAGE_MODEL, imageModel, imageEndpoint, imageSubmitBody,
+  imagePrice, supportsAspect,
 } from "./imageModel.js";
 
 describe("imageModel", () => {
@@ -87,5 +88,75 @@ describe("imageSubmitBody", () => {
     const viele = Array.from({ length: 14 }, (_, i) => `bild-${i}`);
     const { input } = imageSubmitBody("nano-banana-2-lite", { prompt: "x", imageUrls: viele });
     expect(input.image_urls).toHaveLength(14);
+  });
+});
+
+describe("Aufloesung und Preis (Nano Banana Pro)", () => {
+  test("4K wird gesendet — und kostet das Doppelte", () => {
+    const { input } = imageSubmitBody("nano-banana-pro", { prompt: "x", resolution: "4K" });
+    expect(input.resolution).toBe("4K");
+    expect(imagePrice("nano-banana-pro", "4K")).toBe(0.30);
+    expect(imagePrice("nano-banana-pro", "1K")).toBe(0.15);
+  });
+
+  /* Ein unbekannter Wert waere hier besonders teuer: fal faellt auf 1K
+     zurueck, man bezahlt weniger als erwartet und misst das falsche Bild. */
+  test("ein unbekannter Aufloesungswert wird gar nicht erst gesendet", () => {
+    const { input } = imageSubmitBody("nano-banana-pro", { prompt: "x", resolution: "8K" });
+    expect("resolution" in input).toBe(false);
+  });
+
+  /* Aus der TABELLE abgeleitet, nicht aufgezaehlt. Die erste Fassung listete
+     die Modelle von Hand — und wurde falsch, sobald Nano Banana 2 Stufen
+     bekam: der Test behauptete weiter, es habe keine. Ein Test, der eine
+     Aufzaehlung pflegt, prueft irgendwann die Aufzaehlung. */
+  test("wer keine Aufloesungsstufen hat, bekommt das Feld nie", () => {
+    const ohne = Object.values(IMAGE_MODELS).filter((m) => !m.resolutions);
+    expect(ohne.length).toBeGreaterThan(0);
+    for (const m of ohne) {
+      const { input } = imageSubmitBody(m.id, { prompt: "x", resolution: "4K" });
+      expect("resolution" in input).toBe(false);
+      // …und ohne Stufen faellt der Preis auf den flachen Wert zurueck.
+      expect(imagePrice(m.id, "4K")).toBe(m.usd);
+    }
+  });
+
+  /* ⚠ Die beiden Nano-Bananas rechnen NICHT gleich. Bei Nano Banana 2 kostet
+     2K das 1,5-Fache, bei Pro steht fuer 2K kein Aufschlag. Wer das eine vom
+     anderen abschreibt, liegt um 50 % daneben. */
+  test("jede Stufe hat einen Preis, und die Modelle teilen ihn sich nicht", () => {
+    for (const m of Object.values(IMAGE_MODELS).filter((x) => x.resolutions)) {
+      for (const stufe of m.resolutions) {
+        expect(typeof imagePrice(m.id, stufe)).toBe("number");
+      }
+    }
+    expect(imagePrice("nano-banana-2", "2K")).toBe(0.12);
+    expect(imagePrice("nano-banana-pro", "2K")).toBe(0.15);
+  });
+});
+
+describe("Rasterformate", () => {
+  test("freie Pixelmasze schlagen das App-Format — das braucht der Behaelter", () => {
+    const { input } = imageSubmitBody("seedream-5-lite", {
+      prompt: "x", aspectRatio: "9:16", size: { width: 3456, height: 4096 },
+    });
+    expect(input.image_size).toEqual({ width: 3456, height: 4096 });
+  });
+
+  test("ein Modell mit fester Liste bekommt KEIN Pixelmasz untergeschoben", () => {
+    const { input } = imageSubmitBody("nano-banana-pro", {
+      prompt: "x", aspectRatio: "9:16", size: { width: 3456, height: 4096 },
+    });
+    expect("image_size" in input).toBe(false);
+    expect(input.aspect_ratio).toBe("9:16");
+  });
+
+  /* ⚠ Der Kern des Rasters: 3x2 ergibt 27:32, und das kennt Nano Banana
+     nicht. fal wuerde es still runden — bezahlt, und der Schnitt suchte
+     die Kacheln danach an der falschen Stelle. */
+  test("27:32 kann nur Seedream — Nano Banana Pro muss hier nein sagen", () => {
+    expect(supportsAspect("seedream-5-lite", "27:32")).toBe(true);
+    expect(supportsAspect("nano-banana-pro", "27:32")).toBe(false);
+    expect(supportsAspect("nano-banana-pro", "9:16")).toBe(true);
   });
 });

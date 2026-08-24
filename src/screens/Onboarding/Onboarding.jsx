@@ -10,6 +10,7 @@ import AvatarDialog from "../../components/AvatarDialog.jsx";
 import heroVideo from "../../assets/intro-faultier.mp4";
 import { IconBook, IconSparkle, IconMoon } from "../../components/icons.jsx";
 import OnboardingSurvey from "./OnboardingSurvey.jsx";
+import OnboardingForm from "./OnboardingForm.jsx";
 import Mascot from "./Mascot.jsx";
 import "./onboarding.css";
 
@@ -25,7 +26,7 @@ import "./onboarding.css";
  */
 export default function Onboarding({ onExit }) {
   const { state, update, toast } = useAppState();
-  const [phase, setPhase] = useState("slides");   // slides | gate | survey | selfie
+  const [phase, setPhase] = useState("slides");   // slides | gate | survey | form | selfie
   const [dot, setDot] = useState(0);
   const [addPhoto, setAddPhoto] = useState(false);
   const track = useRef(null);
@@ -59,11 +60,30 @@ export default function Onboarding({ onExit }) {
     onExit?.();
   }
 
+  /* Beide Wege enden gleich: Was gesammelt wurde, geht ins Selfie und von
+     dort in complete({ surveyDone: true }). Der getippte Weg ist deshalb
+     auch bei den Willkommens-Credits gleichwertig — genau das war vorher
+     das Loch. */
+  const surveyDone = (profile) => { profileRef.current = profile; setPhase("selfie"); };
+
   if (phase === "survey") {
     return (
       <OnboardingSurvey
-        onDone={(profile) => { profileRef.current = profile; setPhase("selfie"); }}
+        onDone={surveyDone}
         onCancel={() => setPhase("gate")}
+        /* Der Ausgang aus der Fehlerzeile. Ohne ihn war das × der einzige
+           Weg — und wer dort ging, hatte kein Profil und keine Credits. */
+        onTypeInstead={() => setPhase("form")}
+      />
+    );
+  }
+
+  if (phase === "form") {
+    return (
+      <OnboardingForm
+        onDone={surveyDone}
+        onCancel={() => setPhase("gate")}
+        onVoiceInstead={() => setPhase("survey")}
       />
     );
   }
@@ -102,6 +122,10 @@ export default function Onboarding({ onExit }) {
         <p className="ob-reward orbit">{t.onboarding.gateReward}</p>
         <div className="ob-actions">
           <Button onClick={() => setPhase("survey")}>{t.onboarding.gateStart}</Button>
+          {/* Gleichwertig, nicht versteckt: Nicht jeder kann oder will um
+              drei Uhr nachts sprechen, und ohne Mikrofon war das Tor bis
+              zum 23.08. eine Sackgasse. */}
+          <Button variant="ghost" onClick={() => setPhase("form")}>{t.onboarding.gateType}</Button>
           <Button variant="ghost" onClick={() => complete()}>{t.onboarding.gateLater}</Button>
         </div>
       </main>

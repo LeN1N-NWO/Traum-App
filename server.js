@@ -1973,16 +1973,23 @@ Bun.serve({
          * Nur ein data:image-URI zählt als Foto — dieselbe Form, in der der
          * Client auch an /api/generate Referenzen schickt; eine URL wäre ein
          * Auftrag an fal, Fremdes zu laden. */
-        const photo = typeof body.photo === "string" && body.photo.startsWith("data:image/")
-          ? body.photo : "";
+        const foto = (x) => (typeof x === "string" && x.startsWith("data:image/") ? x : "");
+        const photo = foto(body.photo);
+        /* ⚠ Zweites Foto: die GANZKÖRPERaufnahme, und die Reihenfolge ist
+           Vertrag mit buildSheetFromPhotoPrompt („reference image 1 is the
+           face, reference image 2 the whole body"). Wer sie tauscht, holt
+           die Statur aus dem Gesichtsfoto. Nur mit erstem Foto sinnvoll —
+           ein Ganzkörperbild allein ergibt keinen Bogen. */
+        const photo2 = photo ? foto(body.photo2) : "";
 
         /* Auch der Bogen geht seit 21.08. in die Warteschlange (er war der
            erste, der am 10-Sekunden-Timeout starb) — Antwort ist eine
            Auftragsnummer, der Client fragt nach. */
         if (photo) {
+          const fotos = [photo, photo2].filter(Boolean);
           const jobId = await falSubmitImage({
-            prompt: buildSheetFromPhotoPrompt({ desc, category }),
-            namedRefs: [{ img: photo }],
+            prompt: buildSheetFromPhotoPrompt({ desc, category, photos: fotos.length }),
+            namedRefs: fotos.map((img) => ({ img })),
             aspectRatio: "16:9",   // zwei Panels nebeneinander
           });
           return json({ ok: true, jobId });

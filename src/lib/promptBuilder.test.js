@@ -248,3 +248,27 @@ test("grid reference clauses ride along in the 2D branch too", () => {
   expect(prompt).toContain("Reference image 1");
   expect(prompt).toContain("@anton");
 });
+
+/* ── Garderobe je Traum (24.08.2026) ─────────────────────────────────────
+   `avatar.desc` gehoert der Person fuer immer, `wardrobe` diesem einen
+   Traum. Wer beides verwechselt, laesst jede Figur in Traum 40 dasselbe
+   tragen wie in Traum 1 — naemlich das, was der Bogen zeigt. */
+test("die Garderobe dieses Traums steht in der Klausel und schlaegt das Bild", () => {
+  const { clauses } = buildReferences([
+    { name: "Anton", kind: "person", avatar: { tag: "anton", img: "x", desc: "mid-30s" },
+      wardrobe: "a heavy black winter coat" },
+  ]);
+  expect(clauses[0]).toContain("a heavy black winter coat");
+  // Ohne diesen Satz gewinnt das Bild: ein Modell glaubt eher, was es sieht.
+  expect(clauses[0]).toContain("overrides the clothing visible in the reference image");
+  // …und die Identitaet darf dabei NICHT mitgetauscht werden.
+  expect(clauses[0]).toContain("keep the face, hair and build from it");
+});
+
+test("ohne Garderobe bleibt die Klausel wie sie war", () => {
+  const { clauses } = buildReferences([
+    { name: "Anton", kind: "person", avatar: { tag: "anton", img: "x", desc: "" } },
+  ]);
+  expect(clauses[0]).not.toContain("THIS dream");
+  expect(clauses[0]).not.toContain("overrides");
+});

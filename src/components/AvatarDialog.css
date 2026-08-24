@@ -105,3 +105,23 @@
 }
 .av-delete:hover { color: var(--text); }
 .av-delete:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 8px; }
+
+/* — Zweites Foto: Ganzkörper —
+   Bewusst schwächer gesetzt als das Gesichtsfeld: Es ist freiwillig, und
+   ein zweiter gleich lauter Knopf würde wie eine zweite Pflicht aussehen. */
+.av-hint {
+  display: block; margin: -2px 0 var(--s-2);
+  font-size: var(--t-small); line-height: 1.45; color: var(--faint);
+}
+.av-body-slot {
+  margin-top: var(--s-3); padding-top: var(--s-3);
+  border-top: 1px solid var(--panel-line);
+  display: flex; flex-direction: column; gap: var(--s-2);
+}
+.av-body-label { font-size: var(--t-small); color: var(--muted); }
+.av-upload-body { width: 100%; justify-content: flex-start; }
+.av-upload-body span { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.av-upload-body small { color: var(--faint); font-size: var(--t-small); font-weight: 400; }
+/* Ganzkörper ist hochkant — schmaler zeigen als die Gesichtsvorschau,
+   sonst frisst es den halben Dialog. */
+.av-preview-body { max-height: 160px; width: auto; object-fit: contain; }

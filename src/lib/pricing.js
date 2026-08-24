@@ -25,7 +25,25 @@ export const PRICES = {
   elaborate: 0,      // journal: work the storytelling out
   transcribe: 0,     // dictation — $0.0015 for a two-minute dream
   characterSheet: 2, // one generated reference image, plus a little
-  images: { 3: 3, 5: 5, 10: 10 },   // one credit per image, no bulk discount:
+  /* Vier oder acht — nicht drei, fünf oder zehn (Antons Entscheidung
+   * 23.08.2026, nachdem der Rastertest die Zahlen geliefert hat).
+   *
+   * Der Grund ist Geometrie, keine Vorliebe: Ein Rasterbild fasst 2×2 = VIER
+   * Szenen, und ein angefangenes Raster ist ein voller, bezahlter Aufruf.
+   * Bei fünf Szenen zahlt man also zwei Aufrufe für fünf Bilder — je Szene
+   * 60 % mehr als bei vier. Bei zehn sind es drei Aufrufe, 20 % mehr als bei
+   * acht. Vier und acht sind die einzigen Zahlen, bei denen kein Platz und
+   * kein halber Aufruf verfällt.
+   *
+   * ⚠ Heute merkt das noch niemand: Wir rendern einzeln (Seedream 5 Lite),
+   * und da kostet jede Szene dasselbe. Die Zahlen stehen hier trotzdem
+   * schon richtig, damit ein späterer Wechsel aufs Raster keine
+   * Preisumstellung mehr braucht — und weil vier Bilder ein Traum sind,
+   * fünf waren nie eine Begründung.
+   *
+   * ⚠ Der Einstiegspreis steigt damit von 3 auf 4 Credits. Das ist die
+   * bewusste Nebenwirkung, nicht ein Versehen. */
+  images: { 4: 4, 8: 8 },            // one credit per image, no bulk discount:
                                      // every image costs us exactly the same
   keyframe: 1,       // the still a film is animated from — it IS an image
   scene: 1,          // ein einzelnes Szenenbild, nachgeliefert aus dem
@@ -46,7 +64,7 @@ export const PRICES = {
   preview: 1,
 };
 
-export const IMAGE_COUNTS = [3, 5, 10];
+export const IMAGE_COUNTS = [4, 8];
 
 /* How many panels the preview cuts. Three is not a preference: splitGrid and
  * buildGridPrompt are proven for exactly this shape (09.08.2026), and a
@@ -54,6 +72,13 @@ export const IMAGE_COUNTS = [3, 5, 10];
  * thumbnail, not a look at your dream. */
 export const PREVIEW_COUNT = 3;
 
+/** Was `count` Bilder kosten.
+ *
+ *  ⚠ Der Rückfall geht auf die KLEINSTE angebotene Zahl, nicht auf eine
+ *  hingeschriebene. Bis zum 23.08. stand hier `PRICES.images[5]` — und
+ *  hätte nach der Umstellung auf 4/8 `undefined` geliefert, also einen
+ *  Preis von „nichts". Alte Journaleinträge mit 3, 5 oder 10 Bildern gibt
+ *  es weiterhin; sie dürfen hier keine Lücke reißen. */
 export function priceForImages(count) {
-  return PRICES.images[count] ?? PRICES.images[5];
+  return PRICES.images[count] ?? Math.min(...IMAGE_COUNTS.map((n) => PRICES.images[n]));
 }
