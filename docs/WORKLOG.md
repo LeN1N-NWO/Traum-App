@@ -3,6 +3,127 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-24 16:30 — Anton — Branch `claude/new-session-x9qv1w` (Cloud, PR #26) — Sitzungsabschluss
+
+**Commits:** `b8603cf` (**GPT Image 2 medium wird die Vorgabe, Seedream
+außer Dienst**) · `4794453` (**Garderobe verdrahtet**) · `5ea9494`
+(**Foto-Anker an, ultrareal als Vorgabe, Einkaufspreis richtiggestellt**)
+plus dieser Doku-Commit.
+Zustand: **384 Tests grün**, Shape-Check grün, Build sauber, Server live
+geprüft. **Kein bezahlter Render** — die Cloud erreicht fal nicht.
+
+### Antons Entscheidung: alles umstellen
+
+„Der Test hat es ergeben, deswegen stellen wir alles um. Seedream fliegt
+komplett raus, das erfüllt nicht unsere Anforderung."
+
+Umgesetzt sind drei der vier Schalter: **Bildmodell auf GPT Image 2
+(medium)**, **Foto-Anker an**, **`ultrareal` als Vorgabe**. Der vierte —
+Raster statt Einzelbildern — ist als Bauanleitung offengeblieben, auf
+Antons Wort (`2026-08-24-raster-als-hauptweg.md`); er baut ihn an seinem
+Rechner, weil er ohne bezahlten Lauf nicht prüfbar ist.
+
+### ⚠ Der teuerste Fund war der unscheinbarste
+
+**Der Auftrag schickte weder Stufe noch Maß.** Beides kostet bei GPT
+Image 2 sofort Geld:
+- Ohne `quality` nimmt fal **„high"** — im Rasterfall **$0,413 statt
+  $0,113**, das Dreieinhalbfache, lautlos.
+- Ohne Maß nimmt es den Preset-NAMEN, und `portrait_16_9` ist 576×1024.
+  Ein 2×2 daraus hätte Kacheln von **288×512** — bezahlt und unbrauchbar.
+
+Beides kommt jetzt aus einer Hand: `imageStage()` sagt, welche Stufe wir
+kaufen; `appGrid()` (neu in `gridLayout.js`) sagt, wie das Raster
+aussieht — 2×2, Behälter 2160×3840, Kacheln 1080×1920. Die Funktion steht
+dort, weil sie an ZWEI weit auseinanderliegenden Stellen gebraucht wird:
+Der Server baut damit den Auftrag, der Browser schneidet damit das
+Ergebnis. Laufen sie auseinander, sucht der Schnitt an der falschen
+Stelle — und niemand sieht einen Fehler, nur schlechte Bilder.
+
+⚠ **Der Verdrahtungstest hat sofort etwas gefunden, das ich übersehen
+hatte:** Es gibt ZWEI Aufrufer von `imageSubmitBody`, und ich hatte nur
+den Warteschlangen-Weg umgestellt. Der synchrone hätte weiter „high"
+bezahlt. Der Test prüft jetzt ausdrücklich ALLE Treffer — einer, der nur
+den ersten ansieht, hätte grün gemeldet.
+
+### Der zweite Preisfehler, den der Wechsel selbst erzeugt hat
+
+`preis-durchreichen.mjs` las `BILD.usd` — und das ist bei GPT der Preis
+eines EINZELNEN Bildes in „high" ($0,178). So kaufen wir nicht ein: Wir
+kaufen ein 2×2 in „medium", **$0,113 für vier Szenen = $0,0283 je Szene**.
+Der Fehler hätte den Einkauf **um das Sechsfache zu hoch** gerechnet und
+zur genau falschen Schlussfolgerung geführt — dass die Bilder zu teuer
+sind.
+
+⚠ Das ist die Lehre vom 23.08. ANDERSHERUM: Damals stand der Preis als
+Konstante und war nach einem Tag falsch. Jetzt steht er in der Tabelle und
+wäre TROTZDEM falsch, weil die Tabelle mehrere Preise für dasselbe Modell
+kennt. Der richtige ist der, den unser konkreter Auftrag auslöst — Stufe
+mal Rastermaß, geteilt durch die Plätze.
+
+### Seedream ist außer Dienst, nicht gelöscht
+
+Der Riegel sitzt in `pickImageModel()` — der EINEN Stelle, an der der
+Server sein Modell aussucht. `imageModel()` bleibt bewusst ein reines
+Nachschlagewerk: Gäbe es bei einem stillgelegten Modell etwas anderes
+heraus, baute `imageSubmitBody` heimlich einen Auftrag für ein Modell, das
+der Aufrufer nie genannt hat.
+
+Die Tabellenzeile bleibt, weil Seedream das einzige Modell mit freien
+Pixelmaßen ist — der Codezweig, den es prüft, wird vom nächsten solchen
+Modell wieder gebraucht. Eine alte `.env` bekommt beim Start eine eigene
+Meldung: nicht „kennt niemand" (dann sucht man den Tippfehler), sondern
+„ist außer Dienst" samt Grund. Live geprüft.
+
+### Die Garderobe ist verdrahtet (Antons Punkt 1)
+
+Das Feld lag seit dem 24.08. bereit und war bezahlt bewiesen (36 von 36
+Kacheln zogen um) — **gefragt hat danach nichts.** Jetzt geschlossen über
+fünf Dateien: Analyse-Vertrag (`wearing`), Auswertung, `addPerson`,
+Briefing (die Assistentin fragt EINMAL leicht nach), Wizard.
+
+⚠ Die Trennung von `desc` steht an jeder Stelle als Warnung: `desc` ist,
+wie jemand AUSSIEHT, und gilt in jedem Traum; `wearing` gehört dieser
+einen Nacht. Wer beides in ein Feld wirft, trägt die Badehose aus Traum 1
+bis in Traum 40.
+
+`wardrobe.test.js` prüft die ganze Kette, und der Dateikopf sagt warum:
+**Fällt EIN Glied aus, passiert nichts Sichtbares.** Die App läuft, die
+Bilder kommen, jede Figur trägt weiter das, was ihr Bogen zeigt. Es gäbe
+keinen Fehler zu suchen.
+
+### Die offene Stilfrage hat sich aufgelöst
+
+Der Foto-Anker stand in beiden Prompt-Bauern auf `= false` — er war also
+in der ganzen App AUS, obwohl längst gemessen war, dass er den Unterschied
+zwischen Fotografie und Malerei macht. Eine Vorgabe, die das Gegenteil des
+Gemessenen tut, ist die teuerste Sorte Zeile.
+
+Er hängt jetzt am STIL (`photorealFor`), nicht am Aufrufer. Damit braucht
+die Frage „Was wird aus `dreamlike` und `surreal`?" keine Entscheidung
+mehr: Beide sind als `painterly` markiert und bekommen den Anker einfach
+nicht. Ein Prompt, der erst „wie ein Magritte-Gemälde" und dann „das ist
+eine Fotografie, kein Gemälde" sagt, ist schlechter als einer, der
+schweigt.
+
+⚠ Und die Stil-VORGABE war `dreamlike` — ausgerechnet der Stil, der
+„shapes dissolving" bestellt. Wer nie einen Stil wählte, bekam garantiert
+gemalte Bilder und hielt das für das Können des Modells. Jetzt `ultrareal`.
+
+### Was der Nächste wissen muss
+
+- **Der Rasterweg ist der letzte offene Schalter.** Die Bauanleitung steht
+  in `2026-08-24-raster-als-hauptweg.md`, mit Antons Entwurf darin: bei
+  vier Szenen KEINE Kette (sie entstehen in einem Zug), bei acht ankert
+  Raster 2 auf der letzten Kachel von Raster 1.
+- **Der erste bezahlte Lauf gehört mit EINEM Traum gemacht.** $0,113 sind
+  verschmerzbar, $0,57 für einen Verdrahtungsfehler nicht. Woran man den
+  Erfolg erkennt, steht in §4 des Plans (ein Auftrag statt vier, Zeile
+  `3840x2160`/`medium`, Kacheln 1080×1920 — nicht 288×512).
+- **Merksatz aus dieser Sitzung:** Ein Test, der nur den ERSTEN Treffer
+  prüft, meldet grün, wenn der zweite fehlt. Bei Verdrahtungstests immer
+  `matchAll`, nie `match`.
+
 ## 2026-08-24 11:55 — Anton — Branch `session/2026-08-23-anton` (PR #25) — Sitzungsabschluss
 
 **Commits:** `2d94854` (Eröffnung) · `1a45f93` (getippte Umfrage) ·
