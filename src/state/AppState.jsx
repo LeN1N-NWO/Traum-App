@@ -5,12 +5,14 @@ import { collectTick, pendingFingerprint } from "../lib/collector.js";
 import { failureTextKey } from "../lib/falError.js";
 import { giftFor } from "../lib/streakBoard.js";
 import { snoozeCheck } from "../lib/streak.js";
-import { jobStatus, backupJournal, sharedDreams, generate, uploadPanel, mediaUrl } from "../lib/api.js";
+import { jobStatus, backupJournal, sharedDreams, backupCast, sharedCast,
+         generate, uploadPanel, mediaUrl } from "../lib/api.js";
 import { splitIntoTiles } from "../lib/splitGrid.js";
 import { GRID_COLS, GRID_ROWS } from "../lib/gridLayout.js";
 import { spend } from "../lib/credits.js";
 import { chainStep, chainFingerprint, buildChainSubmission } from "../lib/imageChain.js";
 import { backupPayload, backupFingerprint, mergeShared } from "../lib/journalBackup.js";
+import { castPayload, castFingerprint, mergeCast } from "../lib/castBackup.js";
 import { t } from "../i18n/index.js";
 
 /* The whole app state in one place. Every change goes through update() and is
@@ -377,6 +379,27 @@ export function AppStateProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* Die Besetzung zurückholen — Antons Ansage vom 25.08.2026: „Ich habe
+     satt, immer wieder mich selbst in der Testumgebung hinzuzufügen."
+     Ab hier steht er nach jedem geleerten Speicher und in jedem Browser
+     wieder da, mitsamt Foto und Charakterbogen. Der Bogen ist das
+     eigentlich Teure: Er kostet bei jedem Neuanlegen echtes Geld.
+
+     ⚠ Wie bei den Träumen: nur ERGÄNZEN. Wer eine Figur im Gerät geändert
+     hat, hat den neueren Stand. */
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let alive = true;
+    sharedCast().then((figuren) => {
+      if (!alive || !figuren.length) return;
+      const s = stateRef.current;
+      const res = mergeCast(s.cast, s.me, figuren);
+      if (res) update(res);
+    });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /* Die Traum-Sicherung (Antons Ansage 22.08.: „Meine Testträume bitte hier
      abspeichern … und drinnen bleiben"). Sie läuft still: Ändert sich etwas
      am INHALT der Träume, wandern sie als Dateien zum Server. Der
@@ -393,6 +416,20 @@ export function AppStateProvider({ children }) {
     const id = setTimeout(() => backupJournal(backupPayload(stateRef.current.journal)), 1200);
     return () => clearTimeout(id);
   }, [backupPrint]);
+
+  /* Dieselbe Mechanik für die Besetzung — nur eben MIT Fotos.
+     ⚠ Der Ordner liegt unter /media und damit ausserhalb von Git; die
+     Begründung steht im Kopf von castBackup.js und ist keine Vorsicht,
+     sondern Umkehrbarkeit. */
+  const castPrint = castFingerprint(state.cast, state.me);
+  useEffect(() => {
+    if (!import.meta.env.DEV || !castPrint) return;
+    const id = setTimeout(() => {
+      const s = stateRef.current;
+      backupCast(castPayload(s.cast, s.me));
+    }, 1200);
+    return () => clearTimeout(id);
+  }, [castPrint]);
 
   return (
     <Ctx.Provider value={{

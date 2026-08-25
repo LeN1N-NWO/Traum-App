@@ -89,6 +89,13 @@ const MEDIA_DIR = mediaRootFrom(
    sie ins Hauptrepo, sonst nimmt `git worktree remove` sie mit — genau so
    sind am 21.08. die Bilder verschwunden. */
 const BACKUP_DIR = resolve(MEDIA_DIR, "..", "data", "traeume");
+/* ⚠ Die Besetzung liegt unter /media, NICHT unter data/ — und der
+ * Unterschied ist Absicht (Antons Anweisung 25.08.2026, castBackup.js):
+ * Hier stehen FOTOS, teils von anderen Menschen. `/media` ist gitignored,
+ * die Bilder bleiben also dauerhaft auf diesem Rechner und gelten ueber
+ * alle Browser hinweg — aber sie wandern nicht in die Git-Historie. Eine
+ * Datei kann man loeschen, einen Commit praktisch nicht. */
+const CAST_DIR = resolve(MEDIA_DIR, "besetzung");
 
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
@@ -2386,6 +2393,60 @@ Bun.serve({
        ⚠ Der Ladepfad im Client hängt an import.meta.env.DEV. Dieser Endpunkt
        liefert also auch im Betrieb, aber niemand fragt ihn dann. Wer die App
        veröffentlicht, nimmt beides heraus — Ordner und Ladepfad. */
+    /* ── Die Besetzung: Figuren MIT Fotos, damit niemand sich neu anlegt ──
+       Antons Ansage vom 25.08.2026: „Ich habe satt, immer wieder mich selbst
+       in der Testumgebung hinzuzufuegen und zu bemessen."
+
+       ⚠ Anders als /api/journal-backup gehen hier FOTOS ueber die Leitung —
+       ausdruecklich gewollt, fuer die Entwicklungsumgebung. Der Ladepfad im
+       Client haengt an import.meta.env.DEV; ein ausgeliefertes Buendel fragt
+       nie danach. Vor der Veroeffentlichung: beides raus. */
+    if (url.pathname === "/api/cast-backup" && req.method === "GET") {
+      try {
+        const glob = new Bun.Glob("*.json");
+        const figuren = [];
+        for await (const datei of glob.scan({ cwd: CAST_DIR, onlyFiles: true })) {
+          const inhalt = await Bun.file(resolve(CAST_DIR, datei)).json().catch(() => null);
+          if (inhalt?.tag) figuren.push(inhalt);
+        }
+        return json({ figuren });
+      } catch {
+        // Kein Ordner, keine Figuren — Normalfall bei einem frischen Klon.
+        return json({ figuren: [] });
+      }
+    }
+
+    if (url.pathname === "/api/cast-backup" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json().catch(() => null);
+        const eintraege = Array.isArray(body?.entries) ? body.entries : null;
+        if (!eintraege) return json({ error: "Nothing to store." }, 400);
+
+        let geschrieben = 0, unveraendert = 0;
+        for (const { datei, figur } of eintraege) {
+          /* Der Dateiname kommt vom Client — also hier neu pruefen, nicht
+             glauben. Ein „../" darin schriebe sonst irgendwohin, und in
+             diesem Ordner liegen Megabytes. */
+          if (typeof datei !== "string" || !/^[0-9a-zA-Z_.-]+\.json$/.test(datei) || datei.includes("..")) continue;
+          if (!figur || typeof figur !== "object" || !figur.tag) continue;
+          const ziel = resolve(CAST_DIR, datei);
+          if (!ziel.startsWith(CAST_DIR + sep)) continue;
+          const inhalt = JSON.stringify(figur, null, 2) + "\n";
+          const alt = Bun.file(ziel);
+          if (await alt.exists() && (await alt.text()) === inhalt) { unveraendert++; continue; }
+          await Bun.write(ziel, inhalt);
+          geschrieben++;
+        }
+        return json({ ok: true, geschrieben, unveraendert, ordner: "media/besetzung" });
+      } catch (e) {
+        console.error("[DreamRushes] /api/cast-backup failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
     if (url.pathname === "/api/journal-backup" && req.method === "GET") {
       try {
         const glob = new Bun.Glob("*.json");

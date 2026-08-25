@@ -90,6 +90,34 @@ export async function backupJournal(entries) {
   }
 }
 
+/* Die Besetzung sichern — MIT Fotos, ausdrücklich (castBackup.js).
+ *
+ * ⚠ Scheitert genauso lautlos wie die Traum-Sicherung, und aus demselben
+ * Grund: Es ist eine Bequemlichkeit für die Entwicklungsumgebung. Wer beim
+ * Anlegen einer Figur eine Fehlermeldung über eine misslungene Sicherung
+ * bekäme, hielte SEINE Figur für kaputt — sie ist es nicht. */
+export async function backupCast(entries) {
+  if (!entries?.length) return null;
+  try {
+    return await post("/api/cast-backup", { entries });
+  } catch (err) {
+    console.warn("[DreamRushes] Besetzungs-Sicherung fehlgeschlagen:", err.message);
+    return null;
+  }
+}
+
+/** Die gesicherten Figuren holen (nur im Entwicklungsmodus, siehe AppState). */
+export async function sharedCast() {
+  try {
+    const res = await fetch(`${API_BASE}/api/cast-backup`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data?.figuren) ? data.figuren : [];
+  } catch {
+    return [];
+  }
+}
+
 /* Die geteilten Testträume holen (nur im Entwicklungsmodus aufgerufen,
  * siehe AppState). Scheitert lautlos: Ein frischer Klon ohne Ordner ist
  * der Normalfall, kein Fehler. */
