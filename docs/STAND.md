@@ -3,59 +3,58 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-25 (11:20) — `session/2026-08-24-anton` (PR #27),
-aufgesetzt auf `595b04c`. **442 Tests grün**, fünf Skriptprüfungen grün,
-Build sauber. Bezahlte Läufe an diesem Tag: **$0,47**.
+**Stand:** 2026-08-25 (22:50) — `session/2026-08-25-anton` (PR #28),
+aufgesetzt auf `802a8d8`. **442 Tests grün**, fünf Skriptprüfungen grün,
+Build sauber. Bezahlte Läufe in dieser Sitzung: **keine.**
 ⚠ Ohne eigenen Worktree im Hauptrepo — Begründung unten unter „Fallen".
 
 ## Wo wir stehen
 
 **Die Bildkette ist fertig umgestellt und bezahlt bewiesen.** Alle vier
-Schalter liegen:
+Schalter liegen: GPT Image 2 auf `medium` · Foto-Anker an · Stil
+`ultrareal` · **Raster statt Einzelbildern**. Ein Vier-Bilder-Traum:
+**ein Auftrag, 2160×3840, Kacheln ~1075×1918, $0,113, vier Credits.**
 
-| Schalter | Stand |
-|---|---|
-| Bildmodell **GPT Image 2, `medium`** | ✅ |
-| **Foto-Anker** an (folgt dem Stil) | ✅ |
-| Stil **`ultrareal`** als Vorgabe | ✅ |
-| **Raster statt Einzelbildern** | ✅ **bezahlt geprüft** |
+**Die Preise stehen, die Entscheidung nicht.** Woche 25 · Monat und Jahr
+100 · Pakete 13/36/70; Film 3/9/17 Credits je Sekunde. Ein Credit kostet
+uns überall $0,020–0,028. Nachrechnen: `node scripts/preis-durchreichen.mjs`.
 
-Ein Vier-Bilder-Traum: **ein Auftrag, 2160×3840, Kacheln ~1075×1918,
-$0,113, vier Credits.** Keine Kette mehr — vier Szenen entstehen in einem
-Zug.
-
-**Die Credits sind gestiegen** (Antons Entscheidung): Woche 12→**25**,
-Monat und Jahr 45→**100**, Pakete → **13/36/70**. Preise unverändert.
-Damit die Rechnung aufgeht, mussten die Filmpreise mit (1/4/6 → **3/9/17**
-Credits je Sekunde): Ein Credit kostet uns jetzt überall $0,020–0,028
-statt $0,028–0,079. Jahresabo steht in JEDER Verwendung auf 1,7×.
-
-**Ein abgelehnter Traum repariert sich selbst:** Der Grund kommt vom
-Server durch bis zum übersetzten Text, und der Knopf „Den Namen von der KI
+**Ein abgelehnter Traum repariert sich selbst:** Der Grund kommt vom Server
+durch bis zum übersetzten Text, und der Knopf „Den Namen von der KI
 ersetzen lassen" (gratis) tauscht die geschützte Figur gegen eine
 Beschreibung.
 
-**Neu und live:** Antons Frosch als Maskottchen · Alpha-Video-Werkzeug für
-iOS und Android · Besetzung überlebt jeden geleerten Speicher.
+**Neu in dieser Sitzung: Das Maskottchen tippt den Erzeugen-Knopf selbst.**
+Sechs Sekunden Einspieler über dem Bildschirm, während der Auftrag schon
+läuft — geschenkte Wartezeit, keine zusätzliche. Dazu die
+Maskottchen-Tabelle für die angekündigten drei, und eine Werkbank zum
+Ausprobieren (StartMenu → „Mascot test bench").
+
+**Ebenfalls neu: Prominente sind eine eigene Rechtsbaustelle** mit einer
+getroffenen Entscheidung statt einer offenen Frage
+(`docs/plans/2026-08-20-recht-einwilligung.md` §8).
 
 ## Nächste Schritte
 
-1. **⚠ Den Policy-Weg im Echtbetrieb prüfen.** Er ist gebaut und einzeln
-   geprüft, aber VIER bezahlte Läufe mit geschützten Namen gingen alle
-   durch — der Umschreiber war nie im Einsatz. Ein Traum, der wirklich
-   abgelehnt wird, fehlt noch. Siehe Baustellen.
-2. **Preisentscheidung** — die Grundlage ist jetzt aktuell und nachrechenbar
-   (`node scripts/preis-durchreichen.mjs`). Weiter der einzige echte
-   Blocker für die Veröffentlichung.
-3. **Was wird aus dem Dreier-Streifen?** (`PREVIEW_COUNT = 3`,
-   `pricing.js:105`, `splitIntoPanels`) — eine 16:9-Schnellvorschau aus der
-   Seedream-Zeit. Mit 2×2 als Hauptweg ist sie doppelt gemoppelt.
-   Umstellen oder streichen: Antons Entscheidung.
-4. **Klang-Presets:** 28 CC0-Kandidaten unter `media/klang-kandidaten/`.
-5. **Recht, und es ist konkreter geworden:** Der Clooney-Lauf hat einen
-   **erkennbaren George Clooney** erzeugt. Das Modell macht echte Personen,
-   wenn man sie benennt. Persönlichkeitsrecht gehört auf die Liste in
-   Plan §4, mit einer Produktentscheidung davor.
+1. **Antons Zahl vom Größenregler.** `scale` steht auf **0,65** in
+   `src/lib/mascots.js` — gerechnet und gegengerendert, aber nicht
+   geschaut. Was der Regler findet, gehört in die Tabelle; im Regler ist
+   es ein Prüfstandwert und kein Zustand.
+2. **⚠ Den Policy-Weg im Echtbetrieb prüfen.** Gebaut und einzeln geprüft,
+   aber VIER bezahlte Läufe mit geschützten Namen gingen alle durch — der
+   Umschreiber war nie im Einsatz. Neu dazu: Er muss ENTIDENTIFIZIEREN,
+   nicht tarnen (Recht §8d) — das ist jetzt das Prüfkriterium, nicht mehr
+   „geht der Auftrag durch".
+3. **Preisentscheidung** — weiter der einzige echte Blocker für die
+   Veröffentlichung. Die Grundlage ist aktuell und nachrechenbar.
+4. **Die zwei anderen Maskottchen**, jeweils als PAAR: Ruhe-Clip und
+   Tipp-Clip. Ohne Tipp-Clip fällt das Maskottchen genau an der Stelle
+   aus, an der es am meisten auffällt. Offene Punkte im Plan.
+5. **Was wird aus dem Dreier-Streifen?** (`PREVIEW_COUNT = 3`,
+   `pricing.js:105`, `splitIntoPanels`) — eine 16:9-Schnellvorschau aus
+   der Seedream-Zeit. Mit 2×2 als Hauptweg doppelt gemoppelt. Umstellen
+   oder streichen: Antons Entscheidung.
+6. **Klang-Presets:** 28 CC0-Kandidaten unter `media/klang-kandidaten/`.
 
 ## Bekannte Baustellen
 
@@ -63,23 +62,29 @@ iOS und Android · Besetzung überlebt jeden geleerten Speicher.
   „Freddy Krüger" abgelehnt; am 25.08. ging derselbe Name zweimal durch,
   ebenso „Brad Pitt / George Clooney". Inhaltsfilter sind NICHT
   deterministisch (Seedream 23.08.: 4× durch, 8× abgelehnt, bei wörtlich
-  identischen Aufträgen). Wer den Weg prüfen will, braucht einen Traum,
-  der wirklich abgelehnt wird — er lässt sich nicht bestellen.
+  identischen Aufträgen). Ein Traum, der wirklich abgelehnt wird, lässt
+  sich nicht bestellen.
+- **⚠ Der Umschreiber sitzt auf der Kippe.** „Freddy Krüger" → „ein Mann
+  mit verbranntem Gesicht, braunem Hut und Klingenhandschuh" ist noch
+  erkennbar die Figur. Entidentifizieren ist richtig, tarnen kostet die
+  Deckung (Recht §8d).
+- **⚠ Der gemalte Frosch wurde nie gesehen.** Geprüft ist alles Messbare:
+  Geometrie live, Funke im Browser dekodiert, Aufräumen nach 7,3 s. Das
+  Bild selbst konnte die Vorschau nicht zeichnen (siehe Fallen).
 - **Antons Gesicht ist in den Bildern nicht überprüfbar.** Der Bogen wird
   benutzt (Endpunkt `/edit`), aber die Szenentexte des Clooney-Traums
-  zeigen ihn nur von hinten und aus der Distanz. Ein Traum mit einer
-  frontalen Szene fehlt als Beleg.
+  zeigen ihn nur von hinten und aus der Distanz. Ein Traum mit frontaler
+  Szene fehlt als Beleg.
 - **Nano Banana 2 verfehlte das Raster** in einem von zwei frühen Läufen
   (bezahlt, unbrauchbar). Nach der Einstellungsebene 5 von 5 richtig; der
   Zusammenhang ist plausibel, nicht bewiesen.
 - **GPT erfindet dazu, und geht zu dunkel.** Mit Foto-Anker deutlich
   besser, in Nachtszenen weiter spürbar.
 - **Das Gesicht verjüngt sich über die Kette.** Foto → Bogen → Szene sind
-  zwei Übersetzungen. Der Bogen aus ZWEI Fotos hat das gemildert — und lief
-  bis zum 25.08. gar nicht (siehe Fallen).
+  zwei Übersetzungen. Der Bogen aus ZWEI Fotos hat das gemildert.
 - **`data/traeume/` UND `media/besetzung/` müssen vor Veröffentlichung
-  raus** — Ordner, die vier Endpunkte in `server.js` und die beiden
-  Ladepfade in `AppState.jsx`. Alles an `import.meta.env.DEV`.
+  raus** — Ordner, vier Endpunkte in `server.js`, beide Ladepfade in
+  `AppState.jsx`. Alles an `import.meta.env.DEV`.
 - **Synthetische Testträume schreiben sich zurück.** Sie stehen in Antons
   localStorage; wirklich weg erst, wenn er sie in der App löscht.
 - **Preislinie nicht entschieden.** Jahresabo × Kino bleibt der enge Fall
@@ -92,58 +97,59 @@ iOS und Android · Besetzung überlebt jeden geleerten Speicher.
 
 - **⚠⚠ Ein Fehler, der Geld kostet, meldet sich NIE von selbst.** Vier
   bezahlte Läufe am 25.08. haben vier davon gefunden, alle stumm:
-  `imageCount: 5` (eine Zahl, die es im Angebot nicht mehr gibt) ·
-  Rasterplätze statt echter Szenen gezählt · `img2` erreichte den Bogen
-  nie · der Bogen fand keinen Ablageort. Kein einziger roter Test.
-- **⚠ Der erste bezahlte Lauf gehört mit EINEM Traum gemacht.** Genau so
-  wurden alle vier gefunden — bei fünf Träumen hätte es das Fünffache
-  gekostet.
+  `imageCount: 5` · Rasterplätze statt echter Szenen gezählt · `img2`
+  erreichte den Bogen nie · der Bogen fand keinen Ablageort. Kein
+  einziger roter Test.
+- **⚠⚠ Ein ANKER, der ins Leere zeigt, meldet sich genauso wenig.**
+  Antons Tipp-Animation und sein Referenzknopf lagen 35 % der Bildbreite
+  auseinander. Formatfüllend eingebaut hätte der Frosch danebengetippt —
+  durch jeden Test, jeden Build. Gefunden nur durchs Nachmessen: Funke bei
+  14,5 % / 78 %, Knopf bei 49,3 % / 84,8 %.
+- **⚠ Der Tipp-Anker gehört zur DATEI, nicht zur App** (`mascots.js`).
+  Jede Zeichnung trifft den Knopf woanders in IHREM Bild. Als globale Zahl
+  im Bauteil tippt das zweite Maskottchen lautlos daneben. Messanleitung
+  im Maskottchen-Plan.
+- **⚠ Der Einspieler ist NIE ein Tor** (`ButtonTapOverlay.jsx`). Der
+  Auftrag geht vor dem ersten Einzelbild raus — davon lebt der Zeitgewinn.
+  Wer das umdreht, baut die Selbstheilung wieder zu: Eine Ablehnung kommt
+  schneller zurück als sechs Sekunden.
+- **⚠ ProRes spielt in KEINEM Browser.** Ein `.mov` aus After Effects
+  direkt einzubauen gibt einen schwarzen Kasten — das ist kein
+  Alpha-Problem, das ist der Codec. Immer durch `alpha-packen.mjs`.
+- **⚠ Premultipliziert erkennt man am Zahlenverlauf:** Fällt die Farbe mit
+  dem Alphawert (A=255→R=148, A=117→R=69), ist sie schon multipliziert.
+  Bliebe R konstant, wäre es „straight". Falsch geraten kostet einen
+  dunklen Saum an jeder weichen Kante — ohne Fehlermeldung.
+- **⚠ Der erste bezahlte Lauf gehört mit EINEM Traum gemacht.**
 - **⚠ Ein Rückfall in einer Preisfunktion kann einen LEBENDEN Fehler
   zudecken.** `priceForImages(5)` fällt auf die kleinste angebotene Zahl
-  zurück. Als Netz für ALTE Journaleinträge gedacht — es hat die falsche
-  Wizard-Vorgabe versteckt, und der Knopf log „4 Credits", während 5
-  abgebucht wurden. Der Rückfall bleibt, aber `pricing.test.js` bewacht
-  ihn jetzt.
+  zurück; `pricing.test.js` bewacht das jetzt.
 - **⚠ Vorgaben ABLEITEN, nie hinschreiben.** `imageCount` liest aus
-  `IMAGE_COUNTS`, `CREDIT_COST_USD` wird aus dem laufenden Modell
-  gerechnet. Beide standen vorher als Konstante da und waren nach einem
-  Modellwechsel still falsch.
-- **⚠ `slots` ≠ `tiles`.** `slots` sind die Plätze im Raster (immer 4),
-  `tiles` die echten Szenen darin (1–4). Der Verschnitt eines angefangenen
-  Rasters geht zu UNSEREN Lasten, nie zu seinen.
-- **⚠ Ein Schnitt, der beim ERSTEN Fehlschlag aufgibt, macht aus einem
-  Aussetzer einen Dauerschaden.** Das Bild war nur noch nicht fertig
-  geschrieben. Jetzt drei Anläufe, Zähler AM AUFTRAG — und der Zähler
-  gehört in den Fingerabdruck des Effekts, sonst läuft er nie wieder an.
+  `IMAGE_COUNTS`, `CREDIT_COST_USD` wird gerechnet.
+- **⚠ `slots` ≠ `tiles`.** Plätze im Raster (immer 4) gegen echte Szenen
+  darin (1–4). Verschnitt geht zu UNSEREN Lasten.
+- **⚠ Ein Schnitt, der beim ERSTEN Fehlschlag aufgibt,** macht aus einem
+  Aussetzer einen Dauerschaden. Drei Anläufe, Zähler AM AUFTRAG — und der
+  Zähler gehört in den Fingerabdruck des Effekts.
 - **⚠ Der BOGEN ist das Nadelöhr der Ähnlichkeit** (`sheets.js`). Jede
   Szene referenziert ihn, nie das Foto.
 - **⚠ Zwei Fotos je Person, Reihenfolge ist Vertrag:** 1 = Gesicht,
-  2 = Ganzkörper. Der Wizard hat `img2` bis zum 25.08. NICHT
-  weitergereicht — die Funktion war tot, seit es sie gibt, und der
-  Fingerabdruck lief dadurch auseinander (Bogen galt immer als veraltet
-  und wurde bei jedem Render neu bezahlt).
+  2 = Ganzkörper.
 - **⚠ Der Bogen wird über den TAG festgeschrieben, nie über `avatar.id`.**
-  Über die id verlor ihn jede Figur, deren id nicht zu `state.cast` passte.
-- **⚠ `mix-blend-mode: screen` braucht KEIN `isolation: isolate`.** Das
-  erzeugt einen neuen Stapelkontext, und dann ist der schwarze Kasten
-  zurück. Das Blenden SOLL bis auf den Seitenhintergrund durchgreifen.
+- **⚠ `mix-blend-mode: screen` braucht KEIN `isolation: isolate`.**
 - **⚠ Es gibt kein Alpha-Videoformat für iOS UND Android.** HEVC+Alpha nur
-  iOS, VP9+Alpha nur Android. Die Alpha-Packung (`alpha-packen.mjs`) ist
-  der Weg; Quelle höchstens 1080×1920, sonst steigen Telefon-Dekoder aus.
-- **⚠ After Effects: „Farbe: Straight (Unmatted)".** Steht dort
-  „Premultiplied", bekommt jede weiche Kante einen dunklen Saum — ohne
-  Fehlermeldung. `--premultipliziert` rechnet es zurück.
-- **⚠ React setzt `muted` als Property, nicht als Attribut** — das ist ein
-  bekannter Fallstrick, war hier aber NICHT die Ursache. Ein Video ohne
-  `autoPlay` startet einfach nicht, und das Poster sieht aus wie Absicht.
+  iOS, VP9+Alpha nur Android. Die Alpha-Packung ist der Weg; Quelle
+  höchstens 1080×1920.
+- **⚠ After Effects: „Farbe: Straight (Unmatted)".** Sonst dunkler Saum;
+  `--premultipliziert` rechnet es zurück.
+- **⚠ React setzt `muted` als Property, nicht als Attribut** — bekannter
+  Fallstrick, war hier aber NICHT die Ursache. Es fehlte `autoPlay`.
 - **⚠ Unsere eigenen Stiltexte bestellen den Malerei-Look.** `surreal`
   (`styles.js:95`) sagt wörtlich „like a Magritte painting".
 - **⚠ Ein echtes NUL-Byte im Quelltext macht die Datei für Git BINÄR.**
-- **`FAL_MODEL_IMAGE` ist ein NAME, kein fal-Slug.** `seedream-5-lite` ist
-  stillgelegt und wird mit eigener Meldung abgelehnt.
+- **`FAL_MODEL_IMAGE` ist ein NAME, kein fal-Slug.**
 - **Ein falscher Feldname wirft bei fal keinen Fehler** — er liefert still
-  das Falsche. Die Stufe geht an BEIDE Felder (`quality` UND `resolution`),
-  die Tabelle entscheidet.
+  das Falsche. Die Stufe geht an BEIDE Felder, die Tabelle entscheidet.
 - **fal-Vorgabe bei GPT ist „high"** — bei 4K das Siebzehnfache von „low".
 - **2×2 ist die Rastereinheit, nicht 3×3.**
 - **Der Weltanker der Bildkette steht als LETZTES Bild.**
@@ -153,13 +159,25 @@ iOS und Android · Besetzung überlebt jeden geleerten Speicher.
 - Erzeugte Medien NIE im Worktree (`mediaRoot.js`, AGENTS.md).
 - **Die Renderskripte kosten echtes Geld** und brauchen `--ja`.
 - fal.ai und api.deepseek.com sind aus der Cloud gesperrt (403).
+
+### Was die Werkzeuge auf diesem Rechner NICHT können
+
+- **⚠ `node` gibt es hier nicht, nur `bun`.** `npm test` läuft deshalb
+  nicht durch. Stattdessen: `bun test`, danach die fünf `.mjs`-Prüfungen
+  einzeln mit `bun` aufrufen (`test-static`, `test-prompt-sanitize`,
+  `test-contrast`, `check-i18n-shape`, `test-rtl`).
+- **⚠ Die Browser-Vorschau kann WebGL nicht prüfen.** Sie meldet
+  `visibilityState: "hidden"`; in einem verborgenen Tab läuft
+  `requestAnimationFrame` nicht, also zeichnet keine WebGL-Fläche je ein
+  Bild. Auch `setInterval` wird auf ~1/s gedrosselt. Alles rund um
+  `AlphaVideo.jsx` muss in einem echten Browserfenster geprüft werden.
 - **Warum die Sitzungen trotz AGENTS.md ohne Worktree laufen:** Die
   Browser-Vorschau startet den Dev-Server immer aus dem HAUPT-Checkout
-  (`.claude/launch.json` liegt dort).
+  (`.claude/launch.json` liegt dort). Im Worktree würde `main` geprüft,
+  nicht der Sitzungsstand.
 - **⚠ Zwei Browser, zwei localStorage.** Wer im App-Fenster rendert, sieht
-  es in seinem eigenen Chrome NICHT — der Abgleich über `data/traeume`
-  ergänzt Bilder inzwischen auch zu bekannten Träumen, aber nur, wenn
-  lokal gar keine stehen.
+  es im eigenen Chrome NICHT — der Abgleich über `data/traeume` ergänzt
+  Bilder auch zu bekannten Träumen, aber nur, wenn lokal gar keine stehen.
 
 ## Werkzeuge
 
@@ -169,6 +187,8 @@ iOS und Android · Besetzung überlebt jeden geleerten Speicher.
 - `bun scripts/raster-rendern.mjs <traum.json> <bogen> <modell> … --ja`
 - `bun scripts/alpha-packen.mjs <quelle> [ziel.mp4] [--premultipliziert]`
 - `node scripts/preis-durchreichen.mjs` — Einkauf, Marge, Rabattleiter.
+- **StartMenu → „Mascot test bench"** — Tipp-Einspieler ausprobieren,
+  Größenregler. Dev-Werkzeug, stirbt mit dem StartMenu.
 
 ## Was die App ist
 
@@ -184,7 +204,6 @@ schlüsselhaltender Proxy (fal.ai, DeepSeek, Gemini). Zustand in
 Preisliste (`plans.js`): Woche $4,99/**25** · Monat ★ $9,99/**100** ·
 Jahr $79,99/**100** p.M. · Pakete $2,99/**13** · $7,99/**36** ·
 $14,99/**70**.
-Bildzahlen: **4 oder 8**. Willkommensgeschenk: **4 Credits** (genau ein
-kleinster Traum — bewusst nicht mitgestiegen).
+Bildzahlen: **4 oder 8**. Willkommensgeschenk: **4 Credits**.
 Einkauf: **$0,0283 je Bild** · $0,113 je Vier-Bilder-Traum.
-Film: 3/9/17 Credits je Sekunde, hergeleitet aus demselben Einkaufspreis.
+Film: 3/9/17 Credits je Sekunde, aus demselben Einkaufspreis hergeleitet.
