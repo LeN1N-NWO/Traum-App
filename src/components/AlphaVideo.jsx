@@ -60,8 +60,15 @@ const VERTEX = `attribute vec2 p; varying vec2 uv;
 void main(){ uv = vec2(p.x * 0.5 + 0.5, 0.5 - p.y * 0.5);
              gl_Position = vec4(p, 0.0, 1.0); }`;
 
-export default function AlphaVideo({ src, className = "", style = null, loop = true }) {
+export default function AlphaVideo({ src, className = "", style = null, loop = true, onEnded = null }) {
   const canvasRef = useRef(null);
+
+  /* ⚠ Der Rückruf hängt in einem ref, NICHT in der Abhängigkeitsliste des
+     Effekts. Sonst reißt jeder Aufrufer, der seine Funktion inline schreibt
+     (also jeder), bei jedem Rendern den ganzen WebGL-Aufbau ab und neu auf —
+     das Video finge von vorn an, und zwar nur manchmal. */
+  const endeRef = useRef(onEnded);
+  endeRef.current = onEnded;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -158,9 +165,18 @@ export default function AlphaVideo({ src, className = "", style = null, loop = t
       handle = requestAnimationFrame(zeichnen);
     }
 
+    /* Nur für einmalige Einspieler interessant (loop = false). Wer darauf
+       eine Bildschirmfolge aufbaut, darf sich NICHT allein darauf verlassen:
+       Ohne WebGL kehrt der Effekt oben vorzeitig zurück, ohne je zu starten,
+       und dann kommt dieses Ereignis nie. Der Aufrufer braucht eine
+       Zeitbremse — ButtonTapOverlay.jsx hat eine. */
+    const fertig = () => endeRef.current?.();
+    video.addEventListener("ended", fertig);
+
     return () => {
       laeuft = false;
       cancelAnimationFrame(handle);
+      video.removeEventListener("ended", fertig);
       video.pause();
       /* ⚠ Quelle leeren UND neu laden: Sonst hält iOS den Dekoder fest, und
          nach ein paar Bildschirmwechseln startet gar kein Video mehr — die

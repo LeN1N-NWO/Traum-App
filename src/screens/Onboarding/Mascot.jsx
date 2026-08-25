@@ -1,7 +1,6 @@
 import { useState } from "react";
 import "./onboarding.css";
-import frogVideo from "../../assets/mascot-frog-idle.mp4";
-import frogPoster from "../../assets/mascot-frog-idle.jpg";
+import { mascot } from "../../lib/mascots.js";
 
 /* Das Maskottchen: Antons Frosch, gezeichnet wie mit Kreide.
  *
@@ -51,7 +50,13 @@ import frogPoster from "../../assets/mascot-frog-idle.jpg";
  * Das Poster ist die Rückfallebene, falls eine WebView doch einmal blockt —
  * dann steht ein Bild da statt einer leeren Fläche.
  */
-export default function Mascot() {
+export default function Mascot({ mascotId = null }) {
+  /* Die Datei kommt aus der Tabelle, nicht aus einem Import (25.08.2026).
+     Antons Ansage: Es wird drei Maskottchen geben, und die Wahl schlaegt
+     auf ALLE durch. Wer hier wieder direkt importiert, macht den Frosch an
+     genau dieser Stelle unaustauschbar — und niemand merkt es, bis das
+     zweite Maskottchen ueberall ausser hier erscheint. */
+  const m = mascot(mascotId);
   /* Wer Bewegung abgeschaltet hat, bekommt das Standbild — dieselbe Regel
      wie beim wandernden Licht (orbit.css) und beim Wisch-Hinweis. Das Video
      wird dann gar nicht erst geladen: 460 KB für etwas zu holen, das
@@ -64,8 +69,8 @@ export default function Mascot() {
     <div className="ob-mascot" aria-hidden="true">
       <video
         className="ob-mascot-film"
-        src={stillHalten ? undefined : frogVideo}
-        poster={frogPoster}
+        src={stillHalten ? undefined : m.idle.src}
+        poster={m.idle.poster}
         autoPlay={!stillHalten}
         muted
         loop
