@@ -1,4 +1,5 @@
 import { test, expect } from "bun:test";
+import { readFileSync } from "node:fs";
 import { sheetFingerprint, hasFreshSheet, needsSheet, renderRef } from "./sheets.js";
 
 /* Die Bogen-Pflicht hängt an drei Regeln (Plan 2026-08-20-charakterbogen-
@@ -74,4 +75,58 @@ test("kein Quelltext enthaelt ein echtes NUL-Byte", async () => {
     }
   })(join(wurzel, "src"));
   expect(treffer).toEqual([]);
+});
+
+/* ── ⚠ Gefunden im bezahlten Clooney-Lauf am 25.08.2026 ───────────────────
+   Der Bogen war fertig gerendert, sah richtig aus — und war danach nirgends
+   gespeichert. Zwei Ursachen, beide lautlos, beide in Step5Style:
+
+     1. `img2` fehlte in der Figur, die an den Bogen ging. Das ZWEITE Foto
+        (Ganzkoerper) erreichte ihn nie — die Zwei-Fotos-Funktion vom 23.08.
+        war im Wizard tot, seit es sie gibt.
+     2. Dadurch rechnete `sheetFingerprint` ueber eine ANDERE Gestalt als
+        `hasFreshSheet` spaeter prueft. Der Bogen galt bei JEDEM Render als
+        veraltet und wurde neu gemacht: $0,017, jedes Mal, fuer nichts.
+
+   Die beiden Tests hier pruefen die REGEL dahinter, nicht die Stelle:
+   Wer den Fingerabdruck ueber eine gekuerzte Figur rechnet, bekommt einen
+   anderen — und muss es merken. */
+
+test("eine Figur OHNE img2 hat einen anderen Fingerabdruck als mit", () => {
+  const voll = { tag: "ich", desc: "D", img: "AAA", img2: "BBB" };
+  const { img2, ...gekuerzt } = voll;
+  expect(sheetFingerprint(gekuerzt)).not.toBe(sheetFingerprint(voll));
+});
+
+/* ⚠ Der eigentliche Waechter: Wer den Bogen ueber eine gekuerzte Figur
+   stempelt und ihn spaeter an der vollen prueft, bekommt „veraltet" — und
+   zahlt bei jedem Render neu. */
+test("ein Bogen, gestempelt ohne img2, gilt an der vollen Figur als veraltet", () => {
+  const voll = { tag: "ich", category: "person", desc: "D", img: "AAA", img2: "BBB" };
+  const { img2, ...gekuerzt } = voll;
+  const falschGestempelt = { ...voll, sheet: "BOGEN", sheetOf: sheetFingerprint(gekuerzt) };
+  expect(hasFreshSheet(falschGestempelt)).toBe(false);
+  expect(needsSheet(falschGestempelt)).toBe(true);     // wuerde neu gerendert
+
+  const richtigGestempelt = { ...voll, sheet: "BOGEN", sheetOf: sheetFingerprint(voll) };
+  expect(hasFreshSheet(richtigGestempelt)).toBe(true);
+  expect(needsSheet(richtigGestempelt)).toBe(false);
+});
+
+/* ⚠ Verdrahtungstest: Die Figur, die der Wizard baut, MUSS img2 tragen.
+   Ohne diese Zeile faellt der Fehler oben beim naechsten Umbau wieder rein
+   — und wieder ohne Fehlermeldung. */
+test("der Wizard reicht img2 an den Bogen weiter", () => {
+  const src = readFileSync(new URL("../wizard/Step5Style.jsx", import.meta.url), "utf8");
+  const block = src.match(/const members = assignments[\s\S]*?\}\)\);/)?.[0] || "";
+  expect(block.length).toBeGreaterThan(0);
+  expect(block).toContain("img2:");
+});
+
+/* Und der Bogen muss einen ORT finden. Vorher entschied `avatar.id`
+   darueber; eine Figur, deren id nicht passte, verlor ihn lautlos. */
+test("der Bogen wird ueber den TAG festgeschrieben, nicht ueber die id", () => {
+  const src = readFileSync(new URL("../wizard/Step5Style.jsx", import.meta.url), "utf8");
+  expect(src).toMatch(/p\?\.tag === member\.tag/);
+  expect(src).not.toMatch(/if \(avatar\.id\) \{/);
 });

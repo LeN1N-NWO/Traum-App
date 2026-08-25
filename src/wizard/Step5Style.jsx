@@ -224,6 +224,19 @@ export default function Step5Style({ w, patch }) {
           category: a.kind === "pet" ? "pet" : a.kind === "place" ? "place" : "person",
           desc: a.avatar.desc || "",
           img: a.avatar.img,
+          /* ⚠⚠ `img2` FEHLTE hier bis zum 25.08.2026 — und das kostete gleich
+             zweimal, beides lautlos:
+               1. `characterSheet({ photo2: member.img2 })` bekam undefined.
+                  Das ZWEITE Foto (Ganzkörper) erreichte den Bogen also nie.
+                  Die Zwei-Fotos-Funktion vom 23.08. war im Wizard tot, seit
+                  es sie gibt — der Bogen wurde immer aus einem Bild gemacht
+                  und die Statur dazuerfunden.
+               2. `sheetFingerprint(member)` rechnete damit über eine ANDERE
+                  Gestalt als `hasFreshSheet(avatar)` später prüft (das kennt
+                  img2). Gemessen: 17epxza gegen 1xthkk2. Der Bogen galt also
+                  bei JEDEM Render als veraltet und wurde neu gemacht —
+                  $0,017, jedes Mal, für nichts. */
+          img2: a.avatar.img2,
           sheet: a.avatar.sheet,
           sheetOf: a.avatar.sheetOf,
         },
@@ -257,15 +270,31 @@ export default function Step5Style({ w, patch }) {
            er die localStorage-Quota weniger als das Foto selbst. */
         member.sheet = await compactDataUrl(mediaUrl(url));
         member.sheetOf = sheetFingerprint(member);
-        // Am richtigen Ort festschreiben: Besetzungs-Einträge haben eine id,
-        // das eigene Porträt lebt in state.me.
-        if (avatar.id) {
-          workingCast = workingCast.map((p) =>
-            p.id === avatar.id ? { ...p, sheet: member.sheet, sheetOf: member.sheetOf } : p);
-          update({ cast: workingCast });
-        } else if (workingMe?.tag === member.tag) {
-          workingMe = { ...workingMe, sheet: member.sheet, sheetOf: member.sheetOf };
-          update({ me: workingMe });
+        /* ⚠ Über den TAG festschreiben, nicht über die id (25.08.2026).
+           Vorher entschied `avatar.id` darüber, WOHIN der Bogen geht: mit id
+           ins Ensemble, ohne id ins eigene Porträt. Eine Figur, deren id
+           nicht zu `state.cast` passt — oder ein eigenes Porträt, das eine
+           id trägt — schrieb den Bogen dann nirgendwohin. Kein Fehler, keine
+           Meldung: Beim nächsten Render wird er einfach neu gemacht, wieder
+           für Geld.
+
+           Der Tag ist die Identität einer Figur (autoMatch, buildReferences,
+           renderRef arbeiten alle darüber). Also entscheidet er auch hier —
+           und BEIDE Orte werden angefasst, weil eine Figur nur an einem von
+           beiden liegen kann und wir nicht raten müssen, an welchem. */
+        const bogen = { sheet: member.sheet, sheetOf: member.sheetOf };
+        const imEnsemble = workingCast.some((p) => p?.tag === member.tag);
+        if (imEnsemble) {
+          workingCast = workingCast.map((p) => (p?.tag === member.tag ? { ...p, ...bogen } : p));
+        }
+        if (workingMe?.tag === member.tag) workingMe = { ...workingMe, ...bogen };
+        if (imEnsemble || workingMe?.tag === member.tag) {
+          update({ cast: workingCast, me: workingMe });
+        } else {
+          /* Weder im Ensemble noch das eigene Porträt: Der Bogen wäre
+             verloren. Das ist kein stiller Fall — er hat gerade Geld
+             gekostet. */
+          console.warn(`[DreamRushes] Bogen für @${member.tag} hat keinen Ort — nicht gespeichert.`);
         }
       } catch (err) {
         console.error("[DreamRushes] character sheet skipped:", err);
