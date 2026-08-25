@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
 import { totalCredits } from "../../lib/credits.js";
 import Button from "../../components/Button.jsx";
 import Mascot from "./Mascot.jsx";
+import MascotLab from "./MascotLab.jsx";
 import "./onboarding.css";
 
 /* A picker shown before the app decides anything, while onboarding is still
@@ -32,6 +34,11 @@ import "./onboarding.css";
  * already written on the happy path). */
 export default function StartMenu({ onOnboarding, onSkip }) {
   const { state, update } = useAppState();
+  /* Die Werkbank hängt HIER und nicht an einer Route: Sie ist Dev-Werkzeug
+     wie dieses Menü selbst, und wenn das Menü gelöscht wird, geht sie
+     mit — sie kann keinen Kunden erreichen und keine Route belegen. */
+  const [werkbank, setWerkbank] = useState(false);
+  if (werkbank) return <MascotLab onExit={() => setWerkbank(false)} />;
   return (
     <main className="ob ob-center" lang="en" dir="ltr">
       <Mascot />
@@ -40,6 +47,7 @@ export default function StartMenu({ onOnboarding, onSkip }) {
       <div className="ob-actions">
         <Button onClick={onOnboarding}>Show onboarding</Button>
         <Button variant="ghost" onClick={onSkip}>Skip to app</Button>
+        <Button variant="ghost" onClick={() => setWerkbank(true)}>Mascot test bench</Button>
       </div>
       {/* Testguthaben (Antons Bitte 21.08.: „Skip to app" überspringt das
           Onboarding und damit das Willkommensgeschenk — dann ist jeder

@@ -279,3 +279,27 @@
   border: 1px solid var(--accent-soft); border-radius: 999px;
 }
 .vi-fallback:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+/* ── Maskottchen-Werkbank (Dev, stirbt mit dem StartMenu) ────────────────
+   Der Knopf muss dort liegen, wo er auf dem Erzeugen-Bildschirm liegt —
+   im unteren Fünftel. Ein Prüfstand, der ihn mittig zeigt, prüft eine
+   Geometrie, die es nirgends gibt: Der Anker rechnet gegen die Knopfmitte,
+   also entscheidet genau diese Höhe darüber, ob der Frosch ins Bild passt
+   oder mit dem Kopf am Rand hängt. */
+.mascot-lab { justify-content: flex-start; padding-top: var(--s-6); }
+.mascot-lab .lab-actions { margin-top: auto; width: 100%; }
+
+.lab-readout {
+  font-family: var(--sans); font-size: var(--t-small); color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--s-4);
+}
+
+.lab-slider {
+  display: flex; flex-direction: column; gap: var(--s-2);
+  width: min(100%, 20rem); margin-top: var(--s-5);
+  font-family: var(--sans); font-size: var(--t-small); color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.lab-slider input { width: 100%; }
+.lab-slider small { color: var(--faint); min-height: 1.2em; }

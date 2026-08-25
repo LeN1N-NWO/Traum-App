@@ -1,0 +1,39 @@
+/* Der Einspieler liegt über allem Bedienbaren, aber unter dem Splash:
+   Dialoge 70, hier 75, Splash 80. Er ist Schmuck — er darf nichts
+   verdecken, was jemand LESEN muss, und nichts abfangen, was jemand
+   DRÜCKEN will. */
+.tap-frame {
+  position: fixed; inset: 0; z-index: 75;
+  overflow: hidden;          /* das Bild ragt bewusst über den Rand hinaus */
+  pointer-events: none;
+}
+
+/* Antippen überspringt. Beim zwanzigsten Traum sind sechs Sekunden lang —
+   und wer wartet, hat den Knopf schon gedrückt, es gibt nichts mehr zu
+   verhindern. Kein sichtbarer Knopf, keine Beschriftung: eine unsichtbare
+   Fläche, die auf jede Berührung reagiert. Aus der Tabulatorreihenfolge
+   heraus (tabIndex -1), weil ein Schmuckstück keine Station für die
+   Tastatur ist. */
+.tap-skip {
+  position: absolute; inset: 0;
+  background: none; border: 0; padding: 0;
+  pointer-events: auto;
+  cursor: default;
+}
+
+/* Kein Einblenden am Anfang — die Animation bringt ihr eigenes mit, der
+   Frosch kommt von selbst ins Bild. Nur der Abgang wird weich, damit das
+   letzte Einzelbild nicht wegspringt.
+
+   ⚠ Die VERZÖGERUNG steht bewusst nicht hier, sondern kommt als
+   `animationDelay` aus mascots.js: Sie hängt an der Länge des Clips, und
+   die ist bei jedem Maskottchen eine andere. Als Zahl im Stylesheet wäre
+   sie beim zweiten Maskottchen still falsch — das Bild verschwände zu früh
+   oder ruckte am Ende weg. */
+.tap-clip { animation: tap-aus .35s ease-in both; }
+
+@keyframes tap-aus { from { opacity: 1; } to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .tap-frame { display: none; }
+}

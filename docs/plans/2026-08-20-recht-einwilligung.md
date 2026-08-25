@@ -205,3 +205,124 @@ Widerrufsweg im Profil (Art. 7: Widerruf so leicht wie Erteilung).
   Aufsichtspraxis.
 - Apple App Review 1.2 (UGC: Melden/Blocken), 5.1.1 (Einwilligung):
   developer.apple.com/app-store/review/guidelines.
+
+## 8. Nachtrag 25.08. — Prominente im Traum
+
+Anlass: Der Clooney-Lauf vom 25.08. hat einen **erkennbaren echten
+Menschen** erzeugt. Bis dahin behandelte dieses Dokument fremde Gesichter
+nur als Lena-Problem (§3) — Privatpersonen, deren Foto jemand hochlädt.
+Prominente kamen in einem halben Nebensatz vor: „keine Personen des
+öffentlichen Lebens für Täuschung" (§2a). **Dieser Halbsatz ist zu eng.**
+Der Clooney-Lauf war keine Täuschung, sondern ein Traum.
+
+### a) Antons Frage: Reicht eine AGB-Klausel?
+
+Wörtlich: „Müssten wir uns explizit abgrenzen und in den AGB vereinbaren,
+dass alles, was der User generiert, auf seine eigene Verantwortung geht?"
+
+**Nein — jedenfalls nicht als Dach.** Es sind drei Parteien, nicht zwei:
+Die AGB regeln die Linie zwischen uns und dem Nutzer. Der Abgebildete hat
+nie etwas unterschrieben, und ihn bindet eine Vereinbarung, an der er
+nicht beteiligt war, nicht. Er verklagt den Greifbaren mit dem Konto.
+
+⚠ Dazu kommt: **Genau die Freistellungsklausel, die man sich hier wünscht,
+ist gegenüber Verbrauchern die angreifbarste von allen.** „Der Nutzer
+stellt uns von sämtlichen Ansprüchen frei" wird in deutschen AGB gegenüber
+Privatkunden regelmäßig als unangemessene Benachteiligung kassiert
+(§ 307 BGB). Sie gehört trotzdem hinein — sie hilft bei grobem Missbrauch.
+Sie ist ein Netz, kein Dach.
+
+### b) ⚠ Richtigstellung: Apple sperrt uns dafür NICHT
+
+Am 25.08. stand hier zwischenzeitlich, App-Review sei ein
+Veröffentlichungs-Blocker. **Das war überzogen, und Antons Einwand war
+richtig:** Apple wirft keine App raus, die auch Personen erzeugen kann —
+sonst wäre kein einziges Bildwerkzeug im Store. Rausgeworfen wird, wer
+**damit wirbt**: Face-Swap-, Deepfake- und „Nudify"-Apps, die Prominente
+im Namen, im Screenshot oder in der Beschreibung führen.
+
+Für uns gilt also weiterhin nur Richtlinie 1.2 aus §3: Meldeweg,
+Sperrmöglichkeit, veröffentlichter Kontakt. Bauaufgabe, kein Blocker.
+
+Die Stelle steht hier, weil sie die Entscheidung in c) und d) getragen
+hätte, wäre sie unwidersprochen geblieben.
+
+### c) Warum die Klage nicht an fal oder OpenAI weitergereicht wird
+
+Antons zweite Frage: „Wie kann es sein, dass OpenAI rechtlich sicher ist
+und wir, die ihre Tools verwenden, auf einmal Probleme haben?"
+
+**Die sind nicht sicher.** Getty gegen Stability, die Künstler-Sammel-
+klagen, die NYT gegen OpenAI — und als Sora 2 im Oktober 2025 ungefragt
+Schauspieler nachbaute, standen SAG-AFTRA und Bryan Cranston auf der
+Matte; OpenAI hat binnen Tagen Zustimmungspflichten für Abbilder
+eingebaut. Sie tragen dieses Risiko täglich.
+
+**Genau deshalb filtern sie.** Der Ablehnungsfilter, gegen den Antons
+Freddy-Krüger-Traum lief, ist kein Schikane-Mechanismus, sondern OpenAIs
+eigener Selbstschutz — und solange wir ihn laufen lassen, schützt er uns
+gratis mit.
+
+**Nach oben durchreichen geht trotzdem nicht**, und der Grund ist trocken
+vertraglich: Ihre Bedingungen sagen sinngemäß „dir gehört die Ausgabe, du
+bist dafür verantwortlich, und du stellst UNS frei". Die Risikoverteilung
+läuft die Kette hinab, nicht hinauf. Freistellungen wie OpenAIs
+„Copyright Shield" gibt es, aber sie decken **Urheberrecht, nicht
+Persönlichkeitsrecht**, gelten für Geschäftskunden — und **entfallen,
+sobald man die Schutzmechanismen umgeht**. Ob fal auf der
+Selbstbedienungs-Stufe überhaupt etwas Vergleichbares bietet: vor Launch
+nachlesen, Erwartung ist nein.
+
+### d) ⚠ Die Linie, die wirklich zählt: durchgelassen ≠ umgangen
+
+Zwischen **„der Filter hat es durchgelassen"** und **„wir haben etwas
+gebaut, um am Filter vorbeizukommen"** liegt die ganze Verteidigung. Das
+Erste ist ein Werkzeugfehler, den wir nicht zu vertreten haben. Das Zweite
+ist unsere Entscheidung — und kippt zugleich jede Anbieter-Freistellung
+und potenziell unser API-Konto.
+
+**Damit wird der `unname`-Umschreiber (recovery.js, 24.08.) zur
+Gretchenfrage**, denn er ist ein Werkzeug, das nach einer Ablehnung eine
+Fassung baut, die durchgeht:
+
+- Wird aus „George Clooney" *„ein distinguierter Mann Anfang sechzig mit
+  grauem Haar"*, dann **entidentifiziert** er. Am Ende steht irgendein
+  Mann. Das ist ein Filter auf UNSERER Seite — richtig so.
+- Wird ein Name durch eine so genaue Beschreibung ersetzt, dass **wieder
+  dieselbe Person** herauskommt, ist es eine Tarnkappe. Dann bauen wir
+  genau das, was uns die Deckung kostet.
+
+⚠ **Prüfkriterium, das noch nicht eingelöst ist:** Der echte Satz vom
+24.08. — „Freddy Krüger" → „ein Mann mit verbranntem Gesicht, braunem Hut
+und Klingenhandschuh" — sitzt **auf der Kippe**. Das ist noch erkennbar
+die Figur. Wer am Umschreiber arbeitet, misst ihn hieran, nicht daran, ob
+der Auftrag durchgeht.
+
+### e) Die Entscheidung (Anton, 25.08.)
+
+**Nichts sperren, nichts bewerben, nichts umgehen.**
+
+- Kein Namensfilter am Eingang. Menschen träumen von Prominenten, das
+  gehört dazu; und wir bewerben es an keiner Stelle.
+- Der Anbieterfilter bleibt das Tor. Wir bauen keinen Weg daran vorbei.
+- Der Umschreiber entidentifiziert, statt zu tarnen (siehe d).
+- Privat bleibt die stärkste Verteidigung: § 22 KUG greift bei
+  „Verbreiten oder öffentlich Zurschaustellen". Ein Tagebuch, das auf dem
+  Telefon bleibt, verbreitet nichts. ⚠ **Das Risiko entsteht mit dem
+  Teilen** — und der Share-Text steht in §4 Punkt 3 schon auf der Liste.
+- Dazu unverändert: KI-Kennzeichnung (§2d), Meldeweg (§3),
+  AGB-Klauseln mit dem Wissen aus a).
+
+### f) Was der Anwalt zusätzlich vorgelegt bekommt
+
+1. Die Klausel aus a) — mit der ausdrücklichen Frage, wie weit eine
+   Freistellung gegenüber Verbrauchern überhaupt trägt.
+2. Die Linie aus d), als Beschreibung dessen, was die App TUT — nicht als
+   Behauptung, dass es genügt.
+3. Die Frage, ob wir für erzeugte Bilder Hostinganbieter im Sinne des DDG
+   sind oder eigene Inhalte verantworten. Wir sind kein neutraler
+   Speicher: Wir erzeugen auf Zuruf, mit unserem Anbieterkonto. Das ist
+   ungeklärt und gehört gefragt, nicht geraten.
+4. Der Hinweis, dass die Rechtslage zu digitalen Abbildern seit 2024 in
+   Bewegung ist (Tennessee, Kalifornien, mehrere EU-Staaten) — was heute
+   reicht, ist vor Launch neu zu prüfen.

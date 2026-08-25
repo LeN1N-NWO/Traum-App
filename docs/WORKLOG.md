@@ -3,6 +3,120 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-25 22:50 — Anton — Branch `session/2026-08-25-anton` (PR #28) — Sitzungsabschluss
+
+**Commits:** `42c2394` (Eröffnung) · `8c741b6` (**der Frosch tippt den Knopf
+selbst**) plus dieser Doku-Commit.
+Zustand: **442 Tests grün**, fünf Skriptprüfungen grün, Build sauber.
+Bezahlte Läufe: **keine.** Diese Sitzung hat kein Geld gekostet.
+
+⚠ Zweite Sitzung an diesem Tag — die erste steht darunter (11:20).
+
+### Der Satz, der über dem Tag steht
+
+**Ein Anker, der ins Leere zeigt, wirft keine Fehlermeldung.** Antons
+Tipp-Animation und sein Referenzknopf lagen 35 % der Bildbreite
+auseinander. Formatfüllend eingebaut hätte der Frosch neben den Knopf
+getippt — und das wäre durch jeden Test gekommen, durch jeden Build, durch
+jede Codeprüfung. Gefunden hat es nur das Nachmessen.
+
+### Der Frosch tippt den Knopf selbst
+
+Antons Ansage: „Das Video soll als Overlay auf den Erzeuger-Button … dann
+tut es so, als würde es auf den Button klicken, und erst dann verschwindet
+es … im Hintergrund ist es schon aktiviert. Dadurch sparen wir auch ein
+bisschen Zeit."
+
+⚠ **Der Einspieler ist NIE ein Tor** (`ButtonTapOverlay.jsx`). Der Auftrag
+ist abgeschickt, bevor das erste Einzelbild läuft — genau davon lebt der
+Zeitgewinn. Wer das umdreht, verschenkt nicht nur die Sekunden, sondern
+baut die Selbstheilung vom 24.08. wieder zu: Eine Ablehnung durch den
+Inhaltsfilter kommt SCHNELLER zurück als sechs Sekunden. Deshalb nimmt
+`Step5Style.jsx` den Frosch im `catch` sofort weg.
+
+Vier Messungen statt vier Vermutungen:
+
+- **ProRes 4444 spielt in KEINEM Browser.** Das war der schwarze Kasten in
+  Antons Screenshot, kein Alpha-Problem. Alpha-Packung: **23 MB → 579 KB**,
+  iOS und Android aus einer Datei.
+- **Die Quelle ist premultipliziert exportiert.** Nachweis: Die Farbe fällt
+  mit dem Alphawert (A=255→R=148, A=117→R=69), statt konstant zu bleiben.
+  Bei „straight" bliebe R gleich. Also mit `--premultipliziert` gepackt.
+- **Der Funke sitzt bei 14,5 % / 78 %** des Bildes — Schwerpunkt der
+  Alphadeckung im unteren Bilddrittel, über alle 145 Einzelbilder gesucht;
+  der Tippmoment ist Sekunde 3,0 von 6,04. **Antons Referenzknopf liegt
+  bei 49,3 % / 84,8 %.**
+- **Verschieben allein löst es nicht:** Dann sitzt der Funke richtig und
+  der Kopf hängt aus dem Bild. Bei `scale` 0,65 passt das ganze Tier;
+  0,85 ist abgeschnitten. Alle drei gegengerendert, bevor es in den Code
+  ging.
+
+⚠ **Der Anker rechnet gegen das ECHTE Knopfelement, nicht gegen
+Bildschirmprozente.** Die Animation ist auf 9:16 gezeichnet, kein heutiges
+Telefon IST 9:16. Auf Prozente gelegt wandert der Funke auf jedem Gerät
+woanders hin. Das Rechteck kommt aus `e.currentTarget` im Klick-Ereignis —
+zwingend, weil der Knopf eine Zeile später weg ist (`if (busy) return …`).
+
+### Drei Maskottchen — die Tabelle steht, die Auswahl nicht
+
+Antons Ansage: „Es wird drei verschiedene Maskottchen geben … diese
+Maskottchen ändern ALLE Maskottchen über die ganze App."
+
+`src/lib/mascots.js` ist die Tabelle; `Mascot.jsx` liest jetzt daraus,
+statt die Datei direkt zu importieren. Ein zweites Maskottchen ist damit
+eine ZEILE. Plan mit dem Offenen: `docs/plans/2026-08-25-maskottchen-auswahl.md`.
+
+⚠ **Der Tipp-Anker gehört zur DATEI, nicht zur App.** Jede Zeichnung trifft
+den Knopf an einer anderen Stelle ihres Bildes. Stünde die Zahl im Bauteil,
+tippte das zweite Maskottchen daneben — lautlos.
+
+### Recht: Prominente sind jetzt eine eigene Baustelle
+
+`docs/plans/2026-08-20-recht-einwilligung.md` §8, nach Antons Fragen.
+
+- **AGB wirken nach unten, nicht zur Seite.** Der Abgebildete hat nichts
+  unterschrieben. Und die Freistellungsklausel, die man sich hier wünscht,
+  ist gegenüber Verbrauchern die angreifbarste von allen (§ 307 BGB).
+- ⚠ **Richtigstellung, und sie war meine:** Ich hatte App-Review als
+  Veröffentlichungs-Blocker bezeichnet. Antons Einwand war richtig — Apple
+  wirft raus, wer damit WIRBT, nicht wer es kann. Steht als
+  Richtigstellung in §8b, weil sie die Entscheidung getragen hätte.
+- **Nach oben durchreichen geht nicht:** Die Anbieterbedingungen schieben
+  das Risiko die Kette hinab. Freistellungen wie „Copyright Shield" decken
+  Urheberrecht, nicht Persönlichkeitsrecht — und entfallen, wenn man die
+  Schutzmechanismen umgeht.
+- ⚠ **Die Linie, die zählt: durchgelassen ≠ umgangen.** Damit wird der
+  `unname`-Umschreiber zur Gretchenfrage. Er muss ENTIDENTIFIZIEREN, nicht
+  tarnen. Der echte Satz vom 24.08. („Freddy Krüger" → „ein Mann mit
+  verbranntem Gesicht, braunem Hut und Klingenhandschuh") sitzt auf der
+  Kippe — das ist noch erkennbar die Figur.
+- Antons Entscheidung: **nichts sperren, nichts bewerben, nichts umgehen.**
+
+### Was der Nächste wissen muss
+
+- **Ein Anker, der ins Leere zeigt, meldet sich nicht.** Wie beim Geld am
+  25.08. vormittags: kein roter Test, kein Build-Fehler. Wer eine neue
+  Animation einbaut, misst den Anker — die Anleitung steht im
+  Maskottchen-Plan.
+- ⚠ **Die Browser-Vorschau kann WebGL nicht prüfen.** Sie meldet
+  `visibilityState: "hidden"`, und in einem verborgenen Tab läuft
+  `requestAnimationFrame` nicht — die Fläche zeichnet nie. Geprüft wurde
+  deshalb, was messbar ist: Geometrie live (152,156 / 368,75 bei 375×812),
+  Funke an der Ankerstelle im Browser dekodiert (Maske 76, leere Fläche 0),
+  Rahmen nach 7,3 s abgeräumt. **Das gemalte Bild hat niemand gesehen** —
+  Anton prüft es in seinem eigenen Chrome.
+- ⚠ **`node` gibt es auf diesem Rechner nicht**, nur `bun`. `npm test`
+  läuft deshalb nicht durch: `bun test` plus die fünf `.mjs`-Prüfungen
+  einzeln mit `bun` aufrufen. Alle sechs waren grün.
+- **`scale` 0,65 ist gerechnet, nicht geschaut.** Der Regler in der
+  Werkbank (StartMenu → „Mascot test bench") sucht den Wert; was er
+  findet, gehört nach `mascots.js` und nicht in den Regler.
+- Sitzung lief wieder ohne eigenen Worktree, aus demselben Grund wie am
+  24.08.: Die Browser-Vorschau startet den Dev-Server aus dem
+  Haupt-Checkout. Der Worktree wurde angelegt, gepusht — und dann
+  abgeräumt, als klar war, dass Code und Browserprüfung anstehen. Der
+  Branch blieb, der PR blieb.
+
 ## 2026-08-25 11:20 — Anton — Branch `session/2026-08-24-anton` (PR #27) — Sitzungsabschluss
 
 **Commits:** `a355256` (Eröffnung) · `eb5b5ba` (**Credits steigen, Film

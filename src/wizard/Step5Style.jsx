@@ -16,6 +16,7 @@ import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
+import ButtonTapOverlay from "../components/ButtonTapOverlay.jsx";
 import Storyboard from "../components/Storyboard.jsx";
 import Sheet from "../components/Sheet.jsx";
 import "./wizard.css";
@@ -33,6 +34,10 @@ export default function Step5Style({ w, patch }) {
   // ein Toast ist nach vier Sekunden weg, und wer auf den Spinner gestarrt
   // hat, sieht danach nur ein wortloses Formular (Antons Befund 21.08.).
   const [fail, setFail] = useState(null);
+  /* Das Maskottchen tippt den Knopf nach (Antons Ansage 25.08.). Reines
+     Beiwerk: Es liegt ÜBER dem Bildschirm und hält nichts auf — der Auftrag
+     ist längst unterwegs, wenn das erste Einzelbild läuft. */
+  const [tap, setTap] = useState(null);
   /* Die Regie-Auswahl im Storyboard (Stufe B, Antons Go 21.08.): Beat-
      Indizes in Tipp-Reihenfolge. null heißt Automatik — dann wählt
      weiterhin evenIndices, und zwar bei jedem Längenwechsel neu; erst
@@ -106,12 +111,18 @@ export default function Step5Style({ w, patch }) {
     return () => clearInterval(id);
   }, [busy]);
 
-  async function run() {
+  /* `tapRect` ist der Knopf, so wie er im Moment des Drucks auf dem
+     Bildschirm lag — gemessen im Klick-Ereignis, weil er eine Zeile später
+     weg ist (`if (busy) return …`). Er kommt erst NACH den Wächtern in den
+     Zustand: Wer nicht genug Credits hat, sieht das Kaufblatt, keinen
+     Frosch. */
+  async function run(tapRect = null) {
     if (running.current) return;
     /* Nur die Kassenprüfung — abgebucht wird später, Auftrag für Auftrag
        (Bilder) bzw. beim erfolgreichen Absenden (Film/Vorschau). Wer den
        Preis nicht aufbringt, kommt gar nicht erst bis zur Anlage. */
     if (!spend(state, price)) return openPaywall("spent");
+    if (tapRect) setTap(tapRect);
     running.current = true;
     setBusy(true);
     setDone(0);
@@ -553,14 +564,26 @@ export default function Step5Style({ w, patch }) {
          „wird erstellt" behauptet, ist schlimmer als ein Traum ohne Bild. */
       clearPending();
       setFail(err.message);
+      /* ⚠ Der Frosch geht SOFORT weg, wenn es schiefging. Eine Ablehnung
+         durch den Inhaltsfilter kommt schnell zurück — schneller als die
+         sechs Sekunden. Wer sie hinter einem fröhlichen Maskottchen
+         wegblendet, hat die Selbstheilung vom 24.08. wieder zugebaut. */
+      setTap(null);
     }
     running.current = false;
     setBusy(false);
   }
 
+  /* Steht in BEIDEN Zweigen, weil der Druck den Bildschirm sofort
+     umschaltet: Der Einspieler liegt fest am Sichtfenster (`position:
+     fixed`), also ist ihm egal, wo im Baum er hängt — aber nicht, ob er
+     überhaupt noch gerendert wird. */
+  const einspieler = tap && <ButtonTapOverlay rect={tap} onDone={() => setTap(null)} />;
+
   if (busy) {
     return (
       <section className="wiz-body wiz-busy" role="status" aria-live="polite">
+        {einspieler}
         <div className="wiz-spinner" aria-hidden="true" />
         <p className="wiz-busy-text">{t.dream.loading[msg % t.dream.loading.length]}</p>
         {/* Der einmalige Bogen-Moment einer neuen Figur erklärt sich selbst,
@@ -804,7 +827,11 @@ export default function Step5Style({ w, patch }) {
         <p>{t.wizard.step5.summaryRefs(named)}</p>
       </div>
 
-      <Button onClick={run} disabled={!canAfford(state, price)}>
+      {einspieler}
+      <Button
+        onClick={(e) => run(e.currentTarget.getBoundingClientRect())}
+        disabled={!canAfford(state, price)}
+      >
         {t.wizard.step5.generate} · {price} {t.wizard.creditsN(price)}
       </Button>
       {/* Kein Satz, der nur feststellt — ein Weg. Wer die Preise sehen
