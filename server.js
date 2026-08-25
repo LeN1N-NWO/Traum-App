@@ -55,8 +55,10 @@ import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
  * sprechen nicht dieselbe Sprache, und ein falscher Feldname wirft keinen
  * Fehler, er liefert nur das Falsche. */
 import { imageSubmitBody, imageModel, IMAGE_MODELS, DEFAULT_IMAGE_MODEL,
-         pickImageModel, retiredReason, lieferbareModelle, imageStage, imagePrice }
+         pickImageModel, retiredReason, lieferbareModelle, imageStage, imagePrice,
+         fallbackModel }
   from "./src/lib/imageModel.js";
+import { failureReason } from "./src/lib/falError.js";
 import { appGrid, GRID_SLOTS } from "./src/lib/gridLayout.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
@@ -87,6 +89,13 @@ const MEDIA_DIR = mediaRootFrom(
    sie ins Hauptrepo, sonst nimmt `git worktree remove` sie mit — genau so
    sind am 21.08. die Bilder verschwunden. */
 const BACKUP_DIR = resolve(MEDIA_DIR, "..", "data", "traeume");
+/* ⚠ Die Besetzung liegt unter /media, NICHT unter data/ — und der
+ * Unterschied ist Absicht (Antons Anweisung 25.08.2026, castBackup.js):
+ * Hier stehen FOTOS, teils von anderen Menschen. `/media` ist gitignored,
+ * die Bilder bleiben also dauerhaft auf diesem Rechner und gelten ueber
+ * alle Browser hinweg — aber sie wandern nicht in die Git-Historie. Eine
+ * Datei kann man loeschen, einen Commit praktisch nicht. */
+const CAST_DIR = resolve(MEDIA_DIR, "besetzung");
 
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
@@ -886,6 +895,45 @@ const REFINE_SHARED_RULES =
   "marks around it, no commentary about what you changed.";
 
 const REFINE_MODES = {
+  /* ── Der Namens-Entschärfer (Antons Ansage 24.08.2026) ──────────────────
+   *
+   * „Nicht, weil es vom User zu viel verlangt, dass er das selbst doch
+   * editieren muss … Dann soll er einfach auf den Button klicken, und die AI
+   * soll die Lösung umschreiben, dass dieser Name nicht vorkommt. Das
+   * erwarte ich von einer smarten App."
+   *
+   * Er hat recht. Die erste Fassung der Fehlermeldung sagte „beschreibe die
+   * Figur, statt sie zu nennen" — ein Rat, der die Arbeit zurückgibt. Ein
+   * Bildmodell lehnt „Freddy Krüger" ab und rendert „ein Mann mit einem
+   * verbrannten Gesicht und Klingen an der rechten Hand" anstandslos; genau
+   * diese Übersetzung kann die KI machen, und zwar besser als der Mensch um
+   * halb drei nachts.
+   *
+   * ⚠ Der Modus ist ABSICHTLICH der engste von allen. Er darf NUR Namen
+   * ersetzen. Sobald er anfängt, nebenbei zu verbessern, hat jemand seinen
+   * Traum gegen einen fremden getauscht — und gemerkt hätte er es erst, wenn
+   * die Bilder da sind.
+   *
+   * ⚠ Und er beschreibt, was zu SEHEN ist, nicht wer es ist. „Der Killer aus
+   * einem bekannten Horrorfilm" wäre dieselbe Ablehnung mit mehr Wörtern:
+   * Die Prüfer erkennen die Umschreibung genauso. Nur eine rein körperliche
+   * Beschreibung kommt durch. */
+  unname:
+    "The dream below was REJECTED by an image generator's content filter, almost " +
+    "certainly because it names a protected character, brand, or well-known real " +
+    "person. Your ONLY job is to replace those names with what they LOOK LIKE.\n" +
+    "- Replace each such name with a short, concrete, PHYSICAL description: what a " +
+    "camera would see. Clothing, face, build, what they carry.\n" +
+    "- Describe, never allude. Do NOT write 'the killer from a famous horror film' " +
+    "or 'a well-known wizard boy' — a filter reads those exactly like the name.\n" +
+    "- Ordinary first names of the dreamer's own friends and family are NOT the " +
+    "problem and MUST stay untouched. Only famous or fictional figures, brands and " +
+    "trademarks.\n" +
+    "- Change NOTHING else: not one other word, not the order, not the tone, not " +
+    "the length beyond what the replacement itself needs.\n" +
+    "- If you find no such name, return the dream completely unchanged." +
+    REFINE_SHARED_RULES,
+
   /* The lightest touch there is. Deliberately forbids improvement of any
    * kind — someone who asks for spelling and gets their voice rewritten
    * has lost something they cannot get back except via "show original". */
@@ -1195,7 +1243,23 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
 // Anything longer needs queue.fal.run: submit, poll status_url, fetch
 // response_url. Do that BEFORE offering film lengths above ~10 seconds.
 // Revisit if a model runs long enough to need the queue+polling flow.
-async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", grid = false }) {
+/** Welches Bildmodell dieser eine Auftrag benutzt.
+ *
+ *  ⚠⚠ Der Client schickt ein JA/NEIN, nie einen Modellnamen. Das ist der
+ *  ganze Unterschied zwischen einem Ausweg und einer offenen Kasse: Mit
+ *  einem freien Feld könnte er `nano-banana-pro` bestellen ($0,30) und
+ *  bekäme es zum Preis von Plan B. Die Auflösung des Ja/Nein steht deshalb
+ *  hier im Server, und der einzige erreichbare Wert ist
+ *  FALLBACK_IMAGE_MODEL.
+ *
+ *  Gibt es kein Ausweichmodell (weil es außer Dienst steht oder dasselbe
+ *  wäre), fällt es still auf das Hauptmodell zurück — ein Plan B, der
+ *  nicht existiert, darf keinen Auftrag scheitern lassen. */
+function modelFor(fallback) {
+  return (fallback && fallbackModel(FAL_MODEL_IMAGE)) || FAL_MODEL_IMAGE;
+}
+
+async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", grid = false, fallback = false }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
@@ -1206,12 +1270,21 @@ async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", 
      der ZWEITE Aufrufer, und er wurde beim Umstellen am 24.08. zuerst
      vergessen. Ein Verdrahtungstest hat ihn gefunden; ohne ihn hätte der
      synchrone Pfad still „high" bezahlt. */
-  const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, {
+  const modellId = modelFor(fallback);
+  /* ⚠ Die Stufe geht an BEIDE Felder, und das ist Absicht: Bei GPT heißt
+     sie `quality` ("medium"), bei Nano Banana `resolution` ("4K"). Welches
+     Feld wirklich gesendet wird, entscheidet die Tabelle (`imageSubmitBody`
+     prüft `qualities`/`resolutions`) — nicht diese Funktion. Wer hier von
+     Hand zuordnete, hätte beim Ausweichmodell ein leeres `quality` gesendet
+     und still in 1K gerendert. */
+  const stufe = imageStage(modellId);
+  const { model, input } = imageSubmitBody(modellId, {
     prompt,
     aspectRatio,
     imageUrls: namedRefs.map((r) => r.img),
-    quality: imageStage(FAL_MODEL_IMAGE),
-    size: grid ? appGrid(FAL_MODEL_IMAGE).size : null,
+    quality: stufe,
+    resolution: stufe,
+    size: grid ? appGrid(modellId).size : null,
   });
 
   const res = await fetch(`https://fal.run/${model}`, {
@@ -1219,14 +1292,32 @@ async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", 
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
     body: JSON.stringify(input),
   });
+  /* ⚠ Der Grund muss aus dem RUMPF kommen, nicht aus dem Status. Bei einem
+     Policy-Verstoß antwortet fal.run mit 4xx UND einer Begründung im Body;
+     `res.text()` in eine Konsolenzeile zu kippen hat sie bis zum 24.08.2026
+     an genau der Stelle verloren, an der der Kunde sie gebraucht hätte.
+     Derselbe Fehler wie im Warteschlangen-Weg (jobStatus), nur synchron. */
+  const roh = await res.text().catch(() => "");
+  const data = (() => { try { return JSON.parse(roh); } catch { return null; } })();
   if (!res.ok) {
-    console.error("[DreamRushes] fal.ai image request failed:", res.status, await res.text().catch(() => ""));
-    throw new Error("GENERATION_FAILED");
+    console.error("[DreamRushes] fal.ai image request failed:", res.status, roh.slice(0, 400));
+    throw imageFailure(data);
   }
-  const data = await res.json().catch(() => null);
   const urls = (data?.images || []).map((img) => img?.url).filter(Boolean);
-  if (!urls.length) throw new Error("GENERATION_FAILED");
+  if (!urls.length) throw imageFailure(data);
   return urls;
+}
+
+/** Ein GENERATION_FAILED, das seinen Grund mitträgt.
+ *
+ *  Warum ein Fehler-OBJEKT und kein zweiter Rückgabewert: Dieser Pfad ist
+ *  über `throw` verdrahtet, quer durch mehrere Aufrufer. Ein zusätzlicher
+ *  Rückgabewert hätte jeden davon geändert; ein Feld am Fehler reist von
+ *  selbst mit, und wer es nicht liest, verhält sich exakt wie vorher. */
+function imageFailure(data) {
+  const err = new Error("GENERATION_FAILED");
+  err.reason = failureReason(data);
+  return err;
 }
 
 /* ---- the queue path ----
@@ -1310,7 +1401,7 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds })
  * jobStatus und /api/job kennen keinen Unterschied zwischen Bild und
  * Film — nur die Antwort von fal sieht anders aus (images[] statt
  * video), und genau diese eine Stelle steht in jobStatus. */
-async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", sequenceRef = null, grid = false }) {
+async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", sequenceRef = null, grid = false, fallback = false }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
@@ -1333,10 +1424,15 @@ async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", se
    *     unbrauchbar.
    * Beides kommt jetzt aus einer Hand: `imageStage` sagt, welche Stufe wir
    * kaufen, `appGrid` sagt, wie groß der Behälter ist. */
-  const stufe = imageStage(FAL_MODEL_IMAGE);
-  const size = grid ? appGrid(FAL_MODEL_IMAGE).size : null;
-  const { model, input } = imageSubmitBody(FAL_MODEL_IMAGE, {
-    prompt, aspectRatio, imageUrls, quality: stufe, size,
+  /* ⚠ `modellId`, nicht `id`: Weiter unten IST `id` die Auftragsnummer
+     (`const id = genJobId()`). Zwei Bedeutungen für denselben Namen in der
+     Funktion, die Geld ausgibt, sind eine Frage zu viel. */
+  const modellId = modelFor(fallback);
+  const stufe = imageStage(modellId);
+  const size = grid ? appGrid(modellId).size : null;
+  /* Stufe an beide Felder — Begründung steht bei falGenerateImage. */
+  const { model, input } = imageSubmitBody(modellId, {
+    prompt, aspectRatio, imageUrls, quality: stufe, resolution: stufe, size,
   });
 
   const res = await fetch(`https://queue.fal.run/${model}`, {
@@ -1345,8 +1441,12 @@ async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", se
     body: JSON.stringify(input),
   });
   if (!res.ok) {
-    console.error("[DreamRushes] fal.ai image submit failed:", model, res.status, await res.text().catch(() => ""));
-    throw new Error("GENERATION_FAILED");
+    /* Manches lehnt fal schon beim EINREICHEN ab, nicht erst beim Rendern —
+       dann gibt es nie einen Auftrag, den der Collector nachfassen könnte,
+       und dies ist die einzige Gelegenheit, den Grund zu erfahren. */
+    const roh = await res.text().catch(() => "");
+    console.error("[DreamRushes] fal.ai image submit failed:", model, res.status, roh.slice(0, 400));
+    throw imageFailure((() => { try { return JSON.parse(roh); } catch { return null; } })());
   }
   const { request_id, status_url, response_url } = await res.json();
   if (!request_id) throw new Error("GENERATION_FAILED");
@@ -1370,7 +1470,7 @@ async function jobStatus(id) {
   const job = await readJob(id);
   if (!job) return { status: "unknown" };
   if (job.status === "done") return { status: "done", urls: job.urls };
-  if (job.status === "failed") return { status: "failed" };
+  if (job.status === "failed") return { status: "failed", reason: job.reason || null };
 
   const key = process.env.FAL_KEY;
   /* Jobs written since 09.08.2026 carry fal's own URLs. Older ones fall back
@@ -1384,8 +1484,16 @@ async function jobStatus(id) {
   const st = await s.json();
 
   if (st.status === "FAILED") {
-    await writeJob(id, { ...job, status: "failed" });
-    return { status: "failed" };
+    /* ⚠ Auch hier die Antwort HOLEN, bevor der Auftrag als gescheitert
+       weggeschrieben wird. fal legt den Grund in den Response-Rumpf, nicht
+       in den Status — wer nur den Status liest, verliert ihn endgültig.
+       Ein Aussetzer beim Nachfassen darf den Fehler nicht verschlucken:
+       dann eben ohne Grund, aber nie ohne „gescheitert". */
+    const roh = await fetch(base, { headers: { Authorization: `Key ${key}` } })
+      .then((x) => x.json()).catch(() => null);
+    const reason = failureReason(roh);
+    await writeJob(id, { ...job, status: "failed", reason });
+    return { status: "failed", reason };
   }
   if (st.status !== "COMPLETED") return { status: "pending" };
 
@@ -1398,8 +1506,15 @@ async function jobStatus(id) {
     ? [data?.video?.url || data?.videos?.[0]?.url]
     : (data?.images || []).map((img) => img?.url).filter(Boolean);
   if (!found.length) {
-    await writeJob(id, { ...job, status: "failed" });
-    return { status: "failed" };
+    /* ⚠⚠ HIER ist Antons Freddy-Krüger-Fehler gestorben (24.08.2026).
+       `data` enthält in genau diesem Fall fals Begründung —
+       `{detail:[{type:"content_policy_violation", loc:["body","prompt"], …}]}` —
+       und diese Zeilen haben sie weggeworfen. Der Kunde bekam „Versuch es
+       noch mal", was bei einem Policy-Verstoß der einzige Rat ist, der
+       garantiert nicht funktioniert. */
+    const reason = failureReason(data);
+    await writeJob(id, { ...job, status: "failed", reason });
+    return { status: "failed", reason };
   }
   const urls = await storeAll(found);
   await writeJob(id, { ...job, status: "done", urls });
@@ -2063,7 +2178,10 @@ Bun.serve({
           GENERATION_FAILED: [502, "Could not draw them. Try again."],
         };
         const hit = map[e.message];
-        if (hit) return json({ error: hit[1] }, hit[0]);
+        /* Der Grund muss auch hier mit. Beim Bogen ist es sogar haeufiger
+           der Foto-Fall (`where: "image"`) als der Text-Fall — und dort
+           lautet der richtige Rat „anderes Bild", nicht „anderer Text". */
+        if (hit) return json({ error: hit[1], reason: e.reason || null }, hit[0]);
         console.error("[DreamRushes] /api/character failed:", e);
         return json({ error: "Server error." }, 500);
       }
@@ -2208,7 +2326,20 @@ Bun.serve({
             seqRef = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
           }
         }
-        const imageJob = await falSubmitImage({ prompt: imagePrompt, namedRefs: cast, aspectRatio, sequenceRef: seqRef });
+        /* Plan B (24.08.2026): Ein JA/NEIN, kein Modellname — `modelFor()`
+           loest es auf, und der einzige erreichbare Wert ist das eine
+           Ausweichmodell. `=== true` statt truthy, damit ein versehentliches
+           "false" aus einem Formular nicht als Ja durchgeht. */
+        const imageJob = await falSubmitImage({
+          prompt: imagePrompt, namedRefs: cast, aspectRatio, sequenceRef: seqRef,
+          /* ⚠ `grid` entscheidet ueber das PIXELMASZ. Ohne es nimmt fal den
+             Preset-NAMEN, und `portrait_16_9` ist 576×1024 — ein 2×2 daraus
+             hat Kacheln von 288×512, bezahlt und unbrauchbar. Bis zum
+             24.08.2026 kam das Feld gar nicht bis hierher: `falSubmitImage`
+             kannte es, der Aufrufer gab es nie mit. */
+          grid: body.grid === true,
+          fallback: body.fallback === true,
+        });
         return json({ ok: true, jobId: imageJob });
       } catch (e) {
         const map = {
@@ -2216,7 +2347,11 @@ Bun.serve({
           GENERATION_FAILED: [502, "Image/video generation did not complete."],
         };
         const hit = map[e.message];
-        if (hit) return json({ error: hit[1] }, hit[0]);
+        /* ⚠ `reason` MUSS mit. Der Text in `map` ist Englisch und technisch —
+           er ist die Notbremse, nicht die Meldung, die jemand liest. Was die
+           App übersetzt anzeigt, baut sie aus `reason.kind`; ohne dieses Feld
+           bliebe ihr nur wieder „versuch es noch mal". */
+        if (hit) return json({ error: hit[1], reason: e.reason || null }, hit[0]);
         // Don't echo internals (paths, key fragments) to the client.
         console.error("[DreamRushes] /api/generate failed:", e);
         return json({ error: "Server error." }, 500);
@@ -2258,6 +2393,60 @@ Bun.serve({
        ⚠ Der Ladepfad im Client hängt an import.meta.env.DEV. Dieser Endpunkt
        liefert also auch im Betrieb, aber niemand fragt ihn dann. Wer die App
        veröffentlicht, nimmt beides heraus — Ordner und Ladepfad. */
+    /* ── Die Besetzung: Figuren MIT Fotos, damit niemand sich neu anlegt ──
+       Antons Ansage vom 25.08.2026: „Ich habe satt, immer wieder mich selbst
+       in der Testumgebung hinzuzufuegen und zu bemessen."
+
+       ⚠ Anders als /api/journal-backup gehen hier FOTOS ueber die Leitung —
+       ausdruecklich gewollt, fuer die Entwicklungsumgebung. Der Ladepfad im
+       Client haengt an import.meta.env.DEV; ein ausgeliefertes Buendel fragt
+       nie danach. Vor der Veroeffentlichung: beides raus. */
+    if (url.pathname === "/api/cast-backup" && req.method === "GET") {
+      try {
+        const glob = new Bun.Glob("*.json");
+        const figuren = [];
+        for await (const datei of glob.scan({ cwd: CAST_DIR, onlyFiles: true })) {
+          const inhalt = await Bun.file(resolve(CAST_DIR, datei)).json().catch(() => null);
+          if (inhalt?.tag) figuren.push(inhalt);
+        }
+        return json({ figuren });
+      } catch {
+        // Kein Ordner, keine Figuren — Normalfall bei einem frischen Klon.
+        return json({ figuren: [] });
+      }
+    }
+
+    if (url.pathname === "/api/cast-backup" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json().catch(() => null);
+        const eintraege = Array.isArray(body?.entries) ? body.entries : null;
+        if (!eintraege) return json({ error: "Nothing to store." }, 400);
+
+        let geschrieben = 0, unveraendert = 0;
+        for (const { datei, figur } of eintraege) {
+          /* Der Dateiname kommt vom Client — also hier neu pruefen, nicht
+             glauben. Ein „../" darin schriebe sonst irgendwohin, und in
+             diesem Ordner liegen Megabytes. */
+          if (typeof datei !== "string" || !/^[0-9a-zA-Z_.-]+\.json$/.test(datei) || datei.includes("..")) continue;
+          if (!figur || typeof figur !== "object" || !figur.tag) continue;
+          const ziel = resolve(CAST_DIR, datei);
+          if (!ziel.startsWith(CAST_DIR + sep)) continue;
+          const inhalt = JSON.stringify(figur, null, 2) + "\n";
+          const alt = Bun.file(ziel);
+          if (await alt.exists() && (await alt.text()) === inhalt) { unveraendert++; continue; }
+          await Bun.write(ziel, inhalt);
+          geschrieben++;
+        }
+        return json({ ok: true, geschrieben, unveraendert, ordner: "media/besetzung" });
+      } catch (e) {
+        console.error("[DreamRushes] /api/cast-backup failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
     if (url.pathname === "/api/journal-backup" && req.method === "GET") {
       try {
         const glob = new Bun.Glob("*.json");

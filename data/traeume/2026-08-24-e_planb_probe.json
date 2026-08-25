@@ -1,0 +1,26 @@
+{
+  "id": "e_planb_probe",
+  "createdAt": "2026-08-24T21:23:27.014Z",
+  "kind": "dream",
+  "title": "Der Besucher",
+  "tagline": "",
+  "text": "Ich stehe in meinem Zimmer auf und sehe Freddy Krueger neben mir stehen.",
+  "originalText": "",
+  "analysis": {
+    "beats": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ]
+  },
+  "style": "ultrareal",
+  "format": "9:16",
+  "mode": "images",
+  "imageCount": 4,
+  "references": [],
+  "medien": {
+    "bilder": [],
+    "film": []
+  }
+}

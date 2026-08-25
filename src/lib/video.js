@@ -12,10 +12,30 @@
  *   seedance 2.0 fast R2V  $0.2419 / s     5–15s
  *   seedance 2.5 R2V 720p  $0.473 / second up to 30s, native single take
  *
- * 1 credit = $0.08 = one image, so minimax/h3 works out at one credit per
- * second of film. That is a happy accident worth keeping: it is the rare
- * pricing rule a person can hold in their head. (Since the move to H3-R2V it
- * even under-charges us nothing — $0.06 buys the second AND the references.)
+ * ── ⚠ Neu gerechnet am 24.08.2026: der Credit ist DREIMAL billiger ───────
+ * Bis hierher galt „1 Credit = $0,08 = ein Bild", und daraus fiel für
+ * minimax/h3 genau 1 Credit je Sekunde heraus — eine Merkregel, die man im
+ * Kopf behalten konnte. Sie ist weg, und das war unvermeidlich: Ein Bild
+ * kostet uns seit der Umstellung auf das 2×2-Raster **$0,0283**, nicht
+ * $0,08 (`creditCostUsd()` in gridLayout.js rechnet es aus).
+ *
+ * Der Credit misst das BILD. Bilder sind billiger geworden, Film NICHT —
+ * also muss Film in Credits teurer werden, sonst misst dieselbe Einheit
+ * zwei verschiedene Dinge. Genau das war der Fehler, den Anton am 24.08.
+ * gefunden hat: Bei gleichbleibenden Filmpreisen hätte jede Erhöhung der
+ * Credit-Zahlen nicht Bilder verschenkt, sondern FILM — und das Jahresabo
+ * lag beim Kino-Film schon vorher unter dem Zielaufschlag (1,3× statt 1,5×).
+ *
+ * `usdPerSecond` steht deshalb ab jetzt IN dieser Tabelle (vorher nur als
+ * Konstante in scripts/preis-durchreichen.mjs), und `creditsPerSecond` ist
+ * daraus aufgerundet:  ceil(usdPerSecond / creditCostUsd()).
+ * ⚠ Aufgerundet, nie ab: `video.test.js` rechnet beide nach und schlägt an,
+ * wenn ein Modellwechsel die Herleitung überholt.
+ *
+ * Was das für den Kunden heißt, steht in plans.js: Die Credit-Zahlen der
+ * Pläne steigen mit, sodass die FILM-Menge ungefähr gleich bleibt und die
+ * BILD-Menge sich mehr als verdoppelt. Die Ersparnis ist beim Bild
+ * entstanden, also wird sie beim Bild ausgezahlt.
  */
 import { PRICES } from "./pricing.js";
 
@@ -93,7 +113,8 @@ export const VIDEO_MODELS = [
      * und kostet $0,13/s (§10b). */
     id: "standard",
     slug: "minimax/h3/reference-to-video",
-    creditsPerSecond: 1,          // $0.06/s ÷ $0.08 → ceil = 1
+    usdPerSecond: 0.06,           // fal: minimax/h3/reference-to-video @768P
+    creditsPerSecond: 3,          // 0.06 ÷ 0.0283 → ceil = 3   (siehe Kopf)
     min: 5, max: 15, step: 1, preset: 6,
     resolution: "768P",
     audio: false,                 // liefert von sich aus eine AAC-Spur; einen
@@ -112,7 +133,8 @@ export const VIDEO_MODELS = [
      * hält über Ortswechsel); Fast vs. Normal hat T2 entschieden. */
     id: "director",
     slug: "bytedance/seedance-2.0/fast/reference-to-video",
-    creditsPerSecond: 4,          // $0.2419/s ÷ $0.08 → ceil = 4
+    usdPerSecond: 0.2419,         // fal: bytedance/seedance-2.0/fast/r2v
+    creditsPerSecond: 9,          // 0.2419 ÷ 0.0283 → ceil = 9  (siehe Kopf)
     min: 5, max: 15, step: 1, preset: 10,
     resolution: "720p",
     audio: true,
@@ -130,7 +152,8 @@ export const VIDEO_MODELS = [
      * kosten dort nichts extra. Damit ist T5 (Verkettung) endgültig tot. */
     id: "premium",
     slug: "bytedance/seedance-2.5/reference-to-video",
-    creditsPerSecond: 6,          // $0.473/s ÷ $0.08 — rounded up, never down
+    usdPerSecond: 0.473,          // fal: bytedance/seedance-2.5/r2v
+    creditsPerSecond: 17,         // 0.473 ÷ 0.0283 → ceil = 17  (siehe Kopf)
     min: 5, max: 30, step: 5, preset: 15,
     resolution: "720p",
     audio: true,                  // nativer Ton über generate_audio

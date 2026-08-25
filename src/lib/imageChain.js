@@ -15,7 +15,10 @@
  * ihre eigenen Fotos gebunden — ein Anker ersetzt keine Besetzung).
  *
  * Bausteine:
- *   entry.chain = { next, total, beats: [Szenentexte] }
+ *   entry.chain = { next, total, beats: [Szenentexte], step }
+ *     `step` ist neu seit dem 24.08.2026: wie viele Szenen EIN Auftrag
+ *     trägt — 1 beim Einzelbild, 4 beim 2×2-Raster. `next` zählt weiterhin
+ *     SZENEN. Alte Einträge ohne `step` verhalten sich exakt wie vorher.
  *     `beats` steht IN der Kette, nicht nur in der Analyse: Wer 3 von 5
  *     Szenen bestellt, rendert eine Auswahl — die Analyse-Liste wäre die
  *     falsche.
@@ -32,8 +35,22 @@
  * gelungenen Bild als Anker. Ein Loch in der Strecke ist erstattbar
  * (Collector), eine abgebrochene Strecke wäre lauter bezahltes Treibgut.
  */
-import { buildReferences, buildImagePrompt } from "./promptBuilder.js";
+import { buildReferences, buildImagePrompt, buildGridPrompt } from "./promptBuilder.js";
 import { renderRef } from "./sheets.js";
+import { GRID_COLS, GRID_ROWS } from "./gridLayout.js";
+
+/* ── Ein Auftrag kann seit dem 24.08.2026 MEHRERE Szenen tragen ───────────
+ *
+ * `chain.step` sagt, wie viele: 1 bei Einzelbildern, 4 beim 2×2-Raster.
+ * `chain.next` zählt weiterhin SZENEN, nicht Aufträge — daran hängen die
+ * Szenentexte, und eine zweite Zählweise wäre eine zweite Wahrheit.
+ *
+ * ⚠ Fehlt `step` (alte Einträge, die noch offen im Journal liegen), gilt 1.
+ * Das ist genau ihr altes Verhalten; sie dürfen von der Umstellung nichts
+ * merken. */
+function stepOf(entry) {
+  return Math.max(1, entry?.chain?.step || 1);
+}
 
 /** Stehen noch Szenen aus? (Collector: nicht abschließen; AppState: ticken.) */
 export function chainRemaining(entry) {
@@ -48,11 +65,24 @@ export function chainRemaining(entry) {
 export function chainStep(entry) {
   if (!chainRemaining(entry)) return null;
   const jobs = entry.imageJobs || [];
-  if (jobs.length !== entry.chain.next) return null;       // Einreichung läuft gerade
+  const step = stepOf(entry);
+  if (jobs.length !== entry.chain.next / step) return null;  // Einreichung läuft gerade
   const last = jobs[jobs.length - 1];
-  if (!last || (!last.url && !last.failed)) return null;   // Vorgänger noch unterwegs
-  const ref = [...jobs].reverse().find((j) => j.url)?.url || null;
-  return { beatIndex: entry.chain.next, sequenceRef: ref };
+  if (!last || (!last.url && !last.failed)) return null;     // Vorgänger noch unterwegs
+
+  /* ⚠ Beim Raster wartet die Kette zusätzlich auf den SCHNITT. Der Anker für
+     den zweiten Block ist die LETZTE KACHEL des ersten — solange das
+     Rasterbild ungeschnitten ist, gäbe es nur das ganze Raster, und der
+     zweite Block bekäme ein Bild mit vier Szenen darin als „voriger Frame".
+     Das Ergebnis wäre ein Raster im Raster, bezahlt. */
+  if (last.url && last.grid && !last.tileUrls) return null;
+
+  /* Der Anker ist das JÜNGSTE fertige Einzelbild. Beim Raster steht es in
+     `tileUrls` des Auftrags, beim Einzelbild ist `url` schon eines. */
+  const fertig = [...jobs].reverse().find((j) => j.tileUrls?.length || j.url);
+  const ref = fertig ? (fertig.tileUrls?.slice(-1)[0] || fertig.url || null) : null;
+
+  return { beatIndex: entry.chain.next, sequenceRef: ref, step };
 }
 
 /** Fingerabdruck der fälligen Schritte — der Effekt in AppState läuft nur,
@@ -71,8 +101,13 @@ export function chainFingerprint(journal) {
 export function buildChainSubmission(entry, { cast = [], me = null } = {}) {
   const step = chainStep(entry);
   if (!step) return null;
-  const beat = entry.chain.beats?.[step.beatIndex];
-  if (!beat) return null;
+  /* ⚠ Beim Raster sind es MEHRERE Szenen auf einmal — und der letzte Block
+     kann kürzer sein als die Rasterplätze (bei acht Szenen geht es auf, bei
+     einer Auswahl von sechs nicht). `slice` kappt von selbst; die leeren
+     Plätze regelt buildGridPrompt. */
+  const beats = (entry.chain.beats || []).slice(step.beatIndex, step.beatIndex + step.step);
+  if (!beats.length || !beats[0]) return null;
+  const beat = beats[0];
 
   const pool = [...cast, ...(me ? [me] : [])];
   const byTag = new Map(pool.filter((a) => a?.tag).map((a) => [a.tag, a]));
@@ -88,18 +123,42 @@ export function buildChainSubmission(entry, { cast = [], me = null } = {}) {
     };
   });
 
+  const styleId = entry.style || entry.analysis?.style || "dreamlike";
+
+  /* ⚠ Der Rasterzweig baut einen ANDEREN Prompt, nicht denselben mit anderen
+     Zahlen. Ein Rasterbild muss sagen, dass es ein Raster IST, in welcher
+     Lesereihenfolge die Kacheln stehen und was mit leeren Plätzen passiert —
+     `buildImagePrompt` sagt nichts davon, und ein Modell, das das nicht
+     gesagt bekommt, liefert vier Varianten DERSELBEN Szene. */
+  const prompt = step.step > 1
+    ? buildGridPrompt({
+        beats, styleId, clauses, cols: GRID_COLS, rows: GRID_ROWS,
+        tile: entry.format || "9:16",
+      })
+    : buildImagePrompt({
+        beat, styleId, format: entry.format || "9:16", clauses,
+        index: step.beatIndex + 1, total: entry.chain.total,
+        prevFrame: !!step.sequenceRef,
+      });
+
   return {
     beatIndex: step.beatIndex,
     sequenceRef: step.sequenceRef,
     cast: castForApi,
-    prompt: buildImagePrompt({
-      beat,
-      styleId: entry.style || entry.analysis?.style || "dreamlike",
-      format: entry.format || "9:16",
-      clauses,
-      index: step.beatIndex + 1,
-      total: entry.chain.total,
-      prevFrame: !!step.sequenceRef,
-    }),
+    /* ⚠ ZWEI verschiedene Zahlen, und sie am 25.08.2026 zu verwechseln hat
+       im ersten bezahlten Lauf acht Credits für fünf Bilder gekostet:
+         `slots`  — wie viele Plätze das Raster HAT (immer 4). Entscheidet,
+                    ob überhaupt ein Raster bestellt wird.
+         `tiles`  — wie viele ECHTE Szenen darin stecken (1 bis 4).
+                    Entscheidet, was abgerechnet, was behalten und was
+                    erstattet wird.
+       Beim letzten Block eines Traums mit fünf Szenen ist slots=4 und
+       tiles=1: Ein angefangenes Raster ist ein voller, bezahlter AUFRUF —
+       aber der Mensch bekommt daraus EIN Bild und zahlt einen Credit. Der
+       Verschnitt geht zu unseren Lasten, und genau deshalb sind vier und
+       acht die Traumgrößen (pricing.js). */
+    slots: step.step,
+    tiles: beats.length,
+    prompt,
   };
 }

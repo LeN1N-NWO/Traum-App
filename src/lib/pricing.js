@@ -57,6 +57,26 @@ export const PRICES = {
    * bewusste Nebenwirkung, nicht ein Versehen. */
   images: { 4: 4, 8: 8 },            // one credit per image, no bulk discount:
                                      // every image costs us exactly the same
+
+  /* ── Plan B: derselbe Traum, anderes Modell (24.08.2026) ───────────────
+   * Antons Vorschlag, nachdem GPT seinen Freddy-Krüger-Traum abgelehnt
+   * hatte: „In dieser Fehlermeldung gibt es dem User die Möglichkeit, ein
+   * anderes Modell zu verwenden … Das kostet aber mehr Credits."
+   *
+   * Anderthalbfach, und die Zahl ist nachgerechnet, nicht gegriffen:
+   * Nano Banana 2 im 4K-Raster kostet uns $0,16 statt $0,113 — 1,42×.
+   *
+   * ⚠ Warum nicht zum gleichen Preis, obwohl wir den Kunden gerade
+   * enttäuscht haben: Das JAHRESABO entscheidet, wie überall in dieser
+   * Preisliste. Vier Credits netto sind dort $0,190 gegen $0,16 Einkauf —
+   * 1,19× und damit UNTER dem Zielaufschlag von 1,5×. Bei sechs Credits
+   * sind es 1,79×. Wer hier „ist ja nur der Ausnahmefall" denkt, hat den
+   * einen Plan nicht nachgerechnet, an dem die ganze Liste hängt.
+   *
+   * ⚠ Und die ehrliche Kehrseite, die in den Text an der Oberfläche
+   * gehört: Plan B liefert KLEINERE Kacheln (rund 766×1367 gegen
+   * 1080×1920). Er ist der Ausweg, nicht das bessere Angebot. */
+  imagesFallback: { 4: 6, 8: 12 },
   keyframe: 1,       // the still a film is animated from — it IS an image
   scene: 1,          // ein einzelnes Szenenbild, nachgeliefert aus dem
                      // Storyboard (leere Kachel → „Bild erzeugen") — es IST
@@ -91,6 +111,7 @@ export const PREVIEW_COUNT = 3;
  *  hätte nach der Umstellung auf 4/8 `undefined` geliefert, also einen
  *  Preis von „nichts". Alte Journaleinträge mit 3, 5 oder 10 Bildern gibt
  *  es weiterhin; sie dürfen hier keine Lücke reißen. */
-export function priceForImages(count) {
-  return PRICES.images[count] ?? Math.min(...IMAGE_COUNTS.map((n) => PRICES.images[n]));
+export function priceForImages(count, fallback = false) {
+  const tabelle = fallback ? PRICES.imagesFallback : PRICES.images;
+  return tabelle[count] ?? Math.min(...IMAGE_COUNTS.map((n) => tabelle[n]));
 }

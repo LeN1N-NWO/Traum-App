@@ -1,5 +1,6 @@
 import { test, expect } from "bun:test";
 import { VIDEO_MODELS, videoModel, clampSeconds, priceForFilm, videoSubmitBody } from "./video.js";
+import { CREDIT_COST_USD } from "./plans.js";
 
 /* Diese Datei existiert wegen eines echten Fehlers (Befund 2 des
    Film-Plans, 17.08.2026): Die Modellwahl erreichte den Server nie, und
@@ -136,5 +137,37 @@ test("every model declares a plausible promptMax", () => {
     // Tippfehler; über 20000 vermutlich auch.
     expect(m.promptMax).toBeGreaterThanOrEqual(2000);
     expect(m.promptMax).toBeLessThanOrEqual(20000);
+  }
+});
+
+/* ── Die Herleitung des Sekundenpreises (24.08.2026) ──────────────────────
+   Bis zum 24.08. stand `creditsPerSecond` als blanke Zahl in der Tabelle,
+   hergeleitet aus einem Credit-Einkaufspreis von $0,08 — und der war da
+   schon drei Modellwechsel alt. Aufgefallen ist es niemandem, weil eine
+   falsche Konstante nichts kaputtmacht: Sie liefert still den falschen
+   Preis, und der sieht aus wie ein Preis.
+
+   Diese beiden Tests sind der Ersatz für Aufmerksamkeit. Sie rechnen die
+   Tabelle gegen die EINE Quelle nach, aus der auch plans.js liest. */
+
+test("creditsPerSecond ist aus usdPerSecond hergeleitet — aufgerundet, nie ab", () => {
+  for (const m of VIDEO_MODELS) {
+    expect(typeof m.usdPerSecond).toBe("number");
+    const soll = Math.ceil(m.usdPerSecond / CREDIT_COST_USD);
+    expect(`${m.id}: ${m.creditsPerSecond}`).toBe(`${m.id}: ${soll}`);
+  }
+});
+
+/* ⚠ Der Test, der die eigentliche Gefahr abdeckt: Ein Credit muss ÜBERALL
+   ungefähr dasselbe kosten. Solange Film je Credit teurer ist als ein Bild,
+   verschenkt jede Erhöhung der Credit-Zahlen in Wahrheit FILM — genau der
+   Fehler, den Anton am 24.08. gefunden hat. Aufrunden garantiert die eine
+   Richtung; diese Zeile garantiert, dass es nicht grotesk in die andere
+   kippt (ein Modell, das je Credit ein Vielfaches billiger ist, wäre eine
+   versteckte Quersubvention in die Gegenrichtung). */
+test("kein Filmmodell ist je Credit teurer als ein Bild", () => {
+  for (const m of VIDEO_MODELS) {
+    const proCredit = m.usdPerSecond / m.creditsPerSecond;
+    expect(`${m.id}: ${(proCredit <= CREDIT_COST_USD).toString()}`).toBe(`${m.id}: true`);
   }
 });

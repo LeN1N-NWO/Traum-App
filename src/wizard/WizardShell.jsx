@@ -59,6 +59,8 @@ export default function WizardShell() {
         tagline: resume.tagline || analysis?.tagline || "",
         analysis: analysis || null,
         mode: resume.mode,
+        // Plan B kommt aus dem Journal, nie aus dem normalen Ablauf.
+        fallback: resume.fallback === true,
         styleId: analysis?.style || "dreamlike",
         step: 3,
       });

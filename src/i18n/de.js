@@ -166,6 +166,13 @@ export default {
     elaborateHint: "Mehr Details und ein klarerer Bogen — ohne etwas zu erfinden.",
     filmRendering: "Dein Film wird noch gerendert — er landet hier, sobald er fertig ist.",
     filmArrived: "✦ Dein Film ist fertig",
+    fixNames: "Den Namen von der KI ersetzen lassen — gratis",
+    fixNamesTitle: "Derselbe Traum, ohne den Namen",
+    fixNamesLede: "Die Figur wird beschrieben statt genannt. Sonst wurde nichts "
+      + "geändert — sieh es dir an und erzeuge dann die Bilder.",
+    acceptAndMake: "Damit die Bilder erzeugen",
+    tryAgainAnyway: "Unverändert noch einmal senden",
+    tryOtherModel: (n) => `Mit einem anderen Modell versuchen — ${n} Credits`,
     renderingTile: "Dein Traum wird gerade erstellt — du bekommst eine Nachricht, wenn er fertig ist.",
     dreamReady: (title) => (title ? `✦ „${title}" ist fertig` : "✦ Dein Traum ist fertig"),
     sceneReady: (n) => `✦ Szene ${n} ist da`,
@@ -927,5 +934,15 @@ export default {
     serverStatus: (s) => `Server antwortete mit ${s}.`,
     timeout: "Der Dienst hat nicht geantwortet. Prüf deine Verbindung und versuch es gleich noch mal.",
     renderFailed: "Die Generierung hat diesmal nicht geklappt. Versuch es noch mal.",
+    policyPrompt: "Unser Bildmodell hat diesen Traum abgelehnt — fast immer "
+      + "wegen einer geschützten Figur oder eines Markennamens im Text.",
+    policyImage: "Unser Bildmodell hat das Referenzfoto abgelehnt. Ein "
+      + "anderes Bild derselben Person klappt meistens.",
+    policyPlain: "Unser Bildmodell hat diesen Traum abgelehnt. Anders "
+      + "formulieren oder ein Referenzfoto tauschen hilft meistens.",
+    policyBothModels: "Beide unserer Bildmodelle haben diesen Traum abgelehnt — "
+      + "es liegt am Wortlaut, nicht am Modell. Den Namen von der KI ersetzen zu "
+      + "lassen ist der Weg hier durch.",
+    policyRefunded: (n) => `Nichts berechnet — ${n} Credit${n === 1 ? "" : "s"} sind zurück auf deinem Konto.`,
   },
 };

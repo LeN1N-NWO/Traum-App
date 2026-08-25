@@ -122,15 +122,46 @@ export function restoreEntry(gesichert) {
 }
 
 /** Welche geteilten Träume in ein bestehendes Journal gehören: die, die es
- *  noch nicht kennt. Nie überschreiben — der Stand im Gerät ist der neuere,
- *  die Sicherung ist das Archiv. */
+ *  noch nicht kennt — plus die Bilder zu denen, die es kennt, aber leer hat.
+ *
+ *  ⚠ Die zweite Hälfte kam am 25.08.2026 dazu, aus Antons Befund: „Die
+ *  fehlen komplett in dem Traum. Da ist gar nichts drin." Er hatte recht,
+ *  und es war kein Renderfehler.
+ *
+ *  Bis dahin galt nur „was ich noch nicht kenne". Wer denselben Traum in
+ *  zwei Browsern offen hat — und das ist beim Entwickeln der Normalfall,
+ *  einer rendert, der andere schaut zu — bekam die Bilder nie: Die ID war
+ *  ja bekannt, also übersprang der Abgleich den Eintrag. Der Traum stand in
+ *  der zweiten App für immer leer da, obwohl die Dateien auf der Platte
+ *  lagen.
+ *
+ *  ⚠ Und deshalb ist die Ergänzung eng gefasst: NUR Bilder, NUR wenn der
+ *  eigene Eintrag gar keine hat. Sobald lokal auch nur ein Bild steht,
+ *  bleibt der Eintrag unangetastet. Alles andere wäre Überschreiben, und
+ *  dann verlöre jemand seinen neueren Stand an ein Archiv — genau das,
+ *  wogegen die alte Regel geschrieben war. */
 export function mergeShared(journal, gesicherte) {
   const bekannt = new Set((journal || []).map((e) => e?.id));
   const neue = (gesicherte || [])
     .filter((g) => g?.id && !bekannt.has(g.id))
     .map(restoreEntry)
     .filter(Boolean);
-  if (!neue.length) return null;
-  return [...(journal || []), ...neue]
+
+  const bilderVon = new Map(
+    (gesicherte || [])
+      .filter((g) => g?.id && g.medien?.bilder?.length)
+      .map((g) => [g.id, g.medien.bilder]),
+  );
+  let ergaenzt = 0;
+  const gefuellt = (journal || []).map((e) => {
+    if ((e?.media?.urls || []).length > 0) return e;
+    const bilder = bilderVon.get(e?.id);
+    if (!bilder?.length) return e;
+    ergaenzt++;
+    return { ...e, media: { ...(e.media || {}), type: "image", urls: bilder, source: "api" } };
+  });
+
+  if (!neue.length && !ergaenzt) return null;
+  return [...gefuellt, ...neue]
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 }

@@ -8,7 +8,9 @@ import { reflectionContext } from "../../lib/atlas.js";
 import { imageIndexForBeat } from "../../lib/beats.js";
 import { filmOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
 import { spend } from "../../lib/credits.js";
-import { PRICES } from "../../lib/pricing.js";
+import { PRICES, priceForImages, IMAGE_COUNTS } from "../../lib/pricing.js";
+import { fallbackModel } from "../../lib/imageModel.js";
+import { recoveryOptions } from "../../lib/recovery.js";
 import { shareDream, downloadAll, canShareFiles } from "../../lib/share.js";
 import { buildReferences, buildImagePrompt } from "../../lib/promptBuilder.js";
 import { renderRef } from "../../lib/sheets.js";
@@ -31,6 +33,12 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
   const [draft, setDraft] = useState(entry.text);
   const [busy, setBusy] = useState(false);
   const [proposal, setProposal] = useState(null);   // reworked text awaiting a decision
+  /* ⚠ Ein umgeschriebener Text kann aus zwei Gründen dastehen: weil jemand
+     „Umschreiben" gedrückt hat (dann wird er nur übernommen), oder weil ein
+     Traum an der Inhaltsprüfung gescheitert ist (dann soll direkt danach
+     gerendert werden — sonst schickt man jemanden nach dem Umschreiben noch
+     einmal auf die Suche nach dem richtigen Knopf). */
+  const [proposalRenders, setProposalRenders] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [refinePick, setRefinePick] = useState(false);   // the "how should I rewrite it?" sheet
 
@@ -106,6 +114,31 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
       setProposal(text);
     } catch (err) {
       console.error("[DreamRushes] refine failed:", err);
+      toast(`⚠ ${err.message}`);
+    }
+    setBusy(false);
+  }
+
+  /* Den beanstandeten Namen von der KI ersetzen lassen — Antons Ansage vom
+   * 24.08.2026: „Dann soll er einfach auf den Button klicken, und die AI soll
+   * die Lösung umschreiben, dass dieser Name nicht vorkommt."
+   *
+   * GRATIS, wie jede Textarbeit in dieser App (pricing.js: eine Analyse
+   * kostet $0,00026). Für einen Fehler Geld zu nehmen, den unser Modell
+   * verursacht hat, wäre die falsche Reihenfolge.
+   *
+   * ⚠ Es wird NICHT stillschweigend umgeschrieben. Der Vorschlag geht durch
+   * denselben Vergleichsdialog wie jedes andere Umschreiben: Es ist sein
+   * Traum, und ein Text, der sich hinter seinem Rücken ändert, ist genau das
+   * Gegenteil von dem, was diese App verspricht. */
+  async function fixNames() {
+    setBusy(true);
+    try {
+      const text = await refine(entry.text, "unname");
+      setProposalRenders(true);
+      setProposal(text);
+    } catch (err) {
+      console.error("[DreamRushes] unname failed:", err);
       toast(`⚠ ${err.message}`);
     }
     setBusy(false);
@@ -233,12 +266,16 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
    * cast step: the text is written, so the only thing still open is what to
    * make of it. The entry id travels along so the result updates this dream
    * instead of writing a second copy of it. */
-  function make(mode, textOverride) {
+  function make(mode, textOverride, opts = {}) {
     navigate("/dream", {
       state: {
         resume: {
           entryId: entry.id,
           mode,
+          /* Plan B: mit dem Ausweichmodell rendern. Reist als Teil des
+             Wiedereinstiegs mit, damit der Wizard Preis UND Auftrag daraus
+             baut — eine Quelle statt zwei. */
+          fallback: opts.fallback === true,
           // A film made from this dream animates one of its own images; the
           // wizard shows them and lets the person pick which one. Only local
           // copies qualify — an old entry may still hold fal URLs, and those
@@ -373,17 +410,61 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
             Schirmen darunter. Löschen bleibt bewusst allein im ⋯-Menü. */}
         {!editing && !proposal && (() => {
           const offerImages = !entry.jobId && !pendingImages && images.length === 0;
+          /* ── Warum es nicht ging, und was man tun kann (24.08.2026) ──────
+             Bis hierher stand bei einem gescheiterten Traum nur „Bilder
+             machen" — derselbe Knopf wie beim unberührten Traum, und beim
+             Policy-Fall führt er garantiert zum selben Ergebnis.
+             `failReason` kommt vom Server durch den Collector bis hierher. */
+          /* Welche Wege es jetzt gibt, entscheidet EINE Regel (recovery.js) —
+             nicht drei Bedingungen in diesem Bildschirm. Dort steht auch,
+             warum ein zweiter Modellwechsel nach einem gescheiterten Plan B
+             kein Angebot mehr ist, sondern eine Wette auf Kosten des Kunden. */
+          const weg = images.length === 0
+            ? recoveryOptions(entry, { fallbackAvailable: !!fallbackModel() })
+            : recoveryOptions(null);
           const offerFilm = !entry.jobId && !film && !pendingImages && images.length > 0;
           return (
             <div className="j-make">
-              {offerImages && <p className="j-make-lede">{t.journal.makeLede}</p>}
+              {weg.message && <p className="j-make-warn">⚠ {t.errors[weg.message]}</p>}
+              {offerImages && !weg.message && <p className="j-make-lede">{t.journal.makeLede}</p>}
               {offerFilm && <p className="j-make-lede">{t.journal.makeFilmLede}</p>}
               <div className="j-acts">
-                {offerImages && (
-                  <button className="j-make-btn" onClick={() => make("images")}>
-                    <IconImages />
-                    <span className="j-make-title">{t.journal.makeImages}</span>
+                {offerImages && weg.rewrite && (
+                  /* Der HAUPTknopf bei einer Textablehnung — er steht vor
+                     „nochmal versuchen" und vor Plan B, weil er der einzige
+                     ist, der die Ursache anfasst. Gratis. */
+                  <button className="j-make-btn" onClick={fixNames} disabled={busy}>
+                    <IconSparkle />
+                    <span className="j-make-title">{t.journal.fixNames}</span>
                     <ChevronRight />
+                  </button>
+                )}
+                {offerImages && (
+                  /* ⚠ Nach einer TEXT-Ablehnung wird daraus ein stiller
+                     Nebenknopf. Unverändert noch einmal zu senden führt
+                     garantiert zur selben Ablehnung — er darf nicht der
+                     erste sein, auf den die Hand fällt. */
+                  <button
+                    className={weg.rewrite ? "j-act" : "j-make-btn"}
+                    onClick={() => make("images")}
+                  >
+                    <IconImages />
+                    <span className={weg.rewrite ? undefined : "j-make-title"}>
+                      {weg.message ? t.journal.tryAgainAnyway : t.journal.makeImages}
+                    </span>
+                    {!weg.message && <ChevronRight />}
+                  </button>
+                )}
+                {offerImages && weg.otherModel && (
+                  /* ⚠ Der Knopf heisst „anderes Modell", nicht „das, das
+                     das darf". Nano Banana ist bei geschuetzten Figuren
+                     ANDERS streng, nicht weniger — versprochen wird hier
+                     nichts, und eine App, die mit dem Umgehen von
+                     Inhaltsfiltern wirbt, fliegt beim Anbieter raus. */
+                  <button className="j-act j-act-planb"
+                          onClick={() => make("images", null, { fallback: true })}>
+                    <IconImages />
+                    <span>{t.journal.tryOtherModel(priceForImages(entry.imageCount || IMAGE_COUNTS[0], true))}</span>
                   </button>
                 )}
                 {offerFilm && (
@@ -433,8 +514,23 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
           <RefineProposal
             current={entry.text}
             proposal={proposal}
-            onKeep={() => setProposal(null)}
-            onAccept={() => { commitText(proposal); setProposal(null); toast(t.journal.edited); }}
+            renders={proposalRenders}
+            onKeep={() => { setProposal(null); setProposalRenders(false); }}
+            onAccept={() => {
+              const text = proposal;
+              commitText(text);
+              setProposal(null);
+              if (proposalRenders) {
+                setProposalRenders(false);
+                /* Direkt weiter in den Render — mit dem NEUEN Text, und ohne
+                   die alte Analyse: Sie beschreibt eine Fassung, in der der
+                   Name noch vorkam, und ihre Szenentexte gingen genauso
+                   wieder in die Ablehnung. */
+                make("images", text);
+              } else {
+                toast(t.journal.edited);
+              }
+            }}
           />
         ) : editing ? (
           <>
@@ -578,11 +674,15 @@ function DreamStory({ text, urls = [], type }) {
   );
 }
 
-function RefineProposal({ current, proposal, onKeep, onAccept }) {
+function RefineProposal({ current, proposal, onKeep, onAccept, renders = false }) {
   return (
     <div className="j-proposal">
-      <h3 className="j-proposal-title">{t.journal.refineTitle}</h3>
-      <p className="j-proposal-lede">{t.journal.refineLede}</p>
+      <h3 className="j-proposal-title">
+        {renders ? t.journal.fixNamesTitle : t.journal.refineTitle}
+      </h3>
+      <p className="j-proposal-lede">
+        {renders ? t.journal.fixNamesLede : t.journal.refineLede}
+      </p>
 
       <p className="j-compare-label">{t.journal.before}</p>
       <p className="j-compare-text">{current}</p>
@@ -591,7 +691,9 @@ function RefineProposal({ current, proposal, onKeep, onAccept }) {
 
       <div className="j-edit-actions">
         <Button variant="ghost" onClick={onKeep}>{t.journal.keep}</Button>
-        <Button onClick={onAccept}>{t.journal.accept}</Button>
+        {/* ⚠ „Übernehmen" wäre hier gelogen: Der Knopf gibt auch Geld aus.
+            Was er kostet, steht drauf — dieselbe Regel wie überall sonst. */}
+        <Button onClick={onAccept}>{renders ? t.journal.acceptAndMake : t.journal.accept}</Button>
       </div>
     </div>
   );

@@ -59,11 +59,18 @@
  * und das Versprechen „dein erster Traum geht auf uns" wäre eine Lüge mit
  * einem ✦ davor gewesen. credits.test.js nagelt die Beziehung fest.
  *
- * ⚠ Es KOSTET auch mehr: 4 × $0,035 = $0,14 je Installation statt $0,105.
- * Das Geschenk wird PRO INSTALLATION gezahlt, nicht pro Kunde — laut
- * plans.js ist es damit der größte einzelne Kostenposten überhaupt, und
- * ein Drittel mehr davon ist keine Kleinigkeit. Wer die Conversion misst,
- * misst gegen diese Zahl. */
+ * ⚠ Das Geschenk wird PRO INSTALLATION gezahlt, nicht pro Kunde — laut
+ * plans.js ist es damit der größte einzelne Kostenposten überhaupt. Wer die
+ * Conversion misst, misst gegen diese Zahl:
+ *   4 × $0,035 = $0,140  (Seedream, bis 24.08.2026)
+ *   4 × $0,0283 = $0,113 (GPT Image 2 im 2×2-Raster, heute)
+ *
+ * ⚠ Und deshalb ist die Zahl 4 am 24.08. NICHT mitgestiegen, obwohl die
+ * Credit-Zahlen der Pläne sich mehr als verdoppelt haben (plans.js). Die
+ * Pläne hängen an der Marge, das Geschenk hängt an einem Versprechen:
+ * „dein erster Traum geht auf uns" — EIN Traum, nicht zwei. Wer es auf 8
+ * setzt, verdoppelt den größten Kostenposten der App, um ein Versprechen
+ * zu geben, das niemand verlangt hat. */
 export const WELCOME_CREDITS = 4;
 
 /* ── Zwei Töpfe, nicht einer (16.08.2026) ─────────────────────────────────

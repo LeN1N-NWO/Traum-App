@@ -148,3 +148,68 @@ test("hasPendingJobs counts an idle chain as pending", async () => {
   expect(hasPendingJobs([e])).toBe(true);
   expect(pendingFingerprint([e])).toBe("e1");
 });
+
+/* ── Der Abbruch bei chancenlosen Fehlern (24.08.2026) ────────────────────
+   Antons Freddy-Krüger-Traum. Szene 1 wurde als content_policy_violation
+   abgelehnt; die Kette lief weiter und reichte Szene 2 bis 5 mit demselben
+   Namen nach — fünf garantierte Ablehnungen, jede mit Wartezeit, und am
+   Ende ein „versuch es noch mal", das nicht funktionieren kann. */
+
+const POLICY = { kind: "policy", where: "prompt", msg: "flagged by a content checker" };
+
+test("ein Policy-Fehler bricht die Kette ab, statt sie viermal zu wiederholen", async () => {
+  const journal = [{
+    id: "e1", title: "Freddy",
+    media: { type: "image", urls: [], source: "api" },
+    imageJobs: [{ id: "a" }],
+    chain: { next: 1, total: 5, beats: ["1", "2", "3", "4", "5"] },
+  }];
+  const res = await collectTick(journal, askWith({ a: { status: "failed", reason: POLICY } }));
+
+  // Abgeschlossen, obwohl vier Szenen der Kette offen sind.
+  expect(res.journal[0].chain).toBeUndefined();
+  expect(res.journal[0].imageJobs).toBeUndefined();
+  // Bezahlt war die ganze Strecke: 1 gescheitert + 4 nie bestellt = 5.
+  expect(res.refund).toBe(5);
+  expect(res.messages).toContainEqual(["renderFailed", POLICY]);
+});
+
+/* ⚠ Die Gegenprobe, und sie ist die wichtigere Hälfte: Ein GEWÖHNLICHER
+   Fehlschlag darf die Kette NICHT abbrechen. Genau dafür ist sie gebaut —
+   „Scheitert eine Szene, läuft die Kette WEITER" (imageChain.js). Ohne
+   diesen Test wäre die Abkürzung oben schnell zur Regel geworden. */
+test("ein gewoehnlicher Fehlschlag laesst die Kette weiterlaufen", async () => {
+  const journal = [{
+    id: "e1", title: "T",
+    media: { type: "image", urls: [], source: "api" },
+    imageJobs: [{ id: "a" }],
+    chain: { next: 1, total: 5, beats: ["1", "2", "3", "4", "5"] },
+  }];
+  const res = await collectTick(journal, askWith({
+    a: { status: "failed", reason: { kind: "unknown", where: null, msg: "timeout" } },
+  }));
+  expect(res.journal[0].chain).toEqual({ next: 1, total: 5, beats: ["1", "2", "3", "4", "5"] });
+  expect(res.journal[0].imageJobs[0].failed).toBe(true);
+  expect(res.refund).toBe(0);          // noch nichts entschieden
+});
+
+test("der Grund bleibt am Eintrag stehen — ein Toast ist nach drei Sekunden weg", async () => {
+  const journal = [{
+    id: "e1", title: "Freddy",
+    media: { type: "image", urls: [], source: "api" },
+    imageJobs: [{ id: "a" }],
+  }];
+  const res = await collectTick(journal, askWith({ a: { status: "failed", reason: POLICY } }));
+  expect(res.journal[0].failReason).toEqual(POLICY);
+});
+
+test("ohne Grund verhaelt sich alles wie vorher", async () => {
+  const journal = [{
+    id: "e1", title: "T",
+    media: { type: "image", urls: [], source: "api" },
+    imageJobs: [{ id: "a" }],
+  }];
+  const res = await collectTick(journal, askWith({ a: { status: "failed" } }));
+  expect(res.refund).toBe(1);
+  expect(res.messages).toContainEqual(["renderFailed", null]);
+});

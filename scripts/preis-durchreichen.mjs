@@ -43,13 +43,15 @@ const RASTER = appGrid(DEFAULT_IMAGE_MODEL);
 const BILD_EINKAUF = imagePrice(DEFAULT_IMAGE_MODEL, imageStage(DEFAULT_IMAGE_MODEL), RASTER.size)
   / RASTER.slots;
 
-/* Einkauf je Sekunde, nach Modell-Id — Quellen in den Kommentaren von
-   video.js, dort jeweils mit Datum belegt. */
-const EINKAUF_PRO_SEKUNDE = {
-  standard: 0.06,      // minimax/h3/reference-to-video @768P
-  director: 0.2419,    // bytedance/seedance-2.0/fast/reference-to-video
-  premium: 0.473,      // bytedance/seedance-2.5/reference-to-video
-};
+/* ⚠ Einkauf je Sekunde — seit 24.08.2026 IMPORTIERT statt abgeschrieben.
+   Diese drei Zahlen standen hier als Konstante, während der Dateikopf
+   oben erklärte, warum genau das beim BILD ein Fehler war. Sie sind jetzt
+   Teil der Modelltabelle (`usdPerSecond` in video.js) — dieselbe Zeile,
+   aus der auch `creditsPerSecond` hergeleitet ist, und video.test.js
+   rechnet die Herleitung nach. */
+const EINKAUF_PRO_SEKUNDE = Object.fromEntries(
+  VIDEO_MODELS.map((m) => [m.id, m.usdPerSecond]),
+);
 
 const num = (preis) => Number(String(preis).replace(/[^0-9.]/g, ""));
 const netto = (brutto, store) => (brutto / VAT) * (1 - store);
@@ -87,7 +89,11 @@ for (const p of PRODUKTE) {
   const ggü = (proCredit / BILD_EINKAUF - 1) * 100;
   console.log(
     `${p.name.padEnd(18)}${f(p.einkauf)}   ${String(p.credits).padStart(4)}   ${f(proCredit)}   ` +
-    (p.einkauf === BILD_EINKAUF ? "—" : `+${ggü.toFixed(0)} %`)
+    /* ⚠ Das Vorzeichen wird GERECHNET, nicht hingeschrieben. Bis zum
+       24.08.2026 stand hier ein festes „+", weil Film je Credit immer
+       teurer war als ein Bild. Seit die creditsPerSecond nachgezogen sind,
+       ist es andersherum — und die Spalte meldete „+-29 %". */
+    (p.einkauf === BILD_EINKAUF ? "—" : `${ggü >= 0 ? "+" : "−"}${Math.abs(ggü).toFixed(0)} %`)
   );
 }
 

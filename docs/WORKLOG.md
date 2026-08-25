@@ -3,6 +3,122 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-25 11:20 — Anton — Branch `session/2026-08-24-anton` (PR #27) — Sitzungsabschluss
+
+**Commits:** `a355256` (Eröffnung) · `eb5b5ba` (**Credits steigen, Film
+zieht mit**) · `a398bda` (**der Fehlergrund reist durch**) · `477d272`
+(**Plan B**) · `97582d1` + `871507d` (**Alpha-Video für iOS und Android**) ·
+`127bf7e` (**Antons Frosch**) · `460c53a` (**Rasterweg + Selbstheilung**) ·
+`b27dbdf` + `26d35dc` (**die zwei bezahlten Läufe**) · `d26a052`
+(**Besetzung bleibt**) · `5490f9a` (**Bogen ging verloren**) plus dieser
+Doku-Commit.
+Zustand: **442 Tests grün**, fünf Skriptprüfungen grün, Build sauber.
+Bezahlte Läufe: **$0,47** (vier Stück).
+
+### Der Satz, der über dem Tag steht
+
+**Vier bezahlte Läufe, vier gefundene Geldfehler.** Keiner davon hätte je
+eine Fehlermeldung erzeugt, und alle vier hätten dauerhaft gekostet:
+`imageCount: 5` · Rasterplätze statt Szenen gezählt · `img2` erreichte den
+Bogen nie · der Bogen fand keinen Ablageort.
+
+Genau deshalb schreibt der Plan „der erste Lauf mit EINEM Traum" vor. Bei
+fünf Träumen wären es $1,13 gewesen statt $0,23.
+
+### Die Credits steigen — und Film musste mit
+
+Antons Ansage: „Die Credits müssen steigen, vor allem für Bilder."
+Woche 12→**25**, Monat und Jahr 45→**100**, Pakete 6/18/32→**13/36/70**.
+Die PREISE stehen unverändert.
+
+⚠ Der Haken, an dem es fast gescheitert wäre: **Ein Credit kauft ZWEI
+Dinge.** Bilder sind billiger geworden, Film nicht. Nur die Zahlen zu
+erhöhen hätte nicht Bilder verschenkt, sondern FILM — und das Jahresabo lag
+beim Kino-Film schon vorher bei 1,3× statt 1,5×. Deshalb ziehen die
+`creditsPerSecond` mit (1/4/6 → **3/9/17**), hergeleitet statt geraten.
+Danach kostet ein Credit überall $0,020–0,028 statt $0,028–0,079.
+
+⚠ `CREDIT_COST_USD` stand auf `0.08` — dem nano-banana-Preis vom 8. August,
+DREI Modellwechsel alt. Der ganze Herleitungskommentar rechnete gegen diese
+tote Zahl. Jetzt wird sie gerechnet (`creditCostUsd()`), nicht abgeschrieben.
+
+### Ein abgelehnter Traum repariert sich selbst
+
+Antons Freddy-Krüger-Traum kam nie zurück, und die App sagte nur „versuch
+es noch mal" — bei einem Policy-Verstoß der einzige Rat, der GARANTIERT
+nicht funktioniert. Der Grund stand in `data` und wurde in `server.js`
+weggeworfen; selbst der Server wusste danach nicht mehr, warum.
+
+Er reist jetzt durch bis zum übersetzten Text. Und die Kette bricht ab,
+statt vier weitere garantierte Ablehnungen zu bestellen.
+
+Antons Nachschärfung — „das erwarte ich von einer smarten App" — hat den
+Rat durch eine TAT ersetzt: Refine-Modus `unname`, gratis. Am echten Satz
+geprüft: „Freddy Krüger" → „einen Mann mit verbranntem Gesicht, braunem Hut
+und Klingenhandschuh", und Schwester Lena bleibt Lena.
+
+`recovery.js` kennt die drei Zustände (erstes Nein → beide Wege; Plan B
+verbraucht → nur noch Umschreiben; Foto abgelehnt → Umschreiben hilft
+nicht). Als eigene Datei mit Tests, weil der dritte Zustand erst nach einem
+BEZAHLTEN Fehlversuch entsteht.
+
+### ⚠ Der Policy-Weg ist NICHT bewiesen
+
+Beide bezahlten Läufe mit „Freddy Krüger" und beide mit „Brad Pitt /
+George Clooney" gingen **durch**. Der Umschreiber war nie im Einsatz.
+Inhaltsfilter sind nicht deterministisch — am 23.08. hat Seedream bei
+wörtlich identischen Aufträgen viermal durchgelassen und achtmal abgelehnt.
+Der Weg ist gebaut und einzeln geprüft, aber im Echtbetrieb ungetestet.
+
+### Der Rasterweg — der letzte der vier Schalter
+
+Vier Szenen aus EINEM Bild. Zweimal bezahlt geprüft, beim zweiten Mal
+sauber: ein Auftrag, `tiles: 4`, keine Kette, 4 Credits, 2160×3840,
+Kacheln ~1075×1918.
+
+⚠ `grid` kam ZWEIMAL nicht bis zum Server durch (api.js filtert Felder
+einzeln; server.js reichte es nicht weiter). Ohne Fehlermeldung wären
+Kacheln von 288×512 herausgekommen.
+
+### Video mit Transparenz auf iOS UND Android
+
+⚠ Es gibt kein gemeinsames Alpha-Format: HEVC+Alpha kann nur iOS,
+VP9+Alpha nur Android. Lösung ist die **Alpha-Packung** — ein gewöhnliches
+H.264, doppelt so hoch, Farbe oben, Maske unten; ein Shader setzt es
+zusammen. Gemessen an Antons Datei: **40 MB → 231 KB**.
+
+Der Frosch selbst braucht das nicht: weiße Kreide auf gemessenem
+Reinschwarz → `mix-blend-mode: screen`, null Bytes extra.
+
+### Zwei Sachen, die keine Renderfehler waren
+
+**„Da ist gar nichts drin."** Die Bilder lagen auf der Platte; Antons
+Browser kannte den Traum schon, und `mergeShared` ergänzte nur
+Unbekanntes. Beim Entwickeln ist das der Normalfall — einer rendert, der
+andere schaut zu. Der Abgleich füllt jetzt auch Bilder zu bekannten
+Träumen nach, aber nur, wenn lokal gar keine stehen.
+
+**„Ich habe satt, immer wieder mich selbst hinzuzufügen."** Träume
+überleben einen geleerten Speicher seit dem 22.08. — die Menschen darin
+nicht. Jetzt `media/besetzung/<tag>.json`, MIT Fotos und Bogen.
+⚠ Unter `/media` (gitignored), nicht unter `data/`: Eine Datei kann man
+löschen, einen Commit praktisch nicht — und die Gesichter gehören teils
+anderen Menschen. Wer das ändern will, ändert `CAST_DIR`.
+
+### Was der Nächste wissen muss
+
+- **Der erste bezahlte Lauf gehört mit EINEM Traum gemacht.** Vier von vier
+  Fehlern heute wurden so gefunden.
+- **Ein Fehler, der Geld kostet, meldet sich nie von selbst.** Alle vier
+  waren stumm: falsche Zahl, falscher Zähler, fehlendes Feld, fehlender
+  Ablageort. Wer nur auf rote Tests schaut, findet keinen davon.
+- **Ein Rückfall in einer Preisfunktion kann einen LEBENDEN Fehler
+  zudecken.** `priceForImages(5)` fiel auf die kleinste angebotene Zahl
+  zurück — als Netz für alte Journaleinträge gedacht, hier hat es die
+  falsche Vorgabe versteckt.
+- **Vorgaben ableiten, nie hinschreiben.** `imageCount` liest jetzt aus
+  `IMAGE_COUNTS`, `CREDIT_COST_USD` wird gerechnet.
+
 ## 2026-08-24 16:30 — Anton — Branch `claude/new-session-x9qv1w` (Cloud, PR #26) — Sitzungsabschluss
 
 **Commits:** `b8603cf` (**GPT Image 2 medium wird die Vorgabe, Seedream

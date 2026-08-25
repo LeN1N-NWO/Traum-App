@@ -27,6 +27,7 @@
  */
 
 import { chainRemaining } from "./imageChain.js";
+import { isHopeless } from "./falError.js";
 
 /* Eine Kette mit offenen Szenen zählt als „steht aus", auch wenn gerade
    kein Auftrag läuft — zwischen „Bild n ist da" und „Szene n+1 ist
@@ -55,8 +56,13 @@ export function pendingFingerprint(journal) {
  * @returns {null | { journal, refund, messages }}
  *   null wenn nichts passiert ist; sonst der neue Journal-Stand, die
  *   Credits-Erstattung und Meldungen fürs Toasten:
- *   ["dreamReady", title] · ["filmArrived"] · ["renderFailed"] ·
+ *   ["dreamReady", title] · ["filmArrived"] · ["renderFailed", reason?] ·
  *   ["refunded", n]
+ *
+ *   ⚠ `reason` ist das Neue vom 24.08.2026 und der eigentliche Punkt:
+ *   `{ kind: "policy" | "unknown", where, msg }` aus falError.js. Ohne
+ *   dieses Feld konnte die App nur „versuch es noch mal" sagen — bei einem
+ *   Policy-Verstoß der einzige Rat, der garantiert nicht funktioniert.
  */
 export async function collectTick(journal, ask) {
   let changed = false;
@@ -75,9 +81,9 @@ export async function collectTick(journal, ask) {
       } else if (r && (r.status === "failed" || r.status === "unknown")) {
         // Die Nummer fallen lassen statt ewig nach einem toten Auftrag zu
         // fragen — und es SAGEN: vorher verschwand der Zustand wortlos.
-        next.push({ ...e, jobId: undefined });
+        next.push({ ...e, jobId: undefined, failReason: r.reason || null });
         changed = true;
-        messages.push(["renderFailed"]);
+        messages.push(["renderFailed", r.reason || null]);
       } else {
         next.push(e);
       }
@@ -97,22 +103,69 @@ export async function collectTick(journal, ask) {
           jobs[i] = { ...j, url: r.urls[0] };
           dirty = true;
         } else if (r.status === "failed" || r.status === "unknown") {
-          jobs[i] = { ...j, failed: true };
+          jobs[i] = { ...j, failed: true, reason: r.reason || null };
           dirty = true;
         }
       }
 
-      const settled = jobs.every((j) => j.url || j.failed);
+      /* ⚠ Ein Rasterauftrag ist erst entschieden, wenn er auch GESCHNITTEN
+         ist. Ohne diese Bedingung schriebe der Collector das ganze Raster als
+         Traumbild fort — ein Bild mit vier Szenen darin, und der Traum wäre
+         „fertig". Der Schnitt selbst steht in AppState (Canvas); der
+         Collector bleibt DOM-frei und wartet nur. */
+      const geschnitten = (j) => !j.grid || !!j.tileUrls;
+      const settled = jobs.every((j) => j.failed || (j.url && geschnitten(j)));
+
+      /* ── ⚠ Der Abbruch bei chancenlosen Fehlern (24.08.2026) ───────────
+         Antons Freddy-Krüger-Traum: Szene 1 wurde als
+         `content_policy_violation` abgelehnt, weil der Traumtext eine
+         geschützte Figur nennt. Die Kette lief trotzdem weiter — und
+         Szene 2 bis 5 enthalten DENSELBEN Namen. Fünf garantierte
+         Ablehnungen hintereinander, jede mit ihrer eigenen Wartezeit.
+
+         Ein Policy-Verstoß hängt am TEXT, nicht am Zufall. Es gibt keine
+         Szene dieses Traums, die durchkäme. Also: abbrechen und den Rest
+         erstatten, statt die Enttäuschung in Raten auszuliefern.
+
+         ⚠ Der Unterschied zu einem gewöhnlichen Fehlschlag ist wichtig
+         genug für eine eigene Funktion (`isHopeless`): Ein Aussetzer bei
+         fal SOLL die Kette weiterlaufen lassen — dafür ist sie gebaut
+         („Scheitert eine Szene, läuft die Kette WEITER", imageChain.js).
+         Nur der Policy-Fall ist anders, weil er sich beim Wiederholen
+         reproduziert. */
+      const chancenlos = jobs.find((j) => j.failed && isHopeless(j.reason)) || null;
+      /* Bezahlt ist die GANZE Strecke, im Voraus (Step5Style: `spend(state,
+         priceForImages(count))`). Was nie eingereicht wurde, ist deshalb
+         genauso erstattungspflichtig wie ein gescheiterter Auftrag —
+         sonst behielten wir Geld für Bilder, die wir bewusst nicht mehr
+         bestellen. */
+      const nieBestellt = chancenlos && chainRemaining(e)
+        ? Math.max(0, (e.chain?.total || jobs.length) - jobs.length)
+        : 0;
+
       /* ⚠ Eine Kette mit offenen Szenen ist NICHT fertig, auch wenn alle
          bisherigen Aufträge entschieden sind — der Läufer in AppState
          reicht die nächste Szene gleich nach. Ohne diesen Guard erklärte
          der Collector die Strecke nach Szene 1 für abgeschlossen, schrieb
          media.urls und meldete „dein Traum ist da" — mit einem Bild von
          fünf. */
-      if (settled && !chainRemaining(e)) {
-        const urls = jobs.map((j) => j.url).filter(Boolean);
-        const failed = jobs.length - urls.length;
-        refund += failed;
+      if (settled && (!chainRemaining(e) || chancenlos)) {
+        /* ⚠ Die Kacheln, nicht das Rasterbild. `tileUrls` setzt der
+           Schnitt-Effekt in AppState; bis dahin gilt der Auftrag als nicht
+           entschieden (siehe `settled` oben). Bei Einzelbildern gibt es kein
+           `tileUrls`, und `url` ist schon das fertige Bild. */
+        const urls = jobs.flatMap((j) => j.tileUrls || (j.url ? [j.url] : []));
+
+        /* ⚠ Erstattet wird in SZENEN, nicht in Aufträgen (seit dem Rasterweg,
+           24.08.2026). Ein Rasterauftrag trägt vier Szenen und ist mit vier
+           Credits bezahlt; ihn als EINEN zu erstatten hieße, drei Viertel
+           des Geldes für ein Bild zu behalten, das es nie gab. Vor dem
+           Raster war `tiles` überall 1 und die Rechnung dieselbe. */
+        const szenen = (j) => Math.max(1, j.tiles || 1);
+        const failed = jobs.filter((j) => !j.url).reduce((n, j) => n + szenen(j), 0);
+        refund += failed + nieBestellt;
+
+
         next.push({
           ...e,
           media: {
@@ -124,11 +177,19 @@ export async function collectTick(journal, ask) {
           },
           imageJobs: undefined,
           chain: undefined,
+          failReason: chancenlos?.reason || jobs.find((j) => j.reason)?.reason || null,
         });
         changed = true;
+        /* Der Grund reist mit der Meldung UND bleibt am Eintrag stehen:
+           Ein Toast ist nach drei Sekunden weg, die Frage „warum ist mein
+           Traum leer" bleibt. Erst dadurch kann das Journal später einen
+           Ausweg anbieten, statt nur eine leere Fläche zu zeigen. */
+        const grund = chancenlos?.reason || jobs.find((j) => j.reason)?.reason || null;
         if (urls.length) messages.push(["dreamReady", e.title]);
-        else messages.push(["renderFailed"]);
-        if (failed > 0 && urls.length > 0) messages.push(["refunded", failed]);
+        else messages.push(["renderFailed", grund]);
+        if (failed + nieBestellt > 0 && urls.length > 0) {
+          messages.push(["refunded", failed + nieBestellt]);
+        }
       } else if (dirty) {
         next.push({ ...e, imageJobs: jobs });
         changed = true;

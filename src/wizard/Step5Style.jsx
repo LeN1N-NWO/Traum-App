@@ -6,6 +6,7 @@ import { buildReferences, buildImagePrompt, buildGridPrompt } from "../lib/promp
 import { generate, renderImages, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
 import { needsSheet, renderRef, sheetFingerprint, compactDataUrl } from "../lib/sheets.js";
 import { splitIntoPanels } from "../lib/splitGrid.js";
+import { GRID_COLS, GRID_ROWS, GRID_SLOTS } from "../lib/gridLayout.js";
 import { genId } from "../lib/storage.js";
 import { bumpStreak, refreshStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
@@ -57,7 +58,10 @@ export default function Step5Style({ w, patch }) {
   const price = isFilm
     ? priceForFilm(w.videoModel, w.seconds, { ownKeyframe })
     : isPreview ? PRICES.preview
-    : priceForImages(w.imageCount);
+    /* ⚠ Plan B kostet mehr, weil er uns mehr kostet: Nano Banana im
+       4K-Raster $0,16 gegen $0,113. Die Zahl steht in pricing.js, nicht
+       hier — und sie ist am Jahresabo nachgerechnet, dem engsten Plan. */
+    : priceForImages(w.imageCount, w.fallback);
   const assignments = Object.values(w.assignments);
   const named = assignments.filter((a) => a.avatar?.img).length;
 
@@ -157,6 +161,13 @@ export default function Step5Style({ w, patch }) {
       analysis: w.analysis || null,
       references: entryRefs,
       pending: { kind: isFilm ? "film" : "images", n: isFilm ? 1 : jobs.length },
+      /* ⚠ Am TRAUM, nicht nur im Wizard: Bei acht Szenen reicht der
+         Ketten-Läufer in AppState den zweiten Block nach, und der liest
+         allein den Journaleintrag. Stünde die Marke nur hier, ginge Block 2
+         zum Hauptmodell — also genau zu dem, das eben abgelehnt hat. */
+      fallback: w.fallback === true ? true : undefined,
+      // Ein neuer Versuch beginnt ohne den alten Grund.
+      failReason: undefined,
     };
 
     if (isNewEntry) {
@@ -213,6 +224,19 @@ export default function Step5Style({ w, patch }) {
           category: a.kind === "pet" ? "pet" : a.kind === "place" ? "place" : "person",
           desc: a.avatar.desc || "",
           img: a.avatar.img,
+          /* ⚠⚠ `img2` FEHLTE hier bis zum 25.08.2026 — und das kostete gleich
+             zweimal, beides lautlos:
+               1. `characterSheet({ photo2: member.img2 })` bekam undefined.
+                  Das ZWEITE Foto (Ganzkörper) erreichte den Bogen also nie.
+                  Die Zwei-Fotos-Funktion vom 23.08. war im Wizard tot, seit
+                  es sie gibt — der Bogen wurde immer aus einem Bild gemacht
+                  und die Statur dazuerfunden.
+               2. `sheetFingerprint(member)` rechnete damit über eine ANDERE
+                  Gestalt als `hasFreshSheet(avatar)` später prüft (das kennt
+                  img2). Gemessen: 17epxza gegen 1xthkk2. Der Bogen galt also
+                  bei JEDEM Render als veraltet und wurde neu gemacht —
+                  $0,017, jedes Mal, für nichts. */
+          img2: a.avatar.img2,
           sheet: a.avatar.sheet,
           sheetOf: a.avatar.sheetOf,
         },
@@ -246,15 +270,31 @@ export default function Step5Style({ w, patch }) {
            er die localStorage-Quota weniger als das Foto selbst. */
         member.sheet = await compactDataUrl(mediaUrl(url));
         member.sheetOf = sheetFingerprint(member);
-        // Am richtigen Ort festschreiben: Besetzungs-Einträge haben eine id,
-        // das eigene Porträt lebt in state.me.
-        if (avatar.id) {
-          workingCast = workingCast.map((p) =>
-            p.id === avatar.id ? { ...p, sheet: member.sheet, sheetOf: member.sheetOf } : p);
-          update({ cast: workingCast });
-        } else if (workingMe?.tag === member.tag) {
-          workingMe = { ...workingMe, sheet: member.sheet, sheetOf: member.sheetOf };
-          update({ me: workingMe });
+        /* ⚠ Über den TAG festschreiben, nicht über die id (25.08.2026).
+           Vorher entschied `avatar.id` darüber, WOHIN der Bogen geht: mit id
+           ins Ensemble, ohne id ins eigene Porträt. Eine Figur, deren id
+           nicht zu `state.cast` passt — oder ein eigenes Porträt, das eine
+           id trägt — schrieb den Bogen dann nirgendwohin. Kein Fehler, keine
+           Meldung: Beim nächsten Render wird er einfach neu gemacht, wieder
+           für Geld.
+
+           Der Tag ist die Identität einer Figur (autoMatch, buildReferences,
+           renderRef arbeiten alle darüber). Also entscheidet er auch hier —
+           und BEIDE Orte werden angefasst, weil eine Figur nur an einem von
+           beiden liegen kann und wir nicht raten müssen, an welchem. */
+        const bogen = { sheet: member.sheet, sheetOf: member.sheetOf };
+        const imEnsemble = workingCast.some((p) => p?.tag === member.tag);
+        if (imEnsemble) {
+          workingCast = workingCast.map((p) => (p?.tag === member.tag ? { ...p, ...bogen } : p));
+        }
+        if (workingMe?.tag === member.tag) workingMe = { ...workingMe, ...bogen };
+        if (imEnsemble || workingMe?.tag === member.tag) {
+          update({ cast: workingCast, me: workingMe });
+        } else {
+          /* Weder im Ensemble noch das eigene Porträt: Der Bogen wäre
+             verloren. Das ist kein stiller Fall — er hat gerade Geld
+             gekostet. */
+          console.warn(`[DreamRushes] Bogen für @${member.tag} hat keinen Ort — nicht gespeichert.`);
         }
       } catch (err) {
         console.error("[DreamRushes] character sheet skipped:", err);
@@ -382,47 +422,99 @@ export default function Step5Style({ w, patch }) {
          Alt-Server, der sofort mit urls antwortet: dann läuft die Kette
          gleich hier in der Schleife weiter, mit der frischen URL als
          Anker — dieselbe Logik, nur ohne Warten. */
+      /* ── Der Rasterweg (Antons Entscheidung 24.08.2026) ─────────────────
+       *
+       * Vier Szenen entstehen in EINEM Bild, nicht in vier. Der Grund ist
+       * gemessen, nicht ästhetisch: $0,113 für ein 2×2 gegen $0,272 für vier
+       * Einzelbilder derselben Stufe — und die vier Kacheln teilen sich von
+       * selbst Licht, Palette und Welt, wofür die Kette sonst vier Runden
+       * und vier Wartezeiten braucht.
+       *
+       * ⚠ 2×2 ist die Rastereinheit, nicht 3×3: Ein Behälter im Verhältnis
+       * (2×9):(2×16) zerfällt in exakte 9:16-Kacheln — dasselbe Format wie
+       * die App. Deshalb ist es der einzige Zuschnitt, der ohne Sonderformat
+       * auskommt (gridLayout.js).
+       *
+       * ⚠ Der Preis bleibt 1 Credit JE SZENE, nicht je Auftrag. Vier Credits
+       * für ein Rasterbild ist richtig: Der Mensch bekommt vier Bilder. Was
+       * sich geändert hat, ist unser Einkauf — nicht sein Preis.
+       *
+       * Bei acht Szenen gehen zwei Raster raus, das zweite verankert auf der
+       * LETZTEN KACHEL des ersten. Deshalb wartet die Kette dort nicht nur
+       * auf das Bild, sondern auf den Schnitt (imageChain.js).
+       */
+      const SCHRITT = GRID_SLOTS;
+
       const submitted = [];
       const readyUrls = [];
       let submitError = null;
-      let lastSyncUrl = null;
-      for (let i = 0; i < jobs.length; i++) {
-        const beat = jobs[i];
-        const prompt = buildImagePrompt({
-          beat, styleId: w.styleId, format: w.format,
-          clauses, index: i + 1, total: jobs.length, prevFrame: !!lastSyncUrl,
-        });
+      /* ⚠ Kein `lastSyncUrl` mehr. Es hielt das zuletzt SOFORT gelieferte Bild
+         als Anker für die nächste Runde fest — seit der Alt-Server-Zweig wie
+         die Warteschlange abbricht, gibt es keine nächste Runde mehr, die es
+         lesen könnte. Beim Raster wäre es ohnehin das falsche Bild gewesen:
+         das ungeschnittene Raster statt seiner letzten Kachel. Den Anker
+         setzt jetzt ausschließlich die Kette (imageChain.js). */
+      for (let i = 0; i < jobs.length; i += SCHRITT) {
+        const block = jobs.slice(i, i + SCHRITT);
+        const prompt = SCHRITT > 1
+          ? buildGridPrompt({
+              beats: block, styleId: w.styleId, clauses,
+              cols: GRID_COLS, rows: GRID_ROWS, tile: w.format,
+            })
+          : buildImagePrompt({
+              beat: block[0], styleId: w.styleId, format: w.format,
+              clauses, index: i + 1, total: jobs.length, prevFrame: false,
+            });
         try {
           const res = await generate({
             dream: w.text, mode: "image", cast: castForApi, prompt,
-            sequenceRef: lastSyncUrl || undefined,
+            grid: SCHRITT > 1,
+            fallback: w.fallback === true,
           });
           if (res.jobId) {
-            submitted.push({ id: res.jobId });
+            submitted.push({ id: res.jobId, tiles: block.length, grid: SCHRITT > 1 });
             update((prev) => ({
-              ...(spend(prev, 1) || {}),
+              // Je SZENE bezahlt, nicht je Auftrag — siehe oben.
+              ...(spend(prev, block.length) || {}),
               journal: (prev.journal || []).map((e) => (e.id === entryId ? {
                 ...e,
-                imageJobs: [...(e.imageJobs || []), { id: res.jobId }],
-                ...(jobs.length > 1 ? { chain: { next: i + 1, total: jobs.length, beats: jobs } } : {}),
+                imageJobs: [...(e.imageJobs || []), { id: res.jobId, tiles: block.length, grid: SCHRITT > 1 }],
+                /* Eine Kette gibt es nur, wenn nach diesem Block noch etwas
+                   kommt. Bei vier Szenen im 2×2 ist das nie der Fall — sie
+                   entstehen in einem Zug, genau wie Anton es entworfen hat. */
+                ...(jobs.length > i + block.length
+                  ? { chain: { next: i + block.length, total: jobs.length, beats: jobs, step: SCHRITT } }
+                  : {}),
               } : e)),
             }));
             // Warteschlangen-Welt: ab hier übernimmt der Ketten-Läufer.
             setDone((n) => n + 1);
             break;
           } else if (res.urls?.length) {
-            lastSyncUrl = res.urls[0];
+            /* Alt-Server, der sofort mit Bildern antwortet.
+             *
+             * ⚠ Seit dem Rasterweg darf das Ergebnis NICHT mehr direkt nach
+             * media.urls: Es ist ein Bild mit vier Szenen darin, und
+             * ungeschnitten wäre es ein Rasterbild als Traumbild. Also
+             * genauso einreihen wie einen Warteschlangen-Auftrag — als
+             * bereits entschieden — und den Schnitt-Effekt in AppState
+             * dieselbe Arbeit tun lassen. Eine Mechanik statt zwei. */
             readyUrls.push(...res.urls);
             update((prev) => ({
-              ...(spend(prev, res.urls.length) || {}),
+              ...(spend(prev, block.length) || {}),
               journal: (prev.journal || []).map((e) => (e.id === entryId ? {
                 ...e,
-                media: {
-                  type: "image", source: "api", poster: false,
-                  urls: [...(e.media?.urls || []), ...res.urls],
-                },
+                imageJobs: [
+                  ...(e.imageJobs || []),
+                  { id: `sync${i}`, url: res.urls[0], tiles: block.length, grid: SCHRITT > 1 },
+                ],
+                ...(jobs.length > i + block.length
+                  ? { chain: { next: i + block.length, total: jobs.length, beats: jobs, step: SCHRITT } }
+                  : {}),
               } : e)),
             }));
+            setDone((n) => n + 1);
+            break;
           }
         } catch (err) {
           submitError = err;

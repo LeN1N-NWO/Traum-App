@@ -2,12 +2,17 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef } f
 import { loadState, saveState, DB_KEY } from "../lib/storage.js";
 import { buildSeedJournal } from "../lib/seedJournal.js";
 import { collectTick, pendingFingerprint } from "../lib/collector.js";
+import { failureTextKey } from "../lib/falError.js";
 import { giftFor } from "../lib/streakBoard.js";
 import { snoozeCheck } from "../lib/streak.js";
-import { jobStatus, backupJournal, sharedDreams, generate } from "../lib/api.js";
+import { jobStatus, backupJournal, sharedDreams, backupCast, sharedCast,
+         generate, uploadPanel, mediaUrl } from "../lib/api.js";
+import { splitIntoTiles } from "../lib/splitGrid.js";
+import { GRID_COLS, GRID_ROWS } from "../lib/gridLayout.js";
 import { spend } from "../lib/credits.js";
 import { chainStep, chainFingerprint, buildChainSubmission } from "../lib/imageChain.js";
 import { backupPayload, backupFingerprint, mergeShared } from "../lib/journalBackup.js";
+import { castPayload, castFingerprint, mergeCast } from "../lib/castBackup.js";
 import { t } from "../i18n/index.js";
 
 /* The whole app state in one place. Every change goes through update() and is
@@ -119,7 +124,13 @@ export function AppStateProvider({ children }) {
           else if (kind === "filmArrived") toast(t.journal.filmArrived);
           else if (kind === "sceneReady") toast(t.journal.sceneReady(extra));
           else if (kind === "refunded") toast(t.journal.imagesRefunded(extra));
-          else if (kind === "renderFailed") toast(`⚠ ${t.errors.renderFailed}`);
+          /* ⚠ `extra` ist hier der GRUND (falError.js), nicht die Anzahl.
+             Vor dem 24.08.2026 stand hier ein fester Satz, der auf „versuch
+             es noch mal" endete — bei einem Policy-Verstoß der einzige Rat,
+             der garantiert nicht funktioniert. Der Grund kommt vom Server
+             durch bis hierher; die Zuordnung zum Text macht falError.js,
+             damit Toast und Journal denselben Satz zeigen. */
+          else if (kind === "renderFailed") toast(`⚠ ${t.errors[failureTextKey(extra)]}`);
         }
       } finally {
         busy = false;
@@ -148,6 +159,104 @@ export function AppStateProvider({ children }) {
      fertigen Szenen bleiben, der Rest ist über „Bild erzeugen" im
      Storyboard einzeln nachholbar. Endlos stumm neu versuchen hieße, im
      Funkloch unbemerkt Kosten anzuhäufen, sobald es wiederkommt. */
+  /* ── Der Schnitt: ein Rasterbild wird zu vier Traumbildern ──────────────
+   *
+   * Warum HIER und nicht im Collector: Der Collector ist bewusst DOM-frei
+   * und ohne Browser testbar. Schneiden ist Canvas-Arbeit — sie gehört in
+   * die Schicht, die ohnehin einen Browser voraussetzt.
+   *
+   * ⚠ ABBRUCHSICHER, und das ist der ganze Punkt. Zwischen „Rasterbild da"
+   * und „vier Kacheln hochgeladen" liegen Sekunden. Wer die App genau dann
+   * schließt, darf beim nächsten Start kein Rasterbild als Traumbild sehen:
+   * Der Auftrag trägt `tiles` und noch kein `tileUrls`, gilt dem Collector
+   * damit als unentschieden, und dieser Effekt macht weiter. Dieselbe Lehre
+   * wie bei clearStalePending().
+   *
+   * ⚠ Und deshalb wird der Fingerabdruck aus den AUFTRÄGEN gebildet, nicht
+   * aus einem Zähler: Solange etwas ungeschnitten ist, steht es drin — auch
+   * nach einem Neustart, an dem kein Effekt „noch lief".
+   */
+  const schnittPrint = (state.journal || [])
+    .flatMap((e) => (e.imageJobs || [])
+      /* ⚠ Am Merkmal `grid`, NICHT an `tiles > 1`. Der letzte Block eines
+         Fünf-Szenen-Traums ist ein Raster mit nur EINER echten Szene darin —
+         an der Kachelzahl erkannt, bliebe er ungeschnitten, und das ganze
+         Raster stünde als Traumbild da. */
+      .filter((j) => j.url && j.grid && !j.tileUrls)
+      /* ⚠ Der Zähler gehört IN den Fingerabdruck. Ohne ihn ändert sich nach
+         einem Fehlversuch nichts an dieser Zeichenkette, der Effekt läuft
+         nie wieder an, und der Traum bliebe für immer halb fertig. */
+      .map((j) => `${e.id}:${j.id}:${j.cutTries || 0}`))
+    .join(",");
+
+  useEffect(() => {
+    if (!schnittPrint) return;
+    let alive = true;
+    (async () => {
+      const [entryId, jobId] = schnittPrint.split(",")[0].split(":");
+      /* ⚠ Kurz warten, bevor der erste Schnitt versucht wird. Der Server hat
+         das Bild gerade erst geschrieben; es sofort zu laden trifft im
+         bezahlten Lauf vom 25.08. eine Datei, die noch nicht da ist. */
+      await new Promise((r) => setTimeout(r, 700));
+      if (!alive) return;
+      const entry = (stateRef.current.journal || []).find((e) => e.id === entryId);
+      const job = (entry?.imageJobs || []).find((j) => j.id === jobId);
+      if (!job?.url) return;
+
+      let tileUrls;
+      try {
+        const blobs = await splitIntoTiles(mediaUrl(job.url), GRID_COLS, GRID_ROWS);
+        if (!alive) return;
+        /* ⚠ Nur so viele Kacheln behalten, wie echte Szenen bestellt waren.
+           Ein Raster hat immer vier Plätze; beim letzten Block können drei
+           davon Füllmaterial sein. Sie mit hochzuladen hieße, dem Menschen
+           acht Bilder für einen Fünf-Szenen-Traum zu zeigen — drei davon
+           erfunden. In LESEREIHENFOLGE, wie buildGridPrompt sie füllt. */
+        tileUrls = [];
+        for (const blob of blobs.slice(0, Math.max(1, job.tiles || blobs.length))) {
+          tileUrls.push(await uploadPanel(blob));
+        }
+      } catch (err) {
+        /* ⚠⚠ NICHT beim ersten Fehlschlag aufgeben. Am 25.08.2026 im
+           bezahlten Lauf gemessen: Der häufigste Fehler ist gar keiner —
+           das Bild war beim ersten Versuch noch nicht fertig auf der Platte,
+           und Sekunden später ließ es sich einwandfrei in vier Kacheln
+           schneiden. Die erste Fassung machte daraus einen DAUERHAFTEN
+           Schaden: Sie schrieb das ganze Raster als einziges Traumbild fort,
+           und der Traum war „fertig" — mit einem 2160×3840-Bild, in dem
+           vier Szenen stecken.
+
+           Also zählen statt raten. Drei Anläufe, dann erst der Notausgang.
+           Der Zähler steht AM AUFTRAG, nicht in einer Variable: So überlebt
+           er einen Neustart, und niemand versucht nach jedem Öffnen der App
+           wieder von vorn. */
+        const versuche = (job.cutTries || 0) + 1;
+        console.error(`[DreamRushes] Rasterschnitt fehlgeschlagen (${versuche}/3):`, err);
+        if (versuche < 3) {
+          update((prev) => ({
+            journal: (prev.journal || []).map((e) => (e.id === entryId ? {
+              ...e,
+              imageJobs: (e.imageJobs || []).map((j) => (j.id === jobId ? { ...j, cutTries: versuche } : j)),
+            } : e)),
+          }));
+          return;
+        }
+        /* Aufgegeben. Das Rasterbild selbst als EIN Bild stehen lassen:
+           sichtbar falsch, aber sichtbar und abgeschlossen — der Mensch kann
+           Szenen einzeln nachbestellen, statt ewig „wird erstellt" zu lesen. */
+        tileUrls = [job.url];
+      }
+      if (!alive || !tileUrls?.length) return;
+      update((prev) => ({
+        journal: (prev.journal || []).map((e) => (e.id === entryId ? {
+          ...e,
+          imageJobs: (e.imageJobs || []).map((j) => (j.id === jobId ? { ...j, tileUrls } : j)),
+        } : e)),
+      }));
+    })();
+    return () => { alive = false; };
+  }, [schnittPrint, update]);
+
   const chainPrint = chainFingerprint(state.journal);
   useEffect(() => {
     if (!chainPrint) return;
@@ -168,28 +277,49 @@ export function AppStateProvider({ children }) {
         const res = await generate({
           dream: entry.text, mode: "image", cast: sub.cast, prompt: sub.prompt,
           sequenceRef: sub.sequenceRef || undefined,
+          /* ⚠ `grid` ist Pflicht, nicht Feinschliff: Erst daran setzt der
+             Server das Pixelmaß aus appGrid(). Ohne es käme der Preset-Name
+             zurück — `portrait_16_9` ist 576×1024, und ein 2×2 daraus hat
+             Kacheln von 288×512. Bezahlt und unbrauchbar. */
+          grid: sub.slots > 1,
+          fallback: entry.fallback === true,
         });
         if (!alive) return;
         update((prev) => ({
-          ...(spend(prev, 1) || {}),
+          /* ⚠ Nach den ECHTEN Szenen, nicht nach den Rasterplätzen. Der
+             letzte Block eines Fünf-Szenen-Traums ist ein voller Aufruf mit
+             EINER Szene darin — vier Credits dafür zu nehmen wäre, dem
+             Menschen unseren Verschnitt in Rechnung zu stellen. */
+          ...(spend(prev, sub.tiles) || {}),
           journal: (prev.journal || []).map((e) => (e.id === entry.id ? {
             ...e,
             imageJobs: [
               ...(e.imageJobs || []),
               // Alt-Server antwortet sofort: als bereits entschiedener
               // Auftrag einreihen, dann bleibt die Mechanik eine.
-              res.jobId ? { id: res.jobId } : { id: `sync${sub.beatIndex}`, url: res.urls?.[0] },
+              res.jobId
+                ? { id: res.jobId, tiles: sub.tiles, grid: sub.slots > 1 }
+                : { id: `sync${sub.beatIndex}`, url: res.urls?.[0], tiles: sub.tiles, grid: sub.slots > 1 },
             ],
-            chain: { ...e.chain, next: e.chain.next + 1 },
+            /* ⚠ `next` zählt SZENEN, springt beim Raster also um bis zu vier
+               — aber nie über `total` hinaus. Um eins zu erhöhen hieße,
+               denselben Vierer-Block gleich noch dreimal zu bestellen. */
+            chain: { ...e.chain, next: e.chain.next + sub.tiles },
           } : e)),
         }));
       } catch (err) {
         if (!alive) return;
         console.error("[DreamRushes] chain submit failed:", err);
+        /* Auch der Einreichungs-Fehler trägt seinen Grund: fal lehnt manches
+           schon beim Einreichen ab, und dann gibt es nie einen Auftrag, den
+           der Collector nachfassen könnte. `err.reason` kommt aus dem Server
+           (imageFailure) durch api.js hierher. */
+        const grund = err?.reason || null;
         update((prev) => ({
-          journal: (prev.journal || []).map((e) => (e.id === entry.id ? { ...e, chain: undefined } : e)),
+          journal: (prev.journal || []).map((e) => (e.id === entry.id
+            ? { ...e, chain: undefined, failReason: grund } : e)),
         }));
-        toast(`⚠ ${t.errors.renderFailed}`);
+        toast(`⚠ ${t.errors[failureTextKey(grund)]}`);
       }
     })();
     return () => { alive = false; };
@@ -249,6 +379,27 @@ export function AppStateProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* Die Besetzung zurückholen — Antons Ansage vom 25.08.2026: „Ich habe
+     satt, immer wieder mich selbst in der Testumgebung hinzuzufügen."
+     Ab hier steht er nach jedem geleerten Speicher und in jedem Browser
+     wieder da, mitsamt Foto und Charakterbogen. Der Bogen ist das
+     eigentlich Teure: Er kostet bei jedem Neuanlegen echtes Geld.
+
+     ⚠ Wie bei den Träumen: nur ERGÄNZEN. Wer eine Figur im Gerät geändert
+     hat, hat den neueren Stand. */
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let alive = true;
+    sharedCast().then((figuren) => {
+      if (!alive || !figuren.length) return;
+      const s = stateRef.current;
+      const res = mergeCast(s.cast, s.me, figuren);
+      if (res) update(res);
+    });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /* Die Traum-Sicherung (Antons Ansage 22.08.: „Meine Testträume bitte hier
      abspeichern … und drinnen bleiben"). Sie läuft still: Ändert sich etwas
      am INHALT der Träume, wandern sie als Dateien zum Server. Der
@@ -265,6 +416,20 @@ export function AppStateProvider({ children }) {
     const id = setTimeout(() => backupJournal(backupPayload(stateRef.current.journal)), 1200);
     return () => clearTimeout(id);
   }, [backupPrint]);
+
+  /* Dieselbe Mechanik für die Besetzung — nur eben MIT Fotos.
+     ⚠ Der Ordner liegt unter /media und damit ausserhalb von Git; die
+     Begründung steht im Kopf von castBackup.js und ist keine Vorsicht,
+     sondern Umkehrbarkeit. */
+  const castPrint = castFingerprint(state.cast, state.me);
+  useEffect(() => {
+    if (!import.meta.env.DEV || !castPrint) return;
+    const id = setTimeout(() => {
+      const s = stateRef.current;
+      backupCast(castPayload(s.cast, s.me));
+    }, 1200);
+    return () => clearTimeout(id);
+  }, [castPrint]);
 
   return (
     <Ctx.Provider value={{

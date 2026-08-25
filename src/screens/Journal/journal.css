@@ -720,3 +720,14 @@
   cursor: default;
   border-style: dashed;
 }
+
+/* Warum ein Traum leer blieb — und der Ausweg daneben.
+   Der Ton ist Warnung, nicht Fehler: Es ist nichts kaputt, es wurde nur
+   etwas abgelehnt, und der naechste Satz sagt, was hilft. */
+.j-make-warn {
+  margin: 0 0 var(--s-3);
+  color: var(--warm);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.j-act-planb { border-color: color-mix(in oklab, var(--warm) 45%, transparent); }
