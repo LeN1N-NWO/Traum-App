@@ -176,7 +176,11 @@ export function AppStateProvider({ children }) {
    */
   const schnittPrint = (state.journal || [])
     .flatMap((e) => (e.imageJobs || [])
-      .filter((j) => j.url && j.tiles > 1 && !j.tileUrls)
+      /* ⚠ Am Merkmal `grid`, NICHT an `tiles > 1`. Der letzte Block eines
+         Fünf-Szenen-Traums ist ein Raster mit nur EINER echten Szene darin —
+         an der Kachelzahl erkannt, bliebe er ungeschnitten, und das ganze
+         Raster stünde als Traumbild da. */
+      .filter((j) => j.url && j.grid && !j.tileUrls)
       .map((j) => `${e.id}:${j.id}`))
     .join(",");
 
@@ -193,8 +197,15 @@ export function AppStateProvider({ children }) {
       try {
         const blobs = await splitIntoTiles(mediaUrl(job.url), GRID_COLS, GRID_ROWS);
         if (!alive) return;
+        /* ⚠ Nur so viele Kacheln behalten, wie echte Szenen bestellt waren.
+           Ein Raster hat immer vier Plätze; beim letzten Block können drei
+           davon Füllmaterial sein. Sie mit hochzuladen hieße, dem Menschen
+           acht Bilder für einen Fünf-Szenen-Traum zu zeigen — drei davon
+           erfunden. In LESEREIHENFOLGE, wie buildGridPrompt sie füllt. */
         tileUrls = [];
-        for (const blob of blobs) tileUrls.push(await uploadPanel(blob));
+        for (const blob of blobs.slice(0, Math.max(1, job.tiles || blobs.length))) {
+          tileUrls.push(await uploadPanel(blob));
+        }
       } catch (err) {
         /* ⚠ Nicht endlos wiederholen. Ein Schnitt scheitert praktisch nur,
            wenn das Bild gar nicht ladbar ist — und dann hilft der zehnte
@@ -240,12 +251,15 @@ export function AppStateProvider({ children }) {
              Server das Pixelmaß aus appGrid(). Ohne es käme der Preset-Name
              zurück — `portrait_16_9` ist 576×1024, und ein 2×2 daraus hat
              Kacheln von 288×512. Bezahlt und unbrauchbar. */
-          grid: sub.tiles > 1,
+          grid: sub.slots > 1,
           fallback: entry.fallback === true,
         });
         if (!alive) return;
         update((prev) => ({
-          // Ein Rasterauftrag trägt vier Szenen — und kostet vier Credits.
+          /* ⚠ Nach den ECHTEN Szenen, nicht nach den Rasterplätzen. Der
+             letzte Block eines Fünf-Szenen-Traums ist ein voller Aufruf mit
+             EINER Szene darin — vier Credits dafür zu nehmen wäre, dem
+             Menschen unseren Verschnitt in Rechnung zu stellen. */
           ...(spend(prev, sub.tiles) || {}),
           journal: (prev.journal || []).map((e) => (e.id === entry.id ? {
             ...e,
@@ -254,12 +268,12 @@ export function AppStateProvider({ children }) {
               // Alt-Server antwortet sofort: als bereits entschiedener
               // Auftrag einreihen, dann bleibt die Mechanik eine.
               res.jobId
-                ? { id: res.jobId, tiles: sub.tiles }
-                : { id: `sync${sub.beatIndex}`, url: res.urls?.[0], tiles: sub.tiles },
+                ? { id: res.jobId, tiles: sub.tiles, grid: sub.slots > 1 }
+                : { id: `sync${sub.beatIndex}`, url: res.urls?.[0], tiles: sub.tiles, grid: sub.slots > 1 },
             ],
-            /* ⚠ `next` zählt SZENEN, springt beim Raster also um vier.
-               Um eins zu erhöhen hieße, denselben Vierer-Block gleich noch
-               dreimal zu bestellen — vier bezahlte Aufträge für ein Bild. */
+            /* ⚠ `next` zählt SZENEN, springt beim Raster also um bis zu vier
+               — aber nie über `total` hinaus. Um eins zu erhöhen hieße,
+               denselben Vierer-Block gleich noch dreimal zu bestellen. */
             chain: { ...e.chain, next: e.chain.next + sub.tiles },
           } : e)),
         }));

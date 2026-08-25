@@ -443,13 +443,13 @@ export default function Step5Style({ w, patch }) {
             fallback: w.fallback === true,
           });
           if (res.jobId) {
-            submitted.push({ id: res.jobId, tiles: SCHRITT });
+            submitted.push({ id: res.jobId, tiles: block.length, grid: SCHRITT > 1 });
             update((prev) => ({
               // Je SZENE bezahlt, nicht je Auftrag — siehe oben.
               ...(spend(prev, block.length) || {}),
               journal: (prev.journal || []).map((e) => (e.id === entryId ? {
                 ...e,
-                imageJobs: [...(e.imageJobs || []), { id: res.jobId, tiles: SCHRITT }],
+                imageJobs: [...(e.imageJobs || []), { id: res.jobId, tiles: block.length, grid: SCHRITT > 1 }],
                 /* Eine Kette gibt es nur, wenn nach diesem Block noch etwas
                    kommt. Bei vier Szenen im 2×2 ist das nie der Fall — sie
                    entstehen in einem Zug, genau wie Anton es entworfen hat. */
@@ -477,7 +477,7 @@ export default function Step5Style({ w, patch }) {
                 ...e,
                 imageJobs: [
                   ...(e.imageJobs || []),
-                  { id: `sync${i}`, url: res.urls[0], tiles: SCHRITT },
+                  { id: `sync${i}`, url: res.urls[0], tiles: block.length, grid: SCHRITT > 1 },
                 ],
                 ...(jobs.length > i + block.length
                   ? { chain: { next: i + block.length, total: jobs.length, beats: jobs, step: SCHRITT } }

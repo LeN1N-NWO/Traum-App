@@ -106,7 +106,7 @@ const raster = (over = {}) => ({
      Szenen schreibt der Collector `media.urls` erst am ENDE — haette der
      Anker dort gestanden, haette Raster 2 nie eine Kachel gefunden. */
   imageJobs: [{
-    id: "g1", url: "/media/raster1.png", tiles: 4,
+    id: "g1", url: "/media/raster1.png", tiles: 4, grid: true,
     tileUrls: ["/media/t1.png", "/media/t2.png", "/media/t3.png", "/media/t4.png"],
   }],
   ...over,
@@ -126,7 +126,7 @@ test("beim Raster ist EIN Auftrag fuer vier Szenen genug", () => {
    bezahlt ist es trotzdem. */
 test("die Kette wartet auf den SCHNITT, nicht nur auf das Bild", () => {
   expect(chainStep(raster({
-    imageJobs: [{ id: "g1", url: "/media/raster1.png", tiles: 4 }],   // ungeschnitten
+    imageJobs: [{ id: "g1", url: "/media/raster1.png", tiles: 4, grid: true }],  // ungeschnitten
   }))).toBe(null);
 });
 
@@ -151,4 +151,20 @@ test("ohne `step` bleibt alles beim Alten", () => {
   const s = chainStep(kette());
   expect(s.step).toBe(1);
   expect(s.beatIndex).toBe(1);
+});
+
+/* ⚠ Gefunden im ersten BEZAHLTEN Lauf am 25.08.2026 — genau dafuer schreibt
+   der Plan einen Lauf mit EINEM Traum vor.
+   Der Traum hatte fuenf Szenen. Block 2 trug nur EINE davon, das Raster hat
+   aber vier Plaetze. Die erste Fassung rechnete mit den PLAETZEN: vier
+   Credits abgebucht, `next` auf 8 gesprungen — acht Credits fuer fuenf
+   Bilder. Der Verschnitt eines angefangenen Rasters geht zu UNSEREN Lasten,
+   nie zu seinen. */
+test("der letzte Block rechnet mit echten Szenen, nicht mit Rasterplaetzen", () => {
+  const sub = buildChainSubmission(raster({
+    chain: { next: 4, total: 5, step: 4, beats: ["A", "B", "C", "D", "E"] },
+  }), { cast: [], me: null });
+  expect(sub.slots).toBe(4);    // ein voller, bezahlter Aufruf
+  expect(sub.tiles).toBe(1);    // aber nur EINE Szene darin
+  expect(sub.prompt).toContain("E");
 });

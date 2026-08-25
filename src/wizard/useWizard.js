@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useAppState } from "../state/AppState.jsx";
+import { IMAGE_COUNTS } from "../lib/pricing.js";
 
 /* All wizard state in one hook, so each step component stays a pure view.
  *
@@ -59,7 +60,20 @@ const EMPTY = {
   tagline: "",         // poster tagline, editable in step 5
   analysis: null,
   mode: null,          // "save" | "images" | "film"
-  imageCount: 5,
+  /* ⚠ ABGELEITET, nicht hingeschrieben. Bis zum 25.08.2026 stand hier eine
+     blanke `5` — eine Zahl, die es seit der Umstellung auf 4/8 (23.08.) im
+     Angebot gar nicht mehr gibt. Der Fehler war komplett stumm und kostete
+     doppelt:
+       · Der Knopf versprach „4 Credits", weil `priceForImages(5)` auf die
+         kleinste angebotene Zahl zurückfällt — dieser Rückfall ist als Netz
+         für ALTE Journaleinträge gedacht und hat hier einen LEBENDEN Fehler
+         zugedeckt. Abgerechnet wurden dann 5.
+       · Und fünf Szenen brauchen ZWEI Rasteraufrufe: $0,226 statt $0,113,
+         also 60 % mehr je Szene. Genau davor warnt pricing.js beim Eintrag
+         `IMAGE_COUNTS` — nur konnte es das niemandem sagen, weil die Vorgabe
+         die Warnung nicht las.
+     Aus der Liste gelesen kann die Vorgabe nie wieder danebenliegen. */
+  imageCount: IMAGE_COUNTS[0],
   preview: false,      // the cheap look: one render cut into three, see pricing.js
   assignments: {},     // name -> { name, kind, avatar?, free? }
   /* ⚠ Seit 24.08. `ultrareal` statt `dreamlike`. Der alte Vorgabewert war

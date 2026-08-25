@@ -75,7 +75,7 @@ export function chainStep(entry) {
      Rasterbild ungeschnitten ist, gäbe es nur das ganze Raster, und der
      zweite Block bekäme ein Bild mit vier Szenen darin als „voriger Frame".
      Das Ergebnis wäre ein Raster im Raster, bezahlt. */
-  if (last.url && last.tiles > 1 && !last.tileUrls) return null;
+  if (last.url && last.grid && !last.tileUrls) return null;
 
   /* Der Anker ist das JÜNGSTE fertige Einzelbild. Beim Raster steht es in
      `tileUrls` des Auftrags, beim Einzelbild ist `url` schon eines. */
@@ -145,10 +145,20 @@ export function buildChainSubmission(entry, { cast = [], me = null } = {}) {
     beatIndex: step.beatIndex,
     sequenceRef: step.sequenceRef,
     cast: castForApi,
-    /* Wie viele Szenen dieser eine Auftrag trägt — der Aufrufer braucht das
-       zweimal: für `grid: true` im Auftrag und für die Marke am Bild, an der
-       der Schnitt später erkennt, wie oft er teilen muss. */
-    tiles: step.step,
+    /* ⚠ ZWEI verschiedene Zahlen, und sie am 25.08.2026 zu verwechseln hat
+       im ersten bezahlten Lauf acht Credits für fünf Bilder gekostet:
+         `slots`  — wie viele Plätze das Raster HAT (immer 4). Entscheidet,
+                    ob überhaupt ein Raster bestellt wird.
+         `tiles`  — wie viele ECHTE Szenen darin stecken (1 bis 4).
+                    Entscheidet, was abgerechnet, was behalten und was
+                    erstattet wird.
+       Beim letzten Block eines Traums mit fünf Szenen ist slots=4 und
+       tiles=1: Ein angefangenes Raster ist ein voller, bezahlter AUFRUF —
+       aber der Mensch bekommt daraus EIN Bild und zahlt einen Credit. Der
+       Verschnitt geht zu unseren Lasten, und genau deshalb sind vier und
+       acht die Traumgrößen (pricing.js). */
+    slots: step.step,
+    tiles: beats.length,
     prompt,
   };
 }

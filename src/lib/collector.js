@@ -113,7 +113,7 @@ export async function collectTick(journal, ask) {
          Traumbild fort — ein Bild mit vier Szenen darin, und der Traum wäre
          „fertig". Der Schnitt selbst steht in AppState (Canvas); der
          Collector bleibt DOM-frei und wartet nur. */
-      const geschnitten = (j) => !(j.tiles > 1) || !!j.tileUrls;
+      const geschnitten = (j) => !j.grid || !!j.tileUrls;
       const settled = jobs.every((j) => j.failed || (j.url && geschnitten(j)));
 
       /* ── ⚠ Der Abbruch bei chancenlosen Fehlern (24.08.2026) ───────────
