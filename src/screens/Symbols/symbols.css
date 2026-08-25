@@ -1,8 +1,14 @@
 .s-group { margin-bottom: var(--s-6); }
-.s-group-title { font-size: var(--t-h3); font-weight: 600; margin: 0 0 var(--s-3); color: var(--muted); }
+/* Serife wie die Abschnittsköpfe des Luzid-Guides — eine Familie. */
+.s-group-title { font-family: var(--serif); font-size: var(--t-h3); font-weight: 400; margin: 0 0 var(--s-3); }
 .s-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: var(--s-3); }
 .s-tile { display: flex; flex-direction: column; align-items: center; gap: var(--s-1); text-align: center; }
-.s-emoji { font-size: 26px; line-height: 1; }
+.s-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.13), rgba(255,255,255,.04) 70%);
+  border: 1px solid var(--panel-line); color: var(--accent-soft);
+}
 .s-label { font-size: var(--t-small); font-weight: 500; }
 .s-count { font-size: var(--t-micro); color: var(--faint); }
 .s-empty { color: var(--faint); text-align: center; padding: var(--s-6) 0; }
@@ -24,7 +30,12 @@
   color: var(--text); font-size: 19px;
 }
 .s-close:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
-.s-modal-emoji { font-size: 38px; margin: 0 0 var(--s-2); }
+.s-modal-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; border-radius: 50%; margin: 0 0 var(--s-2);
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.14), rgba(255,255,255,.05) 70%);
+  border: 1px solid var(--panel-line); color: var(--accent-soft);
+}
 .s-modal-title { font-size: var(--t-h2); font-weight: 600; margin: 0 0 var(--s-3); }
 .s-meaning { margin: 0 0 var(--s-2); }
 .s-disclaimer { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-5); }

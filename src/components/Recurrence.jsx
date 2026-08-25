@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { recurrenceFor } from "../lib/atlas.js";
-import { symbolById } from "../lib/symbols.js";
+import SymbolIcon from "./symbolIcons.jsx";
 import { t } from "../i18n/index.js";
 import "./recurrence.css";
 
@@ -33,7 +33,7 @@ export default function Recurrence({ journal, entry, onOpen }) {
   const items = useMemo(() => [
     ...symbols.slice(0, MAX_SYMBOLS).map((s) => ({
       key: `s:${s.id}`,
-      icon: symbolById(s.id)?.emoji || "✦",
+      icon: <SymbolIcon id={s.id} />,
       label: t.symbols.byId[s.id]?.label || s.id,
       count: s.count,
       entryIds: s.entryIds,

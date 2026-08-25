@@ -39,18 +39,20 @@
     "tagline": "Manchmal ist Freundlichkeit das Gruseligste.",
     "filmSeconds": 8
   },
-  "style": "ultrareal",
+  "style": "surreal",
   "format": "9:16",
   "mode": "images",
   "imageCount": 4,
   "creatureId": "cr_mt7n6tc1fzycfy",
-  "references": [],
+  "references": [
+    {
+      "tag": "ich",
+      "category": "person"
+    }
+  ],
   "medien": {
     "bilder": [
-      "/media/3qbtl3wbe1gk8.png",
-      "/media/28ofbntfnrrfs.png",
-      "/media/z6ze7d1r2pw.png",
-      "/media/6n9wu4sz57uq.png"
+      "/media/2bhma2tpw27m2.png"
     ],
     "film": [],
     "szenen": {}

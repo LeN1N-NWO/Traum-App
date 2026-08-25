@@ -130,40 +130,12 @@ function SoundMixerPanel() {
     update({ soundMix: { ...savedMix, volumes: vols, timer: minutes } });
   }
 
-  /* ⚠ PRÜFSTAND (25.08., zweite Runde): zwei Gestalten für den Mischer —
-     "a" Farbkarten (je Rauschfarbe eine getönte Karte, Regler darin),
-     "b" Mischpult (drei stehende Fader nebeneinander). Umschalter nur im
-     Dev-Modus; nach Antons Wahl wird eingefroren und ausgemistet wie bei
-     der Übersicht. */
-  const [gestalt, setGestalt] = useState(() => {
-    const v = import.meta.env.DEV ? sessionStorage.getItem("sl-klang-gestalt") : null;
-    return v === "b" ? "b" : "a";
-  });
-
+  /* Das Mischpult — Antons Wahl (26.08.) aus zwei live umschaltbaren
+     Gestalten; die Farbkarten-Variante ist ausgebaut. Drei stehende Fader
+     wie an einem echten Pult, jede Rauschfarbe in ihrem eigenen Ton. */
   return (
     <div className="sl-sounds">
-      {gestalt === "a" && SOUND_IDS.map((id) => (
-        <div key={id} className={`sl-sound sl-sound-${id}`}>
-          <div className="sl-sound-head">
-            <span className="sl-sound-name">{t.sleep.sounds.names[id]}</span>
-            <span className="sl-sound-desc">{t.sleep.sounds.descs[id]}</span>
-          </div>
-          <span className="sl-track">
-            <input
-              className="sl-range"
-              type="range" min="0" max="1" step="0.01"
-              value={vols[id]}
-              style={{ "--p": `${Math.round(vols[id] * 100)}%` }}
-              onChange={(e) => change(id, Number(e.target.value))}
-              aria-label={`${t.sleep.sounds.names[id]} — ${t.sleep.sounds.descs[id]}`}
-            />
-            <output className="sl-val" aria-hidden="true">{Math.round(vols[id] * 100)}</output>
-          </span>
-        </div>
-      ))}
-
-      {gestalt === "b" && (
-        <div className="sl-pult">
+      <div className="sl-pult">
           {SOUND_IDS.map((id) => (
             <label key={id} className={`sl-fader sl-sound-${id}`} title={t.sleep.sounds.descs[id]}>
               <span className="sl-fader-slot">
@@ -180,8 +152,7 @@ function SoundMixerPanel() {
               <span className="sl-fader-name">{t.sleep.sounds.names[id]}</span>
             </label>
           ))}
-        </div>
-      )}
+      </div>
 
       {/* Der Einschlaf-Timer (Mehrwert-Plan P3b): eine Zeile, vier Knöpfe.
           Ausgeblendet wird über eine Minute — ein Rauschen, das abrupt
@@ -215,17 +186,6 @@ function SoundMixerPanel() {
       </label>
 
       <p className="sl-hint">{t.sleep.sounds.background}</p>
-      {import.meta.env.DEV && (
-        <div className="sl-dev-varianten" aria-hidden="true">
-          {["a", "b"].map((v) => (
-            <button
-              key={v}
-              className={"sl-dev-v" + (v === gestalt ? " sl-dev-v-on" : "")}
-              onClick={() => { sessionStorage.setItem("sl-klang-gestalt", v); setGestalt(v); }}
-            >{v.toUpperCase()}</button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { symbolById } from "../../lib/symbols.js";
+import SymbolIcon from "../../components/symbolIcons.jsx";
 import { t } from "../../i18n/index.js";
 import "./symbols.css";
 
@@ -32,7 +33,7 @@ export default function SymbolDetail({ symbolId, occurrences, onClose }) {
           ×
         </button>
 
-        <p className="s-modal-emoji" aria-hidden="true">{symbol.emoji}</p>
+        <SymbolIcon id={symbolId} className="s-modal-icon" />
         <h2 className="s-modal-title">{label}</h2>
         <p className="s-meaning">{meaning}</p>
         <p className="s-disclaimer">{t.symbols.disclaimer}</p>
