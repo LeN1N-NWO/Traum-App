@@ -53,12 +53,17 @@
   "creatureId": "cr_mt8948ae6rsymf",
   "references": [
     {
-      "tag": "ich",
+      "tag": "me",
       "category": "person"
     }
   ],
   "medien": {
-    "bilder": [],
+    "bilder": [
+      "/media/196s2bm39y2d8.png",
+      "/media/2ajbp7veke2hl.png",
+      "/media/2nb9gsb135fdm.png",
+      "/media/yara0ymbleyh.png"
+    ],
     "film": []
   }
 }
