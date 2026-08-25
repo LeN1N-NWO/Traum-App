@@ -1,0 +1,64 @@
+{
+  "id": "e_mt8948ad9xt3tq",
+  "createdAt": "2026-08-25T05:55:41.175Z",
+  "kind": "dream",
+  "title": "Clooney im Schlepptau",
+  "tagline": "Ein Jetski, zwei Stars, ein nasser Clooney.",
+  "text": "Im Traum bin ich mit Brad Pitt auf den Malediven Jetski gefahren. Er trug Boxershorts und eine Sonnenbrille, und ich auch. Unterwegs sahen wir George Clooney im Wasser und bewarfen ihn mit einem Zeitschriftenartikel. Wir zogen ihn hinter uns her und lachten herzlich.",
+  "originalText": "Ich bin im Traum auf den Malediven mit Brad Pitt Jetski gefahren. Er hatte Boxershorts und eine Sonnenbrille an, und ich auch. Auf dem Weg haben wir George Clooney im Wasser gesehen und ihn mit einem Zeitschriftenartikel beworfen. Wir haben ihn hinter uns hergezogen und dabei herzlich gelacht.",
+  "analysis": {
+    "language": "de",
+    "text": "Im Traum bin ich mit Brad Pitt auf den Malediven Jetski gefahren. Er trug Boxershorts und eine Sonnenbrille, und ich auch. Unterwegs sahen wir George Clooney im Wasser und bewarfen ihn mit einem Zeitschriftenartikel. Wir zogen ihn hinter uns her und lachten herzlich.",
+    "people": [
+      {
+        "name": "ich",
+        "kind": "person",
+        "desc": "",
+        "wearing": "Boxershorts und eine Sonnenbrille"
+      },
+      {
+        "name": "Brad Pitt",
+        "kind": "person",
+        "desc": "",
+        "wearing": "Boxershorts und eine Sonnenbrille"
+      },
+      {
+        "name": "George Clooney",
+        "kind": "person",
+        "desc": "",
+        "wearing": ""
+      }
+    ],
+    "places": [
+      "die Malediven",
+      "Malediven"
+    ],
+    "beats": [
+      "Ich and Brad Pitt ride a jetski across the turquoise sea of the Maldives, both wearing boxer shorts and sunglasses.",
+      "They spot George Clooney in the water ahead.",
+      "Ich throws a magazine article at George Clooney.",
+      "Ich and Brad Pitt drag George Clooney behind the jetski.",
+      "George Clooney is pulled through the water while everyone laughs heartily."
+    ],
+    "style": "adventurous",
+    "mood": "ausgelassen",
+    "title": "Clooney im Schlepptau",
+    "tagline": "Ein Jetski, zwei Stars, ein nasser Clooney.",
+    "filmSeconds": 12
+  },
+  "style": "adventurous",
+  "format": "9:16",
+  "mode": "images",
+  "imageCount": 4,
+  "creatureId": "cr_mt8948ae6rsymf",
+  "references": [
+    {
+      "tag": "ich",
+      "category": "person"
+    }
+  ],
+  "medien": {
+    "bilder": [],
+    "film": []
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "e_test1",
+  "createdAt": "2026-08-20T06:30:00.000Z",
+  "kind": "dream",
+  "title": "Der Fluss unter dem Haus",
+  "tagline": "",
+  "text": "Ich schwamm im Fluss unter dem alten Haus mit @Mara.",
+  "originalText": "",
+  "analysis": {
+    "mood": "ruhig",
+    "beats": [
+      "Im Fluss",
+      "Wasser steigt"
+    ],
+    "style": "dreamlike"
+  },
+  "style": "dreamlike",
+  "format": "9:16",
+  "references": [
+    {
+      "tag": "Mara",
+      "category": "person"
+    }
+  ],
+  "medien": {
+    "bilder": [
+      "/media/29k5nhnha9ghn.png"
+    ],
+    "film": []
+  }
+}

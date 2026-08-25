@@ -1,0 +1,58 @@
+{
+  "id": "e_mt7n6tc1btofuj",
+  "createdAt": "2026-08-24T19:41:50.209Z",
+  "kind": "dream",
+  "title": "Das Rinderzungen-Sandwich",
+  "tagline": "Manchmal ist Freundlichkeit das Gruseligste.",
+  "text": "Ich stand in meinem Bett auf und sah Freddy Krüger neben mir stehen. Er trug seine typischen gestreiften roten Klamotten. Aber anders als erwartet lächelte er und gab mir ein Sandwich, in dem Rinderzunge war.",
+  "originalText": "Ich bin in meinem Bett aufgestanden und sah Freddy Krüger neben mir stehen. Er hatte seine typischen gestreiften rote Klamotten an. Aber anders als gedacht, gab Freddy Krüger mir mit einem Lächeln ein Sandwich, in dem Rinderzunge war.",
+  "analysis": {
+    "language": "de",
+    "text": "Ich stand in meinem Bett auf und sah Freddy Krüger neben mir stehen. Er trug seine typischen gestreiften roten Klamotten. Aber anders als erwartet lächelte er und gab mir ein Sandwich, in dem Rinderzunge war.",
+    "people": [
+      {
+        "name": "ich",
+        "kind": "person",
+        "desc": "",
+        "wearing": ""
+      },
+      {
+        "name": "Freddy Krüger",
+        "kind": "person",
+        "desc": "",
+        "wearing": "gestreifte rote Kleidung"
+      }
+    ],
+    "places": [
+      "Schlafzimmer"
+    ],
+    "beats": [
+      "I get up in my bed and see Freddy Krüger standing beside me.",
+      "Freddy Krüger smiles, his striped red outfit clearly visible.",
+      "He holds out a sandwich containing beef tongue.",
+      "I take the sandwich from his hand.",
+      "Freddy Krüger nods, still smiling, as I look at the sandwich."
+    ],
+    "style": "surreal",
+    "mood": "absurd",
+    "title": "Das Rinderzungen-Sandwich",
+    "tagline": "Manchmal ist Freundlichkeit das Gruseligste.",
+    "filmSeconds": 8
+  },
+  "style": "ultrareal",
+  "format": "9:16",
+  "mode": "images",
+  "imageCount": 4,
+  "creatureId": "cr_mt7n6tc1fzycfy",
+  "references": [],
+  "medien": {
+    "bilder": [
+      "/media/3qbtl3wbe1gk8.png",
+      "/media/28ofbntfnrrfs.png",
+      "/media/z6ze7d1r2pw.png",
+      "/media/6n9wu4sz57uq.png"
+    ],
+    "film": [],
+    "szenen": {}
+  }
+}

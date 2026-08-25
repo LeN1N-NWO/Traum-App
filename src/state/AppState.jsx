@@ -181,7 +181,10 @@ export function AppStateProvider({ children }) {
          an der Kachelzahl erkannt, bliebe er ungeschnitten, und das ganze
          Raster stünde als Traumbild da. */
       .filter((j) => j.url && j.grid && !j.tileUrls)
-      .map((j) => `${e.id}:${j.id}`))
+      /* ⚠ Der Zähler gehört IN den Fingerabdruck. Ohne ihn ändert sich nach
+         einem Fehlversuch nichts an dieser Zeichenkette, der Effekt läuft
+         nie wieder an, und der Traum bliebe für immer halb fertig. */
+      .map((j) => `${e.id}:${j.id}:${j.cutTries || 0}`))
     .join(",");
 
   useEffect(() => {
@@ -189,6 +192,11 @@ export function AppStateProvider({ children }) {
     let alive = true;
     (async () => {
       const [entryId, jobId] = schnittPrint.split(",")[0].split(":");
+      /* ⚠ Kurz warten, bevor der erste Schnitt versucht wird. Der Server hat
+         das Bild gerade erst geschrieben; es sofort zu laden trifft im
+         bezahlten Lauf vom 25.08. eine Datei, die noch nicht da ist. */
+      await new Promise((r) => setTimeout(r, 700));
+      if (!alive) return;
       const entry = (stateRef.current.journal || []).find((e) => e.id === entryId);
       const job = (entry?.imageJobs || []).find((j) => j.id === jobId);
       if (!job?.url) return;
@@ -207,13 +215,33 @@ export function AppStateProvider({ children }) {
           tileUrls.push(await uploadPanel(blob));
         }
       } catch (err) {
-        /* ⚠ Nicht endlos wiederholen. Ein Schnitt scheitert praktisch nur,
-           wenn das Bild gar nicht ladbar ist — und dann hilft der zehnte
-           Versuch so wenig wie der erste, während der Traum ewig „wird
-           erstellt" anzeigt. Lieber das Rasterbild selbst als EIN Bild
-           stehen lassen: sichtbar falsch, aber sichtbar und abgeschlossen,
-           und der Mensch kann Szenen einzeln nachbestellen. */
-        console.error("[DreamRushes] Rasterschnitt fehlgeschlagen:", err);
+        /* ⚠⚠ NICHT beim ersten Fehlschlag aufgeben. Am 25.08.2026 im
+           bezahlten Lauf gemessen: Der häufigste Fehler ist gar keiner —
+           das Bild war beim ersten Versuch noch nicht fertig auf der Platte,
+           und Sekunden später ließ es sich einwandfrei in vier Kacheln
+           schneiden. Die erste Fassung machte daraus einen DAUERHAFTEN
+           Schaden: Sie schrieb das ganze Raster als einziges Traumbild fort,
+           und der Traum war „fertig" — mit einem 2160×3840-Bild, in dem
+           vier Szenen stecken.
+
+           Also zählen statt raten. Drei Anläufe, dann erst der Notausgang.
+           Der Zähler steht AM AUFTRAG, nicht in einer Variable: So überlebt
+           er einen Neustart, und niemand versucht nach jedem Öffnen der App
+           wieder von vorn. */
+        const versuche = (job.cutTries || 0) + 1;
+        console.error(`[DreamRushes] Rasterschnitt fehlgeschlagen (${versuche}/3):`, err);
+        if (versuche < 3) {
+          update((prev) => ({
+            journal: (prev.journal || []).map((e) => (e.id === entryId ? {
+              ...e,
+              imageJobs: (e.imageJobs || []).map((j) => (j.id === jobId ? { ...j, cutTries: versuche } : j)),
+            } : e)),
+          }));
+          return;
+        }
+        /* Aufgegeben. Das Rasterbild selbst als EIN Bild stehen lassen:
+           sichtbar falsch, aber sichtbar und abgeschlossen — der Mensch kann
+           Szenen einzeln nachbestellen, statt ewig „wird erstellt" zu lesen. */
         tileUrls = [job.url];
       }
       if (!alive || !tileUrls?.length) return;

@@ -98,8 +98,52 @@ test("bekannte Träume werden nicht überschrieben, nur unbekannte ergänzt", ()
   expect(gemergt.find((e) => e.id === "e_abc").text).toBe("Frisch bearbeitet");
 });
 
+/* ⚠ Dieser Test hat am 25.08.2026 eine ABSICHTLICHE Verhaltensänderung
+   gemeldet, und das war richtig so: Sein lokaler Eintrag hatte gar keine
+   Medien, und genau solche füllt der Abgleich jetzt auf (siehe unten,
+   Antons Befund). Die Absicht des Tests bleibt — es kommt kein EINTRAG
+   dazu —, nur die Vorlage trägt jetzt schon Bilder. */
 test("gibt es nichts Neues, wird das Journal nicht angefasst", () => {
-  const lokal = [{ id: "e_abc", createdAt: "2026-08-22T06:30:00.000Z" }];
+  const lokal = [{
+    id: "e_abc", createdAt: "2026-08-22T06:30:00.000Z",
+    media: { type: "image", urls: ["/media/schon-da.png"], source: "api" },
+  }];
   expect(mergeShared(lokal, [backupEntry(traum)])).toBe(null);
   expect(mergeShared(lokal, [])).toBe(null);
+});
+
+/* ── Antons Befund vom 25.08.2026 ─────────────────────────────────────────
+   „Die fehlen komplett in dem Traum. Da ist gar nichts drin."
+
+   Kein Renderfehler: Die Bilder lagen auf der Platte, sein Browser kannte
+   den Traum aber schon — und der Abgleich uebersprang alles Bekannte. Beim
+   Entwickeln ist genau das der Normalfall: einer rendert, der andere schaut
+   zu, und beim Zuschauer bleibt der Traum fuer immer leer. */
+
+test("ein bekannter Traum OHNE Bilder bekommt die aus der Sicherung", () => {
+  const journal = [{ id: "e1", createdAt: "2026-08-24T10:00:00.000Z", title: "T",
+                     media: { type: "image", urls: [], source: "none" } }];
+  const gesichert = [{ id: "e1", createdAt: "2026-08-24T10:00:00.000Z",
+                       medien: { bilder: ["/media/a.png", "/media/b.png"] } }];
+  const res = mergeShared(journal, gesichert);
+  expect(res[0].media.urls).toEqual(["/media/a.png", "/media/b.png"]);
+  expect(res[0].media.source).toBe("api");
+  expect(res).toHaveLength(1);          // nichts hinzugefuegt, nur gefuellt
+});
+
+/* ⚠ Die wichtigere Haelfte: Sobald lokal auch nur EIN Bild steht, bleibt der
+   Eintrag unangetastet. Sonst verloere jemand seinen neueren Stand an ein
+   Archiv — genau das, wogegen die urspruengliche Regel geschrieben war. */
+test("wer schon Bilder hat, behaelt seine — die Sicherung ueberschreibt nie", () => {
+  const journal = [{ id: "e1", createdAt: "2026-08-24T10:00:00.000Z",
+                     media: { type: "image", urls: ["/media/meins.png"], source: "api" } }];
+  const gesichert = [{ id: "e1", createdAt: "2026-08-24T10:00:00.000Z",
+                       medien: { bilder: ["/media/alt.png"] } }];
+  expect(mergeShared(journal, gesichert)).toBe(null);
+});
+
+test("ohne Bilder in der Sicherung passiert nichts", () => {
+  const journal = [{ id: "e1", createdAt: "2026-08-24T10:00:00.000Z",
+                     media: { type: "image", urls: [], source: "none" } }];
+  expect(mergeShared(journal, [{ id: "e1", createdAt: "2026-08-24T10:00:00.000Z" }])).toBe(null);
 });
