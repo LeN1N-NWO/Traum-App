@@ -377,7 +377,7 @@ export default {
     credits: "credits",
     creditsSoon: "Top-up coming soon",
     you: "You",
-    meSet: "Tap to change your photo",
+    meSet: "Tap to change your photo or name",
     meEmpty: "Add a photo so dreams can put you in them",
     addPhoto: "Add your photo",
     changePhoto: "Change your photo",

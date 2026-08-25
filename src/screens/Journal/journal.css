@@ -396,7 +396,14 @@
   display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-5);
 }
 .j-act {
-  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  /* flex 1 statt none (Antons Befund 25.08.: „die Buttons müssen sich
+     einfügen") — die Pillen teilen sich die Zeile, statt links zu kleben
+     und rechts Luft zu lassen. max-content als Untergrenze: Ein Text wird
+     nie angeschnitten, die Pille wickelt stattdessen in die nächste Zeile,
+     und flex-wrap + gap vom .j-acts-Behälter halten auch die gewickelte
+     Zeile im Raster. */
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  flex: 1 1 auto; min-width: max-content;
   padding: 7px 11px 7px 9px; border-radius: 999px; cursor: pointer;
   background: var(--panel); border: 1px solid var(--panel-line);
   color: var(--text); font-family: inherit; font-size: var(--t-micro); font-weight: 600;

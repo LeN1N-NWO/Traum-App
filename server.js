@@ -984,9 +984,20 @@ const REFLECT_SYSTEM = `You are the quiet, warm reflective voice of a dream jour
 
 Hard rules: never diagnose or give medical, psychological or life advice; never predict the future; never claim a symbol has one universal meaning; never moralise; never quote the dream's exact wording back. If the dream touches violence, death or distress, stay calm and matter-of-fact — name the feeling, don't dramatise it. Write in the same language as the dream. No headings, no lists, no emoji. Output only the three paragraphs.`;
 
-async function reflectDream(dream, contextLines = []) {
+async function reflectDream(dream, contextLines = [], lang = null) {
   const key = process.env.DEEPSEEK_KEY;
   if (!key) throw new Error("NO_DEEPSEEK_KEY");
+
+  /* ⚠ "Write in the same language as the dream" allein reicht NICHT — am
+   * 25.08. kam auf einen deutschen Traum eine englische Reflection zurück
+   * (Antons Screenshot). Ein zweisprachiger Satz, ein Eigenname, ein kurzer
+   * Traum: Das Modell rät, und es rät Englisch. Die App WEISS die Sprache —
+   * der Mensch hat sie im LanguagePicker gewählt —, also wird sie
+   * ausdrücklich vorgegeben statt erraten. Der Satz im REFLECT_SYSTEM
+   * bleibt als Rückfall für alte Clients, die kein `lang` schicken. */
+  const spoken = LANGUAGE_NAMES[lang]
+    ? `\n\nWrite your ENTIRE reply in ${LANGUAGE_NAMES[lang]} — the language this person uses the app in.`
+    : "";
 
   const context = contextLines.length
     ? `\n\nRECURRING PATTERNS from this person's journal (background, use at most one):\n${contextLines.map((l) => `- ${l}`).join("\n")}`
@@ -997,7 +1008,7 @@ async function reflectDream(dream, contextLines = []) {
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
       messages: [
-        { role: "system", content: REFLECT_SYSTEM },
+        { role: "system", content: REFLECT_SYSTEM + spoken },
         { role: "user", content: `THE DREAM:\n"${dream}"${context}` },
       ],
       stream: false,
@@ -2030,7 +2041,11 @@ Bun.serve({
           .slice(0, 5)
           .map((l) => sanitizeFragment(l, 90))
           .filter(Boolean);
-        return json({ ok: true, text: await reflectDream(dream, context) });
+        /* `lang` läuft durch denselben Wäscher wie beim Stimm-Relay: nur
+           bekannte ids erreichen die Namens-Tabelle, alles andere fällt auf
+           den alten „gleiche Sprache wie der Traum"-Rückfall. */
+        const lang = typeof body.lang === "string" && LANGUAGE_NAMES[body.lang] ? body.lang : null;
+        return json({ ok: true, text: await reflectDream(dream, context, lang) });
       } catch (e) {
         const map = {
           NO_DEEPSEEK_KEY: [503, "Backend has no DeepSeek key. Set DEEPSEEK_KEY and restart."],

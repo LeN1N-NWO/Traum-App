@@ -5,6 +5,7 @@ import { setVolume, getVolumes, startTimer, subscribe } from "../../lib/soundMix
 import { SOUND_IDS } from "../../lib/noise.js";
 import { t } from "../../i18n/index.js";
 import ScreenHeader from "../../components/ScreenHeader.jsx";
+import { IconWindDown, IconWaves, IconLucid, IconConstellation } from "../../components/icons.jsx";
 import SleepChecklist from "./SleepChecklist.jsx";
 import LucidGuide from "../Profile/LucidGuide.jsx";
 import SymbolsScreen from "../Symbols/SymbolsScreen.jsx";
@@ -14,6 +15,24 @@ import "./sleep.css";
  * credit. A tile overview opens one section at a time — no sub-routes, the
  * tab stays a single screen the back button cannot get lost in. */
 const SECTIONS = ["checklist", "sounds", "guide", "symbols"];
+
+/* Strich-Icons derselben Familie wie die Tab-Leiste — die Emoji sind raus
+   (Antons Befund 25.08.: jede Plattform malt sie anders, und vier bunte
+   Fremdkörper machen aus einer Übersicht einen Basar). Die Emoji-Felder in
+   den Sprachdateien bleiben stehen, bis alle sieben nachgezogen sind —
+   gelesen werden sie hier nicht mehr. */
+const TILE_ICONS = {
+  checklist: IconWindDown,
+  sounds: IconWaves,
+  guide: IconLucid,
+  symbols: IconConstellation,
+};
+
+/* Volle Zeilen statt 2×2-Kacheln — Antons Wahl am 25.08. aus drei live
+   umschaltbaren Varianten (A Altäre im Raster, B Zeilen, C stille
+   Quadrate). Eine Zeile kann nicht ungleich neben ihrer Nachbarin stehen —
+   genau die Krankheit des alten Rasters, in dem verschieden lange Texte
+   die Kacheln gegeneinander verschoben. */
 
 /* Vier Wahlmöglichkeiten, nicht acht: Wer im Dunkeln tippt, will nicht
    rechnen. 0 = aus. */
@@ -42,17 +61,30 @@ export default function SleepScreen() {
     );
   }
 
+  /* Kein ScreenHeader mehr: Die Übersicht ist die Bühne dieses Tabs, und
+     sie bekommt eine echte Überschrift — zentriert, in der Serife der
+     Traumtitel, mit dem Nachthimmel-Schein des Kaufblatts dahinter
+     (Antons Befund 25.08.: die kleine Randüberschrift „ist doch keine
+     Überschrift wert"). Die Unterseiten behalten den ScreenHeader — dort
+     ist der Kopf Orientierung, keine Bühne. */
   return (
-    <main className="screen">
-      <ScreenHeader title={t.sleep.title} subtitle={t.sleep.subtitle} />
+    <main className="screen sl-screen">
+      <div className="sl-hero" aria-hidden="true" />
+      <header className="sl-head">
+        <h1 className="sl-title">{t.sleep.title}</h1>
+        <p className="sl-sub">{t.sleep.subtitle}</p>
+      </header>
       <div className="sl-tiles">
-        {SECTIONS.map((id) => (
-          <button key={id} className={`sl-tile sl-tile-${id}`} onClick={() => setView(id)}>
-            <span className="sl-tile-emoji" aria-hidden="true">{t.sleep.tiles[id].emoji}</span>
-            <span className="sl-tile-title">{t.sleep.tiles[id].title}</span>
-            <span className="sl-tile-text">{t.sleep.tiles[id].text}</span>
-          </button>
-        ))}
+        {SECTIONS.map((id) => {
+          const Icon = TILE_ICONS[id];
+          return (
+            <button key={id} className={`sl-tile sl-tile-${id}`} onClick={() => setView(id)}>
+              <span className="sl-tile-icon" aria-hidden="true"><Icon /></span>
+              <span className="sl-tile-title">{t.sleep.tiles[id].title}</span>
+              <span className="sl-tile-text">{t.sleep.tiles[id].text}</span>
+            </button>
+          );
+        })}
       </div>
       <p className="sl-free">{t.sleep.free}</p>
     </main>

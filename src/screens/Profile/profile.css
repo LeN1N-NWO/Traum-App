@@ -104,7 +104,8 @@
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   font-size: 40px; color: var(--text); opacity: .8;
 }
-.p-hero-name { font-size: var(--t-h2); font-weight: 600; margin: var(--s-3) 0 0; }
+/* Serife wie die Traumtitel: Das ist ein Name, kein Account-Handle. */
+.p-hero-name { font-family: var(--serif); font-size: 26px; font-weight: 600; letter-spacing: -.01em; margin: var(--s-3) 0 0; }
 .p-hero-hint { color: var(--faint); font-size: var(--t-small); margin: 0; }
 
 .p-stats { display: flex; gap: var(--s-6); margin-top: var(--s-4); }
@@ -254,10 +255,14 @@
   font-family: var(--serif); font-size: var(--t-h3); font-weight: 400;
   margin: 0; margin-inline-end: auto;
 }
+/* Als Knopf erkennbar, nicht als blauer Text (Antons Befund 25.08.) —
+   dieselbe stille Pillenform wie die Werkzeuge im Journal (.j-act). */
 .p-dreamer-redo {
-  background: none; border: none; cursor: pointer; padding: 0;
-  color: var(--accent-soft); font-family: var(--sans); font-size: var(--t-small);
+  background: var(--panel); border: 1px solid var(--panel-line);
+  border-radius: 999px; padding: 6px 12px; cursor: pointer;
+  color: var(--text); font-family: var(--sans); font-size: var(--t-micro); font-weight: 600;
 }
+.p-dreamer-redo:hover { background: rgba(255,255,255,.1); }
 .p-dreamer-redo:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 6px; }
 
 /* Das Sternzeichen trägt den Block optisch — deshalb groß und golden. Es

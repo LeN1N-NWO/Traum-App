@@ -337,7 +337,7 @@ export default {
     credits: "Credits",
     creditsSoon: "Aufladen kommt bald",
     you: "Du",
-    meSet: "Antippen, um dein Foto zu ändern",
+    meSet: "Antippen, um Foto oder Namen zu ändern",
     meEmpty: "Füge ein Foto hinzu, damit Träume dich zeigen können",
     addPhoto: "Dein Foto hinzufügen",
     changePhoto: "Dein Foto ändern",

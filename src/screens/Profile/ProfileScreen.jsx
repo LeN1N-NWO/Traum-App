@@ -80,7 +80,17 @@ export default function ProfileScreen() {
             )}
         </button>
 
-        <p className="p-hero-name">{me?.tag ? `@${me.tag}` : t.profile.you}</p>
+        {/* Der NAME, wie ein Name geschrieben wird — nicht als Handle
+            (Antons Befund 25.08.: „hier sollte mein Name stehen"). Es ist
+            weiter dasselbe eine Feld (avatar.tag): klein gespeichert, weil
+            es der Schlüssel ist, über den Träume die Person erkennen
+            (findTagSpans, ohne Groß/klein) — angezeigt mit großem
+            Anfangsbuchstaben, weil Menschen so heißen. Wer hier antippt,
+            kann im Dialog auch den Namen ändern; „anton" statt „ich" heißt:
+            Jedes „Anton" im Traumtext verbindet sich mit ihm. */}
+        <p className="p-hero-name">
+          {me?.tag ? me.tag.charAt(0).toUpperCase() + me.tag.slice(1) : t.profile.you}
+        </p>
         <p className="p-hero-hint">{me?.img ? t.profile.meSet : t.profile.meEmpty}</p>
 
         <div className="p-stats">

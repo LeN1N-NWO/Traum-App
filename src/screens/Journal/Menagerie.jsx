@@ -14,7 +14,11 @@ export default function Menagerie({ onBack }) {
 
   return (
     <>
-      <button className="j-back" onClick={onBack}><span data-flip aria-hidden="true">\u2039</span> {t.journal.title}</button>
+      {/* ⚠ Das Zeichen steht als ZEICHEN im Text, nicht als \u-Folge: JSX-Text
+          ist kein JavaScript-String — "\u2039" kommt wörtlich auf den
+          Bildschirm. Genau so stand es hier bis zum 25.08. (Antons
+          Screenshot: „oben steht irgendwas mit \u2039"). */}
+      <button className="j-back" onClick={onBack}><span data-flip aria-hidden="true">‹</span> {t.journal.title}</button>
       <ScreenHeader title={t.home.menagerieHeading} subtitle={t.journal.menagerieLede} />
 
       {creatures.length === 0 ? (
