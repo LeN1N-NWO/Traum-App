@@ -129,6 +129,20 @@
 }
 
 .p-levers { display: flex; flex-direction: column; gap: var(--s-2); }
+
+/* — Gestalt A „Hauptbuch": die Zahl als goldene Serifen-Spalte links,
+   Titel und Satz rechts daneben — die Karte liest sich wie eine Zeile aus
+   einem Messprotokoll. (Prüfstand 25.08., zweite Runde) */
+.p-lv-a .p-lever {
+  display: grid; grid-template-columns: 96px 1fr; grid-template-rows: auto auto;
+  column-gap: var(--s-4); row-gap: 2px; align-items: center;
+}
+.p-lv-a .p-lever-stat { grid-row: 1 / span 2; font-size: 24px; text-align: center; }
+
+/* — Gestalt B „Podest": die Zahl thront groß über dem Titel — plakatig,
+   eine Karte je Erkenntnis. */
+.p-lv-b .p-lever { align-items: center; text-align: center; padding: var(--s-4); }
+.p-lv-b .p-lever-stat { font-size: 30px; }
 /* Gestapelt, nicht nebeneinander: „18 % vs 11 %" braucht als Spalte so viel
    Breite, dass daneben jede Überschrift umbricht — nachgemessen am 10.08.,
    die erste Fassung war doppelt so hoch wie nötig. Die Zahl steht deshalb
@@ -151,7 +165,8 @@
 .p-methods { display: flex; flex-direction: column; gap: var(--s-2); }
 .p-method {
   border-radius: var(--radius); overflow: hidden;
-  background: var(--panel); border: 1px solid var(--panel-line);
+  background: linear-gradient(150deg, var(--sky), color-mix(in oklab, var(--accent) 10%, var(--bg2)));
+  border: 1px solid var(--panel-line);
   transition: border-color .16s ease-out;
 }
 .p-method-open { border-color: var(--accent-soft); }

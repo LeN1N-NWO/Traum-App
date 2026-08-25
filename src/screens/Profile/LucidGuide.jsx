@@ -26,6 +26,14 @@ import "./profile.css";
  */
 export default function LucidGuide() {
   const [open, setOpen] = useState(null);
+  /* ⚠ PRÜFSTAND (25.08., zweite Runde): zwei Gestalten für die Hebel —
+     "a" Hauptbuch (die Zahl als goldene Spalte links), "b" Podest (die
+     Zahl groß über dem Titel, plakatig). Umschalter nur im Dev-Modus;
+     nach Antons Wahl einfrieren und ausmisten. */
+  const [gestalt, setGestalt] = useState(() => {
+    const v = import.meta.env.DEV ? sessionStorage.getItem("sl-luzid-gestalt") : null;
+    return v === "b" ? "b" : "a";
+  });
 
   return (
     <div className="p-lucid">
@@ -34,7 +42,7 @@ export default function LucidGuide() {
       {/* The three things the data says matter most, as figures — a number
           that beat a technique is more persuasive than any adjective. */}
       <h2 className="p-lucid-head">{t.lucid.leversTitle}</h2>
-      <div className="p-levers">
+      <div className={`p-levers p-lv-${gestalt}`}>
         {t.lucid.levers.map((l) => (
           <div className="p-lever" key={l.title}>
             <span className="p-lever-stat">{l.stat}</span>
@@ -45,6 +53,18 @@ export default function LucidGuide() {
           </div>
         ))}
       </div>
+
+      {import.meta.env.DEV && (
+        <div className="sl-dev-varianten" aria-hidden="true">
+          {["a", "b"].map((v) => (
+            <button
+              key={v}
+              className={"sl-dev-v" + (v === gestalt ? " sl-dev-v-on" : "")}
+              onClick={() => { sessionStorage.setItem("sl-luzid-gestalt", v); setGestalt(v); }}
+            >{v.toUpperCase()}</button>
+          ))}
+        </div>
+      )}
 
       <h2 className="p-lucid-head">{t.lucid.methodsTitle}</h2>
       <div className="p-methods">

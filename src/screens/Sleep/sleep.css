@@ -14,6 +14,32 @@
     linear-gradient(to bottom, transparent 55%, var(--bg) 100%);
 }
 .sl-head { position: relative; text-align: center; margin: var(--s-4) 0 var(--s-6); }
+/* Unterseiten: gleiche Bühne, eine Stufe leiser — der Rückweg sitzt darüber. */
+.sl-head-sub { margin-top: var(--s-2); }
+.sl-title-sub { font-size: clamp(24px, 6.5vw, 32px); }
+.sl-head-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; border-radius: 50%; margin-bottom: var(--s-3);
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.16), rgba(255,255,255,.05) 70%);
+  border: 1px solid var(--panel-line); color: var(--accent-soft);
+}
+.sl-hero-checklist ~ .sl-head-sub .sl-head-icon { color: var(--warm); }
+.sl-hero-sounds    ~ .sl-head-sub .sl-head-icon { color: var(--cyan); }
+.sl-hero-symbols   ~ .sl-head-sub .sl-head-icon { color: var(--accent); }
+/* Der Schein trägt die Farbe seines Raums. */
+.sl-hero-checklist { background:
+  radial-gradient(120% 80% at 28% 0%, color-mix(in oklab, var(--warm) 30%, transparent), transparent 62%),
+  linear-gradient(to bottom, transparent 55%, var(--bg) 100%); }
+.sl-hero-sounds { background:
+  radial-gradient(120% 80% at 28% 0%, color-mix(in oklab, var(--cyan) 26%, transparent), transparent 62%),
+  radial-gradient(90% 70% at 82% 10%, color-mix(in oklab, var(--accent-deep) 40%, transparent), transparent 64%),
+  linear-gradient(to bottom, transparent 55%, var(--bg) 100%); }
+.sl-hero-guide { background:
+  radial-gradient(120% 80% at 28% 0%, color-mix(in oklab, var(--accent) 34%, transparent), transparent 62%),
+  linear-gradient(to bottom, transparent 55%, var(--bg) 100%); }
+.sl-hero-symbols { background:
+  radial-gradient(120% 80% at 28% 0%, color-mix(in oklab, var(--accent-deep) 50%, transparent), transparent 62%),
+  linear-gradient(to bottom, transparent 55%, var(--bg) 100%); }
 .sl-title {
   font-family: var(--serif); font-size: clamp(28px, 8vw, 40px); font-weight: 600;
   letter-spacing: -.02em; margin: 0;
@@ -130,18 +156,32 @@
    bleibt unsichtbar, aber in voller Höhe greifbar: das Ziel ist die ganze
    44px-Spur, nicht ein 18px-Knubbel im Dunkeln. */
 .sl-sounds { display: flex; flex-direction: column; gap: var(--s-3); }
-.sl-slider { display: flex; align-items: center; gap: var(--s-3); cursor: pointer; }
-.sl-chip {
-  flex: 0 0 92px; padding: 10px 0; text-align: center;
-  border-radius: 999px; background: var(--panel); border: 1px solid var(--panel-line);
-  font-weight: 600; font-size: var(--t-small);
+/* — Die drei Rauschfarben (Prüfstand 25.08., zweite Runde) —
+   Jede Farbe hat ihren eigenen Ton, aus den Tokens gemischt: Weiß hell und
+   kühl, Rosa im warmen Rosé, Braun als tiefe Glut. `--klang` färbt Karte,
+   Reglerfüllung und Fader gleichermaßen — EINE Variable je Farbe, damit
+   beide Gestalten dieselbe Zunge sprechen. */
+.sl-sound-white { --klang: color-mix(in oklab, var(--text) 75%, var(--cyan) 25%); }
+.sl-sound-pink  { --klang: color-mix(in oklab, var(--warm) 55%, var(--accent-soft) 45%); }
+.sl-sound-brown { --klang: color-mix(in oklab, var(--warm) 62%, var(--bg2) 38%); }
+
+/* Gestalt A: Farbkarten. */
+.sl-sound {
+  display: flex; flex-direction: column; gap: var(--s-2);
+  padding: var(--s-4); border-radius: var(--radius-lg);
+  border: 1px solid var(--panel-line);
+  background: linear-gradient(150deg, var(--sky), color-mix(in oklab, var(--klang) 16%, var(--bg2)));
 }
+.sl-sound-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-2); }
+.sl-sound-name { font-weight: 600; font-size: var(--t-body); }
+.sl-sound-desc { color: var(--muted); font-size: var(--t-small); text-align: end; }
+
 .sl-track { position: relative; flex: 1; display: flex; }
 .sl-range {
   -webkit-appearance: none; appearance: none;
   width: 100%; height: 44px; margin: 0; border-radius: 999px; cursor: pointer;
   background: linear-gradient(to right,
-    var(--text) 0%, var(--text) var(--p), rgba(255, 255, 255, .12) var(--p));
+    var(--klang, var(--text)) 0%, var(--klang, var(--text)) var(--p), rgba(255, 255, 255, .12) var(--p));
 }
 .sl-range::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
@@ -154,6 +194,7 @@
 .sl-val {
   position: absolute; inset-inline-end: 16px; top: 50%; transform: translateY(-50%);
   pointer-events: none; font-size: var(--t-small); font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--text); mix-blend-mode: difference;
 }
 /* Der Einschlaf-Timer: dieselbe Kachel wie der Autostart darunter, damit die
@@ -187,3 +228,41 @@
 .sl-autostart span { display: flex; flex-direction: column; gap: 2px; }
 .sl-autostart small { color: var(--faint); font-size: var(--t-small); }
 
+
+/* Gestalt B: das Mischpult — drei stehende Fader, wie an einem echten Pult.
+   ⚠ Der stehende Regler ist `writing-mode: vertical-lr` + `direction: rtl`
+   (Wert wächst nach OBEN) — der Standardweg seit Chrome 119 / Safari 17.4;
+   die alte -webkit-Appearance-Rotation ist tot. Fällt die Wahl auf das
+   Pult, ist das die Stützuntergrenze der App. */
+.sl-pult { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-3); }
+.sl-fader {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s-2);
+  padding: var(--s-4) var(--s-2); border-radius: var(--radius-lg); cursor: pointer;
+  border: 1px solid var(--panel-line);
+  background: linear-gradient(170deg, var(--sky), color-mix(in oklab, var(--klang) 14%, var(--bg2)));
+}
+.sl-fader-slot { display: flex; justify-content: center; }
+.sl-fader-range {
+  -webkit-appearance: none; appearance: none;
+  writing-mode: vertical-lr; direction: rtl;
+  width: 44px; height: 180px; margin: 0; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(to top,
+    var(--klang) 0%, var(--klang) var(--p), rgba(255, 255, 255, .12) var(--p));
+}
+.sl-fader-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 44px; height: 28px; background: transparent; border: 0;
+}
+.sl-fader-range::-moz-range-thumb { width: 44px; height: 28px; background: transparent; border: 0; }
+.sl-fader-range:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 3px; }
+.sl-fader-val { font-size: var(--t-small); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
+.sl-fader-name { color: var(--muted); font-size: var(--t-micro); text-align: center; }
+
+/* Dev-Umschalter der Klang-Gestalten — stirbt mit Antons Wahl. */
+.sl-dev-varianten { display: flex; justify-content: center; gap: var(--s-2); margin-top: var(--s-5); }
+.sl-dev-v {
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--faint); font-family: var(--sans); font-size: var(--t-micro); font-weight: 700;
+}
+.sl-dev-v-on { color: var(--bg); background: var(--accent-soft); border-color: var(--accent-soft); }
