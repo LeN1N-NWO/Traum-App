@@ -39,12 +39,26 @@ export default function LucidGuide() {
       <h2 className="p-lucid-head">{t.lucid.leversTitle}</h2>
       <div className="p-levers">
         {t.lucid.levers.map((l) => (
+          /* ⚠ KEINE Kennzahl mehr über dem Titel (Antons Entscheidung
+             26.08.). Sie ist an dieser Stelle ZWEIMAL gescheitert: erst als
+             „18 % vs 11 %" (22.08.: „die Information bringt niemand"), dann
+             als Verhältnis in Worten. Der Grund war beide Male derselbe —
+             EIN Wert kann keinen Vergleich ausdrücken, und ohne Bezugsgröße
+             ist er keine Aussage.
+
+             Dazu kam ein Sachfehler: 11 → 18 ist Faktor 1,64, „fast doppelt
+             so oft" liest jeder als 1,8–1,9. Auf einem Bildschirm, der „was
+             die Studienlage WIRKLICH hergibt" verspricht, stand die
+             aufgeblasene Zahl in der größten Schrift.
+
+             Und die Reihe lud zu einer falschen Rechnung ein: „zweimal" und
+             „dreimal" untereinander lesen sich addierbar — dabei landen
+             BEIDE Hebel bei denselben 18 von 100 und unterscheiden sich nur
+             in der Vergleichsgröße. Die Zahlen stehen weiterhin im Text,
+             mit ihrer Einheit, wo sie belegen statt zu behaupten. */
           <div className="p-lever" key={l.title}>
-            <span className="p-lever-stat">{l.stat}</span>
-            <span className="p-lever-body">
-              <span className="p-lever-title">{l.title}</span>
-              <span className="p-lever-text">{l.text}</span>
-            </span>
+            <span className="p-lever-title">{l.title}</span>
+            <span className="p-lever-text">{l.text}</span>
           </div>
         ))}
       </div>

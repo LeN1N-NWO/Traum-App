@@ -445,11 +445,11 @@ export default {
     levers: [
       /* ⚠ Begründung in de.js: Eine Prozentzahl ohne Bezugsgröße ist keine
          Aussage. Oben die Wirkung in Worten, unten die Zahl mit Einheit. */
-      { stat: "nearly twice as often", title: "Get back to sleep fast",
+      { title: "Get back to sleep fast",
         text: "The biggest single difference in the whole study wasn't which technique people used — it was falling asleep again within ten minutes of doing it. That turned 18 attempts in 100 lucid, against 11 without. Lie down straight away. No phone." },
-      { stat: "three times as often", title: "Wake after about five hours",
+      { title: "Wake after about five hours",
         text: "A short wake-up in the middle of the night lifts the yield from 6 to 18 nights in 100. Nearly every method below is built on this one moment." },
-      { stat: "the groundwork", title: "Keep writing dreams down",
+      { title: "Keep writing dreams down",
         text: "People who remembered more dreams had more lucid ones — before learning any technique at all. You're already doing this. That's the point of this app." },
     ],
     methodsTitle: "The methods",

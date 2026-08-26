@@ -409,11 +409,11 @@ export default {
          ohne Bezugsgröße ist keine Aussage. Oben steht jetzt die Wirkung
          in Worten, unten die Zahl mit ihrer Einheit — einmal, im Fließtext,
          wo sie belegt statt behauptet. */
-      { stat: "fast doppelt so oft", title: "Schnell wieder einschlafen",
+      { title: "Schnell wieder einschlafen",
         text: "Der größte einzelne Unterschied in der ganzen Studie war nicht die gewählte Methode — sondern ob man danach innerhalb von zehn Minuten wieder einschlief. Dann wurden 18 von 100 Versuchen luzid, sonst 11. Sofort hinlegen. Kein Handy." },
-      { stat: "dreimal so oft", title: "Nach etwa fünf Stunden aufwachen",
+      { title: "Nach etwa fünf Stunden aufwachen",
         text: "Ein kurzes Aufstehen mitten in der Nacht hebt die Ausbeute von 6 auf 18 von 100 Nächten. Fast jede Methode hier unten baut auf diesem einen Moment auf." },
-      { stat: "die Grundlage", title: "Träume weiter aufschreiben",
+      { title: "Träume weiter aufschreiben",
         text: "Wer sich an mehr Träume erinnerte, hatte mehr Klarträume — noch bevor er irgendeine Methode gelernt hatte. Du machst das ohnehin schon. Genau dafür gibt es diese App." },
     ],
     methodsTitle: "Die Methoden",
