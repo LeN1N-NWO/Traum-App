@@ -5,6 +5,7 @@ import { t } from "../../i18n/index.js";
 import ScreenHeader from "../../components/ScreenHeader.jsx";
 import Card from "../../components/Card.jsx";
 import SymbolDetail from "./SymbolDetail.jsx";
+import SymbolIcon from "../../components/symbolIcons.jsx";
 import "./symbols.css";
 
 /* `embedded` drops the screen chrome so the Sleep tab can host this as one of
@@ -42,15 +43,16 @@ export default function SymbolsScreen({ embedded = false }) {
       ) : (
         groups.map((g) => (
           <section key={g.key} className="s-group">
-            <h2 className="s-group-title">
-              <span aria-hidden="true">{g.emoji}</span> {g.label}
-            </h2>
+            {/* Ohne Glyphe: Die Kategorie ist eine Überschrift, kein
+                einundzwanzigstes Symbol — Serife wie die übrigen
+                Abschnittsköpfe des Schlaf-Tabs. */}
+            <h2 className="s-group-title">{g.label}</h2>
             <div className="s-grid">
               {g.symbols.map((s) => (
                 <Card as="button" key={s.id} className="s-tile" onClick={() => setOpenId(s.id)}>
-                  <span className="s-emoji" aria-hidden="true">{s.emoji}</span>
+                  <SymbolIcon id={s.id} className="s-icon" />
                   <span className="s-label">{t.symbols.byId[s.id]?.label || s.label}</span>
-                  <span className="s-count">{occurrences.get(s.id).length}×</span>
+                  <span className="s-count">{occurrences.get(s.id)?.length || 0}×</span>
                 </Card>
               ))}
             </div>

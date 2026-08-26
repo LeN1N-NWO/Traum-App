@@ -174,3 +174,52 @@ export function IconFilm() {
     </svg>
   );
 }
+
+/* — Die vier Räume des Schlaf-Tabs (25.08.2026) —
+   Ersatz für die Emoji auf den Kacheln (🌜🌊🧠✧): Emoji brechen die eine
+   Bildsprache, die dieser Datei ihren Kopfkommentar gibt — jede Plattform
+   malt sie anders, gefüllt und bunt. Vier Striche derselben Familie. */
+
+/* Runterkommen: die Mondsichel über zwei ruhigen Linien — Abendritual. */
+export function IconWindDown() {
+  return (
+    <svg {...base}>
+      <path d="M15.5 9.8A5 5 0 0 1 9.3 3.6 5.1 5.1 0 1 0 15.5 9.8Z" />
+      <path d="M4.5 16.5h15" />
+      <path d="M7.5 20h9" />
+    </svg>
+  );
+}
+
+/* Einschlafgeräusche: drei Wellenzüge, wie die Regler des Mischers. */
+export function IconWaves() {
+  return (
+    <svg {...base}>
+      <path d="M3 8c2.2-2.4 4.3-2.4 6.5 0s4.3 2.4 6.5 0 3.5-2 5 0" />
+      <path d="M3 13c2.2-2.4 4.3-2.4 6.5 0s4.3 2.4 6.5 0 3.5-2 5 0" />
+      <path d="M3 18c2.2-2.4 4.3-2.4 6.5 0s4.3 2.4 6.5 0 3.5-2 5 0" />
+    </svg>
+  );
+}
+
+/* Luzides Träumen: das offene Auge mit dem Stern statt der Pupille —
+   wach IM Traum, nicht Gehirn-Anatomie. */
+export function IconLucid() {
+  return (
+    <svg {...base}>
+      <path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z" />
+      <path d="M12 9.4l.9 1.8 1.9.3-1.4 1.4.3 1.9-1.7-.9-1.7.9.3-1.9-1.4-1.4 1.9-.3Z" />
+    </svg>
+  );
+}
+
+/* Traumsymbole: drei Sterne verschiedener Größe — Wiederkehr am Himmel. */
+export function IconConstellation() {
+  return (
+    <svg {...base}>
+      <path d="M8 5.5 9.2 8.7l3.2 1.2-3.2 1.2L8 14.3l-1.2-3.2-3.2-1.2 3.2-1.2Z" />
+      <path d="M17.5 4.8v3M16 6.3h3" />
+      <path d="M16.5 14.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8Z" />
+    </svg>
+  );
+}

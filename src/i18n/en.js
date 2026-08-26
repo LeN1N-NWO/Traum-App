@@ -377,7 +377,7 @@ export default {
     credits: "credits",
     creditsSoon: "Top-up coming soon",
     you: "You",
-    meSet: "Tap to change your photo",
+    meSet: "Tap to change your photo or name",
     meEmpty: "Add a photo so dreams can put you in them",
     addPhoto: "Add your photo",
     changePhoto: "Change your photo",
@@ -445,11 +445,11 @@ export default {
     levers: [
       /* ⚠ Begründung in de.js: Eine Prozentzahl ohne Bezugsgröße ist keine
          Aussage. Oben die Wirkung in Worten, unten die Zahl mit Einheit. */
-      { stat: "nearly twice as often", title: "Get back to sleep fast",
+      { title: "Get back to sleep fast",
         text: "The biggest single difference in the whole study wasn't which technique people used — it was falling asleep again within ten minutes of doing it. That turned 18 attempts in 100 lucid, against 11 without. Lie down straight away. No phone." },
-      { stat: "three times as often", title: "Wake after about five hours",
+      { title: "Wake after about five hours",
         text: "A short wake-up in the middle of the night lifts the yield from 6 to 18 nights in 100. Nearly every method below is built on this one moment." },
-      { stat: "the groundwork", title: "Keep writing dreams down",
+      { title: "Keep writing dreams down",
         text: "People who remembered more dreams had more lucid ones — before learning any technique at all. You're already doing this. That's the point of this app." },
     ],
     methodsTitle: "The methods",
@@ -500,6 +500,12 @@ export default {
       },
     ],
     sourceNote: "Figures from the International Lucid Dream Induction Study (Aspy et al., 2020): 355 participants, one week of practice. Reassuringly, sleep quality was not worse on nights when it worked — participants slept slightly longer and woke less tired than in their baseline week.",
+    reminderAsk: "Remind me during the day",
+    reminderActive: (n) => `Reminders on: ${n}× a day`,
+    reminderPerDay: "How often a day",
+    reminderWhy: "The check only works once it is a habit — and a habit needs a nudge during the day, not good intentions at night.",
+    reminderSoon: "Noted. The reminders themselves arrive with the iPhone build — for now this only records that you want them.",
+    reminderOn: "Noted — reminders arrive with the iPhone build",
   },
 
   dream: {
@@ -970,9 +976,10 @@ export default {
     },
     yieldImages: (n) => (n === 1 ? "image" : "images"),
     yieldFilms: (n) => (n === 1 ? "film" : "films"),
+    upTo: "up to",
     yieldOr: "or",
     packNote: "Never expire — a little dearer per credit for it.",
-    packYield: (i, f) => (f ? `${i} images, or ${f} films` : `${i} images`),
+    packYield: (i, f) => (f ? `${i} images, or up to ${f} ${f === 1 ? "film" : "films"}` : `${i} images`),
     /* Unter den Ertrags-Kacheln, nur beim Jahresabo: die Kacheln zeigen
        die Jahressumme (Antons Wunsch: „hochrechnen, damit es nach viel
        aussieht"), diese Zeile hält die ehrliche Mechanik daneben fest. */

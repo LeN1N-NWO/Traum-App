@@ -6,6 +6,7 @@ import StreakBoard from "../../components/StreakBoard.jsx";
 import MorningCheckin from "../../components/MorningCheckin.jsx";
 import { hasPendingJobs } from "../../lib/collector.js";
 import { blankNight, nightMarked, isBlank } from "../../lib/blankNight.js";
+import HeroGlow from "../../components/HeroGlow.jsx";
 import { t } from "../../i18n/index.js";
 // Vite-gebündelt wie das Intro-Video: 666 KB, ohne Ton, transkodiert aus
 // media/video/Faultier-002.mov (7,3 MB).
@@ -51,9 +52,14 @@ export default function HomeScreen() {
 
   // Der letzte TRAUM, nie eine leere Nacht: „Zuletzt geträumt" über einem
   // Eintrag ohne Text wäre genau die Lüge, die der Vermerk vermeiden soll.
-  const last = [...(state.journal || [])]
-    .filter((e) => !isBlank(e))
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+  /* Ein Durchlauf statt Kopie + Vollsortierung: Für das EINE neueste
+     Element braucht niemand O(n log n) mit einer Date-Allokation pro
+     Vergleich — das lief bei jedem Render der Startseite über das ganze
+     Journal (Fund der Codeanalyse 26.08.). */
+  const last = (state.journal || []).reduce((best, e) => {
+    if (isBlank(e)) return best;
+    return !best || new Date(e.createdAt) > new Date(best.createdAt) ? e : best;
+  }, null);
 
   /* Die Startseite kennt zwei Momente (Antons „mach mal", 22.08.):
      morgens ist sie der Erzähl-Moment, abends der Einschlaf-Moment —
@@ -85,6 +91,7 @@ export default function HomeScreen() {
 
   return (
     <main className="screen h-screen">
+      <HeroGlow className="h-hero-glow" />
       <div className="h-top">
         <p className="h-greeting">{greeting}</p>
         {/* Antippbar seit 22.08. (Antons Go): dahinter liegt die

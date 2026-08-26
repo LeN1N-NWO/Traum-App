@@ -58,9 +58,15 @@ export function AppStateProvider({ children }) {
      Paywall.jsx. */
   const [paywall, setPaywall] = useState(null);   // null | "browse" | "spent" | "first" 
 
+  /* Der Timer wohnt in einem ref und wird vor jedem neuen Toast gelöscht:
+     Vorher löschte der Timer des ERSTEN Toasts den Text des zweiten
+     vorzeitig — zwei Meldungen kurz nacheinander, und die zweite war nach
+     einem Sekundenbruchteil weg (Fund der Codeanalyse 26.08.). */
+  const toastTimer = useRef(0);
   const toast = useCallback((text) => {
     setToastText(text);
-    setTimeout(() => setToastText(""), 2600);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastText(""), 2600);
   }, []);
 
   /* Always build a new object, never mutate the existing one — otherwise
@@ -73,12 +79,8 @@ export function AppStateProvider({ children }) {
      VERALTETE Journalliste und löschte den ersten stillschweigend wieder.
      Genau daran ist am 22.08.2026 ein ganzer Traum verschwunden. */
   const update = useCallback((patch) => {
-    setState((prev) => {
-      const next = { ...prev, ...(typeof patch === "function" ? patch(prev) : patch) };
-      if (!saveState(next)) toast(t.errors.storageFull);
-      return next;
-    });
-  }, [toast]);
+    setState((prev) => ({ ...prev, ...(typeof patch === "function" ? patch(prev) : patch) }));
+  }, []);
 
   /* No silent grant on mount anymore: the welcome credits are the reward for
    * the onboarding survey (Onboarding.jsx / ProfileScreen.jsx). A gift with
@@ -101,6 +103,47 @@ export function AppStateProvider({ children }) {
      gibt es nichts Offenes, tickt auch nichts. */
   const stateRef = useRef(state);
   stateRef.current = state;
+
+  /* ── Speichern: gesammelt statt bei jedem Patch ─────────────────────────
+     Bis zum 26.08. schrieb update() den KOMPLETTEN State synchron in
+     localStorage — mitten im setState-Updater. Das hieß: JSON.stringify
+     über alles (inklusive der base64-Fotos der Besetzung, Megabytes) bei
+     jeder noch so kleinen Änderung; ein Zug am Lautstärke-Regler waren
+     Dutzende Vollserialisierungen, und StrictMode verdoppelte im Dev-Modus
+     jede davon, weil React den Updater zweimal ruft.
+
+     Jetzt: EIN Schreiben, 250 ms nach der letzten Änderung. Die Lücke
+     deckt pagehide ab — der letzte Stand geht mit, wenn der Tab schließt
+     oder die App in den Hintergrund wandert (auf iOS ist pagehide das
+     einzige Signal, das zuverlässig kommt). Was diese Bauart NICHT
+     abdeckt: einen harten Prozess-Absturz innerhalb der 250 ms — den
+     deckte die alte auch nur scheinbar, denn mitten im Absturz ist auch
+     ein synchrones setItem nicht garantiert durch. */
+  const saveTimer = useRef(0);
+  const erstesRendern = useRef(true);
+  useEffect(() => {
+    /* Der frisch GELADENE Zustand muss nicht zurückgeschrieben werden —
+       er kam gerade von dort. */
+    if (erstesRendern.current) { erstesRendern.current = false; return; }
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      if (!saveState(stateRef.current)) toast(t.errors.storageFull);
+    }, 250);
+    return () => clearTimeout(saveTimer.current);
+  }, [state, toast]);
+  useEffect(() => {
+    const flush = () => {
+      clearTimeout(saveTimer.current);
+      saveState(stateRef.current);
+    };
+    window.addEventListener("pagehide", flush);
+    const sicht = () => { if (document.visibilityState === "hidden") flush(); };
+    document.addEventListener("visibilitychange", sicht);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", sicht);
+    };
+  }, []);
   const fingerprint = pendingFingerprint(state.journal);
   useEffect(() => {
     if (!fingerprint) return;

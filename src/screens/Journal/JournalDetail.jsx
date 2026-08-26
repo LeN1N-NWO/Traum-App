@@ -5,7 +5,7 @@ import TagField from "../../components/TagField.jsx";
 import { useAppState } from "../../state/AppState.jsx";
 import { refine, reflect, mediaUrl, generate } from "../../lib/api.js";
 import { reflectionContext } from "../../lib/atlas.js";
-import { imageIndexForBeat } from "../../lib/beats.js";
+import { imageIndexForBeat, evenIndices } from "../../lib/beats.js";
 import { filmOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
 import { spend } from "../../lib/credits.js";
 import { PRICES, priceForImages, IMAGE_COUNTS } from "../../lib/pricing.js";
@@ -81,7 +81,7 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
   async function runReflect() {
     setBusy(true);
     try {
-      const text = await reflect(entry.text, reflectionContext(state.journal, entry));
+      const text = await reflect(entry.text, reflectionContext(state.journal, entry), state.language);
       update({
         journal: state.journal.map((e) =>
           e.id === entry.id ? { ...e, reflection: { text, at: new Date().toISOString() } } : e
@@ -391,17 +391,41 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
             Bild je Szene, wo die Zuordnung sicher ist (Plan: Storyboard vor
             dem Film, Stufe A). Nur wenn eine Analyse existiert: Seeds und
             handgeschriebene Alt-Einträge haben keinen Bogen. */}
-        {!editing && !proposal && entry.analysis?.beats?.length > 0 && (
-          <div className="j-storyboard">
-            <p className="j-original-label">{t.storyboard.label}</p>
-            <Storyboard
-              beats={entry.analysis.beats}
-              entry={entry}
-              onRenderScene={renderScene}
-              onEditBeat={editBeat}
-            />
-          </div>
-        )}
+        {!editing && !proposal && entry.analysis?.beats?.length > 0 && (() => {
+          /* ⚠ Gezeigt werden die Szenen, die auch BILDER werden — nicht der
+             rohe Fünfer-Bogen der Analyse (Antons Befund 25.08.: „es gibt
+             jetzt nur noch vier, nicht mehr fünf"). Die Analyse liefert
+             absichtlich fünf Quell-Beats (beats.js, SOURCE_BEATS); welche
+             davon Bilder werden, entscheidet dieselbe evenIndices-Formel
+             wie beim Rendern — zwei verschiedene Spreads würden eine Kachel
+             zeigen, die nie ein Bild bekommt. `indices` hält Bearbeiten,
+             Nachfüllen und die Bild-Zuordnung auf den Quell-Indizes. */
+          const alle = entry.analysis.beats;
+          const off = entry.media?.poster === true ? 1 : 0;
+          const bestellt = (Number(entry.imageCount) || 0) - off;
+          /* Zwei Fälle, bewusst getrennt: BEZAHLTE Bilder werden gezeigt,
+             wie sie sind — auch fünf aus der Zeit des imageCount-5-Fehlers;
+             sie existieren und haben Geld gekostet. Nur der PLAN eines noch
+             ungerenderten Traums fällt auf die angebotenen Zahlen zurück,
+             denn genau so viele Bilder wird „Bilder machen" bestellen. */
+          const hatBilder = (entry.media?.urls?.length || 0) > 0;
+          const n = hatBilder
+            ? (bestellt >= 1 && bestellt <= alle.length ? bestellt : alle.length)
+            : Math.min(IMAGE_COUNTS.includes(bestellt) ? bestellt : IMAGE_COUNTS[0], alle.length);
+          const sel = evenIndices(alle.length, n);
+          return (
+            <div className="j-storyboard">
+              <p className="j-original-label">{t.storyboard.label}</p>
+              <Storyboard
+                beats={sel.map((i) => alle[i])}
+                indices={sel}
+                entry={entry}
+                onRenderScene={renderScene}
+                onEditBeat={editBeat}
+              />
+            </div>
+          );
+        })()}
 
         {/* Eine Zeile statt drei Blöcke (Antons Ansage 21.08.): der warme
             Hauptknopf (Bilder machen ODER Kurzfilm machen) nimmt nicht mehr

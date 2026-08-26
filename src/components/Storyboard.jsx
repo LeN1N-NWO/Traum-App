@@ -35,23 +35,33 @@ import "./storyboard.css";
  * @param {function} [onEditBeat] (i, text) => void — Wortlaut der Szene
  *                   ändern; der Aufrufer speichert ihn AM TRAUM, damit
  *                   Storyboard, Film und Bildauftrag dieselbe Fassung lesen
+ * @param {number[]} [indices]  Quell-Indizes der gezeigten Beats, wenn
+ *                   `beats` ein AUSSCHNITT der Analyse ist (Journal zeigt
+ *                   seit dem 25.08. nur die Szenen, die auch Bilder werden —
+ *                   Antons Befund: „es gibt jetzt nur noch vier, nicht mehr
+ *                   fünf"). Alles, was in Traum-Daten zeigt — sceneImages,
+ *                   sceneJobs, die Beat↔Bild-Zuordnung, die Rückrufe — läuft
+ *                   über diese Abbildung; die ANZEIGE zählt weiter 1..n.
+ *                   Ohne `indices`: Identität, nichts ändert sich.
  */
 export default function Storyboard({
   beats = [], entry = null, active = null,
   onToggle = null, onRenderScene = null, onEditBeat = null,
+  indices = null,
 }) {
   const [open, setOpen] = useState(null);
   const [draft, setDraft] = useState(null);   // null = nur lesen
   if (!beats.length) return null;
 
   const urls = entry?.media?.urls || [];
+  const srcOf = (i) => (indices ? indices[i] : i);
   const imgFor = (i) => {
     /* Nachgelieferte Einzelbilder (leere Kachel → „Bild erzeugen") gehen
        vor: sie wurden GENAU für diese Szene gemacht, die Sequenz-Zuordnung
        ist nur abgeleitet. */
-    const scene = entry?.sceneImages?.[i];
+    const scene = entry?.sceneImages?.[srcOf(i)];
     if (scene) return mediaUrl(scene);
-    const idx = imageIndexForBeat(i, {
+    const idx = imageIndexForBeat(srcOf(i), {
       imageCount: entry?.imageCount ?? 0,
       poster: entry?.media?.poster,
       urlCount: urls.length,
@@ -85,7 +95,7 @@ export default function Storyboard({
                   Kachel ein STICHWORT, keinen halben Satz — der ganze
                   Satz wartet im Blatt. Mit Bild erzählt das Bild. */}
               {!img && <span className="sb-text">{beatKeyword(b)}</span>}
-              {cooking.has(i) && <span className="sb-cooking-dot" aria-hidden="true" />}
+              {cooking.has(srcOf(i)) && <span className="sb-cooking-dot" aria-hidden="true" />}
             </button>
           );
         })}
@@ -131,7 +141,7 @@ export default function Storyboard({
                 <button
                   className="sb-sheet-fill"
                   disabled={!draft.trim() || draft.trim() === beats[open]}
-                  onClick={() => { onEditBeat(open, draft.trim()); setDraft(null); }}
+                  onClick={() => { onEditBeat(srcOf(open), draft.trim()); setDraft(null); }}
                 >
                   {t.storyboard.editSave}
                 </button>
@@ -143,18 +153,18 @@ export default function Storyboard({
               Während des Bearbeitens verschwindet der Knopf: Erst der
               Wortlaut, dann das Bild — sonst zahlt jemand für den Text,
               den er gerade verwirft. */}
-          {draft == null && !imgFor(open) && cooking.has(open) && (
+          {draft == null && !imgFor(open) && cooking.has(srcOf(open)) && (
             <p className="sb-sheet-note">{t.storyboard.scenePending}</p>
           )}
-          {draft == null && !imgFor(open) && !cooking.has(open) && onRenderScene && (
+          {draft == null && !imgFor(open) && !cooking.has(srcOf(open)) && onRenderScene && (
             <button
               className="sb-sheet-fill"
-              onClick={() => { onRenderScene(open); setOpen(null); }}
+              onClick={() => { onRenderScene(srcOf(open)); setOpen(null); }}
             >
               {t.storyboard.fillScene} · 1 {t.wizard.creditsN(1)}
             </button>
           )}
-          {draft == null && !imgFor(open) && !cooking.has(open) && !onRenderScene && (
+          {draft == null && !imgFor(open) && !cooking.has(srcOf(open)) && !onRenderScene && (
             <p className="sb-sheet-note">{t.storyboard.textOnly}</p>
           )}
         </Sheet>

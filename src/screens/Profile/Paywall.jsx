@@ -3,6 +3,7 @@ import { useAppState } from "../../state/AppState.jsx";
 import { SUBSCRIPTIONS, PACKS, dreamsFor } from "../../lib/plans.js";
 import { totalCredits } from "../../lib/credits.js";
 import { showcaseFrom } from "../../lib/showcase.js";
+import HeroGlow from "../../components/HeroGlow.jsx";
 import { t } from "../../i18n/index.js";
 import Button from "../../components/Button.jsx";
 import ShowcaseTile from "./ShowcaseTile.jsx";
@@ -69,7 +70,7 @@ export default function Paywall({ reason = "browse", onClose }) {
 
   return (
     <div className="pw" role="dialog" aria-modal="true" aria-label={t.paywall.title}>
-      <div className="pw-hero" aria-hidden="true" />
+      <HeroGlow className="pw-hero" />
 
       <button className="pw-close" onClick={onClose} aria-label={t.paywall.close}>×</button>
 
@@ -100,12 +101,6 @@ export default function Paywall({ reason = "browse", onClose }) {
           ))}
         </div>
 
-        {/* Warum Pakete teurer sind, einmal gesagt statt dreimal. Vorher
-            stand „verfallen nie" an jedem einzelnen Paket — dieselbe
-            Information dreifach, und der GRUND für den höheren Preis
-            nirgends. */}
-        {tab === "pack" && <p className="pw-packnote">{t.paywall.packNote}</p>}
-
         <div className="pw-plans">
           {plans.map((p) => (
             <button
@@ -133,6 +128,15 @@ export default function Paywall({ reason = "browse", onClose }) {
             </button>
           ))}
         </div>
+
+        {/* Warum Pakete teurer sind, einmal gesagt statt dreimal.
+            ⚠ UNTER der Liste, nicht darüber (Antons Befund 26.08.: „wenn
+            ich zwischen Abonnieren und Credits kaufen switche, verschiebt
+            sich gleich diese ganze Spalte"). Eine Zeile, die es nur auf
+            EINEM Reiter gibt, schiebt alles unter sich weg, sobald sie
+            erscheint — steht sie unter der Liste, bleiben die Tarife beim
+            Umschalten stehen, und nur der Fuß rückt nach. */}
+        {tab === "pack" && <p className="pw-packnote">{t.paywall.packNote}</p>}
 
         {/* Was der gewählte Tarif hergibt — als zwei Flächen, auf denen die
             Ware selbst läuft, statt als Piktogramm davon.
@@ -172,6 +176,14 @@ export default function Paywall({ reason = "browse", onClose }) {
                 backup={show.filmsBackup}
                 count={got.films}
                 label={t.paywall.yieldFilms(got.films)}
+                /* ⚠ „bis zu" ist keine Vorsicht, sondern Rechnung: Die Zahl
+                   entsteht aus dem KÜRZESTEN Film der günstigsten Stufe
+                   (dreamsFor → standard, Voreinstellung). Wer 15 Sekunden
+                   Seedance macht, bekommt weniger — ohne das Wort wäre die
+                   Zahl ein Versprechen, das die App bricht, sobald jemand
+                   den Regler bewegt. Bilder brauchen es nicht: Ein Credit
+                   ist ein Bild, per Definition. */
+                upTo={t.paywall.upTo}
               />
             </>
           )}

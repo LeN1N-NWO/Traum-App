@@ -141,9 +141,11 @@ export async function refine(dream, mode) {
 
 /** Die Reflection zu einem Traum — Spiegel, nicht Orakel. `context` sind
  *  die Musterzeilen aus atlas.js (reflectionContext), gratis wie alle
- *  Textarbeit. */
-export async function reflect(dream, context = []) {
-  const data = await post("/api/reflect", { dream, context });
+ *  Textarbeit. `lang` ist die App-Sprache (state.language): Ohne sie rät
+ *  das Modell die Antwortsprache aus dem Traumtext — und riet am 25.08.
+ *  bei einem deutschen Traum Englisch. */
+export async function reflect(dream, context = [], lang = null) {
+  const data = await post("/api/reflect", { dream, context, lang });
   if (typeof data?.text !== "string") throw new Error(t.errors.unexpected);
   return data.text;
 }

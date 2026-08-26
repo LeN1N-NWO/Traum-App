@@ -4,6 +4,7 @@ import { isBlank } from "../../lib/blankNight.js";
 import { useAppState } from "../../state/AppState.jsx";
 import { t } from "../../i18n/index.js";
 import ScreenHeader from "../../components/ScreenHeader.jsx";
+import HeroGlow from "../../components/HeroGlow.jsx";
 import JournalCard from "./JournalCard.jsx";
 import JournalDetail from "./JournalDetail.jsx";
 import CastLibrary from "./CastLibrary.jsx";
@@ -14,7 +15,8 @@ import "./journal.css";
 
 export default function JournalScreen() {
   const { state, update } = useAppState();
-  const routeState = useLocation().state;
+  const location = useLocation();
+  const routeState = location.state;
   const [query, setQuery] = useState("");
   // Die Suche ist ein Werkzeug, kein Dauerzustand: eingeklappt hinter der
   // Lupe im Kopf (Antons Ansage 21.08.), aufgeklappt nur solange gesucht wird.
@@ -30,6 +32,22 @@ export default function JournalScreen() {
   const [atlas, setAtlas] = useState(routeState?.view === "atlas");
   const [menagerie, setMenagerie] = useState(false);
   const trackRef = useRef(null);
+
+  /* ⚠ Der Journal-Tab in der Leiste MUSS aus jedem Nebenraum herausführen
+     (Antons Befund 25.08.: „auch wenn ich auf das Journal draufklicke,
+     bleibe ich auf dieser Seite"). Der Klick auf den Tab wechselt die Route
+     nicht — /journal nach /journal —, also montiert nichts neu und die
+     Nebenraum-Zustände bleiben stehen. Aber jeder Klick erzeugt einen neuen
+     location.key, und DER ist das Signal: zurück auf die Traumliste.
+     `routeState?.view === "atlas"` gewinnt weiter — der gezielte Sprung von
+     der Startseite in den Atlas ist ja genau so ein neuer key. */
+  useEffect(() => {
+    setMenagerie(false);
+    setLibrary(false);
+    setOpenId(null);
+    setAtlas(routeState?.view === "atlas");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
 
   // The chosen view outlives the visit — it is a preference, not a mood.
   const deck = state.journalView !== "list";
@@ -112,6 +130,7 @@ export default function JournalScreen() {
 
   return (
     <main className="screen">
+      <HeroGlow className="j-hero-glow" />
       <ScreenHeader
         title={t.journal.title}
         subtitle={t.journal.count(total)}

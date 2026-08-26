@@ -31,5 +31,9 @@ export default defineConfig({
       "/media": API_TARGET,
     },
   },
-  build: { outDir: "dist", emptyOutDir: true },
+  /* es2022 wegen top-level await in src/i18n/index.js (die fünf
+     eingefrorenen Sprachen laden seit dem 26.08. nach). Deckt sich mit der
+     Stützuntergrenze der App: Chrome 119 / Safari 17.4 (Mischpult-Fader,
+     sleep.css) — beide können es2022 vollständig. */
+  build: { outDir: "dist", emptyOutDir: true, target: "es2022" },
 });

@@ -21,8 +21,12 @@ import "./onboarding.css";
 export default function LanguagePicker({ onChosen }) {
   const { update } = useAppState();
 
-  function choose(id) {
-    setLanguage(id);      // t is correct before the state update re-renders anything
+  async function choose(id) {
+    /* ERST warten, DANN den Re-Render anstoßen: setLanguage ist seit dem
+       26.08. async (die fünf eingefrorenen Sprachen werden nachgeladen).
+       Für en/de löst es sofort auf; für die anderen ist das Warten genau
+       die Garantie, dass t gefüllt ist, bevor irgendetwas neu rendert. */
+    await setLanguage(id);
     update({ language: id });
     onChosen?.();
   }

@@ -1,0 +1,42 @@
+/* Siehe HeroGlow.jsx für das Warum. Hier nur das Wie. */
+
+.hero {
+  position: absolute; top: 0; inset-inline: 0;
+  height: var(--hero-h, 230px);
+  pointer-events: none;
+  /* Der Rahmen schneidet die Bewegung sauber ab UND blendet nach unten
+     aus. Die Maske nimmt Deckkraft weg, statt Farbe darüberzumalen —
+     deshalb funktioniert sie über jedem Hintergrund, auch über einem
+     Bild. */
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 42%, transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 42%, transparent 100%);
+}
+
+/* ⚠ Größer als der Rahmen (inset -25%), damit die Drift keine Ecke
+   freilegt. Animiert wird NUR `transform` — das läuft auf der GPU, ohne
+   dass ein einziges Pixel neu gemalt wird. Denselben Effekt über
+   `background-position` zu fahren hieße, den Verlauf 60-mal je Sekunde
+   neu zu rastern; genau das kostet auf dem Telefon Akku. */
+.hero-glow {
+  position: absolute; inset: -25%;
+  background:
+    radial-gradient(58% 68% at 22% 10%,
+      color-mix(in oklab, var(--glow-a, var(--warm)) 42%, transparent), transparent 64%),
+    radial-gradient(58% 64% at 80% 24%,
+      color-mix(in oklab, var(--glow-b, var(--accent)) 42%, transparent), transparent 66%);
+  will-change: transform;
+  animation: hero-drift 26s ease-in-out infinite;
+}
+
+/* Sehr langsam und sehr klein: Der Schein soll atmen, nicht wandern. Wer
+   die Bewegung bemerkt, während er liest, ist gestört worden. */
+@keyframes hero-drift {
+  0%   { transform: translate3d(-2.5%, -1%, 0) scale(1.04); }
+  50%  { transform: translate3d( 2.5%,  1%, 0) scale(1.10); }
+  100% { transform: translate3d(-2.5%, -1%, 0) scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-glow { animation: none; transform: scale(1.06); }
+}

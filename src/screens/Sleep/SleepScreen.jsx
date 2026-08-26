@@ -4,7 +4,8 @@ import { useAppState } from "../../state/AppState.jsx";
 import { setVolume, getVolumes, startTimer, subscribe } from "../../lib/soundMixer.js";
 import { SOUND_IDS } from "../../lib/noise.js";
 import { t } from "../../i18n/index.js";
-import ScreenHeader from "../../components/ScreenHeader.jsx";
+import { IconWindDown, IconWaves, IconLucid, IconConstellation } from "../../components/icons.jsx";
+import HeroGlow from "../../components/HeroGlow.jsx";
 import SleepChecklist from "./SleepChecklist.jsx";
 import LucidGuide from "../Profile/LucidGuide.jsx";
 import SymbolsScreen from "../Symbols/SymbolsScreen.jsx";
@@ -14,6 +15,24 @@ import "./sleep.css";
  * credit. A tile overview opens one section at a time — no sub-routes, the
  * tab stays a single screen the back button cannot get lost in. */
 const SECTIONS = ["checklist", "sounds", "guide", "symbols"];
+
+/* Strich-Icons derselben Familie wie die Tab-Leiste — die Emoji sind raus
+   (Antons Befund 25.08.: jede Plattform malt sie anders, und vier bunte
+   Fremdkörper machen aus einer Übersicht einen Basar). Die Emoji-Felder in
+   den Sprachdateien bleiben stehen, bis alle sieben nachgezogen sind —
+   gelesen werden sie hier nicht mehr. */
+const TILE_ICONS = {
+  checklist: IconWindDown,
+  sounds: IconWaves,
+  guide: IconLucid,
+  symbols: IconConstellation,
+};
+
+/* Volle Zeilen statt 2×2-Kacheln — Antons Wahl am 25.08. aus drei live
+   umschaltbaren Varianten (A Altäre im Raster, B Zeilen, C stille
+   Quadrate). Eine Zeile kann nicht ungleich neben ihrer Nachbarin stehen —
+   genau die Krankheit des alten Rasters, in dem verschieden lange Texte
+   die Kacheln gegeneinander verschoben. */
 
 /* Vier Wahlmöglichkeiten, nicht acht: Wer im Dunkeln tippt, will nicht
    rechnen. 0 = aus. */
@@ -30,10 +49,20 @@ export default function SleepScreen() {
 
   if (view) {
     const section = t.sleep.tiles[view];
+    const Icon = TILE_ICONS[view];
+    /* Dieselbe Bühne wie die Übersicht — Schein, Icon im Kreis, Serife —
+       nur der Schein trägt die Farbe seines Raums (Antons Befund 25.08.:
+       die Unterseiten sahen „mau" aus neben der neuen Hauptseite). Der
+       ScreenHeader ist hier raus; er lebt in den übrigen Tabs weiter. */
     return (
-      <main className="screen">
+      <main className="screen sl-screen">
+        <HeroGlow className={`sl-hero sl-hero-${view}`} />
         <button className="sl-back" onClick={() => setView(null)}><span data-flip aria-hidden="true">‹</span> {t.sleep.title}</button>
-        <ScreenHeader title={section.title} subtitle={section.text} />
+        <header className="sl-head sl-head-sub">
+          <span className="sl-head-icon" aria-hidden="true"><Icon /></span>
+          <h1 className="sl-title sl-title-sub">{section.title}</h1>
+          <p className="sl-sub">{section.text}</p>
+        </header>
         {view === "checklist" && <SleepChecklist />}
         {view === "sounds" && <SoundMixerPanel />}
         {view === "guide" && <LucidGuide />}
@@ -42,17 +71,30 @@ export default function SleepScreen() {
     );
   }
 
+  /* Kein ScreenHeader mehr: Die Übersicht ist die Bühne dieses Tabs, und
+     sie bekommt eine echte Überschrift — zentriert, in der Serife der
+     Traumtitel, mit dem Nachthimmel-Schein des Kaufblatts dahinter
+     (Antons Befund 25.08.: die kleine Randüberschrift „ist doch keine
+     Überschrift wert"). Die Unterseiten tragen seit dem Abend dieselbe
+     Bühne in der Farbe ihres Raums — siehe oben im view-Zweig. */
   return (
-    <main className="screen">
-      <ScreenHeader title={t.sleep.title} subtitle={t.sleep.subtitle} />
+    <main className="screen sl-screen">
+      <HeroGlow className="sl-hero" />
+      <header className="sl-head">
+        <h1 className="sl-title">{t.sleep.title}</h1>
+        <p className="sl-sub">{t.sleep.subtitle}</p>
+      </header>
       <div className="sl-tiles">
-        {SECTIONS.map((id) => (
-          <button key={id} className={`sl-tile sl-tile-${id}`} onClick={() => setView(id)}>
-            <span className="sl-tile-emoji" aria-hidden="true">{t.sleep.tiles[id].emoji}</span>
-            <span className="sl-tile-title">{t.sleep.tiles[id].title}</span>
-            <span className="sl-tile-text">{t.sleep.tiles[id].text}</span>
-          </button>
-        ))}
+        {SECTIONS.map((id) => {
+          const Icon = TILE_ICONS[id];
+          return (
+            <button key={id} className={`sl-tile sl-tile-${id}`} onClick={() => setView(id)}>
+              <span className="sl-tile-icon" aria-hidden="true"><Icon /></span>
+              <span className="sl-tile-title">{t.sleep.tiles[id].title}</span>
+              <span className="sl-tile-text">{t.sleep.tiles[id].text}</span>
+            </button>
+          );
+        })}
       </div>
       <p className="sl-free">{t.sleep.free}</p>
     </main>
@@ -89,30 +131,29 @@ function SoundMixerPanel() {
     update({ soundMix: { ...savedMix, volumes: vols, timer: minutes } });
   }
 
+  /* Das Mischpult — Antons Wahl (26.08.) aus zwei live umschaltbaren
+     Gestalten; die Farbkarten-Variante ist ausgebaut. Drei stehende Fader
+     wie an einem echten Pult, jede Rauschfarbe in ihrem eigenen Ton. */
   return (
     <div className="sl-sounds">
-      <p className="sl-lede">{t.sleep.sounds.lede}</p>
-
-      {/* One row per noise colour: name as a chip, the track a pill that
-          fills from the left, the loudness as a number at its end — the
-          whole row reads at a glance in the dark, which is where this
-          screen is actually used. */}
-      {SOUND_IDS.map((id) => (
-        <label key={id} className="sl-slider" title={t.sleep.sounds.descs[id]}>
-          <span className="sl-chip">{t.sleep.sounds.names[id]}</span>
-          <span className="sl-track">
-            <input
-              className="sl-range"
-              type="range" min="0" max="1" step="0.01"
-              value={vols[id]}
-              style={{ "--p": `${Math.round(vols[id] * 100)}%` }}
-              onChange={(e) => change(id, Number(e.target.value))}
-              aria-label={`${t.sleep.sounds.names[id]} — ${t.sleep.sounds.descs[id]}`}
-            />
-            <output className="sl-val" aria-hidden="true">{Math.round(vols[id] * 100)}</output>
-          </span>
-        </label>
-      ))}
+      <div className="sl-pult">
+          {SOUND_IDS.map((id) => (
+            <label key={id} className={`sl-fader sl-sound-${id}`} title={t.sleep.sounds.descs[id]}>
+              <span className="sl-fader-slot">
+                <input
+                  className="sl-fader-range"
+                  type="range" min="0" max="1" step="0.01"
+                  value={vols[id]}
+                  style={{ "--p": `${Math.round(vols[id] * 100)}%` }}
+                  onChange={(e) => change(id, Number(e.target.value))}
+                  aria-label={`${t.sleep.sounds.names[id]} — ${t.sleep.sounds.descs[id]}`}
+                />
+              </span>
+              <output className="sl-fader-val" aria-hidden="true">{Math.round(vols[id] * 100)}</output>
+              <span className="sl-fader-name">{t.sleep.sounds.names[id]}</span>
+            </label>
+          ))}
+      </div>
 
       {/* Der Einschlaf-Timer (Mehrwert-Plan P3b): eine Zeile, vier Knöpfe.
           Ausgeblendet wird über eine Minute — ein Rauschen, das abrupt

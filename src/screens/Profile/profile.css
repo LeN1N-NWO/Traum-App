@@ -104,7 +104,8 @@
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   font-size: 40px; color: var(--text); opacity: .8;
 }
-.p-hero-name { font-size: var(--t-h2); font-weight: 600; margin: var(--s-3) 0 0; }
+/* Serife wie die Traumtitel: Das ist ein Name, kein Account-Handle. */
+.p-hero-name { font-family: var(--serif); font-size: 26px; font-weight: 600; letter-spacing: -.01em; margin: var(--s-3) 0 0; }
 .p-hero-hint { color: var(--faint); font-size: var(--t-small); margin: 0; }
 
 .p-stats { display: flex; gap: var(--s-6); margin-top: var(--s-4); }
@@ -128,29 +129,27 @@
 }
 
 .p-levers { display: flex; flex-direction: column; gap: var(--s-2); }
-/* Gestapelt, nicht nebeneinander: „18 % vs 11 %" braucht als Spalte so viel
-   Breite, dass daneben jede Überschrift umbricht — nachgemessen am 10.08.,
-   die erste Fassung war doppelt so hoch wie nötig. Die Zahl steht deshalb
-   als eigene Zeile über dem Titel, in Serifenschrift und Gold: sie ist das
-   Argument, der Text darunter erklärt sie nur. */
+
+/* Ohne die goldene Kennzahl (26.08., siehe LucidGuide.jsx) hat das Podest
+   seinen Grund verloren: Zentriert war die Karte, damit die Zahl thront.
+   Was bleibt, ist Titel plus Fließtext — und ein zentrierter Absatz über
+   drei Zeilen liest sich schlechter als ein linksbündiger, weil jede Zeile
+   woanders anfängt. Linksbündig ist zugleich dieselbe Kante wie bei den
+   Methodenkarten darunter. */
 .p-lever {
-  display: flex; flex-direction: column; gap: 3px;
-  padding: var(--s-3) var(--s-4); border-radius: var(--radius);
+  display: flex; flex-direction: column; gap: 4px;
+  padding: var(--s-4); border-radius: var(--radius);
   background: linear-gradient(150deg, var(--sky), color-mix(in oklab, var(--accent) 18%, var(--bg2)));
   border: 1px solid var(--panel-line);
 }
-.p-lever-stat {
-  font-family: var(--serif); font-size: 20px; color: var(--gold);
-  line-height: 1.2; letter-spacing: -.01em;
-}
-.p-lever-body { display: contents; }
 .p-lever-title { font-weight: 600; font-size: var(--t-body); }
 .p-lever-text { color: var(--muted); font-size: var(--t-small); line-height: 1.5; }
 
 .p-methods { display: flex; flex-direction: column; gap: var(--s-2); }
 .p-method {
   border-radius: var(--radius); overflow: hidden;
-  background: var(--panel); border: 1px solid var(--panel-line);
+  background: linear-gradient(150deg, var(--sky), color-mix(in oklab, var(--accent) 10%, var(--bg2)));
+  border: 1px solid var(--panel-line);
   transition: border-color .16s ease-out;
 }
 .p-method-open { border-color: var(--accent-soft); }
@@ -202,28 +201,7 @@
   margin: var(--s-5) 0 0;
 }
 
-.p-backdrop {
-  position: fixed; inset: 0; z-index: 60; background: var(--veil);
-  backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
-  padding: var(--s-4);
-}
-.p-modal {
-  width: 100%; max-width: 420px; background: var(--bg2);
-  border: 1px solid var(--panel-line); border-radius: var(--radius-lg); padding: var(--s-5);
-}
-.p-modal-title { font-size: var(--t-h2); font-weight: 600; margin: 0 0 var(--s-4); }
-.p-field { display: block; margin-bottom: var(--s-4); }
-.p-field span { display: block; font-size: var(--t-small); color: var(--muted); margin-bottom: var(--s-1); }
-.p-field input {
-  width: 100%; padding: var(--s-3); border-radius: 12px;
-  background: var(--panel); border: 1px solid var(--panel-line);
-  color: var(--text); font-family: var(--sans); font-size: var(--t-body);
-}
-.p-field input:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
-.p-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: var(--radius); margin-bottom: var(--s-3); }
 .p-hint { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-4); }
-.p-actions { display: flex; gap: var(--s-2); justify-content: flex-end; }
-
 /* Der Traumkalender ist in den Journal-Tab gezogen; sein Stil steht jetzt
    in journal.css unter .j-cal. */
 
@@ -254,10 +232,14 @@
   font-family: var(--serif); font-size: var(--t-h3); font-weight: 400;
   margin: 0; margin-inline-end: auto;
 }
+/* Als Knopf erkennbar, nicht als blauer Text (Antons Befund 25.08.) —
+   dieselbe stille Pillenform wie die Werkzeuge im Journal (.j-act). */
 .p-dreamer-redo {
-  background: none; border: none; cursor: pointer; padding: 0;
-  color: var(--accent-soft); font-family: var(--sans); font-size: var(--t-small);
+  background: var(--panel); border: 1px solid var(--panel-line);
+  border-radius: 999px; padding: 6px 12px; cursor: pointer;
+  color: var(--text); font-family: var(--sans); font-size: var(--t-micro); font-weight: 600;
 }
+.p-dreamer-redo:hover { background: rgba(255,255,255,.1); }
 .p-dreamer-redo:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 6px; }
 
 /* Das Sternzeichen trägt den Block optisch — deshalb groß und golden. Es
@@ -291,3 +273,36 @@
   background: var(--accent-wash); color: var(--accent-soft);
   font-size: var(--t-small); font-weight: 600;
 }
+
+/* Der Schein über dem Profilkopf (HeroGlow, 26.08.). */
+.p-hero-glow { --hero-h: 300px; }
+
+/* — Erinnerungs-Schalter unter den Realitätschecks (26.08.) —
+   Siehe LucidGuide.jsx: sammelt heute nur den Wunsch ein, die Erlaubnis
+   holt die native Schicht nach der Xcode-Portierung. */
+.p-remind { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-4); }
+.p-remind-btn {
+  display: inline-flex; align-items: center; gap: var(--s-2); align-self: flex-start;
+  padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font-family: var(--sans); font-size: var(--t-small); font-weight: 600;
+}
+.p-remind-btn:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.p-remind-on { border-color: var(--accent-soft); color: var(--accent-soft); }
+/* Der Punkt ist der ganze Zustand: aus = leerer Ring, an = gefüllt und
+   warm. Ein Häkchen wäre eine Behauptung („erledigt"), der Punkt sagt nur,
+   dass etwas läuft. */
+.p-remind-dot {
+  inline-size: 8px; block-size: 8px; border-radius: 50%;
+  border: 1px solid var(--faint); background: none;
+}
+.p-remind-on .p-remind-dot { background: var(--gold); border-color: var(--gold); }
+.p-remind-row { display: flex; gap: var(--s-2); }
+.p-remind-n {
+  min-width: 40px; padding: 6px 0; border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--muted); font-family: var(--sans); font-size: var(--t-small); font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.p-remind-n-on { background: var(--accent-wash); border-color: var(--accent-soft); color: var(--text); }
+.p-remind-hint { color: var(--faint); font-size: var(--t-small); margin: 0; line-height: 1.5; }

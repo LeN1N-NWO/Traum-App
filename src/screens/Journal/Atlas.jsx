@@ -3,7 +3,7 @@ import ScreenHeader from "../../components/ScreenHeader.jsx";
 import { useAppState } from "../../state/AppState.jsx";
 import { symbolCounts, moodCounts, monthReview, realDreams } from "../../lib/atlas.js";
 import { sleepAverage, sleepNights, sleepByMood } from "../../lib/checkin.js";
-import { symbolById } from "../../lib/symbols.js";
+import SymbolIcon from "../../components/symbolIcons.jsx";
 import { t } from "../../i18n/index.js";
 import "./journal.css";
 
@@ -55,7 +55,7 @@ export default function Atlas({ onBack, onOpen }) {
                 </div>
                 {month.topSymbol && (
                   <div className="at-fact">
-                    <span className="at-fact-n" aria-hidden="true">{symbolById(month.topSymbol.id)?.emoji}</span>
+                    <SymbolIcon id={month.topSymbol.id} className="at-fact-n" />
                     <span className="at-fact-label">{t.symbols.byId[month.topSymbol.id]?.label}</span>
                   </div>
                 )}
@@ -120,7 +120,6 @@ export default function Atlas({ onBack, onOpen }) {
                     überladen"). Der Rest bleibt über die Symbolseite im
                     Sleep-Tab erreichbar. */}
                 {symbols.slice(0, 6).map((s) => {
-                  const sym = symbolById(s.id);
                   const open = openSymbol === s.id;
                   return (
                     <div key={s.id} className="at-symbol">
@@ -129,7 +128,7 @@ export default function Atlas({ onBack, onOpen }) {
                         aria-expanded={open}
                         onClick={() => setOpenSymbol(open ? null : s.id)}
                       >
-                        <span className="at-symbol-emoji" aria-hidden="true">{sym?.emoji}</span>
+                        <SymbolIcon id={s.id} className="at-symbol-emoji" />
                         <span className="at-symbol-label">{t.symbols.byId[s.id]?.label || s.id}</span>
                         <span className="at-symbol-count">×{s.count}</span>
                       </button>
