@@ -192,14 +192,6 @@
 .wiz-style:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 .wiz-style-emoji { font-size: 22px; line-height: 1; }
 
-.wiz-poster-fields { display: grid; gap: var(--s-2); }
-.wiz-input {
-  width: 100%; padding: var(--s-3); border-radius: 12px;
-  background: var(--panel); border: 1px solid var(--panel-line);
-  color: var(--text); font-family: var(--sans); font-size: var(--t-body);
-}
-.wiz-input:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
-
 .wiz-formats { display: flex; gap: var(--s-2); }
 .wiz-format {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: var(--s-1);
@@ -230,10 +222,6 @@
 @keyframes wiz-spin { to { transform: rotate(360deg); } }
 .wiz-busy-text { color: var(--muted); font-size: var(--t-body); margin: 0; text-align: center; }
 .wiz-busy-count { color: var(--faint); font-size: var(--t-small); margin: 0; }
-
-/* — step 6 — */
-.wiz-result { display: flex; flex-direction: column; gap: var(--s-3); margin-bottom: var(--s-4); }
-.wiz-result img, .wiz-result video { width: 100%; border-radius: var(--radius); display: block; }
 
 @media (prefers-reduced-motion: reduce) {
   .wiz-spinner { animation-duration: 3s; }

@@ -109,7 +109,24 @@ export default function AvatarDialog({
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => setzen(String(reader.result));
+    /* ⚠ Verkleinern VOR dem Speichern — dieselbe compactDataUrl wie beim
+       Charakterbogen (1600 px, JPEG 0.85). Bis zum 26.08. ging das
+       Original 1:1 als base64 in den State: Ein 4-MB-Handyfoto wird dabei
+       zu ~5,3 MB Text und sprengt ALLEIN die ~5-MB-Grenze von
+       localStorage — der Speicher war voll, bevor die zweite Figur ein
+       Foto hatte. 1600 px ist zugleich, was die Bildmodelle ohnehin
+       bekommen; verloren geht also nichts, was je benutzt wurde.
+       Schlägt das Umrechnen fehl (exotisches Format, das der Browser
+       lesen, aber nicht auf Canvas malen kann), bleibt das Original —
+       lieber ein großes Foto als gar keins. */
+    reader.onload = async () => {
+      const roh = String(reader.result);
+      try {
+        setzen(await compactDataUrl(roh));
+      } catch {
+        setzen(roh);
+      }
+    };
     reader.onerror = () => toast(t.avatarDialog.readFailed);
     reader.readAsDataURL(file);
     // Damit dieselbe Datei ein zweites Mal gewaehlt werden kann.

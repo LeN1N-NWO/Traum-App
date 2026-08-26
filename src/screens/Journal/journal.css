@@ -179,11 +179,7 @@
   color: var(--muted); font-size: var(--t-micro); margin: 0 0 var(--s-2);
   text-transform: uppercase; letter-spacing: .1em;
 }
-.j-media { display: flex; flex-direction: column; gap: var(--s-2); margin-bottom: var(--s-4); }
-.j-media img, .j-media video { width: 100%; border-radius: var(--radius); display: block; }
 .j-modal-text { white-space: pre-wrap; margin: 0 0 var(--s-5); font-size: 17px; line-height: 1.62; }
-.j-references { color: var(--faint); font-size: var(--t-small); margin: 0 0 var(--s-4); }
-
 /* — detail: tools, menu, editing, refine proposal — */
 .j-modal-tools { position: absolute; top: var(--s-3); inset-inline-end: var(--s-3); display: flex; gap: var(--s-2); }
 
@@ -210,8 +206,6 @@
    selbst warm, ohne eigene Regel. */
 .j-menu-label { display: inline-flex; align-items: center; gap: var(--s-3); min-width: 0; }
 .j-menu-label svg { width: 18px; height: 18px; flex: none; }
-.j-menu-price { color: var(--accent-soft); font-size: var(--t-small); font-weight: 600; }
-.j-menu-free { color: var(--ok); font-size: var(--t-small); }
 .j-menu-danger { color: var(--warm); }
 
 .j-working { color: var(--muted); font-size: var(--t-small); margin: 0 0 var(--s-3); }
@@ -244,12 +238,6 @@
 .j-compare-new { border-color: var(--accent-deep); }
 
 .j-original { margin-bottom: var(--s-4); }
-.j-original-toggle {
-  background: none; border: none; cursor: pointer; padding: 0;
-  color: var(--faint); font-family: var(--sans); font-size: var(--t-small);
-  text-decoration: underline;
-}
-.j-original-toggle:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 4px; }
 .j-original-label {
   font-size: var(--t-micro); text-transform: uppercase; letter-spacing: .12em;
   color: var(--faint); font-weight: 600; margin: var(--s-3) 0 var(--s-1);
@@ -456,8 +444,6 @@
 .j-sheet-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .j-sheet-name { font-size: var(--t-small); font-weight: 600; }
 .j-sheet-hint { color: var(--faint); font-size: var(--t-micro); line-height: 1.45; }
-.j-sheet-free { flex: none; color: var(--ok); font-size: var(--t-micro); font-weight: 600; }
-
 @media (prefers-reduced-motion: reduce) {
   .j-sheet-backdrop, .j-sheet { animation: none; }
 }

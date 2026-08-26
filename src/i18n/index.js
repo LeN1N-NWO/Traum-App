@@ -16,14 +16,30 @@
  */
 import en from "./en.js";
 import de from "./de.js";
-import es from "./es.js";
-import fr from "./fr.js";
-import zh from "./zh.js";
-import hi from "./hi.js";
-import ar from "./ar.js";
 import { LOCALES, DEFAULT_LOCALE, localeOf } from "../lib/locales.js";
 
-const MODULES = { en, de, es, fr, zh, hi, ar };
+/* ⚠ Nur en und de werden STATISCH geladen — die zwei gepflegten Sprachen
+ * (Übersetzungs-Stopp, Antons Ansage 21.08.). Die fünf eingefrorenen
+ * lagen bis zum 26.08. trotzdem komplett im Haupt-Bündel: 285 KB
+ * Quelltext, rund ein Drittel des JavaScripts, für Sprachen, die bis kurz
+ * vor Launch niemand wählt. Jetzt holt `import()` sie erst, wenn jemand
+ * sie wirklich wählt; einmal geladen, bleiben sie im Cache.
+ *
+ * Der Preis: setLanguage() ist async geworden. Für en/de löst es sofort
+ * auf (kein Netz), für die fünf anderen erst nach dem Nachladen — der
+ * Aufrufer im LanguagePicker wartet deshalb, BEVOR er den Re-Render
+ * anstößt, und das top-level await unten hält die Garantie „t stimmt vor
+ * dem ersten Render" auch beim Start mit gespeicherter Fremdsprache.
+ * (Top-level await braucht build.target es2022 — steht in vite.config.js,
+ * und unsere Stützuntergrenze ist ohnehin Safari 17.4, siehe Mischpult.) */
+const MODULES = { en, de };
+const LAZY = {
+  es: () => import("./es.js"),
+  fr: () => import("./fr.js"),
+  zh: () => import("./zh.js"),
+  hi: () => import("./hi.js"),
+  ar: () => import("./ar.js"),
+};
 const DB_KEY = "dreamrushes_v1";
 
 export const t = { ...en };
@@ -54,9 +70,13 @@ function withFallback(base, over) {
 
 /** Everything a language switch touches: the copy object, and the two DOM
  *  attributes that tell the browser (and screen readers) which direction
- *  and language the page is actually in. */
-export function setLanguage(id) {
+ *  and language the page is actually in. Async seit dem 26.08. (siehe
+ *  Kopfkommentar bei LAZY) — wer danach rendert, wartet auf das Promise. */
+export async function setLanguage(id) {
   const locale = localeOf(id);
+  if (!MODULES[locale.id] && LAZY[locale.id]) {
+    MODULES[locale.id] = (await LAZY[locale.id]()).default;
+  }
   Object.assign(t, withFallback(en, MODULES[locale.id] || en));
   if (typeof document !== "undefined") {
     document.documentElement.lang = locale.id;
@@ -76,8 +96,9 @@ function storedLanguage() {
 }
 
 // Applied once, at import time — before AppStateProvider or any screen
-// has rendered a single node.
-setLanguage(storedLanguage() || DEFAULT_LOCALE);
+// has rendered a single node. Das await hält diese Garantie auch für die
+// nachgeladenen Sprachen: Der Modulgraph wartet, bis t gefüllt ist.
+await setLanguage(storedLanguage() || DEFAULT_LOCALE);
 
 export { LOCALES };
 export default t;

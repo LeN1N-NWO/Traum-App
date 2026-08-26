@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useAppState } from "../../state/AppState.jsx";
 import { castByCategory, initialOf } from "../../lib/castStats.js";
 import { t } from "../../i18n/index.js";
@@ -20,7 +21,14 @@ import { t } from "../../i18n/index.js";
  */
 export default function CastGroup({ category, label, onEdit }) {
   const { state } = useAppState();
-  const rows = castByCategory(state.cast, state.journal, category);
+  /* Memoisiert, weil castByCategory für die Auftritts-Zählung das GANZE
+     Journal durchsucht — und dieses Bauteil dreimal montiert ist (Person,
+     Tier, Ort). Ohne Memo: drei volle Journal-Läufe bei jedem Re-Render
+     des Providers, auch wenn sich nur ein Toast geändert hat. */
+  const rows = useMemo(
+    () => castByCategory(state.cast, state.journal, category),
+    [state.cast, state.journal, category],
+  );
   if (!rows.length) return null;
 
   return (

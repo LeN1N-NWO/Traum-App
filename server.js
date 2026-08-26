@@ -54,7 +54,7 @@ import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
  * 23.08. in EINER Tabelle (src/lib/imageModel.js) — Seedream und Nano Banana
  * sprechen nicht dieselbe Sprache, und ein falscher Feldname wirft keinen
  * Fehler, er liefert nur das Falsche. */
-import { imageSubmitBody, imageModel, IMAGE_MODELS, DEFAULT_IMAGE_MODEL,
+import { imageSubmitBody, imageModel,
          pickImageModel, retiredReason, lieferbareModelle, imageStage, imagePrice,
          fallbackModel }
   from "./src/lib/imageModel.js";
@@ -546,7 +546,14 @@ function voiceSystem({ name = "", cast = [], lang = "", mode = "" } = {}) {
        traegt jede Figur wieder das, was ihr Bogen zeigt. */
     "If someone is described as wearing something, put it in addPerson's `wearing` — and if the " +
     "dream mentions nobody's clothing at all, ask ONCE, lightly, what people were wearing; take " +
-    "whatever comes, including 'no idea', and move on. Never invent clothes they did not name. " + +
+    /* ⚠ Hier stand bis zum 26.08. ein zweites Plus („… name. " + +) — ein
+       unäres Plus auf den Folgestring: Der komplette nächste Satz wurde zu
+       NaN, und das Modell las »… did not name. NaNBEFORE calling finish …«.
+       Die Anweisung, setDreamText ein letztes Mal vor finish zu rufen, hat
+       in JEDER Sprachsitzung gefehlt — ohne Fehlermeldung, denn NaN + String
+       ist gültiges JavaScript. Ein verirrtes Zeichen in einer
+       String-Verkettung ist Prompt-Sabotage, die kein Test sieht. */
+    "whatever comes, including 'no idea', and move on. Never invent clothes they did not name. " +
     /* Der Abschiedssatz (Antons Wunsch 22.08.): Vorher hörte die Stimme
        einfach auf und die App sprang weiter — ein Gespräch, das mitten im
        Satz endet, fühlt sich nach Absturz an, nicht nach Abschluss. EIN
