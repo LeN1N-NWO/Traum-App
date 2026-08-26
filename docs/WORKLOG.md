@@ -3,6 +3,108 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-26 07:55 — Anton — Branch `session/2026-08-25-anton-2` (PR #29) — Sitzungsabschluss
+
+**Commits:** `39234b8` (Eröffnung) · `4ccbd1e` (**sechs Oberflächen-Funde**) ·
+`b6a1647` (**Unterseiten auf die Bühne, je zwei Gestalten**) · `302d432`
+(**Mischpult + Podest eingefroren, zwanzig Symbol-Icons**) · `f8f7632`
+(**Codeanalyse: NaN im Prompt, Bündel −33 %, stilles Speichern**) plus
+dieser Doku-Commit.
+Zustand: **442 Tests grün**, fünf Skriptprüfungen grün, Build sauber.
+Bezahlte Läufe: **keine.**
+
+### Der Satz, der über der Nacht steht
+
+**Ein verirrtes Zeichen in einer String-Verkettung ist Prompt-Sabotage,
+die kein Test sieht.** In server.js stand `"… did not name. " + +` — das
+unäre Plus machte den Folgesatz zu NaN. Die Anweisung, setDreamText ein
+letztes Mal vor finish zu rufen, fehlte damit in JEDER Sprachsitzung,
+und das Modell las wörtlich »NaN« in seinem Systemprompt. NaN + String
+ist gültiges JavaScript: kein roter Test, keine Konsole, nichts.
+
+### Antons sechs Funde (Screenshots, 25.08. abends)
+
+1. **Reflection auf Englisch bei deutschem Traum** — „schreibe in der
+   Sprache des Traums" ist RATEN. Die App weiß die Sprache; sie reist
+   jetzt als `lang` bis in den DeepSeek-Prompt. ⚠ Der Beweis am echten
+   Lauf steht noch aus (kostenlos, ein Klick auf die Reflection).
+2. **Werkzeug-Pillen klebten links** — flex 1 + max-content, wickeln
+   sauber bei 320 px.
+3. **Storyboard zeigte 5 Kacheln, gerendert werden 4.** Die Analyse
+   liefert absichtlich fünf Quell-Beats; das Journal zeigt jetzt per
+   selber evenIndices-Formel genau die, die Bilder werden — Storyboard
+   bekam dafür eine `indices`-Abbildung (Anzeige zählt 1..n, alles
+   Gespeicherte läuft auf Quell-Indizes). Bezahlte Fünferträume behalten
+   ihre fünf.
+4. **„‹" stand wörtlich auf dem Bildschirm** — Menagerie.jsx lag mit
+   ASCII-Escapes auf der Platte (vermutlich Cloud-Sitzung); JSX-Text ist
+   kein JavaScript-String. Einzige Datei ihrer Art im Repo, geprüft.
+   Dazu: Der Journal-Tab führt jetzt aus jedem Nebenraum heraus
+   (location.key als Signal — die Route wechselt beim Tab-Klick nicht).
+5. **Profil: „@ich" → „Ich"** in der Serife; „Nochmal erzählen" ist eine
+   echte Pille. Der Tag IST der Name und der Schlüssel der
+   Traum-Erkennung — trägt Anton „anton" ein, verbindet sich jedes
+   „Anton" im Traumtext.
+6. **Schlaf-Tab komplett neu** — Antons Wahl aus live umschaltbaren
+   Varianten (A/B/C-Knöpfe im Dev-Modus, sessionStorage): Übersicht als
+   ZEILEN, Geräusche als MISCHPULT (drei stehende Fader), Luzid-Hebel als
+   PODEST. Alle Unterseiten tragen die Bühne der Hauptseite (Schein in
+   Raumfarbe, Icon im Kreis, zentrierte Serife). Unterlegene Varianten und
+   Umschalter danach AUSGEBAUT — kein toter Code wartet auf „vielleicht".
+
+### Zwanzig Traumsymbole als Strichzeichnung
+
+`components/symbolIcons.jsx` — dieselbe Familie wie icons.jsx, getauscht
+an ALLEN vier Stellen (Symbolseite, Detail, Atlas, Wiederkehr-Chips).
+Emoji nur noch Rückfall für ungezeichnete Symbole — der fällt zwischen
+zwanzig Strichzeichnungen sofort auf und mahnt sein eigenes Nachziehen
+an. Alle zwanzig im Browser gesichtet (Prüfmodus, wieder ausgebaut).
+
+### Die Codeanalyse (drei parallele Prüfungen, jede Behauptung verifiziert)
+
+**Umgesetzt, weil sicher:**
+- **Bündel −33 %:** Die fünf eingefrorenen Sprachen (285 KB Quelltext)
+  laden per import() erst bei Wahl; top-level await hält „t stimmt vor
+  dem ersten Render" (build.target es2022). Haupt-Chunk 626→459 KB,
+  gzip 238→154. Geprüft: Spanisch wählen lädt nach, Neustart mit
+  gespeichertem Spanisch startet spanisch.
+- **Speichern gesammelt:** update() schrieb den KOMPLETTEN State samt
+  base64-Fotos synchron bei jedem Patch (StrictMode: doppelt). Jetzt
+  250 ms nach der letzten Änderung; pagehide/visibilitychange flushen.
+- **Uploads verkleinert:** Ein 4-MB-Foto = ~5,3 MB base64 = Quota allein
+  gesprengt. Uploads laufen jetzt durch compactDataUrl (1600 px — mehr
+  sehen die Bildmodelle nie).
+- Toast-Timer-Kollision · HomeScreen O(n) · CastGroup memoisiert ·
+  toter Import · 15 verwaiste CSS-Klassen (einzeln gegen JSX geprüft).
+
+**Gefunden, bewusst NICHT umgesetzt** (Geld-/Filmpfade oder eigener
+Beweis nötig — Details in den Analyseberichten, Kurzform im STAND):
+14× fetch ohne Timeout in server.js · spawnSync bei film-outro blockiert
+den ganzen Server · fal-Fehler werden als „pending" verschluckt
+(server.js:1494) · content-length-Schranke umgehbar (kein
+maxRequestBodySize) · vier fast identische Backup-Routen ·
+Context-Aufteilung (33 Konsumenten) · ~16 ungenutzte lib-Exports
+(kosten im Bündel nichts — Tree-Shaking).
+
+**Entlastend:** Kein toter Endpunkt, kein auskommentierter Code; die
+Fingerprint-Muster, Symbol-Regexes und Journal-Memos waren schon richtig.
+
+### Was der Nächste wissen muss
+
+- ⚠ **Der Vorschau-Browser vergiftet `data/traeume`.** Sein eigener
+  localStorage (ohne Antons Besetzung, mit Testständen) läuft über den
+  Backup-Abgleich ZURÜCK in die geteilten Traumdateien — zweimal in
+  dieser Sitzung `git checkout` nötig (style „ultrareal"→Test, references
+  weg). Wer im Vorschau-Browser testet, prüft danach `git status` auf
+  data/traeume — oder leert vorher dessen localStorage.
+- ⚠ **setLanguage() ist async.** Wer es aufruft: erst awaiten, dann den
+  Re-Render anstoßen (LanguagePicker macht es vor).
+- ⚠ **Stützuntergrenze jetzt doppelt festgeschrieben:** Chrome 119 /
+  Safari 17.4 (Mischpult-Fader, sleep.css) und es2022/top-level await
+  (vite.config.js). Wer tiefer muss, baut beides zurück.
+- **Die Reflection-Sprache ist gebaut, aber unbewiesen** — ein
+  kostenloser Klick auf einem deutschen Traum fehlt.
+
 ## 2026-08-25 22:50 — Anton — Branch `session/2026-08-25-anton` (PR #28) — Sitzungsabschluss
 
 **Commits:** `42c2394` (Eröffnung) · `8c741b6` (**der Frosch tippt den Knopf
