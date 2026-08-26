@@ -5,6 +5,7 @@ import { setVolume, getVolumes, startTimer, subscribe } from "../../lib/soundMix
 import { SOUND_IDS } from "../../lib/noise.js";
 import { t } from "../../i18n/index.js";
 import { IconWindDown, IconWaves, IconLucid, IconConstellation } from "../../components/icons.jsx";
+import HeroGlow from "../../components/HeroGlow.jsx";
 import SleepChecklist from "./SleepChecklist.jsx";
 import LucidGuide from "../Profile/LucidGuide.jsx";
 import SymbolsScreen from "../Symbols/SymbolsScreen.jsx";
@@ -55,7 +56,7 @@ export default function SleepScreen() {
        ScreenHeader ist hier raus; er lebt in den übrigen Tabs weiter. */
     return (
       <main className="screen sl-screen">
-        <div className={`sl-hero sl-hero-${view}`} aria-hidden="true" />
+        <HeroGlow className={`sl-hero sl-hero-${view}`} />
         <button className="sl-back" onClick={() => setView(null)}><span data-flip aria-hidden="true">‹</span> {t.sleep.title}</button>
         <header className="sl-head sl-head-sub">
           <span className="sl-head-icon" aria-hidden="true"><Icon /></span>
@@ -78,7 +79,7 @@ export default function SleepScreen() {
      Bühne in der Farbe ihres Raums — siehe oben im view-Zweig. */
   return (
     <main className="screen sl-screen">
-      <div className="sl-hero" aria-hidden="true" />
+      <HeroGlow className="sl-hero" />
       <header className="sl-head">
         <h1 className="sl-title">{t.sleep.title}</h1>
         <p className="sl-sub">{t.sleep.subtitle}</p>

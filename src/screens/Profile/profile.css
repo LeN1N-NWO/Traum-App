@@ -279,3 +279,36 @@
   background: var(--accent-wash); color: var(--accent-soft);
   font-size: var(--t-small); font-weight: 600;
 }
+
+/* Der Schein über dem Profilkopf (HeroGlow, 26.08.). */
+.p-hero-glow { --hero-h: 300px; }
+
+/* — Erinnerungs-Schalter unter den Realitätschecks (26.08.) —
+   Siehe LucidGuide.jsx: sammelt heute nur den Wunsch ein, die Erlaubnis
+   holt die native Schicht nach der Xcode-Portierung. */
+.p-remind { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-4); }
+.p-remind-btn {
+  display: inline-flex; align-items: center; gap: var(--s-2); align-self: flex-start;
+  padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--text); font-family: var(--sans); font-size: var(--t-small); font-weight: 600;
+}
+.p-remind-btn:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.p-remind-on { border-color: var(--accent-soft); color: var(--accent-soft); }
+/* Der Punkt ist der ganze Zustand: aus = leerer Ring, an = gefüllt und
+   warm. Ein Häkchen wäre eine Behauptung („erledigt"), der Punkt sagt nur,
+   dass etwas läuft. */
+.p-remind-dot {
+  inline-size: 8px; block-size: 8px; border-radius: 50%;
+  border: 1px solid var(--faint); background: none;
+}
+.p-remind-on .p-remind-dot { background: var(--gold); border-color: var(--gold); }
+.p-remind-row { display: flex; gap: var(--s-2); }
+.p-remind-n {
+  min-width: 40px; padding: 6px 0; border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--muted); font-family: var(--sans); font-size: var(--t-small); font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.p-remind-n-on { background: var(--accent-wash); border-color: var(--accent-soft); color: var(--text); }
+.p-remind-hint { color: var(--faint); font-size: var(--t-small); margin: 0; line-height: 1.5; }

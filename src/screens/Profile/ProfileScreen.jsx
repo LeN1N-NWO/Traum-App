@@ -8,6 +8,7 @@ import OnboardingForm from "../Onboarding/OnboardingForm.jsx";
 import Settings from "./Settings.jsx";
 import DreamerCard from "./DreamerCard.jsx";
 import { IconGear } from "../../components/icons.jsx";
+import HeroGlow from "../../components/HeroGlow.jsx";
 import "./profile.css";
 
 /* The profile is about the person, not their material: people, pets and
@@ -37,6 +38,7 @@ export default function ProfileScreen() {
 
   return (
     <main className="screen">
+      <HeroGlow className="p-hero-glow" />
       {/* Credits as a quiet line in the corner. They are a balance, not an
           achievement — the old full-width card gave them a weight the number
           has not earned until it can actually be topped up. */}

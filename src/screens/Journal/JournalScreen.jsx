@@ -4,6 +4,7 @@ import { isBlank } from "../../lib/blankNight.js";
 import { useAppState } from "../../state/AppState.jsx";
 import { t } from "../../i18n/index.js";
 import ScreenHeader from "../../components/ScreenHeader.jsx";
+import HeroGlow from "../../components/HeroGlow.jsx";
 import JournalCard from "./JournalCard.jsx";
 import JournalDetail from "./JournalDetail.jsx";
 import CastLibrary from "./CastLibrary.jsx";
@@ -129,6 +130,7 @@ export default function JournalScreen() {
 
   return (
     <main className="screen">
+      <HeroGlow className="j-hero-glow" />
       <ScreenHeader
         title={t.journal.title}
         subtitle={t.journal.count(total)}

@@ -724,3 +724,7 @@
   line-height: 1.5;
 }
 .j-act-planb { border-color: color-mix(in oklab, var(--warm) 45%, transparent); }
+
+/* Der Schein über dem Journalkopf (HeroGlow, 26.08.) — flacher als
+   auf dem Profil, weil der Kartenstapel gleich darunter beginnt. */
+.j-hero-glow { --hero-h: 190px; }

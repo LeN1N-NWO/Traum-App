@@ -464,6 +464,12 @@ export default {
       },
     ],
     sourceNote: "Zahlen aus der International Lucid Dream Induction Study (Aspy u. a., 2020): 355 Teilnehmende, eine Woche Übung. Beruhigend: In den Nächten, in denen es klappte, war die Schlafqualität nicht schlechter — die Teilnehmenden schliefen etwas länger und wachten weniger müde auf als in ihrer Vergleichswoche.",
+    reminderAsk: "Tagsüber daran erinnern",
+    reminderActive: (n) => `Erinnerung an: ${n}× am Tag`,
+    reminderPerDay: "Wie oft am Tag",
+    reminderWhy: "Der Check wirkt nur, wenn er zur Gewohnheit wird — dafür braucht es einen Anstoß am Tag, nicht guten Willen am Abend.",
+    reminderSoon: "Gemerkt. Die Erinnerungen selbst kommen mit der iPhone-Fassung — bis dahin steht hier nur dein Wunsch.",
+    reminderOn: "Gemerkt — die Erinnerungen kommen mit der iPhone-Fassung",
   },
 
   dream: {
@@ -900,9 +906,10 @@ export default {
     },
     yieldImages: (n) => (n === 1 ? "Bild" : "Bilder"),
     yieldFilms: (n) => (n === 1 ? "Film" : "Filme"),
+    upTo: "bis zu",
     yieldOr: "oder",
     packNote: "Verfallen nie — dafür je Credit etwas teurer als im Abo.",
-    packYield: (i, f) => (f ? `${i} Bilder, oder ${f} Filme` : `${i} Bilder`),
+    packYield: (i, f) => (f ? `${i} Bilder, oder bis zu ${f} ${f === 1 ? "Film" : "Filme"}` : `${i} Bilder`),
     yieldYearNote: "Dein ganzes Jahr — jeden Monat landen 45 frische Credits.",
     included: "Immer inklusive, gratis",
     chips: [

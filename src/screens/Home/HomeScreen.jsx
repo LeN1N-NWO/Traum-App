@@ -6,6 +6,7 @@ import StreakBoard from "../../components/StreakBoard.jsx";
 import MorningCheckin from "../../components/MorningCheckin.jsx";
 import { hasPendingJobs } from "../../lib/collector.js";
 import { blankNight, nightMarked, isBlank } from "../../lib/blankNight.js";
+import HeroGlow from "../../components/HeroGlow.jsx";
 import { t } from "../../i18n/index.js";
 // Vite-gebündelt wie das Intro-Video: 666 KB, ohne Ton, transkodiert aus
 // media/video/Faultier-002.mov (7,3 MB).
@@ -90,6 +91,7 @@ export default function HomeScreen() {
 
   return (
     <main className="screen h-screen">
+      <HeroGlow className="h-hero-glow" />
       <div className="h-top">
         <p className="h-greeting">{greeting}</p>
         {/* Antippbar seit 22.08. (Antons Go): dahinter liegt die

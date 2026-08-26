@@ -500,6 +500,12 @@ export default {
       },
     ],
     sourceNote: "Figures from the International Lucid Dream Induction Study (Aspy et al., 2020): 355 participants, one week of practice. Reassuringly, sleep quality was not worse on nights when it worked — participants slept slightly longer and woke less tired than in their baseline week.",
+    reminderAsk: "Remind me during the day",
+    reminderActive: (n) => `Reminders on: ${n}× a day`,
+    reminderPerDay: "How often a day",
+    reminderWhy: "The check only works once it is a habit — and a habit needs a nudge during the day, not good intentions at night.",
+    reminderSoon: "Noted. The reminders themselves arrive with the iPhone build — for now this only records that you want them.",
+    reminderOn: "Noted — reminders arrive with the iPhone build",
   },
 
   dream: {
@@ -970,9 +976,10 @@ export default {
     },
     yieldImages: (n) => (n === 1 ? "image" : "images"),
     yieldFilms: (n) => (n === 1 ? "film" : "films"),
+    upTo: "up to",
     yieldOr: "or",
     packNote: "Never expire — a little dearer per credit for it.",
-    packYield: (i, f) => (f ? `${i} images, or ${f} films` : `${i} images`),
+    packYield: (i, f) => (f ? `${i} images, or up to ${f} ${f === 1 ? "film" : "films"}` : `${i} images`),
     /* Unter den Ertrags-Kacheln, nur beim Jahresabo: die Kacheln zeigen
        die Jahressumme (Antons Wunsch: „hochrechnen, damit es nach viel
        aussieht"), diese Zeile hält die ehrliche Mechanik daneben fest. */

@@ -19,6 +19,10 @@ body {
 /* Every screen uses this class. The bottom padding keeps the tab bar clear,
    otherwise the last entry is unreachable. */
 .screen {
+  /* Bezugsrahmen für den Schein (HeroGlow, 26.08.) — er hängt an der
+     Seite, nicht am Fenster, damit er mit dem Inhalt scrollt statt
+     stehen zu bleiben. */
+  position: relative;
   max-width: 680px;
   margin: 0 auto;
   padding: calc(env(safe-area-inset-top) + var(--s-5)) var(--s-4)

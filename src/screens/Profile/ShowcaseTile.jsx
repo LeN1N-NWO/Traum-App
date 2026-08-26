@@ -41,7 +41,7 @@ const reducedMotion = () =>
  * @param {number} props.count    Die grosse Zahl
  * @param {string} props.label    Ihr Wort, schon in der richtigen Mehrzahl
  */
-export default function ShowcaseTile({ kind, urls, backup = [], count, label }) {
+export default function ShowcaseTile({ kind, urls, backup = [], count, label, upTo = null }) {
   const [broken, setBroken] = useState([]);
   const [at, setAt] = useState(0);
   const videoRef = useRef(null);
@@ -101,7 +101,16 @@ export default function ShowcaseTile({ kind, urls, backup = [], count, label }) 
       <div className="pw-tile-scrim" aria-hidden="true" />
       <div className="pw-tile-pin" aria-hidden="true"><Glyph size={15} /></div>
       <div className="pw-tile-meta">
-        <span className="pw-tile-num">{count}</span>
+        {/* ⚠ „bis zu" steht INNERHALB der Zahl-Zeile, nicht als eigenes
+            Geschwister davor: Der Textblock ist eine Flex-SPALTE, ein
+            eigenes Element bekäme dort immer eine eigene Zeile — und die
+            landete genau auf der Höhe des „oder"-Trenners zwischen den
+            Kacheln. Auf der Grundlinie der Zahl gehört das Wort ohnehin
+            hin, denn es schränkt die Zahl ein, nicht die Kachel. */}
+        <span className="pw-tile-num">
+          {upTo && <i className="pw-tile-upto">{upTo}</i>}
+          {count}
+        </span>
         <span className="pw-tile-lab">{label}</span>
       </div>
     </div>

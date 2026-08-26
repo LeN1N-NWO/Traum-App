@@ -4,13 +4,11 @@
 }
 /* The warm light at the top is the whole reason the page feels like an offer
    rather than a form: cold app, one warm window. */
-.pw-hero {
-  position: absolute; top: 0; left: 0; right: 0; height: 320px; pointer-events: none;
-  background:
-    radial-gradient(120% 80% at 25% 0%, color-mix(in oklab, var(--warm) 42%, transparent), transparent 62%),
-    radial-gradient(90% 70% at 85% 12%, color-mix(in oklab, var(--accent) 40%, transparent), transparent 66%),
-    linear-gradient(to bottom, transparent 55%, var(--bg) 100%);
-}
+/* Der Schein kommt aus HeroGlow (26.08.) — hier nur noch seine Höhe.
+   Die Farben sind die Vorgabe des Bauteils: genau dieses Orange-Blau war
+   das Vorbild für alle anderen Seiten. */
+.pw-hero { --hero-h: 320px; }
+
 .pw-close {
   position: absolute; top: calc(env(safe-area-inset-top) + 12px); inset-inline-end: 14px; z-index: 2;
   width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
@@ -163,6 +161,17 @@
 .pw-tile-meta {
   position: absolute; inset-block-end: 10px; inset-inline-start: 12px;
   display: flex; flex-direction: column; line-height: 1;
+}
+/* ⚠ NEBEN der Zahl, nicht darüber. Über ihr landete die Zeile genau auf
+   der Höhe des „oder"-Trenners zwischen den Kacheln (26.08.) — beide
+   klein, beide grau, und zusammen lasen sie sich als ein Satz („oder bis
+   zu"). Auf der Grundlinie der Zahl gehört das Wort ohnehin hin: Es
+   gehört zur Zahl, nicht zur Kachel. */
+.pw-tile-upto {
+  font-family: var(--sans); font-style: normal;
+  color: var(--faint); font-size: var(--t-micro); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em;
+  margin-inline-end: 5px; vertical-align: middle;
 }
 .pw-tile-num {
   font-family: var(--serif); font-size: 32px; font-weight: 400;
