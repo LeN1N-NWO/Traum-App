@@ -3,6 +3,124 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-08-26 22:57 — Anton — Branch `session/2026-08-25-anton-2` (PR #29) — zweiter Abschluss desselben Tages
+
+**Commits seit dem Abschluss um 07:55:** `3f0abec` (**gemeinsamer,
+atmender Verlauf**) · `dcfec39` (**Preis-Entscheidungsvorlage**) ·
+`976221f` (**die goldene Kennzahl fliegt raus**) plus dieser Doku-Commit.
+Zustand: **442 Tests grün**, fünf Skriptprüfungen grün, Build sauber.
+Bezahlte Läufe: **keine.**
+
+### Der Satz, der über dieser Runde steht
+
+**Ein Wert kann keinen Vergleich ausdrücken.** Die goldene Kennzahl im
+Luzid-Guide ist an derselben Stelle ZWEIMAL gescheitert: am 22.08. als
+„18 % vs 11 %" („die Information bringt niemand"), am 26.08. als
+Verhältnis in Worten („fast doppelt so oft"). Die erste Reparatur
+tauschte den Inhalt und behandelte damit das Symptom — falsch war der
+PLATZ. Ohne Bezugsgröße ist weder Prozentzahl noch Faktor eine Aussage.
+
+⚠ Dazu ein Sachfehler, der einen Monat lang groß und golden dastand:
+**11 → 18 von 100 ist Faktor 1,64**, „fast doppelt so oft" liest jeder
+als 1,8–1,9 — auf dem Bildschirm, der „was die Studienlage WIRKLICH
+hergibt" verspricht.
+
+⚠ Und die dritte Karte war der Beweis: Sie hat gar keine Messung, also
+musste „die Grundlage" hinein, damit die Reihe vollständig aussieht.
+**Wer ein Gestaltungsfeld mit einer Nicht-Aussage füllen muss, hat ein
+falsches Feld.**
+
+### Der Verlauf gehört jetzt allen (`HeroGlow.jsx`)
+
+Antons Ansage: „Ich finde den Verlauf auf dem Screenshot ziemlich cool …
+vielleicht auch auf die anderen Seiten übertragen und leicht animieren."
+EIN Bauteil für Home, Journal, Profil, Kaufblatt und alle fünf
+Schlaf-Seiten. Die Seite setzt NUR `--hero-h`, `--glow-a`, `--glow-b` —
+nie einen eigenen Verlauf.
+
+⚠ **Die harte Kante war ein Schichtungsfehler**, kein Farbfehler: In der
+CSS-Hintergrundliste liegt der ZUERST genannte Verlauf OBEN. Die
+eingebaute Ausblendung lag also UNTER den Farben und konnte nichts
+auffangen — der Kasten riss an seiner Unterkante ab. Jetzt blendet eine
+Maske am Rahmen aus: Sie nimmt Deckkraft weg, statt Farbe darüberzumalen,
+und kann deshalb nichts verpassen.
+
+⚠ Die Bewegung ist reines `transform` (26 s, ±2,5 %, GPU). Wer sie je
+über `background-position` fährt, lässt den Verlauf 60×/s neu rastern —
+das ist der Unterschied zwischen „kostet nichts" und „kostet Akku".
+
+### Kaufblatt
+
+- **0 px Sprung** beim Reiterwechsel (nachgemessen). Der „verfallen
+  nie"-Hinweis stand ÜBER der Liste und gibt es nur auf einem Reiter.
+- **„bis zu" an der Filmzahl.** Sie entsteht aus dem KÜRZESTEN Film der
+  günstigsten Stufe; 15 Sekunden Seedance liefern weniger. Bilder
+  brauchen es nicht — ein Credit ist ein Bild.
+  ⚠ Das Wort steht INNERHALB der Zahl-Zeile: Der Textblock ist eine
+  Flex-SPALTE, ein eigenes Element bekam dort eine eigene Zeile — und die
+  landete genau auf Höhe des „oder"-Trenners, sodass beide zusammen als
+  ein Satz zu lesen waren.
+- „36 Bilder, oder 1 Filme" → „1 Film".
+
+### Erinnerungs-Knopf am Realitätscheck
+
+Nur dort, weil es die einzige Methode ist, die tagsüber stattfindet.
+Neue Logik war nicht nötig: **`reminders.js` lag seit dem 23.08. fertig
+da und wurde von niemandem benutzt.** Der Knopf sammelt heute nur den
+WUNSCH ein; die Erlaubnis holt die native Schicht nach der Portierung.
+⚠ Der Grund für die Trennung gilt weiter: **iOS gibt für die
+Benachrichtigungs-Erlaubnis genau EINEN Versuch.**
+
+### Preisentscheid — Vorlage steht, Umsetzung nicht
+
+`docs/plans/2026-08-26-preisentscheid.md`. Kern:
+- **Die Leiter trägt.** −50 %/−33 % sind marktüblich, und die Marge steht
+  in JEDER Kombination über 1 — schlimmster Fall 1,4×. Der Blocker war
+  nie eine falsche Zahl.
+- **Die Lücke: Ein Kino-Film ist in EINEM Kauf nicht bezahlbar**
+  (director 15 s = 136 Cr, premium 15 s = 256 Cr, größter Kauf 100 Cr).
+- **Antons Verfall-Frage ist dieselbe Frage.** Ansparen ist der einzige
+  Weg zu solchen Summen; Verfall macht Ansparen unmöglich. Durchgerechnet
+  kostet Nicht-Verfallen fast nichts (Extremfall 12 Monate horten, alles
+  in Kino: immer noch 2,1×), und rechtlich ist es die sicherere Seite.
+  Der eine Haken ist strukturell: Das Paket braucht dann eine neue
+  Begründung — „ohne Abo" statt „verfällt nie".
+- Empfehlung: Preise unverändert · kein Verfall mehr · Paket = „ohne
+  Abo" · viertes Paket $29,99/150.
+⚠ **`plans.js` und `credits.js` sind UNBERÜHRT.** Es fehlt Antons Wort.
+
+### Nebenbei: Wer hat diese App gebaut
+
+Auf Antons Frage ausgezählt. 313 Commits: **Anton 278 (89 %), Hanni 35
+(11 %)** — Hanni allerdings an nur ZWEI Tagen (6./7.08.), im selben Takt.
+Von ihr stehen heute noch 1.177 Zeilen, im Kern `TagTextarea.jsx` und
+`TagCard.jsx`: die Namenshervorhebung im Traumfeld, unverändert in
+Betrieb. Dazu kam von ihr der Sicherheitsdurchgang (Schlüssel-Leak, XSS,
+Speichersperre) und das Prompt-Injection-Bedrohungsmodell.
+
+Rückmeldungsgetrieben sind **147 von 313 Commits (47 %)** — mit steigender
+Tendenz: 7 % in den Gründungstagen, 92 % am 25.08. Größte Gruppe darin
+sind FRAGEN (53), nicht Fehlermeldungen (34).
+⚠ Ehrlichkeit zur Messung: Die Commit-Nachrichten schreibe ich, „Antons
+Befund" ist meine Zuschreibung. Und Hannis 2,5 % überlebende Zeilen
+untertreiben sie — wer zuerst baut, dessen Zeilen werden umgeschrieben.
+
+### Was der Nächste wissen muss
+
+- ⚠⚠ **`data/traeume` wurde in DIESER Sitzung VIERMAL vom Vorschau-Browser
+  überschrieben.** Jedes Mal vor dem Commit zurückgesetzt. Das ist keine
+  Anekdote mehr, sondern ein Muster: Wer im Vorschau-Browser testet,
+  prüft danach `git status` auf `data/`. Der Rückschreibpfad im
+  Entwicklungsmodus gehört umgebaut (nur ergänzen, nie überschreiben) —
+  Anton weiß davon, entschieden ist es nicht.
+- **HeroGlow: Die Seite setzt Variablen, nie eigene Verläufe.** Wer einen
+  eigenen Kasten baut, holt sich die harte Kante zurück.
+- **`reminders.js` ist jetzt in Betrieb** — und seine Kopf-Warnung zur
+  iOS-Einmal-Abfrage ist ab sofort keine Theorie mehr.
+- **Der Preisentscheid ist die einzige offene Entscheidung**, die eine
+  Veröffentlichung blockiert. Die Vorlage ist fertig, die Rechnung
+  nachvollziehbar, es fehlt ein Ja.
+
 ## 2026-08-26 07:55 — Anton — Branch `session/2026-08-25-anton-2` (PR #29) — Sitzungsabschluss
 
 **Commits:** `39234b8` (Eröffnung) · `4ccbd1e` (**sechs Oberflächen-Funde**) ·
