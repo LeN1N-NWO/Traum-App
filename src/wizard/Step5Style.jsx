@@ -580,7 +580,16 @@ export default function Step5Style({ w, patch }) {
      überhaupt noch gerendert wird. */
   const einspieler = tap && <ButtonTapOverlay rect={tap} onDone={() => setTap(null)} />;
 
-  if (busy) {
+  /* ⚠ `!tap`: Der Bildschirm wartet, bis das Maskottchen durch ist (Antons
+     Befund 31.08.: „Der Button war zu schnell weg, und das Maskottchen kam
+     dann später rein"). Vorher schaltete der Druck sofort auf den
+     Warte-Bildschirm um — der Frosch tippte also auf einen Knopf, den es
+     nicht mehr gab.
+     ⚠ Das ist KEIN Widerspruch zur Regel „der Einspieler ist nie ein Tor":
+     Aufgehalten wird nur die ANZEIGE. Der Auftrag ist längst unterwegs
+     (run() sendet vor dem ersten Einzelbild), und ein Fehler räumt `tap`
+     sofort ab — die Ablehnung erscheint also weiterhin ohne Verzögerung. */
+  if (busy && !tap) {
     return (
       <section className="wiz-body wiz-busy" role="status" aria-live="polite">
         {einspieler}

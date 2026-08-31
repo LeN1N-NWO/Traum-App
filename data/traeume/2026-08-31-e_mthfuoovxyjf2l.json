@@ -1,0 +1,65 @@
+{
+  "id": "e_mthfuoovxyjf2l",
+  "createdAt": "2026-08-31T16:14:08.769Z",
+  "kind": "dream",
+  "title": "Nebel und Lack",
+  "tagline": "Eine Nacht, die alles verschwimmen lässt.",
+  "text": "Ich bin mit meinem Hund, der wie Fuchur aus der Unendlichen Geschichte aussieht, nachts um die Ecken von Berlin-Mitte geflogen. Wir haben sechs oder sieben Clubs besucht und uns das Beste vom Besten gegönnt: sämtliche Substanzen und die heißesten Frauen. Ich trug noch die Sachen vom KitKat Club – nur ein kleines schwarzes Höschen aus Lack und Leder und eine kleine kompakte Peitsche. Wir fuhren mit der Straßenbahn, aber die Clubs waren alle vernebelt; ich habe keine Ahnung, wie sie aussahen, wir sind einfach hineingestolpert. Es war eine der intensivsten Nächte.",
+  "originalText": "Ich bin mit meinem Hund, der wie Fuchur aus der Unendlichen Geschichte aussieht, um die Ecken in Berlin-Mitte geflogen. In der Nacht haben wir sechs oder sieben Clubs besucht und uns wirklich das Beste vom Besten reingezogen, sämtliche Substanzen und die heißesten Frauen. Ich hatte noch die Sachen vom KitKat Club an, eigentlich nur ein kleines schwarzes Höschen aus Lack und Leder und eine kleine kompakte Peitsche dabei. Wir sind mit der Straßenbahn gefahren, aber die Clubs waren alle vernebelt – ich habe keine Ahnung, wie sie aussahen, wir sind einfach rein gestolbert. Es war eine der intensivsten Nächte.",
+  "analysis": {
+    "language": "de",
+    "text": "Ich bin mit meinem Hund, der wie Fuchur aus der Unendlichen Geschichte aussieht, nachts um die Ecken von Berlin-Mitte geflogen. Wir haben sechs oder sieben Clubs besucht und uns das Beste vom Besten gegönnt: sämtliche Substanzen und die heißesten Frauen. Ich trug noch die Sachen vom KitKat Club – nur ein kleines schwarzes Höschen aus Lack und Leder und eine kleine kompakte Peitsche. Wir fuhren mit der Straßenbahn, aber die Clubs waren alle vernebelt; ich habe keine Ahnung, wie sie aussahen, wir sind einfach hineingestolpert. Es war eine der intensivsten Nächte.",
+    "people": [
+      {
+        "name": "ich",
+        "kind": "person",
+        "desc": "",
+        "wearing": "ein kleines schwarzes Höschen aus Lack und Leder und eine kleine kompakte Peitsche"
+      },
+      {
+        "name": "Hund",
+        "kind": "pet",
+        "desc": "sieht aus wie Fuchur aus der Unendlichen Geschichte",
+        "wearing": ""
+      }
+    ],
+    "places": [
+      "Berlin-Mitte",
+      "Club",
+      "Straßenbahn",
+      "Clubs"
+    ],
+    "beats": [
+      "ich and Hund fly over the rooftops of Berlin-Mitte at night.",
+      "ich and Hund stumble into a smoke-filled club, its interior veiled in fog.",
+      "ich, wearing black latex panties and holding a small whip, mingles with beautiful women in a hazy club.",
+      "ich and Hund ride a tram through the dark streets, clubs glowing in the mist.",
+      "ich and Hund stumble through a blur of clubs, each one hidden in haze."
+    ],
+    "style": "surreal",
+    "mood": "intensiv",
+    "title": "Nebel und Lack",
+    "tagline": "Eine Nacht, die alles verschwimmen lässt.",
+    "filmSeconds": 16
+  },
+  "style": "ultrareal",
+  "format": "9:16",
+  "mode": "images",
+  "imageCount": 4,
+  "creatureId": "cr_mthfuoovfaieb1",
+  "references": [
+    {
+      "tag": "me",
+      "category": "person"
+    }
+  ],
+  "medien": {
+    "bilder": [
+      "/media/9lij3fu9pu49.png",
+      "/media/13c5tx1esz8vu.png",
+      "/media/pt8tsyed4ll8.png",
+      "/media/3j5o1rahn1ucp.png"
+    ],
+    "film": []
+  }
+}
