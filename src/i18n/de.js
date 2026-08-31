@@ -182,6 +182,8 @@ export default {
     makeLede: "Noch keine Bilder. Welche machen?",
     makeImages: "Bilder machen",
     makeFilmLede: "Jetzt zum Leben erwecken.",
+    filmPending: "Video wird erstellt — bitte warten",
+    imagesPending: "Bilder werden erstellt — bitte warten",
     makeFilm: "Kurzfilm machen",
     calendar: "Traumkalender",
     calLabel: "Tage mit aufgezeichnetem Traum — antippen zum Öffnen",

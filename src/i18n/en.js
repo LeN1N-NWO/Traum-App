@@ -217,6 +217,8 @@ export default {
     makeLede: "No pictures yet. Want some?",
     makeImages: "Make the images",
     makeFilmLede: "Now bring it to life.",
+    filmPending: "Making your video — hang tight",
+    imagesPending: "Making your images — hang tight",
     makeFilm: "Make a short film",
     calendar: "Dream calendar",
     calLabel: "Days with a recorded dream — tap one to open it",

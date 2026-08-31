@@ -447,12 +447,31 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
             ? recoveryOptions(entry, { fallbackAvailable: !!fallbackModel() })
             : recoveryOptions(null);
           const offerFilm = !entry.jobId && !film && !pendingImages && images.length > 0;
+          /* ⚠ Was LÄUFT, bekommt einen Platz — und zwar DEN, auf den die Hand
+             gerade gedrückt hat (Antons Befund 31.08.: „Dieser Kurzfilm-machen-
+             Knopf sollte in dem Moment, wenn man den angeklickt hat, eine Art
+             Wartuhr … Text geändert werden").
+             Vorher verschwand der Knopf beim Absenden ersatzlos. Für die App
+             war das sauber (`offerFilm` wurde falsch), für den Menschen sah es
+             aus, als hätte sein Druck nichts getan — die einzige Rückmeldung
+             stand weit oben, wo der Film später landet, oft außerhalb des
+             Bildes. Ein Knopf, der auf Druck spurlos verschwindet, ist keine
+             Antwort. */
+          const laeuft = pendingImages ? "images" : (entry.jobId && !film) ? "film" : null;
           return (
             <div className="j-make">
               {weg.message && <p className="j-make-warn">⚠ {t.errors[weg.message]}</p>}
               {offerImages && !weg.message && <p className="j-make-lede">{t.journal.makeLede}</p>}
               {offerFilm && <p className="j-make-lede">{t.journal.makeFilmLede}</p>}
               <div className="j-acts">
+                {laeuft && (
+                  <span className="j-make-btn j-make-wait" role="status" aria-live="polite">
+                    <span className="wiz-spinner" aria-hidden="true" />
+                    <span className="j-make-title">
+                      {laeuft === "film" ? t.journal.filmPending : t.journal.imagesPending}
+                    </span>
+                  </span>
+                )}
                 {offerImages && weg.rewrite && (
                   /* Der HAUPTknopf bei einer Textablehnung — er steht vor
                      „nochmal versuchen" und vor Plan B, weil er der einzige

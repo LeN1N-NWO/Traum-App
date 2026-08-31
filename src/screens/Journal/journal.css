@@ -728,3 +728,13 @@
 /* Der Schein über dem Journalkopf (HeroGlow, 26.08.) — flacher als
    auf dem Profil, weil der Kartenstapel gleich darunter beginnt. */
 .j-hero-glow { --hero-h: 190px; }
+
+/* Der laufende Auftrag als Knopf-Attrappe: gleiche Form und gleicher Platz
+   wie der Knopf, den man gerade gedrückt hat, nur ohne Warm-Verlauf und
+   ohne Zeigefinger — er ist eine Auskunft, kein Angebot. */
+.j-make-wait {
+  background: var(--panel); border-color: var(--panel-line);
+  color: var(--muted); cursor: default;
+}
+.j-make-wait .wiz-spinner { width: 16px; height: 16px; border-width: 2px; flex: none; }
+.j-make-wait .j-make-title { color: var(--muted); }
