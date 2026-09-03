@@ -611,6 +611,11 @@ export default {
       qualityNames: { sd: "Standard", hd: "Scharf" },
       aboutModel: "Über dieses Modell",
       aboutStyle: "Über diesen Stil",
+      presets: {
+        dreamflow: "Dreamflow",
+        dreamflowSub: "Kein Schnitt — jede Szene wird zur nächsten",
+        dreamflowInfo: "Eine einzige Einstellung. Nichts wird geschnitten: Das Büro wird zum Aufzug, der Aufzug zum Cockpit, der Himmel zum Boden. Der ganze Traum in einem Fluss — die Traumlogik als Form. Rendert im weichen, leuchtenden Look, weil eine harte fotoreale Kante gegen Übergänge arbeitet.",
+      },
       paceLabel: "Tempo",
       paceNames: { calm: "Ruhig", fast: "Schnell", flow: "Ein Fluss" },
       paceHints: {

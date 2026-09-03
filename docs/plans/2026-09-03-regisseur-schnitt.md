@@ -150,6 +150,16 @@ nicht drin". Anton hat den ruhigen Schnitt gesehen und sich anders
 entschieden — der Regler dafür heißt `minShot` in `video.js`, falls das
 Ergebnis die Bedenken bestätigt.
 
+**Seit dem Raster (Antons Wahl „B", 03.09.2026) ist der Fluss ein PRESET,
+kein Tempo zur Wahl mehr:** „Dreamflow", vorn im Stil-Raster als doppelt
+breite Video-Kachel (`src/lib/presets.js`, `PresetTile.jsx`). Es setzt
+Stil (dreamlike) und Tempo (flow) zusammen und blendet den Tempo-Schalter
+aus; der bietet nur noch ruhig/schnell. Ein Preset ist keine eigene
+Zustandsgröße — es wird aus Stil und Tempo abgeleitet (`activePreset`).
+⚠ Die Vorschau-Clips sind bis auf Weiteres Attrappen (Antons eigene Filme
+als 270-Pixel-Kopien unter /media/, nur auf seinem Gerät). Echte Presets
+brauchen je einen eigenen, im Stil gerenderten Clip in `src/assets`.
+
 ⚠ **`beatBudget` ist nicht `shotBudget`.** Beim Fließen gibt es EINEN Shot,
 aber mehrere Szenen darin. Wer für die Szenenauswahl die Shot-Zahl nähme,
 bekäme genau eine Szene — also das Gegenteil von „die ganze Story in 15

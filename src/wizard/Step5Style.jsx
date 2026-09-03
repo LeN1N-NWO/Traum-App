@@ -20,6 +20,8 @@ import Button from "../components/Button.jsx";
 import ButtonTapOverlay from "../components/ButtonTapOverlay.jsx";
 import Storyboard from "../components/Storyboard.jsx";
 import MascotLoader from "../components/MascotLoader.jsx";
+import PresetTile from "../components/PresetTile.jsx";
+import { PRESETS, DREAMFLOW, activePreset, applyPreset } from "../lib/presets.js";
 import Sheet from "../components/Sheet.jsx";
 import "./wizard.css";
 
@@ -669,39 +671,48 @@ export default function Step5Style({ w, patch }) {
         </div>
       )}
 
-      <div className="wiz-styles" role="group" aria-label={t.wizard.step5.styleLabel}>
-        {STYLES.map((s) => (
-          /* Gleiches Muster wie bei den Filmmodellen: das ⓘ liegt NEBEN
-             dem Auswahlknopf in dessen Ecke, nie als Knopf im Knopf.
-             Name aus den Sprachdateien, styles.js bleibt der Fallback —
-             vorher standen die Stilnamen englisch fest im UI (derselbe
-             Fehlertyp wie beim Traumatlas, 21.08.). */
-          <div key={s.id} className="wiz-style-wrap">
-            <button
-              className={"wiz-style" + (w.styleId === s.id ? " wiz-style-on" : "")}
-              onClick={() => patch({ styleId: s.id })}
-              aria-pressed={w.styleId === s.id}
-            >
-              <span className="wiz-style-emoji" aria-hidden="true">{s.emoji}</span>
-              <span>{t.styles.byId[s.id]?.label || s.label}</span>
-            </button>
-            <button
-              className="wiz-model-info"
-              aria-label={`${t.wizard.step5.aboutStyle}: ${t.styles.byId[s.id]?.label || s.label}`}
-              onClick={() => setStyleInfo(s.id)}
-            >i</button>
-          </div>
-        ))}
+      {/* ── Die Stil-Presets als Video-Kacheln (Antons Wahl 03.09.2026:
+          das Raster, Variante B der Werkbank) ───────────────────────────
+          Neun Kacheln mit laufender Vorschau statt acht Emoji-Knöpfe.
+          Dreamflow — der Film ohne Schnitt — steht vorn als doppelt breite
+          Kachel: Es ist kein neunter Bildstil, sondern ein Preset, das den
+          Stil UND das Tempo setzt (presets.js). Ein Preset ist keine eigene
+          Zustandsgröße: Es wird aus Stil und Tempo abgeleitet, damit zwei
+          Quellen derselben Wahrheit nicht auseinanderlaufen. */}
+      <div className="wiz-presets" role="group" aria-label={t.wizard.step5.styleLabel}>
+        {PRESETS.map((p) => {
+          const style = STYLES.find((s) => s.id === p.styleId);
+          const name = p.id === DREAMFLOW
+            ? t.wizard.step5.presets.dreamflow
+            : (t.styles.byId[p.styleId]?.label || style?.label || p.styleId);
+          return (
+            <PresetTile
+              key={p.id}
+              preset={p}
+              label={name}
+              sub={p.id === DREAMFLOW ? t.wizard.step5.presets.dreamflowSub : undefined}
+              on={activePreset(w) === p.id}
+              onPick={(id) => patch(applyPreset(id, w))}
+              infoLabel={`${t.wizard.step5.aboutStyle}: ${name}`}
+              onInfo={p.id === DREAMFLOW ? () => setStyleInfo(DREAMFLOW) : () => setStyleInfo(p.styleId)}
+            />
+          );
+        })}
       </div>
 
       {styleInfo && (
-        <Sheet label={t.styles.byId[styleInfo]?.label || styleInfo} onClose={() => setStyleInfo(null)}>
+        <Sheet
+          label={styleInfo === DREAMFLOW ? t.wizard.step5.presets.dreamflow : (t.styles.byId[styleInfo]?.label || styleInfo)}
+          onClose={() => setStyleInfo(null)}
+        >
           <p className="sb-sheet-label">{t.wizard.step5.styleLabel}</p>
           <h3 className="wiz-model-title">
-            {STYLES.find((s) => s.id === styleInfo)?.emoji}{" "}
-            {t.styles.byId[styleInfo]?.label || styleInfo}
+            {styleInfo === DREAMFLOW ? "🌊" : STYLES.find((s) => s.id === styleInfo)?.emoji}{" "}
+            {styleInfo === DREAMFLOW ? t.wizard.step5.presets.dreamflow : (t.styles.byId[styleInfo]?.label || styleInfo)}
           </h3>
-          <p className="wiz-model-text">{t.styles.byId[styleInfo]?.info}</p>
+          <p className="wiz-model-text">
+            {styleInfo === DREAMFLOW ? t.wizard.step5.presets.dreamflowInfo : t.styles.byId[styleInfo]?.info}
+          </p>
         </Sheet>
       )}
 
@@ -820,9 +831,15 @@ export default function Step5Style({ w, patch }) {
               wie sie den Charakter des Films bestimmt und nicht den Preis:
               Ein schneller Schnitt kostet keinen Credit mehr als ein
               ruhiger, er packt nur mehr hinein. */}
+          {/* ⚠ Bei Dreamflow AUSGEBLENDET, und `flow` steht nicht mehr im
+              Schalter: Der Fluss ist seit dem Raster ein Preset, kein
+              Tempo zur Wahl. Ein Schalter, der bei Dreamflow „ruhig" oder
+              „schnell" anböte, verspräche Schnitte in einem Film, der
+              keine hat. */}
+          {w.pace !== "flow" && (<>
           <h2 className="wiz-sub">{t.wizard.step5.paceLabel}</h2>
           <div className="wiz-formats" role="group" aria-label={t.wizard.step5.paceLabel}>
-            {PACE_IDS.map((p) => (
+            {PACE_IDS.filter((p) => p !== "flow").map((p) => (
               <button
                 key={p}
                 className={"wiz-format" + (pace === p ? " wiz-format-on" : "")}
@@ -834,6 +851,7 @@ export default function Step5Style({ w, patch }) {
               </button>
             ))}
           </div>
+          </>)}
 
           <h2 className="wiz-sub">{t.wizard.step5.lengthLabel}</h2>
           <div className="wiz-seconds">

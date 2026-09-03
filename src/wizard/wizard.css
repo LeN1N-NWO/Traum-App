@@ -347,3 +347,10 @@
   color: var(--accent-soft); font: inherit; font-size: var(--t-small);
   text-decoration: underline; text-underline-offset: .2em;
 }
+
+/* ── Die Stil-Presets als Raster (Antons Wahl 03.09.2026, Variante B) ──
+   Drei Spalten. Dreamflow vorn und die letzte Kachel doppelt breit
+   (presets.js, `wide`): neun Kacheln, zwei davon doppelt, sind elf Plätze —
+   drei volle Reihen und eine breite zum Schluss, keine Waise. Die Kachel
+   selbst wohnt in components/presetTile.css. */
+.wiz-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }

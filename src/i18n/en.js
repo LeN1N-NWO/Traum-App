@@ -652,6 +652,11 @@ export default {
       qualityNames: { sd: "Standard", hd: "Sharp" },
       aboutModel: "About this model",
       aboutStyle: "About this style",
+      presets: {
+        dreamflow: "Dreamflow",
+        dreamflowSub: "No cuts — every scene becomes the next",
+        dreamflowInfo: "One unbroken take. Nothing is cut: the office turns into the lift, the lift into the cockpit, the sky into the ground. The whole dream in a single flow — dream logic as the form itself. Renders in the soft, glowing look, because a hard photoreal edge works against transitions.",
+      },
       paceLabel: "Pace",
       paceNames: { calm: "Calm", fast: "Fast", flow: "One flow" },
       paceHints: {
