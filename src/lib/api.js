@@ -177,8 +177,8 @@ export async function transcribe(audio) {
                 daraufhin das Rastermaß aus appGrid().
      fallback — Plan B: das Ausweichmodell. Bewusst ein JA/NEIN und kein
                 Modellname; die Auflösung steht im Server (modelFor). */
-export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats, sequenceRef, grid, fallback }) {
-  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats, sequenceRef, grid, fallback });
+export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, styleId, beats, sequenceRef, grid, fallback }) {
+  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, styleId, beats, sequenceRef, grid, fallback });
   if (Array.isArray(data?.urls)) return { urls: data.urls };
   if (typeof data?.jobId === "string") return { jobId: data.jobId };
   throw new Error(t.errors.unexpected);

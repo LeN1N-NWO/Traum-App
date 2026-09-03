@@ -13,7 +13,7 @@
  *
  *   node scripts/preis-durchreichen.mjs
  */
-import { VIDEO_MODELS, videoModel, priceForFilm } from "../src/lib/video.js";
+import { VIDEO_MODELS, videoModel, priceForFilm, QUALITIES, filmQuality } from "../src/lib/video.js";
 import { SUBSCRIPTIONS, PACKS } from "../src/lib/plans.js";
 import { imageModel, DEFAULT_IMAGE_MODEL, imagePrice, imageStage } from "../src/lib/imageModel.js";
 import { appGrid } from "../src/lib/gridLayout.js";
@@ -49,9 +49,13 @@ const BILD_EINKAUF = imagePrice(DEFAULT_IMAGE_MODEL, imageStage(DEFAULT_IMAGE_MO
    Teil der Modelltabelle (`usdPerSecond` in video.js) — dieselbe Zeile,
    aus der auch `creditsPerSecond` hergeleitet ist, und video.test.js
    rechnet die Herleitung nach. */
-const EINKAUF_PRO_SEKUNDE = Object.fromEntries(
-  VIDEO_MODELS.map((m) => [m.id, m.usdPerSecond]),
-);
+/* Seit 31.08. je Modell ZWEI Qualitäten — jede Stufe der Rechnung ist eine
+   Modell-Qualitäts-Kombination, damit 480p und 720p nebeneinanderstehen
+   (Antons Frage: „die Unterschiede zwischen 480p und 720p in Preisen"). */
+const STUFEN = VIDEO_MODELS.flatMap((m) => QUALITIES.map((q) => {
+  const k = filmQuality(m.id, q);
+  return { ...m, quality: q, name: `${m.id} ${k.resolution}`, usd: k.usdPerSecond, credits: k.creditsPerSecond };
+}));
 
 const num = (preis) => Number(String(preis).replace(/[^0-9.]/g, ""));
 const netto = (brutto, store) => (brutto / VAT) * (1 - store);
@@ -72,11 +76,7 @@ const PLAENE = [
 
 const PRODUKTE = [
   { name: `${BILD.label} 2×2`, einkauf: BILD_EINKAUF, credits: 1 },
-  ...VIDEO_MODELS.map((m) => ({
-    name: m.id,
-    einkauf: EINKAUF_PRO_SEKUNDE[m.id],
-    credits: m.creditsPerSecond,
-  })),
+  ...STUFEN.map((st) => ({ name: st.name, einkauf: st.usd, credits: st.credits })),
 ];
 
 const f = (n, d = 4) => n.toFixed(d).padStart(d + 3);
@@ -113,16 +113,16 @@ for (const store of [0.15, 0.30]) {
 
 // ── 3. Ganze Filme, wie die App sie verkauft ────────────────────────────
 console.log("\n=== 3. Ein ganzer Film (Voreinstellung der Stufe, mit Keyframe) ===\n");
-console.log("Stufe        Sek   Credits   Einkauf   Kunde zahlt (Monatsabo)   Aufschlag netto");
+console.log("Stufe          Sek   Credits   Einkauf   Kunde zahlt (Monatsabo)   Aufschlag netto");
 const monat = PLAENE.find((p) => p.id.startsWith("monthly"));
-for (const m of VIDEO_MODELS) {
+for (const m of STUFEN) {
   const sek = m.preset;
-  const cr = priceForFilm(m.id, sek);
-  const einkauf = sek * EINKAUF_PRO_SEKUNDE[m.id] + BILD_EINKAUF;
+  const cr = priceForFilm(m.id, sek, { quality: m.quality });
+  const einkauf = sek * m.usd + BILD_EINKAUF;
   const kunde = cr * monat.proCredit;
   const uns = cr * netto(monat.proCredit, 0.15);
   console.log(
-    `${m.id.padEnd(12)} ${String(sek).padStart(3)}   ${String(cr).padStart(7)}   ${f(einkauf, 3)}   ` +
+    `${m.name.padEnd(14)} ${String(sek).padStart(3)}   ${String(cr).padStart(7)}   ${f(einkauf, 3)}   ` +
     `$${kunde.toFixed(2).padStart(6)}                  ${(uns / einkauf).toFixed(1)}×`
   );
 }
@@ -131,10 +131,10 @@ for (const m of VIDEO_MODELS) {
 console.log("\n=== 4. Durchreichen — einheitlicher Aufschlag statt Quersubvention ===\n");
 const KORB = [
   { name: "1 Bild", einkauf: BILD_EINKAUF, credits: 1 },
-  ...VIDEO_MODELS.map((m) => ({
-    name: `${m.id} ${m.preset} s`,
-    einkauf: m.preset * EINKAUF_PRO_SEKUNDE[m.id] + BILD_EINKAUF,
-    credits: priceForFilm(m.id, m.preset),
+  ...STUFEN.map((m) => ({
+    name: `${m.name} ${m.preset} s`,
+    einkauf: m.preset * m.usd + BILD_EINKAUF,
+    credits: priceForFilm(m.id, m.preset, { quality: m.quality }),
   })),
 ];
 const summe = KORB.reduce(
@@ -161,10 +161,10 @@ for (const p of KORB) {
 // ── 5. Kaufbarkeit ──────────────────────────────────────────────────────
 console.log("\n=== 5. Kaufbarkeit: reicht ein einzelner Kauf für einen Film? ===\n");
 const grösster = Math.max(...[...SUBSCRIPTIONS, ...PACKS].map((p) => p.credits));
-for (const m of VIDEO_MODELS) {
-  const max = priceForFilm(m.id, m.max);
+for (const m of STUFEN) {
+  const max = priceForFilm(m.id, m.max, { quality: m.quality });
   console.log(
-    `${m.id.padEnd(12)} längster Film (${String(m.max).padStart(2)} s) = ${String(max).padStart(3)} Cr   ` +
+    `${m.name.padEnd(14)} längster Film (${String(m.max).padStart(2)} s) = ${String(max).padStart(3)} Cr   ` +
     `bester Einzelkauf ${grösster} Cr   ${max > grösster ? "⚠ NICHT in einem Kauf erreichbar" : "ok"}`
   );
 }
@@ -188,16 +188,16 @@ console.log("\n=== 6. Ein einzelner Film als Einzelkauf — was er kosten MUSS =
 
 const AUFSCHLAG = SCHNITT;   // aus Abschnitt 4 — NIE abschreiben, sonst driftet er
 console.log(`Aufschlag ${AUFSCHLAG.toFixed(2)}× · Preis inkl. MwSt., je Store-Anteil\n`);
-console.log("Stufe        Sek   Einkauf   nötig @15 %   nötig @30 %   größtes Paket heute");
+console.log("Stufe            Sek   Einkauf   nötig @15 %   nötig @30 %   größtes Paket heute");
 
 const groesstesPaket = PACKS.reduce((a, b) => (num(a.price) > num(b.price) ? a : b));
-for (const m of VIDEO_MODELS) {
+for (const m of STUFEN) {
   for (const secs of [m.preset, m.max]) {
-    const einkauf = secs * EINKAUF_PRO_SEKUNDE[m.id] + BILD_EINKAUF;   // + Keyframe
+    const einkauf = secs * m.usd + BILD_EINKAUF;   // + Keyframe
     const noetig15 = brutto(einkauf * AUFSCHLAG, 0.15);
     const noetig30 = brutto(einkauf * AUFSCHLAG, 0.30);
     console.log(
-      `${m.id.padEnd(10)} ${String(secs).padStart(4)}   ${einkauf.toFixed(3).padStart(7)}   ` +
+      `${m.name.padEnd(14)} ${String(secs).padStart(4)}   ${einkauf.toFixed(3).padStart(7)}   ` +
       `${("$" + noetig15.toFixed(2)).padStart(11)}   ${("$" + noetig30.toFixed(2)).padStart(11)}   ` +
       `${groesstesPaket.price}`,
     );

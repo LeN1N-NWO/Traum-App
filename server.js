@@ -49,7 +49,7 @@ import { styleById } from "./src/lib/styles.js";
 import { beatsForSeconds } from "./src/lib/beats.js";
 // Die Filmbestellung je Modell — Slug, Klemme, Auflösung, Tonparameter —
 // kommt aus EINER Tabelle, die auch Preis und UI speist (video.test.js).
-import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
+import { videoSubmitBody, videoModel, clampSeconds, QUALITIES } from "./src/lib/video.js";
 /* Bildmodell: Endpunkte, Adressformat und Referenzbudget stehen seit dem
  * 23.08. in EINER Tabelle (src/lib/imageModel.js) — Seedream und Nano Banana
  * sprechen nicht dieselbe Sprache, und ein falscher Feldname wirft keinen
@@ -1369,11 +1369,11 @@ const writeJob = (id, job) => Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.st
  *  (server-side) through that same table: the queue only validates duration
  *  at RENDER time (re-measured 09.08.2026), so a bad value burns the fee
  *  and comes back as a failed job minutes later. */
-async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds }) {
+async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, quality }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
-  const { slug, body } = videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds });
+  const { slug, body } = videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds, quality });
   const res = await fetch(`https://queue.fal.run/${slug}`, {
     method: "POST",
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
@@ -1743,7 +1743,7 @@ async function generateImages({ dream, namedRefs, prompt: readyPrompt, aspectRat
  * Standbild-Prompt wörtlich — was sich bewegte, war Zufall. Fehlt der
  * Regisseur (kein Schlüssel, Prüfung rot), fällt die Bestellung auf den
  * alten Zustand zurück. */
-async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, refImages = [] }) {
+async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, quality, refImages = [] }) {
   const filmPrompt = motionPrompt || prompt || dream;
   /* `refImages` kommt aus filmReferences() und steht in EXAKT der
    * Reihenfolge der Materialliste des Regisseurs — das Startbild davor
@@ -1755,12 +1755,12 @@ async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, key
     if (!hit || !(await file.exists())) throw new Error("GENERATION_FAILED");
     const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
     const dataUri = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
-    return falSubmitVideo({ modelId, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds });
+    return falSubmitVideo({ modelId, quality, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds });
   }
   const stills = await generateImages({ dream, namedRefs, prompt });
   const first = stills[0];
   if (!first) throw new Error("GENERATION_FAILED");
-  return falSubmitVideo({ modelId, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds });
+  return falSubmitVideo({ modelId, quality, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds });
 }
 
 // ---- static file serving ----
@@ -2283,8 +2283,16 @@ Bun.serve({
              Der Client schickt eine ID, nie einen Slug. Unbekanntes wird
              absichtlich zu "standard" — der falsche BILLIGE Film ist der
              harmlosere Fehler. */
-          const modelId = ["premium", "director"].includes(body.model) ? body.model : "standard";
+          /* Allowlist als LISTE, nicht als Vergleich — imageModel.test.js liest
+             diese Zeile und besteht darauf: Ein drittes Modell ist dann ein
+             Eintrag, kein zweiter Vergleichsast. */
+          const modelId = ["premium"].includes(body.model) ? body.model : "standard";
           const filmModel = videoModel(modelId);
+          /* Die Qualität (480p/720p) ist seit 31.08. Teil der Bestellung.
+             Dieselbe Allowlist-Haltung: Unbekanntes wird zur Vorgabe des
+             Modells — filmQuality() in video.js entscheidet, und dieselbe
+             Funktion hat auf dem Client den Preis berechnet. */
+          const quality = QUALITIES.includes(body.quality) ? body.quality : undefined;
 
           /* Referenz-Film — seit dem Neuzuschnitt vom 20.08. sind das ALLE
              Stufen: Auswahl und Reihenfolge kommen aus filmReferences() —
@@ -2314,7 +2322,7 @@ Bun.serve({
 
           const jobId = await startVideo({
             dream, namedRefs: cast, prompt, motionPrompt,
-            seconds: body.seconds, keyframe, modelId,
+            seconds: body.seconds, keyframe, modelId, quality,
             refImages: kept.map((c) => c.img),
           });
           return json({ ok: true, jobId });

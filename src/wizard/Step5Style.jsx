@@ -11,7 +11,7 @@ import { genId } from "../lib/storage.js";
 import { bumpStreak, refreshStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
 import { priceForImages, PRICES, IMAGE_COUNTS, PREVIEW_COUNT } from "../lib/pricing.js";
-import { VIDEO_MODELS, priceForFilm, clampSeconds, videoModel } from "../lib/video.js";
+import { VIDEO_MODELS, QUALITIES, priceForFilm, clampSeconds, videoModel, filmQuality } from "../lib/video.js";
 import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
@@ -61,7 +61,7 @@ export default function Step5Style({ w, patch }) {
   // keyframe is rendered, so that credit disappears from the price.
   const ownKeyframe = isFilm && !!w.keyframe;
   const price = isFilm
-    ? priceForFilm(w.videoModel, w.seconds, { ownKeyframe })
+    ? priceForFilm(w.videoModel, w.seconds, { ownKeyframe, quality: w.quality })
     : isPreview ? PRICES.preview
     /* ⚠ Plan B kostet mehr, weil er uns mehr kostet: Nano Banana im
        4K-Raster $0,16 gegen $0,113. Die Zahl steht in pricing.js, nicht
@@ -340,6 +340,10 @@ export default function Step5Style({ w, patch }) {
              der Modellwahl, der Server renderte aber immer minimax — Premium
              wurde bezahlt und nie geliefert (Befund 2 im Film-Regie-Plan). */
           model: w.videoModel,
+          /* Preis und Bestellung gehen durch DIESELBE Funktion (filmQuality):
+             Wer hier die Vorgabe schickt statt der aufgelösten Stufe, riskiert,
+             dass Client und Server verschieden auflösen. */
+          quality: filmQuality(w.videoModel, w.quality).id,
           cast: castForApi,
           /* Stil und Szenenbogen für den Regisseur. Bis 19.08.2026 fehlten
              beide Zeilen: Die Regieanweisung verlangte ausdrücklich einen
@@ -717,7 +721,7 @@ export default function Step5Style({ w, patch }) {
               <div key={m.id} className="wiz-model">
                 <button
                   className={"wiz-format" + (w.videoModel === m.id ? " wiz-format-on" : "")}
-                  onClick={() => patch({ videoModel: m.id, ...(w.secondsTouched ? { seconds: clampSeconds(m.id, w.seconds) } : {}) })}
+                  onClick={() => patch({ videoModel: m.id, quality: null, ...(w.secondsTouched ? { seconds: clampSeconds(m.id, w.seconds) } : {}) })}
                   aria-pressed={w.videoModel === m.id}
                 >
                   <span>{t.wizard.step5.filmModels[m.id].name}</span>
@@ -740,6 +744,32 @@ export default function Step5Style({ w, patch }) {
               <p className="wiz-model-text">{t.wizard.step5.filmModels[modelInfo].info}</p>
             </Sheet>
           )}
+
+          {/* Der Qualitätsschalter (Antons Ansage 31.08.: „einen Button unter
+              den Modellen, je nachdem, welche Qualität wir haben wollen").
+              Zahlen kommen aus der Modelltabelle, nie aus den Sprachdateien —
+              die Hinweistexte nennen deshalb keine Credits mehr. Beim
+              Modellwechsel fällt die Wahl auf `null` zurück, also auf die
+              Vorgabe des NEUEN Modells: 720p bei Seedance kostet neunmal so
+              viel wie bei H3 ein Stufenwechsel, das erbt man nicht still. */}
+          <h2 className="wiz-sub">{t.wizard.step5.qualityLabel}</h2>
+          <div className="wiz-formats" role="group" aria-label={t.wizard.step5.qualityLabel}>
+            {QUALITIES.map((q) => {
+              const k = filmQuality(w.videoModel, q);
+              const on = filmQuality(w.videoModel, w.quality).id === q;
+              return (
+                <button
+                  key={q}
+                  className={"wiz-format" + (on ? " wiz-format-on" : "")}
+                  onClick={() => patch({ quality: q })}
+                  aria-pressed={on}
+                >
+                  <span>{t.wizard.step5.qualityNames[q]}</span>
+                  <small>{k.resolution} · {k.creditsPerSecond} {t.wizard.creditsN(k.creditsPerSecond)}/s</small>
+                </button>
+              );
+            })}
+          </div>
 
           <h2 className="wiz-sub">{t.wizard.step5.lengthLabel}</h2>
           <div className="wiz-seconds">

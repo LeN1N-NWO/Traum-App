@@ -100,77 +100,91 @@ import { PRICES } from "./pricing.js";
  *                (enable_prompt_expansion steht AN); für Regie-Prompts
  *                ausdrücklich abgeschaltet, sonst überschreibt ein fremdes
  *                Modell die Arbeit unseres Regisseurs. */
-export const VIDEO_MODELS = [
+/* ── Zwei Modelle, je zwei Qualitäten (Antons Entscheidung 31.08.2026) ────
+ * Seedance 2.0 ist raus („komplett weg"). Übrig bleiben MiniMax H3 und
+ * Seedance 2.5 — und jedes bekommt einen Qualitätsschalter, weil die
+ * Auflösung bei Seedance mehr als den PREIS VERDOPPELT. Am 31.08. auf den
+ * fal-Modellseiten nachgelesen, nicht aus dem Gedächtnis:
+ *   H3            480P $0,05/s  · 768P $0,06/s   (erste 5 Referenzbilder gratis)
+ *   Seedance 2.5  480p $0,2205/s · 720p $0,473/s (1080p $1,164 — nicht angeboten)
+ * `creditsPerSecond` je Qualität = ceil(usd / creditCostUsd()); video.test.js
+ * rechnet jede der vier Zahlen nach.
+ *
+ * `preferred` ist die Vorgabe des Schalters, und sie ist je Modell BEWUSST
+ * verschieden: Bei H3 kostet die scharfe Stufe EINEN Credit mehr — bei
+ * 9:16 ist 480P sichtbar weich, das ist der Credit wert. Bei Seedance
+ * kostet sie NEUN Credits mehr; dort ist 480p die Vorgabe, denn genau das
+ * war der Sinn des Umbaus („die Preise runter"). Wer das ändert, sieht in
+ * preis-durchreichen.mjs sofort, was es kostet.
+ *
+ * ⚠ Die Felder resolution/usdPerSecond/creditsPerSecond auf MODELLEBENE
+ * sind aus `preferred` ABGELEITET (VIDEO_MODELS unten), nie abgeschrieben:
+ * Skripte und Aufrufer ohne Qualitätsangabe sehen so die Vorgabe, und es
+ * gibt weiterhin genau eine Quelle je Zahl.
+ *
+ * Modellwissen, das bleibt (Herkunft: Filmplan §10b/§10c, bezahlt geprüft):
+ *   H3: `resolution` MUSS gesetzt sein — die Schema-Vorgabe ist "2K" und
+ *       kostet $0,13/s. Kein generate_audio-Parameter (liefert von sich aus
+ *       AAC; ein unbekanntes Feld kann den Auftrag kosten). Referenzen in
+ *       `reference_image_urls`, adressiert als „Image 1". Prompt-Expansion
+ *       steht standardmäßig AN und wird ausdrücklich abgeschaltet.
+ *   Seedance 2.5: Referenzen in `image_urls`, adressiert als [Image1];
+ *       generate_audio nötig, sonst stumm. 9 Referenzen (Keyframe + 8),
+ *       damit die Brief-Form aller Stufen gleich bleibt. */
+const MODELLE = [
   {
-    /* „Lebendig" — H3-R2V @768P kostet $0,06/s, WENIGER als das alte
-     * image-to-video ($0,08/s), und die ersten 5 Referenzbilder sind gratis.
-     * Verkaufspreis bleibt 1 Cr/s (ceil), die Marge steigt um 25 % und die
-     * Besetzung ist ab jetzt in jeder Stufe im Film sie selbst.
-     * maxRefs bleibt bei 5 — ab dem 6. Bild berechnet fal $0,08/Referenz,
-     * und eine Stufe, deren Einkaufspreis von der Besetzungsgröße abhängt,
-     * kann kein ehrlicher Festpreis mehr sein.
-     * ⚠ resolution "768P" MUSS gesetzt bleiben: die Schema-Vorgabe ist "2K"
-     * und kostet $0,13/s (§10b). */
     id: "standard",
     slug: "minimax/h3/reference-to-video",
-    usdPerSecond: 0.06,           // fal: minimax/h3/reference-to-video @768P
-    creditsPerSecond: 3,          // 0.06 ÷ 0.0283 → ceil = 3   (siehe Kopf)
+    qualities: {
+      sd: { resolution: "480P", usdPerSecond: 0.05, creditsPerSecond: 2 },
+      hd: { resolution: "768P", usdPerSecond: 0.06, creditsPerSecond: 3 },
+    },
+    preferred: "hd",
     min: 5, max: 15, step: 1, preset: 6,
-    resolution: "768P",
-    audio: false,                 // liefert von sich aus eine AAC-Spur; einen
-                                  // generate_audio-Parameter kennt es nicht,
-                                  // also darf er auch nicht gesendet werden
-    maxRefs: 5,                   // die gratis-Grenze, siehe oben
+    audio: false,
+    maxRefs: 5,
     refsField: "reference_image_urls",
-    refStyle: "plain",            // „Image 1" — bezahlt bewiesen 19.08. (§10c)
+    refStyle: "plain",
     aspect: "9:16",
     noExpand: true,
-    promptMax: 7000,              // offizielle H3-API-Grenze
+    promptMax: 7000,
   },
   {
-    /* „Regie" — die Seedance-Qualitätsstufe mit Director-Brief. Machbarkeit
-     * am 17.08. real bewiesen (T1/T4: data-URIs, @Image-Zuordnung, Identität
-     * hält über Ortswechsel); Fast vs. Normal hat T2 entschieden. */
-    id: "director",
-    slug: "bytedance/seedance-2.0/fast/reference-to-video",
-    usdPerSecond: 0.2419,         // fal: bytedance/seedance-2.0/fast/r2v
-    creditsPerSecond: 9,          // 0.2419 ÷ 0.0283 → ceil = 9  (siehe Kopf)
-    min: 5, max: 15, step: 1, preset: 10,
-    resolution: "720p",
-    audio: true,
-    maxRefs: 9,                   // image_urls statt image_url — bis zu 9
-    refsField: "image_urls",
-    refStyle: "at",               // @Image1 — bezahlt bewiesen 17.08. (T1/T4)
-    /* KEIN aspect: das 2.0-Schema ist der eine ungemessene Punkt, und T4
-     * lief ohne den Parameter sauber 9:16 (adaptiv nach dem Startbild).
-     * Nichts senden, was der Validator nicht bestätigt hat. */
-    promptMax: 5000,              // modellseitige Seedance-2.0-Grenze
-  },
-  {
-    /* „Kino" — 2.5-R2V: 30 Sekunden MIT echten Gesichtern, gleicher
-     * Sekundenpreis wie das alte Ein-Bild-2.5 ($0,473/s, §10b) — Referenzen
-     * kosten dort nichts extra. Damit ist T5 (Verkettung) endgültig tot. */
     id: "premium",
     slug: "bytedance/seedance-2.5/reference-to-video",
-    usdPerSecond: 0.473,          // fal: bytedance/seedance-2.5/r2v
-    creditsPerSecond: 17,         // 0.473 ÷ 0.0283 → ceil = 17  (siehe Kopf)
+    qualities: {
+      sd: { resolution: "480p", usdPerSecond: 0.2205, creditsPerSecond: 8 },
+      hd: { resolution: "720p", usdPerSecond: 0.473,  creditsPerSecond: 17 },
+    },
+    preferred: "sd",
     min: 5, max: 30, step: 5, preset: 15,
-    resolution: "720p",
-    audio: true,                  // nativer Ton über generate_audio
-    maxRefs: 9,                   // Schema erlaubt mehr; 9 hält die Brief-Form
-                                  // aller Stufen gleich (Keyframe + 8 Plätze)
+    audio: true,
+    maxRefs: 9,
     refsField: "image_urls",
-    refStyle: "bracket",          // [Image1] — bezahlt bewiesen 19.08. (§10c)
+    refStyle: "bracket",
     aspect: "9:16",
-    promptMax: 10000,             // Runware-API-Doku (19.08.2026); fal ungemessen
+    promptMax: 10000,
   },
 ];
+
+export const QUALITIES = ["sd", "hd"];
+
+export const VIDEO_MODELS = MODELLE.map((m) => ({ ...m, ...m.qualities[m.preferred] }));
 /* Reihenfolge = UI-Reihenfolge = aufsteigender Preis. Eintrag [0] muss
  * "standard" bleiben: videoModel() fällt bei Unbekanntem dorthin zurück,
  * und der falsche BILLIGE Film ist der harmlosere Fehler. */
 
 export function videoModel(id) {
   return VIDEO_MODELS.find((m) => m.id === id) || VIDEO_MODELS[0];
+}
+
+/** Die gewählte Qualität eines Modells — oder seine Vorgabe, wenn keine
+ *  (oder eine unbekannte) genannt ist. Preis UND Auftrag laufen hierdurch,
+ *  damit niemand 480p bezahlt und 720p bestellt bekommt. */
+export function filmQuality(modelId, quality) {
+  const m = videoModel(modelId);
+  const q = m.qualities[quality] ? quality : m.preferred;
+  return { id: q, ...m.qualities[q] };
 }
 
 /* Der komplette fal-Auftrag für einen Film, als reine Funktion — damit die
@@ -185,12 +199,12 @@ export function videoModel(id) {
  *
  * `duration` wird hier je Modell geklemmt. Der Server ruft DIESE Funktion —
  * der Client kann lügen, die Tabelle nicht. */
-export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds }) {
+export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds, quality }) {
   const m = videoModel(modelId);
   const body = {
     prompt,
     duration: clampSeconds(m.id, seconds),
-    resolution: m.resolution,
+    resolution: filmQuality(m.id, quality).resolution,
   };
 
   /* Referenzmodelle nehmen ein ARRAY, Ein-Bild-Modelle ein FELD (image_url) —
@@ -221,10 +235,9 @@ export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds 
 
 /** What a film costs: the animation, plus a keyframe — unless the film
  *  animates an image the dream already has, which costs nothing new. */
-export function priceForFilm(modelId, seconds, { ownKeyframe = false } = {}) {
-  const m = videoModel(modelId);
+export function priceForFilm(modelId, seconds, { ownKeyframe = false, quality } = {}) {
   const secs = clampSeconds(modelId, seconds);
-  return secs * m.creditsPerSecond + (ownKeyframe ? 0 : PRICES.keyframe);
+  return secs * filmQuality(modelId, quality).creditsPerSecond + (ownKeyframe ? 0 : PRICES.keyframe);
 }
 
 /** Keep a length inside what the model actually accepts — fal rejects the
