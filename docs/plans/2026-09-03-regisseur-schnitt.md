@@ -4,8 +4,9 @@
 je nachdem wie viele Sekunden der Kunde auswählt, alles reinpressen") und
 seine Ansage: „Da wir weg sind von den Bildern, haben wir kein Limit mehr
 mit diesen 5 Szenen. Das System muss entscheiden, wie viele es sind."
-**Status: RECHERCHE + SKILL fertig und an fremdem Material geprüft,
-App-Umbau NICHT begonnen.**
+**Status: RECHERCHE + SKILL fertig, App-Umbau UMGESETZT (03.09.2026,
+Antons Go) und mit einem bezahlten Lauf geprüft.** Was noch offen ist,
+steht in §7.
 Skill: `.claude/skills/regisseur-schnitt/SKILL.md` — als `/regisseur-schnitt`
 mit Traumtext, Sekunden und Modell aufrufbar, rendert nichts.
 Prüfbericht: `docs/plans/2026-09-03-regisseur-trockenlauf.md` — fünf echte
@@ -81,6 +82,50 @@ Weg muss mit 5 genauso laufen wie mit 12 — kein Migrationszwang.
 2. Analyse öffnen (`hook`, `min_s`, kein Deckel) + `selectBeats` mit Tests.
 3. Director-Brief auf Shot-Liste + Modellformat umstellen.
 4. Empfehlung im Wizard als Satz. Erster bezahlter Lauf mit EINEM Traum.
+
+## 6a. Was der erste echte Lauf gezeigt hat (03.09.2026)
+
+Der Flugtraum aus der DreamBank (samantha:56), durch die ganze App:
+
+- **Der Deckel ist weg.** Die Analyse lieferte 8 bis 11 Szenen statt fünf,
+  je nach Lauf. Der Signatur-Beat war beide Male „the lift becomes an
+  aeroplane" — genau der, den die alte Auswahl bei kurzen Filmen wegwarf.
+- **Die Auswahl bei 15 s / H3 (3 Shots):** Verwandlung, Höhepunkt, eine
+  Wendung. Büro und Kuss fliegen raus. Der alte Weg hätte Büro und Kuss
+  genommen und sonst nichts.
+- **Die Schluss-Regel greift.** Der Kuss mit einem Freund bekam beim
+  zweiten Lauf `transit`, nicht `resolution` — obwohl er der gefühlvollste
+  Moment ist. Genau so war es gemeint.
+
+⚠ Drei Sachen, die erst am echten Lauf sichtbar wurden, sind behoben:
+`list()` kappte Szenen bei 120 Zeichen und bei acht Stück · die Analyse
+machte den themenfremden Schlussbeat zum Höhepunkt · der Empfehlungssatz
+widersprach sich.
+
+## 6b. Offen: die Uhren
+
+**Die Analyse braucht bei langen Träumen zwei bis vier Minuten** — 96 % der
+erzeugten Token sind Denk-Token. Gegengemessen: der ALTE Prompt brauchte am
+selben Traum 121 s, der neue 184 s. Der lange Traum wäre also vorher
+genauso am 60-Sekunden-Limit des Clients gescheitert; aufgefallen ist es
+nur nie, weil bisher niemand einen langen Traum eingegeben hat. Die
+Timeouts stehen jetzt auf 300 s (`api.js`), aber das ist ein Pflaster:
+Solange es kein schnelleres Modell für diese Aufgabe gibt, sieht der Mensch
+minutenlang den schlafenden Frosch.
+
+**Der Filmauftrag hat dasselbe Problem — und es ist teurer.** /api/generate
+antwortet im Film-Modus erst, wenn der Regisseur fertig ist. Bricht der
+Client vorher ab, arbeitet der Server weiter, gibt den Film bei fal ab und
+bekommt eine Auftragsnummer, die niemanden mehr erreicht. **Das ist
+vermutlich die Ursache der beiden verwaisten Filme vom 31.08.** Der
+Strukturfix: Der Server gibt sofort eine Auftragsnummer zurück und schreibt
+die Regie im Hintergrund.
+
+**Der Regie-Prompt läuft ins Limit.** Beim Lauf: 7000 Zeichen bei H3, also
+exakt `promptMax` — die Notbremse hat gekappt, und sie kappt am Ende, also
+bei Auflösung und Ton. Die Shot-Liste macht den Prompt länger als früher.
+Entweder das Budget im Brief härter formulieren oder die Kontinuitäts-
+Wiederholung je Shot kürzen.
 
 ## 6. Was bewusst nicht drin ist
 

@@ -3,7 +3,18 @@
 **Stand:** 2026-08-31 · Anlass: Antons Entscheidung („wir entfernen diese
 Bilder und alles, was mit diesen Bildern dazugehört. Wir konzentrieren uns
 jetzt auf die Videomodelle.")
-**Status: PLAN. Phase 1 ist umgesetzt (`e4e3ea6`), Phase 2 und 3 nicht.**
+**Status: PLAN. Phase 1 umgesetzt (`e4e3ea6`). Aus Phase 3 ist am
+03.09.2026 das VIDEOFELD vorgezogen (Antons Ansage: „den Videoplayer dann
+einbauen bei den Träumen statt dieser Kacheln") — der Film steht im Journal
+jetzt ganz oben in voller Breite, mit dem schlafenden Frosch solange er
+rendert, und das Storyboard weicht, sobald es einen Film gibt. Phase 2
+(Geld) und der Rest von Phase 3 sind offen.**
+
+⚠ Dabei fiel eine Sackgasse auf, die mit dem Rückbau zum Normalfall würde:
+Ein Traum, der als Film angelegt wurde und dessen Render scheitert, hat
+keine Bilder — und bekam deshalb im Journal nur „Bilder machen" angeboten,
+also genau das, was er nie wollte. `offerFilm` prüft jetzt auch
+`entry.mode === "film"`.
 
 ## 0. Die Entscheidung, in einem Satz
 
