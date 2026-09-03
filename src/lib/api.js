@@ -50,7 +50,22 @@ export function mediaUrl(u) {
  * Fünf Minuten sind trotzdem keine Lösung, sondern ein Pflaster: Das Denken
  * macht 96 % der erzeugten Token aus. Solange es kein schnelleres Modell
  * für diese Aufgabe gibt, muss der Wartebildschirm es aushalten. */
-const TIMEOUTS = { default: 60_000, analyze: 300_000 };
+/* ⚠⚠ Und der FILMAUFTRAG genauso — das ist vermutlich die Ursache der
+ * verwaisten Filme (31.08. „Nebel und Lack", „Flamingo nach Südfrankreich").
+ * /api/generate antwortet im Film-Modus erst, wenn der Regisseur seinen
+ * Prompt geschrieben hat, und der läuft über dasselbe Denkmodell wie die
+ * Analyse. Gemessen am 03.09.2026: Der Client gab nach 60 Sekunden auf und
+ * zeigte „Der Dienst hat nicht geantwortet".
+ *
+ * Der Abbruch beendet aber nur das WARTEN, nicht die Arbeit: Der Server
+ * schreibt weiter, gibt den Film bei fal ab und bekommt eine Auftragsnummer
+ * — die dann niemanden mehr erreicht. Genau das Muster eines verwaisten
+ * Films: bezahlt, gerendert, nirgends sichtbar.
+ *
+ * Die eigentliche Lösung ist, dass der Server sofort eine Auftragsnummer
+ * zurückgibt und die Regie im Hintergrund macht. Bis dahin wartet der
+ * Client so lange, wie die Arbeit dauert. */
+const TIMEOUTS = { default: 60_000, analyze: 300_000, film: 300_000 };
 
 function friendly(err) {
   // TimeoutError: die Uhr. TypeError: Netz/Server gar nicht erreichbar.
@@ -197,7 +212,13 @@ export async function transcribe(audio) {
      fallback — Plan B: das Ausweichmodell. Bewusst ein JA/NEIN und kein
                 Modellname; die Auflösung steht im Server (modelFor). */
 export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, styleId, beats, shots, sequenceRef, grid, fallback }) {
-  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, styleId, beats, shots, sequenceRef, grid, fallback });
+  const data = await post(
+    "/api/generate",
+    { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, styleId, beats, shots, sequenceRef, grid, fallback },
+    // Nur der Film wartet auf den Regisseur — Bilder gehen sofort in die
+    // Warteschlange und brauchen die lange Uhr nicht.
+    mode === "film" ? { timeout: TIMEOUTS.film } : undefined,
+  );
   if (Array.isArray(data?.urls)) return { urls: data.urls };
   if (typeof data?.jobId === "string") return { jobId: data.jobId };
   throw new Error(t.errors.unexpected);

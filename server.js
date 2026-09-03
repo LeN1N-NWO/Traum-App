@@ -1452,10 +1452,21 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, q
   if (!key) throw new Error("NO_FAL_KEY");
 
   const { slug, body } = videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds, quality });
+  /* Die Größe des Auftrags im Log, VOR dem Absenden (03.09.2026). Beim
+     ersten Lauf mit dem neuen Schnitt starb der Submit an ECONNRESET —
+     „the socket connection was closed unexpectedly" — und ohne diese Zeile
+     ist nicht zu unterscheiden, ob der Body zu groß war oder das Netz
+     gehustet hat. Referenzbilder reisen als data:-URIs mit, ein einziges
+     900-KB-PNG wird darin zu 1,2 MB. */
+  const nutzlast = JSON.stringify(body);
+  const refs = body[videoModel(modelId).refsField] || [];
+  console.log(`[DreamRushes] video submit → ${slug}: ${(nutzlast.length / 1048576).toFixed(2)} MB, `
+    + `${refs.length} Referenz(en), Prompt ${body.prompt?.length ?? 0} Zeichen, ${body.duration}s`);
+
   const res = await fetch(`https://queue.fal.run/${slug}`, {
     method: "POST",
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: nutzlast,
   });
   if (!res.ok) {
     // Mit Modelladresse: seit es mehrere Modelle gibt, ist "welches?" die

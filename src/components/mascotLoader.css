@@ -1,0 +1,24 @@
+/* Das wartende Maskottchen. Begründung und Fallen: MascotLoader.jsx.
+
+   `mix-blend-mode: screen` stellt die weiße Strichzeichnung auf ihrem
+   schwarzen Grund frei — ohne Alphakanal und ohne einen einzigen Byte
+   extra. Der Behälter darf deshalb KEINEN eigenen Stapelkontext aufmachen
+   (kein isolation, kein transform, kein opacity < 1): Das Blenden soll bis
+   auf den Seitenhintergrund durchgreifen. */
+.ml-wrap { display: grid; place-items: center; }
+.ml-film {
+  display: block;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+/* Der Wartebildschirm: der Frosch legt sich hin und schläft, in Ruhe. */
+.ml-page .ml-film { width: 180px; height: 180px; }
+
+/* Neben einer Zeile Text — kleiner, aber nie so klein, dass die Zeichnung
+   zu Matsch wird. Darunter bleibt der Ring die ehrlichere Anzeige. */
+.ml-inline .ml-film { width: 56px; height: 56px; }
+
+@media (max-width: 380px) {
+  .ml-page .ml-film { width: 140px; height: 140px; }
+}

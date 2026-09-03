@@ -19,6 +19,7 @@ import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
 import ButtonTapOverlay from "../components/ButtonTapOverlay.jsx";
 import Storyboard from "../components/Storyboard.jsx";
+import MascotLoader from "../components/MascotLoader.jsx";
 import Sheet from "../components/Sheet.jsx";
 import "./wizard.css";
 
@@ -618,7 +619,7 @@ export default function Step5Style({ w, patch }) {
     return (
       <section className="wiz-body wiz-busy" role="status" aria-live="polite">
         {einspieler}
-        <div className="wiz-spinner" aria-hidden="true" />
+        <MascotLoader />
         <p className="wiz-busy-text">{t.dream.loading[msg % t.dream.loading.length]}</p>
         {/* Der einmalige Bogen-Moment einer neuen Figur erklärt sich selbst,
             statt wie eine hängende Generierung auszusehen. */}

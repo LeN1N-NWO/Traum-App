@@ -4,6 +4,7 @@ import { useWizard } from "./useWizard.js";
 import { analyze } from "../lib/api.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
+import MascotLoader from "../components/MascotLoader.jsx";
 import Step1Dream from "./Step1Dream.jsx";
 import Step2Output from "./Step2Output.jsx";
 import Step3Cast from "./Step3Cast.jsx";
@@ -94,7 +95,7 @@ export default function WizardShell() {
       {seeding ? (
         <section className="wiz-body">
           <div className="wiz-rendering" role="status" aria-live="polite">
-            <div className="wiz-spinner" aria-hidden="true" />
+            <MascotLoader />
             <p className="wiz-busy-text">{t.dream.reading}</p>
           </div>
         </section>

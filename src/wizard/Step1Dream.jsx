@@ -4,6 +4,7 @@ import { PRICES } from "../lib/pricing.js";
 import { spend } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
+import MascotLoader from "../components/MascotLoader.jsx";
 import Button from "../components/Button.jsx";
 import TagField from "../components/TagField.jsx";
 import VoiceInterview from "./VoiceInterview.jsx";
@@ -156,7 +157,7 @@ export default function Step1Dream({ w, patch, seedAssignments }) {
     return (
       <section className="wiz-body">
         <div className="wiz-rendering" role="status" aria-live="polite">
-          <div className="wiz-spinner" aria-hidden="true" />
+          <MascotLoader />
           <p className="wiz-busy-text">{t.dream.reading}</p>
           <p className="wiz-hint">{t.dream.readingHint}</p>
         </div>

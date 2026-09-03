@@ -16,6 +16,7 @@ import { buildReferences, buildImagePrompt } from "../../lib/promptBuilder.js";
 import { renderRef } from "../../lib/sheets.js";
 import { t } from "../../i18n/index.js";
 import Storyboard from "../../components/Storyboard.jsx";
+import MascotLoader from "../../components/MascotLoader.jsx";
 import Recurrence from "../../components/Recurrence.jsx";
 import EntryMenu from "./EntryMenu.jsx";
 import RefineSheet from "./RefineSheet.jsx";
@@ -404,10 +405,22 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
                 poster={images[0] ? mediaUrl(images[0]) : undefined}
               />
             ) : (
-              <div className="j-video-wait" role="status" aria-live="polite">
+              <div
+                /* Ohne Standbild ein ruhigeres Feld: Ein 9:16-Rahmen ohne
+                   Bild darin sind 700 Pixel Leere mit einem schlafenden
+                   Frosch am Grund. Mit Standbild bleibt das Filmformat, da
+                   ist die Fläche ja gefüllt. */
+                className={`j-video-wait${images[0] ? "" : " j-video-wait-leer"}`}
+                role="status"
+                aria-live="polite"
+              >
                 {images[0] && <img className="j-video-still" src={mediaUrl(images[0])} alt="" />}
+                {/* Der Frosch wartet mit (Antons Ansage 03.09.): Er legt
+                    sich hin und schläft, solange der Film rendert. Das ist
+                    hier nicht nur Zierde — wer auf einen Traum wartet,
+                    schaut lieber einem Schlafenden zu als einem Ring. */}
                 <div className="j-video-wait-body">
-                  <span className="wiz-spinner" aria-hidden="true" />
+                  <MascotLoader />
                   <span>{t.journal.filmRendering}</span>
                 </div>
               </div>
@@ -489,7 +502,15 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
           const weg = images.length === 0
             ? recoveryOptions(entry, { fallbackAvailable: !!fallbackModel() })
             : recoveryOptions(null);
-          const offerFilm = !entry.jobId && !film && !pendingImages && images.length > 0;
+          /* ⚠ ODER der Traum war von Anfang an ein Film (03.09.2026): Bis
+             hierher verlangte das Angebot Bilder — „erst zeigen, was man
+             animiert". Für einen Traum, der als Film angelegt wurde und
+             dessen Render scheiterte, war das eine Sackgasse: Er hat keine
+             Bilder und bekommt deshalb nur „Bilder machen" angeboten, also
+             genau das, was er nie wollte. Mit dem Rückbau des Bildprodukts
+             wird das der Normalfall, nicht die Ausnahme. */
+          const offerFilm = !entry.jobId && !film && !pendingImages
+            && (images.length > 0 || entry.mode === "film");
           /* ⚠ Was LÄUFT, bekommt einen Platz — und zwar DEN, auf den die Hand
              gerade gedrückt hat (Antons Befund 31.08.: „Dieser Kurzfilm-machen-
              Knopf sollte in dem Moment, wenn man den angeklickt hat, eine Art
