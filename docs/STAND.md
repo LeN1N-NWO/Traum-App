@@ -3,8 +3,8 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-03 (23:50) — `session/2026-08-31-anton` (PR #32,
-Entwurf), aufgesetzt auf `3da34aa`. **504 Tests grün**, Sprachdateien in
+**Stand:** 2026-09-04 (00:06) — `session/2026-08-31-anton` (PR #32,
+Entwurf), aufgesetzt auf `3da34aa`. **505 Tests grün**, Sprachdateien in
 Form (en+de gepflegt, 92 Schlüssel in den fünf eingefrorenen Sprachen
 offen). Bezahlte Läufe in dieser Sitzung: drei Filme, rund $3.
 
@@ -91,7 +91,8 @@ Regie denken minutenlang — siehe Baustelle 1.
 - **⚠ Bei fünf Sekunden ist ein Film ein Bild:** der Signatur-Beat,
   sonst nichts. Ohne ihn bricht die Auswahl.
 - **⚠ `beatBudget` ≠ `shotBudget`:** Der Fluss hat EINEN Shot, aber
-  mehrere Szenen darin.
+  ALLE Szenen darin — und darum kein Storyboard: nichts zu wählen. Wird
+  die Zeit je Station knapp, warnt der Satz; die App sortiert nie still.
 - **⚠ `list()` in `server.js` ist für Personen und Orte gebaut** (120
   Zeichen, acht Einträge) — nicht für Szenen.
 - **⚠ Die Prompt-Kappung war stumm** — jetzt warnt sie. 7000 bei H3 heißt
@@ -124,7 +125,9 @@ Regie denken minutenlang — siehe Baustelle 1.
   Credits-Knopf); `element.click()` per JavaScript ist zuverlässig. Nach
   HMR an `AppState.jsx` steht die Seite leer — voller Reload.
 - **⚠ Neun laufende Videos in voller Größe blockieren den Renderer** —
-  Vorschau-Kopien: 270 px, 6 s, stumm, < 200 KB.
+  Vorschau-Kopien: 270 px, 6 s, stumm, < 200 KB. Und der Vorschau-Tab
+  meldet `visibilityState: hidden`: Chrome friert Videos dann ein, obwohl
+  `play()` nichts wirft — stillstehende Clips sind dort kein App-Fehler.
 - **⚠ `resolveMedia()` lässt nur `[a-z0-9]{1,20}` durch** — kein
   Unterordner, kein Bindestrich, nicht aufweichen.
 - **⚠ Renderskripte kosten Geld, brauchen `--ja`** · `node` gibt es nicht,

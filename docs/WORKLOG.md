@@ -3,6 +3,34 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-04 00:06 — Anton — Branch `session/2026-08-31-anton` (PR #32) — Nachtrag zum Abschluss von 23:50
+
+**Commits seit dem Abschluss:** `6031df1` (**Dreamflow nimmt alle Szenen,
+kein Storyboard**) · `2da9307` (Planzeile nachgezogen) plus dieser
+Doku-Commit. Zustand: **505 Tests grün**, fünf Skriptprüfungen grün.
+Bezahlte Läufe: keine.
+
+### Antons Befund, und was darunter lag
+
+„Wenn ich Dreamflow auswähle, brauche ich diese Storyboard-Kacheln doch
+gar nicht mehr." Richtig — und der Fehler saß eine Ebene tiefer: Der Fluss
+wählte bei 15 Sekunden **still sechs von acht Szenen** (`beatBudget` =
+floor(s / 2,5)), und die Kacheln waren das Einzige, was diese Auswahl
+sichtbar machte. Ein Preset, das „alles in einem Fluss" verspricht, darf
+nicht aussortieren.
+
+Jetzt: `beatBudget` beim Fluss unbegrenzt (`video.js`), Storyboard und
+Schnitt-Empfehlung verschwinden, an ihrer Stelle „Alle N Szenen fließen
+ineinander"; wird die Zeit je Station knapp (< 1,5 s, `FLOW_MIN_STATION`),
+sagt der Satz, ab wie vielen Sekunden es atmet. **Die App warnt, sie wählt
+nicht heimlich.** In `cut.js` liest die Block-Untergrenze `0` jetzt als
+echten Wert (der Fluss hat keine), nicht als fehlenden.
+
+⚠ **Der Vorschau-Tab meldet `visibilityState: hidden`** — Chrome friert
+dann Videos ein (`currentTime` bleibt stehen, `play()` wirft nichts). Die
+Preset-Clips standen deshalb zeitweise still. Kein App-Fehler; auf dem
+Screenshot laufen sie.
+
 ## 2026-09-03 23:50 — Anton — Branch `session/2026-08-31-anton` (PR #32) — Sitzung vom 31.08. und 03.09.
 
 **Commits:** `f762b43` (Orte vorausgewählt, Frosch-Timing) · `f0a156f`
