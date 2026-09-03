@@ -12,7 +12,7 @@ import { genId } from "../lib/storage.js";
 import { bumpStreak, refreshStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
 import { priceForImages, PRICES, IMAGE_COUNTS, PREVIEW_COUNT } from "../lib/pricing.js";
-import { VIDEO_MODELS, QUALITIES, PACE_IDS, DEFAULT_PACE, priceForFilm, clampSeconds, videoModel, filmQuality, shotBudget, beatBudget, filmPace } from "../lib/video.js";
+import { VIDEO_MODELS, QUALITIES, PACE_IDS, DEFAULT_PACE, priceForFilm, clampSeconds, videoModel, filmQuality, shotBudget, beatBudget, filmPace, flowStationSeconds, FLOW_MIN_STATION } from "../lib/video.js";
 import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
@@ -890,7 +890,24 @@ export default function Step5Style({ w, patch }) {
               ersetzt den Automatik-Schnitt und geht so an den Regisseur.
               Solange niemand tippt, wählt weiter evenIndices — dieselbe
               Rechnung wie auf dem Server, nur sichtbar gemacht. */}
-          {arc.length > 0 && (() => {
+          {/* ⚠ Beim Fluss KEIN Storyboard (Antons Befund 03.09., zweite
+              Runde: „dann brauche ich diese Storyboard-Kacheln doch gar
+              nicht mehr"). Er hat recht, und der Fehler saß tiefer: Der
+              Fluss wählte still sechs von acht Szenen, und die Kacheln
+              waren das Einzige, was das zeigte. Jetzt nimmt er ALLE —
+              nichts zu wählen, also keine Kacheln. Bleibt nur der Satz,
+              wie viele Szenen fließen, und die Warnung, wenn die Zeit je
+              Station knapp wird. */}
+          {arc.length > 0 && pace === "flow" && (() => {
+            const je = flowStationSeconds(w.videoModel, filmSecs, arc.length);
+            return (
+              <p className="wiz-cut-note">
+                {t.wizard.step5.flowAll(arc.length)}
+                {je < FLOW_MIN_STATION && ` ${t.wizard.step5.flowFast(Math.ceil(arc.length * FLOW_MIN_STATION))}`}
+              </p>
+            );
+          })()}
+          {arc.length > 0 && pace !== "flow" && (() => {
             const entry = w.entryId ? state.journal.find((e) => e.id === w.entryId) : null;
             return (
               <>

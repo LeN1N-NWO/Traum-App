@@ -322,8 +322,23 @@ export function shotBudget(modelId, seconds, pace) {
 export function beatBudget(modelId, seconds, pace) {
   const p = filmPace(pace);
   if (p.cuts) return shotBudget(modelId, seconds, pace);
-  const secs = clampSeconds(modelId, seconds);
-  return Math.max(2, Math.min(Math.floor(secs / 2.5), 8));
+  /* ⚠ Beim Fluss ALLE Szenen (Antons Befund 03.09., zweite Runde): Die
+     erste Fassung rechnete floor(Sekunden / 2,5) und nahm bei 15 Sekunden
+     sechs von acht — und das Storyboard darunter war das Einzige, was
+     diese stille Auswahl sichtbar machte. Ein Preset, das „alles in einem
+     Fluss" verspricht, darf nicht aussortieren. Wird die Zeit je Station
+     knapp, sagt es der Wizard (flowStations); er wählt nicht heimlich. */
+  return Number.POSITIVE_INFINITY;
+}
+
+/** Wie viele Sekunden je Station der Fluss hat, wenn alle Szenen hinein
+ *  sollen — die Zahl, mit der der Wizard vor zu viel Tempo warnt. Unter
+ *  etwa anderthalb Sekunden ist eine Station keine mehr, sondern nur noch
+ *  Bewegung. */
+export const FLOW_MIN_STATION = 1.5;
+export function flowStationSeconds(modelId, seconds, stations) {
+  const n = Math.max(1, Number(stations) || 1);
+  return clampSeconds(modelId, seconds) / n;
 }
 
 /** Keep a length inside what the model actually accepts — fal rejects the

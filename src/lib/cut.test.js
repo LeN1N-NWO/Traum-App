@@ -276,9 +276,21 @@ describe("Tempo", () => {
      Szenen darin. Mit der Shot-Zahl als Szenenbudget bekäme dieses Tempo
      genau eine Szene — also das Gegenteil von „die ganze Story in 15
      Sekunden". */
-  test("flow still carries several scenes inside that one shot", () => {
-    expect(beatBudget("standard", 15, "flow")).toBe(6);
-    expect(beatBudget("standard", 15, "flow")).toBeGreaterThan(shotBudget("standard", 15, "flow"));
+  /* Und zwar ALLE: Ein Preset, das „alles in einem Fluss" verspricht,
+     darf nicht still aussortieren (Antons Befund 03.09., zweite Runde —
+     die erste Fassung nahm sechs von acht). */
+  test("flow carries every scene inside that one shot", () => {
+    expect(beatBudget("standard", 15, "flow")).toBe(Number.POSITIVE_INFINITY);
+    expect(selectBeats(ZAHNTRAUM, beatBudget("standard", 15, "flow"))).toHaveLength(ZAHNTRAUM.beats.length);
+  });
+
+  test("a flow plan with more stations than seconds still closes the timeline", () => {
+    const alle = ZAHNTRAUM.beats.map((_, i) => i);   // zehn Stationen
+    const plan = shotPlan(ZAHNTRAUM, alle, 15, filmPace("flow").minShot);
+    expect(plan).toHaveLength(10);
+    expect(plan[0].from).toBe(0);
+    expect(plan[plan.length - 1].to).toBe(15);
+    for (const s of plan) expect(s.to - s.from).toBeGreaterThanOrEqual(1);
   });
 
   test("an unknown pace falls back to the tested one, never to the fastest", () => {

@@ -675,6 +675,8 @@ export default {
       cutAll: (n) => `All ${n} scenes fit. Nothing has to go.`,
       cutSome: (k, n) => `${k} of ${n} scenes fit — the ones that carry the dream.`,
       cutMoreAt: (k, sec) => `At ${sec} seconds it would be ${k}.`,
+      flowAll: (n) => `All ${n} scenes flow into one another — nothing is cut, nothing is left out.`,
+      flowFast: (sec) => `That is a lot for this length: it will move fast. From ${sec} seconds it breathes.`,
       cutTwoParter: "Longer than this renderer can hold in one film.",
       posterLabel: "The poster",
       posterTitleLabel: "Film title",

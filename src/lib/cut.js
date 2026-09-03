@@ -265,7 +265,11 @@ export function shotPlan(analysis, indices, seconds, minShot = MIN_SHOT_SECONDS)
      3 Sekunden beim ruhigen Schnitt, 2 beim schnellen. Passt sie nicht mehr
      in die Dauer, wird gleichmäßig geteilt, statt eine Regel zu erzwingen,
      die die Zeit nicht hergibt. */
-  const untergrenze = Math.max(1, Number(minShot) || MIN_SHOT_SECONDS);
+  /* `minShot` 0 (der Fluss) ist ein echter Wert, kein fehlender: Dort gibt
+     es keine Schnitte, also keine Untergrenze je Block — nur die eine
+     Sekunde, unter der ein ganzzahliger Block nicht mehr existiert. */
+  const gewuenscht = Number.isFinite(Number(minShot)) ? Number(minShot) : MIN_SHOT_SECONDS;
+  const untergrenze = Math.max(1, gewuenscht);
   const min = idx.length * untergrenze <= total ? untergrenze : total / idx.length;
   const gewicht = idx.map((i) => ZEIT[meta[i].hook] ?? ZEIT.build);
 
