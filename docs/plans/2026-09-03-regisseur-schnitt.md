@@ -140,7 +140,7 @@ drin ist."
 |---|---|---|---|
 | ruhig | 3 s | 3 Shots | Schnittplan, ungleiche Blöcke |
 | schnell | 2 s | 7 Shots | Schnittplan, „enter late, leave early" |
-| ein Fluss | — | 1 Shot, 6 Szenen | Verwandlungskette, keine Schnitte |
+| ein Fluss | — | 1 Shot, ALLE Szenen | Verwandlungskette, keine Schnitte; kein Storyboard, nichts zu wählen |
 
 ⚠ **Das schnelle Tempo steht gegen die Herstellerempfehlung.** ByteDance
 nennt für Seedance 2.5 mindestens drei Sekunden je Shot und warnt vor
