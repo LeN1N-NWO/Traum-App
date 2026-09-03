@@ -28,10 +28,18 @@
  *  nur `films` läse, ließe jeden Film vor dem 03.09.2026 verschwinden. */
 export function filmsOf(entry) {
   const neu = Array.isArray(entry?.films) ? entry.films.filter((f) => f?.url) : [];
-  if (neu.length) return neu;
   const alt = entry?.film?.urls?.[0]
     || (entry?.media?.type === "video" ? entry?.media?.urls?.[0] : null);
-  return alt ? [{ url: alt, at: entry?.createdAt || null }] : [];
+  /* ⚠ Die alte Form wird VORANGESTELLT, nicht ersetzt (gemessen 03.09.2026):
+     Ein Traum, dessen erster Film noch in `film` steht und dessen zweiter
+     schon in `films`, hätte sonst nur den zweiten gezeigt — der erste wäre
+     aus der Fassungsleiste verschwunden, obwohl er bezahlt ist und die
+     Datei noch liegt. Nur wenn dieselbe Adresse schon in der Liste steht,
+     bleibt sie einmalig: Der Collector schreibt beide Formen mit. */
+  if (alt && !neu.some((f) => f.url === alt)) {
+    return [{ url: alt, at: entry?.createdAt || null }, ...neu];
+  }
+  return neu;
 }
 
 /** Die Fassung, die die Seite anführt: die ZULETZT erzeugte.
