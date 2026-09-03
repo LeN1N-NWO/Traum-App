@@ -489,7 +489,13 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
             Teilen) stehen transparent daneben und wickeln auf schmalen
             Schirmen darunter. Löschen bleibt bewusst allein im ⋯-Menü. */}
         {!editing && !proposal && (() => {
-          const offerImages = !entry.jobId && !pendingImages && images.length === 0;
+          /* ⚠ …und nicht, wenn der Film schon da ist (03.09.2026). Vorher
+             stand unter dem fertigen Film „Noch keine Bilder. Welche
+             machen?" samt warmem Hauptknopf — die App bot als
+             Nächstliegendes ausgerechnet das Produkt an, von dem sie sich
+             gerade verabschiedet (docs/plans/2026-08-31-nur-noch-film.md).
+             Bilder sind Handwerk hinter dem Film, kein Nachtisch danach. */
+          const offerImages = !entry.jobId && !pendingImages && images.length === 0 && !film;
           /* ── Warum es nicht ging, und was man tun kann (24.08.2026) ──────
              Bis hierher stand bei einem gescheiterten Traum nur „Bilder
              machen" — derselbe Knopf wie beim unberührten Traum, und beim
