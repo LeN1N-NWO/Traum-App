@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { STYLES } from "../lib/styles.js";
-import { beatsForCount, beatCountForSeconds, evenIndices, trimSelection, selectionBeats } from "../lib/beats.js";
+import { beatsForCount, trimSelection, selectionBeats } from "../lib/beats.js";
+import { selectBeats, shotPlan, recommendation } from "../lib/cut.js";
 import { buildReferences, buildImagePrompt, buildGridPrompt } from "../lib/promptBuilder.js";
 import { generate, renderImages, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
 import { needsSheet, renderRef, sheetFingerprint, compactDataUrl } from "../lib/sheets.js";
@@ -11,7 +12,7 @@ import { genId } from "../lib/storage.js";
 import { bumpStreak, refreshStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
 import { priceForImages, PRICES, IMAGE_COUNTS, PREVIEW_COUNT } from "../lib/pricing.js";
-import { VIDEO_MODELS, QUALITIES, priceForFilm, clampSeconds, videoModel, filmQuality } from "../lib/video.js";
+import { VIDEO_MODELS, QUALITIES, priceForFilm, clampSeconds, videoModel, filmQuality, shotBudget } from "../lib/video.js";
 import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
@@ -74,17 +75,29 @@ export default function Step5Style({ w, patch }) {
      Storyboard UND für den Film-Aufruf, deshalb hier oben statt im JSX.
      `order` ist immer schon auf die Kappung gestutzt: schrumpft die
      Länge, fällt die älteste eigene Wahl raus (trimSelection). */
+  /* ── Der Schnitt (03.09.2026) ──────────────────────────────────────────
+     `sceneCap` kommt jetzt aus dem MODELL (shotBudget: wie viele Schnitte
+     diese Länge bei diesem Renderer trägt), und die Vorauswahl aus dem
+     GEWICHT der Szenen (selectBeats), nicht mehr aus ihrer Position.
+
+     Vorher wählte evenIndices die erste und die letzte Szene — an fünf
+     echten Traumprotokollen nachgemessen verlor das in drei von fünf
+     Fällen genau das Ereignis, um das es ging (Trockenlauf-Bericht vom
+     03.09.). Wer selbst tippt, überschreibt das weiterhin: `pick` schlägt
+     die Automatik, wie seit dem 21.08. */
   const arc = w.analysis?.beats || [];
   const filmSecs = clampSeconds(w.videoModel, w.seconds);
-  const sceneCap = Math.max(1, Math.min(beatCountForSeconds(filmSecs), arc.length));
-  const order = trimSelection(pick ?? evenIndices(arc.length, sceneCap), sceneCap);
+  const sceneCap = Math.max(1, Math.min(shotBudget(w.videoModel, filmSecs), arc.length));
+  const autoPick = selectBeats(w.analysis, sceneCap);
+  const order = trimSelection(pick ?? autoPick, sceneCap);
+  const rat = recommendation(w.analysis, sceneCap, filmSecs, videoModel(w.videoModel).max);
 
   function toggleScene(i) {
     // Funktional statt über den Render-Abschluss: zwei Tipps im selben
     // Tick würden sonst beide vom selben alten Stand rechnen und der
     // erste ginge still verloren (React batcht setState).
     setPick((prev) => {
-      const base = trimSelection(prev ?? evenIndices(arc.length, sceneCap), sceneCap);
+      const base = trimSelection(prev ?? autoPick, sceneCap);
       const has = base.includes(i);
       // Die letzte Szene bleibt: ein Film aus null Szenen ist keiner.
       if (has && base.length <= 1) return base;
@@ -358,6 +371,13 @@ export default function Step5Style({ w, patch }) {
              einhält, ist das die Identität (evenIndices(n, n)) — er reicht
              Antons Wahl unverändert an den Regisseur durch. */
           beats: arc.length ? selectionBeats(arc, order) : allBeats,
+          /* Der Schnittplan: welche Szene wann und wie lange (cut.js). Er
+             ersetzt die gleichmäßige Verteilung im Regisseur-Brief — der
+             Höhepunkt bekommt den längsten Block, ein Weg fliegt raus.
+             Gerechnet wird er HIER, weil hier die Analyse mit ihrer
+             Gewichtung liegt und hier der Mensch im Storyboard mitgeredet
+             hat; der Server prüft ihn nur nach. */
+          shots: arc.length ? shotPlan(w.analysis, order, filmSecs) : undefined,
           // The chosen image, if any — the server then animates it directly
           // instead of rendering a fresh keyframe first.
           keyframe: w.keyframe || undefined,
@@ -815,6 +835,17 @@ export default function Step5Style({ w, patch }) {
                 <h2 className="wiz-sub">{t.storyboard.label}</h2>
                 <Storyboard beats={arc} entry={entry} active={new Set(order)} onToggle={toggleScene} />
                 <p className="wiz-hint">{t.storyboard.pickNote(order.length, sceneCap)}</p>
+                {/* Die Empfehlung als SATZ, nicht als Nadel (Skill
+                    regisseur-schnitt, Schritt 6). Sie sagt, was diese Länge
+                    trägt und was der Traum bräuchte — und bei einem
+                    einzigen Shot sagt sie ehrlich, dass fünf Sekunden ein
+                    Bild sind und keine Geschichte. */}
+                <p className="wiz-cut-note">
+                  {rat.einBild ? t.wizard.step5.cutOneShot
+                    : rat.alle ? t.wizard.step5.cutAll(rat.beats)
+                    : t.wizard.step5.cutSome(rat.passt, rat.beats, rat.kern)}
+                  {rat.zweiteiler && ` ${t.wizard.step5.cutTwoParter}`}
+                </p>
               </>
             );
           })()}

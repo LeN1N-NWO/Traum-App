@@ -374,9 +374,47 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
 
         {/* Die Kino-Strecke liegt VOLLBREIT über dem Inhalt — Bild zuerst,
             alles Sekundäre darunter. */}
-        {swipes && <DeckView entry={entry} film={film} images={images} />}
+        {/* ⚠ Ohne den Film (03.09.2026): Er hat seit dem Videofeld genau
+            EINEN Ort auf dieser Seite. Vorher lief er hier als erste Karte
+            der Strecke UND unten als Player — zweimal derselbe Film, und
+            keiner der beiden war eindeutig der, den man meint. Die Strecke
+            zeigt jetzt, was sie ist: die Bilder. */}
+        {swipes && <DeckView entry={entry} images={images} />}
 
         <div className="j-content">
+        {/* ── Das Videofeld (Antons Ansage 03.09.2026: „den Videoplayer dann
+            einbauen bei den Träumen statt dieser Kacheln") ────────────────
+            Der Film führt die Seite an: ganz oben, in voller Breite, mit
+            Bedienleiste und Ton. Vorher stand er WEIT unten, hinter dem
+            Storyboard, den Knöpfen und dem Traumtext — das Fertige lag
+            hinter seinem Arbeitsmaterial.
+
+            Solange er rendert, steht hier dasselbe Feld mit dem Standbild
+            darin, statt eines Platzhalters woanders: Der Platz, an dem der
+            Film erscheinen wird, ist von Anfang an derselbe. */}
+        {(film || (entry.jobId && !film)) && (
+          <div className="j-videofeld">
+            {film ? (
+              <video
+                className="j-video"
+                src={mediaUrl(film)}
+                controls
+                playsInline
+                preload="metadata"
+                poster={images[0] ? mediaUrl(images[0]) : undefined}
+              />
+            ) : (
+              <div className="j-video-wait" role="status" aria-live="polite">
+                {images[0] && <img className="j-video-still" src={mediaUrl(images[0])} alt="" />}
+                <div className="j-video-wait-body">
+                  <span className="wiz-spinner" aria-hidden="true" />
+                  <span>{t.journal.filmRendering}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* The one action that spends credits leads the page — moved up from
             below the whole story, where it was the last thing anyone saw
             after scrolling past everything else. One way forward at a time,
@@ -391,7 +429,12 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
             Bild je Szene, wo die Zuordnung sicher ist (Plan: Storyboard vor
             dem Film, Stufe A). Nur wenn eine Analyse existiert: Seeds und
             handgeschriebene Alt-Einträge haben keinen Bogen. */}
-        {!editing && !proposal && entry.analysis?.beats?.length > 0 && (() => {
+        {/* ⚠ Nur solange es KEINEN Film gibt und keiner läuft (03.09.2026):
+            Das Storyboard ist das Arbeitsmaterial, aus dem der Film wurde.
+            Steht der Film oben, hat es seine Aufgabe erfüllt — es unter dem
+            fertigen Film zu wiederholen macht aus dem Produkt eine Beilage
+            seiner eigenen Vorstufe. */}
+        {!editing && !proposal && !film && !entry.jobId && entry.analysis?.beats?.length > 0 && (() => {
           /* ⚠ Gezeigt werden die Szenen, die auch BILDER werden — nicht der
              rohe Fünfer-Bogen der Analyse (Antons Befund 25.08.: „es gibt
              jetzt nur noch vier, nicht mehr fünf"). Die Analyse liefert
@@ -536,20 +579,14 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
 
         {busy && <p className="j-working">{t.journal.working}</p>}
 
-        {/* The film comes first, above the words and the stills it was made
-            from: it is the finished piece, they are the working material.
-            Controls on, unmuted, no autoplay — a film someone paid for is
-            watched deliberately, not glimpsed as a silent loop. */}
-        {film && !swipes && (
-          <video className="j-film" src={mediaUrl(film)} controls playsInline preload="metadata" />
-        )}
-
-        {/* Noch unterwegs (Film oder Bilder): der App-weite Collector
-            fragt nach — dieser Bildschirm zeigt es nur an. */}
-        {((!film && entry.jobId) || pendingImages) && (
+        {/* Der Film steht seit dem 03.09.2026 OBEN im Videofeld, nicht mehr
+            hier unten hinter Storyboard, Knöpfen und Text. Hier bleibt nur
+            noch die Meldung für laufende BILD-Aufträge — der wartende Film
+            hat seinen Platz oben, dort wo er erscheinen wird. */}
+        {pendingImages && (
           <div className="j-film-wait" role="status" aria-live="polite">
             <span className="wiz-spinner" aria-hidden="true" />
-            <span>{pendingImages ? t.journal.renderingTile : t.journal.filmRendering}</span>
+            <span>{t.journal.renderingTile}</span>
           </div>
         )}
 

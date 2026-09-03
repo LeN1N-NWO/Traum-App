@@ -651,6 +651,16 @@ export default {
       aboutStyle: "About this style",
       lengthLabel: "How long",
       ideal: "ideal",
+      /* Was diese Länge vom Traum trägt — als Satz, nicht als Nadel
+         (Skill regisseur-schnitt, Schritt 6). Die Zahl, die zählt, ist der
+         KERN: die Summe über Höhepunkt, Wendungen und Auflösung. Die Summe
+         über ALLE Szenen läge bei jedem erzählten Traum über 30 Sekunden
+         und riete deshalb immer dasselbe. */
+      cutOneShot: "Five seconds is one image, not a story — so this is the one moment your dream is about.",
+      cutAll: (n) => `All ${n} scenes fit. Nothing has to go.`,
+      cutSome: (k, n, kern) =>
+        `${k} of ${n} scenes fit — the ones that carry the dream. At ${kern} seconds they all do.`,
+      cutTwoParter: "Longer than this renderer can hold in one film.",
       posterLabel: "The poster",
       posterTitleLabel: "Film title",
       posterTitlePlaceholder: "Title on the poster",

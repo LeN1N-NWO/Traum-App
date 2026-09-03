@@ -148,6 +148,7 @@ const MODELLE = [
     aspect: "9:16",
     noExpand: true,
     promptMax: 7000,
+    shotEvery: 5, maxShots: 3, timeFormat: "ms",
   },
   {
     id: "premium",
@@ -164,6 +165,7 @@ const MODELLE = [
     refStyle: "bracket",
     aspect: "9:16",
     promptMax: 10000,
+    shotEvery: 4, maxShots: 9, timeFormat: "s",
   },
 ];
 
@@ -238,6 +240,31 @@ export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds,
 export function priceForFilm(modelId, seconds, { ownKeyframe = false, quality } = {}) {
   const secs = clampSeconds(modelId, seconds);
   return secs * filmQuality(modelId, quality).creditsPerSecond + (ownKeyframe ? 0 : PRICES.keyframe);
+}
+
+/* Wie viele Schnitte eine Filmlänge bei DIESEM Modell trägt — die Zahl, an
+ * der der Schnitt (cut.js) entscheidet, wie viele Szenen es in den Film
+ * schaffen.
+ *
+ * Zwei Felder je Modell statt einer Tabelle mit Sonderfällen:
+ *   shotEvery — Sekunden, die ein Shot mindestens für sich braucht
+ *   maxShots  — was das Modell noch sauber durchhält
+ *
+ * Beide sind belegt, nicht geschätzt (Recherche 03.09.2026):
+ *   Seedance 2.5 versteht ganzzahlige Zeitstempel und will eine lückenlose
+ *     Timeline; das offizielle Beispiel sind 9 Shots auf 30 Sekunden.
+ *     ByteDance warnt in der eigenen Doku vor zu viel Plot je Intervall —
+ *     „excessive cuts or omit parts of the plot". Ergibt 5s→1, 15s→3, 30s→7.
+ *   MiniMax H3 schneidet nur, wenn ein Schnitt NEUE INFORMATION bringt;
+ *     ändert sich nur Abstand oder Winkel, ist es eine Kamerafahrt. 2–3
+ *     Shots je Clip. Ergibt 5s→1, 10s→2, 15s→3.
+ *
+ * ⚠ Ein Shot ist nie unter 3 Sekunden lesbar (cut.js, MIN_SHOT_SECONDS) —
+ * `shotEvery` liegt deshalb bei beiden darüber, nicht darunter. */
+export function shotBudget(modelId, seconds) {
+  const m = videoModel(modelId);
+  const secs = clampSeconds(m.id, seconds);
+  return Math.max(1, Math.min(Math.floor(secs / (m.shotEvery || 5)), m.maxShots || 3));
 }
 
 /** Keep a length inside what the model actually accepts — fal rejects the

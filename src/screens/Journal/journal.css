@@ -363,6 +363,38 @@
   width: 100%; display: block; border-radius: var(--radius);
   background: var(--sky); margin-bottom: var(--s-5);
 }
+
+/* ── Das Videofeld (Antons Ansage 03.09.2026) ─────────────────────────────
+   Der Film steht oben und in voller Breite — das Fertige zuerst, das
+   Arbeitsmaterial darunter. Das Feld behält seine Höhe, ob der Film schon
+   da ist oder noch rendert: Der Platz, an dem er erscheinen wird, wandert
+   nicht. `aspect-ratio` statt fester Höhe, damit Hoch- und Querformat
+   dasselbe Feld füllen — die App rendert 9:16, aber alte Träume liegen
+   quer, und ein gestauchter Film ist schlimmer als ein schmaler. */
+.j-videofeld { margin-bottom: var(--s-5); }
+.j-video {
+  width: 100%; display: block; border-radius: var(--radius);
+  background: #000; aspect-ratio: 9 / 16; max-height: 70vh;
+  object-fit: contain;
+}
+.j-video-wait {
+  position: relative; width: 100%; aspect-ratio: 9 / 16; max-height: 70vh;
+  border-radius: var(--radius); overflow: hidden;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  display: grid; place-items: center;
+}
+/* Das Standbild liegt darunter, gedämpft: Es ist ein Versprechen auf den
+   Film, nicht der Film. Ohne Bild bleibt die Fläche ruhig leer. */
+.j-video-still {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; opacity: 0.35;
+}
+.j-video-wait-body {
+  position: relative; display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-3) var(--s-4); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--muted); font-size: var(--t-small);
+}
 .j-film-wait {
   display: flex; align-items: center; gap: var(--s-3);
   padding: var(--s-4); margin-bottom: var(--s-5);

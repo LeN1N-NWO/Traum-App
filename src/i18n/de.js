@@ -610,6 +610,11 @@ export default {
       aboutStyle: "Über diesen Stil",
       lengthLabel: "Wie lang",
       ideal: "ideal",
+      cutOneShot: "Fünf Sekunden sind ein Bild, keine Geschichte — also der eine Moment, um den es geht.",
+      cutAll: (n) => `Alle ${n} Szenen passen. Nichts muss weg.`,
+      cutSome: (k, n, kern) =>
+        `${k} von ${n} Szenen passen — die, die den Traum tragen. Bei ${kern} Sekunden passen alle.`,
+      cutTwoParter: "Länger, als dieser Renderer in einem Film halten kann.",
       posterLabel: "Das Poster",
       posterTitleLabel: "Filmtitel",
       posterTitlePlaceholder: "Titel auf dem Poster",
