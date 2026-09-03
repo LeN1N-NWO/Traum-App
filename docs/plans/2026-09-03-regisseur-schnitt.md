@@ -127,9 +127,35 @@ bei Auflösung und Ton. Die Shot-Liste macht den Prompt länger als früher.
 Entweder das Budget im Brief härter formulieren oder die Kontinuitäts-
 Wiederholung je Shot kürzen.
 
+## 6c. Das Tempo — Antons Entscheidung nach dem ersten Film
+
+Der ruhige Schnitt war ihm zu langsam: „Die einzelnen Shots sind doch schon
+zu lang … maximal zwei Sekunden, somit könnten wir sieben Shots
+reinbringen. Ich will eher so ein schnelles Ding haben." Dazu ein
+Gegenstück: „eine zweite Version, sodass überhaupt gar keine Cuts verwendet
+werden, sondern alles ineinander morpht … und somit in 15 Sekunden alles
+drin ist."
+
+| Tempo | Untergrenze | bei H3, 15 s | Wie der Brief die Szenen liest |
+|---|---|---|---|
+| ruhig | 3 s | 3 Shots | Schnittplan, ungleiche Blöcke |
+| schnell | 2 s | 7 Shots | Schnittplan, „enter late, leave early" |
+| ein Fluss | — | 1 Shot, 6 Szenen | Verwandlungskette, keine Schnitte |
+
+⚠ **Das schnelle Tempo steht gegen die Herstellerempfehlung.** ByteDance
+nennt für Seedance 2.5 mindestens drei Sekunden je Shot und warnt vor
+„excessive cuts or omit parts of the plot"; H3 schneidet von sich aus nur
+bei neuer Information. Genau deshalb stand es unten in §6 als „bewusst
+nicht drin". Anton hat den ruhigen Schnitt gesehen und sich anders
+entschieden — der Regler dafür heißt `minShot` in `video.js`, falls das
+Ergebnis die Bedenken bestätigt.
+
+⚠ **`beatBudget` ist nicht `shotBudget`.** Beim Fließen gibt es EINEN Shot,
+aber mehrere Szenen darin. Wer für die Szenenauswahl die Shot-Zahl nähme,
+bekäme genau eine Szene — also das Gegenteil von „die ganze Story in 15
+Sekunden".
+
 ## 6. Was bewusst nicht drin ist
 
-- **Trailer-Tempo** (Shots unter 2 s als Stil): Die Modelle liefern dann
-  Brei, und ein misslungener Film kostet 10–120 Credits. Kommt, wenn
-  jemand es nach echten Filmen vermisst — als Schalter, nicht als Vorgabe.
+- ~~**Trailer-Tempo**~~ — seit dem 03.09.2026 drin, siehe §6c.
 - **Zweiteiler als Produkt**: hängt am Preisentscheid.
