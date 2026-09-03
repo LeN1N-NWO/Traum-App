@@ -612,8 +612,8 @@ export default {
       ideal: "ideal",
       cutOneShot: "Fünf Sekunden sind ein Bild, keine Geschichte — also der eine Moment, um den es geht.",
       cutAll: (n) => `Alle ${n} Szenen passen. Nichts muss weg.`,
-      cutSome: (k, n, kern) =>
-        `${k} von ${n} Szenen passen — die, die den Traum tragen. Bei ${kern} Sekunden passen alle.`,
+      cutSome: (k, n) => `${k} von ${n} Szenen passen — die, die den Traum tragen.`,
+      cutMoreAt: (k, sec) => `Bei ${sec} Sekunden wären es ${k}.`,
       cutTwoParter: "Länger, als dieser Renderer in einem Film halten kann.",
       posterLabel: "Das Poster",
       posterTitleLabel: "Filmtitel",

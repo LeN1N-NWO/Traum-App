@@ -31,7 +31,26 @@ export function mediaUrl(u) {
  * Generierung — sie geben nur einen Auftrag ab oder fragen dessen Stand
  * ab, und das sind Millisekunden. Eine Minute ist deshalb kein Budget
  * mehr, sondern eine großzügige Obergrenze für „der Server lebt". */
-const TIMEOUTS = { default: 60_000 };
+/* ⚠ Die Analyse bekommt mehr Zeit als alles andere (03.09.2026). Seit sie
+ * die Szenen nicht mehr gleichmäßig teilt, sondern gewichtet — wie viele
+ * Ereignisse hat der Traum, welches ist der Signatur-Beat, welcher Typ je
+ * Szene — ist sie echte Denkarbeit, und deepseek-v4-flash denkt erst ins
+ * Denkfeld.
+ *
+ * ⚠ Und das ist NICHT durch die Gewichtung entstanden — am selben Traum
+ * gegeneinander gemessen (03.09.2026, 1500 Zeichen):
+ *     alter Prompt  121 s, 16 768 Denk-Token, 5 Szenen
+ *     neuer Prompt  184 s, 22 958 Denk-Token, 7 Szenen
+ * Der lange Traum wäre also VORHER genauso an den 60 Sekunden gescheitert.
+ * Aufgefallen ist es nie, weil bisher niemand einen langen Traum eingegeben
+ * hat: Ein Vier-Satz-Traum ist in gut einer Minute gelesen. Die 60 Sekunden
+ * waren die stumme Obergrenze für die Länge eines Traums — und zwar genau
+ * bei dem Traum, für den sich die Arbeit am meisten lohnt.
+ *
+ * Fünf Minuten sind trotzdem keine Lösung, sondern ein Pflaster: Das Denken
+ * macht 96 % der erzeugten Token aus. Solange es kein schnelleres Modell
+ * für diese Aufgabe gibt, muss der Wartebildschirm es aushalten. */
+const TIMEOUTS = { default: 60_000, analyze: 300_000 };
 
 function friendly(err) {
   // TimeoutError: die Uhr. TypeError: Netz/Server gar nicht erreichbar.
@@ -71,7 +90,7 @@ async function post(path, body, { timeout = TIMEOUTS.default } = {}) {
 
 /** The one LLM call per dream: polished text, people, places, beats, style. */
 export async function analyze(dream) {
-  const data = await post("/api/analyze", { dream });
+  const data = await post("/api/analyze", { dream }, { timeout: TIMEOUTS.analyze });
   if (!data?.analysis?.text) throw new Error(t.errors.unexpected);
   return data.analysis;
 }

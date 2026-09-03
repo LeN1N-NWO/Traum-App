@@ -90,7 +90,8 @@ export default function Step5Style({ w, patch }) {
   const sceneCap = Math.max(1, Math.min(shotBudget(w.videoModel, filmSecs), arc.length));
   const autoPick = selectBeats(w.analysis, sceneCap);
   const order = trimSelection(pick ?? autoPick, sceneCap);
-  const rat = recommendation(w.analysis, sceneCap, filmSecs, videoModel(w.videoModel).max);
+  const maxSecs = videoModel(w.videoModel).max;
+  const rat = recommendation(w.analysis, sceneCap, filmSecs, maxSecs, shotBudget(w.videoModel, maxSecs));
 
   function toggleScene(i) {
     // Funktional statt über den Render-Abschluss: zwei Tipps im selben
@@ -843,7 +844,8 @@ export default function Step5Style({ w, patch }) {
                 <p className="wiz-cut-note">
                   {rat.einBild ? t.wizard.step5.cutOneShot
                     : rat.alle ? t.wizard.step5.cutAll(rat.beats)
-                    : t.wizard.step5.cutSome(rat.passt, rat.beats, rat.kern)}
+                    : t.wizard.step5.cutSome(rat.passt, rat.beats)}
+                  {rat.mehrBei && ` ${t.wizard.step5.cutMoreAt(rat.beiMax, rat.mehrBei)}`}
                   {rat.zweiteiler && ` ${t.wizard.step5.cutTwoParter}`}
                 </p>
               </>

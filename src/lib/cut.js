@@ -197,7 +197,15 @@ export function selectBeats(analysis, budget) {
   if (n <= platz) return meta.map((_, i) => i);
 
   const sig = signatureIndex(analysis);
-  const sigText = meta[sig]?.text || "";
+  /* Der Anker für „gehört zum Traum": der Signatur-Beat UND der Höhepunkt.
+     Der Signatur-Beat allein ist zu schmal — im geprüften Zahntraum steht
+     im einen „the canine is gone", im anderen „teeth fall from his hand",
+     und die Wortprüfung verbindet die beiden nicht. Zusammen genommen
+     fangen sie den Hauptstrang zuverlässig ein; die Kulisse (Bangkok, eine
+     Ausstellung, eine Parkplatzsuche) berührt weiterhin keinen von beiden. */
+  const climaxIdx = meta.findIndex((b) => b.hook === "climax");
+  const kernText = [meta[sig]?.text, climaxIdx >= 0 ? meta[climaxIdx].text : ""]
+    .filter(Boolean).join(" ");
 
   /* Ein Punktwert je Szene, hoch bleibt. Drei Zutaten, in dieser Ordnung:
      der Typ trägt die Entscheidung, „berührt den Signatur-Beat" trennt
@@ -206,7 +214,26 @@ export function selectBeats(analysis, budget) {
   const punkte = meta.map((b, i) => {
     if (i === sig) return Number.MAX_SAFE_INTEGER;
     let p = GEWICHT[b.hook] ?? GEWICHT.build;
-    if (!beruehrt(b.text, sigText)) p -= 15;   // Kulisse
+    const kulisse = !beruehrt(b.text, kernText);
+    /* ⚠ Der abbrechende Schluss (gemessen 03.09.2026): Die Analyse gab dem
+       Flugtraum als Höhepunkt den Kuss mit einem Freund an einem Ort, der
+       nie vorkam — er ist der gefühlvollste Moment, aber er gehört nicht zu
+       DIESEM Traum. Ein geschützter Typ als LETZTER Beat, der mit dem
+       Signatur-Beat nichts teilt, verliert deshalb seinen Vorrang: Sonst
+       kostet ein Ausrutscher der Analyse den halben Film. Die Regel steht
+       auch im Analyse-Prompt — das hier ist die Sicherung darunter, weil
+       Modellausgabe untrusted ist. */
+    if (kulisse && i === n - 1 && p > GEWICHT.callback && !beruehrt(b.text, meta[sig]?.text)) {
+      p = GEWICHT.transit;
+    } else if (kulisse && i !== climaxIdx) {
+      /* Der Höhepunkt bekommt den Kulissen-Abschlag nie: Er IST der
+         Hauptstrang, und die Wortprüfung ist zu grob, um ihn zu bewerten —
+         im Zahntraum teilen „the canine is gone" und „he spits the teeth
+         into his palm" kein einziges Wort und meinen dasselbe. Nur der
+         Sonderfall darüber (Höhepunkt ganz am Schluss, ohne Bezug zum
+         Signatur-Beat) entzieht ihm den Vorrang. */
+      p -= 15;
+    }
     return p + b.min_s / 10;
   });
 
@@ -290,16 +317,27 @@ export function shotPlan(analysis, indices, seconds) {
  *
  * @returns {{beats:number, kern:number, passt:number, alle:boolean, einBild:boolean, zweiteiler:boolean}}
  */
-export function recommendation(analysis, budget, seconds, maxSeconds) {
+export function recommendation(analysis, budget, seconds, maxSeconds, budgetBeiMax) {
   const meta = beatMeta(analysis);
   const platz = Math.max(1, Math.min(Number(budget) || 1, meta.length || 1));
   const kern = minKern(analysis);
+  const beiMax = Math.min(Math.max(1, Number(budgetBeiMax) || platz), meta.length || 1);
   return {
     beats: meta.length,
     kern,
     passt: Math.min(platz, meta.length),
     alle: meta.length > 0 && platz >= meta.length,
     einBild: platz <= 1,
+    /* Wie viele Szenen die LÄNGSTE Einstellung dieses Modells trüge — und
+       die Sekundenzahl dazu. Das ist die einzige zweite Zahl, die dem
+       Menschen etwas nützt: Sie sagt, was mehr Länge wirklich brächte.
+       ⚠ Nicht `kern` dafür verwenden. Die erste Fassung schrieb „bei
+       {kern} Sekunden passen alle", und beim ersten echten Lauf stand da
+       „2 von 11 Szenen passen … Bei 13 Sekunden passen alle" — bei 13
+       Sekunden passten genau diese 2. Der Kern ist die Zeit, die der Kern
+       braucht, nicht die, ab der jede Szene hineinpasst. */
+    beiMax,
+    mehrBei: beiMax > platz ? Number(maxSeconds) || 0 : null,
     /* Ein Zweiteiler ist es nur, wenn der KERN nicht mehr hineinpasst.
        Liegt bloß das Beiwerk darüber, ist es ein Traum mit viel Beiwerk. */
     zweiteiler: kern > (Number(maxSeconds) || 0),

@@ -112,6 +112,12 @@ const MAX_BODY = 12 * 1024 * 1024;
 const MAX_REFERENCES = 6;
 const MAX_DREAM = 2000;
 const MAX_FRAGMENT = 120; // per pet/place description, mirrors the client-side cap
+/* Eine Szene ist ein ganzer Satz, kein Namensfragment — sie braucht mehr
+ * Platz als eine Figurenbeschreibung. Gemessen am ersten Lauf ohne
+ * Fünfer-Deckel (03.09.2026): Szenen laufen bis etwa 130 Zeichen, und bei
+ * 120 wurde mitten im Wort abgeschnitten. 200 lässt Luft, ohne dass ein
+ * ausuferndes Modell den Regie-Prompt füllen kann. */
+const MAX_BEAT = 200;
 const MAX_CRAFTED_PROMPT = 3000; // ceiling on what DeepSeek is allowed to hand to fal.ai
 
 /* Welches Bildmodell. Der Name zeigt in die Tabelle in imageModel.js —
@@ -1166,14 +1172,12 @@ Rules for "places": one entry per distinct SETTING — a location a film crew wo
 
 Rules for "beats": as many as the dream has VISIBLE EVENTS — typically 3 to 12, never fewer than 2 and never more than 14. Do NOT split evenly and do NOT pad to a fixed number: a dream with three events gets three beats, a dream with eleven gets eleven. A beat is the smallest unit of visible action: one action, one place, who is in frame. A feeling with no visible expression is not a beat. Never write the same event twice — if two moments share a place and an action, they are one beat. Each beat is one English sentence describing what is SEEN, not felt. Refer to people by their "name" so the app can bind reference images.
 
-Rules for "beatMeta": exactly one entry per beat, in the same order — the app pairs them by index, so a missing or extra entry silently mislabels the film.
-"hook" is what the beat DOES for the story, and it decides what survives when a short film cannot hold everything:
-  "setup" establishes who and where · "build" carries action forward · "turn" changes the situation · "reveal" shows something that was hidden · "reversal" flips it the other way · "callback" brings back something from earlier · "climax" the peak, the loudest or most-felt moment · "resolution" the ending · "transit" travel, arrivals, departures, "then we went to".
-Use "climax" exactly once, for the beat with the most emotional weight — that is not always the loudest one: a dream where a panther attacks and then the dreamer learns their mother has died peaks at the death, not the panther.
-⚠ "resolution" is NOT simply the last beat. Give it only when the final beat shares a PLACE or a PERSON with the climax — an ending that actually closes what was opened. Dreams usually just stop or jump to an unrelated subject; when the last beat does that, it is "transit", not "resolution".
-"min_s" is the shortest time in which this beat is still readable on screen: 3 for a simple action or a transit, 4 for a turn or reveal, 5 for a climax. Never below 3.
+Rules for "beatMeta": one entry per beat, same order. "hook" is what the beat does for the story: "setup" who and where · "build" action carries on · "turn" the situation changes · "reveal" something hidden shows · "reversal" it flips back · "callback" something earlier returns · "climax" the peak · "resolution" the ending · "transit" travel, arrivals, departures.
+Use "climax" once, for the most FELT moment OF THE DREAM'S OWN STORY — the one the "signature" beat belongs to. Felt, not loudest: a dream where a panther attacks and the dreamer then learns their mother died peaks at the death. But a beat that starts an unrelated subject is never the climax however tender it is: a flying dream that ends with kissing a friend in another place peaks in the air, and the kiss is "transit".
+"resolution" is not simply the last beat — give it only when the last beat shares a place or a person with the climax. Dreams usually just stop or jump elsewhere; that last beat is "transit".
+"min_s": 3 for an action or transit, 4 for a turn or reveal, 5 for a climax. Never below 3.
 
-Rules for "signature": the index (0-based) of the ONE beat the dreamer would name if they had a single sentence — usually the one the dream is titled after: the teeth falling out, the lift becoming an aeroplane, standing naked at school. It is rarely the first beat and almost never the last. A five-second film shows this beat and nothing else, so choosing the scene-setting first beat here throws the dream away.
+Rules for "signature": the index (0-based) of the ONE beat the dreamer would name in a single sentence — the teeth falling out, the lift becoming an aeroplane, standing naked at school. Rarely the first, almost never the last. A five-second film shows this beat alone.
 
 Rules for "filmSeconds": the time this dream's CORE needs — add up "min_s" over the signature beat, the climax, every turn/reveal/reversal and the resolution, and ignore the rest. Do not total every beat: an fully told dream runs past 35 seconds that way, which no model can render, and the number stops meaning anything. Whole number, 5 to 30.
 
@@ -1260,8 +1264,19 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
      ⚠ Aufgefüllt wird durch WIEDERHOLEN der letzten Szene, wie zuvor: Das
      ist hässlich, aber es ist ein Rückfall für eine Formatpanne, kein
      Normalfall — und es lässt die Analyse nicht am Formvergehen scheitern. */
-  let beats = list(parsed.beats).slice(0, ANALYSIS_BEATS);
-  if (beats.length === 0) beats = [text.slice(0, MAX_FRAGMENT)];
+  /* ⚠ NICHT list(): Der Helfer ist für Personen und Orte gebaut und kappt
+     bei MAX_FRAGMENT (120 Zeichen) und MAX_ANALYSIS_ITEMS (8 Einträge).
+     Beide Grenzen sind für Szenen falsch, und beide schlugen sofort zu, als
+     der Deckel am 03.09.2026 fiel: Ein Beat ist ein ganzer Satz („The plane
+     lands at a space-station bay lined with airplane-shaped berths, where
+     two planes race for one spot and one jet…") und wurde mitten im Wort
+     abgeschnitten — der Regisseur bekam einen halben Satz zu inszenieren.
+     Und die Acht deckelte still, was als Vierzehn gedacht war. */
+  let beats = (Array.isArray(parsed.beats) ? parsed.beats : [])
+    .map((b) => sanitizeFragment(b, MAX_BEAT))
+    .filter(Boolean)
+    .slice(0, ANALYSIS_BEATS);
+  if (beats.length === 0) beats = [text.slice(0, MAX_BEAT)];
   while (beats.length < ANALYSIS_BEATS_MIN) beats.push(beats[beats.length - 1]);
 
   /* Die Gewichtung je Szene (hook + min_s) und der Signatur-Beat. Beides ist
@@ -2329,7 +2344,7 @@ Bun.serve({
            andere — Länge und Anzahl gedeckelt wie bei der Analyse selbst. */
         const beats = (Array.isArray(body.beats) ? body.beats : [])
           .slice(0, ANALYSIS_BEATS)
-          .map((b) => sanitizeFragment(b, MAX_FRAGMENT))
+          .map((b) => sanitizeFragment(b, MAX_BEAT))
           .filter(Boolean);
 
         /* Der Schnittplan (03.09.2026): welche Szene wann und wie lange zu
@@ -2349,7 +2364,7 @@ Bun.serve({
           );
           const sauber = roh
             .map((s) => ({
-              text: sanitizeFragment(s?.text, MAX_FRAGMENT),
+              text: sanitizeFragment(s?.text, MAX_BEAT),
               hook: HOOKS.includes(s?.hook) ? s.hook : "build",
               from: Math.max(0, Math.min(dauer, Math.round(Number(s?.from)) || 0)),
               to: Math.max(0, Math.min(dauer, Math.round(Number(s?.to)) || 0)),

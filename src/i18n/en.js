@@ -658,8 +658,8 @@ export default {
          und riete deshalb immer dasselbe. */
       cutOneShot: "Five seconds is one image, not a story — so this is the one moment your dream is about.",
       cutAll: (n) => `All ${n} scenes fit. Nothing has to go.`,
-      cutSome: (k, n, kern) =>
-        `${k} of ${n} scenes fit — the ones that carry the dream. At ${kern} seconds they all do.`,
+      cutSome: (k, n) => `${k} of ${n} scenes fit — the ones that carry the dream.`,
+      cutMoreAt: (k, sec) => `At ${sec} seconds it would be ${k}.`,
       cutTwoParter: "Longer than this renderer can hold in one film.",
       posterLabel: "The poster",
       posterTitleLabel: "Film title",

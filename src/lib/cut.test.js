@@ -136,6 +136,29 @@ describe("selectBeats", () => {
     expect(sel.every((i) => i >= 5)).toBe(true);
   });
 
+  /* Gemessen am echten Lauf vom 03.09.2026: Die Analyse gab dem Flugtraum
+     als Höhepunkt den Kuss mit einem Freund — den gefühlvollsten Moment,
+     aber an einem Ort, der nie vorkam. Ein geschützter Typ ganz am Schluss,
+     der mit dem Signatur-Beat nichts teilt, darf den Film nicht kapern. */
+  test("a climax the analysis put on an unrelated ending loses its priority", () => {
+    const verrutscht = {
+      ...FLUGTRAUM,
+      beatMeta: FLUGTRAUM.beatMeta.map((m, i) => (i === 5 ? { hook: "climax", min_s: 5 } : m)),
+    };
+    expect(selectBeats(verrutscht, 3)).not.toContain(5);
+    expect(selectBeats(verrutscht, 3)).toContain(2);
+  });
+
+  test("a climax that belongs to the dream is kept even at the end", () => {
+    // Derselbe Bau, aber der Schlussbeat teilt sein Thema mit dem Signatur-Beat.
+    const stimmig = {
+      beats: [...FLUGTRAUM.beats.slice(0, 5), "The aeroplane finally settles and the city goes quiet"],
+      beatMeta: FLUGTRAUM.beatMeta.map((m, i) => (i === 5 ? { hook: "climax", min_s: 5 } : m)),
+      signature: 2,
+    };
+    expect(selectBeats(stimmig, 3)).toContain(5);
+  });
+
   test("a transit ending is worth less than a reveal", () => {
     const sel = selectBeats(FLUGTRAUM, 3);
     expect(sel).toContain(2);   // die Verwandlung
