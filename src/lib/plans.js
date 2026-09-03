@@ -119,7 +119,7 @@ export const CREDIT_COST_USD = creditCostUsd();
  * Zahlen erhöht und die Filmpreise gelassen, hätten wir nicht Bilder
  * verschenkt, sondern FILM — und beim Kino-Film lag das Jahresabo schon
  * vorher bei 1,3× statt der angepeilten 1,5×. Deshalb sind die
- * `creditsPerSecond` in video.js MITGEZOGEN (1/4/6 → 3/9/17), aus derselben
+ * `creditsPerSecond` in video.js MITGEZOGEN (1/4/6 → 3/9/17; seit 31.08. je Modell zwei Qualitäten: H3 2–3, Seedance 2.5 8–17), aus derselben
  * Quelle hergeleitet. Erst danach ist die Erhöhung tragbar.
  *
  * Was der Kunde davon merkt (Monat, 45 → 100 Cr):

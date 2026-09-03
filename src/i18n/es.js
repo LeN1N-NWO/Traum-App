@@ -487,11 +487,6 @@ export default {
           model: "MiniMax H3 · 768p",
           info: "El nivel amable: da vida a tu imagen inicial de forma convincente, con sonido, por un crédito por segundo — y ahora tus fotos de referencia viajan con ella (hasta cuatro junto a la imagen inicial), para que los rostros reales sigan siendo ellos mismos. Las películas llegan a 15 segundos como máximo.",
         },
-        director: {
-          name: "Dirigido", hint: "las caras y lugares reales, con sonido · 4 créditos por segundo",
-          model: "Seedance 2.0 · 720p",
-          info: "Este nivel lleva tus fotos de referencia dentro de la película — hasta ocho junto a la imagen inicial, para que los rostros y lugares reales sigan siendo ellos mismos en cada corte, con sonido. Cuatro créditos por segundo; el tope es 15 segundos.",
-        },
         premium: {
           name: "Cine", hint: "hasta 30 segundos en una sola toma, con sonido · 6 por segundo",
           model: "Seedance 2.5 · 720p",

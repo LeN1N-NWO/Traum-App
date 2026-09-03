@@ -3,6 +3,122 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-04 00:06 — Anton — Branch `session/2026-08-31-anton` (PR #32) — Nachtrag zum Abschluss von 23:50
+
+**Commits seit dem Abschluss:** `6031df1` (**Dreamflow nimmt alle Szenen,
+kein Storyboard**) · `2da9307` (Planzeile nachgezogen) plus dieser
+Doku-Commit. Zustand: **505 Tests grün**, fünf Skriptprüfungen grün.
+Bezahlte Läufe: keine.
+
+### Antons Befund, und was darunter lag
+
+„Wenn ich Dreamflow auswähle, brauche ich diese Storyboard-Kacheln doch
+gar nicht mehr." Richtig — und der Fehler saß eine Ebene tiefer: Der Fluss
+wählte bei 15 Sekunden **still sechs von acht Szenen** (`beatBudget` =
+floor(s / 2,5)), und die Kacheln waren das Einzige, was diese Auswahl
+sichtbar machte. Ein Preset, das „alles in einem Fluss" verspricht, darf
+nicht aussortieren.
+
+Jetzt: `beatBudget` beim Fluss unbegrenzt (`video.js`), Storyboard und
+Schnitt-Empfehlung verschwinden, an ihrer Stelle „Alle N Szenen fließen
+ineinander"; wird die Zeit je Station knapp (< 1,5 s, `FLOW_MIN_STATION`),
+sagt der Satz, ab wie vielen Sekunden es atmet. **Die App warnt, sie wählt
+nicht heimlich.** In `cut.js` liest die Block-Untergrenze `0` jetzt als
+echten Wert (der Fluss hat keine), nicht als fehlenden.
+
+⚠ **Der Vorschau-Tab meldet `visibilityState: hidden`** — Chrome friert
+dann Videos ein (`currentTime` bleibt stehen, `play()` wirft nichts). Die
+Preset-Clips standen deshalb zeitweise still. Kein App-Fehler; auf dem
+Screenshot laufen sie.
+
+## 2026-09-03 23:50 — Anton — Branch `session/2026-08-31-anton` (PR #32) — Sitzung vom 31.08. und 03.09.
+
+**Commits:** `f762b43` (Orte vorausgewählt, Frosch-Timing) · `f0a156f`
+(Warteknopf im Journal) · `609585f` (verwaister Film findet seinen Traum) ·
+`e4e3ea6` (**zwei Modelle, je zwei Qualitäten, Seedance 2.0 raus**) ·
+`17e03f3` (Plan Nur-noch-Film) · `34e53f0` (**Regisseur-Skill**) ·
+`d8ac8b8` (**Trockenlauf an fünf fremden Träumen**) · `14e664a` (**der
+Schnitt entscheidet nach Gewicht, Videofeld im Journal**) · `ed5432d` ·
+`f5c1d97` (**der Frosch schläft statt Ring**) · `12d70f3` · `84ea81b`
+(**drei Tempi**) · `62fcd4d` · `211079e` (Werkbank: drei Mockups) ·
+`6da7709` (**Stil-Presets als Video-Kacheln, Dreamflow**). Zustand: **504
+Tests grün**, Sprachdateien in Form. Bezahlte Läufe: **drei Filme** (H3,
+15 s, 768P, je ≈ $0,93) plus Keyframes, zwei Charakterbögen, Analysen —
+rund **$3**.
+
+### Der Satz über dieser Sitzung
+
+**Ein Test an eigenem Material findet die Fehler nicht, die man selbst
+eingebaut hat.** Der Regisseur-Skill sah an Antons Flamingo-Traum fertig
+aus. Fünf fremde Traumprotokolle aus der DreamBank fanden fünf Fehler in
+einer Stunde — vier davon Regeln, die am eigenen Traum unsichtbar waren:
+die Empfehlungszahl riet fünf von fünf Mal „Zweiteiler", bei fünf
+Sekunden sprengten die geschützten Beats das Budget, Kulisse blieb stehen,
+und **vier von fünf Träumen hören einfach auf**, statt aufzulösen —
+`beats.js` behauptete das Gegenteil. Bericht:
+`docs/plans/2026-09-03-regisseur-trockenlauf.md`.
+
+### Was gebaut wurde, in der Reihenfolge der Entscheidungen
+
+1. **Zwei Modelle, je zwei Qualitäten** (`video.js`): H3 480P/768P
+   (2/3 Cr/s), Seedance 2.5 480p/720p (8/17 Cr/s), Seedance 2.0 weg. Preise
+   am 31.08. auf den fal-Seiten nachgelesen. Qualitätsschalter im Wizard.
+2. **Nur noch Film** — Antons Grundsatzentscheidung, als Plan in vier
+   Phasen (`2026-08-31-nur-noch-film.md`). Phase 1 fertig, das Videofeld
+   aus Phase 3 vorgezogen: Der Film steht im Journal oben in voller
+   Breite, das Storyboard weicht, „Bilder machen" verschwindet unter einem
+   Film.
+3. **Der Fünfer-Deckel ist weg.** Die Analyse liefert so viele Szenen, wie
+   der Traum Ereignisse hat (2–14), je Szene `hook` + `min_s` + einen
+   Signatur-Beat. `src/lib/cut.js` wählt nach Gewicht, verteilt die Zeit
+   ungleich und rechnet die Empfehlung. Der Regie-Brief trägt eine
+   Shot-Liste im Format des Modells (Seedance Sekundenspannen, H3
+   Millisekunden). Alter Weg bleibt als Rückfall für Träume ohne Meta.
+4. **Drei Tempi** nach dem ersten Film („die Shots sind zu lang"): ruhig
+   (≥ 3 s), schnell (2 s, sieben Shots auf 15 s — **gegen die
+   Herstellerempfehlung, Antons Entscheidung**), ein Fluss (kein Schnitt,
+   Verwandlungskette). Mehrere Fassungen je Traum, Leiste unter dem
+   Player, Knopf „Nochmal, anders".
+5. **Stil-Presets als Video-Kacheln** — drei Mockups in einer Werkbank
+   (StartMenu → „Style tiles mockup"), Anton wählte B: das Raster.
+   `presets.js` + `PresetTile.jsx`; **Dreamflow** ist das neunte Preset
+   (dreamlike + flow), blendet den Tempo-Schalter aus.
+6. **Der Frosch schläft** an jedem Wartebildschirm (`MascotLoader.jsx`).
+
+### Was der Nächste wissen muss
+
+- **⚠⚠ Die Uhren.** Die Analyse braucht bei langen Träumen 2–4 Minuten
+  (96 % Denk-Token; gegengemessen: alter Prompt 121 s, neuer 184 s — der
+  lange Traum wäre VORHER genauso am 60-s-Limit gescheitert). Timeouts
+  auf 300 s (`api.js`), das ist ein Pflaster. **Der Filmauftrag hat
+  dieselbe Uhr, und das ist vermutlich die Ursache der verwaisten Filme:**
+  Client gibt auf, Server rendert weiter, Auftragsnummer erreicht
+  niemanden. Strukturfix: sofort die Nummer zurückgeben, Regie im
+  Hintergrund.
+- **⚠ Der Regie-Prompt läuft bei H3 ins 7000-Zeichen-Limit** (zweimal
+  gemessen); die Kappung meldet sich jetzt im Log und der Brief rechnet
+  das Budget je Shot vor. Beim Fluss blieb er mit 6964 knapp darunter.
+- **⚠ Beim schnellen Schnitt sind alle Mitfahrer im Aufzug Kopien von
+  Anton** — die Referenz schlägt bei kurzen Blöcken auf jedes Gesicht
+  durch. Beim Fluss nicht. Der Regisseur müsste sagen, dass die anderen
+  Fremde sind.
+- **⚠ `list()` in `server.js` kappt bei 120 Zeichen und acht Einträgen** —
+  für Szenen falsch (MAX_BEAT = 200, eigene Hygiene). Wer ein neues
+  Analysefeld hinzufügt, nimmt nicht `list()`.
+- **⚠ Preset-Clips sind Attrappen:** Antons Filme als 270-px-Kopien unter
+  `/media/pv….mp4`, gerätegebunden, nie ins Bundle. Neun volle Filme mit
+  CSS-Filtern blockierten den Renderer 30 Sekunden. `resolveMedia()` lässt
+  nur `[a-z0-9]{1,20}` durch — deshalb der Name `pv` + Hash.
+- **⚠ `filmsOf()` stellt die alte Form voran** — beim zweiten Film
+  verschwand der erste aus der Leiste, weil er noch in `film` lag.
+- **⚠ Der Testtraum `data/traeume/2026-09-03-e_mtlxb972tea3m5.json` ist
+  NICHT committet** und darf es nicht: DreamBank steht unter CC BY-NC-SA.
+  Löschen, wenn nicht mehr gebraucht.
+- **Der Vorschau-Browser klickt daneben:** Koordinaten-Klicks im
+  Startmenü trafen den Credits-Knopf; Klicks per `element.click()` sind
+  zuverlässig. Nach HMR an `AppState.jsx` steht die Seite leer
+  („useAppState used outside AppStateProvider") — voller Reload hilft.
+
 ## 2026-08-26 22:57 — Anton — Branch `session/2026-08-25-anton-2` (PR #29) — zweiter Abschluss desselben Tages
 
 **Commits seit dem Abschluss um 07:55:** `3f0abec` (**gemeinsamer,

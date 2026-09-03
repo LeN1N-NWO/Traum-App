@@ -47,9 +47,12 @@ import { styleById } from "./src/lib/styles.js";
 // Wie viele Szenen in eine Filmlänge passen — drei Sekunden je Szene ist
 // die Untergrenze, darunter wird aus Regie eine Schnittfolge.
 import { beatsForSeconds } from "./src/lib/beats.js";
+// Die Beat-Typen des Schnitts. Der Server prüft damit nur die Modellantwort;
+// gewählt und geplant wird im Client (cut.js), weil dort die Analyse liegt.
+import { HOOKS, MIN_SHOT_SECONDS } from "./src/lib/cut.js";
 // Die Filmbestellung je Modell — Slug, Klemme, Auflösung, Tonparameter —
 // kommt aus EINER Tabelle, die auch Preis und UI speist (video.test.js).
-import { videoSubmitBody, videoModel, clampSeconds } from "./src/lib/video.js";
+import { videoSubmitBody, videoModel, clampSeconds, QUALITIES, PACE_IDS, DEFAULT_PACE, filmPace } from "./src/lib/video.js";
 /* Bildmodell: Endpunkte, Adressformat und Referenzbudget stehen seit dem
  * 23.08. in EINER Tabelle (src/lib/imageModel.js) — Seedream und Nano Banana
  * sprechen nicht dieselbe Sprache, und ein falscher Feldname wirft keinen
@@ -109,6 +112,12 @@ const MAX_BODY = 12 * 1024 * 1024;
 const MAX_REFERENCES = 6;
 const MAX_DREAM = 2000;
 const MAX_FRAGMENT = 120; // per pet/place description, mirrors the client-side cap
+/* Eine Szene ist ein ganzer Satz, kein Namensfragment — sie braucht mehr
+ * Platz als eine Figurenbeschreibung. Gemessen am ersten Lauf ohne
+ * Fünfer-Deckel (03.09.2026): Szenen laufen bis etwa 130 Zeichen, und bei
+ * 120 wurde mitten im Wort abgeschnitten. 200 lässt Luft, ohne dass ein
+ * ausuferndes Modell den Regie-Prompt füllen kann. */
+const MAX_BEAT = 200;
 const MAX_CRAFTED_PROMPT = 3000; // ceiling on what DeepSeek is allowed to hand to fal.ai
 
 /* Welches Bildmodell. Der Name zeigt in die Tabelle in imageModel.js —
@@ -793,7 +802,7 @@ Output ONLY the finished prompt text. No preamble, no markdown, no quotes around
  * oder stilles Abschneiden des Endes). Jetzt bekommt der Regisseur sein
  * Budget im Brief GENANNT (er priorisiert dann selbst) und die Notbremse
  * kappt exakt am Limit des bestellten Modells. */
-async function directFilm({ dream, still, beats = [], style, seconds, modelId, refs = [] }) {
+async function directFilm({ dream, still, beats = [], shots = [], style, seconds, modelId, refs = [], pace = DEFAULT_PACE }) {
   const key = process.env.DEEPSEEK_KEY;
   if (!key) throw new Error("NO_DEEPSEEK_KEY");
 
@@ -826,9 +835,22 @@ async function directFilm({ dream, still, beats = [], style, seconds, modelId, r
        [Image1] / „Image 1"). */
     refStyle: m.refStyle,
     maxRefs: m.maxRefs,
-    /* Auf die Filmlänge zugeschnitten: Fünf Szenen auf fünf Sekunden wären
-       eine Sekunde je Szene — darin wird keine Handlung lesbar. */
-    beats: beatsForSeconds(beats, secs),
+    /* Der Schnittplan führt, wenn es einen gibt (seit 03.09.2026): Er sagt,
+       WELCHE Szenen der Film trägt und wie lange jede zu sehen ist — nach
+       Gewicht gewählt, nicht nach Position, und mit ungleichen Blöcken.
+       `beats` bleibt als Rückfall für alles ohne Plan: alte Träume, deren
+       Analyse keine Gewichtung kennt, und jeden Client, der noch nur Texte
+       schickt. Dann gilt wie bisher die gleichmäßige Verteilung. */
+    shots,
+    beats: shots.length ? [] : beatsForSeconds(beats, secs),
+    /* Wie das Modell Zeit liest: Seedance 2.5 in ganzzahligen Sekunden-
+       spannen, H3 in Millisekunden-Schnittzeitpunkten (video.js). */
+    timeFormat: m.timeFormat,
+    /* Das Tempo entscheidet, OB und WIE geschnitten wird: ruhig, schnell,
+       oder als eine einzige Verwandlung ohne Schnitt (Antons Ansage
+       03.09.2026). Der Brief liest dieselbe Liste je nach Tempo als
+       Schnittplan oder als Verwandlungskette. */
+    pace,
     style,
     refs,
     seconds: secs,
@@ -860,7 +882,18 @@ async function directFilm({ dream, still, beats = [], style, seconds, modelId, r
   // dann die mechanische Prüfung — jedes @ImageN muss eine der übergebenen
   // Referenzen sein; ohne Referenzen ist JEDES @Image eine Anweisung ins
   // Leere. Verstoß → Rückfall, nie ein halluziniertes Bild.
-  const cleaned = sanitizePromptText(text).slice(0, m.promptMax);
+  const roh = sanitizePromptText(text);
+  const cleaned = roh.slice(0, m.promptMax);
+  /* ⚠ Die Kappung war bis zum 03.09.2026 STUMM — man sah nur eine
+     Zeichenzahl, die zufällig genau dem Limit entsprach. Sie schneidet am
+     Ende ab, und dort stehen die letzten Shots, der Ton und die Schlusszeile:
+     Bei sieben Zwei-Sekunden-Blöcken kann das den halben Film kosten, ohne
+     dass irgendwo ein Fehler auftaucht. Wenn das hier im Log steht, gehört
+     das Zeichenbudget im Brief nachgeschärft (buildDirectorBrief). */
+  if (roh.length > m.promptMax) {
+    console.warn(`[DreamRushes] ⚠ Regie-Prompt gekappt: ${roh.length} → ${m.promptMax} Zeichen (${m.id}). `
+      + `Das Ende fehlt — Shots, Ton oder Schlusszeile.`);
+  }
   if (!checkDirectedPrompt(cleaned, refs.length).ok) throw new Error("DEEPSEEK_FAILED");
   // Eine Zeile Sichtbarkeit für ein bezahltes Feature: lief der Regisseur,
   // und wie viel hat er geschrieben? (Der Prompt selbst wird nicht geloggt.)
@@ -1085,7 +1118,21 @@ async function refineDream(dream, mode) {
 // logic with no further model calls. That is the whole token-economy design.
 const ANALYSIS_STYLES = ["ultrareal", "noir", "dreamlike", "romantic", "dark", "surreal", "nostalgic", "adventurous"];
 const MAX_ANALYSIS_ITEMS = 8;   // people or places; more is noise, not signal
-const ANALYSIS_BEATS = 5;       // fixed: 3/5/10 images are all derived from these
+/* ── Der Fünfer-Deckel ist weg (Antons Ansage 03.09.2026) ────────────────
+ * „Da wir weg sind von den Bildern, haben wir kein Limit mehr mit diesen
+ * fünf Szenen. Das System muss entscheiden, wie viele es sind."
+ *
+ * Die Fünf war ein Erbe der Bildstrecke (2×2-Raster: fünf Quell-Beats, aus
+ * denen vier Bilder wurden). Jetzt zerlegt die Analyse den Traum in so
+ * viele Szenen, wie er Ereignisse hat, und der Schnitt (src/lib/cut.js)
+ * wählt daraus nach Gewicht. ANALYSIS_BEATS ist damit kein Soll mehr,
+ * sondern nur noch die Notbremse gegen eine ausufernde Modellantwort.
+ *
+ * ⚠ Der BILD-Weg rechnet weiter mit fünf (beats.js, SOURCE_BEATS) und
+ * normalisiert selbst — er verträgt jede Länge. Nicht „aufräumen", bevor
+ * das Bildprodukt zurückgebaut ist. */
+const ANALYSIS_BEATS = 14;      // Obergrenze, kein Soll
+const ANALYSIS_BEATS_MIN = 2;   // Anfang und Ende — darunter ist es kein Film
 
 // The master prompt. Its JSON schema is the CONTRACT between the model and
 // the app: every field below is a marker the app reads by name, so the shape
@@ -1108,7 +1155,14 @@ Schema (every key is required, exactly these names):
     }
   ],
   "places": string[],      // every distinct location, in order, in the dream's language
-  "beats": string[],       // EXACTLY 5 short scene descriptions, in order — ALWAYS IN ENGLISH
+  "beats": string[],       // one per visible event in the dream, in order — ALWAYS IN ENGLISH
+  "beatMeta": [            // exactly one entry per beat, same order
+    {
+      "hook": string,      // "setup" | "build" | "turn" | "reveal" | "reversal" | "callback" | "climax" | "resolution" | "transit"
+      "min_s": number      // shortest readable duration for this beat in seconds, 3-8
+    }
+  ],
+  "signature": number,     // index into "beats" of the ONE beat the dream is about
   "style": string,         // one of: ultrareal, noir, dreamlike, romantic, dark, surreal, nostalgic, adventurous
   "mood": string,          // one or two words, in the dream's language
   "title": string,         // a film title for this dream: 1-4 evocative words, in the dream's language, no quotes
@@ -1132,9 +1186,16 @@ A dog, cat or other animal is kind "pet". Empty array only if truly nobody appea
 
 Rules for "places": one entry per distinct SETTING — a location a film crew would have to build separately. Different parts, angles or heights of the SAME setting are ONE entry: a mountain's summit and the sky above that mountain are one place, a house and the rooms inside it are one place. The sky, air or water directly around a setting is never its own entry. List a second place only when the dream truly moves somewhere else (a bedroom, then later the open sea). Never let two entries share the same core location. Empty array if there is no discernible location.
 
-Rules for "beats": exactly 5, always, even for a short dream — split it evenly. Each beat is one English sentence describing what is SEEN, not felt. Refer to people by their "name" so the app can bind reference images.
+Rules for "beats": as many as the dream has VISIBLE EVENTS — typically 3 to 12, never fewer than 2 and never more than 14. Do NOT split evenly and do NOT pad to a fixed number: a dream with three events gets three beats, a dream with eleven gets eleven. A beat is the smallest unit of visible action: one action, one place, who is in frame. A feeling with no visible expression is not a beat. Never write the same event twice — if two moments share a place and an action, they are one beat. Each beat is one English sentence describing what is SEEN, not felt. Refer to people by their "name" so the app can bind reference images.
 
-Rules for "filmSeconds": judge from the dream itself how much screen time it needs to be told — a single quiet moment reads in 5-8 seconds, a dream that travels through several places or builds to a reveal needs 12-20, only a truly epic arc justifies up to 30. Every scene needs about 3 seconds to breathe. Whole number, 5 to 30.
+Rules for "beatMeta": one entry per beat, same order. "hook" is what the beat does for the story: "setup" who and where · "build" action carries on · "turn" the situation changes · "reveal" something hidden shows · "reversal" it flips back · "callback" something earlier returns · "climax" the peak · "resolution" the ending · "transit" travel, arrivals, departures.
+Use "climax" once, for the most FELT moment OF THE DREAM'S OWN STORY — the one the "signature" beat belongs to. Felt, not loudest: a dream where a panther attacks and the dreamer then learns their mother died peaks at the death. But a beat that starts an unrelated subject is never the climax however tender it is: a flying dream that ends with kissing a friend in another place peaks in the air, and the kiss is "transit".
+"resolution" is not simply the last beat — give it only when the last beat shares a place or a person with the climax. Dreams usually just stop or jump elsewhere; that last beat is "transit".
+"min_s": 3 for an action or transit, 4 for a turn or reveal, 5 for a climax. Never below 3.
+
+Rules for "signature": the index (0-based) of the ONE beat the dreamer would name in a single sentence — the teeth falling out, the lift becoming an aeroplane, standing naked at school. Rarely the first, almost never the last. A five-second film shows this beat alone.
+
+Rules for "filmSeconds": the time this dream's CORE needs — add up "min_s" over the signature beat, the climax, every turn/reveal/reversal and the resolution, and ignore the rest. Do not total every beat: an fully told dream runs past 35 seconds that way, which no model can render, and the number stops meaning anything. Whole number, 5 to 30.
 
 Rules for "title" and "tagline": they go on a film poster for this dream. The title is what a great director would call this film — short, concrete, evocative; never generic ("My Dream", "A Strange Night" are failures). The tagline is one line that makes a stranger want to watch — it hints at the emotional core without summarising the plot. Both stay in the dream's language.`;
 
@@ -1213,12 +1274,43 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
     .filter(dedupePeople())
     .slice(0, MAX_ANALYSIS_ITEMS);
 
-  // Beats drive the image count, so their number is pinned, not trusted.
-  // Too few: pad by repeating the last one rather than failing the whole
-  // analysis over a formatting slip. Too many: take the first five.
-  let beats = list(parsed.beats).slice(0, ANALYSIS_BEATS);
-  if (beats.length === 0) beats = [text.slice(0, MAX_FRAGMENT)];
-  while (beats.length < ANALYSIS_BEATS) beats.push(beats[beats.length - 1]);
+  /* Die Szenen. Ihre ANZAHL ist seit 03.09.2026 die Antwort des Modells,
+     nicht mehr unsere Vorgabe — geklemmt wird nur nach oben (Notbremse) und
+     ganz unten (ein Film braucht mindestens zwei Bilder).
+     ⚠ Aufgefüllt wird durch WIEDERHOLEN der letzten Szene, wie zuvor: Das
+     ist hässlich, aber es ist ein Rückfall für eine Formatpanne, kein
+     Normalfall — und es lässt die Analyse nicht am Formvergehen scheitern. */
+  /* ⚠ NICHT list(): Der Helfer ist für Personen und Orte gebaut und kappt
+     bei MAX_FRAGMENT (120 Zeichen) und MAX_ANALYSIS_ITEMS (8 Einträge).
+     Beide Grenzen sind für Szenen falsch, und beide schlugen sofort zu, als
+     der Deckel am 03.09.2026 fiel: Ein Beat ist ein ganzer Satz („The plane
+     lands at a space-station bay lined with airplane-shaped berths, where
+     two planes race for one spot and one jet…") und wurde mitten im Wort
+     abgeschnitten — der Regisseur bekam einen halben Satz zu inszenieren.
+     Und die Acht deckelte still, was als Vierzehn gedacht war. */
+  let beats = (Array.isArray(parsed.beats) ? parsed.beats : [])
+    .map((b) => sanitizeFragment(b, MAX_BEAT))
+    .filter(Boolean)
+    .slice(0, ANALYSIS_BEATS);
+  if (beats.length === 0) beats = [text.slice(0, MAX_BEAT)];
+  while (beats.length < ANALYSIS_BEATS_MIN) beats.push(beats[beats.length - 1]);
+
+  /* Die Gewichtung je Szene (hook + min_s) und der Signatur-Beat. Beides ist
+     Modellausgabe, also untrusted: Der Client verlässt sich darauf, WELCHE
+     Szene ein Fünf-Sekunden-Film zeigt, und ein erfundener Typ oder ein
+     Index außerhalb der Liste würde dort still das Falsche wählen.
+     Fehlt die Angabe ganz (jeder Traum vor heute), füllt cut.js auf —
+     deshalb wird hier nichts erfunden, sondern nur geprüft. */
+  const beatMeta = beats.map((_, i) => {
+    const m = (Array.isArray(parsed.beatMeta) ? parsed.beatMeta[i] : null) || {};
+    const hook = HOOKS.includes(m.hook) ? m.hook : "build";
+    const s = Math.round(Number(m.min_s));
+    return { hook, min_s: Number.isFinite(s) ? Math.max(3, Math.min(8, s)) : 3 };
+  });
+  const signature = (() => {
+    const n = Math.round(Number(parsed.signature));
+    return Number.isInteger(n) && n >= 0 && n < beats.length ? n : null;
+  })();
 
   const style = ANALYSIS_STYLES.includes(parsed.style) ? parsed.style : "dreamlike";
 
@@ -1230,6 +1322,8 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
     people,
     places: list(parsed.places),
     beats,
+    beatMeta,
+    signature,
     style,
     mood: sanitizeFragment(parsed.mood || "", 40),
     // Poster text. Both are SHOWN (dream's language) and later embedded in a
@@ -1369,15 +1463,26 @@ const writeJob = (id, job) => Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.st
  *  (server-side) through that same table: the queue only validates duration
  *  at RENDER time (re-measured 09.08.2026), so a bad value burns the fee
  *  and comes back as a failed job minutes later. */
-async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds }) {
+async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, quality }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
-  const { slug, body } = videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds });
+  const { slug, body } = videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds, quality });
+  /* Die Größe des Auftrags im Log, VOR dem Absenden (03.09.2026). Beim
+     ersten Lauf mit dem neuen Schnitt starb der Submit an ECONNRESET —
+     „the socket connection was closed unexpectedly" — und ohne diese Zeile
+     ist nicht zu unterscheiden, ob der Body zu groß war oder das Netz
+     gehustet hat. Referenzbilder reisen als data:-URIs mit, ein einziges
+     900-KB-PNG wird darin zu 1,2 MB. */
+  const nutzlast = JSON.stringify(body);
+  const refs = body[videoModel(modelId).refsField] || [];
+  console.log(`[DreamRushes] video submit → ${slug}: ${(nutzlast.length / 1048576).toFixed(2)} MB, `
+    + `${refs.length} Referenz(en), Prompt ${body.prompt?.length ?? 0} Zeichen, ${body.duration}s`);
+
   const res = await fetch(`https://queue.fal.run/${slug}`, {
     method: "POST",
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: nutzlast,
   });
   if (!res.ok) {
     // Mit Modelladresse: seit es mehrere Modelle gibt, ist "welches?" die
@@ -1743,7 +1848,7 @@ async function generateImages({ dream, namedRefs, prompt: readyPrompt, aspectRat
  * Standbild-Prompt wörtlich — was sich bewegte, war Zufall. Fehlt der
  * Regisseur (kein Schlüssel, Prüfung rot), fällt die Bestellung auf den
  * alten Zustand zurück. */
-async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, refImages = [] }) {
+async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, quality, refImages = [] }) {
   const filmPrompt = motionPrompt || prompt || dream;
   /* `refImages` kommt aus filmReferences() und steht in EXAKT der
    * Reihenfolge der Materialliste des Regisseurs — das Startbild davor
@@ -1755,12 +1860,12 @@ async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, key
     if (!hit || !(await file.exists())) throw new Error("GENERATION_FAILED");
     const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
     const dataUri = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
-    return falSubmitVideo({ modelId, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds });
+    return falSubmitVideo({ modelId, quality, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds });
   }
   const stills = await generateImages({ dream, namedRefs, prompt });
   const first = stills[0];
   if (!first) throw new Error("GENERATION_FAILED");
-  return falSubmitVideo({ modelId, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds });
+  return falSubmitVideo({ modelId, quality, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds });
 }
 
 // ---- static file serving ----
@@ -2261,13 +2366,61 @@ Bun.serve({
            Bauart wie voice/lang/aspectRatio. */
         const styleAnchor = body.styleId ? styleById(body.styleId).prompt : undefined;
 
-        /* Die fünf Szenen aus der Analyse. Sie kommen vom Client zurück, sind
+        /* Die Szenen aus der Analyse. Sie kommen vom Client zurück, sind
            also erneut Fremdtext und laufen durch dieselbe Hygiene wie alles
            andere — Länge und Anzahl gedeckelt wie bei der Analyse selbst. */
         const beats = (Array.isArray(body.beats) ? body.beats : [])
           .slice(0, ANALYSIS_BEATS)
-          .map((b) => sanitizeFragment(b, MAX_FRAGMENT))
+          .map((b) => sanitizeFragment(b, MAX_BEAT))
           .filter(Boolean);
+
+        /* Der Schnittplan (03.09.2026): welche Szene wann und wie lange zu
+           sehen ist. Gerechnet wird er im Client (cut.js) — dort liegt die
+           Analyse mit ihrer Gewichtung, und dort hat der Mensch im
+           Storyboard mitgeredet. Hier wird er nur geprüft.
+           ⚠ Die Zahlen sind Fremdtext wie der Text: Ein Block, der über die
+           bestellte Dauer hinausragt oder rückwärts läuft, ergäbe eine
+           Timeline, die das Modell nicht auflösen kann — und bezahlt wäre
+           sie trotzdem. Deshalb geklemmt, sortiert und lückenlos gemacht,
+           nicht abgelehnt: Ein krummer Plan darf einen Film nicht kosten. */
+        /* Tempo und die Mindestlänge eines Blocks daraus — beides wird vom
+           Schnittplan unten gebraucht und vom Regisseur weiter unten.
+           Allowlist wie bei Modell und Qualität: Unbekanntes wird zur
+           Vorgabe, und die Vorgabe ist der geprüfte ruhige Schnitt. */
+        const pace = PACE_IDS.includes(body.pace) ? body.pace : DEFAULT_PACE;
+        const untergrenze = filmPace(pace).cuts
+          ? Math.max(1, filmPace(pace).minShot || MIN_SHOT_SECONDS)
+          : 0;
+
+        const shots = (() => {
+          const roh = (Array.isArray(body.shots) ? body.shots : []).slice(0, ANALYSIS_BEATS);
+          const dauer = clampSeconds(
+            ["premium"].includes(body.model) ? body.model : "standard",
+            body.seconds
+          );
+          const sauber = roh
+            .map((s) => ({
+              text: sanitizeFragment(s?.text, MAX_BEAT),
+              hook: HOOKS.includes(s?.hook) ? s.hook : "build",
+              from: Math.max(0, Math.min(dauer, Math.round(Number(s?.from)) || 0)),
+              to: Math.max(0, Math.min(dauer, Math.round(Number(s?.to)) || 0)),
+            }))
+            .filter((s) => s.text && s.to > s.from)
+            .sort((a, b) => a.from - b.from);
+          /* Lückenlos: Jeder Block beginnt, wo der vorige endet, und der
+             letzte endet exakt bei der bestellten Dauer. */
+          return sauber.map((s, i) => ({
+            ...s,
+            from: i === 0 ? 0 : sauber[i - 1].to,
+            to: i === sauber.length - 1 ? dauer : s.to,
+            /* ⚠ Die Untergrenze kommt vom TEMPO (03.09.2026). Stand hier
+               fest auf drei Sekunden, hätte der schnelle Schnitt mit seinen
+               Zwei-Sekunden-Blöcken JEDEN Block verloren — und der Server
+               hätte still auf den alten, gleichmäßigen Weg zurückgeschaltet,
+               ohne dass es jemand gemerkt hätte. Beim Fließen (ein Shot, das
+               Tempo hat keine Untergrenze) greift sie gar nicht. */
+          })).filter((s) => s.to - s.from >= untergrenze || sauber.length === 1);
+        })();
 
         /* Seit dem 21.08.2026 gibt es nur noch EINE Antwort: { jobId }.
            Bild wie Film wandern in die Warteschlange, der Client fragt
@@ -2283,8 +2436,16 @@ Bun.serve({
              Der Client schickt eine ID, nie einen Slug. Unbekanntes wird
              absichtlich zu "standard" — der falsche BILLIGE Film ist der
              harmlosere Fehler. */
-          const modelId = ["premium", "director"].includes(body.model) ? body.model : "standard";
+          /* Allowlist als LISTE, nicht als Vergleich — imageModel.test.js liest
+             diese Zeile und besteht darauf: Ein drittes Modell ist dann ein
+             Eintrag, kein zweiter Vergleichsast. */
+          const modelId = ["premium"].includes(body.model) ? body.model : "standard";
           const filmModel = videoModel(modelId);
+          /* Die Qualität (480p/720p) ist seit 31.08. Teil der Bestellung.
+             Dieselbe Allowlist-Haltung: Unbekanntes wird zur Vorgabe des
+             Modells — filmQuality() in video.js entscheidet, und dieselbe
+             Funktion hat auf dem Client den Preis berechnet. */
+          const quality = QUALITIES.includes(body.quality) ? body.quality : undefined;
 
           /* Referenz-Film — seit dem Neuzuschnitt vom 20.08. sind das ALLE
              Stufen: Auswahl und Reihenfolge kommen aus filmReferences() —
@@ -2305,8 +2466,8 @@ Bun.serve({
           let motionPrompt = null;
           try {
             motionPrompt = await directFilm({
-              dream, still: prompt, beats, style: styleAnchor,
-              seconds: body.seconds, modelId, refs: refsForBrief,
+              dream, still: prompt, beats, shots, style: styleAnchor,
+              seconds: body.seconds, modelId, refs: refsForBrief, pace,
             });
           } catch (e) {
             console.error("[DreamRushes] film director skipped:", e.message);
@@ -2314,7 +2475,7 @@ Bun.serve({
 
           const jobId = await startVideo({
             dream, namedRefs: cast, prompt, motionPrompt,
-            seconds: body.seconds, keyframe, modelId,
+            seconds: body.seconds, keyframe, modelId, quality,
             refImages: kept.map((c) => c.img),
           });
           return json({ ok: true, jobId });

@@ -20,6 +20,14 @@
 .wiz-sub { font-size: var(--t-h3); font-weight: 600; margin: var(--s-5) 0 var(--s-2); }
 .wiz-lede { color: var(--muted); font-size: var(--t-small); margin: 0 0 var(--s-4); }
 .wiz-hint { color: var(--faint); font-size: var(--t-small); margin: var(--s-3) 0 0; }
+/* Was die gewählte Länge vom Traum trägt. Ein Satz mit Zahlen, kein
+   Warnhinweis — deshalb ruhig gesetzt, nur durch die Randlinie vom
+   Storyboard darüber abgesetzt. */
+.wiz-cut-note {
+  color: var(--muted); font-size: var(--t-small);
+  margin: var(--s-2) 0 0; padding-inline-start: var(--s-3);
+  border-inline-start: 2px solid var(--line); line-height: 1.5;
+}
 .wiz-empty { color: var(--faint); text-align: center; padding: var(--s-5) 0; }
 .wiz-poster-line { color: var(--muted); font-size: var(--t-small); margin: var(--s-3) 0 0; }
 .wiz-poster-line strong { color: var(--text); }
@@ -339,3 +347,10 @@
   color: var(--accent-soft); font: inherit; font-size: var(--t-small);
   text-decoration: underline; text-underline-offset: .2em;
 }
+
+/* ── Die Stil-Presets als Raster (Antons Wahl 03.09.2026, Variante B) ──
+   Drei Spalten. Dreamflow vorn und die letzte Kachel doppelt breit
+   (presets.js, `wide`): neun Kacheln, zwei davon doppelt, sind elf Plätze —
+   drei volle Reihen und eine breite zum Schluss, keine Waise. Die Kachel
+   selbst wohnt in components/presetTile.css. */
+.wiz-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }

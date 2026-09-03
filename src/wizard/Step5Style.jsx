@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { STYLES } from "../lib/styles.js";
-import { beatsForCount, beatCountForSeconds, evenIndices, trimSelection, selectionBeats } from "../lib/beats.js";
+import { beatsForCount, trimSelection, selectionBeats } from "../lib/beats.js";
+import { selectBeats, shotPlan, recommendation } from "../lib/cut.js";
 import { buildReferences, buildImagePrompt, buildGridPrompt } from "../lib/promptBuilder.js";
 import { generate, renderImages, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
 import { needsSheet, renderRef, sheetFingerprint, compactDataUrl } from "../lib/sheets.js";
@@ -11,13 +12,16 @@ import { genId } from "../lib/storage.js";
 import { bumpStreak, refreshStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
 import { priceForImages, PRICES, IMAGE_COUNTS, PREVIEW_COUNT } from "../lib/pricing.js";
-import { VIDEO_MODELS, priceForFilm, clampSeconds, videoModel } from "../lib/video.js";
+import { VIDEO_MODELS, QUALITIES, PACE_IDS, DEFAULT_PACE, priceForFilm, clampSeconds, videoModel, filmQuality, shotBudget, beatBudget, filmPace, flowStationSeconds, FLOW_MIN_STATION } from "../lib/video.js";
 import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
 import ButtonTapOverlay from "../components/ButtonTapOverlay.jsx";
 import Storyboard from "../components/Storyboard.jsx";
+import MascotLoader from "../components/MascotLoader.jsx";
+import PresetTile from "../components/PresetTile.jsx";
+import { PRESETS, DREAMFLOW, activePreset, applyPreset } from "../lib/presets.js";
 import Sheet from "../components/Sheet.jsx";
 import "./wizard.css";
 
@@ -61,7 +65,7 @@ export default function Step5Style({ w, patch }) {
   // keyframe is rendered, so that credit disappears from the price.
   const ownKeyframe = isFilm && !!w.keyframe;
   const price = isFilm
-    ? priceForFilm(w.videoModel, w.seconds, { ownKeyframe })
+    ? priceForFilm(w.videoModel, w.seconds, { ownKeyframe, quality: w.quality })
     : isPreview ? PRICES.preview
     /* ⚠ Plan B kostet mehr, weil er uns mehr kostet: Nano Banana im
        4K-Raster $0,16 gegen $0,113. Die Zahl steht in pricing.js, nicht
@@ -74,17 +78,35 @@ export default function Step5Style({ w, patch }) {
      Storyboard UND für den Film-Aufruf, deshalb hier oben statt im JSX.
      `order` ist immer schon auf die Kappung gestutzt: schrumpft die
      Länge, fällt die älteste eigene Wahl raus (trimSelection). */
+  /* ── Der Schnitt (03.09.2026) ──────────────────────────────────────────
+     `sceneCap` kommt jetzt aus dem MODELL (shotBudget: wie viele Schnitte
+     diese Länge bei diesem Renderer trägt), und die Vorauswahl aus dem
+     GEWICHT der Szenen (selectBeats), nicht mehr aus ihrer Position.
+
+     Vorher wählte evenIndices die erste und die letzte Szene — an fünf
+     echten Traumprotokollen nachgemessen verlor das in drei von fünf
+     Fällen genau das Ereignis, um das es ging (Trockenlauf-Bericht vom
+     03.09.). Wer selbst tippt, überschreibt das weiterhin: `pick` schlägt
+     die Automatik, wie seit dem 21.08. */
   const arc = w.analysis?.beats || [];
   const filmSecs = clampSeconds(w.videoModel, w.seconds);
-  const sceneCap = Math.max(1, Math.min(beatCountForSeconds(filmSecs), arc.length));
-  const order = trimSelection(pick ?? evenIndices(arc.length, sceneCap), sceneCap);
+  /* ⚠ `beatBudget`, nicht `shotBudget`: Beim Fließen gibt es EINEN Shot,
+     aber mehrere Szenen darin, die ineinander übergehen. Mit der Shot-Zahl
+     bekäme dieses Tempo genau eine Szene — also das Gegenteil von „die ganze
+     Story in 15 Sekunden". */
+  const pace = w.pace || DEFAULT_PACE;
+  const sceneCap = Math.max(1, Math.min(beatBudget(w.videoModel, filmSecs, pace), arc.length));
+  const autoPick = selectBeats(w.analysis, sceneCap);
+  const order = trimSelection(pick ?? autoPick, sceneCap);
+  const maxSecs = videoModel(w.videoModel).max;
+  const rat = recommendation(w.analysis, sceneCap, filmSecs, maxSecs, beatBudget(w.videoModel, maxSecs, pace));
 
   function toggleScene(i) {
     // Funktional statt über den Render-Abschluss: zwei Tipps im selben
     // Tick würden sonst beide vom selben alten Stand rechnen und der
     // erste ginge still verloren (React batcht setState).
     setPick((prev) => {
-      const base = trimSelection(prev ?? evenIndices(arc.length, sceneCap), sceneCap);
+      const base = trimSelection(prev ?? autoPick, sceneCap);
       const has = base.includes(i);
       // Die letzte Szene bleibt: ein Film aus null Szenen ist keiner.
       if (has && base.length <= 1) return base;
@@ -340,6 +362,10 @@ export default function Step5Style({ w, patch }) {
              der Modellwahl, der Server renderte aber immer minimax — Premium
              wurde bezahlt und nie geliefert (Befund 2 im Film-Regie-Plan). */
           model: w.videoModel,
+          /* Preis und Bestellung gehen durch DIESELBE Funktion (filmQuality):
+             Wer hier die Vorgabe schickt statt der aufgelösten Stufe, riskiert,
+             dass Client und Server verschieden auflösen. */
+          quality: filmQuality(w.videoModel, w.quality).id,
           cast: castForApi,
           /* Stil und Szenenbogen für den Regisseur. Bis 19.08.2026 fehlten
              beide Zeilen: Die Regieanweisung verlangte ausdrücklich einen
@@ -354,6 +380,15 @@ export default function Step5Style({ w, patch }) {
              einhält, ist das die Identität (evenIndices(n, n)) — er reicht
              Antons Wahl unverändert an den Regisseur durch. */
           beats: arc.length ? selectionBeats(arc, order) : allBeats,
+          /* Der Schnittplan: welche Szene wann und wie lange (cut.js). Er
+             ersetzt die gleichmäßige Verteilung im Regisseur-Brief — der
+             Höhepunkt bekommt den längsten Block, ein Weg fliegt raus.
+             Gerechnet wird er HIER, weil hier die Analyse mit ihrer
+             Gewichtung liegt und hier der Mensch im Storyboard mitgeredet
+             hat; der Server prüft ihn nur nach. */
+          shots: arc.length ? shotPlan(w.analysis, order, filmSecs, filmPace(pace).minShot) : undefined,
+          /* Das Tempo entscheidet, ob geschnitten wird und wie kurz. */
+          pace,
           // The chosen image, if any — the server then animates it directly
           // instead of rendering a fresh keyframe first.
           keyframe: w.keyframe || undefined,
@@ -368,7 +403,22 @@ export default function Step5Style({ w, patch }) {
         update((prev) => ({
           ...(spend(prev, price) || {}),
           journal: (prev.journal || []).map((e) => (e.id === entryId
-            ? { ...e, jobId, pending: undefined } : e)),
+            ? {
+                ...e, jobId, pending: undefined,
+                /* Womit diese Fassung bestellt wurde — der Collector
+                   schreibt es an den fertigen Film, damit im Journal
+                   steht, WELCHE Fassung man da sieht. Ohne das wären
+                   mehrere Versuche desselben Traums nicht auseinander-
+                   zuhalten. */
+                filmPlan: {
+                  model: w.videoModel,
+                  quality: filmQuality(w.videoModel, w.quality).id,
+                  seconds: filmSecs,
+                  pace,
+                  scenes: order.length,
+                },
+              }
+            : e)),
         }));
         patch({ jobId, urls: [], step: 6 });
         running.current = false;
@@ -580,11 +630,20 @@ export default function Step5Style({ w, patch }) {
      überhaupt noch gerendert wird. */
   const einspieler = tap && <ButtonTapOverlay rect={tap} onDone={() => setTap(null)} />;
 
-  if (busy) {
+  /* ⚠ `!tap`: Der Bildschirm wartet, bis das Maskottchen durch ist (Antons
+     Befund 31.08.: „Der Button war zu schnell weg, und das Maskottchen kam
+     dann später rein"). Vorher schaltete der Druck sofort auf den
+     Warte-Bildschirm um — der Frosch tippte also auf einen Knopf, den es
+     nicht mehr gab.
+     ⚠ Das ist KEIN Widerspruch zur Regel „der Einspieler ist nie ein Tor":
+     Aufgehalten wird nur die ANZEIGE. Der Auftrag ist längst unterwegs
+     (run() sendet vor dem ersten Einzelbild), und ein Fehler räumt `tap`
+     sofort ab — die Ablehnung erscheint also weiterhin ohne Verzögerung. */
+  if (busy && !tap) {
     return (
       <section className="wiz-body wiz-busy" role="status" aria-live="polite">
         {einspieler}
-        <div className="wiz-spinner" aria-hidden="true" />
+        <MascotLoader />
         <p className="wiz-busy-text">{t.dream.loading[msg % t.dream.loading.length]}</p>
         {/* Der einmalige Bogen-Moment einer neuen Figur erklärt sich selbst,
             statt wie eine hängende Generierung auszusehen. */}
@@ -612,39 +671,48 @@ export default function Step5Style({ w, patch }) {
         </div>
       )}
 
-      <div className="wiz-styles" role="group" aria-label={t.wizard.step5.styleLabel}>
-        {STYLES.map((s) => (
-          /* Gleiches Muster wie bei den Filmmodellen: das ⓘ liegt NEBEN
-             dem Auswahlknopf in dessen Ecke, nie als Knopf im Knopf.
-             Name aus den Sprachdateien, styles.js bleibt der Fallback —
-             vorher standen die Stilnamen englisch fest im UI (derselbe
-             Fehlertyp wie beim Traumatlas, 21.08.). */
-          <div key={s.id} className="wiz-style-wrap">
-            <button
-              className={"wiz-style" + (w.styleId === s.id ? " wiz-style-on" : "")}
-              onClick={() => patch({ styleId: s.id })}
-              aria-pressed={w.styleId === s.id}
-            >
-              <span className="wiz-style-emoji" aria-hidden="true">{s.emoji}</span>
-              <span>{t.styles.byId[s.id]?.label || s.label}</span>
-            </button>
-            <button
-              className="wiz-model-info"
-              aria-label={`${t.wizard.step5.aboutStyle}: ${t.styles.byId[s.id]?.label || s.label}`}
-              onClick={() => setStyleInfo(s.id)}
-            >i</button>
-          </div>
-        ))}
+      {/* ── Die Stil-Presets als Video-Kacheln (Antons Wahl 03.09.2026:
+          das Raster, Variante B der Werkbank) ───────────────────────────
+          Neun Kacheln mit laufender Vorschau statt acht Emoji-Knöpfe.
+          Dreamflow — der Film ohne Schnitt — steht vorn als doppelt breite
+          Kachel: Es ist kein neunter Bildstil, sondern ein Preset, das den
+          Stil UND das Tempo setzt (presets.js). Ein Preset ist keine eigene
+          Zustandsgröße: Es wird aus Stil und Tempo abgeleitet, damit zwei
+          Quellen derselben Wahrheit nicht auseinanderlaufen. */}
+      <div className="wiz-presets" role="group" aria-label={t.wizard.step5.styleLabel}>
+        {PRESETS.map((p) => {
+          const style = STYLES.find((s) => s.id === p.styleId);
+          const name = p.id === DREAMFLOW
+            ? t.wizard.step5.presets.dreamflow
+            : (t.styles.byId[p.styleId]?.label || style?.label || p.styleId);
+          return (
+            <PresetTile
+              key={p.id}
+              preset={p}
+              label={name}
+              sub={p.id === DREAMFLOW ? t.wizard.step5.presets.dreamflowSub : undefined}
+              on={activePreset(w) === p.id}
+              onPick={(id) => patch(applyPreset(id, w))}
+              infoLabel={`${t.wizard.step5.aboutStyle}: ${name}`}
+              onInfo={p.id === DREAMFLOW ? () => setStyleInfo(DREAMFLOW) : () => setStyleInfo(p.styleId)}
+            />
+          );
+        })}
       </div>
 
       {styleInfo && (
-        <Sheet label={t.styles.byId[styleInfo]?.label || styleInfo} onClose={() => setStyleInfo(null)}>
+        <Sheet
+          label={styleInfo === DREAMFLOW ? t.wizard.step5.presets.dreamflow : (t.styles.byId[styleInfo]?.label || styleInfo)}
+          onClose={() => setStyleInfo(null)}
+        >
           <p className="sb-sheet-label">{t.wizard.step5.styleLabel}</p>
           <h3 className="wiz-model-title">
-            {STYLES.find((s) => s.id === styleInfo)?.emoji}{" "}
-            {t.styles.byId[styleInfo]?.label || styleInfo}
+            {styleInfo === DREAMFLOW ? "🌊" : STYLES.find((s) => s.id === styleInfo)?.emoji}{" "}
+            {styleInfo === DREAMFLOW ? t.wizard.step5.presets.dreamflow : (t.styles.byId[styleInfo]?.label || styleInfo)}
           </h3>
-          <p className="wiz-model-text">{t.styles.byId[styleInfo]?.info}</p>
+          <p className="wiz-model-text">
+            {styleInfo === DREAMFLOW ? t.wizard.step5.presets.dreamflowInfo : t.styles.byId[styleInfo]?.info}
+          </p>
         </Sheet>
       )}
 
@@ -708,7 +776,7 @@ export default function Step5Style({ w, patch }) {
               <div key={m.id} className="wiz-model">
                 <button
                   className={"wiz-format" + (w.videoModel === m.id ? " wiz-format-on" : "")}
-                  onClick={() => patch({ videoModel: m.id, ...(w.secondsTouched ? { seconds: clampSeconds(m.id, w.seconds) } : {}) })}
+                  onClick={() => patch({ videoModel: m.id, quality: null, ...(w.secondsTouched ? { seconds: clampSeconds(m.id, w.seconds) } : {}) })}
                   aria-pressed={w.videoModel === m.id}
                 >
                   <span>{t.wizard.step5.filmModels[m.id].name}</span>
@@ -731,6 +799,59 @@ export default function Step5Style({ w, patch }) {
               <p className="wiz-model-text">{t.wizard.step5.filmModels[modelInfo].info}</p>
             </Sheet>
           )}
+
+          {/* Der Qualitätsschalter (Antons Ansage 31.08.: „einen Button unter
+              den Modellen, je nachdem, welche Qualität wir haben wollen").
+              Zahlen kommen aus der Modelltabelle, nie aus den Sprachdateien —
+              die Hinweistexte nennen deshalb keine Credits mehr. Beim
+              Modellwechsel fällt die Wahl auf `null` zurück, also auf die
+              Vorgabe des NEUEN Modells: 720p bei Seedance kostet neunmal so
+              viel wie bei H3 ein Stufenwechsel, das erbt man nicht still. */}
+          <h2 className="wiz-sub">{t.wizard.step5.qualityLabel}</h2>
+          <div className="wiz-formats" role="group" aria-label={t.wizard.step5.qualityLabel}>
+            {QUALITIES.map((q) => {
+              const k = filmQuality(w.videoModel, q);
+              const on = filmQuality(w.videoModel, w.quality).id === q;
+              return (
+                <button
+                  key={q}
+                  className={"wiz-format" + (on ? " wiz-format-on" : "")}
+                  onClick={() => patch({ quality: q })}
+                  aria-pressed={on}
+                >
+                  <span>{t.wizard.step5.qualityNames[q]}</span>
+                  <small>{k.resolution} · {k.creditsPerSecond} {t.wizard.creditsN(k.creditsPerSecond)}/s</small>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Das Tempo (Antons Ansage 03.09.2026): wie schnell geschnitten
+              wird — oder ob überhaupt. Steht unter der Qualität, weil es
+              wie sie den Charakter des Films bestimmt und nicht den Preis:
+              Ein schneller Schnitt kostet keinen Credit mehr als ein
+              ruhiger, er packt nur mehr hinein. */}
+          {/* ⚠ Bei Dreamflow AUSGEBLENDET, und `flow` steht nicht mehr im
+              Schalter: Der Fluss ist seit dem Raster ein Preset, kein
+              Tempo zur Wahl. Ein Schalter, der bei Dreamflow „ruhig" oder
+              „schnell" anböte, verspräche Schnitte in einem Film, der
+              keine hat. */}
+          {w.pace !== "flow" && (<>
+          <h2 className="wiz-sub">{t.wizard.step5.paceLabel}</h2>
+          <div className="wiz-formats" role="group" aria-label={t.wizard.step5.paceLabel}>
+            {PACE_IDS.filter((p) => p !== "flow").map((p) => (
+              <button
+                key={p}
+                className={"wiz-format" + (pace === p ? " wiz-format-on" : "")}
+                onClick={() => patch({ pace: p })}
+                aria-pressed={pace === p}
+              >
+                <span>{t.wizard.step5.paceNames[p]}</span>
+                <small>{t.wizard.step5.paceHints[p]}</small>
+              </button>
+            ))}
+          </div>
+          </>)}
 
           <h2 className="wiz-sub">{t.wizard.step5.lengthLabel}</h2>
           <div className="wiz-seconds">
@@ -769,13 +890,42 @@ export default function Step5Style({ w, patch }) {
               ersetzt den Automatik-Schnitt und geht so an den Regisseur.
               Solange niemand tippt, wählt weiter evenIndices — dieselbe
               Rechnung wie auf dem Server, nur sichtbar gemacht. */}
-          {arc.length > 0 && (() => {
+          {/* ⚠ Beim Fluss KEIN Storyboard (Antons Befund 03.09., zweite
+              Runde: „dann brauche ich diese Storyboard-Kacheln doch gar
+              nicht mehr"). Er hat recht, und der Fehler saß tiefer: Der
+              Fluss wählte still sechs von acht Szenen, und die Kacheln
+              waren das Einzige, was das zeigte. Jetzt nimmt er ALLE —
+              nichts zu wählen, also keine Kacheln. Bleibt nur der Satz,
+              wie viele Szenen fließen, und die Warnung, wenn die Zeit je
+              Station knapp wird. */}
+          {arc.length > 0 && pace === "flow" && (() => {
+            const je = flowStationSeconds(w.videoModel, filmSecs, arc.length);
+            return (
+              <p className="wiz-cut-note">
+                {t.wizard.step5.flowAll(arc.length)}
+                {je < FLOW_MIN_STATION && ` ${t.wizard.step5.flowFast(Math.ceil(arc.length * FLOW_MIN_STATION))}`}
+              </p>
+            );
+          })()}
+          {arc.length > 0 && pace !== "flow" && (() => {
             const entry = w.entryId ? state.journal.find((e) => e.id === w.entryId) : null;
             return (
               <>
                 <h2 className="wiz-sub">{t.storyboard.label}</h2>
                 <Storyboard beats={arc} entry={entry} active={new Set(order)} onToggle={toggleScene} />
                 <p className="wiz-hint">{t.storyboard.pickNote(order.length, sceneCap)}</p>
+                {/* Die Empfehlung als SATZ, nicht als Nadel (Skill
+                    regisseur-schnitt, Schritt 6). Sie sagt, was diese Länge
+                    trägt und was der Traum bräuchte — und bei einem
+                    einzigen Shot sagt sie ehrlich, dass fünf Sekunden ein
+                    Bild sind und keine Geschichte. */}
+                <p className="wiz-cut-note">
+                  {rat.einBild ? t.wizard.step5.cutOneShot
+                    : rat.alle ? t.wizard.step5.cutAll(rat.beats)
+                    : t.wizard.step5.cutSome(rat.passt, rat.beats)}
+                  {rat.mehrBei && ` ${t.wizard.step5.cutMoreAt(rat.beiMax, rat.mehrBei)}`}
+                  {rat.zweiteiler && ` ${t.wizard.step5.cutTwoParter}`}
+                </p>
               </>
             );
           })()}

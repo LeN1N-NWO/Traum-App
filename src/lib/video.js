@@ -100,77 +100,93 @@ import { PRICES } from "./pricing.js";
  *                (enable_prompt_expansion steht AN); für Regie-Prompts
  *                ausdrücklich abgeschaltet, sonst überschreibt ein fremdes
  *                Modell die Arbeit unseres Regisseurs. */
-export const VIDEO_MODELS = [
+/* ── Zwei Modelle, je zwei Qualitäten (Antons Entscheidung 31.08.2026) ────
+ * Seedance 2.0 ist raus („komplett weg"). Übrig bleiben MiniMax H3 und
+ * Seedance 2.5 — und jedes bekommt einen Qualitätsschalter, weil die
+ * Auflösung bei Seedance mehr als den PREIS VERDOPPELT. Am 31.08. auf den
+ * fal-Modellseiten nachgelesen, nicht aus dem Gedächtnis:
+ *   H3            480P $0,05/s  · 768P $0,06/s   (erste 5 Referenzbilder gratis)
+ *   Seedance 2.5  480p $0,2205/s · 720p $0,473/s (1080p $1,164 — nicht angeboten)
+ * `creditsPerSecond` je Qualität = ceil(usd / creditCostUsd()); video.test.js
+ * rechnet jede der vier Zahlen nach.
+ *
+ * `preferred` ist die Vorgabe des Schalters, und sie ist je Modell BEWUSST
+ * verschieden: Bei H3 kostet die scharfe Stufe EINEN Credit mehr — bei
+ * 9:16 ist 480P sichtbar weich, das ist der Credit wert. Bei Seedance
+ * kostet sie NEUN Credits mehr; dort ist 480p die Vorgabe, denn genau das
+ * war der Sinn des Umbaus („die Preise runter"). Wer das ändert, sieht in
+ * preis-durchreichen.mjs sofort, was es kostet.
+ *
+ * ⚠ Die Felder resolution/usdPerSecond/creditsPerSecond auf MODELLEBENE
+ * sind aus `preferred` ABGELEITET (VIDEO_MODELS unten), nie abgeschrieben:
+ * Skripte und Aufrufer ohne Qualitätsangabe sehen so die Vorgabe, und es
+ * gibt weiterhin genau eine Quelle je Zahl.
+ *
+ * Modellwissen, das bleibt (Herkunft: Filmplan §10b/§10c, bezahlt geprüft):
+ *   H3: `resolution` MUSS gesetzt sein — die Schema-Vorgabe ist "2K" und
+ *       kostet $0,13/s. Kein generate_audio-Parameter (liefert von sich aus
+ *       AAC; ein unbekanntes Feld kann den Auftrag kosten). Referenzen in
+ *       `reference_image_urls`, adressiert als „Image 1". Prompt-Expansion
+ *       steht standardmäßig AN und wird ausdrücklich abgeschaltet.
+ *   Seedance 2.5: Referenzen in `image_urls`, adressiert als [Image1];
+ *       generate_audio nötig, sonst stumm. 9 Referenzen (Keyframe + 8),
+ *       damit die Brief-Form aller Stufen gleich bleibt. */
+const MODELLE = [
   {
-    /* „Lebendig" — H3-R2V @768P kostet $0,06/s, WENIGER als das alte
-     * image-to-video ($0,08/s), und die ersten 5 Referenzbilder sind gratis.
-     * Verkaufspreis bleibt 1 Cr/s (ceil), die Marge steigt um 25 % und die
-     * Besetzung ist ab jetzt in jeder Stufe im Film sie selbst.
-     * maxRefs bleibt bei 5 — ab dem 6. Bild berechnet fal $0,08/Referenz,
-     * und eine Stufe, deren Einkaufspreis von der Besetzungsgröße abhängt,
-     * kann kein ehrlicher Festpreis mehr sein.
-     * ⚠ resolution "768P" MUSS gesetzt bleiben: die Schema-Vorgabe ist "2K"
-     * und kostet $0,13/s (§10b). */
     id: "standard",
     slug: "minimax/h3/reference-to-video",
-    usdPerSecond: 0.06,           // fal: minimax/h3/reference-to-video @768P
-    creditsPerSecond: 3,          // 0.06 ÷ 0.0283 → ceil = 3   (siehe Kopf)
+    qualities: {
+      sd: { resolution: "480P", usdPerSecond: 0.05, creditsPerSecond: 2 },
+      hd: { resolution: "768P", usdPerSecond: 0.06, creditsPerSecond: 3 },
+    },
+    preferred: "hd",
     min: 5, max: 15, step: 1, preset: 6,
-    resolution: "768P",
-    audio: false,                 // liefert von sich aus eine AAC-Spur; einen
-                                  // generate_audio-Parameter kennt es nicht,
-                                  // also darf er auch nicht gesendet werden
-    maxRefs: 5,                   // die gratis-Grenze, siehe oben
+    audio: false,
+    maxRefs: 5,
     refsField: "reference_image_urls",
-    refStyle: "plain",            // „Image 1" — bezahlt bewiesen 19.08. (§10c)
+    refStyle: "plain",
     aspect: "9:16",
     noExpand: true,
-    promptMax: 7000,              // offizielle H3-API-Grenze
+    promptMax: 7000,
+    shotEvery: 5, maxShots: 3, timeFormat: "ms",
   },
   {
-    /* „Regie" — die Seedance-Qualitätsstufe mit Director-Brief. Machbarkeit
-     * am 17.08. real bewiesen (T1/T4: data-URIs, @Image-Zuordnung, Identität
-     * hält über Ortswechsel); Fast vs. Normal hat T2 entschieden. */
-    id: "director",
-    slug: "bytedance/seedance-2.0/fast/reference-to-video",
-    usdPerSecond: 0.2419,         // fal: bytedance/seedance-2.0/fast/r2v
-    creditsPerSecond: 9,          // 0.2419 ÷ 0.0283 → ceil = 9  (siehe Kopf)
-    min: 5, max: 15, step: 1, preset: 10,
-    resolution: "720p",
-    audio: true,
-    maxRefs: 9,                   // image_urls statt image_url — bis zu 9
-    refsField: "image_urls",
-    refStyle: "at",               // @Image1 — bezahlt bewiesen 17.08. (T1/T4)
-    /* KEIN aspect: das 2.0-Schema ist der eine ungemessene Punkt, und T4
-     * lief ohne den Parameter sauber 9:16 (adaptiv nach dem Startbild).
-     * Nichts senden, was der Validator nicht bestätigt hat. */
-    promptMax: 5000,              // modellseitige Seedance-2.0-Grenze
-  },
-  {
-    /* „Kino" — 2.5-R2V: 30 Sekunden MIT echten Gesichtern, gleicher
-     * Sekundenpreis wie das alte Ein-Bild-2.5 ($0,473/s, §10b) — Referenzen
-     * kosten dort nichts extra. Damit ist T5 (Verkettung) endgültig tot. */
     id: "premium",
     slug: "bytedance/seedance-2.5/reference-to-video",
-    usdPerSecond: 0.473,          // fal: bytedance/seedance-2.5/r2v
-    creditsPerSecond: 17,         // 0.473 ÷ 0.0283 → ceil = 17  (siehe Kopf)
+    qualities: {
+      sd: { resolution: "480p", usdPerSecond: 0.2205, creditsPerSecond: 8 },
+      hd: { resolution: "720p", usdPerSecond: 0.473,  creditsPerSecond: 17 },
+    },
+    preferred: "sd",
     min: 5, max: 30, step: 5, preset: 15,
-    resolution: "720p",
-    audio: true,                  // nativer Ton über generate_audio
-    maxRefs: 9,                   // Schema erlaubt mehr; 9 hält die Brief-Form
-                                  // aller Stufen gleich (Keyframe + 8 Plätze)
+    audio: true,
+    maxRefs: 9,
     refsField: "image_urls",
-    refStyle: "bracket",          // [Image1] — bezahlt bewiesen 19.08. (§10c)
+    refStyle: "bracket",
     aspect: "9:16",
-    promptMax: 10000,             // Runware-API-Doku (19.08.2026); fal ungemessen
+    promptMax: 10000,
+    shotEvery: 4, maxShots: 9, timeFormat: "s",
   },
 ];
+
+export const QUALITIES = ["sd", "hd"];
+
+export const VIDEO_MODELS = MODELLE.map((m) => ({ ...m, ...m.qualities[m.preferred] }));
 /* Reihenfolge = UI-Reihenfolge = aufsteigender Preis. Eintrag [0] muss
  * "standard" bleiben: videoModel() fällt bei Unbekanntem dorthin zurück,
  * und der falsche BILLIGE Film ist der harmlosere Fehler. */
 
 export function videoModel(id) {
   return VIDEO_MODELS.find((m) => m.id === id) || VIDEO_MODELS[0];
+}
+
+/** Die gewählte Qualität eines Modells — oder seine Vorgabe, wenn keine
+ *  (oder eine unbekannte) genannt ist. Preis UND Auftrag laufen hierdurch,
+ *  damit niemand 480p bezahlt und 720p bestellt bekommt. */
+export function filmQuality(modelId, quality) {
+  const m = videoModel(modelId);
+  const q = m.qualities[quality] ? quality : m.preferred;
+  return { id: q, ...m.qualities[q] };
 }
 
 /* Der komplette fal-Auftrag für einen Film, als reine Funktion — damit die
@@ -185,12 +201,12 @@ export function videoModel(id) {
  *
  * `duration` wird hier je Modell geklemmt. Der Server ruft DIESE Funktion —
  * der Client kann lügen, die Tabelle nicht. */
-export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds }) {
+export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds, quality }) {
   const m = videoModel(modelId);
   const body = {
     prompt,
     duration: clampSeconds(m.id, seconds),
-    resolution: m.resolution,
+    resolution: filmQuality(m.id, quality).resolution,
   };
 
   /* Referenzmodelle nehmen ein ARRAY, Ein-Bild-Modelle ein FELD (image_url) —
@@ -221,10 +237,108 @@ export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds 
 
 /** What a film costs: the animation, plus a keyframe — unless the film
  *  animates an image the dream already has, which costs nothing new. */
-export function priceForFilm(modelId, seconds, { ownKeyframe = false } = {}) {
-  const m = videoModel(modelId);
+export function priceForFilm(modelId, seconds, { ownKeyframe = false, quality } = {}) {
   const secs = clampSeconds(modelId, seconds);
-  return secs * m.creditsPerSecond + (ownKeyframe ? 0 : PRICES.keyframe);
+  return secs * filmQuality(modelId, quality).creditsPerSecond + (ownKeyframe ? 0 : PRICES.keyframe);
+}
+
+/* Wie viele Schnitte eine Filmlänge bei DIESEM Modell trägt — die Zahl, an
+ * der der Schnitt (cut.js) entscheidet, wie viele Szenen es in den Film
+ * schaffen.
+ *
+ * Zwei Felder je Modell statt einer Tabelle mit Sonderfällen:
+ *   shotEvery — Sekunden, die ein Shot mindestens für sich braucht
+ *   maxShots  — was das Modell noch sauber durchhält
+ *
+ * Beide sind belegt, nicht geschätzt (Recherche 03.09.2026):
+ *   Seedance 2.5 versteht ganzzahlige Zeitstempel und will eine lückenlose
+ *     Timeline; das offizielle Beispiel sind 9 Shots auf 30 Sekunden.
+ *     ByteDance warnt in der eigenen Doku vor zu viel Plot je Intervall —
+ *     „excessive cuts or omit parts of the plot". Ergibt 5s→1, 15s→3, 30s→7.
+ *   MiniMax H3 schneidet nur, wenn ein Schnitt NEUE INFORMATION bringt;
+ *     ändert sich nur Abstand oder Winkel, ist es eine Kamerafahrt. 2–3
+ *     Shots je Clip. Ergibt 5s→1, 10s→2, 15s→3.
+ *
+ * ⚠ Ein Shot ist nie unter 3 Sekunden lesbar (cut.js, MIN_SHOT_SECONDS) —
+ * `shotEvery` liegt deshalb bei beiden darüber, nicht darunter. */
+/* ── Das Tempo (Antons Ansage 03.09.2026) ────────────────────────────────
+ * „Ich finde, dass die einzelnen Shots doch schon zu lang sind … dass die
+ * jeweiligen Cuts maximal zwei Sekunden dauern. Somit könnten wir sieben
+ * Shots reinbringen. Ich will eher so ein schnelles Ding haben." Und als
+ * Gegenstück: „eine zweite Version, sodass überhaupt keine Cuts verwendet
+ * werden, sondern alles ineinander morpht."
+ *
+ * Drei Tempi, ein Schalter:
+ *   calm  — die geprüfte Vorgabe: ≥3 s je Shot, Budget aus der Modelltabelle
+ *   fast  — 2 s je Shot, viele Szenen; das „schnelle Ding"
+ *   flow  — GAR KEIN Schnitt: eine Einstellung, in der sich alles ineinander
+ *           verwandelt. Die Szenen bleiben alle, sie werden nur nicht
+ *           geschnitten, sondern übergeblendet
+ *
+ * ⚠ `fast` steht ausdrücklich GEGEN die Herstellerempfehlung: ByteDance
+ * nennt für Seedance 2.5 mindestens drei Sekunden je Shot und warnt vor
+ * „excessive cuts or omit parts of the plot"; H3 schneidet von sich aus nur
+ * bei neuer Information. Zwei Sekunden je Block können also zu Brei führen.
+ * Das ist bekannt und Antons Entscheidung — er hat den ruhigen Schnitt
+ * gesehen und will das schnellere Ding. `minShot` ist der Regler, an dem
+ * sich das zurückdrehen lässt, wenn das Ergebnis es zeigt.
+ *
+ * `maxShots` ist bei `fast` bewusst nicht am Modelllimit orientiert,
+ * sondern an der Dauer: sieben Shots auf fünfzehn Sekunden sind genau das,
+ * was Anton beschrieben hat. */
+export const PACES = {
+  calm: { id: "calm", minShot: 3, cuts: true },
+  fast: { id: "fast", minShot: 2, shotEvery: 2, maxShots: 10, cuts: true },
+  flow: { id: "flow", minShot: 0, cuts: false },
+};
+export const PACE_IDS = Object.keys(PACES);
+export const DEFAULT_PACE = "calm";
+
+export function filmPace(pace) {
+  return PACES[pace] || PACES[DEFAULT_PACE];
+}
+
+/** Wie viele SCHNITTE eine Filmlänge trägt — bei diesem Modell und Tempo.
+ *  `flow` liefert immer 1: eine Einstellung, kein Schnitt. */
+export function shotBudget(modelId, seconds, pace) {
+  const m = videoModel(modelId);
+  const p = filmPace(pace);
+  const secs = clampSeconds(m.id, seconds);
+  if (!p.cuts) return 1;
+  const je = p.shotEvery || m.shotEvery || 5;
+  const max = p.maxShots || m.maxShots || 3;
+  return Math.max(1, Math.min(Math.floor(secs / je), max));
+}
+
+/** Wie viele SZENEN in den Film kommen. Bei geschnittenen Tempi dasselbe
+ *  wie die Schnittzahl — jede Szene ist ein Shot.
+ *
+ *  ⚠ Bei `flow` NICHT: Dort gibt es einen einzigen Shot, aber mehrere
+ *  Szenen darin, die ineinander übergehen. Wer hier `shotBudget` benutzte,
+ *  bekäme eine einzige Szene und damit genau nicht das, was Anton meint —
+ *  „dass die ganze Story von einem Ding ins andere morpht und somit in 15
+ *  Sekunden alles drin ist". Eine Station braucht rund zweieinhalb Sekunden,
+ *  um als Bild anzukommen und sich dann zu verwandeln. */
+export function beatBudget(modelId, seconds, pace) {
+  const p = filmPace(pace);
+  if (p.cuts) return shotBudget(modelId, seconds, pace);
+  /* ⚠ Beim Fluss ALLE Szenen (Antons Befund 03.09., zweite Runde): Die
+     erste Fassung rechnete floor(Sekunden / 2,5) und nahm bei 15 Sekunden
+     sechs von acht — und das Storyboard darunter war das Einzige, was
+     diese stille Auswahl sichtbar machte. Ein Preset, das „alles in einem
+     Fluss" verspricht, darf nicht aussortieren. Wird die Zeit je Station
+     knapp, sagt es der Wizard (flowStations); er wählt nicht heimlich. */
+  return Number.POSITIVE_INFINITY;
+}
+
+/** Wie viele Sekunden je Station der Fluss hat, wenn alle Szenen hinein
+ *  sollen — die Zahl, mit der der Wizard vor zu viel Tempo warnt. Unter
+ *  etwa anderthalb Sekunden ist eine Station keine mehr, sondern nur noch
+ *  Bewegung. */
+export const FLOW_MIN_STATION = 1.5;
+export function flowStationSeconds(modelId, seconds, stations) {
+  const n = Math.max(1, Number(stations) || 1);
+  return clampSeconds(modelId, seconds) / n;
 }
 
 /** Keep a length inside what the model actually accepts — fal rejects the

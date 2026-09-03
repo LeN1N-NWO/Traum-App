@@ -3,205 +3,176 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-08-26 (22:57) — `session/2026-08-25-anton-2` (PR #29),
-aufgesetzt auf `9ad7e00`. **442 Tests grün**, fünf Skriptprüfungen grün,
-Build sauber. Bezahlte Läufe in dieser Sitzung: **keine.**
-JS-Bündel **462 KB (gzip 154)** — die fünf eingefrorenen Sprachen laden
-seit dem 26.08. nach.
+**Stand:** 2026-09-04 (00:06) — `session/2026-08-31-anton` (PR #32,
+Entwurf), aufgesetzt auf `3da34aa`. **505 Tests grün**, Sprachdateien in
+Form (en+de gepflegt, 92 Schlüssel in den fünf eingefrorenen Sprachen
+offen). Bezahlte Läufe in dieser Sitzung: drei Filme, rund $3.
 
 ## Wo wir stehen
 
-**Die Bildkette ist fertig und bezahlt bewiesen** (Raster als Hauptweg,
-$0,113 je Vier-Bilder-Traum).
+**Dream Rushes ist ein Videoprodukt.** Antons Entscheidung vom 31.08.:
+Bilder werden nicht mehr verkauft, nur noch Film. Zwei Modelle (MiniMax H3
+bis 15 s, Seedance 2.5 bis 30 s), je zwei Qualitäten, drei Tempi, neun
+Stil-Presets als Video-Kacheln. Der Film steht im Journal oben; mehrere
+Fassungen je Traum, „Nochmal, anders".
 
-**Die Oberfläche hat zwei Sichtprüfungs-Runden hinter sich.** Der
-Schlaf-Tab ist neu (Zeilen-Übersicht, Mischpult, Podest-Karten,
-Strich-Icons für alle zwanzig Traumsymbole), und seit heute Abend tragen
-**alle Seiten denselben Verlauf**: warm links, kühl rechts, langsam
-atmend, aus einem Bauteil (`HeroGlow.jsx`).
+**Der Regisseur schneidet nach Gewicht.** Die Analyse zerlegt einen Traum
+in so viele Szenen, wie er Ereignisse hat, benennt Typ, Mindestdauer und
+den Signatur-Beat; `src/lib/cut.js` wählt, verteilt die Zeit ungleich und
+schreibt den Schnittplan in das Format des Modells. An fünf fremden
+Traumprotokollen geprüft, mit drei bezahlten Filmen bestätigt.
 
-**Der Preisentscheid ist vorgerechnet, aber nicht getroffen** — siehe
-Nächste Schritte 1. Das ist die einzige Entscheidung, die eine
-Veröffentlichung noch blockiert.
+**Was der Film heute noch nicht kann:** in der Zeit bleiben. Analyse und
+Regie denken minutenlang — siehe Baustelle 1.
 
 ## Nächste Schritte
 
-1. **⚠ PREISENTSCHEID — die einzige offene Entscheidung vor dem Launch.**
-   Vorlage fertig: `docs/plans/2026-08-26-preisentscheid.md`.
-   Empfehlung: Preise unverändert · **Credits verfallen nicht mehr**
-   (`refillAllowance` in `credits.js:123` addiert statt zu setzen) ·
-   Paket heißt „ohne Abo" statt „verfällt nie" (`packNote`, dazu die
-   Zeile in `en.js:811`) · **viertes Paket $29,99/150**, damit ein
-   Director-Film in EINEM Kauf erreichbar ist.
-   ⚠ `plans.js` und `credits.js` sind unberührt. Es fehlt ein Ja.
-2. **⚠ Den Policy-Weg im Echtbetrieb prüfen** — gebaut, einzeln geprüft,
-   nie ausgelöst. Der Umschreiber muss ENTIDENTIFIZIEREN, nicht tarnen
-   (Recht §8d).
-3. **Die Reflection-Sprache beweisen** — gebaut am 25.08., ungeprüft. Ein
-   kostenloser Klick auf einem deutschen Traum genügt.
-4. **`data/traeume` gegen den Vorschau-Browser absichern** — viermal in
-   einer Sitzung überschrieben (siehe Fallen). Der Rückschreibpfad im
-   Entwicklungsmodus sollte nur noch ergänzen, nie überschreiben.
-5. **Server härten** (Analyse 26.08., alle in `server.js`): 14× `fetch`
-   ohne Timeout · `spawnSync` bei `/api/film-outro` (1617/1661)
-   blockiert den GANZEN Server · fal-Fehler als „pending" verschluckt
-   (1494; `job.createdAt` existiert, wird nie gelesen) ·
-   `content-length`-Prüfung umgehbar, kein `maxRequestBodySize`.
-6. **Die zwei anderen Maskottchen** (Paar aus Ruhe- und Tipp-Clip).
-7. **Dreier-Streifen** (`PREVIEW_COUNT = 3`, `pricing.js`) — umstellen
-   oder streichen.
-8. **Klang-Presets:** 28 CC0-Kandidaten unter `media/klang-kandidaten/`.
+1. **⚠⚠ Die Uhren** (`api.js` TIMEOUTS, `server.js` directFilm/analyzeDream):
+   `/api/generate` soll im Film-Modus SOFORT eine Auftragsnummer liefern
+   und die Regie im Hintergrund schreiben — das schließt vermutlich die
+   Ursache der verwaisten Filme. Für die Analyse: schnelleres Modell oder
+   Denkbudget begrenzen; 2–4 Minuten sind kein Wartebildschirm mehr.
+2. **⚠ PREISENTSCHEID** — jetzt mit einer Variablen weniger, siehe
+   `docs/plans/2026-08-26-preisentscheid.md` und
+   `2026-08-31-nur-noch-film.md` §3: Willkommensgeschenk (4 Cr kauft
+   keinen Film; der billigste kostet 11), Paketgrößen, `dreamsFor()` in
+   Filmen, Zweiteiler als Produkt ja/nein. **Braucht Antons Ja.**
+3. **Nur-noch-Film Phase 3** (`2026-08-31-nur-noch-film.md` §5): Modus
+   „Bilder" aus dem Wizard, Standbild aus dem Film (ffmpeg, erstes Frame),
+   Charakterbögen sichtbar und beim Anlegen gerendert. Erst DANN den toten
+   Bildcode entfernen.
+4. **Echte Preset-Clips:** neun Clips, je einer im Stil gerendert, fünf
+   Sekunden, 270 px, stumm, nach `src/assets`; in `presets.js` wird `clip`
+   ein Import. Bis dahin Attrappen (Antons Filme, gerätegebunden).
+5. **Gesichter-Kopien beim schnellen Schnitt:** Der Regie-Brief muss
+   sagen, dass Nebenfiguren Fremde sind, die keiner Referenz gleichen
+   (`director.js`, ACTIVE REFERENCES).
+6. **Regie-Prompt unter dem Limit halten** — bei sieben Shots kappt
+   `server.js:~885` am Ende (Ton, Schluss). Kontinuitäts-Wiederholung je
+   Shot kürzen oder das Budget im Brief härter fassen.
+7. **Server härten** (unverändert seit 26.08.): 14× `fetch` ohne Timeout ·
+   `spawnSync` bei `/api/film-outro` blockiert den ganzen Server ·
+   fal-Fehler als „pending" verschluckt (`server.js` jobStatus).
+8. **Name für Dreamflow** bestätigen (`en.js`/`de.js`
+   `wizard.step5.presets`) · Policy-Weg im Echtbetrieb · Reflection-
+   Sprache · zwei weitere Maskottchen · Klang-Presets.
 
 ## Bekannte Baustellen
 
-- **⚠ Policy-Weg ungetestet im Echtbetrieb.** Vier bezahlte Läufe mit
-  geschützten Namen gingen alle durch; Inhaltsfilter sind nicht
-  deterministisch. Der Umschreiber sitzt auf der Kippe („Freddy Krüger" →
-  „Mann mit verbranntem Gesicht, braunem Hut, Klingenhandschuh").
-- **Server-Härtung** — siehe Nächste Schritte 5.
-- **Frontend-Analyse-Funde, bewusst liegen gelassen:** ein Context für
-  alles (33 Konsumenten; ein Toast rendert den ganzen Baum, zweimal) ·
-  Journal ohne Virtualisierung (`restyle()` schreibt bei jedem Scroll 3
-  Styles je Karte) · ~16 ungenutzte lib-Exports (im Bündel kostenlos) ·
-  vier fast identische Backup-Routen.
-- **Antons Gesicht in den Bildern nicht überprüfbar** — es fehlt ein
-  Traum mit frontaler Szene.
-- **`data/traeume/` UND `media/besetzung/` müssen vor Veröffentlichung
-  raus** — Ordner, vier Endpunkte in `server.js`, beide Ladepfade in
-  `AppState.jsx`, alles an `import.meta.env.DEV`.
-- **Kein Zahlungsanbieter** (Dummy-Film in `Paywall.jsx`).
-- **Antons Berechtigungsliste** (`.claude/settings.local.json`): fast
-  jeder Befehl fragt nach. ⚠ Nicht selbst erweitern.
+- **Analyse und Regie sind langsam** — Baustelle 1. 96 % der erzeugten
+  Token sind Denk-Token; das war vor dem Umbau genauso (121 s gegen 184 s
+  am selben Traum), fiel nur nie auf, weil niemand einen langen Traum
+  eingegeben hatte.
+- **Verwaiste Filme** — dreimal gesehen (31.08. zweimal, 03.09. beinahe).
+  Netz: `mergeShared` füllt Filme nach, `/api/job` holt bei Anfrage.
+  Strukturfix ist Baustelle 1.
+- **`data/traeume/2026-09-03-e_mtlxb972tea3m5.json` liegt uncommittet** —
+  DreamBank-Traum unter CC BY-NC-SA, darf nicht ins Repository. Löschen
+  oder liegen lassen, nie committen.
+- **Bildcode ist noch da** (Raster, Schnitt, `imageJobs`, Storyboard-
+  Nachfüllen, Paywall-Bilderkachel) — bewusst, bis Phase 3 durch ist.
+- **Policy-Weg ungetestet im Echtbetrieb** · **kein Zahlungsanbieter** ·
+  **`data/traeume` und `media/besetzung` müssen vor Veröffentlichung raus**
+  · **Antons Berechtigungsliste nicht selbst erweitern.**
 
 ## Fallen, die man nur einmal sieht
 
-### Die drei stummen Fehlertypen dieser Woche
+### Regie und Schnitt (neu, 03.09.)
 
-- **⚠⚠ Ein Fehler, der Geld kostet, meldet sich NIE von selbst.** Vier
-  bezahlte Läufe am 25.08., vier stumme Geldfehler, kein roter Test.
-- **⚠⚠ Ein verirrtes Zeichen in einer String-Verkettung ist
-  Prompt-Sabotage, die kein Test sieht.** `"… " + +` machte den
-  Folgesatz zu NaN — das Modell las »NaN« im Systemprompt, in jeder
-  Sprachsitzung (`server.js`, behoben 26.08.).
-- **⚠⚠ Ein Anker, der ins Leere zeigt, meldet sich genauso wenig**
-  (Maskottchen-Tipp, 35 % daneben — nur Nachmessen fand es).
+- **⚠⚠ Ein Test am eigenen Traum findet die eigenen Fehler nicht.** Fünf
+  fremde Protokolle fanden fünf Fehler in einer Stunde. Vor jedem
+  Regie-Umbau: `/regisseur-schnitt` an fremdem Material.
+- **⚠⚠ Vier von fünf Träumen hören einfach auf.** Ein letzter Beat ist
+  nur dann eine Auflösung, wenn er Ort oder Figuren mit dem Höhepunkt
+  teilt. `cut.js` entzieht einem abbrechenden Schluss den Vorrang, auch
+  wenn die Analyse ihn „climax" nennt.
+- **⚠ Die Empfehlung rechnet über den KERN, nie über alle Szenen** —
+  sonst rät sie jedem „Zweiteiler".
+- **⚠ Bei fünf Sekunden ist ein Film ein Bild:** der Signatur-Beat,
+  sonst nichts. Ohne ihn bricht die Auswahl.
+- **⚠ `beatBudget` ≠ `shotBudget`:** Der Fluss hat EINEN Shot, aber
+  ALLE Szenen darin — und darum kein Storyboard: nichts zu wählen. Wird
+  die Zeit je Station knapp, warnt der Satz; die App sortiert nie still.
+- **⚠ `list()` in `server.js` ist für Personen und Orte gebaut** (120
+  Zeichen, acht Einträge) — nicht für Szenen.
+- **⚠ Die Prompt-Kappung war stumm** — jetzt warnt sie. 7000 bei H3 heißt
+  gekappt, nicht „passt genau".
+- **⚠ Der Regie-Brief nennt das Budget JE SHOT**, nicht nur insgesamt —
+  „insgesamt kürzer" wirkt beim dritten von sieben Blöcken nicht mehr.
+- **⚠ Kurze Blöcke + Referenz = alle Gesichter werden die Referenz.**
+- **⚠ `filmsOf()` stellt die alte Form voran** — sonst verschwindet der
+  erste Film beim zweiten.
 
 ### Gestaltung
 
-- **⚠⚠ Ein WERT kann keinen VERGLEICH ausdrücken.** Die goldene Kennzahl
-  im Luzid-Guide ist an derselben Stelle zweimal gescheitert: als
-  Prozentzahl (22.08.) und als Verhältnis (26.08.). Ohne Bezugsgröße ist
-  beides keine Aussage — und „fast doppelt so oft" war für Faktor 1,64
-  schlicht falsch. Die Zahlen gehören in den Satz, wo ihre Einheit
-  danebensteht.
-- **⚠ Wer ein Gestaltungsfeld mit einer NICHT-Aussage füllen muss, damit
-  eine Reihe vollständig aussieht, hat ein falsches Feld.** Die dritte
-  Hebelkarte hatte keine Messung — also stand dort „die Grundlage".
-- **⚠ In der CSS-Hintergrundliste liegt der ZUERST genannte Verlauf
-  OBEN.** Eine Ausblendung, die dahinter steht, kann nichts auffangen —
-  daher die harte Kante quer über den Schlaf-Seiten. Masken sind der
-  sichere Weg: Sie nehmen Deckkraft weg, statt Farbe darüberzumalen.
-- **⚠ Verläufe NIE über `background-position` animieren** — das rastert
-  60×/s neu. `transform` läuft auf der GPU (`heroGlow.css`).
-- **⚠ Eine Zeile, die es nur auf EINEM Reiter gibt, schiebt alles unter
-  sich weg.** Deshalb steht der Paket-Hinweis UNTER der Tarifliste
-  (0 px Sprung, nachgemessen).
+- **⚠ Ein Wert kann keinen Vergleich ausdrücken** (Luzid-Guide, zweimal).
+- **⚠ Der ZUERST genannte CSS-Verlauf liegt OBEN**; Masken statt Overlays.
+  Verläufe nie über `background-position` animieren.
 - **⚠ In einer Flex-SPALTE bekommt jedes Element seine eigene Zeile.**
-  „bis zu" musste deshalb INS Zahl-Element, nicht davor.
-- **⚠ `aspect-ratio` auf gestreckten Grid-Kindern** rechnet die Breite
-  aus der Zeilenhöhe zurück — die Kacheln laufen aus dem Bild.
-- **⚠ JSX-Text ist kein JavaScript-String:** `‹` steht wörtlich auf
-  dem Bildschirm.
-- **⚠ Ein Klick auf den AKTIVEN Tab wechselt die Route nicht** —
-  `location.key` ist das Signal zum Zurücksetzen.
-- **⚠ HeroGlow: Die Seite setzt nur `--hero-h`/`--glow-a`/`--glow-b`,
-  nie einen eigenen Verlauf.**
-- **⚠ `mix-blend-mode: screen` braucht KEIN `isolation: isolate`.**
+- **⚠ `aspect-ratio` auf gestreckten Grid-Kindern** läuft aus dem Bild.
+- **⚠ Ein 9:16-Wartefeld ohne Bild sind 700 px Leere** — `j-video-wait-leer`.
+- **⚠ Neun Kacheln in drei Spalten gehen nur mit zwei doppelt breiten auf.**
+- **⚠ `mix-blend-mode: screen` braucht KEIN `isolation: isolate`** — und
+  kein Panel dahinter (MascotLoader).
+- **⚠ JSX-Text ist kein JavaScript-String** · **HeroGlow: nur Variablen
+  setzen, nie eigener Verlauf.**
 
 ### Werkzeuge und Umgebung
 
-- **⚠⚠ Der Vorschau-Browser überschreibt `data/traeume`.** VIERMAL in
-  einer einzigen Sitzung (26.08.). Sein leerer localStorage läuft über
-  den Backup-Abgleich in die geteilten Traumdateien zurück — Referenzen
-  verschwinden, `style` wird verstellt. Nach jedem Test: `git status` auf
-  `data/`, im Zweifel `git checkout -- data/traeume/`.
-- **⚠ `node` gibt es auf diesem Rechner nicht, nur `bun`.** Statt
-  `npm test`: `bun test`, danach die fünf `.mjs`-Prüfungen einzeln.
-- **⚠ Die Browser-Vorschau kann WebGL nicht prüfen** (Tab gilt als
-  verborgen, kein `requestAnimationFrame`). `AlphaVideo.jsx` braucht ein
-  echtes Fenster.
-- **⚠ Stützuntergrenze: Chrome 119 / Safari 17.4** — doppelt
-  festgeschrieben (Mischpult-Fader in `sleep.css`, es2022/top-level await
-  in `vite.config.js`).
-- **⚠ `setLanguage()` ist async** — erst awaiten, dann Re-Render.
-- **⚠ Speichern ist GESAMMELT** (250 ms, `pagehide` flusht).
-- **⚠ Uploads werden auf 1600 px verkleinert** — ein 4-MB-Foto sprengte
-  als base64 allein die localStorage-Quota.
-- **Sitzungen laufen ohne Worktree:** Die Vorschau startet den Dev-Server
-  aus dem HAUPT-Checkout.
-- **⚠ Zwei Browser, zwei localStorage** — und der Vorschau-Browser
-  schreibt zurück.
+- **⚠⚠ Der Vorschau-Browser überschreibt `data/traeume`** — nach jedem
+  Test `git status` auf `data/`; Commits mit `:!data/traeume`.
+- **⚠ Der Vorschau-Browser klickt daneben** (Koordinaten trafen den
+  Credits-Knopf); `element.click()` per JavaScript ist zuverlässig. Nach
+  HMR an `AppState.jsx` steht die Seite leer — voller Reload.
+- **⚠ Neun laufende Videos in voller Größe blockieren den Renderer** —
+  Vorschau-Kopien: 270 px, 6 s, stumm, < 200 KB. Und der Vorschau-Tab
+  meldet `visibilityState: hidden`: Chrome friert Videos dann ein, obwohl
+  `play()` nichts wirft — stillstehende Clips sind dort kein App-Fehler.
+- **⚠ `resolveMedia()` lässt nur `[a-z0-9]{1,20}` durch** — kein
+  Unterordner, kein Bindestrich, nicht aufweichen.
+- **⚠ Renderskripte kosten Geld, brauchen `--ja`** · `node` gibt es nicht,
+  nur `bun` · Stützuntergrenze Chrome 119 / Safari 17.4 · `setLanguage()`
+  ist async · Speichern gesammelt (250 ms) · Uploads auf 1600 px.
+- **Sitzungen laufen ohne Worktree** — der Dev-Server läuft aus dem
+  Hauptcheckout.
 
 ### Geld, Modelle, Prompts
 
 - **⚠ Der erste bezahlte Lauf gehört mit EINEM Traum gemacht.**
-- **⚠ Vorgaben ABLEITEN, nie hinschreiben** (`imageCount`,
-  `CREDIT_COST_USD`).
-- **⚠ `slots` ≠ `tiles`** — Verschnitt geht zu UNSEREN Lasten.
-- **⚠ Ein Schnitt, der beim ERSTEN Fehlschlag aufgibt** → drei Anläufe,
-  Zähler am Auftrag UND im Effekt-Fingerabdruck.
-- **⚠ Der BOGEN ist das Nadelöhr der Ähnlichkeit** (`sheets.js`). Zwei
-  Fotos je Person, Reihenfolge ist Vertrag; festgeschrieben über den TAG.
-- **⚠ „Schreibe in der Sprache des Traums" ist RATEN** — die App weiß die
-  Sprache, also mitgeben (`reflect` hat jetzt `lang`).
-- **⚠ Unsere eigenen Stiltexte bestellen den Malerei-Look**
-  (`styles.js:95`).
-- **⚠ iOS gibt für die Benachrichtigungs-Erlaubnis genau EINEN Versuch** —
-  deshalb trennt `reminders.js` Wunsch von Erlaubnis. Seit 26.08. in
-  Betrieb (Realitätscheck im Luzid-Guide).
-- **Ein falscher Feldname wirft bei fal keinen Fehler** — er liefert still
-  das Falsche. fal-Vorgabe bei GPT ist „high".
-- **2×2 ist die Rastereinheit** · **Weltanker als LETZTES Bild** · **eine
-  leere Nacht ist KEIN TRAUM** (`blankNight.js:27`).
-- **⚠ Es gibt kein Alpha-Videoformat für iOS UND Android** — die
-  Alpha-Packung ist der Weg. **ProRes spielt in KEINEM Browser.**
-  **After Effects: „Straight (Unmatted)"**, sonst dunkler Saum.
-- `update()` nimmt auch Funktionen: `(prev) => patch`.
-- `PORT` gehört der Oberfläche, `API_PORT` der API.
-- Erzeugte Medien NIE im Worktree · **die Renderskripte kosten echtes
-  Geld** und brauchen `--ja` · fal.ai und DeepSeek sind aus der Cloud
-  gesperrt (403).
+- **⚠ H3 schneidet nur bei neuer Information; Seedance will ≥ 3 s je
+  Shot** — das schnelle Tempo (2 s) steht bewusst dagegen (`PACES.fast`).
+- **⚠ Vorgaben ABLEITEN, nie hinschreiben** · **`slots` ≠ `tiles`** ·
+  **der Bogen ist das Nadelöhr der Ähnlichkeit** · **iOS gibt für die
+  Benachrichtigungs-Erlaubnis EINEN Versuch** · **ein falscher Feldname
+  wirft bei fal keinen Fehler** · **kein Alpha-Videoformat für iOS UND
+  Android** — Alpha-Packung.
+- fal.ai und DeepSeek sind aus der Cloud gesperrt (403).
 
 ## Werkzeuge
 
-- `bun scripts/raster-rechnung.mjs [n]` · `bun scripts/gpt-preise.mjs [n]`
-- `bun scripts/bogen-vergleich.mjs <gesicht> [koerper] --ja`
-- `bun scripts/raster-rendern.mjs <traum.json> <bogen> <modell> … --ja`
-- `bun scripts/alpha-packen.mjs <quelle> [ziel.mp4] [--premultipliziert]`
-- `bun scripts/preis-durchreichen.mjs` — Einkauf, Marge, Rabattleiter.
-- **StartMenu → „Mascot test bench"** — Tipp-Einspieler, Größenregler.
+- `/regisseur-schnitt` — Traumtext + Sekunden + Modell → Beat-Tabelle,
+  Empfehlung, Shot-Liste. Rendert nichts.
+- `bun scripts/preis-durchreichen.mjs` — alle vier Modell/Qualitäts-Stufen.
+- `bun scripts/raster-rechnung.mjs` · `gpt-preise.mjs` · `bogen-vergleich.mjs
+  --ja` · `raster-rendern.mjs --ja` · `alpha-packen.mjs`.
+- **StartMenu → „Mascot test bench"** · **„Style tiles mockup"** (drei
+  Layouts für Preset-Kacheln, B ist gebaut).
 
 ## Was die App ist
 
-React-SPA: Traum aufschreiben oder sprechen → KI macht Bildstrecke,
-optional Film, Reflection und Muster. Vier Tabs (Home · Journal · ⊕ ·
-Sleep · Profil), Wizard über der Tab-Leiste.
+React-SPA: Traum aufschreiben oder sprechen → KI schneidet ihn zum Film
+(H3 oder Seedance 2.5), dazu Reflection und Muster. Vier Tabs (Home ·
+Journal · ⊕ · Sleep · Profil), Wizard über der Tab-Leiste.
 **Stack:** Bun + Vite + React 18 (HashRouter); `server.js` als
 schlüsselhaltender Proxy (fal.ai, DeepSeek, Gemini). Zustand in
 `localStorage` (`dreamrushes_v1`). Sieben Sprachen, gepflegt **en+de**.
-
-**Wer sie gebaut hat** (ausgezählt 26.08., 313 Commits): Anton 278,
-Hanni 35 — Hanni an nur zwei Tagen (6./7.08.), von ihr stehen heute noch
-1.177 Zeilen, im Kern die Namenshervorhebung im Traumfeld
-(`TagTextarea.jsx`, `TagCard.jsx`) und der Sicherheitsdurchgang.
 
 ## Geld
 
 Preisliste (`plans.js`, UNVERÄNDERT bis zum Entscheid): Woche $4,99/**25** ·
 Monat ★ $9,99/**100** · Jahr $79,99/**100** p.M. · Pakete $2,99/**13** ·
-$7,99/**36** · $14,99/**70**.
-Bildzahlen: **4 oder 8**. Willkommensgeschenk: **4 Credits**.
-Einkauf: **$0,0283 je Bild** · $0,113 je Vier-Bilder-Traum.
-Film: 3/9/17 Credits je Sekunde.
-⚠ Heute verfällt `allowance` zum Periodenende, `credits` bleiben — genau
-das steht zur Entscheidung (Nächste Schritte 1).
+$7,99/**36** · $14,99/**70**. Willkommensgeschenk: **4 Credits** — kauft
+keinen Film mehr.
+Film je Sekunde: H3 **2/3** Cr (480P/768P) · Seedance 2.5 **8/17** Cr
+(480p/720p), plus 1 Cr Keyframe. Einkauf $0,05/0,06 bzw. $0,2205/0,473
+je Sekunde. Ein 15-s-H3-Film in 768P: 46 Credits, ≈ $0,93 Einkauf.

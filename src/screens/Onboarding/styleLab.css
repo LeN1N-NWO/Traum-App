@@ -1,0 +1,103 @@
+/* Die Stil-Werkbank — drei Mockups, siehe StyleLab.jsx. Dev-Werkzeug. */
+.sl { min-height: 100dvh; background: var(--bg); color: var(--text); padding-bottom: var(--s-6); }
+.sl-head { padding: var(--s-4) var(--s-4) 0; }
+.sl-exit {
+  background: none; border: none; color: var(--muted); font-family: var(--sans);
+  font-size: var(--t-small); padding: 0; cursor: pointer;
+}
+.sl-title { font-family: var(--serif); font-weight: 400; font-size: 24px; margin: var(--s-3) 0 var(--s-3); }
+.sl-tabs { display: flex; gap: var(--s-2); }
+.sl-tab {
+  flex: 1; padding: 9px 6px; border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--muted); font-family: var(--sans); font-size: var(--t-small);
+}
+.sl-tab-on { border-color: var(--accent-soft); color: var(--text); background: var(--glass); }
+.sl-note { color: var(--faint); font-size: var(--t-small); margin: var(--s-2) 0 0; min-height: 1.4em; }
+.sl-body { padding: var(--s-4) var(--s-4) 0; }
+.sl-sub { font-size: var(--t-body); font-weight: 600; margin: 0 0 var(--s-3); }
+.sl-foot { padding: var(--s-5) var(--s-4) 0; color: var(--faint); font-size: var(--t-micro); line-height: 1.5; }
+
+.sl-clip { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.sl-check {
+  position: absolute; inset-block-start: 10px; inset-inline-end: 10px;
+  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--bg); font-size: 15px; font-weight: 700;
+}
+.sl-check-sm { width: 22px; height: 22px; font-size: 12px; inset-block-start: 7px; inset-inline-end: 7px; }
+
+/* ── A · Reel ── */
+.sl-reel {
+  display: flex; gap: var(--s-3); overflow-x: auto; scroll-snap-type: x mandatory;
+  margin: 0 calc(-1 * var(--s-4)); padding: 4px var(--s-4) var(--s-2);
+  scrollbar-width: none;
+}
+.sl-reel::-webkit-scrollbar { display: none; }
+.sl-card {
+  position: relative; flex: 0 0 min(72vw, 300px); aspect-ratio: 9 / 13;
+  scroll-snap-align: center; border-radius: var(--radius-lg); overflow: hidden;
+  padding: 0; cursor: pointer; text-align: start;
+  background: var(--panel); border: 2px solid var(--panel-line); color: var(--text);
+  font-family: var(--sans);
+}
+.sl-card.sl-on { border-color: var(--accent-soft); box-shadow: 0 0 0 4px rgb(242 167 101 / .18); }
+.sl-card-scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgb(var(--bg-rgb) / .92) 0%, rgb(var(--bg-rgb) / .35) 40%, transparent 65%);
+}
+.sl-card-meta { position: absolute; inset-inline: var(--s-4); inset-block-end: var(--s-4); display: flex; flex-direction: column; gap: 3px; }
+.sl-card-emoji { font-size: 22px; }
+.sl-card-name { font-family: var(--serif); font-size: 26px; line-height: 1.1; }
+.sl-card-sub { color: var(--muted); font-size: var(--t-small); }
+
+/* ── B · Raster ── */
+.sl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }
+.sl-cell {
+  position: relative; aspect-ratio: 1; border-radius: var(--radius); overflow: hidden;
+  padding: 0; cursor: pointer; background: var(--panel);
+  border: 2px solid var(--panel-line); color: var(--text); font-family: var(--sans);
+}
+.sl-cell-wide { grid-column: span 2; aspect-ratio: 2.06; }
+/* Neun Kacheln, eine davon doppelt breit, ergeben zehn Plätze in drei
+   Spalten — die letzte stünde allein. Mit der letzten ebenfalls doppelt
+   breit sind es elf: drei volle Reihen und eine breite zum Schluss. */
+.sl-cell:last-child { grid-column: span 2; aspect-ratio: 2.06; }
+.sl-cell.sl-on { border-color: var(--accent-soft); }
+.sl-cell-scrim { position: absolute; inset: 0; background: linear-gradient(to top, rgb(var(--bg-rgb) / .85) 0%, transparent 55%); }
+.sl-cell-name {
+  position: absolute; inset-inline-start: 9px; inset-block-end: 8px;
+  font-size: var(--t-small); font-weight: 600; text-shadow: 0 1px 3px rgb(0 0 0 / .6);
+}
+.sl-cell-wide .sl-cell-name { font-family: var(--serif); font-size: 20px; font-weight: 400; }
+
+/* ── C · Bühne ── */
+.sl-stage-hero {
+  position: relative; aspect-ratio: 9 / 11; max-height: 52vh;
+  border-radius: var(--radius-lg); overflow: hidden;
+  background: var(--panel); border: 1px solid var(--panel-line);
+}
+.sl-stage-scrim { position: absolute; inset: 0; background: linear-gradient(to top, rgb(var(--bg-rgb) / .9) 0%, transparent 45%); }
+.sl-stage-meta { position: absolute; inset-inline: var(--s-4); inset-block-end: var(--s-4); display: flex; flex-direction: column; gap: 4px; }
+.sl-stage-name { font-family: var(--serif); font-size: 30px; line-height: 1.1; }
+.sl-stage-sub { color: var(--muted); font-size: var(--t-small); }
+.sl-strip {
+  display: flex; gap: var(--s-2); overflow-x: auto; margin: var(--s-3) calc(-1 * var(--s-4)) 0;
+  padding: 4px var(--s-4); scrollbar-width: none;
+}
+.sl-strip::-webkit-scrollbar { display: none; }
+.sl-thumb {
+  position: relative; flex: 0 0 72px; aspect-ratio: 9 / 12; border-radius: 12px; overflow: hidden;
+  padding: 0; cursor: pointer; background: var(--panel);
+  border: 2px solid var(--panel-line); color: var(--text); font-family: var(--sans);
+}
+.sl-thumb.sl-on { border-color: var(--accent-soft); }
+.sl-thumb-name {
+  position: absolute; inset-inline: 0; inset-block-end: 0; padding: 14px 4px 5px;
+  font-size: 10px; font-weight: 600; text-align: center; line-height: 1.1;
+  background: linear-gradient(to top, rgb(var(--bg-rgb) / .9), transparent);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-clip { display: none; }
+}

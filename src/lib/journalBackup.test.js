@@ -147,3 +147,19 @@ test("ohne Bilder in der Sicherung passiert nichts", () => {
                      media: { type: "image", urls: [], source: "none" } }];
   expect(mergeShared(journal, [{ id: "e1", createdAt: "2026-08-24T10:00:00.000Z" }])).toBe(null);
 });
+
+/* 31.08.2026: Ein fertiger Film lag 50 Minuten bei fal und kam in der App
+   nie an — der Abgleich füllte nur Bilder nach. Bei der teuersten Ware der
+   App darf das nicht die Lücke sein. */
+test("mergeShared fuellt einen fehlenden Film nach", () => {
+  const journal = [{ id: "e1", createdAt: "2026-08-31T16:00:00Z", media: { type: "image", urls: ["/media/a.png"] } }];
+  const gesichert = [{ id: "e1", medien: { bilder: ["/media/a.png"], film: ["/media/f.mp4"] } }];
+  const raus = mergeShared(journal, gesichert);
+  expect(raus[0].film.urls).toEqual(["/media/f.mp4"]);
+});
+
+test("mergeShared ueberschreibt einen vorhandenen Film NIE", () => {
+  const journal = [{ id: "e1", createdAt: "2026-08-31T16:00:00Z", film: { urls: ["/media/eigen.mp4"] } }];
+  const gesichert = [{ id: "e1", medien: { bilder: [], film: ["/media/fremd.mp4"] } }];
+  expect(mergeShared(journal, gesichert)).toBe(null);
+});

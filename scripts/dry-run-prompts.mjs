@@ -221,7 +221,7 @@ async function main() {
   for (const m of VIDEO_MODELS) {
     const label = { standard: "Lebendig", director: "Regie", premium: "Kino" }[m.id];
     const seconds = clampSeconds(m.id, m.preset);
-    const withRefs = m.id === "director";
+    const withRefs = !!m.maxRefs;   // seit 20.08. alle Stufen, seit 31.08. ohne Seedance 2.0
     const kept = withRefs ? filmReferences(cast) : [];
     const refsForBrief = withRefs
       ? [KEYFRAME_REF, ...kept.map((c) => ({ tag: c.tag, kind: c.category, desc: c.desc }))]

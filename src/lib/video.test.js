@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { VIDEO_MODELS, videoModel, clampSeconds, priceForFilm, videoSubmitBody } from "./video.js";
+import { VIDEO_MODELS, QUALITIES, videoModel, filmQuality, clampSeconds, priceForFilm, videoSubmitBody } from "./video.js";
 import { CREDIT_COST_USD } from "./plans.js";
 
 /* Diese Datei existiert wegen eines echten Fehlers (Befund 2 des
@@ -40,7 +40,9 @@ test("each model orders at its own address with its own resolution", () => {
 
   const prem = videoSubmitBody("premium", { imageUrl: "img", prompt: "p", seconds: 30 });
   expect(prem.slug).toBe("bytedance/seedance-2.5/reference-to-video");
-  expect(prem.body.resolution).toBe("720p");
+  /* Seit 31.08. ist 480p die VORGABE bei Seedance — die scharfe Stufe
+     kostet dort mehr als das Doppelte (video.js, `preferred`). */
+  expect(prem.body.resolution).toBe("480p");
   expect(prem.body.duration).toBe(30);
 });
 
@@ -58,7 +60,7 @@ test("every tier orders from a different model", () => {
    unbekanntes Feld kann einen bezahlten Auftrag kosten. */
 test("prompt expansion is switched off exactly where it exists", () => {
   expect(videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6 }).body.enable_prompt_expansion).toBe(false);
-  expect("enable_prompt_expansion" in videoSubmitBody("director", { imageUrl: "x", prompt: "p", seconds: 6 }).body).toBe(false);
+  expect("enable_prompt_expansion" in videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 6 }).body).toBe(false);
   expect("enable_prompt_expansion" in videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 6 }).body).toBe(false);
 });
 
@@ -76,12 +78,12 @@ test("generate_audio goes only where the parameter exists", () => {
    (image_urls still ignoriert, gesichtslose Renders tagelang bezahlt) ist
    die Fehlerklasse, die diese Zeilen fernhalten. */
 test("seedance orders with image_urls, keyframe first, capped at 9", () => {
-  const got = videoSubmitBody("director", {
+  const got = videoSubmitBody("premium", {
     imageUrl: "keyframe",
     imageUrls: ["keyframe", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j"],
     prompt: "p", seconds: 10,
   });
-  expect(got.slug).toBe("bytedance/seedance-2.0/fast/reference-to-video");
+  expect(got.slug).toBe("bytedance/seedance-2.5/reference-to-video");
   expect("image_url" in got.body).toBe(false);
   expect("reference_image_urls" in got.body).toBe(false);
   expect(got.body.image_urls.length).toBe(9);
@@ -104,7 +106,7 @@ test("h3 orders with reference_image_urls, keyframe first, capped at its 5 free 
 });
 
 test("without an explicit list, reference models still get their keyframe as an array", () => {
-  expect(videoSubmitBody("director", { imageUrl: "kf", prompt: "p", seconds: 8 }).body.image_urls).toEqual(["kf"]);
+  expect(videoSubmitBody("premium", { imageUrl: "kf", prompt: "p", seconds: 8 }).body.image_urls).toEqual(["kf"]);
   expect(videoSubmitBody("standard", { imageUrl: "kf", prompt: "p", seconds: 8 }).body.reference_image_urls).toEqual(["kf"]);
 });
 
@@ -112,15 +114,20 @@ test("without an explicit list, reference models still get their keyframe as an 
    Schema 9:16 bestätigt, wird es gesetzt (H3 stünde sonst auf "adaptive").
    Für Seedance 2.0 ist der Parameter ungemessen und wird darum NICHT
    gesendet (T4 lief ohne ihn sauber 9:16). */
+/* Bis 31.08. prüfte diese Zeile auch, dass Seedance 2.0 KEIN aspect_ratio
+   bekommt (sein Schema war der eine ungemessene Punkt). Das Modell ist
+   raus; die beiden verbliebenen haben 9:16 bestätigt und bekommen es. */
 test("aspect_ratio goes only where the schema confirmed it", () => {
   expect(videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6 }).body.aspect_ratio).toBe("9:16");
   expect(videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 10 }).body.aspect_ratio).toBe("9:16");
-  expect("aspect_ratio" in videoSubmitBody("director", { imageUrl: "x", prompt: "p", seconds: 6 }).body).toBe(false);
 });
 
-test("director clamps to its own 5-15 range", () => {
-  expect(clampSeconds("director", 30)).toBe(15);
-  expect(clampSeconds("director", 1)).toBe(5);
+/* Seedance 2.5 läuft in Fünferschritten (5–30) — eine Wunschlänge von
+   12 s wird auf 10 gerundet, nicht auf 15, und nicht wörtlich bestellt. */
+test("premium rounds to its own five-second steps", () => {
+  expect(clampSeconds("premium", 12)).toBe(10);
+  expect(clampSeconds("premium", 13)).toBe(15);
+  expect(clampSeconds("premium", 40)).toBe(30);
 });
 
 /* promptMax: das Zeichenlimit des Modells für den Prompt — recherchiert
@@ -170,4 +177,54 @@ test("kein Filmmodell ist je Credit teurer als ein Bild", () => {
     const proCredit = m.usdPerSecond / m.creditsPerSecond;
     expect(`${m.id}: ${(proCredit <= CREDIT_COST_USD).toString()}`).toBe(`${m.id}: true`);
   }
+});
+
+
+/* ── Der Qualitätsschalter (31.08.2026) ────────────────────────────────── */
+
+/* Vier Zahlen, vier Herleitungen: Jede creditsPerSecond muss aus dem
+   Einkauf aufgerundet sein — sonst verkauft die Tabelle irgendwann eine
+   Sekunde unter Einkaufspreis, ohne dass es jemand sieht. */
+test("credits per second are derived from the purchase price, for every quality", () => {
+  for (const m of VIDEO_MODELS) {
+    for (const q of QUALITIES) {
+      const k = filmQuality(m.id, q);
+      expect(k.creditsPerSecond).toBe(Math.ceil(k.usdPerSecond / CREDIT_COST_USD));
+      expect(k.creditsPerSecond * CREDIT_COST_USD).toBeGreaterThanOrEqual(k.usdPerSecond);
+    }
+  }
+});
+
+/* Preis und Bestellung müssen an DERSELBEN Stufe hängen — 480p bezahlen
+   und 720p bestellt bekommen wäre der teuerste stille Fehler der Tabelle. */
+test("the quality switch moves resolution and price together", () => {
+  const sd = videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 15, quality: "sd" });
+  const hd = videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 15, quality: "hd" });
+  expect(sd.body.resolution).toBe("480p");
+  expect(hd.body.resolution).toBe("720p");
+  expect(priceForFilm("premium", 15, { ownKeyframe: true, quality: "sd" })).toBe(15 * 8);
+  expect(priceForFilm("premium", 15, { ownKeyframe: true, quality: "hd" })).toBe(15 * 17);
+  expect(videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6, quality: "sd" }).body.resolution).toBe("480P");
+});
+
+test("an unknown quality falls back to the model's preferred one, never to a crash", () => {
+  expect(filmQuality("premium", "4k").id).toBe("sd");
+  expect(filmQuality("standard", undefined).id).toBe("hd");
+  expect(videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6, quality: "nonsense" }).body.resolution).toBe("768P");
+});
+
+/* Die Modellebene ist aus `preferred` abgeleitet — wer die Vorgabe umstellt,
+   darf keine zweite Zahl vergessen. */
+test("model-level fields mirror the preferred quality", () => {
+  for (const m of VIDEO_MODELS) {
+    const k = filmQuality(m.id, m.preferred);
+    expect(m.resolution).toBe(k.resolution);
+    expect(m.usdPerSecond).toBe(k.usdPerSecond);
+    expect(m.creditsPerSecond).toBe(k.creditsPerSecond);
+  }
+});
+
+test("Seedance 2.0 is gone — Antons Entscheidung 31.08.", () => {
+  expect(VIDEO_MODELS.some((m) => m.slug.includes("seedance-2.0"))).toBe(false);
+  expect(VIDEO_MODELS.map((m) => m.id)).toEqual(["standard", "premium"]);
 });
