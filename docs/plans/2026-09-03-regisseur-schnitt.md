@@ -4,9 +4,14 @@
 je nachdem wie viele Sekunden der Kunde auswählt, alles reinpressen") und
 seine Ansage: „Da wir weg sind von den Bildern, haben wir kein Limit mehr
 mit diesen 5 Szenen. Das System muss entscheiden, wie viele es sind."
-**Status: RECHERCHE + SKILL fertig, App-Umbau NICHT begonnen.**
+**Status: RECHERCHE + SKILL fertig und an fremdem Material geprüft,
+App-Umbau NICHT begonnen.**
 Skill: `.claude/skills/regisseur-schnitt/SKILL.md` — als `/regisseur-schnitt`
 mit Traumtext, Sekunden und Modell aufrufbar, rendert nichts.
+Prüfbericht: `docs/plans/2026-09-03-regisseur-trockenlauf.md` — fünf echte
+Traumprotokolle aus der DreamBank, fünf gefundene Fehler, vier davon im Skill
+behoben. Wer den Umbau beginnt, liest ihn zuerst: Der Signatur-Beat und die
+Schluss-Regel stehen dort, nicht hier.
 
 ## 1. Der Befund
 
@@ -56,6 +61,8 @@ denen vier Bilder werden"). Ohne Bildprodukt hat sie keinen Grund mehr.
 |---|---|---|
 | `server.js` ANALYSIS_SYSTEM (1111, 1135, 1219–1221) | exactly 5, Auffüllen durch Dopplung | so viele wie Ereignisse, je Beat `hook` + `min_s` |
 | `src/lib/beats.js` SOURCE_BEATS=5, fiveOf/tenOf, SECONDS_PER_BEAT=3 | positionelle Auswahl | `selectBeats(beats, seconds, model)` nach Gewicht; Budget je Modell |
+| `src/lib/beats.js` — neu | — | `signatureBeat(beats)`: der eine Beat für Budget 1. Ohne ihn bricht die Auswahl bei 5 s, siehe Trockenlauf §4 |
+| `src/lib/video.js` maxRefs (5 / 9) | nur für den Upload geprüft | auch die Benennung im Brief deckeln: über der Grenze namenlose Statisten |
 | `src/lib/director.js` Brief (148–153) | „about Y seconds each" | Shot-Liste mit Zeitblöcken je Beat, Modellformat |
 | `src/lib/video.js` | — | `shotBudget(modelId, seconds)`, `timeFormat` (integers / ms) |
 | `Step5Style.jsx` Empfehlung (101–106, Nadel) | Modellschätzung `filmSeconds` | Satz aus `min_gesamt` + Knöpfe; Zweiteiler-Hinweis |
