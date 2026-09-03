@@ -52,7 +52,7 @@ import { beatsForSeconds } from "./src/lib/beats.js";
 import { HOOKS, MIN_SHOT_SECONDS } from "./src/lib/cut.js";
 // Die Filmbestellung je Modell — Slug, Klemme, Auflösung, Tonparameter —
 // kommt aus EINER Tabelle, die auch Preis und UI speist (video.test.js).
-import { videoSubmitBody, videoModel, clampSeconds, QUALITIES } from "./src/lib/video.js";
+import { videoSubmitBody, videoModel, clampSeconds, QUALITIES, PACE_IDS, DEFAULT_PACE, filmPace } from "./src/lib/video.js";
 /* Bildmodell: Endpunkte, Adressformat und Referenzbudget stehen seit dem
  * 23.08. in EINER Tabelle (src/lib/imageModel.js) — Seedream und Nano Banana
  * sprechen nicht dieselbe Sprache, und ein falscher Feldname wirft keinen
@@ -802,7 +802,7 @@ Output ONLY the finished prompt text. No preamble, no markdown, no quotes around
  * oder stilles Abschneiden des Endes). Jetzt bekommt der Regisseur sein
  * Budget im Brief GENANNT (er priorisiert dann selbst) und die Notbremse
  * kappt exakt am Limit des bestellten Modells. */
-async function directFilm({ dream, still, beats = [], shots = [], style, seconds, modelId, refs = [] }) {
+async function directFilm({ dream, still, beats = [], shots = [], style, seconds, modelId, refs = [], pace = DEFAULT_PACE }) {
   const key = process.env.DEEPSEEK_KEY;
   if (!key) throw new Error("NO_DEEPSEEK_KEY");
 
@@ -846,6 +846,11 @@ async function directFilm({ dream, still, beats = [], shots = [], style, seconds
     /* Wie das Modell Zeit liest: Seedance 2.5 in ganzzahligen Sekunden-
        spannen, H3 in Millisekunden-Schnittzeitpunkten (video.js). */
     timeFormat: m.timeFormat,
+    /* Das Tempo entscheidet, OB und WIE geschnitten wird: ruhig, schnell,
+       oder als eine einzige Verwandlung ohne Schnitt (Antons Ansage
+       03.09.2026). Der Brief liest dieselbe Liste je nach Tempo als
+       Schnittplan oder als Verwandlungskette. */
+    pace,
     style,
     refs,
     seconds: secs,
@@ -877,7 +882,18 @@ async function directFilm({ dream, still, beats = [], shots = [], style, seconds
   // dann die mechanische Prüfung — jedes @ImageN muss eine der übergebenen
   // Referenzen sein; ohne Referenzen ist JEDES @Image eine Anweisung ins
   // Leere. Verstoß → Rückfall, nie ein halluziniertes Bild.
-  const cleaned = sanitizePromptText(text).slice(0, m.promptMax);
+  const roh = sanitizePromptText(text);
+  const cleaned = roh.slice(0, m.promptMax);
+  /* ⚠ Die Kappung war bis zum 03.09.2026 STUMM — man sah nur eine
+     Zeichenzahl, die zufällig genau dem Limit entsprach. Sie schneidet am
+     Ende ab, und dort stehen die letzten Shots, der Ton und die Schlusszeile:
+     Bei sieben Zwei-Sekunden-Blöcken kann das den halben Film kosten, ohne
+     dass irgendwo ein Fehler auftaucht. Wenn das hier im Log steht, gehört
+     das Zeichenbudget im Brief nachgeschärft (buildDirectorBrief). */
+  if (roh.length > m.promptMax) {
+    console.warn(`[DreamRushes] ⚠ Regie-Prompt gekappt: ${roh.length} → ${m.promptMax} Zeichen (${m.id}). `
+      + `Das Ende fehlt — Shots, Ton oder Schlusszeile.`);
+  }
   if (!checkDirectedPrompt(cleaned, refs.length).ok) throw new Error("DEEPSEEK_FAILED");
   // Eine Zeile Sichtbarkeit für ein bezahltes Feature: lief der Regisseur,
   // und wie viel hat er geschrieben? (Der Prompt selbst wird nicht geloggt.)
@@ -2367,6 +2383,15 @@ Bun.serve({
            Timeline, die das Modell nicht auflösen kann — und bezahlt wäre
            sie trotzdem. Deshalb geklemmt, sortiert und lückenlos gemacht,
            nicht abgelehnt: Ein krummer Plan darf einen Film nicht kosten. */
+        /* Tempo und die Mindestlänge eines Blocks daraus — beides wird vom
+           Schnittplan unten gebraucht und vom Regisseur weiter unten.
+           Allowlist wie bei Modell und Qualität: Unbekanntes wird zur
+           Vorgabe, und die Vorgabe ist der geprüfte ruhige Schnitt. */
+        const pace = PACE_IDS.includes(body.pace) ? body.pace : DEFAULT_PACE;
+        const untergrenze = filmPace(pace).cuts
+          ? Math.max(1, filmPace(pace).minShot || MIN_SHOT_SECONDS)
+          : 0;
+
         const shots = (() => {
           const roh = (Array.isArray(body.shots) ? body.shots : []).slice(0, ANALYSIS_BEATS);
           const dauer = clampSeconds(
@@ -2388,7 +2413,13 @@ Bun.serve({
             ...s,
             from: i === 0 ? 0 : sauber[i - 1].to,
             to: i === sauber.length - 1 ? dauer : s.to,
-          })).filter((s) => s.to - s.from >= MIN_SHOT_SECONDS || sauber.length === 1);
+            /* ⚠ Die Untergrenze kommt vom TEMPO (03.09.2026). Stand hier
+               fest auf drei Sekunden, hätte der schnelle Schnitt mit seinen
+               Zwei-Sekunden-Blöcken JEDEN Block verloren — und der Server
+               hätte still auf den alten, gleichmäßigen Weg zurückgeschaltet,
+               ohne dass es jemand gemerkt hätte. Beim Fließen (ein Shot, das
+               Tempo hat keine Untergrenze) greift sie gar nicht. */
+          })).filter((s) => s.to - s.from >= untergrenze || sauber.length === 1);
         })();
 
         /* Seit dem 21.08.2026 gibt es nur noch EINE Antwort: { jobId }.
@@ -2436,7 +2467,7 @@ Bun.serve({
           try {
             motionPrompt = await directFilm({
               dream, still: prompt, beats, shots, style: styleAnchor,
-              seconds: body.seconds, modelId, refs: refsForBrief,
+              seconds: body.seconds, modelId, refs: refsForBrief, pace,
             });
           } catch (e) {
             console.error("[DreamRushes] film director skipped:", e.message);

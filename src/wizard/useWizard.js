@@ -84,6 +84,7 @@ const EMPTY = {
   format: "9:16",
   videoModel: "standard",
   quality: null,       // 480p/720p; null = die Vorgabe des Modells (video.js `preferred`)
+  pace: "calm",        // ruhig | schnell | ein Fluss (video.js PACES)
   seconds: 6,          // film length; see lib/video.js for each model's range
   urls: null,
   jobId: null,         // set while a film renders in fal's queue

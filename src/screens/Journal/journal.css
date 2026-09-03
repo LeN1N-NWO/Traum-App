@@ -775,3 +775,29 @@
 }
 .j-make-wait .wiz-spinner { width: 16px; height: 16px; border-width: 2px; flex: none; }
 .j-make-wait .j-make-title { color: var(--muted); }
+
+/* ── Die Fassungen eines Traums (Antons Ansage 03.09.2026) ────────────────
+   „Es kann sein, dass eine Person so lange weitermacht, bis er wirklich
+   passt." Unter dem Player eine Zeile mit den Versuchen — beschriftet mit
+   dem, was sie unterscheidet (Tempo, Länge), nicht mit einer Nummer allein.
+   Waagerecht scrollbar, damit auch der zehnte Versuch Platz hat, ohne dass
+   die Seite selbst seitwärts läuft. */
+.j-takes {
+  display: flex; gap: var(--s-2); margin-top: var(--s-2);
+  overflow-x: auto; scrollbar-width: none; padding-bottom: 2px;
+}
+.j-takes::-webkit-scrollbar { display: none; }
+.j-take {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 7px;
+  padding: 6px 12px; border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  color: var(--muted); font-family: var(--sans); font-size: var(--t-micro);
+}
+.j-take:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.j-take-on { border-color: var(--accent-soft); color: var(--text); }
+.j-take-n {
+  display: grid; place-items: center;
+  inline-size: 17px; block-size: 17px; border-radius: 50%;
+  background: var(--glass); font-variant-numeric: tabular-nums;
+}
+.j-take-on .j-take-n { background: var(--accent-soft); color: var(--bg); }

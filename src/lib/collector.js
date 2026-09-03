@@ -75,7 +75,25 @@ export async function collectTick(journal, ask) {
     if (e.jobId) {
       const r = await ask(e.jobId).catch(() => null);
       if (r?.status === "done" && r.urls?.length) {
-        next.push({ ...e, film: { urls: r.urls, source: "api" }, jobId: undefined });
+        /* ⚠ ANHÄNGEN, nicht überschreiben (03.09.2026). Antons Ansage:
+           „Es kann sein, dass eine Person so lange weitermacht, den Traum,
+           bis er wirklich passt." Jede Fassung hat Geld gekostet; welche
+           die beste ist, entscheidet der Mensch, nicht die zuletzt
+           eingetroffene. `film` wird weiter mitgeschrieben, damit ein
+           älterer Client (und jeder Leser, der die alte Form erwartet)
+           denselben Film findet — entryMedia.js kennt beide Formen. */
+        const fassung = {
+          url: r.urls[0],
+          at: new Date().toISOString(),
+          ...(e.filmPlan || {}),
+        };
+        next.push({
+          ...e,
+          films: [...(e.films || []), fassung],
+          film: { urls: r.urls, source: "api" },
+          jobId: undefined,
+          filmPlan: undefined,
+        });
         changed = true;
         messages.push(["filmArrived"]);
       } else if (r && (r.status === "failed" || r.status === "unknown")) {

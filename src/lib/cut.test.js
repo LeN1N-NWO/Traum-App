@@ -3,7 +3,7 @@ import {
   beatMeta, signatureIndex, minKern, minAlles, selectBeats, shotPlan,
   recommendation, beruehrt, MIN_SHOT_SECONDS, HOOKS,
 } from "./cut.js";
-import { shotBudget, videoModel } from "./video.js";
+import { shotBudget, beatBudget, filmPace, videoModel } from "./video.js";
 
 /* Der Zahntraum aus dem Trockenlauf (DreamBank van:101, Bericht vom
  * 03.09.2026). Er ist der Grund, warum es diese Datei gibt: Sechs seiner
@@ -255,6 +255,51 @@ describe("das Budget kommt vom Modell", () => {
         expect(shotBudget(id, s) * MIN_SHOT_SECONDS).toBeLessThanOrEqual(s);
       }
     }
+  });
+});
+
+/* ── Die drei Tempi (Antons Ansage 03.09.2026) ──────────────────────────
+   „Die einzelnen Shots sind zu lang … maximal zwei Sekunden, somit sieben
+   Shots" — und als Gegenstück ein Film ganz ohne Schnitt, in dem alles
+   ineinander übergeht. */
+describe("Tempo", () => {
+  test("fast packs seven shots into fifteen seconds, calm three", () => {
+    expect(shotBudget("standard", 15, "fast")).toBe(7);
+    expect(shotBudget("standard", 15, "calm")).toBe(3);
+  });
+
+  test("flow is one single shot, whatever the length", () => {
+    for (const s of [5, 10, 15]) expect(shotBudget("standard", s, "flow")).toBe(1);
+  });
+
+  /* ⚠ Der Unterschied, an dem das Fließen hängt: EIN Shot, aber mehrere
+     Szenen darin. Mit der Shot-Zahl als Szenenbudget bekäme dieses Tempo
+     genau eine Szene — also das Gegenteil von „die ganze Story in 15
+     Sekunden". */
+  test("flow still carries several scenes inside that one shot", () => {
+    expect(beatBudget("standard", 15, "flow")).toBe(6);
+    expect(beatBudget("standard", 15, "flow")).toBeGreaterThan(shotBudget("standard", 15, "flow"));
+  });
+
+  test("an unknown pace falls back to the tested one, never to the fastest", () => {
+    expect(filmPace("trailer").id).toBe("calm");
+    expect(filmPace(undefined).id).toBe("calm");
+    expect(shotBudget("standard", 15, "quatsch")).toBe(shotBudget("standard", 15, "calm"));
+  });
+
+  test("a fast plan really does hold two-second blocks", () => {
+    const sel = selectBeats(ZAHNTRAUM, shotBudget("standard", 15, "fast"));
+    const plan = shotPlan(ZAHNTRAUM, sel, 15, filmPace("fast").minShot);
+    expect(plan.length).toBe(7);
+    for (const s of plan) expect(s.to - s.from).toBeGreaterThanOrEqual(2);
+    expect(plan[plan.length - 1].to).toBe(15);
+  });
+
+  test("even at speed the climax keeps the longest block", () => {
+    const sel = selectBeats(ZAHNTRAUM, 7);
+    const plan = shotPlan(ZAHNTRAUM, sel, 15, 2);
+    const climax = plan.find((s) => s.hook === "climax");
+    expect(climax.to - climax.from).toBe(Math.max(...plan.map((s) => s.to - s.from)));
   });
 });
 

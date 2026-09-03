@@ -255,16 +255,18 @@ export function selectBeats(analysis, budget) {
  *
  * @returns {{index:number,text:string,hook:string,from:number,to:number}[]}
  */
-export function shotPlan(analysis, indices, seconds) {
+export function shotPlan(analysis, indices, seconds, minShot = MIN_SHOT_SECONDS) {
   const meta = beatMeta(analysis);
   const idx = (indices || []).filter((i) => meta[i]);
   const total = Math.max(1, Math.round(Number(seconds) || 0));
   if (idx.length === 0) return [];
 
-  /* Passt die Untergrenze nicht mehr in die Dauer, wird gleichmäßig
-     geteilt statt eine Regel zu erzwingen, die die Zeit nicht hergibt.
-     Kann nur auftreten, wenn ein Aufrufer das Budget übergeht. */
-  const min = idx.length * MIN_SHOT_SECONDS <= total ? MIN_SHOT_SECONDS : total / idx.length;
+  /* Die Untergrenze kommt vom TEMPO, nicht mehr als Konstante (03.09.2026):
+     3 Sekunden beim ruhigen Schnitt, 2 beim schnellen. Passt sie nicht mehr
+     in die Dauer, wird gleichmäßig geteilt, statt eine Regel zu erzwingen,
+     die die Zeit nicht hergibt. */
+  const untergrenze = Math.max(1, Number(minShot) || MIN_SHOT_SECONDS);
+  const min = idx.length * untergrenze <= total ? untergrenze : total / idx.length;
   const gewicht = idx.map((i) => ZEIT[meta[i].hook] ?? ZEIT.build);
 
   /* Die volle Dauer nach Gewicht verteilen — NICHT nur den Rest über der

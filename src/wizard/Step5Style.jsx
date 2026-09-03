@@ -12,7 +12,7 @@ import { genId } from "../lib/storage.js";
 import { bumpStreak, refreshStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
 import { priceForImages, PRICES, IMAGE_COUNTS, PREVIEW_COUNT } from "../lib/pricing.js";
-import { VIDEO_MODELS, QUALITIES, priceForFilm, clampSeconds, videoModel, filmQuality, shotBudget } from "../lib/video.js";
+import { VIDEO_MODELS, QUALITIES, PACE_IDS, DEFAULT_PACE, priceForFilm, clampSeconds, videoModel, filmQuality, shotBudget, beatBudget, filmPace } from "../lib/video.js";
 import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
@@ -88,11 +88,16 @@ export default function Step5Style({ w, patch }) {
      die Automatik, wie seit dem 21.08. */
   const arc = w.analysis?.beats || [];
   const filmSecs = clampSeconds(w.videoModel, w.seconds);
-  const sceneCap = Math.max(1, Math.min(shotBudget(w.videoModel, filmSecs), arc.length));
+  /* ⚠ `beatBudget`, nicht `shotBudget`: Beim Fließen gibt es EINEN Shot,
+     aber mehrere Szenen darin, die ineinander übergehen. Mit der Shot-Zahl
+     bekäme dieses Tempo genau eine Szene — also das Gegenteil von „die ganze
+     Story in 15 Sekunden". */
+  const pace = w.pace || DEFAULT_PACE;
+  const sceneCap = Math.max(1, Math.min(beatBudget(w.videoModel, filmSecs, pace), arc.length));
   const autoPick = selectBeats(w.analysis, sceneCap);
   const order = trimSelection(pick ?? autoPick, sceneCap);
   const maxSecs = videoModel(w.videoModel).max;
-  const rat = recommendation(w.analysis, sceneCap, filmSecs, maxSecs, shotBudget(w.videoModel, maxSecs));
+  const rat = recommendation(w.analysis, sceneCap, filmSecs, maxSecs, beatBudget(w.videoModel, maxSecs, pace));
 
   function toggleScene(i) {
     // Funktional statt über den Render-Abschluss: zwei Tipps im selben
@@ -379,7 +384,9 @@ export default function Step5Style({ w, patch }) {
              Gerechnet wird er HIER, weil hier die Analyse mit ihrer
              Gewichtung liegt und hier der Mensch im Storyboard mitgeredet
              hat; der Server prüft ihn nur nach. */
-          shots: arc.length ? shotPlan(w.analysis, order, filmSecs) : undefined,
+          shots: arc.length ? shotPlan(w.analysis, order, filmSecs, filmPace(pace).minShot) : undefined,
+          /* Das Tempo entscheidet, ob geschnitten wird und wie kurz. */
+          pace,
           // The chosen image, if any — the server then animates it directly
           // instead of rendering a fresh keyframe first.
           keyframe: w.keyframe || undefined,
@@ -394,7 +401,22 @@ export default function Step5Style({ w, patch }) {
         update((prev) => ({
           ...(spend(prev, price) || {}),
           journal: (prev.journal || []).map((e) => (e.id === entryId
-            ? { ...e, jobId, pending: undefined } : e)),
+            ? {
+                ...e, jobId, pending: undefined,
+                /* Womit diese Fassung bestellt wurde — der Collector
+                   schreibt es an den fertigen Film, damit im Journal
+                   steht, WELCHE Fassung man da sieht. Ohne das wären
+                   mehrere Versuche desselben Traums nicht auseinander-
+                   zuhalten. */
+                filmPlan: {
+                  model: w.videoModel,
+                  quality: filmQuality(w.videoModel, w.quality).id,
+                  seconds: filmSecs,
+                  pace,
+                  scenes: order.length,
+                },
+              }
+            : e)),
         }));
         patch({ jobId, urls: [], step: 6 });
         running.current = false;
@@ -791,6 +813,26 @@ export default function Step5Style({ w, patch }) {
                 </button>
               );
             })}
+          </div>
+
+          {/* Das Tempo (Antons Ansage 03.09.2026): wie schnell geschnitten
+              wird — oder ob überhaupt. Steht unter der Qualität, weil es
+              wie sie den Charakter des Films bestimmt und nicht den Preis:
+              Ein schneller Schnitt kostet keinen Credit mehr als ein
+              ruhiger, er packt nur mehr hinein. */}
+          <h2 className="wiz-sub">{t.wizard.step5.paceLabel}</h2>
+          <div className="wiz-formats" role="group" aria-label={t.wizard.step5.paceLabel}>
+            {PACE_IDS.map((p) => (
+              <button
+                key={p}
+                className={"wiz-format" + (pace === p ? " wiz-format-on" : "")}
+                onClick={() => patch({ pace: p })}
+                aria-pressed={pace === p}
+              >
+                <span>{t.wizard.step5.paceNames[p]}</span>
+                <small>{t.wizard.step5.paceHints[p]}</small>
+              </button>
+            ))}
           </div>
 
           <h2 className="wiz-sub">{t.wizard.step5.lengthLabel}</h2>

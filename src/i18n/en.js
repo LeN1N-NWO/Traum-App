@@ -216,6 +216,9 @@ export default {
       : `${n} images didn't come through — the credits are back in your balance.`),
     makeLede: "No pictures yet. Want some?",
     makeImages: "Make the images",
+    makeFilmAgain: "Another take",
+    takesLabel: "Takes of this dream",
+    takeUnknown: "Take",
     makeFilmLede: "Now bring it to life.",
     filmPending: "Making your video — hang tight",
     imagesPending: "Making your images — hang tight",
@@ -649,6 +652,13 @@ export default {
       qualityNames: { sd: "Standard", hd: "Sharp" },
       aboutModel: "About this model",
       aboutStyle: "About this style",
+      paceLabel: "Pace",
+      paceNames: { calm: "Calm", fast: "Fast", flow: "One flow" },
+      paceHints: {
+        calm: "Few cuts, room to breathe",
+        fast: "Two-second cuts, more scenes",
+        flow: "No cuts — each scene turns into the next",
+      },
       lengthLabel: "How long",
       ideal: "ideal",
       /* Was diese Länge vom Traum trägt — als Satz, nicht als Nadel

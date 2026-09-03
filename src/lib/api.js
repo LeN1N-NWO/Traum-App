@@ -211,10 +211,10 @@ export async function transcribe(audio) {
                 daraufhin das Rastermaß aus appGrid().
      fallback — Plan B: das Ausweichmodell. Bewusst ein JA/NEIN und kein
                 Modellname; die Auflösung steht im Server (modelFor). */
-export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, styleId, beats, shots, sequenceRef, grid, fallback }) {
+export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback }) {
   const data = await post(
     "/api/generate",
-    { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, styleId, beats, shots, sequenceRef, grid, fallback },
+    { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback },
     // Nur der Film wartet auf den Regisseur — Bilder gehen sofort in die
     // Warteschlange und brauchen die lange Uhr nicht.
     mode === "film" ? { timeout: TIMEOUTS.film } : undefined,

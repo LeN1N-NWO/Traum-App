@@ -81,7 +81,7 @@ SCENE CONTEXT — one or two sentences: what happens in this shot only.
 ACTIVE REFERENCES — one line per provided reference, addressed by its ${handle} handle exactly as written in the materials, built as: type + current state + the visible anchors that must match. Close every line with a statement that the subject matches its reference exactly. Describe nothing a reference line does not give you — no invented clothing, props or features. Leave out any reference that does not appear in this shot.
 LOCATION MAP — before placing anyone, fix the geography: where the camera stands and which way it faces, what occupies foreground, midground and background, where the landmarks sit, and which way the light comes from. Every distance in the next block refers to this map.
 FIRST FRAME AND BLOCKING — the first visible frame already contains every required subject in position, readable immediately. No empty establishing frame, no delayed entrance. Give each subject a screen position, a distance to a landmark in meters or by physical contact, and body facing and gaze direction as two separate statements.
-FORMAT — if a SHOT PLAN is given, follow it exactly: one time block per listed shot, cutting at the stated times, never more cuts than the plan has and never fewer. Restate positions, gaze lines and lighting direction after every cut. Without a shot plan, a single continuous take. Hard cuts only — no fades, dissolves or transition effects.
+FORMAT — if a SHOT PLAN is given, follow it exactly: one time block per listed shot, cutting at the stated times, never more cuts than the plan has and never fewer. Restate positions, gaze lines and lighting direction after every cut. Hard cuts only — no fades, dissolves or transition effects. If instead a TRANSFORMATION CHAIN is given, there are no cuts at all: write one unbroken take in which each state physically turns into the next, and say what becomes what. Without either, a single continuous take.
 OPTICS — choose ONE diagonal field of view in degrees (18 tight portrait, 29 portrait, 47 natural, 84 wide, 107 immersive wide) matching the content, and state the camera distance in meters. Express the lens ONLY as degrees — never millimeters, never lens brands. Then describe what that choice looks like on screen: for a long lens, how far the camera physically stands, how the background compresses and dissolves behind the subject; for a wide lens, how near the camera stands, how the foreground looms and how far the environment stays visible. Hold that lens character for the whole shot; wider or closer framing comes from moving the camera, never from changing the lens.
 CAMERA — height, side and movement written as physical operator behaviour.
 ACTION TIMING — numbered time blocks covering the full duration (0:00–…), each with subject position, one clear action, camera behaviour and one physical event.
@@ -137,7 +137,7 @@ function msLabel(sec) {
  * @param {number} [p.maxRefs]    wie viele Bildreferenzen das Modell nimmt —
  *   stand bis 20.08. als „9" fest im Text und hätte H3 (5) angelogen
  */
-export function buildDirectorBrief({ dream, still, beats = [], shots = [], refs = [], seconds, audio, style, promptBudget, refStyle = "at", maxRefs = 9, timeFormat = "s" }) {
+export function buildDirectorBrief({ dream, still, beats = [], shots = [], refs = [], seconds, audio, style, promptBudget, refStyle = "at", maxRefs = 9, timeFormat = "s", pace = "calm" }) {
   const h1 = refHandle(refStyle, 1);
   const parts = [
     `THE DREAM (in its original language; the film must depict it, your prompt is English):\n"${dream}"`,
@@ -155,7 +155,30 @@ export function buildDirectorBrief({ dream, still, beats = [], shots = [], refs 
      Millisekunden. Dasselbe Format im Brief wie in der erwarteten Antwort —
      sonst rechnet das Modell um und verliert dabei die Grenzen. */
   const plan = (shots || []).filter((s) => s && typeof s.text === "string" && s.text.trim());
-  if (plan.length) {
+  if (plan.length && pace === "flow") {
+    /* ── Ein Fluss statt Schnitte (Antons Ansage 03.09.2026) ─────────────
+       „Dass überhaupt gar keine Cuts verwendet werden, sondern dass alles
+       ineinander morpht, sprich dass die ganze Story von einem Ding ins
+       andere morpht und somit in 15 Sekunden alles drin ist."
+
+       Dieselbe Liste wie beim Schnitt, aber als VERWANDLUNGSKETTE gelesen:
+       Die Zeitmarken sind keine Schnittpunkte, sondern die Momente, in
+       denen ein Bild ins nächste übergeht. Der Traum liefert die Vorlage
+       dafür gleich mit — ein Aufzug, der zum Flugzeug wird, ist genau das,
+       was hier durchgehend passieren soll. */
+    parts.push(`THE TRANSFORMATION CHAIN — ONE UNBROKEN SHOT. There are NO cuts in this film:\n`
+      + plan.map((s, i) => (i === 0
+        ? `Opens on: ${s.text}`
+        : `By ${s.from}s it has become: ${s.text}`)).join("\n")
+      + `\nThe camera never cuts and never stops moving; it flows through all ${seconds} seconds in a single take. `
+      + `Each state does not replace the next — it TURNS INTO it: walls become other walls, a floor becomes a sky, `
+      + `an object reshapes into the next object while the camera keeps travelling. Name what physically transforms into what, `
+      + `and where in the frame the change begins. `
+      + `Carry one element through every transformation as the thread the eye holds on to — a subject, a colour, a direction of travel. `
+      + `No fades, no dissolves, no black frames, no cross-cutting: the change happens IN the world, not between two pictures of it. `
+      + `Dream logic is the licence here — a transformation needs to be visually continuous, not physically possible.`);
+  } else if (plan.length) {
+    const schnell = pace === "fast";
     const zeile = (s, i) => (timeFormat === "ms"
       ? (i === 0
         ? `[Shot 1] ${s.text}`
@@ -166,6 +189,15 @@ export function buildDirectorBrief({ dream, still, beats = [], shots = [], refs 
       + `\nOne block per shot, ${plan.length === 1 ? "no cuts" : `${plan.length - 1} hard cut${plan.length > 2 ? "s" : ""}`}, `
       + `covering all ${seconds} seconds with no gap. Keep every block's length as given: the long blocks carry the moments that matter. `
       + `One block, one event — if a block seems to hold two, stage the second as camera movement inside it, not as an extra cut. `
+      /* ⚠ Beim schnellen Schnitt muss die Kürze im Text stehen, nicht nur
+         in den Zahlen: Ein Modell, dem man zwei Sekunden gibt und eine
+         ausgebaute Handlung beschreibt, dehnt die Handlung und ignoriert
+         die Zahl. Ein Block dieser Länge trägt EINE Bewegung. */
+      + (schnell
+        ? `This is a FAST cut: each block is about two seconds. Write each one as a single held image with one clear movement — `
+        + `an action already in progress, no build-up and no settling. Enter late, leave early. `
+        + `Keep camera moves short and simple, one per block; no complex choreography, nothing that needs time to read. `
+        : "")
       + (timeFormat === "ms"
         ? `Write cut points as timestamps in milliseconds (00:04.000), the way this model reads them.`
         : `Write each block as an integer second span in square brackets, the way this model reads them.`));
@@ -200,7 +232,19 @@ export function buildDirectorBrief({ dream, still, beats = [], shots = [], refs 
     /* Das Budget stammt aus video.js (promptMax je Modell). Mit etwas Luft
        genannt, damit „knapp drüber" nicht schon in die Servernotbremse
        läuft — Dichte soll aus Priorisierung kommen, nicht aus Kürzung. */
-    (promptBudget ? ` LENGTH BUDGET: the finished prompt must stay under ${Math.floor(promptBudget * 0.9)} characters — if space runs short, cut style prose first, never the timing blocks or the ending.` : ""));
+    (promptBudget
+      ? ` LENGTH BUDGET: the finished prompt must stay under ${Math.floor(promptBudget * 0.9)} characters — if space runs short, cut style prose first, never the timing blocks or the ending.`
+        /* ⚠ Bei vielen Shots reicht eine Gesamtzahl nicht (gemessen
+           03.09.2026): Der Regisseur schrieb für sieben Zwei-Sekunden-Blöcke
+           über 7000 Zeichen, die Notbremse kappte — und sie kappt am ENDE,
+           also bei den letzten Shots, beim Ton und beim Schluss. Wer ein
+           Budget einhalten soll, muss wissen, wie viel davon auf einen Shot
+           entfällt; „insgesamt kürzer" ist keine Anweisung, die sich beim
+           dritten von sieben Blöcken noch auswirkt. */
+        + (shots.length > 3
+          ? ` With ${shots.length} shots that is roughly ${Math.floor((promptBudget * 0.55) / shots.length)} characters per shot in ACTION TIMING — write them tight and telegraphic, and put the shared setting in LOCATION MAP once instead of repeating it per shot.`
+          : "")
+      : ""));
   /* Der Stil-Anker beschreibt den BILD-Stil und nennt dort teils Brennweiten
      in Millimetern — die Optik entscheidet hier aber der Regisseur nach
      Inhalt. Deshalb ausdrücklich auf Farbe, Licht und Textur beschränkt,

@@ -6,7 +6,7 @@ import { useAppState } from "../../state/AppState.jsx";
 import { refine, reflect, mediaUrl, generate } from "../../lib/api.js";
 import { reflectionContext } from "../../lib/atlas.js";
 import { imageIndexForBeat, evenIndices } from "../../lib/beats.js";
-import { filmOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
+import { filmOf, filmsOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
 import { spend } from "../../lib/credits.js";
 import { PRICES, priceForImages, IMAGE_COUNTS } from "../../lib/pricing.js";
 import { fallbackModel } from "../../lib/imageModel.js";
@@ -42,6 +42,10 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
   const [proposalRenders, setProposalRenders] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [refinePick, setRefinePick] = useState(false);   // the "how should I rewrite it?" sheet
+  /* Welche Fassung des Films gerade läuft. `null` heißt „die neueste" —
+     wer nachbessert, will sein Neuestes sehen, und ein fester Index würde
+     beim Eintreffen der nächsten Fassung auf die falsche zeigen. */
+  const [fassung, setFassung] = useState(null);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -301,7 +305,13 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
   }
 
   const d = new Date(entry.createdAt);
-  const film = filmOf(entry);
+  /* Alle Fassungen dieses Traums, älteste zuerst — und die, die gerade
+     läuft. Antons Ansage 03.09.2026: „Alle diese Träume können in diese
+     Kachel reinkommen … es kann sein, dass eine Person so lange
+     weitermacht, bis er wirklich passt." */
+  const filme = filmsOf(entry);
+  const gezeigt = fassung != null && filme[fassung] ? fassung : filme.length - 1;
+  const film = filme.length ? filme[gezeigt].url : filmOf(entry);
   const images = imagesOf(entry);
   // The film leads if there is one — it is the finished thing the pictures
   // were a step towards, so it takes the hero and the top of the page.
@@ -393,17 +403,46 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
             Solange er rendert, steht hier dasselbe Feld mit dem Standbild
             darin, statt eines Platzhalters woanders: Der Platz, an dem der
             Film erscheinen wird, ist von Anfang an derselbe. */}
-        {(film || (entry.jobId && !film)) && (
+        {(film || entry.jobId) && (
           <div className="j-videofeld">
             {film ? (
-              <video
-                className="j-video"
-                src={mediaUrl(film)}
-                controls
-                playsInline
-                preload="metadata"
-                poster={images[0] ? mediaUrl(images[0]) : undefined}
-              />
+              <>
+                <video
+                  /* `key` auf die Adresse: Ohne ihn tauscht React nur das
+                     src-Attribut, und ein laufendes <video> übernimmt das
+                     nicht zuverlässig — beim Umschalten zwischen zwei
+                     Fassungen liefe die alte weiter. */
+                  key={film}
+                  className="j-video"
+                  src={mediaUrl(film)}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  poster={images[0] ? mediaUrl(images[0]) : undefined}
+                />
+                {/* Die Fassungen dieses Traums, sobald es mehr als eine
+                    gibt. Beschriftet mit dem, was sie unterscheidet —
+                    Tempo und Länge —, nicht mit einer nackten Nummer:
+                    „Fassung 2" sagt niemandem, was er gleich sieht. */}
+                {filme.length > 1 && (
+                  <div className="j-takes" role="group" aria-label={t.journal.takesLabel}>
+                    {filme.map((f, i) => (
+                      <button
+                        key={f.url}
+                        className={"j-take" + (i === gezeigt ? " j-take-on" : "")}
+                        onClick={() => setFassung(i)}
+                        aria-pressed={i === gezeigt}
+                      >
+                        <span className="j-take-n">{i + 1}</span>
+                        <span className="j-take-label">
+                          {f.pace ? t.wizard.step5.paceNames[f.pace] || f.pace : t.journal.takeUnknown}
+                          {f.seconds ? ` · ${f.seconds}s` : ""}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             ) : (
               <div
                 /* Ohne Standbild ein ruhigeres Feld: Ein 9:16-Rahmen ohne
@@ -515,8 +554,15 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
              Bilder und bekommt deshalb nur „Bilder machen" angeboten, also
              genau das, was er nie wollte. Mit dem Rückbau des Bildprodukts
              wird das der Normalfall, nicht die Ausnahme. */
-          const offerFilm = !entry.jobId && !film && !pendingImages
-            && (images.length > 0 || entry.mode === "film");
+          /* ⚠ Und ein vorhandener Film schliesst den nächsten NICHT aus
+             (Antons Ansage 03.09.2026): „Wenn bereits Träume da sind, kann
+             man noch so einen Button hinzufügen: nochmals generieren mit
+             Änderungen. Es kann sein, dass eine Person so lange weitermacht,
+             bis er wirklich passt." Der Knopf heisst dann anders und steht
+             still neben den anderen, statt als warmer Hauptknopf — der
+             erste Film ist ein Angebot, der zweite eine Entscheidung. */
+          const offerFilm = !entry.jobId && !pendingImages
+            && (images.length > 0 || entry.mode === "film" || !!film);
           /* ⚠ Was LÄUFT, bekommt einen Platz — und zwar DEN, auf den die Hand
              gerade gedrückt hat (Antons Befund 31.08.: „Dieser Kurzfilm-machen-
              Knopf sollte in dem Moment, wenn man den angeklickt hat, eine Art
@@ -532,7 +578,7 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
             <div className="j-make">
               {weg.message && <p className="j-make-warn">⚠ {t.errors[weg.message]}</p>}
               {offerImages && !weg.message && <p className="j-make-lede">{t.journal.makeLede}</p>}
-              {offerFilm && <p className="j-make-lede">{t.journal.makeFilmLede}</p>}
+              {offerFilm && !film && <p className="j-make-lede">{t.journal.makeFilmLede}</p>}
               <div className="j-acts">
                 {laeuft && (
                   <span className="j-make-btn j-make-wait" role="status" aria-live="polite">
@@ -581,10 +627,15 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
                   </button>
                 )}
                 {offerFilm && (
-                  <button className="j-make-btn" onClick={() => make("film")}>
+                  <button
+                    className={film ? "j-act" : "j-make-btn"}
+                    onClick={() => make("film")}
+                  >
                     <IconFilm />
-                    <span className="j-make-title">{t.journal.makeFilm}</span>
-                    <ChevronRight />
+                    <span className={film ? undefined : "j-make-title"}>
+                      {film ? t.journal.makeFilmAgain : t.journal.makeFilm}
+                    </span>
+                    {!film && <ChevronRight />}
                   </button>
                 )}
                 <button className="j-act" onClick={() => setRefinePick(true)} disabled={busy}>

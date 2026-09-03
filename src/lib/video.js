@@ -261,10 +261,69 @@ export function priceForFilm(modelId, seconds, { ownKeyframe = false, quality } 
  *
  * ⚠ Ein Shot ist nie unter 3 Sekunden lesbar (cut.js, MIN_SHOT_SECONDS) —
  * `shotEvery` liegt deshalb bei beiden darüber, nicht darunter. */
-export function shotBudget(modelId, seconds) {
+/* ── Das Tempo (Antons Ansage 03.09.2026) ────────────────────────────────
+ * „Ich finde, dass die einzelnen Shots doch schon zu lang sind … dass die
+ * jeweiligen Cuts maximal zwei Sekunden dauern. Somit könnten wir sieben
+ * Shots reinbringen. Ich will eher so ein schnelles Ding haben." Und als
+ * Gegenstück: „eine zweite Version, sodass überhaupt keine Cuts verwendet
+ * werden, sondern alles ineinander morpht."
+ *
+ * Drei Tempi, ein Schalter:
+ *   calm  — die geprüfte Vorgabe: ≥3 s je Shot, Budget aus der Modelltabelle
+ *   fast  — 2 s je Shot, viele Szenen; das „schnelle Ding"
+ *   flow  — GAR KEIN Schnitt: eine Einstellung, in der sich alles ineinander
+ *           verwandelt. Die Szenen bleiben alle, sie werden nur nicht
+ *           geschnitten, sondern übergeblendet
+ *
+ * ⚠ `fast` steht ausdrücklich GEGEN die Herstellerempfehlung: ByteDance
+ * nennt für Seedance 2.5 mindestens drei Sekunden je Shot und warnt vor
+ * „excessive cuts or omit parts of the plot"; H3 schneidet von sich aus nur
+ * bei neuer Information. Zwei Sekunden je Block können also zu Brei führen.
+ * Das ist bekannt und Antons Entscheidung — er hat den ruhigen Schnitt
+ * gesehen und will das schnellere Ding. `minShot` ist der Regler, an dem
+ * sich das zurückdrehen lässt, wenn das Ergebnis es zeigt.
+ *
+ * `maxShots` ist bei `fast` bewusst nicht am Modelllimit orientiert,
+ * sondern an der Dauer: sieben Shots auf fünfzehn Sekunden sind genau das,
+ * was Anton beschrieben hat. */
+export const PACES = {
+  calm: { id: "calm", minShot: 3, cuts: true },
+  fast: { id: "fast", minShot: 2, shotEvery: 2, maxShots: 10, cuts: true },
+  flow: { id: "flow", minShot: 0, cuts: false },
+};
+export const PACE_IDS = Object.keys(PACES);
+export const DEFAULT_PACE = "calm";
+
+export function filmPace(pace) {
+  return PACES[pace] || PACES[DEFAULT_PACE];
+}
+
+/** Wie viele SCHNITTE eine Filmlänge trägt — bei diesem Modell und Tempo.
+ *  `flow` liefert immer 1: eine Einstellung, kein Schnitt. */
+export function shotBudget(modelId, seconds, pace) {
   const m = videoModel(modelId);
+  const p = filmPace(pace);
   const secs = clampSeconds(m.id, seconds);
-  return Math.max(1, Math.min(Math.floor(secs / (m.shotEvery || 5)), m.maxShots || 3));
+  if (!p.cuts) return 1;
+  const je = p.shotEvery || m.shotEvery || 5;
+  const max = p.maxShots || m.maxShots || 3;
+  return Math.max(1, Math.min(Math.floor(secs / je), max));
+}
+
+/** Wie viele SZENEN in den Film kommen. Bei geschnittenen Tempi dasselbe
+ *  wie die Schnittzahl — jede Szene ist ein Shot.
+ *
+ *  ⚠ Bei `flow` NICHT: Dort gibt es einen einzigen Shot, aber mehrere
+ *  Szenen darin, die ineinander übergehen. Wer hier `shotBudget` benutzte,
+ *  bekäme eine einzige Szene und damit genau nicht das, was Anton meint —
+ *  „dass die ganze Story von einem Ding ins andere morpht und somit in 15
+ *  Sekunden alles drin ist". Eine Station braucht rund zweieinhalb Sekunden,
+ *  um als Bild anzukommen und sich dann zu verwandeln. */
+export function beatBudget(modelId, seconds, pace) {
+  const p = filmPace(pace);
+  if (p.cuts) return shotBudget(modelId, seconds, pace);
+  const secs = clampSeconds(modelId, seconds);
+  return Math.max(2, Math.min(Math.floor(secs / 2.5), 8));
 }
 
 /** Keep a length inside what the model actually accepts — fal rejects the
