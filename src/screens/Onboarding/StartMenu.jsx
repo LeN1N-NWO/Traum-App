@@ -4,6 +4,7 @@ import { totalCredits } from "../../lib/credits.js";
 import Button from "../../components/Button.jsx";
 import Mascot from "./Mascot.jsx";
 import MascotLab from "./MascotLab.jsx";
+import StyleLab from "./StyleLab.jsx";
 import "./onboarding.css";
 
 /* A picker shown before the app decides anything, while onboarding is still
@@ -38,7 +39,11 @@ export default function StartMenu({ onOnboarding, onSkip }) {
      wie dieses Menü selbst, und wenn das Menü gelöscht wird, geht sie
      mit — sie kann keinen Kunden erreichen und keine Route belegen. */
   const [werkbank, setWerkbank] = useState(false);
+  /* Die Stil-Werkbank (03.09.2026): drei Mockups für Stil-Presets als
+     Video-Kacheln, bevor sie gebaut werden. Gleicher Ort, gleiche Regel. */
+  const [stilbank, setStilbank] = useState(false);
   if (werkbank) return <MascotLab onExit={() => setWerkbank(false)} />;
+  if (stilbank) return <StyleLab onExit={() => setStilbank(false)} />;
   return (
     <main className="ob ob-center" lang="en" dir="ltr">
       <Mascot />
@@ -48,6 +53,7 @@ export default function StartMenu({ onOnboarding, onSkip }) {
         <Button onClick={onOnboarding}>Show onboarding</Button>
         <Button variant="ghost" onClick={onSkip}>Skip to app</Button>
         <Button variant="ghost" onClick={() => setWerkbank(true)}>Mascot test bench</Button>
+        <Button variant="ghost" onClick={() => setStilbank(true)}>Style tiles mockup</Button>
       </div>
       {/* Testguthaben (Antons Bitte 21.08.: „Skip to app" überspringt das
           Onboarding und damit das Willkommensgeschenk — dann ist jeder
