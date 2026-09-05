@@ -1,3 +1,6 @@
+/* ⚠ MODELL GEDROPPT (Anton, 05.09.2026) — dieses Skript ist ein Messprotokoll,
+ * kein Werkzeug. Befund und Entscheidung: docs/plans/2026-09-05-gemini-omni-probe.md
+ */
 /* Probe: Gemini Omni 1.1 Flash über die GOOGLE-API (nicht fal), 360p,
  * ein Traum in DREI Generationen zu je 10 Sekunden — Teil 2 und 3 als
  * Verlängerung des vorigen Clips (previous_interaction_id, task "extend"),

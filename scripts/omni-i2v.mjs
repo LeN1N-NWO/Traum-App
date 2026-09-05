@@ -1,3 +1,6 @@
+/* ⚠ MODELL GEDROPPT (Anton, 05.09.2026) — dieses Skript ist ein Messprotokoll,
+ * kein Werkzeug. Befund und Entscheidung: docs/plans/2026-09-05-gemini-omni-probe.md
+ */
 /* Probe 3: Teil 3 als NEUE Generation ab dem letzten Bild von Teil 2
  * (task "image_to_video"), mit dem Charakterbogen als zweiter Referenz.
  *

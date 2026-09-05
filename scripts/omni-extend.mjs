@@ -1,3 +1,6 @@
+/* ⚠ MODELL GEDROPPT (Anton, 05.09.2026) — dieses Skript ist ein Messprotokoll,
+ * kein Werkzeug. Befund und Entscheidung: docs/plans/2026-09-05-gemini-omni-probe.md
+ */
 /* Probe 2: die ECHTE Kette. Ein hochgeladenes Video (≤ 10 s) mit
  * task:"extend" fortsetzen — der andere Weg neben previous_interaction_id.
  *
