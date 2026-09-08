@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { STYLES } from "../lib/styles.js";
+import { STYLES, featuredStyles, moreStyles } from "../lib/styles.js";
 import { beatsForCount, beatCountForSeconds, evenIndices, trimSelection, selectionBeats } from "../lib/beats.js";
 import { buildReferences, buildImagePrompt, buildGridPrompt } from "../lib/promptBuilder.js";
 import { generate, renderImages, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
@@ -27,6 +27,13 @@ export default function Step5Style({ w, patch }) {
   const [busy, setBusy] = useState(false);
   const [modelInfo, setModelInfo] = useState(null);  // Modell-id, deren ⓘ offen ist
   const [styleInfo, setStyleInfo] = useState(null);  // Stil-id, deren ⓘ offen ist
+  /* Die Handwerksstile stehen hinter „Mehr Stile". Ist einer davon schon
+     gewählt (alter Eintrag, Wiederaufnahme), ist die Reihe von Anfang an
+     offen — sonst hätte jemand einen Stil, den er auf dem Bildschirm nicht
+     findet. */
+  const hidden = moreStyles();
+  const [showMore, setShowMore] = useState(() => hidden.some((s) => s.id === w.styleId));
+  const shownStyles = showMore ? STYLES : featuredStyles();
   const [msg, setMsg] = useState(0);
   const [done, setDone] = useState(0);
   const [prep, setPrep] = useState("");  // Figur, deren Bogen gerade entsteht
@@ -613,7 +620,7 @@ export default function Step5Style({ w, patch }) {
       )}
 
       <div className="wiz-styles" role="group" aria-label={t.wizard.step5.styleLabel}>
-        {STYLES.map((s) => (
+        {shownStyles.map((s) => (
           /* Gleiches Muster wie bei den Filmmodellen: das ⓘ liegt NEBEN
              dem Auswahlknopf in dessen Ecke, nie als Knopf im Knopf.
              Name aus den Sprachdateien, styles.js bleibt der Fallback —
@@ -636,6 +643,17 @@ export default function Step5Style({ w, patch }) {
           </div>
         ))}
       </div>
+      {/* Die zweite Reihe (Handwerksstile) klappt auf, statt ausgegraut
+          dazustehen: Ausgegraut liest sich als „nicht verfügbar" oder
+          „kostet extra", und beides stimmt nicht — ein Stil ist ein Stil,
+          ein Credit ist ein Bild. Der Knopf verschwindet, sobald offen ist:
+          Zuklappen mit gewähltem Stil darin wäre eine Wahl, die man nicht
+          mehr sieht. */}
+      {!showMore && (
+        <button className="wiz-styles-more" onClick={() => setShowMore(true)}>
+          {t.wizard.step5.moreStyles(hidden.length)}
+        </button>
+      )}
 
       {styleInfo && (
         <Sheet label={t.styles.byId[styleInfo]?.label || styleInfo} onClose={() => setStyleInfo(null)}>

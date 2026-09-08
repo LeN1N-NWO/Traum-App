@@ -43,7 +43,7 @@ import { guard } from "./src/lib/gatekeeper.js";
 import { buildCharacterPrompt, buildSheetFromPhotoPrompt, stripReferenceClauses } from "./src/lib/promptBuilder.js";
 // Stiltexte sind Konstanten aus dem Repo — der Client schickt nur eine ID,
 // damit über dieses Feld kein Fremdtext in einen bezahlten Prompt wandert.
-import { styleById } from "./src/lib/styles.js";
+import { featuredStyles, filmStyleAnchor } from "./src/lib/styles.js";
 // Wie viele Szenen in eine Filmlänge passen — drei Sekunden je Szene ist
 // die Untergrenze, darunter wird aus Regie eine Schnittfolge.
 import { beatsForSeconds } from "./src/lib/beats.js";
@@ -109,7 +109,19 @@ const MAX_BODY = 12 * 1024 * 1024;
 const MAX_REFERENCES = 6;
 const MAX_DREAM = 2000;
 const MAX_FRAGMENT = 120; // per pet/place description, mirrors the client-side cap
-const MAX_CRAFTED_PROMPT = 3000; // ceiling on what DeepSeek is allowed to hand to fal.ai
+/* Obergrenze für jeden Prompt, der an fal.ai geht — vom Regisseur wie vom
+   Wizard. ⚠ Bis 08.09.2026 stand hier 3000, und das kappte JEDEN
+   2×2-Rasterprompt: schon `ultrareal` mit vier normalen Szenen hat 4.600
+   Zeichen. Der Schnitt saß mitten im Stiltext, und dahinter fielen der
+   Rest des Stils, der Foto-Anker und ALLE Referenzklauseln weg — die Fotos
+   gingen mit, der Satz „Reference image 1 shows @anton" nicht mehr. Kein
+   Fehler, keine Warnung: ein gekappter Prompt ist ein gültiger Prompt.
+   Die Zahl ist an den schlimmsten Fall gebunden (styles.test.js: längster
+   Stil, vier Szenen in voller Länge, acht Referenzen mit Garderobe UND
+   Beschreibung — gemessen 9.300 Zeichen) plus ein Viertel Luft. Wer einen
+   längeren Stil einträgt, sieht den Test rot, nicht die Abrechnung.
+   GPT Image 2 nimmt 32.000 Zeichen, Nano Banana ähnlich. */
+const MAX_CRAFTED_PROMPT = 12000;
 
 /* Welches Bildmodell. Der Name zeigt in die Tabelle in imageModel.js —
  * NICHT mehr ein roher fal-Slug, denn davon gibt es je Modell zwei
@@ -1083,7 +1095,12 @@ async function refineDream(dream, mode) {
 // Everything after this — assigning avatars, splitting beats into 3/5/10
 // images, picking a style template, assembling the master prompt — is local
 // logic with no further model calls. That is the whole token-economy design.
-const ANALYSIS_STYLES = ["ultrareal", "noir", "dreamlike", "romantic", "dark", "surreal", "nostalgic", "adventurous"];
+/* Nur die Stile der ersten Reihe — die Handwerksstile (Knete, Papier,
+   Marionette …) sind eine Wahl, nie ein Vorschlag. Abgeleitet statt
+   hingeschrieben, seit die Liste zweimal existierte (08.09.2026): einmal
+   hier, einmal im Schema-Kommentar darunter, und beide hätten beim
+   nächsten neuen Stil stumm auseinanderlaufen können. */
+const ANALYSIS_STYLES = featuredStyles().map((s) => s.id);
 const MAX_ANALYSIS_ITEMS = 8;   // people or places; more is noise, not signal
 const ANALYSIS_BEATS = 5;       // fixed: 3/5/10 images are all derived from these
 
@@ -1109,7 +1126,7 @@ Schema (every key is required, exactly these names):
   ],
   "places": string[],      // every distinct location, in order, in the dream's language
   "beats": string[],       // EXACTLY 5 short scene descriptions, in order — ALWAYS IN ENGLISH
-  "style": string,         // one of: ultrareal, noir, dreamlike, romantic, dark, surreal, nostalgic, adventurous
+  "style": string,         // one of: ${ANALYSIS_STYLES.join(", ")}
   "mood": string,          // one or two words, in the dream's language
   "title": string,         // a film title for this dream: 1-4 evocative words, in the dream's language, no quotes
   "tagline": string,       // one short poster tagline (under 10 words), in the dream's language — like "Nothing on earth could come between them."
@@ -2255,11 +2272,14 @@ Bun.serve({
         const aspectRatio = body.aspectRatio === "16:9" ? "16:9" : undefined;
 
         /* Der Stil für den Regisseur: der Client schickt eine ID, nie den
-           Text. styleById() fällt bei Unbekanntem auf "dreamlike" zurück, die
-           Stiltexte sind Konstanten aus dem Repo — damit kann über dieses
-           Feld kein fremder Text in einen bezahlten Prompt wandern. Gleiche
-           Bauart wie voice/lang/aspectRatio. */
-        const styleAnchor = body.styleId ? styleById(body.styleId).prompt : undefined;
+           Text. filmStyleAnchor() fällt bei Unbekanntem auf "dreamlike"
+           zurück, die Stiltexte sind Konstanten aus dem Repo — damit kann
+           über dieses Feld kein fremder Text in einen bezahlten Prompt
+           wandern. Gleiche Bauart wie voice/lang/aspectRatio.
+           Seit 08.09.: Look UND Bewegung — die Handwerksstile sagen dem
+           Regisseur, wie ihr Material sich bewegt (Knete auf Zweiern,
+           Marionetten mit Pendelgewicht). */
+        const styleAnchor = body.styleId ? filmStyleAnchor(body.styleId) : undefined;
 
         /* Die fünf Szenen aus der Analyse. Sie kommen vom Client zurück, sind
            also erneut Fremdtext und laufen durch dieselbe Hygiene wie alles
