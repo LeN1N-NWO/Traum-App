@@ -199,6 +199,15 @@
 .wiz-style-on { border-color: var(--accent-soft); background: var(--accent-wash); }
 .wiz-style:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 .wiz-style-emoji { font-size: 22px; line-height: 1; }
+/* „Mehr Stile" — eine ganze Zeile breit wie eine weitere Kachel, aber
+   gestrichelt: Sie ist ein Tor, kein Stil. */
+.wiz-styles-more {
+  display: block; width: 100%; margin-top: var(--s-2);
+  padding: var(--s-3) var(--s-2); border-radius: var(--radius); cursor: pointer;
+  background: transparent; border: 1px dashed var(--panel-line);
+  color: var(--muted); font-family: var(--sans); font-size: var(--t-small);
+}
+.wiz-styles-more:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 
 .wiz-formats { display: flex; gap: var(--s-2); }
 .wiz-format {

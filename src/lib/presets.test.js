@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { PRESETS, DREAMFLOW, activePreset, applyPreset } from "./presets.js";
+import { PRESETS, DREAMFLOW, activePreset, applyPreset, featuredPresets, morePresets } from "./presets.js";
 import { STYLES } from "./styles.js";
 import { PACE_IDS } from "./video.js";
 
@@ -17,13 +17,25 @@ describe("Stil-Presets", () => {
     }
   });
 
-  /* Neun Kacheln in drei Spalten gehen nur auf, wenn zwei doppelt breit
-     sind — sonst steht die letzte allein (Waise, gesehen in der Werkbank). */
-  test("the grid closes: two wide tiles make eleven slots in three columns", () => {
-    const slots = PRESETS.reduce((n, p) => n + (p.wide ? 2 : 1), 0);
-    expect(PRESETS.filter((p) => p.wide)).toHaveLength(2);
-    expect(slots % 3).toBe(2);   // letzte Reihe: genau die breite Kachel
-    expect(PRESETS[PRESETS.length - 1].wide).toBe(true);
+  /* Kacheln in drei Spalten gehen nur auf, wenn die Zellenzahl durch drei
+     teilbar ist — sonst steht die letzte allein (Waise, gesehen in der
+     Werkbank). Seit 08.09. gilt das ZWEIMAL: für die erste Reihe allein
+     und für alles zusammen, nachdem „More styles" aufgeklappt ist. */
+  test("the grid closes — the first row alone, and everything together", () => {
+    const zellen = (liste) => liste.reduce((n, p) => n + (p.wide ? 2 : 1), 0);
+    expect(zellen(featuredPresets()) % 3).toBe(0);
+    expect(zellen([...featuredPresets(), ...morePresets()]) % 3).toBe(0);
+    // Nur Dreamflow ist breit: 2 + 10 = 12 Zellen. Wer eine Kachel dazunimmt
+    // oder wegnimmt, muss die Breiten neu setzen — dieser Test sagt es ihm.
+    expect(PRESETS.filter((p) => p.wide).map((p) => p.id)).toEqual([DREAMFLOW]);
+  });
+
+  test("first row: Dreamflow plus the featured styles; the rest behind the button", () => {
+    const erste = featuredPresets();
+    expect(erste[0].id).toBe(DREAMFLOW);
+    expect(erste.length).toBe(1 + STYLES.filter((s) => s.featured).length);
+    expect(erste.length + morePresets().length).toBe(PRESETS.length);
+    expect(morePresets().some((p) => p.id === DREAMFLOW)).toBe(false);
   });
 
   test("Dreamflow is the flow pace, whatever the style", () => {
