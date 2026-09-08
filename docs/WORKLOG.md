@@ -3,6 +3,116 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-08 — Anton — Branch `claude/new-session-x9qv1w` (Cloud, PR #30) — Sitzungsabschluss
+
+**Commits:** `b9339ce` (Eröffnung) · `e885287` (**elf Handwerksstile + die
+Serverkappung**) plus dieser Doku-Commit.
+Zustand: **453 Tests grün**, fünf Skriptprüfungen grün, Build sauber
+(**482 KB / gzip 161** — plus 21 KB, das sind die Prompts).
+Bezahlte Läufe: **keine** — fal ist aus der Cloud gesperrt.
+
+### Der Satz, der über der Sitzung steht
+
+**Ein gekappter Prompt ist ein gültiger Prompt.** `MAX_CRAFTED_PROMPT`
+stand auf 3000, und jeder 2×2-Rasterprompt war länger — `ultrareal` mit
+vier normalen Szenen hat 4.600 Zeichen. Der Server schnitt still ab:
+mitten im Stiltext, und dahinter fielen der Rest des Stils, der
+Foto-Anker und **alle Referenzklauseln** weg. Die Fotos gingen mit, der
+Satz „Reference image 1 shows @anton" nicht mehr. Seit dem Raster als
+Hauptweg (25.08.), durch vier bezahlte Läufe hindurch, kein roter Test,
+keine Warnung. Gefunden nur, weil ich nachgemessen habe, ob die NEUEN
+Stile durchpassen — und dabei sah, dass die alten es nie taten.
+Jetzt 12.000, gebunden an den gemessenen schlimmsten Fall (9.234 Zeichen:
+längster Stil, vier Szenen voller Länge, acht Referenzen mit Garderobe
+und Beschreibung) plus ein Viertel Luft — als Test in `styles.test.js`,
+der `server.js` liest. Wer einen längeren Stil einträgt, sieht Rot.
+
+⚠ Die vierte Sorte stummer Geldfehler dieser Wochen, nach dem Feldnamen,
+dem `+ +` und dem Anker ins Leere: **die Obergrenze, die niemand
+nachgerechnet hat, seit der Prompt gewachsen ist.**
+
+### Elf Handwerksstile (Antons Auswahl aus „Atomic Gains", Vol. 1)
+
+Anton fand die Bibliothek (33 Master-Prompts für Seedance 2.5) und wählte
+Nr. 1, 3, 6, 9, 11, 13, 14, 20, 22, 25, 28: Old Animation · 90s Fantasy
+Anime · Ink · Oil Painting · Marker Doodle · Action Figure · Puppet
+Theatre · Claymation · Paper Cut-Out · Papier-mâché · Vintage Poster.
+
+Drei Entscheidungen beim Einbau, alle in `styles.js` begründet:
+
+1. **Zwei Felder je Stil, weil die Vorlagen Video-Prompts sind.** Die
+   Hälfte jedes Textes ist Bewegungssprache („animate on twos", „pendulum
+   weight settling a beat late"). Dem Bildmodell hilft das nichts, dem
+   Film-Regisseur schon. `prompt` = Look (Raster), `motion` = Bewegung
+   (über `filmStyleAnchor()` an den Regisseur). Beides wörtlich, nur
+   getrennt. Die „Avoid"-Listen bleiben drin — bei diesen Stilen ist das
+   Verbot die halbe Miete.
+2. **Alle elf ohne Foto-Anker** — auch die fotografierten (Knete, Papier,
+   Marionette). Der Anker bestellt „echte Haut mit sichtbaren Poren", und
+   die hat weder Knete noch Gouache. `painterly` heißt seit heute „ohne
+   Anker", nicht „gemalt"; steht so am Feld.
+3. **Aufklappen statt ausgrauen.** Anton sagte beides. Ausgegraut liest
+   sich als „nicht verfügbar" oder „kostet extra" — beides falsch. Zehn in
+   der ersten Reihe (die acht Stimmungs-Stile + Ink + Claymation, die zwei
+   am weitesten entfernten), neun hinter „More styles (9)". Der Knopf
+   verschwindet nach dem Öffnen; zuklappen mit gewähltem Stil darin wäre
+   eine Wahl, die man nicht mehr sieht. Ist beim Wiederaufnehmen ein
+   versteckter Stil gewählt, ist die Reihe von Anfang an offen.
+
+Die Analyse rät **nur aus der ersten Reihe** — Knete ist eine Wahl, nie
+ein Vorschlag. Die Liste in `server.js` ist jetzt abgeleitet
+(`featuredStyles()`); sie stand dort zweimal (Konstante UND
+Schema-Kommentar) und wäre beim ersten neuen Stil auseinandergelaufen.
+
+### Mitgefunden: „photoreal" in jeder Kachel
+
+Das Raster nannte JEDE Kachel „cinematic photoreal film still" — auch bei
+Dreamlike und Surreal, für die der Anker längst aus war. Ein Prompt, der
+„photoreal" sagt und drei Zeilen später „hand-painted gouache", hat sich
+entschieden, bevor der Stil dran ist. Jetzt `stillNoun(photoreal)` in
+`promptBuilder.js`.
+
+### Geprüft
+
+- 11 neue Tests, **drei Rot-Proben**: `stillNoun` auf die alte Konstante →
+  rot · `painterly` bei `clay` entfernt → rot · Kappung auf 3000 → rot.
+- Sichtprüfung im Playwright gegen `bun server.js` mit dem Build, über
+  Journal → „Make a short film" → Continue → Continue: 10 Kacheln, nach
+  dem Klick 19, Knopf weg, ⓘ zeigt den Text. Screenshots im Scratchpad.
+- Cloud-Vorschau des Standes VOR dieser Arbeit:
+  https://claude.ai/code/artifact/e07a94f4-9666-44da-a3c2-fdd061f638fe
+
+⚠ Beim Rot-Proben `git checkout -- datei` benutzt — das holte ALLE
+Änderungen der Datei zurück, nicht nur die Probe. Vier Stellen neu
+gesetzt. Merksatz: **Eine Probe wird mit `sed` zurückgedreht, nie mit
+`git checkout`.** Und `pkill -f "bun server.js"` trifft die eigene Shell.
+
+### Vorher da, liegen gelassen
+
+- `WizardShell.jsx:65`: Der Wiederaufnahme-Weg setzt `styleId:
+  analysis?.style || "dreamlike"` — die Vorgabe ist seit dem 24.08.
+  `ultrareal`. Wer einen alten Traum ohne Analyse verfilmt, bekommt den
+  Malerei-Stil vorgewählt. Einzeiler, aber Antons Entscheidung.
+- Ohne `charset=utf-8` im HTTP-Kopf wird die App zu Kauderwelsch („â€"",
+  `ðŸ˜'`) — gesehen beim `file://`-Laden der Cloud-Vorschau. Das `<meta>`
+  fängt es normalerweise, relevant bei der Portierung (WebView).
+- `styles.js` trägt `poster`-Angaben, die niemand liest — der Plakat-
+  Bauer, für den sie geschrieben wurden, ist weg. Steht jetzt am Kopf.
+
+### Was der Nächste wissen muss
+
+- **Der erste bezahlte Lauf mit einem Handwerksstil gehört mit EINEM
+  Traum gemacht** — und mit dem Blick auf zwei Dinge: Kommt der Look an
+  (Knete, nicht Foto)? Und bleiben die Gesichter erkennbar, obwohl der
+  Anker aus ist? Das Zweite ist offen. Wenn nicht: Der Referenz-Satz in
+  `buildReferences()` sagt „this exact likeness" — vielleicht braucht er
+  bei Handwerksstilen ein „rendered in this material".
+- **Und davor: EIN Lauf mit `ultrareal` und ungekapptem Prompt.** Alles,
+  was „bezahlt bewiesen" heißt, wurde ohne Klauseln bewiesen.
+- Die Top-10-Wahl (Ink + Claymation) ist meine, nicht Antons. Ein
+  `featured: true` mehr oder weniger, der Test zählt mit.
+
+
 ## 2026-08-26 22:57 — Anton — Branch `session/2026-08-25-anton-2` (PR #29) — zweiter Abschluss desselben Tages
 
 **Commits seit dem Abschluss um 07:55:** `3f0abec` (**gemeinsamer,
