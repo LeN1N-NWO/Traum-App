@@ -112,17 +112,20 @@ test("server.js leitet die Rate-Liste ab und gibt dem Regisseur die Bewegung", (
    2×2-Rasterprompt war länger — der Server kappte still den Stil, den
    Foto-Anker und alle Referenzklauseln. Dieser Test bindet die Grenze an
    den SCHLIMMSTEN Fall: längster Stil, vier Szenen in voller Länge
-   (MAX_FRAGMENT), acht Referenzen (MAX_ANALYSIS_ITEMS) mit Garderobe.
+   (MAX_BEAT), acht Referenzen (MAX_ANALYSIS_ITEMS) mit Garderobe.
    Rot-Probe: Grenze auf 3000 zurück → rot. */
 test("kein Rasterprompt erreicht die Serverkappung", () => {
   const cap = Number(server.match(/const MAX_CRAFTED_PROMPT = (\d+)/)?.[1]);
   const fragment = Number(server.match(/const MAX_FRAGMENT = (\d+)/)?.[1]);
+  const beat = Number(server.match(/const MAX_BEAT = (\d+)/)?.[1]);
   const items = Number(server.match(/const MAX_ANALYSIS_ITEMS = (\d+)/)?.[1]);
   expect(cap).toBeGreaterThan(0);
   expect(fragment).toBeGreaterThan(0);
+  expect(beat).toBeGreaterThan(0);
   expect(items).toBeGreaterThan(0);
 
-  const beats = Array(4).fill("x".repeat(fragment));
+  // Seit 03.09. ist eine Szene bis MAX_BEAT lang (200), nicht MAX_FRAGMENT.
+  const beats = Array(4).fill("x".repeat(beat));
   const cast = Array.from({ length: items }, (_, i) => ({
     name: `Person ${i}`, kind: "person", wardrobe: "w".repeat(fragment),
     avatar: { tag: `p${i}`, img: "x", desc: "d".repeat(fragment) },

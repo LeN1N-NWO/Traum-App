@@ -298,7 +298,9 @@ test("das Rasterkennzeichen kommt vom Browser bis zum fal-Auftrag durch", () => 
   // 1. generate() nimmt es an UND schickt es weiter.
   const sig = api.match(/export async function generate\(\{([^}]*)\}/)?.[1] || "";
   expect(sig).toContain("grid");
-  const body = api.match(/post\("\/api\/generate", \{([^}]*)\}/)?.[1] || "";
+  /* Toleriert Zeilenumbrüche zwischen Pfad und Rumpf: Seit der Film seine
+     eigene, lange Uhr bekommt (03.09.2026), steht der Aufruf mehrzeilig. */
+  const body = api.match(/post\(\s*"\/api\/generate",\s*\{([^}]*)\}/)?.[1] || "";
   expect(body).toContain("grid");
 
   // 2. Der Server liest es und gibt es an den Bildauftrag weiter.

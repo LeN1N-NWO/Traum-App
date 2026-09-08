@@ -83,6 +83,8 @@ const EMPTY = {
   styleId: "ultrareal",
   format: "9:16",
   videoModel: "standard",
+  quality: null,       // 480p/720p; null = die Vorgabe des Modells (video.js `preferred`)
+  pace: "calm",        // ruhig | schnell | ein Fluss (video.js PACES)
   seconds: 6,          // film length; see lib/video.js for each model's range
   urls: null,
   jobId: null,         // set while a film renders in fal's queue
@@ -123,7 +125,21 @@ export function useWizard() {
            man sieht, dass hier uebersetzt wird. */
         const wardrobe = (typeof item === "object" && item?.wearing) || "";
         const avatar = autoMatch(name, state.cast, state.me);
-        acc[name] = { name, kind, hint, ...(wardrobe ? { wardrobe } : {}), ...(avatar ? { avatar } : {}) };
+        /* ⚠ ORTE starten auf „die KI erfindet es" (Björns Hinweis, von Anton
+           weitergegeben 31.08.). Ein Club, eine Straße, eine Wohnung — dafür
+           legt niemand ein Foto an, und „unentschieden" zwang trotzdem zu
+           einem Tipp je Ort, nur um zu sagen, was ohnehin passiert. Bei
+           MENSCHEN bleibt es bei unentschieden: Dort ist das Zuordnen der
+           eigentliche Zweck des Schritts, und eine Vorauswahl würde jemanden
+           still durch den Schritt tragen, in dem er sein Gesicht setzen
+           wollte.
+           Ein per autoMatch gefundener Ort aus der Bibliothek gewinnt —
+           wer ihn einmal angelegt hat, meint ihn. */
+        const frei = startsFree(kind, avatar);
+        acc[name] = { name, kind, hint,
+          ...(wardrobe ? { wardrobe } : {}),
+          ...(avatar ? { avatar } : {}),
+          ...(frei ? { free: true } : {}) };
         return acc;
       }, {});
     setW((prev) => ({
@@ -148,6 +164,25 @@ export function useWizard() {
   }, []);
 
   return { w, patch, reset, seedAssignments, assign, dropAssignment };
+}
+
+/** Startet dieser Eintrag auf „die KI erfindet es"?
+ *
+ *  ⚠ ORTE ja, MENSCHEN nein (Björns Hinweis, von Anton weitergegeben
+ *  31.08.). Für einen Club, eine Straße, eine Wohnung legt niemand ein Foto
+ *  an — „unentschieden" verlangte trotzdem einen Tipp je Ort, nur um zu
+ *  sagen, was ohnehin passiert wäre. Bei Menschen ist das Zuordnen der
+ *  ZWECK des Schritts; eine Vorauswahl trüge jemanden still an der Stelle
+ *  vorbei, an der er sein Gesicht setzen wollte.
+ *
+ *  Ein gefundener Eintrag aus der Bibliothek gewinnt immer: Wer einen Ort
+ *  einmal angelegt hat, meint ihn.
+ *
+ *  Eigene Funktion und nicht drei Zeichen im Effekt oben, damit die Regel
+ *  eine Prüfung haben kann — sie ist eine Produktentscheidung, keine
+ *  Formsache. */
+export function startsFree(kind, avatar) {
+  return kind === "place" && !avatar;
 }
 
 /** The assignments for a set of kinds, in the order the analysis produced them. */

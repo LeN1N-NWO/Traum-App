@@ -1,0 +1,44 @@
+/* Die Stil-Kacheln mit Vorschau — Begründungen in PresetTile.jsx und
+   presets.js. Das Raster selbst (drei Spalten, Dreamflow und die letzte
+   Kachel doppelt breit) steht in wizard.css bei .wiz-presets. */
+.pt-wrap { position: relative; display: flex; min-width: 0; }
+.pt-wide { grid-column: span 2; }
+.pt {
+  position: relative; flex: 1; aspect-ratio: 1; min-width: 0;
+  border-radius: var(--radius); overflow: hidden; padding: 0; cursor: pointer;
+  background: var(--panel); border: 2px solid var(--panel-line);
+  color: var(--text); font-family: var(--sans); text-align: start;
+}
+.pt-wide .pt { aspect-ratio: 2.06; }
+.pt:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.pt-on { border-color: var(--accent-soft); }
+.pt-clip { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Ohne Clip: Emoji groß auf dem warmen Hof der App, nie ein leeres Feld. */
+.pt-blank {
+  position: absolute; inset: 0; display: grid; place-items: center; font-size: 34px;
+  background: radial-gradient(circle at 50% 40%, rgb(242 167 101 / .18) 0%, transparent 70%);
+}
+.pt-scrim { position: absolute; inset: 0; background: linear-gradient(to top, rgb(var(--bg-rgb) / .85) 0%, transparent 55%); }
+.pt-meta { position: absolute; inset-inline-start: 9px; inset-inline-end: 9px; inset-block-end: 8px; display: flex; flex-direction: column; gap: 2px; }
+/* Zwei Zeilen statt Abschneiden: „Romantisch" und „Nostalgisch" passten in
+   eine kleine Kachel nicht auf eine Zeile — „Romanti…" ist kein Stilname. */
+.pt-name {
+  font-size: var(--t-small); font-weight: 600; line-height: 1.2;
+  text-shadow: 0 1px 3px rgb(0 0 0 / .6);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pt-wide .pt-name { font-family: var(--serif); font-size: 20px; font-weight: 400; }
+.pt-sub { color: var(--muted); font-size: var(--t-micro); text-shadow: 0 1px 3px rgb(0 0 0 / .6); }
+.pt-check {
+  position: absolute; inset-block-start: 7px; inset-inline-end: 7px;
+  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--bg); font-size: 12px; font-weight: 700;
+}
+/* Das ⓘ unten rechts, damit es dem Häkchen oben rechts nicht in die Quere kommt. */
+.pt-info {
+  position: absolute; inset-block-start: 7px; inset-inline-start: 7px;
+  width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+  background: rgb(var(--bg-rgb) / .55); border: 1px solid var(--panel-line);
+  color: var(--muted); font-family: var(--serif); font-style: italic; font-size: 13px;
+}
+.pt-info:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }

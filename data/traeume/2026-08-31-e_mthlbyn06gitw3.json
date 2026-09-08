@@ -1,0 +1,76 @@
+{
+  "id": "e_mthlbyn06gitw3",
+  "createdAt": "2026-08-31T18:47:32.893Z",
+  "kind": "dream",
+  "title": "Flamingo nach Südfrankreich",
+  "tagline": "Mit Glitzer und ohne Hose nach Hause.",
+  "text": "Ich war mit Paul in Ibiza unterwegs. Mit Karl Koks legten wir Musik auf. Dann fiel Björn auf die Fresse. Danach flogen wir mit einem Flamingo-Schlauchboot nach Südfrankreich zurück. Das Boot war pink wie ein Flamingo und aufblasbar wie ein Ballon. Die anderen trugen nur Schlüpfer, ich dagegen einen goldenen Glitzeranzug – ohne Hose.",
+  "originalText": "Ich war mit Paul unterwegs, wir waren in Ibiza. Mit Karl Koks haben wir aufgelegt. Und der Björn ist auf die Fresse gefallen. Dann sind wir mit 'nem Flamingo-Schlauchboot wieder zurückgeflogen nach Südfrankreich. Es war pink wie ein Flamingo und aufblasbar wie ein Ballon. Die anderen hatten Schlüpfer an, aber ich hatte einen goldenen Glitzeranzug an. Keine Hose.",
+  "analysis": {
+    "language": "de",
+    "text": "Ich war mit Paul in Ibiza unterwegs. Mit Karl Koks legten wir Musik auf. Dann fiel Björn auf die Fresse. Danach flogen wir mit einem Flamingo-Schlauchboot nach Südfrankreich zurück. Das Boot war pink wie ein Flamingo und aufblasbar wie ein Ballon. Die anderen trugen nur Schlüpfer, ich dagegen einen goldenen Glitzeranzug – ohne Hose.",
+    "people": [
+      {
+        "name": "ich",
+        "kind": "person",
+        "desc": "",
+        "wearing": "goldener Glitzeranzug ohne Hose"
+      },
+      {
+        "name": "Paul",
+        "kind": "person",
+        "desc": "",
+        "wearing": "Schlüpfer"
+      },
+      {
+        "name": "Karl Koks",
+        "kind": "person",
+        "desc": "",
+        "wearing": "Schlüpfer"
+      },
+      {
+        "name": "Björn",
+        "kind": "person",
+        "desc": "",
+        "wearing": "Schlüpfer"
+      }
+    ],
+    "places": [
+      "Ibiza",
+      "Südfrankreich"
+    ],
+    "beats": [
+      "Paul and Karl mix music at an Ibiza club while ich watches.",
+      "Björn stumbles and falls hard on his face.",
+      "The group boards a giant pink inflatable flamingo boat.",
+      "The flamingo boat lifts off and flies over the sea toward southern France.",
+      "In midair, the others wear only underwear while ich shines in a golden glitter suit with no pants."
+    ],
+    "style": "surreal",
+    "mood": "skurril",
+    "title": "Flamingo nach Südfrankreich",
+    "tagline": "Mit Glitzer und ohne Hose nach Hause.",
+    "filmSeconds": 15
+  },
+  "style": "romantic",
+  "format": "9:16",
+  "mode": "film",
+  "imageCount": 0,
+  "creatureId": "cr_mthlbyn055t2kg",
+  "references": [
+    {
+      "tag": "me",
+      "category": "person"
+    },
+    {
+      "tag": "karlcox",
+      "category": "person"
+    }
+  ],
+  "medien": {
+    "bilder": [],
+    "film": [
+      "/media/t8t2asdudzc4.mp4"
+    ]
+  }
+}

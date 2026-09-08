@@ -490,11 +490,6 @@ export default {
           model: "MiniMax H3 · 768p",
           info: "Le niveau accessible : il anime votre image de départ de façon convaincante, son inclus, pour un crédit par seconde — et vos photos de référence l'accompagnent désormais (jusqu'à quatre en plus de l'image de départ), pour que les vrais visages restent eux-mêmes. Les films s'arrêtent à 15 secondes.",
         },
-        director: {
-          name: "Réalisé", hint: "les vrais visages et lieux, avec le son · 4 crédits par seconde",
-          model: "Seedance 2.0 · 720p",
-          info: "Ce niveau emporte vos photos de référence dans le film — jusqu'à huit en plus de l'image de départ, pour que les vrais visages et lieux restent eux-mêmes à chaque coupe, avec le son. Quatre crédits par seconde ; plafond à 15 secondes.",
-        },
         premium: {
           name: "Cinéma", hint: "jusqu'à 30 secondes en un seul plan, avec le son · 6 par seconde",
           model: "Seedance 2.5 · 720p",

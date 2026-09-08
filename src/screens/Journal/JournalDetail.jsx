@@ -6,7 +6,7 @@ import { useAppState } from "../../state/AppState.jsx";
 import { refine, reflect, mediaUrl, generate } from "../../lib/api.js";
 import { reflectionContext } from "../../lib/atlas.js";
 import { imageIndexForBeat, evenIndices } from "../../lib/beats.js";
-import { filmOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
+import { filmOf, filmsOf, imagesOf, allMediaOf } from "../../lib/entryMedia.js";
 import { spend } from "../../lib/credits.js";
 import { PRICES, priceForImages, IMAGE_COUNTS } from "../../lib/pricing.js";
 import { fallbackModel } from "../../lib/imageModel.js";
@@ -16,6 +16,7 @@ import { buildReferences, buildImagePrompt } from "../../lib/promptBuilder.js";
 import { renderRef } from "../../lib/sheets.js";
 import { t } from "../../i18n/index.js";
 import Storyboard from "../../components/Storyboard.jsx";
+import MascotLoader from "../../components/MascotLoader.jsx";
 import Recurrence from "../../components/Recurrence.jsx";
 import EntryMenu from "./EntryMenu.jsx";
 import RefineSheet from "./RefineSheet.jsx";
@@ -41,6 +42,10 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
   const [proposalRenders, setProposalRenders] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [refinePick, setRefinePick] = useState(false);   // the "how should I rewrite it?" sheet
+  /* Welche Fassung des Films gerade läuft. `null` heißt „die neueste" —
+     wer nachbessert, will sein Neuestes sehen, und ein fester Index würde
+     beim Eintreffen der nächsten Fassung auf die falsche zeigen. */
+  const [fassung, setFassung] = useState(null);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -300,7 +305,13 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
   }
 
   const d = new Date(entry.createdAt);
-  const film = filmOf(entry);
+  /* Alle Fassungen dieses Traums, älteste zuerst — und die, die gerade
+     läuft. Antons Ansage 03.09.2026: „Alle diese Träume können in diese
+     Kachel reinkommen … es kann sein, dass eine Person so lange
+     weitermacht, bis er wirklich passt." */
+  const filme = filmsOf(entry);
+  const gezeigt = fassung != null && filme[fassung] ? fassung : filme.length - 1;
+  const film = filme.length ? filme[gezeigt].url : filmOf(entry);
   const images = imagesOf(entry);
   // The film leads if there is one — it is the finished thing the pictures
   // were a step towards, so it takes the hero and the top of the page.
@@ -374,9 +385,88 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
 
         {/* Die Kino-Strecke liegt VOLLBREIT über dem Inhalt — Bild zuerst,
             alles Sekundäre darunter. */}
-        {swipes && <DeckView entry={entry} film={film} images={images} />}
+        {/* ⚠ Ohne den Film (03.09.2026): Er hat seit dem Videofeld genau
+            EINEN Ort auf dieser Seite. Vorher lief er hier als erste Karte
+            der Strecke UND unten als Player — zweimal derselbe Film, und
+            keiner der beiden war eindeutig der, den man meint. Die Strecke
+            zeigt jetzt, was sie ist: die Bilder. */}
+        {swipes && <DeckView entry={entry} images={images} />}
 
         <div className="j-content">
+        {/* ── Das Videofeld (Antons Ansage 03.09.2026: „den Videoplayer dann
+            einbauen bei den Träumen statt dieser Kacheln") ────────────────
+            Der Film führt die Seite an: ganz oben, in voller Breite, mit
+            Bedienleiste und Ton. Vorher stand er WEIT unten, hinter dem
+            Storyboard, den Knöpfen und dem Traumtext — das Fertige lag
+            hinter seinem Arbeitsmaterial.
+
+            Solange er rendert, steht hier dasselbe Feld mit dem Standbild
+            darin, statt eines Platzhalters woanders: Der Platz, an dem der
+            Film erscheinen wird, ist von Anfang an derselbe. */}
+        {(film || entry.jobId) && (
+          <div className="j-videofeld">
+            {film ? (
+              <>
+                <video
+                  /* `key` auf die Adresse: Ohne ihn tauscht React nur das
+                     src-Attribut, und ein laufendes <video> übernimmt das
+                     nicht zuverlässig — beim Umschalten zwischen zwei
+                     Fassungen liefe die alte weiter. */
+                  key={film}
+                  className="j-video"
+                  src={mediaUrl(film)}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  poster={images[0] ? mediaUrl(images[0]) : undefined}
+                />
+                {/* Die Fassungen dieses Traums, sobald es mehr als eine
+                    gibt. Beschriftet mit dem, was sie unterscheidet —
+                    Tempo und Länge —, nicht mit einer nackten Nummer:
+                    „Fassung 2" sagt niemandem, was er gleich sieht. */}
+                {filme.length > 1 && (
+                  <div className="j-takes" role="group" aria-label={t.journal.takesLabel}>
+                    {filme.map((f, i) => (
+                      <button
+                        key={f.url}
+                        className={"j-take" + (i === gezeigt ? " j-take-on" : "")}
+                        onClick={() => setFassung(i)}
+                        aria-pressed={i === gezeigt}
+                      >
+                        <span className="j-take-n">{i + 1}</span>
+                        <span className="j-take-label">
+                          {f.pace ? t.wizard.step5.paceNames[f.pace] || f.pace : t.journal.takeUnknown}
+                          {f.seconds ? ` · ${f.seconds}s` : ""}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div
+                /* Ohne Standbild ein ruhigeres Feld: Ein 9:16-Rahmen ohne
+                   Bild darin sind 700 Pixel Leere mit einem schlafenden
+                   Frosch am Grund. Mit Standbild bleibt das Filmformat, da
+                   ist die Fläche ja gefüllt. */
+                className={`j-video-wait${images[0] ? "" : " j-video-wait-leer"}`}
+                role="status"
+                aria-live="polite"
+              >
+                {images[0] && <img className="j-video-still" src={mediaUrl(images[0])} alt="" />}
+                {/* Der Frosch wartet mit (Antons Ansage 03.09.): Er legt
+                    sich hin und schläft, solange der Film rendert. Das ist
+                    hier nicht nur Zierde — wer auf einen Traum wartet,
+                    schaut lieber einem Schlafenden zu als einem Ring. */}
+                <div className="j-video-wait-body">
+                  <MascotLoader />
+                  <span>{t.journal.filmRendering}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* The one action that spends credits leads the page — moved up from
             below the whole story, where it was the last thing anyone saw
             after scrolling past everything else. One way forward at a time,
@@ -391,7 +481,12 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
             Bild je Szene, wo die Zuordnung sicher ist (Plan: Storyboard vor
             dem Film, Stufe A). Nur wenn eine Analyse existiert: Seeds und
             handgeschriebene Alt-Einträge haben keinen Bogen. */}
-        {!editing && !proposal && entry.analysis?.beats?.length > 0 && (() => {
+        {/* ⚠ Nur solange es KEINEN Film gibt und keiner läuft (03.09.2026):
+            Das Storyboard ist das Arbeitsmaterial, aus dem der Film wurde.
+            Steht der Film oben, hat es seine Aufgabe erfüllt — es unter dem
+            fertigen Film zu wiederholen macht aus dem Produkt eine Beilage
+            seiner eigenen Vorstufe. */}
+        {!editing && !proposal && !film && !entry.jobId && entry.analysis?.beats?.length > 0 && (() => {
           /* ⚠ Gezeigt werden die Szenen, die auch BILDER werden — nicht der
              rohe Fünfer-Bogen der Analyse (Antons Befund 25.08.: „es gibt
              jetzt nur noch vier, nicht mehr fünf"). Die Analyse liefert
@@ -433,7 +528,13 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
             Teilen) stehen transparent daneben und wickeln auf schmalen
             Schirmen darunter. Löschen bleibt bewusst allein im ⋯-Menü. */}
         {!editing && !proposal && (() => {
-          const offerImages = !entry.jobId && !pendingImages && images.length === 0;
+          /* ⚠ …und nicht, wenn der Film schon da ist (03.09.2026). Vorher
+             stand unter dem fertigen Film „Noch keine Bilder. Welche
+             machen?" samt warmem Hauptknopf — die App bot als
+             Nächstliegendes ausgerechnet das Produkt an, von dem sie sich
+             gerade verabschiedet (docs/plans/2026-08-31-nur-noch-film.md).
+             Bilder sind Handwerk hinter dem Film, kein Nachtisch danach. */
+          const offerImages = !entry.jobId && !pendingImages && images.length === 0 && !film;
           /* ── Warum es nicht ging, und was man tun kann (24.08.2026) ──────
              Bis hierher stand bei einem gescheiterten Traum nur „Bilder
              machen" — derselbe Knopf wie beim unberührten Traum, und beim
@@ -446,13 +547,47 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
           const weg = images.length === 0
             ? recoveryOptions(entry, { fallbackAvailable: !!fallbackModel() })
             : recoveryOptions(null);
-          const offerFilm = !entry.jobId && !film && !pendingImages && images.length > 0;
+          /* ⚠ ODER der Traum war von Anfang an ein Film (03.09.2026): Bis
+             hierher verlangte das Angebot Bilder — „erst zeigen, was man
+             animiert". Für einen Traum, der als Film angelegt wurde und
+             dessen Render scheiterte, war das eine Sackgasse: Er hat keine
+             Bilder und bekommt deshalb nur „Bilder machen" angeboten, also
+             genau das, was er nie wollte. Mit dem Rückbau des Bildprodukts
+             wird das der Normalfall, nicht die Ausnahme. */
+          /* ⚠ Und ein vorhandener Film schliesst den nächsten NICHT aus
+             (Antons Ansage 03.09.2026): „Wenn bereits Träume da sind, kann
+             man noch so einen Button hinzufügen: nochmals generieren mit
+             Änderungen. Es kann sein, dass eine Person so lange weitermacht,
+             bis er wirklich passt." Der Knopf heisst dann anders und steht
+             still neben den anderen, statt als warmer Hauptknopf — der
+             erste Film ist ein Angebot, der zweite eine Entscheidung. */
+          const offerFilm = !entry.jobId && !pendingImages
+            && (images.length > 0 || entry.mode === "film" || !!film);
+          /* ⚠ Was LÄUFT, bekommt einen Platz — und zwar DEN, auf den die Hand
+             gerade gedrückt hat (Antons Befund 31.08.: „Dieser Kurzfilm-machen-
+             Knopf sollte in dem Moment, wenn man den angeklickt hat, eine Art
+             Wartuhr … Text geändert werden").
+             Vorher verschwand der Knopf beim Absenden ersatzlos. Für die App
+             war das sauber (`offerFilm` wurde falsch), für den Menschen sah es
+             aus, als hätte sein Druck nichts getan — die einzige Rückmeldung
+             stand weit oben, wo der Film später landet, oft außerhalb des
+             Bildes. Ein Knopf, der auf Druck spurlos verschwindet, ist keine
+             Antwort. */
+          const laeuft = pendingImages ? "images" : (entry.jobId && !film) ? "film" : null;
           return (
             <div className="j-make">
               {weg.message && <p className="j-make-warn">⚠ {t.errors[weg.message]}</p>}
               {offerImages && !weg.message && <p className="j-make-lede">{t.journal.makeLede}</p>}
-              {offerFilm && <p className="j-make-lede">{t.journal.makeFilmLede}</p>}
+              {offerFilm && !film && <p className="j-make-lede">{t.journal.makeFilmLede}</p>}
               <div className="j-acts">
+                {laeuft && (
+                  <span className="j-make-btn j-make-wait" role="status" aria-live="polite">
+                    <span className="wiz-spinner" aria-hidden="true" />
+                    <span className="j-make-title">
+                      {laeuft === "film" ? t.journal.filmPending : t.journal.imagesPending}
+                    </span>
+                  </span>
+                )}
                 {offerImages && weg.rewrite && (
                   /* Der HAUPTknopf bei einer Textablehnung — er steht vor
                      „nochmal versuchen" und vor Plan B, weil er der einzige
@@ -492,10 +627,15 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
                   </button>
                 )}
                 {offerFilm && (
-                  <button className="j-make-btn" onClick={() => make("film")}>
+                  <button
+                    className={film ? "j-act" : "j-make-btn"}
+                    onClick={() => make("film")}
+                  >
                     <IconFilm />
-                    <span className="j-make-title">{t.journal.makeFilm}</span>
-                    <ChevronRight />
+                    <span className={film ? undefined : "j-make-title"}>
+                      {film ? t.journal.makeFilmAgain : t.journal.makeFilm}
+                    </span>
+                    {!film && <ChevronRight />}
                   </button>
                 )}
                 <button className="j-act" onClick={() => setRefinePick(true)} disabled={busy}>
@@ -517,20 +657,14 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
 
         {busy && <p className="j-working">{t.journal.working}</p>}
 
-        {/* The film comes first, above the words and the stills it was made
-            from: it is the finished piece, they are the working material.
-            Controls on, unmuted, no autoplay — a film someone paid for is
-            watched deliberately, not glimpsed as a silent loop. */}
-        {film && !swipes && (
-          <video className="j-film" src={mediaUrl(film)} controls playsInline preload="metadata" />
-        )}
-
-        {/* Noch unterwegs (Film oder Bilder): der App-weite Collector
-            fragt nach — dieser Bildschirm zeigt es nur an. */}
-        {((!film && entry.jobId) || pendingImages) && (
+        {/* Der Film steht seit dem 03.09.2026 OBEN im Videofeld, nicht mehr
+            hier unten hinter Storyboard, Knöpfen und Text. Hier bleibt nur
+            noch die Meldung für laufende BILD-Aufträge — der wartende Film
+            hat seinen Platz oben, dort wo er erscheinen wird. */}
+        {pendingImages && (
           <div className="j-film-wait" role="status" aria-live="polite">
             <span className="wiz-spinner" aria-hidden="true" />
-            <span>{pendingImages ? t.journal.renderingTile : t.journal.filmRendering}</span>
+            <span>{t.journal.renderingTile}</span>
           </div>
         )}
 

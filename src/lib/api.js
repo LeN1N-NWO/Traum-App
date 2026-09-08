@@ -31,7 +31,41 @@ export function mediaUrl(u) {
  * Generierung — sie geben nur einen Auftrag ab oder fragen dessen Stand
  * ab, und das sind Millisekunden. Eine Minute ist deshalb kein Budget
  * mehr, sondern eine großzügige Obergrenze für „der Server lebt". */
-const TIMEOUTS = { default: 60_000 };
+/* ⚠ Die Analyse bekommt mehr Zeit als alles andere (03.09.2026). Seit sie
+ * die Szenen nicht mehr gleichmäßig teilt, sondern gewichtet — wie viele
+ * Ereignisse hat der Traum, welches ist der Signatur-Beat, welcher Typ je
+ * Szene — ist sie echte Denkarbeit, und deepseek-v4-flash denkt erst ins
+ * Denkfeld.
+ *
+ * ⚠ Und das ist NICHT durch die Gewichtung entstanden — am selben Traum
+ * gegeneinander gemessen (03.09.2026, 1500 Zeichen):
+ *     alter Prompt  121 s, 16 768 Denk-Token, 5 Szenen
+ *     neuer Prompt  184 s, 22 958 Denk-Token, 7 Szenen
+ * Der lange Traum wäre also VORHER genauso an den 60 Sekunden gescheitert.
+ * Aufgefallen ist es nie, weil bisher niemand einen langen Traum eingegeben
+ * hat: Ein Vier-Satz-Traum ist in gut einer Minute gelesen. Die 60 Sekunden
+ * waren die stumme Obergrenze für die Länge eines Traums — und zwar genau
+ * bei dem Traum, für den sich die Arbeit am meisten lohnt.
+ *
+ * Fünf Minuten sind trotzdem keine Lösung, sondern ein Pflaster: Das Denken
+ * macht 96 % der erzeugten Token aus. Solange es kein schnelleres Modell
+ * für diese Aufgabe gibt, muss der Wartebildschirm es aushalten. */
+/* ⚠⚠ Und der FILMAUFTRAG genauso — das ist vermutlich die Ursache der
+ * verwaisten Filme (31.08. „Nebel und Lack", „Flamingo nach Südfrankreich").
+ * /api/generate antwortet im Film-Modus erst, wenn der Regisseur seinen
+ * Prompt geschrieben hat, und der läuft über dasselbe Denkmodell wie die
+ * Analyse. Gemessen am 03.09.2026: Der Client gab nach 60 Sekunden auf und
+ * zeigte „Der Dienst hat nicht geantwortet".
+ *
+ * Der Abbruch beendet aber nur das WARTEN, nicht die Arbeit: Der Server
+ * schreibt weiter, gibt den Film bei fal ab und bekommt eine Auftragsnummer
+ * — die dann niemanden mehr erreicht. Genau das Muster eines verwaisten
+ * Films: bezahlt, gerendert, nirgends sichtbar.
+ *
+ * Die eigentliche Lösung ist, dass der Server sofort eine Auftragsnummer
+ * zurückgibt und die Regie im Hintergrund macht. Bis dahin wartet der
+ * Client so lange, wie die Arbeit dauert. */
+const TIMEOUTS = { default: 60_000, analyze: 300_000, film: 300_000 };
 
 function friendly(err) {
   // TimeoutError: die Uhr. TypeError: Netz/Server gar nicht erreichbar.
@@ -71,7 +105,7 @@ async function post(path, body, { timeout = TIMEOUTS.default } = {}) {
 
 /** The one LLM call per dream: polished text, people, places, beats, style. */
 export async function analyze(dream) {
-  const data = await post("/api/analyze", { dream });
+  const data = await post("/api/analyze", { dream }, { timeout: TIMEOUTS.analyze });
   if (!data?.analysis?.text) throw new Error(t.errors.unexpected);
   return data.analysis;
 }
@@ -177,8 +211,14 @@ export async function transcribe(audio) {
                 daraufhin das Rastermaß aus appGrid().
      fallback — Plan B: das Ausweichmodell. Bewusst ein JA/NEIN und kein
                 Modellname; die Auflösung steht im Server (modelFor). */
-export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats, sequenceRef, grid, fallback }) {
-  const data = await post("/api/generate", { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, styleId, beats, sequenceRef, grid, fallback });
+export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback }) {
+  const data = await post(
+    "/api/generate",
+    { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback },
+    // Nur der Film wartet auf den Regisseur — Bilder gehen sofort in die
+    // Warteschlange und brauchen die lange Uhr nicht.
+    mode === "film" ? { timeout: TIMEOUTS.film } : undefined,
+  );
   if (Array.isArray(data?.urls)) return { urls: data.urls };
   if (typeof data?.jobId === "string") return { jobId: data.jobId };
   throw new Error(t.errors.unexpected);

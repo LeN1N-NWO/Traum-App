@@ -6,6 +6,7 @@ import { genId } from "../lib/storage.js";
 import { bumpStreak, refreshStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
 import { t } from "../i18n/index.js";
+import MascotLoader from "../components/MascotLoader.jsx";
 import Button from "../components/Button.jsx";
 import MediaCarousel from "../components/MediaCarousel.jsx";
 import "./wizard.css";
@@ -152,7 +153,7 @@ export default function Step6Result({ w, patch }) {
 
       {waiting ? (
         <div className="wiz-rendering" role="status" aria-live="polite">
-          <div className="wiz-spinner" aria-hidden="true" />
+          <MascotLoader />
           <p className="wiz-busy-text">{t.wizard.step6.rendering}</p>
           <p className="wiz-hint">{t.wizard.step6.renderingHint}</p>
         </div>

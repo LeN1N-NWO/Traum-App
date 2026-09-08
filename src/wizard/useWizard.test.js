@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { autoMatch } from "./useWizard.js";
+import { autoMatch, startsFree } from "./useWizard.js";
 
 /* Antons Ansage vom 22.08.2026: „Immer wenn im Traum jemand von ‚ich' spricht
    oder auch in Englisch ‚I', muss das Profilbild mitverknüpft sein — damit er
@@ -45,4 +45,16 @@ test("Namen, die zufällig ein Selbstwort enthalten, bleiben Fremdfiguren", () =
 test("eine eindeutige Besetzung wird weiterhin erkannt, eine doppelte nicht", () => {
   expect(autoMatch("Luna", [{ id: "c1", tag: "luna" }], me)?.id).toBe("c1");
   expect(autoMatch("Luna", [{ id: "c1", tag: "Luna" }, { id: "c2", tag: "luna" }], me)).toBe(null);
+});
+
+/* Björns Hinweis (31.08., von Anton weitergegeben): Orte starten auf „die KI
+   erfindet es" — für einen Club legt niemand ein Foto an. Menschen bleiben
+   unentschieden, dort ist das Zuordnen der Zweck des Schritts. */
+test("Orte starten frei, Menschen nicht", () => {
+  expect(startsFree("place", undefined)).toBe(true);
+  expect(startsFree("person", undefined)).toBe(false);
+});
+
+test("Ein gefundener Eintrag aus der Bibliothek gewinnt gegen die Vorauswahl", () => {
+  expect(startsFree("place", { tag: "berghain" })).toBe(false);
 });

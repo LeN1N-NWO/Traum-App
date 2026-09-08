@@ -194,14 +194,20 @@ test("the still is passed unconditionally, not only for single-image models", ()
  * bis 19.08.: alle fünf Szenen, auch für einen Fünf-Sekunden-Film. Die
  * Rot-Probe deckte die Lücke auf, also prüft dieser Test die Aufbereitung
  * und nicht nur die Anwesenheit. */
+/* Seit 03.09.2026 führt der SCHNITTPLAN (cut.js, im Client gerechnet): Er
+ * sagt, welche Szenen der Film trägt und wie lange jede zu sehen ist. Der
+ * Zuschnitt über beatsForSeconds bleibt der Rückfall für alles ohne Plan.
+ * Geprüft wird deshalb beides — und dass sie einander ausschliessen: Beides
+ * gleichzeitig zu schicken hiesse, dem Regisseur zwei Schnitte zu geben. */
 test("the arc reaching the director is cut to the film's length", () => {
   const src = readFileSync(new URL("../../server.js", import.meta.url).pathname, "utf8");
   const call = src.match(/buildDirectorBrief\(\{([\s\S]*?)\n\s*\}\)/)?.[1];
-  expect(call).toMatch(/beats:\s*beatsForSeconds\(/);
+  expect(call).toMatch(/\bshots,/);
+  expect(call).toMatch(/beats:\s*shots\.length\s*\?\s*\[\]\s*:\s*beatsForSeconds\(/);
   // …und die Sekundenzahl im Zuschnitt muss dieselbe sein, die auch im Brief
   // steht und bei fal.ai bestellt wird. Zwei verschiedene Zahlen hier hiessen:
   // der Regisseur rechnet mit einer Länge, gerendert wird eine andere.
-  const secs = call.match(/beats:\s*beatsForSeconds\([^,]+,\s*(\w+)\)/)?.[1];
+  const secs = call.match(/beatsForSeconds\([^,]+,\s*(\w+)\)/)?.[1];
   expect(secs).toBeTruthy();
   expect(call).toMatch(new RegExp(`seconds:\\s*${secs}\\b`));
 });

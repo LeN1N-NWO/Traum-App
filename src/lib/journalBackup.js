@@ -152,13 +152,31 @@ export function mergeShared(journal, gesicherte) {
       .filter((g) => g?.id && g.medien?.bilder?.length)
       .map((g) => [g.id, g.medien.bilder]),
   );
+  /* ⚠ Filme werden seit dem 31.08. genauso nachgefüllt wie Bilder. Vorher
+     nur Bilder — und ein Film, der den Weg zum Eintrag verpasst hatte, war
+     damit endgültig verloren, obwohl er fertig auf der Platte lag.
+     Genau das ist an diesem Tag passiert: 50 Minuten fertig bei fal,
+     bezahlt, und in der App nirgends. Was der Abgleich für Bilder kann,
+     muss er für die TEURERE Ware erst recht können. */
+  const filmVon = new Map(
+    (gesicherte || [])
+      .filter((g) => g?.id && g.medien?.film?.length)
+      .map((g) => [g.id, g.medien.film]),
+  );
   let ergaenzt = 0;
   const gefuellt = (journal || []).map((e) => {
-    if ((e?.media?.urls || []).length > 0) return e;
-    const bilder = bilderVon.get(e?.id);
-    if (!bilder?.length) return e;
-    ergaenzt++;
-    return { ...e, media: { ...(e.media || {}), type: "image", urls: bilder, source: "api" } };
+    let next = e;
+    if ((e?.media?.urls || []).length === 0) {
+      const bilder = bilderVon.get(e?.id);
+      if (bilder?.length) { ergaenzt++; next = { ...next, media: { ...(next.media || {}), type: "image", urls: bilder, source: "api" } }; }
+    }
+    /* Nur wenn KEIN Film da ist — ein vorhandener wird nie überschrieben,
+       und ein noch laufender Auftrag (jobId) wird nicht überholt. */
+    if (!(next?.film?.urls || []).length) {
+      const film = filmVon.get(e?.id);
+      if (film?.length) { ergaenzt++; next = { ...next, film: { urls: film, source: "api" }, jobId: undefined }; }
+    }
+    return next;
   });
 
   if (!neue.length && !ergaenzt) return null;
