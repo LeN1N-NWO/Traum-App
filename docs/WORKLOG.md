@@ -3,6 +3,35 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-09 08:34 — Anton — Branch `session/2026-09-05-anton` (PR #33) — Gemini Omni geprüft und gedroppt
+
+**Commits:** `1a3aba2` (drei Probeskripte, Google-API direkt) · `d6fdae0`
+(**Befund + Entscheidung**). Bezahlte Läufe: vier Omni-Renders à 10 s in
+360p plus ein gefilterter, ≈ $1,50. App-Code unverändert.
+
+Antons Frage: Gemini Omni 1.1 Flash mit 360p-Drafts und 40-s-Verlängerung
+als drittes Modell? Probe am Traum „Lift Off" in drei Generationen.
+**Entscheidung: gedroppt** — „schlecht geeignet, sieht auch nicht so gut
+aus." Sieben Messpunkte in `docs/plans/2026-09-05-gemini-omni-probe.md`.
+
+### Was der Nächste wissen muss
+
+- **⚠ 360p wird für den Kunden nicht billiger** als H3 480P: $0,03/s rundet
+  auf dieselben 2 Credits/s auf; 1 Credit/s läge unter dem Einkauf.
+- **⚠ Die Kette über `previous_interaction_id` nimmt IMMER den ersten Clip
+  als Kontext** (gemessen: 13,7/255 zu Teil 1, 63/255 zueinander). Kein
+  30-Sekünder auf diesem Weg.
+- **⚠ Verlängern hochgeladener Videos wird komplett geblockt** — auch mit
+  synthetischem Testbild ohne Person und harmlosem Einzeiler. Der Weg,
+  nicht der Inhalt.
+- Das Dauerfeld heißt `response_format.duration`; beim Extend-Task darf
+  kein `aspect_ratio` stehen. Beides per kostenloser Sondierung (400 in
+  1 s) gefunden — die Methode taugt für jede fremde API.
+- **Die Bash-Sandbox hat kein Netz nach außen**; Probeskripte gegen fremde
+  APIs laufen nur mit abgeschalteter Sandbox. `curl` gibt dort HTTP 000.
+- Die Skripte `scripts/omni-*.mjs` bleiben als Messprotokoll, im Kopf als
+  gedroppt markiert, hinter `--ja`.
+
 ## 2026-09-04 00:06 — Anton — Branch `session/2026-08-31-anton` (PR #32) — Nachtrag zum Abschluss von 23:50
 
 **Commits seit dem Abschluss:** `6031df1` (**Dreamflow nimmt alle Szenen,

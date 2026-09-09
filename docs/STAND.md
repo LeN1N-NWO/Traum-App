@@ -3,10 +3,11 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-04 (00:06) — `session/2026-08-31-anton` (PR #32,
-Entwurf), aufgesetzt auf `3da34aa`. **505 Tests grün**, Sprachdateien in
-Form (en+de gepflegt, 92 Schlüssel in den fünf eingefrorenen Sprachen
-offen). Bezahlte Läufe in dieser Sitzung: drei Filme, rund $3.
+**Stand:** 2026-09-09 08:34 — `main` nach Merge von PR #32 (Nur noch Film, Schnitt
+nach Gewicht, Presets) und PR #33 (Gemini Omni geprüft und gedroppt).
+**505 Tests grün**, Sprachdateien in Form (en+de gepflegt, 92 Schlüssel in
+den fünf eingefrorenen Sprachen offen). Bezahlte Läufe zuletzt: drei
+H3-Filme (≈ $3) und vier Omni-Proben (≈ $1,50).
 
 ## Wo wir stehen
 
@@ -53,7 +54,10 @@ Regie denken minutenlang — siehe Baustelle 1.
 7. **Server härten** (unverändert seit 26.08.): 14× `fetch` ohne Timeout ·
    `spawnSync` bei `/api/film-outro` blockiert den ganzen Server ·
    fal-Fehler als „pending" verschluckt (`server.js` jobStatus).
-8. **Name für Dreamflow** bestätigen (`en.js`/`de.js`
+8. **Kein drittes Modell.** Gemini Omni 1.1 Flash ist geprüft und
+   gedroppt (`docs/plans/2026-09-05-gemini-omni-probe.md`): 360p nicht
+   billiger für den Kunden, Verlängern praktisch nicht nutzbar.
+9. **Name für Dreamflow** bestätigen (`en.js`/`de.js`
    `wizard.step5.presets`) · Policy-Weg im Echtbetrieb · Reflection-
    Sprache · zwei weitere Maskottchen · Klang-Presets.
 
