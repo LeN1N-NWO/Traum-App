@@ -3,6 +3,40 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-09 08:45 — Anton — Branch `session/2026-09-09-anton` — Xcode vorbereitet, Übergabe an Hanni
+
+**Auftrag:** „Hanna hat heute vor, an der App weiterzuarbeiten, vor allem
+wollen wir endlich den Switch auf Xcode machen — bereite alles vor, und beim
+Start schreibst du an sie." Zustand: **517 Tests grün**, Simulator-Build
+grün, App im Simulator gestartet: ja.
+
+### Was jetzt da ist
+- **Capacitor 8** (`@capacitor/core`, `/ios`, `/cli`, dazu `typescript` als
+  Dev-Abhängigkeit für die `.ts`-Konfiguration). `capacitor.config.ts`:
+  appId `app.dreamrushes`, Name „Dream Rushes", webDir `dist`.
+- **`ios/App/App.xcodeproj` per Swift Package Manager** — kein CocoaPods
+  (ist auf Antons Rechner auch nicht installiert). 21 kleine Dateien im
+  Repo; `ios/App/App/public` und die erzeugte `capacitor.config.json`
+  sind ignoriert. `xcodebuild … -sdk iphonesimulator CODE_SIGNING_ALLOWED=NO`
+  → BUILD SUCCEEDED.
+- **Übergabe-Mechanik im Start-Hook** (`scripts/session-start.js`, 1b):
+  Dateien unter `docs/uebergabe/` mit einer Zeile `für: Name, Name` werden
+  der genannten Person beim Start vollständig angezeigt, allen anderen nur
+  als Hinweiszeile. Erledigt = Datei löschen. Antons Gruß an Hanni steht in
+  `docs/uebergabe/2026-09-09-hanni-xcode.md`, mit Leitfaden.
+
+### Was der Nächste wissen muss
+- **⚠ Ohne `VITE_API_BASE` beim Build geht jeder /api-Aufruf der nativen
+  App ins Leere.** Simulator: `http://localhost:8100`; Gerät: die IP des
+  Macs im WLAN. Kein `server.url` in der Capacitor-Konfiguration — das
+  zeigte im Repo auf einen fremden Rechner.
+- **Nach jedem `bun run build`: `bunx cap sync ios`.** Sonst läuft im
+  Simulator der alte Stand.
+- **Das Claude-Code-Simulator-Werkzeug meldet „Xcode not selected"**,
+  obwohl `xcode-select -p` stimmt — Werkzeugfehler, braucht sudo zum
+  Prüfen. `xcrun simctl boot/install/launch/io screenshot` tut es ohne.
+- Signing/Team ist das Einzige, was nicht im Repo liegen kann.
+
 ## 2026-09-09 08:34 — Anton — Branch `session/2026-09-05-anton` (PR #33) — Gemini Omni geprüft und gedroppt
 
 **Commits:** `1a3aba2` (drei Probeskripte, Google-API direkt) · `d6fdae0`
