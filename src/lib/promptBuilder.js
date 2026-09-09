@@ -135,6 +135,16 @@ export function stripReferenceClauses(prompt) {
    aus — gemessen war er zu dem Zeitpunkt längst der Unterschied zwischen
    Fotografie und Malerei. Eine Vorgabe, die das Gegenteil des Gemessenen
    tut, ist die teuerste Sorte Zeile. */
+/* Was für ein Bild jede Kachel ist. Bis zum 08.09. stand hier für JEDEN
+   Stil „cinematic photoreal film still" — auch für Dreamlike, Surreal und
+   die Handwerksstile, die ausdrücklich Gouache, Knete oder Papier
+   bestellen. Der Foto-Anker war für sie schon aus, aber dieses eine Wort
+   blieb: Ein Prompt, der „photoreal" sagt und drei Zeilen später
+   „hand-painted gouache", hat sich entschieden, bevor der Stil dran ist. */
+function stillNoun(photoreal) {
+  return photoreal ? "cinematic photoreal film still" : "cinematic frame in the style described below";
+}
+
 export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1, tile = "9:16", photoreal = photorealFor(styleId) }) {
   const style = styleById(styleId);
   const refs = clauses.length ? `\n${clauses.join(" ")}` : "";
@@ -155,8 +165,8 @@ export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1, 
       `separated by a thin solid black divider line running the full height between each panel — ` +
       `like a triptych or a 3-panel comic strip. The panels fill the ENTIRE canvas edge to edge: ` +
       `no letterboxing, no black bars above or below, no outer frame or margin of any kind. ` +
-      `Each panel is a self-contained cinematic photoreal ` +
-      `film still with no bleed or shared elements across the divider lines.` +
+      `Each panel is a self-contained ${stillNoun(photoreal)} ` +
+      `with no bleed or shared elements across the divider lines.` +
       `\n${panels}` +
       `\nConsistent color grade and lighting across all three panels so they read as one continuous ` +
       `sequence, in this style: ${style.prompt}` +
@@ -201,7 +211,7 @@ export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1, 
     `running the full width and height between them. Every tile is ` +
     `${tile === "16:9" ? "a HORIZONTAL 16:9 landscape frame" : "a VERTICAL 9:16 portrait frame"} ` +
     `and is completely filled edge to edge — no letterboxing inside a tile, no black bars, no outer ` +
-    `frame or margin around the grid. Each tile is a self-contained cinematic photoreal film still ` +
+    `frame or margin around the grid. Each tile is a self-contained ${stillNoun(photoreal)} ` +
     `with no bleed, no shared elements and no continuing scenery across the divider lines.` +
     `\n${plaetze}${leer}` +
     `\nConsistent color grade, lighting and wardrobe across all tiles so they read as one continuous ` +
@@ -244,7 +254,7 @@ export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 
      widersprechen sich darin. Zwei Brennweiten in einem Prompt sind
      schlechter als eine. */
   return (
-    `A cinematic, photoreal film still: ${beat}` +
+    `A ${stillNoun(photoreal)}: ${beat}` +
     `\n${shotClause(index, total)}` +
     `\n${style.prompt}` +
     `\n${framing}, ultra-detailed, accurate hands and faces.${photorealClause(photoreal)}${place}${refs}${anchor}`

@@ -25,9 +25,20 @@
  * gerenderten Clip als Auslieferungsmaterial in src/assets — dann wird
  * `clip` hier ein Import statt eines Pfads, und sonst ändert sich nichts.
  *
- * Reihenfolge = Rasterreihenfolge. Dreamflow steht vorn und doppelt breit,
- * die letzte Kachel ebenfalls doppelt breit, damit das Dreierraster aufgeht
- * (2+1 / 3 / 3 / 2). */
+ * Reihenfolge = Rasterreihenfolge. Dreamflow steht vorn und doppelt breit;
+ * mit zehn einfachen Stil-Kacheln dahinter geht das Dreierraster auf:
+ * 2+1 / 3 / 3 / 3 = 12 Zellen. Aufgeklappt kommen neun einfache dazu = 21,
+ * wieder durch drei teilbar. (Bis 08.09. war Adventure die zweite breite
+ * Kachel — bei neun Kacheln brauchte es zwei, bei elf keine mehr.)
+ *
+ * ── Erste Reihe und „More styles" (08.09.2026) ─────────────────────────
+ * Ob ein Preset sofort sichtbar ist, steht NICHT hier, sondern am Stil
+ * (`featured` in styles.js) — eine Wahrheit, ein Ort. Dreamflow ist immer
+ * sichtbar. Die elf Handwerksstile (Knete, Tusche, Scherenschnitt …) haben
+ * heute keinen Clip: PresetTile zeigt dann Emoji auf Farbe. Der Clip kommt
+ * wie bei den anderen, wenn je Stil einer gerendert ist. */
+
+import { styleById } from "./styles.js";
 
 export const DREAMFLOW = "dreamflow";
 
@@ -40,8 +51,31 @@ export const PRESETS = [
   { id: "dark",        styleId: "dark",        emoji: "🌑", clip: "/media/pv146xj01olre81.mp4", look: "brightness(.55) contrast(1.2) saturate(.7)" },
   { id: "surreal",     styleId: "surreal",     emoji: "🌀", clip: "/media/pv3mbc0jejqwty8.mp4", look: "hue-rotate(35deg) saturate(1.5)" },
   { id: "nostalgic",   styleId: "nostalgic",   emoji: "📻", clip: "/media/pv3nlve2uwl0zm.mp4", look: "sepia(.6) contrast(.95)" },
-  { id: "adventurous", styleId: "adventurous", emoji: "🧭", clip: "/media/pvt8t2asdudzc4.mp4", look: "saturate(1.35) contrast(1.1)", wide: true },
+  { id: "adventurous", styleId: "adventurous", emoji: "🧭", clip: "/media/pvt8t2asdudzc4.mp4", look: "saturate(1.35) contrast(1.1)" },
+  { id: "ink",         styleId: "ink",         emoji: "🖌" },
+  { id: "clay",        styleId: "clay",        emoji: "🗿" },
+  // ── ab hier hinter „More styles" (styles.js: featured fehlt) ──
+  { id: "goldenage",   styleId: "goldenage",   emoji: "🎞" },
+  { id: "fantasyanime", styleId: "fantasyanime", emoji: "🐉" },
+  { id: "oilpaint",    styleId: "oilpaint",    emoji: "🖼" },
+  { id: "marker",      styleId: "marker",      emoji: "🖍" },
+  { id: "actionfigure", styleId: "actionfigure", emoji: "🦸" },
+  { id: "marionette",  styleId: "marionette",  emoji: "🎭" },
+  { id: "papercut",    styleId: "papercut",    emoji: "✂️" },
+  { id: "papiermache", styleId: "papiermache", emoji: "📰" },
+  { id: "screenprint", styleId: "screenprint", emoji: "🖨" },
 ];
+
+/** Die erste Reihe: Dreamflow plus jedes Preset, dessen Stil `featured`
+ *  trägt. Abgeleitet, nicht hingeschrieben — sonst stünde die Wahrheit
+ *  über die Sichtbarkeit in zwei Dateien. */
+export function featuredPresets() {
+  return PRESETS.filter((p) => p.id === DREAMFLOW || styleById(p.styleId)?.featured);
+}
+
+export function morePresets() {
+  return PRESETS.filter((p) => p.id !== DREAMFLOW && !styleById(p.styleId)?.featured);
+}
 
 /** Welches Preset der Wizard-Zustand gerade meint. Kein eigenes Feld im
  *  Zustand: Ein Preset ist eine Ableitung aus Stil und Tempo, und zwei

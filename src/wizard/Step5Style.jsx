@@ -21,7 +21,7 @@ import ButtonTapOverlay from "../components/ButtonTapOverlay.jsx";
 import Storyboard from "../components/Storyboard.jsx";
 import MascotLoader from "../components/MascotLoader.jsx";
 import PresetTile from "../components/PresetTile.jsx";
-import { PRESETS, DREAMFLOW, activePreset, applyPreset } from "../lib/presets.js";
+import { DREAMFLOW, activePreset, applyPreset, featuredPresets, morePresets } from "../lib/presets.js";
 import Sheet from "../components/Sheet.jsx";
 import "./wizard.css";
 
@@ -31,6 +31,13 @@ export default function Step5Style({ w, patch }) {
   const [busy, setBusy] = useState(false);
   const [modelInfo, setModelInfo] = useState(null);  // Modell-id, deren ⓘ offen ist
   const [styleInfo, setStyleInfo] = useState(null);  // Stil-id, deren ⓘ offen ist
+  /* Die Handwerksstile stehen hinter „Mehr Stile". Ist einer davon schon
+     gewählt (alter Eintrag, Wiederaufnahme), ist die Reihe von Anfang an
+     offen — sonst hätte jemand einen Stil, den er auf dem Bildschirm nicht
+     findet. */
+  const hidden = morePresets();
+  const [showMore, setShowMore] = useState(() => hidden.some((p) => p.id === activePreset(w)));
+  const shownPresets = showMore ? [...featuredPresets(), ...hidden] : featuredPresets();
   const [msg, setMsg] = useState(0);
   const [done, setDone] = useState(0);
   const [prep, setPrep] = useState("");  // Figur, deren Bogen gerade entsteht
@@ -680,7 +687,7 @@ export default function Step5Style({ w, patch }) {
           Zustandsgröße: Es wird aus Stil und Tempo abgeleitet, damit zwei
           Quellen derselben Wahrheit nicht auseinanderlaufen. */}
       <div className="wiz-presets" role="group" aria-label={t.wizard.step5.styleLabel}>
-        {PRESETS.map((p) => {
+        {shownPresets.map((p) => {
           const style = STYLES.find((s) => s.id === p.styleId);
           const name = p.id === DREAMFLOW
             ? t.wizard.step5.presets.dreamflow
@@ -699,6 +706,17 @@ export default function Step5Style({ w, patch }) {
           );
         })}
       </div>
+      {/* Die zweite Reihe (Handwerksstile) klappt auf, statt ausgegraut
+          dazustehen: Ausgegraut liest sich als „nicht verfügbar" oder
+          „kostet extra", und beides stimmt nicht — ein Stil ist ein Stil,
+          ein Credit ist ein Bild. Der Knopf verschwindet, sobald offen ist:
+          Zuklappen mit gewähltem Stil darin wäre eine Wahl, die man nicht
+          mehr sieht. */}
+      {!showMore && (
+        <button className="wiz-styles-more" onClick={() => setShowMore(true)}>
+          {t.wizard.step5.moreStyles(hidden.length)}
+        </button>
+      )}
 
       {styleInfo && (
         <Sheet
