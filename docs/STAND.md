@@ -3,6 +3,10 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
+**Stand:** 2026-09-09 08:35 — `main` nach Merge von PR #30 (Cloud-Sitzung 08.09.:
+elf Handwerksstile, Serverkappung) und PR #33 (Gemini Omni geprüft und
+gedroppt). Der Absatz darunter ist der Stand der Cloud-Sitzung, unverändert:
+
 **Stand:** 2026-09-08 — `claude/new-session-x9qv1w` (Cloud, PR #30),
 aufgesetzt auf `3da34aa`, **`main` (PR #32, 04.09.) hereingeholt und von
 Hand vereint.** **517 Tests grün**, fünf Skriptprüfungen grün, Build
@@ -73,6 +77,17 @@ Regie denken minutenlang — siehe Baustelle 1.
     fal-Fehler als „pending" verschluckt (`server.js` jobStatus).
 11. **Name für Dreamflow** bestätigen · Policy-Weg im Echtbetrieb ·
     Reflection-Sprache · zwei weitere Maskottchen · Klang-Presets.
+
+## Entschieden am 05.09. — kein drittes Videomodell
+
+**Gemini Omni 1.1 Flash ist geprüft und gedroppt** (Antons Wort nach der
+Probe; Befund mit sieben Messpunkten in
+`docs/plans/2026-09-05-gemini-omni-probe.md`, Skripte `scripts/omni-*.mjs`
+als Messprotokoll hinter `--ja`). Kurz: 360p wird für den Kunden nicht
+billiger als H3 480P (beide 2 Credits/s), der Draft lässt sich nicht
+hochrechnen, die Kette über die Vorgänger-ID hängt immer am ersten Clip,
+das Verlängern hochgeladener Videos wird komplett geblockt. Die
+Zweiteiler-Frage bleibt beim Preisentscheid.
 
 ## Bekannte Baustellen
 
