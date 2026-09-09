@@ -12,12 +12,16 @@
     "test": "TZ=Europe/Berlin bun test && node scripts/test-static.mjs && node scripts/test-prompt-sanitize.mjs && node scripts/test-contrast.mjs && node scripts/check-i18n-shape.mjs && node scripts/test-rtl.mjs"
   },
   "dependencies": {
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.1",
     "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^7.0.2",
     "vite": "^5.4.0"
   }
 }

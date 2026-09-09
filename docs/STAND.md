@@ -3,7 +3,11 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-09 08:35 — `main` nach Merge von PR #30 (Cloud-Sitzung 08.09.:
+**Stand:** 2026-09-09 08:45 — `session/2026-09-09-anton`: Xcode-Switch vorbereitet
+(Capacitor 8, iOS-Projekt per SPM, Simulator-Build grün), Übergabe an Hanni
+liegt in `docs/uebergabe/`. Darunter der Stand der Cloud-Sitzung vom 08.09.:
+
+Vorher: 2026-09-09 08:35 — `main` nach Merge von PR #30 (Cloud-Sitzung 08.09.:
 elf Handwerksstile, Serverkappung) und PR #33 (Gemini Omni geprüft und
 gedroppt). Der Absatz darunter ist der Stand der Cloud-Sitzung, unverändert:
 
@@ -39,6 +43,10 @@ Regie denken minutenlang — siehe Baustelle 1.
 
 ## Nächste Schritte
 
+0. **Xcode-Switch (Hanni, ab 09.09.):** `bun run build` → `bunx cap sync ios`
+   → `bunx cap open ios`. Simulator läuft; fürs Gerät Team unter Signing
+   eintragen und `VITE_API_BASE` auf die Mac-IP setzen. Leitfaden:
+   `docs/uebergabe/2026-09-09-hanni-xcode.md` (löschen, wenn erledigt).
 1. **⚠⚠ Die Uhren** (`api.js` TIMEOUTS, `server.js` directFilm/analyzeDream):
    `/api/generate` soll im Film-Modus SOFORT eine Auftragsnummer liefern
    und die Regie im Hintergrund schreiben — das schließt vermutlich die

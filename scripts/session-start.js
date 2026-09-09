@@ -40,6 +40,30 @@ if (generic.includes(userName.toLowerCase())) {
   console.log('Es arbeitet laut Git: ' + userName);
 }
 
+// 1b) Übergabe an eine bestimmte Person (Antons Ansage 09.09.2026: „beim
+// Start schreibst du an sie, wenn sie eine neue Session beginnt"). Der Gruß
+// hängt an einer Datei unter docs/uebergabe/: Solange sie da ist, wird sie
+// der Person angezeigt, für die sie bestimmt ist — und alle anderen sehen
+// nur eine Zeile, dass sie existiert. Erledigt heißt: Datei löschen. So
+// bleibt der Gruß nicht ewig im Hook stehen, und er ist mit dem Zweig
+// versioniert wie alles andere.
+const uebergabeDir = path.join(repoRoot, 'docs', 'uebergabe');
+if (fs.existsSync(uebergabeDir)) {
+  for (const f of fs.readdirSync(uebergabeDir).filter((n) => n.endsWith('.md')).sort()) {
+    const text = fs.readFileSync(path.join(uebergabeDir, f), 'utf8');
+    const fuer = (text.match(/^für:\s*(.+)$/mi) || [])[1];
+    const namen = (fuer || '').split(',').map((n) => n.trim().toLowerCase()).filter(Boolean);
+    if (namen.length && namen.includes(userName.toLowerCase())) {
+      line('═');
+      console.log(text.replace(/^für:.*\n/mi, '').trim());
+      line('═');
+    } else if (namen.length) {
+      console.log('ℹ Übergabe liegt bereit für ' + fuer + ': docs/uebergabe/' + f
+        + (generic.includes(userName.toLowerCase()) ? ' — erst den Namen setzen, dann erscheint sie.' : ''));
+    }
+  }
+}
+
 // 2) Branch und Worktree
 const branch = tryGit('rev-parse', '--abbrev-ref', 'HEAD') || '(unbekannt)';
 console.log('Branch:   ' + branch);
