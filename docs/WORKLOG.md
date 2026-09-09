@@ -3,6 +3,22 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-09 18:48 — Hanni — Branch `session/2026-09-09-hanni` — Xcode-Migration fortgesetzt
+
+**Auftrag:** Weiterarbeit an der Xcode-Migration aus `docs/uebergabe/2026-09-09-hanni-xcode.md`
+(Übergabe von Anton, PR #34). Session-Branch neu aus `main` aufgesetzt und
+Entwurfs-PR eröffnet (Reservierung nach AGENTS.md).
+
+**Wichtig:** Die eigentlichen Schritte (`bun run build`, `bunx cap sync ios`,
+`bunx cap open ios`, Signing & Capabilities, Simulator/Gerät) laufen auf
+Hannis Mac direkt im Terminal/Xcode — die Cowork-Cloud-Umgebung kann Dateien
+im Repo lesen/ändern, aber kein Xcode oder `bunx cap open ios` ausführen.
+
+### Was der Nächste wissen muss
+- Wirkungsradius dieser Session: `docs/uebergabe/`, `docs/WORKLOG.md`,
+  `docs/STAND.md`, ggf. `capacitor.config.ts` / `VITE_API_BASE`-Handling.
+- Kein Code geändert, keine bezahlten Läufe.
+
 ## 2026-09-09 08:45 — Anton — Branch `session/2026-09-09-anton` — Xcode vorbereitet, Übergabe an Hanni
 
 **Auftrag:** „Hanna hat heute vor, an der App weiterzuarbeiten, vor allem
