@@ -24,6 +24,33 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- The bundle talks to a server.js over VITE_API_BASE, and that server
+	     holds the keys. On a device it lives at the Mac's address in the
+	     WLAN, i.e. bare http:// on the local network — App Transport
+	     Security blocks that without this exception. NSAllowsLocalNetworking
+	     permits exactly that and NOT the open internet; NSAllowsArbitraryLoads
+	     is the blunt tool and would open every foreign http address with it. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<!-- Since iOS 14 the system asks before an app may reach the local
+	     network at all. No text, no prompt; no prompt, no connection. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Dream Rushes connects to the Dream Rushes server running on your computer in this network.</string>
+	<!-- ⚠ These three strings are not decoration: iOS kills the app outright
+	     the moment it reaches for microphone or camera without the matching
+	     text — no dialog, no error, just a crash. The voice interview calls
+	     getUserMedia (src/lib/voiceSession.js), and the avatar dialog has a
+	     file input with capture="environment"
+	     (src/components/AvatarDialog.jsx). -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Dream Rushes uses the microphone so you can tell your dream out loud.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Dream Rushes uses the camera so you can take a photo for a character.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Dream Rushes uses your photos so you can pick a picture for a character.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

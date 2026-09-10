@@ -3,13 +3,23 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-09 08:45 — `session/2026-09-09-anton`: Xcode-Switch vorbereitet
-(Capacitor 8, iOS-Projekt per SPM, Simulator-Build grün), Übergabe an Hanni
-liegt in `docs/uebergabe/`. Darunter der Stand der Cloud-Sitzung vom 08.09.:
+**Stand:** 2026-09-10 18:14 — `session/2026-09-09-hanni` (PR #35):
+**Die native iOS-App läuft im Simulator und spricht mit dem Server.**
+Ein Testtraum ist durch die ganze Kette gegangen und liegt als
+`data/traeume/2026-09-10-e_mtvpt7c4qiu4mq.json`. Dafür mussten zwei Dinge
+nachgezogen werden, die den nativen Betrieb komplett blockiert hätten:
+**CORS in `server.js`** (jeder `/api`-Aufruf der App war tot) und die
+**Privacy-Schlüssel in `Info.plist`** (Mikrofon/Kamera hätten die App hart
+beendet). Beides unten unter „Fallen". Offen bleibt nur noch Signing/Team
+und der Lauf auf einem echten Gerät. 517 Tests grün, fünf Skriptprüfungen
+grün, keine bezahlten Läufe.
 
-Vorher: 2026-09-09 08:35 — `main` nach Merge von PR #30 (Cloud-Sitzung 08.09.:
-elf Handwerksstile, Serverkappung) und PR #33 (Gemini Omni geprüft und
-gedroppt). Der Absatz darunter ist der Stand der Cloud-Sitzung, unverändert:
+Vorher: 2026-09-09 08:45 — `session/2026-09-09-anton`: Xcode-Switch
+vorbereitet (Capacitor 8, iOS-Projekt per SPM, Simulator-Build grün).
+Darunter der Stand vom 09.09. 08:35 — `main` nach Merge von PR #30
+(Cloud-Sitzung 08.09.: elf Handwerksstile, Serverkappung) und PR #33
+(Gemini Omni geprüft und gedroppt). Der Absatz darunter ist der Stand der
+Cloud-Sitzung, unverändert:
 
 **Stand:** 2026-09-08 — `claude/new-session-x9qv1w` (Cloud, PR #30),
 aufgesetzt auf `3da34aa`, **`main` (PR #32, 04.09.) hereingeholt und von
@@ -43,10 +53,18 @@ Regie denken minutenlang — siehe Baustelle 1.
 
 ## Nächste Schritte
 
-0. **Xcode-Switch (Hanni, ab 09.09.):** `bun run build` → `bunx cap sync ios`
-   → `bunx cap open ios`. Simulator läuft; fürs Gerät Team unter Signing
-   eintragen und `VITE_API_BASE` auf die Mac-IP setzen. Leitfaden:
-   `docs/uebergabe/2026-09-09-hanni-xcode.md` (löschen, wenn erledigt).
+0. **iOS auf einem ECHTEN Gerät** — der Simulator ist seit 10.09. durch.
+   Zwei Schritte fehlen, beide nur auf Hannis Mac machbar: in Xcode unter
+   *Signing & Capabilities* das Entwicklerteam eintragen (das Einzige, was
+   nicht im Repo liegen kann), und beim Bauen `VITE_API_BASE` auf die
+   WLAN-Adresse des Macs setzen statt auf localhost:
+
+       ipconfig getifaddr en0
+       VITE_API_BASE=http://<IP>:8100 bun run build && bunx cap sync ios
+
+   ATS erlaubt das jetzt (`NSAllowsLocalNetworking`); beim ersten Start
+   fragt iOS einmal nach dem lokalen Netz — bestätigen, sonst bleibt die
+   API stumm. Der Ablauf für den Simulator steht unten unter „Werkzeuge".
 1. **⚠⚠ Die Uhren** (`api.js` TIMEOUTS, `server.js` directFilm/analyzeDream):
    `/api/generate` soll im Film-Modus SOFORT eine Auftragsnummer liefern
    und die Regie im Hintergrund schreiben — das schließt vermutlich die
@@ -106,9 +124,12 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
 - **⚠ Kein bezahlter Beweis für den ungekappten Standbild-Prompt.** Alles,
   was seit dem 25.08. „bezahlt bewiesen" heißt, lief mit einem Prompt,
   dem Stil-Rest, Anker und Klauseln fehlten.
-- **`data/traeume/2026-09-03-e_mtlxb972tea3m5.json` liegt uncommittet** —
-  DreamBank-Traum unter CC BY-NC-SA, darf nicht ins Repository. Löschen
-  oder liegen lassen, nie committen.
+- **DreamBank-Träume dürfen NIE ins Repository** — CC BY-NC-SA. Die Datei
+  `2026-09-03-e_mtlxb972tea3m5.json`, die hier bis zum 09.09. als
+  uncommittet vermerkt war, liegt inzwischen in keinem der beiden Checkouts
+  mehr. Die Regel bleibt: fremdes Traummaterial nur lokal, nie committen.
+- **iOS: Signing/Team und das echte Gerät stehen aus** (nächster Schritt 0).
+  Der Simulator ist seit 10.09. durch, inklusive API-Verbindung.
 - **Bildcode ist noch da** (Raster, Schnitt, `imageJobs`, Storyboard-
   Nachfüllen, Paywall-Bilderkachel) — bewusst, bis Phase 3 durch ist.
 - **`styles.js` trägt `poster`-Angaben, die niemand liest** — der
@@ -176,6 +197,58 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
 - **⚠ Ein Kachelname hat Platz für zwei kurze Wörter** — „90s Fantasy
   Anime" wurde zu „90s Fantasy…". Jetzt „Fantasy Anime".
 
+### iOS und Capacitor (10.09.)
+
+- **⚠⚠ Ein grüner Build sagt NICHTS über eine laufende Verbindung.** Antons
+  `xcodebuild` am 09.09. war ein reiner Übersetzungslauf; dass jeder
+  `/api`-Aufruf der nativen App am fehlenden CORS starb, konnte er dabei
+  nicht sehen. **Native Hüllen müssen einmal echt sprechen, nicht nur
+  übersetzen.**
+- **⚠⚠ `capacitor://localhost` ist ein FREMDER Origin — auch gegenüber
+  `http://localhost`.** Schema und Port unterscheiden sich, damit ist jeder
+  Aufruf an `VITE_API_BASE` cross-origin. Im Browser fällt das nie auf, weil
+  Oberfläche und API dort denselben Origin teilen. `server.js` beantwortet
+  seit dem 10.09. Preflights und setzt Freigaben (`corsHeaders()`), **gegen
+  eine Liste, nicht mit `*`** — der Server hält die Schlüssel, und mit `*`
+  könnte jede Seite in jedem Browser bezahlte Läufe auslösen.
+- **⚠ Ein Preflight muss VOR der Geldschranke beantwortet werden.** Ein
+  OPTIONS trägt kein Token und tut nichts; durch den Gatekeeper geschickt
+  könnte das Rate-Limit ausgerechnet die Frage abweisen, ob die echte
+  Anfrage gestellt werden darf.
+- **⚠⚠ Fehlende Nutzungstexte in `Info.plist` sind kein Schönheitsfehler —
+  iOS beendet die App hart.** Kein Dialog, kein Fehler, nur weg, sobald sie
+  nach Mikrofon (`voiceSession.js:132`) oder Kamera
+  (`AvatarDialog.jsx:359`) greift. Alle drei Texte stehen jetzt drin, mit
+  Begründung als Kommentar. **Wer eine Web-API nativ verpackt, prüft die
+  Berechtigungen VOR dem ersten Antippen.**
+- **⚠ Der erste Start dauert Minuten und sieht aus wie ein Absturz.**
+  Gemessen: `WebContent 5,27 s`, `GPU 4,95 s`, `Networking 5,59 s` — WebKit
+  startet drei kalte Hilfsprozesse, dazu der erste SPM-Build. Geduld, kein
+  Fehler.
+- **⚠ `⚡️ JS Eval error` beim Start ist harmlos** (`CapacitorBridge.swift:660`):
+  Capacitor feuert `window.Capacitor.triggerEvent(...)`, bevor
+  `window.Capacitor` in der Seite existiert. Steht deshalb VOR
+  `⚡️ WebView loaded`. **Xcode-Konsole nach `⚡️` filtern** — von ~30
+  Startzeilen sind zwei relevant, der Rest ist Simulator-Rauschen.
+- **⚠ Träume gehen raus, aber nicht zurück.** Die Rückhol-Logik ist DEV-only
+  (`AppState.jsx:412`) und fällt bei `vite build` heraus; die Sicherung
+  selbst läuft auch nativ (`AppState.jsx:456`). Stirbt der `localStorage`
+  im Simulator, liegen die Träume sicher in `data/traeume/` — die App holt
+  sie sich nicht wieder. Die Besetzung mit Fotos ist ganz DEV-only
+  (`AppState.jsx:468`), läuft nativ also gar nicht.
+- **⚠ Ein Worktree überlebt keinen Pfadwechsel der Umgebung.** Zeigt
+  `<worktree>/.git` auf einen toten Mount, sagt jedes `git` dort „not a git
+  repository" und `git worktree list` meldet `prunable`. Reparatur: die
+  zwei Zeiger umbiegen (`<worktree>/.git` und
+  `<hauptrepo>/.git/worktrees/<name>/gitdir`). **Das ist nicht kosmetisch:**
+  `mediaRoot.js` liest genau diese `.git`-Datei, um das Hauptrepo zu finden
+  — mit totem Pfad schreibt die Traumsicherung ins Nirgendwo.
+- **⚠ `bun run build` läuft über das System-`node`, nicht über Bun.** Bei
+  Node 12 stirbt `vite` an `ERR_REQUIRE_ESM` und die Capacitor-CLI
+  verweigert (`requires NodeJS >=22`). Notausgang ohne Installation:
+  `bun --bun run …` erzwingt Buns eigene Runtime. Auf Hannis Mac steht seit
+  dem 10.09. Node 26.8.1 (Homebrew), dort gehen die Befehle unverändert.
+
 ### Gestaltung
 
 - **⚠ Ein Wert kann keinen Vergleich ausdrücken** (Luzid-Guide, zweimal).
@@ -226,6 +299,19 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
 
 ## Werkzeuge
 
+- **iOS im Simulator** (zwei Terminals, Stand 10.09.):
+
+      # Tab 1 — Server, muss laufen bleiben (hält die Schlüssel)
+      bun run dev:api
+
+      # Tab 2 — bauen, in die Hülle kopieren, Xcode öffnen
+      VITE_API_BASE=http://localhost:8100 bun run build \
+        && bunx cap sync ios && bunx cap open ios
+
+  In Xcode: Ziel „App", ein Simulator, ▶. Nach einer `Info.plist`-Änderung
+  **Stop und neu starten**, ein Reload greift dort nicht. Bei `EADDRINUSE`
+  hält ein alter Server den Port: `pkill -f "bun server.js"` als eigenen
+  Befehl (er trifft sonst die eigene Shell).
 - `/regisseur-schnitt` — Traumtext + Sekunden + Modell → Beat-Tabelle,
   Empfehlung, Shot-Liste. Rendert nichts.
 - `bun scripts/preis-durchreichen.mjs` — alle vier Modell/Qualitäts-Stufen.
@@ -244,6 +330,11 @@ Journal · ⊕ · Sleep · Profil), Wizard über der Tab-Leiste.
 **Stack:** Bun + Vite + React 18 (HashRouter); `server.js` als
 schlüsselhaltender Proxy (fal.ai, DeepSeek, Gemini). Zustand in
 `localStorage` (`dreamrushes_v1`). Sieben Sprachen, gepflegt **en+de**.
+**Nativ:** Capacitor 8 packt `dist/` in eine iOS-App (`ios/App`, per SPM,
+kein CocoaPods) — echte `.app`, echtes Xcode-Ziel, Oberfläche im WKWebView.
+Seit 10.09. im Simulator lauffähig samt API. Eine ADR, die diese Wahl
+begründet, **gibt es bis heute nicht** — sie steht unter „Nächste Schritte"
+der früheren Sitzungen als offener Punkt („Capacitor-ADR + In-App-Käufe").
 **Stile:** 19 (`styles.js`) — 8 Stimmungs-Stile, 11 Handwerksstile; als
 20 Presets mit Dreamflow (`presets.js`), 10 in der ersten Reihe.
 

@@ -1923,7 +1923,45 @@ async function serveStatic(pathname) {
   return new Response(file, { headers: { "content-type": TYPES[hit.ext] } });
 }
 
-Bun.serve({
+/* ── Cross-origin access ──────────────────────────────────────────────────
+ *
+ * The web build is served by this very server, so its calls are same-origin
+ * and never touched CORS. The Capacitor build is not: WKWebView loads the
+ * bundle from `capacitor://localhost` (scheme and hostname are Capacitor's
+ * defaults, see CAPInstanceDescriptor.swift), so every call to
+ * VITE_API_BASE — even `http://localhost:8100` — is cross-origin. Without
+ * the headers below the native app reaches a healthy server and still sees
+ * nothing: simple GETs lose their response for want of Allow-Origin, and
+ * every POST from api.js dies in a preflight, because it sends
+ * `content-type: application/json` (found 09.09.2026, first run out of the
+ * iOS shell; the earlier simulator check only ever compiled the project).
+ *
+ * The origin is matched against a list rather than answered with `*`, and
+ * the reason is money: this server holds the fal/DeepSeek/Gemini keys and
+ * generation is billed. With `*`, any page in any browser on this machine
+ * or LAN could start paid runs in the background. The list stays narrow —
+ * the two native schemes and a loopback dev server on any port. */
+const NATIVE_ORIGINS = new Set(["capacitor://localhost", "ionic://localhost"]);
+const LOOPBACK_ORIGIN = /^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/;
+
+function corsHeaders(req) {
+  const origin = req.headers.get("origin");
+  if (!origin) return null; // Same-origin and plain navigations: nothing to add.
+  if (!NATIVE_ORIGINS.has(origin) && !LOOPBACK_ORIGIN.test(origin)) return null;
+  return {
+    "access-control-allow-origin": origin,
+    /* The answer differs per origin, and /api/voice-sample is cached for a
+       year — without this, one origin's response would be replayed to the
+       next from a shared cache. */
+    vary: "Origin",
+    "access-control-allow-methods": "GET, POST, OPTIONS",
+    // x-api-token is the gatekeeper's header (gatekeeper.js).
+    "access-control-allow-headers": "content-type, x-api-token",
+    "access-control-max-age": "86400",
+  };
+}
+
+const serveOptions = {
   port: PORT,
 
   /* ⚠ OHNE DIESE ZEILE STIRBT JEDE GENERIERUNG (gefunden 21.08.2026, als
@@ -2048,7 +2086,7 @@ Bun.serve({
     },
   },
 
-  async fetch(req, server) {
+  async route(req, server) {
     const url = new URL(req.url);
 
     /* Die Schranke vor allem, was Geld kostet. Steht ganz oben, damit kein
@@ -2717,7 +2755,30 @@ Bun.serve({
 
     return serveStatic(url.pathname);
   },
-});
+
+  /* Everything goes through here so that no route can forget its headers —
+   * media included, because the app resolves /media/ against API_BASE too.
+   *
+   * The preflight is answered before route(), and deliberately so: it runs
+   * ahead of the gatekeeper. An OPTIONS carries no token and does nothing,
+   * so letting it past the money barrier costs nothing — while sending it
+   * *through* would let the rate limit reject the question that asks
+   * whether the real request may be sent at all. */
+  async fetch(req, server) {
+    const cors = corsHeaders(req);
+    if (req.method === "OPTIONS") {
+      return new Response(null, { status: cors ? 204 : 405, headers: cors ?? undefined });
+    }
+    const res = await serveOptions.route(req, server);
+    /* A successful WebSocket upgrade (/api/voice) answers with nothing at
+       all — Bun has already taken the socket over. Sockets know no CORS. */
+    if (!res) return undefined;
+    if (cors) for (const [name, value] of Object.entries(cors)) res.headers.set(name, value);
+    return res;
+  },
+};
+
+Bun.serve(serveOptions);
 
 function json(obj, status = 200, extraHeaders) {
   return new Response(JSON.stringify(obj), {

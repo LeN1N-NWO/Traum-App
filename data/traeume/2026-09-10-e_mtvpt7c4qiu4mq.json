@@ -1,0 +1,76 @@
+{
+  "id": "e_mtvpt7c4qiu4mq",
+  "createdAt": "2026-09-10T16:01:42.315Z",
+  "kind": "dream",
+  "title": "Der endlose Schal",
+  "tagline": "Der Bahnhof versinkt, doch der Schal wächst weiter.",
+  "text": "Ein Bahnhof lag vollständig unter Wasser. In der überfluteten Bahnhofshalle saß eine alte Frau auf einer Bank und strickte an einem Schal, der immer länger wurde und sich durch die ganze Bahnhofshalle zog. Ein Mann in einem gelben Mantel schwamm an mir vorbei und aus dem Bahnhof hinaus.",
+  "originalText": "Ein Bahnhof der vollständig unter Wasser liegt.eine alte Frau sitzt auf einer bank und strickt an einem schal, der immer länger wurde und sich durch die ganze Bahnhofshalle zog. Ein Mann in einem gelben mantel schwamm an mir vorbei aus dem Bahnhof hinaus",
+  "analysis": {
+    "language": "de",
+    "text": "Ein Bahnhof lag vollständig unter Wasser. In der überfluteten Bahnhofshalle saß eine alte Frau auf einer Bank und strickte an einem Schal, der immer länger wurde und sich durch die ganze Bahnhofshalle zog. Ein Mann in einem gelben Mantel schwamm an mir vorbei und aus dem Bahnhof hinaus.",
+    "people": [
+      {
+        "name": "ich",
+        "kind": "person",
+        "desc": "",
+        "wearing": ""
+      },
+      {
+        "name": "alte Frau",
+        "kind": "person",
+        "desc": "alt",
+        "wearing": ""
+      },
+      {
+        "name": "Mann",
+        "kind": "person",
+        "desc": "",
+        "wearing": "gelber Mantel"
+      }
+    ],
+    "places": [
+      "überfluteter Bahnhof"
+    ],
+    "beats": [
+      "A train station lies completely underwater.",
+      "alte Frau sits on a bench in the flooded station hall and knits a scarf.",
+      "The scarf grows longer and longer, stretching across the entire station hall.",
+      "Mann, wearing a yellow coat, swims past ich and out of the station."
+    ],
+    "beatMeta": [
+      {
+        "hook": "setup",
+        "min_s": 4
+      },
+      {
+        "hook": "build",
+        "min_s": 4
+      },
+      {
+        "hook": "climax",
+        "min_s": 6
+      },
+      {
+        "hook": "transit",
+        "min_s": 3
+      }
+    ],
+    "signature": 2,
+    "style": "surreal",
+    "mood": "unwirklich ruhig",
+    "title": "Der endlose Schal",
+    "tagline": "Der Bahnhof versinkt, doch der Schal wächst weiter.",
+    "filmSeconds": 6
+  },
+  "style": "dreamlike",
+  "format": "9:16",
+  "mode": "film",
+  "imageCount": 0,
+  "creatureId": "cr_mtvpt7cigkuqjo",
+  "references": [],
+  "medien": {
+    "bilder": [],
+    "film": []
+  }
+}
