@@ -3,6 +3,136 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-10 18:14 — Hanni — Branch `session/2026-09-09-hanni` — Native iOS-App läuft, CORS und Privacy-Schlüssel nachgezogen
+
+**Auftrag:** Die Xcode-Migration aus Antons Übergabe zu Ende bringen — bauen,
+`cap sync`, Simulator, und sehen, was dabei kaputtgeht. (Der Branch trägt den
+09.09. im Namen, gearbeitet wurde am 10.09.; umbenennen wäre mehr Ärger als
+Wert.)
+
+**Ergebnis: die App läuft im Simulator und spricht mit dem Server.** Der
+Testtraum liegt als `data/traeume/2026-09-10-e_mtvpt7c4qiu4mq.json` — mit
+`analysis`, ohne Fotos, also sind `/api/analyze`, `/api/refine` und
+`/api/journal-backup` aus der nativen Hülle heraus bewiesen.
+
+### ⚠⚠ Der Fund: server.js hatte kein CORS — jeder /api-Aufruf der nativen App war tot
+
+Capacitor lädt die Oberfläche unter dem Origin `capacitor://localhost`
+(`CAPInstanceDescriptor.swift:4-5`). Damit ist jeder Aufruf an
+`VITE_API_BASE` cross-origin — **auch `http://localhost:8100`**, denn Schema
+und Port unterscheiden sich. `server.js` schickte keinen einzigen
+CORS-Header. Gemessen, vor dem Fix:
+
+    OPTIONS /api/panel  (Preflight für POST)  → 404 Not Found
+    GET /api/cast-backup (Origin: capacitor…) → 200, aber kein Allow-Origin
+
+Folge: `api.js:83` postet mit `content-type: application/json`, das erzwingt
+einen Preflight, der 404 bekommt — WKWebView blockt. Die einfachen GETs
+sterben an der fehlenden Freigabe. **Der Server lief dabei tadellos.** Im
+Browser fällt das nie auf, weil dort Origin und API identisch sind.
+
+**Warum es niemandem vorher auffiel:** Antons Simulator-Lauf am 09.09. war
+ein `xcodebuild` — ein reiner Übersetzungslauf. Die API wurde aus der
+nativen Hülle nie tatsächlich aufgerufen. **Ein grüner Build sagt nichts
+über eine laufende Verbindung.**
+
+Der Fix (`server.js`, `corsHeaders()` + der `fetch`-Wrapper um `route()`):
+alles läuft durch eine Stelle, damit keine Route ihre Header vergessen kann,
+`/media/` eingeschlossen. **Kein `*`, sondern eine Liste** — der Server hält
+die fal/DeepSeek/Gemini-Schlüssel, und Generierung kostet Geld; mit `*`
+könnte jede Seite in jedem Browser bezahlte Läufe auslösen. Der Preflight
+wird VOR dem Gatekeeper beantwortet: ein OPTIONS trägt kein Token und tut
+nichts, aber durch die Schranke geschickt könnte das Rate-Limit ausgerechnet
+die Frage abweisen, ob die echte Anfrage gestellt werden darf.
+
+### ⚠⚠ Beim Fixen gefunden: fehlende Privacy-Texte hätten die App zum Absturz gebracht
+
+`ios/App/App/Info.plist` hatte weder ATS-Ausnahme noch Nutzungstexte. Die
+Texte sind kein Beiwerk: **iOS beendet die App hart** — kein Dialog, kein
+Fehler, nur weg —, sobald sie ohne den passenden Text nach Mikrofon oder
+Kamera greift. Betroffen wären gewesen:
+
+- **das Sprachinterview** (`voiceSession.js:132`, `getUserMedia`)
+- **der Avatar-Dialog** (`AvatarDialog.jsx:359`, `capture="environment"`)
+
+Jetzt drin: `NSMicrophoneUsageDescription`, `NSCameraUsageDescription`,
+`NSPhotoLibraryUsageDescription`, dazu `NSAppTransportSecurity` mit
+`NSAllowsLocalNetworking` (erlaubt das lokale Netz, **nicht** das offene
+Internet — `NSAllowsArbitraryLoads` wäre das grobe Werkzeug) und
+`NSLocalNetworkUsageDescription` für die iOS-14-Abfrage. Ohne ATS-Ausnahme
+scheitert das echte Gerät an `http://192.168.x.x:8100`.
+
+### Was der Nächste wissen muss
+
+- **⚠ Der erste Start dauert Minuten und sieht aus wie ein Absturz.**
+  Schwarzer Bildschirm, nichts passiert. Gemessen im Xcode-Log:
+  `WebContent process took 5.27s`, `GPU 4.95s`, `Networking 5.59s` — WebKit
+  startet drei eigene Hilfsprozesse, kalt. Dazu der erste SPM-Build. **Kein
+  Fehler, nur Geduld.** Zweiter Start ist deutlich schneller.
+- **⚠ `⚡️ JS Eval error` beim Start ist bekannt und harmlos.** Kommt aus
+  `CapacitorBridge.swift:660`; Capacitor feuert
+  `window.Capacitor.triggerEvent(...)` in die Seite, bevor `window.Capacitor`
+  dort existiert. Steht im Log VOR `⚡️ WebView loaded` — genau deshalb.
+  Capacitors Innereien, nicht unser Code.
+- **Xcode-Konsole nach `⚡️` filtern.** Von ~30 Zeilen beim Start sind zwei
+  relevant; der Rest (`objc[…] UIKB…`, `RTIInputSystemClient`, `CA Event`,
+  `XPC interrupted`) ist Simulator-Rauschen.
+- **⚠ Träume gehen raus, aber nicht zurück.** Der Block, der die Sicherung
+  beim Start wieder einliest, ist DEV-only (`AppState.jsx:412`) und fällt bei
+  `vite build` heraus. Die Sicherung selbst läuft auch nativ
+  (`AppState.jsx:456`). Stirbt der `localStorage` im Simulator, liegen die
+  Träume sicher in `data/traeume/` — die App holt sie sich aber nicht wieder.
+  Dasselbe für die Besetzung mit Fotos, deren Sicherung ist ganz DEV-only
+  (`AppState.jsx:468`), läuft im Simulator also gar nicht.
+- **Der Traum landet im HAUPTREPO, nicht im Worktree** — `mediaRoot.js`
+  biegt das absichtlich um (AGENTS.md). Für den Commit von Hand herüber
+  kopiert.
+- **⚠ Ein Worktree überlebt einen Pfadwechsel der Umgebung nicht.** Dieser
+  hier zeigte per `.git` auf einen toten `/sessions/…`-Mount; jedes `git`
+  darin gab „not a git repository", `git worktree list` sagte `prunable`.
+  Repariert durch Umbiegen von `<worktree>/.git` und
+  `<hauptrepo>/.git/worktrees/<name>/gitdir`. **Das war Voraussetzung für
+  alles Weitere** — `mediaRoot.js` liest genau diese `.git`-Datei, um das
+  Hauptrepo zu finden; mit dem toten Pfad wäre der Traum ins Nirgendwo
+  geschrieben worden.
+- **Node war v12.16.2** (`/usr/local/bin/node`) — damit stirbt `vite`
+  (`ERR_REQUIRE_ESM`) und die Capacitor-CLI verweigert (`requires NodeJS
+  >=22`). Zwischenlösung war `bun --bun run …`, das Buns eigene Runtime
+  erzwingt. Hanni hat mitten in der Sitzung Node 26.8.1 per Homebrew
+  nachinstalliert; seitdem gehen die Befehle aus der Übergabe wieder
+  unverändert.
+- **Eine Vermutung, die sich als falsch erwies** (damit sie niemand
+  wiederholt): Der schwarze Bildschirm sah nach dem `crossorigin`-Attribut
+  aus, das Vite an Script- und Style-Tag schreibt — Capacitors Asset-Handler
+  setzt `Access-Control-Allow-Origin` nur bei Live-Reload
+  (`WebViewAssetHandler.swift:65-69`). **Es war schlicht der langsame erste
+  Start.** Nicht eingebaut, weil erst der Beleg fehlte und dann der Anlass.
+- **Signing/Team und das echte Gerät stehen weiterhin aus** — das Einzige,
+  was nicht im Repo liegen kann. Fürs Gerät `VITE_API_BASE` auf die
+  Mac-IP im WLAN (`ipconfig getifaddr en0`), neu bauen, `cap sync`.
+- 517 Tests grün, alle fünf Skriptprüfungen grün, vor und nach dem Eingriff.
+  Der WebSocket-Aufstieg (`/api/voice`) ist gegengeprüft: `route()` gibt dort
+  `undefined` zurück statt einer Response, daran wäre der CORS-Wrapper sonst
+  gestorben.
+- **Bezahlte Läufe in dieser Sitzung: keine.** Der Testtraum kostete nur
+  DeepSeek (~$0,0003); fal.ai wurde nicht angefasst.
+
+## 2026-09-09 18:48 — Hanni — Branch `session/2026-09-09-hanni` — Xcode-Migration fortgesetzt
+
+**Auftrag:** Weiterarbeit an der Xcode-Migration aus `docs/uebergabe/2026-09-09-hanni-xcode.md`
+(Übergabe von Anton, PR #34). Session-Branch neu aus `main` aufgesetzt und
+Entwurfs-PR eröffnet (Reservierung nach AGENTS.md).
+
+**Wichtig:** Die eigentlichen Schritte (`bun run build`, `bunx cap sync ios`,
+`bunx cap open ios`, Signing & Capabilities, Simulator/Gerät) laufen auf
+Hannis Mac direkt im Terminal/Xcode — die Cowork-Cloud-Umgebung kann Dateien
+im Repo lesen/ändern, aber kein Xcode oder `bunx cap open ios` ausführen.
+
+### Was der Nächste wissen muss
+- Wirkungsradius dieser Session: `docs/uebergabe/`, `docs/WORKLOG.md`,
+  `docs/STAND.md`, ggf. `capacitor.config.ts` / `VITE_API_BASE`-Handling.
+- Kein Code geändert, keine bezahlten Läufe.
+
 ## 2026-09-09 08:45 — Anton — Branch `session/2026-09-09-anton` — Xcode vorbereitet, Übergabe an Hanni
 
 **Auftrag:** „Hanna hat heute vor, an der App weiterzuarbeiten, vor allem
