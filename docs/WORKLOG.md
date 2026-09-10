@@ -3,6 +3,61 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-10 19:05 — Hanni — Branch `session/2026-09-10-hanni` — Live-Reload per CAP_SERVER_URL
+
+**Auftrag:** „kann man etwas an der build zeit optimieren oder liegt das an
+meinem pc" — nachgemessen und beantwortet, dann den Hebel gebaut.
+
+**Die Messung zuerst:** Der Vite-Build dauert **1,5 Sekunden**. Daran ist
+nichts zu holen. Die Zeit steckt in Xcode und WebKit — und ja, zu einem
+guten Teil in der Maschine: **Apple A18 Pro, 6 Kerne (nur 2 Performance),
+8 GB RAM, 28 % frei, 588.896 Pageouts.** Ein Telefon-Chip; für Bun und Vite
+mehr als genug, für Swift-Übersetzung wenig. Das ist kein Projektfehler.
+
+**Was gebaut wurde:** `capacitor.config.ts` setzt `server.url` jetzt genau
+dann, wenn `CAP_SERVER_URL` in der Umgebung steht. Dann lädt die Hülle die
+Oberfläche live vom Vite-Server, und aus „bauen, syncen, Xcode neu starten"
+wird „speichern". Steht die Variable nicht, ist die erzeugte Konfiguration
+Byte für Byte die alte — kein Verhalten ändert sich für andere.
+
+Damit ist auch die Bedingung erfüllt, die der Dateikopf selbst stellte:
+„Wer das will, setzt es lokal und committet es nicht." Im Repository steht
+keine fremde Adresse; jeder schaltet es bei sich an.
+
+### Was der Nächste wissen muss
+- **Bedienung:** `bun run dev`, dann
+  `CAP_SERVER_URL=http://localhost:5173 bunx cap sync ios`.
+- **`VITE_API_BASE` braucht es dabei NICHT.** Die Oberfläche kommt von
+  Vite, `/api` und `/media` laufen relativ durch dessen Proxy an server.js.
+  Ein Origin — die CORS-Frage von heute Mittag stellt sich gar nicht erst.
+- **⚠ Die Variable gehört NICHT in die `.env`** — die Capacitor-CLI liest
+  die Datei nicht. Nachgemessen: `CAP_SERVER_URL` in `.env` eingetragen,
+  `cap sync` erzeugte **keinen** `server`-Block. Sie muss vor dem Befehl
+  stehen. Deshalb steht sie auch nicht in `.env.example` — dort hätte sie
+  jemanden in die Irre geführt. (Der angekündigte Wirkungsradius wurde
+  dadurch kleiner, nicht größer.)
+- **⚠⚠ Vor dem Ausliefern einmal `bunx cap sync ios` OHNE die Variable.**
+  Die erzeugte `ios/App/App/capacitor.config.json` ist ignoriert, liegt
+  aber auf der Platte und behält die Adresse bis zum nächsten Sync. Eine
+  App, die still von einem abgeschalteten Laptop zu laden versucht, zeigt
+  einen weißen Bildschirm und sagt nicht, warum. Der Rückweg ist
+  gegengeprüft: ein Sync ohne Variable entfernt den `server`-Block wieder.
+- **Fürs echte Gerät:** WLAN-IP statt localhost **und** `bunx vite --host`,
+  sonst lauscht Vite nur auf der Loopback-Schnittstelle und das Telefon
+  klopft gegen eine Tür, die nur nach innen offen ist.
+- Beide Fälle an der tatsächlich erzeugten `capacitor.config.json` geprüft,
+  nicht nur am TypeScript. 517 Tests und fünf Skriptprüfungen grün. Keine
+  bezahlten Läufe.
+
+**Aufgeräumt:** Worktree und Branch der Vorsitzung entfernt
+(`git worktree remove` + `prune`). Beim `git pull` auf `main` blockierte die
+unversionierte Traumdatei im Hauptrepo den Merge („Please move or remove
+them before you merge") — sie war Byte für Byte identisch mit der
+committeten, geprüft per SHA-256, und wurde deshalb entfernt. **Das ist die
+Normalform nach jeder Sitzung, in der ein Traum entstand:** `mediaRoot.js`
+schreibt ins Hauptrepo, committet wird aus dem Worktree, und beim Pull
+stehen sich beide im Weg.
+
 ## 2026-09-10 18:14 — Hanni — Branch `session/2026-09-09-hanni` — Native iOS-App läuft, CORS und Privacy-Schlüssel nachgezogen
 
 **Auftrag:** Die Xcode-Migration aus Antons Übergabe zu Ende bringen — bauen,

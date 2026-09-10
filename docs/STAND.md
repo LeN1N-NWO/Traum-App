@@ -3,7 +3,15 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-10 18:14 — `session/2026-09-09-hanni` (PR #35):
+**Stand:** 2026-09-10 — `session/2026-09-10-hanni` (PR #36): **Live-Reload
+per `CAP_SERVER_URL`.** Web-Änderungen brauchen keine Xcode-Runde mehr —
+steht die Variable, lädt die Hülle vom laufenden Vite-Server; steht sie
+nicht, ist alles wie vorher. Bedienung unter „Werkzeuge". Hintergrund: Der
+Vite-Build dauert 1,5 s, die Runde drumherum Minuten (A18 Pro, zwei
+Performance-Kerne, 8 GB) — die Zeit steckt in Xcode und WebKit, nicht im
+Projekt.
+
+Davor: 2026-09-10 18:14 — `session/2026-09-09-hanni` (PR #35, gemergt):
 **Die native iOS-App läuft im Simulator und spricht mit dem Server.**
 Ein Testtraum ist durch die ganze Kette gegangen und liegt als
 `data/traeume/2026-09-10-e_mtvpt7c4qiu4mq.json`. Dafür mussten zwei Dinge
@@ -312,6 +320,21 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
   **Stop und neu starten**, ein Reload greift dort nicht. Bei `EADDRINUSE`
   hält ein alter Server den Port: `pkill -f "bun server.js"` als eigenen
   Befehl (er trifft sonst die eigene Shell).
+- **Live-Reload beim Entwickeln** (seit 10.09.) — spart die ganze
+  Xcode-Runde je Web-Änderung:
+
+      bun run dev                                   # 8100 + 5173
+      CAP_SERVER_URL=http://localhost:5173 bunx cap sync ios
+
+  Danach lädt die App vom Vite-Server; Speichern reicht, Xcode bleibt zu.
+  `VITE_API_BASE` braucht es dabei **nicht** (Vite reicht `/api` und
+  `/media` selbst durch — ein Origin, keine CORS-Frage). Fürs echte Gerät
+  die WLAN-IP nehmen **und** `bunx vite --host`, sonst lauscht Vite nur
+  nach innen. **⚠ Die Variable gehört NICHT in die `.env`** — die
+  Capacitor-CLI liest die Datei nicht. **⚠⚠ Vor dem Ausliefern einmal
+  `bunx cap sync ios` OHNE die Variable**, sonst versucht die App still,
+  von einem abgeschalteten Laptop zu laden: weißer Bildschirm ohne
+  Begründung.
 - `/regisseur-schnitt` — Traumtext + Sekunden + Modell → Beat-Tabelle,
   Empfehlung, Shot-Liste. Rendert nichts.
 - `bun scripts/preis-durchreichen.mjs` — alle vier Modell/Qualitäts-Stufen.
