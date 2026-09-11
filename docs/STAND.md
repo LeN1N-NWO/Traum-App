@@ -105,9 +105,9 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   Traumsicherung sprengt das (deshalb `DEV: false` in
   `mobile/src/legacy/vite-env.js`). Beim Umzug der Screens auf nativ den
   Zustand nach `expo-sqlite` (Skill `expo-data-fetching`, false-friends).
-- **Dev-Build statt Expo Go**, sobald ein eigenes natives Modul nötig ist:
-  braucht CocoaPods (`brew install cocoapods`) und ein echtes Node — beides
-  fehlt auf Antons Mac (alles zeigt auf Bun). Bis dahin reicht Expo Go.
+- **Xcode-Build statt Expo Go** ist seit 12.09. nachts möglich: `mobile/ios`
+  ist erzeugt (`bun run prebuild:ios`), Workspace `DreamRushes.xcworkspace`.
+  Der Ordner ist git-ignoriert und wird aus `app.json` neu erzeugt.
 - **Seedance über Replicate anbinden** — eigene Sitzung. `src/lib/video.js`
   (je Modell `provider`, `slug`, `refsField`), `server.js` `falSubmitVideo`
   anbieterabhängig, `REPLICATE_TOKEN` (liegt in Antons `.env`), Tests.
@@ -388,8 +388,32 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
   WLAN-Adresse — die erreicht der Simulator aus der Sandbox nicht.
   Die alte Oberfläche läuft aus `../src` (nichts kopiert); Speichern lädt
   sie neu. API-Adresse: `EXPO_PUBLIC_API_BASE` (Vorgabe localhost:8100).
-  ⚠ `create-expo-app` braucht npm — auf diesem Mac gibt es nur Bun; die
-  Vorlage kam als npm-Paket `expo-template-default@sdk-57` über `bun add`.
+  ⚠ `create-expo-app` braucht npm; die Vorlage kam als npm-Paket
+  `expo-template-default@sdk-57` über `bun add`.
+- **Werkzeugkette auf Antons Mac** (12.09. nachts, ohne Homebrew eingerichtet,
+  weil Homebrew an curl hängt — siehe LuLu unten):
+  · **Node 26.8.2** in `~/.local/node` (offizielles Paket von nodejs.org,
+    sha256 geprüft); `node`, `npm`, `npx` in `~/.local/bin`, dazu zeigen
+    `~/.bun/bin/node` und `/opt/homebrew/bin/node` darauf (vorher Buns Shim).
+  · **CocoaPods 1.17.0** über Homebrews portables Ruby 4.0.6
+    (System-Ruby 2.6 ist zu alt): Gems in `~/.local/cocoapods`, Wrapper
+    `~/.local/bin/pod` setzt GEM_HOME und **UTF-8-Locale** (ohne die stirbt
+    `pod install` an „Unicode Normalization not appropriate for ASCII-8BIT").
+  · **Hermes vorgebaut** in `~/.local/hermes` (Maven Central, sha1 geprüft),
+    weil React Native ihn per curl lädt; `bun run pods` setzt
+    `HERMES_ENGINE_TARBALL_PATH`. ⚠ Nach einem RN-Upgrade Version aus
+    `node_modules/react-native/sdks/hermes-engine/version.properties`
+    (`HERMES_V1_VERSION_NAME`) neu laden.
+  · **⚠⚠ LuLu blockt `/usr/bin/curl`** (Regel in
+    `/Library/Objective-See/LuLu/rules.plist`). Folgen: `brew install`
+    scheitert („Could not resolve host ghcr.io"), React Native fällt beim
+    Hermes-Download auf den Quellbau zurück und verlangt cmake, CocoaPods-
+    Downloads per curl scheitern. Anton erlaubt curl in LuLu, dann entfallen
+    die Umwege. Bun, Ruby, Python und Git sind nicht betroffen.
+  · **Capacitor-Pakete in `mobile/`** (`@capacitor/core`, `haptics`) sind
+    nur für die JS-Importe der alten Oberfläche da und in `package.json`
+    unter `expo.autolinking.exclude` vom nativen Einbinden ausgeschlossen —
+    sonst bricht `pod install` an CapacitorCordova.
 
 - **Skills für die native Oberfläche** (seit 11.09., Pflichtlektüre vor
   Oberflächenarbeit). Einmal je Rechner:

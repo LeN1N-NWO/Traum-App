@@ -3,6 +3,38 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 01:05 — Anton — Branch `session/2026-09-11-anton-expo` — Werkzeugkette für den Xcode-Build, ohne Homebrew
+
+**Auftrag (Anton, wörtlich):** „Jetzt alle Berechtigungen machen, das
+selbst bitte fix." Homebrew war in seinem und in meinem Terminal an
+`ghcr.io` gescheitert.
+
+**Ursache:** LuLu (Firewall) hat eine Regel für `/usr/bin/curl`; curl bekommt
+keine Verbindung (connect: Bad file descriptor), Homebrew lädt alles über
+curl. Bun, Ruby, Python, Git sind frei — also alles daran vorbeigebaut:
+
+- Node 26.8.2 als offizielles Tarball von nodejs.org über Bun (sha256
+  geprüft) nach `~/.local/node`; Links in `~/.local/bin`, `~/.bun/bin/node`,
+  `/opt/homebrew/bin/node`. Buns `node`-Shim ist damit Geschichte.
+- CocoaPods 1.17.0 mit Homebrews portablem Ruby 4.0.6 (System-Ruby 2.6 zu
+  alt: `securerandom` verlangt 3.1); eigener GEM_HOME `~/.local/cocoapods`,
+  Wrapper `~/.local/bin/pod` mit UTF-8-Locale (sonst Encoding-Absturz).
+  ⚠ Das portable Ruby hat in der Claude-Sandbox keine Namensauflösung —
+  `gem install` lief außerhalb.
+- Hermes-Tarballs 250829098.0.17 (debug+release) von Maven Central über Bun,
+  sha1 geprüft, `HERMES_ENGINE_TARBALL_PATH` beim `pod install`. Ohne das
+  will RN Hermes aus dem Quelltext bauen und verlangt cmake.
+- `expo prebuild --platform ios` → `mobile/ios` (git-ignoriert), 109 Pods.
+  Capacitor-Pakete per `expo.autolinking.exclude` ausgeschlossen.
+- Skripte: `bun run prebuild:ios`, `bun run pods`.
+
+### Was der Nächste wissen muss
+
+- **Anton muss curl in LuLu erlauben** — dann gehen `brew install` und
+  die RN-Downloads wieder direkt. Bis dahin: nichts über curl erwarten.
+- Diese Werkzeugkette gilt nur für Antons Mac; auf Hannis Mac steht Node
+  über Homebrew, dort reicht `brew install cocoapods`.
+
 ## 2026-09-11 23:05 — Anton — Branch `session/2026-09-11-anton-expo` — Expo-Hülle steht, alte Oberfläche läuft darin
 
 **Commits:** 4cea4dc · 7fe63dd · (Start-Skripte) · (dieser). PR #41 (Entwurf).
