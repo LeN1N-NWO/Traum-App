@@ -605,7 +605,7 @@ export default function Step5Style({ w, patch }) {
       clearPending();
 
       toast(t.wizard.step5.queuedNote);
-      navigate("/journal");
+      navigate("/journal", { replace: true });
 
       /* Das Erster-Traum-Kaufblatt — die ganze Begründung steht in
          Step6Result. Der Moment wandert mit hierher: der Traum steht
@@ -672,7 +672,7 @@ export default function Step5Style({ w, patch }) {
           <p className="wiz-error-title">{t.wizard.step5.failedTitle}</p>
           <p className="wiz-error-msg">{fail}</p>
           <p className="wiz-error-note">{t.wizard.step5.failedNote}</p>
-          <button className="wiz-error-home" onClick={() => navigate("/")}>
+          <button className="wiz-error-home" onClick={() => navigate("/", { replace: true })}>
             {t.wizard.step5.failedHome}
           </button>
         </div>

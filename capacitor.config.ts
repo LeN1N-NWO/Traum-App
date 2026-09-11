@@ -72,6 +72,13 @@ const config: CapacitorConfig = {
       server: { url: liveReloadUrl, cleartext: true },
     }
     : {}),
+  /* Die Styles gelten vom ersten Frame an — src/lib/nativeShell.js setzt
+     sie nach dem Start noch einmal und blendet die Formularleiste über der
+     Tastatur aus (dafür gibt es keinen Konfigurationsschalter). */
+  plugins: {
+    StatusBar: { style: "DARK" },
+    Keyboard: { style: "DARK", resize: "native" },
+  },
   ios: {
     /* Die Tab-Leiste liegt unter der Home-Indicator-Zone; die App zeichnet
        die Ränder selbst (safe-area-inset in CSS), also kein Auto-Inset. */

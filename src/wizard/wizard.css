@@ -7,7 +7,25 @@
   color: var(--muted); font-family: var(--sans); font-size: var(--t-body);
   padding: var(--s-2);
 }
-.wiz-back { font-size: 20px; line-height: 1; }
+.wiz-back { display: grid; place-items: center; line-height: 1; }
+
+/* — Motion (11.09.) —
+   The wizard rises into place when it opens, and each step slides in from
+   the side it logically comes from: forward from the trailing edge, back
+   from the leading one — the navigation-controller grammar of iOS. Only
+   the arriving step moves; the leaving one is gone, which at this distance
+   reads as a push, not a cut. */
+.screen.wiz { animation: wiz-arrive var(--dur-sheet) var(--ease-ios) backwards; }
+@keyframes wiz-arrive { from { translate: 0 28px; opacity: 0; } }
+.wiz-step-fwd  { animation: wiz-in-fwd  var(--dur-push) var(--ease-ios) backwards; }
+.wiz-step-back { animation: wiz-in-back var(--dur-push) var(--ease-ios) backwards; }
+@keyframes wiz-in-fwd  { from { translate: 24% 0; opacity: 0; } }
+@keyframes wiz-in-back { from { translate: -24% 0; opacity: 0; } }
+[dir="rtl"] .wiz-step-fwd  { animation-name: wiz-in-back; }
+[dir="rtl"] .wiz-step-back { animation-name: wiz-in-fwd; }
+@media (prefers-reduced-motion: reduce) {
+  .screen.wiz, .wiz-step-fwd, .wiz-step-back { animation: none; }
+}
 .wiz-back:focus-visible, .wiz-cancel:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 8px; }
 
 .wiz-dots { display: flex; gap: 6px; list-style: none; margin: 0 auto; padding: 0; }

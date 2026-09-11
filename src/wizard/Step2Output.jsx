@@ -40,7 +40,7 @@ export default function Step2Output({ w, patch }) {
       ...bumpStreak(state),
     });
     toast(t.wizard.step2.saved);
-    navigate("/journal");
+    navigate("/journal", { replace: true });
   }
 
   /** Continue to the cast step. An analysis always exists — step 1 cannot be
