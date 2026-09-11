@@ -17,6 +17,13 @@ der echten Datenbank gegen sechs Geld-Invarianten geprüft. **⚠ Die Credits
 liegen trotzdem noch im `localStorage` und sind editierbar** — `server.js`
 fragt das Schema noch nicht (Befund S7, offen).
 
+**Der Weg dahin ist aufgeteilt:** Hanni verbindet als Nächstes `server.js`
+mit der Datenbank und baut die Anmeldung. Die Abbuchung vor dem Render
+liegt an Antons Prompt-Kette und ist deshalb seine Aufgabe — Übergabe in
+`docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`, erst nach Hannis
+Branch zu beginnen. ⚠ `credits_grant` taugt nicht für Erstattungen (bucht
+immer in den dauerhaften Topf) — steht dort als Punkt 4.
+
 **Die Architektur ist bewertet:** `docs/ARCHITEKTUR.md` führt acht Befunde
 (S1–S8) mit Schwere und Reihenfolge. Erledigt ist S4 (Zeitgrenzen auf allen
 vierzehn ausgehenden Aufrufen). S1 wartet bewusst auf die Konten.

@@ -178,19 +178,47 @@ genau die SQL-Kommentarzeilen weg, die er zeigen sollte — SQL-Kommentare
 beginnen mit `--`. Die Prüfung meldete „keine Änderung", obwohl es eine gab.
 Bemerkt, weil das Ergebnis der eigenen Erwartung widersprach.
 
-**Zwei Punkte, die nicht allein zu entscheiden waren:**
+**Zwei Punkte, die nicht allein zu entscheiden waren — und wie Hanni sie
+entschieden hat:**
 
 - **`docs/decisions/TEMPLATE.md` lag außerhalb des angesagten
   Wirkungsradius.** Die Regel dort (fest zeigt nie auf beweglich) entstand
   aus Hannis Frage und wurde nachträglich gutgeheißen — angesagt war sie
-  vorher nicht, wie AGENTS.md es verlangt.
-- **Die Regel „Antons Prompt-Kette nicht anfassen" steht nur in Claudes
-  privatem Gedächtnis und in diesem Eintrag.** AGENTS.md gilt aber für
-  Codex, Cursor, Gemini CLI und Menschen gleichermaßen, und ADR-0001 legt
-  Projektwissen ausdrücklich ins Repository. Eine andere Arbeitsumgebung
-  sähe die Regel nicht. Sie gehört als stehende Projektregel nach
-  AGENTS.md — das ist aber eine geteilte Datei und Hannis bzw. Antons
-  Entscheidung.
+  vorher nicht, wie AGENTS.md es verlangt. Bleibt so.
+- **Die Regel „Antons Prompt-Kette nicht anfassen" bleibt privat**, NICHT in
+  AGENTS.md. Zur Wahl stand, sie als stehende Projektregel für alle Agenten
+  zu übernehmen; Hanni hat sich dagegen entschieden. Wer das neu aufrollen
+  will, weiß damit, dass es eine bewusste Entscheidung war, kein Versehen.
+
+### Neu: Punkt 3 als Übergabe an Anton
+
+Die serverseitige Abbuchung vor dem Render liegt direkt an Antons
+Prompt-Kette und ist deshalb seine Aufgabe, nicht unsere:
+`docs/uebergabe/2026-09-11-anton-credits-abbuchung.md` (`für: Anton,
+LeN1N-NWO` — der Start-Hook zeigt sie ihm vollständig, allen anderen als
+Hinweiszeile; geprüft). **Voraussetzung:** Hannis nächster Branch mit
+Datenbankverbindung und Anmeldung muss gemergt sein.
+
+Beim Recherchieren dafür gefunden, **der Preis wird heute ausschließlich im
+Client festgelegt** — an sieben `spend()`-Stellen, der Server kennt keine
+Kosten. Die Übergabe verlangt deshalb als Erstes, dass der Server den Preis
+selbst rechnet (aus `src/lib/plans.js`, das reine Logik ist und sich wie zehn
+andere Module importieren lässt), statt einen Preis vom Client zu glauben.
+
+**⚠⚠ Und eine Falle im eigenen Schema, entdeckt nach dessen Ausführung:**
+`credits_grant(…, 'refund', …)` bucht immer in den Topf `purchased`. Kam
+eine Abbuchung aus der `allowance`, würde eine Erstattung darüber aus
+verfallenden Credits dauerhafte machen — und der Grund `'refund'` in der
+Liste lädt genau dazu ein. Heute passiert nichts, weil noch niemand
+erstattet. Richtig ist ein eigenes `credits_refund()`, das die Zeilen der
+ursprünglichen Abbuchung topfweise zurückbucht (neue Migration). Als Warnung
+in den Kommentar von `credits_grant` geschrieben — nur Kommentar, die
+Datenbank ist unberührt — und in der Übergabe als Punkt 4.
+
+Dabei beinahe selbst die eigene Regel gebrochen: Der erste Entwurf dieses
+Kommentars verwies auf die Übergabedatei. Eine Migration ist aber fest, und
+die Übergabe wird nach Erledigung gelöscht — der Verweis hätte ins Leere
+gezeigt. Entfernt; der Kommentar steht für sich.
 
 ### Was der Nächste wissen muss
 - **⚠ Antons Prompt-Kette und die Bild-/Filmgenerierung wurden ausdrücklich

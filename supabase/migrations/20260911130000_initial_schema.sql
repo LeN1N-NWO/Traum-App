@@ -253,6 +253,14 @@ begin
   if p_amount is null or p_amount <= 0 then
     raise exception 'amount must be positive, got %', p_amount;
   end if;
+  -- ⚠⚠ Do NOT use this for refunds of a spend (found 11.09.2026, after this
+  --    migration had already run). It always credits the `purchased`
+  --    bucket. If the spend came from `allowance` — which expires — a refund
+  --    here would turn expiring credits into permanent ones. 'refund' is in
+  --    the list below and invites exactly that mistake. A correct refund
+  --    reverses the spend's own ledger rows bucket by bucket (same ref) and
+  --    needs its own function, credits_refund(), in a later migration. The
+  --    unique index then makes that refund idempotent on its own.
   if p_reason not in ('welcome_grant', 'purchase', 'refund', 'adjustment') then
     raise exception 'reason % does not add to the purchased bucket', p_reason;
   end if;
