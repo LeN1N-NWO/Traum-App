@@ -152,6 +152,9 @@ Nach Wirkung je Aufwand, nicht nach Schwere.
 2. **Konten und Ledger in Postgres (S7)** — das eigentliche Backend-Vorhaben.
    Append-only, in einer Transaktion gebucht, damit ein Abbruch mitten im
    Rendern kein Guthaben verschluckt. Löst nebenbei S1 richtig statt behelfsweise.
+   **Begonnen 11.09.2026:** Schema ausgeführt und gegen sechs Invarianten
+   geprüft (`supabase/`). ⚠ S7 bleibt offen, bis `server.js` vor jedem Render
+   `credits_spend()` aufruft — ein Schema, das niemand fragt, schützt nichts.
 3. **TLS davor (S6, S5)** — Caddy holt das Zertifikat selbst.
 4. **Medien nach Supabase Storage mit signierten Adressen (S2, S3)** — löst
    zugleich das Löschrecht: eine Datei, ein Besitzer, ein Löschbefehl.

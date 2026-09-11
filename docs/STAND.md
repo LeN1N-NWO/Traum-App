@@ -14,7 +14,12 @@ gar keinen Token sendet; Begründung in `ARCHITEKTUR.md`, gelöst wird er mit
 dem echten Backend. Ebenfalls neu: **`ADR-0005` — Supabase als Datenschicht**
 (Status vorgeschlagen, Antons Bestätigung steht aus), womit der seit dem
 07.08. offene Punkt „braucht Supabase → eigenes ADR" geschlossen ist.
-Antons Prompt-Kette blieb unangetastet. 517 Tests grün.
+**Das Supabase-Projekt steht (Frankfurt), das erste Schema ist ausgeführt**
+und in der echten Datenbank gegen sechs Geld-Invarianten geprüft
+(`supabase/migrations/`, `supabase/tests/`). ⚠ Befund S7 ist damit **noch
+nicht** behoben — `server.js` benutzt das Schema noch nicht, die Credits
+liegen weiter im `localStorage`. Antons Prompt-Kette blieb unangetastet.
+517 Tests grün.
 
 Davor: 2026-09-10 — `session/2026-09-10-hanni` (PR #36, gemergt): **Live-Reload
 per `CAP_SERVER_URL`.** Web-Änderungen brauchen keine Xcode-Runde mehr —

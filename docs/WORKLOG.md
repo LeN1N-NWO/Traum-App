@@ -81,6 +81,68 @@ Oberflächen für ein Produkt, das noch kein Bezahlmodell hat") und nennt die
 Bedingung für eine Neubewertung. Was fehlt, ist ein eigenes Dokument, nicht
 der Grund. In `ARCHITEKTUR.md` entsprechend korrigiert.
 
+### Neu: das erste Datenbankschema (`supabase/migrations/`)
+
+Hanni hat das Supabase-Projekt angelegt, **Region Frankfurt**
+(`eu-central-1`). Vorher umgestellt: „Automatically expose new tables" **aus**
+und „Enable automatic RLS" **an** — beide wirken nur auf neue Tabellen und
+mussten deshalb vor der Migration stehen. „Data API" bleibt vorerst an;
+entschieden wird das beim Verdrahten von `server.js` (siehe unten).
+
+Vier Tabellen, alle mit RLS: `profiles`, `dreams`, `credits_balance`,
+`credits_ledger`. Der Kern ist die Buchhaltung:
+
+- **Ledger UND Saldo, in einer Transaktion geschrieben.** Nur ein Ledger ließe
+  sich nicht sperren — auf eine Summe gibt es keine Zeilensperre, zwei
+  Anfragen läsen beide „genug" und gäben beide aus. Nur ein Saldo verlöre die
+  Antwort auf „wohin ging der Credit".
+- **`CHECK (>= 0)` auf dem Saldo macht Überziehung unmöglich**, nicht bloß
+  unwahrscheinlich: Die Datenbank verweigert den Schreibvorgang, egal was die
+  App glaubt.
+- **Geld bewegt sich nur über drei Funktionen** (`credits_spend`,
+  `credits_grant`, `credits_set_allowance`, `security definer`). Auf den
+  Credit-Tabellen gibt es keine Schreib-Policy, also verweigert RLS jeden
+  direkten Zugriff — auch ein geleakter `anon`-Schlüssel erzeugt keinen Credit.
+- **Die Zwei-Töpfe-Regel aus `credits.js` ist erhalten:** Allowance zuerst,
+  weil sie ohnehin verfällt; ein Abo-Refill SETZT die Allowance, statt zu
+  addieren.
+- **Profil und Saldo legt die Datenbank selbst an** (Trigger auf
+  `auth.users`), nicht die App — sonst ließe ein vergessener Pfad jemanden
+  ohne Saldozeile zurück, und jede Abbuchung scheiterte viel später an ganz
+  anderer Stelle.
+
+**⚠⚠ Beim Schreiben der Tests gefunden:** Der Index gegen doppelte Buchungen
+saß zuerst auf `(user_id, reason, ref)`. Eine Abbuchung, die BEIDE Töpfe
+berührt, schreibt aber zwei Zeilen mit gleichem Grund und gleicher Referenz —
+die zweite galt als Duplikat, und jede gemischte Abbuchung scheiterte. Der
+erste Abonnent mit Zusatzpaket hätte nie etwas rendern können. `bucket`
+gehört in den Schlüssel. Gefunden durch Nachrechnen des Tests gegen das
+Schema, bevor irgendetwas lief.
+
+**Geprüft in der echten Datenbank:** `supabase/tests/credits_invariants.sql`
+prüft sechs Geld-Eigenschaften (Anlage per Trigger, Allowance zuerst,
+Überziehung abgewiesen, doppelter Kauf nur einmal gutgeschrieben, Refill
+setzt statt addiert, Ledger = Saldo) und endet mit `rollback`. Lief ohne
+Fehler. Die sechs `ok`-Meldungen zeigt der Supabase-Editor nicht an (es sind
+`RAISE NOTICE`) — aber jede Prüfung scheitert mit `RAISE EXCEPTION`, ein
+Fehlschlag hätte also als rote Meldung erscheinen müssen statt „Success".
+
+### ⚠ Was das Schema NOCH NICHT tut
+
+**Befund S7 ist damit nicht behoben.** Das Schema steht, aber `server.js`
+benutzt es noch nicht — die Credits liegen weiter im `localStorage` und sind
+weiter editierbar. Behoben ist S7 erst, wenn `server.js` vor jedem Render
+`credits_spend()` aufruft und bei Fehlschlag verweigert. Ebenso offen: die
+Anmeldung (Sign in with Apple), der Migrationsweg für lokale Träume, und
+Medien hinter signierten URLs (S2/S3).
+
+**Offene Entscheidung für das Verdrahten:** `server.js` spricht Postgres
+besser **direkt** an als über die Data API (`supabase-js` mit `service_role`).
+Die Data API kann keine mehrteiligen Transaktionen — bei den drei Funktionen
+oben ist das egal, weil jede für sich eine Transaktion ist; aber sobald
+`server.js` einen Render und seine Abbuchung zusammen absichern will, zählt
+es. Mit direkter Verbindung könnte die Data API ganz aus.
+
 ### Was der Nächste wissen muss
 - **⚠ Antons Prompt-Kette und die Bild-/Filmgenerierung wurden ausdrücklich
   NICHT angefasst** (Hannis Ansage). An den `fetch`-Aufrufen kam nur der
