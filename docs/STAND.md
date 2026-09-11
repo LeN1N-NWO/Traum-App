@@ -3,37 +3,33 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-10 — `session/2026-09-10-hanni` (PR #36): **Live-Reload
-per `CAP_SERVER_URL`.** Web-Änderungen brauchen keine Xcode-Runde mehr —
-steht die Variable, lädt die Hülle vom laufenden Vite-Server; steht sie
-nicht, ist alles wie vorher. Bedienung unter „Werkzeuge". Hintergrund: Der
-Vite-Build dauert 1,5 s, die Runde drumherum Minuten (A18 Pro, zwei
-Performance-Kerne, 8 GB) — die Zeit steckt in Xcode und WebKit, nicht im
-Projekt.
+**Stand:** 2026-09-11 — `session/2026-09-11-hanni` (PR #37).
 
-Davor: 2026-09-10 18:14 — `session/2026-09-09-hanni` (PR #35, gemergt):
-**Die native iOS-App läuft im Simulator und spricht mit dem Server.**
-Ein Testtraum ist durch die ganze Kette gegangen und liegt als
-`data/traeume/2026-09-10-e_mtvpt7c4qiu4mq.json`. Dafür mussten zwei Dinge
-nachgezogen werden, die den nativen Betrieb komplett blockiert hätten:
-**CORS in `server.js`** (jeder `/api`-Aufruf der App war tot) und die
-**Privacy-Schlüssel in `Info.plist`** (Mikrofon/Kamera hätten die App hart
-beendet). Beides unten unter „Fallen". Offen bleibt nur noch Signing/Team
-und der Lauf auf einem echten Gerät. 517 Tests grün, fünf Skriptprüfungen
-grün, keine bezahlten Läufe.
+**Die native iOS-App läuft im Simulator und spricht mit dem Server**; ein
+echtes Gerät (Signing/Team) steht noch aus. Web-Änderungen brauchen per
+Live-Reload (`CAP_SERVER_URL`) keine Xcode-Runde mehr.
 
-Vorher: 2026-09-09 08:45 — `session/2026-09-09-anton`: Xcode-Switch
-vorbereitet (Capacitor 8, iOS-Projekt per SPM, Simulator-Build grün).
-Darunter der Stand vom 09.09. 08:35 — `main` nach Merge von PR #30
-(Cloud-Sitzung 08.09.: elf Handwerksstile, Serverkappung) und PR #33
-(Gemini Omni geprüft und gedroppt). Der Absatz darunter ist der Stand der
-Cloud-Sitzung, unverändert:
+**Das Backend ist entschieden und angelegt, aber noch nicht verdrahtet.**
+`ADR-0005`: Supabase als Datenschicht, `server.js` bleibt der
+schlüsselhaltende Prozess (Status vorgeschlagen, Antons Bestätigung steht
+aus). Das Projekt steht in Frankfurt, das erste Schema ist ausgeführt und in
+der echten Datenbank gegen sechs Geld-Invarianten geprüft. **⚠ Die Credits
+liegen trotzdem noch im `localStorage` und sind editierbar** — `server.js`
+fragt das Schema noch nicht (Befund S7, offen).
 
-**Stand:** 2026-09-08 — `claude/new-session-x9qv1w` (Cloud, PR #30),
-aufgesetzt auf `3da34aa`, **`main` (PR #32, 04.09.) hereingeholt und von
-Hand vereint.** **517 Tests grün**, fünf Skriptprüfungen grün, Build
-sauber (**500 KB / gzip 168** — plus 18 KB für elf Stilprompts).
-Bezahlte Läufe in dieser Sitzung: **keine** (fal aus der Cloud gesperrt).
+**Der Weg dahin ist aufgeteilt:** Hanni verbindet als Nächstes `server.js`
+mit der Datenbank und baut die Anmeldung. Die Abbuchung vor dem Render
+liegt an Antons Prompt-Kette und ist deshalb seine Aufgabe — Übergabe in
+`docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`, erst nach Hannis
+Branch zu beginnen. ⚠ `credits_grant` taugt nicht für Erstattungen (bucht
+immer in den dauerhaften Topf) — steht dort als Punkt 4.
+
+**Die Architektur ist bewertet:** `docs/ARCHITEKTUR.md` führt acht Befunde
+(S1–S8) mit Schwere und Reihenfolge. Erledigt ist S4 (Zeitgrenzen auf allen
+vierzehn ausgehenden Aufrufen). S1 wartet bewusst auf die Konten.
+
+517 Tests grün, fünf Skriptprüfungen grün, Build ~500 KB / gzip 168.
+Wie es hierher kam, steht im WORKLOG.
 
 ## Wo wir stehen
 
@@ -60,6 +56,10 @@ gebunden. Der Film-Prompt hat seine eigene Grenze (`m.promptMax`).
 Regie denken minutenlang — siehe Baustelle 1.
 
 ## Nächste Schritte
+
+**⚠ Vor Architekturfragen zuerst `docs/ARCHITEKTUR.md` lesen** — dort stehen
+die Befunde S1–S8 mit Schwere, Begründung und Reihenfolge. Die Punkte unten
+sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
 
 0. **iOS auf einem ECHTEN Gerät** — der Simulator ist seit 10.09. durch.
    Zwei Schritte fehlen, beide nur auf Hannis Mac machbar: in Xcode unter
@@ -106,9 +106,10 @@ Regie denken minutenlang — siehe Baustelle 1.
    das tut.
 9. **`WizardShell.jsx:66`**: Wiederaufnahme setzt `"dreamlike"` als
    Stil-Vorgabe, die App-Vorgabe ist seit 24.08. `ultrareal`. Einzeiler.
-10. **Server härten** (unverändert seit 26.08.): 14× `fetch` ohne Timeout ·
-    `spawnSync` bei `/api/film-outro` blockiert den ganzen Server ·
-    fal-Fehler als „pending" verschluckt (`server.js` jobStatus).
+10. **Server härten** — ~~14× `fetch` ohne Timeout~~ **erledigt 11.09.** ·
+    `spawnSync` bei `/api/film-outro` blockiert den ganzen Server (S8) ·
+    fal-Fehler als „pending" verschluckt (`server.js` jobStatus). Der Rest
+    steht mit Schwere und Reihenfolge in `docs/ARCHITEKTUR.md`.
 11. **Name für Dreamflow** bestätigen · Policy-Weg im Echtbetrieb ·
     Reflection-Sprache · zwei weitere Maskottchen · Klang-Presets.
 

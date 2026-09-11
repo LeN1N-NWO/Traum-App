@@ -3,6 +3,242 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-11 12:54 — Hanni — Branch `session/2026-09-11-hanni` — Architektur-Review, ADR-0005, erstes Supabase-Schema, Zeitgrenzen
+
+**Auftrag:** Den Tech-Stack als Softwarearchitekt bewerten (Sicherheit,
+Performanz, Wartbarkeit, Zuverlässigkeit), das Ergebnis als Schaubild und
+Dokument festhalten, und die zwei wirksamsten Punkte umsetzen.
+
+### Neu: `docs/ARCHITEKTUR.md`
+
+Der Ist-Zustand mit **Protokollen und Datenformaten je Verbindung**, die
+Stärken des Entwurfs, acht nummerierte Befunde (S1–S8) mit Schwere, die vier
+Qualitätsmerkmale nach ISO/IEC 25010 und ein Zielbild. Fortgeschrieben, nicht
+überschrieben — anders als `STAND.md`. Bildfassung mit beiden Schaubildern:
+https://claude.ai/code/artifact/d10514e8-e99f-4f8e-bdba-3919f9a23f2b
+
+### Umgesetzt: S4 — vierzehn `fetch`-Aufrufe hatten keine Uhr
+
+Nachgezählt, nicht geschätzt: 14 ausgehende Aufrufe, **null** Abbruchsignale.
+Antwortete ein Anbieter nicht mehr, hing die Verbindung bis `idleTimeout`
+nach 255 s — und genug davon nacheinander, und der Prozess nimmt nichts mehr
+an. Stand seit dem 26.08. als offener Punkt in `STAND.md`.
+
+**⚠ Richtigstellung aus der Schlussprüfung:** S4 wurde zunächst als
+„vermutliche Ursache der verwaisten Filme" beschrieben — auch im
+Commit `fb3d7b3`, der sich nicht mehr ändern lässt. **Das war falsch.** Die
+belegte Erklärung stammt aus `docs/plans/2026-09-03-regisseur-schnitt.md`:
+`/api/generate` antwortet im Film-Modus erst nach dem Regisseur; gibt der
+Client vorher auf, landet der Film trotzdem bei fal, und die Nummer erreicht
+niemanden. Die Zeitgrenzen beheben das nicht. Nebenwirkung, ungetestet:
+DeepSeek ist jetzt auf 240 s gedeckelt und läuft damit nicht mehr über die
+300 s des Clients hinaus — das *könnte* Verwaisungen seltener machen.
+
+Jetzt trägt jeder eine Grenze aus der Tabelle `T` am Dateikopf: DeepSeek
+240 s (denkt minutenlang), fal-Bild 180 s, Auftragsabgabe 30 s, Statusabfrage
+20 s, Abtippen 120 s, Sprachprobe 60 s, Medienkopie 120 s.
+
+- **Die Zahlen sind absichtlich großzügig.** Eine zu knappe Grenze bricht
+  einen Lauf ab, der noch gekommen wäre — und der ist dann bezahlt und
+  verloren. Sie sind eine Reißleine gegen das Hängen, kein Steuerrad für
+  Geschwindigkeit.
+- **Alle liegen unter `idleTimeout` (255 s)**, damit unsere eigene Uhr das
+  Rennen gegen die Verbindung gewinnt und der Mensch eine ehrliche Meldung
+  bekommt statt eines Abbruchs ohne Grund.
+- **Kein neuer Fehlervertrag:** `fetch` warf schon vorher bei Netzfehlern,
+  jede Aufrufstelle vertrug das also bereits. Ein Zeitablauf ist nur ein
+  weiterer Grund.
+
+### ⚠ Zurückgenommen: S1 — der Client sendet gar keinen Token
+
+Der verpflichtende Zugangsschutz war gebaut und geprüft (localhost 200,
+192.168.178.30 → 401), ist aber **wieder entfernt worden**. Der Grund steht
+ausführlich in `ARCHITEKTUR.md` und kurz hier:
+
+**`x-api-token` existiert in `src/` nirgends.** Der Client hat nie einen Token
+gesendet, `API_TOKEN` zu setzen sperrt deshalb heute *jeden* aus, auch
+localhost — weshalb es vermutlich nie jemand gesetzt hat. Mit der Sperre wäre
+der Geräte-Weg über die WLAN-Adresse tot gewesen: Die Oberfläche lädt noch
+(nicht geschützt), aber jeder `/api`-Aufruf bekäme 401, ohne dass das Telefon
+etwas dagegen tun könnte.
+
+Hannis Entscheidung: mit dem echten Backend lösen statt behelfsweise. Ein
+Token im Bundle ist ein Token, den jeder hat, und richtige Authentifizierung
+kommt ohnehin mit den Konten.
+
+### Neu: `ADR-0005` — Supabase als Datenschicht
+
+Der Punkt, den `docs/specs/2026-08-07-app-umbau-design.md` seit dem 07.08.2026
+als „braucht Supabase → eigenes ADR" offen führte, ist geschrieben. Gewählt:
+Supabase für Konten, Credit-Ledger und Dateien; **`server.js` bleibt
+unverändert der schlüsselhaltende Prozess** und muss nicht umgeschrieben
+werden — das ist der eigentliche Gewinn gegenüber Convex.
+
+Verworfen und begründet: **Convex** (reaktives Mehr-Klienten-Sync ist hier
+keine Stärke — niemand teilt einen Traum in Echtzeit; dazu 1 MiB je Dokument,
+kein SQL fürs Ledger, und sein Modell verlangte, `server.js` zu zerlegen),
+**Firebase** (schwach bei Geld, strittige EU-Datenhaltung), **Selbstbau**
+(Benutzerverwaltung richtig zu bauen sind Monate).
+
+**Status: vorgeschlagen.** Das Supabase-Projekt läuft auf Antons Konto und
+Rechnung; seine Bestätigung steht aus, danach auf „angenommen" setzen.
+
+**⚠ Richtigstellung zu einer früheren Aussage in dieser Sitzung:** Claude
+hatte gesagt, die Wahl „WebView statt nativ" sei nirgends begründet. Das stimmt nicht —
+`ADR-0004` behandelt sie unter „Verworfene Alternativen" („zwei getrennte
+Oberflächen für ein Produkt, das noch kein Bezahlmodell hat") und nennt die
+Bedingung für eine Neubewertung. Was fehlt, ist ein eigenes Dokument, nicht
+der Grund. In `ARCHITEKTUR.md` entsprechend korrigiert.
+
+### Neu: das erste Datenbankschema (`supabase/migrations/`)
+
+Hanni hat das Supabase-Projekt angelegt, **Region Frankfurt**
+(`eu-central-1`). Vorher umgestellt: „Automatically expose new tables" **aus**
+und „Enable automatic RLS" **an** — beide wirken nur auf neue Tabellen und
+mussten deshalb vor der Migration stehen. „Data API" bleibt vorerst an;
+entschieden wird das beim Verdrahten von `server.js` (siehe unten).
+
+Vier Tabellen, alle mit RLS: `profiles`, `dreams`, `credits_balance`,
+`credits_ledger`. Ledger und Saldo werden in einer Transaktion geschrieben,
+`CHECK (>= 0)` macht Überziehung unmöglich, Geld bewegt sich nur über drei
+`security definer`-Funktionen, und die Zwei-Töpfe-Regel aus `credits.js`
+(Allowance zuerst) ist erhalten. **Das Warum steht ausführlich im Kopf von
+`supabase/migrations/20260911130000_initial_schema.sql`** — dort hier nicht
+noch einmal.
+
+**⚠⚠ Beim Schreiben der Tests gefunden:** Der Index gegen doppelte Buchungen
+saß zuerst auf `(user_id, reason, ref)`. Eine Abbuchung, die BEIDE Töpfe
+berührt, schreibt aber zwei Zeilen mit gleichem Grund und gleicher Referenz —
+die zweite galt als Duplikat, und jede gemischte Abbuchung scheiterte. Der
+erste Abonnent mit Zusatzpaket hätte nie etwas rendern können. `bucket`
+gehört in den Schlüssel. Gefunden durch Nachrechnen des Tests gegen das
+Schema, bevor irgendetwas lief.
+
+**Geprüft in der echten Datenbank:** `supabase/tests/credits_invariants.sql`
+prüft sechs Geld-Eigenschaften (Anlage per Trigger, Allowance zuerst,
+Überziehung abgewiesen, doppelter Kauf nur einmal gutgeschrieben, Refill
+setzt statt addiert, Ledger = Saldo) und endet mit `rollback`. Lief ohne
+Fehler. Die sechs `ok`-Meldungen zeigt der Supabase-Editor nicht an (es sind
+`RAISE NOTICE`) — aber jede Prüfung scheitert mit `RAISE EXCEPTION`, ein
+Fehlschlag hätte also als rote Meldung erscheinen müssen statt „Success".
+
+### ⚠ Was das Schema NOCH NICHT tut
+
+**Befund S7 ist damit nicht behoben.** Das Schema steht, aber `server.js`
+benutzt es noch nicht — die Credits liegen weiter im `localStorage` und sind
+weiter editierbar. Behoben ist S7 erst, wenn `server.js` vor jedem Render
+`credits_spend()` aufruft und bei Fehlschlag verweigert. Ebenso offen: die
+Anmeldung (Sign in with Apple), der Migrationsweg für lokale Träume, und
+Medien hinter signierten URLs (S2/S3).
+
+**Offene Entscheidung für das Verdrahten:** `server.js` spricht Postgres
+besser **direkt** an als über die Data API (`supabase-js` mit `service_role`).
+Die Data API kann keine mehrteiligen Transaktionen — bei den drei Funktionen
+oben ist das egal, weil jede für sich eine Transaktion ist; aber sobald
+`server.js` einen Render und seine Abbuchung zusammen absichern will, zählt
+es. Mit direkter Verbindung könnte die Data API ganz aus.
+
+### Schlussprüfung vor dem Abschluss (auf Hannis Wunsch)
+
+Alles aus dieser Sitzung noch einmal gegen AGENTS.md, `/wrap` und die
+eigenen Behauptungen gehalten. **Sieben Fehler gefunden, alle behoben:**
+
+1. **Ein falsches Datum.** Die Migration nannte „Antons Frage, 22.08.2026" —
+   `credits.js` sagt 16.08.2026. Danach jedes eingeführte Datum gegen seine
+   Quelle geprüft; die übrigen stimmten. Die Migration lief mit dem falschen
+   Datum, aber nur in einem Kommentar: Das ausgeführte Schema ist identisch.
+2. **Regelverstoß Kommentarsprache.** Der `T`-Block in `server.js` war
+   deutsch — AGENTS.md verlangt englische Codekommentare, und die
+   SQL-Dateien derselben Sitzung waren englisch. Übersetzt; per Diff belegt,
+   dass nur Kommentare geändert sind und alle vierzehn Signale bleiben.
+3. **STAND.md verstieß gegen ihre eigene erste Zeile** („zeigt immer nur die
+   Gegenwart"). Der Kopf war eine Kette aus fünf Sitzungsständen; begonnen
+   hatte sie vor dieser Sitzung, drei Glieder kamen hier dazu. Aufgelöst: 49
+   Zeilen Verlauf → 20 Zeilen Gegenwart, nachdem geprüft war, dass jedes
+   Glied bereits im WORKLOG steht.
+4. **⚠⚠ Eine Vermutung als Ursache verkauft.** S4 hieß „vermutliche Ursache
+   der verwaisten Filme", und `ARCHITEKTUR.md` nannte an anderer Stelle eine
+   zweite Ursache — zwei Ursachen, keine belegt, im selben Dokument. Die
+   belegte stand längst im Plan vom 03.09. Überall richtiggestellt (siehe
+   oben). **Die Lehre:** Vor jeder Ursachenbehauptung nachsehen, ob das
+   Projekt die Frage schon untersucht hat.
+5. **Eine falsche Zuschreibung.** „Erhoben von Hanni" über einer Analyse,
+   die Claude gemacht hat; ebenso ein „Ich hatte gesagt" in Hannis Eintrag,
+   das Claudes Aussage war. Beides korrigiert.
+6. **Redundanz.** Der Eintrag hatte 168 Zeilen (Antons vom 09.09.: 34). Das
+   Schemadesign stand fast wörtlich doppelt — hier und im Kopf der
+   Migration. Hier gekürzt auf einen Verweis. Die Begründung der
+   S1-Rücknahme bleibt dagegen hier: `ARCHITEKTUR.md` wird fortgeschrieben,
+   ein WORKLOG-Eintrag darf sich nicht tragend darauf stützen.
+7. **Das veröffentlichte Schaubild trug beide falschen Ursachen** und zeigte
+   S4 noch als offen. Korrigiert und neu veröffentlicht.
+
+**Beim Prüfen selbst passiert:** Ein Filter (`grep -v "^[-+][-+]"`) warf
+genau die SQL-Kommentarzeilen weg, die er zeigen sollte — SQL-Kommentare
+beginnen mit `--`. Die Prüfung meldete „keine Änderung", obwohl es eine gab.
+Bemerkt, weil das Ergebnis der eigenen Erwartung widersprach.
+
+**Zwei Punkte, die nicht allein zu entscheiden waren — und wie Hanni sie
+entschieden hat:**
+
+- **`docs/decisions/TEMPLATE.md` lag außerhalb des angesagten
+  Wirkungsradius.** Die Regel dort (fest zeigt nie auf beweglich) entstand
+  aus Hannis Frage und wurde nachträglich gutgeheißen — angesagt war sie
+  vorher nicht, wie AGENTS.md es verlangt. Bleibt so.
+- **Die Regel „Antons Prompt-Kette nicht anfassen" bleibt privat**, NICHT in
+  AGENTS.md. Zur Wahl stand, sie als stehende Projektregel für alle Agenten
+  zu übernehmen; Hanni hat sich dagegen entschieden. Wer das neu aufrollen
+  will, weiß damit, dass es eine bewusste Entscheidung war, kein Versehen.
+
+### Neu: Punkt 3 als Übergabe an Anton
+
+Die serverseitige Abbuchung vor dem Render liegt direkt an Antons
+Prompt-Kette und ist deshalb seine Aufgabe, nicht unsere:
+`docs/uebergabe/2026-09-11-anton-credits-abbuchung.md` (`für: Anton,
+LeN1N-NWO` — der Start-Hook zeigt sie ihm vollständig, allen anderen als
+Hinweiszeile; geprüft). **Voraussetzung:** Hannis nächster Branch mit
+Datenbankverbindung und Anmeldung muss gemergt sein.
+
+Beim Recherchieren dafür gefunden, **der Preis wird heute ausschließlich im
+Client festgelegt** — an sieben `spend()`-Stellen, der Server kennt keine
+Kosten. Die Übergabe verlangt deshalb als Erstes, dass der Server den Preis
+selbst rechnet (aus `src/lib/plans.js`, das reine Logik ist und sich wie zehn
+andere Module importieren lässt), statt einen Preis vom Client zu glauben.
+
+**⚠⚠ Und eine Falle im eigenen Schema, entdeckt nach dessen Ausführung:**
+`credits_grant(…, 'refund', …)` bucht immer in den Topf `purchased`. Kam
+eine Abbuchung aus der `allowance`, würde eine Erstattung darüber aus
+verfallenden Credits dauerhafte machen — und der Grund `'refund'` in der
+Liste lädt genau dazu ein. Heute passiert nichts, weil noch niemand
+erstattet. Richtig ist ein eigenes `credits_refund()`, das die Zeilen der
+ursprünglichen Abbuchung topfweise zurückbucht (neue Migration). Als Warnung
+in den Kommentar von `credits_grant` geschrieben — nur Kommentar, die
+Datenbank ist unberührt — und in der Übergabe als Punkt 4.
+
+Dabei beinahe selbst die eigene Regel gebrochen: Der erste Entwurf dieses
+Kommentars verwies auf die Übergabedatei. Eine Migration ist aber fest, und
+die Übergabe wird nach Erledigung gelöscht — der Verweis hätte ins Leere
+gezeigt. Entfernt; der Kommentar steht für sich.
+
+### Was der Nächste wissen muss
+- **⚠ Antons Prompt-Kette und die Bild-/Filmgenerierung wurden ausdrücklich
+  NICHT angefasst** (Hannis Ansage). An den `fetch`-Aufrufen kam nur der
+  `signal`-Parameter dazu. Der Diff belegt es: vier entfernte Zeilen, und das
+  sind exakt die vier einzeiligen Aufrufe, die in derselben Zeile ergänzt
+  wurden. Keine Prompts, keine Modell-Slugs, keine Anfragekörper, keine
+  Antwort-Auswertung.
+- **Wer S1 doch angehen will, rüstet den Token ZUERST im Client nach:** fünf
+  `fetch`-Stellen in `api.js` plus die WebSocket-Verbindung in
+  `voiceSession.js`, die keine Kopfzeilen senden kann und ihn in die Adresse
+  nehmen müsste.
+- **⚠ `ADR-0002` ist veraltet** — es nennt Higgsfield als Generierungs-API.
+  Im Code kein einziger Treffer; tatsächlich laufen `fal.run`,
+  `queue.fal.run`, `api.deepseek.com` und `generativelanguage.googleapis.com`.
+  Ein ADR wird nicht bearbeitet, sondern ersetzt.
+- **517 Tests grün**, fünf Skriptprüfungen grün. Die zwei Tests, die zu S1
+  gehörten, sind mit der Rücknahme wieder verschwunden — die Zahl steht
+  damit wie vor der Sitzung. Keine bezahlten Läufe.
+
 ## 2026-09-10 19:05 — Hanni — Branch `session/2026-09-10-hanni` — Live-Reload per CAP_SERVER_URL
 
 **Auftrag:** „kann man etwas an der build zeit optimieren oder liegt das an

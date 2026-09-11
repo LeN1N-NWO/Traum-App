@@ -107,6 +107,46 @@ const PORT = process.env.PORT || 8100;
 // Ohne vorherigen `vite build` gibt es kein dist/ und alles antwortet 404.
 const ROOT = resolve(import.meta.dir, "dist");
 
+/* ── Timeouts for outgoing calls (finding S4, 11.09.2026) ─────────────────
+ *
+ * Until here, not one of the fourteen `fetch` calls carried a clock. When a
+ * provider stopped answering, the connection hung until `idleTimeout` gave
+ * up after 255 s — and enough of those in a row, and the process accepts
+ * nothing more.
+ *
+ * ⚠ This is NOT the fix for the orphaned films, and must not be read as
+ *   one. Their established cause (docs/plans/2026-09-03-regisseur-schnitt.md)
+ *   is that /api/generate answers only once the director is done: when the
+ *   client gives up first, the server still hands the film to fal and the
+ *   job id reaches no one. The structural fix is to return a job id at once.
+ *   The one side effect worth knowing: capping DeepSeek at 240 s keeps the
+ *   director below the client's 300 s, which MAY reduce orphans. Untested.
+ *
+ * ⚠ The numbers are DELIBERATELY generous. A limit that is too tight aborts
+ *   a run that would still have arrived — and that run is paid for and lost.
+ *   They are a ripcord against hanging, not a throttle for speed. Whoever
+ *   tightens one must hold it against the measured worst case, not the
+ *   usual one.
+ *
+ * ⚠ All of them sit BELOW `idleTimeout` (255 s). Otherwise the connection
+ *   would win the race against our own clock, and the person would again get
+ *   an abort without a reason instead of an honest message. The same thought
+ *   as for `idleTimeout` itself, one level further down.
+ *
+ * An abort throws — just like a network error does. Every call site already
+ * tolerated that, or a failed provider could never have been survived; the
+ * timeout is one more reason to throw, not a new contract. */
+const T = {
+  deepseek:   240_000, // thinks for minutes: 96 % of tokens are reasoning
+  falImage:   180_000, // synchronous image run; films go through the queue
+  falSubmit:   30_000, // only hands in the job, the answer is an id
+  falStatus:   20_000, // a single status word
+  falResult:   30_000, // fetch the finished JSON
+  falStt:     120_000, // upload audio and have it transcribed
+  geminiTts:   60_000, // one short sentence as a voice sample
+  mediaCopy:  120_000, // download a finished film, can be large
+};
+
 // Reference photos are base64 dataURLs, so bodies are chunky — but not unbounded.
 const MAX_BODY = 12 * 1024 * 1024;
 const MAX_REFERENCES = 6;
@@ -249,6 +289,7 @@ async function voiceSample(voice, lang) {
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${key}`,
     {
       method: "POST",
+      signal: AbortSignal.timeout(T.geminiTts),
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: VOICE_SAMPLE_LINES[lang] }] }],
@@ -773,6 +814,7 @@ Output ONLY the finished prompt text. No preamble, no markdown, no quotes around
 
   const res = await fetch(DEEPSEEK_API_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(T.deepseek),
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
@@ -876,6 +918,7 @@ async function directFilm({ dream, still, beats = [], shots = [], style, seconds
 
   const res = await fetch(DEEPSEEK_API_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(T.deepseek),
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
@@ -1057,6 +1100,7 @@ async function reflectDream(dream, contextLines = [], lang = null) {
     : "";
   const res = await fetch(DEEPSEEK_API_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(T.deepseek),
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
@@ -1095,6 +1139,7 @@ async function refineDream(dream, mode) {
 
   const res = await fetch(DEEPSEEK_API_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(T.deepseek),
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
@@ -1224,6 +1269,7 @@ async function analyzeDream(dream) {
 
   const res = await fetch(DEEPSEEK_API_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(T.deepseek),
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
@@ -1419,6 +1465,7 @@ async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", 
 
   const res = await fetch(`https://fal.run/${model}`, {
     method: "POST",
+    signal: AbortSignal.timeout(T.falImage),
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
     body: JSON.stringify(input),
   });
@@ -1499,6 +1546,7 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, q
 
   const res = await fetch(`https://queue.fal.run/${slug}`, {
     method: "POST",
+    signal: AbortSignal.timeout(T.falSubmit),
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
     body: nutzlast,
   });
@@ -1578,6 +1626,7 @@ async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", se
 
   const res = await fetch(`https://queue.fal.run/${model}`, {
     method: "POST",
+    signal: AbortSignal.timeout(T.falSubmit),
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
     body: JSON.stringify(input),
   });
@@ -1620,7 +1669,7 @@ async function jobStatus(id) {
   const family = job.model.split("/").slice(0, 2).join("/");
   const base = job.responseUrl || `https://queue.fal.run/${family}/requests/${job.requestId}`;
   const statusUrl = job.statusUrl || `${base}/status`;
-  const s = await fetch(statusUrl, { headers: { Authorization: `Key ${key}` } });
+  const s = await fetch(statusUrl, { signal: AbortSignal.timeout(T.falStatus), headers: { Authorization: `Key ${key}` } });
   if (!s.ok) return { status: "pending" };            // a hiccup is not a failure
   const st = await s.json();
 
@@ -1630,7 +1679,7 @@ async function jobStatus(id) {
        in den Status — wer nur den Status liest, verliert ihn endgültig.
        Ein Aussetzer beim Nachfassen darf den Fehler nicht verschlucken:
        dann eben ohne Grund, aber nie ohne „gescheitert". */
-    const roh = await fetch(base, { headers: { Authorization: `Key ${key}` } })
+    const roh = await fetch(base, { signal: AbortSignal.timeout(T.falResult), headers: { Authorization: `Key ${key}` } })
       .then((x) => x.json()).catch(() => null);
     const reason = failureReason(roh);
     await writeJob(id, { ...job, status: "failed", reason });
@@ -1638,7 +1687,7 @@ async function jobStatus(id) {
   }
   if (st.status !== "COMPLETED") return { status: "pending" };
 
-  const r = await fetch(base, { headers: { Authorization: `Key ${key}` } });
+  const r = await fetch(base, { signal: AbortSignal.timeout(T.falResult), headers: { Authorization: `Key ${key}` } });
   const data = await r.json().catch(() => null);
   /* Film ODER Bild — die einzige Stelle, an der sich die beiden Auftrags-
      arten überhaupt unterscheiden. Bildmodelle antworten mit images[],
@@ -1671,6 +1720,7 @@ async function falTranscribe(audioDataUri) {
 
   const res = await fetch(`https://fal.run/${FAL_MODEL_STT}`, {
     method: "POST",
+    signal: AbortSignal.timeout(T.falStt),
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
     body: JSON.stringify({ audio_url: audioDataUri, task: "transcribe" }),
   });
@@ -1715,7 +1765,7 @@ async function storeBytes(bytes, contentType) {
 async function storeMedia(url) {
   try {
     if (!/^https:\/\//.test(url)) return null;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(T.mediaCopy) });
     if (!res.ok) return null;
     return await storeBytes(new Uint8Array(await res.arrayBuffer()), res.headers.get("content-type"));
   } catch (e) {
