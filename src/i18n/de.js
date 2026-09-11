@@ -981,6 +981,8 @@ export default {
     editCancel: "Doch nicht",
   },
   errors: {
+    priceChanged: (quoted, actual) =>
+      `Der Preis hat sich geändert: ${actual} statt ${quoted} Credits. Nichts wurde erzeugt oder abgebucht — noch einmal drücken bestätigt den neuen Preis.`,
     storageFull: "⚠ Speicher voll — alte Einträge oder Referenzfotos löschen.",
     unexpected: "Unerwartete Antwort vom Server.",
     serverStatus: (s) => `Server antwortete mit ${s}.`,

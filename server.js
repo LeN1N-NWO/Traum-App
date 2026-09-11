@@ -50,6 +50,9 @@ import { beatsForSeconds } from "./src/lib/beats.js";
 // Die Beat-Typen des Schnitts. Der Server prüft damit nur die Modellantwort;
 // gewählt und geplant wird im Client (cut.js), weil dort die Analyse liegt.
 import { HOOKS, MIN_SHOT_SECONDS } from "./src/lib/cut.js";
+// Der Preis eines Auftrags — DIESELBE Rechnung wie im Wizard (Hannis
+// Übergabe vom 11.09., Punkt 1: „Der Server rechnet den Preis selbst").
+import { quoteFor, compareQuote, priceTable } from "./src/lib/quote.js";
 // Die Filmbestellung je Modell — Slug, Klemme, Auflösung, Tonparameter —
 // kommt aus EINER Tabelle, die auch Preis und UI speist (video.test.js).
 import { videoSubmitBody, videoModel, clampSeconds, QUALITIES, PACE_IDS, DEFAULT_PACE, filmPace } from "./src/lib/video.js";
@@ -1918,6 +1921,28 @@ async function generateImages({ dream, namedRefs, prompt: readyPrompt, aspectRat
  * Standbild-Prompt wörtlich — was sich bewegte, war Zufall. Fehlt der
  * Regisseur (kein Schlüssel, Prüfung rot), fällt die Bestellung auf den
  * alten Zustand zurück. */
+/* ── Die Abbuchung: vorbereitet, noch nicht scharf (11.09.2026) ──────────
+ * Hier bucht der Server künftig VOR dem bezahlten Aufruf ab — über
+ * withUser() und server_spend() (src/lib/db.js, Hannis Übergabe
+ * docs/uebergabe/2026-09-11-anton-credits-abbuchung.md, Punkt 2). Dafür
+ * fehlt heute die eine Zutat, die kein Server erraten darf: WESSEN Credits.
+ * Die Nutzerkennung kommt aus der verifizierten Anmeldung (Sign in with
+ * Apple), und die ist zurückgestellt. Bis dahin schreibt diese Funktion nur
+ * ins Log, was sie abbuchen WÜRDE — damit der Preisweg schon jetzt sichtbar
+ * läuft und der Umbau später eine Stelle hat, nicht sieben.
+ *
+ * Wenn die Anmeldung da ist:
+ *   await withUser(database, userId, (tx) =>
+ *     tx`select public.server_spend(${charge}, ${jobRef}, null)`);
+ *   Reicht das Guthaben nicht, wirft server_spend → 402, nichts rendern.
+ *   Erstatten NIE über credits_grant (bucht in den falschen Topf) — eigene
+ *   Funktion credits_refund(jobRef), siehe Übergabe Punkt 4. */
+function settleCharge({ kind, charge, quoted }) {
+  console.log(`[DreamRushes] Abbuchung (noch nicht scharf): ${kind} = ${charge} Credit(s)`
+    + (quoted != null && quoted !== charge ? ` (angezeigt waren ${quoted})` : ""));
+  return { charged: false, charge };
+}
+
 async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, quality, refImages = [] }) {
   const filmPrompt = motionPrompt || prompt || dream;
   /* `refImages` kommt aus filmReferences() und steht in EXAKT der
@@ -2558,6 +2583,26 @@ const serveOptions = {
              Funktion hat auf dem Client den Preis berechnet. */
           const quality = QUALITIES.includes(body.quality) ? body.quality : undefined;
 
+          /* ── Der Preis, vom Server gerechnet (11.09.2026) ──────────────
+             Bis hierher kannte der Server keine Kosten; der Preis stand nur
+             im Client. Jetzt rechnet er ihn aus den geprüften Feldern —
+             mit derselben Funktion wie der Wizard — und vergleicht ihn mit
+             dem, was der Mensch gesehen hat (`body.quoted`):
+               · gleich oder billiger → rendern, zum Server-Preis
+               · teurer → 409 mit beiden Zahlen, NICHTS wird gerendert.
+             Antons Ultimatum: Steigt ein Modellpreis, verkaufen wir nie zu
+             günstig. Ein Client, der keinen Preis mitschickt (älterer
+             Stand), bekommt den Server-Preis ohne Rückfrage.
+             ⚠ Abgebucht wird hier noch NICHT — dafür fehlt die Anmeldung
+             (wessen Credits?). settleCharge() ist die vorbereitete Stelle. */
+          const actual = quoteFor({ mode: "film", model: modelId, seconds: body.seconds, quality, keyframe: !!keyframe });
+          const preis = compareQuote(body.quoted, actual);
+          if (!preis.ok) {
+            console.warn(`[DreamRushes] Preis abgewiesen: angezeigt ${preis.quoted}, gerechnet ${preis.actual} Credits (${modelId}/${quality || "vorgabe"}/${body.seconds}s)`);
+            return json({ error: "The price has changed.", reason: "price", quoted: preis.quoted, actual: preis.actual }, 409);
+          }
+          settleCharge({ kind: "film", charge: preis.charge, quoted: preis.quoted });
+
           /* Referenz-Film — seit dem Neuzuschnitt vom 20.08. sind das ALLE
              Stufen: Auswahl und Reihenfolge kommen aus filmReferences() —
              Position in der Liste ist Referenznummer minus eins, Referenz 1
@@ -2595,6 +2640,18 @@ const serveOptions = {
            fertig mit; nur die alte Einzelform lässt DeepSeek formulieren)
            — das dauert Sekundenbruchteile. In die Warteschlange geht nur
            das Rendern selbst. */
+        /* Bilder: Preis vorerst nur BEOBACHTEN, nicht abweisen. Der Bildweg
+           wird zurückgebaut (Plan 2026-08-31-nur-noch-film.md) und hat drei
+           Aufrufformen (Einzelbild, Raster, Vorschau), die verschieden
+           zählen — ein 409 an der falschen Stelle bräche einen Weg, der
+           ohnehin verschwindet. Das Log zeigt, ob Client und Server hier
+           gleich rechnen; der Film ist scharf geschaltet. */
+        {
+          const actual = quoteFor({ mode: body.preview === true ? "preview" : "image", count: body.count, fallback: body.fallback === true });
+          const preis = compareQuote(body.quoted, actual);
+          if (!preis.ok) console.warn(`[DreamRushes] Bildpreis weicht ab (nur beobachtet): angezeigt ${preis.quoted}, gerechnet ${preis.actual}`);
+          settleCharge({ kind: "image", charge: preis.charge, quoted: preis.quoted });
+        }
         let imagePrompt = prompt;
         if (!imagePrompt) {
           try {
@@ -2654,6 +2711,14 @@ const serveOptions = {
 
     // Collecting a film. Deliberately a GET with no body: the client may ask
     // days later, from a cold start, with nothing but the id it saved.
+    /* Die Preistabelle, wie der Server sie kennt. Ein nativer Client kann
+       damit beim Start prüfen, ob sein eingebautes Bundle noch dieselben
+       Zahlen trägt (Antons Frage: „im Hintergrund einmal am Tag
+       aktualisieren"). Kostenlos, ohne Schlüssel, nur Zahlen. */
+    if (url.pathname === "/api/prices" && req.method === "GET") {
+      return json({ ok: true, ...priceTable() });
+    }
+
     if (url.pathname === "/api/job" && req.method === "GET") {
       try {
         return json({ ok: true, ...(await jobStatus(url.searchParams.get("id") || "")) });

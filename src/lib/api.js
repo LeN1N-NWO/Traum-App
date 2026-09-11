@@ -98,6 +98,13 @@ async function post(path, body, { timeout = TIMEOUTS.default } = {}) {
        Policy-Verstoß nicht funktioniert. */
     const err = new Error(data?.error || t.errors.serverStatus(res.status));
     if (data?.reason) err.reason = data.reason;
+    /* Der Preis hat sich geändert (HTTP 409, 11.09.2026): Der Server rechnet
+       teurer als der Client angezeigt hat und rendert NICHT. Beide Zahlen
+       reisen mit, damit der Wizard den neuen Preis zeigen und den Menschen
+       bestätigen lassen kann — statt „versuch es nochmal". */
+    if (res.status === 409 && Number.isFinite(Number(data?.actual))) {
+      err.priceChanged = { quoted: data.quoted ?? null, actual: Number(data.actual) };
+    }
     throw err;
   }
   return data;
@@ -211,10 +218,17 @@ export async function transcribe(audio) {
                 daraufhin das Rastermaß aus appGrid().
      fallback — Plan B: das Ausweichmodell. Bewusst ein JA/NEIN und kein
                 Modellname; die Auflösung steht im Server (modelFor). */
-export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback }) {
+/* `quoted` ist der Preis, den der Mensch gesehen hat — KEINE Anweisung an
+   den Server, so viel zu berechnen. Der Server rechnet selbst (quote.js)
+   und antwortet mit 409, wenn er teurer liegt. `count` sagt ihm bei Bildern,
+   wie viele Kacheln der Block hat, `preview` kennzeichnet die Schnellvorschau.
+   ⚠ Der Kommentar steht ÜBER dem Aufruf: imageModel.test.js liest den
+   post()-Aufruf mit einem Muster, das zwischen Pfad und Objekt nichts
+   erlaubt. */
+export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback, quoted, count, preview }) {
   const data = await post(
     "/api/generate",
-    { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback },
+    { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback, quoted, count, preview },
     // Nur der Film wartet auf den Regisseur — Bilder gehen sofort in die
     // Warteschlange und brauchen die lange Uhr nicht.
     mode === "film" ? { timeout: TIMEOUTS.film } : undefined,
