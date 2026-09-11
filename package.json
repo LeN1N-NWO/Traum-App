@@ -10,7 +10,7 @@
     "build": "vite build",
     "start": "bun run build && bun server.js",
     "test": "TZ=Europe/Berlin bun test && node scripts/test-static.mjs && node scripts/test-prompt-sanitize.mjs && node scripts/test-contrast.mjs && node scripts/check-i18n-shape.mjs && node scripts/test-rtl.mjs",
-    "ios": "cd mobile && bun run ios",
+    "ios": "cd mobile && bun run start & sleep 6; xcrun simctl openurl booted exp://localhost:8081; wait",
     "mobile": "cd mobile && bun run start"
   },
   "dependencies": {
