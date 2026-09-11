@@ -105,9 +105,10 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   Traumsicherung sprengt das (deshalb `DEV: false` in
   `mobile/src/legacy/vite-env.js`). Beim Umzug der Screens auf nativ den
   Zustand nach `expo-sqlite` (Skill `expo-data-fetching`, false-friends).
-- **Xcode-Build statt Expo Go** ist seit 12.09. nachts möglich: `mobile/ios`
-  ist erzeugt (`bun run prebuild:ios`), Workspace `DreamRushes.xcworkspace`.
-  Der Ordner ist git-ignoriert und wird aus `app.json` neu erzeugt.
+- **Xcode-Build läuft** (12.09., 01:13): `mobile/ios/DreamRushes.xcworkspace`
+  in Xcode öffnen, Ziel „DreamRushes", Simulator, ▶ — Metro muss laufen
+  (`bun run mobile`). Der Ordner ist git-ignoriert; `bun run prebuild:ios`
+  erzeugt ihn samt Pods und `.xcode.env.local` neu.
 - **Seedance über Replicate anbinden** — eigene Sitzung. `src/lib/video.js`
   (je Modell `provider`, `slug`, `refsField`), `server.js` `falSubmitVideo`
   anbieterabhängig, `REPLICATE_TOKEN` (liegt in Antons `.env`), Tests.
@@ -410,6 +411,19 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
     Hermes-Download auf den Quellbau zurück und verlangt cmake, CocoaPods-
     Downloads per curl scheitern. Anton erlaubt curl in LuLu, dann entfallen
     die Umwege. Bun, Ruby, Python und Git sind nicht betroffen.
+  · **React Native vorgebaut** in `~/.local/rn` (Core + Dependencies 0.86.3
+    von Maven Central, sha1 geprüft). Ohne die Tarballs prüft RN per curl,
+    ob es Artefakte gibt, sieht „nein" und baut aus dem Quelltext — Expos
+    vorgebaute Module erwarten aber `React.framework` und die App stirbt
+    beim Start an `dyld: Library not loaded: @rpath/React.framework`.
+    `bun run pods` setzt `RCT_TESTONLY_RNCORE_TARBALL_PATH` und
+    `RCT_USE_LOCAL_RN_DEP`. ⚠ Nach einem RN-Upgrade Version anpassen.
+  · **expo-modules-jsi gepatcht** (`mobile/patches/`, über `bun patch`):
+    Xcode 26.3 (Swift 6.2.4) lehnt `SWIFT_RETURNS_RETAINED` an Konstruktoren
+    ab und meldet „sending 'resultPtr' risks causing data races" als Fehler
+    (expo/expo#47539 offen). Patch: Annotation weg, Zeiger in einem
+    `@unchecked Sendable`-Container. ⚠ Swift-5-Modus ist KEIN Ausweg
+    (andere Fehler). Beim Expo-Upgrade Patch prüfen und ggf. löschen.
   · **Capacitor-Pakete in `mobile/`** (`@capacitor/core`, `haptics`) sind
     nur für die JS-Importe der alten Oberfläche da und in `package.json`
     unter `expo.autolinking.exclude` vom nativen Einbinden ausgeschlossen —

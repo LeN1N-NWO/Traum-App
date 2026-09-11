@@ -27,6 +27,19 @@ curl. Bun, Ruby, Python, Git sind frei — also alles daran vorbeigebaut:
 - `expo prebuild --platform ios` → `mobile/ios` (git-ignoriert), 109 Pods.
   Capacitor-Pakete per `expo.autolinking.exclude` ausgeschlossen.
 - Skripte: `bun run prebuild:ios`, `bun run pods`.
+- **Xcode 26.3 gegen Expo 57:** zwei Compiler-Fehler in expo-modules-jsi
+  (Konstruktor-Annotation; „sending … risks causing data races"), als
+  `bun patch` gelöst — `mobile/patches/expo-modules-jsi@57.1.0.patch`.
+  Swift-5-Modus war eine Sackgasse (neue Fehler an anderer Stelle).
+- **dyld-Absturz beim ersten Start:** Expos vorgebaute Module verlangen
+  `React.framework`, RN hatte aber (curl!) aus dem Quelltext gebaut.
+  Core- und Dependencies-Tarballs 0.86.3 über Bun geholt, per
+  `RCT_TESTONLY_RNCORE_TARBALL_PATH`/`RCT_USE_LOCAL_RN_DEP` eingebunden.
+- **Ergebnis 01:13:** `xcodebuild` grün, App per `simctl` installiert und
+  gestartet, Startmenü mit Frosch im Simulator — die alte Oberfläche als
+  DOM-Komponente in der echten Xcode-App. Workspace in Xcode geöffnet.
+- `mobile/ios/.xcode.env.local` zeigt `NODE_BINARY` auf `~/.local/node`,
+  sonst findet Xcodes Bundle-Skript kein node.
 
 ### Was der Nächste wissen muss
 
