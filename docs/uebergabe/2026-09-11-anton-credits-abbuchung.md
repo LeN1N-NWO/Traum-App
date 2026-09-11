@@ -3,6 +3,26 @@ für: Anton, LeN1N-NWO
 Hallo Anton, hier eine Aufgabe, die bei dir besser aufgehoben ist als bei
 uns — sie liegt direkt an deiner Prompt-Kette, und die fassen wir nicht an.
 
+STAND 11.09.2026 ABEND (Anton + Claude) — Punkt 1 ist erledigt, der Rest wartet
+  · src/lib/quote.js: EINE Preisrechnung für Client und Server (quoteFor,
+    compareQuote, priceTable). Der Wizard rechnet damit, der Server rechnet
+    nach — und lehnt mit HTTP 409 + beiden Zahlen ab, wenn er TEURER liegt
+    als angezeigt. Nichts wird gerendert. Liegt er gleich oder billiger,
+    gilt sein Preis. Antons Regel: nie zu günstig verkaufen, niemanden
+    übervorteilen. Live geprüft: 409 in Millisekunden, kein Aufruf nach
+    draußen (quote.test.js hält die Reihenfolge fest).
+  · Scharf ist das für den FILM. Bilder werden nur beobachtet (Log), weil
+    der Bildweg zurückgebaut wird und drei Aufrufformen hat.
+  · GET /api/prices liefert die Preistabelle des Servers — für einen
+    nativen Client, der prüfen will, ob sein Bundle noch dieselben Zahlen
+    trägt.
+  · settleCharge() in server.js ist die vorbereitete Abbuchungsstelle:
+    heute nur Log, mit der Anmeldung → withUser + server_spend (Punkt 2).
+  · Nebenbefund: Der Client bucht bei Plan B `block.length` ab (4), zeigt
+    aber 6 — die Kassenprüfung rechnet richtig, die Buchung nicht. Fällt
+    mit dem Server-Abbuchen weg, deshalb nicht angefasst.
+  Offen bleiben Punkt 2–6, alle hinter der Anmeldung.
+
 WORUM ES GEHT (11.09.2026, Hanni + Claude)
   Die Credits liegen bis heute im localStorage des Geräts und lassen sich
   im Browser frei editieren. credits.js sagt das im Kopf selbst: „This is

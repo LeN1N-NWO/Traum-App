@@ -1065,6 +1065,11 @@ export default {
     editCancel: "Leave it",
   },
   errors: {
+    /* Der Server rechnet den Preis selbst und lag über dem angezeigten
+       (HTTP 409). Nichts gerendert, nichts abgebucht — der neue Preis steht
+       jetzt auf dem Knopf, ein zweiter Druck bestätigt ihn. */
+    priceChanged: (quoted, actual) =>
+      `The price has changed: ${actual} credits instead of ${quoted}. Nothing was made or charged — press again to confirm the new price.`,
     storageFull: "⚠ Storage full — delete old entries or reference photos.",
     unexpected: "Unexpected response from the server.",
     serverStatus: (s) => `Server responded with ${s}.`,

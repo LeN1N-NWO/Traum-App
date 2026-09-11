@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { STYLES } from "../lib/styles.js";
 import { beatsForCount, trimSelection, selectionBeats } from "../lib/beats.js";
 import { selectBeats, shotPlan, recommendation } from "../lib/cut.js";
+import { quoteFor } from "../lib/quote.js";
 import { buildReferences, buildImagePrompt, buildGridPrompt } from "../lib/promptBuilder.js";
 import { generate, renderImages, uploadPanel, mediaUrl, characterSheet } from "../lib/api.js";
 import { needsSheet, renderRef, sheetFingerprint, compactDataUrl } from "../lib/sheets.js";
@@ -45,6 +46,13 @@ export default function Step5Style({ w, patch }) {
   // ein Toast ist nach vier Sekunden weg, und wer auf den Spinner gestarrt
   // hat, sieht danach nur ein wortloses Formular (Antons Befund 21.08.).
   const [fail, setFail] = useState(null);
+  /* Der Preis, den der SERVER beim letzten Versuch gerechnet hat, wenn er
+     über dem angezeigten lag (409). Er ersetzt die lokale Rechnung, bis der
+     Mensch den Auftrag ändert — dann rechnet der Client wieder selbst und
+     der Server prüft erneut. */
+  const [serverPrice, setServerPrice] = useState(null);
+  useEffect(() => { setServerPrice(null); },
+    [w.videoModel, w.seconds, w.quality, w.keyframe, w.imageCount, w.fallback, w.preview, w.mode]);
   /* Das Maskottchen tippt den Knopf nach (Antons Ansage 25.08.). Reines
      Beiwerk: Es liegt ÜBER dem Bildschirm und hält nichts auf — der Auftrag
      ist längst unterwegs, wenn das erste Einzelbild läuft. */
@@ -71,8 +79,13 @@ export default function Step5Style({ w, patch }) {
   // A film resumed from a dream with images animates one of THEM — no new
   // keyframe is rendered, so that credit disappears from the price.
   const ownKeyframe = isFilm && !!w.keyframe;
-  const price = isFilm
-    ? priceForFilm(w.videoModel, w.seconds, { ownKeyframe, quality: w.quality })
+  /* Der Preis kommt aus quote.js — derselben Funktion, mit der der Server
+     nachrechnet (Hannis Übergabe, Punkt 1). Vorher stand die Rechnung nur
+     hier; jetzt ist sie eine, und der Server prüft sie. Hat er beim letzten
+     Versuch teurer gerechnet (409), gilt SEIN Preis, bis der Auftrag
+     geändert wird. */
+  const price = serverPrice ?? (isFilm
+    ? quoteFor({ mode: "film", model: w.videoModel, seconds: w.seconds, quality: w.quality, keyframe: ownKeyframe })
     : isPreview ? PRICES.preview
     /* ⚠ Plan B kostet mehr, weil er uns mehr kostet: Nano Banana im
        4K-Raster $0,16 gegen $0,113. Die Zahl steht in pricing.js, nicht
@@ -373,6 +386,10 @@ export default function Step5Style({ w, patch }) {
              Wer hier die Vorgabe schickt statt der aufgelösten Stufe, riskiert,
              dass Client und Server verschieden auflösen. */
           quality: filmQuality(w.videoModel, w.quality).id,
+          /* Der angezeigte Preis reist mit — als Zusage an den Menschen,
+             nicht als Anweisung an den Server. Der rechnet selbst und lehnt
+             mit 409 ab, wenn er teurer liegt (quote.js). */
+          quoted: price,
           cast: castForApi,
           /* Stil und Szenenbogen für den Regisseur. Bis 19.08.2026 fehlten
              beide Zeilen: Die Regieanweisung verlangte ausdrücklich einen
@@ -442,6 +459,10 @@ export default function Step5Style({ w, patch }) {
           cast: castForApi,
           prompt: buildGridPrompt({ beats, styleId: w.styleId, clauses }),
           aspectRatio: "16:9",
+          // Die Schnellvorschau ist EIN Bild zum Preis von einem — der
+          // Server soll es als solches rechnen, nicht als Vier-Bilder-Traum.
+          preview: true,
+          quoted: price,
         });
         const gridUrl = mediaUrl(gridUrls[0]);
         if (!gridUrl) throw new Error(t.errors.unexpected);
@@ -538,6 +559,12 @@ export default function Step5Style({ w, patch }) {
             dream: w.text, mode: "image", cast: castForApi, prompt,
             grid: SCHRITT > 1,
             fallback: w.fallback === true,
+            /* Je Kachel ein Credit, bei Plan B anderthalb — dieselbe Rechnung
+               wie quote.js auf dem Server. ⚠ Der Client bucht darunter weiter
+               `block.length` ab (spend), also bei Plan B ZU WENIG; das ist
+               der alte Stand und fällt mit dem Server-Abbuchen weg. */
+            quoted: quoteFor({ mode: "image", count: block.length, fallback: w.fallback === true }),
+            count: block.length,
           });
           if (res.jobId) {
             submitted.push({ id: res.jobId, tiles: block.length, grid: SCHRITT > 1 });
@@ -620,7 +647,16 @@ export default function Step5Style({ w, patch }) {
       /* Die Marke muss weg, egal woran es lag — eine Kachel, die ewig
          „wird erstellt" behauptet, ist schlimmer als ein Traum ohne Bild. */
       clearPending();
-      setFail(err.message);
+      /* Der Server hat teurer gerechnet als angezeigt (Antons Ultimatum:
+         nie zu günstig verkaufen). Nichts wurde gerendert, nichts
+         abgebucht. Der neue Preis steht ab jetzt auf dem Knopf; ein
+         zweiter Druck ist die Bestätigung. */
+      if (err.priceChanged) {
+        setServerPrice(err.priceChanged.actual);
+        setFail(t.errors.priceChanged(err.priceChanged.quoted, err.priceChanged.actual));
+      } else {
+        setFail(err.message);
+      }
       /* ⚠ Der Frosch geht SOFORT weg, wenn es schiefging. Eine Ablehnung
          durch den Inhaltsfilter kommt schnell zurück — schneller als die
          sechs Sekunden. Wer sie hinter einem fröhlichen Maskottchen
