@@ -4,6 +4,10 @@
 „um das günstiger zu machen (direkt über Seedance oder direkt, wo H3
 verkauft wird)". Stand heute läuft alles über fal.ai.
 
+**Entscheidung Anton, 11.09.2026 abends:** Seedance 2.5 wird über Replicate
+bezogen (Anton hat dort schon ein Konto), H3 bleibt bei fal. Umsetzung
+folgt in einer eigenen Sitzung — Wirkungsradius unten.
+
 ## Die Antwort in einem Satz
 
 **Die beiden Modelle verhalten sich gegensätzlich:** Bei MiniMax H3 ist fal

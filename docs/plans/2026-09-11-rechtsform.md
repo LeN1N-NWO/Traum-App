@@ -6,6 +6,11 @@ Haftungsbegrenzung und Sicherheit, nicht um Steuern.
 **Das ist eine Recherche mit Quellen, keine Rechts- oder Steuerberatung.**
 Was ein Steuerberater und ein Anwalt klären müssen, steht am Ende.
 
+**Fortsetzung:** Umsatzsteuer, Abrechnung über Apple und die Gründer-
+rechnung (2 × 5.000 € netto) stehen in
+[2026-09-11-umsatzsteuer-und-gruenderrechnung.md](2026-09-11-umsatzsteuer-und-gruenderrechnung.md).
+Antons Entscheidung vom Abend: UG.
+
 ## Die Antwort in einem Satz
 
 Weder UK Ltd noch Dubai bringen zwei Gründern, die in Deutschland wohnen
