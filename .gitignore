@@ -63,3 +63,10 @@ public/clips/*.mp4
 # Repository. Die Zahlen daraus stehen im Worklog, die Bilder auf dem
 # Rechner, der sie bezahlt hat.
 /media/ab-test
+
+# Installierte Agent-Skills (11.09.2026): kommen per `npx skills add` aus
+# skills-lock.json wieder, gehören nicht als Kopie ins Repo. Eigene Skills
+# wie .claude/skills/regisseur-schnitt bleiben versioniert.
+.agents/
+.claude/skills/*
+!.claude/skills/regisseur-schnitt/
