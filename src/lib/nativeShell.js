@@ -4,9 +4,7 @@
  * first ten seconds on a phone:
  *   · the status bar keeps dark text on our night-blue — clock and battery
  *     all but disappear;
- *   · the keyboard is the light one over a dark screen;
- *   · above the keyboard sits WebKit's form bar (↑ ↓ Done), which no native
- *     app has — the clearest "this is a website" tell there is.
+ *   · (the keyboard: see the note below — deliberately left to iOS.)
  *
  * capacitor.config.ts sets the same styles for the moment before this runs.
  * Off the device this does nothing; the plugins' web versions would only
@@ -19,9 +17,10 @@ export async function setupNativeShell() {
     const { StatusBar, Style } = await import("@capacitor/status-bar");
     await StatusBar.setStyle({ style: Style.Dark });   // Dark = light text, for dark backgrounds
   } catch { /* an older shell without the plugin keeps its default */ }
-  try {
-    const { Keyboard, KeyboardStyle } = await import("@capacitor/keyboard");
-    await Keyboard.setStyle({ style: KeyboardStyle.Dark });
-    await Keyboard.setAccessoryBarVisible({ isVisible: false });
-  } catch { /* same */ }
+  /* ⚠ KEIN Tastatur-Plugin (11.09. abends). @capacitor/keyboard schneidet den
+     WebView über der Tastatur ab, und nach dem Schließen wertet WebKit
+     env(safe-area-inset-bottom) nicht neu aus — die Tab-Leiste rutschte in
+     die Displayrundung (ionic-team/capacitor #6430). iOS verwaltet die
+     Tastatur selbst besser. Dunkle Tastatur und Formularleiste: ADR-0006,
+     das ist Sache der nativen Oberfläche. */
 }
