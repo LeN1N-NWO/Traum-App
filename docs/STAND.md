@@ -3,32 +3,36 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-11 — `session/2026-09-11-hanni` (PR #37).
+**Stand:** 2026-09-11 — `session/2026-09-11-hanni-2` (PR #38).
 
 **Die native iOS-App läuft im Simulator und spricht mit dem Server**; ein
 echtes Gerät (Signing/Team) steht noch aus. Web-Änderungen brauchen per
 Live-Reload (`CAP_SERVER_URL`) keine Xcode-Runde mehr.
 
-**Das Backend ist entschieden und angelegt, aber noch nicht verdrahtet.**
-`ADR-0005`: Supabase als Datenschicht, `server.js` bleibt der
-schlüsselhaltende Prozess (Status vorgeschlagen, Antons Bestätigung steht
-aus). Das Projekt steht in Frankfurt, das erste Schema ist ausgeführt und in
-der echten Datenbank gegen sechs Geld-Invarianten geprüft. **⚠ Die Credits
-liegen trotzdem noch im `localStorage` und sind editierbar** — `server.js`
-fragt das Schema noch nicht (Befund S7, offen).
+**`server.js` ist mit der Datenbank verbunden — nach Least Privilege.**
+`ADR-0005`: Supabase als Datenschicht (Status vorgeschlagen, Antons
+Bestätigung steht aus). Das Schema ist ausgeführt und gegen sechs
+Geld-Invarianten geprüft. `server.js` verbindet sich als eigene Rolle
+`dreamrushes_server` — auf das Guthaben nur lesend, ohne Umgehung von RLS —
+und verweigert beim Start jede stärkere Rolle. 14 verbotene Handlungen sind
+empirisch abgewiesen (`42501`). **⚠ Genutzt wird die Verbindung noch
+nicht:** Die Credits liegen weiter im `localStorage` und sind editierbar
+(Befund S7, offen).
 
-**Der Weg dahin ist aufgeteilt:** Hanni verbindet als Nächstes `server.js`
-mit der Datenbank und baut die Anmeldung. Die Abbuchung vor dem Render
-liegt an Antons Prompt-Kette und ist deshalb seine Aufgabe — Übergabe in
-`docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`, erst nach Hannis
-Branch zu beginnen. ⚠ `credits_grant` taugt nicht für Erstattungen (bucht
-immer in den dauerhaften Topf) — steht dort als Punkt 4.
+**Was dafür noch fehlt, ist aufgeteilt:** Die **Anmeldung** (Sign in with
+Apple) ist **zurückgestellt** (Hannis Entscheidung, 11.09.) — sie hängt an
+der Frage, wer als Verkäufer im App Store steht, und die klärt Hanni mit
+Anton. Danach eigener Branch. Die **Abbuchung vor dem Render** liegt an Antons
+Prompt-Kette und ist seine Aufgabe: `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`,
+erst nach der Anmeldung zu beginnen. Die Server-Rolle bietet ihm dafür
+`server_spend()`; ⚠ für Erstattungen gibt es noch nichts Richtiges
+(`credits_grant` bucht immer in den dauerhaften Topf).
 
 **Die Architektur ist bewertet:** `docs/ARCHITEKTUR.md` führt acht Befunde
-(S1–S8) mit Schwere und Reihenfolge. Erledigt ist S4 (Zeitgrenzen auf allen
-vierzehn ausgehenden Aufrufen). S1 wartet bewusst auf die Konten.
+(S1–S8) mit Schwere und Reihenfolge. Erledigt ist S4. S1 wartet bewusst auf
+die Konten.
 
-517 Tests grün, fünf Skriptprüfungen grün, Build ~500 KB / gzip 168.
+533 Tests grün, fünf Skriptprüfungen grün, Build ~500 KB / gzip 168.
 Wie es hierher kam, steht im WORKLOG.
 
 ## Wo wir stehen

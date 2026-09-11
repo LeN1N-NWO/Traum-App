@@ -63,6 +63,8 @@ import { imageSubmitBody, imageModel,
   from "./src/lib/imageModel.js";
 import { failureReason } from "./src/lib/falError.js";
 import { appGrid, GRID_SLOTS } from "./src/lib/gridLayout.js";
+// Accounts, ledger, journal (ADR-0005). Optional — see the head of db.js.
+import { openDatabase } from "./src/lib/db.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
   DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
@@ -2841,6 +2843,21 @@ console.log(`Dream Rushes running → http://localhost:${PORT}`);
 console.log(process.env.FAL_KEY ? "fal.ai key: loaded ✓ (images + video)" : "fal.ai key: MISSING (generation disabled)");
 console.log(process.env.DEEPSEEK_KEY ? "DeepSeek key: loaded ✓ (LLM-crafted prompts)" : "DeepSeek key: MISSING (using local prompt template)");
 console.log(process.env.GEMINI_KEY ? "Gemini key: loaded ✓ (voice interview)" : "Gemini key: MISSING (voice interview disabled)");
+
+/* The database connection, checked before it is trusted. Deliberately not
+ * awaited: the server is up at once, and the database reports in when its
+ * role check is done. Until then — and whenever the connection is missing,
+ * unreachable or refused as too strong — `database` stays null and the
+ * server behaves exactly as it did before there was a database.
+ *
+ * Nothing uses it yet. Sign-in (who is asking) comes next; charging before
+ * a render is finding S7 in docs/ARCHITEKTUR.md. Both go through
+ * withUser() in src/lib/db.js, never through `database` directly. */
+let database = null;
+openDatabase(process.env.DATABASE_URL).then(({ db, status }) => {
+  database = db;
+  console.log(status);
+});
 /* Welches Bildmodell gerade wirklich läuft, und was es je Bild kostet.
  * Ein Slug in .env ist unsichtbar, bis die Rechnung kommt — diese Zeile
  * macht einen versehentlichen Rückweg auf das doppelt so teure Modell

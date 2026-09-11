@@ -3,6 +3,85 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-11 18:10 — Hanni — Branch `session/2026-09-11-hanni-2` — server.js an die Datenbank, mit einer Rolle nach Least Privilege
+
+**Auftrag:** Punkt 1 aus „Was als Nächstes käme": `server.js` mit Supabase
+verbinden. Hannis Grundsatz dabei: **immer Least Privilege.**
+
+**Ergebnis:** `server.js` verbindet sich als eigene Rolle
+`dreamrushes_server`, prüft beim Start, wer es ist, und verweigert jede zu
+starke Rolle. Genutzt wird die Verbindung noch nicht — dafür fehlt die
+Anmeldung (Punkt 2) und die Abbuchung (Punkt 3, Übergabe bei Anton).
+Befund S7 ist also weiter offen.
+
+### Warum eine eigene Rolle
+
+Die Adresse, die Supabase anbietet, meldet sich als `postgres` an:
+gemessen **kein Superuser, aber umgeht RLS**. Damit hätte ein Fehler in
+`server.js` direkt in `credits_balance` schreiben und Ledger und Saldo
+auseinanderlaufen lassen können — genau was das Schema verhindern soll.
+Die neue Rolle (`supabase/migrations/20260911150000_server_role.sql`) hat
+**zwei unabhängige Schlösser:** Tabellenrechte (auf die Credit-Tabellen nur
+`SELECT` — das schützt das Geld) und RLS ohne Umgehung (jede Anfrage sieht
+nur die Zeilen des einen Nutzers, für den `server.js` gerade handelt). Die
+drei Credit-Funktionen nehmen jede Nutzer-ID und bleiben der Rolle
+verschlossen; sie bekommt schmale Wrapper (`server_spend`, `server_grant`,
+`server_set_allowance`), die nur für den erklärten Nutzer handeln und
+`adjustment`/`refund` verweigern. Die Begründungen stehen im Kopf der
+Migration und von `src/lib/db.js`.
+
+`server.js` selbst: ein Import und ein Startblock, 17 Zeilen, nichts
+entfernt — die Prompt-Kette ist nachgezählt unberührt. Die Datenbank ist
+**optional**; ohne `DATABASE_URL` läuft alles wie bisher.
+
+### Belegt
+
+- **Drei Live-Zustände:** ohne `DATABASE_URL` → läuft ohne · `postgres` →
+  **verweigert**, Server läuft weiter (HTTP 200) · `dreamrushes_server` →
+  verbunden.
+- **Rechte-Beweis, empirisch:** 14 verbotene Handlungen versucht, alle mit
+  `42501` und der jeweils richtigen Meldung abgewiesen (Guthaben direkt
+  ändern, die ungeschützten Funktionen mit fremder ID, Wrapper ohne Nutzer
+  oder mit `refund`, `CREATE TABLE`, `DROP TABLE`, sich selbst `bypassrls`
+  geben …). **Zwei RLS-Prüfungen sind noch nicht aussagekräftig** — sie
+  zeigen „0 Zeilen", aber die Tabellen sind leer. Ein echter RLS-Beweis
+  braucht zwei Nutzer und kommt mit der Anmeldung.
+- Migration vorher in Hannis Datenbank **trocken gelaufen** (in `begin …
+  rollback`, danach nachgewiesen: nichts zurückgeblieben).
+- 16 neue Tests; die **Rot-Probe** fing alle vier absichtlich eingebauten
+  Fehler (u. a. ein Passwort, das über eine Fehlermeldung ins Log gerät).
+  533 Tests, fünf Skriptprüfungen grün.
+
+### Was der Nächste wissen muss
+
+- **⚠ Die `postgres`-Adresse gehört NICHT in die `.env`** — `server.js`
+  verweigert sie ohnehin. Admin-Zugang für Migrationen, wenn überhaupt, in
+  `.env.admin` (git-ignoriert UND von Bun nicht automatisch geladen; nicht
+  `.env.local` — die lädt Bun doch). Hanni hat sich für die strengere
+  Variante entschieden: keine `.env.admin`. Folge: Migrationen laufen nur
+  noch über den SQL-Editor, Trockenläufe von hier gibt es nicht mehr.
+- **⚠ Die Zwischenablage verfälscht Nicht-ASCII**, weil die Shell mit
+  `LC_CTYPE=C` läuft. Beim Einfügen der Migrationen wurde aus `—` ein
+  `‚Äî` — so steht es jetzt **in der Datenbank**, in zwei Tabellen-
+  beschreibungen und drei Fehlermeldungen. Nur Text, keine Logik; die
+  gelaufenen Migrationen bleiben dafür unverändert, sonst stünde im Repo
+  anderes als in der Datenbank. **Für künftige Migrationen:** Zeichenketten
+  in SQL nur ASCII, und kopieren mit `LC_ALL=en_US.UTF-8 pbcopy`.
+- **Beim Eintragen der Adresse** gab es zwei Stolpersteine, beide mit
+  Diagnose ohne Preisgabe gefunden: der Platzhalter `xxxx` aus Claudes
+  Vorlage stand noch im Host (die Vorlage sagte „Host bleibt gleich" und
+  zeigte einen falschen — Claudes Fehler), danach war statt der Projekt-ID
+  die ganze *Project URL* eingesetzt (`db.https://….supabase.co.supabase.co`).
+  Richtig ist `db.<20 Kleinbuchstaben>.supabase.co`.
+- **Punkt 2 (Anmeldung) ist zurückgestellt** (Hannis Entscheidung). Dieser
+  Branch war für Punkt 1 und 2 reserviert und wird mit Punkt 1 allein
+  gemergt; Punkt 2 bekommt einen eigenen Branch, sobald klar ist, wer als
+  Verkäufer im App Store steht — Hanni, Anton oder eine Firma (dann mit
+  D-U-N-S-Nummer). Hanni klärt das mit Anton. Außerdem muss das Apple-Konto
+  im bezahlten Developer Program eingeschrieben sein. Getrennt, weil
+  `server.js` eine geteilte Datei ist: Ein Branch, der tagelang offen
+  bleibt, zieht Konflikte an.
+
 ## 2026-09-11 12:54 — Hanni — Branch `session/2026-09-11-hanni` — Architektur-Review, ADR-0005, erstes Supabase-Schema, Zeitgrenzen
 
 **Auftrag:** Den Tech-Stack als Softwarearchitekt bewerten (Sicherheit,

@@ -173,8 +173,13 @@ Nach Wirkung je Aufwand, nicht nach Schwere.
    Append-only, in einer Transaktion gebucht, damit ein Abbruch mitten im
    Rendern kein Guthaben verschluckt. Löst nebenbei S1 richtig statt behelfsweise.
    **Begonnen 11.09.2026:** Schema ausgeführt und gegen sechs Invarianten
-   geprüft (`supabase/`). ⚠ S7 bleibt offen, bis `server.js` vor jedem Render
-   `credits_spend()` aufruft — ein Schema, das niemand fragt, schützt nichts.
+   geprüft (`supabase/`). `server.js` verbindet sich als eigene Rolle
+   `dreamrushes_server` nach Least Privilege — auf das Guthaben nur lesend,
+   ohne Umgehung von RLS, Geld nur über `server_spend()` & Co. für den per
+   `withUser()` erklärten Nutzer (`src/lib/db.js`); 14 Verbote empirisch
+   belegt. ⚠ S7 bleibt offen, bis `server.js` vor jedem Render
+   `server_spend()` aufruft — ein Schema, das niemand fragt, schützt nichts.
+   Das braucht zuerst die Anmeldung.
 3. **TLS davor (S6, S5)** — Caddy holt das Zertifikat selbst.
 4. **Medien nach Supabase Storage mit signierten Adressen (S2, S3)** — löst
    zugleich das Löschrecht: eine Datei, ein Besitzer, ein Löschbefehl.

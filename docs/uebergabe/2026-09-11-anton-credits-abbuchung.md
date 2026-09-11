@@ -15,13 +15,26 @@ WORUM ES GEHT (11.09.2026, Hanni + Claude)
   Schema:      supabase/migrations/20260911130000_initial_schema.sql
   Befund:      S7 in docs/ARCHITEKTUR.md
 
-⚠ VORAUSSETZUNG — ERST NACH HANNIS NÄCHSTEM BRANCH
-  Diese Aufgabe braucht zwei Dinge, die Hanni gerade baut: die Verbindung
-  von server.js zur Datenbank und die Anmeldung (Sign in with Apple), damit
-  der Server weiß, WESSEN Credits er abbucht. Solange das nicht gemergt ist,
-  gibt es keine Nutzerkennung und nichts zum Abbuchen. Beginne erst, wenn
-  dieser Branch in main ist — der konkrete Weg zur Datenbank und zur
-  Nutzerkennung wird dort festgelegt und hier nachgetragen.
+⚠ VORAUSSETZUNG — ERST NACH DER ANMELDUNG
+  Diese Aufgabe braucht zwei Dinge. Das erste steht seit 11.09.2026:
+  server.js ist mit der Datenbank verbunden (src/lib/db.js). Das zweite
+  fehlt noch: die Anmeldung (Sign in with Apple), damit der Server weiß,
+  WESSEN Credits er abbucht. Ohne sie gibt es keine Nutzerkennung und
+  nichts zum Abbuchen — beginne erst, wenn sie in main ist.
+
+  DER WEG ZUR DATENBANK (steht fest):
+  server.js meldet sich als eigene Rolle dreamrushes_server an — nach
+  Least Privilege, Hannis Grundsatz. Die Rolle darf das Guthaben nur
+  LESEN und sieht dank RLS nur die Zeilen des einen Nutzers, für den der
+  Server gerade handelt. Deshalb läuft JEDER Datenbankzugriff im Namen
+  eines Nutzers durch withUser():
+
+      import { withUser } from "./src/lib/db.js";
+      await withUser(database, userId, async (tx) => { ... });
+
+  withUser erklärt in einer Transaktion, für wen der Server handelt; außerhalb
+  davon sieht er keine Zeilen und bewegt kein Geld. userId MUSS aus der
+  verifizierten Anmeldung kommen, nie aus dem Anfragekörper.
 
 WARUM DAS BEI DIR LIEGT
   Der Preis wird heute AUSSCHLIESSLICH im Client festgelegt — der Server
@@ -40,10 +53,16 @@ SO WÄRE ES RICHTIG
      Modulen in src/lib; src/lib/plans.js ist reine Logik ohne React und
      lässt sich genauso holen. Eine Quelle für Preise, nicht zwei.
 
-  2. VOR dem bezahlten fal-Aufruf abbuchen:
-        credits_spend(userId, cost, jobRef)
-     Reicht das Guthaben nicht, wirft die Funktion — dann wird NICHT
-     gerendert, Antwort 402. Welche Endpunkte Geld kosten, sagt dir schon
+  2. VOR dem bezahlten fal-Aufruf abbuchen — über server_spend, NICHT über
+     credits_spend:
+        await withUser(database, userId, (tx) =>
+          tx`select public.server_spend(${cost}, ${jobRef}, null)`);
+     ⚠ credits_spend(userId, …) ist für die Server-Rolle GESPERRT
+     (nachgewiesen: 42501). Es nimmt jede beliebige Nutzer-ID an — ein Fehler,
+     der die falsche übergibt, würde fremdes Guthaben abbuchen. server_spend
+     nimmt gar keine ID, sondern bucht für den per withUser erklärten Nutzer.
+     Reicht das Guthaben nicht, wirft es — dann wird NICHT gerendert,
+     Antwort 402. Welche Endpunkte Geld kosten, sagt dir schon
      src/lib/gatekeeper.js → classOf(): Klasse „generate" (/api/generate,
      /api/character und alles Künftige).
 
@@ -63,7 +82,15 @@ SO WÄRE ES RICHTIG
      die die Ledger-Zeilen der ursprünglichen Abbuchung (gleiche ref)
      heraussucht und JEDEN TOPF EINZELN zurückbucht — so viel, wie dort
      abgebucht wurde. Durch denselben Index ist sie von selbst idempotent.
-     Das braucht eine neue Migration unter supabase/migrations/.
+     Das braucht eine neue Migration unter supabase/migrations/ — und dazu
+     einen Wrapper server_refund(jobRef) ohne Nutzer-ID, der der Rolle
+     dreamrushes_server freigegeben wird, genau wie server_spend (Muster in
+     20260911150000_server_role.sql). server_grant verweigert 'refund'
+     ausdrücklich, damit niemand den falschen Weg nimmt.
+     ⚠ Migrationen laufen nur noch über den SQL-Editor: server.js hat keine
+     Admin-Rechte, und das soll so bleiben. Beim Kopieren in den Editor
+     verfälscht die Zwischenablage auf Hannis Rechner Nicht-ASCII-Zeichen
+     (LC_CTYPE=C) — Zeichenketten in SQL deshalb nur ASCII.
 
   5. Wann erstatten: wenn der Render NACH der Abbuchung scheitert. Achtung
      bei den Filmen — fal-Fehler werden in jobStatus heute als „läuft noch"
