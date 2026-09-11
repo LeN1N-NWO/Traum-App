@@ -41,7 +41,10 @@ erfüllbar sind, und die Frage, wo die Daten liegen.
 ### Was die Wahl einschränkt, bevor sie getroffen wird
 
 `server.js` kann nicht in eine Funktion-als-Dienst-Umgebung ziehen. Das ist
-keine Vorliebe, sondern gemessen (11.09.2026, siehe `docs/ARCHITEKTUR.md`):
+keine Vorliebe, sondern gemessen — die Zahlen stehen hier und gelten mit
+diesem Dokument. (Die vollständige Erhebung vom 11.09.2026 liegt in
+`docs/ARCHITEKTUR.md`, Stand `fb3d7b3`. ⚠ Diese Datei wird fortgeschrieben;
+maßgeblich für dieses ADR ist ausschließlich, was unten steht.)
 
 - **Die Uhren passen nicht.** `api.js` gibt Analyse und Film je 300 000 ms.
   Eine Supabase Edge Function lebt 150 s (kostenlos) bzw. 400 s (Pro). Der
