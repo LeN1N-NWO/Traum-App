@@ -3,6 +3,53 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-11 23:05 — Anton — Branch `session/2026-09-11-anton-expo` — Expo-Hülle steht, alte Oberfläche läuft darin
+
+**Commits:** 4cea4dc · 7fe63dd · (Start-Skripte) · (dieser). PR #41 (Entwurf).
+
+**Auftrag:** Schritt 2–3 aus ADR-0006 — Expo-Hülle anlegen, die ganze alte
+React-Oberfläche als DOM-Komponente hineinnehmen, im Simulator starten.
+
+**Ergebnis:** `mobile/` (Expo SDK 57, Router 57, RN 0.86, React 19.2).
+Eine Route ohne Header rendert `src/legacy/legacy-app.jsx` (`'use dom'`),
+die `../../../src/App.jsx` samt Styles importiert — nichts kopiert, die
+Vite-App bleibt lauffähig. Im Simulator (Expo Go) erscheint das Startmenü
+mit Frosch; Metro bündelt die alte App (405 Module) und den nativen Teil
+(1116 Module). 560 Tests grün.
+
+### Was nötig war
+
+- **Metro über die Projektgrenze:** `watchFolders` aufs Hauptrepo,
+  `nodeModulesPaths` NUR `mobile/node_modules`, hierarchische Suche aus,
+  Hauptrepo-`node_modules` gesperrt — sonst zwei React-Kopien (18 für Vite,
+  19.2 für RN) im selben Bündel.
+- **`import.meta.env` und `__API_PORT__`:** Vite-Eigenheiten, die Metro
+  nicht kennt. `mobile/src/legacy/vite-env.js` setzt
+  `globalThis.__ExpoImportMetaRegistry` (babel-preset-expo schreibt
+  `import.meta` dorthin um) — MUSS erster Import der DOM-Komponente sein.
+- **⚠ Top-level await in `src/i18n/index.js` entfernt** (Wirkungsradius
+  überschritten, eine Zeile): Metro kann kein TLA. en/de füllen `t` weiter
+  synchron; `ready` exportiert. Ein Start mit einer der fünf eingefrorenen
+  Sprachen rendert kurz englisch — hinnehmbar unter dem Übersetzungs-Stopp.
+- **Kein Node, kein npm, kein CocoaPods auf Antons Mac** — `node` ist
+  überall Buns Shim. `create-expo-app` stirbt an npm; Vorlage per
+  `bun add expo-template-default@sdk-57` geholt. Expo CLI läuft unter Bun.
+- **`expo start --ios` stirbt in der Sandbox** (AppleScript fürs
+  Simulator-Fenster) und riss Metro mit — Expo Go blieb bei „Opening
+  project". Jetzt `expo start` + `simctl openurl exp://localhost:8081`.
+- **QuotaExceededError im WKWebView:** `DEV: true` im Shim ließ AppState die
+  geteilte Traumsicherung (19 Träume mit Bildern) laden, > 5 MB. Gemessen:
+  4 MB gehen. Shim setzt `DEV: false`.
+
+### Was der Nächste wissen muss
+
+- Simulator-Panel und Simulator-Tap in Claude sind nicht verbunden
+  (falsches „Xcode not selected"); prüfen per
+  `xcrun simctl io booted screenshot`. Tippen muss der Mensch.
+- Der Expo-Dev-Menü-Dialog liegt beim ersten Start über der App
+  („Continue").
+- Nächster Schritt: NativeTabs, siehe STAND.
+
 ## 2026-09-11 22:35 — Anton — Branch `session/2026-09-11-anton-native` — natives Gefühl in Capacitor, dann die Entscheidung für Expo
 
 **Commits:** b7f5482 · 8c75a63 · 602e948 · 5df2ca3 · 1d349ce (+ dieser). PR #40.

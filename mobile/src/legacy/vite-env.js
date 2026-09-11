@@ -13,8 +13,14 @@
  * hier die WLAN-Adresse hin (EXPO_PUBLIC_API_BASE beim Start setzen). */
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "http://localhost:8100";
 
+/* ⚠ DEV bewusst false, auch im Dev-Build (gemessen 11.09.): Mit DEV=true
+   holt AppState beim Start die geteilte Traumsicherung vom Server — 19
+   Träume samt Bildern — und der localStorage des WKWebView (~5 MB; 4 MB
+   probiert, ok) meldet QuotaExceededError: nichts wird mehr gespeichert.
+   Der native Speicher kommt mit dem Umzug der Datenschicht (Schritt 5). */
 globalThis.__ExpoImportMetaRegistry = {
   ...(globalThis.__ExpoImportMetaRegistry || {}),
-  env: { DEV: !!__DEV__, MODE: __DEV__ ? "development" : "production", VITE_API_BASE: API_BASE },
+  env: { DEV: false, MODE: "production", VITE_API_BASE: API_BASE },
 };
 globalThis.__API_PORT__ = Number(new URL(API_BASE).port) || 8100;
+

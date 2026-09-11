@@ -3,8 +3,10 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-11 spät — PR #39 und #40 gemergt; weiter auf
-`session/2026-09-11-anton-expo`.
+**Stand:** 2026-09-11 nachts — `session/2026-09-11-anton-expo` (PR #41,
+Entwurf): **die Expo-Hülle steht, die alte Oberfläche läuft darin im
+Simulator** (Expo Go, SDK 57). Schritt 2–3 des Umzugs aus ADR-0006 sind
+durch; nächster Schritt sind die nativen Tabs.
 
 **⚠⚠ ENTSCHIEDEN (Anton, 11.09. abends): Die Oberfläche wird nativ — React
 Native mit Expo statt Capacitor.** Web ist kein Ziel mehr, Android kommt
@@ -92,13 +94,20 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
 
 **Als Nächstes, in dieser Reihenfolge:**
 
-- **Die Expo-Hülle** — `session/2026-09-11-anton-expo`. Skill
-  `expo-web-to-native` lesen (Würgefeigen-Umzug), `create-expo-app` neben
-  dem bestehenden Code, Routen in Expo Router spiegeln, die alte
-  React-Oberfläche als DOM-Komponente hineinnehmen, im Simulator starten.
-  Erst wenn das läuft: NativeTabs (fünf Tabs, Traum in der Mitte, gefülltes
-  Plus), dann Journal-Liste und Traum-Seite nativ. ⚠ NativeTabs ist Alpha —
-  SDK-Stand festhalten. Bezahlung bleibt Store-IAP über RevenueCat.
+- **NativeTabs in der Expo-Hülle** (`mobile/`): fünf Tabs, Traum in der
+  Mitte mit gefülltem Plus (Antons Wort). Dafür die alte App in fünf
+  DOM-Routen zerlegen (je Tab eine `'use dom'`-Komponente, die den jeweiligen
+  Screen aus `../src` rendert) und die Web-Tab-Leiste darin ausblenden.
+  Skill `expo-router` → `references/tabs.md`. Dann Journal-Liste und
+  Traum-Seite nativ (`@expo/ui` zuerst). ⚠ NativeTabs ist Alpha, SDK-Stand
+  57.0.x festhalten. Bezahlung bleibt Store-IAP über RevenueCat.
+- **Datenschicht der Hülle:** localStorage im WKWebView fasst ~5 MB; die
+  Traumsicherung sprengt das (deshalb `DEV: false` in
+  `mobile/src/legacy/vite-env.js`). Beim Umzug der Screens auf nativ den
+  Zustand nach `expo-sqlite` (Skill `expo-data-fetching`, false-friends).
+- **Dev-Build statt Expo Go**, sobald ein eigenes natives Modul nötig ist:
+  braucht CocoaPods (`brew install cocoapods`) und ein echtes Node — beides
+  fehlt auf Antons Mac (alles zeigt auf Bun). Bis dahin reicht Expo Go.
 - **Seedance über Replicate anbinden** — eigene Sitzung. `src/lib/video.js`
   (je Modell `provider`, `slug`, `refsField`), `server.js` `falSubmitVideo`
   anbieterabhängig, `REPLICATE_TOKEN` (liegt in Antons `.env`), Tests.
@@ -366,6 +375,21 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
   Android** — Alpha-Packung.
 
 ## Werkzeuge
+
+- **Expo-Hülle im Simulator** (seit 11.09. nachts; Expo Go, kein Xcode-Build):
+
+      bun run dev:api          # Tab 1: server.js auf 8100
+      bun run ios              # Tab 2: Metro auf 8081 + öffnet Expo Go per simctl
+
+  ⚠ `expo start --ios` NICHT direkt aufrufen: der Schalter holt das
+  Simulator-Fenster per AppleScript nach vorn und stirbt, wo Automation
+  verboten ist (Claude-Sandbox); deshalb öffnet das Skript per
+  `xcrun simctl openurl booted exp://localhost:8081`. ⚠ localhost, nicht die
+  WLAN-Adresse — die erreicht der Simulator aus der Sandbox nicht.
+  Die alte Oberfläche läuft aus `../src` (nichts kopiert); Speichern lädt
+  sie neu. API-Adresse: `EXPO_PUBLIC_API_BASE` (Vorgabe localhost:8100).
+  ⚠ `create-expo-app` braucht npm — auf diesem Mac gibt es nur Bun; die
+  Vorlage kam als npm-Paket `expo-template-default@sdk-57` über `bun add`.
 
 - **Skills für die native Oberfläche** (seit 11.09., Pflichtlektüre vor
   Oberflächenarbeit). Einmal je Rechner:
