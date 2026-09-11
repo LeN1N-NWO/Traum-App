@@ -20,8 +20,9 @@ nicht:** Die Credits liegen weiter im `localStorage` und sind editierbar
 (Befund S7, offen).
 
 **Was dafür noch fehlt, ist aufgeteilt:** Die **Anmeldung** (Sign in with
-Apple) wartet auf eine Entscheidung — wer als Verkäufer im App Store steht;
-Hanni klärt das mit Anton. Die **Abbuchung vor dem Render** liegt an Antons
+Apple) ist **zurückgestellt** (Hannis Entscheidung, 11.09.) — sie hängt an
+der Frage, wer als Verkäufer im App Store steht, und die klärt Hanni mit
+Anton. Danach eigener Branch. Die **Abbuchung vor dem Render** liegt an Antons
 Prompt-Kette und ist seine Aufgabe: `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`,
 erst nach der Anmeldung zu beginnen. Die Server-Rolle bietet ihm dafür
 `server_spend()`; ⚠ für Erstattungen gibt es noch nichts Richtiges

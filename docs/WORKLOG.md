@@ -73,10 +73,14 @@ entfernt — die Prompt-Kette ist nachgezählt unberührt. Die Datenbank ist
   zeigte einen falschen — Claudes Fehler), danach war statt der Projekt-ID
   die ganze *Project URL* eingesetzt (`db.https://….supabase.co.supabase.co`).
   Richtig ist `db.<20 Kleinbuchstaben>.supabase.co`.
-- **Punkt 2 (Anmeldung) wartet auf eine Entscheidung:** Wer als Verkäufer
-  im App Store steht — Hanni, Anton oder eine Firma (dann mit D-U-N-S-
-  Nummer). Hanni klärt das mit Anton. Außerdem muss das Apple-Konto im
-  bezahlten Developer Program eingeschrieben sein.
+- **Punkt 2 (Anmeldung) ist zurückgestellt** (Hannis Entscheidung). Dieser
+  Branch war für Punkt 1 und 2 reserviert und wird mit Punkt 1 allein
+  gemergt; Punkt 2 bekommt einen eigenen Branch, sobald klar ist, wer als
+  Verkäufer im App Store steht — Hanni, Anton oder eine Firma (dann mit
+  D-U-N-S-Nummer). Hanni klärt das mit Anton. Außerdem muss das Apple-Konto
+  im bezahlten Developer Program eingeschrieben sein. Getrennt, weil
+  `server.js` eine geteilte Datei ist: Ein Branch, der tagelang offen
+  bleibt, zieht Konflikte an.
 
 ## 2026-09-11 12:54 — Hanni — Branch `session/2026-09-11-hanni` — Architektur-Review, ADR-0005, erstes Supabase-Schema, Zeitgrenzen
 
