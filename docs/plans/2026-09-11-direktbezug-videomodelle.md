@@ -32,7 +32,7 @@ Listenpreis wie BytePlus ohne Firmenverifizierung.
 | Seedance 720p | 17 Cr/s | **9 Cr/s** |
 | H3 480P / 768P | 2 / 3 Cr/s | unverändert (fal bleibt) |
 
-Ein 15-s-Seedance-Film in 480p: 121 statt 121 → **61 Credits** statt 121.
+Ein 15-s-Seedance-Film in 480p kostet heute 121 Credits, mit halbiertem Einkauf **rund 61**.
 Bei 100 Seedance-Filmen à 20 s im Monat spart der Wechsel rund $480, bei
 1.000 rund $4.800 (720p).
 
