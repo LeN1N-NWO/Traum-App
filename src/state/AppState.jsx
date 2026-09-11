@@ -14,6 +14,7 @@ import { chainStep, chainFingerprint, buildChainSubmission } from "../lib/imageC
 import { backupPayload, backupFingerprint, mergeShared } from "../lib/journalBackup.js";
 import { castPayload, castFingerprint, mergeCast } from "../lib/castBackup.js";
 import { t } from "../i18n/index.js";
+import { haptic } from "../lib/haptics.js";
 
 /* The whole app state in one place. Every change goes through update() and is
    saved immediately — there is no second path into storage. That is
@@ -64,6 +65,9 @@ export function AppStateProvider({ children }) {
      einem Sekundenbruchteil weg (Fund der Codeanalyse 26.08.). */
   const toastTimer = useRef(0);
   const toast = useCallback((text) => {
+    // Error toasts all start with ⚠ — the phone says so too, as iOS does
+    // when something fails.
+    if (typeof text === "string" && text.startsWith("⚠")) haptic.error();
     setToastText(text);
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastText(""), 2600);
@@ -164,7 +168,7 @@ export function AppStateProvider({ children }) {
         update(patch);
         for (const [kind, extra] of res.messages) {
           if (kind === "dreamReady") toast(t.journal.dreamReady(extra || ""));
-          else if (kind === "filmArrived") toast(t.journal.filmArrived);
+          else if (kind === "filmArrived") { haptic.success(); toast(t.journal.filmArrived); }
           else if (kind === "sceneReady") toast(t.journal.sceneReady(extra));
           else if (kind === "refunded") toast(t.journal.imagesRefunded(extra));
           /* ⚠ `extra` ist hier der GRUND (falError.js), nicht die Anzahl.

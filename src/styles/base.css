@@ -3,6 +3,9 @@
    iPhone app. */
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; }
+/* iOS enlarges text on rotation unless told not to — a native app never
+   reflows its type because the phone turned. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 body {
   background: radial-gradient(125% 85% at 50% -12%, var(--sky) 0%, var(--bg2) 42%, var(--bg) 100%);
@@ -27,6 +30,34 @@ body {
   margin: 0 auto;
   padding: calc(env(safe-area-inset-top) + var(--s-5)) var(--s-4)
            calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s-6));
+}
+
+/* — Native touch behaviour (11.09.) —
+   Three web habits give a wrapped app away at the first touch: double-tap
+   zooms, a long press selects the button's label and opens the callout,
+   and the tap highlight removed above left most controls with no pressed
+   state at all. :where() keeps all of this at zero specificity — any
+   component that styles its own :active wins without a fight. */
+:where(button, a, [role="button"], [role="tab"], [role="radio"], label, summary, select) {
+  touch-action: manipulation;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* The pressed state, the iOS highlight: a control dips on touch-down and
+   eases back on release. `scale`, not `transform`, so it composes with a
+   transform the control already has instead of replacing it.
+   ⚠ WebKit only applies :active on touch when the page listens for
+   touchstart — main.jsx registers an empty listener for exactly that. */
+:where(button, a[href], [role="button"]):not(:disabled) {
+  transition: scale var(--dur-release) var(--ease-out), opacity var(--dur-release) var(--ease-out);
+}
+:where(button, a[href], [role="button"]):not(:disabled):active {
+  scale: var(--press-scale); opacity: .82;
+  transition-duration: var(--dur-press);
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(button, a[href], [role="button"]):active { scale: none; }
 }
 
 /* — Rechts-nach-links (Arabisch) —
