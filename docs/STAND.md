@@ -11,7 +11,10 @@ Protokollen und Datenformaten je Verbindung, acht nummerierte Befunde
 keine Uhr, jetzt hat jeder eine — vermutlich die Ursache der verwaisten
 Filme. **Befund S1 wurde gebaut und wieder zurückgenommen**, weil der Client
 gar keinen Token sendet; Begründung in `ARCHITEKTUR.md`, gelöst wird er mit
-dem echten Backend. Antons Prompt-Kette blieb unangetastet. 517 Tests grün.
+dem echten Backend. Ebenfalls neu: **`ADR-0005` — Supabase als Datenschicht**
+(Status vorgeschlagen, Antons Bestätigung steht aus), womit der seit dem
+07.08. offene Punkt „braucht Supabase → eigenes ADR" geschlossen ist.
+Antons Prompt-Kette blieb unangetastet. 517 Tests grün.
 
 Davor: 2026-09-10 — `session/2026-09-10-hanni` (PR #36, gemergt): **Live-Reload
 per `CAP_SERVER_URL`.** Web-Änderungen brauchen keine Xcode-Runde mehr —

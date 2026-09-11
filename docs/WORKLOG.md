@@ -57,6 +57,30 @@ Hannis Entscheidung: mit dem echten Backend lösen statt behelfsweise. Ein
 Token im Bundle ist ein Token, den jeder hat, und richtige Authentifizierung
 kommt ohnehin mit den Konten.
 
+### Neu: `ADR-0005` — Supabase als Datenschicht
+
+Der Punkt, den `docs/specs/2026-08-07-app-umbau-design.md` seit dem 07.08.2026
+als „braucht Supabase → eigenes ADR" offen führte, ist geschrieben. Gewählt:
+Supabase für Konten, Credit-Ledger und Dateien; **`server.js` bleibt
+unverändert der schlüsselhaltende Prozess** und muss nicht umgeschrieben
+werden — das ist der eigentliche Gewinn gegenüber Convex.
+
+Verworfen und begründet: **Convex** (reaktives Mehr-Klienten-Sync ist hier
+keine Stärke — niemand teilt einen Traum in Echtzeit; dazu 1 MiB je Dokument,
+kein SQL fürs Ledger, und sein Modell verlangte, `server.js` zu zerlegen),
+**Firebase** (schwach bei Geld, strittige EU-Datenhaltung), **Selbstbau**
+(Benutzerverwaltung richtig zu bauen sind Monate).
+
+**Status: vorgeschlagen.** Das Supabase-Projekt läuft auf Antons Konto und
+Rechnung; seine Bestätigung steht aus, danach auf „angenommen" setzen.
+
+**⚠ Richtigstellung zu einer früheren Aussage von heute:** Ich hatte gesagt,
+die Wahl „WebView statt nativ" sei nirgends begründet. Das stimmt nicht —
+`ADR-0004` behandelt sie unter „Verworfene Alternativen" („zwei getrennte
+Oberflächen für ein Produkt, das noch kein Bezahlmodell hat") und nennt die
+Bedingung für eine Neubewertung. Was fehlt, ist ein eigenes Dokument, nicht
+der Grund. In `ARCHITEKTUR.md` entsprechend korrigiert.
+
 ### Was der Nächste wissen muss
 - **⚠ Antons Prompt-Kette und die Bild-/Filmgenerierung wurden ausdrücklich
   NICHT angefasst** (Hannis Ansage). An den `fetch`-Aufrufen kam nur der

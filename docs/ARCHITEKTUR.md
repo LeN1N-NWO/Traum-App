@@ -134,7 +134,7 @@ sie sind.
 |---|---|---|
 | **TLS-Proxy** (Caddy) vor `server.js` | S6, S5 | Erzwingt HTTPS und liefert die echte Absender-IP, womit die Mengenbremse wieder das Richtige zählt |
 | **Auftragswarteschlange** | S4, S8, Performanz | `/api/generate` antwortet sofort mit einer Nummer; ffmpeg blockiert niemanden mehr |
-| **Supabase** (Postgres, Auth, Storage) | S2, S3, S7 | Konten, Credit-Ledger mit Row Level Security, Dateien hinter kurzlebigen signierten Adressen |
+| **Supabase** (Postgres, Auth, Storage) | S2, S3, S7, S1 | Konten, Credit-Ledger mit Row Level Security, Dateien hinter kurzlebigen signierten Adressen. Begründet in `ADR-0005` |
 
 `server.js` bleibt als ein Stück bestehen und zieht auf einen eigenen Host in
 der EU. Warum es **nicht** in Supabase Edge Functions ziehen kann: Die Uhren
@@ -170,6 +170,20 @@ Treffer mehr. Tatsächlich angesprochen werden `fal.run`, `queue.fal.run`,
 `api.deepseek.com` und `generativelanguage.googleapis.com`. Das ADR gehört
 ersetzt, nicht bearbeitet — ein ADR hält fest, was damals entschieden wurde.
 
-**Ein ADR für Capacitor fehlt.** Die Wahl „WebView statt nativ" ist als
-Nebensatz aus `ADR-0004` mitgelaufen und nie eigens begründet worden.
-`WORKLOG.md` führt „Capacitor-ADR + In-App-Käufe" selbst als offenen Punkt.
+**Ein eigenes ADR für Capacitor fehlt — aber die Wahl ist nicht unbegründet.**
+`ADR-0004` behandelt sie unter „Verworfene Alternativen":
+
+> **Ein natives Neuschreiben (SwiftUI/Compose):** nie ernsthaft erwogen. Zwei
+> getrennte Oberflächen für ein Produkt, das noch kein Bezahlmodell hat, wäre
+> sowohl teuer als auch verfrüht.
+
+Dazu nennt es die Bedingung für eine Neubewertung: „Wenn Capacitor sich als
+untauglich erweist … dann aber als eigenes ADR mit echten Messungen, nicht aus
+dem Bauch." Was fehlt, ist also kein Grund, sondern ein eigenes Dokument —
+`WORKLOG.md` führt „Capacitor-ADR + In-App-Käufe" entsprechend als offenen
+Punkt, gebunden an die Store-Konten.
+
+**Die Datenschicht ist seit dem 11.09.2026 entschieden:** `ADR-0005` —
+Supabase als Datenschicht, `server.js` bleibt der schlüsselhaltende Prozess.
+Dort steht auch, warum Convex, Firebase und ein Selbstbau verworfen wurden
+und unter welchen Bedingungen die Frage neu zu stellen ist.
