@@ -3,7 +3,7 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
-## 2026-09-11 12:54 — Hanni — Branch `session/2026-09-11-hanni` — Architektur-Review, Zeitgrenzen auf alle ausgehenden Aufrufe
+## 2026-09-11 12:54 — Hanni — Branch `session/2026-09-11-hanni` — Architektur-Review, ADR-0005, erstes Supabase-Schema, Zeitgrenzen
 
 **Auftrag:** Den Tech-Stack als Softwarearchitekt bewerten (Sicherheit,
 Performanz, Wartbarkeit, Zuverlässigkeit), das Ergebnis als Schaubild und
@@ -22,8 +22,17 @@ https://claude.ai/code/artifact/d10514e8-e99f-4f8e-bdba-3919f9a23f2b
 Nachgezählt, nicht geschätzt: 14 ausgehende Aufrufe, **null** Abbruchsignale.
 Antwortete ein Anbieter nicht mehr, hing die Verbindung bis `idleTimeout`
 nach 255 s — und genug davon nacheinander, und der Prozess nimmt nichts mehr
-an. Das ist die vermutete Ursache der dreimal beobachteten verwaisten Filme
-und stand seit dem 26.08. als offener Punkt in `STAND.md`.
+an. Stand seit dem 26.08. als offener Punkt in `STAND.md`.
+
+**⚠ Richtigstellung aus der Schlussprüfung:** S4 wurde zunächst als
+„vermutliche Ursache der verwaisten Filme" beschrieben — auch im
+Commit `fb3d7b3`, der sich nicht mehr ändern lässt. **Das war falsch.** Die
+belegte Erklärung stammt aus `docs/plans/2026-09-03-regisseur-schnitt.md`:
+`/api/generate` antwortet im Film-Modus erst nach dem Regisseur; gibt der
+Client vorher auf, landet der Film trotzdem bei fal, und die Nummer erreicht
+niemanden. Die Zeitgrenzen beheben das nicht. Nebenwirkung, ungetestet:
+DeepSeek ist jetzt auf 240 s gedeckelt und läuft damit nicht mehr über die
+300 s des Clients hinaus — das *könnte* Verwaisungen seltener machen.
 
 Jetzt trägt jeder eine Grenze aus der Tabelle `T` am Dateikopf: DeepSeek
 240 s (denkt minutenlang), fal-Bild 180 s, Auftragsabgabe 30 s, Statusabfrage
@@ -74,8 +83,8 @@ kein SQL fürs Ledger, und sein Modell verlangte, `server.js` zu zerlegen),
 **Status: vorgeschlagen.** Das Supabase-Projekt läuft auf Antons Konto und
 Rechnung; seine Bestätigung steht aus, danach auf „angenommen" setzen.
 
-**⚠ Richtigstellung zu einer früheren Aussage von heute:** Ich hatte gesagt,
-die Wahl „WebView statt nativ" sei nirgends begründet. Das stimmt nicht —
+**⚠ Richtigstellung zu einer früheren Aussage in dieser Sitzung:** Claude
+hatte gesagt, die Wahl „WebView statt nativ" sei nirgends begründet. Das stimmt nicht —
 `ADR-0004` behandelt sie unter „Verworfene Alternativen" („zwei getrennte
 Oberflächen für ein Produkt, das noch kein Bezahlmodell hat") und nennt die
 Bedingung für eine Neubewertung. Was fehlt, ist ein eigenes Dokument, nicht
@@ -90,26 +99,12 @@ mussten deshalb vor der Migration stehen. „Data API" bleibt vorerst an;
 entschieden wird das beim Verdrahten von `server.js` (siehe unten).
 
 Vier Tabellen, alle mit RLS: `profiles`, `dreams`, `credits_balance`,
-`credits_ledger`. Der Kern ist die Buchhaltung:
-
-- **Ledger UND Saldo, in einer Transaktion geschrieben.** Nur ein Ledger ließe
-  sich nicht sperren — auf eine Summe gibt es keine Zeilensperre, zwei
-  Anfragen läsen beide „genug" und gäben beide aus. Nur ein Saldo verlöre die
-  Antwort auf „wohin ging der Credit".
-- **`CHECK (>= 0)` auf dem Saldo macht Überziehung unmöglich**, nicht bloß
-  unwahrscheinlich: Die Datenbank verweigert den Schreibvorgang, egal was die
-  App glaubt.
-- **Geld bewegt sich nur über drei Funktionen** (`credits_spend`,
-  `credits_grant`, `credits_set_allowance`, `security definer`). Auf den
-  Credit-Tabellen gibt es keine Schreib-Policy, also verweigert RLS jeden
-  direkten Zugriff — auch ein geleakter `anon`-Schlüssel erzeugt keinen Credit.
-- **Die Zwei-Töpfe-Regel aus `credits.js` ist erhalten:** Allowance zuerst,
-  weil sie ohnehin verfällt; ein Abo-Refill SETZT die Allowance, statt zu
-  addieren.
-- **Profil und Saldo legt die Datenbank selbst an** (Trigger auf
-  `auth.users`), nicht die App — sonst ließe ein vergessener Pfad jemanden
-  ohne Saldozeile zurück, und jede Abbuchung scheiterte viel später an ganz
-  anderer Stelle.
+`credits_ledger`. Ledger und Saldo werden in einer Transaktion geschrieben,
+`CHECK (>= 0)` macht Überziehung unmöglich, Geld bewegt sich nur über drei
+`security definer`-Funktionen, und die Zwei-Töpfe-Regel aus `credits.js`
+(Allowance zuerst) ist erhalten. **Das Warum steht ausführlich im Kopf von
+`supabase/migrations/20260911130000_initial_schema.sql`** — dort hier nicht
+noch einmal.
 
 **⚠⚠ Beim Schreiben der Tests gefunden:** Der Index gegen doppelte Buchungen
 saß zuerst auf `(user_id, reason, ref)`. Eine Abbuchung, die BEIDE Töpfe
@@ -142,6 +137,60 @@ Die Data API kann keine mehrteiligen Transaktionen — bei den drei Funktionen
 oben ist das egal, weil jede für sich eine Transaktion ist; aber sobald
 `server.js` einen Render und seine Abbuchung zusammen absichern will, zählt
 es. Mit direkter Verbindung könnte die Data API ganz aus.
+
+### Schlussprüfung vor dem Abschluss (auf Hannis Wunsch)
+
+Alles aus dieser Sitzung noch einmal gegen AGENTS.md, `/wrap` und die
+eigenen Behauptungen gehalten. **Sieben Fehler gefunden, alle behoben:**
+
+1. **Ein falsches Datum.** Die Migration nannte „Antons Frage, 22.08.2026" —
+   `credits.js` sagt 16.08.2026. Danach jedes eingeführte Datum gegen seine
+   Quelle geprüft; die übrigen stimmten. Die Migration lief mit dem falschen
+   Datum, aber nur in einem Kommentar: Das ausgeführte Schema ist identisch.
+2. **Regelverstoß Kommentarsprache.** Der `T`-Block in `server.js` war
+   deutsch — AGENTS.md verlangt englische Codekommentare, und die
+   SQL-Dateien derselben Sitzung waren englisch. Übersetzt; per Diff belegt,
+   dass nur Kommentare geändert sind und alle vierzehn Signale bleiben.
+3. **STAND.md verstieß gegen ihre eigene erste Zeile** („zeigt immer nur die
+   Gegenwart"). Der Kopf war eine Kette aus fünf Sitzungsständen; begonnen
+   hatte sie vor dieser Sitzung, drei Glieder kamen hier dazu. Aufgelöst: 49
+   Zeilen Verlauf → 20 Zeilen Gegenwart, nachdem geprüft war, dass jedes
+   Glied bereits im WORKLOG steht.
+4. **⚠⚠ Eine Vermutung als Ursache verkauft.** S4 hieß „vermutliche Ursache
+   der verwaisten Filme", und `ARCHITEKTUR.md` nannte an anderer Stelle eine
+   zweite Ursache — zwei Ursachen, keine belegt, im selben Dokument. Die
+   belegte stand längst im Plan vom 03.09. Überall richtiggestellt (siehe
+   oben). **Die Lehre:** Vor jeder Ursachenbehauptung nachsehen, ob das
+   Projekt die Frage schon untersucht hat.
+5. **Eine falsche Zuschreibung.** „Erhoben von Hanni" über einer Analyse,
+   die Claude gemacht hat; ebenso ein „Ich hatte gesagt" in Hannis Eintrag,
+   das Claudes Aussage war. Beides korrigiert.
+6. **Redundanz.** Der Eintrag hatte 168 Zeilen (Antons vom 09.09.: 34). Das
+   Schemadesign stand fast wörtlich doppelt — hier und im Kopf der
+   Migration. Hier gekürzt auf einen Verweis. Die Begründung der
+   S1-Rücknahme bleibt dagegen hier: `ARCHITEKTUR.md` wird fortgeschrieben,
+   ein WORKLOG-Eintrag darf sich nicht tragend darauf stützen.
+7. **Das veröffentlichte Schaubild trug beide falschen Ursachen** und zeigte
+   S4 noch als offen. Korrigiert und neu veröffentlicht.
+
+**Beim Prüfen selbst passiert:** Ein Filter (`grep -v "^[-+][-+]"`) warf
+genau die SQL-Kommentarzeilen weg, die er zeigen sollte — SQL-Kommentare
+beginnen mit `--`. Die Prüfung meldete „keine Änderung", obwohl es eine gab.
+Bemerkt, weil das Ergebnis der eigenen Erwartung widersprach.
+
+**Zwei Punkte, die nicht allein zu entscheiden waren:**
+
+- **`docs/decisions/TEMPLATE.md` lag außerhalb des angesagten
+  Wirkungsradius.** Die Regel dort (fest zeigt nie auf beweglich) entstand
+  aus Hannis Frage und wurde nachträglich gutgeheißen — angesagt war sie
+  vorher nicht, wie AGENTS.md es verlangt.
+- **Die Regel „Antons Prompt-Kette nicht anfassen" steht nur in Claudes
+  privatem Gedächtnis und in diesem Eintrag.** AGENTS.md gilt aber für
+  Codex, Cursor, Gemini CLI und Menschen gleichermaßen, und ADR-0001 legt
+  Projektwissen ausdrücklich ins Repository. Eine andere Arbeitsumgebung
+  sähe die Regel nicht. Sie gehört als stehende Projektregel nach
+  AGENTS.md — das ist aber eine geteilte Datei und Hannis bzw. Antons
+  Entscheidung.
 
 ### Was der Nächste wissen muss
 - **⚠ Antons Prompt-Kette und die Bild-/Filmgenerierung wurden ausdrücklich

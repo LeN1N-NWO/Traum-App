@@ -4,7 +4,8 @@
 > und bewertet ihn. Sie wird fortgeschrieben, nicht überschrieben — anders als
 > `STAND.md`, die nur die Gegenwart des Projektfortschritts zeigt.
 >
-> **Stand:** 2026-09-11 · Erhoben von Hanni aus dem Code, nicht aus Erinnerung.
+> **Stand:** 2026-09-11 · Erhoben in Hannis Sitzung (Analyse: Claude) aus dem
+> Code, nicht aus Erinnerung — jede Zahl ist nachgezählt.
 > Bildfassung mit beiden Schaubildern:
 > https://claude.ai/code/artifact/d10514e8-e99f-4f8e-bdba-3919f9a23f2b
 
@@ -82,7 +83,7 @@ heutigen Prototyp auf einem Laptop sind mehrere davon bewusst vertretbar.
 | **S1** | `tokenMatches()` gibt `true` zurück, wenn kein `API_TOKEN` gesetzt ist. Der Zugangsschutz ist standardmäßig aus. | Wer den Port findet, generiert auf unsere Rechnung: 20 `generate` je Minute × bis $0,47 ≈ **$9 pro Minute**, unbemerkt. | **kritisch**, sobald öffentlich |
 | **S2** | `/media/*` hat keinerlei Zugangsprüfung — `classOf()` gibt für alles außerhalb von `/api/` `null` zurück. | Gesichter realer Menschen, teils Dritter, dauerhaft per URL abrufbar. DSGVO Art. 9. | **hoch** |
 | **S3** | `Bun.hash` ist Wyhash: 64 Bit, nicht kryptografisch, ohne Streuwert. Gleicher Inhalt → gleicher Name. | Existenz-Orakel: Wer ein Bild hat, kann prüfen, ob es bei uns liegt. Kollisionen überschreiben. | mittel |
-| **S4** | ~~14 ausgehende `fetch`, null Abbruchsignale.~~ **Behoben am 11.09.2026.** | War vermutlich die Ursache der dreimal beobachteten verwaisten Filme. | ✅ erledigt |
+| **S4** | ~~14 ausgehende `fetch`, null Abbruchsignale.~~ **Behoben am 11.09.2026.** | Ein hängender Anbieter hielt eine Verbindung bis 255 s; genug davon, und der Prozess nahm nichts mehr an. ⚠ **Nicht** der Fix für die verwaisten Filme — siehe „Zuverlässigkeit". | ✅ erledigt |
 | **S5** | Mengenbremse zählt nach IP, im Arbeitsspeicher. | Neustart setzt alles zurück; hinter einem Proxy teilen sich alle einen Eimer. | mittel |
 | **S6** | Transport unverschlüsselt (`http://`, dafür wurde die ATS-Ausnahme gebaut). | Traumtexte und Referenzfotos liegen im WLAN offen. | mittel, im Betrieb hoch |
 | **S7** | Guthaben liegt im `localStorage` beim Kunden. | Kostenlose Generierung für jeden, der die Entwicklerwerkzeuge öffnet. | **hoch** |
@@ -111,9 +112,28 @@ Nach ISO/IEC 25010, auf das beschränkt, was hier etwas entscheidet.
 - **Sicherheit — schwach.** Die Grenze sitzt richtig, ist aber nicht
   verschlossen (S1, S2, S6). Die Eingabeprüfung dagegen ist überdurchschnittlich.
 - **Zuverlässigkeit — schwach.** Ein Prozess ohne Ausfallsicherung, ein
-  blockierender Unterprozess (S8). Fehler von fal werden als „läuft noch"
-  gelesen — daher die verwaisten Filme. Was fehlt, ist eine Auftrags-
+  blockierender Unterprozess (S8). Was fehlt, ist eine Auftrags-
   warteschlange mit eigenem Zustand.
+
+  **Die verwaisten Filme** (dreimal gesehen) haben eine belegte Erklärung,
+  und sie stammt nicht aus diesem Review, sondern aus
+  `docs/plans/2026-09-03-regisseur-schnitt.md`: `/api/generate` antwortet
+  im Film-Modus erst, wenn der Regisseur fertig ist. Gibt der Client vorher
+  auf, reicht der Server den Film trotzdem bei fal ein, und die
+  Auftragsnummer erreicht niemanden mehr. Strukturfix: sofort eine Nummer
+  zurückgeben (Schritt 5 unten).
+
+  ⚠ Davon zu trennen ist ein zweiter, eigener Mangel in `jobStatus`: Eine
+  Fehlantwort von fal auf die Statusabfrage wird als „läuft noch" gelesen
+  (`if (!s.ok) return { status: "pending" }`). Ein Auftrag, dessen
+  Statusabfrage dauerhaft scheitert, bliebe damit ewig „in Arbeit". Ob das
+  je einen der beobachteten Filme betraf, ist **nicht belegt** — es ist ein
+  Mangel im Code, keine erklärte Ursache.
+
+  Und S4 (Zeitgrenzen) ist **keiner** der beiden Fixes. Eine Nebenwirkung
+  könnte helfen — DeepSeek ist jetzt auf 240 s gedeckelt, der Client wartet
+  300 s, der Regisseur läuft also nicht mehr über die Client-Uhr hinaus —,
+  aber das ist eine ungetestete Vermutung.
 - **Performanz — tragfähig.** Die Wartezeiten kommen vom Modell, nicht vom
   Aufbau: 96 % der erzeugten Token sind Denk-Token. Der Engpass ist die
   Bauweise — `/api/generate` hält die Verbindung, statt sofort eine

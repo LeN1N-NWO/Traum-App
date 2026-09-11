@@ -107,37 +107,44 @@ const PORT = process.env.PORT || 8100;
 // Ohne vorherigen `vite build` gibt es kein dist/ und alles antwortet 404.
 const ROOT = resolve(import.meta.dir, "dist");
 
-/* ── Zeitgrenzen für ausgehende Aufrufe (Befund S4, 11.09.2026) ───────────
+/* ── Timeouts for outgoing calls (finding S4, 11.09.2026) ─────────────────
  *
- * Bis hierher trug kein einziger der vierzehn `fetch`-Aufrufe eine Uhr.
- * Antwortet ein Anbieter nicht mehr, hing die Verbindung, bis `idleTimeout`
- * nach 255 s zugriff — und genug davon nacheinander, und der Prozess nimmt
- * nichts mehr an. Das ist die vermutete Ursache der dreimal beobachteten
- * verwaisten Filme.
+ * Until here, not one of the fourteen `fetch` calls carried a clock. When a
+ * provider stopped answering, the connection hung until `idleTimeout` gave
+ * up after 255 s — and enough of those in a row, and the process accepts
+ * nothing more.
  *
- * ⚠ Die Zahlen sind ABSICHTLICH großzügig. Eine zu knappe Grenze bricht
- *   einen Lauf ab, der noch gekommen wäre — und der ist dann bezahlt und
- *   verloren. Sie sind kein Steuerrad für Geschwindigkeit, sondern eine
- *   Reißleine gegen das Hängen. Wer sie enger zieht, muss den gemessenen
- *   schlimmsten Fall dagegenhalten, nicht den üblichen.
+ * ⚠ This is NOT the fix for the orphaned films, and must not be read as
+ *   one. Their established cause (docs/plans/2026-09-03-regisseur-schnitt.md)
+ *   is that /api/generate answers only once the director is done: when the
+ *   client gives up first, the server still hands the film to fal and the
+ *   job id reaches no one. The structural fix is to return a job id at once.
+ *   The one side effect worth knowing: capping DeepSeek at 240 s keeps the
+ *   director below the client's 300 s, which MAY reduce orphans. Untested.
  *
- * ⚠ Alle liegen UNTER `idleTimeout` (255 s). Sonst gewänne die Verbindung
- *   das Rennen gegen unsere eigene Uhr, und der Mensch bekäme wieder einen
- *   Abbruch ohne Grund statt einer ehrlichen Meldung. Dieselbe Überlegung
- *   wie bei `idleTimeout` selbst, nur eine Ebene tiefer.
+ * ⚠ The numbers are DELIBERATELY generous. A limit that is too tight aborts
+ *   a run that would still have arrived — and that run is paid for and lost.
+ *   They are a ripcord against hanging, not a throttle for speed. Whoever
+ *   tightens one must hold it against the measured worst case, not the
+ *   usual one.
  *
- * Ein Abbruch wirft — wie ein Netzfehler auch. Jede Aufrufstelle vertrug
- * das schon vorher, sonst wäre ein ausgefallener Anbieter nie zu überleben
- * gewesen; der Zeitablauf ist nur ein weiterer Grund, kein neuer Vertrag. */
+ * ⚠ All of them sit BELOW `idleTimeout` (255 s). Otherwise the connection
+ *   would win the race against our own clock, and the person would again get
+ *   an abort without a reason instead of an honest message. The same thought
+ *   as for `idleTimeout` itself, one level further down.
+ *
+ * An abort throws — just like a network error does. Every call site already
+ * tolerated that, or a failed provider could never have been survived; the
+ * timeout is one more reason to throw, not a new contract. */
 const T = {
-  deepseek:   240_000, // denkt minutenlang: 96 % der Token sind Denk-Token
-  falImage:   180_000, // synchroner Bildlauf; Filme gehen über die Warteschlange
-  falSubmit:   30_000, // nur Auftrag abgeben, Antwort ist eine Kennung
-  falStatus:   20_000, // ein Statuswort
-  falResult:   30_000, // fertiges JSON abholen
-  falStt:     120_000, // Audio hochladen und abtippen lassen
-  geminiTts:   60_000, // ein kurzer Satz als Sprachprobe
-  mediaCopy:  120_000, // fertigen Film herunterladen, kann groß sein
+  deepseek:   240_000, // thinks for minutes: 96 % of tokens are reasoning
+  falImage:   180_000, // synchronous image run; films go through the queue
+  falSubmit:   30_000, // only hands in the job, the answer is an id
+  falStatus:   20_000, // a single status word
+  falResult:   30_000, // fetch the finished JSON
+  falStt:     120_000, // upload audio and have it transcribed
+  geminiTts:   60_000, // one short sentence as a voice sample
+  mediaCopy:  120_000, // download a finished film, can be large
 };
 
 // Reference photos are base64 dataURLs, so bodies are chunky — but not unbounded.

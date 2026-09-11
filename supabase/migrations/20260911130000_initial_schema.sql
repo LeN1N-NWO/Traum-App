@@ -15,7 +15,7 @@
 -- database refuses the write, whatever the application believes.
 --
 -- ⚠ src/lib/credits.js is the source of truth for the RULES modelled here,
---   and it explains why there are two buckets (Antons Frage, 22.08.2026):
+--   and it explains why there are two buckets (Antons Frage, 16.08.2026):
 --
 --     allowance — comes from a subscription, is SET at the start of each
 --                 period, never added. Does not roll over.
