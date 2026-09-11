@@ -9,7 +9,9 @@
     "dev:web": "vite",
     "build": "vite build",
     "start": "bun run build && bun server.js",
-    "test": "TZ=Europe/Berlin bun test && node scripts/test-static.mjs && node scripts/test-prompt-sanitize.mjs && node scripts/test-contrast.mjs && node scripts/check-i18n-shape.mjs && node scripts/test-rtl.mjs"
+    "test": "TZ=Europe/Berlin bun test && node scripts/test-static.mjs && node scripts/test-prompt-sanitize.mjs && node scripts/test-contrast.mjs && node scripts/check-i18n-shape.mjs && node scripts/test-rtl.mjs",
+    "ios": "cd mobile && bun run ios",
+    "mobile": "cd mobile && bun run start"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.1",

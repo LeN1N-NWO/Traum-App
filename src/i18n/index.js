@@ -96,9 +96,16 @@ function storedLanguage() {
 }
 
 // Applied once, at import time — before AppStateProvider or any screen
-// has rendered a single node. Das await hält diese Garantie auch für die
-// nachgeladenen Sprachen: Der Modulgraph wartet, bis t gefüllt ist.
-await setLanguage(storedLanguage() || DEFAULT_LOCALE);
+// has rendered a single node. Für en und de füllt setLanguage() `t`
+// SYNCHRON (der async-Rumpf läuft bis zum ersten await durch, und für die
+// statischen Sprachen gibt es keines). ⚠ Kein top-level await mehr
+// (11.09.2026): Metro, der Bundler der Expo-Hülle (ADR-0006), kann es
+// nicht — und die alte Oberfläche läuft dort als DOM-Komponente aus
+// genau diesem Quelltext. Preis: Startet die App mit einer der fünf
+// eingefrorenen Sprachen, ist der erste Render englisch, bis das Modul
+// nachgeladen ist — hinnehmbar unter dem Übersetzungs-Stopp; `ready`
+// kann abwarten, wer es braucht.
+export const ready = setLanguage(storedLanguage() || DEFAULT_LOCALE);
 
 export { LOCALES };
 export default t;
