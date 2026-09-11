@@ -143,6 +143,33 @@ bei 2.000 ≈ 18 €, bei 5.000 ≈ 7,20 €.
   (Steuer fällt progressiv), Bedarf ≈ 9.000 €/Monat, ≈ 1.850 Nutzer bei
   9,99 €.
 
+## 5. Wie lange bis 10.000 Abos? (Antons Frage, ohne großes Geld)
+
+Erfahrungswerte aus RevenueCat „State of Subscription Apps 2026"
+(115.000 Apps) und Indie-Berichten, Stand 11.09.2026:
+
+- **Die Ausgangslage ist hart:** Die mittlere App verdient ein Jahr nach
+  Start unter 50 $ im Monat; die oberen 5 % liegen bei knapp 9.000 $/Monat
+  (Vorjahresbericht). 10.000 Abos zu 9,99 € sind ≈ 100.000 €/Monat — das
+  ist das oberste eine Prozent.
+- **Install → zahlend:** Median 2,0 % bei mittleren Preisen (oberstes
+  Viertel > 4,4 %), 2,8 % bei hohen Preisen. Harte Paywall konvertiert am
+  Tag 35 mit 10,7 % gegen 2,1 % bei Freemium.
+- **Kündigung:** Monatsabos verlieren typisch 8–12 % je Monat; KI-Apps
+  kündigen 36 % schneller als der Schnitt, verdienen aber 41 % mehr je
+  Nutzer. Von Jahresabos kündigt gut ein Drittel im ersten Monat.
+- **Rechnung:** 10.000 Abos bei ~10 % Monatsverlust brauchen ≈ 1.000 neue
+  Zahler je Monat nur zum Halten → ≈ 50.000 Installs/Monat beim Median,
+  ≈ 23.000 im obersten Viertel. Ohne bezahlte Werbung kommt das nur aus
+  Teilen (der Film ist die Werbung), Shorts/TikTok (4–6 Posts pro Woche
+  über mindestens 8 Wochen, bevor etwas greift) und App-Store-Suche.
+- **Zeit:** Wenn es überhaupt greift, 18–36 Monate. Beispiel Habit Pixel:
+  8 Monate bis 1.000 $/Monat, stetig, nicht viral. Ein viraler Clip kann
+  das auf Monate verkürzen — planbar ist das nicht.
+- **Leiter mit Abbruchsignalen:** 100 Zahler in Monat 1–3 (sonst Paywall
+  und Onboarding falsch), 1.000 in Monat 6–12 (sonst kein Kanal, der
+  trägt), 10.000 in Jahr 2–3.
+
 ## Was der Steuerberater bestätigen muss
 
 Gewerbesteuer-Hebesatz der Gemeinde · Verzicht auf § 19 im Fragebogen ·
