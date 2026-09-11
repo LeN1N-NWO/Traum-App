@@ -3,36 +3,47 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-11 — `session/2026-09-11-hanni-2` (PR #38).
+**Stand:** 2026-09-11 abends — `session/2026-09-11-anton` (PR #39)
+abgeschlossen; weiter auf `session/2026-09-11-anton-native`.
 
-**Die native iOS-App läuft im Simulator und spricht mit dem Server**; ein
-echtes Gerät (Signing/Team) steht noch aus. Web-Änderungen brauchen per
-Live-Reload (`CAP_SERVER_URL`) keine Xcode-Runde mehr.
+**Der Server rechnet den Filmpreis selbst.** `src/lib/quote.js` ist EINE
+Rechnung für Wizard und Server. Liegt der Server teurer als angezeigt,
+antwortet er 409 mit beiden Zahlen — bevor Regisseur oder fal etwas
+kosten. Liegt er gleich oder billiger, gilt sein Preis. Bilder werden nur
+beobachtet (Log). `GET /api/prices` liefert die Tabelle. Das ist Punkt 1
+aus `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`; **Punkte 2–6**
+(abbuchen über `server_spend`, `jobRef`, Erstattung je Topf,
+fal-Fehler in `jobStatus`, Client-Abbuchung zurückbauen) **warten auf die
+Anmeldung**.
+
+**Die native iOS-App läuft im Simulator**, per Live-Reload
+(`CAP_SERVER_URL`) ohne Xcode-Runde je Änderung — **fühlt sich aber nach
+Web an**: keine Bildschirmübergänge, 13 Overlays ohne Ausblenden und ohne
+Ziehen-zum-Schließen, Druckzustände an nur fünf Elementen, keine Haptik.
+Das ist die nächste Sitzung (siehe „Als Nächstes"). Ein echtes Gerät
+(Signing/Team) steht noch aus.
+
+**Geschäftliche Entscheidungen (Anton, 11.09.):** UG als Rechtsform;
+Buchhaltung per Software, Jahresabschluss zukaufen; **Seedance 2.5 über
+Replicate** (halber Einkauf), H3 bleibt bei fal. Vermerke:
+`docs/plans/2026-09-11-rechtsform.md`,
+`2026-09-11-direktbezug-videomodelle.md`,
+`2026-09-11-umsatzsteuer-und-gruenderrechnung.md`.
 
 **`server.js` ist mit der Datenbank verbunden — nach Least Privilege.**
 `ADR-0005`: Supabase als Datenschicht (Status vorgeschlagen, Antons
-Bestätigung steht aus). Das Schema ist ausgeführt und gegen sechs
-Geld-Invarianten geprüft. `server.js` verbindet sich als eigene Rolle
-`dreamrushes_server` — auf das Guthaben nur lesend, ohne Umgehung von RLS —
-und verweigert beim Start jede stärkere Rolle. 14 verbotene Handlungen sind
-empirisch abgewiesen (`42501`). **⚠ Genutzt wird die Verbindung noch
-nicht:** Die Credits liegen weiter im `localStorage` und sind editierbar
-(Befund S7, offen).
-
-**Was dafür noch fehlt, ist aufgeteilt:** Die **Anmeldung** (Sign in with
-Apple) ist **zurückgestellt** (Hannis Entscheidung, 11.09.) — sie hängt an
-der Frage, wer als Verkäufer im App Store steht, und die klärt Hanni mit
-Anton. Danach eigener Branch. Die **Abbuchung vor dem Render** liegt an Antons
-Prompt-Kette und ist seine Aufgabe: `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`,
-erst nach der Anmeldung zu beginnen. Die Server-Rolle bietet ihm dafür
-`server_spend()`; ⚠ für Erstattungen gibt es noch nichts Richtiges
-(`credits_grant` bucht immer in den dauerhaften Topf).
+Bestätigung steht aus). `server.js` verbindet sich als eigene Rolle
+`dreamrushes_server` — auf das Guthaben nur lesend, ohne Umgehung von RLS.
+**⚠ Genutzt wird die Verbindung noch nicht:** Die Credits liegen weiter im
+`localStorage` und sind editierbar (Befund S7, offen). Die **Anmeldung**
+(Sign in with Apple) ist zurückgestellt (Hannis Entscheidung, 11.09.) —
+sie hängt an der Frage, wer als Verkäufer im App Store steht.
 
 **Die Architektur ist bewertet:** `docs/ARCHITEKTUR.md` führt acht Befunde
 (S1–S8) mit Schwere und Reihenfolge. Erledigt ist S4. S1 wartet bewusst auf
 die Konten.
 
-533 Tests grün, fünf Skriptprüfungen grün, Build ~500 KB / gzip 168.
+545 Tests grün, fünf Skriptprüfungen grün, Build ~502 KB / gzip 170.
 Wie es hierher kam, steht im WORKLOG.
 
 ## Wo wir stehen
@@ -64,6 +75,24 @@ Regie denken minutenlang — siehe Baustelle 1.
 **⚠ Vor Architekturfragen zuerst `docs/ARCHITEKTUR.md` lesen** — dort stehen
 die Befunde S1–S8 mit Schwere, Begründung und Reihenfolge. Die Punkte unten
 sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
+
+**Als Nächstes, in dieser Reihenfolge:**
+
+- **Natives iOS-Gefühl** — `session/2026-09-11-anton-native`. Vier Stufen:
+  (1) Bewegungs-Tokens in `tokens.css`, Druckzustände für `.btn`/`.card`/
+  Tabs/Sheet-Zeilen, `touch-action` und `user-select` auf Bedienelemente,
+  `overscroll-behavior`, Haptik-Plugin · (2) EINE Bottom-Sheet-Komponente
+  mit Aufsteigen, Ausblenden, Ziehen-zum-Schließen und Safe Area, dann die
+  13 Overlays umziehen · (3) Push/Pop zwischen Routen, Crossfade zwischen
+  Tabs, Wizard-Schritte schieben, Zurück-Wischen vom Rand, `replace` nach
+  fertigen Flüssen · (4) StatusBar, Keyboard, Splash-Übergabe.
+- **Seedance über Replicate anbinden** — eigene Sitzung. `src/lib/video.js`
+  (je Modell `provider`, `slug`, `refsField`), `server.js` `falSubmitVideo`
+  anbieterabhängig, `REPLICATE_TOKEN` (liegt in Antons `.env`), Tests.
+  Regie-Brief unverändert. Danach gehört die Frage in den Preisentscheid:
+  halber Einkauf an Kunden weitergeben oder als Marge behalten.
+
+Danach, wie gehabt:
 
 0. **iOS auf einem ECHTEN Gerät** — der Simulator ist seit 10.09. durch.
    Zwei Schritte fehlen, beide nur auf Hannis Mac machbar: in Xcode unter
@@ -138,9 +167,11 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
   was seit dem 25.08. „bezahlt bewiesen" heißt, lief mit einem Prompt,
   dem Stil-Rest, Anker und Klauseln fehlten.
 - **DreamBank-Träume dürfen NIE ins Repository** — CC BY-NC-SA. Die Datei
-  `2026-09-03-e_mtlxb972tea3m5.json`, die hier bis zum 09.09. als
-  uncommittet vermerkt war, liegt inzwischen in keinem der beiden Checkouts
-  mehr. Die Regel bleibt: fremdes Traummaterial nur lokal, nie committen.
+  `data/traeume/2026-09-03-e_mtlxb972tea3m5.json` liegt (11.09. abends)
+  wieder uncommittet im Hauptcheckout. So lassen, nie committen.
+- **Nebenbefund Plan B:** Der Client bucht `block.length` ab (4), zeigt
+  aber 6. Fällt mit der Server-Abbuchung weg, deshalb nicht angefasst.
+- **iOS fühlt sich nach Web an** — Befund oben, Arbeit auf dem Native-Branch.
 - **iOS: Signing/Team und das echte Gerät stehen aus** (nächster Schritt 0).
   Der Simulator ist seit 10.09. durch, inklusive API-Verbindung.
 - **Bildcode ist noch da** (Raster, Schnitt, `imageJobs`, Storyboard-
@@ -276,6 +307,12 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
 
 ### Werkzeuge und Umgebung
 
+- **⚠⚠ Grüne Tests sagen nichts über den Build.** `bun test` lädt die
+  Wizard-JSX nicht; eine fehlende Klammer in `Step5Style.jsx` lag am 11.09.
+  vom Nachmittag bis abends unbemerkt (57efeed → a6aac55). Nach jeder
+  JSX-Änderung `bunx vite build`.
+- **⚠ Das Simulator-Panel in Claude meldet „Xcode not selected"**, obwohl
+  `xcode-select -p` stimmt. Den Simulator direkt über Xcode bedienen.
 - **⚠⚠ Eine Rot-Probe wird mit `sed` zurückgedreht, nie mit
   `git checkout -- datei`** — das holt ALLE Änderungen der Datei zurück,
   nicht nur die Probe (08.09.: vier Stellen neu gesetzt).
@@ -375,3 +412,9 @@ keinen Film mehr.
 Film je Sekunde: H3 **2/3** Cr (480P/768P) · Seedance 2.5 **8/17** Cr
 (480p/720p), plus 1 Cr Keyframe. Einkauf $0,05/0,06 bzw. $0,2205/0,473
 je Sekunde. Ein 15-s-H3-Film in 768P: 46 Credits, ≈ $0,93 Einkauf.
+**Direktbezug (Entscheidung 11.09.):** Seedance über Replicate
+$0,1028/$0,2312 je Sekunde (480p/720p) statt fal $0,2205/$0,473 — noch
+nicht angebunden. H3 bleibt bei fal.
+**Gründerrechnung:** 2×5.000 € netto brauchen ≈ 36.000 €/Monat
+Nutzerumsatz brutto, also ≈ 3.600 Abos à 9,99 € (Apple 15 %, 19 % USt,
+Modellkosten 30 %). Herleitung und Hebel im Umsatzsteuer-Vermerk.
