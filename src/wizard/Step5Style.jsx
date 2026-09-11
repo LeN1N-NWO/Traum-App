@@ -90,7 +90,7 @@ export default function Step5Style({ w, patch }) {
     /* ⚠ Plan B kostet mehr, weil er uns mehr kostet: Nano Banana im
        4K-Raster $0,16 gegen $0,113. Die Zahl steht in pricing.js, nicht
        hier — und sie ist am Jahresabo nachgerechnet, dem engsten Plan. */
-    : priceForImages(w.imageCount, w.fallback);
+    : priceForImages(w.imageCount, w.fallback));
   const assignments = Object.values(w.assignments);
   const named = assignments.filter((a) => a.avatar?.img).length;
 
