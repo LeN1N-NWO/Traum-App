@@ -3,6 +3,48 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-11 22:35 — Anton — Branch `session/2026-09-11-anton-native` — natives Gefühl in Capacitor, dann die Entscheidung für Expo
+
+**Commits:** b7f5482 · 8c75a63 · 602e948 · 5df2ca3 · 1d349ce (+ dieser). PR #40.
+
+**Auftrag:** „Das muss mehr Apple-native werden." Vier Stufen in der
+Capacitor-Hülle gebaut: Bewegungs-Tokens, Druckzustände, Touch-Verhalten,
+Haptik (1) · ein Sheet-Verhalten für alle 13 Overlays mit Aufsteigen,
+Absinken, Herunterziehen (2) · Traum als geschobene Seite mit Zurück-Pfeil
+und Wisch vom Rand, Wizard-Übergänge, `replace` nach fertigen Flüssen (3) ·
+Statusleiste und Tastatur (4). 548 Tests grün, Build grün, in der Vorschau
+mit echten Touch-Ereignissen geprüft.
+
+**Dann Antons Befund im Simulator:** Tab-Leiste rutschte nach einer
+Tastatur in die Displayrundung (Capacitor-Tastatur-Plugin, ionic-team/capacitor
+#6430). Und die Frage nach „Apple-Glass-Look". Recherche: echtes Liquid
+Glass gibt es im WebView nicht (WebKit rendert `backdrop-filter: url()`
+nicht); Expo Router v55 liefert NativeTabs mit System-Glas, `GlassView`,
+Toolbars, Zoom-Übergänge. **Anton entschied: React Native mit Expo, Web
+kein Ziel mehr, Android später aus derselben Codebasis.** Festgehalten als
+`ADR-0006` mit Messungen (UI 13.925 Zeilen neu; Logik 8.039, Texte 6.263,
+Server 2.890 bleiben). Plus-Knopf wird fünfter Tab in der Mitte.
+
+**Skills installiert:** `expo@claude-plugins-official` (Nutzer-Scope) und
+`software-mansion-labs/skills` (Projekt, `skills-lock.json` versioniert,
+Kopien ignoriert). Übergabe für Hanni liegt in `docs/uebergabe/`.
+
+### Was der Nächste wissen muss
+
+- **PR #40 ist Zwischenlösung.** Mergen nur, wenn die Capacitor-App bis zum
+  Umzug gezeigt werden soll; sonst als Referenz für Kurven und Schwellen
+  (`useSheet.js`: Viertel der Höhe, Flick 0,5 px/ms, Rand 28 px) schließen.
+- **Vor dem Mergen von #40:** das Tastatur-Plugin ausbauen oder die
+  Tastaturhöhe selbst mitführen (17 Stellen) — sonst der Safe-Area-Fehler.
+- **⚠ React 18 StrictMode ruft Effekt-Cleanups doppelt, Refs nicht** — ein
+  Cleanup, das Listener eines Callback-Refs abmeldet, macht Gesten im
+  Dev-Modus tot (gemessen, gefixt in 602e948).
+- **⚠ Ziehen, halten, loslassen ist kein Wisch:** Geschwindigkeit beim
+  Loslassen auf null, wenn der Finger > 80 ms ruhte.
+- Das Simulator-Panel in Claude meldet weiter fälschlich „Xcode not selected".
+- STAND.md kollidiert absichtlich mit PR #39 (beide schreiben den Kopf) —
+  von Hand zusammenführen, #39 zuerst mergen.
+
 ## 2026-09-11 18:10 — Hanni — Branch `session/2026-09-11-hanni-2` — server.js an die Datenbank, mit einer Rolle nach Least Privilege
 
 **Auftrag:** Punkt 1 aus „Was als Nächstes käme": `server.js` mit Supabase

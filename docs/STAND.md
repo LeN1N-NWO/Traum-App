@@ -3,7 +3,23 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-11 — `session/2026-09-11-hanni-2` (PR #38).
+**Stand:** 2026-09-11 spät — `session/2026-09-11-anton-native` (PR #40);
+PR #39 (Preisprüfung, Gründungsvermerke) wartet auf Antons „merge".
+
+**⚠⚠ ENTSCHIEDEN (Anton, 11.09. abends): Die Oberfläche wird nativ — React
+Native mit Expo statt Capacitor.** Web ist kein Ziel mehr, Android kommt
+später aus derselben Codebasis. Begründung mit Messungen:
+`docs/decisions/ADR-0006-expo-react-native-statt-capacitor.md`. Kurz:
+Liquid Glass gibt es im WebView nicht (WebKit rendert `backdrop-filter:
+url()` nicht), die Capacitor-Tastatur zerschießt die Safe Area, und alles
+Nachgebaute bleibt nachgebaut. Es bleiben `server.js`, Supabase, die Logik
+in `src/lib` (48 von 57 Dateien ohne React/DOM) und alle Texte; neu werden
+~14.000 Zeilen JSX/CSS. Weg: Würgefeigen-Umzug — Expo-Hülle, in der die alte
+Oberfläche am ersten Tag als DOM-Komponente läuft, dann Bildschirm für
+Bildschirm nativ. Plus-Knopf wird fünfter Tab in der Mitte (Antons Wort).
+PR #40 ist damit Zwischenlösung. Skills sind installiert; Hanni bekommt die
+Anleitung beim nächsten Start (`docs/uebergabe/2026-09-11-hanni-expo-skills.md`).
+
 
 **Die native iOS-App läuft im Simulator und spricht mit dem Server**; ein
 echtes Gerät (Signing/Team) steht noch aus. Web-Änderungen brauchen per
@@ -60,6 +76,15 @@ gebunden. Der Film-Prompt hat seine eigene Grenze (`m.promptMax`).
 Regie denken minutenlang — siehe Baustelle 1.
 
 ## Nächste Schritte
+
+**Zuerst, eigene Sitzung:** die Expo-Hülle anlegen. Skill `expo-web-to-native`
+lesen (Würgefeigen-Umzug), dann `create-expo-app` neben dem bestehenden
+Code, Routen in Expo Router spiegeln, die alte React-Oberfläche als
+DOM-Komponente hineinnehmen, im Simulator starten. Erst wenn das läuft:
+NativeTabs (fünf Tabs, Traum in der Mitte, gefülltes Plus), dann
+Journal-Liste und Traum-Seite nativ. ⚠ NativeTabs ist Alpha — SDK-Stand
+festhalten. Bezahlung bleibt Store-IAP über RevenueCat.
+
 
 **⚠ Vor Architekturfragen zuerst `docs/ARCHITEKTUR.md` lesen** — dort stehen
 die Befunde S1–S8 mit Schwere, Begründung und Reihenfolge. Die Punkte unten
@@ -312,6 +337,16 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
 
 ## Werkzeuge
 
+- **Skills für die native Oberfläche** (seit 11.09., Pflichtlektüre vor
+  Oberflächenarbeit). Einmal je Rechner:
+
+      claude plugin install expo@claude-plugins-official
+      npx skills add software-mansion-labs/skills
+
+  Das Expo-Plugin bringt einen MCP-Server mit, der sich per `/mcp` in einer
+  interaktiven Sitzung anmelden will — nur für EAS-Dienste nötig, die Skills
+  laufen ohne. Die Software-Mansion-Kopien liegen git-ignoriert in
+  `.agents/skills`; versioniert ist nur `skills-lock.json`.
 - **iOS im Simulator** (zwei Terminals, Stand 10.09.):
 
       # Tab 1 — Server, muss laufen bleiben (hält die Schlüssel)
