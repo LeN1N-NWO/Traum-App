@@ -3,7 +3,17 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-10 — `session/2026-09-10-hanni` (PR #36): **Live-Reload
+**Stand:** 2026-09-11 — `session/2026-09-11-hanni` (PR #37): **Architektur
+bewertet und dokumentiert.** Neu: `docs/ARCHITEKTUR.md` — Ist-Zustand mit
+Protokollen und Datenformaten je Verbindung, acht nummerierte Befunde
+(S1–S8) mit Schwere, Qualitätsmerkmale nach ISO/IEC 25010, Zielbild.
+**Befund S4 ist erledigt:** Alle vierzehn ausgehenden `fetch`-Aufrufe hatten
+keine Uhr, jetzt hat jeder eine — vermutlich die Ursache der verwaisten
+Filme. **Befund S1 wurde gebaut und wieder zurückgenommen**, weil der Client
+gar keinen Token sendet; Begründung in `ARCHITEKTUR.md`, gelöst wird er mit
+dem echten Backend. Antons Prompt-Kette blieb unangetastet. 517 Tests grün.
+
+Davor: 2026-09-10 — `session/2026-09-10-hanni` (PR #36, gemergt): **Live-Reload
 per `CAP_SERVER_URL`.** Web-Änderungen brauchen keine Xcode-Runde mehr —
 steht die Variable, lädt die Hülle vom laufenden Vite-Server; steht sie
 nicht, ist alles wie vorher. Bedienung unter „Werkzeuge". Hintergrund: Der
@@ -61,6 +71,10 @@ Regie denken minutenlang — siehe Baustelle 1.
 
 ## Nächste Schritte
 
+**⚠ Vor Architekturfragen zuerst `docs/ARCHITEKTUR.md` lesen** — dort stehen
+die Befunde S1–S8 mit Schwere, Begründung und Reihenfolge. Die Punkte unten
+sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
+
 0. **iOS auf einem ECHTEN Gerät** — der Simulator ist seit 10.09. durch.
    Zwei Schritte fehlen, beide nur auf Hannis Mac machbar: in Xcode unter
    *Signing & Capabilities* das Entwicklerteam eintragen (das Einzige, was
@@ -106,9 +120,10 @@ Regie denken minutenlang — siehe Baustelle 1.
    das tut.
 9. **`WizardShell.jsx:66`**: Wiederaufnahme setzt `"dreamlike"` als
    Stil-Vorgabe, die App-Vorgabe ist seit 24.08. `ultrareal`. Einzeiler.
-10. **Server härten** (unverändert seit 26.08.): 14× `fetch` ohne Timeout ·
-    `spawnSync` bei `/api/film-outro` blockiert den ganzen Server ·
-    fal-Fehler als „pending" verschluckt (`server.js` jobStatus).
+10. **Server härten** — ~~14× `fetch` ohne Timeout~~ **erledigt 11.09.** ·
+    `spawnSync` bei `/api/film-outro` blockiert den ganzen Server (S8) ·
+    fal-Fehler als „pending" verschluckt (`server.js` jobStatus). Der Rest
+    steht mit Schwere und Reihenfolge in `docs/ARCHITEKTUR.md`.
 11. **Name für Dreamflow** bestätigen · Policy-Weg im Echtbetrieb ·
     Reflection-Sprache · zwei weitere Maskottchen · Klang-Presets.
 

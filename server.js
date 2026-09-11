@@ -107,6 +107,39 @@ const PORT = process.env.PORT || 8100;
 // Ohne vorherigen `vite build` gibt es kein dist/ und alles antwortet 404.
 const ROOT = resolve(import.meta.dir, "dist");
 
+/* ── Zeitgrenzen für ausgehende Aufrufe (Befund S4, 11.09.2026) ───────────
+ *
+ * Bis hierher trug kein einziger der vierzehn `fetch`-Aufrufe eine Uhr.
+ * Antwortet ein Anbieter nicht mehr, hing die Verbindung, bis `idleTimeout`
+ * nach 255 s zugriff — und genug davon nacheinander, und der Prozess nimmt
+ * nichts mehr an. Das ist die vermutete Ursache der dreimal beobachteten
+ * verwaisten Filme.
+ *
+ * ⚠ Die Zahlen sind ABSICHTLICH großzügig. Eine zu knappe Grenze bricht
+ *   einen Lauf ab, der noch gekommen wäre — und der ist dann bezahlt und
+ *   verloren. Sie sind kein Steuerrad für Geschwindigkeit, sondern eine
+ *   Reißleine gegen das Hängen. Wer sie enger zieht, muss den gemessenen
+ *   schlimmsten Fall dagegenhalten, nicht den üblichen.
+ *
+ * ⚠ Alle liegen UNTER `idleTimeout` (255 s). Sonst gewänne die Verbindung
+ *   das Rennen gegen unsere eigene Uhr, und der Mensch bekäme wieder einen
+ *   Abbruch ohne Grund statt einer ehrlichen Meldung. Dieselbe Überlegung
+ *   wie bei `idleTimeout` selbst, nur eine Ebene tiefer.
+ *
+ * Ein Abbruch wirft — wie ein Netzfehler auch. Jede Aufrufstelle vertrug
+ * das schon vorher, sonst wäre ein ausgefallener Anbieter nie zu überleben
+ * gewesen; der Zeitablauf ist nur ein weiterer Grund, kein neuer Vertrag. */
+const T = {
+  deepseek:   240_000, // denkt minutenlang: 96 % der Token sind Denk-Token
+  falImage:   180_000, // synchroner Bildlauf; Filme gehen über die Warteschlange
+  falSubmit:   30_000, // nur Auftrag abgeben, Antwort ist eine Kennung
+  falStatus:   20_000, // ein Statuswort
+  falResult:   30_000, // fertiges JSON abholen
+  falStt:     120_000, // Audio hochladen und abtippen lassen
+  geminiTts:   60_000, // ein kurzer Satz als Sprachprobe
+  mediaCopy:  120_000, // fertigen Film herunterladen, kann groß sein
+};
+
 // Reference photos are base64 dataURLs, so bodies are chunky — but not unbounded.
 const MAX_BODY = 12 * 1024 * 1024;
 const MAX_REFERENCES = 6;
@@ -249,6 +282,7 @@ async function voiceSample(voice, lang) {
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${key}`,
     {
       method: "POST",
+      signal: AbortSignal.timeout(T.geminiTts),
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: VOICE_SAMPLE_LINES[lang] }] }],
@@ -773,6 +807,7 @@ Output ONLY the finished prompt text. No preamble, no markdown, no quotes around
 
   const res = await fetch(DEEPSEEK_API_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(T.deepseek),
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
@@ -876,6 +911,7 @@ async function directFilm({ dream, still, beats = [], shots = [], style, seconds
 
   const res = await fetch(DEEPSEEK_API_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(T.deepseek),
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
@@ -1057,6 +1093,7 @@ async function reflectDream(dream, contextLines = [], lang = null) {
     : "";
   const res = await fetch(DEEPSEEK_API_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(T.deepseek),
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
@@ -1095,6 +1132,7 @@ async function refineDream(dream, mode) {
 
   const res = await fetch(DEEPSEEK_API_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(T.deepseek),
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
@@ -1224,6 +1262,7 @@ async function analyzeDream(dream) {
 
   const res = await fetch(DEEPSEEK_API_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(T.deepseek),
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
@@ -1419,6 +1458,7 @@ async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", 
 
   const res = await fetch(`https://fal.run/${model}`, {
     method: "POST",
+    signal: AbortSignal.timeout(T.falImage),
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
     body: JSON.stringify(input),
   });
@@ -1499,6 +1539,7 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, q
 
   const res = await fetch(`https://queue.fal.run/${slug}`, {
     method: "POST",
+    signal: AbortSignal.timeout(T.falSubmit),
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
     body: nutzlast,
   });
@@ -1578,6 +1619,7 @@ async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", se
 
   const res = await fetch(`https://queue.fal.run/${model}`, {
     method: "POST",
+    signal: AbortSignal.timeout(T.falSubmit),
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
     body: JSON.stringify(input),
   });
@@ -1620,7 +1662,7 @@ async function jobStatus(id) {
   const family = job.model.split("/").slice(0, 2).join("/");
   const base = job.responseUrl || `https://queue.fal.run/${family}/requests/${job.requestId}`;
   const statusUrl = job.statusUrl || `${base}/status`;
-  const s = await fetch(statusUrl, { headers: { Authorization: `Key ${key}` } });
+  const s = await fetch(statusUrl, { signal: AbortSignal.timeout(T.falStatus), headers: { Authorization: `Key ${key}` } });
   if (!s.ok) return { status: "pending" };            // a hiccup is not a failure
   const st = await s.json();
 
@@ -1630,7 +1672,7 @@ async function jobStatus(id) {
        in den Status — wer nur den Status liest, verliert ihn endgültig.
        Ein Aussetzer beim Nachfassen darf den Fehler nicht verschlucken:
        dann eben ohne Grund, aber nie ohne „gescheitert". */
-    const roh = await fetch(base, { headers: { Authorization: `Key ${key}` } })
+    const roh = await fetch(base, { signal: AbortSignal.timeout(T.falResult), headers: { Authorization: `Key ${key}` } })
       .then((x) => x.json()).catch(() => null);
     const reason = failureReason(roh);
     await writeJob(id, { ...job, status: "failed", reason });
@@ -1638,7 +1680,7 @@ async function jobStatus(id) {
   }
   if (st.status !== "COMPLETED") return { status: "pending" };
 
-  const r = await fetch(base, { headers: { Authorization: `Key ${key}` } });
+  const r = await fetch(base, { signal: AbortSignal.timeout(T.falResult), headers: { Authorization: `Key ${key}` } });
   const data = await r.json().catch(() => null);
   /* Film ODER Bild — die einzige Stelle, an der sich die beiden Auftrags-
      arten überhaupt unterscheiden. Bildmodelle antworten mit images[],
@@ -1671,6 +1713,7 @@ async function falTranscribe(audioDataUri) {
 
   const res = await fetch(`https://fal.run/${FAL_MODEL_STT}`, {
     method: "POST",
+    signal: AbortSignal.timeout(T.falStt),
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
     body: JSON.stringify({ audio_url: audioDataUri, task: "transcribe" }),
   });
@@ -1715,7 +1758,7 @@ async function storeBytes(bytes, contentType) {
 async function storeMedia(url) {
   try {
     if (!/^https:\/\//.test(url)) return null;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(T.mediaCopy) });
     if (!res.ok) return null;
     return await storeBytes(new Uint8Array(await res.arrayBuffer()), res.headers.get("content-type"));
   } catch (e) {

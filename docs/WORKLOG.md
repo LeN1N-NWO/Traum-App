@@ -3,6 +3,79 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-11 12:54 — Hanni — Branch `session/2026-09-11-hanni` — Architektur-Review, Zeitgrenzen auf alle ausgehenden Aufrufe
+
+**Auftrag:** Den Tech-Stack als Softwarearchitekt bewerten (Sicherheit,
+Performanz, Wartbarkeit, Zuverlässigkeit), das Ergebnis als Schaubild und
+Dokument festhalten, und die zwei wirksamsten Punkte umsetzen.
+
+### Neu: `docs/ARCHITEKTUR.md`
+
+Der Ist-Zustand mit **Protokollen und Datenformaten je Verbindung**, die
+Stärken des Entwurfs, acht nummerierte Befunde (S1–S8) mit Schwere, die vier
+Qualitätsmerkmale nach ISO/IEC 25010 und ein Zielbild. Fortgeschrieben, nicht
+überschrieben — anders als `STAND.md`. Bildfassung mit beiden Schaubildern:
+https://claude.ai/code/artifact/d10514e8-e99f-4f8e-bdba-3919f9a23f2b
+
+### Umgesetzt: S4 — vierzehn `fetch`-Aufrufe hatten keine Uhr
+
+Nachgezählt, nicht geschätzt: 14 ausgehende Aufrufe, **null** Abbruchsignale.
+Antwortete ein Anbieter nicht mehr, hing die Verbindung bis `idleTimeout`
+nach 255 s — und genug davon nacheinander, und der Prozess nimmt nichts mehr
+an. Das ist die vermutete Ursache der dreimal beobachteten verwaisten Filme
+und stand seit dem 26.08. als offener Punkt in `STAND.md`.
+
+Jetzt trägt jeder eine Grenze aus der Tabelle `T` am Dateikopf: DeepSeek
+240 s (denkt minutenlang), fal-Bild 180 s, Auftragsabgabe 30 s, Statusabfrage
+20 s, Abtippen 120 s, Sprachprobe 60 s, Medienkopie 120 s.
+
+- **Die Zahlen sind absichtlich großzügig.** Eine zu knappe Grenze bricht
+  einen Lauf ab, der noch gekommen wäre — und der ist dann bezahlt und
+  verloren. Sie sind eine Reißleine gegen das Hängen, kein Steuerrad für
+  Geschwindigkeit.
+- **Alle liegen unter `idleTimeout` (255 s)**, damit unsere eigene Uhr das
+  Rennen gegen die Verbindung gewinnt und der Mensch eine ehrliche Meldung
+  bekommt statt eines Abbruchs ohne Grund.
+- **Kein neuer Fehlervertrag:** `fetch` warf schon vorher bei Netzfehlern,
+  jede Aufrufstelle vertrug das also bereits. Ein Zeitablauf ist nur ein
+  weiterer Grund.
+
+### ⚠ Zurückgenommen: S1 — der Client sendet gar keinen Token
+
+Der verpflichtende Zugangsschutz war gebaut und geprüft (localhost 200,
+192.168.178.30 → 401), ist aber **wieder entfernt worden**. Der Grund steht
+ausführlich in `ARCHITEKTUR.md` und kurz hier:
+
+**`x-api-token` existiert in `src/` nirgends.** Der Client hat nie einen Token
+gesendet, `API_TOKEN` zu setzen sperrt deshalb heute *jeden* aus, auch
+localhost — weshalb es vermutlich nie jemand gesetzt hat. Mit der Sperre wäre
+der Geräte-Weg über die WLAN-Adresse tot gewesen: Die Oberfläche lädt noch
+(nicht geschützt), aber jeder `/api`-Aufruf bekäme 401, ohne dass das Telefon
+etwas dagegen tun könnte.
+
+Hannis Entscheidung: mit dem echten Backend lösen statt behelfsweise. Ein
+Token im Bundle ist ein Token, den jeder hat, und richtige Authentifizierung
+kommt ohnehin mit den Konten.
+
+### Was der Nächste wissen muss
+- **⚠ Antons Prompt-Kette und die Bild-/Filmgenerierung wurden ausdrücklich
+  NICHT angefasst** (Hannis Ansage). An den `fetch`-Aufrufen kam nur der
+  `signal`-Parameter dazu. Der Diff belegt es: vier entfernte Zeilen, und das
+  sind exakt die vier einzeiligen Aufrufe, die in derselben Zeile ergänzt
+  wurden. Keine Prompts, keine Modell-Slugs, keine Anfragekörper, keine
+  Antwort-Auswertung.
+- **Wer S1 doch angehen will, rüstet den Token ZUERST im Client nach:** fünf
+  `fetch`-Stellen in `api.js` plus die WebSocket-Verbindung in
+  `voiceSession.js`, die keine Kopfzeilen senden kann und ihn in die Adresse
+  nehmen müsste.
+- **⚠ `ADR-0002` ist veraltet** — es nennt Higgsfield als Generierungs-API.
+  Im Code kein einziger Treffer; tatsächlich laufen `fal.run`,
+  `queue.fal.run`, `api.deepseek.com` und `generativelanguage.googleapis.com`.
+  Ein ADR wird nicht bearbeitet, sondern ersetzt.
+- **517 Tests grün**, fünf Skriptprüfungen grün. Die zwei Tests, die zu S1
+  gehörten, sind mit der Rücknahme wieder verschwunden — die Zahl steht
+  damit wie vor der Sitzung. Keine bezahlten Läufe.
+
 ## 2026-09-10 19:05 — Hanni — Branch `session/2026-09-10-hanni` — Live-Reload per CAP_SERVER_URL
 
 **Auftrag:** „kann man etwas an der build zeit optimieren oder liegt das an
