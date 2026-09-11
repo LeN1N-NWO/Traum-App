@@ -1,14 +1,18 @@
-/* Das eine kleine Blatt (Sheet.jsx) — nur logische Eigenschaften, siehe
-   Storyboard: Overlays müssen in RTL-Sprachen mitlaufen. */
+/* ── Das eine kleine Blatt (Sheet.jsx) ─────────────────────────────────────
+   Seit 11.09. unten angedockt wie ein iOS-Sheet statt als Karte in der
+   Mitte — mit Griff, Safe Area unten und nur logischen Eigenschaften
+   (Overlays müssen in RTL-Sprachen mitlaufen). */
 .sheet-backdrop {
   position: fixed; inset: 0; z-index: 60;
   background: var(--veil);
-  display: grid; place-items: center; padding: var(--s-4);
+  display: flex; align-items: flex-end; justify-content: center;
 }
 .sheet-card {
-  inline-size: min(420px, 100%); max-block-size: 86vh; overflow-y: auto;
-  background: var(--bg2); border: 1px solid var(--panel-line);
-  border-radius: var(--radius-lg); padding: var(--s-4);
+  inline-size: min(560px, 100%); max-block-size: 88dvh; overflow-y: auto;
+  background: var(--bg2); border: 1px solid var(--panel-line); border-block-end: none;
+  border-start-start-radius: var(--radius-lg); border-start-end-radius: var(--radius-lg);
+  padding: var(--s-2) var(--s-4) calc(var(--s-4) + env(safe-area-inset-bottom));
+  box-shadow: 0 -12px 40px rgb(0 0 0 / .35);
 }
 .sheet-close {
   display: block; margin-inline-start: auto;

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { t } from "../i18n/index.js";
+import { useSheet } from "../lib/useSheet.js";
 import "./LegalPage.css";
 
 /* Die lesbare Rechtsseite hinter den Links im Consent-Gate (und im Profil).
@@ -15,21 +16,17 @@ export default function LegalPage({ doc, onClose }) {
   const closeRef = useRef(null);
   const d = t.legal[doc] || t.legal.terms;
 
-  useEffect(() => {
-    closeRef.current?.focus();
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const sheet = useSheet(onClose);
+  useEffect(() => { closeRef.current?.focus({ preventScroll: true }); }, []);
 
   return (
     /* stopPropagation: die Seite liegt manchmal IN einem Backdrop mit
        Klick-schließt-Verhalten (Profil → Einstellungen) — ohne das würde
        jeder Scroll-Klick hier die Ebene darunter zuklappen. */
-    <div className="lp" role="dialog" aria-modal="true" aria-label={d.title}
+    <div className="lp" {...sheet.panelProps} role="dialog" aria-modal="true" aria-label={d.title}
          onClick={(e) => e.stopPropagation()}>
       <header className="lp-top">
-        <button ref={closeRef} className="lp-close" onClick={onClose} aria-label={t.legal.close}>×</button>
+        <button ref={closeRef} className="lp-close" onClick={sheet.close} aria-label={t.legal.close}>×</button>
         <span className="lp-toptitle">{d.title}</span>
         <span className="lp-close lp-close-ghost" aria-hidden="true" />
       </header>

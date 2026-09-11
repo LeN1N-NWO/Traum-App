@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/tokens.css";
 import "./styles/base.css";
+import "./styles/sheets.css";
 import "./styles/orbit.css";
 import App from "./App.jsx";
 import { installHaptics } from "./lib/haptics.js";

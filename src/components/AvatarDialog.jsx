@@ -8,6 +8,7 @@ import { spend, canAfford } from "../lib/credits.js";
 import { t } from "../i18n/index.js";
 import Button from "./Button.jsx";
 import { IconImages, IconCamera, IconSparkle } from "./icons.jsx";
+import { useSheet } from "../lib/useSheet.js";
 import "./AvatarDialog.css";
 
 // Mirrors sanitizeTag() in server.js: [a-z0-9] only, 12 chars max. The server
@@ -60,6 +61,7 @@ export default function AvatarDialog({
   // iOS/Android sofort die Kamera (Rückkamera — man fotografiert die
   // anderen, nicht sich selbst); am Desktop bleibt es ein Dateidialog.
   const cameraRef = useRef(null);
+  const sheet = useSheet(onClose);
 
   /* Die Gattung, und warum sie manchmal hier gewählt wird.
    *
@@ -148,7 +150,7 @@ export default function AvatarDialog({
       update({ me: saved });
       toast(t.avatarDialog.saved(clean));
       onCreated?.(saved);
-      onClose();
+      sheet.close();
       return;
     }
 
@@ -177,7 +179,7 @@ export default function AvatarDialog({
       update(patch);
       toast(t.avatarDialog.saved(clean));
       onCreated?.(saved);
-      onClose();
+      sheet.close();
       return;
     }
 
@@ -185,7 +187,7 @@ export default function AvatarDialog({
     update({ cast: [...(state.cast || []), avatar] });
     toast(t.avatarDialog.created(clean));
     onCreated?.(avatar);
-    onClose();
+    sheet.close();
   }
 
   /* Löschen sitzt seit 17.08. hier statt an jeder Zeile der Liste. Vorher
@@ -197,7 +199,7 @@ export default function AvatarDialog({
   function removeEntry() {
     update({ cast: (state.cast || []).filter((p) => p.id !== existing.id) });
     toast(t.profile.removed(existing.tag));
-    onClose();
+    sheet.close();
   }
 
   const title = isMe
@@ -207,9 +209,10 @@ export default function AvatarDialog({
       : t.avatarDialog.titleFor[kind];
 
   return (
-    <div className="av-backdrop" onClick={onClose}>
+    <div className="av-backdrop" {...sheet.backdropProps} onClick={sheet.close}>
       <div
         className="av-modal"
+        {...sheet.panelProps}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -385,7 +388,7 @@ export default function AvatarDialog({
         <p className="av-hint">{t.avatarDialog.privacy}</p>
 
         <div className="av-actions">
-          <Button variant="ghost" onClick={onClose}>{t.avatarDialog.cancel}</Button>
+          <Button variant="ghost" onClick={sheet.close}>{t.avatarDialog.cancel}</Button>
           <Button onClick={save} disabled={!hasSubstance}>
             {isEdit ? t.avatarDialog.saveChanges : t.avatarDialog.save}
           </Button>

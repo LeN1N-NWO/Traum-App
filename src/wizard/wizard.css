@@ -164,15 +164,18 @@
 .wiz-person-x:hover { color: var(--text); background: rgba(255, 255, 255, .07); }
 .wiz-person-x:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 1px; }
 
+/* Unten angedockt wie jedes Blatt der App (11.09.) — vorher eine Karte in
+   der Mitte. Bewegung: styles/sheets.css. */
 .wiz-backdrop {
   position: fixed; inset: 0; z-index: 65; background: var(--veil);
-  backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
-  padding: var(--s-4);
+  backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center;
+  --sheet-blur: 6px;
 }
 .wiz-modal {
-  width: 100%; max-width: 420px; max-height: 88vh; overflow-y: auto;
-  background: var(--bg2); border: 1px solid var(--panel-line);
-  border-radius: var(--radius-lg); padding: var(--s-5);
+  width: 100%; max-width: 480px; max-height: 88dvh; overflow-y: auto;
+  background: var(--bg2); border: 1px solid var(--panel-line); border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--s-2) var(--s-5) calc(env(safe-area-inset-bottom) + var(--s-5));
 }
 .wiz-modal-title { font-size: var(--t-h3); font-weight: 600; margin: 0 0 var(--s-4); }
 .wiz-lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: var(--s-3); }

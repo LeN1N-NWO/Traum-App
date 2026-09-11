@@ -137,6 +137,7 @@
 .j-backdrop {
   position: fixed; inset: 0; z-index: 60; background: var(--veil);
   backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center;
+  --sheet-blur: 6px;
 }
 .j-modal {
   position: relative; width: 100%; max-width: 680px; max-height: 92vh; overflow-y: auto;
@@ -186,6 +187,7 @@
 .j-menu-backdrop {
   position: fixed; inset: 0; z-index: 75; background: var(--veil);
   display: flex; align-items: flex-end; justify-content: center;
+  --sheet-blur: 0px;
 }
 .j-menu {
   width: 100%; max-width: 420px;
@@ -449,17 +451,14 @@
   position: fixed; inset: 0; z-index: 80;
   background: rgb(var(--bg-rgb) / .72); backdrop-filter: blur(10px);
   display: flex; align-items: flex-end; justify-content: center;
-  animation: j-sheet-fade .16s ease-out;
+  --sheet-blur: 10px;   /* motion: styles/sheets.css */
 }
 .j-sheet {
   width: 100%; max-width: 680px;
   background: var(--bg2); border: 1px solid var(--panel-line);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: var(--s-5) var(--s-4) calc(env(safe-area-inset-bottom) + var(--s-5));
-  animation: j-sheet-rise .22s cubic-bezier(.2, .8, .3, 1);
 }
-@keyframes j-sheet-fade { from { opacity: 0; } }
-@keyframes j-sheet-rise { from { transform: translateY(14px); } }
 
 .j-sheet-title { margin: 0; font-size: var(--t-h3); font-weight: 600; }
 .j-sheet-lede { margin: var(--s-1) 0 var(--s-4); color: var(--muted); font-size: var(--t-small); }

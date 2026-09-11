@@ -5,6 +5,7 @@ import { t } from "../i18n/index.js";
 import Button from "../components/Button.jsx";
 import AvatarDialog from "../components/AvatarDialog.jsx";
 import "./wizard.css";
+import { useSheet } from "../lib/useSheet.js";
 
 /* Shared by "who's in it" (people AND pets — the analysis tells them apart)
    and "where is it" (places): the mechanics are identical, only the wording
@@ -109,15 +110,18 @@ export default function CastStep({
 }
 
 function LibraryPicker({ library, onPick, onCreate, onClose, name }) {
+  const sheet = useSheet(onClose);
   return (
-    <div className="wiz-backdrop" onClick={onClose}>
+    <div className="wiz-backdrop" {...sheet.backdropProps} onClick={sheet.close}>
       <div
         className="wiz-modal"
+        {...sheet.panelProps}
         role="dialog"
         aria-modal="true"
         aria-label={t.wizard.cast.pickTitle(name)}
         onClick={(e) => e.stopPropagation()}
       >
+        <span className="sheet-grabber" aria-hidden="true" />
         <h2 className="wiz-modal-title">{t.wizard.cast.pickTitle(name)}</h2>
 
         {library.length === 0 ? (
@@ -136,7 +140,7 @@ function LibraryPicker({ library, onPick, onCreate, onClose, name }) {
         )}
 
         <div className="wiz-actions">
-          <Button variant="ghost" onClick={onClose}>{t.wizard.cancel}</Button>
+          <Button variant="ghost" onClick={sheet.close}>{t.wizard.cancel}</Button>
           <Button onClick={onCreate}>{t.wizard.cast.createNew}</Button>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { VOICES } from "../lib/voices.js";
 import { t } from "../i18n/index.js";
 import Button from "./Button.jsx";
+import { useSheet } from "../lib/useSheet.js";
 import "./voicePicker.css";
 
 /* "Choose a voice" — the sheet that rises just before a voice chat begins.
@@ -22,6 +23,7 @@ export default function VoicePicker({ current, onDone, onCancel }) {
   const [sel, setSel] = useState(current || VOICES[0].id);
   const [playing, setPlaying] = useState(false);
   const audio = useRef(null);
+  const sheet = useSheet(onCancel);
 
   useEffect(() => {
     const a = new Audio();
@@ -47,8 +49,8 @@ export default function VoicePicker({ current, onDone, onCancel }) {
   }
 
   return (
-    <div className="vp" role="dialog" aria-modal="true" aria-label={t.voice.pickTitle}>
-      <button className="vp-close" onClick={onCancel} aria-label={t.voice.cancel}>×</button>
+    <div className="vp" {...sheet.panelProps} role="dialog" aria-modal="true" aria-label={t.voice.pickTitle}>
+      <button className="vp-close" onClick={sheet.close} aria-label={t.voice.cancel}>×</button>
 
       <h1 className="vp-title">{t.voice.pickTitle}</h1>
       <p className="vp-hint">{t.voice.pickHint}</p>
@@ -76,7 +78,7 @@ export default function VoicePicker({ current, onDone, onCancel }) {
       </div>
 
       <div className="vp-foot">
-        <Button onClick={() => onDone(sel)}>{t.voice.pickGo}</Button>
+        <Button onClick={() => sheet.close(() => onDone(sel))}>{t.voice.pickGo}</Button>
       </div>
     </div>
   );

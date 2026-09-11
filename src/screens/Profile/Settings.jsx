@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
 import { isVoice, DEFAULT_VOICE } from "../../lib/voices.js";
 import { withdrawPatch } from "../../lib/consent.js";
@@ -6,6 +6,7 @@ import { t } from "../../i18n/index.js";
 import VoicePicker from "../../components/VoicePicker.jsx";
 import LegalPage from "../../components/LegalPage.jsx";
 import { ChevronRight } from "../../components/icons.jsx";
+import { useSheet } from "../../lib/useSheet.js";
 import "./profile.css";
 
 /* Settings. One entry today — which voice the assistant speaks in — and
@@ -23,11 +24,7 @@ export default function Settings({ onClose }) {
   const [picking, setPicking] = useState(false);
   const [legalDoc, setLegalDoc] = useState(null);   // "terms" | "privacy" | null
 
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const sheet = useSheet(onClose);
 
   const voice = isVoice(state.voice) ? state.voice : DEFAULT_VOICE;
 
@@ -42,8 +39,8 @@ export default function Settings({ onClose }) {
   }
 
   return (
-    <div className="p-set-backdrop" onClick={onClose}>
-      <div className="p-set" role="dialog" aria-modal="true"
+    <div className="p-set-backdrop" {...sheet.backdropProps} onClick={sheet.close}>
+      <div className="p-set" {...sheet.panelProps} role="dialog" aria-modal="true"
            aria-label={t.profile.settings} onClick={(e) => e.stopPropagation()}>
         <div className="p-set-grab" aria-hidden="true" />
         <h2 className="p-set-title">{t.profile.settings}</h2>
@@ -89,7 +86,7 @@ export default function Settings({ onClose }) {
           <ChevronRight />
         </button>
 
-        <button className="p-set-close" onClick={onClose}>{t.profile.done}</button>
+        <button className="p-set-close" onClick={sheet.close}>{t.profile.done}</button>
       </div>
 
       {legalDoc && <LegalPage doc={legalDoc} onClose={() => setLegalDoc(null)} />}

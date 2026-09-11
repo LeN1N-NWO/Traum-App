@@ -1,0 +1,50 @@
+/* ── Sheet motion, for every overlay (useSheet.js, 11.09.2026) ─────────────
+   Keyed on attributes, not class names, so an overlay keeps its own look
+   and borrows only the movement. Every state sets `animation` explicitly:
+   that overrides whatever keyframes an overlay brought along, which would
+   otherwise restart the moment the state changes.
+
+   --sheet-drag runs 0 (open) → 1 (gone) and drives the veil; the panel
+   follows the finger through `translate` (composes with an overlay's own
+   transform instead of replacing it). Registered, so it can transition. */
+@property --sheet-drag { syntax: "<number>"; inherits: true; initial-value: 0; }
+
+[data-sheet-backdrop][data-state] {
+  background-color: rgb(var(--bg-rgb) / calc(var(--sheet-veil, .82) * (1 - var(--sheet-drag))));
+  -webkit-backdrop-filter: blur(calc(var(--sheet-blur, 8px) * (1 - var(--sheet-drag))));
+  backdrop-filter: blur(calc(var(--sheet-blur, 8px) * (1 - var(--sheet-drag))));
+  overscroll-behavior: contain;
+  transition: --sheet-drag var(--dur-base) var(--ease-ios);
+  animation: none;
+}
+[data-sheet-backdrop][data-state="enter"] { animation: sheet-veil-in var(--dur-sheet) var(--ease-ios) backwards; }
+[data-sheet-backdrop][data-state="leaving"] {
+  --sheet-drag: 1; pointer-events: none;
+  transition-duration: var(--dur-fast); transition-timing-function: var(--ease-in);
+}
+@keyframes sheet-veil-in { from { --sheet-drag: 1; } }
+
+[data-sheet-panel][data-state] { overscroll-behavior: contain; animation: none; }
+[data-sheet-panel][data-state="enter"] { animation: sheet-rise var(--dur-sheet) var(--ease-ios) backwards; }
+[data-sheet-panel][data-state="leaving"] { animation: sheet-sink var(--dur-fast) var(--ease-in) forwards; pointer-events: none; }
+/* 100dvh, not 100%: bottom sheets and centred dialogs alike end up fully
+   off screen, whatever their own height. */
+@keyframes sheet-rise { from { translate: 0 100dvh; } }
+@keyframes sheet-sink { to { translate: 0 100dvh; } }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-sheet-backdrop][data-state], [data-sheet-panel][data-state] { animation: none; transition: none; }
+}
+
+/* The grabber says "this can be pulled down" without a word. */
+.sheet-grabber {
+  display: block; inline-size: 36px; block-size: 5px; border-radius: 999px;
+  background: var(--panel-line); margin: 0 auto var(--s-3);
+}
+/* Over a hero image (journal entry, symbol): the grabber floats on the
+   picture instead of pushing it down, light enough to read on any frame. */
+.sheet-grabber-over {
+  position: absolute; inset-block-start: 6px; inset-inline-start: 50%; translate: -50% 0;
+  margin: 0; z-index: 3; background: rgb(255 255 255 / .5);
+}
+[dir="rtl"] .sheet-grabber-over { translate: 50% 0; }

@@ -7,6 +7,7 @@ import HeroGlow from "../../components/HeroGlow.jsx";
 import { t } from "../../i18n/index.js";
 import Button from "../../components/Button.jsx";
 import ShowcaseTile from "./ShowcaseTile.jsx";
+import { useSheet } from "../../lib/useSheet.js";
 import "./paywall.css";
 
 /* ⚠ PLATZHALTER — Anton ersetzt diese Datei durch einen echten Traumfilm.
@@ -48,6 +49,7 @@ export default function Paywall({ reason = "browse", onClose }) {
   const { state, toast } = useAppState();
   const [tab, setTab] = useState("sub");        // "sub" | "pack"
   const [chosen, setChosen] = useState(SUBSCRIPTIONS.find((p) => p.featured)?.id);
+  const sheet = useSheet(onClose);
 
   const plans = tab === "sub" ? SUBSCRIPTIONS : PACKS;
   const plan = plans.find((p) => p.id === chosen) || plans[0];
@@ -69,10 +71,10 @@ export default function Paywall({ reason = "browse", onClose }) {
   }
 
   return (
-    <div className="pw" role="dialog" aria-modal="true" aria-label={t.paywall.title}>
+    <div className="pw" {...sheet.panelProps} role="dialog" aria-modal="true" aria-label={t.paywall.title}>
       <HeroGlow className="pw-hero" />
 
-      <button className="pw-close" onClick={onClose} aria-label={t.paywall.close}>×</button>
+      <button className="pw-close" onClick={sheet.close} aria-label={t.paywall.close}>×</button>
 
       <div className="pw-head">
         <span className="pw-brand">
