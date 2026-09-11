@@ -81,7 +81,7 @@ export default function Step6Result({ w, patch }) {
         } : e)),
       });
       toast(t.wizard.step6.added);
-      return navigate("/journal");
+      return navigate("/journal", { replace: true });
     }
 
     // Der Stand VOR dem Hochzaehlen: die Serie, die man sich verdient
@@ -120,7 +120,7 @@ export default function Step6Result({ w, patch }) {
       ...bumpStreak(state),
     });
     toast(t.dream.caught(creature.name));
-    navigate("/journal");
+    navigate("/journal", { replace: true });
 
     /* Der eine Moment, an dem das Kaufblatt von selbst kommt — und zwar
      * NICHT am Ende des Onboardings, wo es hingehoert haette, wenn man nur

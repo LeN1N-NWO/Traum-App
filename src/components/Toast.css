@@ -1,10 +1,21 @@
 .toast {
-  position: fixed; left: 50%; transform: translateX(-50%);
+  position: fixed; left: 50%;
   bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s-4));
   z-index: 50; max-width: 90vw;
   padding: var(--s-3) var(--s-5); border-radius: 999px;
   background: var(--veil-strong); border: 1px solid var(--panel-line);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
   color: var(--text); font-size: var(--t-small);
-  opacity: 0; pointer-events: none; transition: opacity .25s ease;
+  opacity: 0; pointer-events: none;
+  /* Leaves fast and straight down; arrives on the spring curve. */
+  transform: translateX(-50%) translateY(14px) scale(.96);
+  transition: opacity var(--dur-fast) var(--ease-in), transform var(--dur-fast) var(--ease-in);
 }
-.toast-an { opacity: 1; }
+.toast-an {
+  opacity: 1; transform: translateX(-50%);
+  transition-duration: var(--dur-base); transition-timing-function: var(--ease-ios);
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast, .toast-an { transform: translateX(-50%); }
+}

@@ -7,13 +7,35 @@
   color: var(--muted); font-family: var(--sans); font-size: var(--t-body);
   padding: var(--s-2);
 }
-.wiz-back { font-size: 20px; line-height: 1; }
+.wiz-back { display: grid; place-items: center; line-height: 1; }
+
+/* — Motion (11.09.) —
+   The wizard rises into place when it opens, and each step slides in from
+   the side it logically comes from: forward from the trailing edge, back
+   from the leading one — the navigation-controller grammar of iOS. Only
+   the arriving step moves; the leaving one is gone, which at this distance
+   reads as a push, not a cut. */
+.screen.wiz { animation: wiz-arrive var(--dur-sheet) var(--ease-ios) backwards; }
+@keyframes wiz-arrive { from { translate: 0 28px; opacity: 0; } }
+.wiz-step-fwd  { animation: wiz-in-fwd  var(--dur-push) var(--ease-ios) backwards; }
+.wiz-step-back { animation: wiz-in-back var(--dur-push) var(--ease-ios) backwards; }
+@keyframes wiz-in-fwd  { from { translate: 24% 0; opacity: 0; } }
+@keyframes wiz-in-back { from { translate: -24% 0; opacity: 0; } }
+[dir="rtl"] .wiz-step-fwd  { animation-name: wiz-in-back; }
+[dir="rtl"] .wiz-step-back { animation-name: wiz-in-fwd; }
+@media (prefers-reduced-motion: reduce) {
+  .screen.wiz, .wiz-step-fwd, .wiz-step-back { animation: none; }
+}
 .wiz-back:focus-visible, .wiz-cancel:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 8px; }
 
 .wiz-dots { display: flex; gap: 6px; list-style: none; margin: 0 auto; padding: 0; }
-.wiz-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--panel-line); }
+.wiz-dot {
+  width: 7px; height: 7px; border-radius: 999px; background: var(--panel-line);
+  transition: width var(--dur-base) var(--ease-ios), background-color var(--dur-base) var(--ease-out);
+}
 .wiz-dot-done { background: var(--accent-deep); }
-.wiz-dot-now { background: var(--accent-soft); width: 20px; border-radius: 999px; }
+.wiz-dot-now { background: var(--accent-soft); width: 20px; }
+@media (prefers-reduced-motion: reduce) { .wiz-dot { transition: none; } }
 
 .wiz-body { display: flex; flex-direction: column; }
 .wiz-title { font-size: var(--t-h2); font-weight: 600; letter-spacing: -.02em; margin: 0 0 var(--s-2); }
@@ -160,15 +182,18 @@
 .wiz-person-x:hover { color: var(--text); background: rgba(255, 255, 255, .07); }
 .wiz-person-x:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 1px; }
 
+/* Unten angedockt wie jedes Blatt der App (11.09.) — vorher eine Karte in
+   der Mitte. Bewegung: styles/sheets.css. */
 .wiz-backdrop {
   position: fixed; inset: 0; z-index: 65; background: var(--veil);
-  backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
-  padding: var(--s-4);
+  backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center;
+  --sheet-blur: 6px;
 }
 .wiz-modal {
-  width: 100%; max-width: 420px; max-height: 88vh; overflow-y: auto;
-  background: var(--bg2); border: 1px solid var(--panel-line);
-  border-radius: var(--radius-lg); padding: var(--s-5);
+  width: 100%; max-width: 480px; max-height: 88dvh; overflow-y: auto;
+  background: var(--bg2); border: 1px solid var(--panel-line); border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--s-2) var(--s-5) calc(env(safe-area-inset-bottom) + var(--s-5));
 }
 .wiz-modal-title { font-size: var(--t-h3); font-weight: 600; margin: 0 0 var(--s-4); }
 .wiz-lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: var(--s-3); }

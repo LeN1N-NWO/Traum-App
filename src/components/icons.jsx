@@ -126,6 +126,16 @@ export function IconShare() {
    right in Arabic. Every other icon in this file is direction-free — a bed, a
    moon, a trash can mean the same mirrored — which is why they carry nothing
    and must not be given it wholesale. */
+/* Back — the mirror of ChevronRight. data-flip turns it round in RTL, where
+   "back" points right. */
+export function ChevronLeft() {
+  return (
+    <svg {...base} width="18" height="18" data-flip>
+      <path d="m15 6-6 6 6 6" />
+    </svg>
+  );
+}
+
 export function ChevronRight() {
   return (
     <svg {...base} width="18" height="18" data-flip>

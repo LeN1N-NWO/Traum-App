@@ -72,6 +72,12 @@ const config: CapacitorConfig = {
       server: { url: liveReloadUrl, cleartext: true },
     }
     : {}),
+  /* Der Stil gilt vom ersten Frame an — src/lib/nativeShell.js setzt ihn
+     nach dem Start noch einmal. */
+  plugins: {
+    StatusBar: { style: "DARK" },
+    /* Kein Keyboard-Plugin — siehe src/lib/nativeShell.js. */
+  },
   ios: {
     /* Die Tab-Leiste liegt unter der Home-Indicator-Zone; die App zeichnet
        die Ränder selbst (safe-area-inset in CSS), also kein Auto-Inset. */

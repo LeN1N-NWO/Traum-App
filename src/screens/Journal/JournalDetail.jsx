@@ -21,8 +21,9 @@ import Recurrence from "../../components/Recurrence.jsx";
 import EntryMenu from "./EntryMenu.jsx";
 import RefineSheet from "./RefineSheet.jsx";
 import { DeckView, CastChips } from "./DreamViews.jsx";
-import { IconImages, IconFilm, IconShare, IconSparkle, IconPencil, ChevronRight } from "../../components/icons.jsx";
+import { IconImages, IconFilm, IconShare, IconSparkle, IconPencil, ChevronRight, ChevronLeft } from "../../components/icons.jsx";
 import "./journal.css";
+import { useSheet } from "../../lib/useSheet.js";
 
 export default function JournalDetail({ entry, onClose, onOpen }) {
   const { state, update, toast, openPaywall } = useAppState();
@@ -47,12 +48,11 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
      beim Eintreffen der nächsten Fassung auf die falsche zeigen. */
   const [fassung, setFassung] = useState(null);
 
-  useEffect(() => {
-    closeRef.current?.focus();
-    const onKey = (e) => { if (e.key === "Escape" && !menuOpen) onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose, menuOpen]);
+  /* Escape, Zurückziehen und Ausblenden macht useSheet — auch, dass
+     Escape bei offenem Menü nur das Menü schließt (der Stapel dort). */
+  const sheet = useSheet(onClose, { kind: "push" });
+  // Fokus beim Öffnen und wenn das Menü ihn zurückgibt.
+  useEffect(() => { if (!menuOpen) closeRef.current?.focus({ preventScroll: true }); }, [menuOpen]);
 
   /* Kein eigener Abholer mehr: Offene Aufträge (Film UND Bilder) sammelt
      seit dem 21.08. der App-weite Collector in AppState ein — vorher kam
@@ -301,7 +301,7 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
   function remove() {
     update({ journal: state.journal.filter((e) => e.id !== entry.id) });
     toast(t.journal.deleted);
-    onClose();
+    sheet.close();
   }
 
   const d = new Date(entry.createdAt);
@@ -328,9 +328,10 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
   const dateLabel = d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
   return (
-    <div className="j-backdrop" onClick={onClose}>
+    <div className="j-backdrop" {...sheet.backdropProps} onClick={sheet.close}>
       <div
         className="j-modal"
+        {...sheet.panelProps}
         role="dialog"
         aria-modal="true"
         aria-label={entry.title || t.journal.untitled}
@@ -347,8 +348,8 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
              ersten Panel). */
           <div className="j-slimhead">
             <div className="j-modal-tools j-modal-tools-inline">
+              <button ref={closeRef} className="j-close j-back" onClick={sheet.close} aria-label={t.wizard.back}><ChevronLeft /></button>
               <button className="j-close" onClick={() => setMenuOpen(true)} aria-label={t.journal.menu}>⋯</button>
-              <button ref={closeRef} className="j-close" onClick={onClose} aria-label={t.journal.close}>×</button>
             </div>
             {/* Der Titel: mittig, Serife, Ornament — der KI-erdachte
                 Traumname bekommt den Auftritt eines Buchtitelblatts. */}
@@ -369,8 +370,8 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
           <div className="j-hero-scrim" aria-hidden="true" />
 
           <div className="j-modal-tools">
+            <button ref={closeRef} className="j-close j-back" onClick={sheet.close} aria-label={t.wizard.back}><ChevronLeft /></button>
             <button className="j-close" onClick={() => setMenuOpen(true)} aria-label={t.journal.menu}>⋯</button>
-            <button ref={closeRef} className="j-close" onClick={onClose} aria-label={t.journal.close}>×</button>
           </div>
 
           <div className="j-hero-meta">

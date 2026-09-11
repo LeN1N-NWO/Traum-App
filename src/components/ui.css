@@ -5,8 +5,10 @@
   display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
   padding: var(--s-3) var(--s-5); border-radius: 999px;
   font-family: var(--sans); font-size: var(--t-body); font-weight: 600;
-  border: 1px solid transparent; cursor: pointer; transition: opacity .15s ease;
+  border: 1px solid transparent; cursor: pointer;
+  transition: scale var(--dur-release) var(--ease-out), opacity var(--dur-release) var(--ease-out);
 }
+.btn:not(:disabled):active { transition-duration: var(--dur-press); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 .btn:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 3px; }
 /* The primary action is the ONE warm thing on a cold screen — that is what
@@ -27,6 +29,9 @@
   color: var(--text); font-family: var(--sans); font-size: var(--t-body);
 }
 button.card { cursor: pointer; }
+/* A card is a big surface: the full button dip would look like it fell
+   over. iOS lets large cells give way by a hair, not by a step. */
+button.card:not(:disabled):active { scale: .985; opacity: .9; }
 button.card:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 
 .screen-header {

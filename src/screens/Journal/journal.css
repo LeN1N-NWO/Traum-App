@@ -134,15 +134,19 @@
 }
 .j-empty { color: var(--faint); text-align: center; padding: var(--s-6) 0; }
 
+/* Der Traum ist eine SEITE, kein Fenster (Antons Befund 11.09.: „wie eine
+   Art Fenster on top, das man wegklicken kann — total dumm und nicht
+   Apple-like"). Er schiebt sich von der Seite herein wie eine Notiz in
+   Notizen; zurück per Pfeil oder Wisch vom Rand (useSheet, kind "push").
+   Der Schleier dahinter ist nur noch die Abdunklung der Liste. */
 .j-backdrop {
   position: fixed; inset: 0; z-index: 60; background: var(--veil);
-  backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center;
+  display: flex; align-items: stretch; justify-content: center;
+  --sheet-veil: .5; --sheet-blur: 0px;
 }
 .j-modal {
-  position: relative; width: 100%; max-width: 680px; max-height: 92vh; overflow-y: auto;
-  background: var(--bg2); border: 1px solid var(--panel-line);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: 0;
+  position: relative; width: 100%; height: 100dvh; overflow-y: auto;
+  background: var(--bg2); padding: 0;
 }
 .j-content { padding: var(--s-5) var(--s-4) calc(env(safe-area-inset-bottom) + var(--s-6)); }
 
@@ -181,11 +185,18 @@
 }
 .j-modal-text { white-space: pre-wrap; margin: 0 0 var(--s-5); font-size: 17px; line-height: 1.62; }
 /* — detail: tools, menu, editing, refine proposal — */
-.j-modal-tools { position: absolute; top: var(--s-3); inset-inline-end: var(--s-3); display: flex; gap: var(--s-2); }
+.j-modal-tools {
+  position: absolute; z-index: 2; top: calc(env(safe-area-inset-top) + var(--s-3)); inset-inline: var(--s-3);
+  display: flex; justify-content: space-between; gap: var(--s-2);
+  pointer-events: none;   /* the gap between back and ⋯ belongs to the hero */
+}
+.j-modal-tools > * { pointer-events: auto; }
+.j-back { display: grid; place-items: center; padding: 0; }
 
 .j-menu-backdrop {
   position: fixed; inset: 0; z-index: 75; background: var(--veil);
   display: flex; align-items: flex-end; justify-content: center;
+  --sheet-blur: 0px;
 }
 .j-menu {
   width: 100%; max-width: 420px;
@@ -449,17 +460,14 @@
   position: fixed; inset: 0; z-index: 80;
   background: rgb(var(--bg-rgb) / .72); backdrop-filter: blur(10px);
   display: flex; align-items: flex-end; justify-content: center;
-  animation: j-sheet-fade .16s ease-out;
+  --sheet-blur: 10px;   /* motion: styles/sheets.css */
 }
 .j-sheet {
   width: 100%; max-width: 680px;
   background: var(--bg2); border: 1px solid var(--panel-line);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: var(--s-5) var(--s-4) calc(env(safe-area-inset-bottom) + var(--s-5));
-  animation: j-sheet-rise .22s cubic-bezier(.2, .8, .3, 1);
 }
-@keyframes j-sheet-fade { from { opacity: 0; } }
-@keyframes j-sheet-rise { from { transform: translateY(14px); } }
 
 .j-sheet-title { margin: 0; font-size: var(--t-h3); font-weight: 600; }
 .j-sheet-lede { margin: var(--s-1) 0 var(--s-4); color: var(--muted); font-size: var(--t-small); }
@@ -546,8 +554,8 @@
 /* ── Die Kino-Ansicht des Traum-Details (Antons Wahl 20./21.08. aus drei
    Layout-Varianten): Vollbild-Panels, Untertitel auf dem Bild, gesnappt. */
 
-.j-slimhead { position: relative; padding: var(--s-3) var(--s-4) 0; }
-.j-modal-tools-inline { position: static; display: flex; justify-content: flex-end; gap: var(--s-2); }
+.j-slimhead { position: relative; padding: calc(env(safe-area-inset-top) + var(--s-3)) var(--s-4) 0; }
+.j-modal-tools-inline { position: static; display: flex; justify-content: space-between; gap: var(--s-2); }
 
 /* Punkte unter jeder gesnappten Strecke. */
 .j-dots { display: flex; justify-content: center; gap: 6px; padding-block: var(--s-3); }

@@ -3,8 +3,22 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-11 abends — `session/2026-09-11-anton` (PR #39)
-abgeschlossen; weiter auf `session/2026-09-11-anton-native`.
+**Stand:** 2026-09-11 spät — PR #39 und #40 gemergt; weiter auf
+`session/2026-09-11-anton-expo`.
+
+**⚠⚠ ENTSCHIEDEN (Anton, 11.09. abends): Die Oberfläche wird nativ — React
+Native mit Expo statt Capacitor.** Web ist kein Ziel mehr, Android kommt
+später aus derselben Codebasis. Begründung mit Messungen:
+`docs/decisions/ADR-0006-expo-react-native-statt-capacitor.md`. Kurz:
+Liquid Glass gibt es im WebView nicht (WebKit rendert `backdrop-filter:
+url()` nicht), die Capacitor-Tastatur zerschoss die Safe Area, und alles
+Nachgebaute bleibt nachgebaut. Es bleiben `server.js`, Supabase, die Logik
+in `src/lib` (48 von 57 Dateien ohne React/DOM) und alle Texte; neu werden
+~14.000 Zeilen JSX/CSS. Weg: Würgefeigen-Umzug — Expo-Hülle, in der die alte
+Oberfläche am ersten Tag als DOM-Komponente läuft, dann Bildschirm für
+Bildschirm nativ. Plus-Knopf wird fünfter Tab in der Mitte (Antons Wort).
+Skills sind installiert; Hanni bekommt die Anleitung beim nächsten Start
+(`docs/uebergabe/2026-09-11-hanni-expo-skills.md`).
 
 **Der Server rechnet den Filmpreis selbst.** `src/lib/quote.js` ist EINE
 Rechnung für Wizard und Server. Liegt der Server teurer als angezeigt,
@@ -16,12 +30,12 @@ aus `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`; **Punkte 2–6**
 fal-Fehler in `jobStatus`, Client-Abbuchung zurückbauen) **warten auf die
 Anmeldung**.
 
-**Die native iOS-App läuft im Simulator**, per Live-Reload
-(`CAP_SERVER_URL`) ohne Xcode-Runde je Änderung — **fühlt sich aber nach
-Web an**: keine Bildschirmübergänge, 13 Overlays ohne Ausblenden und ohne
-Ziehen-zum-Schließen, Druckzustände an nur fünf Elementen, keine Haptik.
-Das ist die nächste Sitzung (siehe „Als Nächstes"). Ein echtes Gerät
-(Signing/Team) steht noch aus.
+**Die Capacitor-App läuft im Simulator** und hat seit PR #40 ein
+nachgebautes iOS-Gefühl (Sheets mit Ziehen, geschobene Traum-Seite, Wisch
+vom Rand, Haptik, Statusleiste; `useSheet.js`, `styles/sheets.css`). Das
+ist die **Zwischenlösung** bis zum Expo-Umzug — Kurven, Dauern und
+Schwellen daraus sind die Referenz für die native Fassung. Das
+Tastatur-Plugin ist wieder draußen (Safe-Area-Fehler, Capacitor #6430).
 
 **Geschäftliche Entscheidungen (Anton, 11.09.):** UG als Rechtsform;
 Buchhaltung per Software, Jahresabschluss zukaufen; **Seedance 2.5 über
@@ -43,7 +57,7 @@ sie hängt an der Frage, wer als Verkäufer im App Store steht.
 (S1–S8) mit Schwere und Reihenfolge. Erledigt ist S4. S1 wartet bewusst auf
 die Konten.
 
-545 Tests grün, fünf Skriptprüfungen grün, Build ~502 KB / gzip 170.
+548 Tests grün, fünf Skriptprüfungen grün, Build ~510 KB / gzip 173.
 Wie es hierher kam, steht im WORKLOG.
 
 ## Wo wir stehen
@@ -78,14 +92,13 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
 
 **Als Nächstes, in dieser Reihenfolge:**
 
-- **Natives iOS-Gefühl** — `session/2026-09-11-anton-native`. Vier Stufen:
-  (1) Bewegungs-Tokens in `tokens.css`, Druckzustände für `.btn`/`.card`/
-  Tabs/Sheet-Zeilen, `touch-action` und `user-select` auf Bedienelemente,
-  `overscroll-behavior`, Haptik-Plugin · (2) EINE Bottom-Sheet-Komponente
-  mit Aufsteigen, Ausblenden, Ziehen-zum-Schließen und Safe Area, dann die
-  13 Overlays umziehen · (3) Push/Pop zwischen Routen, Crossfade zwischen
-  Tabs, Wizard-Schritte schieben, Zurück-Wischen vom Rand, `replace` nach
-  fertigen Flüssen · (4) StatusBar, Keyboard, Splash-Übergabe.
+- **Die Expo-Hülle** — `session/2026-09-11-anton-expo`. Skill
+  `expo-web-to-native` lesen (Würgefeigen-Umzug), `create-expo-app` neben
+  dem bestehenden Code, Routen in Expo Router spiegeln, die alte
+  React-Oberfläche als DOM-Komponente hineinnehmen, im Simulator starten.
+  Erst wenn das läuft: NativeTabs (fünf Tabs, Traum in der Mitte, gefülltes
+  Plus), dann Journal-Liste und Traum-Seite nativ. ⚠ NativeTabs ist Alpha —
+  SDK-Stand festhalten. Bezahlung bleibt Store-IAP über RevenueCat.
 - **Seedance über Replicate anbinden** — eigene Sitzung. `src/lib/video.js`
   (je Modell `provider`, `slug`, `refsField`), `server.js` `falSubmitVideo`
   anbieterabhängig, `REPLICATE_TOKEN` (liegt in Antons `.env`), Tests.
@@ -171,7 +184,7 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
   wieder uncommittet im Hauptcheckout. So lassen, nie committen.
 - **Nebenbefund Plan B:** Der Client bucht `block.length` ab (4), zeigt
   aber 6. Fällt mit der Server-Abbuchung weg, deshalb nicht angefasst.
-- **iOS fühlt sich nach Web an** — Befund oben, Arbeit auf dem Native-Branch.
+- **Die Capacitor-Hülle ist Zwischenlösung** — ADR-0006, Umzug auf Expo.
 - **iOS: Signing/Team und das echte Gerät stehen aus** (nächster Schritt 0).
   Der Simulator ist seit 10.09. durch, inklusive API-Verbindung.
 - **Bildcode ist noch da** (Raster, Schnitt, `imageJobs`, Storyboard-
@@ -313,6 +326,11 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
   JSX-Änderung `bunx vite build`.
 - **⚠ Das Simulator-Panel in Claude meldet „Xcode not selected"**, obwohl
   `xcode-select -p` stimmt. Den Simulator direkt über Xcode bedienen.
+- **⚠ React 18 StrictMode ruft Effekt-Cleanups doppelt, Refs nicht** — ein
+  Cleanup, das Listener eines Callback-Refs abmeldet, macht Gesten im
+  Dev-Modus tot (`useSheet.js`, 11.09.).
+- **⚠ Capacitor-Tastatur-Plugin nie wieder einbauen:** nach dem Schließen
+  wertet WebKit `env(safe-area-inset-bottom)` nicht neu aus (#6430).
 - **⚠⚠ Eine Rot-Probe wird mit `sed` zurückgedreht, nie mit
   `git checkout -- datei`** — das holt ALLE Änderungen der Datei zurück,
   nicht nur die Probe (08.09.: vier Stellen neu gesetzt).
@@ -349,6 +367,16 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
 
 ## Werkzeuge
 
+- **Skills für die native Oberfläche** (seit 11.09., Pflichtlektüre vor
+  Oberflächenarbeit). Einmal je Rechner:
+
+      claude plugin install expo@claude-plugins-official
+      npx skills add software-mansion-labs/skills
+
+  Das Expo-Plugin bringt einen MCP-Server mit, der sich per `/mcp` in einer
+  interaktiven Sitzung anmelden will — nur für EAS-Dienste nötig, die Skills
+  laufen ohne. Die Software-Mansion-Kopien liegen git-ignoriert in
+  `.agents/skills`; versioniert ist nur `skills-lock.json`.
 - **iOS im Simulator** (zwei Terminals, Stand 10.09.):
 
       # Tab 1 — Server, muss laufen bleiben (hält die Schlüssel)

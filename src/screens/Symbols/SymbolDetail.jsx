@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { symbolById } from "../../lib/symbols.js";
 import SymbolIcon from "../../components/symbolIcons.jsx";
 import { t } from "../../i18n/index.js";
+import { useSheet } from "../../lib/useSheet.js";
 import "./symbols.css";
 
 export default function SymbolDetail({ symbolId, occurrences, onClose }) {
@@ -11,25 +12,23 @@ export default function SymbolDetail({ symbolId, occurrences, onClose }) {
   const label = t.symbols.byId[symbolId]?.label || symbol?.label;
   const meaning = t.symbols.byId[symbolId]?.meaning || symbol?.meaning;
 
-  useEffect(() => {
-    closeRef.current?.focus();
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const sheet = useSheet(onClose);
+  useEffect(() => { closeRef.current?.focus({ preventScroll: true }); }, []);
 
   if (!symbol) return null;
 
   return (
-    <div className="s-backdrop" onClick={onClose}>
+    <div className="s-backdrop" {...sheet.backdropProps} onClick={sheet.close}>
       <div
         className="s-modal"
+        {...sheet.panelProps}
         role="dialog"
         aria-modal="true"
         aria-label={label}
         onClick={(e) => e.stopPropagation()}
       >
-        <button ref={closeRef} className="s-close" onClick={onClose} aria-label={t.symbols.close}>
+        <span className="sheet-grabber sheet-grabber-over" aria-hidden="true" />
+        <button ref={closeRef} className="s-close" onClick={sheet.close} aria-label={t.symbols.close}>
           ×
         </button>
 

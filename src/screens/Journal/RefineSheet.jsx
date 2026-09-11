@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { t } from "../../i18n/index.js";
 import { IconSpellcheck, IconSparkle, IconBook } from "../../components/icons.jsx";
+import { useSheet } from "../../lib/useSheet.js";
 import "./journal.css";
 
 /* "Rewrite" is three different jobs wearing one word, so it asks which.
@@ -20,12 +21,8 @@ import "./journal.css";
 export default function RefineSheet({ onPick, onClose }) {
   const firstRef = useRef(null);
 
-  useEffect(() => {
-    firstRef.current?.focus();
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const sheet = useSheet(onClose);
+  useEffect(() => { firstRef.current?.focus({ preventScroll: true }); }, []);
 
   const options = [
     { mode: "correct",   Icon: IconSpellcheck, title: t.journal.correct,   hint: t.journal.correctHint },
@@ -34,14 +31,16 @@ export default function RefineSheet({ onPick, onClose }) {
   ];
 
   return (
-    <div className="j-sheet-backdrop" onClick={onClose}>
+    <div className="j-sheet-backdrop" {...sheet.backdropProps} onClick={sheet.close}>
       <div
         className="j-sheet"
+        {...sheet.panelProps}
         role="dialog"
         aria-modal="true"
         aria-label={t.journal.refinePickTitle}
         onClick={(e) => e.stopPropagation()}
       >
+        <span className="sheet-grabber" aria-hidden="true" />
         <p className="j-sheet-title">{t.journal.refinePickTitle}</p>
         <p className="j-sheet-lede">{t.journal.refinePickLede}</p>
 
@@ -50,7 +49,7 @@ export default function RefineSheet({ onPick, onClose }) {
             key={mode}
             ref={i === 0 ? firstRef : null}
             className="j-sheet-item"
-            onClick={() => onPick(mode)}
+            onClick={() => sheet.close(() => onPick(mode))}
           >
             <span className="j-sheet-icon"><Icon /></span>
             {/* Kein „Gratis"-Schild mehr (Anton, 21.08.): alle drei

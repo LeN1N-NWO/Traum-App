@@ -59,4 +59,22 @@
      bar covers the last entry. */
   --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:22px; --s-6:32px;
   --tabbar-h:64px;
+
+  /* Motion (11.09., native iOS feel). Durations and curves live here and
+     nowhere else, like colours — before this, 24 transitions and 37
+     animations each typed their own, and exactly one used a real curve.
+     The curves are UIKit's, approximated as beziers: --ease-ios is the
+     push/sheet curve (a critically damped spring — the one Vaul and Ionic
+     ship), --ease-out for what arrives, --ease-in for what leaves. Leaving
+     is faster than arriving, as on iOS. A press lands almost instantly and
+     eases back on release, so a tap reads as a physical push. */
+  --ease-ios: cubic-bezier(.32,.72,0,1);
+  --ease-out: cubic-bezier(.22,1,.36,1);
+  --ease-in:  cubic-bezier(.55,0,1,.45);
+  --dur-press: 80ms; --dur-release: 260ms;
+  --dur-fast: 200ms; --dur-base: 320ms; --dur-sheet: 480ms;
+  /* A pushed page (a dream from the journal) comes in and goes back at
+     the same unhurried pace — popping is not an escape, unlike a sheet. */
+  --dur-push: 420ms; --dur-pop: 300ms;
+  --press-scale: .96;
 }

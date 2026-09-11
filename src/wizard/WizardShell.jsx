@@ -5,6 +5,7 @@ import { analyze } from "../lib/api.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
 import MascotLoader from "../components/MascotLoader.jsx";
+import { ChevronLeft } from "../components/icons.jsx";
 import Step1Dream from "./Step1Dream.jsx";
 import Step2Output from "./Step2Output.jsx";
 import Step3Cast from "./Step3Cast.jsx";
@@ -71,6 +72,14 @@ export default function WizardShell() {
   }, [resume, patch, seedAssignments, toast]);
 
   const Step = STEPS[w.step - 1];
+  /* Which way the step moved, remembered until the NEXT step change. Worked
+     out in render from a ref rather than on every render: a class that
+     flipped on an unrelated re-render would restart the slide. The first
+     step does not slide at all — the wizard itself is arriving. */
+  const moved = useRef({ step: w.step, dir: "none" });
+  if (moved.current.step !== w.step) {
+    moved.current = { step: w.step, dir: w.step > moved.current.step ? "fwd" : "back" };
+  }
   // Back out of a resumed dream goes to the journal it came from, not to a
   // step 2 that was never shown.
   const floor = resume ? 3 : 1;
@@ -79,7 +88,7 @@ export default function WizardShell() {
   return (
     <main className="screen wiz">
       <header className="wiz-top">
-        <button className="wiz-back" onClick={back} aria-label={t.wizard.back} data-flip>←</button>
+        <button className="wiz-back" onClick={back} aria-label={t.wizard.back}><ChevronLeft /></button>
         <ol className="wiz-dots" aria-label={t.wizard.progress(w.step, STEPS.length)}>
           {STEPS.map((_, i) => (
             <li
@@ -89,7 +98,7 @@ export default function WizardShell() {
             />
           ))}
         </ol>
-        <button className="wiz-cancel" onClick={() => navigate("/")}>{t.wizard.cancel}</button>
+        <button className="wiz-cancel" onClick={() => navigate("/", { replace: true })}>{t.wizard.cancel}</button>
       </header>
 
       {seeding ? (
@@ -100,7 +109,9 @@ export default function WizardShell() {
           </div>
         </section>
       ) : (
-        <Step {...wizard} />
+        <div key={w.step} className={"wiz-step wiz-step-" + moved.current.dir}>
+          <Step {...wizard} />
+        </div>
       )}
     </main>
   );

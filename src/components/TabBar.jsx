@@ -27,6 +27,7 @@ export default function TabBar() {
       {TABS.slice(0, 2).map((tab) => <Tab key={tab.to} {...tab} />)}
       <button
         className="tabbar-plus"
+        data-haptic="tap"
         onClick={() => navigate("/dream")}
         aria-label={t.tabs.newDream}
       >
@@ -44,6 +45,7 @@ function Tab({ to, label, Icon }) {
       end={to === "/"}
       title={label}
       aria-label={label}
+      data-haptic="select"
       className={({ isActive }) => "tab" + (isActive ? " tab-active" : "")}
     >
       <Icon />

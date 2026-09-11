@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { t } from "../../i18n/index.js";
 import { IconPencil, IconSpellcheck, IconSparkle, IconBook, IconShare, IconTrash, IconHistory } from "../../components/icons.jsx";
+import { useSheet } from "../../lib/useSheet.js";
 import "./journal.css";
 
 /* The full list, reached from the ⋯ button. The three rewrite modes also
@@ -18,27 +19,24 @@ import "./journal.css";
 export default function EntryMenu({ onEdit, onRefine, onShare, onDelete, onClose, canShare, onOriginal }) {
   const firstRef = useRef(null);
 
-  useEffect(() => {
-    firstRef.current?.focus();
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const sheet = useSheet(onClose);
+  useEffect(() => { firstRef.current?.focus({ preventScroll: true }); }, []);
 
   return (
-    <div className="j-menu-backdrop" onClick={onClose}>
-      <div className="j-menu" role="menu" aria-label={t.journal.menu} onClick={(e) => e.stopPropagation()}>
-        <button ref={firstRef} role="menuitem" className="j-menu-item" onClick={onEdit}>
+    <div className="j-menu-backdrop" {...sheet.backdropProps} onClick={sheet.close}>
+      <div className="j-menu" {...sheet.panelProps} role="menu" aria-label={t.journal.menu} onClick={(e) => e.stopPropagation()}>
+        <span className="sheet-grabber" aria-hidden="true" />
+        <button ref={firstRef} role="menuitem" className="j-menu-item" onClick={() => sheet.close(onEdit)}>
           <span className="j-menu-label"><IconPencil />{t.journal.edit}</span>
         </button>
 
-        <button role="menuitem" className="j-menu-item" onClick={() => onRefine("correct")}>
+        <button role="menuitem" className="j-menu-item" onClick={() => sheet.close(() => onRefine("correct"))}>
           <span className="j-menu-label"><IconSpellcheck />{t.journal.correct}</span>
         </button>
-        <button role="menuitem" className="j-menu-item" onClick={() => onRefine("rewrite")}>
+        <button role="menuitem" className="j-menu-item" onClick={() => sheet.close(() => onRefine("rewrite"))}>
           <span className="j-menu-label"><IconSparkle />{t.journal.rewrite}</span>
         </button>
-        <button role="menuitem" className="j-menu-item" onClick={() => onRefine("elaborate")}>
+        <button role="menuitem" className="j-menu-item" onClick={() => sheet.close(() => onRefine("elaborate"))}>
           <span className="j-menu-label"><IconBook />{t.journal.elaborate}</span>
         </button>
 
@@ -47,18 +45,21 @@ export default function EntryMenu({ onEdit, onRefine, onShare, onDelete, onClose
             (Antons Befund 21.08.). Erscheint nur, wenn es überhaupt ein
             abweichendes Original gibt. */}
         {onOriginal && (
-          <button role="menuitem" className="j-menu-item" onClick={onOriginal}>
+          <button role="menuitem" className="j-menu-item" onClick={() => sheet.close(onOriginal)}>
             <span className="j-menu-label"><IconHistory />{t.journal.showOriginal}</span>
           </button>
         )}
 
+        {/* Teilen bleibt direkt: navigator.share braucht die Nutzeraktivierung
+            des Tippens, und der Umweg über die Ausblende-Animation kann sie
+            kosten. */}
         {canShare && (
           <button role="menuitem" className="j-menu-item" onClick={onShare}>
             <span className="j-menu-label"><IconShare />{t.journal.share}</span>
           </button>
         )}
 
-        <button role="menuitem" className="j-menu-item j-menu-danger" onClick={onDelete}>
+        <button role="menuitem" className="j-menu-item j-menu-danger" onClick={() => sheet.close(onDelete)}>
           <span className="j-menu-label"><IconTrash />{t.journal.delete}</span>
         </button>
       </div>
