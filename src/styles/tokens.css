@@ -73,5 +73,8 @@
   --ease-in:  cubic-bezier(.55,0,1,.45);
   --dur-press: 80ms; --dur-release: 260ms;
   --dur-fast: 200ms; --dur-base: 320ms; --dur-sheet: 480ms;
+  /* A pushed page (a dream from the journal) comes in and goes back at
+     the same unhurried pace — popping is not an escape, unlike a sheet. */
+  --dur-push: 420ms; --dur-pop: 300ms;
   --press-scale: .96;
 }

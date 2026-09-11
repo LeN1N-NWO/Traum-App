@@ -21,7 +21,7 @@ import Recurrence from "../../components/Recurrence.jsx";
 import EntryMenu from "./EntryMenu.jsx";
 import RefineSheet from "./RefineSheet.jsx";
 import { DeckView, CastChips } from "./DreamViews.jsx";
-import { IconImages, IconFilm, IconShare, IconSparkle, IconPencil, ChevronRight } from "../../components/icons.jsx";
+import { IconImages, IconFilm, IconShare, IconSparkle, IconPencil, ChevronRight, ChevronLeft } from "../../components/icons.jsx";
 import "./journal.css";
 import { useSheet } from "../../lib/useSheet.js";
 
@@ -50,7 +50,7 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
 
   /* Escape, Zurückziehen und Ausblenden macht useSheet — auch, dass
      Escape bei offenem Menü nur das Menü schließt (der Stapel dort). */
-  const sheet = useSheet(onClose);
+  const sheet = useSheet(onClose, { kind: "push" });
   // Fokus beim Öffnen und wenn das Menü ihn zurückgibt.
   useEffect(() => { if (!menuOpen) closeRef.current?.focus({ preventScroll: true }); }, [menuOpen]);
 
@@ -337,7 +337,6 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
         aria-label={entry.title || t.journal.untitled}
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="sheet-grabber sheet-grabber-over" aria-hidden="true" />
         {/* The dream opens with its own image behind the title. The hero is a
             CROP of the first image (top-biased), which is why the app draws
             the title itself: on a poster the rendered title sits in the lower
@@ -349,8 +348,8 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
              ersten Panel). */
           <div className="j-slimhead">
             <div className="j-modal-tools j-modal-tools-inline">
+              <button ref={closeRef} className="j-close j-back" onClick={sheet.close} aria-label={t.wizard.back}><ChevronLeft /></button>
               <button className="j-close" onClick={() => setMenuOpen(true)} aria-label={t.journal.menu}>⋯</button>
-              <button ref={closeRef} className="j-close" onClick={sheet.close} aria-label={t.journal.close}>×</button>
             </div>
             {/* Der Titel: mittig, Serife, Ornament — der KI-erdachte
                 Traumname bekommt den Auftritt eines Buchtitelblatts. */}
@@ -371,8 +370,8 @@ export default function JournalDetail({ entry, onClose, onOpen }) {
           <div className="j-hero-scrim" aria-hidden="true" />
 
           <div className="j-modal-tools">
+            <button ref={closeRef} className="j-close j-back" onClick={sheet.close} aria-label={t.wizard.back}><ChevronLeft /></button>
             <button className="j-close" onClick={() => setMenuOpen(true)} aria-label={t.journal.menu}>⋯</button>
-            <button ref={closeRef} className="j-close" onClick={sheet.close} aria-label={t.journal.close}>×</button>
           </div>
 
           <div className="j-hero-meta">

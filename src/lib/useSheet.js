@@ -17,6 +17,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * data-state ("enter" → "open" → "leaving"). Close through `sheet.close`,
  * not onClose directly — that is what gives the sheet time to leave.
  *
+ * Two kinds: "sheet" (rises from below, pulled down to close — choices,
+ * menus, settings) and "push" (a page sliding in from the side, swiped back
+ * from the edge — content you open, like a dream from the journal). A
+ * dream is not a dialog; showing it as one felt like a pop-up window
+ * (Anton, 11.09.).
+ *
  * ⚠ Touch, not pointer events. A pointer drag on something that can also
  *   scroll gets cancelled the moment WebKit decides it is a pan; only a
  *   non-passive touchmove can claim the gesture with preventDefault(). React
@@ -29,11 +35,19 @@ export const DISMISS_VELOCITY = 0.5;          // px per ms
 /* Must equal --dur-fast in tokens.css: how long the leaving animation runs
    before the overlay is actually unmounted. useSheet.test.js checks it. */
 export const LEAVE_MS = 200;
+/* A pushed page (kind "push") slides in from the leading edge and goes back
+   the same way, like a UINavigationController. It pops at half its width
+   or on a flick, and only when the swipe STARTS at the edge — the middle of
+   the page belongs to the carousel and to scrolling. POP_MS must equal
+   --dur-pop. */
+export const POP_MS = 300;
+export const PUSH_FRACTION = 0.5;
+export const EDGE_PX = 28;
 
-export function shouldDismiss({ dy, height, velocity }) {
+export function shouldDismiss({ dy, height, velocity, fraction = DISMISS_FRACTION }) {
   if (!(dy > 0)) return false;
   if (velocity > DISMISS_VELOCITY && dy > 12) return true;
-  return dy > (height || 0) * DISMISS_FRACTION;
+  return dy > (height || 0) * fraction;
 }
 
 /* Pulled the wrong way (up), the sheet gives way ever less — UIScrollView's
@@ -65,7 +79,8 @@ function atTop(target, panel) {
 // Open sheets, oldest first. Module-level: there is one screen.
 const openSheets = [];
 
-export function useSheet(onClose) {
+export function useSheet(onClose, { kind = "sheet" } = {}) {
+  const push = kind === "push";
   const [state, setState] = useState(() => (reducedMotion() ? "open" : "enter"));
   const leaving = useRef(false);
   const backdropRef = useRef(null);
@@ -87,8 +102,8 @@ export function useSheet(onClose) {
     backdropRef.current?.style.removeProperty("transition");
     if (reducedMotion()) { finish(); return; }
     setState("leaving");
-    setTimeout(finish, LEAVE_MS);
-  }, []);
+    setTimeout(finish, push ? POP_MS : LEAVE_MS);
+  }, [push]);
 
   /* Escape closes the TOP sheet only. Sheets stack — the entry menu opens
      over the journal entry — and every hook listens on the same document,
@@ -107,7 +122,22 @@ export function useSheet(onClose) {
     };
   }, [close]);
 
-  useEffect(() => () => detach.current?.(), []);
+  /* ⚠ No effect cleanup for the touch listeners. React 18 StrictMode plays
+     every effect mount → cleanup → mount in development, but does NOT call
+     the ref again — a cleanup here detached the listeners for good, and
+     sheets could not be dragged in dev (and so in the simulator, which runs
+     the dev server). React calls the ref with null on a real unmount; that
+     is where they come off.
+
+     The enter → open switch normally follows animationend. The timer is the
+     net for when that event never comes (a hidden tab, an interrupted
+     animation) — without it the sheet would stay in "enter", and releasing
+     a drag would replay the entrance. */
+  useEffect(() => {
+    if (state !== "enter") return;
+    const id = setTimeout(() => setState((s) => (s === "enter" ? "open" : s)), push ? 520 : 560);
+    return () => clearTimeout(id);
+  }, [state, push]);
 
   /* A callback ref, so the listeners follow the panel even if it mounts
      after the hook (a dialog that renders its body once data is there). */
@@ -117,26 +147,38 @@ export function useSheet(onClose) {
     if (!panel) return;
 
     let phase = "idle";                    // idle | pending | drag | blocked
-    let y0 = 0, x0 = 0, lastY = 0, lastT = 0, v = 0, off = 0;
+    let y0 = 0, x0 = 0, last = 0, lastT = 0, v = 0, off = 0;
+    /* One gesture, two axes. `along` is the direction that dismisses:
+       down for a sheet, towards the trailing edge for a pushed page (right
+       in LTR, left in RTL). `across` is everything else. */
+    const rtl = () => getComputedStyle(panel).direction === "rtl";
+    const along = (t) => (push ? (rtl() ? x0 - t.clientX : t.clientX - x0) : t.clientY - y0);
+    const across = (t) => (push ? t.clientY - y0 : t.clientX - x0);
+    const pos = (t) => (push ? (rtl() ? -t.clientX : t.clientX) : t.clientY);
+    const size = () => (push ? panel.offsetWidth : panel.offsetHeight) || 1;
 
     const onStart = (e) => {
       if (leaving.current || e.touches.length !== 1) { phase = "blocked"; return; }
       const t = e.touches[0];
-      y0 = lastY = t.clientY; x0 = t.clientX; lastT = e.timeStamp; v = 0; off = 0;
+      y0 = t.clientY; x0 = t.clientX; last = pos(t); lastT = e.timeStamp; v = 0; off = 0;
+      if (push) {
+        const fromEdge = rtl() ? window.innerWidth - t.clientX : t.clientX;
+        if (fromEdge > EDGE_PX) { phase = "blocked"; return; }
+      }
       /* Sheets nest (the entry menu lives inside the entry's DOM). A touch
          that belongs to an inner sheet or its veil is not this sheet's. */
       const owner = e.target.closest?.("[data-sheet-panel], [data-sheet-backdrop]");
-      phase = (owner && owner !== panel) || e.target.closest?.(NO_DRAG) || !atTop(e.target, panel)
+      phase = (owner && owner !== panel) || e.target.closest?.(NO_DRAG) || (!push && !atTop(e.target, panel))
         ? "blocked" : "pending";
     };
     const onMove = (e) => {
       if (phase !== "pending" && phase !== "drag") return;
       const t = e.touches[0];
-      const dy = t.clientY - y0, dx = t.clientX - x0;
+      const d = along(t), c = across(t);
       if (phase === "pending") {
-        if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
-        // Up or sideways is not ours: let the content scroll.
-        if (dy <= 0 || Math.abs(dx) > Math.abs(dy)) { phase = "blocked"; return; }
+        if (Math.abs(d) < 6 && Math.abs(c) < 6) return;
+        // The wrong way or across is not ours: let the content scroll.
+        if (d <= 0 || Math.abs(c) > Math.abs(d)) { phase = "blocked"; return; }
         phase = "drag";
         panel.setAttribute("data-dragging", "");
         panel.style.transition = "none";
@@ -144,19 +186,24 @@ export function useSheet(onClose) {
       }
       if (e.cancelable) e.preventDefault();
       const dt = e.timeStamp - lastT;
-      if (dt > 0) v = (t.clientY - lastY) / dt;
-      lastY = t.clientY; lastT = e.timeStamp;
-      off = rubberBand(dy);
-      panel.style.translate = `0 ${off}px`;
-      const p = Math.min(Math.max(off / (panel.offsetHeight || 1), 0), 1);
+      if (dt > 0) v = (pos(t) - last) / dt;
+      last = pos(t); lastT = e.timeStamp;
+      off = rubberBand(d);
+      panel.style.translate = push ? `${rtl() ? -off : off}px 0` : `0 ${off}px`;
+      const p = Math.min(Math.max(off / size(), 0), 1);
       backdropRef.current?.style.setProperty("--sheet-drag", p.toFixed(3));
     };
-    const onEnd = () => {
+    const onEnd = (e) => {
       if (phase !== "drag") { phase = "idle"; return; }
       phase = "idle";
+      /* A finger that rested before lifting has no speed. Without this the
+         last move's speed survived the pause, and pull — hold — let go
+         counted as a flick and closed the sheet (measured 11.09.). UIKit
+         reads velocity at the moment of release; so does this. */
+      if (e.timeStamp - lastT > 80) v = 0;
       panel.removeAttribute("data-dragging");
       panel.style.transition = "";
-      if (shouldDismiss({ dy: off, height: panel.offsetHeight, velocity: v })) {
+      if (shouldDismiss({ dy: off, height: size(), velocity: v, fraction: push ? PUSH_FRACTION : DISMISS_FRACTION })) {
         close();                           // sinks from where the finger let go
         return;
       }
@@ -168,7 +215,9 @@ export function useSheet(onClose) {
       panel.addEventListener("transitionend", () => { panel.style.transition = ""; }, { once: true });
     };
     const onAnimEnd = (e) => {
-      if (e.target === panel && e.animationName === "sheet-rise") setState((s) => (s === "enter" ? "open" : s));
+      if (e.target === panel && (e.animationName === "sheet-rise" || e.animationName === "push-in")) {
+        setState((s) => (s === "enter" ? "open" : s));
+      }
     };
 
     panel.addEventListener("touchstart", onStart, { passive: true });
@@ -183,12 +232,12 @@ export function useSheet(onClose) {
       panel.removeEventListener("touchcancel", onEnd);
       panel.removeEventListener("animationend", onAnimEnd);
     };
-  }, [close]);
+  }, [close, push]);
 
   return {
     state,
     close,
     backdropProps: { ref: backdropRef, "data-sheet-backdrop": "", "data-state": state },
-    panelProps: { ref: panelRef, "data-sheet-panel": "", "data-state": state },
+    panelProps: { ref: panelRef, "data-sheet-panel": "", "data-sheet-kind": kind, "data-state": state },
   };
 }

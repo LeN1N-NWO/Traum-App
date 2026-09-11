@@ -32,8 +32,22 @@
 @keyframes sheet-rise { from { translate: 0 100dvh; } }
 @keyframes sheet-sink { to { translate: 0 100dvh; } }
 
+/* Push: a page arriving from the trailing side, like UINavigationController.
+   The shadow on its leading edge is what makes it read as lying ON the
+   list rather than replacing it. */
+[data-sheet-panel][data-sheet-kind="push"] { --push-from: 100%; box-shadow: -10px 0 32px rgb(0 0 0 / .4); }
+[dir="rtl"] [data-sheet-panel][data-sheet-kind="push"] { --push-from: -100%; box-shadow: 10px 0 32px rgb(0 0 0 / .4); }
+[data-sheet-panel][data-sheet-kind="push"][data-state="enter"] { animation: push-in var(--dur-push) var(--ease-ios) backwards; }
+[data-sheet-panel][data-sheet-kind="push"][data-state="leaving"] { animation: push-out var(--dur-pop) var(--ease-ios) forwards; }
+@keyframes push-in { from { translate: var(--push-from) 0; } }
+@keyframes push-out { to { translate: var(--push-from) 0; } }
+[data-sheet-backdrop][data-state="leaving"]:has(> [data-sheet-kind="push"]) {
+  transition-duration: var(--dur-pop); transition-timing-function: var(--ease-ios);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  [data-sheet-backdrop][data-state], [data-sheet-panel][data-state] { animation: none; transition: none; }
+  [data-sheet-backdrop][data-state], [data-sheet-panel][data-state],
+  [data-sheet-panel][data-sheet-kind][data-state] { animation: none; transition: none; }
 }
 
 /* The grabber says "this can be pulled down" without a word. */

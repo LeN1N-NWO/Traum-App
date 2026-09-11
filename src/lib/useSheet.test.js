@@ -64,3 +64,11 @@ test("no component that uses useSheet handles Escape on its own", () => {
       .toEqual({ file: p, escape: false });
   }
 });
+
+import { POP_MS, PUSH_FRACTION } from "./useSheet.js";
+test("POP_MS equals --dur-pop, and a pushed page pops at half its width", () => {
+  const css = readFileSync(new URL("../styles/tokens.css", import.meta.url), "utf8");
+  expect(Number(css.match(/--dur-pop:\s*(\d+)ms/)?.[1])).toBe(POP_MS);
+  expect(shouldDismiss({ dy: 190, height: 400, velocity: 0.1, fraction: PUSH_FRACTION })).toBe(false);
+  expect(shouldDismiss({ dy: 210, height: 400, velocity: 0.1, fraction: PUSH_FRACTION })).toBe(true);
+});
