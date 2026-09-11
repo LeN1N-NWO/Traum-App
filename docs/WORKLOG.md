@@ -44,6 +44,50 @@ Kopien ignoriert). Übergabe für Hanni liegt in `docs/uebergabe/`.
 - Das Simulator-Panel in Claude meldet weiter fälschlich „Xcode not selected".
 - STAND.md kollidiert absichtlich mit PR #39 (beide schreiben den Kopf) —
   von Hand zusammenführen, #39 zuerst mergen.
+## 2026-09-11 21:02 — Anton — Branch `session/2026-09-11-anton` — Server prüft den Filmpreis, Gründungsvermerke, App im Simulator
+
+**Commits:** 57efeed · 8227529 · b4885bb · 3f9e44f · 96cc6ec · 8cee1a3 · 5a00733 · a6aac55 (+ dieser Abschluss). PR #39.
+
+**Auftrag:** Hannis Übergabe `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`
+umsetzen, soweit es ohne Anmeldung geht. Dazu Antons Geschäftsfragen
+(Rechtsform, Direktbezug der Videomodelle, Umsatzsteuer, Gründerrechnung,
+Wachstum), die App in Xcode starten und ein Befund zum iOS-Gefühl.
+
+### Ergebnis
+
+- **Punkt 1 der Übergabe ist erledigt:** `src/lib/quote.js` ist EINE
+  Preisrechnung für Wizard und Server. Der Server rechnet nach und lehnt mit
+  HTTP 409 und beiden Zahlen ab, wenn er teurer liegt als angezeigt — vor
+  Regisseur und fal, gemessen in Millisekunden. `GET /api/prices` liefert
+  die Tabelle. `settleCharge()` ist die vorbereitete Abbuchungsstelle, heute
+  nur Log. **Punkte 2–6 warten auf die Anmeldung**, wie Hanni es verlangt.
+- **Vermerke** unter `docs/plans/2026-09-11-*`: Rechtsform (UG),
+  Direktbezug (H3 bleibt bei fal, Seedance über Replicate halb so teuer),
+  Umsatzsteuer und Gründerrechnung (Apple als Kommissionär,
+  Kleinunternehmer-Falle, 2×5.000 € netto ≈ 3.600 Abos à 9,99 €,
+  10.000 Abos realistisch in 18–36 Monaten).
+- **Antons Entscheidungen:** UG; Buchhaltung per Software, Jahresabschluss
+  zukaufen; Seedance 2.5 über Replicate, H3 bei fal.
+- **`.env.example`:** Platzhalter `REPLICATE_TOKEN`. Anton hat den echten
+  Token in seine `.env` gelegt; `server.js` liest ihn noch nicht.
+- **App im Simulator** per Live-Reload gestartet. Befund zum nativen
+  Gefühl: keine Bildschirmübergänge, 13 Overlays ohne Ausblenden, kaum
+  Druckzustände, keine Haptik. Weiter auf `session/2026-09-11-anton-native`.
+
+### Was der Nächste wissen muss
+
+- **⚠⚠ 545 grüne Tests, trotzdem kein Build.** 57efeed hat in
+  `Step5Style.jsx:93` eine Klammer vergessen; `bun test` lädt die
+  Wizard-JSX nicht, erst Vite hat es beim Start gemeldet (Fix a6aac55).
+  Nach JSX-Änderungen `bunx vite build` laufen lassen.
+- **Replicate** nimmt `reference_images` statt `image_urls` (bis 30
+  Referenzen). Wirkungsradius steht im Direktbezug-Vermerk.
+- **Nebenbefund Plan B:** Der Client bucht `block.length` ab (4), zeigt
+  aber 6. Fällt mit der Server-Abbuchung weg, deshalb nicht angefasst.
+- Das Simulator-Panel in Claude meldet fälschlich „Xcode not selected";
+  `xcode-select -p` stimmt. Simulator direkt in Xcode bedienen.
+- Die DreamBank-Datei liegt wieder uncommittet im Hauptcheckout — nie
+  committen.
 
 ## 2026-09-11 18:10 — Hanni — Branch `session/2026-09-11-hanni-2` — server.js an die Datenbank, mit einer Rolle nach Least Privilege
 

@@ -3,52 +3,61 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-11 spät — `session/2026-09-11-anton-native` (PR #40);
-PR #39 (Preisprüfung, Gründungsvermerke) wartet auf Antons „merge".
+**Stand:** 2026-09-11 spät — PR #39 und #40 gemergt; weiter auf
+`session/2026-09-11-anton-expo`.
 
 **⚠⚠ ENTSCHIEDEN (Anton, 11.09. abends): Die Oberfläche wird nativ — React
 Native mit Expo statt Capacitor.** Web ist kein Ziel mehr, Android kommt
 später aus derselben Codebasis. Begründung mit Messungen:
 `docs/decisions/ADR-0006-expo-react-native-statt-capacitor.md`. Kurz:
 Liquid Glass gibt es im WebView nicht (WebKit rendert `backdrop-filter:
-url()` nicht), die Capacitor-Tastatur zerschießt die Safe Area, und alles
+url()` nicht), die Capacitor-Tastatur zerschoss die Safe Area, und alles
 Nachgebaute bleibt nachgebaut. Es bleiben `server.js`, Supabase, die Logik
 in `src/lib` (48 von 57 Dateien ohne React/DOM) und alle Texte; neu werden
 ~14.000 Zeilen JSX/CSS. Weg: Würgefeigen-Umzug — Expo-Hülle, in der die alte
 Oberfläche am ersten Tag als DOM-Komponente läuft, dann Bildschirm für
 Bildschirm nativ. Plus-Knopf wird fünfter Tab in der Mitte (Antons Wort).
-PR #40 ist damit Zwischenlösung. Skills sind installiert; Hanni bekommt die
-Anleitung beim nächsten Start (`docs/uebergabe/2026-09-11-hanni-expo-skills.md`).
+Skills sind installiert; Hanni bekommt die Anleitung beim nächsten Start
+(`docs/uebergabe/2026-09-11-hanni-expo-skills.md`).
 
+**Der Server rechnet den Filmpreis selbst.** `src/lib/quote.js` ist EINE
+Rechnung für Wizard und Server. Liegt der Server teurer als angezeigt,
+antwortet er 409 mit beiden Zahlen — bevor Regisseur oder fal etwas
+kosten. Liegt er gleich oder billiger, gilt sein Preis. Bilder werden nur
+beobachtet (Log). `GET /api/prices` liefert die Tabelle. Das ist Punkt 1
+aus `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`; **Punkte 2–6**
+(abbuchen über `server_spend`, `jobRef`, Erstattung je Topf,
+fal-Fehler in `jobStatus`, Client-Abbuchung zurückbauen) **warten auf die
+Anmeldung**.
 
-**Die native iOS-App läuft im Simulator und spricht mit dem Server**; ein
-echtes Gerät (Signing/Team) steht noch aus. Web-Änderungen brauchen per
-Live-Reload (`CAP_SERVER_URL`) keine Xcode-Runde mehr.
+**Die Capacitor-App läuft im Simulator** und hat seit PR #40 ein
+nachgebautes iOS-Gefühl (Sheets mit Ziehen, geschobene Traum-Seite, Wisch
+vom Rand, Haptik, Statusleiste; `useSheet.js`, `styles/sheets.css`). Das
+ist die **Zwischenlösung** bis zum Expo-Umzug — Kurven, Dauern und
+Schwellen daraus sind die Referenz für die native Fassung. Das
+Tastatur-Plugin ist wieder draußen (Safe-Area-Fehler, Capacitor #6430).
+
+**Geschäftliche Entscheidungen (Anton, 11.09.):** UG als Rechtsform;
+Buchhaltung per Software, Jahresabschluss zukaufen; **Seedance 2.5 über
+Replicate** (halber Einkauf), H3 bleibt bei fal. Vermerke:
+`docs/plans/2026-09-11-rechtsform.md`,
+`2026-09-11-direktbezug-videomodelle.md`,
+`2026-09-11-umsatzsteuer-und-gruenderrechnung.md`.
 
 **`server.js` ist mit der Datenbank verbunden — nach Least Privilege.**
 `ADR-0005`: Supabase als Datenschicht (Status vorgeschlagen, Antons
-Bestätigung steht aus). Das Schema ist ausgeführt und gegen sechs
-Geld-Invarianten geprüft. `server.js` verbindet sich als eigene Rolle
-`dreamrushes_server` — auf das Guthaben nur lesend, ohne Umgehung von RLS —
-und verweigert beim Start jede stärkere Rolle. 14 verbotene Handlungen sind
-empirisch abgewiesen (`42501`). **⚠ Genutzt wird die Verbindung noch
-nicht:** Die Credits liegen weiter im `localStorage` und sind editierbar
-(Befund S7, offen).
-
-**Was dafür noch fehlt, ist aufgeteilt:** Die **Anmeldung** (Sign in with
-Apple) ist **zurückgestellt** (Hannis Entscheidung, 11.09.) — sie hängt an
-der Frage, wer als Verkäufer im App Store steht, und die klärt Hanni mit
-Anton. Danach eigener Branch. Die **Abbuchung vor dem Render** liegt an Antons
-Prompt-Kette und ist seine Aufgabe: `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`,
-erst nach der Anmeldung zu beginnen. Die Server-Rolle bietet ihm dafür
-`server_spend()`; ⚠ für Erstattungen gibt es noch nichts Richtiges
-(`credits_grant` bucht immer in den dauerhaften Topf).
+Bestätigung steht aus). `server.js` verbindet sich als eigene Rolle
+`dreamrushes_server` — auf das Guthaben nur lesend, ohne Umgehung von RLS.
+**⚠ Genutzt wird die Verbindung noch nicht:** Die Credits liegen weiter im
+`localStorage` und sind editierbar (Befund S7, offen). Die **Anmeldung**
+(Sign in with Apple) ist zurückgestellt (Hannis Entscheidung, 11.09.) —
+sie hängt an der Frage, wer als Verkäufer im App Store steht.
 
 **Die Architektur ist bewertet:** `docs/ARCHITEKTUR.md` führt acht Befunde
 (S1–S8) mit Schwere und Reihenfolge. Erledigt ist S4. S1 wartet bewusst auf
 die Konten.
 
-533 Tests grün, fünf Skriptprüfungen grün, Build ~500 KB / gzip 168.
+548 Tests grün, fünf Skriptprüfungen grün, Build ~510 KB / gzip 173.
 Wie es hierher kam, steht im WORKLOG.
 
 ## Wo wir stehen
@@ -77,18 +86,26 @@ Regie denken minutenlang — siehe Baustelle 1.
 
 ## Nächste Schritte
 
-**Zuerst, eigene Sitzung:** die Expo-Hülle anlegen. Skill `expo-web-to-native`
-lesen (Würgefeigen-Umzug), dann `create-expo-app` neben dem bestehenden
-Code, Routen in Expo Router spiegeln, die alte React-Oberfläche als
-DOM-Komponente hineinnehmen, im Simulator starten. Erst wenn das läuft:
-NativeTabs (fünf Tabs, Traum in der Mitte, gefülltes Plus), dann
-Journal-Liste und Traum-Seite nativ. ⚠ NativeTabs ist Alpha — SDK-Stand
-festhalten. Bezahlung bleibt Store-IAP über RevenueCat.
-
-
 **⚠ Vor Architekturfragen zuerst `docs/ARCHITEKTUR.md` lesen** — dort stehen
 die Befunde S1–S8 mit Schwere, Begründung und Reihenfolge. Die Punkte unten
 sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
+
+**Als Nächstes, in dieser Reihenfolge:**
+
+- **Die Expo-Hülle** — `session/2026-09-11-anton-expo`. Skill
+  `expo-web-to-native` lesen (Würgefeigen-Umzug), `create-expo-app` neben
+  dem bestehenden Code, Routen in Expo Router spiegeln, die alte
+  React-Oberfläche als DOM-Komponente hineinnehmen, im Simulator starten.
+  Erst wenn das läuft: NativeTabs (fünf Tabs, Traum in der Mitte, gefülltes
+  Plus), dann Journal-Liste und Traum-Seite nativ. ⚠ NativeTabs ist Alpha —
+  SDK-Stand festhalten. Bezahlung bleibt Store-IAP über RevenueCat.
+- **Seedance über Replicate anbinden** — eigene Sitzung. `src/lib/video.js`
+  (je Modell `provider`, `slug`, `refsField`), `server.js` `falSubmitVideo`
+  anbieterabhängig, `REPLICATE_TOKEN` (liegt in Antons `.env`), Tests.
+  Regie-Brief unverändert. Danach gehört die Frage in den Preisentscheid:
+  halber Einkauf an Kunden weitergeben oder als Marge behalten.
+
+Danach, wie gehabt:
 
 0. **iOS auf einem ECHTEN Gerät** — der Simulator ist seit 10.09. durch.
    Zwei Schritte fehlen, beide nur auf Hannis Mac machbar: in Xcode unter
@@ -163,9 +180,11 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
   was seit dem 25.08. „bezahlt bewiesen" heißt, lief mit einem Prompt,
   dem Stil-Rest, Anker und Klauseln fehlten.
 - **DreamBank-Träume dürfen NIE ins Repository** — CC BY-NC-SA. Die Datei
-  `2026-09-03-e_mtlxb972tea3m5.json`, die hier bis zum 09.09. als
-  uncommittet vermerkt war, liegt inzwischen in keinem der beiden Checkouts
-  mehr. Die Regel bleibt: fremdes Traummaterial nur lokal, nie committen.
+  `data/traeume/2026-09-03-e_mtlxb972tea3m5.json` liegt (11.09. abends)
+  wieder uncommittet im Hauptcheckout. So lassen, nie committen.
+- **Nebenbefund Plan B:** Der Client bucht `block.length` ab (4), zeigt
+  aber 6. Fällt mit der Server-Abbuchung weg, deshalb nicht angefasst.
+- **Die Capacitor-Hülle ist Zwischenlösung** — ADR-0006, Umzug auf Expo.
 - **iOS: Signing/Team und das echte Gerät stehen aus** (nächster Schritt 0).
   Der Simulator ist seit 10.09. durch, inklusive API-Verbindung.
 - **Bildcode ist noch da** (Raster, Schnitt, `imageJobs`, Storyboard-
@@ -301,6 +320,17 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
 
 ### Werkzeuge und Umgebung
 
+- **⚠⚠ Grüne Tests sagen nichts über den Build.** `bun test` lädt die
+  Wizard-JSX nicht; eine fehlende Klammer in `Step5Style.jsx` lag am 11.09.
+  vom Nachmittag bis abends unbemerkt (57efeed → a6aac55). Nach jeder
+  JSX-Änderung `bunx vite build`.
+- **⚠ Das Simulator-Panel in Claude meldet „Xcode not selected"**, obwohl
+  `xcode-select -p` stimmt. Den Simulator direkt über Xcode bedienen.
+- **⚠ React 18 StrictMode ruft Effekt-Cleanups doppelt, Refs nicht** — ein
+  Cleanup, das Listener eines Callback-Refs abmeldet, macht Gesten im
+  Dev-Modus tot (`useSheet.js`, 11.09.).
+- **⚠ Capacitor-Tastatur-Plugin nie wieder einbauen:** nach dem Schließen
+  wertet WebKit `env(safe-area-inset-bottom)` nicht neu aus (#6430).
 - **⚠⚠ Eine Rot-Probe wird mit `sed` zurückgedreht, nie mit
   `git checkout -- datei`** — das holt ALLE Änderungen der Datei zurück,
   nicht nur die Probe (08.09.: vier Stellen neu gesetzt).
@@ -410,3 +440,9 @@ keinen Film mehr.
 Film je Sekunde: H3 **2/3** Cr (480P/768P) · Seedance 2.5 **8/17** Cr
 (480p/720p), plus 1 Cr Keyframe. Einkauf $0,05/0,06 bzw. $0,2205/0,473
 je Sekunde. Ein 15-s-H3-Film in 768P: 46 Credits, ≈ $0,93 Einkauf.
+**Direktbezug (Entscheidung 11.09.):** Seedance über Replicate
+$0,1028/$0,2312 je Sekunde (480p/720p) statt fal $0,2205/$0,473 — noch
+nicht angebunden. H3 bleibt bei fal.
+**Gründerrechnung:** 2×5.000 € netto brauchen ≈ 36.000 €/Monat
+Nutzerumsatz brutto, also ≈ 3.600 Abos à 9,99 € (Apple 15 %, 19 % USt,
+Modellkosten 30 %). Herleitung und Hebel im Umsatzsteuer-Vermerk.
