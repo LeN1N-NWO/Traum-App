@@ -29,7 +29,19 @@ hörbar macht.
   Tipp. Jetzt `pointerEvents="none"` auf Verlauf und Titelblock, die
   Knöpfe liegen als letzte Schicht unten rechts im Film (wie Reels), Ton-
   Zustand über `useImperativeHandle` aus dem Player.
-- ⚠ Ungeprüft (niemand tippt hier): Vollbild-Übergang, Ton.
+- Antons dritter Nachtrag (Journal): **Fassungen wischen** — mehrere
+  Fassungen liegen als Seiten im Film-Kopf, Punkte zeigen die aktive, alle
+  bleiben erhalten. **Vollbild neu**: das System-Vollbild hatte ohne
+  Bedienelemente keinen Weg zurück („gefangen") → eigenes Blatt mit Zoom,
+  Ton an, Systemregler, X oben links. **Reflexion-Knopf** („Was könnte
+  dieser Traum sagen?") nativ unter dem Text, gratis über die Brücke
+  (`reflect` → api.reflect + reflectionContext). **Aufnahme
+  deterministisch**: die Hülle merkt die Aufnahme nach dem Upload im
+  Web-Zustand (`pendingAudioUrl`), der nächste angelegte Traum nimmt sie —
+  in Step5Style wie in `saveDream`; die vier Träume von heute haben keine,
+  sie entstanden vor dem Fix.
+- ⚠ Ungeprüft (niemand tippt hier): Vollbild-Übergang, Ton, Wischen,
+  Reflexion, Aufnahme am nächsten Traum.
 
 ## 2026-09-12 17:00 — Anton — Branch `session/2026-09-12-anton` — Sitzungsabschluss (wrap, Merge auf Antons Wort)
 
