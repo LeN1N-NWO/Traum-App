@@ -88,12 +88,16 @@ RLS-Policies für genau dieses CRUD bereits vollständig.
   biometrisches Foto in die Datenbank.
 
 **Prüfung:** 615 Tests grün (vorher 564; neu: 19 auth, 13 dreamRow, 11 paging, 4
-gatekeeper) plus 16 Ende-zu-Ende gegen das echte Supabase.
-`server.js`: 226 geänderte Zeilen, in vier Blöcke zerlegt
-(Importe 7, CORS 6, Routen 203, Startmeldung 10 — Summe stimmt), die 4
+gatekeeper) plus 25 Ende-zu-Ende gegen das echte Supabase.
+`server.js`: 268 hinzugefügte Zeilen in fünf Blöcken (Importe 9,
+Stapelgrenze 5, CORS 6, Routen 238, Startmeldung 10 — Summe stimmt), die 4
 entfernten Zeilen sind der alte Import und drei CORS-Zeilen. Gegenprobe auf
-15 Namen der Prompt-/Generierungs-Kette: kein Treffer, bei einer
-Kontrollprobe, die nachweislich trifft.
+die Namen der Prompt-/Generierungs-Kette: kein Treffer, bei einer
+Kontrollprobe, die nachweislich trifft. Zusätzlich sind acht Funktionen der
+Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
+`falGenerateImage`, `craftPrompt`, `buildFallbackPrompt`, `jobStatus`,
+`settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
+das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
 
 ## 2026-09-12 18:30 — Anton — Branch `session/2026-09-12-anton-c` — Sitzungsabschluss (wrap + Merge auf Antons Wort)
 
