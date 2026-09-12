@@ -1748,7 +1748,58 @@ async function toMp3DataUri(dataUri) {
   }
 }
 
-async function falTranscribe(audioDataUriIn) {
+/* ── Transkription (ADR-0007), zwei Wege ─────────────────────────────────
+ * Antons Befund 12.09.: Wizper gab seine deutsche Aufnahme auf Englisch
+ * und nur zu einem Viertel zurück (Sprache falsch erkannt, nach einer Pause
+ * abgebrochen). Deshalb:
+ *   1. Gemini (GEMINI_STT_MODEL, Vorgabe gemini-3.5-flash-lite) zuerst:
+ *      nimmt m4a direkt, kennt Pausen, ~1.500 Audio-Token je Minute
+ *      (gemessen: 124 Token für 5 s) — im Bereich von 0,05 Cent/Minute.
+ *   2. Wizper als Rückfall, jetzt MIT Sprachhinweis (`language`), damit es
+ *      nicht übersetzt statt transkribiert.
+ * Die App schickt die Sprache (de/en) mit; ohne Hinweis wird erkannt. */
+const GEMINI_STT_MODEL = process.env.GEMINI_STT_MODEL || "gemini-3.5-flash-lite";
+const STT_LANG_NAME = { de: "German", en: "English" };
+
+async function geminiTranscribe(audioDataUri, language) {
+  const key = process.env.GEMINI_KEY;
+  if (!key) throw new Error("NO_GEMINI_KEY");
+  const m = /^data:(audio\/[\w.+-]+);base64,(.*)$/s.exec(audioDataUri);
+  if (!m) throw new Error("TRANSCRIBE_FAILED");
+  const lang = STT_LANG_NAME[language] ? `The recording is in ${STT_LANG_NAME[language]}.` : "Keep the language that is spoken.";
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_STT_MODEL}:generateContent?key=${key}`, {
+    method: "POST",
+    signal: AbortSignal.timeout(T.falStt),
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [
+        { text: `Transcribe this recording word for word. ${lang} Do not translate, do not summarize, do not add anything. Output only the transcript.` },
+        { inlineData: { mimeType: m[1] === "audio/m4a" || m[1] === "audio/x-m4a" ? "audio/mp4" : m[1], data: m[2] } },
+      ] }],
+      generationConfig: { temperature: 0 },
+    }),
+  });
+  if (!res.ok) {
+    console.error("[DreamRushes] gemini transcribe failed:", res.status, (await res.text().catch(() => "")).slice(0, 200));
+    throw new Error("TRANSCRIBE_FAILED");
+  }
+  const data = await res.json().catch(() => null);
+  const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("").trim();
+  if (!text) throw new Error("TRANSCRIBE_FAILED");
+  const u = data?.usageMetadata || {};
+  console.log(`[DreamRushes] stt gemini ${GEMINI_STT_MODEL}: ${u.promptTokenCount || 0} in / ${u.candidatesTokenCount || 0} out, ${text.length} chars`);
+  return text;
+}
+
+async function transcribeAudio(audioDataUri, language) {
+  if (process.env.GEMINI_KEY && process.env.STT_PROVIDER !== "wizper") {
+    try { return await geminiTranscribe(audioDataUri, language); }
+    catch (e) { console.error("[DreamRushes] stt gemini → fallback wizper:", e.message); }
+  }
+  return falTranscribe(audioDataUri, language);
+}
+
+async function falTranscribe(audioDataUriIn, language) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
   const audioDataUri = await toMp3DataUri(audioDataUriIn);
@@ -1757,7 +1808,7 @@ async function falTranscribe(audioDataUriIn) {
     method: "POST",
     signal: AbortSignal.timeout(T.falStt),
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({ audio_url: audioDataUri, task: "transcribe" }),
+    body: JSON.stringify({ audio_url: audioDataUri, task: "transcribe", ...(STT_LANG_NAME[language] ? { language } : {}) }),
   });
   if (!res.ok) {
     console.error("[DreamRushes] fal.ai transcribe request failed:", res.status, await res.text().catch(() => ""));
@@ -2349,7 +2400,10 @@ const serveOptions = {
         if (!/^data:audio\/[\w.+-]+;base64,/.test(audio)) {
           return json({ error: "Expected a base64 audio data URI." }, 400);
         }
-        const text = sanitizePromptText(await falTranscribe(audio));
+        const language = typeof body.language === "string" ? body.language.slice(0, 2).toLowerCase() : "";
+        const t0 = Date.now();
+        const text = sanitizePromptText(await transcribeAudio(audio, language));
+        console.log(`[DreamRushes] /api/transcribe ${language || "auto"}: ${Math.round(audio.length * 0.75 / 1024)} KB → ${text.length} chars in ${Date.now() - t0} ms`);
         return json({ ok: true, text });
       } catch (e) {
         const map = {
@@ -2894,6 +2948,7 @@ const serveOptions = {
         const bytes = new Uint8Array(await req.arrayBuffer());
         const stored = await storeBytes(bytes, req.headers.get("content-type"));
         if (!stored) return json({ error: "Not a storable image or recording." }, 400);
+        console.log(`[DreamRushes] /api/panel ${req.headers.get("content-type")} ${Math.round(bytes.length / 1024)} KB → ${stored}`);
         return json({ ok: true, url: stored });
       } catch (e) {
         console.error("[DreamRushes] /api/panel failed:", e);

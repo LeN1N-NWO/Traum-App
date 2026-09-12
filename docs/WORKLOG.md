@@ -27,6 +27,18 @@ Poster je Film, Stil-Kacheln ohne Text).
   Ende-zu-Ende mit `say`-Aufnahme geprüft. Rekorder sichert die Aufnahme
   jetzt VOR der Transkription; bei Fehler „Noch mal" oder tippen, die
   Aufnahme bleibt am Traum.
+- **Antons zweiter Befund (Text auf Englisch, nur ein Viertel):** Wizper
+  hatte die Sprache als Englisch erkannt (bei meiner `say`-Probe ebenfalls
+  „en", Text trotzdem deutsch) und nach einer Pause abgebrochen; mit
+  synthetischer Sprache und 4 s Pause nicht reproduzierbar, seine Aufnahme
+  lag nicht im Medienordner (Test vor dem „zuerst sichern"-Bau oder Upload
+  gescheitert — der Server loggte nichts). Umbau: `transcribeAudio` nimmt
+  **Gemini zuerst** (`gemini-3.5-flash-lite`, nimmt m4a direkt, kennt
+  Pausen, ~1.500 Audio-Token je Minute ≈ 0,05 Cent) und Wizper als
+  Rückfall MIT `language`; die App schickt de/en mit. Verglichen auf einer
+  Probe: Wizper, Whisper v3, ElevenLabs Scribe (fal) und Gemini 3.6/3.5
+  liefern alle den vollen Text. Jede Anfrage an `/api/transcribe` und
+  `/api/panel` wird jetzt geloggt (Größe, Dauer, Zeichen).
 - **Stil-Overlay** nach Antons zweitem Befund: Milchglas (`expo-blur`,
   Pods + Rebuild), Zoom ohne Feder, Name und „Verwenden" AUF dem Film,
   × auf der Karte.

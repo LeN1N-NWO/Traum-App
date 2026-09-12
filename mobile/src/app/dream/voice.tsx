@@ -66,7 +66,7 @@ export default function DreamVoiceScreen() {
     if (audioUrl) patchWizard({ audioUrl });
     try {
       const b64 = await new File(uri).base64();
-      const res = await fetch(W!.transcribeUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ audio: `data:audio/mp4;base64,${b64}` }) });
+      const res = await fetch(W!.transcribeUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ audio: `data:audio/mp4;base64,${b64}`, language: data?.language ?? "" }) });
       const out = await res.json().catch(() => null);
       const text = String(out?.text || "").trim();
       if (!res.ok || text.length < 8) { setError(text.length < 8 && res.ok ? (W?.recordTooShort ?? "Too short.") : (out?.error || W?.recordFailed || "Failed")); setPhase("error"); return; }

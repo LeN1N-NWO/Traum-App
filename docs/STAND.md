@@ -258,6 +258,13 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   einer `say`-Aufnahme: Transkript korrekt, Datei unter `/media/….m4a`
   abrufbar. Die Aufnahme wird VOR der Transkription gesichert und bleibt
   im Wizard (`audioUrl`), auch wenn man den Traum danach tippt.
+  **Transkription seit 12.09. nachmittags: Gemini zuerst** (`transcribeAudio`
+  in server.js, `GEMINI_STT_MODEL` = gemini-3.5-flash-lite), Wizper mit
+  Sprachhinweis als Rückfall — nach Antons Befund (Englisch statt Deutsch,
+  nach Pause abgebrochen). Alternativen, geprüft und gleichwertig auf einer
+  Probe: fal Whisper v3, ElevenLabs Scribe über fal
+  (`fal-ai/elevenlabs/speech-to-text`, teurer), Gemini 3.6 Flash (denkt,
+  langsamer). Server loggt jede Aufnahme; bei Problemen zuerst das Log lesen.
   **Stil-Auswahl neu** (Antons Entwurf 12.09.): stumme quadratische
   Kacheln mit laufenden Clips, vier je Reihe, alle sichtbar; Antippen holt
   den Stil nach vorn (Glas über dem Raster, Film groß, Name, „Diesen Stil
