@@ -1,5 +1,6 @@
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { colors } from "@/theme";
 
@@ -34,14 +35,18 @@ export function PrimaryButton({ label, onPress, style, disabled, heavy }: { labe
   if (glass) {
     return (
       <Pressable onPress={press} disabled={disabled} style={({ pressed }) => [{ flex: 1, opacity: disabled ? 0.5 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }, style]}>
-        <GlassView style={styles.button} glassEffectStyle="regular" tintColor={colors.warm} isInteractive colorScheme="dark">
+        <GlassView style={[styles.button, { overflow: "hidden" }]} glassEffectStyle="regular" tintColor={colors.warm} isInteractive colorScheme="dark">
+          {/* Der Verlauf von links warm nach rechts golden, unten heller —
+              Antons Referenz (Opal) in unserer Farbe. */}
+          <LinearGradient colors={["rgba(242,167,101,0.55)", "rgba(246,198,91,0.25)", "rgba(255,255,255,0.10)"]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
           <Text style={styles.primaryGlassText}>{label}</Text>
         </GlassView>
       </Pressable>
     );
   }
   return (
-    <Pressable onPress={press} disabled={disabled} style={({ pressed }) => [styles.button, styles.primary, { flex: 1, opacity: disabled ? 0.5 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }, style]}>
+    <Pressable onPress={press} disabled={disabled} style={({ pressed }) => [styles.button, styles.primary, { flex: 1, overflow: "hidden", opacity: disabled ? 0.5 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }, style]}>
+      <LinearGradient colors={[colors.warm, colors.gold]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <Text style={styles.primaryText}>{label}</Text>
     </Pressable>
   );

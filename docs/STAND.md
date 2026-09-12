@@ -244,7 +244,25 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   **⚠ Test-Guthaben im Entwicklungsbau:** die Brücke hält das Kauf-
   Töpfchen auf mindestens 100 Credits (`devTopUp` in journal-bridge.jsx,
   nur bei `__DEV__`). Antons Ansage 12.09.: bis Konto/Supabase stehen.
-  **Als Nächstes:** Stimme nativ (Mikrofon → natives Modul, Rebuild),
+  **Rekorder statt Sprachassistent (ADR-0007, Anton 12.09.):**
+  `dream/voice.tsx` nimmt nativ auf (`expo-audio`, m4a), schickt die Datei
+  als Data-URI an `/api/transcribe` (fal Wizper, 0,05 Cent/Min) und legt
+  sie über `/api/panel` im Medienordner ab (server.js kennt jetzt
+  `audio/mp4` → `.m4a`). Der Text geht in den Wizard (`pendingRead`), die
+  Aufnahme hängt als `audio.url` am Traum (Befehl `attachAudio` nach dem
+  Anlegen, `saveDream` mit `audioUrl`); die Traum-Seite spielt sie ab
+  (`RecordingRow`, expo-audio). Gemini Live bleibt im Web-Code, wird nicht
+  mehr angeboten. ⚠ Ungeprüft: echte Aufnahme + Transkription (Simulator
+  zeigt nur den Mikrofon-Dialog; simctl-Grant greift nicht).
+  **Stil-Auswahl neu** (Antons Entwurf 12.09.): stumme quadratische
+  Kacheln mit laufenden Clips, vier je Reihe, alle sichtbar; Antippen holt
+  den Stil nach vorn (Glas über dem Raster, Film groß, Name, „Diesen Stil
+  verwenden"). **Warme Knöpfe** mit Verlauf nach Opal-Vorbild (warm →
+  gold, im Glas als Schicht).
+  **Als Nächstes:** Onboarding nativ (Intro mit App-Namen als Platzhalter,
+  Feature-Kacheln in Glas, Schlaf-Jahre-Zähler, Fragebogen statt Gespräch),
+  Pseudo-Rangliste aus der Serie, Poster je Film (Kosten rechnen),
+  Traumfänger-Video von Anton als Schleife über dem Rekorder;
   Schritt 6 (Warten) nativ, Aktionen der Traum-Seite nativ, Avatar-Anlage
   (Foto → `expo-image-picker`, Rebuild), Besetzung/Menagerie nativ,
   Startmenü/Sprachwahl/Onboarding nativ; Erinnerungen wirklich planen

@@ -3,6 +3,24 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 13:50 — Anton — Branch `session/2026-09-11-anton-expo` — Rekorder statt Sprachassistent (ADR-0007), Stil-Kacheln, Verlaufs-Knöpfe
+
+**Anton:** Der Gemini-Assistent, der beim Einschlafen zurückredet, ist
+„weird" und frisst unbeziffertes Geld → stattdessen Rekorder + Transkription,
+Aufnahme im Journal behalten. Dazu Ideen (Traumfänger-Loop, Onboarding mit
+Showreel und Schlaf-Jahren, Opal-Verlauf für Knöpfe, Pseudo-Rangliste,
+Poster je Film, Stil-Kacheln ohne Text).
+
+- **ADR-0007** geschrieben. `/api/transcribe` (fal Wizper) gab es schon;
+  `/api/panel` speichert jetzt auch m4a. Nativ `expo-audio@57.0.5`
+  (Pods + Xcode-Rebuild grün). `dream/voice.tsx` ist der Rekorder;
+  Aufnahme hängt am Traum, Traum-Seite spielt sie ab.
+- **Stil-Auswahl:** stumme Kacheln, Antippen → Glas-Overlay mit großem
+  Film, Name, „Diesen Stil verwenden" (`useStyle` in en/de).
+- **PrimaryButton** mit Verlauf warm→gold (Opal-Vorbild) auf Glas.
+- ⚠ Im Simulator bleibt der Mikrofon-Dialog stehen (simctl-Grant greift
+  nicht) — Anton tippt „Erlauben" selbst.
+
 ## 2026-09-12 13:15 — Anton — Branch `session/2026-09-11-anton-expo` — Test-Guthaben, Maskottchen-Lader, Glas-Knöpfe warm, Slogan
 
 **Anton:** kommt ohne Credits nicht weiter (das Web-Startmenü mit „+100

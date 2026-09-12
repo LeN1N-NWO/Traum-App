@@ -640,6 +640,7 @@ export default {
       aboutModel: "Über dieses Modell",
       aboutStyle: "Über diesen Stil",
       moreStyles: (n) => `Mehr Stile (${n})`,
+      useStyle: "Diesen Stil verwenden",
       presets: {
         dreamflow: "Dreamflow",
         dreamflowSub: "Kein Schnitt — jede Szene wird zur nächsten",

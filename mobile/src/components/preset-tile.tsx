@@ -1,50 +1,43 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { SymbolView } from "expo-symbols";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect } from "react";
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import type { WizardPreset } from "@/store/journal-store";
-import { colors, fonts } from "@/theme";
+import { colors } from "@/theme";
 
-/* Eine Stil-Kachel: der Vorschau-Film läuft leise in Schleife (die Dynamik
-   aus dem Web), Handwerksstile ohne Clip zeigen ihr Zeichen auf Farbe.
-   Drei Spalten, Dreamflow doppelt breit — wie presets.js es vorsieht. */
+/* Eine Stil-Kachel — stumm: nur der Vorschau-Film in Schleife, kein Text
+   (Antons Entwurf 12.09., nach dem Apple-Watch-Raster). Der Name kommt
+   erst beim Antippen, in der großen Ansicht (style.tsx). Handwerksstile
+   ohne Clip zeigen ein Zeichen auf Farbe. */
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function PresetTile({ preset, active, onPress }: { preset: WizardPreset; active: boolean; onPress: (id: string) => void }) {
-  const { width } = useWindowDimensions();
-  const cell = (width - 32 - 20) / 3;
-  const w = preset.wide ? cell * 2 + 10 : cell;
+export function PresetTile({ preset, active, size, onPress }: { preset: WizardPreset; active: boolean; size: number; onPress: (id: string) => void }) {
   const scale = useSharedValue(1);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <AnimatedPressable
-      style={[styles.tile, { width: w, height: cell * 1.35 }, active && styles.active, anim]}
-      onPressIn={() => { scale.value = withSpring(0.95, { damping: 18, stiffness: 300 }); }}
+      style={[styles.tile, { width: size, height: size, borderRadius: size * 0.28 }, active && styles.active, anim]}
+      onPressIn={() => { scale.value = withSpring(0.92, { damping: 18, stiffness: 300 }); }}
       onPressOut={() => { scale.value = withSpring(1, { damping: 14, stiffness: 220 }); }}
       onPress={() => onPress(preset.id)}
       accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={preset.label}
     >
-      {preset.clip ? <Clip url={preset.clip} /> : <View style={[StyleSheet.absoluteFill, styles.blank]}><SymbolView name="paintbrush.pointed" size={34} tintColor={colors.accentSoft} /></View>}
-      <LinearGradient colors={["rgba(5,10,20,0)", "rgba(5,10,20,0.85)"]} locations={[0.45, 1]} style={StyleSheet.absoluteFill} />
-      <Text style={styles.label} numberOfLines={2}>{preset.label}</Text>
-      {active ? <View style={styles.ring} pointerEvents="none" /> : null}
+      {preset.clip ? <Clip url={preset.clip} /> : <View style={[StyleSheet.absoluteFill, styles.blank]}><SymbolView name="paintbrush.pointed" size={size * 0.34} tintColor={colors.accentSoft} /></View>}
+      {active ? <View style={[styles.ring, { borderRadius: size * 0.28 }]} pointerEvents="none" /> : null}
     </AnimatedPressable>
   );
 }
 
-function Clip({ url }: { url: string }) {
+export function Clip({ url }: { url: string }) {
   const player = useVideoPlayer(url, (p) => { p.loop = true; p.muted = true; p.play(); });
   useEffect(() => { player.loop = true; player.muted = true; player.play(); }, [player]);
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 
 const styles = StyleSheet.create({
-  tile: { borderRadius: 16, overflow: "hidden", backgroundColor: colors.bg2, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  tile: { overflow: "hidden", backgroundColor: colors.bg2, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   active: { borderColor: colors.accentSoft },
-  ring: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 16, borderWidth: 2, borderColor: colors.accentSoft },
+  ring: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderWidth: 2.5, borderColor: colors.accentSoft },
   blank: { backgroundColor: colors.sky, alignItems: "center", justifyContent: "center" },
-  emoji: { fontSize: 34 },
-  label: { position: "absolute", left: 10, right: 10, bottom: 10, fontFamily: fonts.serif, fontSize: 15, color: colors.text },
 });

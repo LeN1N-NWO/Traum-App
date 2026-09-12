@@ -681,6 +681,7 @@ export default {
       aboutModel: "About this model",
       aboutStyle: "About this style",
       moreStyles: (n) => `More styles (${n})`,
+      useStyle: "Use this style",
       presets: {
         dreamflow: "Dreamflow",
         dreamflowSub: "No cuts — every scene becomes the next",
