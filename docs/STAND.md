@@ -3,7 +3,18 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-12 abends — PR #41 bis #44 gemerged (⚠ zwei WORKLOG-Einträge tragen falsch den 13.09., Richtigstellung im Eintrag 16:50). Zuletzt
+**Stand:** 2026-09-12 abends — PR #41 bis #45 gemerged. Zuletzt (PR #45,
+10 Commits): **Onboarding nativ und in Antons Form** — eine Frage je
+Bildschirm mit Antwort-Raster, Mehrfachwahl beim Ziel, „Weiter" erst mit
+Antwort, Zwischenbild mit laufendem Film nach jeder Frage,
+Feature-Kacheln im Glas, Berechtigungen (Mikrofon, Fotos) ganz am Anfang,
+Jahre-im-Schlaf-Zähler, Maskottchen-Wahl (drei, zwei noch Platzhalter),
+Zurück-Pfeil; im Entwicklungsbau kommt es bei jedem Start.
+**Mondphasen** im Journal und am Traum. **Journal-Deck** als seitenweiser
+Scroller mit ruhigem Stapel (vier Anläufe, Lehre unten). Kein
+Gratis-Credits-Versprechen mehr.
+⚠ Zwei WORKLOG-Einträge tragen falsch den 13.09. (Richtigstellung im
+Eintrag 16:50). Zuletzt
 (PR #44, vier Befunde aus Antons Durchlauf): **Vollbild-Absturz behoben**
 (kein `pause()` im Effekt-Aufräumer), **Aufnahme abbrechen** („Verwerfen"
 während der Aufnahme, „Abbrechen" beim Aufschreiben, Wisch-Geste wieder

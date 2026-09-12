@@ -3,6 +3,35 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 18:30 — Anton — Branch `session/2026-09-12-anton-c` — Sitzungsabschluss (wrap + Merge auf Antons Wort)
+
+**Commits (10):** `3d8da21` Datums-Richtigstellung · `122dff7` Deck-Fächer
++ Onboarding-Tor · `8962ddd` Mondphasen + natives Onboarding · `ab9a207`
+Onboarding-Feinschliff · `acc7005` Doku · `25699c2` Deck als Scroller ·
+`b608cdb` Antwort-Raster + Mehrfachwahl · `da792a0` Deck rastet ein ·
+`a88508c` Feature-Kacheln, Zwischenbilder, Zurück-Pfeil, Maskottchen ·
+`6cab899` Lint.
+
+**Prüfung:** Web 569 Tests grün, `vite build` grün, mobile `tsc` grün,
+`bunx expo lint` 0 Fehler / 43 Warnungen.
+
+**Was der Nächste wissen muss:**
+- Am Gerät geprüft ist nur, was ein Screenshot zeigt. Antons Durchlauf des
+  Onboardings steht aus: die zwei Systemdialoge (Mikrofon, Fotos), das
+  Durchtippen, das gespeicherte Profil, die Maskottchen-Wahl.
+- **Vier Anläufe am Journal-Deck** — die Lehre steht in STAND: bei
+  `pagingEnabled` die eigene Breite messen, niemals die Bildschirmbreite
+  annehmen; überlappende Nachbarkarten in einem Scroller gehen nicht
+  (Malreihenfolge), ein eigener Fächer mit Pan-Geste fühlt sich fremd an.
+- **Maskottchen:** `mascots.js` hat drei Zeilen, zwei mit
+  `placeholder: true`. Beim Tausch der Quellen den TIPP-ANKER nachmessen
+  (Anleitung im Dateikopf) — ein falscher Anker tippt lautlos ins Leere.
+- Offen aus Antons Liste: Poster-Kosten in `quote.js`, Avatar-Dialog nativ
+  (`expo-image-picker` liegt jetzt bereit), Pseudo-Rangliste aus der Serie,
+  Erinnerungen wirklich planen, Datenschicht nach `expo-sqlite`,
+  Traumfänger-Video über dem Rekorder, „Überspringen" im Onboarding raus
+  (Antons Ansage: erst nach der Dev-Phase).
+
 ## 2026-09-12 17:50 — Anton — Branch `session/2026-09-12-anton-c` — Onboarding nativ (eine Frage je Bildschirm), Mondphasen, kein Gratis-Versprechen
 
 **Antons drei Aufträge:** „Der erste Traum geht auf uns" raus („wir führen
