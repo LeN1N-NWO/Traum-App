@@ -98,6 +98,15 @@ curl. Bun, Ruby, Python, Git sind frei — also alles daran vorbeigebaut:
   (Erzählen groß und zuerst). Stimme: nur der Web-Baustein VoiceInterview
   in einem nativen Screen, Text kommt zurück, Lesung startet von selbst —
   kein doppelter Wizard mehr. Regel steht im STAND und im Gedächtnis.
+- **Stimmwahl unter dem Glas:** Die Web-Blätter im nativen Stack liegen
+  unter der iOS-26-Tab-Leiste (Inhalt läuft unter ihr durch); der Knopf
+  „Klingt gut" der Stimmwahl war verdeckt. `legacy.css` hält deshalb
+  `--tabbar-h: 64px` und hebt `.vp`/`.vi` an. Die Stimmwahl erscheint wie im
+  Web nur, bis eine Stimme gewählt ist — danach Einstellungen.
+- **DeepSeek:** Vorgabe auf `deepseek-flash` (V4.1 Flash, 10.09.2026):
+  `deepseek-v4-flash` ist veraltet, V4.1 kostet weniger als die Hälfte
+  (Eingabe $0,30/Mio. Hauptzeit, Ausgabe $1,20; außerhalb die Hälfte),
+  1 Mio. Kontext. Über DEEPSEEK_MODEL in der .env umschaltbar.
 
 ### Was der Nächste wissen muss
 

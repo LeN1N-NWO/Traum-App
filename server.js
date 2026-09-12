@@ -209,11 +209,17 @@ const FAL_MODEL_IMAGE = IMAGE_PICK.id;
 // confirmed against fal.ai/models/fal-ai/wizper on 2026-08-08.
 const FAL_MODEL_STT = process.env.FAL_MODEL_STT || "fal-ai/wizper";
 
-// DeepSeek-V4-Flash: OpenAI-compatible chat completions API, text-only (no
+// DeepSeek Flash: OpenAI-compatible chat completions API, text-only (no
 // image input on the public API as of writing). Used purely to turn the dream
 // + reference metadata into a well-formed Nano Banana prompt — the actual
 // photos never go to DeepSeek, only to fal.ai afterwards.
-const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
+// Seit 12.09.2026 `deepseek-flash` = V4.1 Flash (erschienen 10.09.2026):
+// `deepseek-v4-flash` ist bei DeepSeek als veraltet gelistet, und V4.1
+// kostet weniger als die Hälfte (Eingabe $0,30/Mio. zur Hauptzeit statt
+// $0,44, Ausgabe $1,20 statt $1,32; außerhalb der Hauptzeit die Hälfte) bei
+// 1 Mio. Kontext. Antons Entscheidung: das neuere, klügere Modell für alles
+// Allgemeine. Zurück geht es jederzeit über DEEPSEEK_MODEL in der .env.
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-flash";
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 
 // Gemini Live — the voice interview. fal has no realtime conversational

@@ -544,7 +544,7 @@ React-SPA: Traum aufschreiben oder sprechen → KI schneidet ihn zum Film
 (H3 oder Seedance 2.5), dazu Reflection und Muster. Vier Tabs (Home ·
 Journal · ⊕ · Sleep · Profil), Wizard über der Tab-Leiste.
 **Stack:** Bun + Vite + React 18 (HashRouter); `server.js` als
-schlüsselhaltender Proxy (fal.ai, DeepSeek, Gemini). Zustand in
+schlüsselhaltender Proxy (fal.ai, DeepSeek `deepseek-flash` = V4.1 seit 12.09., Gemini). Zustand in
 `localStorage` (`dreamrushes_v1`). Sieben Sprachen, gepflegt **en+de**.
 **Nativ:** Capacitor 8 packt `dist/` in eine iOS-App (`ios/App`, per SPM,
 kein CocoaPods) — echte `.app`, echtes Xcode-Ziel, Oberfläche im WKWebView.

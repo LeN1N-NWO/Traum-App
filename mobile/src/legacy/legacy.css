@@ -1,4 +1,9 @@
-/* Nur in der nativen Hülle: Die Tab-Leiste ist nativ (Liquid Glass), die
-   Web-Leiste ist weg — also kein Platz mehr dafür reservieren. Den Abstand
-   zur nativen Leiste liefert iOS als env(safe-area-inset-bottom). */
-:root { --tabbar-h: 0px; }
+/* Nur in der nativen Hülle. Die Web-Tab-Leiste ist weg — die native
+   Glas-Leiste liegt aber ÜBER dem Inhalt (iOS 26: der Inhalt läuft unter
+   ihr durch). Deshalb behält --tabbar-h eine Höhe: der untere Abstand aller
+   Web-Bildschirme (.screen, Toast) und der Blätter mit eigenem Fuß
+   (Stimmwahl, Gespräch), sonst liegt ihr Knopf unter dem Glas —
+   Antons Befund 12.09. Die 56 px sind die Leiste ohne Home-Indikator;
+   den liefert env(safe-area-inset-bottom) dazu. */
+:root { --tabbar-h: 64px; }
+.vp, .vi { padding-bottom: calc(env(safe-area-inset-bottom) + var(--tabbar-h) + var(--s-5)) !important; }
