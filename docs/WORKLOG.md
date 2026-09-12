@@ -3,6 +3,73 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 17:45 — Anton — Branch `session/2026-09-12-anton-b` — Sitzungsabschluss (wrap)
+
+**Commits:** `311fcef` (Vollbild + Teilen als Datei), `079a9aa` und
+`bbac3df` (Ton-/Vollbild-Knopf, Tipp-Fix), `5bc404c` (Fassungen wischen,
+eigenes Vollbild, Reflexion, Aufnahme-Weg), `f7a5fc7`, `12885cb` (neue
+Fassung nativ), `55e81d4`.
+
+**Was der Nächste wissen muss:** Alles aus dieser Sitzung ist am Gerät
+UNGEPRÜFT bis auf die Sichtbarkeit (Screenshots) — Antons erster echter
+Durchlauf steht aus: Vollbild schließen, Ton, Fassungen wischen, Reflexion,
+Aufnahme am nächsten Traum, „Nochmal, anders". Lint mobile 0 Fehler / 37
+Warnungen, Web 564 Tests grün.
+
+**Zwei Fallen aus dieser Sitzung, die man nur einmal sieht:**
+1. Ein `LinearGradient` über einem Video schluckt JEDEN Tipp darunter —
+   `pointerEvents="none"` gehört an jede dekorative Schicht.
+2. Das System-Vollbild von `expo-video` (`enterFullscreen()`) hat ohne
+   `nativeControls` keinen Rückweg: der Mensch sitzt im Film fest. Wir
+   zeigen deshalb ein eigenes Blatt mit X und Systemreglern.
+
+## 2026-09-12 17:20 — Anton — Branch `session/2026-09-12-anton-b` — Vollbild mit Ton, Teilen als Datei
+
+**Anton:** Beim Teilen soll „in die Kamera rollen" (Fotos) möglich sein;
+auf der Traum-Seite ein Vollbild-Knopf, der sanft aufzoomt und die Tonspur
+hörbar macht.
+
+- **Vollbild** (`journal/[id].tsx`, FilmHero): Glas-Knopf oben rechts auf
+  dem Film → `VideoView.enterFullscreen()` (System-Player, iOS zoomt selbst
+  sanft auf, Regler und Fertig). Beim Eintritt wird der Player laut und
+  `doNotMix`, beim Verlassen wieder stumm in Schleife.
+- **Teilen mit der Datei:** vorher ging nur der http-Link ins Blatt (keine
+  Foto-Option). Jetzt wird der Film per `File.downloadFileAsync` in den
+  Cache geladen und die `file://`-Adresse geteilt — das iOS-Blatt bietet
+  dann „Video sichern", AirDrop, Nachrichten mit dem Film. Rückfall: Link.
+- Antons Nachtrag: Knopf „komisch angeordnet" → jetzt zwei kleine Glas-
+  Knöpfe am rechten Rand unter dem Kopf: Ton an/aus (laut = doNotMix) und
+  Vollbild. Teilen in Fotos hat er geprüft (Status „◀ Fotos").
+- „Kein Poster mitgekommen": der Film „Eiskalt ins Paradies" wurde VOR dem
+  Poster-Commit bestellt (`media/jobs/mtyentkpm1psb3.json`: `poster: null`,
+  erstellt 14:59) — der Weg greift ab dem nächsten Film. Titel/Tagline
+  kommen über `resume.title` (WizardShell) an, geprüft.
+- Antons zweiter Nachtrag: „sie funktionieren gar nicht" — der Verlauf
+  (`LinearGradient` über dem Film) lag ÜBER den Knöpfen und schluckte jeden
+  Tipp. Jetzt `pointerEvents="none"` auf Verlauf und Titelblock, die
+  Knöpfe liegen als letzte Schicht unten rechts im Film (wie Reels), Ton-
+  Zustand über `useImperativeHandle` aus dem Player.
+- Antons dritter Nachtrag (Journal): **Fassungen wischen** — mehrere
+  Fassungen liegen als Seiten im Film-Kopf, Punkte zeigen die aktive, alle
+  bleiben erhalten. **Vollbild neu**: das System-Vollbild hatte ohne
+  Bedienelemente keinen Weg zurück („gefangen") → eigenes Blatt mit Zoom,
+  Ton an, Systemregler, X oben links. **Reflexion-Knopf** („Was könnte
+  dieser Traum sagen?") nativ unter dem Text, gratis über die Brücke
+  (`reflect` → api.reflect + reflectionContext). **Aufnahme
+  deterministisch**: die Hülle merkt die Aufnahme nach dem Upload im
+  Web-Zustand (`pendingAudioUrl`), der nächste angelegte Traum nimmt sie —
+  in Step5Style wie in `saveDream`; die vier Träume von heute haben keine,
+  sie entstanden vor dem Fix.
+- Antons vierter Nachtrag: „Nochmal, anders" landete auf der alten Web-
+  Seite. Jetzt startet es den nativen Fluss beim Stil mit Text, Analyse
+  und Stil DIESES Traums (`retake()` in `journal/[id].tsx`,
+  `wizard.entryId`); der Auftrag reicht `entryId` in `resume` durch, Step5
+  hängt die neue Fassung an den Eintrag (isNewEntry = false), `order.tsx`
+  beobachtet dann den bestehenden Traum statt eines neuen. Gleicher Weg für
+  „Zum Leben erwecken" bei Träumen ohne Film.
+- ⚠ Ungeprüft (niemand tippt hier): Vollbild-Übergang, Ton, Wischen,
+  Reflexion, Aufnahme am nächsten Traum, neue Fassung.
+
 ## 2026-09-12 17:00 — Anton — Branch `session/2026-09-12-anton` — Sitzungsabschluss (wrap, Merge auf Antons Wort)
 
 **Commits:** siehe `git log main..HEAD` vor dem Merge — Aufnahme sicher am

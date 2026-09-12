@@ -25,7 +25,7 @@ import { colors, fonts } from "@/theme";
 export default function DreamVoiceScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data, bridge } = useJournal();
+  const { data, bridge, send } = useJournal();
   const W = data?.wizard;
   const { auto } = useLocalSearchParams<{ auto?: string }>();
   // Statusmeldungen des Rekorders ins Gerätelog — damit ein stiller Abbruch sichtbar wird.
@@ -93,7 +93,12 @@ export default function DreamVoiceScreen() {
       console.log(`[voice] upload ${up.status} size=${blob.size} → ${u?.url ?? u?.error ?? "?"}`);
       if (up.ok && typeof u?.url === "string") audioUrl = u.url;
     } catch (e) { console.warn("[voice] upload", e); }
-    if (audioUrl) patchWizard({ audioUrl });
+    if (audioUrl) {
+      patchWizard({ audioUrl });
+      // Zusaetzlich im Web-Zustand merken: der naechste angelegte Traum nimmt sie
+      // (Step5Style / saveDream), egal welcher Bildschirm gerade lebt.
+      send({ type: "pendingAudio", audioUrl });
+    }
     try {
       const b64 = await new File(uri).base64();
       const res = await fetch(W!.transcribeUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ audio: `data:audio/mp4;base64,${b64}`, language: data?.language ?? "" }) });

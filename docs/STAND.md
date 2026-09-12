@@ -3,7 +3,16 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-12 abends — PR #41 und PR #42 gemerged. Zuletzt (PR #42):
+**Stand:** 2026-09-12 abends — PR #41 und PR #42 gemerged; Sitzung
+`session/2026-09-12-anton-b` (PR #43, Entwurf, 7 Commits) abgeschlossen:
+**Traum-Seite rund** — eigenes Vollbild mit X und Ton (das System-Vollbild
+hatte keinen Rückweg), Ton-Knopf am Film, Fassungen wischen mit Punkten,
+Reflexion-Knopf („Was könnte dieser Traum sagen?") nativ über die Brücke,
+Teilen als DATEI (erst dann bietet iOS „Video sichern"), und „Nochmal,
+anders" startet den nativen Fluss beim Stil statt der alten Web-Seite
+(`wizard.entryId` → neue Fassung hängt am Traum). Die Aufnahme wartet jetzt
+im Web-Zustand (`pendingAudioUrl`) und hängt am nächsten angelegten Traum.
+Davor (PR #42):
 Poster nach dem Film (1:1), finaler Film-Prompt je Auftrag gespeichert,
 Aufnahme sicher am Traum, Schnitt-Regel „immer der ganze Traum" mit zwei
 Tempi, empfohlene Länge vorgewählt. ⚠ Poster-Weg und neue Schnitt-Regel am
@@ -42,7 +51,7 @@ Auftrags. Startmenü/Sprachwahl/Onboarding gibt es nativ nicht.
   gemini-3.5-flash-lite) mit Sprachhinweis; Wizper ist Rückfall.
 - Lint (`bunx expo lint` in mobile): 0 Fehler, 35 Warnungen — die
   React-Compiler-Regeln stehen für Reanimated-/Player-Muster auf „warn"
-  (eslint.config.js). Web: 560 Tests grün, `vite build` grün.
+  (eslint.config.js). Web: 564 Tests grün, `vite build` grün.
 
 **Poster nach dem Film (12.09., neu, ungeprüft am echten Auftrag):**
 `src/lib/poster.js` + `finishPoster` in server.js (Zustand „posting" am
@@ -55,6 +64,9 @@ nur noch „Mit Schnitten" oder „Ein Fluss"; die Länge macht das Tempo
 empfohlene Länge (`analysis.filmSeconds`) vor. Poster 1:1. Der finale Prompt liegt je
 Auftrag in `media/jobs/<id>.json` (`prompt`).
 
+**Noch Web hinter „…" (nächster Kandidat):** Bearbeiten und die drei
+Umschreib-Arten (`journal/web-dream.tsx` → `legacy-dream.jsx`).
+
 **Antons offene Wünsche (12.09., Reihenfolge seine):** Traumfänger-Video
 als Schleife über dem Rekorder (Platzhalter: atmende Ringe) · Onboarding
 nativ: Intro mit App-Namen (Platzhalter für sein Video), Showreel,
@@ -64,6 +76,12 @@ Feature-Kacheln in Glas (Moonly-Vorbild), Schlaf-Jahre-Zähler
 Filmpreis rechnen (Renderweg steht) · Avatar-Dialog nativ (`expo-image-picker`, Rebuild) ·
 Erinnerungen wirklich planen (`expo-notifications`) · Datenschicht nach
 `expo-sqlite`, Brücke abbauen.
+
+**⚠ Zwei Fallen dieser Sitzung:** (1) Ein `LinearGradient` über einem Video
+schluckt jeden Tipp — `pointerEvents="none"` an jede dekorative Schicht.
+(2) `VideoView.enterFullscreen()` ohne `nativeControls` hat keinen Rückweg;
+wir zeigen ein eigenes Vollbild-Blatt (`FullscreenFilm` in
+`journal/[id].tsx`).
 
 **⚠ Ungeprüft, weil hier niemand tippt oder spricht:** echter Auftrag samt
 Abholer (kostet Credits), Fader-Ziehen und Klang, Hörprobe, Stil-Overlay

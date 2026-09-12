@@ -46,7 +46,9 @@ export default function DreamOrderScreen() {
        das Abgeben gescheitert — dann zeigt der Motor sein Fehlerblatt. */
     const mine = mineId.current
       ? data.items.find((e) => e.id === mineId.current)
-      : data.items.find((e) => new Date(e.createdAt).getTime() >= startedAt - 15_000 && (e.pending || e.rendering));
+      : w.entryId
+        ? data.items.find((e) => e.id === w.entryId && (e.pending || e.rendering))   // neue Fassung: der bestehende Traum
+        : data.items.find((e) => new Date(e.createdAt).getTime() >= startedAt - 15_000 && (e.pending || e.rendering));
     if (!mine) return;
     if (!mineId.current && w.audioUrl) send({ type: "attachAudio", id: mine.id, audioUrl: w.audioUrl });   // die Aufnahme an den Traum (ADR-0007)
     mineId.current = mine.id;
@@ -67,7 +69,7 @@ export default function DreamOrderScreen() {
     } else if (mine.failReason || !mine.pending) {
       setShowWeb(true);
     }
-  }, [data, W, router, send, w.audioUrl]);
+  }, [data, W, router, send, w.audioUrl, w.entryId]);
 
   // Rückfall: Meldet sich nach zwei Minuten kein Traum, zeigt der Motor, was los ist.
   useEffect(() => { const id = setTimeout(() => setShowWeb(true), 120_000); return () => clearTimeout(id); }, []);
@@ -85,7 +87,7 @@ export default function DreamOrderScreen() {
         </View>
       ) : null}
       <View style={showWeb ? styles.web : styles.hidden}>
-        <LegacyOrder safeTop={insets.top} safeBottom={insets.bottom} order={{ text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, seconds: w.seconds, orderId: w.orderId, assignmentOverrides: w.assignmentOverrides, mode: w.mode }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />
+        <LegacyOrder safeTop={insets.top} safeBottom={insets.bottom} order={{ entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, seconds: w.seconds, orderId: w.orderId, assignmentOverrides: w.assignmentOverrides, mode: w.mode }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />
       </View>
       <View style={styles.bridge}>{bridge}</View>
     </>

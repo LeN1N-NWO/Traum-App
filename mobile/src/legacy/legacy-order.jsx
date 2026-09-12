@@ -20,6 +20,10 @@ export default function LegacyOrder({ order, safeTop = 0, safeBottom = 0, dom })
   if (!started.current) {
     started.current = true;
     const resume = {
+      /* Neue Fassung fuer einen bestehenden Traum (Antons Wunsch 12.09.):
+         mit entryId haengt Step5 den Film an den Eintrag, statt einen
+         neuen anzulegen — alle Fassungen bleiben. */
+      entryId: order.entryId || undefined,
       text: order.text, originalText: order.originalText || order.text, analysis: order.analysis,
       title: order.analysis?.title || "", tagline: order.analysis?.tagline || "", mode: order.mode || "film", urls: [],
       prefill: { styleId: order.styleId, pace: order.pace, videoModel: order.videoModel, quality: order.quality, seconds: order.seconds, step: 5 },
