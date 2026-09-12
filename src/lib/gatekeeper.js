@@ -34,6 +34,11 @@ export const LIMITS = {
   text: { windowMs: 60_000, max: 40 },
   // kostenlos und lokal, trotzdem gedeckelt gegen Endlosschleifen
   cheap: { windowMs: 60_000, max: 120 },
+  /* Anmelden kostet uns nichts — hier bremst nicht das Geld, sondern das
+     Raten. Zehn Versuche je Minute und Absender reichen für jeden Menschen,
+     der sich vertippt, und machen das Durchprobieren von Passwörtern
+     aussichtslos langsam. Bewusst die strengste Zahl der Tabelle. */
+  auth: { windowMs: 60_000, max: 10 },
 };
 
 /* Endpunkte, die AUSDRÜCKLICH ohne Grenze laufen. Kurze Liste, jeder Eintrag
@@ -63,6 +68,16 @@ export function classOf(pathname) {
       || pathname === "/api/reflect") return "text";
   if (pathname === "/api/transcribe" || pathname === "/api/panel"
       || pathname === "/api/voice-sample") return "cheap";
+  /* Anmelden und Sitzung erneuern: eigene, strengere Klasse gegen das Raten
+     von Passwörtern. Abmelden gehört NICHT dazu — wer abmelden will, soll das
+     immer können, auch nach zehn Fehlversuchen. */
+  if (pathname === "/api/auth/login" || pathname === "/api/auth/refresh") return "auth";
+  /* Konto und Träume gehen an unsere eigene Datenbank, nicht an fal: keine
+     Kosten je Aufruf, aber gedeckelt, damit eine Schleife im Client den
+     Server nicht beschäftigt. Ohne diese Zeile fielen sie unter „generate"
+     (20/Minute) — zu knapp für ein Tagebuch, das beim Öffnen synchronisiert. */
+  if (pathname === "/api/account" || pathname.startsWith("/api/dreams")
+      || pathname === "/api/auth/logout") return "cheap";
   return "generate";   // /api/generate, /api/character und alles Künftige
 }
 

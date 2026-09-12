@@ -70,7 +70,13 @@ import { imageSubmitBody, imageModel,
 import { failureReason } from "./src/lib/falError.js";
 import { appGrid, GRID_SLOTS } from "./src/lib/gridLayout.js";
 // Accounts, ledger, journal (ADR-0005). Optional — see the head of db.js.
-import { openDatabase } from "./src/lib/db.js";
+import { openDatabase, withUser } from "./src/lib/db.js";
+// Wer fragt: die fehlende Hälfte zu db.js. withUser() kann für eine Person
+// handeln, auth.js sagt, WER sie ist (eigene Datei, ohne Netz prüfbar).
+import { parseBearer, authConfig, passwordLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
+// Traum ⇄ Datenbankzeile. Eigene Datei, weil dort die Regel „nur die Tags,
+// nie die Fotos dahinter" serverseitig erzwungen wird (dreamRow.test.js).
+import { toRow, fromRow } from "./src/lib/dreamRow.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
   DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
@@ -2192,9 +2198,12 @@ function corsHeaders(req) {
        year — without this, one origin's response would be replayed to the
        next from a shared cache. */
     vary: "Origin",
-    "access-control-allow-methods": "GET, POST, OPTIONS",
-    // x-api-token is the gatekeeper's header (gatekeeper.js).
-    "access-control-allow-headers": "content-type, x-api-token",
+    // PATCH/DELETE seit der Anmeldung: das Konto wird geändert, ein Traum
+    // gelöscht. Ohne sie scheitert schon die Vorabfrage des Browsers.
+    "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS",
+    // x-api-token is the gatekeeper's header (gatekeeper.js); authorization
+    // trägt die Sitzung (auth.js).
+    "access-control-allow-headers": "content-type, x-api-token, authorization",
     "access-control-max-age": "86400",
   };
 }
@@ -3023,6 +3032,209 @@ const serveOptions = {
       }
     }
 
+    /* ── Anmeldung, Konto, Träume (ADR-0005) ────────────────────────────
+     *
+     * Der Client spricht auch hier nur mit uns: E-Mail und Passwort gehen an
+     * server.js, server.js an Supabase. Dasselbe Prinzip wie bei fal und
+     * DeepSeek, und es hält die Tür offen — ein zweiter Anmeldeweg (Sign in
+     * with Apple, später ein Unternehmens-Zugang) wird EIN weiterer Endpunkt
+     * hier, während alles dahinter unverändert weiterläuft: die Sitzung wird
+     * über verifyAccessToken() geprüft, dem der Anmeldeweg egal ist.
+     *
+     * ⚠ Es gibt bewusst KEIN /api/auth/signup. Über dieses Backend entsteht
+     *   kein neues Konto; anmelden kann sich nur, wer in Supabase schon
+     *   steht (heute: der eine Testuser).
+     *
+     * ⚠⚠ Solange Befund S6 offen ist (docs/ARCHITEKTUR.md: der Server spricht
+     *    http://, nicht https://), reisen Passwort und Token auf der Strecke
+     *    Client→Server im Klartext. Gegen localhost ist das gleichgültig;
+     *    hinter eine öffentliche Adresse gehört dieser Endpunkt erst, wenn
+     *    TLS davor steht. */
+    if (url.pathname === "/api/auth/login" && req.method === "POST") {
+      if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+        return json({ error: "Request too large." }, 413);
+      }
+      const body = await req.json().catch(() => null);
+      const r = await passwordLogin(body || {}, { config: AUTH });
+      /* Der Grund steht im Log, nicht in der Antwort: „welche Adresse hat
+         hier ein Konto" ist nichts, was ein Fremder erfragen können soll. */
+      if (!r.ok) {
+        console.warn(`[DreamRushes] Anmeldung abgelehnt (${r.status}): ${r.cause || r.error}`);
+        return json({ error: r.error }, r.status);
+      }
+      return json({ ok: true, ...r.session });
+    }
+
+    if (url.pathname === "/api/auth/refresh" && req.method === "POST") {
+      const body = await req.json().catch(() => null);
+      const r = await refreshSession(body?.refresh_token, { config: AUTH });
+      if (!r.ok) return json({ error: r.error }, r.status);
+      return json({ ok: true, ...r.session });
+    }
+
+    /* Abmelden macht das Aktualisierungs-Token bei Supabase ungültig. Es
+       schlägt absichtlich nie fehl: die Token werden auf dem Gerät ohnehin
+       weggeworfen, und ein Fehler, auf den niemand reagieren kann, ist
+       keiner, den man zeigen sollte. */
+    if (url.pathname === "/api/auth/logout" && req.method === "POST") {
+      await logout(parseBearer(req.headers.get("authorization")), { config: AUTH });
+      return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/account" || url.pathname.startsWith("/api/dreams")) {
+      /* Erst wer, dann was. Ein 401 kostet so keine Datenbankabfrage — und
+         wichtiger: unterhalb dieser Zeile gibt es keinen Pfad, der ohne
+         geprüfte Nutzerkennung an die Daten käme. */
+      const person = await verifyAccessToken(parseBearer(req.headers.get("authorization")), { config: AUTH });
+      if (!person) return json({ error: "Not signed in." }, 401);
+      if (!database) {
+        return json({ error: "Die Datenbank ist nicht eingerichtet — siehe DATABASE_URL in .env.example." }, 503);
+      }
+
+      try {
+        /* ⚠ withUser() ist der EINZIGE Weg an diese Tabellen. Es erklärt in
+           der Transaktion, für wen gehandelt wird; Row Level Security macht
+           daraus „nur dessen Zeilen". Ein vergessenes WHERE findet deshalb
+           nichts Fremdes, sondern gar nichts. Die Kennung kommt aus der
+           geprüften Sitzung, nie aus dem Anfragekörper. */
+        if (url.pathname === "/api/account" && req.method === "GET") {
+          const konto = await withUser(database, person.userId, async (tx) => {
+            const [profil] = await tx`select * from public.profiles where id = ${person.userId}`;
+            const [saldo] = await tx`select purchased, allowance from public.credits_balance where user_id = ${person.userId}`;
+            return { profil, saldo };
+          });
+          return json({
+            ok: true,
+            user: { id: person.userId, email: person.email },
+            profile: konto.profil ?? null,
+            /* Nur lesend. Guthaben bewegt sich ausschließlich über
+               server_spend()/server_grant() — die Rolle dieses Servers darf
+               auf diese Tabelle gar nicht schreiben (server_role.sql). */
+            credits: konto.saldo
+              ? { purchased: konto.saldo.purchased, allowance: konto.saldo.allowance,
+                  total: konto.saldo.purchased + konto.saldo.allowance }
+              : null,
+          });
+        }
+
+        if (url.pathname === "/api/account" && req.method === "PATCH") {
+          const body = await req.json().catch(() => null);
+          if (!body || typeof body !== "object") return json({ error: "Nothing to update." }, 400);
+
+          /* Erlaubte Liste, keine Durchreiche: `streak` und `last_dream_on`
+             fehlen hier mit Absicht — wer eine Serie selbst setzen kann,
+             hat keine Serie. Die gehören dorthin, wo die Regel dafür
+             entsteht, nicht in einen Client-Aufruf. */
+          const felder = {
+            display_name: typeof body.display_name === "string" ? body.display_name.slice(0, 120) : undefined,
+            language: typeof body.language === "string" ? body.language.slice(0, 16) : undefined,
+            voice: typeof body.voice === "string" ? body.voice.slice(0, 64) : undefined,
+            onboarded: typeof body.onboarded === "boolean" ? body.onboarded : undefined,
+            survey_done: typeof body.survey_done === "boolean" ? body.survey_done : undefined,
+            survey: body.survey && typeof body.survey === "object" ? body.survey : undefined,
+          };
+          const gesetzt = Object.fromEntries(Object.entries(felder).filter(([, v]) => v !== undefined));
+          if (!Object.keys(gesetzt).length) return json({ error: "No known field to update." }, 400);
+
+          /* Ausgeschriebene Spalten statt eines dynamisch gebauten SET:
+             `coalesce(Wert, Spalte)` heißt „nicht mitgeschickt = unverändert".
+             Damit steht hier eine feste, lesbare Abfrage, und ein Feld kann
+             nicht versehentlich zum Spaltennamen werden. Ein Feld gezielt zu
+             LEEREN geht so nicht — braucht es das, bekommt es einen eigenen,
+             bewussten Weg. */
+          const profil = await withUser(database, person.userId, async (tx) => {
+            const [zeile] = await tx`
+              update public.profiles set
+                display_name = coalesce(${gesetzt.display_name ?? null}, display_name),
+                language     = coalesce(${gesetzt.language ?? null}, language),
+                voice        = coalesce(${gesetzt.voice ?? null}, voice),
+                onboarded    = coalesce(${gesetzt.onboarded ?? null}, onboarded),
+                survey_done  = coalesce(${gesetzt.survey_done ?? null}, survey_done),
+                survey       = coalesce(${gesetzt.survey === undefined ? null : JSON.stringify(gesetzt.survey)}::jsonb, survey),
+                updated_at   = now()
+               where id = ${person.userId}
+              returning *`;
+            return zeile;
+          });
+          if (!profil) return json({ error: "No profile for this account." }, 404);
+          return json({ ok: true, profile: profil });
+        }
+
+        if (url.pathname === "/api/dreams" && req.method === "GET") {
+          const zeilen = await withUser(database, person.userId, (tx) =>
+            tx`select * from public.dreams where user_id = ${person.userId} order by created_at desc`);
+          return json({ ok: true, dreams: zeilen.map(fromRow) });
+        }
+
+        /* Hochladen und Aktualisieren in EINEM Aufruf, und genau deshalb
+           auch der Weg, auf dem ein lokales Tagebuch in die Datenbank zieht
+           (ADR-0005 verlangt diesen Weg, bevor die erste Fassung ausgeliefert
+           wird). Wiederholbar durch `unique (user_id, client_id)`: derselbe
+           Traum ein zweites Mal geschickt wird aktualisiert, nicht verdoppelt. */
+        if (url.pathname === "/api/dreams/sync" && req.method === "POST") {
+          if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+            return json({ error: "Request too large." }, 413);
+          }
+          const body = await req.json().catch(() => null);
+          const eingang = Array.isArray(body?.dreams) ? body.dreams : null;
+          if (!eingang) return json({ error: "Nothing to store." }, 400);
+
+          const zeilen = eingang.map(toRow).filter(Boolean);
+          if (!zeilen.length) return json({ error: "No usable dream in this request." }, 400);
+
+          const gespeichert = await withUser(database, person.userId, async (tx) => {
+            let n = 0;
+            for (const z of zeilen) {
+              await tx`
+                insert into public.dreams
+                  (user_id, client_id, kind, title, tagline, text, original_text,
+                   analysis, reflection, style, format, mode, image_count, creature_id,
+                   "references", media, created_at, edited_at)
+                values (
+                  ${person.userId}, ${z.client_id}, ${z.kind}, ${z.title}, ${z.tagline},
+                  ${z.text}, ${z.original_text},
+                  ${z.analysis === null ? null : JSON.stringify(z.analysis)}::jsonb,
+                  ${z.reflection === null ? null : JSON.stringify(z.reflection)}::jsonb,
+                  ${z.style}, ${z.format}, ${z.mode}, ${z.image_count}, ${z.creature_id},
+                  ${JSON.stringify(z.references)}::jsonb, ${JSON.stringify(z.media)}::jsonb,
+                  ${z.created_at ?? new Date().toISOString()}, ${z.edited_at})
+                on conflict (user_id, client_id) do update set
+                  kind = excluded.kind, title = excluded.title, tagline = excluded.tagline,
+                  text = excluded.text, original_text = excluded.original_text,
+                  analysis = excluded.analysis, reflection = excluded.reflection,
+                  style = excluded.style, format = excluded.format, mode = excluded.mode,
+                  image_count = excluded.image_count, creature_id = excluded.creature_id,
+                  "references" = excluded."references", media = excluded.media,
+                  edited_at = excluded.edited_at`;
+              n++;
+            }
+            return n;
+          });
+          return json({ ok: true, gespeichert, uebersprungen: eingang.length - zeilen.length });
+        }
+
+        /* Das Löschrecht, zum ersten Mal erfüllbar: eine Zeile, ein Besitzer,
+           ein Befehl. RLS lässt ohnehin nur die eigenen Zeilen zu. */
+        if (url.pathname === "/api/dreams" && req.method === "DELETE") {
+          const clientId = url.searchParams.get("client_id") || "";
+          if (!clientId) return json({ error: "Which dream? (client_id)" }, 400);
+          const weg = await withUser(database, person.userId, (tx) =>
+            tx`delete from public.dreams
+                where user_id = ${person.userId} and client_id = ${clientId}
+               returning client_id`);
+          if (!weg.length) return json({ error: "No such dream." }, 404);
+          return json({ ok: true, geloescht: weg[0].client_id });
+        }
+
+        return json({ error: "Unknown account route." }, 404);
+      } catch (e) {
+        /* Der Text einer Datenbankmeldung kann Spaltennamen und Werte
+           enthalten — er gehört ins Log, nicht in die Antwort. */
+        console.error(`[DreamRushes] ${req.method} ${url.pathname} fehlgeschlagen:`, e?.message || e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
     if (url.pathname === "/api/panel" && req.method === "POST") {
       try {
         if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
@@ -3094,6 +3306,16 @@ openDatabase(process.env.DATABASE_URL).then(({ db, status }) => {
   database = db;
   console.log(status);
 });
+
+/* Die Anmeldung. Optional wie die Datenbank und aus demselben Grund: ein
+ * frischer Klon, Antons Rechner und jede Cloud-Sitzung haben diese Werte
+ * nicht, und ein Server, der ohne sie nicht startet, wird am selben Tag
+ * abgeschaltet. Fehlen sie, antworten die Konto-Endpunkte 503 — alles
+ * andere läuft wie vorher. */
+const AUTH = authConfig();
+console.log(AUTH
+  ? "Supabase Auth: konfiguriert ✓ (Anmeldung über /api/auth/login)"
+  : "Supabase Auth: nicht konfiguriert (SUPABASE_URL/SUPABASE_ANON_KEY fehlen) — keine Anmeldung");
 /* Welches Bildmodell gerade wirklich läuft, und was es je Bild kostet.
  * Ein Slug in .env ist unsichtbar, bis die Rechnung kommt — diese Zeile
  * macht einen versehentlichen Rückweg auf das doppelt so teure Modell
