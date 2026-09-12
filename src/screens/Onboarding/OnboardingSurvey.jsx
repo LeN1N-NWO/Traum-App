@@ -38,7 +38,11 @@ export default function OnboardingSurvey({ onDone, onCancel, onTypeInstead }) {
      eintragen: Ein Werkzeug ohne Frage wird nie aufgerufen, eine Frage
      ohne Werkzeug landet nirgends. */
   const collected = useRef({
-    name: "", birthday: "", zodiac: null, recall: "", lucid: "", themes: [], goal: "",
+    /* ⚠ Dieselbe Form wie emptyProfile() (onboardingForm.js) — der Test
+       „das leere Profil hat genau die Felder" nagelt das fest. `goals`
+       kam am 13.09.2026 dazu (Mehrfachwahl beim Ziel, Antons Wunsch); der
+       Sprachweg füllt weiterhin nur `goal`, die Liste bleibt leer. */
+    name: "", birthday: "", zodiac: null, recall: "", lucid: "", themes: [], goal: "", goals: [],
     sleepHours: "", timeBudget: "", reminders: null,
   });
   const endRef = useRef(null);

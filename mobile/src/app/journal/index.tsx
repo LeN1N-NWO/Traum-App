@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { DreamCalendar } from "@/components/dream-calendar";
 import { DreamDeck } from "@/components/dream-deck";
 import { DreamRow } from "@/components/dream-row";
+import { MoonStrip } from "@/components/moon-strip";
 import { useJournal } from "@/components/journal-data";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
@@ -49,6 +50,9 @@ export default function JournalScreen() {
         ) : (
           <View style={styles.list}>{items.map((e) => <DreamRow key={e.id} item={e} months={L.months} onPress={open} rendering={L.rendering} untitled={L.untitled} />)}</View>
         )}
+
+        {/* Der Mond über den Nebenräumen: erst der Traum, dann der Himmel. */}
+        {J?.moon ? <MoonStrip M={J.moon} /> : null}
 
         {J ? (
           <View style={styles.shortcuts}>

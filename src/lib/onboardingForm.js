@@ -35,7 +35,11 @@
  * Frage, die jemand als zudringlich empfinden kann. */
 export const FORM_FIELDS = [
   { key: "name", kind: "text", maxLength: 40 },
-  { key: "goal", kind: "choice", values: ["remember", "understand", "create", "sleep-better", "nightmares"] },
+  /* ⚠ `goal` ist MEHRFACH wählbar (Antons Wunsch 13.09.2026) — wer die App
+     öffnet, hat selten genau einen Grund. Gespeichert wird beides: `goals`
+     als Liste in Auswahlreihenfolge UND `goal` als der erste Eintrag, damit
+     Traumbogen, Prompts und alte Profile unverändert weiterlesen. */
+  { key: "goal", kind: "choices", values: ["remember", "understand", "create", "sleep-better", "nightmares"], maxItems: 5 },
   { key: "recall", kind: "choice", values: ["nightly", "weekly", "rarely", "almost-never"] },
   { key: "lucid", kind: "choice", values: ["never-heard", "curious", "tried", "practicing"] },
   { key: "sleepHours", kind: "choice", values: ["under-6", "6-7", "7-8", "8-9", "over-9"] },
@@ -50,7 +54,7 @@ export const FORM_FIELDS = [
  * ist nur eine Zeile, die im Traumbogen für immer leer bleibt. */
 export function emptyProfile() {
   return {
-    name: "", birthday: "", zodiac: null, recall: "", lucid: "", themes: [], goal: "",
+    name: "", birthday: "", zodiac: null, recall: "", lucid: "", themes: [], goal: "", goals: [],
     sleepHours: "", timeBudget: "", reminders: null,
   };
 }
@@ -102,7 +106,11 @@ function birthday(value) {
 export function profileFromAnswers(answers = {}, zodiacFor = () => null) {
   const p = emptyProfile();
   p.name = String(answers.name || "").trim().slice(0, FIELD.name.maxLength);
-  p.goal = choice("goal", answers.goal);
+  /* Eine einzelne Antwort bleibt gültig (alte Profile, Sprachweg): sie
+     wird zur Liste mit einem Eintrag. */
+  const rohZiele = Array.isArray(answers.goals) ? answers.goals : answers.goal ? [answers.goal] : [];
+  p.goals = [...new Set(rohZiele.map((v) => choice("goal", v)).filter(Boolean))].slice(0, FIELD.goal.maxItems);
+  p.goal = p.goals[0] || "";
   p.recall = choice("recall", answers.recall);
   p.lucid = choice("lucid", answers.lucid);
   p.sleepHours = choice("sleepHours", answers.sleepHours);
@@ -123,7 +131,7 @@ export function profileFromAnswers(answers = {}, zodiacFor = () => null) {
 export function hasAnything(profile) {
   if (!profile) return false;
   return Boolean(
-    profile.name || profile.goal || profile.recall || profile.lucid ||
+    profile.name || profile.goal || (profile.goals || []).length || profile.recall || profile.lucid ||
     profile.sleepHours || profile.timeBudget || profile.birthday ||
     (profile.themes || []).length,
   );

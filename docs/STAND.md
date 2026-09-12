@@ -3,7 +3,18 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-13 nachmittags — PR #41 bis #44 gemerged. Zuletzt
+**Stand:** 2026-09-12 abends — PR #41 bis #45 gemerged. Zuletzt (PR #45,
+10 Commits): **Onboarding nativ und in Antons Form** — eine Frage je
+Bildschirm mit Antwort-Raster, Mehrfachwahl beim Ziel, „Weiter" erst mit
+Antwort, Zwischenbild mit laufendem Film nach jeder Frage,
+Feature-Kacheln im Glas, Berechtigungen (Mikrofon, Fotos) ganz am Anfang,
+Jahre-im-Schlaf-Zähler, Maskottchen-Wahl (drei, zwei noch Platzhalter),
+Zurück-Pfeil; im Entwicklungsbau kommt es bei jedem Start.
+**Mondphasen** im Journal und am Traum. **Journal-Deck** als seitenweiser
+Scroller mit ruhigem Stapel (vier Anläufe, Lehre unten). Kein
+Gratis-Credits-Versprechen mehr.
+⚠ Zwei WORKLOG-Einträge tragen falsch den 13.09. (Richtigstellung im
+Eintrag 16:50). Zuletzt
 (PR #44, vier Befunde aus Antons Durchlauf): **Vollbild-Absturz behoben**
 (kein `pause()` im Effekt-Aufräumer), **Aufnahme abbrechen** („Verwerfen"
 während der Aufnahme, „Abbrechen" beim Aufschreiben, Wisch-Geste wieder
@@ -90,6 +101,37 @@ Feature-Kacheln in Glas (Moonly-Vorbild), Schlaf-Jahre-Zähler
 Filmpreis rechnen (Renderweg steht) · Avatar-Dialog nativ (`expo-image-picker`, Rebuild) ·
 Erinnerungen wirklich planen (`expo-notifications`) · Datenschicht nach
 `expo-sqlite`, Brücke abbauen.
+
+**Onboarding ist nativ** (`components/onboarding-flow.tsx`, Modal im
+Wurzel-Layout, im Entwicklungsbau bei jedem Start): eine Frage je
+Bildschirm, Berechtigungen (Mikrofon, Fotos/Kamera) ganz am Anfang,
+Jahre-im-Schlaf-Zähler, Antworten über den Befehl `onboarded` in dasselbe
+Profil wie im Web. Der Web-Ablauf bleibt liegen, wird nativ nicht geladen.
+**Mondphasen** (`src/lib/moon.js`): ortsunabhängig aus dem Datum, Streifen
+im Journal, Phase am Traum gespeichert (`entry.moon`). Kein Gratis-Credits-
+Versprechen mehr im Onboarding.
+
+**⚠ Deck: Seitenbreite messen, nicht annehmen** (13.09., drei Anläufe):
+Es ist ein normaler seitenweiser Scroller (`components/dream-deck.tsx`) mit
+zwei ruhigen Blättern hinter der Karte. Die Seitenbreite kommt aus
+`onLayout` — mit der Bildschirmbreite rastet er nicht ein, weil das Polster
+des Journals den Scroller schmaler macht. Was NICHT wiederkommen soll: ein
+eigener Fächer mit Pan-Geste (fühlte sich fremd an) und überlappende
+Nachbarkarten in einem Scroller (die spätere Karte malt über die frühere,
+`zIndex` aus einem Reanimated-Stil greift dort nicht).
+
+**⚠ Alt (Anlauf 2, überholt):** In einer horizontalen
+ScrollView malt die spätere Karte über die frühere, `zIndex` aus einem
+Reanimated-Stil greift dort nicht. Gestapelte Karten brauchen die
+Malreihenfolge — `components/dream-deck.tsx` zeichnet selbst (fernste
+zuerst) und wischt mit einer Pan-Geste. `GestureHandlerRootView` liegt
+einmal im Wurzel-Layout.
+
+**⚠ Onboarding und Consent sind Modals im Wurzel-Layout, keine Routen:**
+Die Wurzel ist die NativeTabs-Leiste, eine Datei daneben hat keinen
+Navigator — `router.push` läuft ins Leere. Das Onboarding kommt im
+Entwicklungsbau bei jedem Start (`components/onboarding-gate.tsx`,
+`store/dev-store.ts`), Inhalt noch der Web-Ablauf.
 
 **⚠ Player nie im Aufräumer anfassen** (Absturz 13.09.): expo-video gibt
 den Player beim Abbau der Komponente selbst frei; ein `pause()` im

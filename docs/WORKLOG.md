@@ -3,6 +3,191 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 18:30 — Anton — Branch `session/2026-09-12-anton-c` — Sitzungsabschluss (wrap + Merge auf Antons Wort)
+
+**Commits (10):** `3d8da21` Datums-Richtigstellung · `122dff7` Deck-Fächer
++ Onboarding-Tor · `8962ddd` Mondphasen + natives Onboarding · `ab9a207`
+Onboarding-Feinschliff · `acc7005` Doku · `25699c2` Deck als Scroller ·
+`b608cdb` Antwort-Raster + Mehrfachwahl · `da792a0` Deck rastet ein ·
+`a88508c` Feature-Kacheln, Zwischenbilder, Zurück-Pfeil, Maskottchen ·
+`6cab899` Lint.
+
+**Prüfung:** Web 569 Tests grün, `vite build` grün, mobile `tsc` grün,
+`bunx expo lint` 0 Fehler / 43 Warnungen.
+
+**Was der Nächste wissen muss:**
+- Am Gerät geprüft ist nur, was ein Screenshot zeigt. Antons Durchlauf des
+  Onboardings steht aus: die zwei Systemdialoge (Mikrofon, Fotos), das
+  Durchtippen, das gespeicherte Profil, die Maskottchen-Wahl.
+- **Vier Anläufe am Journal-Deck** — die Lehre steht in STAND: bei
+  `pagingEnabled` die eigene Breite messen, niemals die Bildschirmbreite
+  annehmen; überlappende Nachbarkarten in einem Scroller gehen nicht
+  (Malreihenfolge), ein eigener Fächer mit Pan-Geste fühlt sich fremd an.
+- **Maskottchen:** `mascots.js` hat drei Zeilen, zwei mit
+  `placeholder: true`. Beim Tausch der Quellen den TIPP-ANKER nachmessen
+  (Anleitung im Dateikopf) — ein falscher Anker tippt lautlos ins Leere.
+- Offen aus Antons Liste: Poster-Kosten in `quote.js`, Avatar-Dialog nativ
+  (`expo-image-picker` liegt jetzt bereit), Pseudo-Rangliste aus der Serie,
+  Erinnerungen wirklich planen, Datenschicht nach `expo-sqlite`,
+  Traumfänger-Video über dem Rekorder, „Überspringen" im Onboarding raus
+  (Antons Ansage: erst nach der Dev-Phase).
+
+## 2026-09-12 17:50 — Anton — Branch `session/2026-09-12-anton-c` — Onboarding nativ (eine Frage je Bildschirm), Mondphasen, kein Gratis-Versprechen
+
+**Antons drei Aufträge:** „Der erste Traum geht auf uns" raus („wir führen
+das nicht mal ein"); Onboarding wie die Referenz-App — EINE Frage je
+Bildschirm, und die Berechtigungen ganz am Anfang („was nicht am Anfang
+passiert, passiert nie"); Mondphasen im Journal, und die Phase der Nacht
+soll am gespeicherten Traum hängen.
+
+- **Kein Gratis-Versprechen mehr:** `gateReward`, `granted` und
+  `profileCardHint` in en+de nennen jetzt den Nutzen statt Credits.
+  `welcomeGrant()` bleibt im Code (der Web-Weg ruft es noch), aber nichts
+  verspricht es mehr.
+- **Mondphasen** (`src/lib/moon.js`, 5 Tests): Phase, Beleuchtung und
+  Zu-/Abnehmen aus dem Datum — mittleres synodisches Monat ab dem Neumond
+  6.1.2000 (Meeus), Genauigkeit ±½ Tag. ⚠ **Ortsunabhängig**, und das ist
+  kein Verzicht: Die Phase ist der Winkel Sonne–Erde–Mond, überall gleich;
+  ortsgebunden wären nur Auf-/Untergang und die Drehung der Sichel. Kein
+  Standort, keine Erlaubnis. `moonForNight()` rechnet die Nacht dem
+  VORABEND zu (wer um 3 Uhr notiert, träumte gestern — wie streak.js).
+  Gespeichert am Traum (`entry.moon`) in Step5Style, Step6Result und
+  `saveDream`; alte Träume rechnen ihre Phase aus dem Datum nach.
+  Im Journal ein Streifen aus fünf Nächten (`components/moon-strip.tsx`,
+  heute in Glas), auf der Traum-Seite die Phase neben dem Datum.
+  ⚠ Der Mond ist ohne SVG gezeichnet (react-native-svg ist nicht
+  installiert): helle Scheibe, dunkler Kreis darüber geschoben, Behälter
+  beschneidet. Versatz 0 = Neumond, ±Durchmesser = Vollmond — die erste
+  Fassung hatte das Vorzeichen falsch und zeigte lauter Vollmonde.
+- **Onboarding nativ** (`components/onboarding-flow.tsx`, 12 Bildschirme):
+  Intro mit Video (Platzhalter `intro-faultier.mp4`) und aufblendendem
+  Namen · Feature-Kacheln in Glas · **Berechtigungen** (Mikrofon über
+  expo-audio, Fotos+Kamera über `expo-image-picker`, neu installiert, Pods
+  und Xcode-Build grün) · Name · fünf Einzelfragen (Ziel, Erinnerung,
+  Klartraum, Schlafdauer, Zeitbudget) · **Jahre im Schlaf** als Zähler
+  (Antons Opal-Vorbild: aus der Antwort × 80 Jahre, ein Viertel davon
+  Traumschlaf) · Themen als Chips · Schluss.
+  Die Fragen und Werte kommen aus `FORM_FIELDS` (onboardingForm.js) über
+  die Brücke; die Antworten gehen als Befehl `onboarded` zurück und laufen
+  durch `profileFromAnswers` — dasselbe Profil wie im Web.
+  Prüfhilfe: `(globalThis as any).__ONB_STEP__ = n` im Wurzel-Layout
+  startet den Fluss an Bildschirm n (nur `__DEV__`), so lassen sich alle
+  Schritte ohne Tippen fotografieren.
+
+**Nachtrag 18:00 (Antons Befund):** Das Deck „verhält sich ganz komisch,
+kann ich gar nicht richtig scrollen", die Fächerung „sieht strange aus",
+und der Mond-Streifen überschnitt die Punkte. Dritter und einfachster
+Anlauf: ein GANZ NORMALER seitenweiser Scroller (Maus, Trackpad, Finger
+verhalten sich wie überall), und der Stapel dahinter sind zwei ruhige
+Blätter, die zur SEITE gehören — nicht die Nachbartraumkarten. Damit kann
+nichts mehr über der vorderen Karte liegen, und es gibt keine eigene
+Geste mehr. Mond-Streifen mit `marginTop: 18`.
+
+**Nachtrag 18:20 (Antons drei Wünsche zum Onboarding):**
+1. **Feature-Bildschirm wie das Vorbild:** vier Kacheln im Glas, in denen
+   die Traum-Clips laufen (erst mal die Vorschau-Filme der Stile, über die
+   Brücke als `onboard.clips`), Etikett oben, Satz unten — Moonly-Look.
+2. **Zwischenbild nach JEDER Frage** („macht Schmackhaft"): ein Film über
+   die ganze Fläche, ein Satz darüber, weiter (`showcase` in en+de, vier
+   Stück). Nach der Schlaf-Frage steht dort der Jahre-Zähler. Die
+   Reihenfolge ist jetzt eine LISTE (`screens`), keine Index-Rechnung —
+   wer etwas einschiebt, ändert nur diese Liste.
+3. **Zurück-Pfeil oben links**, nur der Pfeil, kein Text. „Überspringen"
+   bleibt vorerst (Antons Ansage: in der Dev-Fassung noch drin, später
+   raus).
+4. **Maskottchen-Wahl** als Platzhalter: drei Kacheln (Frosch fertig,
+   Faultier mit eigener Animation, Eule noch ohne). `mascots.js` hat jetzt
+   drei Zeilen, zwei mit `placeholder: true`; die Kachel sagt „kommt noch".
+   Die Wahl landet als `state.mascot` (Befehl `onboarded`), die ganze App
+   liest sie über `mascot(state)` — nichts importiert eine Datei direkt.
+   ⚠ Der Tipp-Anker der neuen Animationen ist NICHT gemessen (siehe
+   Dateikopf mascots.js) — beim Tausch der Quellen nachmessen.
+
+**Nachtrag 18:10 (Antons Befund: „die rasten gar nicht aus"):** Der
+seitenweise Scroller rastete nicht, weil eine SEITE so breit war wie der
+Bildschirm, der Scroller selbst aber 32 Punkte schmaler (das Polster des
+Journals) — `pagingEnabled` rastet auf die Breite des SCROLLERS, also lief
+der Versatz mit jeder Seite weiter auseinander. Jetzt misst das Deck seine
+eigene Breite (`onLayout`); Seite, Raster und Scroller sind dieselbe Zahl,
+und das Einrasten ist wieder das des Systems: sanft rein, sanft raus, eine
+Karte je Anstoßen. Lehre: bei `pagingEnabled` NIE die Bildschirmbreite
+annehmen, immer die eigene messen.
+
+**Nachtrag 18:05 (Antons drei Befunde zum Onboarding):**
+1. **Mehrfachwahl beim Ziel** — „selten hat man genau einen Grund":
+   `goal` ist in `onboardingForm.js` jetzt `kind: "choices"`; das Profil
+   trägt `goals` als Liste UND `goal` als ersten Eintrag, damit Traumbogen,
+   Prompts und alte Profile unverändert lesen. Der Sprachweg
+   (`OnboardingSurvey`) hat die neue Form mitbekommen — der Test „das leere
+   Profil hat genau die Felder" nagelt beide Wege zusammen.
+2. **Antworten als RASTER** gleich großer Kacheln (Antons Vorbild: das
+   Apple-Watch-Raster). Die alten Pillen hatten jede eine andere Breite und
+   „blieben zwischen den Kacheln stecken": zwei Spalten, gleiche Höhe, Text
+   mittig, Mehrfachwahl mit Haken.
+3. **Ohne Antwort kein „Weiter"** — der Knopf ist gesperrt, bis etwas
+   gewählt ist (Name: bis etwas getippt ist). Wer nicht antworten will,
+   nimmt „Überspringen" oben rechts.
+
+**Was der Nächste wissen muss:** Der Web-Onboarding-Ablauf
+(`src/screens/Onboarding/*`) ist NICHT gelöscht — er hängt noch am
+Web-Gate und am Startmenü. Nativ wird er nicht mehr geladen.
+Ungeprüft am Gerät: das Durchtippen selbst (hier tippt niemand), die
+Berechtigungs-Dialoge, das gespeicherte Profil.
+
+## 2026-09-12 17:15 — Anton — Branch `session/2026-09-12-anton-c` — Deck als echter Stapel, Onboarding bei jedem Start
+
+**Antons Auftrag:** Die Träume im Journal sollen „hintereinander gestapelt"
+aussehen (Referenzbild: Mobbin-Karussell), und das Onboarding soll in der
+Entwicklung bei JEDEM Start kommen, damit er es durchgehen und anpassen kann.
+
+- **Deck neu gebaut** (`components/dream-deck.tsx`): kein Scroller mehr,
+  sondern ein Fächer aus absolut gesetzten Karten mit Wisch-Geste
+  (react-native-gesture-handler + Reanimated). Vorne eine Karte gerade und
+  groß, dahinter die Nachbarn gekippt, kleiner, gedämpft; Punkte darunter;
+  Tipp auf eine hintere Karte holt sie nach vorn, Tipp auf die vordere
+  öffnet den Traum.
+  ⚠ **Zwei Anläufe vorher gescheitert:** In einer horizontalen ScrollView
+  malt die SPÄTERE Karte über die frühere, und `zIndex` aus einem
+  Reanimated-Stil greift dort nicht — bei starker Überlappung lag der Titel
+  der Nachbarin quer über der vorderen Karte. Ein Stapel braucht die
+  Malreihenfolge (fernste zuerst, vordere zuletzt); das geht nur ohne
+  Scroller. Auch ein Schleier auf den hinteren Karten half nicht.
+  ⚠ `GestureHandlerRootView` liegt jetzt EINMAL im Wurzel-Layout
+  (`app/_layout.tsx`) — ohne sie: „GestureDetector must be used as a
+  descendant of GestureHandlerRootView"; das Klang-Mischpult hatte seine
+  eigene, die ist raus.
+- **Onboarding bei jedem Start** (`components/onboarding-gate.tsx`,
+  `legacy/legacy-onboarding.jsx`, `store/dev-store.ts`): der Web-Ablauf
+  (Plakat-Video, drei Folien, Umfrage, Formular, Selfie samt
+  Willkommens-Credits) als DOM-Komponente, vollbild über allem, nur bei
+  `__DEV__`. Innerhalb einer Sitzung kommt es nach dem Durchgehen nicht
+  wieder, beim nächsten Start schon.
+  ⚠ **Als Modal, nicht als Route:** Die Wurzel ist die NativeTabs-Leiste;
+  eine Datei daneben (`app/onboarding.tsx`) hat keinen Navigator, der sie
+  aufschieben könnte — `router.push("/onboarding")` lief ins Leere. Dasselbe
+  Muster wie das Consent-Tor.
+
+**Was der Nächste wissen muss:** Der Onboarding-Inhalt ist bewusst noch
+Web — erst wenn Anton durchgegangen ist und gesagt hat, was bleibt, wird
+Bildschirm für Bildschirm nativ (Intro mit App-Namen, Showreel,
+Feature-Kacheln in Glas, Schlaf-Jahre-Zähler, Fragebogen).
+
+## 2026-09-12 16:50 — Anton — Branch `session/2026-09-12-anton-c` — Richtigstellung: die „13.09."-Einträge sind vom 12.09.
+
+**Was falsch ist:** Die beiden Einträge darunter (16:05 und 16:20) und der
+Branch `session/2026-09-13-anton` tragen den 13.09.2026. Richtig ist der
+**12.09.2026** — die Sitzung lief am selben Abend wie `-anton` und
+`-anton-b` (Commit-Zeitstempel `2026-09-12 16:45 +0200`). Ich habe das
+Datum beim `/start` nicht gegen die Uhr geprüft, sondern fortgeschrieben.
+
+**Nicht korrigiert:** Die alten Einträge bleiben stehen (AGENTS.md: alte
+Einträge nie ändern, Richtigstellungen kommen als neuer Eintrag dazu). Der
+Branch ist gemerged und heißt weiter so; PR #44 ist inhaltlich richtig.
+
+**Regel für den Nächsten:** Beim Sitzungsstart das Datum aus `date` holen,
+nicht aus dem letzten WORKLOG-Eintrag ableiten. Läuft am selben Tag eine
+zweite oder dritte Sitzung, hängt ein Buchstabe an (`-b`, `-c`).
+
 ## 2026-09-13 16:20 — Anton — Branch `session/2026-09-13-anton` — Sitzungsabschluss (wrap + Merge auf Antons Wort)
 
 **Commits:** `63e826e` (Sitzungen im Haupt-Checkout, mit Grund),

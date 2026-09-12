@@ -12,6 +12,7 @@ import { GRID_COLS, GRID_ROWS, GRID_SLOTS } from "../lib/gridLayout.js";
 import { genId } from "../lib/storage.js";
 import { bumpStreak, refreshStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
+import { moonForNight } from "../lib/moon.js";
 import { priceForImages, PRICES, IMAGE_COUNTS, PREVIEW_COUNT } from "../lib/pricing.js";
 import { VIDEO_MODELS, QUALITIES, PACE_IDS, DEFAULT_PACE, priceForFilm, clampSeconds, videoModel, filmQuality, shotBudget, beatBudget, filmPace, flowStationSeconds, FLOW_MIN_STATION } from "../lib/video.js";
 import { spend, canAfford } from "../lib/credits.js";
@@ -249,6 +250,9 @@ export default function Step5Style({ w, patch }) {
           tagline: (w.tagline || "").trim(),
           media: { type: "image", urls: [], source: "none" },
           creatureId: creature.id,
+          // Die Mondphase DIESER Nacht (Antons Wunsch 12.09.) — gerechnet,
+          // ortsunabhaengig, und danach unveraenderlich am Traum.
+          moon: moonForNight(),
           // Die eingesprochene Aufnahme (ADR-0007): wartet im Zustand, seit
           // die native Huelle sie hochgeladen hat — hier gehoert sie hin.
           ...(prev.pendingAudioUrl ? { audio: { url: prev.pendingAudioUrl } } : {}),

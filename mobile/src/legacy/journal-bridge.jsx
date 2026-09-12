@@ -27,9 +27,13 @@ import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
 import { styleById } from "../../../src/lib/styles.js";
 import { autoMatch } from "../../../src/wizard/useWizard.js";
 import { blankDays, localDateKey } from "../../../src/lib/dreamDays.js";
+import { moonForNight, moonStrip } from "../../../src/lib/moon.js";
 import { reminderWish, reminderState, MAX_PER_DAY, DEFAULT_PER_DAY } from "../../../src/lib/reminders.js";
 import { VOICES, DEFAULT_VOICE, isVoice } from "../../../src/lib/voices.js";
 import { withdrawPatch, consentPatch, needsConsent } from "../../../src/lib/consent.js";
+import { FORM_FIELDS, profileFromAnswers } from "../../../src/lib/onboardingForm.js";
+import { MASCOTS, DEFAULT_MASCOT } from "../../../src/lib/mascots.js";
+import { zodiacOf } from "../../../src/lib/zodiac.js";
 import { SYMBOLS, SYMBOL_CATEGORIES, symbolOccurrences } from "../../../src/lib/symbols.js";
 import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
 import { MILESTONES, nextMilestone, giftAt } from "../../../src/lib/streakBoard.js";
@@ -77,6 +81,10 @@ function snapshot() {
         poster: e.poster ? absolute(e.poster) : null,
         // Fuer „Nochmal, anders" (native Fassung): Analyse und Stil des Traums.
         analysis: e.analysis || null, styleId: e.style || null,
+        /* Die Mondphase der Nacht (moon.js). Alte Traeume haben keine
+           gespeicherte — fuer die wird sie aus dem Datum nachgerechnet,
+           dasselbe Ergebnis, nur nicht festgeschrieben. */
+        moon: (() => { const m = e.moon || moonForNight(new Date(e.createdAt)); return { phase: m.phase, illum: m.illum, waxing: m.waxing, label: t.moon.phases[m.phase] || m.phase, lit: t.moon.lit(Math.round((m.illum ?? 0) * 100)) }; })(),
         pending,
         /* Für die native Auftragsseite: Auftrag abgegeben (Nummer hängt am
            Traum) bzw. gescheitert (Grund aus falError.js, als Satz). */
@@ -252,6 +260,12 @@ function snapshot() {
     view: s.journalView === "list" ? "list" : "deck",
     blankKeys: [...blankDays(s.journal)],
     castCount: (s.cast?.length || 0) + (s.me ? 1 : 0), creatures: (s.creatures || []).length, realDreams,
+    /* Der Mond-Streifen (Antons Wunsch 12.09.): fuenf Naechte um heute,
+       gerechnet aus dem Datum — kein Standort, keine Erlaubnis. */
+    moon: {
+      title: t.moon.title, tonight: t.moon.tonight, weekdays: t.moon.weekdays,
+      strip: moonStrip(new Date()).map((d) => ({ ...d, label: t.moon.phases[d.phase] || d.phase })),
+    },
     labels: {
       title: t.journal.title, count1: t.journal.count(1), countN: t.journal.count(2).replace("2", "{n}"),
       viewList: t.journal.viewList, viewDeck: t.journal.viewDeck, search: t.journal.search, empty: t.journal.empty, emptySearch: t.journal.emptySearch,
@@ -332,8 +346,41 @@ function snapshot() {
   /* Das Einwilligungs-Tor (ConsentGate.jsx): steht, solange keine
      Zustimmung in der aktuellen Version vorliegt — nativ als Vollbild über
      den Tabs. Drei eigene Häkchen, nichts vorangekreuzt (DSGVO Art. 7). */
+  /* Das native Onboarding (13.09.): eine Frage je Bildschirm. Werte und
+     Reihenfolge kommen aus FORM_FIELDS — eine zweite Aufzaehlung waere die
+     Stelle, an der die Wege auseinanderlaufen. */
+  const feld = Object.fromEntries(FORM_FIELDS.map((f) => [f.key, f]));
+  const werte = (key, labels) => ({ order: feld[key]?.values || [], labels });
+  const onb = t.onboard;
+  const onboard = {
+    ...Object.fromEntries(["skip", "next", "back", "introKicker", "introText", "introCta", "featuresTitle",
+      "askTitle", "askText", "askMic", "askMicWhy", "askPhotos", "askPhotosWhy", "askGranted", "askDenied", "askGo",
+      "sleepTitle", "sleepAsleep", "sleepNote", "doneTitle", "doneText", "doneCta"].map((k) => [k, onb[k]])),
+    features: onb.features, showcase: onb.showcase,
+    mascotTitle: onb.mascotTitle, mascotText: onb.mascotText, mascotSoon: onb.mascotSoon,
+    /* Die drei Maskottchen (mascots.js) — zwei noch Platzhalter. Das Video
+       kommt als Modulpfad nicht durch die Brücke; nativ liegen dieselben
+       Dateien, deshalb reicht die id samt Name und Marke. */
+    mascots: MASCOTS.map((m) => ({ id: m.id, name: onb.mascotNames[m.id] || m.name, placeholder: !!m.placeholder })),
+    mascot: s.mascot || DEFAULT_MASCOT,
+    formName: t.onboarding.formName, formNamePlaceholder: t.onboarding.formNamePlaceholder,
+    formGoal: t.onboarding.formGoal, formRecall: t.onboarding.formRecall, formLucid: t.onboarding.formLucid,
+    formSleep: t.onboarding.formSleep, formTime: t.onboarding.formTime,
+    formThemes: t.onboarding.formThemes, formThemesPlaceholder: t.onboarding.formThemesPlaceholder,
+    /* Die Saetze mit Zahl werden nativ gefuellt: Platzhalter 1000. */
+    sleepYearsTpl: onb.sleepYears(1000), sleepDreamTpl: onb.sleepDream(1000),
+    /* Bewegte Kacheln im Onboarding (Antons Wunsch 13.09., Moonly-Vorbild):
+       erst mal die Vorschau-Clips der Stile — dieselben Dateien, die der
+       Stil-Schritt zeigt. Später kommen eigene. */
+    clips: PRESETS.filter((p) => p.clip).slice(0, 6).map((p) => absolute(p.clip)),
+    values: {
+      goal: werte("goal", t.dreamer.goalValues), recall: werte("recall", t.dreamer.recallValues),
+      lucid: werte("lucid", t.dreamer.lucidValues), sleepHours: werte("sleepHours", t.dreamer.sleepValues),
+      timeBudget: werte("timeBudget", t.dreamer.timeValues),
+    },
+  };
   const consent = { needed: needsConsent(s), ...Object.fromEntries(["title", "intro", "termsPre", "termsLink", "termsMid", "privacyLink", "termsPost", "processing", "adult", "more", "cta"].map((k) => [k, t.consent[k]])), details: t.consent.details };
-  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent };
+  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent, onboard };
 }
 
 /* Befehle nativ → Web: Die Hülle kann den Web-Speicher nicht schreiben, also
@@ -408,6 +455,14 @@ function run(cmd) {
     patch = { journal: j.map((e) => (e.id === target ? { ...e, audio: { url: cmd.audioUrl } } : e)), pendingAudioUrl: null };
   }
   else if (cmd.type === "consent") patch = consentPatch();
+  else if (cmd.type === "onboarded") {
+    /* Das Onboarding ist durch: Antworten in dasselbe Profil, das der
+       Web-Weg schreibt (profileFromAnswers) — keine Willkommens-Credits
+       mehr (Antons Ansage 12.09.). */
+    const profile = profileFromAnswers(cmd.answers || {}, zodiacOf);   // nimmt `goals` ODER `goal`
+    const mascotId = MASCOTS.some((m) => m.id === cmd.answers?.mascot) ? cmd.answers.mascot : null;
+    patch = { onboarded: true, surveyDone: true, profile, ...(mascotId ? { mascot: mascotId } : {}), ...(profile.name ? { me: { ...(s.me || {}), tag: profile.name } } : {}) };
+  }
   else if (cmd.type === "paywallSeen") patch = { paywallSeen: true };
   else if (cmd.type === "deleteDream") patch = { journal: (s.journal || []).filter((e) => e.id !== cmd.id) };
   else if (cmd.type === "voice") { if (isVoice(cmd.value)) patch = { voice: cmd.value }; }
@@ -422,6 +477,7 @@ function run(cmd) {
       title: (cmd.title || "").trim() || creature.title, tagline: (cmd.tagline || "").trim(), mode: "save",
       media: { type: "image", urls: [], source: "none" }, analysis: cmd.analysis || null, references: [], creatureId: creature.id,
       ...((cmd.audioUrl || s.pendingAudioUrl) ? { audio: { url: cmd.audioUrl || s.pendingAudioUrl } } : {}),
+      moon: moonForNight(),          // die Mondphase dieser Nacht (moon.js)
     };
     patch = { journal: [...(s.journal || []), entry], creatures: [...(s.creatures || []), creature], ...bumpStreak(s), pendingAudioUrl: null };
   }

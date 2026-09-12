@@ -1,6 +1,8 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { ConsentGate } from "@/components/consent-gate";
+import { OnboardingGate } from "@/components/onboarding-gate";
 import { Toasts } from "@/components/toasts";
 
 /* Die native Tab-Leiste — auf iOS 26 Liquid Glass vom System, auf Android
@@ -9,8 +11,11 @@ import { Toasts } from "@/components/toasts";
    Android-Maximum. Jeder Tab zeigt heute den passenden Bildschirm der
    alten Oberfläche (LegacyTab); nativ werden sie einer nach dem anderen. */
 export default function RootLayout() {
+  /* ⚠ Einmal um ALLES: Ohne diese Wurzel erkennt react-native-gesture-handler
+     keine Gesten („GestureDetector must be used as a descendant of
+     GestureHandlerRootView") — Befund 13.09. beim Deck-Fächer. */
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
       <NativeTabs tintColor="#8cc0ff" minimizeBehavior="onScrollDown">
         <NativeTabs.Trigger name="index">
@@ -35,7 +40,9 @@ export default function RootLayout() {
         </NativeTabs.Trigger>
       </NativeTabs>
       <ConsentGate />
+      {/* Nur im Entwicklungsbau, bei jedem Start (Antons Wunsch 13.09.). */}
+      <OnboardingGate />
       <Toasts />
-    </>
+    </GestureHandlerRootView>
   );
 }

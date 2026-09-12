@@ -1,69 +1,93 @@
-import { useState } from "react";
-import { StyleSheet, useWindowDimensions, View } from "react-native";
-import Animated, { interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, Extrapolation, type SharedValue } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
+import { useRef, useState } from "react";
+import { LayoutChangeEvent, ScrollView, StyleSheet, View } from "react-native";
 import { DreamPoster } from "@/components/dream-poster";
 import type { DreamItem } from "@/store/journal-store";
-import { colors } from "@/theme";
+import { colors, radius } from "@/theme";
 
-/* Das Deck aus dem Web-Journal (journal.css .j-deck): eine Plakatkarte je
-   Traum, seitlich durchgewischt; die Karte in der Mitte steht vorn, die
-   Nachbarn lugen kleiner und gekippt von den Seiten herein, darunter die
-   Punkte. Nativ mit Snap und Reanimated auf dem UI-Thread. */
+/* Das Deck: EIN Traum vorn, dahinter der Stapel (Antons Vorbild 13.09.).
+ *
+ * ⚠ Die BREITE wird gemessen, nicht angenommen — daran ist der dritte
+ * Anlauf gescheitert (Antons Befund: „die rasten gar nicht aus, bleiben
+ * irgendwo dazwischen stehen"): Eine Seite war so breit wie der
+ * BILDSCHIRM, der Scroller selbst aber 32 Punkte schmaler (das Polster des
+ * Journals). `pagingEnabled` rastet auf die Breite des SCROLLERS — bei
+ * jeder Seite lief der Versatz um 32 Punkte weiter auseinander. Jetzt
+ * liefert `onLayout` die echte Breite, Seite und Raster sind dieselbe Zahl,
+ * und das Einrasten ist wieder das des Systems: sanft rein, sanft raus,
+ * eine Karte je Anstoßen.
+ *
+ * Frühere Anläufe, die nicht wiederkommen sollen: ein eigener Fächer mit
+ * Pan-Geste (fühlte sich fremd an) und überlappende Nachbarkarten in einem
+ * Scroller (die spätere Karte malt über die frühere, `zIndex` aus einem
+ * Reanimated-Stil greift dort nicht). Der Stapel dahinter sind deshalb zwei
+ * ruhige Blätter, die zur SEITE gehören. */
+const CARD = 0.82;      // Breite der Karte, Anteil der Seitenbreite
+const SHEETS = [
+  { dx: 14, dy: 9, scale: 0.955, opacity: 0.5 },
+  { dx: 26, dy: 17, scale: 0.91, opacity: 0.28 },
+];
+
 export function DreamDeck({ items, locale, onOpen }: { items: DreamItem[]; locale: string; onOpen: (id: string) => void }) {
-  const { width } = useWindowDimensions();
-  const cardW = Math.min(width * 0.68, 300);
-  const overlap = Math.round(cardW * 0.11);
-  const stride = cardW - overlap;
-  const side = (width - cardW) / 2;
-  const x = useSharedValue(0);
+  const [w, setW] = useState(0);
   const [index, setIndex] = useState(0);
-  const onScroll = useAnimatedScrollHandler({ onScroll: (e) => { x.value = e.contentOffset.x; } });
+  const letzter = useRef(0);
+  const cardW = Math.min(w * CARD, 320);
+  const cardH = Math.round(cardW * 1.25);
 
   return (
-    <View>
-      <Animated.ScrollView
-        horizontal showsHorizontalScrollIndicator={false} decelerationRate="fast"
-        snapToInterval={stride} snapToAlignment="start" disableIntervalMomentum
-        contentContainerStyle={{ paddingHorizontal: side, paddingVertical: 16 }}
-        onScroll={onScroll} scrollEventThrottle={16}
-        onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / stride))}
-      >
-        {items.map((item, i) => (
-          <DeckCard key={item.id} i={i} x={x} stride={stride} cardW={cardW} overlap={overlap} total={items.length}>
-            <DreamPoster item={item} locale={locale} onPress={onOpen} />
-          </DeckCard>
-        ))}
-      </Animated.ScrollView>
-      {items.length > 1 ? (
-        <View style={styles.dots}>
-          {items.map((it, i) => <View key={it.id} style={[styles.dot, i === index && styles.dotOn]} />)}
-        </View>
-      ) : null}
+    <View onLayout={(e: LayoutChangeEvent) => setW(Math.round(e.nativeEvent.layout.width))}>
+      {w > 0 ? (
+        <>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            decelerationRate="fast"
+            snapToInterval={w}
+            snapToAlignment="start"
+            disableIntervalMomentum
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(e) => {
+              const i = Math.round(e.nativeEvent.contentOffset.x / w);
+              if (i !== letzter.current) { letzter.current = i; Haptics.selectionAsync(); setIndex(i); }
+            }}
+          >
+            {items.map((item, i) => (
+              <View key={item.id} style={[styles.page, { width: w, height: cardH + 46 }]}>
+                {/* Die Blätter dahinter — nur, wenn es noch Träume gibt. */}
+                {i < items.length - 1 ? SHEETS.map((s, k) => (
+                  <View key={k} pointerEvents="none" style={[styles.sheet, {
+                    width: cardW, height: cardH, borderRadius: radius.card,
+                    transform: [{ translateX: s.dx }, { translateY: s.dy }, { scale: s.scale }],
+                    opacity: s.opacity,
+                  }]} />
+                )) : null}
+                <View style={{ width: cardW, height: cardH }}>
+                  <DreamPoster item={item} locale={locale} onPress={onOpen} />
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+          {items.length > 1 ? (
+            <View style={styles.dots}>
+              {items.map((it, i) => <View key={it.id} style={[styles.dot, i === index && styles.dotOn]} />)}
+            </View>
+          ) : null}
+        </>
+      ) : (
+        <View style={{ height: 320 }} />
+      )}
     </View>
   );
 }
 
-function DeckCard({ i, x, stride, cardW, overlap, total, children }: { i: number; x: SharedValue<number>; stride: number; cardW: number; overlap: number; total: number; children: React.ReactNode }) {
-  const style = useAnimatedStyle(() => {
-    // -1 … 0 … 1: wie weit die Karte von der Mitte entfernt ist, in Karten.
-    const n = interpolate(x.value, [(i - 1) * stride, i * stride, (i + 1) * stride], [1, 0, -1], Extrapolation.CLAMP);
-    const a = Math.abs(n);
-    return {
-      transform: [{ perspective: 1000 }, { scale: 1 - 0.12 * a }, { rotateY: `${-10 * n}deg` }],
-      opacity: 1 - 0.3 * a,
-      zIndex: 100 - Math.round(a * 100),
-    };
-  });
-  return (
-    <Animated.View style={[{ width: cardW, marginHorizontal: -overlap / 2, marginLeft: i === 0 ? 0 : -overlap / 2, marginRight: i === total - 1 ? 0 : -overlap / 2 }, styles.shadow, style]}>
-      <View style={{ aspectRatio: 4 / 5 }}>{children}</View>
-    </Animated.View>
-  );
-}
-
 const styles = StyleSheet.create({
-  shadow: { shadowColor: "#000", shadowOpacity: 0.55, shadowRadius: 17, shadowOffset: { width: 0, height: 12 } },
-  dots: { flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 4 },
+  page: { alignItems: "center", justifyContent: "center" },
+  sheet: {
+    position: "absolute", backgroundColor: colors.bg2,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine,
+  },
+  dots: { flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 2 },
   dot: { width: 6, height: 6, borderRadius: 999, backgroundColor: colors.panelLine },
   dotOn: { width: 18, backgroundColor: colors.accentSoft },
 });

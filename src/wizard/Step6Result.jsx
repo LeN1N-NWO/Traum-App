@@ -5,6 +5,7 @@ import { jobStatus } from "../lib/api.js";
 import { genId } from "../lib/storage.js";
 import { bumpStreak, refreshStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
+import { moonForNight } from "../lib/moon.js";
 import { t } from "../i18n/index.js";
 import MascotLoader from "../components/MascotLoader.jsx";
 import Button from "../components/Button.jsx";
@@ -112,6 +113,7 @@ export default function Step6Result({ w, patch }) {
       ...(waiting ? { jobId: w.jobId } : {}),
       references,
       creatureId: creature.id,
+      moon: moonForNight(),          // die Mondphase dieser Nacht (moon.js)
     };
 
     update({

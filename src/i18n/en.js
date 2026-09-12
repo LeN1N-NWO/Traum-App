@@ -92,6 +92,32 @@ export default {
     note: "The streak counts nights with a written dream — never the amount. A hundred dreams in one day is still one night.",
   },
 
+  /* Die Mondphasen (moon.js). Ortsunabhängig — die Phase ist überall
+
+     dieselbe; nur Auf- und Untergang wären ortsgebunden. */
+
+  moon: {
+
+    title: "Moon",
+
+    tonight: "Tonight",
+
+    phases: {
+
+      new: "New moon", waxingCrescent: "Waxing crescent", firstQuarter: "First quarter",
+
+      waxingGibbous: "Waxing gibbous", full: "Full moon", waningGibbous: "Waning gibbous",
+
+      lastQuarter: "Last quarter", waningCrescent: "Waning crescent",
+
+    },
+
+    lit: (p) => `${p}% lit`,
+
+    weekdays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+
+  },
+
   journal: {
     viewList: "Show as a list",
     viewDeck: "Show as cards",
@@ -914,6 +940,58 @@ export default {
       ],
     },
   },
+  /* Das native Onboarding (13.09.2026): eine Frage je Bildschirm, und die
+     Berechtigungen GANZ AM ANFANG — Antons Regel: „Was nicht am Anfang
+     passiert, passiert nie." Die Fragen selbst sind die des Formulars
+     (lib/onboardingForm.js), nur einzeln gestellt. */
+  onboard: {
+    skip: "Skip",
+    next: "Continue",
+    back: "Back",
+    step: (a, b) => `${a} of ${b}`,
+    introKicker: "The dream journal",
+    introText: "Every night you shoot a film. Start keeping them.",
+    introCta: "Start",
+    featuresTitle: "What this does",
+    features: [
+      { title: "Say it half asleep", text: "Three in the morning, eyes shut — just talk. It writes the night down for you." },
+      { title: "Then watch it", text: "Your dream becomes a short film, with the real faces of your people and places." },
+      { title: "The quiet part is free", text: "Lucid guide, dream symbols, sleep sounds. No credits, no catch." },
+      { title: "It stays yours", text: "The journal lives on your phone. Nothing leaves it until you ask for a film." },
+    ],
+    /* Die Zwischenbilder nach jeder Frage (Antons Wunsch 13.09., Moonly-
+       Vorbild): ein Film, ein Satz, weiter. Sie machen Lust, statt nur zu
+       fragen. Die Clips sind erst mal die Vorschau-Filme der Stile. */
+    showcase: [
+      { title: "Nineteen looks for one dream", text: "Claymation, film noir, ultrareal — the same night, told the way you want to see it." },
+      { title: "The people in it are yours", text: "Add a face once, and your friend is in the film. Same person, every scene." },
+      { title: "It remembers the patterns", text: "Water, falling, being chased — the symbols that keep coming back, gathered in your atlas." },
+      { title: "And it keeps the night", text: "Your own voice, the text, the film, the moon of that night. All in one page." },
+    ],
+    /* Die Maskottchen-Wahl (Anton 13.09.) — zwei von drei sind noch
+       Platzhalter, das steht auch auf der Kachel. */
+    mascotTitle: "Who keeps you company?",
+    mascotText: "It shows up while you wait, and when something works out.",
+    mascotSoon: "Coming",
+    mascotNames: { frog: "The frog", sloth: "The sloth", owl: "The owl" },
+    askTitle: "Two things up front",
+    askText: "Both are asked once, and both are optional — but a dream journal you cannot speak to at 3am is half an app.",
+    askMic: "Microphone",
+    askMicWhy: "So you can tell your dream instead of typing it.",
+    askPhotos: "Photos",
+    askPhotosWhy: "So the people and places in your dreams can have their real faces.",
+    askGranted: "Allowed",
+    askDenied: "Not allowed — you can change this in Settings",
+    askGo: "Ask me",
+    sleepTitle: "You will spend",
+    sleepYears: (y) => `${y} years`,
+    sleepAsleep: "asleep",
+    sleepDream: (y) => `Around ${y} of them dreaming — and you remember almost none of it.`,
+    sleepNote: "Based on your answer and an average lifespan of 80 years.",
+    doneTitle: "That's it",
+    doneText: "Your nights have a place now.",
+    doneCta: "Start tonight",
+  },
   onboarding: {
     tagline: "Every night you make films. Start keeping them.",
     kicker: "the dream journal",
@@ -929,7 +1007,7 @@ export default {
     start: "Start tonight",
     gateTitle: "Tell me how you dream",
     gateText: "Two minutes with me, nothing to fill in: what to call you, how your nights run, what keeps coming back. Skip whatever you like.",
-    gateReward: "✦ Your first dream is on us",
+    gateReward: "Two minutes, and the app fits your nights",
     gateStart: "Let's talk",
     gateType: "I'd rather type",
     gateLater: "Maybe later",
@@ -960,10 +1038,10 @@ export default {
     selfieText: "Add a photo and your dreams get their lead actor — your real face, in every frame. You can always do this later.",
     selfieAdd: "Add my photo",
     selfieSkip: "Not now",
-    granted: "✦ Welcome — your first dream is on us",
+    granted: "✦ Thanks — your profile is set",
     thanks: "✦ Thanks — your profile is set",
     profileCard: "Finish your profile with a 2-minute chat",
-    profileCardHint: "✦ Your first dream is on us",
+    profileCardHint: "Two minutes, nothing required",
     // Dev-only picker shown before the app decides anything — see
     // screens/Onboarding/StartMenu.jsx.
     startMenuTitle: "Before we go in",
