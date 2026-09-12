@@ -6,7 +6,7 @@ import { SymbolView } from "expo-symbols";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { Directory, File, Paths } from "expo-file-system";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { ActionSheetIOS, Alert, Platform, Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
@@ -88,6 +88,8 @@ function RecordingRow({ url, label }: { url: string; label: string }) {
 function DreamBody({ item, labels, locale, onMore }: { item: DreamItem; labels: Record<string, string>; locale: string; onMore: () => void }) {
   const { width, height } = useWindowDimensions();
   const [take, setTake] = useState(item.films.length ? item.films.length - 1 : 0);
+  const hero = useRef<FilmHeroHandle>(null);
+  const [sound, setSound] = useState(false);
   const film = item.films[take]?.url ?? null;
   const still = item.images[0] ?? null;
   const date = new Date(item.createdAt).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
@@ -96,9 +98,23 @@ function DreamBody({ item, labels, locale, onMore }: { item: DreamItem; labels: 
   return (
     <View>
       <View style={[styles.hero, { height: heroH }]}>
-        {film ? <FilmHero url={film} /> : still ? <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="top" transition={300} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
-        <LinearGradient colors={["rgba(5,10,20,0.55)", "rgba(5,10,20,0)", "rgba(5,10,20,0)", "rgba(5,10,20,0.75)", colors.bg]} locations={[0, 0.22, 0.5, 0.85, 1]} style={StyleSheet.absoluteFill} />
-        <View style={styles.titleBlock}>
+        {film ? <FilmHero ref={hero} url={film} onSound={setSound} /> : still ? <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="top" transition={300} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
+        {/* ⚠ pointerEvents="none": der Verlauf lag ÜBER den Knöpfen und schluckte
+            jeden Tipp (Antons Befund 12.09.: „sie funktionieren gar nicht"). */}
+        <LinearGradient colors={["rgba(5,10,20,0.55)", "rgba(5,10,20,0)", "rgba(5,10,20,0)", "rgba(5,10,20,0.75)", colors.bg]} locations={[0, 0.22, 0.5, 0.85, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        {film ? (
+          /* Ton und Vollbild: unten rechts im Film, wie bei Reels — ganz oben in
+             der Schichtung, damit der Tipp ankommt. */
+          <View style={styles.heroTools}>
+            <Pressable onPress={() => { Haptics.selectionAsync(); hero.current?.toggleSound(); }} hitSlop={10} accessibilityLabel={sound ? "Mute" : "Sound"} accessibilityState={{ selected: sound }}>
+              <Glass style={styles.heroTool} interactive tint={sound ? "rgba(140,192,255,0.45)" : undefined}><SymbolView name={sound ? "speaker.wave.2.fill" : "speaker.slash.fill"} size={15} tintColor={colors.text} weight="semibold" /></Glass>
+            </Pressable>
+            <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); hero.current?.enterFullscreen(); }} hitSlop={10} accessibilityLabel="Fullscreen">
+              <Glass style={styles.heroTool} interactive><SymbolView name="arrow.up.left.and.arrow.down.right" size={15} tintColor={colors.text} weight="semibold" /></Glass>
+            </Pressable>
+          </View>
+        ) : null}
+        <View style={styles.titleBlock} pointerEvents="none">
           <Text style={styles.eyebrow}>{date.toUpperCase()}</Text>
           <Text style={styles.title}>{item.title || labels.untitled || "Untitled dream"}</Text>
           {item.tagline ? <Text style={styles.tagline}>{item.tagline}</Text> : null}
@@ -183,34 +199,28 @@ function splitPassages(text: string, n: number) {
 /* Der Film oben: leise in Schleife als Plakat. Der Vollbild-Knopf (Antons
    Wunsch 12.09.) öffnet den System-Player — iOS zoomt sanft auf, die
    Tonspur läuft, mit Regler und Fertig-Knopf; zurück wird er wieder leise. */
-function FilmHero({ url }: { url: string }) {
+type FilmHeroHandle = { toggleSound: () => void; enterFullscreen: () => void };
+const FilmHero = forwardRef<FilmHeroHandle, { url: string; onSound: (on: boolean) => void }>(function FilmHero({ url, onSound }, ref) {
   const player = useVideoPlayer(url, (p) => { p.loop = true; p.muted = true; p.play(); });
   const view = useRef<VideoView>(null);
   const [sound, setSound] = useState(false);
   useEffect(() => { player.loop = true; player.muted = true; player.play(); }, [player]);
   /* Ton an/aus auch ohne Vollbild (Antons Wunsch 12.09.): laut heißt
      „nicht mischen" — sonst kippt der Klangmischer die Session. */
-  useEffect(() => { player.muted = !sound; player.audioMixingMode = sound ? "doNotMix" : "mixWithOthers"; }, [player, sound]);
+  useEffect(() => { player.muted = !sound; player.audioMixingMode = sound ? "doNotMix" : "mixWithOthers"; onSound(sound); }, [player, sound, onSound]);
+  useImperativeHandle(ref, () => ({
+    toggleSound: () => setSound((v) => !v),
+    enterFullscreen: () => { view.current?.enterFullscreen(); },
+  }), []);
   return (
-    <>
-      <VideoView
-        ref={view} player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false}
-        fullscreenOptions={{ enable: true }}
-        onFullscreenEnter={() => { player.muted = false; player.audioMixingMode = "doNotMix"; player.play(); }}
-        onFullscreenExit={() => { player.muted = !sound; player.audioMixingMode = sound ? "doNotMix" : "mixWithOthers"; player.play(); }}
-      />
-      {/* Zwei kleine Glas-Knöpfe am rechten Rand unter dem Kopf: Ton, Vollbild. */}
-      <View style={styles.heroTools} pointerEvents="box-none">
-        <Pressable onPress={() => { Haptics.selectionAsync(); setSound((v) => !v); }} hitSlop={8} accessibilityLabel={sound ? "Mute" : "Sound"} accessibilityState={{ selected: sound }}>
-          <Glass style={styles.heroTool} interactive tint={sound ? "rgba(140,192,255,0.35)" : undefined}><SymbolView name={sound ? "speaker.wave.2.fill" : "speaker.slash.fill"} size={14} tintColor={colors.text} weight="semibold" /></Glass>
-        </Pressable>
-        <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); view.current?.enterFullscreen(); }} hitSlop={8} accessibilityLabel="Fullscreen">
-          <Glass style={styles.heroTool} interactive><SymbolView name="arrow.up.left.and.arrow.down.right" size={14} tintColor={colors.text} weight="semibold" /></Glass>
-        </Pressable>
-      </View>
-    </>
+    <VideoView
+      ref={view} player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false}
+      fullscreenOptions={{ enable: true }}
+      onFullscreenEnter={() => { player.muted = false; player.audioMixingMode = "doNotMix"; player.play(); }}
+      onFullscreenExit={() => { player.muted = !sound; player.audioMixingMode = sound ? "doNotMix" : "mixWithOthers"; player.play(); }}
+    />
   );
-}
+});
 
 /* Teilen mit der DATEI, nicht mit dem Link: Erst dann bietet das
    iOS-Blatt „Video sichern" (Fotos), AirDrop und Nachrichten mit dem Film
@@ -258,8 +268,8 @@ const styles = StyleSheet.create({
   buttonPrimary: { backgroundColor: colors.warm },
   buttonText: { color: colors.text, fontSize: 15, fontWeight: "600" },
   buttonPrimaryText: { color: colors.bg, fontSize: 15, fontWeight: "700" },
-  heroTools: { position: "absolute", top: 104, right: 14, gap: 8 },
-  heroTool: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  heroTools: { position: "absolute", right: 14, bottom: 150, gap: 10, zIndex: 5 },
+  heroTool: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   rec: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, paddingRight: 16, borderRadius: 18 },
   recBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.warm, alignItems: "center", justifyContent: "center" },
   recLabel: { color: colors.text, fontSize: 14, fontWeight: "600" },

@@ -24,6 +24,11 @@ hörbar macht.
   Poster-Commit bestellt (`media/jobs/mtyentkpm1psb3.json`: `poster: null`,
   erstellt 14:59) — der Weg greift ab dem nächsten Film. Titel/Tagline
   kommen über `resume.title` (WizardShell) an, geprüft.
+- Antons zweiter Nachtrag: „sie funktionieren gar nicht" — der Verlauf
+  (`LinearGradient` über dem Film) lag ÜBER den Knöpfen und schluckte jeden
+  Tipp. Jetzt `pointerEvents="none"` auf Verlauf und Titelblock, die
+  Knöpfe liegen als letzte Schicht unten rechts im Film (wie Reels), Ton-
+  Zustand über `useImperativeHandle` aus dem Player.
 - ⚠ Ungeprüft (niemand tippt hier): Vollbild-Übergang, Ton.
 
 ## 2026-09-12 17:00 — Anton — Branch `session/2026-09-12-anton` — Sitzungsabschluss (wrap, Merge auf Antons Wort)
