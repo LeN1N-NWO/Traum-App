@@ -3,6 +3,51 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-13 16:20 — Anton — Branch `session/2026-09-13-anton` — Sitzungsabschluss (wrap + Merge auf Antons Wort)
+
+**Commits:** `63e826e` (Sitzungen im Haupt-Checkout, mit Grund),
+`e6e62ee` (Antons vier Befunde: Vollbild-Absturz, Aufnahme abbrechen,
+Besetzung beschriftet, „ausgewertet").
+
+**Prüfung:** Web 564 Tests grün, mobile `tsc` grün, `bunx expo lint`
+0 Fehler / 37 Warnungen.
+
+**Was der Nächste wissen muss:** Die Sitzung war kurz und rein reaktiv —
+vier Befunde aus Antons Durchlauf. Nichts aus seiner Wunschliste
+(Traumfänger-Video, Onboarding nativ, Pseudo-Rangliste, Poster-Kosten in
+`quote.js`, Avatar-Dialog nativ, expo-notifications, expo-sqlite) ist
+angefasst; sie steht unverändert in STAND. Weiterhin ungeprüft am Gerät:
+Vollbild schließen (jetzt ohne Absturz), Verwerfen der Aufnahme,
+Besetzungs-Labels (der Simulator hat keine Träume mit Personen), erster
+Film mit Poster.
+
+## 2026-09-13 16:05 — Anton — Branch `session/2026-09-13-anton` — Vollbild-Absturz, Aufnahme abbrechen, Besetzung beschriftet
+
+**Antons vier Befunde (13.09.):** Absturz beim Verlassen des Vollbilds;
+Aufnahme lässt sich nicht abbrechen („man ist im Loop gefangen"); „Dein
+Traum wird gelesen" soll „ausgewertet" heißen; der KI-Knopf in der
+Besetzung ist unbeschriftet und lässt sich nicht abwählen.
+
+- **Vollbild-Absturz** (`journal/[id].tsx`, `FullPlayer`): Mein
+  Effekt-Aufräumer rief `player.pause()`, während expo-video den Player beim
+  Abbau der Komponente schon freigegeben hatte → „Calling the 'pause'
+  function has failed … Unable to find the native shared object". Regel:
+  einen Player NIE im Aufräumer anfassen; expo-video räumt selbst auf.
+- **Aufnahme abbrechen** (`dream/voice.tsx`): `cancel()` verwirft die
+  laufende Aufnahme, gibt die Audio-Session frei und geht zurück; ein
+  Wächter (`cancelled`) verwirft auch ein Transkript, das noch unterwegs
+  ist. Knopf „Verwerfen" während der Aufnahme, „Abbrechen" während des
+  Aufschreibens, dazu wieder die Wisch-Geste (war bei `rec` gesperrt).
+- **Text:** `dream.reading` → „Dein Traum wird ausgewertet…" / „Working out
+  your dream…".
+- **Besetzung** (`dream/cast.tsx`): Jede Wahl trägt jetzt ein kleines Label
+  (KI · Namen · Foto), und ein zweiter Tipp nimmt sie zurück (leeres
+  Override = wieder unentschieden).
+
+**Was der Nächste wissen muss:** Der Simulator hat keine Träume mit Personen
+in der Analyse, deshalb zeigt `dream/cast` dort nur die Leerzeilen — die
+Labels sind nur im Code geprüft. Antons Durchlauf steht aus.
+
 ## 2026-09-12 17:45 — Anton — Branch `session/2026-09-12-anton-b` — Sitzungsabschluss (wrap)
 
 **Commits:** `311fcef` (Vollbild + Teilen als Datei), `079a9aa` und

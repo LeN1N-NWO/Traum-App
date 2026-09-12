@@ -262,7 +262,12 @@ function FullscreenFilm({ url, visible, onClose, label }: { url: string; visible
 }
 function FullPlayer({ url }: { url: string }) {
   const player = useVideoPlayer(url, (p) => { p.loop = true; p.muted = false; p.audioMixingMode = "doNotMix"; p.play(); });
-  useEffect(() => { player.muted = false; player.play(); return () => { player.pause(); }; }, [player]);
+  /* ⚠ KEIN pause() im Aufräumer (Antons Absturz 13.09.: „Calling the
+     'pause' function has failed … Unable to find the native shared
+     object"): expo-video gibt den Player beim Abbau der Komponente selbst
+     frei — ein Zugriff danach trifft ein Objekt, das nicht mehr existiert.
+     Nur starten, nie beim Verschwinden anfassen. */
+  useEffect(() => { player.muted = false; player.play(); }, [player]);
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls allowsPictureInPicture={false} />;
 }
 

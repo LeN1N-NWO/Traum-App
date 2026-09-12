@@ -3,8 +3,13 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-12 abends — PR #41 und PR #42 gemerged; Sitzung
-`session/2026-09-12-anton-b` (PR #43, Entwurf, 7 Commits) abgeschlossen:
+**Stand:** 2026-09-13 nachmittags — PR #41 bis #44 gemerged. Zuletzt
+(PR #44, vier Befunde aus Antons Durchlauf): **Vollbild-Absturz behoben**
+(kein `pause()` im Effekt-Aufräumer), **Aufnahme abbrechen** („Verwerfen"
+während der Aufnahme, „Abbrechen" beim Aufschreiben, Wisch-Geste wieder
+frei), Ladetext „Dein Traum wird ausgewertet…", **Besetzungs-Wahl
+beschriftet und abwählbar** (KI · Name · Foto, zweiter Tipp nimmt zurück).
+Davor (PR #43):
 **Traum-Seite rund** — eigenes Vollbild mit X und Ton (das System-Vollbild
 hatte keinen Rückweg), Ton-Knopf am Film, Fassungen wischen mit Punkten,
 Reflexion-Knopf („Was könnte dieser Traum sagen?") nativ über die Brücke,
@@ -25,6 +30,15 @@ Gemini-Assistenten (ADR-0007)**: aufnehmen, Gemini transkribiert, die
 Aufnahme bleibt am Traum. Noch Web als DOM-Komponente: Avatar-Dialog
 (Foto), Umfrage, Bearbeiten/Umschreiben der Traum-Seite, Fehlerblatt des
 Auftrags. Startmenü/Sprachwahl/Onboarding gibt es nativ nicht.
+
+**⚠ Sitzungen laufen in DIESEM Checkout, nicht im Worktree** (Befund
+13.09., vorher schon Praxis): Der native Build lebt hier — `mobile/ios`
+(Pods, Hermes-Tarballs) und `mobile/node_modules` sind git-ignoriert, ein
+frischer Worktree hat sie nicht. Dazu liegt `media/` (878 MB, Antons
+bezahlte Filme, Aufnahmen, Auftrags-Datensätze) hier: `git worktree remove`
+löscht den Ordner samt Inhalt — genau der Verlust vom 21.08.2026. Also: in
+diesem Checkout den Sitzungs-Branch auschecken, `main` bleibt sauber über
+den PR. Abweichung von AGENTS.md mit Grund.
 
 **Für den nächsten Start (wer auch immer):**
 - Metro `bun run mobile`, API `bun run api` (⚠ stoppt gern mit der
@@ -77,7 +91,12 @@ Filmpreis rechnen (Renderweg steht) · Avatar-Dialog nativ (`expo-image-picker`,
 Erinnerungen wirklich planen (`expo-notifications`) · Datenschicht nach
 `expo-sqlite`, Brücke abbauen.
 
-**⚠ Zwei Fallen dieser Sitzung:** (1) Ein `LinearGradient` über einem Video
+**⚠ Player nie im Aufräumer anfassen** (Absturz 13.09.): expo-video gibt
+den Player beim Abbau der Komponente selbst frei; ein `pause()` im
+`useEffect`-Rückgabewert trifft ein Objekt, das nicht mehr existiert
+(„Unable to find the native shared object").
+
+**⚠ Zwei Fallen der Sitzung davor:** (1) Ein `LinearGradient` über einem Video
 schluckt jeden Tipp — `pointerEvents="none"` an jede dekorative Schicht.
 (2) `VideoView.enterFullscreen()` ohne `nativeControls` hat keinen Rückweg;
 wir zeigen ein eigenes Vollbild-Blatt (`FullscreenFilm` in

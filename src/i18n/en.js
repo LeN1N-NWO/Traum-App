@@ -563,12 +563,12 @@ export default {
     caught: (name) => `✦ ${name} joined your menagerie`,
     /* Der Rekorder (ADR-0007): einsprechen, fertig — keine Rückfragen. */
     record: "Tell it out loud", recordHint: "Just talk. I'll write it down.",
-    recording: "Listening…", recordStop: "Done", recordTranscribing: "Writing it down…",
+    recording: "Listening…", recordStop: "Done", recordDiscard: "Discard", recordTranscribing: "Writing it down…",
     recordTooShort: "That was too short — try again.", recordFailed: "Couldn't write that down. Try again.",
     recordAgain: "Record again", yourRecording: "Your recording",
     interview: "Tell it out loud",
     interviewHint: "I'll ask, you talk — eyes closed if you like",
-    reading: "Reading your dream…",
+    reading: "Working out your dream…",
     readingHint: "Naming it, and picking out who was there.",
     or: "or write it",
     loading: [
@@ -600,7 +600,7 @@ export default {
          aber nach einem Extra — und „improve" ist das Kleinste, was hier
          geschieht. Er sagt jetzt, was er tut. */
       improve: "Read my dream",
-      reading: "Reading your dream…",
+      reading: "Working out your dream…",
       why: "The app reads your dream: who is in it, where it plays, which scenes " +
            "make it up — and retells it cleanly in your own language along the way. " +
            "Everything after this is built on that, which is why the path goes " +
@@ -644,6 +644,8 @@ export default {
       createNew: "Create new",
       letAi: "Let the AI decide",
       freeSet: "AI invents them",
+      freeShort: "AI",
+      newShort: "Photo",
       undecided: "Not decided yet",
       note: "Anything left undecided is invented by the AI.",
       removeLabel: (name) => `Remove ${name}`,

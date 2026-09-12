@@ -47,6 +47,7 @@ export default function DreamVoiceScreen() {
   /* Selbsttest im Entwicklungsbau: /dream/voice?auto=15 nimmt 15 s auf und
      hält an — prüft, ob die Aufnahme die Zeit übersteht (Antons Befund). */
   const autoRan = useRef(false);
+  const cancelled = useRef(false);
   useEffect(() => {
     if (!__DEV__ || !auto || !W || autoRan.current) return;
     autoRan.current = true;
@@ -67,6 +68,18 @@ export default function DreamVoiceScreen() {
     recorder.record();
     console.log("[voice] record start");
     setPhase("rec");
+  }
+
+  /* Abbrechen (Antons Befund 13.09.: „man ist im Loop gefangen"): laufende
+     Aufnahme verwerfen, Audio-Session freigeben, zurück zum Erzählen. Auch
+     während des Aufschreibens — dann wird das Ergebnis verworfen. */
+  async function cancel() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    cancelled.current = true;
+    try { if (recorder.getStatus().isRecording) await recorder.stop(); } catch {}
+    setRecording(false); holdForRecording(false);
+    await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+    router.back();
   }
 
   async function stop() {
@@ -103,6 +116,7 @@ export default function DreamVoiceScreen() {
       const b64 = await new File(uri).base64();
       const res = await fetch(W!.transcribeUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ audio: `data:audio/mp4;base64,${b64}`, language: data?.language ?? "" }) });
       const out = await res.json().catch(() => null);
+      if (cancelled.current) return;                    // abgebrochen: Ergebnis verwerfen
       const text = String(out?.text || "").trim();
       console.log(`[voice] transcribe ${res.status} b64=${b64.length} → ${text.length} chars`);
       if (!res.ok || text.length < 8) { setError(text.length < 8 && res.ok ? (W?.recordTooShort ?? "Too short.") : (out?.error || W?.recordFailed || "Failed")); setPhase("error"); return; }
@@ -119,8 +133,8 @@ export default function DreamVoiceScreen() {
 
   return (
     <View style={styles.screen}>
-      <Stack.Screen options={{ headerShown: false, gestureEnabled: phase !== "rec" }} />
-      <Pressable onPress={() => router.back()} style={[styles.close, { top: insets.top + 8 }]} hitSlop={12} accessibilityLabel={W?.cancel ?? "Cancel"}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <Pressable onPress={cancel} style={[styles.close, { top: insets.top + 8 }]} hitSlop={12} accessibilityLabel={W?.cancel ?? "Cancel"}>
         <Glass style={styles.closeGlass} interactive><SymbolView name="xmark" size={14} tintColor={colors.text} weight="semibold" /></Glass>
       </Pressable>
 
@@ -129,6 +143,7 @@ export default function DreamVoiceScreen() {
           <>
             <MascotLoader />
             <Text style={styles.title}>{W?.recordTranscribing ?? "Writing it down…"}</Text>
+            <GlassButton label={W?.cancel ?? "Cancel"} onPress={cancel} style={{ flex: 0, marginTop: 16 }} />
           </>
         ) : (
           <>
@@ -142,7 +157,13 @@ export default function DreamVoiceScreen() {
                 </View>
               </Pressable>
             </View>
-            {phase === "rec" ? <Text style={styles.stopHint}>{W?.recordStop ?? "Done"}</Text> : null}
+            {phase === "rec" ? (
+              <>
+                <Text style={styles.stopHint}>{W?.recordStop ?? "Done"}</Text>
+                {/* Verwerfen und neu erzählen — Antons Wunsch 13.09. */}
+                <GlassButton label={W?.recordDiscard ?? W?.cancel ?? "Discard"} onPress={cancel} style={{ flex: 0, marginTop: 10 }} />
+              </>
+            ) : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
             {phase === "error" ? (
               <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
