@@ -19,7 +19,8 @@ export type HomeData = {
 };
 export type SoundMix = { volumes: Record<string, number>; timer: number; autoStart: boolean };
 export type SoundsData = { lede: string; names: Record<string, string>; descs: Record<string, string>; timer: string; timerOff: string; timerMin: Record<number, string>; autoStart: string; background: string; mix: SoundMix | null };
-export type SleepData = { title: string; subtitle: string; free: string; tiles: { id: string; title: string; text: string }[]; sounds: SoundsData };
+export type ChecklistData = { lede: string; hint: string; progressLabel: string; today: string; done: string[]; items: { id: string; title: string; text: string }[]; remaining: string[] };
+export type SleepData = { title: string; subtitle: string; free: string; tiles: { id: string; title: string; text: string }[]; sounds: SoundsData; checklist: ChecklistData };
 export type ProfileData = {
   title: string; name: string; img: string | null; hint: string; credits: number; creditsWord: string;
   dreams: number; streak: number; statDreams: string; statStreak: string; settings: string;
@@ -43,7 +44,7 @@ export type PaywallData = {
   balance: string; credits: number; subs: PaywallPlan[]; packs: PaywallPlan[]; films: string[]; filmsBackup: string[];
 };
 export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix"; mix?: SoundMix; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck"; mix?: SoundMix; date?: string; done?: string[]; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
 export type BridgeResult = { n: number; result?: any; error?: string };
 
 let snapshot: JournalSnapshot | null = null;

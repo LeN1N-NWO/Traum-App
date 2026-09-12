@@ -23,7 +23,7 @@ import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
 import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
 import { styleById } from "../../../src/lib/styles.js";
 import { autoMatch } from "../../../src/wizard/useWizard.js";
-import { blankDays } from "../../../src/lib/dreamDays.js";
+import { blankDays, localDateKey } from "../../../src/lib/dreamDays.js";
 import { MILESTONES, nextMilestone, giftAt } from "../../../src/lib/streakBoard.js";
 import { nextSnoozeIn } from "../../../src/lib/streak.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
@@ -134,6 +134,15 @@ function snapshot() {
       autoStart: t.sleep.sounds.autoStart, background: t.sleep.sounds.background,
       mix: s.soundMix ? { volumes: s.soundMix.volumes || {}, timer: s.soundMix.timer || 0, autoStart: !!s.soundMix.autoStart } : null,
     },
+    /* Die Abend-Checkliste (SleepChecklist.jsx): Schritte aus i18n, die
+       Haken gehören EINER Nacht (heutiges Datum, sonst leer). */
+    checklist: (() => {
+      const c = t.sleep.checklist; const today = localDateKey(new Date());
+      const done = s.sleepCheck?.date === today ? (s.sleepCheck.done || []) : [];
+      return { lede: c.lede, hint: c.hint, progressLabel: c.progressLabel, today, done,
+        items: c.items.map((it) => ({ id: it.id, title: it.title, text: it.text })),
+        remaining: c.items.map((_, i) => c.remaining(i)).concat([c.remaining(c.items.length)]) };
+    })(),
   };
   const profile = {
     title: t.profile.title, name: s.me?.tag || t.profile.you, img: s.me?.img || null,
@@ -280,6 +289,7 @@ function run(cmd) {
   else if (cmd.type === "refreshStreak") { const f = refreshStreak(s); if (f.streak !== s.streak) patch = f; }
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };
+  else if (cmd.type === "sleepCheck") patch = { sleepCheck: { date: cmd.date, done: cmd.done || [] } };
   else if (cmd.type === "saveDream") {
     /* Nur speichern (Step2Output.saveOnly): kein Render, keine Kosten, mit
        Wesen und Serie — dieselbe Reihenfolge wie im Web. */

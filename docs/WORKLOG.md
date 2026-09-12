@@ -57,6 +57,12 @@ Stil-Kacheln, Doku).
   auch die Kaufblatt-Links aus Schritt 1 und Länge bleiben im Stapel.
 - **Stil-Kacheln ohne Clip** (Tusche, Knete) zeigten das Emoji als
   Fragezeichen-Kästchen → SF Symbol.
+- **Abend-Checkliste nativ** (`components/sleep-checklist.tsx`, Raum
+  `checklist` in `sleep/[view].tsx`): Aufbau nach `SleepChecklist.jsx` —
+  Vorspann, Segment-Fortschritt, „Noch n", Raster kleiner Glas-Altäre mit
+  SF Symbols, fertige Karten dimmen und klappen den Text weg, Haken einer
+  Nacht (Befehl `sleepCheck`). Die Schlaf-Räume teilen jetzt eine Bühne
+  (`Room`). Guide und Symbole bleiben Web.
 
 **Was der Nächste wissen muss:**
 - Prüfen läuft weiter per Redirect-Trick (index.tsx temporär ersetzen,

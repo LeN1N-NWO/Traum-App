@@ -8,8 +8,8 @@ Entwurf): **alle fünf Tabs, der Wizard, das Kaufblatt und das
 Klang-Mischpult sind nativ** (Expo Router, Liquid Glass, SF Symbols,
 Haptik); Schritt 4 aus ADR-0006 ist weit. Noch Web als DOM-Komponente im
 nativen Stack: Stimm-Gespräch, Schritt 6 (Warten), Aktionen der Traum-Seite,
-Schlaf-Räume außer Klängen, Einstellungen/Avatar/Umfrage, Besetzung/Atlas/
-Menagerie. **Antons Befunde vom 12.09. vormittags sind alle umgesetzt**
+Schlaf-Räume Guide und Symbole, Einstellungen/Avatar/Umfrage,
+Besetzung/Atlas/Menagerie. **Antons Befunde vom 12.09. vormittags sind alle umgesetzt**
 (Kaufblatt ohne Bilder, Glas-Regler, Safe Area oben, Faultier-Schleife,
 Glas-Knöpfe ohne Textüberlauf, Tab-Sprung „Neu anlegen") — Details im
 WORKLOG. ⚠ `mobile/app.json` hat jetzt `UIBackgroundModes: audio`; das
@@ -172,10 +172,15 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   ⚠ Prüf-Artefakt: Startet die App per Redirect direkt in `profile` oder
   `dream/…`, fehlt im Screenshot die Tab-Leiste — beim normalen Start über
   Home ist sie da. Nicht gejagt.
+  **Abend-Checkliste nativ** (`components/sleep-checklist.tsx`): Raster
+  aus Glas-Altären mit SF Symbols, Fortschritt in Segmenten, fertige Karten
+  dimmen und klappen den Text weg; Haken gehören der Nacht (Befehl
+  `sleepCheck`, `snapshot().sleep.checklist`). Die Schlaf-Räume teilen die
+  Bühne `Room` in `sleep/[view].tsx`.
   **Als Nächstes:** Stimme nativ, Schritt 6 (Warten) nativ, Aktionen der
-  Traum-Seite nativ, restliche Web-Räume in Schlaf/Profil (Checkliste,
-  Guide, Symbole, Einstellungen, Avatar-Anlage); dann Datenschicht nach
-  `expo-sqlite` und die Brücke abbauen.
+  Traum-Seite nativ, restliche Web-Räume (Guide, Symbole, Einstellungen,
+  Avatar-Anlage); dann Datenschicht nach `expo-sqlite` und die Brücke
+  abbauen.
   Je Bildschirm nativ neu entwerfen, nicht das Web-Layout nachbauen.
   ⚠ NativeTabs ist Alpha, SDK 57.0.x. ⚠ Ungeprüft, weil hier niemand tippen
   kann: Fassungswechsel, Teilen, „…" → Web-Seite → zurück.
