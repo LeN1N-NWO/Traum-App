@@ -1583,6 +1583,10 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, q
     requestId: request_id, model: slug,
     statusUrl: status_url, responseUrl: response_url,
     createdAt: Date.now(), status: "pending",
+    /* Der finale Prompt, wie er an fal ging, plus Laenge und Sekunden: fuer
+       die Nachschau (Antons Frage 12.09.: welcher Prompt wurde uebergeben?).
+       Liegt nur in media/jobs (ignoriert), nie im Repo. */
+    prompt, promptChars: prompt.length, seconds,
   });
   return id;
 }

@@ -375,7 +375,11 @@ function run(cmd) {
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };
   else if (cmd.type === "sleepCheck") patch = { sleepCheck: { date: cmd.date, done: cmd.done || [] } };
-  else if (cmd.type === "attachAudio") patch = { journal: (s.journal || []).map((e) => (e.id === cmd.id ? { ...e, audio: { url: cmd.audioUrl } } : e)) };
+  else if (cmd.type === "attachAudio") {
+    const j = s.journal || [];
+    const target = cmd.id || (j.length ? j[j.length - 1].id : null);   // ohne id: der juengste Traum
+    patch = { journal: j.map((e) => (e.id === target ? { ...e, audio: { url: cmd.audioUrl } } : e)) };
+  }
   else if (cmd.type === "consent") patch = consentPatch();
   else if (cmd.type === "paywallSeen") patch = { paywallSeen: true };
   else if (cmd.type === "deleteDream") patch = { journal: (s.journal || []).filter((e) => e.id !== cmd.id) };
