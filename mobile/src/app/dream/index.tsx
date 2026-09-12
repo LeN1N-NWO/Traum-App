@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { GlassButton, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
@@ -34,7 +35,7 @@ export default function DreamTextScreen() {
 
   async function read(t = clean) {
     if (t.length < 8) { setError(W?.tooShort ?? "Tell a little more."); return; }
-    if (W && credits < W.readPrice) { router.push({ pathname: "/profile/page", params: { page: "paywall" } }); return; }
+    if (W && credits < W.readPrice) { router.push({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setBusy(true); setError(null);
     const r = await ask({ type: "analyze", text: t });
@@ -74,10 +75,7 @@ export default function DreamTextScreen() {
               placeholder={W?.placeholder ?? "…"} placeholderTextColor={colors.faint} textAlignVertical="top" keyboardAppearance="dark"
             />
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            <Pressable style={[styles.quiet, clean.length < 8 && styles.disabled]} onPress={() => read()} disabled={clean.length < 8}>
-              <SymbolView name="sparkles" size={16} tintColor={colors.text} />
-              <Text style={styles.quietText}>{W?.read ?? "Read my dream"} · {price}</Text>
-            </Pressable>
+            <GlassButton label={`✦ ${W?.read ?? "Read my dream"} · ${price}`} onPress={() => read()} disabled={clean.length < 8} />
             <Text style={styles.hint}>{W?.why}</Text>
           </>
         ) : (
@@ -88,8 +86,8 @@ export default function DreamTextScreen() {
             <View style={[styles.card, styles.cardNew]}><Text style={styles.cardLabel}>{W?.improved}</Text><Text style={styles.body}>{preview.text}</Text></View>
             {preview.title ? <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><SymbolView name="film" size={14} tintColor={colors.muted} /><Text style={styles.poster}><Text style={{ fontWeight: "700" }}>{preview.title}</Text>{preview.tagline ? ` — ${preview.tagline}` : ""}</Text></View> : null}
             <View style={styles.actions}>
-              <Pressable style={styles.quiet} onPress={() => go(false)}><Text style={styles.quietText}>{W?.keepMine}</Text></Pressable>
-              <Pressable style={styles.primary} onPress={() => go(true)}><Text style={styles.primaryText}>{W?.useImproved}</Text></Pressable>
+              <GlassButton label={W?.keepMine ?? "Keep my words"} onPress={() => go(false)} />
+              <PrimaryButton label={W?.useImproved ?? "Use this version"} onPress={() => go(true)} />
             </View>
           </>
         )}
@@ -128,6 +126,6 @@ const styles = StyleSheet.create({
   cardLabel: { color: colors.faint, fontSize: 11, letterSpacing: 1.8, fontWeight: "600", textTransform: "uppercase" },
   body: { color: colors.text, fontSize: 16, lineHeight: 25 },
   poster: { color: colors.muted, fontSize: 14 },
-  actions: { flexDirection: "row", gap: 10 },
+  actions: { flexDirection: "row", gap: 10, alignItems: "stretch" },
   bridge: { height: 0, overflow: "hidden" },
 });

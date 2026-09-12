@@ -20,7 +20,8 @@ function Page({ entryId, onClose }) {
   return <JournalDetail key={entry.id} entry={entry} onClose={() => onClose()} onOpen={() => {}} />;
 }
 
-export default function LegacyDream({ entryId, onClose, dom }) {
+export default function LegacyDream({ entryId, onClose, safeTop = 0, safeBottom = 0, dom }) {
+  if (typeof globalThis.__setSafeArea === "function") globalThis.__setSafeArea(safeTop, safeBottom);
   return (
     <AppStateProvider>
       <HashRouter>

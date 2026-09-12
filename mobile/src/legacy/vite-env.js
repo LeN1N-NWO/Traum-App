@@ -24,3 +24,15 @@ globalThis.__ExpoImportMetaRegistry = {
 };
 globalThis.__API_PORT__ = Number(new URL(API_BASE).port) || 8100;
 
+/* Safe Area im Webview: env(safe-area-inset-*) liefert WebKit nur mit
+   viewport-fit=cover — Expos DOM-Hülle setzt das nicht (Antons Befund
+   12.09.: Titel unter der Uhrzeit). Meta nachziehen; legacy.css nimmt
+   zusätzlich --sat/--sab, die die Hülle als Props hereinreicht. */
+try {
+  const m = document.querySelector('meta[name="viewport"]');
+  if (m && !/viewport-fit/.test(m.getAttribute("content") || "")) m.setAttribute("content", (m.getAttribute("content") || "width=device-width, initial-scale=1") + ", viewport-fit=cover");
+} catch {}
+globalThis.__setSafeArea = (top, bottom) => {
+  try { document.documentElement.style.setProperty("--sat", `${top || 0}px`); document.documentElement.style.setProperty("--sab", `${bottom || 0}px`); } catch {}
+};
+

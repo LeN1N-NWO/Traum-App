@@ -4,9 +4,10 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
+import { applyMix, isActive } from "@/lib/sound-engine";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Die Startseite, nativ (12.09.2026). Als Plakat, wie im Web entschieden
@@ -32,6 +33,15 @@ export default function HomeScreen() {
   const { data, bridge, send } = useJournal();
   const L = data?.labels ?? {};
   const home = data?.home;
+  /* „Start my mix when the app opens": nativ ohne Geste möglich — einmal
+     je Start, sobald der erste Datenstand da ist und noch nichts läuft. */
+  const [autoDone, setAutoDone] = useState(false);
+  useEffect(() => {
+    const mix = data?.sleep?.sounds?.mix;
+    if (autoDone || !mix) return;
+    setAutoDone(true);
+    if (mix.autoStart && !isActive()) applyMix(mix.volumes as Record<"white" | "pink" | "brown", number>);
+  }, [data, autoDone]);
   const key = greetingKey(new Date().getHours());
   const evening = key === "Evening" || key === "Night";
   const last = home?.lastId ? data?.items.find((e) => e.id === home.lastId) ?? null : null;
@@ -150,6 +160,8 @@ export default function HomeScreen() {
 
 function HeroVideo() {
   const player = useVideoPlayer(heroVideo, (p) => { p.loop = true; p.muted = true; p.play(); });
+  // Manche Simulatoren/Builds starten den Player erst, wenn die Ansicht steht (Antons Befund 12.09.: Faultier stand still).
+  useEffect(() => { player.loop = true; player.muted = true; player.play(); }, [player]);
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 

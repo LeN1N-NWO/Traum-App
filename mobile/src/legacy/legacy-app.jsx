@@ -19,7 +19,8 @@ import App from "../../../src/App.jsx";
 const ROUTES = { home: "/", journal: "/journal", dream: "/dream", sleep: "/sleep", profile: "/profile" };
 
 // `dom` steuert den Webview (Expo) und wird hier nur für die Typen entgegengenommen.
-export default function LegacyApp({ screen = "home", view, focusTick = 0, dom }) {
+export default function LegacyApp({ screen = "home", view, focusTick = 0, safeTop = 0, safeBottom = 0, dom }) {
+  if (typeof globalThis.__setSafeArea === "function") globalThis.__setSafeArea(safeTop, safeBottom);
   // HashRouter liest location.hash beim Aufbau — also vor dem ersten Render
   // setzen. `view` (Schlaf-Abschnitt, Atlas) reist wie im Web im
   // Router-Zustand: React Routers Hash-History liest history.state.usr.

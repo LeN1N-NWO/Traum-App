@@ -14,7 +14,8 @@ import "./legacy.css";
 import { useRef } from "react";
 import App from "../../../src/App.jsx";
 
-export default function LegacyOrder({ order, dom }) {
+export default function LegacyOrder({ order, safeTop = 0, safeBottom = 0, dom }) {
+  if (typeof globalThis.__setSafeArea === "function") globalThis.__setSafeArea(safeTop, safeBottom);
   const started = useRef(false);
   if (!started.current) {
     started.current = true;

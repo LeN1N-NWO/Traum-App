@@ -68,7 +68,7 @@ export default function ProfileScreen() {
         {p?.title ?? "Profile"}
       </Stack.Screen.Title>
       <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button onPress={() => open("paywall")}>{p ? `✦ ${p.credits} ${p.creditsWord}` : ""}</Stack.Toolbar.Button>
+        <Stack.Toolbar.Button onPress={() => { Haptics.selectionAsync(); router.push({ pathname: "/profile/paywall", params: { reason: "browse" } }); }}>{p ? `✦ ${p.credits} ${p.creditsWord}` : ""}</Stack.Toolbar.Button>
       </Stack.Toolbar>
       <View style={styles.bridge}>{bridge}</View>
     </>

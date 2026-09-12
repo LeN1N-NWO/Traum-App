@@ -1,5 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import type { WizardPreset } from "@/store/journal-store";
@@ -34,6 +35,7 @@ export function PresetTile({ preset, active, onPress }: { preset: WizardPreset; 
 
 function Clip({ url }: { url: string }) {
   const player = useVideoPlayer(url, (p) => { p.loop = true; p.muted = true; p.play(); });
+  useEffect(() => { player.loop = true; player.muted = true; player.play(); }, [player]);
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 

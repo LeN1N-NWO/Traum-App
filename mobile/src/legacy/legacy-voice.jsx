@@ -14,7 +14,8 @@ import { AppStateProvider } from "../../../src/state/AppState.jsx";
 import { ToastBridge } from "../../../src/App.jsx";
 import VoiceInterview from "../../../src/wizard/VoiceInterview.jsx";
 
-export default function LegacyVoice({ onDone, onCancel, dom }) {
+export default function LegacyVoice({ onDone, onCancel, safeTop = 0, safeBottom = 0, dom }) {
+  if (typeof globalThis.__setSafeArea === "function") globalThis.__setSafeArea(safeTop, safeBottom);
   return (
     <AppStateProvider>
       <HashRouter>

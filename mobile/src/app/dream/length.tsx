@@ -25,7 +25,7 @@ export default function DreamLengthScreen() {
   const creditWord = W ? (price === 1 ? W.credit1 : W.creditN) : "credits";
 
   function order() {
-    if (!affordable) { router.push({ pathname: "/profile/page", params: { page: "paywall" } }); return; }
+    if (!affordable) { router.push({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     patchWizard({ seconds, orderId: "o_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) });
     router.push("/dream/order");
@@ -88,7 +88,7 @@ export default function DreamLengthScreen() {
           <Text style={styles.primaryText}>{W?.generate ?? "Create it"} · {price} {creditWord}</Text>
         </Pressable>
         {!affordable ? (
-          <Pressable onPress={() => router.push({ pathname: "/profile/page", params: { page: "paywall" } })}>
+          <Pressable onPress={() => router.push({ pathname: "/dream/paywall", params: { reason: "spent" } })}>
             <Text style={[styles.hint, { color: colors.accentSoft }]}>{W?.noCredits}</Text>
           </Pressable>
         ) : null}

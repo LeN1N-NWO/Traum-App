@@ -83,7 +83,7 @@ export default function DreamCastScreen() {
                   <Text style={styles.optText} numberOfLines={1}>{L.free}</Text>
                 </Pressable>
                 {/* Neu anlegen — mit Foto aus Kamera oder Mediathek (Web-Dialog). */}
-                <Pressable style={styles.opt} onPress={() => { Haptics.selectionAsync(); router.push({ pathname: "/profile/page", params: { page: "avatar", category: kind, tag: row.name } }); }}>
+                <Pressable style={styles.opt} onPress={() => { Haptics.selectionAsync(); router.push({ pathname: "/dream/avatar", params: { category: kind, tag: row.name } }); }}>
                   <View style={[styles.optImg, styles.thumbEmpty]}><SymbolView name="camera.fill" size={20} tintColor={colors.accentSoft} /></View>
                   <Text style={styles.optText} numberOfLines={1}>{L.createNew}</Text>
                 </Pressable>

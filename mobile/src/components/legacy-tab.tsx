@@ -1,5 +1,6 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LegacyApp from "@/legacy/legacy-app";
 
 /* Ein nativer Bildschirm, in dem ein Bildschirm der alten Oberfläche läuft.
@@ -8,12 +9,15 @@ import LegacyApp from "@/legacy/legacy-app";
    einen Abschnitt darin (Schlaf: checklist/sounds/guide/symbols). */
 export function LegacyTab({ screen, view }: { screen: "home" | "journal" | "dream" | "sleep" | "profile"; view?: string }) {
   const [tick, setTick] = useState(0);
+  const insets = useSafeAreaInsets();
   useFocusEffect(useCallback(() => { setTick((t) => t + 1); }, []));
   return (
     <LegacyApp
       screen={screen}
       view={view}
       focusTick={tick}
+      safeTop={insets.top}
+      safeBottom={insets.bottom}
       dom={{
         style: { flex: 1, backgroundColor: "#0a0d16" },
         contentInsetAdjustmentBehavior: "never",

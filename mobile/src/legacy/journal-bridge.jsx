@@ -31,6 +31,8 @@ import { genId } from "../../../src/lib/storage.js";
 import { newCreature } from "../../../src/lib/creatures.js";
 import { IMAGE_COUNTS, priceForImages } from "../../../src/lib/pricing.js";
 import { priceForFilm } from "../../../src/lib/video.js";
+import { SUBSCRIPTIONS, PACKS, dreamsFor } from "../../../src/lib/plans.js";
+import { showcaseFrom } from "../../../src/lib/showcase.js";
 import { filmsOf, filmOf, imagesOf } from "../../../src/lib/entryMedia.js";
 import { isBlank } from "../../../src/lib/blankNight.js";
 import { mediaUrl } from "../../../src/lib/api.js";
@@ -122,6 +124,16 @@ function snapshot() {
   const sleep = {
     title: t.sleep.title, subtitle: t.sleep.subtitle, free: t.sleep.free,
     tiles: ["checklist", "sounds", "guide", "symbols"].map((id) => ({ id, title: t.sleep.tiles[id].title, text: t.sleep.tiles[id].text })),
+    /* Das Mischpult (nativ, components/sound-mixer.tsx): Texte und die
+       gespeicherte Mischung. Der Browser-Hinweis zum Autostart entfällt —
+       nativ startet der Klang ohne Geste. */
+    sounds: {
+      lede: t.sleep.sounds.lede, names: t.sleep.sounds.names, descs: t.sleep.sounds.descs,
+      timer: t.sleep.sounds.timer, timerOff: t.sleep.sounds.timerOff,
+      timerMin: Object.fromEntries([15, 30, 60].map((m) => [m, t.sleep.sounds.timerMin(m)])),
+      autoStart: t.sleep.sounds.autoStart, background: t.sleep.sounds.background,
+      mix: s.soundMix ? { volumes: s.soundMix.volumes || {}, timer: s.soundMix.timer || 0, autoStart: !!s.soundMix.autoStart } : null,
+    },
   };
   const profile = {
     title: t.profile.title, name: s.me?.tag || t.profile.you, img: s.me?.img || null,
@@ -188,7 +200,33 @@ function snapshot() {
     imagesFrom: priceForImages(Math.min(...IMAGE_COUNTS)), filmFrom: priceForFilm("standard", 5), steps: 6 };
   const dream = { ...step2, interview: t.dream.interview, interviewHint: t.dream.interviewHint, or: t.dream.or, label: t.dream.label,
     placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
-  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal };
+  /* Das Kaufblatt (Paywall.jsx), vorgerechnet: Texte sind im Web zum Teil
+     Funktionen, über die Brücke gehen nur Strings. NUR Filme — Bilder sind
+     seit dem 12.09. aus dem Angebot (Antons Ansage: „mit den Bildern die
+     Rede… das haben wir komplett gekickt"). Ertrag je Tarif aus dreamsFor(),
+     also aus derselben Quelle wie der Preis. */
+  const pw = t.paywall;
+  const filmsLine = (n) => (n > 0 ? `${pw.upTo} ${n} ${pw.yieldFilms(n)}` : "");
+  const show = showcaseFrom(s.journal, null);
+  const paywall = {
+    title: pw.title, close: pw.close, brand: "Dream Rushes", plus: "PLUS",
+    headlineFor: { browse: pw.headlineFor.browse, spent: pw.headlineFor.spent, first: pw.headlineFor.first },
+    ledeFor: { browse: pw.lede, spent: pw.ledeFor.spent, first: pw.ledeFor.first },
+    tabSub: pw.tabSub, tabPack: pw.tabPack, packNote: pw.packNote, yieldYearNote: pw.yieldYearNote,
+    included: pw.included, chips: pw.chips, freeNote: pw.freeNote, cta: pw.cta, notYet: pw.notYet, upTo: pw.upTo,
+    balance: pw.balance(totalCredits(s)), credits: totalCredits(s),
+    subs: SUBSCRIPTIONS.map((p) => {
+      const films = dreamsFor(p.credits * (p.period === "year" ? 12 : 1)).films;
+      return { id: p.id, price: p.price, per: pw.per[p.period], name: pw.periodName[p.period], badge: p.saveHint ? pw.save(p.saveHint) : null,
+        sub: pw.creditsPer(p.credits, pw.periodUnit[p.period]), films, filmsLine: filmsLine(films), filmsWord: pw.yieldFilms(films), featured: !!p.featured, yearly: p.period === "year" };
+    }),
+    packs: PACKS.map((p) => {
+      const films = dreamsFor(p.credits).films;
+      return { id: p.id, price: p.price, per: pw.oneTime, name: pw.packName(p.credits), badge: null, sub: filmsLine(films) || pw.packNote, films, filmsLine: filmsLine(films), filmsWord: pw.yieldFilms(films), featured: p.id === "pack-m", yearly: false };
+    }),
+    films: (show.films || []).map(absolute), filmsBackup: (show.filmsBackup || []).map(absolute),
+  };
+  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall };
 }
 
 /* Befehle nativ → Web: Die Hülle kann den Web-Speicher nicht schreiben, also
@@ -241,6 +279,7 @@ function run(cmd) {
   else if (cmd.type === "checkin") patch = { checkins: setCheckin(s.checkins, cmd.level) };
   else if (cmd.type === "refreshStreak") { const f = refreshStreak(s); if (f.streak !== s.streak) patch = f; }
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
+  else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };
   else if (cmd.type === "saveDream") {
     /* Nur speichern (Step2Output.saveOnly): kein Render, keine Kosten, mit
        Wesen und Serie — dieselbe Reihenfolge wie im Web. */

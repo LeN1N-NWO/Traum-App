@@ -24,7 +24,8 @@ function Page({ page, category, tag, onClose }) {
   return null;
 }
 
-export default function LegacyPage({ page, category, tag, onClose, dom }) {
+export default function LegacyPage({ page, category, tag, onClose, safeTop = 0, safeBottom = 0, dom }) {
+  if (typeof globalThis.__setSafeArea === "function") globalThis.__setSafeArea(safeTop, safeBottom);
   return (
     <AppStateProvider>
       <HashRouter>
