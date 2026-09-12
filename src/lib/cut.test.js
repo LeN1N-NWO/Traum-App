@@ -3,7 +3,7 @@ import {
   beatMeta, signatureIndex, minKern, minAlles, selectBeats, shotPlan,
   recommendation, beruehrt, MIN_SHOT_SECONDS, HOOKS,
 } from "./cut.js";
-import { shotBudget, beatBudget, filmPace, videoModel } from "./video.js";
+import { shotBudget, beatBudget, filmPace, videoModel, PACE_IDS } from "./video.js";
 
 /* Der Zahntraum aus dem Trockenlauf (DreamBank van:101, Bericht vom
  * 03.09.2026). Er ist der Grund, warum es diese Datei gibt: Sechs seiner
@@ -258,13 +258,32 @@ describe("das Budget kommt vom Modell", () => {
   });
 });
 
-/* ── Die drei Tempi (Antons Ansage 03.09.2026) ──────────────────────────
-   „Die einzelnen Shots sind zu lang … maximal zwei Sekunden, somit sieben
-   Shots" — und als Gegenstück ein Film ganz ohne Schnitt, in dem alles
-   ineinander übergeht. */
+/* ── Die Tempi ──────────────────────────────────────────────────────────
+   03.09.2026: drei Tempi (ruhig, schnell, Fluss). Seit 12.09.2026 (Antons
+   Ansage: „eigentlich gibt es nur den Unterschied mit Schnitten oder
+   fließend — und ich will immer den vollen Traum im Video") nur noch zwei:
+   mit Schnitten nimmt ALLE Szenen, die Länge macht das Tempo; shotBudget
+   sagt nur noch, welche Länge zum Traum passt. */
 describe("Tempo", () => {
-  test("fast packs seven shots into fifteen seconds, calm three", () => {
-    expect(shotBudget("standard", 15, "fast")).toBe(7);
+  test("only two paces are offered; the old fast id still resolves", () => {
+    expect(PACE_IDS).toEqual(["calm", "flow"]);
+    expect(filmPace("fast").cuts).toBe(true);
+  });
+
+  test("cuts keep every scene — the length only sets how tight the blocks get", () => {
+    expect(beatBudget("standard", 10, "calm")).toBe(Number.POSITIVE_INFINITY);
+    const alle = selectBeats(ZAHNTRAUM, beatBudget("standard", 10, "calm"));
+    expect(alle).toHaveLength(ZAHNTRAUM.beats.length);
+    const kurz = shotPlan(ZAHNTRAUM, alle, 10, filmPace("calm").minShot);
+    const lang = shotPlan(ZAHNTRAUM, alle, 30, filmPace("calm").minShot);
+    expect(kurz).toHaveLength(ZAHNTRAUM.beats.length);
+    expect(kurz[kurz.length - 1].to).toBe(10);
+    expect(lang[lang.length - 1].to).toBe(30);
+    const mean = (p) => p.reduce((s, b) => s + (b.to - b.from), 0) / p.length;
+    expect(mean(kurz)).toBeLessThan(mean(lang));
+  });
+
+  test("shotBudget still tells how many cuts a length carries comfortably", () => {
     expect(shotBudget("standard", 15, "calm")).toBe(3);
   });
 
@@ -299,11 +318,11 @@ describe("Tempo", () => {
     expect(shotBudget("standard", 15, "quatsch")).toBe(shotBudget("standard", 15, "calm"));
   });
 
-  test("a fast plan really does hold two-second blocks", () => {
-    const sel = selectBeats(ZAHNTRAUM, shotBudget("standard", 15, "fast"));
-    const plan = shotPlan(ZAHNTRAUM, sel, 15, filmPace("fast").minShot);
-    expect(plan.length).toBe(7);
-    for (const s of plan) expect(s.to - s.from).toBeGreaterThanOrEqual(2);
+  test("every block keeps at least one whole second, however many scenes", () => {
+    const alle = ZAHNTRAUM.beats.map((_, i) => i);
+    const plan = shotPlan(ZAHNTRAUM, alle, 15, filmPace("calm").minShot);
+    expect(plan.length).toBe(ZAHNTRAUM.beats.length);
+    for (const s of plan) expect(s.to - s.from).toBeGreaterThanOrEqual(1);
     expect(plan[plan.length - 1].to).toBe(15);
   });
 

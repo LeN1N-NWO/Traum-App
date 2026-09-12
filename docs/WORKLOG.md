@@ -3,6 +3,65 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 17:00 — Anton — Branch `session/2026-09-12-anton` — Sitzungsabschluss (wrap, Merge auf Antons Wort)
+
+**Commits:** siehe `git log main..HEAD` vor dem Merge — Aufnahme sicher am
+Traum + Prompt-Nachschau, Szenen-Empfehlung, Poster nach dem Film, dann
+Antons Schnitt-Regel (immer der ganze Traum, zwei Tempi, Poster 1:1).
+
+**Was der Nächste wissen muss:** Poster-Weg (`finishPoster`, Zustand
+„posting" am Auftrag) und die neue Schnitt-Regel sind am ECHTEN Auftrag
+ungeprüft — der nächste bestellte Film zeigt beides; sein finaler Prompt
+liegt in `media/jobs/<id>.json`. Poster-Kosten (~6 Cent, 1024×1024 medium)
+noch nicht in `quote.js`. Lint mobile 0 Fehler, Web 564 Tests grün.
+
+## 2026-09-12 16:20 — Anton — Branch `session/2026-09-12-anton` — Dino-Traum nachvollzogen, Poster nach dem Film, Aufnahme sicher am Traum
+
+**Antons Fragen:** Welcher finale Prompt ging beim Dino-Traum raus, warum
+war der Film „1:1 statt der ganzen Geschichte"? Dazu: die Aufnahme soll im
+Journal hörbar sein; Poster-Ablauf „Film rendern, erstes Bild als
+Inspiration ans Bildmodell".
+
+**Befund Dino-Traum** (`media/jobs/mtyde59hph08go.json`, Eintrag
+`e_mtydck1hzykqgu`): H3 (standard), 10 s, Tempo ruhig, Stil Knete. Der
+Prompt selbst war NICHT gespeichert (nur „director wrote 5468 chars"). Die
+Rechnung aber ist deterministisch: shotBudget(H3, 10 s, calm) = **2**, die
+Analyse hat **6** Szenen mit Kern 14 s — der Schnitt (cut.js) nahm die zwei
+schwersten (Dino kommt, Seil). Der Regie-Brief (nachgebaut mit
+`buildDirectorBrief`) verlangte „1 hard cut at 00:04.000". Kein Bug, ein
+fehlender Hinweis: die Szenen-Empfehlung aus dem Web stand nativ nicht
+unter dem Regler.
+
+- **Szenen-Empfehlung im Längen-Schritt** (`dream/length.tsx`, wie
+  Step5Style: „2 von 6 Szenen passen … bei 15 s wären es 3"), Vorlagen mit
+  Platzhaltern über die Brücke.
+- **Finaler Film-Prompt wird gespeichert** (`media/jobs/<id>.json`:
+  `prompt`, `promptChars`, `seconds`) — nur lokal, nie im Repo.
+- **Aufnahme sicher am Traum:** `attachAudio` lief im Brücken-Webview des
+  Auftrags-Bildschirms, der im selben Tick verschwand → nie angekommen.
+  Jetzt 900 ms Aufschub vor dem Weg ins Journal; ohne id nimmt die Brücke
+  den jüngsten Traum.
+- **Poster nach dem Film** (`src/lib/poster.js`, server `finishPoster`):
+  Film fertig → Auftrag „posting" → ffmpeg zieht das erste Bild → GPT
+  Image 2 (edit, 1024×1536) mit Poster-Prompt (Regeln des alten
+  buildPosterPrompt aus `13bd9b0`, plus „Image 1 ist Inspiration, nicht
+  Vorlage") → `posterUrl` am Auftrag → Abholer schreibt `entry.poster` →
+  Kachel zeigt das Poster (Brücke `media`). Titel/Tagline schickt Step5
+  jetzt mit. Nach 150 s ohne Poster wird der Film ohne fertig. Probe mit
+  dem Dino-Film: 31 s, Poster stimmig (Tagline oben, Titel unten, Knete).
+  ⚠ Kosten (~5 Cent, medium 1024×1536) noch NICHT im Filmpreis (quote.js).
+  ⚠ Der Server-Weg selbst ist ungeprüft — erst der nächste echte Film.
+- **Antons Ansage danach (12.09., dritte Runde):** Poster **1:1** („2:3
+  sieht aus wie 9:16"); **nur zwei Tempi** — mit Schnitten oder fließend —
+  und **immer der ganze Traum** im Film, egal wie kurz: `beatBudget` gibt
+  beim Schnitt jetzt alle Szenen, `shotPlan` verteilt die Sekunden nach
+  Gewicht (Untergrenze weicht), der Regie-Brief schaltet unter 2,5 s je
+  Block auf die Kurz-Regie. `fast` bleibt als Alias, wird nicht angeboten;
+  `calm` heißt „Mit Schnitten". Der Längen-Schritt wählt die empfohlene
+  Länge der Analyse (`filmSeconds`) vor, solange niemand den Regler bewegt
+  hat, und sagt „Alle 6 Szenen in 10 s — etwa 1,7 s je Szene. Empfohlen:
+  14 s." Zwei Tests auf die neue Regel umgeschrieben (cut.test.js).
+
 ## 2026-09-12 15:10 — Anton — Branch `session/2026-09-11-anton-expo` — Sitzungsabschluss (wrap)
 
 **Commits der Sitzung:** 45 auf `main..HEAD`, zuletzt `28c8894` (Aufnahme

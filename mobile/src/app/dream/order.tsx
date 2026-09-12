@@ -53,11 +53,17 @@ export default function DreamOrderScreen() {
     if (mine.rendering) {
       done.current = true;
       showToast(W?.queuedNote ?? "");
-      resetWizard();
-      if (firstDream.current) send({ type: "paywallSeen" });
-      router.dismissAll();
-      router.navigate("/journal");
-      if (firstDream.current) setTimeout(() => router.push({ pathname: "/journal/paywall", params: { reason: "first" } }), 900);
+      const first = firstDream.current;
+      if (first) send({ type: "paywallSeen" });
+      /* Nicht sofort weg: der Befehl (Aufnahme anhaengen) laeuft im
+         Bruecken-Webview DIESES Bildschirms. Verschwindet er im selben
+         Tick, haengt die Aufnahme nie am Traum (Antons Befund 12.09.). */
+      setTimeout(() => {
+        resetWizard();
+        router.dismissAll();
+        router.navigate("/journal");
+        if (first) setTimeout(() => router.push({ pathname: "/journal/paywall", params: { reason: "first" } }), 900);
+      }, w.audioUrl ? 900 : 50);
     } else if (mine.failReason || !mine.pending) {
       setShowWeb(true);
     }

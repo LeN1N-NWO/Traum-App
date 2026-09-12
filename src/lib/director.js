@@ -178,7 +178,11 @@ export function buildDirectorBrief({ dream, still, beats = [], shots = [], refs 
       + `No fades, no dissolves, no black frames, no cross-cutting: the change happens IN the world, not between two pictures of it. `
       + `Dream logic is the licence here — a transformation needs to be visually continuous, not physically possible.`);
   } else if (plan.length) {
-    const schnell = pace === "fast";
+    /* Schnell ist, was kurz ist: Seit 12.09. kommen ALLE Szenen in den Film,
+       und ob die Bloecke eng werden, entscheidet Sekunden geteilt durch
+       Szenen — nicht ein Tempo-Name. Unter 2,5 s je Block gilt die
+       Kurz-Regie (eine Bewegung, spaet rein, frueh raus). */
+    const schnell = pace === "fast" || seconds / plan.length < 2.5;
     const zeile = (s, i) => (timeFormat === "ms"
       ? (i === 0
         ? `[Shot 1] ${s.text}`

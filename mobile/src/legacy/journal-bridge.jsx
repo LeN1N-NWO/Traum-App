@@ -70,7 +70,10 @@ function snapshot() {
         title: e.title || "",
         tagline: e.tagline || "",
         text: e.text || "",
-        media: film ? { kind: "film", url: absolute(film) } : images[0] ? { kind: "image", url: images[0] } : null,
+        /* Die Kachel: das Poster (nach dem Film, Antons Ablauf 12.09.), sonst
+           der Film als Standbild, sonst das erste Bild. */
+        media: e.poster ? { kind: "image", url: absolute(e.poster) } : film ? { kind: "film", url: absolute(film) } : images[0] ? { kind: "image", url: images[0] } : null,
+        poster: e.poster ? absolute(e.poster) : null,
         pending,
         /* Für die native Auftragsseite: Auftrag abgegeben (Nummer hängt am
            Traum) bzw. gescheitert (Grund aus falError.js, als Satz). */
@@ -215,6 +218,13 @@ function snapshot() {
     tooShort: t.wizard.tooShort, previewTitle: t.wizard.step1.previewTitle, previewLede: t.wizard.step1.previewLede,
     yours: t.wizard.step1.yours, improved: t.wizard.step1.improved, keepMine: t.wizard.step1.keepMine, useImproved: t.wizard.step1.useImproved,
     styleTitle: w5.title, styleLabel: w5.styleLabel, useStyle: w5.useStyle, moreStyles: w5.moreStyles(PRESETS.filter((p) => p.id !== DREAMFLOW && !styleById(p.styleId)?.featured).length),
+    /* Die Szenen-Empfehlung (Step5Style: recommendation aus cut.js) — im
+       Web stand sie unter dem Regler, nativ fehlte sie: Anton bestellte
+       10 s H3 fuer sechs Szenen und bekam zwei (12.09.). Vorlagen mit
+       Platzhaltern 1000/2000, nativ ersetzt. */
+    cutOneShot: w5.cutOneShot, cutAll: w5.cutAll(1000), cutSome: w5.cutSome(1000, 2000), cutMoreAt: w5.cutMoreAt(1000, 2000),
+    cutTwoParter: w5.cutTwoParter, flowAll: w5.flowAll(1000), flowFast: w5.flowFast(1000),
+    cutAllIn: w5.cutAllIn(1000, 2000, 3000), cutRecommend: w5.cutRecommend(1000),
     lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
     readPrice: PRICES.improve, noCredits: t.wizard.noCreditsCta,
     /* Die native Auftragsseite (dream/order.tsx): Sätze fürs Abgeben,
@@ -375,7 +385,11 @@ function run(cmd) {
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };
   else if (cmd.type === "sleepCheck") patch = { sleepCheck: { date: cmd.date, done: cmd.done || [] } };
-  else if (cmd.type === "attachAudio") patch = { journal: (s.journal || []).map((e) => (e.id === cmd.id ? { ...e, audio: { url: cmd.audioUrl } } : e)) };
+  else if (cmd.type === "attachAudio") {
+    const j = s.journal || [];
+    const target = cmd.id || (j.length ? j[j.length - 1].id : null);   // ohne id: der juengste Traum
+    patch = { journal: j.map((e) => (e.id === target ? { ...e, audio: { url: cmd.audioUrl } } : e)) };
+  }
   else if (cmd.type === "consent") patch = consentPatch();
   else if (cmd.type === "paywallSeen") patch = { paywallSeen: true };
   else if (cmd.type === "deleteDream") patch = { journal: (s.journal || []).filter((e) => e.id !== cmd.id) };

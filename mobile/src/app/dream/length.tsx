@@ -1,6 +1,7 @@
 import { Host, Slider } from "@expo/ui/swift-ui";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { useEffect, useRef } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
@@ -9,7 +10,7 @@ import { patchWizard, useWizardStore } from "@/store/wizard-store";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 // Dieselbe Preisrechnung wie Wizard und Server (src/lib/quote.js, reine Logik).
 import { quoteFor } from "../../../../src/lib/quote.js";
-import { clampSeconds } from "../../../../src/lib/video.js";
+import { clampSeconds, flowStationSeconds, FLOW_MIN_STATION } from "../../../../src/lib/video.js";
 
 /* Schritt 3, nativ: Modell, Qualität, Tempo, Länge — und der Preis auf dem
    Knopf. Der Auftrag läuft danach im Web-Motor (order.tsx). */
@@ -24,6 +25,36 @@ export default function DreamLengthScreen() {
   const credits = data?.profile.credits ?? 0;
   const affordable = credits >= price;
   const creditWord = W ? (price === 1 ? W.credit1 : W.creditN) : "credits";
+
+  /* Was von der Geschichte in den Film passt — dieselbe Rechnung wie im
+     Web (Step5Style: shotBudget/beatBudget + recommendation). Ohne diese
+     Zeile bestellt man 10 s fuer sechs Szenen und wundert sich ueber zwei. */
+  /* Seit 12.09. (Antons Ansage) kommt IMMER der ganze Traum in den Film:
+     die Zeile sagt, wie eng es wird, und nennt die Laenge, die die Analyse
+     empfiehlt (filmSeconds, der Kern). Beim ersten Betreten wird diese
+     Empfehlung vorausgewaehlt — der Regler steht dann schon richtig. */
+  const recommended = model && w.analysis?.filmSeconds ? clampSeconds(model.id, Number(w.analysis.filmSeconds)) : null;
+  const preset = useRef(false);
+  useEffect(() => {
+    if (preset.current || !recommended) return;
+    preset.current = true;
+    if (!w.secondsTouched) patchWizard({ seconds: recommended });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recommended]);
+  const fit = (() => {
+    const a = w.analysis; if (!a?.beats?.length || !model || !W) return null;
+    const fill = (tpl: string, k: number | string, n?: number | string, m?: number | string) => tpl.replace("1000", String(k)).replace("2000", String(n ?? "")).replace("3000", String(m ?? ""));
+    const n = a.beats.length;
+    let line: string;
+    if (w.pace === "flow") {
+      const per = flowStationSeconds(model.id, seconds, n);
+      line = per < FLOW_MIN_STATION ? fill(W.flowFast, Math.ceil(n * FLOW_MIN_STATION)) : fill(W.flowAll, n);
+    } else {
+      line = fill(W.cutAllIn, n, seconds, (Math.round((seconds / n) * 10) / 10).toString().replace(".", ","));
+    }
+    if (recommended && recommended !== seconds) line += " " + fill(W.cutRecommend, recommended);
+    return line;
+  })();
 
   function order() {
     if (!affordable) { router.push({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
@@ -79,8 +110,9 @@ export default function DreamLengthScreen() {
           <>
             <View style={styles.secondsRow}><Text style={styles.label}>{W?.lengthLabel}</Text><Text style={styles.seconds}>{seconds} s</Text></View>
             <Host style={{ width: "100%", height: 44 }}>
-              <Slider value={seconds} min={model.min} max={model.max} step={model.step} onValueChange={(v) => patchWizard({ seconds: clampSeconds(model.id, v) })} />
+              <Slider value={seconds} min={model.min} max={model.max} step={model.step} onValueChange={(v) => patchWizard({ seconds: clampSeconds(model.id, v), secondsTouched: true })} />
             </Host>
+            {fit ? <Text style={styles.fit}>{fit}</Text> : null}
           </>
         ) : null}
 
@@ -98,6 +130,7 @@ export default function DreamLengthScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: TAB_INSET, gap: 12 },
+  fit: { color: colors.accentSoft, fontSize: 14, lineHeight: 20, marginTop: -2 },
   title: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 34, color: colors.text, marginTop: 8 },
   label: { color: colors.faint, fontSize: 11, letterSpacing: 1.8, fontWeight: "600", textTransform: "uppercase", marginTop: 8 },
   row: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
