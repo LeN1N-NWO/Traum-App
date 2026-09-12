@@ -249,10 +249,14 @@ export default function Step5Style({ w, patch }) {
           tagline: (w.tagline || "").trim(),
           media: { type: "image", urls: [], source: "none" },
           creatureId: creature.id,
+          // Die eingesprochene Aufnahme (ADR-0007): wartet im Zustand, seit
+          // die native Huelle sie hochgeladen hat — hier gehoert sie hin.
+          ...(prev.pendingAudioUrl ? { audio: { url: prev.pendingAudioUrl } } : {}),
           ...commonFields,
         }],
         creatures: [...(prev.creatures || []), creature],
         ...bumpStreak(prev),
+        pendingAudioUrl: null,
       }));
       patch({ entryId });
     } else {

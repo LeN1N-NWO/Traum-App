@@ -19,7 +19,8 @@ import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend } from "../../../src/lib/credits.js";
-import { analyze } from "../../../src/lib/api.js";
+import { analyze, reflect } from "../../../src/lib/api.js";
+import { reflectionContext } from "../../../src/lib/atlas.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
 import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
@@ -133,7 +134,7 @@ function snapshot() {
     lastHeading: t.home.lastHeading, blankCta: t.home.blankCta, blankHint: t.home.blankHint, blankDone: t.home.blankDone,
     soundsShortcut: t.home.soundsShortcut, checkinQuestion: t.checkin.question, checkinThanks: t.checkin.thanks,
     untitled: t.journal.untitled, takes: t.journal.takesLabel, reflectTitle: t.journal.reflectTitle,
-    reflectNote: t.journal.reflectNote, original: t.journal.original, rendering: t.journal.filmRendering,
+    reflectNote: t.journal.reflectNote, reflectCta: t.journal.reflectCta, original: t.journal.original, rendering: t.journal.filmRendering,
     share: t.journal.actShare, more: t.journal.menu, makeFilm: t.journal.makeFilm, anotherTake: t.journal.makeFilmAgain,
     dreams: t.journal.title,
     /* Das „…"-Menü der Traum-Seite (EntryMenu.jsx) als natives Aktionsblatt. */
@@ -362,6 +363,20 @@ async function runAsync(cmd, onResult) {
     } });
     return true;
   }
+  if (cmd.type === "reflect") {
+    const s = loadState();
+    const e = (s.journal || []).find((x) => x.id === cmd.id);
+    if (!e) { onResult({ n: cmd.n, error: "notfound" }); return true; }
+    try {
+      const text = await reflect(e.text, reflectionContext(s.journal, e), s.language);
+      const now = loadState();
+      saveState({ ...now, journal: (now.journal || []).map((x) => (x.id === e.id ? { ...x, reflection: { text, at: new Date().toISOString() } } : x)) });
+      onResult({ n: cmd.n, result: { text } });
+    } catch (err) {
+      onResult({ n: cmd.n, error: err?.message || String(err) });
+    }
+    return true;
+  }
   if (cmd.type !== "analyze") return false;
   const s = loadState();
   const paid = spend(s, PRICES.improve);
@@ -388,7 +403,7 @@ function run(cmd) {
   else if (cmd.type === "attachAudio") {
     const j = s.journal || [];
     const target = cmd.id || (j.length ? j[j.length - 1].id : null);   // ohne id: der juengste Traum
-    patch = { journal: j.map((e) => (e.id === target ? { ...e, audio: { url: cmd.audioUrl } } : e)) };
+    patch = { journal: j.map((e) => (e.id === target ? { ...e, audio: { url: cmd.audioUrl } } : e)), pendingAudioUrl: null };
   }
   else if (cmd.type === "consent") patch = consentPatch();
   else if (cmd.type === "paywallSeen") patch = { paywallSeen: true };
@@ -404,10 +419,11 @@ function run(cmd) {
       id: genId("e"), createdAt: new Date().toISOString(), text: cmd.text, originalText: cmd.originalText || cmd.text,
       title: (cmd.title || "").trim() || creature.title, tagline: (cmd.tagline || "").trim(), mode: "save",
       media: { type: "image", urls: [], source: "none" }, analysis: cmd.analysis || null, references: [], creatureId: creature.id,
-      ...(cmd.audioUrl ? { audio: { url: cmd.audioUrl } } : {}),
+      ...((cmd.audioUrl || s.pendingAudioUrl) ? { audio: { url: cmd.audioUrl || s.pendingAudioUrl } } : {}),
     };
-    patch = { journal: [...(s.journal || []), entry], creatures: [...(s.creatures || []), creature], ...bumpStreak(s) };
+    patch = { journal: [...(s.journal || []), entry], creatures: [...(s.creatures || []), creature], ...bumpStreak(s), pendingAudioUrl: null };
   }
+  else if (cmd.type === "pendingAudio") patch = { pendingAudioUrl: cmd.audioUrl || null };
   if (patch) saveState({ ...s, ...patch });
 }
 
