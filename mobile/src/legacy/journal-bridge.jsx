@@ -25,6 +25,8 @@ import { styleById } from "../../../src/lib/styles.js";
 import { autoMatch } from "../../../src/wizard/useWizard.js";
 import { blankDays, localDateKey } from "../../../src/lib/dreamDays.js";
 import { reminderWish, reminderState, MAX_PER_DAY, DEFAULT_PER_DAY } from "../../../src/lib/reminders.js";
+import { VOICES, DEFAULT_VOICE, isVoice } from "../../../src/lib/voices.js";
+import { withdrawPatch } from "../../../src/lib/consent.js";
 import { MILESTONES, nextMilestone, giftAt } from "../../../src/lib/streakBoard.js";
 import { nextSnoozeIn } from "../../../src/lib/streak.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
@@ -162,6 +164,22 @@ function snapshot() {
     dreams: (s.journal || []).length, streak, statDreams: t.profile.statDreams, statStreak: t.profile.statStreak,
     settings: t.profile.settings, surveyDone: !!s.surveyDone,
     surveyTitle: t.onboarding.profileCard, surveyHint: t.onboarding.profileCardHint,
+    /* Einstellungen (Settings.jsx) und Stimmwahl (VoicePicker.jsx), nativ:
+       Zeilen, Stimmenliste mit Hörprobe vom Server (voice-sample, dieselbe
+       Quelle wie die Live-Sitzung), die Rechtstexte. */
+    settingsPage: {
+      voiceSetting: t.profile.voiceSetting, voiceSettingHint: t.profile.voiceSettingHint,
+      withdrawConsent: t.profile.withdrawConsent, withdrawConsentHint: t.profile.withdrawConsentHint, done: t.profile.done,
+      voice: isVoice(s.voice) ? s.voice : DEFAULT_VOICE,
+      voices: VOICES.map((v) => ({ id: v.id, trait: t.voice.traits[v.trait] || v.trait })),
+      pickTitle: t.voice.pickTitle, pickHint: t.voice.pickHint, pickGo: t.voice.pickGo, cancel: t.voice.cancel,
+      sampleBase: API_BASE + "/api/voice-sample",
+      legal: {
+        close: t.legal.close, updated: t.legal.updated, draftNote: t.legal.draftNote,
+        terms: { title: t.legal.terms.title, sections: t.legal.terms.sections },
+        privacy: { title: t.legal.privacy.title, sections: t.legal.privacy.sections },
+      },
+    },
     /* Die Träumer-Karte (DreamerCard.jsx): was die Person dem Assistenten
        erzählt hat — Zeichen, Fakten, wiederkehrende Themen. */
     dreamer: (() => {
@@ -301,6 +319,8 @@ function run(cmd) {
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };
   else if (cmd.type === "sleepCheck") patch = { sleepCheck: { date: cmd.date, done: cmd.done || [] } };
+  else if (cmd.type === "voice") { if (isVoice(cmd.value)) patch = { voice: cmd.value }; }
+  else if (cmd.type === "withdraw") patch = withdrawPatch();
   else if (cmd.type === "reminders") patch = { reminders: { ...(s.reminders || {}), ...reminderWish(!!cmd.wants, cmd.perDay || DEFAULT_PER_DAY) } };
   else if (cmd.type === "saveDream") {
     /* Nur speichern (Step2Output.saveOnly): kein Render, keine Kosten, mit

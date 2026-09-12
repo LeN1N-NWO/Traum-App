@@ -56,7 +56,7 @@ export default function ProfileScreen() {
                 ) : null}
               </View>
             ) : null}
-            <Pressable style={styles.card} onPress={() => open("settings")}>
+            <Pressable style={styles.card} onPress={() => { Haptics.selectionAsync(); router.push("/profile/settings"); }}>
               <SymbolView name="gearshape" size={20} tintColor={colors.accentSoft} />
               <Text style={[styles.cardTitle, { flex: 1 }]}>{p.settings}</Text>
               <SymbolView name="chevron.right" size={14} tintColor={colors.faint} />

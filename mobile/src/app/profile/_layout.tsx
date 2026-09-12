@@ -5,6 +5,9 @@ export default function ProfileLayout() {
   return (
     <Stack screenOptions={{ headerLargeTitle: true, headerTransparent: true, headerTintColor: colors.accentSoft, headerTitleStyle: { color: colors.text }, headerLargeTitleStyle: { color: colors.text }, contentStyle: { backgroundColor: colors.bg } }}>
       <Stack.Screen name="paywall" options={{ presentation: "modal", headerShown: false, headerLargeTitle: false }} />
+      <Stack.Screen name="settings" options={{ headerLargeTitle: false }} />
+      <Stack.Screen name="voice" options={{ presentation: "modal", headerShown: false, headerLargeTitle: false }} />
+      <Stack.Screen name="legal" options={{ headerLargeTitle: false }} />
     </Stack>
   );
 }

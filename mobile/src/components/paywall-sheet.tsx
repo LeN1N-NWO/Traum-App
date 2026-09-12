@@ -14,6 +14,9 @@ import { colors, fonts, radius } from "@/theme";
 // Der Platzhalter-Film, solange noch kein eigener da ist (wie Paywall.jsx).
 const fallbackFilm = require("../../../src/assets/home-faultier.mp4");
 
+/* ⚠ Karten (presentation: modal) sitzen unter der Statusleiste — oben ein
+   fester Abstand, nicht insets.top (der meldet in der Karte trotzdem 59).
+
 /* Das Kaufblatt, nativ — Paywall.jsx 1:1 im Aufbau: Anlass-Überschrift,
    Reiter Abo/Credits, Tarifliste, Ertrag, „immer frei", Knopf, Kontostand.
    Nativ ist das Material: Glas-Kacheln, echte Karte (modal), Haptik.
@@ -44,7 +47,7 @@ export function PaywallSheet({ reason = "browse" }: { reason?: string }) {
   return (
     <View style={styles.screen}>
       <LinearGradient colors={["#2a62d0", "rgba(42,98,208,0)"]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.hero} pointerEvents="none" />
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: 18, paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
         <Pressable onPress={() => router.back()} accessibilityLabel={P?.close ?? "Close"} style={styles.close} hitSlop={12}>
           <Glass style={styles.closeGlass} interactive><SymbolView name="xmark" size={14} tintColor={colors.text} weight="semibold" /></Glass>
         </Pressable>
