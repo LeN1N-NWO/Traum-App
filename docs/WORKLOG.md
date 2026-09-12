@@ -54,6 +54,21 @@ Blätter, die zur SEITE gehören — nicht die Nachbartraumkarten. Damit kann
 nichts mehr über der vorderen Karte liegen, und es gibt keine eigene
 Geste mehr. Mond-Streifen mit `marginTop: 18`.
 
+**Nachtrag 18:05 (Antons drei Befunde zum Onboarding):**
+1. **Mehrfachwahl beim Ziel** — „selten hat man genau einen Grund":
+   `goal` ist in `onboardingForm.js` jetzt `kind: "choices"`; das Profil
+   trägt `goals` als Liste UND `goal` als ersten Eintrag, damit Traumbogen,
+   Prompts und alte Profile unverändert lesen. Der Sprachweg
+   (`OnboardingSurvey`) hat die neue Form mitbekommen — der Test „das leere
+   Profil hat genau die Felder" nagelt beide Wege zusammen.
+2. **Antworten als RASTER** gleich großer Kacheln (Antons Vorbild: das
+   Apple-Watch-Raster). Die alten Pillen hatten jede eine andere Breite und
+   „blieben zwischen den Kacheln stecken": zwei Spalten, gleiche Höhe, Text
+   mittig, Mehrfachwahl mit Haken.
+3. **Ohne Antwort kein „Weiter"** — der Knopf ist gesperrt, bis etwas
+   gewählt ist (Name: bis etwas getippt ist). Wer nicht antworten will,
+   nimmt „Überspringen" oben rechts.
+
 **Was der Nächste wissen muss:** Der Web-Onboarding-Ablauf
 (`src/screens/Onboarding/*`) ist NICHT gelöscht — er hängt noch am
 Web-Gate und am Startmenü. Nativ wird er nicht mehr geladen.

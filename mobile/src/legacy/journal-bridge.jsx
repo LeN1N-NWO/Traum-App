@@ -448,7 +448,7 @@ function run(cmd) {
     /* Das Onboarding ist durch: Antworten in dasselbe Profil, das der
        Web-Weg schreibt (profileFromAnswers) — keine Willkommens-Credits
        mehr (Antons Ansage 12.09.). */
-    const profile = profileFromAnswers(cmd.answers || {}, zodiacOf);
+    const profile = profileFromAnswers(cmd.answers || {}, zodiacOf);   // nimmt `goals` ODER `goal`
     patch = { onboarded: true, surveyDone: true, profile, ...(profile.name ? { me: { ...(s.me || {}), tag: profile.name } } : {}) };
   }
   else if (cmd.type === "paywallSeen") patch = { paywallSeen: true };

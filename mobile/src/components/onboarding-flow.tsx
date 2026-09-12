@@ -25,8 +25,8 @@ import { colors, fonts, radius } from "@/theme";
  * ändert sich hier eine Zeile. */
 const intro = require("../../../src/assets/intro-faultier.mp4");
 
-type Answers = { name: string; goal: string; recall: string; lucid: string; sleepHours: string; timeBudget: string; themes: string[] };
-const EMPTY: Answers = { name: "", goal: "", recall: "", lucid: "", sleepHours: "", timeBudget: "", themes: [] };
+type Answers = { name: string; goals: string[]; recall: string; lucid: string; sleepHours: string; timeBudget: string; themes: string[] };
+const EMPTY: Answers = { name: "", goals: [], recall: "", lucid: "", sleepHours: "", timeBudget: "", themes: [] };
 
 /* Wie viele Jahre Schlaf die Antwort bedeutet — der Aufschlag-Bildschirm
    nach Antons Opal-Vorbild. Aus der Mitte der gewählten Spanne, über ein
@@ -53,31 +53,45 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
 
   const set = <K extends keyof Answers>(k: K, v: Answers[K]) => setA((prev) => ({ ...prev, [k]: v }));
   // Ein zweiter Tipp nimmt die Antwort zurück — wie im Web-Formular.
-  const pick = (k: keyof Answers, v: string) => { Haptics.selectionAsync(); set(k, (a[k] === v ? "" : v) as Answers[typeof k]); };
+  const pick = (k: "recall" | "lucid" | "sleepHours" | "timeBudget", v: string) => { Haptics.selectionAsync(); set(k, a[k] === v ? "" : v); };
+  // Mehrfachwahl beim Ziel (Antons Wunsch 13.09.): „selten hat man genau einen Grund".
+  const toggleGoal = (v: string) => { Haptics.selectionAsync(); set("goals", a.goals.includes(v) ? a.goals.filter((x) => x !== v) : [...a.goals, v]); };
 
-  const frage = (key: keyof Answers, title: string, values: string[], labels: Record<string, string>) => ({
-    key, title,
-    body: (
-      <View style={styles.choices}>
-        {values.map((v) => {
-          const on = a[key] === v;
-          return (
-            <Pressable key={v} onPress={() => pick(key, v)} style={{ maxWidth: "100%" }}>
-              <Glass style={[styles.choice, on && styles.choiceOn]} tint={on ? "rgba(140,192,255,0.28)" : undefined} interactive>
-                <Text style={[styles.choiceText, on && styles.choiceTextOn]}>{labels[v] ?? v}</Text>
-              </Glass>
-            </Pressable>
-          );
-        })}
-      </View>
-    ),
+  /* Die Antworten als RASTER gleich großer Kacheln (Antons Vorbild: das
+     Apple-Watch-Raster) — die alten Pillen hatten jede eine andere Breite
+     und blieben beim Umbrechen „zwischen den Kacheln stecken". Zwei
+     Spalten, gleiche Höhe, Text mittig; die gewählte trägt Glas und Haken. */
+  const raster = (values: string[], labels: Record<string, string>, gewaehlt: (v: string) => boolean, tap: (v: string) => void, multi: boolean) => (
+    <View style={styles.grid}>
+      {values.map((v) => {
+        const on = gewaehlt(v);
+        return (
+          <Pressable key={v} onPress={() => tap(v)} style={styles.gridCell}>
+            <Glass style={[styles.tile, on && styles.tileOn]} tint={on ? "rgba(140,192,255,0.3)" : undefined} interactive>
+              {multi ? (
+                <SymbolView name={on ? "checkmark.circle.fill" : "circle"} size={17} tintColor={on ? colors.accentSoft : colors.faint} />
+              ) : null}
+              <Text style={[styles.tileText, on && styles.tileTextOn]}>{labels[v] ?? v}</Text>
+            </Glass>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
+  const frage = (key: "recall" | "lucid" | "sleepHours" | "timeBudget", title: string, values: string[], labels: Record<string, string>) => ({
+    key, title, answered: !!a[key],
+    body: raster(values, labels, (v) => a[key] === v, (v) => pick(key, v), false),
   });
 
   /* Die Bildschirme in der Reihenfolge, in der sie kommen. Intro und
      Feature-Kacheln tragen ihren eigenen Knopf, die Fragen den gemeinsamen
      „Weiter" unten. */
   const fragen = [
-    frage("goal", O.formGoal, O.values.goal.order, O.values.goal.labels),
+    {
+      key: "goals" as const, title: O.formGoal, answered: a.goals.length > 0,
+      body: raster(O.values.goal.order, O.values.goal.labels, (v) => a.goals.includes(v), toggleGoal, true),
+    },
     frage("recall", O.formRecall, O.values.recall.order, O.values.recall.labels),
     frage("lucid", O.formLucid, O.values.lucid.order, O.values.lucid.labels),
     frage("sleepHours", O.formSleep, O.values.sleepHours.order, O.values.sleepHours.labels),
@@ -160,9 +174,9 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
         <TextInput
           style={styles.input} value={a.name} onChangeText={(v) => set("name", v.slice(0, 40))}
           placeholder={O.formNamePlaceholder} placeholderTextColor={colors.faint}
-          autoCapitalize="words" keyboardAppearance="dark" returnKeyType="done" onSubmitEditing={next} autoFocus
+          autoCapitalize="words" keyboardAppearance="dark" returnKeyType="done" onSubmitEditing={() => { if (a.name.trim()) next(); }} autoFocus
         />
-        <PrimaryButton label={O.next} onPress={next} style={{ flex: 0 }} />
+        <PrimaryButton label={O.next} onPress={next} disabled={!a.name.trim()} style={{ flex: 0 }} />
       </Shell>
     );
   }
@@ -176,7 +190,9 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
     return (
       <Shell key={f.key} insets={insets} step={step} total={total} title={f.title} onSkip={finish} skipLabel={O.skip}>
         {f.body}
-        <PrimaryButton label={O.next} onPress={next} style={{ flex: 0 }} />
+        {/* Ohne Antwort kein Weiter (Antons Befund 13.09.) — wer nicht
+            antworten will, nimmt „Überspringen" oben rechts. */}
+        <PrimaryButton label={O.next} onPress={next} disabled={!f.answered} style={{ flex: 0 }} />
       </Shell>
     );
   }
@@ -328,11 +344,12 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.serif, fontSize: 32, lineHeight: 38, color: colors.text },
   lede: { color: colors.muted, fontSize: 15, lineHeight: 22 },
   content: { flex: 1, justifyContent: "space-between", gap: 20 },
-  choices: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  choice: { paddingVertical: 13, paddingHorizontal: 18, borderRadius: 999 },
-  choiceOn: {},
-  choiceText: { color: colors.text, fontSize: 15 },
-  choiceTextOn: { color: colors.accentSoft, fontWeight: "600" },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  gridCell: { width: "48%", flexGrow: 1 },
+  tile: { minHeight: 84, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 14, alignItems: "center", justifyContent: "center", gap: 8 },
+  tileOn: {},
+  tileText: { color: colors.text, fontSize: 15, lineHeight: 20, textAlign: "center" },
+  tileTextOn: { color: colors.accentSoft, fontWeight: "600" },
   cards: { gap: 10, width: "100%" },
   card: { flexDirection: "row", gap: 14, padding: 16, borderRadius: radius.card, alignItems: "flex-start" },
   cardIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(140,192,255,0.12)" },
