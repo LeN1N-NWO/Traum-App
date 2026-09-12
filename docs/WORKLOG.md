@@ -63,6 +63,14 @@ curl. Bun, Ruby, Python, Git sind frei — also alles daran vorbeigebaut:
   iOS-26-Glas warnt („overlapping effects") — weg damit. ⚠ Deep Links per
   `simctl openurl` zeigen einen Bestätigungsdialog, den hier niemand tippen
   kann; zum Prüfen kurz `index.tsx` auf `/journal` umgeleitet.
+- **Traum-Seite nativ** (Antons „nicht mehr fragen, durcharbeiten"):
+  `journal/[id].tsx` mit Hero (expo-video in Schleife / expo-image),
+  Titelblatt, Fassungen, Lesetext, Reflexion, Original, Teilen nativ;
+  Web-Seite mit allen Aktionen dahinter (`web-dream.tsx`). Brücke liefert
+  Filme, Bilder, Reflexion, Original und die Beschriftungen aus `t`,
+  Speicher in `store/journal-store.ts`. expo-video → pods + Build. ⚠ Typed
+  Routes (`.expo/types`) hinken neuen Dateien hinterher — tsc meldet dann
+  falsche Routen, bis Metro sie neu schreibt.
 
 ### Was der Nächste wissen muss
 

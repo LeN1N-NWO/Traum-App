@@ -102,15 +102,19 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   Film-Standbild per `expo-video-thumbnails`, Verlauf, Feder beim Drücken,
   Haptik). Die Daten kommen über die Web-Brücke
   `mobile/src/legacy/journal-bridge.jsx` (unsichtbarer Webview liest den
-  localStorage, reicht eine schlanke Liste per async-Prop). Tippen schiebt
-  die **Traum-Seite noch als Web-Seite** auf (`journal/[id].tsx` →
-  `legacy-dream.jsx`); das Raster-Symbol oben öffnet das ganze Web-Journal
-  mit Besetzung, Atlas, Menagerie, Kalender (`journal/web.tsx`).
-  **Als Nächstes:** die Traum-Seite nativ (Film oben, Text, Fassungen,
-  Aktionen als Bottom-Sheet), dann Home, Wizard, Schlaf/Profil. Je
-  Bildschirm nativ neu entwerfen, nicht das Web-Layout nachbauen.
-  ⚠ NativeTabs ist Alpha, SDK-Stand 57.0.x festhalten.
-  ⚠ Ungeprüft, weil hier niemand tippen kann: Poster → Traum-Seite → zurück.
+  localStorage, reicht eine schlanke Liste per async-Prop). **Die
+  Traum-Seite ist nativ** (`journal/[id].tsx`): Film groß oben in leiser
+  Schleife (`expo-video`) oder Bild, Titelblatt in Serife, Fassungen als
+  Pillen, Text in Lesegröße, Reflexion, Original; Teilen nativ, „Another
+  take"/„…" öffnen die **Web-Traumseite mit allen Aktionen**
+  (`journal/web-dream.tsx` → `legacy-dream.jsx`). Das Raster-Symbol in der
+  Liste öffnet das ganze Web-Journal mit Besetzung, Atlas, Menagerie,
+  Kalender (`journal/web.tsx`). Journal nativ vorgehalten in
+  `mobile/src/store/journal-store.ts`.
+  **Als Nächstes:** Home nativ, dann Wizard (Aktionen nativ), Schlaf/Profil.
+  Je Bildschirm nativ neu entwerfen, nicht das Web-Layout nachbauen.
+  ⚠ NativeTabs ist Alpha, SDK 57.0.x. ⚠ Ungeprüft, weil hier niemand tippen
+  kann: Fassungswechsel, Teilen, „…" → Web-Seite → zurück.
 - **Bekannte Grenzen der Tab-Hülle heute:** (a) Jeder Tab ist ein eigener
   Webview mit eigenem Zustand; beim Fokus liest er neu aus dem localStorage
   (`dreamrushes:reload`); die Brücke liest denselben Speicher. ⚠ Im
