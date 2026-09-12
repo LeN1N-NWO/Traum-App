@@ -3,7 +3,7 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-13 nachmittags — PR #41 bis #44 gemerged. Zuletzt
+**Stand:** 2026-09-12 abends — PR #41 bis #44 gemerged (⚠ zwei WORKLOG-Einträge tragen falsch den 13.09., Richtigstellung im Eintrag 16:50). Zuletzt
 (PR #44, vier Befunde aus Antons Durchlauf): **Vollbild-Absturz behoben**
 (kein `pause()` im Effekt-Aufräumer), **Aufnahme abbrechen** („Verwerfen"
 während der Aufnahme, „Abbrechen" beim Aufschreiben, Wisch-Geste wieder

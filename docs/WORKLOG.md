@@ -3,6 +3,22 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 16:50 — Anton — Branch `session/2026-09-12-anton-c` — Richtigstellung: die „13.09."-Einträge sind vom 12.09.
+
+**Was falsch ist:** Die beiden Einträge darunter (16:05 und 16:20) und der
+Branch `session/2026-09-13-anton` tragen den 13.09.2026. Richtig ist der
+**12.09.2026** — die Sitzung lief am selben Abend wie `-anton` und
+`-anton-b` (Commit-Zeitstempel `2026-09-12 16:45 +0200`). Ich habe das
+Datum beim `/start` nicht gegen die Uhr geprüft, sondern fortgeschrieben.
+
+**Nicht korrigiert:** Die alten Einträge bleiben stehen (AGENTS.md: alte
+Einträge nie ändern, Richtigstellungen kommen als neuer Eintrag dazu). Der
+Branch ist gemerged und heißt weiter so; PR #44 ist inhaltlich richtig.
+
+**Regel für den Nächsten:** Beim Sitzungsstart das Datum aus `date` holen,
+nicht aus dem letzten WORKLOG-Eintrag ableiten. Läuft am selben Tag eine
+zweite oder dritte Sitzung, hängt ein Buchstabe an (`-b`, `-c`).
+
 ## 2026-09-13 16:20 — Anton — Branch `session/2026-09-13-anton` — Sitzungsabschluss (wrap + Merge auf Antons Wort)
 
 **Commits:** `63e826e` (Sitzungen im Haupt-Checkout, mit Grund),
