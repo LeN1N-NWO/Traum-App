@@ -694,7 +694,11 @@ export default function Step5Style({ w, patch }) {
      Aufgehalten wird nur die ANZEIGE. Der Auftrag ist längst unterwegs
      (run() sendet vor dem ersten Einzelbild), und ein Fehler räumt `tap`
      sofort ab — die Ablehnung erscheint also weiterhin ohne Verzögerung. */
-  if (busy && !tap) {
+  /* `w.autoRender` (native Hülle): Der Auftrag startet im Effekt oben; bis
+     dahin und währenddessen zeigt dieser Bildschirm NUR das Warten — die
+     Stil-Seite hat der Mensch nativ schon gesehen. Ein Fehler zeigt das
+     Formular wieder, mit der Meldung. */
+  if ((busy && !tap) || (w.autoRender && !fail && !busy)) {
     return (
       <section className="wiz-body wiz-busy" role="status" aria-live="polite">
         {einspieler}

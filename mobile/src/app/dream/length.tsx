@@ -87,7 +87,11 @@ export default function DreamLengthScreen() {
         <Pressable style={[styles.primary, !affordable && styles.primaryOff]} onPress={order}>
           <Text style={styles.primaryText}>{W?.generate ?? "Create it"} · {price} {creditWord}</Text>
         </Pressable>
-        {!affordable ? <Text style={styles.hint}>{W?.noCredits}</Text> : null}
+        {!affordable ? (
+          <Pressable onPress={() => router.push({ pathname: "/profile/page", params: { page: "paywall" } })}>
+            <Text style={[styles.hint, { color: colors.accentSoft }]}>{W?.noCredits}</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
       <View style={styles.bridge}>{bridge}</View>
     </>
