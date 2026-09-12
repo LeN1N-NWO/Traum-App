@@ -38,6 +38,34 @@ RLS-Policies für genau dieses CRUD bereits vollständig.
   `ERR_POSTGRES_CONNECTION_REFUSED` — das sieht aus wie ein falsches
   Passwort und ist keines. Dann den Session Pooler nehmen (IPv4, Port 5432;
   nicht 6543). Steht jetzt in `.env.example`.
+- **Abschlussdurchgang (23:10, Hannis Auftrag „kritisch auf Fehler und
+  Redundanzen"):** fünf Befunde im eigenen Code, alle behoben —
+  1. **`survey` im Profil hatte keine Größengrenze.** Bei Träumen deckelt
+     `safeJson()` jedes jsonb-Feld auf 64 KB; das Profil war die eine
+     Stelle, an der unbegrenztes Client-JSON in eine Spalte lief. Jetzt
+     dieselbe Konstante (`MAX_JSON` aus `dreamRow.js`, exportiert statt
+     verdoppelt) und **413 statt stiller Kürzung**.
+  2. `POST /api/auth/refresh` und `PATCH /api/account` lasen einen Körper
+     **ohne** die `MAX_BODY`-Prüfung, die jeder andere Endpunkt hat.
+  3. **⚠ Ein Feld ließ sich nicht wieder leeren.** „Nicht mitgeschickt" und
+     „auf leer gesetzt" waren dasselbe (`coalesce`) — ein einmal gesetzter
+     Anzeigenname war nicht mehr loszuwerden. Jetzt entscheidet die
+     **Anwesenheit des Schlüssels**: fehlt er, bleibt die Spalte; steht er
+     auf `null`, wird geleert. Falscher Typ → 400 mit Feldnamen.
+  4. Die Profil-Umformung stand zweimal wörtlich da → `profilFuerClient()`.
+  5. Das Prüfskript ließ bei einem Abbruch Träume in der **echten**
+     Datenbank liegen und behielt seine Werte im Profil des Testusers. Es
+     kehrt jetzt am Anfang alte Reste weg und stellt das Profil zurück —
+     möglich erst seit Befund 3.
+- **Persistenz empirisch belegt** (die Frage war ausdrücklich gestellt):
+  Abbruch mitten in der Transaktion lässt **nichts** zurück; ein Stapel mit
+  Fehler in der Mitte ebenso (SQLSTATE **23514**, Check-Verletzung); ein
+  Commit ist aus einer **anderen** Transaktion sichtbar. Mit Kontrollprobe:
+  das Einfügen wirkte innerhalb der Transaktion nachweislich, sonst wäre
+  der Rollback-Test hohl gewesen.
+- **Bewusst NICHT geändert:** die zwei fast gleichen Abfragen in
+  `GET /api/dreams` (mit und ohne Cursor). Eine zusammengefasste Fassung
+  (`… is null or (…) < (…)`) spart acht Zeilen und kostet die Indexnutzung.
 - **Nachgezogen (22:20, Hannis Hinweis):** `GET /api/dreams` gab alles auf
   einmal zurück — die eine der vier genannten Regeln, die hier wirklich
   fehlte (serverseitige Prüfung, keine rohen Datenbank-IDs in URLs und
@@ -88,9 +116,10 @@ RLS-Policies für genau dieses CRUD bereits vollständig.
   biometrisches Foto in die Datenbank.
 
 **Prüfung:** 615 Tests grün (vorher 564; neu: 19 auth, 13 dreamRow, 11 paging, 4
-gatekeeper) plus 25 Ende-zu-Ende gegen das echte Supabase.
-`server.js`: 268 hinzugefügte Zeilen in fünf Blöcken (Importe 9,
-Stapelgrenze 5, CORS 6, Routen 238, Startmeldung 10 — Summe stimmt), die 4
+gatekeeper) plus 35 Ende-zu-Ende gegen das echte Supabase.
+`server.js`: 321 hinzugefügte Zeilen in sechs Blöcken (Importe 9,
+Stapelgrenze 5, CORS 6, Routen 283, Profil-Helfer 8, Startmeldung 10 —
+Summe stimmt), die 4
 entfernten Zeilen sind der alte Import und drei CORS-Zeilen. Gegenprobe auf
 die Namen der Prompt-/Generierungs-Kette: kein Treffer, bei einer
 Kontrollprobe, die nachweislich trifft. Zusätzlich sind acht Funktionen der

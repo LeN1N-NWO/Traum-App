@@ -188,7 +188,17 @@ wiederholbar über `unique (user_id, client_id)`.
   zwei Träume derselben Nacht haben denselben Zeitstempel, und ein Cursor
   nur auf der Zeit verlöre einen davon lautlos. `POST /api/dreams/sync`
   nimmt höchstens 200 Träume je Aufruf (413 darüber).
-- **Ende-zu-Ende geprüft:** 25 von 25 gegen das echte Supabase
+- **Profil-Felder lassen sich leeren:** Bei `PATCH /api/account` entscheidet
+  die **Anwesenheit des Schlüssels** — fehlt er, bleibt die Spalte
+  unverändert; steht er auf `null`, wird geleert (`server.js`, Block
+  „Anmeldung, Konto, Träume"). `streak` und `last_dream_on` stehen
+  absichtlich NICHT in der Erlaubnisliste. `survey` ist auf 64 KB begrenzt
+  (`MAX_JSON` aus `src/lib/dreamRow.js`) und wird bei Überschreitung
+  abgelehnt, nicht gekürzt.
+- **Persistenz belegt:** Abbruch mitten in der Transaktion lässt nichts
+  zurück, ein Stapel mit Fehler in der Mitte ebenso (23514), ein Commit ist
+  aus einer anderen Transaktion sichtbar.
+- **Ende-zu-Ende geprüft:** 35 von 35 gegen das echte Supabase
   (`node scripts/test-konto.mjs`, Zugangsdaten aus der Umgebung). RLS
   empirisch belegt: ohne Nutzererklärung 0 Zeilen, mit 1, als fremder
   Nutzer 0; Guthaben schreiben/Ledger/`credits_spend` je **42501**.
