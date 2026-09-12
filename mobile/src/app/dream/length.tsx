@@ -41,7 +41,7 @@ export default function DreamLengthScreen() {
     const maxSecs = videoModel(model.id).max;
     const r = recommendation(a, shotBudget(model.id, seconds, w.pace), seconds, maxSecs, beatBudget(model.id, maxSecs, w.pace)) as { beats: number; passt: number; alle: boolean; einBild: boolean; zweiteiler: boolean; mehrBei?: number; beiMax?: number };
     let line = r.einBild ? W.cutOneShot : r.alle ? fill(W.cutAll, r.beats) : fill(W.cutSome, r.passt, r.beats);
-    if (r.mehrBei) line += " " + fill(W.cutMoreAt, r.beiMax, r.mehrBei);
+    if (r.mehrBei && r.beiMax !== undefined) line += " " + fill(W.cutMoreAt, r.beiMax, r.mehrBei);
     if (r.zweiteiler) line += " " + W.cutTwoParter;
     return line;
   })();
