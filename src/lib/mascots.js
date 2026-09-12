@@ -1,6 +1,7 @@
 import frogIdle from "../assets/mascot-frog-idle.mp4";
 import frogIdlePoster from "../assets/mascot-frog-idle.jpg";
 import frogTap from "../assets/mascot-frog-button.mp4";
+import slothIdle from "../assets/home-faultier.mp4";
 
 /* Die Maskottchen — eine Tabelle, kein fest verdrahteter Frosch.
  *
@@ -54,9 +55,29 @@ const FROG = {
   },
 };
 
-/* Noch eine Tabelle mit einer Zeile — bewusst. Die beiden anderen kommen
-   als Zeile dazu, sobald die Zeichnungen da sind. */
-export const MASCOTS = [FROG];
+/* ⚠ PLATZHALTER (Anton, 13.09.2026): „Drei verschiedene Maskottchen, die
+   man auswählen kann — jetzt schon mal als Platzhalter reinsetzen."
+   Das Faultier hat bereits eine Animation (home-faultier.mp4, mit eigenem
+   Hintergrund — deshalb KEIN `blend: "screen"`, es ist keine Kreide auf
+   Schwarz). Das dritte hat noch gar nichts und leiht sich das Standbild
+   des Frosches; `tap` fehlt beiden, der Tipp-Anker wird erst gemessen,
+   wenn die echte Animation da ist (siehe Dateikopf). Wer die Zeichnungen
+   bringt, tauscht hier die Quellen und misst den Anker nach. */
+const SLOTH = {
+  id: "sloth",
+  name: "Sloth",
+  idle: { src: slothIdle, poster: null, blend: "normal" },
+  placeholder: true,
+};
+
+const OWL = {
+  id: "owl",
+  name: "Owl",
+  idle: { src: frogIdle, poster: frogIdlePoster, blend: "screen" },
+  placeholder: true,
+};
+
+export const MASCOTS = [FROG, SLOTH, OWL];
 
 export const DEFAULT_MASCOT = FROG.id;
 

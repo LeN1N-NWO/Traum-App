@@ -959,6 +959,21 @@ export default {
       { title: "The quiet part is free", text: "Lucid guide, dream symbols, sleep sounds. No credits, no catch." },
       { title: "It stays yours", text: "The journal lives on your phone. Nothing leaves it until you ask for a film." },
     ],
+    /* Die Zwischenbilder nach jeder Frage (Antons Wunsch 13.09., Moonly-
+       Vorbild): ein Film, ein Satz, weiter. Sie machen Lust, statt nur zu
+       fragen. Die Clips sind erst mal die Vorschau-Filme der Stile. */
+    showcase: [
+      { title: "Nineteen looks for one dream", text: "Claymation, film noir, ultrareal — the same night, told the way you want to see it." },
+      { title: "The people in it are yours", text: "Add a face once, and your friend is in the film. Same person, every scene." },
+      { title: "It remembers the patterns", text: "Water, falling, being chased — the symbols that keep coming back, gathered in your atlas." },
+      { title: "And it keeps the night", text: "Your own voice, the text, the film, the moon of that night. All in one page." },
+    ],
+    /* Die Maskottchen-Wahl (Anton 13.09.) — zwei von drei sind noch
+       Platzhalter, das steht auch auf der Kachel. */
+    mascotTitle: "Who keeps you company?",
+    mascotText: "It shows up while you wait, and when something works out.",
+    mascotSoon: "Coming",
+    mascotNames: { frog: "The frog", sloth: "The sloth", owl: "The owl" },
     askTitle: "Two things up front",
     askText: "Both are asked once, and both are optional — but a dream journal you cannot speak to at 3am is half an app.",
     askMic: "Microphone",

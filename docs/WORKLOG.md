@@ -54,6 +54,26 @@ Blätter, die zur SEITE gehören — nicht die Nachbartraumkarten. Damit kann
 nichts mehr über der vorderen Karte liegen, und es gibt keine eigene
 Geste mehr. Mond-Streifen mit `marginTop: 18`.
 
+**Nachtrag 18:20 (Antons drei Wünsche zum Onboarding):**
+1. **Feature-Bildschirm wie das Vorbild:** vier Kacheln im Glas, in denen
+   die Traum-Clips laufen (erst mal die Vorschau-Filme der Stile, über die
+   Brücke als `onboard.clips`), Etikett oben, Satz unten — Moonly-Look.
+2. **Zwischenbild nach JEDER Frage** („macht Schmackhaft"): ein Film über
+   die ganze Fläche, ein Satz darüber, weiter (`showcase` in en+de, vier
+   Stück). Nach der Schlaf-Frage steht dort der Jahre-Zähler. Die
+   Reihenfolge ist jetzt eine LISTE (`screens`), keine Index-Rechnung —
+   wer etwas einschiebt, ändert nur diese Liste.
+3. **Zurück-Pfeil oben links**, nur der Pfeil, kein Text. „Überspringen"
+   bleibt vorerst (Antons Ansage: in der Dev-Fassung noch drin, später
+   raus).
+4. **Maskottchen-Wahl** als Platzhalter: drei Kacheln (Frosch fertig,
+   Faultier mit eigener Animation, Eule noch ohne). `mascots.js` hat jetzt
+   drei Zeilen, zwei mit `placeholder: true`; die Kachel sagt „kommt noch".
+   Die Wahl landet als `state.mascot` (Befehl `onboarded`), die ganze App
+   liest sie über `mascot(state)` — nichts importiert eine Datei direkt.
+   ⚠ Der Tipp-Anker der neuen Animationen ist NICHT gemessen (siehe
+   Dateikopf mascots.js) — beim Tausch der Quellen nachmessen.
+
 **Nachtrag 18:10 (Antons Befund: „die rasten gar nicht aus"):** Der
 seitenweise Scroller rastete nicht, weil eine SEITE so breit war wie der
 Bildschirm, der Scroller selbst aber 32 Punkte schmaler (das Polster des

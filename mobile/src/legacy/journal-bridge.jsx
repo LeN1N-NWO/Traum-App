@@ -32,6 +32,7 @@ import { reminderWish, reminderState, MAX_PER_DAY, DEFAULT_PER_DAY } from "../..
 import { VOICES, DEFAULT_VOICE, isVoice } from "../../../src/lib/voices.js";
 import { withdrawPatch, consentPatch, needsConsent } from "../../../src/lib/consent.js";
 import { FORM_FIELDS, profileFromAnswers } from "../../../src/lib/onboardingForm.js";
+import { MASCOTS, DEFAULT_MASCOT } from "../../../src/lib/mascots.js";
 import { zodiacOf } from "../../../src/lib/zodiac.js";
 import { SYMBOLS, SYMBOL_CATEGORIES, symbolOccurrences } from "../../../src/lib/symbols.js";
 import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
@@ -355,13 +356,23 @@ function snapshot() {
     ...Object.fromEntries(["skip", "next", "back", "introKicker", "introText", "introCta", "featuresTitle",
       "askTitle", "askText", "askMic", "askMicWhy", "askPhotos", "askPhotosWhy", "askGranted", "askDenied", "askGo",
       "sleepTitle", "sleepAsleep", "sleepNote", "doneTitle", "doneText", "doneCta"].map((k) => [k, onb[k]])),
-    features: onb.features,
+    features: onb.features, showcase: onb.showcase,
+    mascotTitle: onb.mascotTitle, mascotText: onb.mascotText, mascotSoon: onb.mascotSoon,
+    /* Die drei Maskottchen (mascots.js) — zwei noch Platzhalter. Das Video
+       kommt als Modulpfad nicht durch die Brücke; nativ liegen dieselben
+       Dateien, deshalb reicht die id samt Name und Marke. */
+    mascots: MASCOTS.map((m) => ({ id: m.id, name: onb.mascotNames[m.id] || m.name, placeholder: !!m.placeholder })),
+    mascot: s.mascot || DEFAULT_MASCOT,
     formName: t.onboarding.formName, formNamePlaceholder: t.onboarding.formNamePlaceholder,
     formGoal: t.onboarding.formGoal, formRecall: t.onboarding.formRecall, formLucid: t.onboarding.formLucid,
     formSleep: t.onboarding.formSleep, formTime: t.onboarding.formTime,
     formThemes: t.onboarding.formThemes, formThemesPlaceholder: t.onboarding.formThemesPlaceholder,
     /* Die Saetze mit Zahl werden nativ gefuellt: Platzhalter 1000. */
     sleepYearsTpl: onb.sleepYears(1000), sleepDreamTpl: onb.sleepDream(1000),
+    /* Bewegte Kacheln im Onboarding (Antons Wunsch 13.09., Moonly-Vorbild):
+       erst mal die Vorschau-Clips der Stile — dieselben Dateien, die der
+       Stil-Schritt zeigt. Später kommen eigene. */
+    clips: PRESETS.filter((p) => p.clip).slice(0, 6).map((p) => absolute(p.clip)),
     values: {
       goal: werte("goal", t.dreamer.goalValues), recall: werte("recall", t.dreamer.recallValues),
       lucid: werte("lucid", t.dreamer.lucidValues), sleepHours: werte("sleepHours", t.dreamer.sleepValues),
@@ -449,7 +460,8 @@ function run(cmd) {
        Web-Weg schreibt (profileFromAnswers) — keine Willkommens-Credits
        mehr (Antons Ansage 12.09.). */
     const profile = profileFromAnswers(cmd.answers || {}, zodiacOf);   // nimmt `goals` ODER `goal`
-    patch = { onboarded: true, surveyDone: true, profile, ...(profile.name ? { me: { ...(s.me || {}), tag: profile.name } } : {}) };
+    const mascotId = MASCOTS.some((m) => m.id === cmd.answers?.mascot) ? cmd.answers.mascot : null;
+    patch = { onboarded: true, surveyDone: true, profile, ...(mascotId ? { mascot: mascotId } : {}), ...(profile.name ? { me: { ...(s.me || {}), tag: profile.name } } : {}) };
   }
   else if (cmd.type === "paywallSeen") patch = { paywallSeen: true };
   else if (cmd.type === "deleteDream") patch = { journal: (s.journal || []).filter((e) => e.id !== cmd.id) };

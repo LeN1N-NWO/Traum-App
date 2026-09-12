@@ -71,6 +71,11 @@ export type OnboardData = {
   skip: string; next: string; back: string;
   introKicker: string; introText: string; introCta: string; featuresTitle: string;
   features: { title: string; text: string }[];
+  showcase: { title: string; text: string }[];
+  clips: string[];
+  mascotTitle: string; mascotText: string; mascotSoon: string;
+  mascots: { id: string; name: string; placeholder: boolean }[];
+  mascot: string;
   askTitle: string; askText: string; askMic: string; askMicWhy: string; askPhotos: string; askPhotosWhy: string; askGranted: string; askDenied: string; askGo: string;
   sleepTitle: string; sleepAsleep: string; sleepNote: string; sleepYears: (y: number) => string; sleepDream: (y: number) => string;
   doneTitle: string; doneText: string; doneCta: string;
