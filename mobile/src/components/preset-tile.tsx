@@ -1,4 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { SymbolView } from "expo-symbols";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
@@ -25,7 +26,7 @@ export function PresetTile({ preset, active, onPress }: { preset: WizardPreset; 
       onPress={() => onPress(preset.id)}
       accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={preset.label}
     >
-      {preset.clip ? <Clip url={preset.clip} /> : <View style={[StyleSheet.absoluteFill, styles.blank]}><Text style={styles.emoji}>{preset.emoji}</Text></View>}
+      {preset.clip ? <Clip url={preset.clip} /> : <View style={[StyleSheet.absoluteFill, styles.blank]}><SymbolView name="paintbrush.pointed" size={34} tintColor={colors.accentSoft} /></View>}
       <LinearGradient colors={["rgba(5,10,20,0)", "rgba(5,10,20,0.85)"]} locations={[0.45, 1]} style={StyleSheet.absoluteFill} />
       <Text style={styles.label} numberOfLines={2}>{preset.label}</Text>
       {active ? <View style={styles.ring} pointerEvents="none" /> : null}

@@ -2,6 +2,7 @@ import { Host, Slider } from "@expo/ui/swift-ui";
 import { Stack, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
@@ -26,7 +27,6 @@ export default function DreamLengthScreen() {
 
   function order() {
     if (!affordable) { router.push({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     patchWizard({ seconds, orderId: "o_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) });
     router.push("/dream/order");
   }
@@ -84,9 +84,7 @@ export default function DreamLengthScreen() {
           </>
         ) : null}
 
-        <Pressable style={[styles.primary, !affordable && styles.primaryOff]} onPress={order}>
-          <Text style={styles.primaryText}>{W?.generate ?? "Create it"} · {price} {creditWord}</Text>
-        </Pressable>
+        <PrimaryButton label={`${W?.generate ?? "Create it"} · ${price} ${creditWord}`} onPress={order} heavy style={[{ flex: 0, marginTop: 14 }, !affordable && { opacity: 0.6 }]} />
         {!affordable ? (
           <Pressable onPress={() => router.push({ pathname: "/dream/paywall", params: { reason: "spent" } })}>
             <Text style={[styles.hint, { color: colors.accentSoft }]}>{W?.noCredits}</Text>

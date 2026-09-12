@@ -3,6 +3,73 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 11:05 — Anton — Branch `session/2026-09-11-anton-expo` — Kaufblatt und Mischpult nativ, Glas-Knöpfe, Antons sechs Befunde
+
+**Auftrag (Anton, Screenshots + Sprachnachricht):** Credits-Seite in den
+Liquid-Glas-Look, ohne Bilder-Erwähnung, Texte nicht gequetscht; Regler der
+Einschlafgeräusche in Glas; Schlaf-Seite oben unter der Uhrzeit;
+Maskottchen-Video steht still; Knopftext „Diese Fassung verwenden" läuft
+über, Knöpfe nicht Glas; „Neu anlegen" aus der Besetzung → zurück landet
+im Profil-Tab. „Das und noch viel mehr. Mach weiter."
+
+**Commits:** `6aefc7f` (alle sechs Punkte), Folgecommit (Wizard-Knöpfe,
+Stil-Kacheln, Doku).
+
+**Was und warum:**
+- **Kaufblatt nativ** (`mobile/src/components/paywall-sheet.tsx`,
+  `profile/paywall.tsx`, `dream/paywall.tsx` als Karte `presentation:
+  modal`): Aufbau 1:1 nach `Paywall.jsx` — Anlass-Überschrift (browse/
+  spent/first), Reiter Abo/Credits, Tarife als Glas-Zeilen mit Radio, Name,
+  Badge, Untertitel, Preis rechts; Ertrag als Kachel, in der ein EIGENER
+  Film läuft (Rückfall Seed → Faultier); „immer inklusive" als Glas-Chips;
+  Knopf sagt, dass noch nichts kassiert wird; Kontostand. **Nur Filme**:
+  Bilder sind seit heute aus dem Angebot, also auch hier (Web-Paywall zeigt
+  sie noch — die zählt nicht mehr). Texte vorgerechnet in der Brücke
+  (`snapshot().paywall`), weil `t.paywall.*` teils Funktionen sind. Die
+  Kacheln haben keine feste Höhe mehr — sie wachsen mit dem Text.
+- **Klang-Mischpult nativ** (`components/sound-mixer.tsx`,
+  `lib/sound-engine.ts`): Web Audio stirbt mit dem Webview beim Verlassen
+  des Raums; also ein natives Gegenstück zu `soundMixer.js` — WAV-Schleifen
+  aus denselben Generatoren (`noise.js`), abgespielt über `expo-video`
+  (spielt reines Audio, `audioMixingMode: mixWithOthers`,
+  `staysActiveInBackground`), damit KEIN neues natives Paket und kein
+  Xcode-Rebuild nötig war. Drei stehende Glas-Fader in der Rauschfarbe
+  (Antons Wahl 26.08.), Tick alle zehn Prozent, Timer 0/15/30/60 mit
+  Minuten-Ausblendung, echter Schalter für Autostart; Autostart läuft jetzt
+  ohne Geste (Home wirft die Mischung an). Mischung bleibt im Web-Zustand
+  (Befehl `soundMix`). `app.json`: `UIBackgroundModes: audio` — greift
+  erst nach dem nächsten `prebuild:ios`.
+- **Glas-Knöpfe** (`components/glass.tsx`): `GlassButton` (GlassView
+  `regular`, interaktiv) und `PrimaryButton` (warm) mit `minHeight` +
+  Padding statt `height` — der Text bricht um. Alle Wizard-Knöpfe darauf
+  umgestellt (Schritt 1, Besetzung, Stil, Länge).
+- **Safe Area oben in Web-Räumen:** `env(safe-area-inset-top)` meldet im
+  Expo-Webview 0 (kein `viewport-fit=cover`). Die Hülle reicht jetzt
+  `safeTop/safeBottom` in jede DOM-Komponente, `vite-env.js` setzt
+  `--sat/--sab` und den Viewport-Meta nach, `legacy.css` nimmt
+  `max(env(), var())`. Geprüft an der Checkliste: Rückweg steht frei unter
+  der Uhr.
+- **Faultier-Schleife:** `useVideoPlayer`-Setup startet im Simulator nicht
+  immer; ein `useEffect` ruft `play()` nach dem Mount noch einmal (Home,
+  Traum-Seite, Stil-Kacheln). Geprüft: zwei Screenshots, zwei Frames.
+- **Tab-Sprung:** „Neu anlegen" öffnete `/profile/page?page=avatar` — ein
+  anderer Tab, Zurück blieb dort. Jetzt `dream/avatar.tsx` im Traum-Stapel;
+  auch die Kaufblatt-Links aus Schritt 1 und Länge bleiben im Stapel.
+- **Stil-Kacheln ohne Clip** (Tusche, Knete) zeigten das Emoji als
+  Fragezeichen-Kästchen → SF Symbol.
+
+**Was der Nächste wissen muss:**
+- Prüfen läuft weiter per Redirect-Trick (index.tsx temporär ersetzen,
+  Sicherung `/tmp/index.tsx.bak`, danach zurück — vor dem Commit `grep
+  Redirect src/app/index.tsx` muss 0 liefern). ⚠ Bei diesem Start fehlt in
+  Screenshots von `profile` und `dream/…` die Tab-Leiste; über Home ist sie
+  da. Nicht weiter verfolgt.
+- Neue Routen-Dateien: Metro neu starten, sonst „Route extraneous" und
+  veraltete Typed Routes in `tsc`.
+- Ungeprüft bleibt alles, was Tippen oder Hören braucht: Kaufblatt als
+  Karte (nur als Erstroute gesehen), Fader-Ziehen, Klang, Timer,
+  Autostart. Erster echter Durchlauf mit Anton.
+
 ## 2026-09-12 01:05 — Anton — Branch `session/2026-09-11-anton-expo` — Werkzeugkette für den Xcode-Build, ohne Homebrew
 
 **Auftrag (Anton, wörtlich):** „Jetzt alle Berechtigungen machen, das

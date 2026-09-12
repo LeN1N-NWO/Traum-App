@@ -4,6 +4,7 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
@@ -111,9 +112,7 @@ export default function DreamCastScreen() {
             {section(L.places, L.placesLede, L.placesEmpty, cast.places, "place")}
           </>
         ) : null}
-        <Pressable style={styles.primary} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/dream/style"); }}>
-          <Text style={styles.primaryText}>{W?.next ?? "Continue"}</Text>
-        </Pressable>
+        <PrimaryButton label={W?.next ?? "Continue"} onPress={() => router.push("/dream/style")} style={{ flex: 0, marginTop: 6 }} />
       </ScrollView>
       <View style={styles.bridge}>{bridge}</View>
     </>

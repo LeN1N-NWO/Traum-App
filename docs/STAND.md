@@ -3,12 +3,17 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-12 früh — `session/2026-09-11-anton-expo` (PR #41,
-Entwurf): **die Expo-Hülle baut in Xcode, und die native Tab-Leiste steht**
-— fünf Tabs mit Liquid Glass (iOS 26), Traum in der Mitte mit gefülltem
-Plus. Jeder Tab zeigt den passenden Bildschirm der alten Oberfläche als
-DOM-Komponente (`mobile/src/components/legacy-tab.tsx`). Schritt 2–3 des
-Umzugs aus ADR-0006 sind durch, Schritt 4 (Bildschirme nativ) beginnt.
+**Stand:** 2026-09-12 vormittags — `session/2026-09-11-anton-expo` (PR #41,
+Entwurf): **alle fünf Tabs, der Wizard, das Kaufblatt und das
+Klang-Mischpult sind nativ** (Expo Router, Liquid Glass, SF Symbols,
+Haptik); Schritt 4 aus ADR-0006 ist weit. Noch Web als DOM-Komponente im
+nativen Stack: Stimm-Gespräch, Schritt 6 (Warten), Aktionen der Traum-Seite,
+Schlaf-Räume außer Klängen, Einstellungen/Avatar/Umfrage, Besetzung/Atlas/
+Menagerie. **Antons Befunde vom 12.09. vormittags sind alle umgesetzt**
+(Kaufblatt ohne Bilder, Glas-Regler, Safe Area oben, Faultier-Schleife,
+Glas-Knöpfe ohne Textüberlauf, Tab-Sprung „Neu anlegen") — Details im
+WORKLOG. ⚠ `mobile/app.json` hat jetzt `UIBackgroundModes: audio`; das
+greift erst nach `bun run prebuild:ios` + Xcode-Build.
 
 **⚠⚠ ENTSCHIEDEN (Anton, 11.09. abends): Die Oberfläche wird nativ — React
 Native mit Expo statt Capacitor.** Web ist kein Ziel mehr, Android kommt
@@ -145,8 +150,31 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   nur Material, Bewegung und Haptik. Vor jedem Bildschirm den Web-JSX samt
   Kommentaren lesen. Journal und Schritt 1 sind danach korrigiert; die
   Stimme läuft als Web-Baustein (`legacy-voice.jsx`) im nativen Fluss.
+  **Kaufblatt nativ** (`mobile/src/components/paywall-sheet.tsx`, Routen
+  `profile/paywall` und `dream/paywall` als Karte): Aufbau wie
+  `Paywall.jsx`, Texte vorgerechnet in der Brücke (`snapshot().paywall`),
+  Ertrag NUR in Filmen (Antons Ansage 12.09.: Bilder sind raus), eigener
+  Film läuft in der Ertrags-Kachel (`showcaseFrom`). Kein Kauf angeschlossen
+  — der Knopf sagt es (`notYet`).
+  **Klang-Mischpult nativ** (`components/sound-mixer.tsx`, Raum
+  `sleep/[view].tsx` bei `sounds`): drei stehende Glas-Fader, Timer,
+  Autostart-Schalter. Klang in `mobile/src/lib/sound-engine.ts` — erzeugte
+  WAV-Schleifen aus `src/lib/noise.js` über `expo-video` (spielt auch reines
+  Audio; kein neues natives Paket), läuft beim Tab-Wechsel weiter, Autostart
+  ohne Geste (Home wirft die gespeicherte Mischung an). Mischung liegt im
+  Web-Zustand (`soundMix`, Befehl `soundMix` über die Brücke). ⚠ Fader-Ziehen
+  und Klang sind ungeprüft (niemand tippt/hört hier).
+  **Glas-Bausteine** (`components/glass.tsx`): `Glass` (GlassView, Fallback
+  Panelfarbe), `GlassButton`, `PrimaryButton` — Knöpfe wachsen mit dem Text.
+  **Safe Area in Web-Räumen:** `env(safe-area-inset-top)` ist im Expo-
+  Webview 0; die Hülle reicht `safeTop/safeBottom` als Props, `vite-env.js`
+  setzt `--sat/--sab` und `viewport-fit=cover`, `legacy.css` nimmt das Maximum.
+  ⚠ Prüf-Artefakt: Startet die App per Redirect direkt in `profile` oder
+  `dream/…`, fehlt im Screenshot die Tab-Leiste — beim normalen Start über
+  Home ist sie da. Nicht gejagt.
   **Als Nächstes:** Stimme nativ, Schritt 6 (Warten) nativ, Aktionen der
-  Traum-Seite nativ, Web-Räume in Schlaf/Profil; dann Datenschicht nach
+  Traum-Seite nativ, restliche Web-Räume in Schlaf/Profil (Checkliste,
+  Guide, Symbole, Einstellungen, Avatar-Anlage); dann Datenschicht nach
   `expo-sqlite` und die Brücke abbauen.
   Je Bildschirm nativ neu entwerfen, nicht das Web-Layout nachbauen.
   ⚠ NativeTabs ist Alpha, SDK 57.0.x. ⚠ Ungeprüft, weil hier niemand tippen
@@ -548,11 +576,11 @@ Journal · ⊕ · Sleep · Profil), Wizard über der Tab-Leiste.
 **Stack:** Bun + Vite + React 18 (HashRouter); `server.js` als
 schlüsselhaltender Proxy (fal.ai, DeepSeek `deepseek-flash` = V4.1 seit 12.09., Gemini). Zustand in
 `localStorage` (`dreamrushes_v1`). Sieben Sprachen, gepflegt **en+de**.
-**Nativ:** Capacitor 8 packt `dist/` in eine iOS-App (`ios/App`, per SPM,
-kein CocoaPods) — echte `.app`, echtes Xcode-Ziel, Oberfläche im WKWebView.
-Seit 10.09. im Simulator lauffähig samt API. Eine ADR, die diese Wahl
-begründet, **gibt es bis heute nicht** — sie steht unter „Nächste Schritte"
-der früheren Sitzungen als offener Punkt („Capacitor-ADR + In-App-Käufe").
+**Nativ:** seit ADR-0006 (11.09.) React Native mit Expo in `mobile/`
+(Expo SDK 57, Expo Router, NativeTabs); die alte Web-Oberfläche läuft dort,
+wo sie noch nicht nativ ist, als DOM-Komponente aus `../src`. Capacitor
+(`ios/App`) ist die abgelöste Zwischenlösung und bleibt nur als Referenz für
+Kurven und Dauern liegen.
 **Stile:** 19 (`styles.js`) — 8 Stimmungs-Stile, 11 Handwerksstile; als
 20 Presets mit Dreamflow (`presets.js`), 10 in der ersten Reihe.
 

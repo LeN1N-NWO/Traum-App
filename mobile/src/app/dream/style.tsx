@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PresetTile } from "@/components/preset-tile";
+import { PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
@@ -40,9 +41,7 @@ export default function DreamStyleScreen() {
         {!more && rest.length ? (
           <Pressable style={styles.more} onPress={() => { Haptics.selectionAsync(); setMore(true); }}><Text style={styles.moreText}>{W?.moreStyles}</Text></Pressable>
         ) : null}
-        <Pressable style={styles.primary} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/dream/length"); }}>
-          <Text style={styles.primaryText}>{W?.next ?? "Continue"}</Text>
-        </Pressable>
+        <PrimaryButton label={W?.next ?? "Continue"} onPress={() => router.push("/dream/length")} style={{ flex: 0, marginTop: 6 }} />
       </ScrollView>
       <View style={styles.bridge}>{bridge}</View>
     </>
