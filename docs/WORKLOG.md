@@ -3,6 +3,32 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 13:05 — Anton — Branch `session/2026-09-11-anton-expo` — Kaufblatt als Startroute jedes Tabs (Expo-Router-Falle), Stimme
+
+**Auftrag (Anton, Screenshot):** „in jedem Tab die Credits kaufen", im
+Stimm-Blatt ein × oben rechts an falscher Stelle, „Zurück" ließ das
+Overlay stehen.
+
+**Ursache:** Meine `<Stack.Screen name="paywall">`-Kinder in den Layouts
+(Profil, Traum, Journal) machten das Kaufblatt zur STARTROUTE jedes
+Tabs (Expo Router nimmt das erste deklarierte Kind) — das × oben rechts
+war sein Schließen-Knopf unter der Statusleiste, die Tab-Leiste war
+darunter weg. Zusätzlich griffen die `Stack.Screen`-Optionen der
+Bildschirme nicht mehr (Kopf „voice" trotz `headerShown:false`), und
+„Zurück" landete auf dem Kaufblatt statt draußen.
+
+**Fix (`4c65c19`):** keine Kinder mehr in Layouts; Karten per
+`screenOptions={({ route }) => …}` je Routenname;
+`unstable_settings.initialRouteName = "index"`. Geprüft per Kaltstart in
+Profil und Stimme: kein ×, Tab-Leiste da, kein Kopf.
+
+**Stimme „Die Verbindung wurde beendet":** der API-Server (`bun run api`)
+war seit ~12:00 aus — wieder gestartet. Dazu fehlten in `Info.plist`
+`NSMicrophoneUsageDescription` (und Kamera/Fotos): jetzt in `app.json`
+(greift nach `prebuild:ios`) und lokal per `plutil` eingetragen; Xcode-
+Rebuild läuft. ⚠ Prod-Bau lädt DOM von `file://` → kein sicherer
+Kontext für `getUserMedia`; die Stimme muss nativ werden.
+
 ## 2026-09-12 11:05 — Anton — Branch `session/2026-09-11-anton-expo` — Kaufblatt und Mischpult nativ, Glas-Knöpfe, Antons sechs Befunde
 
 **Auftrag (Anton, Screenshots + Sprachnachricht):** Credits-Seite in den

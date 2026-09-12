@@ -227,6 +227,20 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   solange `snapshot().consent.needed` (auch nach dem Widerruf in den
   Einstellungen). Im Simulator liegt bereits eine Zustimmung v2 — zum
   Ansehen `visible={true}` setzen oder in den Einstellungen widerrufen.
+  **⚠ Falle Expo Router (12.09. mittags, Antons Befund „in jedem Tab
+  Credits kaufen"):** `<Stack.Screen name=…>` als Kinder eines Layouts
+  machen das ERSTE deklarierte Kind zur Startroute des Tabs und
+  entwerten die `Stack.Screen`-Optionen in den Bildschirmen (Kopf „voice"
+  trotz `headerShown:false`, Zurück kam nicht heraus). Deshalb: keine
+  Kinder in Layouts; Karten (Kaufblatt, Stimmwahl) kommen über
+  `screenOptions={({ route }) => …}` je Routenname, dazu
+  `unstable_settings.initialRouteName = "index"`.
+  **Stimm-Gespräch im Webview:** braucht `NSMicrophoneUsageDescription`
+  (jetzt in `app.json`, greift nach `prebuild:ios`; lokal in
+  `ios/DreamRushes/Info.plist` eingetragen). Der 12.09.-Fehler „Die
+  Verbindung wurde beendet" kam aber vom gestoppten API-Server. ⚠ Im
+  Produktionsbau laden DOM-Komponenten von `file://` — `getUserMedia`
+  verlangt einen sicheren Kontext; die Stimme muss vorher nativ werden.
   **Als Nächstes:** Stimme nativ (Mikrofon → natives Modul, Rebuild),
   Schritt 6 (Warten) nativ, Aktionen der Traum-Seite nativ, Avatar-Anlage
   (Foto → `expo-image-picker`, Rebuild), Besetzung/Menagerie nativ,
