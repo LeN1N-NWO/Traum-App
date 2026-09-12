@@ -62,7 +62,12 @@ Stil-Kacheln, Doku).
   Vorspann, Segment-Fortschritt, „Noch n", Raster kleiner Glas-Altäre mit
   SF Symbols, fertige Karten dimmen und klappen den Text weg, Haken einer
   Nacht (Befehl `sleepCheck`). Die Schlaf-Räume teilen jetzt eine Bühne
-  (`Room`). Guide und Symbole bleiben Web.
+  (`Room`).
+- **Luzid-Guide nativ** (`components/lucid-guide.tsx`, Raum `guide`):
+  Aufbau nach `LucidGuide.jsx` — Vorspann, drei Hebel vor den Methoden,
+  Klapp-Karten mit Layout-Animation, Quelle; Erinnerungs-Wunsch als echter
+  Schalter mit 1–4× (Befehl `reminders` → `reminderWish`, nur der Wunsch,
+  wie im Web). Nur die Symbole bleiben im Schlaf-Tab Web.
 
 **Was der Nächste wissen muss:**
 - Prüfen läuft weiter per Redirect-Trick (index.tsx temporär ersetzen,

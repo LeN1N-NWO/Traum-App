@@ -4,12 +4,13 @@ import { SymbolView, type SFSymbol } from "expo-symbols";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { LegacyTab } from "@/components/legacy-tab";
+import { LucidGuide } from "@/components/lucid-guide";
 import { SleepChecklist } from "@/components/sleep-checklist";
 import { SoundMixer } from "@/components/sound-mixer";
 import { colors, fonts, TAB_INSET } from "@/theme";
 
-/* Ein Schlaf-Raum. Checkliste und Klänge sind nativ; Guide und Symbole
-   bleiben vorerst Web-Seiten mit eigenem Rückweg. Die Bühne der Unterseite
+/* Ein Schlaf-Raum. Checkliste, Klänge und Guide sind nativ; die Symbole
+   bleiben vorerst eine Web-Seite mit eigenem Rückweg. Die Bühne der Unterseite
    ist die des Web (SleepScreen.jsx, view-Zweig): Schein in der Raumfarbe,
    Icon im Kreis, Serife, Untertitel. */
 export default function SleepSectionScreen() {
@@ -17,6 +18,7 @@ export default function SleepSectionScreen() {
   const v = String(view);
   if (v === "sounds") return <SoundsRoom />;
   if (v === "checklist") return <ChecklistRoom />;
+  if (v === "guide") return <GuideRoom />;
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -51,6 +53,16 @@ function ChecklistRoom() {
   return (
     <Room id="checklist" sf="moon.zzz.fill" tint={colors.warm} glow="rgba(242,167,101,0.30)">
       {C ? <SleepChecklist C={C} onSave={(date, done) => send({ type: "sleepCheck", date, done })} /> : null}
+    </Room>
+  );
+}
+
+function GuideRoom() {
+  const { data, send } = useJournal();
+  const G = data?.sleep?.lucid;
+  return (
+    <Room id="guide" sf="brain.head.profile" tint={colors.accent} glow="rgba(79,156,249,0.30)">
+      {G ? <LucidGuide G={G} onReminder={(wants, perDay) => send({ type: "reminders", wants, perDay })} /> : null}
     </Room>
   );
 }

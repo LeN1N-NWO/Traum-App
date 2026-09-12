@@ -24,6 +24,7 @@ import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
 import { styleById } from "../../../src/lib/styles.js";
 import { autoMatch } from "../../../src/wizard/useWizard.js";
 import { blankDays, localDateKey } from "../../../src/lib/dreamDays.js";
+import { reminderWish, reminderState, MAX_PER_DAY, DEFAULT_PER_DAY } from "../../../src/lib/reminders.js";
 import { MILESTONES, nextMilestone, giftAt } from "../../../src/lib/streakBoard.js";
 import { nextSnoozeIn } from "../../../src/lib/streak.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
@@ -142,6 +143,16 @@ function snapshot() {
       return { lede: c.lede, hint: c.hint, progressLabel: c.progressLabel, today, done,
         items: c.items.map((it) => ({ id: it.id, title: it.title, text: it.text })),
         remaining: c.items.map((_, i) => c.remaining(i)).concat([c.remaining(c.items.length)]) };
+    })(),
+    /* Der Luzid-Guide (LucidGuide.jsx): Hebel, Methoden, Quelle — und der
+       Erinnerungs-Wunsch (reminders.js: Wunsch getrennt von Erlaubnis). */
+    lucid: (() => {
+      const l = t.lucid; const r = s.reminders || null;
+      return { lede: l.lede, leversTitle: l.leversTitle, levers: l.levers, methodsTitle: l.methodsTitle,
+        methods: l.methods.map((m) => ({ id: m.id, name: m.name, rate: m.rate || null, summary: m.summary, steps: m.steps, note: m.note })),
+        sourceNote: l.sourceNote, reminderAsk: l.reminderAsk, reminderPerDay: l.reminderPerDay, reminderWhy: l.reminderWhy, reminderSoon: l.reminderSoon,
+        reminderActive: Object.fromEntries(Array.from({ length: MAX_PER_DAY }, (_, i) => [i + 1, l.reminderActive(i + 1)])),
+        maxPerDay: MAX_PER_DAY, reminder: { on: reminderState(r) !== "hidden", perDay: r?.perDay || DEFAULT_PER_DAY } };
     })(),
   };
   const profile = {
@@ -290,6 +301,7 @@ function run(cmd) {
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };
   else if (cmd.type === "sleepCheck") patch = { sleepCheck: { date: cmd.date, done: cmd.done || [] } };
+  else if (cmd.type === "reminders") patch = { reminders: { ...(s.reminders || {}), ...reminderWish(!!cmd.wants, cmd.perDay || DEFAULT_PER_DAY) } };
   else if (cmd.type === "saveDream") {
     /* Nur speichern (Step2Output.saveOnly): kein Render, keine Kosten, mit
        Wesen und Serie — dieselbe Reihenfolge wie im Web. */

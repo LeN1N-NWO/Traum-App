@@ -8,8 +8,8 @@ Entwurf): **alle fünf Tabs, der Wizard, das Kaufblatt und das
 Klang-Mischpult sind nativ** (Expo Router, Liquid Glass, SF Symbols,
 Haptik); Schritt 4 aus ADR-0006 ist weit. Noch Web als DOM-Komponente im
 nativen Stack: Stimm-Gespräch, Schritt 6 (Warten), Aktionen der Traum-Seite,
-Schlaf-Räume Guide und Symbole, Einstellungen/Avatar/Umfrage,
-Besetzung/Atlas/Menagerie. **Antons Befunde vom 12.09. vormittags sind alle umgesetzt**
+Schlaf-Raum Symbole, Einstellungen/Avatar/Umfrage, Besetzung/Atlas/
+Menagerie. **Antons Befunde vom 12.09. vormittags sind alle umgesetzt**
 (Kaufblatt ohne Bilder, Glas-Regler, Safe Area oben, Faultier-Schleife,
 Glas-Knöpfe ohne Textüberlauf, Tab-Sprung „Neu anlegen") — Details im
 WORKLOG. ⚠ `mobile/app.json` hat jetzt `UIBackgroundModes: audio`; das
@@ -177,10 +177,15 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   dimmen und klappen den Text weg; Haken gehören der Nacht (Befehl
   `sleepCheck`, `snapshot().sleep.checklist`). Die Schlaf-Räume teilen die
   Bühne `Room` in `sleep/[view].tsx`.
+  **Luzid-Guide nativ** (`components/lucid-guide.tsx`): Hebel als Glas-
+  Karten, Methoden als Klapp-Karten mit Quote auf der geschlossenen Karte,
+  Erinnerungs-Schalter nur unter den Realitätschecks — sammelt weiter NUR
+  den Wunsch (Befehl `reminders` → `reminderWish`), Benachrichtigungen
+  plant erst die native Schicht (iOS fragt genau einmal, reminders.js).
   **Als Nächstes:** Stimme nativ, Schritt 6 (Warten) nativ, Aktionen der
-  Traum-Seite nativ, restliche Web-Räume (Guide, Symbole, Einstellungen,
-  Avatar-Anlage); dann Datenschicht nach `expo-sqlite` und die Brücke
-  abbauen.
+  Traum-Seite nativ, restliche Web-Räume (Symbole, Einstellungen,
+  Avatar-Anlage); Erinnerungen wirklich planen (`expo-notifications`,
+  Wachstunden); dann Datenschicht nach `expo-sqlite` und die Brücke abbauen.
   Je Bildschirm nativ neu entwerfen, nicht das Web-Layout nachbauen.
   ⚠ NativeTabs ist Alpha, SDK 57.0.x. ⚠ Ungeprüft, weil hier niemand tippen
   kann: Fassungswechsel, Teilen, „…" → Web-Seite → zurück.
