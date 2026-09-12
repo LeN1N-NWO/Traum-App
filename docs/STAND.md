@@ -137,6 +137,12 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   ⚠ Ungeprüft (niemand tippt hier): Lesung, Besetzung, Auftrag bis
   Schritt 6, Rückkehr ins Journal — **erster echter Durchlauf mit Anton am
   Simulator, dann am Gerät.**
+  **⚠⚠ Regel aus Antons Befund 12.09.: umbauen, nicht neu erfinden.** Der
+  Web-Bildschirm ist die Vorlage — gleiche Bausteine an gleicher Stelle
+  (Voice first, Deck mit Punkten, Nebenräume, Kalender), nativ ändern sich
+  nur Material, Bewegung und Haptik. Vor jedem Bildschirm den Web-JSX samt
+  Kommentaren lesen. Journal und Schritt 1 sind danach korrigiert; die
+  Stimme läuft als Web-Baustein (`legacy-voice.jsx`) im nativen Fluss.
   **Als Nächstes:** Stimme nativ, Schritt 6 (Warten) nativ, Aktionen der
   Traum-Seite nativ, Web-Räume in Schlaf/Profil; dann Datenschicht nach
   `expo-sqlite` und die Brücke abbauen.

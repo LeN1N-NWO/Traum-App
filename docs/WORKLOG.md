@@ -88,6 +88,16 @@ curl. Bun, Ruby, Python, Git sind frei — also alles daran vorbeigebaut:
   einmal je Auftrag (sessionStorage-Wächter gegen StrictMode/Refresh).
   Brücke: Befehl `analyze` mit Antwort (`onResult`, `ask()`), zahlt wie im
   Web. Wizard-Zustand nativ in `store/wizard-store.ts`.
+- **Antons Befund, Vormittag:** „Ich habe bereits eine Web entwickelt mit
+  einem Flow … so sollst du nur umbauen und richtig geil machen." Ich hatte
+  das Deck (Karten-Slider mit Punkten), die Nebenräume und den Kalender im
+  Journal durch ein Raster ersetzt und im Wizard das Textfeld vor die
+  Stimme gestellt. Korrigiert: Journal spiegelt JournalScreen.jsx (Deck mit
+  Reanimated-Kippung, Liste, Umschalter gespeichert, Besetzung/Atlas/
+  Menagerie, Kalender aus dreamDays.js), Schritt 1 spiegelt Step1Dream.jsx
+  (Erzählen groß und zuerst). Stimme: nur der Web-Baustein VoiceInterview
+  in einem nativen Screen, Text kommt zurück, Lesung startet von selbst —
+  kein doppelter Wizard mehr. Regel steht im STAND und im Gedächtnis.
 
 ### Was der Nächste wissen muss
 

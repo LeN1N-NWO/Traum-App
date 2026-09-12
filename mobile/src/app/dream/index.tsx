@@ -74,7 +74,8 @@ export default function DreamTextScreen() {
             />
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Pressable style={[styles.quiet, clean.length < 8 && styles.disabled]} onPress={() => read()} disabled={clean.length < 8}>
-              <Text style={styles.quietText}>✨ {W?.read ?? "Read my dream"} · {price}</Text>
+              <SymbolView name="sparkles" size={16} tintColor={colors.text} />
+              <Text style={styles.quietText}>{W?.read ?? "Read my dream"} · {price}</Text>
             </Pressable>
             <Text style={styles.hint}>{W?.why}</Text>
           </>
@@ -84,7 +85,7 @@ export default function DreamTextScreen() {
             <Text style={styles.lede}>{W?.previewLede}</Text>
             <View style={styles.card}><Text style={styles.cardLabel}>{W?.yours}</Text><Text style={styles.body}>{clean}</Text></View>
             <View style={[styles.card, styles.cardNew]}><Text style={styles.cardLabel}>{W?.improved}</Text><Text style={styles.body}>{preview.text}</Text></View>
-            {preview.title ? <Text style={styles.poster}>🎬 <Text style={{ fontWeight: "700" }}>{preview.title}</Text>{preview.tagline ? ` — ${preview.tagline}` : ""}</Text> : null}
+            {preview.title ? <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><SymbolView name="film" size={14} tintColor={colors.muted} /><Text style={styles.poster}><Text style={{ fontWeight: "700" }}>{preview.title}</Text>{preview.tagline ? ` — ${preview.tagline}` : ""}</Text></View> : null}
             <View style={styles.actions}>
               <Pressable style={styles.quiet} onPress={() => go(false)}><Text style={styles.quietText}>{W?.keepMine}</Text></Pressable>
               <Pressable style={styles.primary} onPress={() => go(true)}><Text style={styles.primaryText}>{W?.useImproved}</Text></Pressable>
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
   label: { color: colors.muted, fontSize: 13 },
   input: { minHeight: 200, color: colors.text, fontSize: 17, lineHeight: 27, padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   error: { color: colors.warm, fontSize: 14 },
-  quiet: { flex: 1, height: 50, borderRadius: 999, alignItems: "center", justifyContent: "center", backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  quiet: { flex: 1, height: 50, borderRadius: 999, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   quietText: { color: colors.text, fontSize: 15, fontWeight: "600" },
   disabled: { opacity: 0.5 },
   primary: { flex: 1, height: 50, borderRadius: 999, alignItems: "center", justifyContent: "center", backgroundColor: colors.warm },
