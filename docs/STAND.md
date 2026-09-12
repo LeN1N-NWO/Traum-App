@@ -131,11 +131,15 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   Wächter in sessionStorage). Geldweg und Prompt-Kette unverändert; die
   Lesung kostet über die Brücke wie im Web (`spend` vorher, Abbuchung nach
   Erfolg). Stimme: `dream/voice.tsx` = Web-Wizard mit Gemini-Gespräch.
-  ⚠ Ungeprüft (niemand tippt hier): Lesung, Auftrag bis Schritt 6, Rückkehr
-  ins Journal. Besetzung/Orte (Schritt 3/4) sind nativ übersprungen — die
-  Analyse setzt sie automatisch (seedAssignments im Resume-Pfad).
-  **Als Nächstes:** Besetzung nativ (Fotos zuordnen), Stimme nativ, dann
-  die Web-Räume in Schlaf/Profil; dann Datenschicht nach `expo-sqlite`.
+  Besetzung nativ (`dream/cast.tsx`): Namen und Auto-Treffer aus der
+  Web-Logik (Befehl `cast`), Foto aus der Bibliothek oder „KI erfindet",
+  als `resume.assignmentOverrides` in den Motor. Neue Fotos anlegen: noch Web.
+  ⚠ Ungeprüft (niemand tippt hier): Lesung, Besetzung, Auftrag bis
+  Schritt 6, Rückkehr ins Journal — **erster echter Durchlauf mit Anton am
+  Simulator, dann am Gerät.**
+  **Als Nächstes:** Stimme nativ, Schritt 6 (Warten) nativ, Aktionen der
+  Traum-Seite nativ, Web-Räume in Schlaf/Profil; dann Datenschicht nach
+  `expo-sqlite` und die Brücke abbauen.
   Je Bildschirm nativ neu entwerfen, nicht das Web-Layout nachbauen.
   ⚠ NativeTabs ist Alpha, SDK 57.0.x. ⚠ Ungeprüft, weil hier niemand tippen
   kann: Fassungswechsel, Teilen, „…" → Web-Seite → zurück.
