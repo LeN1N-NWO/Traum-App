@@ -14,6 +14,7 @@ import { MascotLoader } from "@/components/mascot-loader";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
+import { patchWizard, resetWizard } from "@/store/wizard-store";
 import type { DreamItem } from "@/store/journal-store";
 
 /* Die Traum-Seite, nativ (12.09.2026) — zum Lesen und Sehen: der Film groß
@@ -27,6 +28,17 @@ export default function DreamScreen() {
   const { data, bridge, send, ask } = useJournal();
   const item = data?.items.find((e) => e.id === id) ?? null;
   const [reflecting, setReflecting] = useState(false);
+  /* „Nochmal, anders" / „Zum Leben erwecken": der native Fluss ab dem Stil
+     mit Text und Analyse DIESES Traums (Antons Wunsch 12.09. — vorher
+     landete man auf der alten Web-Seite). Mit entryId haengt der Auftrag
+     die neue Fassung an den Traum; alle Fassungen bleiben. */
+  function retake() {
+    if (!item) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    resetWizard();
+    patchWizard({ entryId: item.id, text: item.text, originalText: item.originalText ?? item.text, analysis: item.analysis, styleId: item.styleId ?? item.analysis?.style ?? "ultrareal", mode: "film" });
+    router.push("/dream/style");
+  }
   async function reflectNow() {
     if (!item || reflecting) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -66,7 +78,7 @@ export default function DreamScreen() {
         }}
       />
       <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="never" contentContainerStyle={styles.content}>
-        {item ? <DreamBody item={item} labels={labels} locale={locale} onMore={() => router.push({ pathname: "/journal/web-dream", params: { id: item.id } })} onReflect={reflectNow} reflecting={reflecting} /> : null}
+        {item ? <DreamBody item={item} labels={labels} locale={locale} onMore={retake} onReflect={reflectNow} reflecting={reflecting} /> : null}
       </ScrollView>
       <Stack.Toolbar placement="right">
         {item ? <Stack.Toolbar.Button icon="ellipsis.circle" onPress={menu} /> : null}

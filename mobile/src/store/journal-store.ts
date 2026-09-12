@@ -6,7 +6,7 @@ import { useSyncExternalStore } from "react";
 export type Take = { url: string; at: string | null; label: string };
 export type DreamItem = {
   id: string; createdAt: string; title: string; tagline: string; text: string;
-  media: { kind: "film" | "image"; url: string } | null; pending: boolean; rendering: boolean; failReason: string | null; audio: string | null; poster: string | null;
+  media: { kind: "film" | "image"; url: string } | null; pending: boolean; rendering: boolean; failReason: string | null; audio: string | null; poster: string | null; analysis: any | null; styleId: string | null;
   films: Take[]; images: string[]; reflection: string | null; originalText: string | null;
   cast: { tag: string; img: string | null }[];
 };

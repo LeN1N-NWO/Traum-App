@@ -75,6 +75,8 @@ function snapshot() {
            der Film als Standbild, sonst das erste Bild. */
         media: e.poster ? { kind: "image", url: absolute(e.poster) } : film ? { kind: "film", url: absolute(film) } : images[0] ? { kind: "image", url: images[0] } : null,
         poster: e.poster ? absolute(e.poster) : null,
+        // Fuer „Nochmal, anders" (native Fassung): Analyse und Stil des Traums.
+        analysis: e.analysis || null, styleId: e.style || null,
         pending,
         /* Für die native Auftragsseite: Auftrag abgegeben (Nummer hängt am
            Traum) bzw. gescheitert (Grund aus falError.js, als Satz). */
