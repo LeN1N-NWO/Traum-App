@@ -79,6 +79,28 @@ export default {
     note: "Die Serie zählt Nächte mit einem aufgeschriebenen Traum — nie die Menge. Hundert Träume an einem Tag bleiben eine Nacht.",
   },
 
+  moon: {
+
+    title: "Mond",
+
+    tonight: "Heute Nacht",
+
+    phases: {
+
+      new: "Neumond", waxingCrescent: "Zunehmende Sichel", firstQuarter: "Erstes Viertel",
+
+      waxingGibbous: "Zunehmender Mond", full: "Vollmond", waningGibbous: "Abnehmender Mond",
+
+      lastQuarter: "Letztes Viertel", waningCrescent: "Abnehmende Sichel",
+
+    },
+
+    lit: (p) => `${p} % beleuchtet`,
+
+    weekdays: ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
+
+  },
+
   journal: {
     viewList: "Als Liste zeigen",
     viewDeck: "Als Karten zeigen",
@@ -847,6 +869,39 @@ export default {
       ],
     },
   },
+  onboard: {
+    skip: "Überspringen",
+    next: "Weiter",
+    back: "Zurück",
+    step: (a, b) => `${a} von ${b}`,
+    introKicker: "Das Traumtagebuch",
+    introText: "Jede Nacht drehst du Filme. Fang an, sie zu behalten.",
+    introCta: "Los",
+    featuresTitle: "Was die App macht",
+    features: [
+      { title: "Sag ihn im Halbschlaf", text: "Drei Uhr nachts, Augen zu — erzähl einfach. Die App schreibt die Nacht für dich auf." },
+      { title: "Dann sieh ihn an", text: "Dein Traum wird ein kurzer Film, mit den echten Gesichtern deiner Menschen und Orte." },
+      { title: "Das Leise ist gratis", text: "Klartraum-Guide, Traumsymbole, Einschlafklänge. Ohne Credits, ohne Haken." },
+      { title: "Er bleibt deiner", text: "Das Tagebuch liegt auf deinem Handy. Nichts verlässt es, bis du einen Film willst." },
+    ],
+    askTitle: "Zwei Dinge vorab",
+    askText: "Beides wird einmal gefragt und ist freiwillig — aber ein Traumtagebuch, mit dem man um drei Uhr nachts nicht sprechen kann, ist eine halbe App.",
+    askMic: "Mikrofon",
+    askMicWhy: "Damit du deinen Traum erzählen kannst, statt ihn zu tippen.",
+    askPhotos: "Fotos",
+    askPhotosWhy: "Damit die Menschen und Orte in deinen Träumen ihr echtes Gesicht bekommen.",
+    askGranted: "Erlaubt",
+    askDenied: "Nicht erlaubt — in den Einstellungen änderbar",
+    askGo: "Frag mich",
+    sleepTitle: "Du wirst",
+    sleepYears: (y) => `${y} Jahre`,
+    sleepAsleep: "schlafen",
+    sleepDream: (y) => `Etwa ${y} davon träumst du — und erinnerst dich an fast nichts davon.`,
+    sleepNote: "Aus deiner Antwort und einem Leben von 80 Jahren gerechnet.",
+    doneTitle: "Das war's",
+    doneText: "Deine Nächte haben jetzt einen Ort.",
+    doneCta: "Heute Nacht anfangen",
+  },
   onboarding: {
     tagline: "Jede Nacht drehst du Filme. Fang an, sie zu behalten.",
     kicker: "das Traumtagebuch",
@@ -862,7 +917,11 @@ export default {
     start: "Fang heute Nacht an",
     gateTitle: "Erzähl mir, wie du träumst",
     gateText: "Zwei Minuten mit mir, nichts auszufüllen: wie du heißen willst, wie deine Nächte sind, was immer wiederkehrt. Überspring, was du willst.",
-    gateReward: "✦ Dein erster Traum geht auf uns",
+    /* Kein Gratis-Versprechen mehr (Antons Ansage 12.09.2026: „rausnehmen,
+       wir führen das nicht mal ein") — die Zeile bleibt als Schlüssel,
+       damit die Sprachdateien gleich geformt bleiben, und nennt nur noch
+       den Nutzen. */
+    gateReward: "Zwei Minuten, dann passt die App zu deinen Nächten",
     gateStart: "Reden wir",
     gateType: "Lieber tippen",
     gateLater: "Vielleicht später",
@@ -889,10 +948,10 @@ export default {
     selfieText: "Füg ein Foto hinzu, und deine Träume haben ihre Hauptrolle — dein echtes Gesicht, in jedem Bild. Geht auch jederzeit später.",
     selfieAdd: "Mein Foto hinzufügen",
     selfieSkip: "Jetzt nicht",
-    granted: "✦ Willkommen — dein erster Traum geht auf uns",
+    granted: "✦ Danke — dein Profil steht",
     thanks: "✦ Danke — dein Profil steht",
     profileCard: "Profil mit einem 2-Minuten-Gespräch vervollständigen",
-    profileCardHint: "✦ Dein erster Traum geht auf uns",
+    profileCardHint: "Zwei Minuten, ohne Pflichtfelder",
     startMenuTitle: "Bevor es losgeht",
     startMenuText: "Onboarding ansehen, oder direkt zur App springen?",
     startMenuOnboarding: "Onboarding zeigen",

@@ -147,7 +147,7 @@ function DreamBody({ item, labels, locale, onMore, onReflect, reflecting }: { it
           {item.films.length > 1 ? (
             <View style={styles.takeDots}>{item.films.map((f, i) => <View key={f.url} style={[styles.takeDot, i === take && styles.takeDotOn]} />)}</View>
           ) : null}
-          <Text style={styles.eyebrow}>{date.toUpperCase()}</Text>
+          <Text style={styles.eyebrow}>{date.toUpperCase()}{item.moon ? `  ·  ${item.moon.label.toUpperCase()}` : ""}</Text>
           <Text style={styles.title}>{item.title || labels.untitled || "Untitled dream"}</Text>
           {item.tagline ? <Text style={styles.tagline}>{item.tagline}</Text> : null}
         </View>
