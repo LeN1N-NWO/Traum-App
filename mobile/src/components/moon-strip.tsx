@@ -52,7 +52,7 @@ function Moon({ illum, waxing, size }: { illum: number; waxing: boolean; size: n
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 6 },
+  wrap: { gap: 6, marginTop: 18 },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   cell: { flex: 1, alignItems: "center" },
   plain: { alignItems: "center", gap: 5, paddingVertical: 8 },

@@ -45,6 +45,15 @@ soll am gespeicherten Traum hängen.
   startet den Fluss an Bildschirm n (nur `__DEV__`), so lassen sich alle
   Schritte ohne Tippen fotografieren.
 
+**Nachtrag 18:00 (Antons Befund):** Das Deck „verhält sich ganz komisch,
+kann ich gar nicht richtig scrollen", die Fächerung „sieht strange aus",
+und der Mond-Streifen überschnitt die Punkte. Dritter und einfachster
+Anlauf: ein GANZ NORMALER seitenweiser Scroller (Maus, Trackpad, Finger
+verhalten sich wie überall), und der Stapel dahinter sind zwei ruhige
+Blätter, die zur SEITE gehören — nicht die Nachbartraumkarten. Damit kann
+nichts mehr über der vorderen Karte liegen, und es gibt keine eigene
+Geste mehr. Mond-Streifen mit `marginTop: 18`.
+
 **Was der Nächste wissen muss:** Der Web-Onboarding-Ablauf
 (`src/screens/Onboarding/*`) ist NICHT gelöscht — er hängt noch am
 Web-Gate und am Startmenü. Nativ wird er nicht mehr geladen.
