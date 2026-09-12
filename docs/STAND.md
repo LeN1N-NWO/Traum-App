@@ -111,7 +111,17 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   Liste öffnet das ganze Web-Journal mit Besetzung, Atlas, Menagerie,
   Kalender (`journal/web.tsx`). Journal nativ vorgehalten in
   `mobile/src/store/journal-store.ts`.
-  **Als Nächstes:** Home nativ, dann Wizard (Aktionen nativ), Schlaf/Profil.
+  **Home, Schlaf und Profil sind nativ** (`index.tsx`, `sleep/index.tsx`,
+  `profile/index.tsx`): Home als Plakat mit dem Faultier-Video, Schlaf-Frage
+  und „Nichts hängengeblieben" schreiben über die Brücke (`send()` →
+  `command`-Prop → Web-Helfer); Schlaf als vier farbige Zeilen, die Räume
+  (Checkliste, Klänge, Guide, Symbole) noch Web (`sleep/[view].tsx`, `view`
+  reist als `history.state.usr` in den HashRouter); Profil mit Gesicht,
+  Zahlen, Guthaben in der Toolbar, Einstellungen/Avatar/Kaufblatt als
+  Web-Blätter (`profile/page.tsx` → `legacy-page.jsx`).
+  **Als Nächstes:** der Wizard (Traum-Tab) nativ — heute noch komplett Web —
+  und die Aktionen der Traum-Seite; dann die Web-Räume in Schlaf/Profil;
+  dann Datenschicht nach `expo-sqlite` und Brücke abbauen.
   Je Bildschirm nativ neu entwerfen, nicht das Web-Layout nachbauen.
   ⚠ NativeTabs ist Alpha, SDK 57.0.x. ⚠ Ungeprüft, weil hier niemand tippen
   kann: Fassungswechsel, Teilen, „…" → Web-Seite → zurück.

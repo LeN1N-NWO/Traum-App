@@ -5,7 +5,6 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJournal } from "@/components/journal-data";
 import { colors, fonts, radius } from "@/theme";
 
@@ -29,7 +28,6 @@ function greetingKey(hour: number) {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { data, bridge, send } = useJournal();
   const L = data?.labels ?? {};
   const home = data?.home;
@@ -40,7 +38,7 @@ export default function HomeScreen() {
 
   return (
     <>
-      <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]} contentInsetAdjustmentBehavior="never">
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic">
         <View style={styles.top}>
           <Text style={styles.greeting}>{L["greeting" + key] ?? ""}</Text>
           {home && home.streak > 0 ? (
@@ -129,7 +127,7 @@ function HeroVideo() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: 16, paddingBottom: 40, gap: 14 },
+  content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 40, gap: 14 },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 2 },
   greeting: { color: colors.muted, fontSize: 15 },
   pill: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },

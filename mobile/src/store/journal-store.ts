@@ -15,7 +15,13 @@ export type HomeData = {
   lastId: string | null; streakLine: string; streakNote: string;
   checkinLevels: { level: number; label: string; emoji: string }[];
 };
-export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData };
+export type SleepData = { title: string; subtitle: string; free: string; tiles: { id: string; title: string; text: string }[] };
+export type ProfileData = {
+  title: string; name: string; img: string | null; hint: string; credits: number; creditsWord: string;
+  dreams: number; streak: number; statDreams: string; statStreak: string; settings: string;
+  surveyDone: boolean; surveyTitle: string; surveyHint: string;
+};
+export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData };
 export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak"; level?: number };
 
 let snapshot: JournalSnapshot | null = null;

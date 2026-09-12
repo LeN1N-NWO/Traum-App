@@ -13,6 +13,7 @@ export const colors = {
   accentSoft: "#8cc0ff",
   warm: "#f2a765",
   gold: "#f6c65b",
+  cyan: "#4fd6e6",
 };
 export const fonts = {
   serif: "Iowan Old Style",     // Systemschrift auf iOS; Traumtitel

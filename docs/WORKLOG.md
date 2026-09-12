@@ -71,6 +71,16 @@ curl. Bun, Ruby, Python, Git sind frei — also alles daran vorbeigebaut:
   Speicher in `store/journal-store.ts`. expo-video → pods + Build. ⚠ Typed
   Routes (`.expo/types`) hinken neuen Dateien hinterher — tsc meldet dann
   falsche Routen, bis Metro sie neu schreibt.
+- **Home, Schlaf, Profil nativ** (früher Morgen 12.09.): Home = Plakat mit
+  Faultier-Video (`require` über die Projektgrenze), Gruß nach Uhrzeit,
+  Serie, Schlaf-Frage mit SF Symbols (Emoji fehlen im Simulator-Font),
+  „Nichts hängengeblieben", letzter Traum → Traum-Seite. Schreiben nativ →
+  Web über `command`-Prop der Brücke (blankNight, checkin, refreshStreak).
+  Schlaf: vier Zeilen in Raumfarbe, Räume als Web-Seiten mit `view` im
+  Router-Zustand. Profil: Gesicht, Zahlen, Guthaben als Toolbar-Knopf,
+  Web-Blätter für Einstellungen/Avatar/Kaufblatt/Umfrage. ⚠ Tab-Screens
+  bekommen den oberen Inset schon vom System — kein eigenes
+  `insets.top` dazu, sonst doppelt.
 
 ### Was der Nächste wissen muss
 

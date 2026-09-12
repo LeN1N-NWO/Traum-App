@@ -16,6 +16,7 @@ import { refreshStreak, streakAtRisk, bumpStreak, STREAK_CAP } from "../../../sr
 import { hasPendingJobs } from "../../../src/lib/collector.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
+import { totalCredits } from "../../../src/lib/credits.js";
 import { filmsOf, filmOf, imagesOf } from "../../../src/lib/entryMedia.js";
 import { isBlank } from "../../../src/lib/blankNight.js";
 import { mediaUrl } from "../../../src/lib/api.js";
@@ -82,7 +83,19 @@ function snapshot() {
     share: t.journal.actShare, more: t.journal.menu, makeFilm: t.journal.makeFilm, anotherTake: t.journal.makeFilmAgain,
     dreams: t.journal.title,
   };
-  return { language: s.language || "en", items, labels, home };
+  const sleep = {
+    title: t.sleep.title, subtitle: t.sleep.subtitle, free: t.sleep.free,
+    tiles: ["checklist", "sounds", "guide", "symbols"].map((id) => ({ id, title: t.sleep.tiles[id].title, text: t.sleep.tiles[id].text })),
+  };
+  const profile = {
+    title: t.profile.title, name: s.me?.tag || t.profile.you, img: s.me?.img || null,
+    hint: s.me?.img ? t.profile.meSet : t.profile.meEmpty,
+    credits: totalCredits(s), creditsWord: t.profile.credits,
+    dreams: (s.journal || []).length, streak, statDreams: t.profile.statDreams, statStreak: t.profile.statStreak,
+    settings: t.profile.settings, surveyDone: !!s.surveyDone,
+    surveyTitle: t.onboarding.profileCard, surveyHint: t.onboarding.profileCardHint,
+  };
+  return { language: s.language || "en", items, labels, home, sleep, profile };
 }
 
 /* Befehle nativ → Web: Die Hülle kann den Web-Speicher nicht schreiben, also
