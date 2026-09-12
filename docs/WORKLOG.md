@@ -40,8 +40,15 @@ hörbar macht.
   Web-Zustand (`pendingAudioUrl`), der nächste angelegte Traum nimmt sie —
   in Step5Style wie in `saveDream`; die vier Träume von heute haben keine,
   sie entstanden vor dem Fix.
+- Antons vierter Nachtrag: „Nochmal, anders" landete auf der alten Web-
+  Seite. Jetzt startet es den nativen Fluss beim Stil mit Text, Analyse
+  und Stil DIESES Traums (`retake()` in `journal/[id].tsx`,
+  `wizard.entryId`); der Auftrag reicht `entryId` in `resume` durch, Step5
+  hängt die neue Fassung an den Eintrag (isNewEntry = false), `order.tsx`
+  beobachtet dann den bestehenden Traum statt eines neuen. Gleicher Weg für
+  „Zum Leben erwecken" bei Träumen ohne Film.
 - ⚠ Ungeprüft (niemand tippt hier): Vollbild-Übergang, Ton, Wischen,
-  Reflexion, Aufnahme am nächsten Traum.
+  Reflexion, Aufnahme am nächsten Traum, neue Fassung.
 
 ## 2026-09-12 17:00 — Anton — Branch `session/2026-09-12-anton` — Sitzungsabschluss (wrap, Merge auf Antons Wort)
 

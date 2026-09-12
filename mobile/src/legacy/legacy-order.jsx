@@ -15,8 +15,6 @@ import { useRef } from "react";
 import App from "../../../src/App.jsx";
 
 export default function LegacyOrder({ order, safeTop = 0, safeBottom = 0, dom }) {
-  // eslint-disable-next-line no-unused-vars
-  const _dom = dom;
   if (typeof globalThis.__setSafeArea === "function") globalThis.__setSafeArea(safeTop, safeBottom);
   const started = useRef(false);
   if (!started.current) {
