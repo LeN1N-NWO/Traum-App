@@ -48,6 +48,7 @@ export default function DreamOrderScreen() {
       ? data.items.find((e) => e.id === mineId.current)
       : data.items.find((e) => new Date(e.createdAt).getTime() >= startedAt.current - 15_000 && (e.pending || e.rendering));
     if (!mine) return;
+    if (!mineId.current && w.audioUrl) send({ type: "attachAudio", id: mine.id, audioUrl: w.audioUrl });   // die Aufnahme an den Traum (ADR-0007)
     mineId.current = mine.id;
     if (mine.rendering) {
       done.current = true;
@@ -60,7 +61,7 @@ export default function DreamOrderScreen() {
     } else if (mine.failReason || !mine.pending) {
       setShowWeb(true);
     }
-  }, [data, W, router, send]);
+  }, [data, W, router, send, w.audioUrl]);
 
   // Rückfall: Meldet sich nach zwei Minuten kein Traum, zeigt der Motor, was los ist.
   useEffect(() => { const id = setTimeout(() => setShowWeb(true), 120_000); return () => clearTimeout(id); }, []);

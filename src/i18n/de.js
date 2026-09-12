@@ -518,6 +518,11 @@ export default {
     submitting: "Wird heraufbeschworen…",
     tooShort: "⚠ Schreib erst noch etwas mehr.",
     caught: (name) => `✦ ${name} ist deiner Menagerie beigetreten`,
+    /* Der Rekorder (ADR-0007): einsprechen, fertig — keine Rückfragen. */
+    record: "Erzähl ihn laut", recordHint: "Sprich einfach. Ich schreibe mit.",
+    recording: "Ich höre zu …", recordStop: "Fertig", recordTranscribing: "Ich schreibe auf …",
+    recordTooShort: "Das war zu kurz — noch mal.", recordFailed: "Konnte das nicht aufschreiben. Noch mal versuchen.",
+    recordAgain: "Noch mal aufnehmen", yourRecording: "Deine Aufnahme",
     interview: "Laut erzählen",
     interviewHint: "Ich frage, du erzählst — Augen zu, wenn du magst",
     reading: "Dein Traum wird gelesen…",

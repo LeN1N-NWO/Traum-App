@@ -26,7 +26,7 @@ export default function DreamTextScreen() {
   const credits = data?.profile.credits ?? 0;
   const clean = text.trim();
 
-  // Aus dem Gespräch zurück: Text übernehmen und sofort lesen (wie im Web).
+  // Aus der Aufnahme zurück (ADR-0007): Text übernehmen und sofort lesen (wie im Web nach dem Gespräch).
   useEffect(() => {
     if (!w.pendingRead || !W) return;
     setText(w.text); patchWizard({ pendingRead: false });
@@ -65,8 +65,8 @@ export default function DreamTextScreen() {
             <Pressable style={styles.tell} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/dream/voice"); }}>
               <View style={styles.tellIcon}><SymbolView name="waveform.and.mic" size={26} tintColor={colors.bg} /></View>
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.tellTitle}>{W?.interview ?? "Tell it out loud"}</Text>
-                <Text style={styles.tellHint}>{W?.interviewHint}</Text>
+                <Text style={styles.tellTitle}>{W?.record ?? W?.interview ?? "Tell it out loud"}</Text>
+                <Text style={styles.tellHint}>{W?.recordHint ?? W?.interviewHint}</Text>
               </View>
             </Pressable>
             <View style={styles.or}><View style={styles.orLine} /><Text style={styles.orText}>{W?.or}</Text><View style={styles.orLine} /></View>

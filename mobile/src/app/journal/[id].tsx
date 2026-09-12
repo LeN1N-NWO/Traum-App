@@ -2,10 +2,12 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { SymbolView } from "expo-symbols";
+import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useState, useEffect } from "react";
 import { ActionSheetIOS, Alert, Platform, Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-import { GlassButton, PrimaryButton } from "@/components/glass";
+import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 import type { DreamItem } from "@/store/journal-store";
@@ -58,6 +60,27 @@ export default function DreamScreen() {
       </Stack.Toolbar>
       <View style={styles.bridge}>{bridge}</View>
     </>
+  );
+}
+
+function RecordingRow({ url, label }: { url: string; label: string }) {
+  const player = useAudioPlayer({ uri: url });
+  const st = useAudioPlayerStatus(player);
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  const k = st.duration > 0 ? Math.min(1, st.currentTime / st.duration) : 0;
+  return (
+    <View style={styles.section}>
+      <Pressable onPress={() => { Haptics.selectionAsync(); if (st.playing) player.pause(); else { if (st.didJustFinish || (st.duration > 0 && st.currentTime >= st.duration - 0.05)) player.seekTo(0); player.play(); } }}>
+        <Glass style={styles.rec} interactive>
+          <View style={styles.recBtn}><SymbolView name={st.playing ? "pause.fill" : "play.fill"} size={16} tintColor={colors.bg} /></View>
+          <View style={{ flex: 1, gap: 6 }}>
+            <Text style={styles.recLabel}>{label}</Text>
+            <View style={styles.recBar}><View style={[styles.recFill, { width: `${Math.round(k * 100)}%` }]} /></View>
+          </View>
+          <Text style={styles.recTime}>{fmt(st.playing || st.currentTime > 0 ? st.currentTime : st.duration)}</Text>
+        </Glass>
+      </Pressable>
+    </View>
   );
 }
 
@@ -114,6 +137,9 @@ function DreamBody({ item, labels, locale, onMore }: { item: DreamItem; labels: 
           {item.images.length === 1 && !film ? <Image source={{ uri: item.images[0] }} style={[styles.storyImg, { marginTop: 14 }]} contentFit="cover" /> : null}
         </View>
       )}
+
+      {/* Die eigene Aufnahme (ADR-0007): die Stimme von damals gehört zum Traum. */}
+      {item.audio ? <RecordingRow url={item.audio} label={labels.yourRecording ?? "Your recording"} /> : null}
 
       {item.cast.length ? (
         <View style={[styles.section, styles.chips]}>
@@ -189,6 +215,12 @@ const styles = StyleSheet.create({
   buttonPrimary: { backgroundColor: colors.warm },
   buttonText: { color: colors.text, fontSize: 15, fontWeight: "600" },
   buttonPrimaryText: { color: colors.bg, fontSize: 15, fontWeight: "700" },
+  rec: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, paddingRight: 16, borderRadius: 18 },
+  recBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.warm, alignItems: "center", justifyContent: "center" },
+  recLabel: { color: colors.text, fontSize: 14, fontWeight: "600" },
+  recBar: { height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.12)", overflow: "hidden" },
+  recFill: { height: 4, backgroundColor: colors.warm },
+  recTime: { color: colors.muted, fontSize: 13, fontVariant: ["tabular-nums"] },
   bridge: { height: 0, overflow: "hidden" },
   storyImg: { width: "100%", aspectRatio: 9 / 16, borderRadius: radius.card, backgroundColor: colors.bg2 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

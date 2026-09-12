@@ -561,6 +561,11 @@ export default {
     submitting: "Summoning…",
     tooShort: "⚠ Write a little more first.",
     caught: (name) => `✦ ${name} joined your menagerie`,
+    /* Der Rekorder (ADR-0007): einsprechen, fertig — keine Rückfragen. */
+    record: "Tell it out loud", recordHint: "Just talk. I'll write it down.",
+    recording: "Listening…", recordStop: "Done", recordTranscribing: "Writing it down…",
+    recordTooShort: "That was too short — try again.", recordFailed: "Couldn't write that down. Try again.",
+    recordAgain: "Record again", yourRecording: "Your recording",
     interview: "Tell it out loud",
     interviewHint: "I'll ask, you talk — eyes closed if you like",
     reading: "Reading your dream…",

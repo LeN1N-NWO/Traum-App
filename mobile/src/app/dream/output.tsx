@@ -21,7 +21,7 @@ export default function DreamOutputScreen() {
   const rows: { key: string; sf: SFSymbol; title?: string; hint?: string; price: string; onPress: () => void }[] = [
     { key: "save", sf: "tray.and.arrow.down", title: W?.saveOnly, hint: W?.saveOnlyHint, price: W?.free ?? "Free", onPress: () => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        send({ type: "saveDream", text: w.text, originalText: w.originalText, analysis: w.analysis, title: w.analysis?.title || "", tagline: w.analysis?.tagline || "" });
+        send({ type: "saveDream", text: w.text, originalText: w.originalText, analysis: w.analysis, title: w.analysis?.title || "", tagline: w.analysis?.tagline || "", audioUrl: w.audioUrl ?? undefined });
         router.navigate("/journal");
       } },
     { key: "film", sf: "film", title: W?.film, hint: W?.filmHint, price: `${W?.from ?? "from"} ${W?.filmFrom ?? ""}`, onPress: () => { Haptics.selectionAsync(); patchWizard({ mode: "film" }); router.push("/dream/cast"); } },

@@ -1754,8 +1754,11 @@ async function falTranscribe(audioDataUri) {
 const MEDIA_TYPES = {
   "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp",
   "video/mp4": "mp4", "video/quicktime": "mp4",
+  // Die Traum-Aufnahme (ADR-0007): m4a/AAC aus der nativen App, gespeichert
+  // wie Bilder und Filme — nach Inhalt benannt, am Eintrag als audio.url.
+  "audio/mp4": "m4a", "audio/m4a": "m4a", "audio/x-m4a": "m4a", "audio/aac": "m4a",
 };
-const MEDIA_MIME = { png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp4: "video/mp4" };
+const MEDIA_MIME = { png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp4: "video/mp4", m4a: "audio/mp4" };
 const MAX_MEDIA_BYTES = 60 * 1024 * 1024;
 
 /** Write bytes under a name derived from their own content — never from
@@ -2866,7 +2869,7 @@ const serveOptions = {
         }
         const bytes = new Uint8Array(await req.arrayBuffer());
         const stored = await storeBytes(bytes, req.headers.get("content-type"));
-        if (!stored) return json({ error: "Not a storable image." }, 400);
+        if (!stored) return json({ error: "Not a storable image or recording." }, 400);
         return json({ ok: true, url: stored });
       } catch (e) {
         console.error("[DreamRushes] /api/panel failed:", e);

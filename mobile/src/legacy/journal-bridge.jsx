@@ -75,6 +75,8 @@ function snapshot() {
         /* Für die native Auftragsseite: Auftrag abgegeben (Nummer hängt am
            Traum) bzw. gescheitert (Grund aus falError.js, als Satz). */
         rendering: !!e.jobId || (e.imageJobs || []).length > 0,
+        // Die eigene Aufnahme (ADR-0007), wenn der Traum eingesprochen wurde.
+        audio: e.audio?.url ? absolute(e.audio.url) : null,
         failReason: e.failReason ? (t.errors[failureTextKey(e.failReason)] || t.errors.unexpected) : null,
         films: filmsOf(e).map((f) => ({ url: absolute(f.url), at: f.at || null, label: takeLabel(f) })),
         images,
@@ -253,6 +255,9 @@ function snapshot() {
     saved: t.wizard.step2.saved, from: t.wizard.from, cancel: t.wizard.cancel, back: t.wizard.back,
     imagesFrom: priceForImages(Math.min(...IMAGE_COUNTS)), filmFrom: priceForFilm("standard", 5), steps: 6 };
   const dream = { ...step2, interview: t.dream.interview, interviewHint: t.dream.interviewHint, or: t.dream.or, label: t.dream.label,
+    record: t.dream.record, recordHint: t.dream.recordHint, recording: t.dream.recording, recordStop: t.dream.recordStop,
+    recordTranscribing: t.dream.recordTranscribing, recordTooShort: t.dream.recordTooShort, recordFailed: t.dream.recordFailed,
+    recordAgain: t.dream.recordAgain, yourRecording: t.dream.yourRecording, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
     placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
   /* Das Kaufblatt (Paywall.jsx), vorgerechnet: Texte sind im Web zum Teil
      Funktionen, über die Brücke gehen nur Strings. NUR Filme — Bilder sind
@@ -370,6 +375,7 @@ function run(cmd) {
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };
   else if (cmd.type === "sleepCheck") patch = { sleepCheck: { date: cmd.date, done: cmd.done || [] } };
+  else if (cmd.type === "attachAudio") patch = { journal: (s.journal || []).map((e) => (e.id === cmd.id ? { ...e, audio: { url: cmd.audioUrl } } : e)) };
   else if (cmd.type === "consent") patch = consentPatch();
   else if (cmd.type === "paywallSeen") patch = { paywallSeen: true };
   else if (cmd.type === "deleteDream") patch = { journal: (s.journal || []).filter((e) => e.id !== cmd.id) };
@@ -384,6 +390,7 @@ function run(cmd) {
       id: genId("e"), createdAt: new Date().toISOString(), text: cmd.text, originalText: cmd.originalText || cmd.text,
       title: (cmd.title || "").trim() || creature.title, tagline: (cmd.tagline || "").trim(), mode: "save",
       media: { type: "image", urls: [], source: "none" }, analysis: cmd.analysis || null, references: [], creatureId: creature.id,
+      ...(cmd.audioUrl ? { audio: { url: cmd.audioUrl } } : {}),
     };
     patch = { journal: [...(s.journal || []), entry], creatures: [...(s.creatures || []), creature], ...bumpStreak(s) };
   }
