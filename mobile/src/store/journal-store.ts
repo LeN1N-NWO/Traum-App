@@ -6,7 +6,7 @@ import { useSyncExternalStore } from "react";
 export type Take = { url: string; at: string | null; label: string };
 export type DreamItem = {
   id: string; createdAt: string; title: string; tagline: string; text: string;
-  media: { kind: "film" | "image"; url: string } | null; pending: boolean;
+  media: { kind: "film" | "image"; url: string } | null; pending: boolean; rendering: boolean; failReason: string | null;
   films: Take[]; images: string[]; reflection: string | null; originalText: string | null;
   cast: { tag: string; img: string | null }[];
 };
@@ -30,7 +30,7 @@ export type SleepData = { title: string; subtitle: string; free: string; tiles: 
 export type ProfileData = {
   title: string; name: string; img: string | null; hint: string; credits: number; creditsWord: string;
   dreams: number; streak: number; statDreams: string; statStreak: string; settings: string;
-  surveyDone: boolean; surveyTitle: string; surveyHint: string;
+  surveyDone: boolean; paywallSeen: boolean; surveyTitle: string; surveyHint: string;
   dreamer: { title: string; retake: string; sign: { glyph: string; name: string } | null; facts: [string, string][]; themesLabel: string; themes: string[] } | null;
   settingsPage: SettingsData;
 };
@@ -46,6 +46,7 @@ export type WizardData = {
   title: string; next: string; read: string; reading: string; tooShort: string; previewTitle: string; previewLede: string;
   yours: string; improved: string; keepMine: string; useImproved: string; styleTitle: string; styleLabel: string; moreStyles: string;
   lengthLabel: string; qualityLabel: string; modelLabel: string; paceLabel: string; generate: string; credit1: string; creditN: string; readPrice: number; noCredits: string;
+  loading: string[]; queuedNote: string; step6Title: string; rendering: string; renderingHint: string; failedTitle: string; failedNote: string; failedHome: string;
   presets: WizardPreset[]; models: WizardModel[]; paces: { id: string; name: string; hint: string }[];
 };
 export type JournalMeta = { view: "deck" | "list"; blankKeys: string[]; castCount: number; creatures: number; realDreams: number; labels: Record<string, any> };
@@ -61,8 +62,8 @@ export type SymbolsData = { title: string; subtitle: string; empty: string; clos
 export type LibraryData = { title: string; lede: string; newLabel: string; empty: string; never: string; groups: { category: string; label: string; rows: { id: string; tag: string; img: string | null; initial: string; count: number; countWord: string }[] }[] };
 export type MenagerieData = { title: string; lede: string; empty: string; creatures: { id: string; e: string; name: string; rare: string; rareClass: string; date: string }[] };
 export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData; symbols: SymbolsData; library: LibraryData; menagerie: MenagerieData };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream"; id?: string; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
-export type BridgeResult = { n: number; result?: any; error?: string };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen"; id?: string; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
+export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null };
 
 let snapshot: JournalSnapshot | null = null;
 const listeners = new Set<() => void>();

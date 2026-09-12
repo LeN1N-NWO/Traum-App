@@ -199,6 +199,26 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   (`LegacyPage` kennt jetzt `editId` und `category="any"`); Menagerie als
   Glas-Karten (`snapshot().menagerie`). ⚠ Der Simulator zeichnet KEINE
   Emoji (Kästchen mit ?) — Wesen-Zeichen und Stil-Emoji prüfen nur am Gerät.
+  **Auftrag ohne Wartebildschirm** (`dream/order.tsx`): Der Web-Motor
+  läuft unsichtbar (Höhe 0) und gibt den Auftrag ab wie bisher; nativ steht
+  davor nur das Abgeben (Faultier, wechselnde Sätze aus `t.dream.loading`).
+  Sobald der Traum die Auftragsnummer trägt (`items[].rendering`), geht es
+  ins Journal (Antons Ansage 21.08.: kein Wartebildschirm) — Toast
+  `queuedNote`, Wizard zurückgesetzt, beim ersten eigenen Traum einmal das
+  Kaufblatt (`journal/paywall`, `paywallSeen`). Verliert der Traum die
+  Marke ohne Nummer (Abgeben gescheitert), erscheint der Motor mit seinem
+  Fehlerblatt; nach zwei Minuten ohne Traum ebenfalls.
+  **Der Abholer tickt in der Brücke** (`collectOnce` in
+  `journal-bridge.jsx`): im Web lief er in AppState, das die Hülle nur noch
+  in Web-Räumen montiert — ein Film wäre nativ nie abgeholt worden. Alle
+  drei Sekunden bei offenen Aufträgen, Pacht-Marke im localStorage, damit
+  von mehreren Brücken nur EINE fragt; Erstattung und Meldungen wie im Web,
+  als native Toasts (`store/toast-store.ts`, `components/toasts.tsx` im
+  Wurzel-Layout) mit Haptik. ⚠ Ungeprüft am echten Auftrag (kostet
+  Credits) — erster Durchlauf mit Anton.
+  **Traum-Seite:** „…" ist ein natives Aktionsblatt; Löschen nativ mit
+  Rückfrage (Befehl `deleteDream`), Bearbeiten/Umschreiben öffnen die
+  Web-Seite.
   **Als Nächstes:** Stimme nativ (Mikrofon → natives Modul, Rebuild),
   Schritt 6 (Warten) nativ, Aktionen der Traum-Seite nativ, Avatar-Anlage
   (Foto → `expo-image-picker`, Rebuild), Besetzung/Menagerie nativ,

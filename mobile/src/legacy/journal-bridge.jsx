@@ -13,7 +13,9 @@ import "./vite-env.js";                       // ⚠ zuerst, API_BASE
 import { useEffect } from "react";
 import { loadState, saveState } from "../../../src/lib/storage.js";
 import { refreshStreak, streakAtRisk, bumpStreak, STREAK_CAP } from "../../../src/lib/streak.js";
-import { hasPendingJobs } from "../../../src/lib/collector.js";
+import { hasPendingJobs, collectTick } from "../../../src/lib/collector.js";
+import { failureTextKey } from "../../../src/lib/falError.js";
+import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend } from "../../../src/lib/credits.js";
@@ -70,6 +72,10 @@ function snapshot() {
         text: e.text || "",
         media: film ? { kind: "film", url: absolute(film) } : images[0] ? { kind: "image", url: images[0] } : null,
         pending,
+        /* Für die native Auftragsseite: Auftrag abgegeben (Nummer hängt am
+           Traum) bzw. gescheitert (Grund aus falError.js, als Satz). */
+        rendering: !!e.jobId || (e.imageJobs || []).length > 0,
+        failReason: e.failReason ? (t.errors[failureTextKey(e.failReason)] || t.errors.unexpected) : null,
         films: filmsOf(e).map((f) => ({ url: absolute(f.url), at: f.at || null, label: takeLabel(f) })),
         images,
         reflection: e.reflection?.text || null,
@@ -167,7 +173,7 @@ function snapshot() {
     hint: s.me?.img ? t.profile.meSet : t.profile.meEmpty,
     credits: totalCredits(s), creditsWord: t.profile.credits,
     dreams: (s.journal || []).length, streak, statDreams: t.profile.statDreams, statStreak: t.profile.statStreak,
-    settings: t.profile.settings, surveyDone: !!s.surveyDone,
+    settings: t.profile.settings, surveyDone: !!s.surveyDone, paywallSeen: !!s.paywallSeen,
     surveyTitle: t.onboarding.profileCard, surveyHint: t.onboarding.profileCardHint,
     /* Einstellungen (Settings.jsx) und Stimmwahl (VoicePicker.jsx), nativ:
        Zeilen, Stimmenliste mit Hörprobe vom Server (voice-sample, dieselbe
@@ -209,6 +215,11 @@ function snapshot() {
     styleTitle: w5.title, styleLabel: w5.styleLabel, moreStyles: w5.moreStyles(PRESETS.filter((p) => p.id !== DREAMFLOW && !styleById(p.styleId)?.featured).length),
     lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
     readPrice: PRICES.improve, noCredits: t.wizard.noCreditsCta,
+    /* Die native Auftragsseite (dream/order.tsx): Sätze fürs Abgeben,
+       die Bestätigung und den Fehlerfall — Web-Texte, nichts Neues. */
+    loading: t.dream.loading, queuedNote: t.wizard.step5.queuedNote,
+    step6Title: t.wizard.step6.title, rendering: t.wizard.step6.rendering, renderingHint: t.wizard.step6.renderingHint,
+    failedTitle: t.wizard.step5.failedTitle, failedNote: t.wizard.step5.failedNote, failedHome: t.wizard.step5.failedHome,
     presets: PRESETS.map((p) => ({
       id: p.id, styleId: p.styleId, pace: p.pace || null, wide: !!p.wide, emoji: p.emoji || "",
       label: p.id === DREAMFLOW ? w5.presets.dreamflow : (t.styles.byId[p.styleId]?.label || p.styleId),
@@ -355,6 +366,7 @@ function run(cmd) {
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };
   else if (cmd.type === "sleepCheck") patch = { sleepCheck: { date: cmd.date, done: cmd.done || [] } };
+  else if (cmd.type === "paywallSeen") patch = { paywallSeen: true };
   else if (cmd.type === "deleteDream") patch = { journal: (s.journal || []).filter((e) => e.id !== cmd.id) };
   else if (cmd.type === "voice") { if (isVoice(cmd.value)) patch = { voice: cmd.value }; }
   else if (cmd.type === "withdraw") patch = withdrawPatch();
@@ -373,6 +385,39 @@ function run(cmd) {
   if (patch) saveState({ ...s, ...patch });
 }
 
+/* Der Abholer (collector.js), nativ verdrahtet: Im Web tickt er in
+   AppState — die Hülle montiert AppState aber nur noch in Web-Räumen, also
+   holte niemand einen Film ab, solange man nativ unterwegs war. Jetzt tickt
+   die Brücke, sobald ein Auftrag offen ist (Antons Ansage 21.08.: kein
+   Wartebildschirm, die App bleibt benutzbar, ein Toast meldet sich).
+   Mehrere Brücken teilen sich einen localStorage: eine Pacht-Marke sorgt
+   dafür, dass nur EINE fragt, sonst würde derselbe Auftrag doppelt
+   abgeholt und doppelt getoastet. */
+const LEASE = "dr_collector_lease";
+const me = Math.random().toString(36).slice(2);
+function holdLease() {
+  try {
+    const raw = localStorage.getItem(LEASE); const [owner, at] = raw ? raw.split(":") : [null, 0];
+    if (owner && owner !== me && Date.now() - Number(at) < 8000) return false;
+    localStorage.setItem(LEASE, `${me}:${Date.now()}`); return true;
+  } catch { return true; }
+}
+async function collectOnce(onJournal, onResult) {
+  const s = loadState();
+  if (!hasPendingJobs(s.journal) || !holdLease()) return;
+  const res = await collectTick(s.journal, jobStatus);
+  if (!res) return;
+  const now = loadState();
+  saveState({ ...now, journal: res.journal, ...(res.refund > 0 ? { credits: (now.credits ?? 0) + res.refund } : {}) });
+  onJournal(snapshot());
+  for (const [kind, extra] of res.messages) {
+    const text = kind === "dreamReady" ? t.journal.dreamReady(extra || "") : kind === "filmArrived" ? t.journal.filmArrived
+      : kind === "sceneReady" ? t.journal.sceneReady(extra) : kind === "refunded" ? t.journal.imagesRefunded(extra)
+      : kind === "renderFailed" ? `⚠ ${t.errors[failureTextKey(extra)]}` : null;
+    if (text) onResult({ n: -1, toast: text, haptic: kind === "filmArrived" || kind === "dreamReady" ? "success" : kind === "renderFailed" ? "error" : null });
+  }
+}
+
 export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, dom }) {
   useEffect(() => {
     const push = () => { try { onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
@@ -380,6 +425,14 @@ export default function JournalBridge({ onJournal, onResult, refreshTick = 0, co
     window.addEventListener("storage", push);
     return () => window.removeEventListener("storage", push);
   }, [onJournal, refreshTick]);
+  useEffect(() => {
+    let busy = false;
+    const id = setInterval(async () => {
+      if (busy) return; busy = true;
+      try { await collectOnce(onJournal, onResult || (() => {})); } catch (e) { console.warn("[bridge] collect", e); } finally { busy = false; }
+    }, 3000);
+    return () => clearInterval(id);
+  }, [onJournal, onResult]);
   useEffect(() => {
     if (!command) return;
     (async () => {

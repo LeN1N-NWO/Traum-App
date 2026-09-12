@@ -1,5 +1,7 @@
 import { useFocusEffect } from "expo-router";
+import * as Haptics from "expo-haptics";
 import { useCallback, useRef, useState } from "react";
+import { showToast } from "@/store/toast-store";
 import JournalBridge from "@/legacy/journal-bridge";
 import { setJournal, useJournalStore, type BridgeCommand, type BridgeResult, type JournalSnapshot } from "@/store/journal-store";
 
@@ -15,7 +17,16 @@ export function useJournal() {
   const waiting = useRef(new Map<number, (r: BridgeResult) => void>());
   useFocusEffect(useCallback(() => { setTick((t) => t + 1); }, []));
   const onJournal = useCallback(async (snap: JournalSnapshot) => { setJournal(snap); }, []);
-  const onResult = useCallback(async (r: BridgeResult) => { waiting.current.get(r.n)?.(r); waiting.current.delete(r.n); }, []);
+  const onResult = useCallback(async (r: BridgeResult) => {
+    // n = -1: kein Befehl, sondern eine Meldung des Abholers (Film da, Erstattung, Fehler).
+    if (r.n === -1) {
+      if (r.toast) showToast(r.toast);
+      if (r.haptic === "success") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      else if (r.haptic === "error") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+    waiting.current.get(r.n)?.(r); waiting.current.delete(r.n);
+  }, []);
   const send = useCallback((cmd: Omit<BridgeCommand, "n">) => { n.current += 1; setCommand({ ...cmd, n: n.current }); }, []);
   const ask = useCallback((cmd: Omit<BridgeCommand, "n">) => new Promise<BridgeResult>((resolve) => {
     n.current += 1; waiting.current.set(n.current, resolve); setCommand({ ...cmd, n: n.current });

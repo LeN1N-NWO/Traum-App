@@ -89,6 +89,19 @@ Stil-Kacheln, Doku).
   Journal-Nebenräume nativ; Serifen-Großtitel wie das Journal.
   ⚠ Befund: Der iOS-26-Simulator zeichnet keine Emoji — die Wesen zeigen
   Kästchen. Auf dem Gerät nicht der Fall; Web zeigt dieselben Emoji.
+- **Traum-Seite „…"** als natives Aktionsblatt (ActionSheetIOS), Löschen
+  nativ mit Rückfrage — der einzige unumkehrbare Punkt (Befehl
+  `deleteDream`); die KI-Punkte öffnen weiter die Web-Seite.
+- **Auftrag ohne Wartebildschirm + Abholer in der Brücke.** Befund beim
+  Lesen von Step6Result/collector.js: Der Abholer lief nur in AppState,
+  also nur, solange irgendwo ein Web-Raum offen war — nativ wäre ein
+  bezahlter Film nie angekommen. Jetzt tickt die Brücke (`collectOnce`,
+  Pacht-Marke gegen Doppelabholung), Meldungen kommen als native Toasts
+  (`components/toasts.tsx`) mit Haptik. `dream/order.tsx` zeigt nativ nur
+  das Abgeben; sobald `items[].rendering` steht, geht es ins Journal
+  (Antons Regel 21.08.), beim ersten eigenen Traum einmal das Kaufblatt.
+  Scheitert das Abgeben, erscheint der Web-Motor mit seinem Fehlerblatt.
+  ⚠ Nicht live geprüft — ein echter Auftrag kostet Credits.
 
 **Was der Nächste wissen muss:**
 - Prüfen läuft weiter per Redirect-Trick (index.tsx temporär ersetzen,
