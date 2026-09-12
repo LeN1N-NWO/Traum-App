@@ -19,13 +19,18 @@ import { needsConsent } from "./lib/consent.js";
 
 /* HashRouter, not BrowserRouter: Capacitor will load the app over file://,
    where the History API is unreliable. */
-export default function App() {
-  const [showSplash, setShowSplash] = useState(true);
+/* `embedded` (12.09.2026, ADR-0006): Die App läuft als DOM-Komponente in
+   einem Tab der nativen Expo-Hülle. Dann gibt es weder Startmenü noch
+   Sprachwahl noch Splash je Tab (die Hülle hat fünf Webviews, das wären
+   fünf Startmenüs), und die Web-Tab-Leiste bleibt weg — die Leiste ist
+   nativ. Das Einwilligungs-Tor bleibt: es hängt am gespeicherten Zustand. */
+export default function App({ embedded = false }) {
+  const [showSplash, setShowSplash] = useState(!embedded);
 
   return (
     <AppStateProvider>
       {showSplash && <Splash onDone={() => setShowSplash(false)} />}
-      <Gate />
+      <Gate embedded={embedded} />
       <ToastBridge />
       <PaywallBridge />
     </AppStateProvider>
@@ -58,9 +63,9 @@ export default function App() {
  * plus gating on state.onboarded, once the flow is settled — a returning
  * user should be asked neither "onboarding or app?" nor "which language?"
  * on every open. */
-function Gate() {
+function Gate({ embedded = false }) {
   const { state } = useAppState();
-  const [phase, setPhase] = useState("menu");   // menu | language | onboarding | app
+  const [phase, setPhase] = useState(embedded ? "app" : "menu");   // menu | language | onboarding | app
 
   if (phase === "menu") {
     return <StartMenu onOnboarding={() => setPhase("language-onboarding")} onSkip={() => setPhase("language-app")} />;
@@ -81,10 +86,10 @@ function Gate() {
   if (phase === "onboarding") {
     return <Onboarding onExit={() => setPhase("app")} />;
   }
-  return <AppRouter />;
+  return <AppRouter embedded={embedded} />;
 }
 
-function AppRouter() {
+function AppRouter({ embedded = false }) {
   return (
     <HashRouter>
       <Routes>
@@ -95,7 +100,7 @@ function AppRouter() {
         <Route path="/profile" element={<ProfileScreen />} />
         <Route path="/dream"   element={<WizardShell />} />
       </Routes>
-      <TabBar />
+      {!embedded && <TabBar />}
       {/* Outside Routes: the sleep mix follows the person across screens. */}
       <SoundDock />
     </HashRouter>

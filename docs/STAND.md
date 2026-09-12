@@ -3,10 +3,12 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-11 nachts — `session/2026-09-11-anton-expo` (PR #41,
-Entwurf): **die Expo-Hülle steht, die alte Oberfläche läuft darin im
-Simulator** (Expo Go, SDK 57). Schritt 2–3 des Umzugs aus ADR-0006 sind
-durch; nächster Schritt sind die nativen Tabs.
+**Stand:** 2026-09-12 früh — `session/2026-09-11-anton-expo` (PR #41,
+Entwurf): **die Expo-Hülle baut in Xcode, und die native Tab-Leiste steht**
+— fünf Tabs mit Liquid Glass (iOS 26), Traum in der Mitte mit gefülltem
+Plus. Jeder Tab zeigt den passenden Bildschirm der alten Oberfläche als
+DOM-Komponente (`mobile/src/components/legacy-tab.tsx`). Schritt 2–3 des
+Umzugs aus ADR-0006 sind durch, Schritt 4 (Bildschirme nativ) beginnt.
 
 **⚠⚠ ENTSCHIEDEN (Anton, 11.09. abends): Die Oberfläche wird nativ — React
 Native mit Expo statt Capacitor.** Web ist kein Ziel mehr, Android kommt
@@ -94,13 +96,18 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
 
 **Als Nächstes, in dieser Reihenfolge:**
 
-- **NativeTabs in der Expo-Hülle** (`mobile/`): fünf Tabs, Traum in der
-  Mitte mit gefülltem Plus (Antons Wort). Dafür die alte App in fünf
-  DOM-Routen zerlegen (je Tab eine `'use dom'`-Komponente, die den jeweiligen
-  Screen aus `../src` rendert) und die Web-Tab-Leiste darin ausblenden.
-  Skill `expo-router` → `references/tabs.md`. Dann Journal-Liste und
-  Traum-Seite nativ (`@expo/ui` zuerst). ⚠ NativeTabs ist Alpha, SDK-Stand
-  57.0.x festhalten. Bezahlung bleibt Store-IAP über RevenueCat.
+- **Bildschirme nativ, wertvollste zuerst** (Schritt 4, ADR-0006): erst die
+  Journal-Liste und die Traum-Seite (`@expo/ui` zuerst, Skill
+  `expo-web-to-native` → `references/native-patterns.md`), dann Home, Wizard,
+  Schlaf/Profil. Je Bildschirm: nativ neu entwerfen, nicht das Web-Layout
+  nachbauen. ⚠ NativeTabs ist Alpha, SDK-Stand 57.0.x festhalten.
+- **Bekannte Grenzen der Tab-Hülle heute:** (a) Jeder Tab ist ein eigener
+  Webview mit eigenem Zustand; beim Fokus liest er neu aus dem localStorage
+  (`dreamrushes:reload`). (b) Web-Navigation innerhalb eines Tabs (Home →
+  „letzter Traum" → Journal, Wizard-Abbrechen → Home) bleibt im selben Tab,
+  statt den nativen Tab zu wechseln — Übergabe DOM→nativ per Prop fehlt
+  noch. (c) Die Fragezeichen-Kästchen („schwer/okay/gut", Credits) sind
+  ein fehlendes Glyph im Web — verschwinden mit den nativen Bildschirmen.
 - **Datenschicht der Hülle:** localStorage im WKWebView fasst ~5 MB; die
   Traumsicherung sprengt das (deshalb `DEV: false` in
   `mobile/src/legacy/vite-env.js`). Beim Umzug der Screens auf nativ den

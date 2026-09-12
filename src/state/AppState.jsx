@@ -51,6 +51,15 @@ function clearStalePending(s) {
 
 export function AppStateProvider({ children }) {
   const [state, setState] = useState(loadInitialState);
+  /* Die native Hülle (ADR-0006) hält je Tab einen eigenen Webview mit eigenem
+     Zustand im Speicher; gespeichert wird in denselben localStorage. Bekommt
+     ein Tab den Fokus, bittet die Hülle per Ereignis um einen Neustand —
+     sonst fehlt im Journal der Traum, der gerade im Traum-Tab entstand. */
+  useEffect(() => {
+    const reload = () => setState(loadInitialState());
+    window.addEventListener("dreamrushes:reload", reload);
+    return () => window.removeEventListener("dreamrushes:reload", reload);
+  }, []);
   const [toastText, setToastText] = useState("");
   /* Warum der Anlass mitwandert und nicht nur „auf/zu": Ein Kaufblatt, das
      jemand SELBST geöffnet hat, darf mit dem Angebot beginnen. Eines, das

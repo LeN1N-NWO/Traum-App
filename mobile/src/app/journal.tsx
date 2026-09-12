@@ -1,5 +1,5 @@
 import { LegacyTab } from "@/components/legacy-tab";
 
 export default function Screen() {
-  return <LegacyTab screen="home" />;
+  return <LegacyTab screen="journal" />;
 }

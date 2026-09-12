@@ -1,0 +1,4 @@
+/* Nur in der nativen Hülle: Die Tab-Leiste ist nativ (Liquid Glass), die
+   Web-Leiste ist weg — also kein Platz mehr dafür reservieren. Den Abstand
+   zur nativen Leiste liefert iOS als env(safe-area-inset-bottom). */
+:root { --tabbar-h: 0px; }

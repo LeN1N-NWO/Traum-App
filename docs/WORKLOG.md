@@ -40,6 +40,16 @@ curl. Bun, Ruby, Python, Git sind frei — also alles daran vorbeigebaut:
   DOM-Komponente in der echten Xcode-App. Workspace in Xcode geöffnet.
 - `mobile/ios/.xcode.env.local` zeigt `NODE_BINARY` auf `~/.local/node`,
   sonst findet Xcodes Bundle-Skript kein node.
+- **Native Tabs (danach, Antons „Weiter geht's"):** `_layout.tsx` mit
+  NativeTabs — Home · Journal · **Dream** (plus.circle.fill) · Sleep ·
+  Profile, tint #8cc0ff, minimize on scroll. Fünf Routen rendern
+  `LegacyTab`, das je Tab einen Webview mit dem passenden Web-Bildschirm
+  hält (`legacy-app.jsx` setzt den Hash vor dem ersten Render). Web-Seite:
+  `App({ embedded })` — kein Startmenü, keine Sprachwahl, kein Splash je
+  Tab, Web-Tab-Leiste weg; `AppState` liest auf `dreamrushes:reload` neu
+  (Fokus-Tick aus `useFocusEffect`). ⚠ Neue Routen-Dateien sah der
+  laufende Metro nicht („Route … is extraneous", nur zwei Tabs) — Metro
+  neu starten. Geprüft: Screenshot mit fünf Glas-Tabs, Home-Screen darin.
 
 ### Was der Nächste wissen muss
 
