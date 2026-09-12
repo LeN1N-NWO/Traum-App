@@ -158,6 +158,18 @@ export default function Step5Style({ w, patch }) {
      weg ist (`if (busy) return …`). Er kommt erst NACH den Wächtern in den
      Zustand: Wer nicht genug Credits hat, sieht das Kaufblatt, keinen
      Frosch. */
+  /* Auftrag aus der nativen Hülle: Der Mensch hat dort schon bestätigt
+     (Preis stand auf dem Knopf). Genau EINMAL starten — der Wächter in
+     sessionStorage überlebt StrictMode-Doppelmounts und Fast Refresh. */
+  useEffect(() => {
+    if (!w.autoRender || !w.orderId) return;
+    const key = "dr_order_" + w.orderId;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [w.autoRender, w.orderId]);
+
   async function run(tapRect = null) {
     if (running.current) return;
     /* Nur die Kassenprüfung — abgebucht wird später, Auftrag für Auftrag
@@ -682,7 +694,11 @@ export default function Step5Style({ w, patch }) {
      Aufgehalten wird nur die ANZEIGE. Der Auftrag ist längst unterwegs
      (run() sendet vor dem ersten Einzelbild), und ein Fehler räumt `tap`
      sofort ab — die Ablehnung erscheint also weiterhin ohne Verzögerung. */
-  if (busy && !tap) {
+  /* `w.autoRender` (native Hülle): Der Auftrag startet im Effekt oben; bis
+     dahin und währenddessen zeigt dieser Bildschirm NUR das Warten — die
+     Stil-Seite hat der Mensch nativ schon gesehen. Ein Fehler zeigt das
+     Formular wieder, mit der Meldung. */
+  if ((busy && !tap) || (w.autoRender && !fail && !busy)) {
     return (
       <section className="wiz-body wiz-busy" role="status" aria-live="polite">
         {einspieler}

@@ -29,7 +29,9 @@
 // Backend-Entscheidung in docs/STAND.md. Für eine öffentliche Adresse
 // braucht es zusätzlich API_TOKEN und einen Proxy, der TLS beendet.
 
-import { resolve, sep } from "node:path";
+import { resolve, sep, join } from "node:path";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { statSync, readFileSync } from "node:fs";
 // Wo die Bilder liegen dürfen — eigene Datei, weil daran schon einmal echte
 // Träume verloren gegangen sind (src/lib/mediaRoot.test.js).
@@ -209,11 +211,17 @@ const FAL_MODEL_IMAGE = IMAGE_PICK.id;
 // confirmed against fal.ai/models/fal-ai/wizper on 2026-08-08.
 const FAL_MODEL_STT = process.env.FAL_MODEL_STT || "fal-ai/wizper";
 
-// DeepSeek-V4-Flash: OpenAI-compatible chat completions API, text-only (no
+// DeepSeek Flash: OpenAI-compatible chat completions API, text-only (no
 // image input on the public API as of writing). Used purely to turn the dream
 // + reference metadata into a well-formed Nano Banana prompt — the actual
 // photos never go to DeepSeek, only to fal.ai afterwards.
-const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
+// Seit 12.09.2026 `deepseek-flash` = V4.1 Flash (erschienen 10.09.2026):
+// `deepseek-v4-flash` ist bei DeepSeek als veraltet gelistet, und V4.1
+// kostet weniger als die Hälfte (Eingabe $0,30/Mio. zur Hauptzeit statt
+// $0,44, Ausgabe $1,20 statt $1,32; außerhalb der Hauptzeit die Hälfte) bei
+// 1 Mio. Kontext. Antons Entscheidung: das neuere, klügere Modell für alles
+// Allgemeine. Zurück geht es jederzeit über DEEPSEEK_MODEL in der .env.
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-flash";
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 
 // Gemini Live — the voice interview. fal has no realtime conversational
@@ -1719,15 +1727,88 @@ async function jobStatus(id) {
 // Dictation: the client records audio (MediaRecorder) and sends it as a
 // base64 data URI; Wizper auto-detects the spoken language, so German and
 // English both come back as written text without a language toggle.
-async function falTranscribe(audioDataUri) {
+/* ⚠ fal.run nimmt Audio als Data-URL NUR als audio/mpeg an (gemessen
+   12.09.2026: audio/mp4, m4a, x-m4a, wav und audio/mp3 → 400 „Unsupported
+   data URL"). Die native App nimmt m4a/AAC auf — hier wird deshalb alles,
+   was nicht mp3 ist, mit ffmpeg nach mp3 (64 kbit, mono) gewandelt: ein
+   Minutentraum sind ~0,5 MB. Ohne ffmpeg bleibt nur der Fehler. */
+async function toMp3DataUri(dataUri) {
+  const m = /^data:(audio\/[\w.+-]+);base64,(.*)$/s.exec(dataUri);
+  if (!m) throw new Error("TRANSCRIBE_FAILED");
+  if (m[1] === "audio/mpeg") return dataUri;
+  const dir = await mkdtemp(join(tmpdir(), "dr-stt-"));
+  const src = join(dir, "in.audio"), out = join(dir, "out.mp3");
+  try {
+    await Bun.write(src, Buffer.from(m[2], "base64"));
+    const p = Bun.spawnSync(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-ac", "1", "-b:a", "64k", out]);
+    if (!p.success) { console.error("[DreamRushes] ffmpeg transcode failed:", new TextDecoder().decode(p.stderr)); throw new Error("TRANSCRIBE_FAILED"); }
+    return `data:audio/mpeg;base64,${Buffer.from(await Bun.file(out).arrayBuffer()).toString("base64")}`;
+  } finally {
+    await rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+/* ── Transkription (ADR-0007), zwei Wege ─────────────────────────────────
+ * Antons Befund 12.09.: Wizper gab seine deutsche Aufnahme auf Englisch
+ * und nur zu einem Viertel zurück (Sprache falsch erkannt, nach einer Pause
+ * abgebrochen). Deshalb:
+ *   1. Gemini (GEMINI_STT_MODEL, Vorgabe gemini-3.5-flash-lite) zuerst:
+ *      nimmt m4a direkt, kennt Pausen, ~1.500 Audio-Token je Minute
+ *      (gemessen: 124 Token für 5 s) — im Bereich von 0,05 Cent/Minute.
+ *   2. Wizper als Rückfall, jetzt MIT Sprachhinweis (`language`), damit es
+ *      nicht übersetzt statt transkribiert.
+ * Die App schickt die Sprache (de/en) mit; ohne Hinweis wird erkannt. */
+const GEMINI_STT_MODEL = process.env.GEMINI_STT_MODEL || "gemini-3.5-flash-lite";
+const STT_LANG_NAME = { de: "German", en: "English" };
+
+async function geminiTranscribe(audioDataUri, language) {
+  const key = process.env.GEMINI_KEY;
+  if (!key) throw new Error("NO_GEMINI_KEY");
+  const m = /^data:(audio\/[\w.+-]+);base64,(.*)$/s.exec(audioDataUri);
+  if (!m) throw new Error("TRANSCRIBE_FAILED");
+  const lang = STT_LANG_NAME[language] ? `The recording is in ${STT_LANG_NAME[language]}.` : "Keep the language that is spoken.";
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_STT_MODEL}:generateContent?key=${key}`, {
+    method: "POST",
+    signal: AbortSignal.timeout(T.falStt),
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [
+        { text: `Transcribe this recording word for word. ${lang} Do not translate, do not summarize, do not add anything. Output only the transcript.` },
+        { inlineData: { mimeType: m[1] === "audio/m4a" || m[1] === "audio/x-m4a" ? "audio/mp4" : m[1], data: m[2] } },
+      ] }],
+      generationConfig: { temperature: 0 },
+    }),
+  });
+  if (!res.ok) {
+    console.error("[DreamRushes] gemini transcribe failed:", res.status, (await res.text().catch(() => "")).slice(0, 200));
+    throw new Error("TRANSCRIBE_FAILED");
+  }
+  const data = await res.json().catch(() => null);
+  const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("").trim();
+  if (!text) throw new Error("TRANSCRIBE_FAILED");
+  const u = data?.usageMetadata || {};
+  console.log(`[DreamRushes] stt gemini ${GEMINI_STT_MODEL}: ${u.promptTokenCount || 0} in / ${u.candidatesTokenCount || 0} out, ${text.length} chars`);
+  return text;
+}
+
+async function transcribeAudio(audioDataUri, language) {
+  if (process.env.GEMINI_KEY && process.env.STT_PROVIDER !== "wizper") {
+    try { return await geminiTranscribe(audioDataUri, language); }
+    catch (e) { console.error("[DreamRushes] stt gemini → fallback wizper:", e.message); }
+  }
+  return falTranscribe(audioDataUri, language);
+}
+
+async function falTranscribe(audioDataUriIn, language) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
+  const audioDataUri = await toMp3DataUri(audioDataUriIn);
 
   const res = await fetch(`https://fal.run/${FAL_MODEL_STT}`, {
     method: "POST",
     signal: AbortSignal.timeout(T.falStt),
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({ audio_url: audioDataUri, task: "transcribe" }),
+    body: JSON.stringify({ audio_url: audioDataUri, task: "transcribe", ...(STT_LANG_NAME[language] ? { language } : {}) }),
   });
   if (!res.ok) {
     console.error("[DreamRushes] fal.ai transcribe request failed:", res.status, await res.text().catch(() => ""));
@@ -1748,16 +1829,34 @@ async function falTranscribe(audioDataUri) {
 const MEDIA_TYPES = {
   "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp",
   "video/mp4": "mp4", "video/quicktime": "mp4",
+  // Die Traum-Aufnahme (ADR-0007): m4a/AAC aus der nativen App, gespeichert
+  // wie Bilder und Filme — nach Inhalt benannt, am Eintrag als audio.url.
+  "audio/mp4": "m4a", "audio/m4a": "m4a", "audio/x-m4a": "m4a", "audio/aac": "m4a",
 };
-const MEDIA_MIME = { png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp4: "video/mp4" };
+const MEDIA_MIME = { png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp4: "video/mp4", m4a: "audio/mp4" };
 const MAX_MEDIA_BYTES = 60 * 1024 * 1024;
 
 /** Write bytes under a name derived from their own content — never from
  *  anything the model or the client chose — and hand back the path they
  *  will be served at. Shared by the fetch-and-copy path below and by the
  *  panel-upload endpoint, which has bytes already and nothing to fetch. */
+/* Ohne brauchbaren Typ (application/octet-stream, leer) entscheidet der
+   Inhalt: MPEG-4-Container tragen „ftyp" ab Byte 4; Marke M4A/mp42 mit
+   Tonspur → m4a, sonst mp4. Die native App schickt so ihre Aufnahmen. */
+function sniffMediaType(bytes, contentType) {
+  const ct = String(contentType || "").split(";")[0].trim();
+  if (MEDIA_TYPES[ct]) return ct;
+  if (bytes.length > 12 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+    const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+    return brand.startsWith("M4A") ? "audio/mp4" : "video/mp4";
+  }
+  if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
+  return ct;
+}
+
 async function storeBytes(bytes, contentType) {
-  const ext = MEDIA_TYPES[String(contentType || "").split(";")[0].trim()];
+  const ext = MEDIA_TYPES[sniffMediaType(bytes, contentType)];
   if (!ext || !bytes.length || bytes.length > MAX_MEDIA_BYTES) return null;
   const name = `${Bun.hash(bytes).toString(36)}.${ext}`;
   await Bun.write(resolve(MEDIA_DIR, name), bytes);
@@ -1858,7 +1957,7 @@ async function storeAll(urls) {
 
 // Only ever serves files this server wrote: the name must be exactly the
 // hash-plus-extension shape produced above, so nothing else is addressable.
-const MEDIA_NAME = /^\/media\/([a-z0-9]{1,20}\.(png|jpg|webp|mp4))$/;
+const MEDIA_NAME = /^\/media\/([a-z0-9]{1,20}\.(png|jpg|webp|mp4|m4a))$/;
 /** The filename a /media/ request resolves to, or null. Exported so the
  *  serving rules can be tested without the network. */
 export function resolveMedia(pathname) {
@@ -2316,7 +2415,10 @@ const serveOptions = {
         if (!/^data:audio\/[\w.+-]+;base64,/.test(audio)) {
           return json({ error: "Expected a base64 audio data URI." }, 400);
         }
-        const text = sanitizePromptText(await falTranscribe(audio));
+        const language = typeof body.language === "string" ? body.language.slice(0, 2).toLowerCase() : "";
+        const t0 = Date.now();
+        const text = sanitizePromptText(await transcribeAudio(audio, language));
+        console.log(`[DreamRushes] /api/transcribe ${language || "auto"}: ${Math.round(audio.length * 0.75 / 1024)} KB → ${text.length} chars in ${Date.now() - t0} ms`);
         return json({ ok: true, text });
       } catch (e) {
         const map = {
@@ -2860,7 +2962,8 @@ const serveOptions = {
         }
         const bytes = new Uint8Array(await req.arrayBuffer());
         const stored = await storeBytes(bytes, req.headers.get("content-type"));
-        if (!stored) return json({ error: "Not a storable image." }, 400);
+        if (!stored) return json({ error: "Not a storable image or recording." }, 400);
+        console.log(`[DreamRushes] /api/panel ${req.headers.get("content-type")} ${Math.round(bytes.length / 1024)} KB → ${stored}`);
         return json({ ok: true, url: stored });
       } catch (e) {
         console.error("[DreamRushes] /api/panel failed:", e);

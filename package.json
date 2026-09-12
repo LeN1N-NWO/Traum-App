@@ -9,7 +9,11 @@
     "dev:web": "vite",
     "build": "vite build",
     "start": "bun run build && bun server.js",
-    "test": "TZ=Europe/Berlin bun test && node scripts/test-static.mjs && node scripts/test-prompt-sanitize.mjs && node scripts/test-contrast.mjs && node scripts/check-i18n-shape.mjs && node scripts/test-rtl.mjs"
+    "test": "TZ=Europe/Berlin bun test && node scripts/test-static.mjs && node scripts/test-prompt-sanitize.mjs && node scripts/test-contrast.mjs && node scripts/check-i18n-shape.mjs && node scripts/test-rtl.mjs",
+    "ios": "cd mobile && bun run start & sleep 6; xcrun simctl openurl booted exp://localhost:8081; wait",
+    "mobile": "cd mobile && bun run start",
+    "pods": "cd mobile/ios && HERMES_ENGINE_TARBALL_PATH=$HOME/.local/hermes/hermes-ios-250829098.0.17-hermes-ios-debug.tar.gz RCT_TESTONLY_RNCORE_TARBALL_PATH=$HOME/.local/rn/react-native-artifacts-0.86.3-reactnative-core-debug.tar.gz RCT_USE_LOCAL_RN_DEP=$HOME/.local/rn/react-native-artifacts-0.86.3-reactnative-dependencies-debug.tar.gz pod install",
+    "prebuild:ios": "cd mobile && bunx expo prebuild --platform ios --no-install && printf 'export NODE_BINARY=%s\\n' \"$HOME/.local/node/bin/node\" > ios/.xcode.env.local && cd .. && bun run pods"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.1",

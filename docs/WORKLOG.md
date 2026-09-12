@@ -3,6 +3,430 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 15:10 — Anton — Branch `session/2026-09-11-anton-expo` — Sitzungsabschluss (wrap)
+
+**Commits der Sitzung:** 45 auf `main..HEAD`, zuletzt `28c8894` (Aufnahme
+überlebt Video-Player), davor `bec9d69`, `166d2bf`, `f6927ca`, `1aa3817`,
+`186a3ef`, `ff39d4f`, `5a9fffc`, `4c65c19`, `0d30816`, `afc6d1b` … bis
+`14b28c6` (Xcode-Build läuft). Einzelheiten in den Einträgen darunter.
+
+**Was diese Sitzung gebracht hat:** die ganze Oberfläche nativ (Tabs,
+Wizard, Kaufblatt, Schlaf-Räume, Journal-Nebenräume, Einstellungen,
+Consent-Tor), Auftrag ohne Wartebildschirm mit Abholer in der Brücke,
+Rekorder statt Gemini-Assistent (ADR-0007) mit Gemini-Transkription, Stil-
+Kacheln mit Glas-Overlay und Wischen, Verlaufs-Knöpfe, Test-Guthaben im
+Dev-Bau, Werkzeugkette ohne Homebrew.
+
+**Was der Nächste wissen muss:** steht in `docs/STAND.md` unter „Für den
+nächsten Start" — vor allem die drei Fallen (Expo-Router-Kinder als
+Startroute, expo-video kippt die Audio-Session, fal nimmt nur mp3-Data-
+URLs). Lint in mobile: 0 Fehler, 35 Warnungen (React-Compiler-Regeln auf
+„warn", eslint.config.js). PR #41 bleibt Entwurf: die Tipp-, Hör- und
+Geldwege sind ungeprüft, erster echter Durchlauf mit Anton steht aus.
+Merge nur auf Antons Wort.
+
+## 2026-09-12 13:50 — Anton — Branch `session/2026-09-11-anton-expo` — Rekorder statt Sprachassistent (ADR-0007), Stil-Kacheln, Verlaufs-Knöpfe
+
+**Anton:** Der Gemini-Assistent, der beim Einschlafen zurückredet, ist
+„weird" und frisst unbeziffertes Geld → stattdessen Rekorder + Transkription,
+Aufnahme im Journal behalten. Dazu Ideen (Traumfänger-Loop, Onboarding mit
+Showreel und Schlaf-Jahren, Opal-Verlauf für Knöpfe, Pseudo-Rangliste,
+Poster je Film, Stil-Kacheln ohne Text).
+
+- **ADR-0007** geschrieben. `/api/transcribe` (fal Wizper) gab es schon;
+  `/api/panel` speichert jetzt auch m4a. Nativ `expo-audio@57.0.5`
+  (Pods + Xcode-Rebuild grün). `dream/voice.tsx` ist der Rekorder;
+  Aufnahme hängt am Traum, Traum-Seite spielt sie ab.
+- **Stil-Auswahl:** stumme Kacheln, Antippen → Glas-Overlay mit großem
+  Film, Name, „Diesen Stil verwenden" (`useStyle` in en/de).
+- **PrimaryButton** mit Verlauf warm→gold (Opal-Vorbild) auf Glas.
+- ⚠ Im Simulator bleibt der Mikrofon-Dialog stehen (simctl-Grant greift
+  nicht) — Anton tippt „Erlauben" selbst.
+- **Antons Befund „Transcript-Error":** fal.run antwortete 400 „Unsupported
+  data URL" — nimmt als Data-URL nur `audio/mpeg` (gemessen: m4a, mp4,
+  x-m4a, wav, audio/mp3 alle 400). Server wandelt jetzt per ffmpeg nach
+  mp3 (64 kbit mono); `MEDIA_NAME` kennt `.m4a`, sonst 404 beim Abspielen.
+  Ende-zu-Ende mit `say`-Aufnahme geprüft. Rekorder sichert die Aufnahme
+  jetzt VOR der Transkription; bei Fehler „Noch mal" oder tippen, die
+  Aufnahme bleibt am Traum.
+- **Antons zweiter Befund (Text auf Englisch, nur ein Viertel):** Wizper
+  hatte die Sprache als Englisch erkannt (bei meiner `say`-Probe ebenfalls
+  „en", Text trotzdem deutsch) und nach einer Pause abgebrochen; mit
+  synthetischer Sprache und 4 s Pause nicht reproduzierbar, seine Aufnahme
+  lag nicht im Medienordner (Test vor dem „zuerst sichern"-Bau oder Upload
+  gescheitert — der Server loggte nichts). Umbau: `transcribeAudio` nimmt
+  **Gemini zuerst** (`gemini-3.5-flash-lite`, nimmt m4a direkt, kennt
+  Pausen, ~1.500 Audio-Token je Minute ≈ 0,05 Cent) und Wizper als
+  Rückfall MIT `language`; die App schickt de/en mit. Verglichen auf einer
+  Probe: Wizper, Whisper v3, ElevenLabs Scribe (fal) und Gemini 3.6/3.5
+  liefern alle den vollen Text. Jede Anfrage an `/api/transcribe` und
+  `/api/panel` wird jetzt geloggt (Größe, Dauer, Zeichen).
+- **Antons dritter Befund (nur der erste Satz):** Server-Log zeigte
+  115 KB Audio → 157 Gemini-Token ≈ 6 s — die AUFNAHME war kurz, nicht die
+  Transkription. Ursache: `expo-video` setzt bei jedem Player-Ereignis
+  (VideoManager.setAudioSession) die AVAudioSession auf `.playback` ohne
+  Aufnahme — der AVAudioRecorder stoppt still, sobald z. B. das Faultier
+  auf Home weiterläuft. Fix: `store/recording-store.ts` als App-Schalter;
+  Home-Video und Klangmischer pausieren während der Aufnahme
+  (`holdForRecording`), Audio-Modus `doNotMix`, Rekorder-Status im Log.
+  Selbsttest `/dream/voice?auto=12` (nur `__DEV__`): 12,0 s durchgehend
+  aufgenommen. Dabei zwei weitere Fehler gefunden: „zu kurz" kam aus dem
+  gepollten Zustand (jetzt `recorder.getStatus()`), und der Upload der m4a
+  ging als `application/octet-stream` (Blob ohne Typ → 400): Blob bekommt
+  den Typ, Server erkennt MPEG-4-Audio am `ftyp M4A`-Kopf (`sniffMediaType`).
+- **Stil-Overlay** nach Antons zweitem Befund: Milchglas (`expo-blur`,
+  Pods + Rebuild), Zoom ohne Feder, Name und „Verwenden" AUF dem Film,
+  × auf der Karte — und seit dem dritten Befund **wischen zwischen den
+  Stilen** im Overlay (ScrollView mit Seiten, Punkte unten), wie das
+  Journal-Deck. ⚠ Die erste Fassung mit FlatList zeigte nur Punkte (Antons
+  Befund: „alles unscharf, nichts zu sehen") — Seiten ohne Höhe in einer
+  horizontalen Liste; jetzt ScrollView mit fester Seitenhöhe.
+- **Besetzung:** kein „Aus der Bibliothek"-Text und kein Ausklappen mehr
+  (Anton: „sieht hausbacken aus") — die Wahl steht als runde Knöpfe direkt
+  in der Zeile: KI erfindet, Gesichter der Bibliothek, Foto neu.
+
+## 2026-09-12 13:15 — Anton — Branch `session/2026-09-11-anton-expo` — Test-Guthaben, Maskottchen-Lader, Glas-Knöpfe warm, Slogan
+
+**Anton:** kommt ohne Credits nicht weiter (das Web-Startmenü mit „+100
+test credits" zeigt die Hülle nicht); Ladeanzeige soll das Maskottchen in
+Schleife sein; „Ursprünglich geschrieben" weg; „Kurzfilm machen" braucht
+einen Slogan; orange Knöpfe in Glas.
+
+- **Test-Guthaben:** Die Brücke füllt im Entwicklungsbau (`__DEV__`) das
+  Kauf-Töpfchen bei jedem Lesen auf mindestens 100 auf (`devTopUp`,
+  Prop `devCredits` aus journal-data.tsx). Im Produktionsbau nichts. Weg,
+  sobald Konto/Supabase stehen.
+- **Maskottchen-Lader** (`components/mascot-loader.tsx`, mascot-frog-idle
+  in Schleife auf Schwarz): Lesung in Schritt 1 und die Auftragsseite.
+- **Traum-Seite:** kein Original-Block mehr; Teilen/Film als Glas-Knöpfe.
+- **PrimaryButton:** auf iOS 26 getöntes Liquid Glass in Warm, davor die
+  warme Fläche.
+- **Slogan:** `makeFilm` = „Bring it to life" / „Zum Leben erwecken"
+  (en/de).
+
+## 2026-09-12 13:05 — Anton — Branch `session/2026-09-11-anton-expo` — Kaufblatt als Startroute jedes Tabs (Expo-Router-Falle), Stimme
+
+**Auftrag (Anton, Screenshot):** „in jedem Tab die Credits kaufen", im
+Stimm-Blatt ein × oben rechts an falscher Stelle, „Zurück" ließ das
+Overlay stehen.
+
+**Ursache:** Meine `<Stack.Screen name="paywall">`-Kinder in den Layouts
+(Profil, Traum, Journal) machten das Kaufblatt zur STARTROUTE jedes
+Tabs (Expo Router nimmt das erste deklarierte Kind) — das × oben rechts
+war sein Schließen-Knopf unter der Statusleiste, die Tab-Leiste war
+darunter weg. Zusätzlich griffen die `Stack.Screen`-Optionen der
+Bildschirme nicht mehr (Kopf „voice" trotz `headerShown:false`), und
+„Zurück" landete auf dem Kaufblatt statt draußen.
+
+**Fix (`4c65c19`):** keine Kinder mehr in Layouts; Karten per
+`screenOptions={({ route }) => …}` je Routenname;
+`unstable_settings.initialRouteName = "index"`. Geprüft per Kaltstart in
+Profil und Stimme: kein ×, Tab-Leiste da, kein Kopf.
+
+**Stimme „Die Verbindung wurde beendet":** der API-Server (`bun run api`)
+war seit ~12:00 aus — wieder gestartet. Dazu fehlten in `Info.plist`
+`NSMicrophoneUsageDescription` (und Kamera/Fotos): jetzt in `app.json`
+(greift nach `prebuild:ios`) und lokal per `plutil` eingetragen; Xcode-
+Rebuild grün, App neu installiert, Mikrofon-Text im Bundle geprüft. ⚠ Prod-Bau lädt DOM von `file://` → kein sicherer
+Kontext für `getUserMedia`; die Stimme muss nativ werden.
+
+## 2026-09-12 11:05 — Anton — Branch `session/2026-09-11-anton-expo` — Kaufblatt und Mischpult nativ, Glas-Knöpfe, Antons sechs Befunde
+
+**Auftrag (Anton, Screenshots + Sprachnachricht):** Credits-Seite in den
+Liquid-Glas-Look, ohne Bilder-Erwähnung, Texte nicht gequetscht; Regler der
+Einschlafgeräusche in Glas; Schlaf-Seite oben unter der Uhrzeit;
+Maskottchen-Video steht still; Knopftext „Diese Fassung verwenden" läuft
+über, Knöpfe nicht Glas; „Neu anlegen" aus der Besetzung → zurück landet
+im Profil-Tab. „Das und noch viel mehr. Mach weiter."
+
+**Commits:** `6aefc7f` (alle sechs Punkte), Folgecommit (Wizard-Knöpfe,
+Stil-Kacheln, Doku).
+
+**Was und warum:**
+- **Kaufblatt nativ** (`mobile/src/components/paywall-sheet.tsx`,
+  `profile/paywall.tsx`, `dream/paywall.tsx` als Karte `presentation:
+  modal`): Aufbau 1:1 nach `Paywall.jsx` — Anlass-Überschrift (browse/
+  spent/first), Reiter Abo/Credits, Tarife als Glas-Zeilen mit Radio, Name,
+  Badge, Untertitel, Preis rechts; Ertrag als Kachel, in der ein EIGENER
+  Film läuft (Rückfall Seed → Faultier); „immer inklusive" als Glas-Chips;
+  Knopf sagt, dass noch nichts kassiert wird; Kontostand. **Nur Filme**:
+  Bilder sind seit heute aus dem Angebot, also auch hier (Web-Paywall zeigt
+  sie noch — die zählt nicht mehr). Texte vorgerechnet in der Brücke
+  (`snapshot().paywall`), weil `t.paywall.*` teils Funktionen sind. Die
+  Kacheln haben keine feste Höhe mehr — sie wachsen mit dem Text.
+- **Klang-Mischpult nativ** (`components/sound-mixer.tsx`,
+  `lib/sound-engine.ts`): Web Audio stirbt mit dem Webview beim Verlassen
+  des Raums; also ein natives Gegenstück zu `soundMixer.js` — WAV-Schleifen
+  aus denselben Generatoren (`noise.js`), abgespielt über `expo-video`
+  (spielt reines Audio, `audioMixingMode: mixWithOthers`,
+  `staysActiveInBackground`), damit KEIN neues natives Paket und kein
+  Xcode-Rebuild nötig war. Drei stehende Glas-Fader in der Rauschfarbe
+  (Antons Wahl 26.08.), Tick alle zehn Prozent, Timer 0/15/30/60 mit
+  Minuten-Ausblendung, echter Schalter für Autostart; Autostart läuft jetzt
+  ohne Geste (Home wirft die Mischung an). Mischung bleibt im Web-Zustand
+  (Befehl `soundMix`). `app.json`: `UIBackgroundModes: audio` — greift
+  erst nach dem nächsten `prebuild:ios`.
+- **Glas-Knöpfe** (`components/glass.tsx`): `GlassButton` (GlassView
+  `regular`, interaktiv) und `PrimaryButton` (warm) mit `minHeight` +
+  Padding statt `height` — der Text bricht um. Alle Wizard-Knöpfe darauf
+  umgestellt (Schritt 1, Besetzung, Stil, Länge).
+- **Safe Area oben in Web-Räumen:** `env(safe-area-inset-top)` meldet im
+  Expo-Webview 0 (kein `viewport-fit=cover`). Die Hülle reicht jetzt
+  `safeTop/safeBottom` in jede DOM-Komponente, `vite-env.js` setzt
+  `--sat/--sab` und den Viewport-Meta nach, `legacy.css` nimmt
+  `max(env(), var())`. Geprüft an der Checkliste: Rückweg steht frei unter
+  der Uhr.
+- **Faultier-Schleife:** `useVideoPlayer`-Setup startet im Simulator nicht
+  immer; ein `useEffect` ruft `play()` nach dem Mount noch einmal (Home,
+  Traum-Seite, Stil-Kacheln). Geprüft: zwei Screenshots, zwei Frames.
+- **Tab-Sprung:** „Neu anlegen" öffnete `/profile/page?page=avatar` — ein
+  anderer Tab, Zurück blieb dort. Jetzt `dream/avatar.tsx` im Traum-Stapel;
+  auch die Kaufblatt-Links aus Schritt 1 und Länge bleiben im Stapel.
+- **Stil-Kacheln ohne Clip** (Tusche, Knete) zeigten das Emoji als
+  Fragezeichen-Kästchen → SF Symbol.
+- **Abend-Checkliste nativ** (`components/sleep-checklist.tsx`, Raum
+  `checklist` in `sleep/[view].tsx`): Aufbau nach `SleepChecklist.jsx` —
+  Vorspann, Segment-Fortschritt, „Noch n", Raster kleiner Glas-Altäre mit
+  SF Symbols, fertige Karten dimmen und klappen den Text weg, Haken einer
+  Nacht (Befehl `sleepCheck`). Die Schlaf-Räume teilen jetzt eine Bühne
+  (`Room`).
+- **Luzid-Guide nativ** (`components/lucid-guide.tsx`, Raum `guide`):
+  Aufbau nach `LucidGuide.jsx` — Vorspann, drei Hebel vor den Methoden,
+  Klapp-Karten mit Layout-Animation, Quelle; Erinnerungs-Wunsch als echter
+  Schalter mit 1–4× (Befehl `reminders` → `reminderWish`, nur der Wunsch,
+  wie im Web).
+- **Einstellungen nativ** (`profile/settings.tsx`, `profile/voice.tsx`,
+  `profile/legal.tsx`): Glas-Zeilen mit Wert, Stimmwahl als Karte —
+  Antippen ist die Hörprobe (Server-Sample über expo-video, Welle atmet),
+  Rechtstexte als geschobene Seite; Befehle `voice`, `withdraw`.
+  ⚠ Karten (`presentation: modal`) sitzen unter der Statusleiste, aber
+  `useSafeAreaInsets().top` meldet in ihnen trotzdem 59 — oben deshalb
+  fester Abstand, nicht der Inset.
+- **Symbol-Atlas nativ** (`components/symbols-atlas.tsx`): Schlaf-Raum
+  und Journal-Nebenraum (`journal/atlas.tsx`) aus derselben Komponente;
+  Strich-Icons → SF Symbols (react-native-svg ist nicht installiert und
+  wäre ein Rebuild); Lesart als formSheet mit tippbaren Vorkommen.
+  Alle vier Schlaf-Räume sind damit nativ.
+- **Besetzung und Menagerie nativ** (`journal/cast.tsx`,
+  `journal/menagerie.tsx`, Web-Dialog in `journal/avatar.tsx`): Abspann-
+  Liste nach Häufigkeit (castByCategory in der Brücke), Anfangsbuchstabe
+  statt Fragezeichen ohne Foto, ein Knopf „Figur anlegen"; Menagerie als
+  Karten mit Seltenheit in Farbe. `LegacyPage` nimmt `editId` (Bearbeiten
+  aus dem Zustand) und `category="any"` (Gattung im Dialog). Alle drei
+  Journal-Nebenräume nativ; Serifen-Großtitel wie das Journal.
+  ⚠ Befund: Der iOS-26-Simulator zeichnet keine Emoji — die Wesen zeigen
+  Kästchen. Auf dem Gerät nicht der Fall; Web zeigt dieselben Emoji.
+- **Traum-Seite „…"** als natives Aktionsblatt (ActionSheetIOS), Löschen
+  nativ mit Rückfrage — der einzige unumkehrbare Punkt (Befehl
+  `deleteDream`); die KI-Punkte öffnen weiter die Web-Seite.
+- **Auftrag ohne Wartebildschirm + Abholer in der Brücke.** Befund beim
+  Lesen von Step6Result/collector.js: Der Abholer lief nur in AppState,
+  also nur, solange irgendwo ein Web-Raum offen war — nativ wäre ein
+  bezahlter Film nie angekommen. Jetzt tickt die Brücke (`collectOnce`,
+  Pacht-Marke gegen Doppelabholung), Meldungen kommen als native Toasts
+  (`components/toasts.tsx`) mit Haptik. `dream/order.tsx` zeigt nativ nur
+  das Abgeben; sobald `items[].rendering` steht, geht es ins Journal
+  (Antons Regel 21.08.), beim ersten eigenen Traum einmal das Kaufblatt.
+  Scheitert das Abgeben, erscheint der Web-Motor mit seinem Fehlerblatt.
+  ⚠ Nicht live geprüft — ein echter Auftrag kostet Credits.
+- **Consent-Tor nativ** (`components/consent-gate.tsx` im Wurzel-Layout):
+  Die Hülle startete bisher bei „app" und übersprang das Tor komplett —
+  nativ ging also alles ohne Einwilligung an die KI-Anbieter. Jetzt liegt
+  es als Vollbild über den Tabs, solange `consent.needed`; Befehl
+  `consent`. Der Widerruf aus den Einstellungen bringt es zurück.
+  Geprüft mit erzwungenem `visible` (im Simulator liegt schon eine v2).
+
+**Was der Nächste wissen muss:**
+- Prüfen läuft weiter per Redirect-Trick (index.tsx temporär ersetzen,
+  Sicherung `/tmp/index.tsx.bak`, danach zurück — vor dem Commit `grep
+  Redirect src/app/index.tsx` muss 0 liefern). ⚠ Bei diesem Start fehlt in
+  Screenshots von `profile` und `dream/…` die Tab-Leiste; über Home ist sie
+  da. Nicht weiter verfolgt.
+- Neue Routen-Dateien: Metro neu starten, sonst „Route extraneous" und
+  veraltete Typed Routes in `tsc`.
+- Ungeprüft bleibt alles, was Tippen oder Hören braucht: Kaufblatt als
+  Karte (nur als Erstroute gesehen), Fader-Ziehen, Klang, Timer,
+  Autostart. Erster echter Durchlauf mit Anton.
+
+## 2026-09-12 01:05 — Anton — Branch `session/2026-09-11-anton-expo` — Werkzeugkette für den Xcode-Build, ohne Homebrew
+
+**Auftrag (Anton, wörtlich):** „Jetzt alle Berechtigungen machen, das
+selbst bitte fix." Homebrew war in seinem und in meinem Terminal an
+`ghcr.io` gescheitert.
+
+**Ursache:** LuLu (Firewall) hat eine Regel für `/usr/bin/curl`; curl bekommt
+keine Verbindung (connect: Bad file descriptor), Homebrew lädt alles über
+curl. Bun, Ruby, Python, Git sind frei — also alles daran vorbeigebaut:
+
+- Node 26.8.2 als offizielles Tarball von nodejs.org über Bun (sha256
+  geprüft) nach `~/.local/node`; Links in `~/.local/bin`, `~/.bun/bin/node`,
+  `/opt/homebrew/bin/node`. Buns `node`-Shim ist damit Geschichte.
+- CocoaPods 1.17.0 mit Homebrews portablem Ruby 4.0.6 (System-Ruby 2.6 zu
+  alt: `securerandom` verlangt 3.1); eigener GEM_HOME `~/.local/cocoapods`,
+  Wrapper `~/.local/bin/pod` mit UTF-8-Locale (sonst Encoding-Absturz).
+  ⚠ Das portable Ruby hat in der Claude-Sandbox keine Namensauflösung —
+  `gem install` lief außerhalb.
+- Hermes-Tarballs 250829098.0.17 (debug+release) von Maven Central über Bun,
+  sha1 geprüft, `HERMES_ENGINE_TARBALL_PATH` beim `pod install`. Ohne das
+  will RN Hermes aus dem Quelltext bauen und verlangt cmake.
+- `expo prebuild --platform ios` → `mobile/ios` (git-ignoriert), 109 Pods.
+  Capacitor-Pakete per `expo.autolinking.exclude` ausgeschlossen.
+- Skripte: `bun run prebuild:ios`, `bun run pods`.
+- **Xcode 26.3 gegen Expo 57:** zwei Compiler-Fehler in expo-modules-jsi
+  (Konstruktor-Annotation; „sending … risks causing data races"), als
+  `bun patch` gelöst — `mobile/patches/expo-modules-jsi@57.1.0.patch`.
+  Swift-5-Modus war eine Sackgasse (neue Fehler an anderer Stelle).
+- **dyld-Absturz beim ersten Start:** Expos vorgebaute Module verlangen
+  `React.framework`, RN hatte aber (curl!) aus dem Quelltext gebaut.
+  Core- und Dependencies-Tarballs 0.86.3 über Bun geholt, per
+  `RCT_TESTONLY_RNCORE_TARBALL_PATH`/`RCT_USE_LOCAL_RN_DEP` eingebunden.
+- **Ergebnis 01:13:** `xcodebuild` grün, App per `simctl` installiert und
+  gestartet, Startmenü mit Frosch im Simulator — die alte Oberfläche als
+  DOM-Komponente in der echten Xcode-App. Workspace in Xcode geöffnet.
+- `mobile/ios/.xcode.env.local` zeigt `NODE_BINARY` auf `~/.local/node`,
+  sonst findet Xcodes Bundle-Skript kein node.
+- **Native Tabs (danach, Antons „Weiter geht's"):** `_layout.tsx` mit
+  NativeTabs — Home · Journal · **Dream** (plus.circle.fill) · Sleep ·
+  Profile, tint #8cc0ff, minimize on scroll. Fünf Routen rendern
+  `LegacyTab`, das je Tab einen Webview mit dem passenden Web-Bildschirm
+  hält (`legacy-app.jsx` setzt den Hash vor dem ersten Render). Web-Seite:
+  `App({ embedded })` — kein Startmenü, keine Sprachwahl, kein Splash je
+  Tab, Web-Tab-Leiste weg; `AppState` liest auf `dreamrushes:reload` neu
+  (Fokus-Tick aus `useFocusEffect`). ⚠ Neue Routen-Dateien sah der
+  laufende Metro nicht („Route … is extraneous", nur zwei Tabs) — Metro
+  neu starten. Geprüft: Screenshot mit fünf Glas-Tabs, Home-Screen darin.
+- **Journal-Liste nativ** (Antons „lass uns machen … muss richtig geil
+  aussehen"): Stack im Journal-Tab mit großem Serifentitel (Iowan Old
+  Style, `Stack.Screen.Title largeStyle`), Suche im Kopf, Toolbar-Knopf zum
+  Web-Journal. Poster-Raster 3:4 mit Bild/Film-Standbild, Verlauf,
+  Datum-Eyebrow, Feder beim Drücken (Reanimated), Haptik. Neue Module:
+  expo-video-thumbnails, expo-linear-gradient, expo-haptics (→ pods +
+  Xcode-Build, grün). Datenbrücke Web→nativ als unsichtbarer Webview
+  (`journal-bridge.jsx`, nutzt die Web-Leser filmOf/imagesOf/isBlank).
+  Traum-Seite noch Web (`legacy-dream.jsx` mit exportierten Toast-/Paywall-
+  Brücken aus `src/App.jsx`). ⚠ `headerBlurEffect` zusammen mit dem
+  iOS-26-Glas warnt („overlapping effects") — weg damit. ⚠ Deep Links per
+  `simctl openurl` zeigen einen Bestätigungsdialog, den hier niemand tippen
+  kann; zum Prüfen kurz `index.tsx` auf `/journal` umgeleitet.
+- **Traum-Seite nativ** (Antons „nicht mehr fragen, durcharbeiten"):
+  `journal/[id].tsx` mit Hero (expo-video in Schleife / expo-image),
+  Titelblatt, Fassungen, Lesetext, Reflexion, Original, Teilen nativ;
+  Web-Seite mit allen Aktionen dahinter (`web-dream.tsx`). Brücke liefert
+  Filme, Bilder, Reflexion, Original und die Beschriftungen aus `t`,
+  Speicher in `store/journal-store.ts`. expo-video → pods + Build. ⚠ Typed
+  Routes (`.expo/types`) hinken neuen Dateien hinterher — tsc meldet dann
+  falsche Routen, bis Metro sie neu schreibt.
+- **Home, Schlaf, Profil nativ** (früher Morgen 12.09.): Home = Plakat mit
+  Faultier-Video (`require` über die Projektgrenze), Gruß nach Uhrzeit,
+  Serie, Schlaf-Frage mit SF Symbols (Emoji fehlen im Simulator-Font),
+  „Nichts hängengeblieben", letzter Traum → Traum-Seite. Schreiben nativ →
+  Web über `command`-Prop der Brücke (blankNight, checkin, refreshStreak).
+  Schlaf: vier Zeilen in Raumfarbe, Räume als Web-Seiten mit `view` im
+  Router-Zustand. Profil: Gesicht, Zahlen, Guthaben als Toolbar-Knopf,
+  Web-Blätter für Einstellungen/Avatar/Kaufblatt/Umfrage. ⚠ Tab-Screens
+  bekommen den oberen Inset schon vom System — kein eigenes
+  `insets.top` dazu, sonst doppelt.
+- **Wizard nativ** (Antons „neu denken … mach einfach"): drei native
+  Schritte (Text/Lesung, Stil-Kacheln mit laufenden Clips, Länge/Preis) und
+  der Auftrag im Web-Motor. Web-Änderungen minimal: `WizardShell` nimmt
+  `resume.prefill`/`autoRender`/`orderId`; `Step5Style` startet `run()`
+  einmal je Auftrag (sessionStorage-Wächter gegen StrictMode/Refresh).
+  Brücke: Befehl `analyze` mit Antwort (`onResult`, `ask()`), zahlt wie im
+  Web. Wizard-Zustand nativ in `store/wizard-store.ts`.
+- **Antons Befund, Vormittag:** „Ich habe bereits eine Web entwickelt mit
+  einem Flow … so sollst du nur umbauen und richtig geil machen." Ich hatte
+  das Deck (Karten-Slider mit Punkten), die Nebenräume und den Kalender im
+  Journal durch ein Raster ersetzt und im Wizard das Textfeld vor die
+  Stimme gestellt. Korrigiert: Journal spiegelt JournalScreen.jsx (Deck mit
+  Reanimated-Kippung, Liste, Umschalter gespeichert, Besetzung/Atlas/
+  Menagerie, Kalender aus dreamDays.js), Schritt 1 spiegelt Step1Dream.jsx
+  (Erzählen groß und zuerst). Stimme: nur der Web-Baustein VoiceInterview
+  in einem nativen Screen, Text kommt zurück, Lesung startet von selbst —
+  kein doppelter Wizard mehr. Regel steht im STAND und im Gedächtnis.
+- **Stimmwahl unter dem Glas:** Die Web-Blätter im nativen Stack liegen
+  unter der iOS-26-Tab-Leiste (Inhalt läuft unter ihr durch); der Knopf
+  „Klingt gut" der Stimmwahl war verdeckt. `legacy.css` hält deshalb
+  `--tabbar-h: 64px` und hebt `.vp`/`.vi` an. Die Stimmwahl erscheint wie im
+  Web nur, bis eine Stimme gewählt ist — danach Einstellungen.
+- **DeepSeek:** Vorgabe auf `deepseek-flash` (V4.1 Flash, 10.09.2026):
+  `deepseek-v4-flash` ist veraltet, V4.1 kostet weniger als die Hälfte
+  (Eingabe $0,30/Mio. Hauptzeit, Ausgabe $1,20; außerhalb die Hälfte),
+  1 Mio. Kontext. Über DEEPSEEK_MODEL in der .env umschaltbar.
+- **Abgleich gegen die Web-Vorlagen (Eigenregie):** Home bekommt den
+  Schein oben, die Serien-Pille öffnet die Meilenstein-Leiter als echtes
+  iOS-Sheet (Modal formSheet; Daten wie StreakBoard.jsx), der Check-in-
+  Bestätigungssatz führt in den Atlas. Traum-Seite: Bildergeschichte
+  (Text auf die Bilder verteilt wie DreamViews.splitPassages) und die
+  Besetzungs-Chips. Profil: die Träumer-Karte (Zeichen, Fakten, Themen)
+  mit „Nochmal erzählen". Brücke liefert board, cast je Traum, dreamer.
+- **Wizard-Kopf und Schritt 2:** Fortschrittspunkte und „Abbrechen" wie
+  WizardShell.jsx (`wizard-header.tsx`); Schritt 2 „Was soll daraus
+  werden?" (Step2Output.jsx): nur speichern (gratis, Brücke `saveDream` mit
+  Wesen und Serie), Bildergeschichte ab N, Film ab N. Bilder-Modus läuft bis
+  Schritt 5 nativ, dann die Web-Seite mit Anzahl und Preis (kein autoRender).
+- **Antons zweiter Durchklick (10:25):** (1) Knöpfe unter der Glas-Leiste —
+  jeder scrollende Bildschirm hält jetzt `TAB_INSET` (112 pt) unten frei.
+  (2) „Eine Bildergeschichte" raus aus Schritt 2 — Videoprodukt (31.08.),
+  nativ gibt es nur speichern oder Film. (3) Besetzung: „Aus der
+  Bibliothek" zeigte bei leerer Bibliothek nichts; jetzt immer „KI
+  erfindet", **„Neu anlegen" (Web-Dialog mit Kamera/Mediathek,
+  suggestedName = Traumname)** und die Bibliothek; beim Zurückkommen wird
+  neu gefragt und ein passender @tag automatisch gewählt.
+
+### Was der Nächste wissen muss
+
+- **Anton muss curl in LuLu erlauben** — dann gehen `brew install` und
+  die RN-Downloads wieder direkt. Bis dahin: nichts über curl erwarten.
+- Diese Werkzeugkette gilt nur für Antons Mac; auf Hannis Mac steht Node
+  über Homebrew, dort reicht `brew install cocoapods`.
+
+## 2026-09-11 23:05 — Anton — Branch `session/2026-09-11-anton-expo` — Expo-Hülle steht, alte Oberfläche läuft darin
+
+**Commits:** 4cea4dc · 7fe63dd · (Start-Skripte) · (dieser). PR #41 (Entwurf).
+
+**Auftrag:** Schritt 2–3 aus ADR-0006 — Expo-Hülle anlegen, die ganze alte
+React-Oberfläche als DOM-Komponente hineinnehmen, im Simulator starten.
+
+**Ergebnis:** `mobile/` (Expo SDK 57, Router 57, RN 0.86, React 19.2).
+Eine Route ohne Header rendert `src/legacy/legacy-app.jsx` (`'use dom'`),
+die `../../../src/App.jsx` samt Styles importiert — nichts kopiert, die
+Vite-App bleibt lauffähig. Im Simulator (Expo Go) erscheint das Startmenü
+mit Frosch; Metro bündelt die alte App (405 Module) und den nativen Teil
+(1116 Module). 560 Tests grün.
+
+### Was nötig war
+
+- **Metro über die Projektgrenze:** `watchFolders` aufs Hauptrepo,
+  `nodeModulesPaths` NUR `mobile/node_modules`, hierarchische Suche aus,
+  Hauptrepo-`node_modules` gesperrt — sonst zwei React-Kopien (18 für Vite,
+  19.2 für RN) im selben Bündel.
+- **`import.meta.env` und `__API_PORT__`:** Vite-Eigenheiten, die Metro
+  nicht kennt. `mobile/src/legacy/vite-env.js` setzt
+  `globalThis.__ExpoImportMetaRegistry` (babel-preset-expo schreibt
+  `import.meta` dorthin um) — MUSS erster Import der DOM-Komponente sein.
+- **⚠ Top-level await in `src/i18n/index.js` entfernt** (Wirkungsradius
+  überschritten, eine Zeile): Metro kann kein TLA. en/de füllen `t` weiter
+  synchron; `ready` exportiert. Ein Start mit einer der fünf eingefrorenen
+  Sprachen rendert kurz englisch — hinnehmbar unter dem Übersetzungs-Stopp.
+- **Kein Node, kein npm, kein CocoaPods auf Antons Mac** — `node` ist
+  überall Buns Shim. `create-expo-app` stirbt an npm; Vorlage per
+  `bun add expo-template-default@sdk-57` geholt. Expo CLI läuft unter Bun.
+- **`expo start --ios` stirbt in der Sandbox** (AppleScript fürs
+  Simulator-Fenster) und riss Metro mit — Expo Go blieb bei „Opening
+  project". Jetzt `expo start` + `simctl openurl exp://localhost:8081`.
+- **QuotaExceededError im WKWebView:** `DEV: true` im Shim ließ AppState die
+  geteilte Traumsicherung (19 Träume mit Bildern) laden, > 5 MB. Gemessen:
+  4 MB gehen. Shim setzt `DEV: false`.
+
+### Was der Nächste wissen muss
+
+- Simulator-Panel und Simulator-Tap in Claude sind nicht verbunden
+  (falsches „Xcode not selected"); prüfen per
+  `xcrun simctl io booted screenshot`. Tippen muss der Mensch.
+- Der Expo-Dev-Menü-Dialog liegt beim ersten Start über der App
+  („Continue").
+- Nächster Schritt: NativeTabs, siehe STAND.
+
 ## 2026-09-11 22:35 — Anton — Branch `session/2026-09-11-anton-native` — natives Gefühl in Capacitor, dann die Entscheidung für Expo
 
 **Commits:** b7f5482 · 8c75a63 · 602e948 · 5df2ca3 · 1d349ce (+ dieser). PR #40.

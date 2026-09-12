@@ -3,62 +3,79 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-11 spät — PR #39 und #40 gemergt; weiter auf
-`session/2026-09-11-anton-expo`.
+**Stand:** 2026-09-12 abends — `session/2026-09-11-anton-expo` (PR #41,
+Entwurf, 45 Commits): **Die App ist nativ** (React Native mit Expo, ADR-0006):
+fünf Tabs mit Liquid Glass, Wizard, Kaufblatt, Klang-Mischpult, Checkliste,
+Luzid-Guide, Symbol-Atlas, Besetzung, Menagerie, Einstellungen, Stimmwahl,
+Rechtstexte, Consent-Tor, Auftrag ohne Wartebildschirm, Abholer in der
+Brücke, native Toasts — und seit heute der **Rekorder statt des
+Gemini-Assistenten (ADR-0007)**: aufnehmen, Gemini transkribiert, die
+Aufnahme bleibt am Traum. Noch Web als DOM-Komponente: Avatar-Dialog
+(Foto), Umfrage, Bearbeiten/Umschreiben der Traum-Seite, Fehlerblatt des
+Auftrags. Startmenü/Sprachwahl/Onboarding gibt es nativ nicht.
+
+**Für den nächsten Start (wer auch immer):**
+- Metro `bun run mobile`, API `bun run api` (⚠ stoppt gern mit der
+  Sitzung — die Stimme meldet dann „Verbindung beendet"), Xcode-Build
+  `xcodebuild … -derivedDataPath /tmp/dr-dd` oder Xcode ▶; App per
+  `simctl install` in den Simulator. Neue native Pakete (expo-audio,
+  expo-blur heute) brauchen `bun run pods` + Rebuild.
+- **Entwicklungsbau hält 100 Test-Credits** (`devTopUp` in
+  journal-bridge.jsx, nur `__DEV__`) — bis Konto/Supabase stehen.
+- Prüfen ohne Tippen: Redirect-Trick in `mobile/src/app/index.tsx`
+  (Sicherung `/tmp/index.tsx.bak`, vor dem Commit `grep Redirect` = 0),
+  Screenshots per `simctl io booted screenshot`. Rekorder-Selbsttest:
+  `/dream/voice?auto=12` (nur `__DEV__`), Log in Metro (`[voice]`) und im
+  Server (`/api/transcribe`, `/api/panel`).
+- ⚠ **Expo-Router-Falle:** keine `<Stack.Screen>`-Kinder in Layouts (erstes
+  Kind wird Startroute, Bildschirm-Optionen greifen nicht) — Karten per
+  `screenOptions={({ route }) => …}`.
+- ⚠ **expo-video kippt die Audio-Session** bei jedem Player-Ereignis auf
+  Wiedergabe: während einer Aufnahme müssen alle Player stehen
+  (`store/recording-store.ts`, `holdForRecording`). Sonst bricht die
+  Aufnahme still nach Sekunden ab (Antons Befund, dreimal).
+- ⚠ fal nimmt Audio als Data-URL nur als `audio/mpeg`; der Server wandelt
+  per ffmpeg. Vorne steht aber Gemini (`GEMINI_STT_MODEL`,
+  gemini-3.5-flash-lite) mit Sprachhinweis; Wizper ist Rückfall.
+- Lint (`bunx expo lint` in mobile): 0 Fehler, 35 Warnungen — die
+  React-Compiler-Regeln stehen für Reanimated-/Player-Muster auf „warn"
+  (eslint.config.js). Web: 560 Tests grün, `vite build` grün.
+
+**Antons offene Wünsche (12.09., Reihenfolge seine):** Traumfänger-Video
+als Schleife über dem Rekorder (Platzhalter: atmende Ringe) · Onboarding
+nativ: Intro mit App-Namen (Platzhalter für sein Video), Showreel,
+Feature-Kacheln in Glas (Moonly-Vorbild), Schlaf-Jahre-Zähler
+(Opal-Vorbild), Fragebogen statt Gespräch · Pseudo-Rangliste aus der Serie
+(„weiter als 8 von 10", nichts wird gezählt) · Poster je Film für die
+Kacheln (1:1 oder 4:5, ~3 Cent, in den Filmpreis rechnen, Renderweg im
+Server) · Avatar-Dialog nativ (`expo-image-picker`, Rebuild) ·
+Erinnerungen wirklich planen (`expo-notifications`) · Datenschicht nach
+`expo-sqlite`, Brücke abbauen.
+
+**⚠ Ungeprüft, weil hier niemand tippt oder spricht:** echter Auftrag samt
+Abholer (kostet Credits), Fader-Ziehen und Klang, Hörprobe, Stil-Overlay
+mit Wischen, Rekorder mit echter Stimme (Selbsttest im Simulator: 10–20 s
+durchgehend, Upload und Transkription grün). Erster echter Durchlauf mit
+Anton.
 
 **⚠⚠ ENTSCHIEDEN (Anton, 11.09. abends): Die Oberfläche wird nativ — React
 Native mit Expo statt Capacitor.** Web ist kein Ziel mehr, Android kommt
-später aus derselben Codebasis. Begründung mit Messungen:
-`docs/decisions/ADR-0006-expo-react-native-statt-capacitor.md`. Kurz:
-Liquid Glass gibt es im WebView nicht (WebKit rendert `backdrop-filter:
-url()` nicht), die Capacitor-Tastatur zerschoss die Safe Area, und alles
-Nachgebaute bleibt nachgebaut. Es bleiben `server.js`, Supabase, die Logik
-in `src/lib` (48 von 57 Dateien ohne React/DOM) und alle Texte; neu werden
-~14.000 Zeilen JSX/CSS. Weg: Würgefeigen-Umzug — Expo-Hülle, in der die alte
-Oberfläche am ersten Tag als DOM-Komponente läuft, dann Bildschirm für
-Bildschirm nativ. Plus-Knopf wird fünfter Tab in der Mitte (Antons Wort).
-Skills sind installiert; Hanni bekommt die Anleitung beim nächsten Start
+später aus derselben Codebasis. Begründung: ADR-0006. Skills sind
+installiert; Hanni bekommt die Anleitung beim nächsten Start
 (`docs/uebergabe/2026-09-11-hanni-expo-skills.md`).
 
 **Der Server rechnet den Filmpreis selbst.** `src/lib/quote.js` ist EINE
-Rechnung für Wizard und Server. Liegt der Server teurer als angezeigt,
-antwortet er 409 mit beiden Zahlen — bevor Regisseur oder fal etwas
-kosten. Liegt er gleich oder billiger, gilt sein Preis. Bilder werden nur
-beobachtet (Log). `GET /api/prices` liefert die Tabelle. Das ist Punkt 1
-aus `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`; **Punkte 2–6**
-(abbuchen über `server_spend`, `jobRef`, Erstattung je Topf,
-fal-Fehler in `jobStatus`, Client-Abbuchung zurückbauen) **warten auf die
-Anmeldung**.
+Rechnung für Wizard und Server (409 bei Abweichung nach oben). Punkte 2–6
+aus `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md` warten auf die
+Anmeldung (Supabase).
 
-**Die Capacitor-App läuft im Simulator** und hat seit PR #40 ein
-nachgebautes iOS-Gefühl (Sheets mit Ziehen, geschobene Traum-Seite, Wisch
-vom Rand, Haptik, Statusleiste; `useSheet.js`, `styles/sheets.css`). Das
-ist die **Zwischenlösung** bis zum Expo-Umzug — Kurven, Dauern und
-Schwellen daraus sind die Referenz für die native Fassung. Das
-Tastatur-Plugin ist wieder draußen (Safe-Area-Fehler, Capacitor #6430).
+**Geschäftliche Entscheidungen (Anton, 11.09.):** UG als Rechtsform; Seedance
+über Replicate direkt (Token liegt in `.env`); DeepSeek `deepseek-flash`
+(V4.1). Details in den WORKLOG-Einträgen vom 11.09.
 
-**Geschäftliche Entscheidungen (Anton, 11.09.):** UG als Rechtsform;
-Buchhaltung per Software, Jahresabschluss zukaufen; **Seedance 2.5 über
-Replicate** (halber Einkauf), H3 bleibt bei fal. Vermerke:
-`docs/plans/2026-09-11-rechtsform.md`,
-`2026-09-11-direktbezug-videomodelle.md`,
-`2026-09-11-umsatzsteuer-und-gruenderrechnung.md`.
-
-**`server.js` ist mit der Datenbank verbunden — nach Least Privilege.**
-`ADR-0005`: Supabase als Datenschicht (Status vorgeschlagen, Antons
-Bestätigung steht aus). `server.js` verbindet sich als eigene Rolle
-`dreamrushes_server` — auf das Guthaben nur lesend, ohne Umgehung von RLS.
-**⚠ Genutzt wird die Verbindung noch nicht:** Die Credits liegen weiter im
-`localStorage` und sind editierbar (Befund S7, offen). Die **Anmeldung**
-(Sign in with Apple) ist zurückgestellt (Hannis Entscheidung, 11.09.) —
-sie hängt an der Frage, wer als Verkäufer im App Store steht.
-
-**Die Architektur ist bewertet:** `docs/ARCHITEKTUR.md` führt acht Befunde
-(S1–S8) mit Schwere und Reihenfolge. Erledigt ist S4. S1 wartet bewusst auf
-die Konten.
-
-548 Tests grün, fünf Skriptprüfungen grün, Build ~510 KB / gzip 173.
-Wie es hierher kam, steht im WORKLOG.
+**`server.js` ist mit der Datenbank verbunden — nach Least Privilege**, die
+Verbindung wird noch nicht genutzt (Credits liegen im Gerät). Die
+Architektur ist bewertet: `docs/ARCHITEKTUR.md` (S1–S8).
 
 ## Wo wir stehen
 
@@ -92,13 +109,37 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
 
 **Als Nächstes, in dieser Reihenfolge:**
 
-- **Die Expo-Hülle** — `session/2026-09-11-anton-expo`. Skill
-  `expo-web-to-native` lesen (Würgefeigen-Umzug), `create-expo-app` neben
-  dem bestehenden Code, Routen in Expo Router spiegeln, die alte
-  React-Oberfläche als DOM-Komponente hineinnehmen, im Simulator starten.
-  Erst wenn das läuft: NativeTabs (fünf Tabs, Traum in der Mitte, gefülltes
-  Plus), dann Journal-Liste und Traum-Seite nativ. ⚠ NativeTabs ist Alpha —
-  SDK-Stand festhalten. Bezahlung bleibt Store-IAP über RevenueCat.
+- **Native Hülle (Schritt 4, ADR-0006) — Stand oben.** Aufbau:
+  `mobile/src/app` (Expo Router: index/journal/dream/sleep/profile, je
+  Stapel), `mobile/src/components` (glass.tsx, paywall-sheet, sound-mixer,
+  sleep-checklist, lucid-guide, symbols-atlas, consent-gate, toasts,
+  mascot-loader, preset-tile, dream-deck/-poster/-row/-calendar),
+  `mobile/src/lib` (sound-engine.ts), `mobile/src/store` (journal, wizard,
+  toast, recording), `mobile/src/legacy` (Web-Brücke `journal-bridge.jsx`
+  mit Befehlen, `legacy-*.jsx` als DOM-Räume, `vite-env.js`, `legacy.css`).
+  Regel: **umbauen, nicht neu erfinden** — der Web-Bildschirm ist die
+  Vorlage, nativ ändern sich Material, Bewegung, Haptik.
+- **Bekannte Grenzen der Tab-Hülle heute:** (a) Jeder Tab ist ein eigener
+  Webview mit eigenem Zustand; beim Fokus liest er neu aus dem localStorage
+  (`dreamrushes:reload`); die Brücke liest denselben Speicher. ⚠ Im
+  Produktionsbau laden DOM-Komponenten von `file://` — ob sie sich dann
+  noch einen localStorage teilen, ist NICHT belegt; spätestens dann muss
+  der Zustand nach `expo-sqlite`. (d) Relative Bildpfade der Web-Seiten
+  (`/clips/…` aus `public/`) zeigen im Webview auf Metro statt auf den
+  Server — Beispielbilder fehlen dort; die Brücke macht sie für nativ
+  absolut (`API_BASE`). (b) Web-Navigation innerhalb eines Tabs (Home →
+  „letzter Traum" → Journal, Wizard-Abbrechen → Home) bleibt im selben Tab,
+  statt den nativen Tab zu wechseln — Übergabe DOM→nativ per Prop fehlt
+  noch. (c) Die Fragezeichen-Kästchen („schwer/okay/gut", Credits) sind
+  ein fehlendes Glyph im Web — verschwinden mit den nativen Bildschirmen.
+- **Datenschicht der Hülle:** localStorage im WKWebView fasst ~5 MB; die
+  Traumsicherung sprengt das (deshalb `DEV: false` in
+  `mobile/src/legacy/vite-env.js`). Beim Umzug der Screens auf nativ den
+  Zustand nach `expo-sqlite` (Skill `expo-data-fetching`, false-friends).
+- **Xcode-Build läuft** (12.09., 01:13): `mobile/ios/DreamRushes.xcworkspace`
+  in Xcode öffnen, Ziel „DreamRushes", Simulator, ▶ — Metro muss laufen
+  (`bun run mobile`). Der Ordner ist git-ignoriert; `bun run prebuild:ios`
+  erzeugt ihn samt Pods und `.xcode.env.local` neu.
 - **Seedance über Replicate anbinden** — eigene Sitzung. `src/lib/video.js`
   (je Modell `provider`, `slug`, `refsField`), `server.js` `falSubmitVideo`
   anbieterabhängig, `REPLICATE_TOKEN` (liegt in Antons `.env`), Tests.
@@ -367,6 +408,58 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
 
 ## Werkzeuge
 
+- **Expo-Hülle im Simulator** (seit 11.09. nachts; Expo Go, kein Xcode-Build):
+
+      bun run dev:api          # Tab 1: server.js auf 8100
+      bun run ios              # Tab 2: Metro auf 8081 + öffnet Expo Go per simctl
+
+  ⚠ `expo start --ios` NICHT direkt aufrufen: der Schalter holt das
+  Simulator-Fenster per AppleScript nach vorn und stirbt, wo Automation
+  verboten ist (Claude-Sandbox); deshalb öffnet das Skript per
+  `xcrun simctl openurl booted exp://localhost:8081`. ⚠ localhost, nicht die
+  WLAN-Adresse — die erreicht der Simulator aus der Sandbox nicht.
+  Die alte Oberfläche läuft aus `../src` (nichts kopiert); Speichern lädt
+  sie neu. API-Adresse: `EXPO_PUBLIC_API_BASE` (Vorgabe localhost:8100).
+  ⚠ `create-expo-app` braucht npm; die Vorlage kam als npm-Paket
+  `expo-template-default@sdk-57` über `bun add`.
+- **Werkzeugkette auf Antons Mac** (12.09. nachts, ohne Homebrew eingerichtet,
+  weil Homebrew an curl hängt — siehe LuLu unten):
+  · **Node 26.8.2** in `~/.local/node` (offizielles Paket von nodejs.org,
+    sha256 geprüft); `node`, `npm`, `npx` in `~/.local/bin`, dazu zeigen
+    `~/.bun/bin/node` und `/opt/homebrew/bin/node` darauf (vorher Buns Shim).
+  · **CocoaPods 1.17.0** über Homebrews portables Ruby 4.0.6
+    (System-Ruby 2.6 ist zu alt): Gems in `~/.local/cocoapods`, Wrapper
+    `~/.local/bin/pod` setzt GEM_HOME und **UTF-8-Locale** (ohne die stirbt
+    `pod install` an „Unicode Normalization not appropriate for ASCII-8BIT").
+  · **Hermes vorgebaut** in `~/.local/hermes` (Maven Central, sha1 geprüft),
+    weil React Native ihn per curl lädt; `bun run pods` setzt
+    `HERMES_ENGINE_TARBALL_PATH`. ⚠ Nach einem RN-Upgrade Version aus
+    `node_modules/react-native/sdks/hermes-engine/version.properties`
+    (`HERMES_V1_VERSION_NAME`) neu laden.
+  · **⚠⚠ LuLu blockt `/usr/bin/curl`** (Regel in
+    `/Library/Objective-See/LuLu/rules.plist`). Folgen: `brew install`
+    scheitert („Could not resolve host ghcr.io"), React Native fällt beim
+    Hermes-Download auf den Quellbau zurück und verlangt cmake, CocoaPods-
+    Downloads per curl scheitern. Anton erlaubt curl in LuLu, dann entfallen
+    die Umwege. Bun, Ruby, Python und Git sind nicht betroffen.
+  · **React Native vorgebaut** in `~/.local/rn` (Core + Dependencies 0.86.3
+    von Maven Central, sha1 geprüft). Ohne die Tarballs prüft RN per curl,
+    ob es Artefakte gibt, sieht „nein" und baut aus dem Quelltext — Expos
+    vorgebaute Module erwarten aber `React.framework` und die App stirbt
+    beim Start an `dyld: Library not loaded: @rpath/React.framework`.
+    `bun run pods` setzt `RCT_TESTONLY_RNCORE_TARBALL_PATH` und
+    `RCT_USE_LOCAL_RN_DEP`. ⚠ Nach einem RN-Upgrade Version anpassen.
+  · **expo-modules-jsi gepatcht** (`mobile/patches/`, über `bun patch`):
+    Xcode 26.3 (Swift 6.2.4) lehnt `SWIFT_RETURNS_RETAINED` an Konstruktoren
+    ab und meldet „sending 'resultPtr' risks causing data races" als Fehler
+    (expo/expo#47539 offen). Patch: Annotation weg, Zeiger in einem
+    `@unchecked Sendable`-Container. ⚠ Swift-5-Modus ist KEIN Ausweg
+    (andere Fehler). Beim Expo-Upgrade Patch prüfen und ggf. löschen.
+  · **Capacitor-Pakete in `mobile/`** (`@capacitor/core`, `haptics`) sind
+    nur für die JS-Importe der alten Oberfläche da und in `package.json`
+    unter `expo.autolinking.exclude` vom nativen Einbinden ausgeschlossen —
+    sonst bricht `pod install` an CapacitorCordova.
+
 - **Skills für die native Oberfläche** (seit 11.09., Pflichtlektüre vor
   Oberflächenarbeit). Einmal je Rechner:
 
@@ -421,13 +514,13 @@ React-SPA: Traum aufschreiben oder sprechen → KI schneidet ihn zum Film
 (H3 oder Seedance 2.5), dazu Reflection und Muster. Vier Tabs (Home ·
 Journal · ⊕ · Sleep · Profil), Wizard über der Tab-Leiste.
 **Stack:** Bun + Vite + React 18 (HashRouter); `server.js` als
-schlüsselhaltender Proxy (fal.ai, DeepSeek, Gemini). Zustand in
+schlüsselhaltender Proxy (fal.ai, DeepSeek `deepseek-flash` = V4.1 seit 12.09., Gemini). Zustand in
 `localStorage` (`dreamrushes_v1`). Sieben Sprachen, gepflegt **en+de**.
-**Nativ:** Capacitor 8 packt `dist/` in eine iOS-App (`ios/App`, per SPM,
-kein CocoaPods) — echte `.app`, echtes Xcode-Ziel, Oberfläche im WKWebView.
-Seit 10.09. im Simulator lauffähig samt API. Eine ADR, die diese Wahl
-begründet, **gibt es bis heute nicht** — sie steht unter „Nächste Schritte"
-der früheren Sitzungen als offener Punkt („Capacitor-ADR + In-App-Käufe").
+**Nativ:** seit ADR-0006 (11.09.) React Native mit Expo in `mobile/`
+(Expo SDK 57, Expo Router, NativeTabs); die alte Web-Oberfläche läuft dort,
+wo sie noch nicht nativ ist, als DOM-Komponente aus `../src`. Capacitor
+(`ios/App`) ist die abgelöste Zwischenlösung und bleibt nur als Referenz für
+Kurven und Dauern liegen.
 **Stile:** 19 (`styles.js`) — 8 Stimmungs-Stile, 11 Handwerksstile; als
 20 Presets mit Dreamflow (`presets.js`), 10 in der ersten Reihe.
 

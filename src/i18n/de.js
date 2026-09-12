@@ -187,7 +187,7 @@ export default {
     makeFilmLede: "Jetzt zum Leben erwecken.",
     filmPending: "Video wird erstellt — bitte warten",
     imagesPending: "Bilder werden erstellt — bitte warten",
-    makeFilm: "Kurzfilm machen",
+    makeFilm: "Zum Leben erwecken",
     calendar: "Traumkalender",
     calLabel: "Tage mit aufgezeichnetem Traum — antippen zum Öffnen",
     calPrev: "Vorheriger Monat",
@@ -518,6 +518,11 @@ export default {
     submitting: "Wird heraufbeschworen…",
     tooShort: "⚠ Schreib erst noch etwas mehr.",
     caught: (name) => `✦ ${name} ist deiner Menagerie beigetreten`,
+    /* Der Rekorder (ADR-0007): einsprechen, fertig — keine Rückfragen. */
+    record: "Erzähl ihn laut", recordHint: "Sprich einfach. Ich schreibe mit.",
+    recording: "Ich höre zu …", recordStop: "Fertig", recordTranscribing: "Ich schreibe auf …",
+    recordTooShort: "Das war zu kurz — noch mal.", recordFailed: "Konnte das nicht aufschreiben. Noch mal versuchen.",
+    recordAgain: "Noch mal aufnehmen", yourRecording: "Deine Aufnahme",
     interview: "Laut erzählen",
     interviewHint: "Ich frage, du erzählst — Augen zu, wenn du magst",
     reading: "Dein Traum wird gelesen…",
@@ -635,6 +640,7 @@ export default {
       aboutModel: "Über dieses Modell",
       aboutStyle: "Über diesen Stil",
       moreStyles: (n) => `Mehr Stile (${n})`,
+      useStyle: "Diesen Stil verwenden",
       presets: {
         dreamflow: "Dreamflow",
         dreamflowSub: "Kein Schnitt — jede Szene wird zur nächsten",

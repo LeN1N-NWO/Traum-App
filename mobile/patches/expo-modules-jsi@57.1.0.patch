@@ -1,0 +1,121 @@
+diff --git a/node_modules/expo-modules-jsi/.bun-tag-65a7283eec9d0e26 b/.bun-tag-65a7283eec9d0e26
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/node_modules/expo-modules-jsi/.bun-tag-8016bcfcdd6372b7 b/.bun-tag-8016bcfcdd6372b7
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/node_modules/expo-modules-jsi/.bun-tag-834c6a203f62062f b/.bun-tag-834c6a203f62062f
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift b/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift
+index 3d796eea39a39f6b20a9ebb83b70d7eb2c8b6104..bad06d69033bb410ae7bb0f3917737879250cd57 100644
+--- a/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift
++++ b/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift
+@@ -185,12 +185,12 @@ open class JavaScriptRuntime: Equatable, Identifiable, @unchecked Sendable {
+       resultPtr: UnsafeMutablePointer<facebook.jsi.Value>
+     ) -> Bool {
+       let propertyName = String(cString: propertyName)
+-      nonisolated(unsafe) let resultPtr = resultPtr
++      let resultPtr = DRSendablePtr(resultPtr)
+ 
+       return withGuaranteedContext(context) { (context: HostObjectContext, runtime) in
+         return JavaScriptActor.assumeIsolated {
+           return forwardingSwiftErrorsToJS(runtime: runtime) {
+-            try context.get(propertyName).writeJSIValue(to: resultPtr)
++            try context.get(propertyName).writeJSIValue(to: resultPtr.p)
+           }
+         }
+       }
+@@ -774,19 +774,19 @@ private func createFunctionClosure(
+     // synchronous call, so the `nonisolated(unsafe)` capture is sound. This removes a per-call class
+     // allocation + retain/release + dealloc that profiling showed dominating the no-op `@JS` host-call
+     // floor.
+-    nonisolated(unsafe) let thisPtr = thisPtr
+-    nonisolated(unsafe) let argumentsPtr = argumentsPtr
+-    nonisolated(unsafe) let resultPtr = resultPtr
++    let thisPtr = DRSendablePtr(thisPtr)
++    let argumentsPtr = DRSendablePtr(argumentsPtr)
++    let resultPtr = DRSendablePtr(resultPtr)
+ 
+     // See `withGuaranteedContext` for why neither the context nor the runtime is retained here, and
+     // why the result is written to the caller's slot instead of being returned.
+     return withGuaranteedContext(context) { (context: HostFunctionContext, runtime) in
+       return JavaScriptActor.assumeIsolated {
+         return forwardingSwiftErrorsToJS(runtime: runtime) {
+-          let this = UnsafeMutablePointer(mutating: thisPtr).move()
+-          let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr, count: argumentsCount)
++          let this = UnsafeMutablePointer(mutating: thisPtr.p).move()
++          let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr.p, count: argumentsCount)
+           let thisValue = JavaScriptValue(runtime, this)
+-          try context.call(thisValue, consume arguments).writeJSIValue(to: resultPtr)
++          try context.call(thisValue, consume arguments).writeJSIValue(to: resultPtr.p)
+         }
+       }
+     }
+@@ -817,18 +817,18 @@ private func createFunctionClosure(
+     // handed in as a borrowed `JavaScriptUnownedValue` pointing straight at the C++-owned `this` slot:
+     // it is not moved out and no owning `JavaScriptValue` is allocated, so the closure avoids the
+     // per-call `weak`-runtime form/destroy and heap object that the owning `this` pays.
+-    nonisolated(unsafe) let thisPtr = thisPtr
+-    nonisolated(unsafe) let argumentsPtr = argumentsPtr
+-    nonisolated(unsafe) let resultPtr = resultPtr
++    let thisPtr = DRSendablePtr(thisPtr)
++    let argumentsPtr = DRSendablePtr(argumentsPtr)
++    let resultPtr = DRSendablePtr(resultPtr)
+ 
+     // See `withGuaranteedContext` for why neither the context nor the runtime is retained here, and
+     // why the result is written to the caller's slot instead of being returned.
+     return withGuaranteedContext(context) { (context: UnownedThisHostFunctionContext, runtime) in
+       return JavaScriptActor.assumeIsolated {
+         return forwardingSwiftErrorsToJS(runtime: runtime) {
+-          let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr, count: argumentsCount)
+-          let thisValue = JavaScriptUnownedValue(runtime.pointee, thisPtr)
+-          try context.call(thisValue, consume arguments).writeJSIValue(to: resultPtr)
++          let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr.p, count: argumentsCount)
++          let thisValue = JavaScriptUnownedValue(runtime.pointee, thisPtr.p)
++          try context.call(thisValue, consume arguments).writeJSIValue(to: resultPtr.p)
+         }
+       }
+     }
+@@ -855,3 +855,13 @@ extension JavaScriptRuntime {
+     }
+   }
+ }
++
++/// Patch (Dream Rushes, 12.09.2026): Swift 6.2.4 aus Xcode 26.3 meldet für die
++/// `nonisolated(unsafe) let`-Zeiger oben „sending 'resultPtr' risks causing data
++/// races" als Fehler (vgl. expo/expo#47539). Ein als `@unchecked Sendable`
++/// markierter Container trägt dieselben, nur für den synchronen Aufruf gültigen
++/// Zeiger ohne die Diagnose. Zurückbauen, sobald expo-modules-jsi Xcode 26.3 trägt.
++private struct DRSendablePtr<P>: @unchecked Sendable {
++  let p: P
++  init(_ p: P) { self.p = p }
++}
+diff --git a/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h b/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h
+index 6115e87a6e430f55570fbf759283dca0cca1ee80..b759b439fde872306d075770bc67a99352f44d6a 100644
+--- a/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h
++++ b/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h
+@@ -50,7 +50,13 @@ public:
+    `scheduleTask` dispatches through `fn`, which the host implements against
+    the real react::RuntimeScheduler.
+    */
+-  SWIFT_RETURNS_RETAINED RuntimeScheduler(void *scheduler, ScheduleFn fn) noexcept
++  /* Patch (Dream Rushes, 12.09.2026): kein SWIFT_RETURNS_RETAINED an den
++     Konstruktoren. Der Clang in Xcode 26.3 (clang-1700.6.4.2) lehnt die
++     Annotation an einem Konstruktor ab: „cannot be annotated ... because it
++     is not returning a SWIFT_SHARED_REFERENCE type". Swift behandelt den
++     Konstruktor eines SWIFT_SHARED_REFERENCE-Typs ohnehin als +1
++     (refCount startet bei 1). Unverändert in expo-modules-jsi 58.0.0. */
++  RuntimeScheduler(void *scheduler, ScheduleFn fn) noexcept
+       : nativeScheduler(scheduler), scheduleFn(fn) {}
+ 
+   /**
+@@ -58,7 +64,7 @@ public:
+    caller's thread — intended for standalone runtimes (e.g. tests) that have
+    no React scheduler.
+    */
+-  SWIFT_RETURNS_RETAINED RuntimeScheduler() {}
++  RuntimeScheduler() {}
+ 
+   RuntimeScheduler(const RuntimeScheduler &) = delete;
+ 

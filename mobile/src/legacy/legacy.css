@@ -1,0 +1,17 @@
+/* Nur in der nativen Hülle. Die Web-Tab-Leiste ist weg — die native
+   Glas-Leiste liegt aber ÜBER dem Inhalt (iOS 26: der Inhalt läuft unter
+   ihr durch). Deshalb behält --tabbar-h eine Höhe: der untere Abstand aller
+   Web-Bildschirme (.screen, Toast) und der Blätter mit eigenem Fuß
+   (Stimmwahl, Gespräch), sonst liegt ihr Knopf unter dem Glas —
+   Antons Befund 12.09. Die 64 px sind die Leiste ohne Home-Indikator;
+   den liefert env(safe-area-inset-bottom) bzw. --sab dazu.
+
+   --sat/--sab: die Safe Area, von der Hülle als Zahl hereingereicht
+   (vite-env.js __setSafeArea), weil env() im Webview oft 0 meldet. */
+:root { --tabbar-h: 64px; --sat: 0px; --sab: 0px; }
+.screen { padding-top: calc(max(env(safe-area-inset-top), var(--sat)) + var(--s-5)) !important; }
+.vi { padding-top: calc(max(env(safe-area-inset-top), var(--sat)) + var(--s-3)) !important; }
+.vp { padding-top: calc(max(env(safe-area-inset-top), var(--sat)) + var(--s-6)) !important; }
+.vp, .vi { padding-bottom: calc(max(env(safe-area-inset-bottom), var(--sab)) + var(--tabbar-h) + var(--s-5)) !important; }
+.j-modal-tools, .j-slimhead { padding-top: max(env(safe-area-inset-top), var(--sat)); }
+.lp-top, .pw-close, .av-modal { margin-top: max(env(safe-area-inset-top), var(--sat)); }
