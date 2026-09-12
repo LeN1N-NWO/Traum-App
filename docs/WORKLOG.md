@@ -3,6 +3,54 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 17:50 — Anton — Branch `session/2026-09-12-anton-c` — Onboarding nativ (eine Frage je Bildschirm), Mondphasen, kein Gratis-Versprechen
+
+**Antons drei Aufträge:** „Der erste Traum geht auf uns" raus („wir führen
+das nicht mal ein"); Onboarding wie die Referenz-App — EINE Frage je
+Bildschirm, und die Berechtigungen ganz am Anfang („was nicht am Anfang
+passiert, passiert nie"); Mondphasen im Journal, und die Phase der Nacht
+soll am gespeicherten Traum hängen.
+
+- **Kein Gratis-Versprechen mehr:** `gateReward`, `granted` und
+  `profileCardHint` in en+de nennen jetzt den Nutzen statt Credits.
+  `welcomeGrant()` bleibt im Code (der Web-Weg ruft es noch), aber nichts
+  verspricht es mehr.
+- **Mondphasen** (`src/lib/moon.js`, 5 Tests): Phase, Beleuchtung und
+  Zu-/Abnehmen aus dem Datum — mittleres synodisches Monat ab dem Neumond
+  6.1.2000 (Meeus), Genauigkeit ±½ Tag. ⚠ **Ortsunabhängig**, und das ist
+  kein Verzicht: Die Phase ist der Winkel Sonne–Erde–Mond, überall gleich;
+  ortsgebunden wären nur Auf-/Untergang und die Drehung der Sichel. Kein
+  Standort, keine Erlaubnis. `moonForNight()` rechnet die Nacht dem
+  VORABEND zu (wer um 3 Uhr notiert, träumte gestern — wie streak.js).
+  Gespeichert am Traum (`entry.moon`) in Step5Style, Step6Result und
+  `saveDream`; alte Träume rechnen ihre Phase aus dem Datum nach.
+  Im Journal ein Streifen aus fünf Nächten (`components/moon-strip.tsx`,
+  heute in Glas), auf der Traum-Seite die Phase neben dem Datum.
+  ⚠ Der Mond ist ohne SVG gezeichnet (react-native-svg ist nicht
+  installiert): helle Scheibe, dunkler Kreis darüber geschoben, Behälter
+  beschneidet. Versatz 0 = Neumond, ±Durchmesser = Vollmond — die erste
+  Fassung hatte das Vorzeichen falsch und zeigte lauter Vollmonde.
+- **Onboarding nativ** (`components/onboarding-flow.tsx`, 12 Bildschirme):
+  Intro mit Video (Platzhalter `intro-faultier.mp4`) und aufblendendem
+  Namen · Feature-Kacheln in Glas · **Berechtigungen** (Mikrofon über
+  expo-audio, Fotos+Kamera über `expo-image-picker`, neu installiert, Pods
+  und Xcode-Build grün) · Name · fünf Einzelfragen (Ziel, Erinnerung,
+  Klartraum, Schlafdauer, Zeitbudget) · **Jahre im Schlaf** als Zähler
+  (Antons Opal-Vorbild: aus der Antwort × 80 Jahre, ein Viertel davon
+  Traumschlaf) · Themen als Chips · Schluss.
+  Die Fragen und Werte kommen aus `FORM_FIELDS` (onboardingForm.js) über
+  die Brücke; die Antworten gehen als Befehl `onboarded` zurück und laufen
+  durch `profileFromAnswers` — dasselbe Profil wie im Web.
+  Prüfhilfe: `(globalThis as any).__ONB_STEP__ = n` im Wurzel-Layout
+  startet den Fluss an Bildschirm n (nur `__DEV__`), so lassen sich alle
+  Schritte ohne Tippen fotografieren.
+
+**Was der Nächste wissen muss:** Der Web-Onboarding-Ablauf
+(`src/screens/Onboarding/*`) ist NICHT gelöscht — er hängt noch am
+Web-Gate und am Startmenü. Nativ wird er nicht mehr geladen.
+Ungeprüft am Gerät: das Durchtippen selbst (hier tippt niemand), die
+Berechtigungs-Dialoge, das gespeicherte Profil.
+
 ## 2026-09-12 17:15 — Anton — Branch `session/2026-09-12-anton-c` — Deck als echter Stapel, Onboarding bei jedem Start
 
 **Antons Auftrag:** Die Träume im Journal sollen „hintereinander gestapelt"

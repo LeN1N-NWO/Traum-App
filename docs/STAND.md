@@ -91,6 +91,15 @@ Filmpreis rechnen (Renderweg steht) · Avatar-Dialog nativ (`expo-image-picker`,
 Erinnerungen wirklich planen (`expo-notifications`) · Datenschicht nach
 `expo-sqlite`, Brücke abbauen.
 
+**Onboarding ist nativ** (`components/onboarding-flow.tsx`, Modal im
+Wurzel-Layout, im Entwicklungsbau bei jedem Start): eine Frage je
+Bildschirm, Berechtigungen (Mikrofon, Fotos/Kamera) ganz am Anfang,
+Jahre-im-Schlaf-Zähler, Antworten über den Befehl `onboarded` in dasselbe
+Profil wie im Web. Der Web-Ablauf bleibt liegen, wird nativ nicht geladen.
+**Mondphasen** (`src/lib/moon.js`): ortsunabhängig aus dem Datum, Streifen
+im Journal, Phase am Traum gespeichert (`entry.moon`). Kein Gratis-Credits-
+Versprechen mehr im Onboarding.
+
 **⚠ Deck ist ein Fächer, kein Scroller** (13.09.): In einer horizontalen
 ScrollView malt die spätere Karte über die frühere, `zIndex` aus einem
 Reanimated-Stil greift dort nicht. Gestapelte Karten brauchen die
