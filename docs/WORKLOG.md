@@ -50,6 +50,19 @@ curl. Bun, Ruby, Python, Git sind frei — also alles daran vorbeigebaut:
   (Fokus-Tick aus `useFocusEffect`). ⚠ Neue Routen-Dateien sah der
   laufende Metro nicht („Route … is extraneous", nur zwei Tabs) — Metro
   neu starten. Geprüft: Screenshot mit fünf Glas-Tabs, Home-Screen darin.
+- **Journal-Liste nativ** (Antons „lass uns machen … muss richtig geil
+  aussehen"): Stack im Journal-Tab mit großem Serifentitel (Iowan Old
+  Style, `Stack.Screen.Title largeStyle`), Suche im Kopf, Toolbar-Knopf zum
+  Web-Journal. Poster-Raster 3:4 mit Bild/Film-Standbild, Verlauf,
+  Datum-Eyebrow, Feder beim Drücken (Reanimated), Haptik. Neue Module:
+  expo-video-thumbnails, expo-linear-gradient, expo-haptics (→ pods +
+  Xcode-Build, grün). Datenbrücke Web→nativ als unsichtbarer Webview
+  (`journal-bridge.jsx`, nutzt die Web-Leser filmOf/imagesOf/isBlank).
+  Traum-Seite noch Web (`legacy-dream.jsx` mit exportierten Toast-/Paywall-
+  Brücken aus `src/App.jsx`). ⚠ `headerBlurEffect` zusammen mit dem
+  iOS-26-Glas warnt („overlapping effects") — weg damit. ⚠ Deep Links per
+  `simctl openurl` zeigen einen Bestätigungsdialog, den hier niemand tippen
+  kann; zum Prüfen kurz `index.tsx` auf `/journal` umgeleitet.
 
 ### Was der Nächste wissen muss
 

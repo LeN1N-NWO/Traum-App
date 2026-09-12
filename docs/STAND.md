@@ -96,14 +96,30 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
 
 **Als Nächstes, in dieser Reihenfolge:**
 
-- **Bildschirme nativ, wertvollste zuerst** (Schritt 4, ADR-0006): erst die
-  Journal-Liste und die Traum-Seite (`@expo/ui` zuerst, Skill
-  `expo-web-to-native` → `references/native-patterns.md`), dann Home, Wizard,
-  Schlaf/Profil. Je Bildschirm: nativ neu entwerfen, nicht das Web-Layout
-  nachbauen. ⚠ NativeTabs ist Alpha, SDK-Stand 57.0.x festhalten.
+- **Bildschirme nativ, wertvollste zuerst** (Schritt 4, ADR-0006). **Die
+  Journal-Liste ist nativ** (12.09., `mobile/src/app/journal/index.tsx`):
+  großer Serifentitel, Suche im Kopf, Poster im Zweierraster (`expo-image`,
+  Film-Standbild per `expo-video-thumbnails`, Verlauf, Feder beim Drücken,
+  Haptik). Die Daten kommen über die Web-Brücke
+  `mobile/src/legacy/journal-bridge.jsx` (unsichtbarer Webview liest den
+  localStorage, reicht eine schlanke Liste per async-Prop). Tippen schiebt
+  die **Traum-Seite noch als Web-Seite** auf (`journal/[id].tsx` →
+  `legacy-dream.jsx`); das Raster-Symbol oben öffnet das ganze Web-Journal
+  mit Besetzung, Atlas, Menagerie, Kalender (`journal/web.tsx`).
+  **Als Nächstes:** die Traum-Seite nativ (Film oben, Text, Fassungen,
+  Aktionen als Bottom-Sheet), dann Home, Wizard, Schlaf/Profil. Je
+  Bildschirm nativ neu entwerfen, nicht das Web-Layout nachbauen.
+  ⚠ NativeTabs ist Alpha, SDK-Stand 57.0.x festhalten.
+  ⚠ Ungeprüft, weil hier niemand tippen kann: Poster → Traum-Seite → zurück.
 - **Bekannte Grenzen der Tab-Hülle heute:** (a) Jeder Tab ist ein eigener
   Webview mit eigenem Zustand; beim Fokus liest er neu aus dem localStorage
-  (`dreamrushes:reload`). (b) Web-Navigation innerhalb eines Tabs (Home →
+  (`dreamrushes:reload`); die Brücke liest denselben Speicher. ⚠ Im
+  Produktionsbau laden DOM-Komponenten von `file://` — ob sie sich dann
+  noch einen localStorage teilen, ist NICHT belegt; spätestens dann muss
+  der Zustand nach `expo-sqlite`. (d) Relative Bildpfade der Web-Seiten
+  (`/clips/…` aus `public/`) zeigen im Webview auf Metro statt auf den
+  Server — Beispielbilder fehlen dort; die Brücke macht sie für nativ
+  absolut (`API_BASE`). (b) Web-Navigation innerhalb eines Tabs (Home →
   „letzter Traum" → Journal, Wizard-Abbrechen → Home) bleibt im selben Tab,
   statt den nativen Tab zu wechseln — Übergabe DOM→nativ per Prop fehlt
   noch. (c) Die Fragezeichen-Kästchen („schwer/okay/gut", Credits) sind

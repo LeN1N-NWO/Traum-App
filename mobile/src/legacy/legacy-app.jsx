@@ -18,7 +18,8 @@ import App from "../../../src/App.jsx";
 
 const ROUTES = { home: "/", journal: "/journal", dream: "/dream", sleep: "/sleep", profile: "/profile" };
 
-export default function LegacyApp({ screen = "home", focusTick = 0 }) {
+// `dom` steuert den Webview (Expo) und wird hier nur für die Typen entgegengenommen.
+export default function LegacyApp({ screen = "home", focusTick = 0, dom }) {
   // HashRouter liest location.hash beim Aufbau — also vor dem ersten Render setzen.
   const started = useRef(false);
   if (!started.current) {

@@ -107,16 +107,19 @@ function AppRouter({ embedded = false }) {
   );
 }
 
-function ToastBridge() {
+export function ToastBridge() {
   const { toastText } = useAppState();
   return <Toast text={toastText} />;
 }
 
+/* Exportiert (12.09.2026): Die native Hülle rendert einzelne Web-Seiten
+   ohne die ganze App (mobile/src/legacy/legacy-dream.jsx) und braucht
+   dieselben Brücken — aus EINEM Satz, nicht kopiert. */
 /* Das Kaufblatt hängt hier ganz oben, nicht in den einzelnen Bildschirmen:
    es wird aus dem Wizard, aus dem Journal, aus dem Avatar-Dialog und aus dem
    Profil geöffnet. Fünf Einhängungen wären fünf Gelegenheiten, eine zu
    vergessen — und die vergessene wäre wieder eine Sackgasse. */
-function PaywallBridge() {
+export function PaywallBridge() {
   const { paywall, closePaywall } = useAppState();
   return paywall ? <Paywall reason={paywall} onClose={closePaywall} /> : null;
 }
