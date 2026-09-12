@@ -70,7 +70,7 @@ import { imageSubmitBody, imageModel,
 import { failureReason } from "./src/lib/falError.js";
 import { appGrid, GRID_SLOTS } from "./src/lib/gridLayout.js";
 // Accounts, ledger, journal (ADR-0005). Optional — see the head of db.js.
-import { openDatabase, withUser } from "./src/lib/db.js";
+import { openDatabase, withUser, fromJsonb } from "./src/lib/db.js";
 // Wer fragt: die fehlende Hälfte zu db.js. withUser() kann für eine Person
 // handeln, auth.js sagt, WER sie ist (eigene Datei, ohne Netz prüfbar).
 import { parseBearer, authConfig, passwordLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
@@ -3106,7 +3106,8 @@ const serveOptions = {
           return json({
             ok: true,
             user: { id: person.userId, email: person.email },
-            profile: konto.profil ?? null,
+            // survey ist jsonb — und das kommt als Text zurück (db.js).
+            profile: konto.profil ? { ...konto.profil, survey: fromJsonb(konto.profil.survey) } : null,
             /* Nur lesend. Guthaben bewegt sich ausschließlich über
                server_spend()/server_grant() — die Rolle dieses Servers darf
                auf diese Tabelle gar nicht schreiben (server_role.sql). */
@@ -3157,7 +3158,7 @@ const serveOptions = {
             return zeile;
           });
           if (!profil) return json({ error: "No profile for this account." }, 404);
-          return json({ ok: true, profile: profil });
+          return json({ ok: true, profile: { ...profil, survey: fromJsonb(profil.survey) } });
         }
 
         if (url.pathname === "/api/dreams" && req.method === "GET") {

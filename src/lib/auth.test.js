@@ -108,6 +108,26 @@ test("a network failure is 503, not 401", async () => {
   expect(r.status).toBe(503);
 });
 
+/* ⚠ Am 12.09.2026 live gesehen: mitten in einem Prüflauf antwortete
+   Supabases Gateway mit 504, während dieselbe Anfrage davor und danach 400
+   lieferte. Roh durchgereicht sagt das dem Menschen „dein Passwort ist
+   falsch", obwohl es nie geprüft wurde. */
+test("a hiccup at Supabase is 503, not a verdict on the password", async () => {
+  for (const status of [500, 502, 503, 504]) {
+    const r = await passwordLogin({ email: "a@b.co", password: "pw" },
+      { config, fetchImpl: fakeFetch({ status, body: {} }) });
+    expect(r.status).toBe(503);
+    expect(r.error).toBe("Sign-in is unavailable right now.");
+  }
+});
+
+test("being throttled says so instead of blaming the password", async () => {
+  const r = await passwordLogin({ email: "a@b.co", password: "pw" },
+    { config, fetchImpl: fakeFetch({ status: 429, body: { error_code: "over_request_rate_limit" } }) });
+  expect(r.status).toBe(429);
+  expect(r.error).toContain("Too many attempts");
+});
+
 test("nonsense is refused before it reaches the network", async () => {
   const bad = [
     {},

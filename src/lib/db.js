@@ -63,6 +63,35 @@ export function claimsFor(userId) {
 }
 
 /**
+ * Was in einer `jsonb`-Spalte stand, als Wert statt als Text.
+ *
+ * ⚠ Gemessen am 12.09.2026 gegen das echte Supabase: **Bun.SQL gibt `jsonb`
+ *   als ZEICHENKETTE zurück**, nicht als geparsten Wert — `[{"tag":"@A"}]`
+ *   kommt als String an, nicht als Liste. Das fällt in keinem Test auf, der
+ *   ohne Datenbank läuft: dort reicht man Objekte hinein und bekommt
+ *   Objekte heraus. Aufgefallen ist es erst am Ende-zu-Ende-Lauf, wo eine
+ *   Referenzliste plötzlich keine Liste mehr war.
+ *
+ * Absichtlich hier und nicht bei den Traum-Feldern: Das ist eine
+ * Eigenschaft des Treibers, keine des Tagebuchs — die nächste Tabelle mit
+ * einer jsonb-Spalte hat dasselbe Problem (das Profil hat es schon).
+ *
+ * @param {unknown} v  was der Treiber geliefert hat
+ * @param {unknown} [ersatz]  was gelten soll, wenn nichts Lesbares kam
+ */
+export function fromJsonb(v, ersatz = null) {
+  if (v == null) return ersatz;
+  if (typeof v !== "string") return v;          // schon geparst: durchlassen
+  try {
+    return JSON.parse(v);
+  } catch {
+    /* Kein JSON — dann ist es ein echter Text, und den zu verschlucken wäre
+       schlimmer als ihn weiterzureichen. */
+    return v;
+  }
+}
+
+/**
  * Run `fn` on behalf of one person, inside one transaction.
  *
  * The first statement declares who that person is; Row Level Security then

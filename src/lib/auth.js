@@ -122,13 +122,20 @@ async function authCall(path, { method = "POST", body, token, config, fetchImpl 
     /* Supabase answers a wrong password and an unknown address with the same
        "Invalid login credentials", and that is right — anything more precise
        is an oracle for which addresses have accounts. We keep it generic. */
-    const status = res.status === 400 || res.status === 401 ? 401 : res.status;
-    return {
-      ok: false,
-      status,
-      error: status === 401 ? "Invalid login credentials." : "Sign-in failed.",
-      cause: data?.error_code || data?.error || String(res.status),
-    };
+    /* ⚠ Ein 5xx von Supabase ist KEIN Urteil über die Zugangsdaten — am
+       12.09.2026 kam mitten in einem Prüflauf ein 504 von deren Gateway,
+       während dieselbe Anfrage davor und danach sauber 400 lieferte. Roh
+       durchgereicht sähe das für den Client aus wie ein Fehler bei ihm.
+       Es ist dasselbe wie ein Netzwerkaussetzer: nicht deine Schuld,
+       gleich nochmal. */
+    const status = res.status >= 500 ? 503
+      : res.status === 400 || res.status === 401 ? 401
+      : res.status;
+    const error = status === 401 ? "Invalid login credentials."
+      : status === 503 ? "Sign-in is unavailable right now."
+      : status === 429 ? "Too many attempts. Wait a moment and try again."
+      : "Sign-in failed.";
+    return { ok: false, status, error, cause: data?.error_code || data?.error || String(res.status) };
   }
   return { ok: true, data: data || {} };
 }

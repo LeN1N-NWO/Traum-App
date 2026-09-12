@@ -100,6 +100,44 @@ test("a dream survives the round trip with the field names it arrived with", () 
   expect(zurueck.medien.bilder).toEqual(["/media/a.png"]);
 });
 
+/* ⚠⚠ Der Test, der am 12.09.2026 gefehlt hat.
+   Bun.SQL gibt jsonb-Spalten als ZEICHENKETTE zurück, nicht als geparsten
+   Wert. Jeder Test ohne Datenbank reicht Objekte hinein und bekommt Objekte
+   heraus — also fiel nichts auf, bis der Ende-zu-Ende-Lauf eine Referenzliste
+   fand, die keine Liste mehr war. Hier steht die Zeile jetzt so, wie der
+   Treiber sie wirklich liefert. */
+test("a row as the driver really hands it over: jsonb arrives as text", () => {
+  const zurueck = fromRow({
+    client_id: "e_abc", kind: "dream", title: "T", text: "x", original_text: "",
+    created_at: "2026-09-12T21:30:00.000Z",
+    references: '[{"tag":"@Anna","category":"person"}]',
+    media: '{"bilder":["/media/a.png"],"film":[]}',
+    analysis: '{"symbols":["Wald"]}',
+    reflection: '{"note":"ruhig"}',
+  });
+  expect(Array.isArray(zurueck.references)).toBe(true);
+  expect(zurueck.references).toEqual([{ tag: "@Anna", category: "person" }]);
+  expect(zurueck.medien.bilder).toEqual(["/media/a.png"]);
+  expect(zurueck.analysis).toEqual({ symbols: ["Wald"] });
+  expect(zurueck.reflection).toEqual({ note: "ruhig" });
+});
+
+test("a driver that hands over parsed values is fine too", () => {
+  // Ein künftiges Bun kann das ändern — dann darf nichts doppelt geparst werden.
+  const zurueck = fromRow({
+    client_id: "e_abc", references: [{ tag: "@A", category: "person" }],
+    media: { bilder: [], film: [] }, analysis: { a: 1 },
+  });
+  expect(zurueck.references).toEqual([{ tag: "@A", category: "person" }]);
+  expect(zurueck.analysis).toEqual({ a: 1 });
+});
+
+test("an empty journal entry still comes back usable, not half-null", () => {
+  const zurueck = fromRow({ client_id: "e_leer", references: null, media: null });
+  expect(zurueck.references).toEqual([]);
+  expect(zurueck.medien).toEqual({ bilder: [], film: [] });
+});
+
 /* ── Kleinkram, der sonst still falsch wird ─────────────────────────────── */
 
 test("an unreadable date is 'unknown', not a crash and not 1970", () => {

@@ -21,6 +21,8 @@
  * Foto sich als „Pfad" ausgeben würde.
  */
 
+import { fromJsonb } from "./db.js";
+
 /* Obergrenzen. Nicht gegen Einschleusung — die Werte reisen als gebundene
    Parameter — sondern gegen Unfug: ein Feld, das niemand begrenzt, ist ein
    Feld, in das irgendwann ein Megabyte passt. Großzügig gewählt; ein
@@ -132,14 +134,17 @@ export function fromRow(row) {
     tagline: row.tagline || "",
     text: row.text || "",
     originalText: row.original_text || "",
-    analysis: row.analysis ?? undefined,
-    reflection: row.reflection ?? undefined,
+    /* ⚠ fromJsonb, nicht roh: Bun.SQL liefert jsonb als Text (db.js). Ohne
+       das bekäme der Client eine Zeichenkette, wo eine Liste steht — und
+       zwar erst im Betrieb, nicht im Test. */
+    analysis: fromJsonb(row.analysis) ?? undefined,
+    reflection: fromJsonb(row.reflection) ?? undefined,
     style: row.style ?? undefined,
     format: row.format ?? undefined,
     mode: row.mode ?? undefined,
     imageCount: row.image_count ?? undefined,
     creatureId: row.creature_id ?? undefined,
-    references: row.references || [],
-    medien: row.media || { bilder: [], film: [] },
+    references: fromJsonb(row.references, []) || [],
+    medien: fromJsonb(row.media, null) || { bilder: [], film: [] },
   };
 }
