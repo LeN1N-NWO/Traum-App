@@ -1,13 +1,14 @@
-import { Stack } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { LegacyTab } from "@/components/legacy-tab";
 
-/* Übergang: das ganze Web-Journal mit seinen Nebenräumen (Besetzung, Atlas,
-   Menagerie, Kalender), bis die nativ sind. */
+/* Die Nebenräume des Journals als Web-Seite (Besetzung, Atlas, Menagerie),
+   bis sie nativ sind; `view` reist wie im Web im Router-Zustand. */
 export default function JournalWebScreen() {
+  const { view } = useLocalSearchParams<{ view?: string }>();
   return (
     <>
-      <Stack.Screen options={{ title: "More", headerLargeTitle: false }} />
-      <LegacyTab screen="journal" />
+      <Stack.Screen options={{ headerShown: false }} />
+      <LegacyTab screen="journal" view={view ? String(view) : undefined} />
     </>
   );
 }

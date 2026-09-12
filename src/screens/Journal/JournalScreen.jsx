@@ -23,14 +23,17 @@ export default function JournalScreen() {
   const [searching, setSearching] = useState(false);
   const [openId, setOpenId] = useState(null);
   const [index, setIndex] = useState(0);
-  const [library, setLibrary] = useState(false);
+  /* `view` im Router-Zustand: atlas (Startseite → Check-in) und — seit der
+     nativen Hülle (12.09.) — cast und menagerie: Die nativen Kacheln im
+     Journal öffnen die Nebenräume direkt, so wie der Atlas es schon konnte. */
+  const [library, setLibrary] = useState(routeState?.view === "cast");
   /* Der Atlas kann von außen aufgerufen werden (Startseite → Bestätigung des
      Morgen-Check-ins). Der Wunsch reist im Router-Zustand, nicht in der
      Adresse: er gilt für DIESEN Sprung, nicht für ein Lesezeichen — und weil
      das Journal beim Routenwechsel ohnehin neu montiert, genügt der
      Startwert. */
   const [atlas, setAtlas] = useState(routeState?.view === "atlas");
-  const [menagerie, setMenagerie] = useState(false);
+  const [menagerie, setMenagerie] = useState(routeState?.view === "menagerie");
   const trackRef = useRef(null);
 
   /* ⚠ Der Journal-Tab in der Leiste MUSS aus jedem Nebenraum herausführen
@@ -42,8 +45,8 @@ export default function JournalScreen() {
      `routeState?.view === "atlas"` gewinnt weiter — der gezielte Sprung von
      der Startseite in den Atlas ist ja genau so ein neuer key. */
   useEffect(() => {
-    setMenagerie(false);
-    setLibrary(false);
+    setMenagerie(routeState?.view === "menagerie");
+    setLibrary(routeState?.view === "cast");
     setOpenId(null);
     setAtlas(routeState?.view === "atlas");
     // eslint-disable-next-line react-hooks/exhaustive-deps

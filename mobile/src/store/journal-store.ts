@@ -29,8 +29,9 @@ export type WizardData = {
   lengthLabel: string; qualityLabel: string; modelLabel: string; paceLabel: string; generate: string; credit1: string; creditN: string; readPrice: number; noCredits: string;
   presets: WizardPreset[]; models: WizardModel[]; paces: { id: string; name: string; hint: string }[];
 };
-export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast"; level?: number; text?: string; analysis?: any };
+export type JournalMeta = { view: "deck" | "list"; blankKeys: string[]; castCount: number; creatures: number; realDreams: number; labels: Record<string, any> };
+export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView"; level?: number; text?: string; analysis?: any; value?: string };
 export type BridgeResult = { n: number; result?: any; error?: string };
 
 let snapshot: JournalSnapshot | null = null;

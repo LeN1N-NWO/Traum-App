@@ -23,6 +23,7 @@ import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
 import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
 import { styleById } from "../../../src/lib/styles.js";
 import { autoMatch } from "../../../src/wizard/useWizard.js";
+import { blankDays } from "../../../src/lib/dreamDays.js";
 import { filmsOf, filmOf, imagesOf } from "../../../src/lib/entryMedia.js";
 import { isBlank } from "../../../src/lib/blankNight.js";
 import { mediaUrl } from "../../../src/lib/api.js";
@@ -121,7 +122,25 @@ function snapshot() {
     })),
     paces: PACE_IDS.map((id) => ({ id, name: w5.paceNames?.[id] || id, hint: w5.paceHints?.[id] || "" })),
   };
-  return { language: s.language || "en", items, labels, home, sleep, profile, wizard };
+  const realDreams = items.filter((e) => !String(e.id).startsWith("e_seed")).length;
+  const journal = {
+    view: s.journalView === "list" ? "list" : "deck",
+    blankKeys: [...blankDays(s.journal)],
+    castCount: (s.cast?.length || 0) + (s.me ? 1 : 0), creatures: (s.creatures || []).length, realDreams,
+    labels: {
+      title: t.journal.title, count1: t.journal.count(1), countN: t.journal.count(2).replace("2", "{n}"),
+      viewList: t.journal.viewList, viewDeck: t.journal.viewDeck, search: t.journal.search, empty: t.journal.empty, emptySearch: t.journal.emptySearch,
+      library: t.journal.library, libraryCount1: t.journal.libraryCount(1), libraryCountN: t.journal.libraryCount(2).replace("2", "{n}"),
+      atlas: t.journal.atlas, atlasShort: t.journal.atlasShort, atlasSoon: t.journal.atlasSoon,
+      menagerie: t.home.menagerieHeading, menagerieCount1: t.journal.menagerieCount(1), menagerieCountN: t.journal.menagerieCount(2).replace("2", "{n}"),
+      calendar: t.journal.calendar, calPrev: t.journal.calPrev, calNext: t.journal.calNext, calBlank: t.journal.calBlank,
+      calSeveral: t.journal.calSeveral(2).replace("2", "{n}"), rendering: t.journal.renderingTile, untitled: t.journal.untitled,
+      months: t.journal.months, calMonths: t.journal.calMonths, calWeekdays: t.journal.calWeekdays,
+    },
+  };
+  const dream = { interview: t.dream.interview, interviewHint: t.dream.interviewHint, or: t.dream.or, label: t.dream.label,
+    placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
+  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal };
 }
 
 /* Befehle nativ → Web: Die Hülle kann den Web-Speicher nicht schreiben, also
@@ -172,6 +191,7 @@ function run(cmd) {
   if (cmd.type === "blankNight") patch = { journal: [...(s.journal || []), blankNight()], ...bumpStreak(s) };
   else if (cmd.type === "checkin") patch = { checkins: setCheckin(s.checkins, cmd.level) };
   else if (cmd.type === "refreshStreak") { const f = refreshStreak(s); if (f.streak !== s.streak) patch = f; }
+  else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   if (patch) saveState({ ...s, ...patch });
 }
 

@@ -11,6 +11,7 @@ export const colors = {
   faint: "#8b9eba",
   accent: "#4f9cf9",
   accentSoft: "#8cc0ff",
+  accentDeep: "#2a62d0",
   warm: "#f2a765",
   gold: "#f6c65b",
   cyan: "#4fd6e6",
