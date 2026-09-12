@@ -76,9 +76,35 @@ function DreamBody({ item, labels, locale, onMore }: { item: DreamItem; labels: 
         <View style={styles.pending}><View style={styles.dot} /><Text style={styles.pendingText}>{labels.rendering}</Text></View>
       )}
 
-      <View style={styles.section}>
-        <Text style={styles.body}>{item.text}</Text>
-      </View>
+      {/* Die Bildergeschichte (DreamStory im Web): ein Textabschnitt, dann das
+          Bild dazu — wie ein Comic liest. Nur bei Bildfolgen; ein Film oder
+          ein einzelnes Bild lässt den Text ganz. */}
+      {item.images.length >= 2 && !film ? (
+        <View style={styles.section}>
+          {splitPassages(item.text, item.images.length).map((p, i) => (
+            <View key={i} style={{ gap: 10, marginBottom: 18 }}>
+              <Image source={{ uri: item.images[i] }} style={styles.storyImg} contentFit="cover" transition={200} />
+              {p ? <Text style={styles.body}>{p}</Text> : null}
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View style={styles.section}>
+          <Text style={styles.body}>{item.text}</Text>
+          {item.images.length === 1 && !film ? <Image source={{ uri: item.images[0] }} style={[styles.storyImg, { marginTop: 14 }]} contentFit="cover" /> : null}
+        </View>
+      )}
+
+      {item.cast.length ? (
+        <View style={[styles.section, styles.chips]}>
+          {item.cast.map((c) => (
+            <View key={c.tag} style={styles.chip}>
+              {c.img ? <Image source={{ uri: c.img }} style={styles.chipImg} contentFit="cover" /> : <View style={[styles.chipImg, { backgroundColor: colors.sky }]} />}
+              <Text style={styles.chipText}>@{c.tag}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       {item.reflection ? (
         <View style={[styles.section, styles.card]}>
@@ -107,6 +133,13 @@ function DreamBody({ item, labels, locale, onMore }: { item: DreamItem; labels: 
       </View>
     </View>
   );
+}
+
+/* Sätze gleichmäßig auf n Bilder verteilen — dieselbe Regel wie DreamViews.splitPassages. */
+function splitPassages(text: string, n: number) {
+  const sentences = String(text || "").match(/[^.!?…]+[.!?…]*\s*/g) || [String(text || "")];
+  const per = Math.ceil(sentences.length / n);
+  return Array.from({ length: n }, (_, i) => sentences.slice(i * per, (i + 1) * per).join("").trim());
 }
 
 function FilmHero({ url }: { url: string }) {
@@ -145,4 +178,9 @@ const styles = StyleSheet.create({
   buttonText: { color: colors.text, fontSize: 15, fontWeight: "600" },
   buttonPrimaryText: { color: colors.bg, fontSize: 15, fontWeight: "700" },
   bridge: { height: 0, overflow: "hidden" },
+  storyImg: { width: "100%", aspectRatio: 9 / 16, borderRadius: radius.card, backgroundColor: colors.bg2 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 4, paddingLeft: 4, paddingRight: 10, borderRadius: 999, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  chipImg: { width: 24, height: 24, borderRadius: 12 },
+  chipText: { color: colors.text, fontSize: 13 },
 });

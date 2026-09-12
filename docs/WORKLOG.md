@@ -107,6 +107,13 @@ curl. Bun, Ruby, Python, Git sind frei — also alles daran vorbeigebaut:
   `deepseek-v4-flash` ist veraltet, V4.1 kostet weniger als die Hälfte
   (Eingabe $0,30/Mio. Hauptzeit, Ausgabe $1,20; außerhalb die Hälfte),
   1 Mio. Kontext. Über DEEPSEEK_MODEL in der .env umschaltbar.
+- **Abgleich gegen die Web-Vorlagen (Eigenregie):** Home bekommt den
+  Schein oben, die Serien-Pille öffnet die Meilenstein-Leiter als echtes
+  iOS-Sheet (Modal formSheet; Daten wie StreakBoard.jsx), der Check-in-
+  Bestätigungssatz führt in den Atlas. Traum-Seite: Bildergeschichte
+  (Text auf die Bilder verteilt wie DreamViews.splitPassages) und die
+  Besetzungs-Chips. Profil: die Träumer-Karte (Zeichen, Fakten, Themen)
+  mit „Nochmal erzählen". Brücke liefert board, cast je Traum, dreamer.
 
 ### Was der Nächste wissen muss
 

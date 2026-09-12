@@ -8,18 +8,21 @@ export type DreamItem = {
   id: string; createdAt: string; title: string; tagline: string; text: string;
   media: { kind: "film" | "image"; url: string } | null; pending: boolean;
   films: Take[]; images: string[]; reflection: string | null; originalText: string | null;
+  cast: { tag: string; img: string | null }[];
 };
 export type Labels = Record<string, string>;
 export type HomeData = {
   streak: number; atRisk: boolean; rendering: boolean; nightMarked: boolean; checkin: number | null;
   lastId: string | null; streakLine: string; streakNote: string;
   checkinLevels: { level: number; label: string; emoji: string }[];
+  board: { title: string; nights: string; lede: string; rungs: { nights: number; title: string; reward: string; gift: string | null; state: "done" | "next" | "far" }[]; shieldTitle: string; shieldText: string };
 };
 export type SleepData = { title: string; subtitle: string; free: string; tiles: { id: string; title: string; text: string }[] };
 export type ProfileData = {
   title: string; name: string; img: string | null; hint: string; credits: number; creditsWord: string;
   dreams: number; streak: number; statDreams: string; statStreak: string; settings: string;
   surveyDone: boolean; surveyTitle: string; surveyHint: string;
+  dreamer: { title: string; retake: string; sign: { glyph: string; name: string } | null; facts: [string, string][]; themesLabel: string; themes: string[] } | null;
 };
 export type WizardPreset = { id: string; styleId: string; pace: string | null; wide: boolean; emoji: string; label: string; clip: string | null; featured: boolean };
 export type WizardModel = { id: string; name: string; hint: string; min: number; max: number; step: number; preset: number; preferred: string; qualities: { id: string; name: string }[] };

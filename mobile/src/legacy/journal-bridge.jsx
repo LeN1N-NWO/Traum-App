@@ -24,6 +24,9 @@ import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
 import { styleById } from "../../../src/lib/styles.js";
 import { autoMatch } from "../../../src/wizard/useWizard.js";
 import { blankDays } from "../../../src/lib/dreamDays.js";
+import { MILESTONES, nextMilestone, giftAt } from "../../../src/lib/streakBoard.js";
+import { nextSnoozeIn } from "../../../src/lib/streak.js";
+import { zodiacGlyph } from "../../../src/lib/zodiac.js";
 import { filmsOf, filmOf, imagesOf } from "../../../src/lib/entryMedia.js";
 import { isBlank } from "../../../src/lib/blankNight.js";
 import { mediaUrl } from "../../../src/lib/api.js";
@@ -60,6 +63,12 @@ function snapshot() {
         images,
         reflection: e.reflection?.text || null,
         originalText: e.originalText && e.originalText !== e.text ? e.originalText : null,
+        /* Die Besetzung dieses Traums (CastChips): Fotos der Personen, die
+           per @tag im Traum standen — aus Bibliothek und „me". */
+        cast: (e.references || []).map((r) => {
+          const c = r.tag === "me" ? (s.me?.img ? { tag: "me", img: s.me.img } : null) : (s.cast || []).find((x) => x.tag === r.tag);
+          return c ? { tag: c.tag, img: c.img || null } : { tag: r.tag, img: null };
+        }),
       };
     })
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -78,6 +87,22 @@ function snapshot() {
     streakLine: streak > 0 ? t.home.streak(streak) : "",
     streakNote: streak > 0 ? (streakAtRisk(s) ? t.home.streakRisk : t.home.streakPerk(Math.min(streak, STREAK_CAP), STREAK_CAP)) : "",
     checkinLevels: SLEEP_LEVELS.map((l) => ({ level: l, label: t.checkin.levels[l], emoji: t.checkin.emoji[l] })),
+    /* Die Meilenstein-Leiter hinter der Serien-Pille (StreakBoard.jsx). */
+    board: (() => {
+      const nxt = nextMilestone(streak);
+      const snoozes = s.snoozes || 0, nextIn = nextSnoozeIn(s);
+      return {
+        title: t.streakBoard.title, nights: t.streakBoard.nights(streak),
+        lede: nxt ? t.streakBoard.next(nxt.nights - streak) : t.streakBoard.done,
+        rungs: MILESTONES.map((m) => ({
+          nights: m.nights, title: t.streakBoard.rung(m.nights), reward: t.streakBoard.rewards[m.reward],
+          gift: giftAt(m.nights) > 0 ? t.streakBoard.giftBadge(giftAt(m.nights)) : null,
+          state: streak >= m.nights ? "done" : nxt && m.nights === nxt.nights ? "next" : "far",
+        })),
+        shieldTitle: t.streakBoard.snoozeTitle(snoozes),
+        shieldText: nextIn == null ? t.streakBoard.snoozeFull : t.streakBoard.snoozeNext(nextIn),
+      };
+    })(),
   };
   const labels = {
     greetingNight: t.home.greeting.night, greetingMorning: t.home.greeting.morning,
@@ -101,6 +126,21 @@ function snapshot() {
     dreams: (s.journal || []).length, streak, statDreams: t.profile.statDreams, statStreak: t.profile.statStreak,
     settings: t.profile.settings, surveyDone: !!s.surveyDone,
     surveyTitle: t.onboarding.profileCard, surveyHint: t.onboarding.profileCardHint,
+    /* Die Träumer-Karte (DreamerCard.jsx): was die Person dem Assistenten
+       erzählt hat — Zeichen, Fakten, wiederkehrende Themen. */
+    dreamer: (() => {
+      const p = s.profile; if (!p) return null;
+      const facts = [
+        p.recall && [t.dreamer.recall, t.dreamer.recallValues?.[p.recall] || p.recall],
+        p.lucid && [t.dreamer.lucid, t.dreamer.lucidValues?.[p.lucid] || p.lucid],
+        p.goal && [t.dreamer.goal, t.dreamer.goalValues?.[p.goal] || p.goal],
+        p.sleepHours && [t.dreamer.sleep, t.dreamer.sleepValues?.[p.sleepHours] || p.sleepHours],
+        p.timeBudget && [t.dreamer.time, t.dreamer.timeValues?.[p.timeBudget] || p.timeBudget],
+      ].filter(Boolean);
+      const themes = (p.themes || []).filter(Boolean);
+      if (!p.zodiac && !themes.length && !facts.length) return null;
+      return { title: t.dreamer.title, retake: t.dreamer.retake, sign: p.zodiac ? { glyph: zodiacGlyph(p.zodiac), name: t.dreamer.signs?.[p.zodiac] || p.zodiac } : null, facts, themesLabel: t.dreamer.themes, themes };
+    })(),
   };
   const w5 = t.wizard.step5;
   const wizard = {

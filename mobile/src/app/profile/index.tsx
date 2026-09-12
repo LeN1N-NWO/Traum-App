@@ -38,6 +38,24 @@ export default function ProfileScreen() {
                 <SymbolView name="chevron.right" size={14} tintColor={colors.faint} />
               </Pressable>
             ) : null}
+            {p.dreamer ? (
+              <View style={styles.dreamer}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <Text style={styles.dreamerTitle}>{p.dreamer.title}</Text>
+                  <Pressable onPress={() => open("survey")}><Text style={styles.retake}>{p.dreamer.retake}</Text></Pressable>
+                </View>
+                {p.dreamer.sign ? <View style={styles.sign}><Text style={styles.signGlyph}>{p.dreamer.sign.glyph}</Text><Text style={styles.signName}>{p.dreamer.sign.name}</Text></View> : null}
+                {p.dreamer.facts.map(([k, v]) => (
+                  <View key={k} style={styles.fact}><Text style={styles.factK}>{k}</Text><Text style={styles.factV}>{v}</Text></View>
+                ))}
+                {p.dreamer.themes.length ? (
+                  <>
+                    <Text style={styles.factK}>{p.dreamer.themesLabel}</Text>
+                    <View style={styles.themes}>{p.dreamer.themes.map((th) => <View key={th} style={styles.theme}><Text style={styles.themeText}>{th}</Text></View>)}</View>
+                  </>
+                ) : null}
+              </View>
+            ) : null}
             <Pressable style={styles.card} onPress={() => open("settings")}>
               <SymbolView name="gearshape" size={20} tintColor={colors.accentSoft} />
               <Text style={[styles.cardTitle, { flex: 1 }]}>{p.settings}</Text>
@@ -74,4 +92,16 @@ const styles = StyleSheet.create({
   cardTitle: { color: colors.text, fontSize: 16, fontWeight: "600" },
   cardHint: { color: colors.accentSoft, fontSize: 13 },
   bridge: { height: 0, overflow: "hidden" },
+  dreamer: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, gap: 10 },
+  dreamerTitle: { fontFamily: fonts.serif, fontSize: 20, color: colors.text },
+  retake: { color: colors.accentSoft, fontSize: 13, fontWeight: "600" },
+  sign: { flexDirection: "row", alignItems: "center", gap: 8 },
+  signGlyph: { fontSize: 22, color: colors.gold },
+  signName: { color: colors.text, fontSize: 15 },
+  fact: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
+  factK: { color: colors.faint, fontSize: 12, letterSpacing: 0.4 },
+  factV: { color: colors.text, fontSize: 14, flexShrink: 1, textAlign: "right" },
+  themes: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  theme: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: "rgba(79,156,249,0.14)" },
+  themeText: { color: colors.accentSoft, fontSize: 12 },
 });

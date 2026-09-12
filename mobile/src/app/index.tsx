@@ -4,7 +4,8 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { colors, fonts, radius } from "@/theme";
 
@@ -35,16 +36,19 @@ export default function HomeScreen() {
   const evening = key === "Evening" || key === "Night";
   const last = home?.lastId ? data?.items.find((e) => e.id === home.lastId) ?? null : null;
   const nightOpen = !evening && home && !home.nightMarked;
+  const [board, setBoard] = useState(false);
 
   return (
     <>
+      {/* Der Schein am oberen Rand (HeroGlow im Web): Himmel, der ins Dunkel ausläuft. */}
+      <LinearGradient colors={[colors.sky, colors.bg]} style={styles.glow} pointerEvents="none" />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic">
         <View style={styles.top}>
           <Text style={styles.greeting}>{L["greeting" + key] ?? ""}</Text>
           {home && home.streak > 0 ? (
-            <View style={[styles.pill, home.atRisk && styles.pillRisk]}>
-              <Text style={styles.pillText}>✦ {home.streakLine}</Text>
-            </View>
+            <Pressable style={[styles.pill, home.atRisk && styles.pillRisk]} onPress={() => { Haptics.selectionAsync(); setBoard(true); }} accessibilityRole="button">
+              <Text style={styles.pillText}>✦ {home.streakLine}  ›</Text>
+            </Pressable>
           ) : null}
         </View>
 
@@ -69,7 +73,7 @@ export default function HomeScreen() {
         {!evening && home ? (
           <View style={styles.card}>
             {home.checkin ? (
-              <Pressable style={styles.row} onPress={() => router.push("/journal/web")}>
+              <Pressable style={styles.row} onPress={() => router.push({ pathname: "/journal/web", params: { view: "atlas" } })}>
                 <SymbolView name={SLEEP_SYMBOL[home.checkin] ?? "moon"} size={22} tintColor={colors.accentSoft} />
                 <Text style={[styles.rowText, { flex: 1 }]}>{L.checkinThanks}</Text><Text style={styles.chev}>›</Text>
               </Pressable>
@@ -116,6 +120,30 @@ export default function HomeScreen() {
         ) : null}
       </ScrollView>
       <View style={styles.bridge}>{bridge}</View>
+
+      {/* Die Meilenstein-Leiter — als echtes iOS-Sheet (StreakBoard.jsx). */}
+      <Modal visible={board} presentationStyle="formSheet" animationType="slide" onRequestClose={() => setBoard(false)}>
+        <ScrollView style={{ backgroundColor: colors.bg2 }} contentContainerStyle={styles.sheet}>
+          {home ? (
+            <>
+              <Text style={styles.sheetLabel}>{home.board.title}</Text>
+              <Text style={styles.sheetCount}><Text style={styles.sheetN}>{home.streak}</Text> {home.board.nights}</Text>
+              <Text style={styles.sheetLede}>{home.board.lede}</Text>
+              {home.board.rungs.map((r) => (
+                <View key={r.nights} style={[styles.rung, r.state === "next" && styles.rungNext, r.state === "far" && { opacity: 0.55 }]}>
+                  <View style={[styles.check, r.state === "done" && styles.checkDone]}><Text style={styles.checkText}>{r.state === "done" ? "✓" : r.nights}</Text></View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.rungTitle}>{r.title}{r.gift ? <Text style={styles.gift}>  {r.gift}</Text> : null}</Text>
+                    <Text style={styles.rungReward}>{r.reward}</Text>
+                  </View>
+                </View>
+              ))}
+              <View style={styles.shield}><Text style={styles.rungTitle}>🌙 {home.board.shieldTitle}</Text><Text style={styles.rungReward}>{home.board.shieldText}</Text></View>
+            </>
+          ) : null}
+          <Pressable style={styles.sheetClose} onPress={() => setBoard(false)}><Text style={styles.sheetCloseText}>OK</Text></Pressable>
+        </ScrollView>
+      </Modal>
     </>
   );
 }
@@ -161,4 +189,21 @@ const styles = StyleSheet.create({
   lastTitle: { fontFamily: fonts.serif, fontSize: 18, color: colors.text },
   lastText: { color: colors.muted, fontSize: 13, lineHeight: 18 },
   bridge: { height: 0, overflow: "hidden" },
+  glow: { position: "absolute", top: 0, left: 0, right: 0, height: 260, opacity: 0.55 },
+  sheet: { padding: 20, paddingTop: 28, gap: 10 },
+  sheetLabel: { color: colors.faint, fontSize: 11, letterSpacing: 1.8, fontWeight: "600", textTransform: "uppercase" },
+  sheetCount: { color: colors.muted, fontSize: 16 },
+  sheetN: { color: colors.text, fontSize: 40, fontFamily: fonts.serif },
+  sheetLede: { color: colors.muted, fontSize: 14, marginBottom: 8 },
+  rung: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 16, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  rungNext: { borderColor: colors.accentSoft },
+  check: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.06)" },
+  checkDone: { backgroundColor: colors.accentDeep },
+  checkText: { color: colors.text, fontSize: 13, fontWeight: "700" },
+  rungTitle: { color: colors.text, fontSize: 15, fontWeight: "600" },
+  gift: { color: colors.gold, fontSize: 12 },
+  rungReward: { color: colors.muted, fontSize: 13, lineHeight: 18 },
+  shield: { marginTop: 8, padding: 12, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, gap: 2 },
+  sheetClose: { alignSelf: "center", marginTop: 12, paddingVertical: 10, paddingHorizontal: 24, borderRadius: 999, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  sheetCloseText: { color: colors.text, fontWeight: "600" },
 });
