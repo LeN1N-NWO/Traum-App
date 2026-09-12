@@ -7,10 +7,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { colors, fonts, radius } from "@/theme";
 
-export type DreamItem = {
-  id: string; createdAt: string; title: string; tagline: string; text: string;
-  media: { kind: "film" | "image"; url: string } | null; pending: boolean;
-};
+import type { DreamItem } from "@/store/journal-store";
 
 /* Ein Film hat kein Poster — das erste Bild ist der erste Frame. Einmal
    gezogen, im Speicher gehalten: dieselbe Kachel darf nicht bei jedem
