@@ -4,7 +4,8 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useRef } from "react";
+import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, ZoomIn } from "react-native-reanimated";
 import { Clip, PresetTile } from "@/components/preset-tile";
 import { Glass, PrimaryButton } from "@/components/glass";
@@ -25,6 +26,7 @@ export default function DreamStyleScreen() {
   const W = data?.wizard;
   const w = useWizardStore();
   const [open, setOpen] = useState<string | null>(null);
+  const list = useRef<FlatList<any>>(null);
   const activeId = w.pace === "flow" ? "dreamflow" : (W?.presets.find((p) => p.id !== "dreamflow" && p.styleId === w.styleId)?.id ?? "ultrareal");
   const presets = W?.presets ?? [];
   const cols = 4;
@@ -51,27 +53,44 @@ export default function DreamStyleScreen() {
       </ScrollView>
       <View style={styles.bridge}>{bridge}</View>
 
-      {/* Die große Ansicht: Glas über dem Raster, der Film nach vorn. */}
+      {/* Die große Ansicht: Milchglas über dem Raster, der Film nach vorn —
+          und wischen zwischen den Stilen wie im Journal-Deck (Anton 12.09.). */}
       <Modal visible={!!shown} transparent animationType="none" onRequestClose={() => setOpen(null)}>
         {shown ? (
           <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(150)} style={StyleSheet.absoluteFill}>
-            {/* Milchglas über dem Raster (Antons Bild: „wie durch milchiges Glas") */}
             <BlurView intensity={70} tint="systemThickMaterialDark" style={StyleSheet.absoluteFill} />
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setOpen(null)} />
-            <View style={styles.sheet} pointerEvents="box-none">
-              {/* Sleek statt Bounce: kurzer Zoom mit auslaufender Kurve, keine Feder. */}
-              <Animated.View entering={ZoomIn.duration(240).easing(Easing.out(Easing.cubic))} style={[styles.big, { width: width - 48, height: (width - 48) * 1.4 }]}>
-                {shown.clip ? <Clip url={shown.clip} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky, alignItems: "center", justifyContent: "center" }]}><SymbolView name="paintbrush.pointed" size={64} tintColor={colors.accentSoft} /></View>}
-                <LinearGradient colors={["rgba(5,10,20,0.6)", "rgba(5,10,20,0)", "rgba(5,10,20,0)", "rgba(5,10,20,0.7)"]} locations={[0, 0.3, 0.6, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
-                <Text style={styles.name}>{shown.label}</Text>
-                <Pressable onPress={() => setOpen(null)} style={styles.closeWrap} hitSlop={12}>
-                  <Glass style={styles.close} interactive><SymbolView name="xmark" size={14} tintColor={colors.text} weight="semibold" /></Glass>
-                </Pressable>
-                <View style={styles.useWrap}>
-                  <PrimaryButton label={W?.useStyle ?? "Use this style"} heavy onPress={() => use(shown.id)} style={{ flex: 0 }} />
-                </View>
-              </Animated.View>
-            </View>
+            <Animated.View entering={ZoomIn.duration(240).easing(Easing.out(Easing.cubic))} style={StyleSheet.absoluteFill} pointerEvents="box-none">
+              <FlatList
+                ref={list}
+                data={presets}
+                horizontal pagingEnabled showsHorizontalScrollIndicator={false}
+                keyExtractor={(p) => p.id}
+                initialScrollIndex={Math.max(0, presets.findIndex((p) => p.id === shown.id))}
+                getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+                onMomentumScrollEnd={(e) => { const i = Math.round(e.nativeEvent.contentOffset.x / width); const p = presets[i]; if (p && p.id !== open) { Haptics.selectionAsync(); setOpen(p.id); } }}
+                contentContainerStyle={{ alignItems: "center" }}
+                style={{ flex: 1 }}
+                renderItem={({ item: p }) => (
+                  <View style={{ width, alignItems: "center", justifyContent: "center", flex: 1 }} pointerEvents="box-none">
+                    <View style={[styles.big, { width: width - 48, height: (width - 48) * 1.4 }]}>
+                      {p.clip ? <Clip url={p.clip} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky, alignItems: "center", justifyContent: "center" }]}><SymbolView name="paintbrush.pointed" size={64} tintColor={colors.accentSoft} /></View>}
+                      <LinearGradient colors={["rgba(5,10,20,0.6)", "rgba(5,10,20,0)", "rgba(5,10,20,0)", "rgba(5,10,20,0.7)"]} locations={[0, 0.3, 0.6, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+                      <Text style={styles.name}>{p.label}</Text>
+                      <Pressable onPress={() => setOpen(null)} style={styles.closeWrap} hitSlop={12}>
+                        <Glass style={styles.close} interactive><SymbolView name="xmark" size={14} tintColor={colors.text} weight="semibold" /></Glass>
+                      </Pressable>
+                      <View style={styles.useWrap}>
+                        <PrimaryButton label={W?.useStyle ?? "Use this style"} heavy onPress={() => use(p.id)} style={{ flex: 0 }} />
+                      </View>
+                    </View>
+                  </View>
+                )}
+              />
+              <View style={styles.dots} pointerEvents="none">
+                {presets.map((p) => <View key={p.id} style={[styles.pageDot, p.id === shown.id && styles.pageDotOn]} />)}
+              </View>
+            </Animated.View>
           </Animated.View>
         ) : null}
       </Modal>
@@ -89,5 +108,8 @@ const styles = StyleSheet.create({
   closeWrap: { position: "absolute", top: 14, right: 14 },
   close: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   useWrap: { position: "absolute", left: 16, right: 16, bottom: 16 },
+  dots: { position: "absolute", left: 0, right: 0, bottom: 56, flexDirection: "row", justifyContent: "center", gap: 6 },
+  pageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.3)" },
+  pageDotOn: { backgroundColor: colors.text, width: 18 },
   bridge: { height: 0, overflow: "hidden" },
 });

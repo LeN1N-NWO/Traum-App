@@ -41,7 +41,12 @@ Poster je Film, Stil-Kacheln ohne Text).
   `/api/panel` wird jetzt geloggt (Größe, Dauer, Zeichen).
 - **Stil-Overlay** nach Antons zweitem Befund: Milchglas (`expo-blur`,
   Pods + Rebuild), Zoom ohne Feder, Name und „Verwenden" AUF dem Film,
-  × auf der Karte.
+  × auf der Karte — und seit dem dritten Befund **wischen zwischen den
+  Stilen** im Overlay (FlatList mit Seiten, Punkte unten), wie das
+  Journal-Deck.
+- **Besetzung:** kein „Aus der Bibliothek"-Text und kein Ausklappen mehr
+  (Anton: „sieht hausbacken aus") — die Wahl steht als runde Knöpfe direkt
+  in der Zeile: KI erfindet, Gesichter der Bibliothek, Foto neu.
 
 ## 2026-09-12 13:15 — Anton — Branch `session/2026-09-11-anton-expo` — Test-Guthaben, Maskottchen-Lader, Glas-Knöpfe warm, Slogan
 

@@ -24,7 +24,6 @@ export default function DreamCastScreen() {
   const W = data?.wizard;
   const w = useWizardStore();
   const [cast, setCast] = useState<CastData | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
 
   /* Bei jedem Fokus neu fragen — nach „Neu anlegen" (Web-Dialog mit Foto)
      steht das Foto in der Bibliothek; passt sein @tag zum Namen, ist es die
@@ -55,7 +54,6 @@ export default function DreamCastScreen() {
   function set(name: string, value: { avatarId?: string; free?: boolean }) {
     Haptics.selectionAsync();
     patchWizard({ assignmentOverrides: { ...w.assignmentOverrides, [name]: value } });
-    setOpen(null);
   }
   const L = cast?.labels ?? {};
   const section = (title: string, lede: string, empty: string, rows: Row[], kind: "person" | "place") => (
@@ -64,38 +62,33 @@ export default function DreamCastScreen() {
       <Text style={styles.lede}>{lede}</Text>
       {rows.length === 0 ? <Text style={styles.empty}>{empty}</Text> : rows.map((row) => {
         const c = choice(row);
-        const isOpen = open === row.name;
         const options = (cast?.library ?? []).filter((l) => kind === "place" ? l.category === "place" : l.category !== "place");
+        /* Die Wahl steht DIREKT in der Zeile (Antons Befund 12.09.): links der
+           Name mit Stand, rechts eine Reihe runder Knöpfe — KI erfindet,
+           Foto neu, dann die Gesichter der Bibliothek. Kein Text, kein
+           Ausklappen; der gewählte trägt den Ring. */
         return (
           <View key={row.name} style={styles.card}>
-            <Pressable style={styles.row} onPress={() => { Haptics.selectionAsync(); setOpen(isOpen ? null : row.name); }}>
-              {c.avatar?.img ? <Image source={{ uri: c.avatar.img }} style={styles.thumb} contentFit="cover" />
-                : <View style={[styles.thumb, styles.thumbEmpty]}><SymbolView name={c.free ? "sparkles" : kind === "place" ? "mappin" : "person.fill.questionmark"} size={18} tintColor={colors.accentSoft} /></View>}
-              <View style={{ flex: 1 }}>
-                <Text style={styles.name}>{row.name}</Text>
-                <Text style={styles.sub}>{c.avatar ? `@${c.avatar.tag}` : c.free ? L.free : L.undecided}</Text>
+            <View style={styles.row}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.name} numberOfLines={1}>{row.name}</Text>
+                <Text style={styles.sub} numberOfLines={1}>{c.avatar ? `@${c.avatar.tag}` : c.free ? L.free : L.undecided}</Text>
               </View>
-              <Text style={styles.action}>{c.avatar ? L.change : L.choose}</Text>
-            </Pressable>
-            {isOpen ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.picker}>
-                <Pressable style={[styles.opt, c.free && styles.optOn]} onPress={() => set(row.name, { free: true })}>
-                  <View style={[styles.optImg, styles.thumbEmpty]}><SymbolView name="sparkles" size={20} tintColor={colors.accentSoft} /></View>
-                  <Text style={styles.optText} numberOfLines={1}>{L.free}</Text>
-                </Pressable>
-                {/* Neu anlegen — mit Foto aus Kamera oder Mediathek (Web-Dialog). */}
-                <Pressable style={styles.opt} onPress={() => { Haptics.selectionAsync(); router.push({ pathname: "/dream/avatar", params: { category: kind, tag: row.name } }); }}>
-                  <View style={[styles.optImg, styles.thumbEmpty]}><SymbolView name="camera.fill" size={20} tintColor={colors.accentSoft} /></View>
-                  <Text style={styles.optText} numberOfLines={1}>{L.createNew}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip} style={{ flexShrink: 1 }}>
+                <Pressable onPress={() => set(row.name, { free: true })} accessibilityLabel={L.free} style={[styles.dot, c.free && styles.dotOn]}>
+                  <SymbolView name="sparkles" size={18} tintColor={c.free ? colors.bg : colors.accentSoft} />
                 </Pressable>
                 {options.map((l) => (
-                  <Pressable key={l.id} style={[styles.opt, c.avatar?.id === l.id && styles.optOn]} onPress={() => set(row.name, { avatarId: l.id, free: false })}>
-                    {l.img ? <Image source={{ uri: l.img }} style={styles.optImg} contentFit="cover" /> : <View style={[styles.optImg, styles.thumbEmpty]} />}
-                    <Text style={styles.optText} numberOfLines={1}>@{l.tag}</Text>
+                  <Pressable key={l.id} onPress={() => set(row.name, { avatarId: l.id, free: false })} accessibilityLabel={`@${l.tag}`} style={[styles.dot, c.avatar?.id === l.id && styles.dotOn]}>
+                    {l.img ? <Image source={{ uri: l.img }} style={styles.dotImg} contentFit="cover" /> : <Text style={styles.dotInitial}>{l.tag.slice(0, 1).toUpperCase()}</Text>}
                   </Pressable>
                 ))}
+                {/* Neu anlegen — mit Foto aus Kamera oder Mediathek (Web-Dialog). */}
+                <Pressable onPress={() => { Haptics.selectionAsync(); router.push({ pathname: "/dream/avatar", params: { category: kind, tag: row.name } }); }} accessibilityLabel={L.createNew} style={[styles.dot, styles.dotNew]}>
+                  <SymbolView name="camera.fill" size={17} tintColor={colors.accentSoft} />
+                </Pressable>
               </ScrollView>
-            ) : null}
+            </View>
           </View>
         );
       })}
@@ -139,5 +132,11 @@ const styles = StyleSheet.create({
   optText: { color: colors.text, fontSize: 11 },
   primary: { height: 52, borderRadius: 999, alignItems: "center", justifyContent: "center", backgroundColor: colors.warm, marginTop: 6 },
   primaryText: { color: colors.bg, fontSize: 16, fontWeight: "700" },
+  strip: { flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 10 },
+  dot: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(140,192,255,0.10)", borderWidth: 1.5, borderColor: "transparent", overflow: "hidden" },
+  dotOn: { backgroundColor: colors.accentSoft, borderColor: colors.accentSoft },
+  dotNew: { borderColor: colors.panelLine, borderStyle: "dashed", backgroundColor: "transparent" },
+  dotImg: { width: 40, height: 40 },
+  dotInitial: { color: colors.accentSoft, fontFamily: fonts.serif, fontSize: 18 },
   bridge: { height: 0, overflow: "hidden" },
 });
