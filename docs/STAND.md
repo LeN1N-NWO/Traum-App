@@ -3,10 +3,11 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-12 abends — PR #41 ist GEMERGED (`fbfe5ff`); neue
-Sitzung `session/2026-09-12-anton` (PR #42, Entwurf): Poster nach dem Film,
-finaler Film-Prompt je Auftrag gespeichert, Aufnahme sicher am Traum,
-Szenen-Empfehlung im Längen-Schritt. Davor (PR #41): **Die App ist nativ** (React Native mit Expo, ADR-0006):
+**Stand:** 2026-09-12 abends — PR #41 und PR #42 gemerged. Zuletzt (PR #42):
+Poster nach dem Film (1:1), finaler Film-Prompt je Auftrag gespeichert,
+Aufnahme sicher am Traum, Schnitt-Regel „immer der ganze Traum" mit zwei
+Tempi, empfohlene Länge vorgewählt. ⚠ Poster-Weg und neue Schnitt-Regel am
+echten Auftrag ungeprüft. Davor (PR #41): **Die App ist nativ** (React Native mit Expo, ADR-0006):
 fünf Tabs mit Liquid Glass, Wizard, Kaufblatt, Klang-Mischpult, Checkliste,
 Luzid-Guide, Symbol-Atlas, Besetzung, Menagerie, Einstellungen, Stimmwahl,
 Rechtstexte, Consent-Tor, Auftrag ohne Wartebildschirm, Abholer in der

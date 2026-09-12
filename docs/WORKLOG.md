@@ -3,6 +3,18 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 17:00 — Anton — Branch `session/2026-09-12-anton` — Sitzungsabschluss (wrap, Merge auf Antons Wort)
+
+**Commits:** siehe `git log main..HEAD` vor dem Merge — Aufnahme sicher am
+Traum + Prompt-Nachschau, Szenen-Empfehlung, Poster nach dem Film, dann
+Antons Schnitt-Regel (immer der ganze Traum, zwei Tempi, Poster 1:1).
+
+**Was der Nächste wissen muss:** Poster-Weg (`finishPoster`, Zustand
+„posting" am Auftrag) und die neue Schnitt-Regel sind am ECHTEN Auftrag
+ungeprüft — der nächste bestellte Film zeigt beides; sein finaler Prompt
+liegt in `media/jobs/<id>.json`. Poster-Kosten (~6 Cent, 1024×1024 medium)
+noch nicht in `quote.js`. Lint mobile 0 Fehler, Web 564 Tests grün.
+
 ## 2026-09-12 16:20 — Anton — Branch `session/2026-09-12-anton` — Dino-Traum nachvollzogen, Poster nach dem Film, Aufnahme sicher am Traum
 
 **Antons Fragen:** Welcher finale Prompt ging beim Dino-Traum raus, warum
