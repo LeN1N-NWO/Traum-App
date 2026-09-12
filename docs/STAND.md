@@ -26,6 +26,15 @@ Aufnahme bleibt am Traum. Noch Web als DOM-Komponente: Avatar-Dialog
 (Foto), Umfrage, Bearbeiten/Umschreiben der Traum-Seite, Fehlerblatt des
 Auftrags. Startmenü/Sprachwahl/Onboarding gibt es nativ nicht.
 
+**⚠ Sitzungen laufen in DIESEM Checkout, nicht im Worktree** (Befund
+13.09., vorher schon Praxis): Der native Build lebt hier — `mobile/ios`
+(Pods, Hermes-Tarballs) und `mobile/node_modules` sind git-ignoriert, ein
+frischer Worktree hat sie nicht. Dazu liegt `media/` (878 MB, Antons
+bezahlte Filme, Aufnahmen, Auftrags-Datensätze) hier: `git worktree remove`
+löscht den Ordner samt Inhalt — genau der Verlust vom 21.08.2026. Also: in
+diesem Checkout den Sitzungs-Branch auschecken, `main` bleibt sauber über
+den PR. Abweichung von AGENTS.md mit Grund.
+
 **Für den nächsten Start (wer auch immer):**
 - Metro `bun run mobile`, API `bun run api` (⚠ stoppt gern mit der
   Sitzung — die Stimme meldet dann „Verbindung beendet"), Xcode-Build
