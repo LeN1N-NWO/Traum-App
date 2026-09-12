@@ -102,6 +102,12 @@ Stil-Kacheln, Doku).
   (Antons Regel 21.08.), beim ersten eigenen Traum einmal das Kaufblatt.
   Scheitert das Abgeben, erscheint der Web-Motor mit seinem Fehlerblatt.
   ⚠ Nicht live geprüft — ein echter Auftrag kostet Credits.
+- **Consent-Tor nativ** (`components/consent-gate.tsx` im Wurzel-Layout):
+  Die Hülle startete bisher bei „app" und übersprang das Tor komplett —
+  nativ ging also alles ohne Einwilligung an die KI-Anbieter. Jetzt liegt
+  es als Vollbild über den Tabs, solange `consent.needed`; Befehl
+  `consent`. Der Widerruf aus den Einstellungen bringt es zurück.
+  Geprüft mit erzwungenem `visible` (im Simulator liegt schon eine v2).
 
 **Was der Nächste wissen muss:**
 - Prüfen läuft weiter per Redirect-Trick (index.tsx temporär ersetzen,

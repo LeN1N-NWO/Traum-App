@@ -1,5 +1,6 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { StatusBar } from "expo-status-bar";
+import { ConsentGate } from "@/components/consent-gate";
 import { Toasts } from "@/components/toasts";
 
 /* Die native Tab-Leiste — auf iOS 26 Liquid Glass vom System, auf Android
@@ -33,6 +34,7 @@ export default function RootLayout() {
           <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
       </NativeTabs>
+      <ConsentGate />
       <Toasts />
     </>
   );
