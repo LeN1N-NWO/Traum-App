@@ -99,6 +99,8 @@ export async function collectTick(journal, ask) {
           ...e,
           films: [...vorher, fassung],
           film: { urls: r.urls, source: "api" },
+          // Das Poster nach dem Film (server.js finishPoster) — die Kachel im Journal.
+          ...(r.poster ? { poster: r.poster } : {}),
           jobId: undefined,
           filmPlan: undefined,
         });

@@ -31,6 +31,7 @@
 
 import { resolve, sep, join } from "node:path";
 import { mkdtemp, rm } from "node:fs/promises";
+import { buildPosterPrompt, POSTER_ASPECT, POSTER_SIZE } from "./src/lib/poster.js";
 import { tmpdir } from "node:os";
 import { statSync, readFileSync } from "node:fs";
 // Wo die Bilder liegen dürfen — eigene Datei, weil daran schon einmal echte
@@ -1448,7 +1449,7 @@ function modelFor(fallback) {
   return (fallback && fallbackModel(FAL_MODEL_IMAGE)) || FAL_MODEL_IMAGE;
 }
 
-async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", grid = false, fallback = false }) {
+async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", grid = false, fallback = false, size: sizeOverride = null }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
@@ -1473,7 +1474,7 @@ async function falGenerateImage({ prompt, namedRefs = [], aspectRatio = "9:16", 
     imageUrls: namedRefs.map((r) => r.img),
     quality: stufe,
     resolution: stufe,
-    size: grid ? appGrid(modellId).size : null,
+    size: sizeOverride || (grid ? appGrid(modellId).size : null),
   });
 
   const res = await fetch(`https://fal.run/${model}`, {
@@ -1541,7 +1542,7 @@ const writeJob = (id, job) => Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.st
  *  (server-side) through that same table: the queue only validates duration
  *  at RENDER time (re-measured 09.08.2026), so a bad value burns the fee
  *  and comes back as a failed job minutes later. */
-async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, quality }) {
+async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, quality, poster = null }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
@@ -1587,6 +1588,9 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, q
        die Nachschau (Antons Frage 12.09.: welcher Prompt wurde uebergeben?).
        Liegt nur in media/jobs (ignoriert), nie im Repo. */
     prompt, promptChars: prompt.length, seconds,
+    /* Das Poster danach (poster.js): Titel, Tagline, Stil — null, wenn der
+       Client keinen Titel schickt. Wird in finishPoster gebraucht. */
+    poster,
   });
   return id;
 }
@@ -1676,8 +1680,19 @@ function genJobId() {
 async function jobStatus(id) {
   const job = await readJob(id);
   if (!job) return { status: "unknown" };
-  if (job.status === "done") return { status: "done", urls: job.urls };
+  if (job.status === "done") return { status: "done", urls: job.urls, poster: job.posterUrl || null };
   if (job.status === "failed") return { status: "failed", reason: job.reason || null };
+  /* „posting": der Film ist da, das Poster entsteht gerade (finishPoster im
+     Hintergrund). Bis dahin bleibt der Auftrag offen; nach 150 s ohne
+     Ergebnis kommt der Film ohne Poster — ein Poster darf keinen Film
+     aufhalten. */
+  if (job.status === "posting") {
+    if (Date.now() - (job.postingAt || 0) > 150_000) {
+      await writeJob(id, { ...job, status: "done" });
+      return { status: "done", urls: job.urls, poster: null };
+    }
+    return { status: "pending" };
+  }
 
   const key = process.env.FAL_KEY;
   /* Jobs written since 09.08.2026 carry fal's own URLs. Older ones fall back
@@ -1724,8 +1739,51 @@ async function jobStatus(id) {
     return { status: "failed", reason };
   }
   const urls = await storeAll(found);
+  const isFilm = !!(data?.video?.url || data?.videos?.[0]?.url);
+  if (isFilm && job.poster && process.env.POSTER !== "off") {
+    await writeJob(id, { ...job, status: "posting", postingAt: Date.now(), urls });
+    finishPoster(id).catch((e) => console.error("[DreamRushes] poster failed:", e?.message || e));
+    return { status: "pending" };
+  }
   await writeJob(id, { ...job, status: "done", urls });
   return { status: "done", urls };
+}
+
+/* ── Das Poster nach dem Film (Antons Ablauf 12.09.2026) ─────────────────
+ * 1. Film gerendert (liegt lokal), 2. sein erstes Bild per ffmpeg als JPEG,
+ * 3. als Referenz-Bild an das Bildmodell mit dem Poster-Prompt (poster.js),
+ * 4. Ergebnis lokal gespeichert, Auftrag „done" mit `posterUrl`. Scheitert
+ * irgendwas, wird der Auftrag ohne Poster fertig — nie ein Film verloren.
+ * Kosten: ein Bild des laufenden Modells (GPT Image 2 medium, ~3–4 Cent,
+ * imageModel.js) — noch NICHT im Filmpreis (quote.js), Antons Wunsch: dort
+ * einrechnen statt extra abbuchen. */
+async function finishPoster(id) {
+  const job = await readJob(id);
+  if (!job || job.status !== "posting") return;
+  const done = async (posterUrl) => writeJob(id, { ...(await readJob(id)), status: "done", posterUrl: posterUrl || null });
+  try {
+    const local = (job.urls || []).find((u) => typeof u === "string" && u.startsWith("/media/"));
+    if (!local) return await done(null);
+    const film = resolve(MEDIA_DIR, local.slice("/media/".length));
+    const dir = await mkdtemp(join(tmpdir(), "dr-poster-"));
+    const frame = join(dir, "frame.jpg");
+    try {
+      const p = Bun.spawnSync(["ffmpeg", "-y", "-loglevel", "error", "-ss", "0.3", "-i", film, "-frames:v", "1", "-q:v", "3", frame]);
+      if (!p.success) throw new Error("ffmpeg: " + new TextDecoder().decode(p.stderr).slice(0, 200));
+      const dataUri = `data:image/jpeg;base64,${Buffer.from(await Bun.file(frame).arrayBuffer()).toString("base64")}`;
+      const prompt = buildPosterPrompt({ title: job.poster.title, tagline: job.poster.tagline, styleId: job.poster.styleId, withFrame: true });
+      const t0 = Date.now();
+      const urls = await falGenerateImage({ prompt, namedRefs: [{ img: dataUri }], aspectRatio: POSTER_ASPECT, size: POSTER_SIZE });
+      const stored = await storeAll(urls.slice(0, 1));
+      console.log(`[DreamRushes] poster for ${id}: ${stored[0]} in ${Date.now() - t0} ms (${prompt.length} chars)`);
+      await done(stored[0]);
+    } finally {
+      await rm(dir, { recursive: true, force: true }).catch(() => {});
+    }
+  } catch (e) {
+    console.error("[DreamRushes] poster skipped:", e?.message || e);
+    await done(null);
+  }
 }
 
 // Dictation: the client records audio (MediaRecorder) and sends it as a
@@ -2046,7 +2104,7 @@ function settleCharge({ kind, charge, quoted }) {
   return { charged: false, charge };
 }
 
-async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, quality, refImages = [] }) {
+async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, quality, refImages = [], poster = null }) {
   const filmPrompt = motionPrompt || prompt || dream;
   /* `refImages` kommt aus filmReferences() und steht in EXAKT der
    * Reihenfolge der Materialliste des Regisseurs — das Startbild davor
@@ -2058,12 +2116,12 @@ async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, key
     if (!hit || !(await file.exists())) throw new Error("GENERATION_FAILED");
     const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
     const dataUri = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
-    return falSubmitVideo({ modelId, quality, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds });
+    return falSubmitVideo({ modelId, quality, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds, poster });
   }
   const stills = await generateImages({ dream, namedRefs, prompt });
   const first = stills[0];
   if (!first) throw new Error("GENERATION_FAILED");
-  return falSubmitVideo({ modelId, quality, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds });
+  return falSubmitVideo({ modelId, quality, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds, poster });
 }
 
 // ---- static file serving ----
@@ -2735,10 +2793,16 @@ const serveOptions = {
             console.error("[DreamRushes] film director skipped:", e.message);
           }
 
+          /* Das Poster nach dem Film (Antons Ablauf 12.09.): Titel und
+             Tagline kommen vom Client (Analyse), Fremdtext wie alles andere.
+             Ohne Titel gibt es kein Poster — eine Kachel ohne Namen ist
+             keine. */
+          const posterTitle = sanitizeFragment(body.title, 80);
+          const poster = posterTitle ? { title: posterTitle, tagline: sanitizeFragment(body.tagline, 120) || "", styleId: typeof body.styleId === "string" ? body.styleId.slice(0, 40) : "ultrareal" } : null;
           const jobId = await startVideo({
             dream, namedRefs: cast, prompt, motionPrompt,
             seconds: body.seconds, keyframe, modelId, quality,
-            refImages: kept.map((c) => c.img),
+            refImages: kept.map((c) => c.img), poster,
           });
           return json({ ok: true, jobId });
         }

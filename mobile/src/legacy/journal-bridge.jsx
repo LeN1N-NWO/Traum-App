@@ -70,7 +70,10 @@ function snapshot() {
         title: e.title || "",
         tagline: e.tagline || "",
         text: e.text || "",
-        media: film ? { kind: "film", url: absolute(film) } : images[0] ? { kind: "image", url: images[0] } : null,
+        /* Die Kachel: das Poster (nach dem Film, Antons Ablauf 12.09.), sonst
+           der Film als Standbild, sonst das erste Bild. */
+        media: e.poster ? { kind: "image", url: absolute(e.poster) } : film ? { kind: "film", url: absolute(film) } : images[0] ? { kind: "image", url: images[0] } : null,
+        poster: e.poster ? absolute(e.poster) : null,
         pending,
         /* Für die native Auftragsseite: Auftrag abgegeben (Nummer hängt am
            Traum) bzw. gescheitert (Grund aus falError.js, als Satz). */
