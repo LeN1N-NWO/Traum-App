@@ -9,8 +9,9 @@ export type WizardState = {
   quality: "sd" | "hd" | null; seconds: number; orderId: string | null;
   assignmentOverrides: Record<string, { avatarId?: string; free?: boolean }>;
   pendingRead: boolean;
+  mode: "images" | "film";
 };
-const EMPTY: WizardState = { text: "", originalText: "", analysis: null, styleId: "ultrareal", pace: "calm", videoModel: "standard", quality: null, seconds: 6, orderId: null, assignmentOverrides: {}, pendingRead: false };
+const EMPTY: WizardState = { text: "", originalText: "", analysis: null, styleId: "ultrareal", pace: "calm", videoModel: "standard", quality: null, seconds: 6, orderId: null, assignmentOverrides: {}, pendingRead: false, mode: "film" };
 let state: WizardState = EMPTY;
 const listeners = new Set<() => void>();
 export function patchWizard(p: Partial<WizardState>) { state = { ...state, ...p }; listeners.forEach((l) => l()); }

@@ -20,9 +20,11 @@ export default function LegacyOrder({ order, dom }) {
     started.current = true;
     const resume = {
       text: order.text, originalText: order.originalText || order.text, analysis: order.analysis,
-      title: order.analysis?.title || "", tagline: order.analysis?.tagline || "", mode: "film", urls: [],
+      title: order.analysis?.title || "", tagline: order.analysis?.tagline || "", mode: order.mode || "film", urls: [],
       prefill: { styleId: order.styleId, pace: order.pace, videoModel: order.videoModel, quality: order.quality, seconds: order.seconds, step: 5 },
-      autoRender: true, orderId: order.orderId, assignmentOverrides: order.assignmentOverrides || {},
+      /* Film: sofort rendern (Preis stand nativ auf dem Knopf). Bilder: die
+         Web-Seite von Schritt 5 zeigt Anzahl und Preis, der Mensch drückt. */
+      autoRender: (order.mode || "film") === "film", orderId: order.orderId, assignmentOverrides: order.assignmentOverrides || {},
     };
     window.history.replaceState({ usr: { resume } }, "", "#/dream");
   }

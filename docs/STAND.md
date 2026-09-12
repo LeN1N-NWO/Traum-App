@@ -124,6 +124,8 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   `dream/index.tsx` erzählen (großes Feld, Lesung mit Preis, Vergleich
   „deine Worte / aufgeräumt"), `dream/style.tsx` Stil-Kacheln mit laufenden
   Clips (expo-video, Feder, Haptik; Dreamflow doppelt breit, „Mehr Stile"),
+  `dream/output.tsx` speichern / Bildergeschichte / Film (Step2Output),
+  `dream/cast.tsx` Besetzung,
   `dream/length.tsx` Modell, Qualität, Tempo, Länge (SwiftUI-Slider), Preis
   aus `quoteFor` auf dem Knopf. **Der Auftrag läuft im Web-Motor**
   (`dream/order.tsx` → `legacy-order.jsx` → WizardShell mit `resume.prefill`

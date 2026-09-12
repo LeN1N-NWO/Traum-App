@@ -4,6 +4,7 @@ import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
+import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
 import { colors, fonts, radius } from "@/theme";
 
@@ -46,13 +47,13 @@ export default function DreamTextScreen() {
     Haptics.selectionAsync();
     patchWizard({ text: useImproved ? a.text : clean, originalText: clean, analysis: useImproved ? a : { ...a, text: clean }, styleId: a?.style || "ultrareal", assignmentOverrides: {} });
     setPreview(null);
-    router.push("/dream/cast");
+    router.push("/dream/output");
   }
   const price = W ? (W.readPrice ? `${W.readPrice} ${W.credit}` : W.free) : "";
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Stack.Screen options={{ title: "" }} />
+      <WizardHeader step={1} cancel={W?.cancel} />
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{W?.title ?? "What did you dream?"}</Text>
         {busy ? (

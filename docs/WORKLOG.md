@@ -114,6 +114,11 @@ curl. Bun, Ruby, Python, Git sind frei — also alles daran vorbeigebaut:
   (Text auf die Bilder verteilt wie DreamViews.splitPassages) und die
   Besetzungs-Chips. Profil: die Träumer-Karte (Zeichen, Fakten, Themen)
   mit „Nochmal erzählen". Brücke liefert board, cast je Traum, dreamer.
+- **Wizard-Kopf und Schritt 2:** Fortschrittspunkte und „Abbrechen" wie
+  WizardShell.jsx (`wizard-header.tsx`); Schritt 2 „Was soll daraus
+  werden?" (Step2Output.jsx): nur speichern (gratis, Brücke `saveDream` mit
+  Wesen und Serie), Bildergeschichte ab N, Film ab N. Bilder-Modus läuft bis
+  Schritt 5 nativ, dann die Web-Seite mit Anzahl und Preis (kein autoRender).
 
 ### Was der Nächste wissen muss
 

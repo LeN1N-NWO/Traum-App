@@ -15,6 +15,7 @@ export const colors = {
   warm: "#f2a765",
   gold: "#f6c65b",
   cyan: "#4fd6e6",
+  ok: "#3ddc97",
 };
 export const fonts = {
   serif: "Iowan Old Style",     // Systemschrift auf iOS; Traumtitel

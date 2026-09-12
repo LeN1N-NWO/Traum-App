@@ -3,6 +3,7 @@ import { Stack, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
+import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
 import { colors, fonts, radius } from "@/theme";
 // Dieselbe Preisrechnung wie Wizard und Server (src/lib/quote.js, reine Logik).
@@ -32,7 +33,7 @@ export default function DreamLengthScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "" }} />
+      <WizardHeader step={5} cancel={W?.cancel} />
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         <Text style={styles.title}>{W?.lengthLabel ?? "How long"}</Text>
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PresetTile } from "@/components/preset-tile";
 import { useJournal } from "@/components/journal-data";
+import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
 import { colors, fonts } from "@/theme";
 
@@ -29,7 +30,7 @@ export default function DreamStyleScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "" }} />
+      <WizardHeader step={5} cancel={W?.cancel} />
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         <Text style={styles.title}>{W?.styleTitle ?? "How should it look?"}</Text>
         <View style={styles.grid}>

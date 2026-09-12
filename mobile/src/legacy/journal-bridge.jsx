@@ -27,6 +27,10 @@ import { blankDays } from "../../../src/lib/dreamDays.js";
 import { MILESTONES, nextMilestone, giftAt } from "../../../src/lib/streakBoard.js";
 import { nextSnoozeIn } from "../../../src/lib/streak.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
+import { genId } from "../../../src/lib/storage.js";
+import { newCreature } from "../../../src/lib/creatures.js";
+import { IMAGE_COUNTS, priceForImages } from "../../../src/lib/pricing.js";
+import { priceForFilm } from "../../../src/lib/video.js";
 import { filmsOf, filmOf, imagesOf } from "../../../src/lib/entryMedia.js";
 import { isBlank } from "../../../src/lib/blankNight.js";
 import { mediaUrl } from "../../../src/lib/api.js";
@@ -178,7 +182,11 @@ function snapshot() {
       months: t.journal.months, calMonths: t.journal.calMonths, calWeekdays: t.journal.calWeekdays,
     },
   };
-  const dream = { interview: t.dream.interview, interviewHint: t.dream.interviewHint, or: t.dream.or, label: t.dream.label,
+  const step2 = { outputTitle: t.wizard.step2.title, saveOnly: t.wizard.step2.saveOnly, saveOnlyHint: t.wizard.step2.saveOnlyHint,
+    images: t.wizard.step2.images, imagesHint: t.wizard.step2.imagesHint, film: t.wizard.step2.film, filmHint: t.wizard.step2.filmHint,
+    saved: t.wizard.step2.saved, from: t.wizard.from, cancel: t.wizard.cancel, back: t.wizard.back,
+    imagesFrom: priceForImages(Math.min(...IMAGE_COUNTS)), filmFrom: priceForFilm("standard", 5), steps: 6 };
+  const dream = { ...step2, interview: t.dream.interview, interviewHint: t.dream.interviewHint, or: t.dream.or, label: t.dream.label,
     placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
   return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal };
 }
@@ -232,6 +240,17 @@ function run(cmd) {
   else if (cmd.type === "checkin") patch = { checkins: setCheckin(s.checkins, cmd.level) };
   else if (cmd.type === "refreshStreak") { const f = refreshStreak(s); if (f.streak !== s.streak) patch = f; }
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
+  else if (cmd.type === "saveDream") {
+    /* Nur speichern (Step2Output.saveOnly): kein Render, keine Kosten, mit
+       Wesen und Serie — dieselbe Reihenfolge wie im Web. */
+    const creature = newCreature(cmd.text, refreshStreak(s).streak);
+    const entry = {
+      id: genId("e"), createdAt: new Date().toISOString(), text: cmd.text, originalText: cmd.originalText || cmd.text,
+      title: (cmd.title || "").trim() || creature.title, tagline: (cmd.tagline || "").trim(), mode: "save",
+      media: { type: "image", urls: [], source: "none" }, analysis: cmd.analysis || null, references: [], creatureId: creature.id,
+    };
+    patch = { journal: [...(s.journal || []), entry], creatures: [...(s.creatures || []), creature], ...bumpStreak(s) };
+  }
   if (patch) saveState({ ...s, ...patch });
 }
 

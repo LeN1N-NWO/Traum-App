@@ -5,6 +5,7 @@ import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
+import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
 import { colors, fonts, radius } from "@/theme";
 
@@ -18,7 +19,8 @@ type CastData = { people: Row[]; places: Row[]; library: Lib[]; labels: Record<s
    assignmentOverrides in den Web-Motor. Neue Fotos anlegen: noch im Web. */
 export default function DreamCastScreen() {
   const router = useRouter();
-  const { bridge, ask } = useJournal();
+  const { data, bridge, ask } = useJournal();
+  const W = data?.wizard;
   const w = useWizardStore();
   const [cast, setCast] = useState<CastData | null>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -78,7 +80,7 @@ export default function DreamCastScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "" }} />
+      <WizardHeader step={3} cancel={W?.cancel} />
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         {cast ? (
           <>
