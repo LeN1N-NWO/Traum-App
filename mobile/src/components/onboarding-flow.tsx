@@ -373,16 +373,20 @@ function Intro({ O, onNext }: { O: OnboardData; onNext: () => void }) {
    Schwarz (deshalb der schwarze Grund), das Faultier hat seinen eigenen
    Hintergrund, die Eule hat noch nichts — sie bekommt ein Zeichen.
    ⚠ Platzhalter, bis Antons Zeichnungen da sind. */
+const MASCOT_CLIPS: Record<string, ReturnType<typeof require> | undefined> = {
+  frog: require("../../../src/assets/mascot-frog-idle.mp4"),
+  sloth: require("../../../src/assets/home-faultier.mp4"),
+};
 function MascotFace({ id }: { id: string }) {
-  if (id === "sloth") {
-    const player = useVideoPlayer(require("../../../src/assets/home-faultier.mp4"), (p) => { p.loop = true; p.muted = true; p.play(); });
-    return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
+  /* ⚠ Der Player wird IMMER angelegt, auch wenn es kein Video gibt — ein
+     Haken hinter einer Abfrage bricht die Regel der festen Reihenfolge
+     (react-hooks/rules-of-hooks). Ohne Quelle bleibt er einfach leer. */
+  const quelle = MASCOT_CLIPS[id] ?? null;
+  const player = useVideoPlayer(quelle, (p) => { p.loop = true; p.muted = true; if (quelle) p.play(); });
+  if (!quelle) {
+    return <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", backgroundColor: colors.sky }]}><SymbolView name="moon.stars" size={26} tintColor={colors.accentSoft} /></View>;
   }
-  if (id === "frog") {
-    const player = useVideoPlayer(require("../../../src/assets/mascot-frog-idle.mp4"), (p) => { p.loop = true; p.muted = true; p.play(); });
-    return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
-  }
-  return <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", backgroundColor: colors.sky }]}><SymbolView name="moon.stars" size={26} tintColor={colors.accentSoft} /></View>;
+  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 
 /* Das Zwischenbild: ein Film über die ganze Fläche, ein Satz darüber,
