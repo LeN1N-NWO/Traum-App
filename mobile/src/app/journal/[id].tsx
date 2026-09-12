@@ -4,7 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useState, useEffect } from "react";
-import { Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActionSheetIOS, Alert, Platform, Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 import type { DreamItem } from "@/store/journal-store";
@@ -17,8 +17,27 @@ import type { DreamItem } from "@/store/journal-store";
 export default function DreamScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { data, bridge } = useJournal();
+  const { data, bridge, send } = useJournal();
   const item = data?.items.find((e) => e.id === id) ?? null;
+
+  /* Das „…"-Menü (EntryMenu.jsx) als natives Aktionsblatt: Bearbeiten und
+     die drei Umschreib-Arten öffnen die Web-Seite (dort läuft die KI),
+     Löschen ist nativ — mit Rückfrage, weil es der einzige unumkehrbare
+     Punkt ist und ein Aktionsblatt schneller getippt ist als das Web-Menü. */
+  function menu() {
+    if (!item) return;
+    const toWeb = () => router.push({ pathname: "/journal/web-dream", params: { id: item.id } });
+    const options = [labels.menuEdit ?? "Edit", labels.menuCorrect ?? "Correct", labels.menuRewrite ?? "Rewrite", labels.menuElaborate ?? "Elaborate", labels.menuDelete ?? "Delete", labels.cancel ?? "Cancel"];
+    const del = () => Alert.alert(labels.menuDelete ?? "Delete", item.title || labels.untitled || "", [
+      { text: labels.cancel ?? "Cancel", style: "cancel" },
+      { text: labels.menuDelete ?? "Delete", style: "destructive", onPress: () => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); send({ type: "deleteDream", id: item.id }); router.back(); } },
+    ]);
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions({ options, destructiveButtonIndex: 4, cancelButtonIndex: 5, userInterfaceStyle: "dark" }, (i) => { if (i === 4) del(); else if (i < 4) toWeb(); });
+    } else {
+      toWeb();
+    }
+  }
   const labels = data?.labels ?? {};
   const locale = data?.language === "de" ? "de-DE" : "en-GB";
 
@@ -34,7 +53,7 @@ export default function DreamScreen() {
         {item ? <DreamBody item={item} labels={labels} locale={locale} onMore={() => router.push({ pathname: "/journal/web-dream", params: { id: item.id } })} /> : null}
       </ScrollView>
       <Stack.Toolbar placement="right">
-        {item ? <Stack.Toolbar.Button icon="ellipsis.circle" onPress={() => router.push({ pathname: "/journal/web-dream", params: { id: item.id } })} /> : null}
+        {item ? <Stack.Toolbar.Button icon="ellipsis.circle" onPress={menu} /> : null}
       </Stack.Toolbar>
       <View style={styles.bridge}>{bridge}</View>
     </>
