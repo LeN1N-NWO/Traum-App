@@ -47,6 +47,7 @@ export type WizardData = {
   yours: string; improved: string; keepMine: string; useImproved: string; styleTitle: string; styleLabel: string; useStyle: string; moreStyles: string;
   lengthLabel: string; qualityLabel: string; modelLabel: string; paceLabel: string; generate: string; credit1: string; creditN: string; readPrice: number; noCredits: string;
   record: string; recordHint: string; recording: string; recordStop: string; recordTranscribing: string; recordTooShort: string; recordFailed: string; recordAgain: string; yourRecording: string; transcribeUrl: string; panelUrl: string;
+  cutOneShot: string; cutAll: string; cutSome: string; cutMoreAt: string; cutTwoParter: string; flowAll: string; flowFast: string;
   loading: string[]; queuedNote: string; step6Title: string; rendering: string; renderingHint: string; failedTitle: string; failedNote: string; failedHome: string;
   presets: WizardPreset[]; models: WizardModel[]; paces: { id: string; name: string; hint: string }[];
 };

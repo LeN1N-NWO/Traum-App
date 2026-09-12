@@ -215,6 +215,12 @@ function snapshot() {
     tooShort: t.wizard.tooShort, previewTitle: t.wizard.step1.previewTitle, previewLede: t.wizard.step1.previewLede,
     yours: t.wizard.step1.yours, improved: t.wizard.step1.improved, keepMine: t.wizard.step1.keepMine, useImproved: t.wizard.step1.useImproved,
     styleTitle: w5.title, styleLabel: w5.styleLabel, useStyle: w5.useStyle, moreStyles: w5.moreStyles(PRESETS.filter((p) => p.id !== DREAMFLOW && !styleById(p.styleId)?.featured).length),
+    /* Die Szenen-Empfehlung (Step5Style: recommendation aus cut.js) — im
+       Web stand sie unter dem Regler, nativ fehlte sie: Anton bestellte
+       10 s H3 fuer sechs Szenen und bekam zwei (12.09.). Vorlagen mit
+       Platzhaltern 1000/2000, nativ ersetzt. */
+    cutOneShot: w5.cutOneShot, cutAll: w5.cutAll(1000), cutSome: w5.cutSome(1000, 2000), cutMoreAt: w5.cutMoreAt(1000, 2000),
+    cutTwoParter: w5.cutTwoParter, flowAll: w5.flowAll(1000), flowFast: w5.flowFast(1000),
     lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
     readPrice: PRICES.improve, noCredits: t.wizard.noCreditsCta,
     /* Die native Auftragsseite (dream/order.tsx): Sätze fürs Abgeben,

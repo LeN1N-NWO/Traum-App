@@ -9,7 +9,9 @@ import { patchWizard, useWizardStore } from "@/store/wizard-store";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 // Dieselbe Preisrechnung wie Wizard und Server (src/lib/quote.js, reine Logik).
 import { quoteFor } from "../../../../src/lib/quote.js";
-import { clampSeconds } from "../../../../src/lib/video.js";
+import { clampSeconds, shotBudget, beatBudget, videoModel, flowStationSeconds, FLOW_MIN_STATION } from "../../../../src/lib/video.js";
+// Der Schnitt nach Gewicht (reine Logik): wie viele Szenen die Laenge traegt.
+import { recommendation } from "../../../../src/lib/cut.js";
 
 /* Schritt 3, nativ: Modell, Qualität, Tempo, Länge — und der Preis auf dem
    Knopf. Der Auftrag läuft danach im Web-Motor (order.tsx). */
@@ -24,6 +26,25 @@ export default function DreamLengthScreen() {
   const credits = data?.profile.credits ?? 0;
   const affordable = credits >= price;
   const creditWord = W ? (price === 1 ? W.credit1 : W.creditN) : "credits";
+
+  /* Was von der Geschichte in den Film passt — dieselbe Rechnung wie im
+     Web (Step5Style: shotBudget/beatBudget + recommendation). Ohne diese
+     Zeile bestellt man 10 s fuer sechs Szenen und wundert sich ueber zwei. */
+  const fit = (() => {
+    const a = w.analysis; if (!a?.beats?.length || !model || !W) return null;
+    const fill = (tpl: string, k: number, n?: number) => tpl.replace("1000", String(k)).replace("2000", String(n ?? ""));
+    if (w.pace === "flow") {
+      const n = a.beats.length;
+      const per = flowStationSeconds(model.id, seconds, n);
+      return per < FLOW_MIN_STATION ? fill(W.flowFast, Math.ceil(n * FLOW_MIN_STATION)) : fill(W.flowAll, n);
+    }
+    const maxSecs = videoModel(model.id).max;
+    const r = recommendation(a, shotBudget(model.id, seconds, w.pace), seconds, maxSecs, beatBudget(model.id, maxSecs, w.pace));
+    let line = r.einBild ? W.cutOneShot : r.alle ? fill(W.cutAll, r.beats) : fill(W.cutSome, r.passt, r.beats);
+    if (r.mehrBei) line += " " + fill(W.cutMoreAt, r.beiMax, r.mehrBei);
+    if (r.zweiteiler) line += " " + W.cutTwoParter;
+    return line;
+  })();
 
   function order() {
     if (!affordable) { router.push({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
@@ -81,6 +102,7 @@ export default function DreamLengthScreen() {
             <Host style={{ width: "100%", height: 44 }}>
               <Slider value={seconds} min={model.min} max={model.max} step={model.step} onValueChange={(v) => patchWizard({ seconds: clampSeconds(model.id, v) })} />
             </Host>
+            {fit ? <Text style={styles.fit}>{fit}</Text> : null}
           </>
         ) : null}
 
@@ -98,6 +120,7 @@ export default function DreamLengthScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: TAB_INSET, gap: 12 },
+  fit: { color: colors.accentSoft, fontSize: 14, lineHeight: 20, marginTop: -2 },
   title: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 34, color: colors.text, marginTop: 8 },
   label: { color: colors.faint, fontSize: 11, letterSpacing: 1.8, fontWeight: "600", textTransform: "uppercase", marginTop: 8 },
   row: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
