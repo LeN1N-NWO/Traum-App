@@ -38,14 +38,31 @@ RLS-Policies für genau dieses CRUD bereits vollständig.
   `ERR_POSTGRES_CONNECTION_REFUSED` — das sieht aus wie ein falsches
   Passwort und ist keines. Dann den Session Pooler nehmen (IPv4, Port 5432;
   nicht 6543). Steht jetzt in `.env.example`.
-- **Der Ende-zu-Ende-Test steht noch aus** und ist ehrlich als solcher
-  gekennzeichnet: `SUPABASE_URL`/`SUPABASE_ANON_KEY` sind auf diesem
-  Rechner nicht gesetzt, die Datenbank war wegen IPv6 nicht erreichbar.
-  Geprüft ist damit nur, dass ohne Sitzung nichts geht (401), ohne
-  Konfiguration nichts vorgetäuscht wird (503) und die Bremse greift (429
-  ab dem 11. Login je Minute). `node scripts/test-konto.mjs` prüft den Rest,
-  sobald die Werte in `.env` stehen — es bricht ohne Zugangsdaten ab, statt
-  grün zu werden.
+- **Ende-zu-Ende geprüft (nachgereicht am selben Abend, 21:40):** 16 von 16
+  gegen das echte Supabase — anmelden, falsches Passwort, Konto lesen,
+  Traum speichern/aktualisieren/lesen/löschen, Sitzung erneuern.
+  `node scripts/test-konto.mjs` (Zugangsdaten aus der Umgebung).
+- **⚠⚠ Der erste Lauf fand zwei Fehler, die kein Test ohne Datenbank
+  finden konnte** — der Grund, warum dieser Lauf nicht optional war:
+  1. **Bun.SQL gibt `jsonb` als ZEICHENKETTE zurück**, nicht als geparsten
+     Wert. `references` und `medien` kamen als String beim Client an, wo
+     eine Liste versprochen ist; `survey` im Profil genauso. Behoben mit
+     `fromJsonb()` in `db.js` — bewusst dort, weil es eine Eigenschaft des
+     Treibers ist: **jede künftige jsonb-Spalte hat dasselbe Problem.**
+  2. Ein **5xx von Supabase** wurde roh durchgereicht. Mitten im Lauf kam
+     ein 504 von deren Gateway (davor und danach sauber 400) — das hätte
+     dem Menschen gesagt, sein Passwort sei falsch, obwohl es nie geprüft
+     wurde. Jetzt 503; 429 sagt „zu viele Versuche".
+- **Rechte empirisch belegt, nicht behauptet** (mit Kontrollproben, sonst
+  beweist eine Verweigerung nichts): ohne Nutzererklärung sieht der Server
+  0 Zeilen, mit Erklärung 1, als fremder Nutzer wieder 0. Guthaben
+  schreiben, Ledger-Zeile einfügen und `credits_spend` direkt aufrufen:
+  alle drei **SQLSTATE 42501**. Guthaben lesen ist erlaubt — daran zeigt
+  sich, dass der Test überhaupt unterscheiden kann.
+- **⚠ Die Datenbank war zunächst gar nicht erreichbar**, und der Grund
+  sieht aus wie ein falsches Passwort: `db.<projekt>.supabase.co` löst nur
+  auf IPv6 auf. `DATABASE_URL` in Hannis `.env` zeigt jetzt auf
+  `aws-0-eu-central-1.pooler.supabase.com:5432` (Session Pooler, IPv4).
 - **Das Guthaben wird weiterhin NICHT abgebucht.** `/api/account` zeigt es
   nur an; die 100 Test-Credits im Entwicklungsbau (`devTopUp`) sind
   unberührt. Antons Übergabe zum Abbuchen (11.09., Punkt 2–6) ist jetzt
@@ -58,8 +75,9 @@ RLS-Policies für genau dieses CRUD bereits vollständig.
   `data:`-Adressen fliegen aus den Medienpfaden — genau so käme ein
   biometrisches Foto in die Datenbank.
 
-**Prüfung:** 599 Tests grün (vorher 564; neu: 17 auth, 10 dreamRow, 4
-gatekeeper). `server.js`: 226 geänderte Zeilen, in vier Blöcke zerlegt
+**Prüfung:** 604 Tests grün (vorher 564; neu: 19 auth, 13 dreamRow, 4
+gatekeeper) plus 16 Ende-zu-Ende gegen das echte Supabase.
+`server.js`: 226 geänderte Zeilen, in vier Blöcke zerlegt
 (Importe 7, CORS 6, Routen 203, Startmeldung 10 — Summe stimmt), die 4
 entfernten Zeilen sind der alte Import und drei CORS-Zeilen. Gegenprobe auf
 15 Namen der Prompt-/Generierungs-Kette: kein Treffer, bei einer

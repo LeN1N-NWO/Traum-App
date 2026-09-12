@@ -182,15 +182,22 @@ zugleich der von ADR-0005 verlangte Migrationsweg für lokale Träume:
 wiederholbar über `unique (user_id, client_id)`.
 - ⚠⚠ **Nicht hinter eine öffentliche Adresse, solange S6 offen ist** — der
   Server spricht `http://`, Passwort und Token reisen im Klartext.
-- ⚠ **Der Ende-zu-Ende-Test steht aus.** Geprüft ist nur, dass ohne Sitzung
-  nichts geht (401), ohne Konfiguration nichts vorgetäuscht wird (503) und
-  die Bremse greift (429 ab dem 11. Login je Minute). Den Rest prüft
-  `node scripts/test-konto.mjs`, sobald `SUPABASE_URL` und
-  `SUPABASE_ANON_KEY` in `.env` stehen.
+- **Ende-zu-Ende geprüft:** 16 von 16 gegen das echte Supabase
+  (`node scripts/test-konto.mjs`, Zugangsdaten aus der Umgebung). RLS
+  empirisch belegt: ohne Nutzererklärung 0 Zeilen, mit 1, als fremder
+  Nutzer 0; Guthaben schreiben/Ledger/`credits_spend` je **42501**.
+- ⚠⚠ **Bun.SQL gibt `jsonb` als TEXT zurück** — gefunden beim ersten
+  echten Lauf, unsichtbar für jeden Test ohne Datenbank. Wer eine neue
+  jsonb-Spalte liest, nimmt `fromJsonb()` aus `src/lib/db.js`.
 - ⚠ **IPv6-Falle (gemessen 12.09.):** `db.<projekt>.supabase.co` löst nur
   auf IPv6 auf. Ohne IPv6 kommt `ERR_POSTGRES_CONNECTION_REFUSED` — das
-  sieht aus wie ein falsches Passwort und ist keines. Dann Session Pooler
-  (IPv4, Port 5432; nicht 6543).
+  sieht aus wie ein falsches Passwort und ist keines. `DATABASE_URL` zeigt
+  deshalb auf den Session Pooler (`aws-0-eu-central-1.pooler.supabase.com`,
+  Port 5432; nicht 6543). ⚠ Ein Editor mit altem Puffer überschreibt das
+  still wieder — am 12.09. genau so passiert.
+- **Der Testuser hat 0 Credits in der Datenbank.** Für Tests am Guthaben
+  eine Zeile im SQL-Editor (server.js darf das nicht, absichtlich):
+  `select public.credits_grant('3ecbfe28-21c1-4475-b931-1082d2b56ba7', 100, 'adjustment', null, 'Testguthaben');`
 - **Abgebucht wird weiterhin nichts.** `/api/account` zeigt das Guthaben
   nur an. Registrieren gibt es nicht (kein Signup-Endpunkt, absichtlich).
 
