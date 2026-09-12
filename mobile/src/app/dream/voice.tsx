@@ -53,22 +53,24 @@ export default function DreamVoiceScreen() {
     const uri = recorder.uri;
     if (!uri || st.durationMillis < 1500) { setError(W?.recordTooShort ?? "Too short."); setPhase("error"); return; }
     setPhase("busy");
+    // ZUERST die Aufnahme sichern (Antons Ansage 12.09.: „selbst wenn das
+    // nicht durchgeht, muss die Aufnahme gespeichert werden") — sie hängt
+    // dann am Traum, auch wenn der Text getippt wird.
+    let audioUrl: string | null = null;
     try {
-      const file = new File(uri);
-      const b64 = await file.base64();
+      const blob = await (await fetch(uri)).blob();
+      const up = await fetch(W!.panelUrl, { method: "POST", headers: { "content-type": "audio/mp4" }, body: blob });
+      const u = await up.json().catch(() => null);
+      if (up.ok && typeof u?.url === "string") audioUrl = u.url;
+    } catch (e) { console.warn("[voice] upload", e); }
+    if (audioUrl) patchWizard({ audioUrl });
+    try {
+      const b64 = await new File(uri).base64();
       const res = await fetch(W!.transcribeUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ audio: `data:audio/mp4;base64,${b64}` }) });
       const out = await res.json().catch(() => null);
       const text = String(out?.text || "").trim();
       if (!res.ok || text.length < 8) { setError(text.length < 8 && res.ok ? (W?.recordTooShort ?? "Too short.") : (out?.error || W?.recordFailed || "Failed")); setPhase("error"); return; }
-      // Die Aufnahme selbst in den Medienordner — geht das schief, bleibt der Text trotzdem.
-      let audioUrl: string | null = null;
-      try {
-        const blob = await (await fetch(uri)).blob();
-        const up = await fetch(W!.panelUrl, { method: "POST", headers: { "content-type": "audio/mp4" }, body: blob });
-        const u = await up.json().catch(() => null);
-        if (up.ok && typeof u?.url === "string") audioUrl = u.url;
-      } catch (e) { console.warn("[voice] upload", e); }
-      patchWizard({ text, pendingRead: true, audioUrl });
+      patchWizard({ text, pendingRead: true });
       router.back();
     } catch (e) {
       console.warn("[voice] transcribe", e);
@@ -106,7 +108,13 @@ export default function DreamVoiceScreen() {
             </View>
             {phase === "rec" ? <Text style={styles.stopHint}>{W?.recordStop ?? "Done"}</Text> : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            {phase === "error" ? <GlassButton label={W?.recordAgain ?? "Record again"} onPress={() => { setError(null); setPhase("idle"); }} style={{ flex: 0, marginTop: 8 }} /> : null}
+            {phase === "error" ? (
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+                <GlassButton label={W?.recordAgain ?? "Record again"} onPress={() => { setError(null); setPhase("idle"); }} />
+                {/* Die Aufnahme ist gesichert — den Traum tippen geht immer. */}
+                <GlassButton label={W?.or ? `${W.or} ${W.label ?? ""}`.trim() : "Type it"} onPress={() => router.back()} />
+              </View>
+            ) : null}
           </>
         )}
       </View>

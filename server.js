@@ -29,7 +29,9 @@
 // Backend-Entscheidung in docs/STAND.md. Für eine öffentliche Adresse
 // braucht es zusätzlich API_TOKEN und einen Proxy, der TLS beendet.
 
-import { resolve, sep } from "node:path";
+import { resolve, sep, join } from "node:path";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { statSync, readFileSync } from "node:fs";
 // Wo die Bilder liegen dürfen — eigene Datei, weil daran schon einmal echte
 // Träume verloren gegangen sind (src/lib/mediaRoot.test.js).
@@ -1725,9 +1727,31 @@ async function jobStatus(id) {
 // Dictation: the client records audio (MediaRecorder) and sends it as a
 // base64 data URI; Wizper auto-detects the spoken language, so German and
 // English both come back as written text without a language toggle.
-async function falTranscribe(audioDataUri) {
+/* ⚠ fal.run nimmt Audio als Data-URL NUR als audio/mpeg an (gemessen
+   12.09.2026: audio/mp4, m4a, x-m4a, wav und audio/mp3 → 400 „Unsupported
+   data URL"). Die native App nimmt m4a/AAC auf — hier wird deshalb alles,
+   was nicht mp3 ist, mit ffmpeg nach mp3 (64 kbit, mono) gewandelt: ein
+   Minutentraum sind ~0,5 MB. Ohne ffmpeg bleibt nur der Fehler. */
+async function toMp3DataUri(dataUri) {
+  const m = /^data:(audio\/[\w.+-]+);base64,(.*)$/s.exec(dataUri);
+  if (!m) throw new Error("TRANSCRIBE_FAILED");
+  if (m[1] === "audio/mpeg") return dataUri;
+  const dir = await mkdtemp(join(tmpdir(), "dr-stt-"));
+  const src = join(dir, "in.audio"), out = join(dir, "out.mp3");
+  try {
+    await Bun.write(src, Buffer.from(m[2], "base64"));
+    const p = Bun.spawnSync(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-ac", "1", "-b:a", "64k", out]);
+    if (!p.success) { console.error("[DreamRushes] ffmpeg transcode failed:", new TextDecoder().decode(p.stderr)); throw new Error("TRANSCRIBE_FAILED"); }
+    return `data:audio/mpeg;base64,${Buffer.from(await Bun.file(out).arrayBuffer()).toString("base64")}`;
+  } finally {
+    await rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+async function falTranscribe(audioDataUriIn) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
+  const audioDataUri = await toMp3DataUri(audioDataUriIn);
 
   const res = await fetch(`https://fal.run/${FAL_MODEL_STT}`, {
     method: "POST",

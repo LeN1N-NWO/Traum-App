@@ -1,10 +1,11 @@
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-import Animated, { FadeIn, FadeOut, ZoomIn } from "react-native-reanimated";
+import Animated, { Easing, FadeIn, FadeOut, ZoomIn } from "react-native-reanimated";
 import { Clip, PresetTile } from "@/components/preset-tile";
 import { Glass, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
@@ -54,21 +55,22 @@ export default function DreamStyleScreen() {
       <Modal visible={!!shown} transparent animationType="none" onRequestClose={() => setOpen(null)}>
         {shown ? (
           <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(150)} style={StyleSheet.absoluteFill}>
-            {isLiquidGlassAvailable()
-              ? <GlassView style={StyleSheet.absoluteFill} glassEffectStyle="regular" colorScheme="dark" />
-              : <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(5,10,20,0.9)" }]} />}
+            {/* Milchglas über dem Raster (Antons Bild: „wie durch milchiges Glas") */}
+            <BlurView intensity={70} tint="systemThickMaterialDark" style={StyleSheet.absoluteFill} />
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setOpen(null)} />
             <View style={styles.sheet} pointerEvents="box-none">
-              <Animated.View entering={ZoomIn.springify().damping(16).stiffness(180)} style={[styles.big, { width: width - 56, height: (width - 56) * 1.25 }]}>
+              {/* Sleek statt Bounce: kurzer Zoom mit auslaufender Kurve, keine Feder. */}
+              <Animated.View entering={ZoomIn.duration(240).easing(Easing.out(Easing.cubic))} style={[styles.big, { width: width - 48, height: (width - 48) * 1.4 }]}>
                 {shown.clip ? <Clip url={shown.clip} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky, alignItems: "center", justifyContent: "center" }]}><SymbolView name="paintbrush.pointed" size={64} tintColor={colors.accentSoft} /></View>}
-              </Animated.View>
-              <Text style={styles.name}>{shown.label}</Text>
-              <View style={{ width: width - 56, gap: 10 }}>
-                <PrimaryButton label={W?.useStyle ?? "Use this style"} heavy onPress={() => use(shown.id)} style={{ flex: 0 }} />
-                <Pressable onPress={() => setOpen(null)} style={{ alignSelf: "center" }} hitSlop={12}>
+                <LinearGradient colors={["rgba(5,10,20,0.6)", "rgba(5,10,20,0)", "rgba(5,10,20,0)", "rgba(5,10,20,0.7)"]} locations={[0, 0.3, 0.6, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+                <Text style={styles.name}>{shown.label}</Text>
+                <Pressable onPress={() => setOpen(null)} style={styles.closeWrap} hitSlop={12}>
                   <Glass style={styles.close} interactive><SymbolView name="xmark" size={14} tintColor={colors.text} weight="semibold" /></Glass>
                 </Pressable>
-              </View>
+                <View style={styles.useWrap}>
+                  <PrimaryButton label={W?.useStyle ?? "Use this style"} heavy onPress={() => use(shown.id)} style={{ flex: 0 }} />
+                </View>
+              </Animated.View>
             </View>
           </Animated.View>
         ) : null}
@@ -83,7 +85,9 @@ const styles = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" },
   sheet: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
   big: { borderRadius: 28, overflow: "hidden", backgroundColor: colors.bg2, shadowColor: "#000", shadowOpacity: 0.6, shadowRadius: 30, shadowOffset: { width: 0, height: 12 } },
-  name: { fontFamily: fonts.serif, fontSize: 28, color: colors.text, textAlign: "center" },
-  close: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  name: { position: "absolute", top: 18, left: 20, right: 64, fontFamily: fonts.serif, fontSize: 30, color: colors.text },
+  closeWrap: { position: "absolute", top: 14, right: 14 },
+  close: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  useWrap: { position: "absolute", left: 16, right: 16, bottom: 16 },
   bridge: { height: 0, overflow: "hidden" },
 });
