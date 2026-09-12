@@ -22,3 +22,7 @@ export const fonts = {
   sans: undefined as string | undefined,   // System (SF)
 };
 export const radius = { card: 20, lg: 26 };
+/* Die Glas-Tab-Leiste schwebt über dem Inhalt (iOS 26) und lässt sich nicht
+   messen (NativeTabs). Jeder scrollende Bildschirm hält unten so viel frei,
+   dass sein letzter Knopf über der Leiste steht — Antons Befund 12.09. */
+export const TAB_INSET = 112;

@@ -1,13 +1,13 @@
 import { Image } from "expo-image";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
-import { colors, fonts, radius } from "@/theme";
+import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 type Row = { name: string; kind: "person" | "place"; avatarId: string | null };
 type Lib = { id: string; tag: string; img: string | null; category: string };
@@ -25,7 +25,25 @@ export default function DreamCastScreen() {
   const [cast, setCast] = useState<CastData | null>(null);
   const [open, setOpen] = useState<string | null>(null);
 
-  useEffect(() => { ask({ type: "cast", analysis: w.analysis }).then((r) => { if (r.result) setCast(r.result); }); }, []);
+  /* Bei jedem Fokus neu fragen — nach „Neu anlegen" (Web-Dialog mit Foto)
+     steht das Foto in der Bibliothek; passt sein @tag zum Namen, ist es die
+     Wahl (wie CastStep.onCreated im Web). */
+  useFocusEffect(useCallback(() => {
+    ask({ type: "cast", analysis: w.analysis }).then((r) => {
+      if (!r.result) return;
+      setCast(r.result);
+      const lib: Lib[] = r.result.library;
+      const over = { ...w.assignmentOverrides };
+      let changed = false;
+      for (const row of [...r.result.people, ...r.result.places] as Row[]) {
+        if (over[row.name]) continue;
+        const hit = lib.find((l) => l.tag.toLowerCase() === row.name.toLowerCase().replace(/[^a-z0-9äöüß]/gi, ""));
+        if (hit) { over[row.name] = { avatarId: hit.id, free: false }; changed = true; }
+      }
+      if (changed) patchWizard({ assignmentOverrides: over });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [w.analysis]));
 
   const choice = (row: Row) => {
     const o = w.assignmentOverrides[row.name];
@@ -64,6 +82,11 @@ export default function DreamCastScreen() {
                   <View style={[styles.optImg, styles.thumbEmpty]}><SymbolView name="sparkles" size={20} tintColor={colors.accentSoft} /></View>
                   <Text style={styles.optText} numberOfLines={1}>{L.free}</Text>
                 </Pressable>
+                {/* Neu anlegen — mit Foto aus Kamera oder Mediathek (Web-Dialog). */}
+                <Pressable style={styles.opt} onPress={() => { Haptics.selectionAsync(); router.push({ pathname: "/profile/page", params: { page: "avatar", category: kind, tag: row.name } }); }}>
+                  <View style={[styles.optImg, styles.thumbEmpty]}><SymbolView name="camera.fill" size={20} tintColor={colors.accentSoft} /></View>
+                  <Text style={styles.optText} numberOfLines={1}>{L.createNew}</Text>
+                </Pressable>
                 {options.map((l) => (
                   <Pressable key={l.id} style={[styles.opt, c.avatar?.id === l.id && styles.optOn]} onPress={() => set(row.name, { avatarId: l.id, free: false })}>
                     {l.img ? <Image source={{ uri: l.img }} style={styles.optImg} contentFit="cover" /> : <View style={[styles.optImg, styles.thumbEmpty]} />}
@@ -89,7 +112,7 @@ export default function DreamCastScreen() {
           </>
         ) : null}
         <Pressable style={styles.primary} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/dream/style"); }}>
-          <Text style={styles.primaryText}>Continue</Text>
+          <Text style={styles.primaryText}>{W?.next ?? "Continue"}</Text>
         </Pressable>
       </ScrollView>
       <View style={styles.bridge}>{bridge}</View>
@@ -98,7 +121,7 @@ export default function DreamCastScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 60, gap: 18 },
+  content: { padding: 20, paddingBottom: TAB_INSET, gap: 18 },
   section: { gap: 10 },
   h: { fontFamily: fonts.serif, fontSize: 28, color: colors.text, marginTop: 4 },
   lede: { color: colors.muted, fontSize: 14, lineHeight: 20 },

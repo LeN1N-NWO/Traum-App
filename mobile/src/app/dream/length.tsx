@@ -5,7 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
-import { colors, fonts, radius } from "@/theme";
+import { colors, fonts, radius, TAB_INSET } from "@/theme";
 // Dieselbe Preisrechnung wie Wizard und Server (src/lib/quote.js, reine Logik).
 import { quoteFor } from "../../../../src/lib/quote.js";
 import { clampSeconds } from "../../../../src/lib/video.js";
@@ -95,7 +95,7 @@ export default function DreamLengthScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 60, gap: 12 },
+  content: { padding: 20, paddingBottom: TAB_INSET, gap: 12 },
   title: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 34, color: colors.text, marginTop: 8 },
   label: { color: colors.faint, fontSize: 11, letterSpacing: 1.8, fontWeight: "600", textTransform: "uppercase", marginTop: 8 },
   row: { flexDirection: "row", gap: 10, flexWrap: "wrap" },

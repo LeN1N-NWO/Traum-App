@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
-import { colors, fonts, radius } from "@/theme";
+import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Das Profil, nativ: Gesicht, Name, Guthaben, zwei Zahlen. Foto/Name,
    Einstellungen und das Kaufblatt sind noch Web-Blätter (page.tsx). */
@@ -77,7 +77,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: 16, paddingBottom: 40, gap: 14 },
+  content: { paddingHorizontal: 16, paddingBottom: TAB_INSET, gap: 14 },
   hero: { alignItems: "center", gap: 6, paddingVertical: 12 },
   faceRing: { padding: 4, borderRadius: 999, borderWidth: 1, borderColor: colors.panelLine, marginBottom: 8 },
   face: { width: 168, height: 168, borderRadius: 84, backgroundColor: colors.bg2 },

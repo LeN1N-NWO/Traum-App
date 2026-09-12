@@ -6,7 +6,7 @@ import { PresetTile } from "@/components/preset-tile";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, TAB_INSET } from "@/theme";
 
 /* Schritt 2, nativ: der Stil — die Kacheln, in denen die Filme laufen
    (Antons „diese Dynamik muss beibehalten werden"). Zehn in der ersten
@@ -50,7 +50,7 @@ export default function DreamStyleScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, paddingBottom: 60, gap: 14 },
+  content: { padding: 16, paddingBottom: TAB_INSET, gap: 14 },
   title: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 34, color: colors.text, marginTop: 8, marginLeft: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   more: { alignSelf: "center", paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },

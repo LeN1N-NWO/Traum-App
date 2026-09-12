@@ -7,7 +7,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
-import { colors, fonts, radius } from "@/theme";
+import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Die Startseite, nativ (12.09.2026). Als Plakat, wie im Web entschieden
    (09.08.): das Faultier-Video in einer gerahmten Karte, Titel und der eine
@@ -155,7 +155,7 @@ function HeroVideo() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 40, gap: 14 },
+  content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: TAB_INSET, gap: 14 },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 2 },
   greeting: { color: colors.muted, fontSize: 15 },
   pill: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },

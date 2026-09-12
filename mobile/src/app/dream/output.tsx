@@ -5,11 +5,14 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
-import { colors, fonts, radius } from "@/theme";
+import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Schritt 2 (Step2Output.jsx): Was soll daraus werden? Nur speichern —
-   gratis, direkt ins Journal. Eine Bildergeschichte ab N. Ein Film ab N.
-   Preise wie im Web aus pricing.js/video.js. */
+   gratis, direkt ins Journal — oder ein Film ab N (Preis aus video.js).
+   Die Bildergeschichte gibt es nativ NICHT mehr: Dream Rushes ist ein
+   Videoprodukt (Antons Entscheidung 31.08., bestätigt 12.09.: „Wir haben
+   die Bilder komplett gekickt"). Der Web-Schritt zeigt sie noch, bis
+   Phase 3 (nur noch Film) dort durch ist. */
 export default function DreamOutputScreen() {
   const router = useRouter();
   const { data, bridge, send } = useJournal();
@@ -21,7 +24,6 @@ export default function DreamOutputScreen() {
         send({ type: "saveDream", text: w.text, originalText: w.originalText, analysis: w.analysis, title: w.analysis?.title || "", tagline: w.analysis?.tagline || "" });
         router.navigate("/journal");
       } },
-    { key: "images", sf: "photo.on.rectangle", title: W?.images, hint: W?.imagesHint, price: `${W?.from ?? "from"} ${W?.imagesFrom ?? ""}`, onPress: () => { Haptics.selectionAsync(); patchWizard({ mode: "images" }); router.push("/dream/cast"); } },
     { key: "film", sf: "film", title: W?.film, hint: W?.filmHint, price: `${W?.from ?? "from"} ${W?.filmFrom ?? ""}`, onPress: () => { Haptics.selectionAsync(); patchWizard({ mode: "film" }); router.push("/dream/cast"); } },
   ];
   return (
@@ -43,7 +45,7 @@ export default function DreamOutputScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 60, gap: 12 },
+  content: { padding: 20, paddingBottom: TAB_INSET, gap: 12 },
   title: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 34, color: colors.text, marginTop: 4, marginBottom: 6 },
   choice: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   icon: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" },

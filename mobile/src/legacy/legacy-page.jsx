@@ -15,19 +15,20 @@ import Settings from "../../../src/screens/Profile/Settings.jsx";
 import AvatarDialog from "../../../src/components/AvatarDialog.jsx";
 import Paywall from "../../../src/screens/Profile/Paywall.jsx";
 
-function Page({ page, onClose }) {
+function Page({ page, category, tag, onClose }) {
   const close = () => onClose();
   if (page === "settings") return <Settings onClose={close} />;
-  if (page === "avatar") return <AvatarDialog category="me" onClose={close} />;
+  if (page === "avatar" && category) return <AvatarDialog category={category} suggestedName={tag || ""} onClose={close} onCreated={close} />;
+  if (page === "avatar") return <AvatarDialog category="me" isMe onClose={close} />;
   if (page === "paywall") return <Paywall reason="browse" onClose={close} />;
   return null;
 }
 
-export default function LegacyPage({ page, onClose, dom }) {
+export default function LegacyPage({ page, category, tag, onClose, dom }) {
   return (
     <AppStateProvider>
       <HashRouter>
-        <Page page={page} onClose={onClose} />
+        <Page page={page} category={category} tag={tag} onClose={onClose} />
         <ToastBridge />
         <PaywallBridge />
       </HashRouter>

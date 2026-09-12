@@ -7,7 +7,7 @@ import { DreamCalendar } from "@/components/dream-calendar";
 import { DreamDeck } from "@/components/dream-deck";
 import { DreamRow } from "@/components/dream-row";
 import { useJournal } from "@/components/journal-data";
-import { colors, fonts, radius } from "@/theme";
+import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Das Journal, nativ — der Aufbau ist der des Web (JournalScreen.jsx),
    nur das Material ist neu: Kopf mit Titel und Zahl, Suche und Ansicht-
@@ -77,7 +77,7 @@ function Room({ title, text, onPress, disabled }: { title: string; text: string;
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 16, paddingBottom: 32 },
+  content: { paddingHorizontal: 16, paddingBottom: TAB_INSET },
   sub: { color: colors.faint, fontSize: 13, marginLeft: 2, marginBottom: 4 },
   empty: { color: colors.muted, textAlign: "center", marginVertical: 40, fontSize: 15 },
   list: { marginTop: 4 },

@@ -119,6 +119,14 @@ curl. Bun, Ruby, Python, Git sind frei — also alles daran vorbeigebaut:
   werden?" (Step2Output.jsx): nur speichern (gratis, Brücke `saveDream` mit
   Wesen und Serie), Bildergeschichte ab N, Film ab N. Bilder-Modus läuft bis
   Schritt 5 nativ, dann die Web-Seite mit Anzahl und Preis (kein autoRender).
+- **Antons zweiter Durchklick (10:25):** (1) Knöpfe unter der Glas-Leiste —
+  jeder scrollende Bildschirm hält jetzt `TAB_INSET` (112 pt) unten frei.
+  (2) „Eine Bildergeschichte" raus aus Schritt 2 — Videoprodukt (31.08.),
+  nativ gibt es nur speichern oder Film. (3) Besetzung: „Aus der
+  Bibliothek" zeigte bei leerer Bibliothek nichts; jetzt immer „KI
+  erfindet", **„Neu anlegen" (Web-Dialog mit Kamera/Mediathek,
+  suggestedName = Traumname)** und die Bibliothek; beim Zurückkommen wird
+  neu gefragt und ein passender @tag automatisch gewählt.
 
 ### Was der Nächste wissen muss
 

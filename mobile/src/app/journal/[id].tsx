@@ -6,7 +6,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { useState } from "react";
 import { Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
-import { colors, fonts, radius } from "@/theme";
+import { colors, fonts, radius, TAB_INSET } from "@/theme";
 import type { DreamItem } from "@/store/journal-store";
 
 /* Die Traum-Seite, nativ (12.09.2026) — zum Lesen und Sehen: der Film groß
@@ -149,7 +149,7 @@ function FilmHero({ url }: { url: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingBottom: 48 },
+  content: { paddingBottom: TAB_INSET },
   hero: { width: "100%", backgroundColor: colors.bg2, overflow: "hidden" },
   titleBlock: { position: "absolute", left: 20, right: 20, bottom: 18, gap: 8 },
   eyebrow: { color: colors.faint, fontSize: 11, letterSpacing: 2.2, fontWeight: "600" },

@@ -6,7 +6,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
-import { colors, fonts, radius } from "@/theme";
+import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Schritt 1 — der Aufbau des Web (Step1Dream.jsx): Erzählen kommt zuerst
    und ist das Größte auf dem Bildschirm, das ist der halbwache Fall, für den
@@ -101,7 +101,7 @@ export default function DreamTextScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 20, paddingBottom: 60, gap: 14 },
+  content: { padding: 20, paddingBottom: TAB_INSET, gap: 14 },
   title: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 38, color: colors.text, marginTop: 8 },
   tell: { flexDirection: "row", alignItems: "center", gap: 16, padding: 18, borderRadius: radius.lg, backgroundColor: colors.warm },
   tellIcon: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(5,10,20,0.18)" },
