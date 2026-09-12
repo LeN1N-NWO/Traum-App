@@ -16,7 +16,12 @@ import { refreshStreak, streakAtRisk, bumpStreak, STREAK_CAP } from "../../../sr
 import { hasPendingJobs } from "../../../src/lib/collector.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
-import { totalCredits } from "../../../src/lib/credits.js";
+import { totalCredits, spend } from "../../../src/lib/credits.js";
+import { analyze } from "../../../src/lib/api.js";
+import { PRICES } from "../../../src/lib/pricing.js";
+import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
+import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
+import { styleById } from "../../../src/lib/styles.js";
 import { filmsOf, filmOf, imagesOf } from "../../../src/lib/entryMedia.js";
 import { isBlank } from "../../../src/lib/blankNight.js";
 import { mediaUrl } from "../../../src/lib/api.js";
@@ -95,13 +100,51 @@ function snapshot() {
     settings: t.profile.settings, surveyDone: !!s.surveyDone,
     surveyTitle: t.onboarding.profileCard, surveyHint: t.onboarding.profileCardHint,
   };
-  return { language: s.language || "en", items, labels, home, sleep, profile };
+  const w5 = t.wizard.step5;
+  const wizard = {
+    title: t.wizard.step1.title, next: t.wizard.next, read: t.wizard.step1.improve, reading: t.wizard.step1.reading,
+    tooShort: t.wizard.tooShort, previewTitle: t.wizard.step1.previewTitle, previewLede: t.wizard.step1.previewLede,
+    yours: t.wizard.step1.yours, improved: t.wizard.step1.improved, keepMine: t.wizard.step1.keepMine, useImproved: t.wizard.step1.useImproved,
+    styleTitle: w5.title, styleLabel: w5.styleLabel, moreStyles: w5.moreStyles(PRESETS.filter((p) => p.id !== DREAMFLOW && !styleById(p.styleId)?.featured).length),
+    lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
+    readPrice: PRICES.improve, noCredits: t.wizard.noCreditsCta,
+    presets: PRESETS.map((p) => ({
+      id: p.id, styleId: p.styleId, pace: p.pace || null, wide: !!p.wide, emoji: p.emoji || "",
+      label: p.id === DREAMFLOW ? w5.presets.dreamflow : (t.styles.byId[p.styleId]?.label || p.styleId),
+      clip: p.clip ? absolute(p.clip) : null, featured: p.id === DREAMFLOW || !!styleById(p.styleId)?.featured,
+    })),
+    models: VIDEO_MODELS.map((m) => ({
+      id: m.id, name: w5.filmModels[m.id]?.name || m.id, hint: w5.filmModels[m.id]?.hint || "",
+      min: m.min, max: m.max, step: m.step, preset: m.preset, preferred: m.preferred,
+      qualities: Object.keys(m.qualities).map((q) => ({ id: q, name: w5.qualityNames?.[q] || q })),
+    })),
+    paces: PACE_IDS.map((id) => ({ id, name: w5.paceNames?.[id] || id, hint: w5.paceHints?.[id] || "" })),
+  };
+  return { language: s.language || "en", items, labels, home, sleep, profile, wizard };
 }
 
 /* Befehle nativ → Web: Die Hülle kann den Web-Speicher nicht schreiben, also
    tut es die Brücke mit denselben Helfern wie die Web-Seite. `command` ist
    { n, type, … }; `n` steigt je Befehl, damit derselbe Befehl nicht zweimal
    läuft. */
+/* Die Traumlesung (Analyse): kostet PRICES.improve, wie im Web — Kassen-
+   prüfung vorher, abgebucht erst nach gelungenem Aufruf. Antwort geht per
+   `onResult` zurück. */
+async function runAsync(cmd, onResult) {
+  if (cmd.type !== "analyze") return false;
+  const s = loadState();
+  const paid = spend(s, PRICES.improve);
+  if (!paid) { onResult({ n: cmd.n, error: "nocredits" }); return true; }
+  try {
+    const result = await analyze(cmd.text);
+    saveState({ ...loadState(), ...paid });
+    onResult({ n: cmd.n, result });
+  } catch (e) {
+    onResult({ n: cmd.n, error: e?.message || String(e) });
+  }
+  return true;
+}
+
 function run(cmd) {
   const s = loadState();
   let patch = null;
@@ -111,7 +154,7 @@ function run(cmd) {
   if (patch) saveState({ ...s, ...patch });
 }
 
-export default function JournalBridge({ onJournal, refreshTick = 0, command, dom }) {
+export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, dom }) {
   useEffect(() => {
     const push = () => { try { onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
     push();
@@ -120,7 +163,12 @@ export default function JournalBridge({ onJournal, refreshTick = 0, command, dom
   }, [onJournal, refreshTick]);
   useEffect(() => {
     if (!command) return;
-    try { run(command); onJournal(snapshot()); } catch (e) { console.warn("[bridge] command", e); }
+    (async () => {
+      try {
+        if (await runAsync(command, onResult || (() => {}))) { onJournal(snapshot()); return; }
+        run(command); onJournal(snapshot());
+      } catch (e) { console.warn("[bridge] command", e); }
+    })();
   }, [command?.n]);
   return null;
 }

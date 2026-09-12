@@ -81,6 +81,13 @@ curl. Bun, Ruby, Python, Git sind frei — also alles daran vorbeigebaut:
   Web-Blätter für Einstellungen/Avatar/Kaufblatt/Umfrage. ⚠ Tab-Screens
   bekommen den oberen Inset schon vom System — kein eigenes
   `insets.top` dazu, sonst doppelt.
+- **Wizard nativ** (Antons „neu denken … mach einfach"): drei native
+  Schritte (Text/Lesung, Stil-Kacheln mit laufenden Clips, Länge/Preis) und
+  der Auftrag im Web-Motor. Web-Änderungen minimal: `WizardShell` nimmt
+  `resume.prefill`/`autoRender`/`orderId`; `Step5Style` startet `run()`
+  einmal je Auftrag (sessionStorage-Wächter gegen StrictMode/Refresh).
+  Brücke: Befehl `analyze` mit Antwort (`onResult`, `ask()`), zahlt wie im
+  Web. Wizard-Zustand nativ in `store/wizard-store.ts`.
 
 ### Was der Nächste wissen muss
 

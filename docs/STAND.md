@@ -119,9 +119,23 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   reist als `history.state.usr` in den HashRouter); Profil mit Gesicht,
   Zahlen, Guthaben in der Toolbar, Einstellungen/Avatar/Kaufblatt als
   Web-Blätter (`profile/page.tsx` → `legacy-page.jsx`).
-  **Als Nächstes:** der Wizard (Traum-Tab) nativ — heute noch komplett Web —
-  und die Aktionen der Traum-Seite; dann die Web-Räume in Schlaf/Profil;
-  dann Datenschicht nach `expo-sqlite` und Brücke abbauen.
+  **Der Wizard ist nativ neu gedacht** (Antons Wort 12.09.: „neu denken,
+  nativ in Klick, Haptik, Animation — die laufenden Kacheln bleiben"):
+  `dream/index.tsx` erzählen (großes Feld, Lesung mit Preis, Vergleich
+  „deine Worte / aufgeräumt"), `dream/style.tsx` Stil-Kacheln mit laufenden
+  Clips (expo-video, Feder, Haptik; Dreamflow doppelt breit, „Mehr Stile"),
+  `dream/length.tsx` Modell, Qualität, Tempo, Länge (SwiftUI-Slider), Preis
+  aus `quoteFor` auf dem Knopf. **Der Auftrag läuft im Web-Motor**
+  (`dream/order.tsx` → `legacy-order.jsx` → WizardShell mit `resume.prefill`
+  + `autoRender`; `Step5Style` startet `run()` genau einmal je `orderId`,
+  Wächter in sessionStorage). Geldweg und Prompt-Kette unverändert; die
+  Lesung kostet über die Brücke wie im Web (`spend` vorher, Abbuchung nach
+  Erfolg). Stimme: `dream/voice.tsx` = Web-Wizard mit Gemini-Gespräch.
+  ⚠ Ungeprüft (niemand tippt hier): Lesung, Auftrag bis Schritt 6, Rückkehr
+  ins Journal. Besetzung/Orte (Schritt 3/4) sind nativ übersprungen — die
+  Analyse setzt sie automatisch (seedAssignments im Resume-Pfad).
+  **Als Nächstes:** Besetzung nativ (Fotos zuordnen), Stimme nativ, dann
+  die Web-Räume in Schlaf/Profil; dann Datenschicht nach `expo-sqlite`.
   Je Bildschirm nativ neu entwerfen, nicht das Web-Layout nachbauen.
   ⚠ NativeTabs ist Alpha, SDK 57.0.x. ⚠ Ungeprüft, weil hier niemand tippen
   kann: Fassungswechsel, Teilen, „…" → Web-Seite → zurück.

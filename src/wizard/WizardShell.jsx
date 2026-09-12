@@ -65,6 +65,12 @@ export default function WizardShell() {
         fallback: resume.fallback === true,
         styleId: analysis?.style || "dreamlike",
         step: 3,
+        /* Vorbelegung aus der nativen Hülle (ADR-0006, 12.09.2026): Die
+           nativen Wizard-Schritte sammeln Stil, Tempo, Modell, Qualität und
+           Länge; hier läuft nur noch der Auftrag — mit `autoRender` sofort,
+           ohne dass jemand die Web-Kachel noch einmal sieht. */
+        ...(resume.prefill || {}),
+        ...(resume.autoRender ? { autoRender: true, orderId: resume.orderId || null } : {}),
       });
       if (analysis) seedAssignments(analysis);
       setSeeding(false);

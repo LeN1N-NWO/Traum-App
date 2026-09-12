@@ -21,8 +21,17 @@ export type ProfileData = {
   dreams: number; streak: number; statDreams: string; statStreak: string; settings: string;
   surveyDone: boolean; surveyTitle: string; surveyHint: string;
 };
-export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak"; level?: number };
+export type WizardPreset = { id: string; styleId: string; pace: string | null; wide: boolean; emoji: string; label: string; clip: string | null; featured: boolean };
+export type WizardModel = { id: string; name: string; hint: string; min: number; max: number; step: number; preset: number; preferred: string; qualities: { id: string; name: string }[] };
+export type WizardData = {
+  title: string; next: string; read: string; reading: string; tooShort: string; previewTitle: string; previewLede: string;
+  yours: string; improved: string; keepMine: string; useImproved: string; styleTitle: string; styleLabel: string; moreStyles: string;
+  lengthLabel: string; qualityLabel: string; modelLabel: string; paceLabel: string; generate: string; credit1: string; creditN: string; readPrice: number; noCredits: string;
+  presets: WizardPreset[]; models: WizardModel[]; paces: { id: string; name: string; hint: string }[];
+};
+export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze"; level?: number; text?: string };
+export type BridgeResult = { n: number; result?: any; error?: string };
 
 let snapshot: JournalSnapshot | null = null;
 const listeners = new Set<() => void>();

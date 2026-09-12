@@ -158,6 +158,18 @@ export default function Step5Style({ w, patch }) {
      weg ist (`if (busy) return …`). Er kommt erst NACH den Wächtern in den
      Zustand: Wer nicht genug Credits hat, sieht das Kaufblatt, keinen
      Frosch. */
+  /* Auftrag aus der nativen Hülle: Der Mensch hat dort schon bestätigt
+     (Preis stand auf dem Knopf). Genau EINMAL starten — der Wächter in
+     sessionStorage überlebt StrictMode-Doppelmounts und Fast Refresh. */
+  useEffect(() => {
+    if (!w.autoRender || !w.orderId) return;
+    const key = "dr_order_" + w.orderId;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [w.autoRender, w.orderId]);
+
   async function run(tapRect = null) {
     if (running.current) return;
     /* Nur die Kassenprüfung — abgebucht wird später, Auftrag für Auftrag
