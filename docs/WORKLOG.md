@@ -3,6 +3,26 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 17:45 — Anton — Branch `session/2026-09-12-anton-b` — Sitzungsabschluss (wrap)
+
+**Commits:** `311fcef` (Vollbild + Teilen als Datei), `079a9aa` und
+`bbac3df` (Ton-/Vollbild-Knopf, Tipp-Fix), `5bc404c` (Fassungen wischen,
+eigenes Vollbild, Reflexion, Aufnahme-Weg), `f7a5fc7`, `12885cb` (neue
+Fassung nativ), `55e81d4`.
+
+**Was der Nächste wissen muss:** Alles aus dieser Sitzung ist am Gerät
+UNGEPRÜFT bis auf die Sichtbarkeit (Screenshots) — Antons erster echter
+Durchlauf steht aus: Vollbild schließen, Ton, Fassungen wischen, Reflexion,
+Aufnahme am nächsten Traum, „Nochmal, anders". Lint mobile 0 Fehler / 37
+Warnungen, Web 564 Tests grün.
+
+**Zwei Fallen aus dieser Sitzung, die man nur einmal sieht:**
+1. Ein `LinearGradient` über einem Video schluckt JEDEN Tipp darunter —
+   `pointerEvents="none"` gehört an jede dekorative Schicht.
+2. Das System-Vollbild von `expo-video` (`enterFullscreen()`) hat ohne
+   `nativeControls` keinen Rückweg: der Mensch sitzt im Film fest. Wir
+   zeigen deshalb ein eigenes Blatt mit X und Systemreglern.
+
 ## 2026-09-12 17:20 — Anton — Branch `session/2026-09-12-anton-b` — Vollbild mit Ton, Teilen als Datei
 
 **Anton:** Beim Teilen soll „in die Kamera rollen" (Fotos) möglich sein;
