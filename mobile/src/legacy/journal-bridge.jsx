@@ -22,6 +22,7 @@ import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
 import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
 import { styleById } from "../../../src/lib/styles.js";
+import { autoMatch } from "../../../src/wizard/useWizard.js";
 import { filmsOf, filmOf, imagesOf } from "../../../src/lib/entryMedia.js";
 import { isBlank } from "../../../src/lib/blankNight.js";
 import { mediaUrl } from "../../../src/lib/api.js";
@@ -131,6 +132,26 @@ function snapshot() {
    prüfung vorher, abgebucht erst nach gelungenem Aufruf. Antwort geht per
    `onResult` zurück. */
 async function runAsync(cmd, onResult) {
+  if (cmd.type === "cast") {
+    /* Die Besetzung für die native Zuordnung: Namen aus der Analyse mit dem
+       Auto-Treffer der Web-Logik (autoMatch) und die Bibliothek als Auswahl. */
+    const s = loadState();
+    const lib = [
+      ...(s.me?.img ? [{ id: "me", tag: "me", img: s.me.img, category: "person" }] : []),
+      ...(s.cast || []).map((c) => ({ id: c.id, tag: c.tag, img: c.img || null, category: c.category || "person" })),
+    ];
+    const row = (name, kind) => { const m = autoMatch(name, s.cast, s.me); return { name, kind, avatarId: m ? (m.id || null) : null }; };
+    const a = cmd.analysis || {};
+    onResult({ n: cmd.n, result: {
+      people: (a.people || []).map((x) => row(typeof x === "string" ? x : x.name, "person")),
+      places: (a.places || []).map((x) => row(typeof x === "string" ? x : x.name, "place")),
+      library: lib,
+      labels: { people: t.wizard.step3.title, peopleLede: t.wizard.step3.lede, peopleEmpty: t.wizard.step3.empty,
+                places: t.wizard.step4.title, placesLede: t.wizard.step4.lede, placesEmpty: t.wizard.step4.empty,
+                free: t.wizard.cast.freeSet, undecided: t.wizard.cast.undecided, choose: t.wizard.cast.choose, change: t.wizard.cast.change },
+    } });
+    return true;
+  }
   if (cmd.type !== "analyze") return false;
   const s = loadState();
   const paid = spend(s, PRICES.improve);

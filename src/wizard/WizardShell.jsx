@@ -20,9 +20,9 @@ const STEPS = [Step1Dream, Step2Output, Step3Cast, Step4Places, Step5Style, Step
    to be distracted by, only back, cancel and where you are. */
 export default function WizardShell() {
   const navigate = useNavigate();
-  const { toast } = useAppState();
+  const { toast, state } = useAppState();
   const wizard = useWizard();
-  const { w, patch, seedAssignments } = wizard;
+  const { w, patch, seedAssignments, assign } = wizard;
 
   /* Arriving from a dream that already exists — "make pictures of this one".
      The journal hands the whole dream over through the router, so the first
@@ -73,9 +73,20 @@ export default function WizardShell() {
         ...(resume.autoRender ? { autoRender: true, orderId: resume.orderId || null } : {}),
       });
       if (analysis) seedAssignments(analysis);
+      /* Zuordnungen aus der nativen Hülle: Die Web-Seite hat gesät (Namen,
+         Hinweise, Auto-Treffer), der Mensch hat nativ gewählt — Foto aus
+         der Bibliothek oder „die KI erfindet es". Gilt je Name. */
+      for (const [name, o] of Object.entries(resume.assignmentOverrides || {})) {
+        if (o?.free) assign(name, { free: true, avatar: undefined });
+        else if (o?.avatarId === "me" && state.me?.img) assign(name, { avatar: { tag: "me", img: state.me.img, desc: "", id: "me" }, free: false });
+        else if (o?.avatarId) {
+          const av = (state.cast || []).find((c) => c.id === o.avatarId);
+          if (av) assign(name, { avatar: av, free: false });
+        }
+      }
       setSeeding(false);
     })();
-  }, [resume, patch, seedAssignments, toast]);
+  }, [resume, patch, seedAssignments, assign, toast]);
 
   const Step = STEPS[w.step - 1];
   /* Which way the step moved, remembered until the NEXT step change. Worked

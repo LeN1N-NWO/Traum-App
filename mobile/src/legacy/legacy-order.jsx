@@ -22,7 +22,7 @@ export default function LegacyOrder({ order, dom }) {
       text: order.text, originalText: order.originalText || order.text, analysis: order.analysis,
       title: order.analysis?.title || "", tagline: order.analysis?.tagline || "", mode: "film", urls: [],
       prefill: { styleId: order.styleId, pace: order.pace, videoModel: order.videoModel, quality: order.quality, seconds: order.seconds, step: 5 },
-      autoRender: true, orderId: order.orderId,
+      autoRender: true, orderId: order.orderId, assignmentOverrides: order.assignmentOverrides || {},
     };
     window.history.replaceState({ usr: { resume } }, "", "#/dream");
   }

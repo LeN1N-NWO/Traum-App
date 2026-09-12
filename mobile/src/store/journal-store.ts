@@ -30,7 +30,7 @@ export type WizardData = {
   presets: WizardPreset[]; models: WizardModel[]; paces: { id: string; name: string; hint: string }[];
 };
 export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze"; level?: number; text?: string };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast"; level?: number; text?: string; analysis?: any };
 export type BridgeResult = { n: number; result?: any; error?: string };
 
 let snapshot: JournalSnapshot | null = null;

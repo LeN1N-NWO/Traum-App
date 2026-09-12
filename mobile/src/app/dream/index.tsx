@@ -38,7 +38,7 @@ export default function DreamTextScreen() {
     Haptics.selectionAsync();
     patchWizard({ text: useImproved ? a.text : clean, originalText: clean, analysis: useImproved ? a : { ...a, text: clean }, styleId: a?.style || "ultrareal" });
     setPreview(null);
-    router.push("/dream/style");
+    router.push("/dream/cast");
   }
 
   return (
