@@ -26,7 +26,7 @@ Profil und Stimme: kein ×, Tab-Leiste da, kein Kopf.
 war seit ~12:00 aus — wieder gestartet. Dazu fehlten in `Info.plist`
 `NSMicrophoneUsageDescription` (und Kamera/Fotos): jetzt in `app.json`
 (greift nach `prebuild:ios`) und lokal per `plutil` eingetragen; Xcode-
-Rebuild läuft. ⚠ Prod-Bau lädt DOM von `file://` → kein sicherer
+Rebuild grün, App neu installiert, Mikrofon-Text im Bundle geprüft. ⚠ Prod-Bau lädt DOM von `file://` → kein sicherer
 Kontext für `getUserMedia`; die Stimme muss nativ werden.
 
 ## 2026-09-12 11:05 — Anton — Branch `session/2026-09-11-anton-expo` — Kaufblatt und Mischpult nativ, Glas-Knöpfe, Antons sechs Befunde
