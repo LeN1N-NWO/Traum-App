@@ -10,7 +10,12 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "app.dreamrushes",
-      "infoPlist": { "UIBackgroundModes": ["audio"] }
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"],
+        "NSMicrophoneUsageDescription": "Dream Rushes listens while you tell your dream.",
+        "NSCameraUsageDescription": "Dream Rushes takes a photo for a person or place in your cast.",
+        "NSPhotoLibraryUsageDescription": "Dream Rushes picks a photo for a person or place in your cast."
+      }
     },
     "android": {
       "adaptiveIcon": {
