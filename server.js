@@ -76,7 +76,7 @@ import { openDatabase, withUser, fromJsonb } from "./src/lib/db.js";
 import { parseBearer, authConfig, passwordLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
 // Traum ⇄ Datenbankzeile. Eigene Datei, weil dort die Regel „nur die Tags,
 // nie die Fotos dahinter" serverseitig erzwungen wird (dreamRow.test.js).
-import { toRow, fromRow } from "./src/lib/dreamRow.js";
+import { toRow, fromRow, MAX_JSON } from "./src/lib/dreamRow.js";
 // Listen kommen seitenweise, nie am Stück (paging.test.js).
 import { parseLimit, decodeCursor, buildPage } from "./src/lib/paging.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
@@ -3073,6 +3073,9 @@ const serveOptions = {
     }
 
     if (url.pathname === "/api/auth/refresh" && req.method === "POST") {
+      if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+        return json({ error: "Request too large." }, 413);
+      }
       const body = await req.json().catch(() => null);
       const r = await refreshSession(body?.refresh_token, { config: AUTH });
       if (!r.ok) return json({ error: r.error }, r.status);
@@ -3113,8 +3116,7 @@ const serveOptions = {
           return json({
             ok: true,
             user: { id: person.userId, email: person.email },
-            // survey ist jsonb — und das kommt als Text zurück (db.js).
-            profile: konto.profil ? { ...konto.profil, survey: fromJsonb(konto.profil.survey) } : null,
+            profile: profilFuerClient(konto.profil),
             /* Nur lesend. Guthaben bewegt sich ausschließlich über
                server_spend()/server_grant() — die Rolle dieses Servers darf
                auf diese Tabelle gar nicht schreiben (server_role.sql). */
@@ -3126,46 +3128,89 @@ const serveOptions = {
         }
 
         if (url.pathname === "/api/account" && req.method === "PATCH") {
+          if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+            return json({ error: "Request too large." }, 413);
+          }
           const body = await req.json().catch(() => null);
           if (!body || typeof body !== "object") return json({ error: "Nothing to update." }, 400);
+
+          /* ⚠ `survey` ist das einzige Feld, dessen FORM dem Client gehört
+             (jsonb, „damit ein neues Feld keine Migration bedeutet") — und
+             damit das einzige, in das er beliebig viel schreiben könnte.
+             Dieselbe Grenze wie für analysis/reflection am Traum, aus
+             derselben Datei: eine zweite Zahl liefe irgendwann auseinander.
+             Laut abgelehnt statt still gekürzt: eine halbe Umfrage ist
+             schlimmer als gar keine, weil niemand merkt, dass sie fehlt. */
+          if (body.survey !== undefined && body.survey !== null) {
+            const groesse = (() => { try { return JSON.stringify(body.survey).length; } catch { return Infinity; } })();
+            if (groesse > MAX_JSON) {
+              return json({ error: `Survey too large (max ${MAX_JSON} bytes).`, max: MAX_JSON }, 413);
+            }
+          }
 
           /* Erlaubte Liste, keine Durchreiche: `streak` und `last_dream_on`
              fehlen hier mit Absicht — wer eine Serie selbst setzen kann,
              hat keine Serie. Die gehören dorthin, wo die Regel dafür
-             entsteht, nicht in einen Client-Aufruf. */
-          const felder = {
-            display_name: typeof body.display_name === "string" ? body.display_name.slice(0, 120) : undefined,
-            language: typeof body.language === "string" ? body.language.slice(0, 16) : undefined,
-            voice: typeof body.voice === "string" ? body.voice.slice(0, 64) : undefined,
-            onboarded: typeof body.onboarded === "boolean" ? body.onboarded : undefined,
-            survey_done: typeof body.survey_done === "boolean" ? body.survey_done : undefined,
-            survey: body.survey && typeof body.survey === "object" ? body.survey : undefined,
+             entsteht, nicht in einen Client-Aufruf.
+
+             ⚠ „Nicht mitgeschickt" und „auf leer gesetzt" sind ZWEI Dinge.
+             Bis zum 12.09. waren sie eins (coalesce), und damit konnte man
+             einen einmal gesetzten Anzeigenamen nie wieder loswerden — ein
+             Mensch, der ihn zurücknehmen will, muss das können. Also
+             entscheidet ab hier die ANWESENHEIT des Schlüssels, nicht sein
+             Wert: fehlt er, bleibt die Spalte; steht er auf null, wird
+             geleert. Die beiden Ja/Nein-Felder können nicht leer werden,
+             die Spalte lässt es nicht zu (not null). */
+          const mitgeschickt = (k) => Object.prototype.hasOwnProperty.call(body, k);
+          const text = (k, max) => {
+            const v = body[k];
+            if (v === null) return null;
+            if (typeof v !== "string") return Symbol.for("falsch");
+            return v.slice(0, max);
           };
+
+          const felder = {
+            display_name: mitgeschickt("display_name") ? text("display_name", 120) : undefined,
+            language: mitgeschickt("language") ? text("language", 16) : undefined,
+            voice: mitgeschickt("voice") ? text("voice", 64) : undefined,
+            onboarded: mitgeschickt("onboarded") && typeof body.onboarded === "boolean" ? body.onboarded : undefined,
+            survey_done: mitgeschickt("survey_done") && typeof body.survey_done === "boolean" ? body.survey_done : undefined,
+            survey: mitgeschickt("survey")
+              ? (body.survey === null ? null
+                 : typeof body.survey === "object" ? body.survey : Symbol.for("falsch"))
+              : undefined,
+          };
+          const falsch = Object.entries(felder).filter(([, v]) => v === Symbol.for("falsch")).map(([k]) => k);
+          if (falsch.length) {
+            return json({ error: `Wrong type for: ${falsch.join(", ")}.`, felder: falsch }, 400);
+          }
           const gesetzt = Object.fromEntries(Object.entries(felder).filter(([, v]) => v !== undefined));
           if (!Object.keys(gesetzt).length) return json({ error: "No known field to update." }, 400);
 
-          /* Ausgeschriebene Spalten statt eines dynamisch gebauten SET:
-             `coalesce(Wert, Spalte)` heißt „nicht mitgeschickt = unverändert".
-             Damit steht hier eine feste, lesbare Abfrage, und ein Feld kann
-             nicht versehentlich zum Spaltennamen werden. Ein Feld gezielt zu
-             LEEREN geht so nicht — braucht es das, bekommt es einen eigenen,
-             bewussten Weg. */
+          /* Ausgeschriebene Spalten statt eines dynamisch gebauten SET: eine
+             feste, lesbare Abfrage, in der ein Feldname des Clients niemals
+             zum Spaltennamen werden kann. Das `case when <mitgeschickt>`
+             trägt die Unterscheidung von oben bis in die Spalte: nur was
+             wirklich im Körper stand, wird überhaupt geschrieben. */
+          const hat = (k) => k in gesetzt;
           const profil = await withUser(database, person.userId, async (tx) => {
             const [zeile] = await tx`
               update public.profiles set
-                display_name = coalesce(${gesetzt.display_name ?? null}, display_name),
-                language     = coalesce(${gesetzt.language ?? null}, language),
-                voice        = coalesce(${gesetzt.voice ?? null}, voice),
-                onboarded    = coalesce(${gesetzt.onboarded ?? null}, onboarded),
-                survey_done  = coalesce(${gesetzt.survey_done ?? null}, survey_done),
-                survey       = coalesce(${gesetzt.survey === undefined ? null : JSON.stringify(gesetzt.survey)}::jsonb, survey),
+                display_name = case when ${hat("display_name")} then ${gesetzt.display_name ?? null} else display_name end,
+                language     = case when ${hat("language")}     then ${gesetzt.language ?? null}     else language     end,
+                voice        = case when ${hat("voice")}        then ${gesetzt.voice ?? null}        else voice        end,
+                onboarded    = case when ${hat("onboarded")}    then ${gesetzt.onboarded ?? false}   else onboarded    end,
+                survey_done  = case when ${hat("survey_done")}  then ${gesetzt.survey_done ?? false} else survey_done  end,
+                survey       = case when ${hat("survey")}
+                                    then ${gesetzt.survey == null ? null : JSON.stringify(gesetzt.survey)}::jsonb
+                                    else survey end,
                 updated_at   = now()
                where id = ${person.userId}
               returning *`;
             return zeile;
           });
           if (!profil) return json({ error: "No profile for this account." }, 404);
-          return json({ ok: true, profile: { ...profil, survey: fromJsonb(profil.survey) } });
+          return json({ ok: true, profile: profilFuerClient(profil) });
         }
 
         /* Seitenweise, per Cursor — nie „alles". Ein Tagebuch wächst mit
@@ -3321,6 +3366,14 @@ const serveOptions = {
 };
 
 Bun.serve(serveOptions);
+
+/* Eine Profilzeile, wie der Client sie bekommt. Eigene Funktion, weil zwei
+   Endpunkte sie liefern (lesen und ändern) — und `survey` ist jsonb, kommt
+   also als Text aus dem Treiber zurück (fromJsonb in db.js). Stünde die
+   Umformung an beiden Stellen, würde sie irgendwann nur an einer gepflegt. */
+function profilFuerClient(zeile) {
+  return zeile ? { ...zeile, survey: fromJsonb(zeile.survey) } : null;
+}
 
 function json(obj, status = 200, extraHeaders) {
   return new Response(JSON.stringify(obj), {

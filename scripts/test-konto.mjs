@@ -66,6 +66,26 @@ const traum = (text) => ({
 
 console.log(`\nKonto-Prüfung gegen ${BASIS}\n`);
 
+/* ⚠ Aufräumen am ANFANG, nicht nur am Ende. Bricht ein Lauf mitten in einer
+   Prüfung ab, bleiben seine Träume sonst in der echten Datenbank stehen —
+   am 12.09.2026 genau so passiert. Der nächste Lauf kehrt sie weg, und zwar
+   bevor gezählt wird, damit alte Reste keine Ergebnisse verfälschen. */
+async function kehreAus(token) {
+  let weg = 0, cursor = null;
+  do {
+    const p = await ruf(`/api/dreams?limit=200${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, { token });
+    if (p.status !== 200) break;
+    for (const d of p.daten.dreams) {
+      if (String(d.id).startsWith("e_test_")) {
+        await ruf(`/api/dreams?client_id=${encodeURIComponent(d.id)}`, { methode: "DELETE", token });
+        weg++;
+      }
+    }
+    cursor = p.daten.next;
+  } while (cursor);
+  return weg;
+}
+
 // 1 + 2 + 3: die Tür
 const anmeldung = await ruf("/api/auth/login", { methode: "POST", koerper: { email: EMAIL, password: PASSWORT } });
 pruefe("anmelden ergibt eine Sitzung", anmeldung.status === 200 && !!anmeldung.daten?.access_token,
@@ -77,6 +97,8 @@ if (anmeldung.status !== 200) {
   process.exit(1);
 }
 const token = anmeldung.daten.access_token;
+const reste = await kehreAus(token);
+if (reste) console.log(`        (${reste} Rest-Traum/Träume aus einem früheren Lauf entfernt)`);
 
 const falsch = await ruf("/api/auth/login", { methode: "POST", koerper: { email: EMAIL, password: `${PASSWORT}-falsch` } });
 pruefe("falsches Passwort wird abgewiesen (401)", falsch.status === 401, `Status ${falsch.status}`);
@@ -160,6 +182,59 @@ const zuViele = await ruf("/api/dreams/sync", { methode: "POST", token,
 pruefe("ein zu großer Stapel wird abgelehnt (413)", zuViele.status === 413, `Status ${zuViele.status}`);
 
 for (const d of drei) await ruf(`/api/dreams?client_id=${encodeURIComponent(d.id)}`, { methode: "DELETE", token });
+
+// 7c: das Profil — die Erlaubnisliste und die Größengrenze.
+// ⚠ Das Profil ist echt und gehört dem Testuser: vorher merken, hinterher
+//    zurückstellen. Ein Prüfskript, das fremde Einstellungen behält, ist ein
+//    Prüfskript, das man irgendwann nicht mehr laufen lässt.
+const vorher = (await ruf("/api/account", { token })).daten?.profile || {};
+const patch = await ruf("/api/account", { methode: "PATCH", token,
+  koerper: { voice: "Kore", onboarded: true, streak: 9999, id: "fremde-id" } });
+pruefe("Profil ändern nimmt die erlaubten Felder", patch.status === 200 && patch.daten?.profile?.voice === "Kore",
+  `Status ${patch.status}: ${patch.daten?.error || ""}`);
+pruefe("⚠ `streak` lässt sich NICHT vom Client setzen", patch.daten?.profile?.streak !== 9999,
+  `streak = ${patch.daten?.profile?.streak}`);
+const teilweise = await ruf("/api/account", { methode: "PATCH", token, koerper: { language: "de" } });
+pruefe("nicht mitgeschickte Felder bleiben unverändert",
+  teilweise.daten?.profile?.voice === "Kore" && teilweise.daten?.profile?.language === "de",
+  JSON.stringify({ voice: teilweise.daten?.profile?.voice, language: teilweise.daten?.profile?.language }));
+const nichts = await ruf("/api/account", { methode: "PATCH", token, koerper: { unbekannt: 1 } });
+pruefe("ein Aufruf ohne bekanntes Feld sagt das (400)", nichts.status === 400, `Status ${nichts.status}`);
+const riesig = await ruf("/api/account", { methode: "PATCH", token,
+  koerper: { survey: { fuellung: "x".repeat(70_000) } } });
+pruefe("eine übergroße Umfrage wird abgelehnt (413), nicht still gekürzt", riesig.status === 413,
+  `Status ${riesig.status}`);
+const grenzeOk = await ruf("/api/account", { methode: "PATCH", token,
+  koerper: { survey: { fuellung: "x".repeat(1000) } } });
+pruefe("eine normale Umfrage geht durch und kommt als Objekt zurück",
+  grenzeOk.status === 200 && typeof grenzeOk.daten?.profile?.survey === "object"
+    && grenzeOk.daten.profile.survey?.fuellung?.length === 1000,
+  `Status ${grenzeOk.status}, typeof survey = ${typeof grenzeOk.daten?.profile?.survey}`);
+
+// Ein falscher Typ wird benannt, nicht still verschluckt.
+const falscherTyp = await ruf("/api/account", { methode: "PATCH", token, koerper: { voice: 42 } });
+pruefe("ein falscher Typ wird benannt (400)", falscherTyp.status === 400, `Status ${falscherTyp.status}`);
+
+/* ⚠ Der Fall, der bis zum 12.09. unmöglich war: ein Feld wieder LEEREN.
+   `null` heißt „leeren", ein fehlender Schlüssel heißt „unverändert" —
+   sonst wird man einen einmal gesetzten Anzeigenamen nie wieder los. */
+const geleert = await ruf("/api/account", { methode: "PATCH", token, koerper: { voice: null } });
+pruefe("ein Feld lässt sich wieder leeren (null)", geleert.status === 200 && geleert.daten?.profile?.voice === null,
+  `voice = ${JSON.stringify(geleert.daten?.profile?.voice)}`);
+const unberuehrt = await ruf("/api/account", { methode: "PATCH", token, koerper: { language: "en" } });
+pruefe("und ein fehlender Schlüssel leert eben NICHT",
+  unberuehrt.daten?.profile?.voice === null && unberuehrt.daten?.profile?.language === "en");
+
+// Zurückstellen — jetzt vollständig möglich, auch auf leer.
+const zurueck = { survey: vorher.survey ?? null };
+for (const f of ["voice", "language"]) zurueck[f] = vorher[f] ?? null;
+for (const f of ["onboarded", "survey_done"]) zurueck[f] = vorher[f] ?? false;
+await ruf("/api/account", { methode: "PATCH", token, koerper: zurueck });
+const danach = (await ruf("/api/account", { token })).daten?.profile || {};
+const abweichend = ["voice", "language", "onboarded", "survey_done", "survey"]
+  .filter((f) => JSON.stringify(danach[f] ?? null) !== JSON.stringify(vorher[f] ?? null));
+pruefe("Profil wieder wie vorgefunden", abweichend.length === 0,
+  abweichend.map((f) => `${f}: ${JSON.stringify(vorher[f])} → ${JSON.stringify(danach[f])}`).join(", "));
 
 // 8: das Löschrecht
 const weg = await ruf(`/api/dreams?client_id=${encodeURIComponent(clientId)}`, { methode: "DELETE", token });

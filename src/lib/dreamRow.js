@@ -33,7 +33,10 @@ const MAX_TEXT = 20_000;      // text, originalText
 const MAX_REFS = 24;
 const MAX_MEDIA_ITEMS = 64;
 const MAX_PATH = 512;
-const MAX_JSON = 64 * 1024;   // analysis, reflection — je Feld serialisiert
+/** Obergrenze für EIN jsonb-Feld vom Client, serialisiert. Exportiert, weil
+ *  das Profil (`survey` in server.js) dieselbe Grenze braucht — eine Zahl an
+ *  zwei Stellen wäre eine Zahl, die irgendwann auseinanderläuft. */
+export const MAX_JSON = 64 * 1024;
 
 const str = (v, max) => (typeof v === "string" ? v.slice(0, max) : "");
 
