@@ -10,7 +10,13 @@ export type DreamItem = {
   films: Take[]; images: string[]; reflection: string | null; originalText: string | null;
 };
 export type Labels = Record<string, string>;
-export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels };
+export type HomeData = {
+  streak: number; atRisk: boolean; rendering: boolean; nightMarked: boolean; checkin: number | null;
+  lastId: string | null; streakLine: string; streakNote: string;
+  checkinLevels: { level: number; label: string; emoji: string }[];
+};
+export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak"; level?: number };
 
 let snapshot: JournalSnapshot | null = null;
 const listeners = new Set<() => void>();
