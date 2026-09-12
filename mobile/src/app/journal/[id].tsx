@@ -4,8 +4,9 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import { Directory, File, Paths } from "expo-file-system";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ActionSheetIOS, Alert, Platform, Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
@@ -165,7 +166,7 @@ function DreamBody({ item, labels, locale, onMore }: { item: DreamItem; labels: 
           erreichbar. */}
 
       <View style={styles.actions}>
-        {film || still ? <GlassButton label={labels.share ?? "Share"} onPress={() => Share.share({ url: film ?? still! })} /> : null}
+        {film || still ? <GlassButton label={labels.share ?? "Share"} onPress={() => { shareFile(film ?? still!); }} /> : null}
         <PrimaryButton label={film ? (labels.anotherTake ?? "Another take") : (labels.makeFilm ?? "Bring it to life")} onPress={onMore} />
       </View>
     </View>
@@ -179,10 +180,42 @@ function splitPassages(text: string, n: number) {
   return Array.from({ length: n }, (_, i) => sentences.slice(i * per, (i + 1) * per).join("").trim());
 }
 
+/* Der Film oben: leise in Schleife als Plakat. Der Vollbild-Knopf (Antons
+   Wunsch 12.09.) öffnet den System-Player — iOS zoomt sanft auf, die
+   Tonspur läuft, mit Regler und Fertig-Knopf; zurück wird er wieder leise. */
 function FilmHero({ url }: { url: string }) {
   const player = useVideoPlayer(url, (p) => { p.loop = true; p.muted = true; p.play(); });
+  const view = useRef<VideoView>(null);
   useEffect(() => { player.loop = true; player.muted = true; player.play(); }, [player]);
-  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
+  return (
+    <>
+      <VideoView
+        ref={view} player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false}
+        fullscreenOptions={{ enable: true }}
+        onFullscreenEnter={() => { player.muted = false; player.audioMixingMode = "doNotMix"; player.play(); }}
+        onFullscreenExit={() => { player.muted = true; player.audioMixingMode = "mixWithOthers"; player.play(); }}
+      />
+      <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); view.current?.enterFullscreen(); }} style={styles.fullscreenBtn} hitSlop={10} accessibilityLabel="Fullscreen">
+        <Glass style={styles.fullscreenGlass} interactive><SymbolView name="arrow.up.left.and.arrow.down.right" size={16} tintColor={colors.text} weight="semibold" /></Glass>
+      </Pressable>
+    </>
+  );
+}
+
+/* Teilen mit der DATEI, nicht mit dem Link: Erst dann bietet das
+   iOS-Blatt „Video sichern" (Fotos), AirDrop und Nachrichten mit dem Film
+   selbst an (Antons Wunsch 12.09.: „in die Kamera rollen"). Der Film wird
+   dafür einmal in den Cache geladen. */
+async function shareFile(url: string) {
+  try {
+    const dir = new Directory(Paths.cache, "share");
+    try { dir.create({ idempotent: true }); } catch {}
+    const file = await File.downloadFileAsync(url, dir, { idempotent: true });
+    await Share.share({ url: file.uri });
+  } catch (e) {
+    console.warn("[share] fallback to link", e);
+    await Share.share({ url });
+  }
 }
 
 const styles = StyleSheet.create({
@@ -215,6 +248,8 @@ const styles = StyleSheet.create({
   buttonPrimary: { backgroundColor: colors.warm },
   buttonText: { color: colors.text, fontSize: 15, fontWeight: "600" },
   buttonPrimaryText: { color: colors.bg, fontSize: 15, fontWeight: "700" },
+  fullscreenBtn: { position: "absolute", top: 108, right: 16 },
+  fullscreenGlass: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
   rec: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, paddingRight: 16, borderRadius: 18 },
   recBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.warm, alignItems: "center", justifyContent: "center" },
   recLabel: { color: colors.text, fontSize: 14, fontWeight: "600" },

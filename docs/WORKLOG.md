@@ -3,6 +3,23 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 17:20 — Anton — Branch `session/2026-09-12-anton-b` — Vollbild mit Ton, Teilen als Datei
+
+**Anton:** Beim Teilen soll „in die Kamera rollen" (Fotos) möglich sein;
+auf der Traum-Seite ein Vollbild-Knopf, der sanft aufzoomt und die Tonspur
+hörbar macht.
+
+- **Vollbild** (`journal/[id].tsx`, FilmHero): Glas-Knopf oben rechts auf
+  dem Film → `VideoView.enterFullscreen()` (System-Player, iOS zoomt selbst
+  sanft auf, Regler und Fertig). Beim Eintritt wird der Player laut und
+  `doNotMix`, beim Verlassen wieder stumm in Schleife.
+- **Teilen mit der Datei:** vorher ging nur der http-Link ins Blatt (keine
+  Foto-Option). Jetzt wird der Film per `File.downloadFileAsync` in den
+  Cache geladen und die `file://`-Adresse geteilt — das iOS-Blatt bietet
+  dann „Video sichern", AirDrop, Nachrichten mit dem Film. Rückfall: Link.
+- ⚠ Ungeprüft (niemand tippt hier): Vollbild-Übergang, Ton, Teilen-Blatt.
+  Knopf sichtbar geprüft am Dino-Traum.
+
 ## 2026-09-12 17:00 — Anton — Branch `session/2026-09-12-anton` — Sitzungsabschluss (wrap, Merge auf Antons Wort)
 
 **Commits:** siehe `git log main..HEAD` vor dem Merge — Aufnahme sicher am

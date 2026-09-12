@@ -3,7 +3,9 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-12 abends — PR #41 und PR #42 gemerged. Zuletzt (PR #42):
+**Stand:** 2026-09-12 abends — PR #41 und PR #42 gemerged; Sitzung
+`session/2026-09-12-anton-b` (PR #43, Entwurf): Vollbild mit Ton auf der
+Traum-Seite, Teilen als Datei (Fotos/„Video sichern"). Davor (PR #42):
 Poster nach dem Film (1:1), finaler Film-Prompt je Auftrag gespeichert,
 Aufnahme sicher am Traum, Schnitt-Regel „immer der ganze Traum" mit zwei
 Tempi, empfohlene Länge vorgewählt. ⚠ Poster-Weg und neue Schnitt-Regel am
