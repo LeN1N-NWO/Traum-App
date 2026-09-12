@@ -252,8 +252,12 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   Aufnahme hängt als `audio.url` am Traum (Befehl `attachAudio` nach dem
   Anlegen, `saveDream` mit `audioUrl`); die Traum-Seite spielt sie ab
   (`RecordingRow`, expo-audio). Gemini Live bleibt im Web-Code, wird nicht
-  mehr angeboten. ⚠ Ungeprüft: echte Aufnahme + Transkription (Simulator
-  zeigt nur den Mikrofon-Dialog; simctl-Grant greift nicht).
+  mehr angeboten. ⚠ fal nimmt Audio als Data-URL NUR als `audio/mpeg`
+  (gemessen 12.09.: m4a/mp4/wav → 400 „Unsupported data URL") — der Server
+  wandelt per ffmpeg nach mp3 (`toMp3DataUri`). Ende-zu-Ende geprüft mit
+  einer `say`-Aufnahme: Transkript korrekt, Datei unter `/media/….m4a`
+  abrufbar. Die Aufnahme wird VOR der Transkription gesichert und bleibt
+  im Wizard (`audioUrl`), auch wenn man den Traum danach tippt.
   **Stil-Auswahl neu** (Antons Entwurf 12.09.): stumme quadratische
   Kacheln mit laufenden Clips, vier je Reihe, alle sichtbar; Antippen holt
   den Stil nach vorn (Glas über dem Raster, Film groß, Name, „Diesen Stil

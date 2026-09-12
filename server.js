@@ -1891,7 +1891,7 @@ async function storeAll(urls) {
 
 // Only ever serves files this server wrote: the name must be exactly the
 // hash-plus-extension shape produced above, so nothing else is addressable.
-const MEDIA_NAME = /^\/media\/([a-z0-9]{1,20}\.(png|jpg|webp|mp4))$/;
+const MEDIA_NAME = /^\/media\/([a-z0-9]{1,20}\.(png|jpg|webp|mp4|m4a))$/;
 /** The filename a /media/ request resolves to, or null. Exported so the
  *  serving rules can be tested without the network. */
 export function resolveMedia(pathname) {

@@ -20,6 +20,16 @@ Poster je Film, Stil-Kacheln ohne Text).
 - **PrimaryButton** mit Verlauf warm→gold (Opal-Vorbild) auf Glas.
 - ⚠ Im Simulator bleibt der Mikrofon-Dialog stehen (simctl-Grant greift
   nicht) — Anton tippt „Erlauben" selbst.
+- **Antons Befund „Transcript-Error":** fal.run antwortete 400 „Unsupported
+  data URL" — nimmt als Data-URL nur `audio/mpeg` (gemessen: m4a, mp4,
+  x-m4a, wav, audio/mp3 alle 400). Server wandelt jetzt per ffmpeg nach
+  mp3 (64 kbit mono); `MEDIA_NAME` kennt `.m4a`, sonst 404 beim Abspielen.
+  Ende-zu-Ende mit `say`-Aufnahme geprüft. Rekorder sichert die Aufnahme
+  jetzt VOR der Transkription; bei Fehler „Noch mal" oder tippen, die
+  Aufnahme bleibt am Traum.
+- **Stil-Overlay** nach Antons zweitem Befund: Milchglas (`expo-blur`,
+  Pods + Rebuild), Zoom ohne Feder, Name und „Verwenden" AUF dem Film,
+  × auf der Karte.
 
 ## 2026-09-12 13:15 — Anton — Branch `session/2026-09-11-anton-expo` — Test-Guthaben, Maskottchen-Lader, Glas-Knöpfe warm, Slogan
 
