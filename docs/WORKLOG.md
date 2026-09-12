@@ -80,6 +80,15 @@ Stil-Kacheln, Doku).
   Strich-Icons → SF Symbols (react-native-svg ist nicht installiert und
   wäre ein Rebuild); Lesart als formSheet mit tippbaren Vorkommen.
   Alle vier Schlaf-Räume sind damit nativ.
+- **Besetzung und Menagerie nativ** (`journal/cast.tsx`,
+  `journal/menagerie.tsx`, Web-Dialog in `journal/avatar.tsx`): Abspann-
+  Liste nach Häufigkeit (castByCategory in der Brücke), Anfangsbuchstabe
+  statt Fragezeichen ohne Foto, ein Knopf „Figur anlegen"; Menagerie als
+  Karten mit Seltenheit in Farbe. `LegacyPage` nimmt `editId` (Bearbeiten
+  aus dem Zustand) und `category="any"` (Gattung im Dialog). Alle drei
+  Journal-Nebenräume nativ; Serifen-Großtitel wie das Journal.
+  ⚠ Befund: Der iOS-26-Simulator zeichnet keine Emoji — die Wesen zeigen
+  Kästchen. Auf dem Gerät nicht der Fall; Web zeigt dieselben Emoji.
 
 **Was der Nächste wissen muss:**
 - Prüfen läuft weiter per Redirect-Trick (index.tsx temporär ersetzen,

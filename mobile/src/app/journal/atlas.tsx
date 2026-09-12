@@ -12,7 +12,7 @@ export default function AtlasScreen() {
   const S = data?.symbols;
   return (
     <>
-      <Stack.Screen options={{ title: S?.title ?? "" }} />
+      <Stack.Screen options={{ title: S?.title ?? "", headerLargeTitleStyle: { color: colors.text, fontFamily: fonts.serif } }} />
       <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         {S ? <Text style={styles.sub}>{S.subtitle}</Text> : null}
         {S ? <SymbolsAtlas S={S} /> : null}

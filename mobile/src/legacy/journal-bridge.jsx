@@ -28,6 +28,7 @@ import { reminderWish, reminderState, MAX_PER_DAY, DEFAULT_PER_DAY } from "../..
 import { VOICES, DEFAULT_VOICE, isVoice } from "../../../src/lib/voices.js";
 import { withdrawPatch } from "../../../src/lib/consent.js";
 import { SYMBOLS, SYMBOL_CATEGORIES, symbolOccurrences } from "../../../src/lib/symbols.js";
+import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
 import { MILESTONES, nextMilestone, giftAt } from "../../../src/lib/streakBoard.js";
 import { nextSnoozeIn } from "../../../src/lib/streak.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
@@ -282,7 +283,21 @@ function snapshot() {
     })).filter((g) => g.symbols.length > 0);
     return { title: ts.title, subtitle: ts.subtitle, empty: ts.empty, close: ts.close, disclaimer: ts.disclaimer, groups };
   })();
-  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols };
+  /* Die Besetzung (CastLibrary.jsx + CastGroup.jsx): Rollenliste je
+     Gattung, nach Häufigkeit sortiert (castStats.js) — und die Menagerie
+     (Menagerie.jsx): ein Wesen je aufgeschriebenem Traum, neueste zuerst. */
+  const library = {
+    title: t.journal.library, lede: t.journal.libraryLede, newLabel: t.journal.castNew, empty: t.journal.libraryCount(0), never: t.journal.castNever,
+    groups: [["person", t.profile.people], ["pet", t.profile.pets], ["place", t.profile.places]].map(([category, label]) => ({
+      category, label,
+      rows: castByCategory(s.cast, s.journal, category).map((e) => ({ id: e.id, tag: e.tag, img: e.img ? mediaUrl(e.img) : null, initial: initialOf(e.tag), count: e.count, countWord: t.journal.castDreamsN(e.count) })),
+    })).filter((g) => g.rows.length > 0),
+  };
+  const menagerie = {
+    title: t.home.menagerieHeading, lede: t.journal.menagerieLede, empty: t.home.menagerieEmpty,
+    creatures: [...(s.creatures || [])].reverse().map((c) => ({ id: c.id, e: c.e || "", name: c.name, rare: c.rare, rareClass: c.rareClass || "", date: c.date || "" })),
+  };
+  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie };
 }
 
 /* Befehle nativ → Web: Die Hülle kann den Web-Speicher nicht schreiben, also
