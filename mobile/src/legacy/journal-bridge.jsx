@@ -224,6 +224,7 @@ function snapshot() {
        Platzhaltern 1000/2000, nativ ersetzt. */
     cutOneShot: w5.cutOneShot, cutAll: w5.cutAll(1000), cutSome: w5.cutSome(1000, 2000), cutMoreAt: w5.cutMoreAt(1000, 2000),
     cutTwoParter: w5.cutTwoParter, flowAll: w5.flowAll(1000), flowFast: w5.flowFast(1000),
+    cutAllIn: w5.cutAllIn(1000, 2000, 3000), cutRecommend: w5.cutRecommend(1000),
     lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
     readPrice: PRICES.improve, noCredits: t.wizard.noCreditsCta,
     /* Die native Auftragsseite (dream/order.tsx): Sätze fürs Abgeben,

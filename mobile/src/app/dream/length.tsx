@@ -1,6 +1,7 @@
 import { Host, Slider } from "@expo/ui/swift-ui";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { useEffect, useRef } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
@@ -9,9 +10,7 @@ import { patchWizard, useWizardStore } from "@/store/wizard-store";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 // Dieselbe Preisrechnung wie Wizard und Server (src/lib/quote.js, reine Logik).
 import { quoteFor } from "../../../../src/lib/quote.js";
-import { clampSeconds, shotBudget, beatBudget, videoModel, flowStationSeconds, FLOW_MIN_STATION } from "../../../../src/lib/video.js";
-// Der Schnitt nach Gewicht (reine Logik): wie viele Szenen die Laenge traegt.
-import { recommendation } from "../../../../src/lib/cut.js";
+import { clampSeconds, flowStationSeconds, FLOW_MIN_STATION } from "../../../../src/lib/video.js";
 
 /* Schritt 3, nativ: Modell, Qualität, Tempo, Länge — und der Preis auf dem
    Knopf. Der Auftrag läuft danach im Web-Motor (order.tsx). */
@@ -30,19 +29,30 @@ export default function DreamLengthScreen() {
   /* Was von der Geschichte in den Film passt — dieselbe Rechnung wie im
      Web (Step5Style: shotBudget/beatBudget + recommendation). Ohne diese
      Zeile bestellt man 10 s fuer sechs Szenen und wundert sich ueber zwei. */
+  /* Seit 12.09. (Antons Ansage) kommt IMMER der ganze Traum in den Film:
+     die Zeile sagt, wie eng es wird, und nennt die Laenge, die die Analyse
+     empfiehlt (filmSeconds, der Kern). Beim ersten Betreten wird diese
+     Empfehlung vorausgewaehlt — der Regler steht dann schon richtig. */
+  const recommended = model && w.analysis?.filmSeconds ? clampSeconds(model.id, Number(w.analysis.filmSeconds)) : null;
+  const preset = useRef(false);
+  useEffect(() => {
+    if (preset.current || !recommended) return;
+    preset.current = true;
+    if (!w.secondsTouched) patchWizard({ seconds: recommended });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recommended]);
   const fit = (() => {
     const a = w.analysis; if (!a?.beats?.length || !model || !W) return null;
-    const fill = (tpl: string, k: number, n?: number) => tpl.replace("1000", String(k)).replace("2000", String(n ?? ""));
+    const fill = (tpl: string, k: number | string, n?: number | string, m?: number | string) => tpl.replace("1000", String(k)).replace("2000", String(n ?? "")).replace("3000", String(m ?? ""));
+    const n = a.beats.length;
+    let line: string;
     if (w.pace === "flow") {
-      const n = a.beats.length;
       const per = flowStationSeconds(model.id, seconds, n);
-      return per < FLOW_MIN_STATION ? fill(W.flowFast, Math.ceil(n * FLOW_MIN_STATION)) : fill(W.flowAll, n);
+      line = per < FLOW_MIN_STATION ? fill(W.flowFast, Math.ceil(n * FLOW_MIN_STATION)) : fill(W.flowAll, n);
+    } else {
+      line = fill(W.cutAllIn, n, seconds, (Math.round((seconds / n) * 10) / 10).toString().replace(".", ","));
     }
-    const maxSecs = videoModel(model.id).max;
-    const r = recommendation(a, shotBudget(model.id, seconds, w.pace), seconds, maxSecs, beatBudget(model.id, maxSecs, w.pace)) as { beats: number; passt: number; alle: boolean; einBild: boolean; zweiteiler: boolean; mehrBei?: number; beiMax?: number };
-    let line = r.einBild ? W.cutOneShot : r.alle ? fill(W.cutAll, r.beats) : fill(W.cutSome, r.passt, r.beats);
-    if (r.mehrBei && r.beiMax !== undefined) line += " " + fill(W.cutMoreAt, r.beiMax, r.mehrBei);
-    if (r.zweiteiler) line += " " + W.cutTwoParter;
+    if (recommended && recommended !== seconds) line += " " + fill(W.cutRecommend, recommended);
     return line;
   })();
 
@@ -100,7 +110,7 @@ export default function DreamLengthScreen() {
           <>
             <View style={styles.secondsRow}><Text style={styles.label}>{W?.lengthLabel}</Text><Text style={styles.seconds}>{seconds} s</Text></View>
             <Host style={{ width: "100%", height: 44 }}>
-              <Slider value={seconds} min={model.min} max={model.max} step={model.step} onValueChange={(v) => patchWizard({ seconds: clampSeconds(model.id, v) })} />
+              <Slider value={seconds} min={model.min} max={model.max} step={model.step} onValueChange={(v) => patchWizard({ seconds: clampSeconds(model.id, v), secondsTouched: true })} />
             </Host>
             {fit ? <Text style={styles.fit}>{fit}</Text> : null}
           </>

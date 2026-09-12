@@ -7,7 +7,7 @@ describe("buildPosterPrompt", () => {
     expect(p).toContain('"Dino im Abendrot"');
     expect(p).toContain('"Angst war nur der erste Schritt."');
     expect(p).toContain(POSTER_ASPECT);
-    expect(p).toContain("vertical one-sheet");
+    expect(p).toContain("one-sheet");
     expect(p).toContain("Image 1 is a frame from the finished film");
     expect(p).toContain("ONE dominant visual idea");
   });

@@ -286,12 +286,22 @@ export function priceForFilm(modelId, seconds, { ownKeyframe = false, quality } 
  * `maxShots` ist bei `fast` bewusst nicht am Modelllimit orientiert,
  * sondern an der Dauer: sieben Shots auf fünfzehn Sekunden sind genau das,
  * was Anton beschrieben hat. */
+/* ── Zwei Tempi statt drei (Antons Ansage 12.09.2026) ──────────────────
+ * „Eigentlich gibt es nur diesen Unterschied: mit Schnitten oder fliessend.
+ * Nichtsdestotrotz will ich immer den vollen Traum im Video haben, selbst
+ * wenn das super schnell ablaeuft." Also: `calm` heisst jetzt „mit
+ * Schnitten" und nimmt ALLE Szenen; wie schnell geschnitten wird, folgt
+ * allein aus Sekunden geteilt durch Szenen (shotPlan verteilt nach
+ * Gewicht, die Untergrenze weicht, wenn die Zeit nicht reicht). `fast`
+ * bleibt als Alias fuer alte Eintraege, wird aber nicht mehr angeboten.
+ * Die Modell-Empfehlungen (shotEvery/maxShots) sagen nur noch, welche
+ * LAENGE zum Traum passt (recommendation) — sie sortieren nichts mehr aus. */
 export const PACES = {
-  calm: { id: "calm", minShot: 3, cuts: true },
-  fast: { id: "fast", minShot: 2, shotEvery: 2, maxShots: 10, cuts: true },
+  calm: { id: "calm", minShot: 1, cuts: true },
+  fast: { id: "fast", minShot: 1, cuts: true },
   flow: { id: "flow", minShot: 0, cuts: false },
 };
-export const PACE_IDS = Object.keys(PACES);
+export const PACE_IDS = ["calm", "flow"];
 export const DEFAULT_PACE = "calm";
 
 export function filmPace(pace) {
@@ -321,7 +331,10 @@ export function shotBudget(modelId, seconds, pace) {
  *  um als Bild anzukommen und sich dann zu verwandeln. */
 export function beatBudget(modelId, seconds, pace) {
   const p = filmPace(pace);
-  if (p.cuts) return shotBudget(modelId, seconds, pace);
+  /* Seit 12.09.2026 auch beim Schnitt ALLE Szenen (Antons Ansage): Die
+     Laenge bestimmt, wie schnell geschnitten wird, nicht, was wegfaellt.
+     shotBudget bleibt fuer die Laengen-Empfehlung erhalten. */
+  if (p.cuts) return Number.POSITIVE_INFINITY;
   /* ⚠ Beim Fluss ALLE Szenen (Antons Befund 03.09., zweite Runde): Die
      erste Fassung rechnete floor(Sekunden / 2,5) und nahm bei 15 Sekunden
      sechs von acht — und das Storyboard darunter war das Einzige, was

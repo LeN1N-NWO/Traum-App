@@ -48,9 +48,10 @@ Auftrags. Startmenü/Sprachwahl/Onboarding gibt es nativ nicht.
 Auftrag, 150 s Deckel); Abholer schreibt `entry.poster`, Brücke zeigt es als
 Kachel. Kosten ~5 Cent je Film noch nicht in `quote.js` — Antons Wunsch:
 einrechnen. `POSTER=off` schaltet es ab.
-**Warum ein Film „nur einen Teil" zeigt:** shotBudget(H3, 10 s) = 2 Szenen;
-für alle braucht es die Sekunden aus der Analyse (`filmSeconds`) — die
-Empfehlung steht jetzt nativ unter dem Regler. Der finale Prompt liegt je
+**Schnitt seit 12.09. nachmittags:** IMMER der ganze Traum (Antons Ansage),
+nur noch „Mit Schnitten" oder „Ein Fluss"; die Länge macht das Tempo
+(`beatBudget` → alle, `shotPlan` verteilt). Der Längen-Schritt wählt die
+empfohlene Länge (`analysis.filmSeconds`) vor. Poster 1:1. Der finale Prompt liegt je
 Auftrag in `media/jobs/<id>.json` (`prompt`).
 
 **Antons offene Wünsche (12.09., Reihenfolge seine):** Traumfänger-Video

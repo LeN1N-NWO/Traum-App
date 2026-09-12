@@ -688,9 +688,9 @@ export default {
         dreamflowInfo: "One unbroken take. Nothing is cut: the office turns into the lift, the lift into the cockpit, the sky into the ground. The whole dream in a single flow — dream logic as the form itself. Renders in the soft, glowing look, because a hard photoreal edge works against transitions.",
       },
       paceLabel: "Pace",
-      paceNames: { calm: "Calm", fast: "Fast", flow: "One flow" },
+      paceNames: { calm: "With cuts", fast: "Fast", flow: "One flow" },
       paceHints: {
-        calm: "Few cuts, room to breathe",
+        calm: "Every scene, hard cuts — the length sets the pace",
         fast: "Two-second cuts, more scenes",
         flow: "No cuts — each scene turns into the next",
       },
@@ -703,6 +703,9 @@ export default {
          und riete deshalb immer dasselbe. */
       cutOneShot: "Five seconds is one image, not a story — so this is the one moment your dream is about.",
       cutAll: (n) => `All ${n} scenes fit. Nothing has to go.`,
+      /* Seit 12.09.: alle Szenen sind immer drin; die Zeile sagt, wie eng es wird. */
+      cutAllIn: (n, sec, per) => `All ${n} scenes in ${sec} s — about ${per} s each.`,
+      cutRecommend: (sec) => `Recommended for this dream: ${sec} s.`,
       cutSome: (k, n) => `${k} of ${n} scenes fit — the ones that carry the dream.`,
       cutMoreAt: (k, sec) => `At ${sec} seconds it would be ${k}.`,
       flowAll: (n) => `All ${n} scenes flow into one another — nothing is cut, nothing is left out.`,

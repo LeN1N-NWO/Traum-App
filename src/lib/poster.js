@@ -20,8 +20,9 @@
  * 12.09.: mit dem 9:16-Preset kam 608×1088 zurück. */
 import { styleById } from "./styles.js";
 
-export const POSTER_ASPECT = "2:3";
-export const POSTER_SIZE = { width: 1024, height: 1536 };
+/* 1:1 — Antons Entscheidung 12.09. nach der 2:3-Probe („zu lang gezogen"). */
+export const POSTER_ASPECT = "1:1";
+export const POSTER_SIZE = { width: 1024, height: 1024 };
 
 const FALLBACK_POSTER = {
   archetype: "the film's key scene as one dominant motif, the main figure small against a generous, quiet background",
@@ -38,7 +39,7 @@ export function buildPosterPrompt({ title, tagline = "", styleId, withFrame = tr
     ? "\nImage 1 is a frame from the finished film: take its scene, its characters, wardrobe and light as the motif — it is the inspiration, not a photograph to copy. Compose the poster fresh."
     : "";
   return (
-    `A theatrical film poster for an imaginary film, ${POSTER_ASPECT} vertical one-sheet.` +
+    `A theatrical film poster for an imaginary film, square ${POSTER_ASPECT} one-sheet.` +
     `\nCentral motif — commit to exactly ONE dominant visual idea, never a collage: ${p.archetype}.` +
     `\n${taglineLine}In the lower third, large and unmissable: the title "${title}" in ${p.lettering}. ` +
     `At the very bottom edge, a fine-print billing block of tiny illegible credit lines, like a real release poster.` +

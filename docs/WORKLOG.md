@@ -39,6 +39,16 @@ unter dem Regler.
   dem Dino-Film: 31 s, Poster stimmig (Tagline oben, Titel unten, Knete).
   ⚠ Kosten (~5 Cent, medium 1024×1536) noch NICHT im Filmpreis (quote.js).
   ⚠ Der Server-Weg selbst ist ungeprüft — erst der nächste echte Film.
+- **Antons Ansage danach (12.09., dritte Runde):** Poster **1:1** („2:3
+  sieht aus wie 9:16"); **nur zwei Tempi** — mit Schnitten oder fließend —
+  und **immer der ganze Traum** im Film, egal wie kurz: `beatBudget` gibt
+  beim Schnitt jetzt alle Szenen, `shotPlan` verteilt die Sekunden nach
+  Gewicht (Untergrenze weicht), der Regie-Brief schaltet unter 2,5 s je
+  Block auf die Kurz-Regie. `fast` bleibt als Alias, wird nicht angeboten;
+  `calm` heißt „Mit Schnitten". Der Längen-Schritt wählt die empfohlene
+  Länge der Analyse (`filmSeconds`) vor, solange niemand den Regler bewegt
+  hat, und sagt „Alle 6 Szenen in 10 s — etwa 1,7 s je Szene. Empfohlen:
+  14 s." Zwei Tests auf die neue Regel umgeschrieben (cut.test.js).
 
 ## 2026-09-12 15:10 — Anton — Branch `session/2026-09-11-anton-expo` — Sitzungsabschluss (wrap)
 
