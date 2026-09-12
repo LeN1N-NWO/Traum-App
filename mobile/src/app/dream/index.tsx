@@ -2,8 +2,9 @@ import { Stack, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { GlassButton, PrimaryButton } from "@/components/glass";
+import { MascotLoader } from "@/components/mascot-loader";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
@@ -58,7 +59,7 @@ export default function DreamTextScreen() {
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{W?.title ?? "What did you dream?"}</Text>
         {busy ? (
-          <View style={styles.reading}><ActivityIndicator color={colors.accentSoft} /><Text style={styles.readingText}>{W?.reading}</Text><Text style={styles.hint}>{W?.readingHint}</Text></View>
+          <View style={styles.reading}><MascotLoader /><Text style={styles.readingText}>{W?.reading}</Text><Text style={styles.hint}>{W?.readingHint}</Text></View>
         ) : !preview ? (
           <>
             <Pressable style={styles.tell} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/dream/voice"); }}>

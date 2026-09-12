@@ -32,7 +32,8 @@ export function useJournal() {
     n.current += 1; waiting.current.set(n.current, resolve); setCommand({ ...cmd, n: n.current });
   }), []);
   const bridge = (
-    <JournalBridge onJournal={onJournal} onResult={onResult} refreshTick={tick} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+    // __DEV__: Test-Guthaben, solange kein Konto dahinter ist (Antons Ansage 12.09.).
+    <JournalBridge onJournal={onJournal} onResult={onResult} refreshTick={tick} command={command} devCredits={__DEV__ ? 100 : 0} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
   );
   return { data, bridge, send, ask };
 }

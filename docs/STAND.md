@@ -241,6 +241,9 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   Verbindung wurde beendet" kam aber vom gestoppten API-Server. ⚠ Im
   Produktionsbau laden DOM-Komponenten von `file://` — `getUserMedia`
   verlangt einen sicheren Kontext; die Stimme muss vorher nativ werden.
+  **⚠ Test-Guthaben im Entwicklungsbau:** die Brücke hält das Kauf-
+  Töpfchen auf mindestens 100 Credits (`devTopUp` in journal-bridge.jsx,
+  nur bei `__DEV__`). Antons Ansage 12.09.: bis Konto/Supabase stehen.
   **Als Nächstes:** Stimme nativ (Mikrofon → natives Modul, Rebuild),
   Schritt 6 (Warten) nativ, Aktionen der Traum-Seite nativ, Avatar-Anlage
   (Foto → `expo-image-picker`, Rebuild), Besetzung/Menagerie nativ,

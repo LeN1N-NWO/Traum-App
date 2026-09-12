@@ -5,6 +5,7 @@ import * as Haptics from "expo-haptics";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useState, useEffect } from "react";
 import { ActionSheetIOS, Alert, Platform, Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { GlassButton, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 import type { DreamItem } from "@/store/journal-store";
@@ -133,22 +134,13 @@ function DreamBody({ item, labels, locale, onMore }: { item: DreamItem; labels: 
         </View>
       ) : null}
 
-      {item.originalText ? (
-        <View style={styles.section}>
-          <Text style={styles.label}>{labels.original}</Text>
-          <Text style={styles.original}>{item.originalText}</Text>
-        </View>
-      ) : null}
+      {/* Kein „Ursprünglich geschrieben" mehr auf der Seite (Antons Ansage
+          12.09.: „sinnlos") — das Original bleibt gespeichert und im Web-Menü
+          erreichbar. */}
 
       <View style={styles.actions}>
-        {film || still ? (
-          <Pressable style={[styles.button, styles.buttonQuiet]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); Share.share({ url: film ?? still! }); }}>
-            <Text style={styles.buttonText}>{labels.share ?? "Share"}</Text>
-          </Pressable>
-        ) : null}
-        <Pressable style={[styles.button, styles.buttonPrimary]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onMore(); }}>
-          <Text style={styles.buttonPrimaryText}>{film ? (labels.anotherTake ?? "Another take") : (labels.makeFilm ?? "Make a short film")}</Text>
-        </Pressable>
+        {film || still ? <GlassButton label={labels.share ?? "Share"} onPress={() => Share.share({ url: film ?? still! })} /> : null}
+        <PrimaryButton label={film ? (labels.anotherTake ?? "Another take") : (labels.makeFilm ?? "Bring it to life")} onPress={onMore} />
       </View>
     </View>
   );

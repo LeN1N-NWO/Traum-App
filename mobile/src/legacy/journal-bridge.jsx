@@ -423,13 +423,26 @@ async function collectOnce(onJournal, onResult) {
   }
 }
 
-export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, dom }) {
+/* Test-Guthaben (Antons Ansage 12.09.: „so tun, als hätten wir immer 100
+   Credits, solange kein Konto und kein Supabase dahinter ist"): Die Hülle
+   gibt `devCredits` nur im Entwicklungsbau herein; dann füllt die Brücke
+   das Kauf-Töpfchen bei jedem Lesen auf mindestens diesen Stand — dieselbe
+   Stelle wie der „+100 test credits"-Knopf des Web-Startmenüs (StartMenu.jsx),
+   das die Hülle nicht zeigt. Im Produktionsbau passiert hier nichts. */
+function devTopUp(min) {
+  if (!min) return;
+  const s = loadState();
+  if (totalCredits(s) >= min) return;
+  saveState({ ...s, credits: (s.credits ?? 0) + (min - totalCredits(s)) });
+}
+
+export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, dom }) {
   useEffect(() => {
-    const push = () => { try { onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
+    const push = () => { try { devTopUp(devCredits); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
     push();
     window.addEventListener("storage", push);
     return () => window.removeEventListener("storage", push);
-  }, [onJournal, refreshTick]);
+  }, [onJournal, refreshTick, devCredits]);
   useEffect(() => {
     let busy = false;
     const id = setInterval(async () => {

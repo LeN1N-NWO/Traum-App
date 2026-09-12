@@ -1,15 +1,14 @@
 import { Stack, useRouter } from "expo-router";
-import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJournal } from "@/components/journal-data";
+import { MascotLoader } from "@/components/mascot-loader";
 import LegacyOrder from "@/legacy/legacy-order";
 import { showToast } from "@/store/toast-store";
 import { resetWizard, useWizardStore } from "@/store/wizard-store";
 import { colors, fonts } from "@/theme";
 
-const mascot = require("../../../../src/assets/home-faultier.mp4");
 
 /* Der Auftrag: Der Web-Motor (Step5Style.run) läuft UNSICHTBAR — er
    prüft den Preis, legt den Traum ins Journal und gibt den Filmauftrag
@@ -33,8 +32,6 @@ export default function DreamOrderScreen() {
   const [showWeb, setShowWeb] = useState(false);
   const done = useRef(false);
 
-  const player = useVideoPlayer(mascot, (p) => { p.loop = true; p.muted = true; p.play(); });
-  useEffect(() => { player.loop = true; player.muted = true; player.play(); }, [player]);
   useEffect(() => { const id = setInterval(() => setMsg((m) => m + 1), 2600); return () => clearInterval(id); }, []);
 
   // Der Stand VOR dem Auftrag entscheidet über das Erster-Traum-Kaufblatt.
@@ -74,7 +71,7 @@ export default function DreamOrderScreen() {
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       {!showWeb ? (
         <View style={[styles.stage, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }]}>
-          <View style={styles.mascot}><VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} /></View>
+          <MascotLoader size={200} />
           <Text style={styles.title}>{W?.step6Title ?? ""}</Text>
           <Text style={styles.text}>{loading.length ? loading[msg % loading.length] : ""}</Text>
           <Text style={styles.hint}>{W?.renderingHint ?? ""}</Text>
@@ -90,7 +87,6 @@ export default function DreamOrderScreen() {
 
 const styles = StyleSheet.create({
   stage: { flex: 1, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center", paddingHorizontal: 28, gap: 14 },
-  mascot: { width: 180, height: 180, borderRadius: 90, overflow: "hidden", backgroundColor: colors.bg2, marginBottom: 10 },
   title: { fontFamily: fonts.serif, fontSize: 28, color: colors.text, textAlign: "center" },
   text: { color: colors.text, fontSize: 16, textAlign: "center", lineHeight: 23 },
   hint: { color: colors.muted, fontSize: 14, textAlign: "center", lineHeight: 20 },

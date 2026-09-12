@@ -3,6 +3,25 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 13:15 — Anton — Branch `session/2026-09-11-anton-expo` — Test-Guthaben, Maskottchen-Lader, Glas-Knöpfe warm, Slogan
+
+**Anton:** kommt ohne Credits nicht weiter (das Web-Startmenü mit „+100
+test credits" zeigt die Hülle nicht); Ladeanzeige soll das Maskottchen in
+Schleife sein; „Ursprünglich geschrieben" weg; „Kurzfilm machen" braucht
+einen Slogan; orange Knöpfe in Glas.
+
+- **Test-Guthaben:** Die Brücke füllt im Entwicklungsbau (`__DEV__`) das
+  Kauf-Töpfchen bei jedem Lesen auf mindestens 100 auf (`devTopUp`,
+  Prop `devCredits` aus journal-data.tsx). Im Produktionsbau nichts. Weg,
+  sobald Konto/Supabase stehen.
+- **Maskottchen-Lader** (`components/mascot-loader.tsx`, mascot-frog-idle
+  in Schleife auf Schwarz): Lesung in Schritt 1 und die Auftragsseite.
+- **Traum-Seite:** kein Original-Block mehr; Teilen/Film als Glas-Knöpfe.
+- **PrimaryButton:** auf iOS 26 getöntes Liquid Glass in Warm, davor die
+  warme Fläche.
+- **Slogan:** `makeFilm` = „Bring it to life" / „Zum Leben erwecken"
+  (en/de).
+
 ## 2026-09-12 13:05 — Anton — Branch `session/2026-09-11-anton-expo` — Kaufblatt als Startroute jedes Tabs (Expo-Router-Falle), Stimme
 
 **Auftrag (Anton, Screenshot):** „in jedem Tab die Credits kaufen", im
