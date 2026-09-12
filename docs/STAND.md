@@ -3,8 +3,13 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-12 abends — PR #41 und PR #42 gemerged; Sitzung
-`session/2026-09-12-anton-b` (PR #43, Entwurf, 7 Commits) abgeschlossen:
+**Stand:** 2026-09-13 nachmittags — PR #41 bis #44 gemerged. Zuletzt
+(PR #44, vier Befunde aus Antons Durchlauf): **Vollbild-Absturz behoben**
+(kein `pause()` im Effekt-Aufräumer), **Aufnahme abbrechen** („Verwerfen"
+während der Aufnahme, „Abbrechen" beim Aufschreiben, Wisch-Geste wieder
+frei), Ladetext „Dein Traum wird ausgewertet…", **Besetzungs-Wahl
+beschriftet und abwählbar** (KI · Name · Foto, zweiter Tipp nimmt zurück).
+Davor (PR #43):
 **Traum-Seite rund** — eigenes Vollbild mit X und Ton (das System-Vollbild
 hatte keinen Rückweg), Ton-Knopf am Film, Fassungen wischen mit Punkten,
 Reflexion-Knopf („Was könnte dieser Traum sagen?") nativ über die Brücke,

@@ -3,6 +3,24 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-13 16:20 — Anton — Branch `session/2026-09-13-anton` — Sitzungsabschluss (wrap + Merge auf Antons Wort)
+
+**Commits:** `63e826e` (Sitzungen im Haupt-Checkout, mit Grund),
+`e6e62ee` (Antons vier Befunde: Vollbild-Absturz, Aufnahme abbrechen,
+Besetzung beschriftet, „ausgewertet").
+
+**Prüfung:** Web 564 Tests grün, mobile `tsc` grün, `bunx expo lint`
+0 Fehler / 37 Warnungen.
+
+**Was der Nächste wissen muss:** Die Sitzung war kurz und rein reaktiv —
+vier Befunde aus Antons Durchlauf. Nichts aus seiner Wunschliste
+(Traumfänger-Video, Onboarding nativ, Pseudo-Rangliste, Poster-Kosten in
+`quote.js`, Avatar-Dialog nativ, expo-notifications, expo-sqlite) ist
+angefasst; sie steht unverändert in STAND. Weiterhin ungeprüft am Gerät:
+Vollbild schließen (jetzt ohne Absturz), Verwerfen der Aufnahme,
+Besetzungs-Labels (der Simulator hat keine Träume mit Personen), erster
+Film mit Poster.
+
 ## 2026-09-13 16:05 — Anton — Branch `session/2026-09-13-anton` — Vollbild-Absturz, Aufnahme abbrechen, Besetzung beschriftet
 
 **Antons vier Befunde (13.09.):** Absturz beim Verlassen des Vollbilds;
