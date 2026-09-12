@@ -54,6 +54,16 @@ Blätter, die zur SEITE gehören — nicht die Nachbartraumkarten. Damit kann
 nichts mehr über der vorderen Karte liegen, und es gibt keine eigene
 Geste mehr. Mond-Streifen mit `marginTop: 18`.
 
+**Nachtrag 18:10 (Antons Befund: „die rasten gar nicht aus"):** Der
+seitenweise Scroller rastete nicht, weil eine SEITE so breit war wie der
+Bildschirm, der Scroller selbst aber 32 Punkte schmaler (das Polster des
+Journals) — `pagingEnabled` rastet auf die Breite des SCROLLERS, also lief
+der Versatz mit jeder Seite weiter auseinander. Jetzt misst das Deck seine
+eigene Breite (`onLayout`); Seite, Raster und Scroller sind dieselbe Zahl,
+und das Einrasten ist wieder das des Systems: sanft rein, sanft raus, eine
+Karte je Anstoßen. Lehre: bei `pagingEnabled` NIE die Bildschirmbreite
+annehmen, immer die eigene messen.
+
 **Nachtrag 18:05 (Antons drei Befunde zum Onboarding):**
 1. **Mehrfachwahl beim Ziel** — „selten hat man genau einen Grund":
    `goal` ist in `onboardingForm.js` jetzt `kind: "choices"`; das Profil

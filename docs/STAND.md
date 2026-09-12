@@ -100,7 +100,16 @@ Profil wie im Web. Der Web-Ablauf bleibt liegen, wird nativ nicht geladen.
 im Journal, Phase am Traum gespeichert (`entry.moon`). Kein Gratis-Credits-
 Versprechen mehr im Onboarding.
 
-**⚠ Deck ist ein Fächer, kein Scroller** (13.09.): In einer horizontalen
+**⚠ Deck: Seitenbreite messen, nicht annehmen** (13.09., drei Anläufe):
+Es ist ein normaler seitenweiser Scroller (`components/dream-deck.tsx`) mit
+zwei ruhigen Blättern hinter der Karte. Die Seitenbreite kommt aus
+`onLayout` — mit der Bildschirmbreite rastet er nicht ein, weil das Polster
+des Journals den Scroller schmaler macht. Was NICHT wiederkommen soll: ein
+eigener Fächer mit Pan-Geste (fühlte sich fremd an) und überlappende
+Nachbarkarten in einem Scroller (die spätere Karte malt über die frühere,
+`zIndex` aus einem Reanimated-Stil greift dort nicht).
+
+**⚠ Alt (Anlauf 2, überholt):** In einer horizontalen
 ScrollView malt die spätere Karte über die frühere, `zIndex` aus einem
 Reanimated-Stil greift dort nicht. Gestapelte Karten brauchen die
 Malreihenfolge — `components/dream-deck.tsx` zeichnet selbst (fernste
