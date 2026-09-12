@@ -45,7 +45,7 @@ const ICONS: Record<number, SFSymbol> = { 0: "waveform.and.mic", 1: "film", 2: "
 
 export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers: Answers) => void }) {
   const insets = useSafeAreaInsets();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => (__DEV__ && typeof (globalThis as any).__ONB_STEP__ === "number" ? (globalThis as any).__ONB_STEP__ : 0));
   const [a, setA] = useState<Answers>(EMPTY);
   const [mic, setMic] = useState<boolean | null>(null);
   const [photos, setPhotos] = useState<boolean | null>(null);
@@ -85,7 +85,7 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
   ];
   const total = 4 + fragen.length + 2;     // Intro, Features, Fragen, Name, Schlafjahre, Themen, Schluss
 
-  function next() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setStep((s) => s + 1); }
+  function next() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setStep((s: number) => s + 1); }
   function finish() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onDone(a); }
 
   async function askMic() {
@@ -239,10 +239,14 @@ function Shell({ insets, step, total, title, lede, children, onSkip, skipLabel }
     <View style={styles.screen}>
       <LinearGradient colors={["rgba(42,98,208,0.28)", "rgba(5,10,20,0)"]} style={styles.glow} pointerEvents="none" />
       <View style={[styles.top, { paddingTop: insets.top + 10 }]}>
+        {/* Überspringen ÜBER dem Fortschritt: neben ihm brach das Wort um
+            (Befund 13.09. am Screenshot). */}
+        <View style={styles.skipRow}>
+          {onSkip ? <Pressable onPress={onSkip} hitSlop={12}><Text style={styles.skip}>{skipLabel}</Text></Pressable> : null}
+        </View>
         <View style={styles.progress}>
           {Array.from({ length: total }, (_, i) => <View key={i} style={[styles.pip, i <= step && styles.pipOn]} />)}
         </View>
-        {onSkip ? <Pressable onPress={onSkip} hitSlop={10}><Text style={styles.skip}>{skipLabel}</Text></Pressable> : <View style={{ width: 60 }} />}
       </View>
       <ScrollView contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 24 }]} keyboardShouldPersistTaps="handled">
         <Animated.View entering={FadeIn.duration(260)} style={{ gap: 10 }}>
@@ -267,13 +271,18 @@ function Intro({ O, onNext }: { O: OnboardData; onNext: () => void }) {
     <Animated.View exiting={FadeOut.duration(200)} style={styles.screen}>
       <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
       <LinearGradient colors={["rgba(5,10,20,0.55)", "rgba(5,10,20,0.15)", "rgba(5,10,20,0.95)"]} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+      {/* Name und Knopf UNTEN beieinander: oben soll das Bild wirken
+          (Antons Opal-/Moonly-Vorbild), nicht der Text. */}
       <View style={[styles.introBody, { paddingBottom: insets.bottom + 28, paddingTop: insets.top + 20 }]}>
-        <Animated.View style={[{ alignItems: "center", gap: 8 }, name]}>
+        <View />
+        <Animated.View style={[{ alignItems: "center", gap: 10, width: "100%" }, name]}>
           <Text style={styles.kicker}>{O.introKicker}</Text>
           <Text style={styles.brand}>Dream Rushes</Text>
           <Text style={styles.introText}>{O.introText}</Text>
+          <View style={{ width: "100%", marginTop: 14 }}>
+            <PrimaryButton label={O.introCta} heavy onPress={onNext} style={{ flex: 0 }} />
+          </View>
         </Animated.View>
-        <PrimaryButton label={O.introCta} heavy onPress={onNext} style={{ flex: 0 }} />
       </View>
     </Animated.View>
   );
@@ -295,7 +304,7 @@ function SleepYears({ O, answer, insets, step, total, onNext, onSkip }: { O: Onb
   }, [ziel]);
   return (
     <Shell insets={insets} step={step} total={total} title={O.sleepTitle} onSkip={onSkip} skipLabel={O.skip}>
-      <View style={{ alignItems: "center", gap: 6, paddingVertical: 10 }}>
+      <View style={{ alignItems: "center", gap: 4, paddingTop: 30 }}>
         <Text style={styles.bigYears}>{O.sleepYears(n)}</Text>
         <Text style={styles.bigAsleep}>{O.sleepAsleep}</Text>
         <Text style={styles.sleepDream}>{O.sleepDream(dreamYears(answer))}</Text>
@@ -309,11 +318,12 @@ function SleepYears({ O, answer, insets, step, total, onNext, onSkip }: { O: Onb
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   glow: { position: "absolute", left: -40, right: -40, top: -60, height: 360 },
-  top: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingBottom: 6 },
+  top: { paddingHorizontal: 20, paddingBottom: 6, gap: 8 },
+  skipRow: { flexDirection: "row", justifyContent: "flex-end", minHeight: 20 },
   progress: { flex: 1, flexDirection: "row", gap: 4 },
   pip: { flex: 1, height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.12)" },
   pipOn: { backgroundColor: colors.accentSoft },
-  skip: { color: colors.faint, fontSize: 14, width: 60, textAlign: "right" },
+  skip: { color: colors.faint, fontSize: 14 },
   body: { paddingHorizontal: 22, paddingTop: 18, gap: 18, flexGrow: 1 },
   title: { fontFamily: fonts.serif, fontSize: 32, lineHeight: 38, color: colors.text },
   lede: { color: colors.muted, fontSize: 15, lineHeight: 22 },

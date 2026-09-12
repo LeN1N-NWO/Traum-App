@@ -21,6 +21,9 @@ import { colors } from "@/theme";
 export function OnboardingGate() {
   const data = useJournalStore();
   const [open, setOpen] = useState(() => __DEV__ && !onboardingSeen());
+  // ⚠ Pruefhilfe: mit `__ONB_STEP__` (global, nur __DEV__) startet der Fluss
+  // bei einem bestimmten Schritt — so lassen sich alle Bildschirme ohne
+  // Tippen fotografieren (Redirect-Trick fuer Bildschirme ohne Route).
   const [command, setCommand] = useState<BridgeCommand | null>(null);
   const n = useRef(0);
   const onJournal = useCallback(async (snap: JournalSnapshot) => { setJournal(snap); }, []);
