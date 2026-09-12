@@ -1840,8 +1840,23 @@ const MAX_MEDIA_BYTES = 60 * 1024 * 1024;
  *  anything the model or the client chose — and hand back the path they
  *  will be served at. Shared by the fetch-and-copy path below and by the
  *  panel-upload endpoint, which has bytes already and nothing to fetch. */
+/* Ohne brauchbaren Typ (application/octet-stream, leer) entscheidet der
+   Inhalt: MPEG-4-Container tragen „ftyp" ab Byte 4; Marke M4A/mp42 mit
+   Tonspur → m4a, sonst mp4. Die native App schickt so ihre Aufnahmen. */
+function sniffMediaType(bytes, contentType) {
+  const ct = String(contentType || "").split(";")[0].trim();
+  if (MEDIA_TYPES[ct]) return ct;
+  if (bytes.length > 12 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+    const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+    return brand.startsWith("M4A") ? "audio/mp4" : "video/mp4";
+  }
+  if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
+  return ct;
+}
+
 async function storeBytes(bytes, contentType) {
-  const ext = MEDIA_TYPES[String(contentType || "").split(";")[0].trim()];
+  const ext = MEDIA_TYPES[sniffMediaType(bytes, contentType)];
   if (!ext || !bytes.length || bytes.length > MAX_MEDIA_BYTES) return null;
   const name = `${Bun.hash(bytes).toString(36)}.${ext}`;
   await Bun.write(resolve(MEDIA_DIR, name), bytes);

@@ -61,6 +61,16 @@ function ensure() {
 
 function notify() { listeners.forEach((fn) => fn()); }
 
+/* Während einer Aufnahme (recording-store.ts) schweigen die Spieler — sie
+   würden mit jedem Ereignis die Audio-Session auf Wiedergabe kippen. Die
+   Lautstärken bleiben, danach läuft es weiter. */
+let heldForRecording = false;
+export function holdForRecording(on: boolean) {
+  if (!ready || on === heldForRecording) return;
+  heldForRecording = on;
+  for (const id of IDS) { const p = players[id]; if (!p) continue; if (on) p.pause(); else if (volumes[id] > 0) p.play(); }
+}
+
 function apply(id: SoundId, v: number) {
   const p = players[id]; if (!p) return;
   p.volume = v;

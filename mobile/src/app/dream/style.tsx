@@ -4,8 +4,7 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
-import { useRef } from "react";
-import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, ZoomIn } from "react-native-reanimated";
 import { Clip, PresetTile } from "@/components/preset-tile";
 import { Glass, PrimaryButton } from "@/components/glass";
@@ -21,12 +20,11 @@ import { colors, fonts, TAB_INSET } from "@/theme";
    Stil — wie im Web (presets.js). Alle Stile sichtbar, kein „Mehr". */
 export default function DreamStyleScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const { data, bridge } = useJournal();
   const W = data?.wizard;
   const w = useWizardStore();
   const [open, setOpen] = useState<string | null>(null);
-  const list = useRef<FlatList<any>>(null);
   const activeId = w.pace === "flow" ? "dreamflow" : (W?.presets.find((p) => p.id !== "dreamflow" && p.styleId === w.styleId)?.id ?? "ultrareal");
   const presets = W?.presets ?? [];
   const cols = 4;
@@ -61,19 +59,15 @@ export default function DreamStyleScreen() {
             <BlurView intensity={70} tint="systemThickMaterialDark" style={StyleSheet.absoluteFill} />
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setOpen(null)} />
             <Animated.View entering={ZoomIn.duration(240).easing(Easing.out(Easing.cubic))} style={StyleSheet.absoluteFill} pointerEvents="box-none">
-              <FlatList
-                ref={list}
-                data={presets}
+              <ScrollView
                 horizontal pagingEnabled showsHorizontalScrollIndicator={false}
-                keyExtractor={(p) => p.id}
-                initialScrollIndex={Math.max(0, presets.findIndex((p) => p.id === shown.id))}
-                getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+                contentOffset={{ x: width * Math.max(0, presets.findIndex((p) => p.id === shown.id)), y: 0 }}
                 onMomentumScrollEnd={(e) => { const i = Math.round(e.nativeEvent.contentOffset.x / width); const p = presets[i]; if (p && p.id !== open) { Haptics.selectionAsync(); setOpen(p.id); } }}
-                contentContainerStyle={{ alignItems: "center" }}
                 style={{ flex: 1 }}
-                renderItem={({ item: p }) => (
-                  <View style={{ width, alignItems: "center", justifyContent: "center", flex: 1 }} pointerEvents="box-none">
-                    <View style={[styles.big, { width: width - 48, height: (width - 48) * 1.4 }]}>
+              >
+                {presets.map((p) => (
+                  <View key={p.id} style={{ width, height, alignItems: "center", justifyContent: "center" }}>
+                    <View style={[styles.big, { width: width - 48, height: Math.min((width - 48) * 1.4, height * 0.72) }]}>
                       {p.clip ? <Clip url={p.clip} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky, alignItems: "center", justifyContent: "center" }]}><SymbolView name="paintbrush.pointed" size={64} tintColor={colors.accentSoft} /></View>}
                       <LinearGradient colors={["rgba(5,10,20,0.6)", "rgba(5,10,20,0)", "rgba(5,10,20,0)", "rgba(5,10,20,0.7)"]} locations={[0, 0.3, 0.6, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
                       <Text style={styles.name}>{p.label}</Text>
@@ -85,8 +79,8 @@ export default function DreamStyleScreen() {
                       </View>
                     </View>
                   </View>
-                )}
-              />
+                ))}
+              </ScrollView>
               <View style={styles.dots} pointerEvents="none">
                 {presets.map((p) => <View key={p.id} style={[styles.pageDot, p.id === shown.id && styles.pageDotOn]} />)}
               </View>

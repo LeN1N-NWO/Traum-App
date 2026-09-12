@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { applyMix, isActive } from "@/lib/sound-engine";
+import { useRecording } from "@/store/recording-store";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Die Startseite, nativ (12.09.2026). Als Plakat, wie im Web entschieden
@@ -160,8 +161,10 @@ export default function HomeScreen() {
 
 function HeroVideo() {
   const player = useVideoPlayer(heroVideo, (p) => { p.loop = true; p.muted = true; p.play(); });
+  const rec = useRecording();
   // Manche Simulatoren/Builds starten den Player erst, wenn die Ansicht steht (Antons Befund 12.09.: Faultier stand still).
-  useEffect(() => { player.loop = true; player.muted = true; player.play(); }, [player]);
+  // Während einer Aufnahme steht das Video: jedes Player-Ereignis würde die Audio-Session kippen (recording-store.ts).
+  useEffect(() => { player.loop = true; player.muted = true; if (rec) player.pause(); else player.play(); }, [player, rec]);
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 

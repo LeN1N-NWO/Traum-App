@@ -39,11 +39,26 @@ Poster je Film, Stil-Kacheln ohne Text).
   Probe: Wizper, Whisper v3, ElevenLabs Scribe (fal) und Gemini 3.6/3.5
   liefern alle den vollen Text. Jede Anfrage an `/api/transcribe` und
   `/api/panel` wird jetzt geloggt (Größe, Dauer, Zeichen).
+- **Antons dritter Befund (nur der erste Satz):** Server-Log zeigte
+  115 KB Audio → 157 Gemini-Token ≈ 6 s — die AUFNAHME war kurz, nicht die
+  Transkription. Ursache: `expo-video` setzt bei jedem Player-Ereignis
+  (VideoManager.setAudioSession) die AVAudioSession auf `.playback` ohne
+  Aufnahme — der AVAudioRecorder stoppt still, sobald z. B. das Faultier
+  auf Home weiterläuft. Fix: `store/recording-store.ts` als App-Schalter;
+  Home-Video und Klangmischer pausieren während der Aufnahme
+  (`holdForRecording`), Audio-Modus `doNotMix`, Rekorder-Status im Log.
+  Selbsttest `/dream/voice?auto=12` (nur `__DEV__`): 12,0 s durchgehend
+  aufgenommen. Dabei zwei weitere Fehler gefunden: „zu kurz" kam aus dem
+  gepollten Zustand (jetzt `recorder.getStatus()`), und der Upload der m4a
+  ging als `application/octet-stream` (Blob ohne Typ → 400): Blob bekommt
+  den Typ, Server erkennt MPEG-4-Audio am `ftyp M4A`-Kopf (`sniffMediaType`).
 - **Stil-Overlay** nach Antons zweitem Befund: Milchglas (`expo-blur`,
   Pods + Rebuild), Zoom ohne Feder, Name und „Verwenden" AUF dem Film,
   × auf der Karte — und seit dem dritten Befund **wischen zwischen den
-  Stilen** im Overlay (FlatList mit Seiten, Punkte unten), wie das
-  Journal-Deck.
+  Stilen** im Overlay (ScrollView mit Seiten, Punkte unten), wie das
+  Journal-Deck. ⚠ Die erste Fassung mit FlatList zeigte nur Punkte (Antons
+  Befund: „alles unscharf, nichts zu sehen") — Seiten ohne Höhe in einer
+  horizontalen Liste; jetzt ScrollView mit fester Seitenhöhe.
 - **Besetzung:** kein „Aus der Bibliothek"-Text und kein Ausklappen mehr
   (Anton: „sieht hausbacken aus") — die Wahl steht als runde Knöpfe direkt
   in der Zeile: KI erfindet, Gesichter der Bibliothek, Foto neu.
