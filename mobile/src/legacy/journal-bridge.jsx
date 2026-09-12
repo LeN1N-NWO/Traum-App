@@ -269,7 +269,7 @@ function snapshot() {
     imagesFrom: priceForImages(Math.min(...IMAGE_COUNTS)), filmFrom: priceForFilm("standard", 5), steps: 6 };
   const dream = { ...step2, interview: t.dream.interview, interviewHint: t.dream.interviewHint, or: t.dream.or, label: t.dream.label,
     record: t.dream.record, recordHint: t.dream.recordHint, recording: t.dream.recording, recordStop: t.dream.recordStop,
-    recordTranscribing: t.dream.recordTranscribing, recordTooShort: t.dream.recordTooShort, recordFailed: t.dream.recordFailed,
+    recordTranscribing: t.dream.recordTranscribing, recordTooShort: t.dream.recordTooShort, recordFailed: t.dream.recordFailed, recordDiscard: t.dream.recordDiscard,
     recordAgain: t.dream.recordAgain, yourRecording: t.dream.yourRecording, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
     placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
   /* Das Kaufblatt (Paywall.jsx), vorgerechnet: Texte sind im Web zum Teil
@@ -360,7 +360,7 @@ async function runAsync(cmd, onResult) {
       library: lib,
       labels: { people: t.wizard.step3.title, peopleLede: t.wizard.step3.lede, peopleEmpty: t.wizard.step3.empty,
                 places: t.wizard.step4.title, placesLede: t.wizard.step4.lede, placesEmpty: t.wizard.step4.empty,
-                free: t.wizard.cast.freeSet, undecided: t.wizard.cast.undecided, choose: t.wizard.cast.choose, change: t.wizard.cast.change,
+                free: t.wizard.cast.freeSet, freeShort: t.wizard.cast.freeShort, newShort: t.wizard.cast.newShort, undecided: t.wizard.cast.undecided, choose: t.wizard.cast.choose, change: t.wizard.cast.change,
                 createNew: t.wizard.cast.createNew },
     } });
     return true;

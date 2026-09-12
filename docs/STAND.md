@@ -86,7 +86,12 @@ Filmpreis rechnen (Renderweg steht) · Avatar-Dialog nativ (`expo-image-picker`,
 Erinnerungen wirklich planen (`expo-notifications`) · Datenschicht nach
 `expo-sqlite`, Brücke abbauen.
 
-**⚠ Zwei Fallen dieser Sitzung:** (1) Ein `LinearGradient` über einem Video
+**⚠ Player nie im Aufräumer anfassen** (Absturz 13.09.): expo-video gibt
+den Player beim Abbau der Komponente selbst frei; ein `pause()` im
+`useEffect`-Rückgabewert trifft ein Objekt, das nicht mehr existiert
+(„Unable to find the native shared object").
+
+**⚠ Zwei Fallen der Sitzung davor:** (1) Ein `LinearGradient` über einem Video
 schluckt jeden Tipp — `pointerEvents="none"` an jede dekorative Schicht.
 (2) `VideoView.enterFullscreen()` ohne `nativeControls` hat keinen Rückweg;
 wir zeigen ein eigenes Vollbild-Blatt (`FullscreenFilm` in

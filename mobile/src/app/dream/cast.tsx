@@ -75,17 +75,27 @@ export default function DreamCastScreen() {
                 <Text style={styles.sub} numberOfLines={1}>{c.avatar ? `@${c.avatar.tag}` : c.free ? L.free : L.undecided}</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip} style={{ flexShrink: 1 }}>
-                <Pressable onPress={() => set(row.name, { free: true })} accessibilityLabel={L.free} style={[styles.dot, c.free && styles.dotOn]}>
-                  <SymbolView name="sparkles" size={18} tintColor={c.free ? colors.bg : colors.accentSoft} />
+                {/* „Die KI erfindet sie" — beschriftet, und ein zweiter Tipp
+                    nimmt die Wahl zurück (Antons Befund 13.09.: „geht nicht
+                    wieder weg", „muss beschriftet sein"). */}
+                <Pressable onPress={() => set(row.name, c.free ? {} : { free: true })} accessibilityLabel={L.free} style={styles.pick}>
+                  <View style={[styles.dot, c.free && styles.dotOn]}>
+                    <SymbolView name="sparkles" size={18} tintColor={c.free ? colors.bg : colors.accentSoft} />
+                  </View>
+                  <Text style={[styles.pickLabel, c.free && styles.pickLabelOn]} numberOfLines={1}>{L.freeShort ?? "KI"}</Text>
                 </Pressable>
                 {options.map((l) => (
-                  <Pressable key={l.id} onPress={() => set(row.name, { avatarId: l.id, free: false })} accessibilityLabel={`@${l.tag}`} style={[styles.dot, c.avatar?.id === l.id && styles.dotOn]}>
-                    {l.img ? <Image source={{ uri: l.img }} style={styles.dotImg} contentFit="cover" /> : <Text style={styles.dotInitial}>{l.tag.slice(0, 1).toUpperCase()}</Text>}
+                  <Pressable key={l.id} onPress={() => set(row.name, c.avatar?.id === l.id ? {} : { avatarId: l.id, free: false })} accessibilityLabel={`@${l.tag}`} style={styles.pick}>
+                    <View style={[styles.dot, c.avatar?.id === l.id && styles.dotOn]}>
+                      {l.img ? <Image source={{ uri: l.img }} style={styles.dotImg} contentFit="cover" /> : <Text style={styles.dotInitial}>{l.tag.slice(0, 1).toUpperCase()}</Text>}
+                    </View>
+                    <Text style={[styles.pickLabel, c.avatar?.id === l.id && styles.pickLabelOn]} numberOfLines={1}>{l.tag}</Text>
                   </Pressable>
                 ))}
                 {/* Neu anlegen — mit Foto aus Kamera oder Mediathek (Web-Dialog). */}
-                <Pressable onPress={() => { Haptics.selectionAsync(); router.push({ pathname: "/dream/avatar", params: { category: kind, tag: row.name } }); }} accessibilityLabel={L.createNew} style={[styles.dot, styles.dotNew]}>
-                  <SymbolView name="camera.fill" size={17} tintColor={colors.accentSoft} />
+                <Pressable onPress={() => { Haptics.selectionAsync(); router.push({ pathname: "/dream/avatar", params: { category: kind, tag: row.name } }); }} accessibilityLabel={L.createNew} style={styles.pick}>
+                  <View style={[styles.dot, styles.dotNew]}><SymbolView name="camera.fill" size={17} tintColor={colors.accentSoft} /></View>
+                  <Text style={styles.pickLabel} numberOfLines={1}>{L.newShort ?? "Foto"}</Text>
                 </Pressable>
               </ScrollView>
             </View>
@@ -132,7 +142,10 @@ const styles = StyleSheet.create({
   optText: { color: colors.text, fontSize: 11 },
   primary: { height: 52, borderRadius: 999, alignItems: "center", justifyContent: "center", backgroundColor: colors.warm, marginTop: 6 },
   primaryText: { color: colors.bg, fontSize: 16, fontWeight: "700" },
-  strip: { flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 10 },
+  strip: { flexDirection: "row", alignItems: "flex-start", gap: 10, paddingLeft: 10 },
+  pick: { alignItems: "center", gap: 4, width: 52 },
+  pickLabel: { color: colors.faint, fontSize: 10, textAlign: "center" },
+  pickLabelOn: { color: colors.accentSoft, fontWeight: "600" },
   dot: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(140,192,255,0.10)", borderWidth: 1.5, borderColor: "transparent", overflow: "hidden" },
   dotOn: { backgroundColor: colors.accentSoft, borderColor: colors.accentSoft },
   dotNew: { borderColor: colors.panelLine, borderStyle: "dashed", backgroundColor: "transparent" },

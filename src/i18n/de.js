@@ -520,12 +520,12 @@ export default {
     caught: (name) => `✦ ${name} ist deiner Menagerie beigetreten`,
     /* Der Rekorder (ADR-0007): einsprechen, fertig — keine Rückfragen. */
     record: "Erzähl ihn laut", recordHint: "Sprich einfach. Ich schreibe mit.",
-    recording: "Ich höre zu …", recordStop: "Fertig", recordTranscribing: "Ich schreibe auf …",
+    recording: "Ich höre zu …", recordStop: "Fertig", recordDiscard: "Verwerfen", recordTranscribing: "Ich schreibe auf …",
     recordTooShort: "Das war zu kurz — noch mal.", recordFailed: "Konnte das nicht aufschreiben. Noch mal versuchen.",
     recordAgain: "Noch mal aufnehmen", yourRecording: "Deine Aufnahme",
     interview: "Laut erzählen",
     interviewHint: "Ich frage, du erzählst — Augen zu, wenn du magst",
-    reading: "Dein Traum wird gelesen…",
+    reading: "Dein Traum wird ausgewertet…",
     readingHint: "Benennt ihn und findet heraus, wer dabei war.",
     or: "oder schreib ihn",
     loading: [
@@ -560,7 +560,7 @@ export default {
          findet Figuren, Orte und Szenen. Ohne das hat der nächste Schritt
          nichts zu zeigen. Der Knopf sagt jetzt, was er tut. */
       improve: "Traum auswerten",
-      reading: "Dein Traum wird gelesen…",
+      reading: "Dein Traum wird ausgewertet…",
       why: "Die App liest deinen Traum: wer darin vorkommt, wo er spielt, welche Szenen ihn " +
            "ausmachen — und erzählt ihn dabei in deiner Sprache sauber nach. Alles danach baut " +
            "darauf auf, deshalb geht es hier lang. Deine eigenen Worte bleiben erhalten.",
@@ -603,6 +603,8 @@ export default {
       createNew: "Neu anlegen",
       letAi: "KI entscheiden lassen",
       freeSet: "KI erfindet sie",
+      freeShort: "KI",
+      newShort: "Foto",
       undecided: "Noch nicht entschieden",
       note: "Alles, was offen bleibt, erfindet die KI.",
       removeLabel: (name) => `${name} entfernen`,
