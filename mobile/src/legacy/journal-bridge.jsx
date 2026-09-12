@@ -27,6 +27,7 @@ import { blankDays, localDateKey } from "../../../src/lib/dreamDays.js";
 import { reminderWish, reminderState, MAX_PER_DAY, DEFAULT_PER_DAY } from "../../../src/lib/reminders.js";
 import { VOICES, DEFAULT_VOICE, isVoice } from "../../../src/lib/voices.js";
 import { withdrawPatch } from "../../../src/lib/consent.js";
+import { SYMBOLS, SYMBOL_CATEGORIES, symbolOccurrences } from "../../../src/lib/symbols.js";
 import { MILESTONES, nextMilestone, giftAt } from "../../../src/lib/streakBoard.js";
 import { nextSnoozeIn } from "../../../src/lib/streak.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
@@ -264,7 +265,24 @@ function snapshot() {
     }),
     films: (show.films || []).map(absolute), filmsBackup: (show.filmsBackup || []).map(absolute),
   };
-  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall };
+  /* Der Symbol-Atlas (SymbolsScreen.jsx + SymbolDetail.jsx): Gruppen nach
+     Kategorie, nur Symbole, die im Tagebuch vorkommen; Vorkommen je Symbol,
+     neueste zuerst. Wird bei jedem Stand neu abgeleitet — ein später
+     ergänztes Symbol reichert alte Träume rückwirkend an. */
+  const symbols = (() => {
+    const occ = symbolOccurrences(s.journal); const ts = t.symbols;
+    const groups = Object.entries(SYMBOL_CATEGORIES).map(([key, cat]) => ({
+      key, label: ts.categories[key] || cat.label,
+      symbols: SYMBOLS.filter((x) => x.category === key && occ.has(x.id)).map((x) => {
+        const list = occ.get(x.id) || [];
+        return { id: x.id, label: ts.byId[x.id]?.label || x.label, meaning: ts.byId[x.id]?.meaning || x.meaning, count: list.length,
+          countLine: ts.occurrences(list.length),
+          occurrences: list.map((o) => ({ entryId: o.entryId, date: new Date(o.createdAt).toLocaleDateString(s.language === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "short" }), title: o.title || ts.untitled })) };
+      }),
+    })).filter((g) => g.symbols.length > 0);
+    return { title: ts.title, subtitle: ts.subtitle, empty: ts.empty, close: ts.close, disclaimer: ts.disclaimer, groups };
+  })();
+  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols };
 }
 
 /* Befehle nativ → Web: Die Hülle kann den Web-Speicher nicht schreiben, also

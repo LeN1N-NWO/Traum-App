@@ -56,7 +56,9 @@ export type PaywallData = {
   tabSub: string; tabPack: string; packNote: string; yieldYearNote: string; included: string; chips: string[]; freeNote: string; cta: string; notYet: string; upTo: string;
   balance: string; credits: number; subs: PaywallPlan[]; packs: PaywallPlan[]; films: string[]; filmsBackup: string[];
 };
-export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData };
+export type SymbolEntry = { id: string; label: string; meaning: string; count: number; countLine: string; occurrences: { entryId: string; date: string; title: string }[] };
+export type SymbolsData = { title: string; subtitle: string; empty: string; close: string; disclaimer: string; groups: { key: string; label: string; symbols: SymbolEntry[] }[] };
+export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData; symbols: SymbolsData };
 export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw"; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
 export type BridgeResult = { n: number; result?: any; error?: string };
 

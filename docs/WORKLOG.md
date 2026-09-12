@@ -67,7 +67,19 @@ Stil-Kacheln, Doku).
   Aufbau nach `LucidGuide.jsx` — Vorspann, drei Hebel vor den Methoden,
   Klapp-Karten mit Layout-Animation, Quelle; Erinnerungs-Wunsch als echter
   Schalter mit 1–4× (Befehl `reminders` → `reminderWish`, nur der Wunsch,
-  wie im Web). Nur die Symbole bleiben im Schlaf-Tab Web.
+  wie im Web).
+- **Einstellungen nativ** (`profile/settings.tsx`, `profile/voice.tsx`,
+  `profile/legal.tsx`): Glas-Zeilen mit Wert, Stimmwahl als Karte —
+  Antippen ist die Hörprobe (Server-Sample über expo-video, Welle atmet),
+  Rechtstexte als geschobene Seite; Befehle `voice`, `withdraw`.
+  ⚠ Karten (`presentation: modal`) sitzen unter der Statusleiste, aber
+  `useSafeAreaInsets().top` meldet in ihnen trotzdem 59 — oben deshalb
+  fester Abstand, nicht der Inset.
+- **Symbol-Atlas nativ** (`components/symbols-atlas.tsx`): Schlaf-Raum
+  und Journal-Nebenraum (`journal/atlas.tsx`) aus derselben Komponente;
+  Strich-Icons → SF Symbols (react-native-svg ist nicht installiert und
+  wäre ein Rebuild); Lesart als formSheet mit tippbaren Vorkommen.
+  Alle vier Schlaf-Räume sind damit nativ.
 
 **Was der Nächste wissen muss:**
 - Prüfen läuft weiter per Redirect-Trick (index.tsx temporär ersetzen,

@@ -8,8 +8,9 @@ Entwurf): **alle fünf Tabs, der Wizard, das Kaufblatt und das
 Klang-Mischpult sind nativ** (Expo Router, Liquid Glass, SF Symbols,
 Haptik); Schritt 4 aus ADR-0006 ist weit. Noch Web als DOM-Komponente im
 nativen Stack: Stimm-Gespräch, Schritt 6 (Warten), Aktionen der Traum-Seite,
-Schlaf-Raum Symbole, Einstellungen/Avatar/Umfrage, Besetzung/Atlas/
-Menagerie. **Antons Befunde vom 12.09. vormittags sind alle umgesetzt**
+Avatar-Anlage, Umfrage, Besetzung/Menagerie (Journal-Nebenräume). Das
+Consent-Tor und das Onboarding gibt es nativ noch gar nicht (Gate startet
+in der Hülle bei „app"). **Antons Befunde vom 12.09. vormittags sind alle umgesetzt**
 (Kaufblatt ohne Bilder, Glas-Regler, Safe Area oben, Faultier-Schleife,
 Glas-Knöpfe ohne Textüberlauf, Tab-Sprung „Neu anlegen") — Details im
 WORKLOG. ⚠ `mobile/app.json` hat jetzt `UIBackgroundModes: audio`; das
@@ -182,10 +183,21 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
   Erinnerungs-Schalter nur unter den Realitätschecks — sammelt weiter NUR
   den Wunsch (Befehl `reminders` → `reminderWish`), Benachrichtigungen
   plant erst die native Schicht (iOS fragt genau einmal, reminders.js).
-  **Als Nächstes:** Stimme nativ, Schritt 6 (Warten) nativ, Aktionen der
-  Traum-Seite nativ, restliche Web-Räume (Symbole, Einstellungen,
-  Avatar-Anlage); Erinnerungen wirklich planen (`expo-notifications`,
-  Wachstunden); dann Datenschicht nach `expo-sqlite` und die Brücke abbauen.
+  **Einstellungen nativ** (`profile/settings.tsx`, `profile/voice.tsx` als
+  Karte, `profile/legal.tsx`): Zeilen wie Settings.jsx, Stimmwahl mit
+  Hörprobe vom Server (`/api/voice-sample` über expo-video, Welle atmet),
+  Rechtstexte in Lesegröße, Widerruf (Befehle `voice`, `withdraw`). ⚠ Der
+  Widerruf wird nur gespeichert — das Tor ist nativ noch nicht gebaut.
+  **Symbol-Atlas nativ** (`components/symbols-atlas.tsx`; Schlaf-Raum
+  `symbols` und Journal-Nebenraum `journal/atlas.tsx`): Gruppen, Glas-
+  Kacheln mit SF Symbols, Lesart als Sheet mit den Träumen (tippbar →
+  Traum-Seite). `snapshot().symbols` aus `symbolOccurrences`.
+  **Als Nächstes:** Stimme nativ (Mikrofon → natives Modul, Rebuild),
+  Schritt 6 (Warten) nativ, Aktionen der Traum-Seite nativ, Avatar-Anlage
+  (Foto → `expo-image-picker`, Rebuild), Besetzung/Menagerie nativ,
+  Consent-Tor + Onboarding nativ; Erinnerungen wirklich planen
+  (`expo-notifications`, Wachstunden); dann Datenschicht nach
+  `expo-sqlite` und die Brücke abbauen.
   Je Bildschirm nativ neu entwerfen, nicht das Web-Layout nachbauen.
   ⚠ NativeTabs ist Alpha, SDK 57.0.x. ⚠ Ungeprüft, weil hier niemand tippen
   kann: Fassungswechsel, Teilen, „…" → Web-Seite → zurück.

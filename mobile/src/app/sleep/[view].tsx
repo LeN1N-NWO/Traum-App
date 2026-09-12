@@ -7,10 +7,11 @@ import { LegacyTab } from "@/components/legacy-tab";
 import { LucidGuide } from "@/components/lucid-guide";
 import { SleepChecklist } from "@/components/sleep-checklist";
 import { SoundMixer } from "@/components/sound-mixer";
+import { SymbolsAtlas } from "@/components/symbols-atlas";
 import { colors, fonts, TAB_INSET } from "@/theme";
 
-/* Ein Schlaf-Raum. Checkliste, Klänge und Guide sind nativ; die Symbole
-   bleiben vorerst eine Web-Seite mit eigenem Rückweg. Die Bühne der Unterseite
+/* Ein Schlaf-Raum — alle vier nativ (Checkliste, Klänge, Guide, Symbole);
+   der Web-Rückfall bleibt für unbekannte Ansichten. Die Bühne der Unterseite
    ist die des Web (SleepScreen.jsx, view-Zweig): Schein in der Raumfarbe,
    Icon im Kreis, Serife, Untertitel. */
 export default function SleepSectionScreen() {
@@ -19,6 +20,7 @@ export default function SleepSectionScreen() {
   if (v === "sounds") return <SoundsRoom />;
   if (v === "checklist") return <ChecklistRoom />;
   if (v === "guide") return <GuideRoom />;
+  if (v === "symbols") return <SymbolsRoom />;
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -63,6 +65,15 @@ function GuideRoom() {
   return (
     <Room id="guide" sf="brain.head.profile" tint={colors.accent} glow="rgba(79,156,249,0.30)">
       {G ? <LucidGuide G={G} onReminder={(wants, perDay) => send({ type: "reminders", wants, perDay })} /> : null}
+    </Room>
+  );
+}
+
+function SymbolsRoom() {
+  const { data } = useJournal();
+  return (
+    <Room id="symbols" sf="sparkles" tint={colors.accentSoft} glow="rgba(140,192,255,0.28)">
+      {data ? <SymbolsAtlas S={data.symbols} /> : null}
     </Room>
   );
 }

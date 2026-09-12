@@ -28,7 +28,8 @@ export default function JournalScreen() {
     return q ? all.filter((e) => (e.text + " " + e.title).toLowerCase().includes(q)) : all;
   }, [data, query]);
   const open = (id: string) => router.push({ pathname: "/journal/[id]", params: { id } });
-  const room = (view: string) => { Haptics.selectionAsync(); router.push({ pathname: "/journal/web", params: { view } }); };
+  // Der Atlas ist nativ (journal/atlas.tsx); Besetzung und Menagerie noch Web.
+  const room = (view: string) => { Haptics.selectionAsync(); if (view === "atlas") { router.push("/journal/atlas"); return; } router.push({ pathname: "/journal/web", params: { view } }); };
   const count = items.length === 1 ? L.count1 : String(L.countN ?? "{n}").replace("{n}", String(items.length));
 
   return (
