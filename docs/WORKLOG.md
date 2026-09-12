@@ -17,8 +17,14 @@ hörbar macht.
   Foto-Option). Jetzt wird der Film per `File.downloadFileAsync` in den
   Cache geladen und die `file://`-Adresse geteilt — das iOS-Blatt bietet
   dann „Video sichern", AirDrop, Nachrichten mit dem Film. Rückfall: Link.
-- ⚠ Ungeprüft (niemand tippt hier): Vollbild-Übergang, Ton, Teilen-Blatt.
-  Knopf sichtbar geprüft am Dino-Traum.
+- Antons Nachtrag: Knopf „komisch angeordnet" → jetzt zwei kleine Glas-
+  Knöpfe am rechten Rand unter dem Kopf: Ton an/aus (laut = doNotMix) und
+  Vollbild. Teilen in Fotos hat er geprüft (Status „◀ Fotos").
+- „Kein Poster mitgekommen": der Film „Eiskalt ins Paradies" wurde VOR dem
+  Poster-Commit bestellt (`media/jobs/mtyentkpm1psb3.json`: `poster: null`,
+  erstellt 14:59) — der Weg greift ab dem nächsten Film. Titel/Tagline
+  kommen über `resume.title` (WizardShell) an, geprüft.
+- ⚠ Ungeprüft (niemand tippt hier): Vollbild-Übergang, Ton.
 
 ## 2026-09-12 17:00 — Anton — Branch `session/2026-09-12-anton` — Sitzungsabschluss (wrap, Merge auf Antons Wort)
 

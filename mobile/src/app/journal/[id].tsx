@@ -186,18 +186,28 @@ function splitPassages(text: string, n: number) {
 function FilmHero({ url }: { url: string }) {
   const player = useVideoPlayer(url, (p) => { p.loop = true; p.muted = true; p.play(); });
   const view = useRef<VideoView>(null);
+  const [sound, setSound] = useState(false);
   useEffect(() => { player.loop = true; player.muted = true; player.play(); }, [player]);
+  /* Ton an/aus auch ohne Vollbild (Antons Wunsch 12.09.): laut heißt
+     „nicht mischen" — sonst kippt der Klangmischer die Session. */
+  useEffect(() => { player.muted = !sound; player.audioMixingMode = sound ? "doNotMix" : "mixWithOthers"; }, [player, sound]);
   return (
     <>
       <VideoView
         ref={view} player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false}
         fullscreenOptions={{ enable: true }}
         onFullscreenEnter={() => { player.muted = false; player.audioMixingMode = "doNotMix"; player.play(); }}
-        onFullscreenExit={() => { player.muted = true; player.audioMixingMode = "mixWithOthers"; player.play(); }}
+        onFullscreenExit={() => { player.muted = !sound; player.audioMixingMode = sound ? "doNotMix" : "mixWithOthers"; player.play(); }}
       />
-      <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); view.current?.enterFullscreen(); }} style={styles.fullscreenBtn} hitSlop={10} accessibilityLabel="Fullscreen">
-        <Glass style={styles.fullscreenGlass} interactive><SymbolView name="arrow.up.left.and.arrow.down.right" size={16} tintColor={colors.text} weight="semibold" /></Glass>
-      </Pressable>
+      {/* Zwei kleine Glas-Knöpfe am rechten Rand unter dem Kopf: Ton, Vollbild. */}
+      <View style={styles.heroTools} pointerEvents="box-none">
+        <Pressable onPress={() => { Haptics.selectionAsync(); setSound((v) => !v); }} hitSlop={8} accessibilityLabel={sound ? "Mute" : "Sound"} accessibilityState={{ selected: sound }}>
+          <Glass style={styles.heroTool} interactive tint={sound ? "rgba(140,192,255,0.35)" : undefined}><SymbolView name={sound ? "speaker.wave.2.fill" : "speaker.slash.fill"} size={14} tintColor={colors.text} weight="semibold" /></Glass>
+        </Pressable>
+        <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); view.current?.enterFullscreen(); }} hitSlop={8} accessibilityLabel="Fullscreen">
+          <Glass style={styles.heroTool} interactive><SymbolView name="arrow.up.left.and.arrow.down.right" size={14} tintColor={colors.text} weight="semibold" /></Glass>
+        </Pressable>
+      </View>
     </>
   );
 }
@@ -248,8 +258,8 @@ const styles = StyleSheet.create({
   buttonPrimary: { backgroundColor: colors.warm },
   buttonText: { color: colors.text, fontSize: 15, fontWeight: "600" },
   buttonPrimaryText: { color: colors.bg, fontSize: 15, fontWeight: "700" },
-  fullscreenBtn: { position: "absolute", top: 108, right: 16 },
-  fullscreenGlass: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  heroTools: { position: "absolute", top: 104, right: 14, gap: 8 },
+  heroTool: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   rec: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, paddingRight: 16, borderRadius: 18 },
   recBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.warm, alignItems: "center", justifyContent: "center" },
   recLabel: { color: colors.text, fontSize: 14, fontWeight: "600" },
