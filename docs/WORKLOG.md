@@ -3,6 +3,43 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 16:20 — Anton — Branch `session/2026-09-12-anton` — Dino-Traum nachvollzogen, Poster nach dem Film, Aufnahme sicher am Traum
+
+**Antons Fragen:** Welcher finale Prompt ging beim Dino-Traum raus, warum
+war der Film „1:1 statt der ganzen Geschichte"? Dazu: die Aufnahme soll im
+Journal hörbar sein; Poster-Ablauf „Film rendern, erstes Bild als
+Inspiration ans Bildmodell".
+
+**Befund Dino-Traum** (`media/jobs/mtyde59hph08go.json`, Eintrag
+`e_mtydck1hzykqgu`): H3 (standard), 10 s, Tempo ruhig, Stil Knete. Der
+Prompt selbst war NICHT gespeichert (nur „director wrote 5468 chars"). Die
+Rechnung aber ist deterministisch: shotBudget(H3, 10 s, calm) = **2**, die
+Analyse hat **6** Szenen mit Kern 14 s — der Schnitt (cut.js) nahm die zwei
+schwersten (Dino kommt, Seil). Der Regie-Brief (nachgebaut mit
+`buildDirectorBrief`) verlangte „1 hard cut at 00:04.000". Kein Bug, ein
+fehlender Hinweis: die Szenen-Empfehlung aus dem Web stand nativ nicht
+unter dem Regler.
+
+- **Szenen-Empfehlung im Längen-Schritt** (`dream/length.tsx`, wie
+  Step5Style: „2 von 6 Szenen passen … bei 15 s wären es 3"), Vorlagen mit
+  Platzhaltern über die Brücke.
+- **Finaler Film-Prompt wird gespeichert** (`media/jobs/<id>.json`:
+  `prompt`, `promptChars`, `seconds`) — nur lokal, nie im Repo.
+- **Aufnahme sicher am Traum:** `attachAudio` lief im Brücken-Webview des
+  Auftrags-Bildschirms, der im selben Tick verschwand → nie angekommen.
+  Jetzt 900 ms Aufschub vor dem Weg ins Journal; ohne id nimmt die Brücke
+  den jüngsten Traum.
+- **Poster nach dem Film** (`src/lib/poster.js`, server `finishPoster`):
+  Film fertig → Auftrag „posting" → ffmpeg zieht das erste Bild → GPT
+  Image 2 (edit, 1024×1536) mit Poster-Prompt (Regeln des alten
+  buildPosterPrompt aus `13bd9b0`, plus „Image 1 ist Inspiration, nicht
+  Vorlage") → `posterUrl` am Auftrag → Abholer schreibt `entry.poster` →
+  Kachel zeigt das Poster (Brücke `media`). Titel/Tagline schickt Step5
+  jetzt mit. Nach 150 s ohne Poster wird der Film ohne fertig. Probe mit
+  dem Dino-Film: 31 s, Poster stimmig (Tagline oben, Titel unten, Knete).
+  ⚠ Kosten (~5 Cent, medium 1024×1536) noch NICHT im Filmpreis (quote.js).
+  ⚠ Der Server-Weg selbst ist ungeprüft — erst der nächste echte Film.
+
 ## 2026-09-12 15:10 — Anton — Branch `session/2026-09-11-anton-expo` — Sitzungsabschluss (wrap)
 
 **Commits der Sitzung:** 45 auf `main..HEAD`, zuletzt `28c8894` (Aufnahme

@@ -3,8 +3,10 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-12 abends — `session/2026-09-11-anton-expo` (PR #41,
-Entwurf, 45 Commits): **Die App ist nativ** (React Native mit Expo, ADR-0006):
+**Stand:** 2026-09-12 abends — PR #41 ist GEMERGED (`fbfe5ff`); neue
+Sitzung `session/2026-09-12-anton` (PR #42, Entwurf): Poster nach dem Film,
+finaler Film-Prompt je Auftrag gespeichert, Aufnahme sicher am Traum,
+Szenen-Empfehlung im Längen-Schritt. Davor (PR #41): **Die App ist nativ** (React Native mit Expo, ADR-0006):
 fünf Tabs mit Liquid Glass, Wizard, Kaufblatt, Klang-Mischpult, Checkliste,
 Luzid-Guide, Symbol-Atlas, Besetzung, Menagerie, Einstellungen, Stimmwahl,
 Rechtstexte, Consent-Tor, Auftrag ohne Wartebildschirm, Abholer in der
@@ -41,14 +43,23 @@ Auftrags. Startmenü/Sprachwahl/Onboarding gibt es nativ nicht.
   React-Compiler-Regeln stehen für Reanimated-/Player-Muster auf „warn"
   (eslint.config.js). Web: 560 Tests grün, `vite build` grün.
 
+**Poster nach dem Film (12.09., neu, ungeprüft am echten Auftrag):**
+`src/lib/poster.js` + `finishPoster` in server.js (Zustand „posting" am
+Auftrag, 150 s Deckel); Abholer schreibt `entry.poster`, Brücke zeigt es als
+Kachel. Kosten ~5 Cent je Film noch nicht in `quote.js` — Antons Wunsch:
+einrechnen. `POSTER=off` schaltet es ab.
+**Warum ein Film „nur einen Teil" zeigt:** shotBudget(H3, 10 s) = 2 Szenen;
+für alle braucht es die Sekunden aus der Analyse (`filmSeconds`) — die
+Empfehlung steht jetzt nativ unter dem Regler. Der finale Prompt liegt je
+Auftrag in `media/jobs/<id>.json` (`prompt`).
+
 **Antons offene Wünsche (12.09., Reihenfolge seine):** Traumfänger-Video
 als Schleife über dem Rekorder (Platzhalter: atmende Ringe) · Onboarding
 nativ: Intro mit App-Namen (Platzhalter für sein Video), Showreel,
 Feature-Kacheln in Glas (Moonly-Vorbild), Schlaf-Jahre-Zähler
 (Opal-Vorbild), Fragebogen statt Gespräch · Pseudo-Rangliste aus der Serie
-(„weiter als 8 von 10", nichts wird gezählt) · Poster je Film für die
-Kacheln (1:1 oder 4:5, ~3 Cent, in den Filmpreis rechnen, Renderweg im
-Server) · Avatar-Dialog nativ (`expo-image-picker`, Rebuild) ·
+(„weiter als 8 von 10", nichts wird gezählt) · Poster-Kosten in den
+Filmpreis rechnen (Renderweg steht) · Avatar-Dialog nativ (`expo-image-picker`, Rebuild) ·
 Erinnerungen wirklich planen (`expo-notifications`) · Datenschicht nach
 `expo-sqlite`, Brücke abbauen.
 
