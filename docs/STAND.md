@@ -3,7 +3,9 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-12 abends — PR #41 bis #45 gemerged. Zuletzt (PR #45,
+**Stand:** 2026-09-12 abends — PR #41 bis #45 gemerged, **PR #46 offen**
+(Hanni: Anmeldung, Konto und Träume im Backend — Abschnitt „Die Anmeldung
+steht" weiter unten). Zuletzt gemerged (PR #45,
 10 Commits): **Onboarding nativ und in Antons Form** — eine Frage je
 Bildschirm mit Antwort-Raster, Mehrfachwahl beim Ziel, „Weiter" erst mit
 Antwort, Zwischenbild mit laufendem Film nach jeder Frage,
@@ -58,7 +60,8 @@ den PR. Abweichung von AGENTS.md mit Grund.
   `simctl install` in den Simulator. Neue native Pakete (expo-audio,
   expo-blur heute) brauchen `bun run pods` + Rebuild.
 - **Entwicklungsbau hält 100 Test-Credits** (`devTopUp` in
-  journal-bridge.jsx, nur `__DEV__`) — bis Konto/Supabase stehen.
+  journal-bridge.jsx, nur `__DEV__`) — unverändert gültig: die Anmeldung
+  steht zwar seit 12.09., der Server bucht aber weiterhin nicht ab.
 - Prüfen ohne Tippen: Redirect-Trick in `mobile/src/app/index.tsx`
   (Sicherung `/tmp/index.tsx.bak`, vor dem Commit `grep Redirect` = 0),
   Screenshots per `simctl io booted screenshot`. Rekorder-Selbsttest:
@@ -158,16 +161,38 @@ installiert; Hanni bekommt die Anleitung beim nächsten Start
 
 **Der Server rechnet den Filmpreis selbst.** `src/lib/quote.js` ist EINE
 Rechnung für Wizard und Server (409 bei Abweichung nach oben). Punkte 2–6
-aus `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md` warten auf die
-Anmeldung (Supabase).
+aus `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md` sind **nicht
+mehr blockiert** — die Anmeldung steht (siehe unten), das Abbuchen selbst
+ist noch nicht gebaut.
 
 **Geschäftliche Entscheidungen (Anton, 11.09.):** UG als Rechtsform; Seedance
 über Replicate direkt (Token liegt in `.env`); DeepSeek `deepseek-flash`
 (V4.1). Details in den WORKLOG-Einträgen vom 11.09.
 
-**`server.js` ist mit der Datenbank verbunden — nach Least Privilege**, die
-Verbindung wird noch nicht genutzt (Credits liegen im Gerät). Die
+**`server.js` ist mit der Datenbank verbunden — nach Least Privilege.** Die
 Architektur ist bewertet: `docs/ARCHITEKTUR.md` (S1–S8).
+
+**Die Anmeldung steht (12.09., PR #46, noch offen).** `server.js` hat jetzt
+`POST /api/auth/login|refresh|logout`, `GET/PATCH /api/account`,
+`GET/DELETE /api/dreams` und `POST /api/dreams/sync`. Der Client spricht
+weiterhin nur mit uns; Supabase Auth liegt dahinter (`src/lib/auth.js`,
+kein SDK). Jeder Datenzugriff läuft durch `withUser()`, die Nutzerkennung
+kommt aus der bei Supabase geprüften Sitzung. `POST /api/dreams/sync` ist
+zugleich der von ADR-0005 verlangte Migrationsweg für lokale Träume:
+wiederholbar über `unique (user_id, client_id)`.
+- ⚠⚠ **Nicht hinter eine öffentliche Adresse, solange S6 offen ist** — der
+  Server spricht `http://`, Passwort und Token reisen im Klartext.
+- ⚠ **Der Ende-zu-Ende-Test steht aus.** Geprüft ist nur, dass ohne Sitzung
+  nichts geht (401), ohne Konfiguration nichts vorgetäuscht wird (503) und
+  die Bremse greift (429 ab dem 11. Login je Minute). Den Rest prüft
+  `node scripts/test-konto.mjs`, sobald `SUPABASE_URL` und
+  `SUPABASE_ANON_KEY` in `.env` stehen.
+- ⚠ **IPv6-Falle (gemessen 12.09.):** `db.<projekt>.supabase.co` löst nur
+  auf IPv6 auf. Ohne IPv6 kommt `ERR_POSTGRES_CONNECTION_REFUSED` — das
+  sieht aus wie ein falsches Passwort und ist keines. Dann Session Pooler
+  (IPv4, Port 5432; nicht 6543).
+- **Abgebucht wird weiterhin nichts.** `/api/account` zeigt das Guthaben
+  nur an. Registrieren gibt es nicht (kein Signup-Endpunkt, absichtlich).
 
 ## Wo wir stehen
 
