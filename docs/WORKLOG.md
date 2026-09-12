@@ -3,6 +3,44 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 17:15 — Anton — Branch `session/2026-09-12-anton-c` — Deck als echter Stapel, Onboarding bei jedem Start
+
+**Antons Auftrag:** Die Träume im Journal sollen „hintereinander gestapelt"
+aussehen (Referenzbild: Mobbin-Karussell), und das Onboarding soll in der
+Entwicklung bei JEDEM Start kommen, damit er es durchgehen und anpassen kann.
+
+- **Deck neu gebaut** (`components/dream-deck.tsx`): kein Scroller mehr,
+  sondern ein Fächer aus absolut gesetzten Karten mit Wisch-Geste
+  (react-native-gesture-handler + Reanimated). Vorne eine Karte gerade und
+  groß, dahinter die Nachbarn gekippt, kleiner, gedämpft; Punkte darunter;
+  Tipp auf eine hintere Karte holt sie nach vorn, Tipp auf die vordere
+  öffnet den Traum.
+  ⚠ **Zwei Anläufe vorher gescheitert:** In einer horizontalen ScrollView
+  malt die SPÄTERE Karte über die frühere, und `zIndex` aus einem
+  Reanimated-Stil greift dort nicht — bei starker Überlappung lag der Titel
+  der Nachbarin quer über der vorderen Karte. Ein Stapel braucht die
+  Malreihenfolge (fernste zuerst, vordere zuletzt); das geht nur ohne
+  Scroller. Auch ein Schleier auf den hinteren Karten half nicht.
+  ⚠ `GestureHandlerRootView` liegt jetzt EINMAL im Wurzel-Layout
+  (`app/_layout.tsx`) — ohne sie: „GestureDetector must be used as a
+  descendant of GestureHandlerRootView"; das Klang-Mischpult hatte seine
+  eigene, die ist raus.
+- **Onboarding bei jedem Start** (`components/onboarding-gate.tsx`,
+  `legacy/legacy-onboarding.jsx`, `store/dev-store.ts`): der Web-Ablauf
+  (Plakat-Video, drei Folien, Umfrage, Formular, Selfie samt
+  Willkommens-Credits) als DOM-Komponente, vollbild über allem, nur bei
+  `__DEV__`. Innerhalb einer Sitzung kommt es nach dem Durchgehen nicht
+  wieder, beim nächsten Start schon.
+  ⚠ **Als Modal, nicht als Route:** Die Wurzel ist die NativeTabs-Leiste;
+  eine Datei daneben (`app/onboarding.tsx`) hat keinen Navigator, der sie
+  aufschieben könnte — `router.push("/onboarding")` lief ins Leere. Dasselbe
+  Muster wie das Consent-Tor.
+
+**Was der Nächste wissen muss:** Der Onboarding-Inhalt ist bewusst noch
+Web — erst wenn Anton durchgegangen ist und gesagt hat, was bleibt, wird
+Bildschirm für Bildschirm nativ (Intro mit App-Namen, Showreel,
+Feature-Kacheln in Glas, Schlaf-Jahre-Zähler, Fragebogen).
+
 ## 2026-09-12 16:50 — Anton — Branch `session/2026-09-12-anton-c` — Richtigstellung: die „13.09."-Einträge sind vom 12.09.
 
 **Was falsch ist:** Die beiden Einträge darunter (16:05 und 16:20) und der

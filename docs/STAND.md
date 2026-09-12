@@ -91,6 +91,19 @@ Filmpreis rechnen (Renderweg steht) · Avatar-Dialog nativ (`expo-image-picker`,
 Erinnerungen wirklich planen (`expo-notifications`) · Datenschicht nach
 `expo-sqlite`, Brücke abbauen.
 
+**⚠ Deck ist ein Fächer, kein Scroller** (13.09.): In einer horizontalen
+ScrollView malt die spätere Karte über die frühere, `zIndex` aus einem
+Reanimated-Stil greift dort nicht. Gestapelte Karten brauchen die
+Malreihenfolge — `components/dream-deck.tsx` zeichnet selbst (fernste
+zuerst) und wischt mit einer Pan-Geste. `GestureHandlerRootView` liegt
+einmal im Wurzel-Layout.
+
+**⚠ Onboarding und Consent sind Modals im Wurzel-Layout, keine Routen:**
+Die Wurzel ist die NativeTabs-Leiste, eine Datei daneben hat keinen
+Navigator — `router.push` läuft ins Leere. Das Onboarding kommt im
+Entwicklungsbau bei jedem Start (`components/onboarding-gate.tsx`,
+`store/dev-store.ts`), Inhalt noch der Web-Ablauf.
+
 **⚠ Player nie im Aufräumer anfassen** (Absturz 13.09.): expo-video gibt
 den Player beim Abbau der Komponente selbst frei; ein `pause()` im
 `useEffect`-Rückgabewert trifft ein Objekt, das nicht mehr existiert

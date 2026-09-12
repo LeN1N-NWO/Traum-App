@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, View, type LayoutChangeEvent } from "react-native";
-import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Glass } from "@/components/glass";
 import { getVolumes, IDS, setVolume, startTimer, subscribe, type SoundId } from "@/lib/sound-engine";
 import type { SoundsData } from "@/store/journal-store";
@@ -52,7 +52,7 @@ export function SoundMixer({ S, onSave }: { S: SoundsData; onSave: (mix: { volum
   }
 
   return (
-    <GestureHandlerRootView style={styles.wrap}>
+    <View style={styles.wrap}>
       <Text style={styles.lede}>{S.lede}</Text>
       <Glass style={styles.desk}>
         {IDS.map((id) => (
@@ -78,7 +78,7 @@ export function SoundMixer({ S, onSave }: { S: SoundsData; onSave: (mix: { volum
         </View>
         <Switch value={auto} onValueChange={toggleAuto} trackColor={{ true: colors.accent }} />
       </Glass>
-    </GestureHandlerRootView>
+    </View>
   );
 }
 

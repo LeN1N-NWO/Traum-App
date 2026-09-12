@@ -1,69 +1,119 @@
-import { useState } from "react";
+import * as Haptics from "expo-haptics";
+import { useMemo, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
-import Animated, { interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, Extrapolation, type SharedValue } from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from "react-native-reanimated";
 import { DreamPoster } from "@/components/dream-poster";
 import type { DreamItem } from "@/store/journal-store";
 import { colors } from "@/theme";
 
-/* Das Deck aus dem Web-Journal (journal.css .j-deck): eine Plakatkarte je
-   Traum, seitlich durchgewischt; die Karte in der Mitte steht vorn, die
-   Nachbarn lugen kleiner und gekippt von den Seiten herein, darunter die
-   Punkte. Nativ mit Snap und Reanimated auf dem UI-Thread. */
+/* Das Deck: die Träume liegen HINTEREINANDER GESTAPELT (Antons Vorbild
+   13.09.) — vorne eine Karte gerade und groß, dahinter die Nachbarn nach
+   beiden Seiten aufgefächert: kleiner, gekippt, gedämpft.
+ *
+ * ⚠ Warum KEIN Scroller mehr: In einer horizontalen `ScrollView` malt die
+ * spätere Karte über die frühere, und `zIndex` aus einem Reanimated-Stil
+ * greift dort nicht — bei starker Überlappung lag der Titel der Nachbarin
+ * quer über der vorderen Karte (Befund 13.09., zwei Anläufe). Ein Stapel
+ * braucht die Reihenfolge des MALENS: die fernsten Karten zuerst, die
+ * vordere zuletzt. Das geht nur, wenn wir selbst zeichnen — also ein
+ * Fächer aus absolut gesetzten Karten und eine Wisch-Geste darauf. */
+const FRONT = 0.74;      // Breite der vorderen Karte, Anteil der Bildschirmbreite
+const PEEK = 0.085;      // wie weit eine Karte dahinter zur Seite lugt (Anteil Kartenbreite)
+const TILT = 5;          // Grad Kippung je Karte nach hinten
+const SHRINK = 0.07;     // wie stark eine Karte nach hinten schrumpft
+const FADE = 0.16;       // wie stark sie verblasst
+const WINDOW = 3;        // so viele Karten je Seite bleiben sichtbar
+
 export function DreamDeck({ items, locale, onOpen }: { items: DreamItem[]; locale: string; onOpen: (id: string) => void }) {
   const { width } = useWindowDimensions();
-  const cardW = Math.min(width * 0.68, 300);
-  const overlap = Math.round(cardW * 0.11);
-  const stride = cardW - overlap;
-  const side = (width - cardW) / 2;
-  const x = useSharedValue(0);
+  const cardW = Math.min(width * FRONT, 320);
+  const cardH = Math.round(cardW * 1.25);
   const [index, setIndex] = useState(0);
-  const onScroll = useAnimatedScrollHandler({ onScroll: (e) => { x.value = e.contentOffset.x; } });
+  const drag = useSharedValue(0);          // −1 … 1 während des Wischens
+  const last = Math.max(0, items.length - 1);
+  const at = Math.min(index, last);
+
+  const pan = Gesture.Pan()
+    .activeOffsetX([-12, 12])
+    .failOffsetY([-18, 18])
+    .onUpdate((e) => { drag.value = Math.max(-1.2, Math.min(1.2, -e.translationX / (cardW * 0.55))); })
+    .onEnd((e) => {
+      "worklet";
+      const ziel = drag.value + (-e.velocityX / (cardW * 6));
+      const step = ziel > 0.35 ? 1 : ziel < -0.35 ? -1 : 0;
+      drag.value = withSpring(0, { damping: 20, stiffness: 180 });
+      if (step !== 0) runStep(step);
+    })
+    .runOnJS(true);
+
+  function runStep(step: number) {
+    const next = Math.max(0, Math.min(last, at + step));
+    if (next !== at) { Haptics.selectionAsync(); setIndex(next); }
+  }
+
+  /* Malreihenfolge: die fernsten Karten zuerst, die vordere zuletzt. */
+  const sichtbar = useMemo(() => {
+    const out: { item: DreamItem; i: number }[] = [];
+    for (let d = WINDOW; d >= 1; d--) {
+      for (const s of [-1, 1]) {
+        const i = at + d * s;
+        if (items[i]) out.push({ item: items[i], i });
+      }
+    }
+    if (items[at]) out.push({ item: items[at], i: at });
+    return out;
+  }, [items, at]);
 
   return (
     <View>
-      <Animated.ScrollView
-        horizontal showsHorizontalScrollIndicator={false} decelerationRate="fast"
-        snapToInterval={stride} snapToAlignment="start" disableIntervalMomentum
-        contentContainerStyle={{ paddingHorizontal: side, paddingVertical: 16 }}
-        onScroll={onScroll} scrollEventThrottle={16}
-        onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / stride))}
-      >
-        {items.map((item, i) => (
-          <DeckCard key={item.id} i={i} x={x} stride={stride} cardW={cardW} overlap={overlap} total={items.length}>
-            <DreamPoster item={item} locale={locale} onPress={onOpen} />
-          </DeckCard>
-        ))}
-      </Animated.ScrollView>
+      <GestureDetector gesture={pan}>
+        <View style={[styles.stage, { height: cardH + 36 }]}>
+          {sichtbar.map(({ item, i }) => (
+            <DeckCard key={item.id} k={i - at} drag={drag} cardW={cardW} cardH={cardH}>
+              <DreamPoster item={item} locale={locale} onPress={(id) => (i === at ? onOpen(id) : runStep(i > at ? 1 : -1))} />
+            </DeckCard>
+          ))}
+        </View>
+      </GestureDetector>
       {items.length > 1 ? (
         <View style={styles.dots}>
-          {items.map((it, i) => <View key={it.id} style={[styles.dot, i === index && styles.dotOn]} />)}
+          {items.map((it, i) => <View key={it.id} style={[styles.dot, i === at && styles.dotOn]} />)}
         </View>
       ) : null}
     </View>
   );
 }
 
-function DeckCard({ i, x, stride, cardW, overlap, total, children }: { i: number; x: SharedValue<number>; stride: number; cardW: number; overlap: number; total: number; children: React.ReactNode }) {
+function DeckCard({ k, drag, cardW, cardH, children }: { k: number; drag: SharedValue<number>; cardW: number; cardH: number; children: React.ReactNode }) {
   const style = useAnimatedStyle(() => {
-    // -1 … 0 … 1: wie weit die Karte von der Mitte entfernt ist, in Karten.
-    const n = interpolate(x.value, [(i - 1) * stride, i * stride, (i + 1) * stride], [1, 0, -1], Extrapolation.CLAMP);
+    // n: Platz im Fächer, 0 = vorn. Während des Wischens wandert der ganze Fächer.
+    const n = k + drag.value;
     const a = Math.abs(n);
     return {
-      transform: [{ perspective: 1000 }, { scale: 1 - 0.12 * a }, { rotateY: `${-10 * n}deg` }],
-      opacity: 1 - 0.3 * a,
-      zIndex: 100 - Math.round(a * 100),
+      transform: [
+        { perspective: 900 },
+        { translateX: n * cardW * PEEK },
+        { rotateZ: `${n * TILT}deg` },
+        { scale: 1 - SHRINK * a },
+      ],
+      opacity: Math.max(0, 1 - FADE * a),
     };
   });
   return (
-    <Animated.View style={[{ width: cardW, marginHorizontal: -overlap / 2, marginLeft: i === 0 ? 0 : -overlap / 2, marginRight: i === total - 1 ? 0 : -overlap / 2 }, styles.shadow, style]}>
-      <View style={{ aspectRatio: 4 / 5 }}>{children}</View>
+    <Animated.View style={[styles.card, { width: cardW, height: cardH, marginLeft: -cardW / 2, marginTop: -cardH / 2 }, style]}>
+      {children}
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  shadow: { shadowColor: "#000", shadowOpacity: 0.55, shadowRadius: 17, shadowOffset: { width: 0, height: 12 } },
-  dots: { flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 4 },
+  stage: { alignItems: "center", justifyContent: "center" },
+  card: {
+    position: "absolute", left: "50%", top: "50%",
+    shadowColor: "#000", shadowOpacity: 0.55, shadowRadius: 18, shadowOffset: { width: 0, height: 10 },
+  },
+  dots: { flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 2 },
   dot: { width: 6, height: 6, borderRadius: 999, backgroundColor: colors.panelLine },
   dotOn: { width: 18, backgroundColor: colors.accentSoft },
 });
