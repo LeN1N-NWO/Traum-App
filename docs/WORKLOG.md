@@ -3,6 +3,28 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 15:10 — Anton — Branch `session/2026-09-11-anton-expo` — Sitzungsabschluss (wrap)
+
+**Commits der Sitzung:** 45 auf `main..HEAD`, zuletzt `28c8894` (Aufnahme
+überlebt Video-Player), davor `bec9d69`, `166d2bf`, `f6927ca`, `1aa3817`,
+`186a3ef`, `ff39d4f`, `5a9fffc`, `4c65c19`, `0d30816`, `afc6d1b` … bis
+`14b28c6` (Xcode-Build läuft). Einzelheiten in den Einträgen darunter.
+
+**Was diese Sitzung gebracht hat:** die ganze Oberfläche nativ (Tabs,
+Wizard, Kaufblatt, Schlaf-Räume, Journal-Nebenräume, Einstellungen,
+Consent-Tor), Auftrag ohne Wartebildschirm mit Abholer in der Brücke,
+Rekorder statt Gemini-Assistent (ADR-0007) mit Gemini-Transkription, Stil-
+Kacheln mit Glas-Overlay und Wischen, Verlaufs-Knöpfe, Test-Guthaben im
+Dev-Bau, Werkzeugkette ohne Homebrew.
+
+**Was der Nächste wissen muss:** steht in `docs/STAND.md` unter „Für den
+nächsten Start" — vor allem die drei Fallen (Expo-Router-Kinder als
+Startroute, expo-video kippt die Audio-Session, fal nimmt nur mp3-Data-
+URLs). Lint in mobile: 0 Fehler, 35 Warnungen (React-Compiler-Regeln auf
+„warn", eslint.config.js). PR #41 bleibt Entwurf: die Tipp-, Hör- und
+Geldwege sind ungeprüft, erster echter Durchlauf mit Anton steht aus.
+Merge nur auf Antons Wort.
+
 ## 2026-09-12 13:50 — Anton — Branch `session/2026-09-11-anton-expo` — Rekorder statt Sprachassistent (ADR-0007), Stil-Kacheln, Verlaufs-Knöpfe
 
 **Anton:** Der Gemini-Assistent, der beim Einschlafen zurückredet, ist

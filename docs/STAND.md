@@ -3,73 +3,79 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-12 vormittags — `session/2026-09-11-anton-expo` (PR #41,
-Entwurf): **alle fünf Tabs, der Wizard, das Kaufblatt und das
-Klang-Mischpult sind nativ** (Expo Router, Liquid Glass, SF Symbols,
-Haptik); Schritt 4 aus ADR-0006 ist weit. Noch Web als DOM-Komponente im
-nativen Stack: Stimm-Gespräch, Schritt 6 (Warten), Aktionen der Traum-Seite,
-Avatar-Dialog (Foto/Charakterbogen), Umfrage. **Das Consent-Tor ist
-nativ** (Vollbild über den Tabs, `components/consent-gate.tsx`); Startmenü,
-Sprachwahl und Onboarding gibt es nativ noch nicht (Gate startet in der
-Hülle bei „app", Sprache ist die gespeicherte). **Antons Befunde vom 12.09. vormittags sind alle umgesetzt**
-(Kaufblatt ohne Bilder, Glas-Regler, Safe Area oben, Faultier-Schleife,
-Glas-Knöpfe ohne Textüberlauf, Tab-Sprung „Neu anlegen") — Details im
-WORKLOG. ⚠ `mobile/app.json` hat jetzt `UIBackgroundModes: audio`; das
-greift erst nach `bun run prebuild:ios` + Xcode-Build.
+**Stand:** 2026-09-12 abends — `session/2026-09-11-anton-expo` (PR #41,
+Entwurf, 45 Commits): **Die App ist nativ** (React Native mit Expo, ADR-0006):
+fünf Tabs mit Liquid Glass, Wizard, Kaufblatt, Klang-Mischpult, Checkliste,
+Luzid-Guide, Symbol-Atlas, Besetzung, Menagerie, Einstellungen, Stimmwahl,
+Rechtstexte, Consent-Tor, Auftrag ohne Wartebildschirm, Abholer in der
+Brücke, native Toasts — und seit heute der **Rekorder statt des
+Gemini-Assistenten (ADR-0007)**: aufnehmen, Gemini transkribiert, die
+Aufnahme bleibt am Traum. Noch Web als DOM-Komponente: Avatar-Dialog
+(Foto), Umfrage, Bearbeiten/Umschreiben der Traum-Seite, Fehlerblatt des
+Auftrags. Startmenü/Sprachwahl/Onboarding gibt es nativ nicht.
+
+**Für den nächsten Start (wer auch immer):**
+- Metro `bun run mobile`, API `bun run api` (⚠ stoppt gern mit der
+  Sitzung — die Stimme meldet dann „Verbindung beendet"), Xcode-Build
+  `xcodebuild … -derivedDataPath /tmp/dr-dd` oder Xcode ▶; App per
+  `simctl install` in den Simulator. Neue native Pakete (expo-audio,
+  expo-blur heute) brauchen `bun run pods` + Rebuild.
+- **Entwicklungsbau hält 100 Test-Credits** (`devTopUp` in
+  journal-bridge.jsx, nur `__DEV__`) — bis Konto/Supabase stehen.
+- Prüfen ohne Tippen: Redirect-Trick in `mobile/src/app/index.tsx`
+  (Sicherung `/tmp/index.tsx.bak`, vor dem Commit `grep Redirect` = 0),
+  Screenshots per `simctl io booted screenshot`. Rekorder-Selbsttest:
+  `/dream/voice?auto=12` (nur `__DEV__`), Log in Metro (`[voice]`) und im
+  Server (`/api/transcribe`, `/api/panel`).
+- ⚠ **Expo-Router-Falle:** keine `<Stack.Screen>`-Kinder in Layouts (erstes
+  Kind wird Startroute, Bildschirm-Optionen greifen nicht) — Karten per
+  `screenOptions={({ route }) => …}`.
+- ⚠ **expo-video kippt die Audio-Session** bei jedem Player-Ereignis auf
+  Wiedergabe: während einer Aufnahme müssen alle Player stehen
+  (`store/recording-store.ts`, `holdForRecording`). Sonst bricht die
+  Aufnahme still nach Sekunden ab (Antons Befund, dreimal).
+- ⚠ fal nimmt Audio als Data-URL nur als `audio/mpeg`; der Server wandelt
+  per ffmpeg. Vorne steht aber Gemini (`GEMINI_STT_MODEL`,
+  gemini-3.5-flash-lite) mit Sprachhinweis; Wizper ist Rückfall.
+- Lint (`bunx expo lint` in mobile): 0 Fehler, 35 Warnungen — die
+  React-Compiler-Regeln stehen für Reanimated-/Player-Muster auf „warn"
+  (eslint.config.js). Web: 560 Tests grün, `vite build` grün.
+
+**Antons offene Wünsche (12.09., Reihenfolge seine):** Traumfänger-Video
+als Schleife über dem Rekorder (Platzhalter: atmende Ringe) · Onboarding
+nativ: Intro mit App-Namen (Platzhalter für sein Video), Showreel,
+Feature-Kacheln in Glas (Moonly-Vorbild), Schlaf-Jahre-Zähler
+(Opal-Vorbild), Fragebogen statt Gespräch · Pseudo-Rangliste aus der Serie
+(„weiter als 8 von 10", nichts wird gezählt) · Poster je Film für die
+Kacheln (1:1 oder 4:5, ~3 Cent, in den Filmpreis rechnen, Renderweg im
+Server) · Avatar-Dialog nativ (`expo-image-picker`, Rebuild) ·
+Erinnerungen wirklich planen (`expo-notifications`) · Datenschicht nach
+`expo-sqlite`, Brücke abbauen.
+
+**⚠ Ungeprüft, weil hier niemand tippt oder spricht:** echter Auftrag samt
+Abholer (kostet Credits), Fader-Ziehen und Klang, Hörprobe, Stil-Overlay
+mit Wischen, Rekorder mit echter Stimme (Selbsttest im Simulator: 10–20 s
+durchgehend, Upload und Transkription grün). Erster echter Durchlauf mit
+Anton.
 
 **⚠⚠ ENTSCHIEDEN (Anton, 11.09. abends): Die Oberfläche wird nativ — React
 Native mit Expo statt Capacitor.** Web ist kein Ziel mehr, Android kommt
-später aus derselben Codebasis. Begründung mit Messungen:
-`docs/decisions/ADR-0006-expo-react-native-statt-capacitor.md`. Kurz:
-Liquid Glass gibt es im WebView nicht (WebKit rendert `backdrop-filter:
-url()` nicht), die Capacitor-Tastatur zerschoss die Safe Area, und alles
-Nachgebaute bleibt nachgebaut. Es bleiben `server.js`, Supabase, die Logik
-in `src/lib` (48 von 57 Dateien ohne React/DOM) und alle Texte; neu werden
-~14.000 Zeilen JSX/CSS. Weg: Würgefeigen-Umzug — Expo-Hülle, in der die alte
-Oberfläche am ersten Tag als DOM-Komponente läuft, dann Bildschirm für
-Bildschirm nativ. Plus-Knopf wird fünfter Tab in der Mitte (Antons Wort).
-Skills sind installiert; Hanni bekommt die Anleitung beim nächsten Start
+später aus derselben Codebasis. Begründung: ADR-0006. Skills sind
+installiert; Hanni bekommt die Anleitung beim nächsten Start
 (`docs/uebergabe/2026-09-11-hanni-expo-skills.md`).
 
 **Der Server rechnet den Filmpreis selbst.** `src/lib/quote.js` ist EINE
-Rechnung für Wizard und Server. Liegt der Server teurer als angezeigt,
-antwortet er 409 mit beiden Zahlen — bevor Regisseur oder fal etwas
-kosten. Liegt er gleich oder billiger, gilt sein Preis. Bilder werden nur
-beobachtet (Log). `GET /api/prices` liefert die Tabelle. Das ist Punkt 1
-aus `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`; **Punkte 2–6**
-(abbuchen über `server_spend`, `jobRef`, Erstattung je Topf,
-fal-Fehler in `jobStatus`, Client-Abbuchung zurückbauen) **warten auf die
-Anmeldung**.
+Rechnung für Wizard und Server (409 bei Abweichung nach oben). Punkte 2–6
+aus `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md` warten auf die
+Anmeldung (Supabase).
 
-**Die Capacitor-App läuft im Simulator** und hat seit PR #40 ein
-nachgebautes iOS-Gefühl (Sheets mit Ziehen, geschobene Traum-Seite, Wisch
-vom Rand, Haptik, Statusleiste; `useSheet.js`, `styles/sheets.css`). Das
-ist die **Zwischenlösung** bis zum Expo-Umzug — Kurven, Dauern und
-Schwellen daraus sind die Referenz für die native Fassung. Das
-Tastatur-Plugin ist wieder draußen (Safe-Area-Fehler, Capacitor #6430).
+**Geschäftliche Entscheidungen (Anton, 11.09.):** UG als Rechtsform; Seedance
+über Replicate direkt (Token liegt in `.env`); DeepSeek `deepseek-flash`
+(V4.1). Details in den WORKLOG-Einträgen vom 11.09.
 
-**Geschäftliche Entscheidungen (Anton, 11.09.):** UG als Rechtsform;
-Buchhaltung per Software, Jahresabschluss zukaufen; **Seedance 2.5 über
-Replicate** (halber Einkauf), H3 bleibt bei fal. Vermerke:
-`docs/plans/2026-09-11-rechtsform.md`,
-`2026-09-11-direktbezug-videomodelle.md`,
-`2026-09-11-umsatzsteuer-und-gruenderrechnung.md`.
-
-**`server.js` ist mit der Datenbank verbunden — nach Least Privilege.**
-`ADR-0005`: Supabase als Datenschicht (Status vorgeschlagen, Antons
-Bestätigung steht aus). `server.js` verbindet sich als eigene Rolle
-`dreamrushes_server` — auf das Guthaben nur lesend, ohne Umgehung von RLS.
-**⚠ Genutzt wird die Verbindung noch nicht:** Die Credits liegen weiter im
-`localStorage` und sind editierbar (Befund S7, offen). Die **Anmeldung**
-(Sign in with Apple) ist zurückgestellt (Hannis Entscheidung, 11.09.) —
-sie hängt an der Frage, wer als Verkäufer im App Store steht.
-
-**Die Architektur ist bewertet:** `docs/ARCHITEKTUR.md` führt acht Befunde
-(S1–S8) mit Schwere und Reihenfolge. Erledigt ist S4. S1 wartet bewusst auf
-die Konten.
-
-548 Tests grün, fünf Skriptprüfungen grün, Build ~510 KB / gzip 173.
-Wie es hierher kam, steht im WORKLOG.
+**`server.js` ist mit der Datenbank verbunden — nach Least Privilege**, die
+Verbindung wird noch nicht genutzt (Credits liegen im Gerät). Die
+Architektur ist bewertet: `docs/ARCHITEKTUR.md` (S1–S8).
 
 ## Wo wir stehen
 
@@ -103,185 +109,16 @@ sind Produktarbeit, die Befunde dort sind Fundamentarbeit.
 
 **Als Nächstes, in dieser Reihenfolge:**
 
-- **Bildschirme nativ, wertvollste zuerst** (Schritt 4, ADR-0006). **Die
-  Journal-Liste ist nativ** (12.09., `mobile/src/app/journal/index.tsx`):
-  großer Serifentitel, Suche im Kopf, Poster im Zweierraster (`expo-image`,
-  Film-Standbild per `expo-video-thumbnails`, Verlauf, Feder beim Drücken,
-  Haptik). Die Daten kommen über die Web-Brücke
-  `mobile/src/legacy/journal-bridge.jsx` (unsichtbarer Webview liest den
-  localStorage, reicht eine schlanke Liste per async-Prop). **Die
-  Traum-Seite ist nativ** (`journal/[id].tsx`): Film groß oben in leiser
-  Schleife (`expo-video`) oder Bild, Titelblatt in Serife, Fassungen als
-  Pillen, Text in Lesegröße, Reflexion, Original; Teilen nativ, „Another
-  take"/„…" öffnen die **Web-Traumseite mit allen Aktionen**
-  (`journal/web-dream.tsx` → `legacy-dream.jsx`). Das Raster-Symbol in der
-  Liste öffnet das ganze Web-Journal mit Besetzung, Atlas, Menagerie,
-  Kalender (`journal/web.tsx`). Journal nativ vorgehalten in
-  `mobile/src/store/journal-store.ts`.
-  **Home, Schlaf und Profil sind nativ** (`index.tsx`, `sleep/index.tsx`,
-  `profile/index.tsx`): Home als Plakat mit dem Faultier-Video, Schlaf-Frage
-  und „Nichts hängengeblieben" schreiben über die Brücke (`send()` →
-  `command`-Prop → Web-Helfer); Schlaf als vier farbige Zeilen, die Räume
-  (Checkliste, Klänge, Guide, Symbole) noch Web (`sleep/[view].tsx`, `view`
-  reist als `history.state.usr` in den HashRouter); Profil mit Gesicht,
-  Zahlen, Guthaben in der Toolbar, Einstellungen/Avatar/Kaufblatt als
-  Web-Blätter (`profile/page.tsx` → `legacy-page.jsx`).
-  **Der Wizard ist nativ neu gedacht** (Antons Wort 12.09.: „neu denken,
-  nativ in Klick, Haptik, Animation — die laufenden Kacheln bleiben"):
-  `dream/index.tsx` erzählen (großes Feld, Lesung mit Preis, Vergleich
-  „deine Worte / aufgeräumt"), `dream/style.tsx` Stil-Kacheln mit laufenden
-  Clips (expo-video, Feder, Haptik; Dreamflow doppelt breit, „Mehr Stile"),
-  `dream/output.tsx` speichern / Bildergeschichte / Film (Step2Output),
-  `dream/cast.tsx` Besetzung,
-  `dream/length.tsx` Modell, Qualität, Tempo, Länge (SwiftUI-Slider), Preis
-  aus `quoteFor` auf dem Knopf. **Der Auftrag läuft im Web-Motor**
-  (`dream/order.tsx` → `legacy-order.jsx` → WizardShell mit `resume.prefill`
-  + `autoRender`; `Step5Style` startet `run()` genau einmal je `orderId`,
-  Wächter in sessionStorage). Geldweg und Prompt-Kette unverändert; die
-  Lesung kostet über die Brücke wie im Web (`spend` vorher, Abbuchung nach
-  Erfolg). Stimme: `dream/voice.tsx` = Web-Wizard mit Gemini-Gespräch.
-  Besetzung nativ (`dream/cast.tsx`): Namen und Auto-Treffer aus der
-  Web-Logik (Befehl `cast`), Foto aus der Bibliothek oder „KI erfindet",
-  als `resume.assignmentOverrides` in den Motor. Neue Fotos anlegen: noch Web.
-  ⚠ Ungeprüft (niemand tippt hier): Lesung, Besetzung, Auftrag bis
-  Schritt 6, Rückkehr ins Journal — **erster echter Durchlauf mit Anton am
-  Simulator, dann am Gerät.**
-  **⚠⚠ Regel aus Antons Befund 12.09.: umbauen, nicht neu erfinden.** Der
-  Web-Bildschirm ist die Vorlage — gleiche Bausteine an gleicher Stelle
-  (Voice first, Deck mit Punkten, Nebenräume, Kalender), nativ ändern sich
-  nur Material, Bewegung und Haptik. Vor jedem Bildschirm den Web-JSX samt
-  Kommentaren lesen. Journal und Schritt 1 sind danach korrigiert; die
-  Stimme läuft als Web-Baustein (`legacy-voice.jsx`) im nativen Fluss.
-  **Kaufblatt nativ** (`mobile/src/components/paywall-sheet.tsx`, Routen
-  `profile/paywall` und `dream/paywall` als Karte): Aufbau wie
-  `Paywall.jsx`, Texte vorgerechnet in der Brücke (`snapshot().paywall`),
-  Ertrag NUR in Filmen (Antons Ansage 12.09.: Bilder sind raus), eigener
-  Film läuft in der Ertrags-Kachel (`showcaseFrom`). Kein Kauf angeschlossen
-  — der Knopf sagt es (`notYet`).
-  **Klang-Mischpult nativ** (`components/sound-mixer.tsx`, Raum
-  `sleep/[view].tsx` bei `sounds`): drei stehende Glas-Fader, Timer,
-  Autostart-Schalter. Klang in `mobile/src/lib/sound-engine.ts` — erzeugte
-  WAV-Schleifen aus `src/lib/noise.js` über `expo-video` (spielt auch reines
-  Audio; kein neues natives Paket), läuft beim Tab-Wechsel weiter, Autostart
-  ohne Geste (Home wirft die gespeicherte Mischung an). Mischung liegt im
-  Web-Zustand (`soundMix`, Befehl `soundMix` über die Brücke). ⚠ Fader-Ziehen
-  und Klang sind ungeprüft (niemand tippt/hört hier).
-  **Glas-Bausteine** (`components/glass.tsx`): `Glass` (GlassView, Fallback
-  Panelfarbe), `GlassButton`, `PrimaryButton` — Knöpfe wachsen mit dem Text.
-  **Safe Area in Web-Räumen:** `env(safe-area-inset-top)` ist im Expo-
-  Webview 0; die Hülle reicht `safeTop/safeBottom` als Props, `vite-env.js`
-  setzt `--sat/--sab` und `viewport-fit=cover`, `legacy.css` nimmt das Maximum.
-  ⚠ Prüf-Artefakt: Startet die App per Redirect direkt in `profile` oder
-  `dream/…`, fehlt im Screenshot die Tab-Leiste — beim normalen Start über
-  Home ist sie da. Nicht gejagt.
-  **Abend-Checkliste nativ** (`components/sleep-checklist.tsx`): Raster
-  aus Glas-Altären mit SF Symbols, Fortschritt in Segmenten, fertige Karten
-  dimmen und klappen den Text weg; Haken gehören der Nacht (Befehl
-  `sleepCheck`, `snapshot().sleep.checklist`). Die Schlaf-Räume teilen die
-  Bühne `Room` in `sleep/[view].tsx`.
-  **Luzid-Guide nativ** (`components/lucid-guide.tsx`): Hebel als Glas-
-  Karten, Methoden als Klapp-Karten mit Quote auf der geschlossenen Karte,
-  Erinnerungs-Schalter nur unter den Realitätschecks — sammelt weiter NUR
-  den Wunsch (Befehl `reminders` → `reminderWish`), Benachrichtigungen
-  plant erst die native Schicht (iOS fragt genau einmal, reminders.js).
-  **Einstellungen nativ** (`profile/settings.tsx`, `profile/voice.tsx` als
-  Karte, `profile/legal.tsx`): Zeilen wie Settings.jsx, Stimmwahl mit
-  Hörprobe vom Server (`/api/voice-sample` über expo-video, Welle atmet),
-  Rechtstexte in Lesegröße, Widerruf (Befehle `voice`, `withdraw`). ⚠ Der
-  Widerruf wird nur gespeichert — das Tor ist nativ noch nicht gebaut.
-  **Symbol-Atlas nativ** (`components/symbols-atlas.tsx`; Schlaf-Raum
-  `symbols` und Journal-Nebenraum `journal/atlas.tsx`): Gruppen, Glas-
-  Kacheln mit SF Symbols, Lesart als Sheet mit den Träumen (tippbar →
-  Traum-Seite). `snapshot().symbols` aus `symbolOccurrences`.
-  **Besetzung und Menagerie nativ** (`journal/cast.tsx`,
-  `journal/menagerie.tsx`): Rollenliste je Gattung nach Häufigkeit
-  (castStats.js über die Brücke, `snapshot().library`), ein Knopf zum
-  Anlegen, Antippen bearbeitet — beides im Web-Dialog `journal/avatar.tsx`
-  (`LegacyPage` kennt jetzt `editId` und `category="any"`); Menagerie als
-  Glas-Karten (`snapshot().menagerie`). ⚠ Der Simulator zeichnet KEINE
-  Emoji (Kästchen mit ?) — Wesen-Zeichen und Stil-Emoji prüfen nur am Gerät.
-  **Auftrag ohne Wartebildschirm** (`dream/order.tsx`): Der Web-Motor
-  läuft unsichtbar (Höhe 0) und gibt den Auftrag ab wie bisher; nativ steht
-  davor nur das Abgeben (Faultier, wechselnde Sätze aus `t.dream.loading`).
-  Sobald der Traum die Auftragsnummer trägt (`items[].rendering`), geht es
-  ins Journal (Antons Ansage 21.08.: kein Wartebildschirm) — Toast
-  `queuedNote`, Wizard zurückgesetzt, beim ersten eigenen Traum einmal das
-  Kaufblatt (`journal/paywall`, `paywallSeen`). Verliert der Traum die
-  Marke ohne Nummer (Abgeben gescheitert), erscheint der Motor mit seinem
-  Fehlerblatt; nach zwei Minuten ohne Traum ebenfalls.
-  **Der Abholer tickt in der Brücke** (`collectOnce` in
-  `journal-bridge.jsx`): im Web lief er in AppState, das die Hülle nur noch
-  in Web-Räumen montiert — ein Film wäre nativ nie abgeholt worden. Alle
-  drei Sekunden bei offenen Aufträgen, Pacht-Marke im localStorage, damit
-  von mehreren Brücken nur EINE fragt; Erstattung und Meldungen wie im Web,
-  als native Toasts (`store/toast-store.ts`, `components/toasts.tsx` im
-  Wurzel-Layout) mit Haptik. ⚠ Ungeprüft am echten Auftrag (kostet
-  Credits) — erster Durchlauf mit Anton.
-  **Traum-Seite:** „…" ist ein natives Aktionsblatt; Löschen nativ mit
-  Rückfrage (Befehl `deleteDream`), Bearbeiten/Umschreiben öffnen die
-  Web-Seite.
-  **Consent-Tor nativ** (`components/consent-gate.tsx`, im Wurzel-Layout):
-  drei eigene Häkchen, nichts vorangekreuzt, „Wohin gehen meine Daten?"
-  aufklappbar, Rechtstexte als Blatt; Befehl `consent` → `consentPatch()`.
-  Eigene Brücke, weil das Wurzel-Layout keinen Bildschirm-Fokus hat. Steht,
-  solange `snapshot().consent.needed` (auch nach dem Widerruf in den
-  Einstellungen). Im Simulator liegt bereits eine Zustimmung v2 — zum
-  Ansehen `visible={true}` setzen oder in den Einstellungen widerrufen.
-  **⚠ Falle Expo Router (12.09. mittags, Antons Befund „in jedem Tab
-  Credits kaufen"):** `<Stack.Screen name=…>` als Kinder eines Layouts
-  machen das ERSTE deklarierte Kind zur Startroute des Tabs und
-  entwerten die `Stack.Screen`-Optionen in den Bildschirmen (Kopf „voice"
-  trotz `headerShown:false`, Zurück kam nicht heraus). Deshalb: keine
-  Kinder in Layouts; Karten (Kaufblatt, Stimmwahl) kommen über
-  `screenOptions={({ route }) => …}` je Routenname, dazu
-  `unstable_settings.initialRouteName = "index"`.
-  **Stimm-Gespräch im Webview:** braucht `NSMicrophoneUsageDescription`
-  (jetzt in `app.json`, greift nach `prebuild:ios`; lokal in
-  `ios/DreamRushes/Info.plist` eingetragen). Der 12.09.-Fehler „Die
-  Verbindung wurde beendet" kam aber vom gestoppten API-Server. ⚠ Im
-  Produktionsbau laden DOM-Komponenten von `file://` — `getUserMedia`
-  verlangt einen sicheren Kontext; die Stimme muss vorher nativ werden.
-  **⚠ Test-Guthaben im Entwicklungsbau:** die Brücke hält das Kauf-
-  Töpfchen auf mindestens 100 Credits (`devTopUp` in journal-bridge.jsx,
-  nur bei `__DEV__`). Antons Ansage 12.09.: bis Konto/Supabase stehen.
-  **Rekorder statt Sprachassistent (ADR-0007, Anton 12.09.):**
-  `dream/voice.tsx` nimmt nativ auf (`expo-audio`, m4a), schickt die Datei
-  als Data-URI an `/api/transcribe` (fal Wizper, 0,05 Cent/Min) und legt
-  sie über `/api/panel` im Medienordner ab (server.js kennt jetzt
-  `audio/mp4` → `.m4a`). Der Text geht in den Wizard (`pendingRead`), die
-  Aufnahme hängt als `audio.url` am Traum (Befehl `attachAudio` nach dem
-  Anlegen, `saveDream` mit `audioUrl`); die Traum-Seite spielt sie ab
-  (`RecordingRow`, expo-audio). Gemini Live bleibt im Web-Code, wird nicht
-  mehr angeboten. ⚠ fal nimmt Audio als Data-URL NUR als `audio/mpeg`
-  (gemessen 12.09.: m4a/mp4/wav → 400 „Unsupported data URL") — der Server
-  wandelt per ffmpeg nach mp3 (`toMp3DataUri`). Ende-zu-Ende geprüft mit
-  einer `say`-Aufnahme: Transkript korrekt, Datei unter `/media/….m4a`
-  abrufbar. Die Aufnahme wird VOR der Transkription gesichert und bleibt
-  im Wizard (`audioUrl`), auch wenn man den Traum danach tippt.
-  **Transkription seit 12.09. nachmittags: Gemini zuerst** (`transcribeAudio`
-  in server.js, `GEMINI_STT_MODEL` = gemini-3.5-flash-lite), Wizper mit
-  Sprachhinweis als Rückfall — nach Antons Befund (Englisch statt Deutsch,
-  nach Pause abgebrochen). Alternativen, geprüft und gleichwertig auf einer
-  Probe: fal Whisper v3, ElevenLabs Scribe über fal
-  (`fal-ai/elevenlabs/speech-to-text`, teurer), Gemini 3.6 Flash (denkt,
-  langsamer). Server loggt jede Aufnahme; bei Problemen zuerst das Log lesen.
-  **Stil-Auswahl neu** (Antons Entwurf 12.09.): stumme quadratische
-  Kacheln mit laufenden Clips, vier je Reihe, alle sichtbar; Antippen holt
-  den Stil nach vorn (Glas über dem Raster, Film groß, Name, „Diesen Stil
-  verwenden"). **Warme Knöpfe** mit Verlauf nach Opal-Vorbild (warm →
-  gold, im Glas als Schicht).
-  **Als Nächstes:** Onboarding nativ (Intro mit App-Namen als Platzhalter,
-  Feature-Kacheln in Glas, Schlaf-Jahre-Zähler, Fragebogen statt Gespräch),
-  Pseudo-Rangliste aus der Serie, Poster je Film (Kosten rechnen),
-  Traumfänger-Video von Anton als Schleife über dem Rekorder;
-  Schritt 6 (Warten) nativ, Aktionen der Traum-Seite nativ, Avatar-Anlage
-  (Foto → `expo-image-picker`, Rebuild), Besetzung/Menagerie nativ,
-  Startmenü/Sprachwahl/Onboarding nativ; Erinnerungen wirklich planen
-  (`expo-notifications`, Wachstunden); dann Datenschicht nach
-  `expo-sqlite` und die Brücke abbauen.
-  Je Bildschirm nativ neu entwerfen, nicht das Web-Layout nachbauen.
-  ⚠ NativeTabs ist Alpha, SDK 57.0.x. ⚠ Ungeprüft, weil hier niemand tippen
-  kann: Fassungswechsel, Teilen, „…" → Web-Seite → zurück.
+- **Native Hülle (Schritt 4, ADR-0006) — Stand oben.** Aufbau:
+  `mobile/src/app` (Expo Router: index/journal/dream/sleep/profile, je
+  Stapel), `mobile/src/components` (glass.tsx, paywall-sheet, sound-mixer,
+  sleep-checklist, lucid-guide, symbols-atlas, consent-gate, toasts,
+  mascot-loader, preset-tile, dream-deck/-poster/-row/-calendar),
+  `mobile/src/lib` (sound-engine.ts), `mobile/src/store` (journal, wizard,
+  toast, recording), `mobile/src/legacy` (Web-Brücke `journal-bridge.jsx`
+  mit Befehlen, `legacy-*.jsx` als DOM-Räume, `vite-env.js`, `legacy.css`).
+  Regel: **umbauen, nicht neu erfinden** — der Web-Bildschirm ist die
+  Vorlage, nativ ändern sich Material, Bewegung, Haptik.
 - **Bekannte Grenzen der Tab-Hülle heute:** (a) Jeder Tab ist ein eigener
   Webview mit eigenem Zustand; beim Fokus liest er neu aus dem localStorage
   (`dreamrushes:reload`); die Brücke liest denselben Speicher. ⚠ Im

@@ -25,7 +25,7 @@ export default function DreamOrderScreen() {
   const w = useWizardStore();
   const { data, bridge, send } = useJournal();
   const W = data?.wizard;
-  const startedAt = useRef(Date.now());
+  const [startedAt] = useState(() => Date.now());
   const firstDream = useRef<boolean | null>(null);
   const mineId = useRef<string | null>(null);
   const [msg, setMsg] = useState(0);
@@ -46,7 +46,7 @@ export default function DreamOrderScreen() {
        das Abgeben gescheitert — dann zeigt der Motor sein Fehlerblatt. */
     const mine = mineId.current
       ? data.items.find((e) => e.id === mineId.current)
-      : data.items.find((e) => new Date(e.createdAt).getTime() >= startedAt.current - 15_000 && (e.pending || e.rendering));
+      : data.items.find((e) => new Date(e.createdAt).getTime() >= startedAt - 15_000 && (e.pending || e.rendering));
     if (!mine) return;
     if (!mineId.current && w.audioUrl) send({ type: "attachAudio", id: mine.id, audioUrl: w.audioUrl });   // die Aufnahme an den Traum (ADR-0007)
     mineId.current = mine.id;

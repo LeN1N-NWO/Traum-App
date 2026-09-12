@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, View, type LayoutChangeEvent } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import { Glass } from "@/components/glass";
-import { applyMix, getVolumes, IDS, setVolume, startTimer, subscribe, type SoundId } from "@/lib/sound-engine";
+import { getVolumes, IDS, setVolume, startTimer, subscribe, type SoundId } from "@/lib/sound-engine";
 import type { SoundsData } from "@/store/journal-store";
 import { colors } from "@/theme";
 
@@ -25,7 +25,8 @@ export function SoundMixer({ S, onSave }: { S: SoundsData; onSave: (mix: { volum
   });
   const [timer, setTimer] = useState<number>(saved.timer || 0);
   const [auto, setAuto] = useState<boolean>(!!saved.autoStart);
-  const volsRef = useRef(vols); volsRef.current = vols;
+  const volsRef = useRef(vols);
+  useEffect(() => { volsRef.current = vols; }, [vols]);
 
   useEffect(() => subscribe(() => setVols(getVolumes())), []);
 

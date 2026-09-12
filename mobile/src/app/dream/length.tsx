@@ -1,5 +1,5 @@
 import { Host, Slider } from "@expo/ui/swift-ui";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "@/components/glass";

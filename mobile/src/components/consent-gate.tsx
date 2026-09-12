@@ -30,15 +30,6 @@ export function ConsentGate() {
   const open = !!C?.needed;
   const all = terms && processing && adult;
 
-  const Row = ({ on, set, children }: { on: boolean; set: (v: boolean) => void; children: React.ReactNode }) => (
-    <Pressable onPress={() => { Haptics.selectionAsync(); set(!on); }} accessibilityRole="checkbox" accessibilityState={{ checked: on }}>
-      <Glass style={styles.row} interactive>
-        <SymbolView name={on ? "checkmark.circle.fill" : "circle"} size={24} tintColor={on ? colors.ok : colors.faint} />
-        <Text style={styles.rowText}>{children}</Text>
-      </Glass>
-    </Pressable>
-  );
-
   return (
     <Modal visible={open} animationType="fade" presentationStyle="fullScreen" onRequestClose={() => {}}>
       <View style={styles.screen}>
@@ -90,6 +81,17 @@ export function ConsentGate() {
         </Modal>
       </View>
     </Modal>
+  );
+}
+
+function Row({ on, set, children }: { on: boolean; set: (v: boolean) => void; children: React.ReactNode }) {
+  return (
+    <Pressable onPress={() => { Haptics.selectionAsync(); set(!on); }} accessibilityRole="checkbox" accessibilityState={{ checked: on }}>
+      <Glass style={styles.row} interactive>
+        <SymbolView name={on ? "checkmark.circle.fill" : "circle"} size={24} tintColor={on ? colors.ok : colors.faint} />
+        <Text style={styles.rowText}>{children}</Text>
+      </Glass>
+    </Pressable>
   );
 }
 
