@@ -123,6 +123,44 @@ pruefe("der echte Medienpfad blieb erhalten",
   JSON.stringify(jetzt[0]?.medien?.bilder) === JSON.stringify(["/media/echt.png"]),
   JSON.stringify(jetzt[0]?.medien?.bilder));
 
+// 7b: seitenweise lesen. Drei Träume in DERSELBEN Sekunde — genau der Fall,
+// an dem ein Cursor nur auf der Zeit lautlos einen verlöre.
+const stempel = new Date().toISOString();
+const drei = ["a", "b", "c"].map((s) => ({
+  id: `${clientId}_${s}`, createdAt: stempel, kind: "dream", title: `Seite ${s}`, text: `Traum ${s}`,
+}));
+const hoch3 = await ruf("/api/dreams/sync", { methode: "POST", token, koerper: { dreams: drei } });
+pruefe("drei Träume auf einmal gespeichert", hoch3.daten?.gespeichert === 3, JSON.stringify(hoch3.daten));
+
+const gesehen = [];
+let cursor = null, seiten = 0;
+do {
+  const p = await ruf(`/api/dreams?limit=2${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, { token });
+  if (p.status !== 200) { pruefe("blättern liefert Seiten", false, `Status ${p.status}`); break; }
+  pruefe(`Seite ${seiten + 1} hält die Grenze ein (≤2)`, p.daten.dreams.length <= 2, `${p.daten.dreams.length} Einträge`);
+  gesehen.push(...p.daten.dreams.map((d) => d.id));
+  cursor = p.daten.next;
+  seiten++;
+} while (cursor && seiten < 20);
+
+const meineDrei = gesehen.filter((id) => id.startsWith(`${clientId}_`));
+pruefe("alle drei Träume beim Blättern gefunden", meineDrei.length === 3, `${meineDrei.length} von 3`);
+pruefe("keiner doppelt geliefert", new Set(gesehen).size === gesehen.length,
+  `${gesehen.length} geliefert, ${new Set(gesehen).size} verschieden`);
+pruefe("mehr als eine Seite gebraucht (sonst prüft das nichts)", seiten > 1, `${seiten} Seite(n)`);
+
+const ohneCursor = await ruf("/api/dreams?limit=99999", { token });
+pruefe("ein absurdes limit wird gedeckelt, nicht abgelehnt",
+  ohneCursor.status === 200 && ohneCursor.daten.limit === 200, `limit=${ohneCursor.daten?.limit}`);
+const kaputt = await ruf("/api/dreams?cursor=voelliger-unsinn", { token });
+pruefe("ein kaputter Cursor ergibt die erste Seite, keinen Fehler", kaputt.status === 200, `Status ${kaputt.status}`);
+
+const zuViele = await ruf("/api/dreams/sync", { methode: "POST", token,
+  koerper: { dreams: Array.from({ length: 201 }, (_, i) => ({ id: `${clientId}_ueber_${i}`, text: "x" })) } });
+pruefe("ein zu großer Stapel wird abgelehnt (413)", zuViele.status === 413, `Status ${zuViele.status}`);
+
+for (const d of drei) await ruf(`/api/dreams?client_id=${encodeURIComponent(d.id)}`, { methode: "DELETE", token });
+
 // 8: das Löschrecht
 const weg = await ruf(`/api/dreams?client_id=${encodeURIComponent(clientId)}`, { methode: "DELETE", token });
 pruefe("löschen entfernt den Traum", weg.status === 200, `Status ${weg.status}`);

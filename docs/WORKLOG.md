@@ -38,7 +38,19 @@ RLS-Policies für genau dieses CRUD bereits vollständig.
   `ERR_POSTGRES_CONNECTION_REFUSED` — das sieht aus wie ein falsches
   Passwort und ist keines. Dann den Session Pooler nehmen (IPv4, Port 5432;
   nicht 6543). Steht jetzt in `.env.example`.
-- **Ende-zu-Ende geprüft (nachgereicht am selben Abend, 21:40):** 16 von 16
+- **Nachgezogen (22:20, Hannis Hinweis):** `GET /api/dreams` gab alles auf
+  einmal zurück — die eine der vier genannten Regeln, die hier wirklich
+  fehlte (serverseitige Prüfung, keine rohen Datenbank-IDs in URLs und
+  Mengenbremsen standen bereits). Jetzt seitenweise per Cursor
+  (`src/lib/paging.js`, 11 Tests): `?limit=` mit Vorgabe 100 und Deckel 200,
+  `?cursor=`, geblättert bis `next` null ist. **Cursor statt OFFSET**, weil
+  OFFSET bei einem gelöschten Traum mitten im Blättern lautlos einen
+  Eintrag überspringt; und der Cursor trägt **zwei** Werte, weil zwei
+  Träume derselben Nacht denselben Zeitstempel haben. `sync` nimmt
+  höchstens 200 Träume je Aufruf (413) — nicht wegen der Bytes, sondern
+  wegen der Dauer einer Transaktion.
+- **Ende-zu-Ende geprüft (nachgereicht am selben Abend, 21:40, erweitert
+  22:20):** 25 von 25
   gegen das echte Supabase — anmelden, falsches Passwort, Konto lesen,
   Traum speichern/aktualisieren/lesen/löschen, Sitzung erneuern.
   `node scripts/test-konto.mjs` (Zugangsdaten aus der Umgebung).
@@ -75,7 +87,7 @@ RLS-Policies für genau dieses CRUD bereits vollständig.
   `data:`-Adressen fliegen aus den Medienpfaden — genau so käme ein
   biometrisches Foto in die Datenbank.
 
-**Prüfung:** 604 Tests grün (vorher 564; neu: 19 auth, 13 dreamRow, 4
+**Prüfung:** 615 Tests grün (vorher 564; neu: 19 auth, 13 dreamRow, 11 paging, 4
 gatekeeper) plus 16 Ende-zu-Ende gegen das echte Supabase.
 `server.js`: 226 geänderte Zeilen, in vier Blöcke zerlegt
 (Importe 7, CORS 6, Routen 203, Startmeldung 10 — Summe stimmt), die 4

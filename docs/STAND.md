@@ -182,7 +182,13 @@ zugleich der von ADR-0005 verlangte Migrationsweg für lokale Träume:
 wiederholbar über `unique (user_id, client_id)`.
 - ⚠⚠ **Nicht hinter eine öffentliche Adresse, solange S6 offen ist** — der
   Server spricht `http://`, Passwort und Token reisen im Klartext.
-- **Ende-zu-Ende geprüft:** 16 von 16 gegen das echte Supabase
+- **`GET /api/dreams` liefert SEITENWEISE**, nie alles: `?limit=` (Vorgabe
+  100, höchstens 200) und `?cursor=`, geblättert wird bis `next` null ist
+  (`src/lib/paging.js`). Cursor statt OFFSET, und er trägt **zwei** Werte —
+  zwei Träume derselben Nacht haben denselben Zeitstempel, und ein Cursor
+  nur auf der Zeit verlöre einen davon lautlos. `POST /api/dreams/sync`
+  nimmt höchstens 200 Träume je Aufruf (413 darüber).
+- **Ende-zu-Ende geprüft:** 25 von 25 gegen das echte Supabase
   (`node scripts/test-konto.mjs`, Zugangsdaten aus der Umgebung). RLS
   empirisch belegt: ohne Nutzererklärung 0 Zeilen, mit 1, als fremder
   Nutzer 0; Guthaben schreiben/Ledger/`credits_spend` je **42501**.

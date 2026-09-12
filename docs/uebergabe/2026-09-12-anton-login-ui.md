@@ -32,14 +32,24 @@ DIE ENDPUNKTE (alle geben JSON zurück)
   GET    /api/account       → {user, profile, credits:{purchased,allowance,total}}
   PATCH  /api/account       {display_name?, language?, voice?, onboarded?,
                              survey_done?, survey?}  → geändertes Profil
-  GET    /api/dreams        → {dreams:[…]} in GENAU der Feldform, die
-                              backupEntry() (src/lib/journalBackup.js) schon
-                              heute erzeugt — id, createdAt, title, text,
-                              analysis, references, medien …
+  GET    /api/dreams?limit=100&cursor=…
+                            → {dreams:[…], next, limit} in GENAU der
+                              Feldform, die backupEntry()
+                              (src/lib/journalBackup.js) schon heute erzeugt
+                              — id, createdAt, title, text, analysis,
+                              references, medien …
+                              ⚠ SEITENWEISE. `next` ist der Cursor für die
+                              nächste Seite; ist er null, war das die letzte.
+                              Also: blättern, bis `next` null ist, nicht
+                              einmal fragen und alles erwarten. limit
+                              standardmäßig 100, höchstens 200.
   POST   /api/dreams/sync   {dreams:[…]} → speichert und aktualisiert in
                               einem Aufruf. Wiederholbar: derselbe Traum
                               zweimal geschickt wird aktualisiert, nicht
                               verdoppelt (Schlüssel ist die lokale `id`).
+                              ⚠ Höchstens 200 Träume je Aufruf (413 darüber)
+                              — ein volles Tagebuch wandert in mehreren
+                              Aufrufen, dafür ist es wiederholbar gebaut.
   DELETE /api/dreams?client_id=e_…  → löscht einen Traum
 
 DIE AUFGABE

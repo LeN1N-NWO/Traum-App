@@ -77,6 +77,8 @@ import { parseBearer, authConfig, passwordLogin, refreshSession, verifyAccessTok
 // Traum ⇄ Datenbankzeile. Eigene Datei, weil dort die Regel „nur die Tags,
 // nie die Fotos dahinter" serverseitig erzwungen wird (dreamRow.test.js).
 import { toRow, fromRow } from "./src/lib/dreamRow.js";
+// Listen kommen seitenweise, nie am Stück (paging.test.js).
+import { parseLimit, decodeCursor, buildPage } from "./src/lib/paging.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
   DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
@@ -165,6 +167,11 @@ const T = {
 const MAX_BODY = 12 * 1024 * 1024;
 const MAX_REFERENCES = 6;
 const MAX_DREAM = 2000;
+/* Wie viele Träume EIN /api/dreams/sync entgegennimmt. Nicht dieselbe
+   Grenze wie MAX_BODY: dort geht es um Bytes, hier um die Dauer einer
+   Transaktion, die je Traum eine Anweisung hält. Ein volles Tagebuch
+   wandert in mehreren Aufrufen — sync ist dafür wiederholbar gebaut. */
+const MAX_SYNC_BATCH = 200;
 const MAX_FRAGMENT = 120; // per pet/place description, mirrors the client-side cap
 /* Eine Szene ist ein ganzer Satz, kein Namensfragment — sie braucht mehr
  * Platz als eine Figurenbeschreibung. Gemessen am ersten Lauf ohne
@@ -3161,10 +3168,33 @@ const serveOptions = {
           return json({ ok: true, profile: { ...profil, survey: fromJsonb(profil.survey) } });
         }
 
+        /* Seitenweise, per Cursor — nie „alles". Ein Tagebuch wächst mit
+           jeder Nacht, und jede Zeile trägt Analyse und Reflexion als jsonb;
+           die vollständige Liste wäre der erste Endpunkt, der unter dem
+           eigenen Erfolg zusammenbricht. Warum Cursor statt OFFSET und warum
+           er zwei Werte trägt: src/lib/paging.js. */
         if (url.pathname === "/api/dreams" && req.method === "GET") {
-          const zeilen = await withUser(database, person.userId, (tx) =>
-            tx`select * from public.dreams where user_id = ${person.userId} order by created_at desc`);
-          return json({ ok: true, dreams: zeilen.map(fromRow) });
+          const limit = parseLimit(url.searchParams.get("limit"));
+          const cursor = decodeCursor(url.searchParams.get("cursor"));
+
+          const zeilen = await withUser(database, person.userId, (tx) => cursor
+            /* Zeilenvergleich (a,b) < (x,y): „älter, und bei gleicher Zeit
+               weiter hinten". Genau die Ordnung, nach der sortiert wird —
+               sonst fiele bei zwei Träumen derselben Nacht einer durch. */
+            ? tx`select * from public.dreams
+                  where user_id = ${person.userId}
+                    and (created_at, client_id) < (${cursor.createdAt}::timestamptz, ${cursor.clientId})
+                  order by created_at desc, client_id desc
+                  limit ${limit + 1}`
+            : tx`select * from public.dreams
+                  where user_id = ${person.userId}
+                  order by created_at desc, client_id desc
+                  limit ${limit + 1}`);
+
+          // Eine Zeile mehr gelesen als angefragt — das beantwortet „gibt es
+          // noch mehr?" ohne ein zweites count(*) über die ganze Tabelle.
+          const { seite, next } = buildPage(zeilen, limit);
+          return json({ ok: true, dreams: seite.map(fromRow), next, limit });
         }
 
         /* Hochladen und Aktualisieren in EINEM Aufruf, und genau deshalb
@@ -3179,6 +3209,15 @@ const serveOptions = {
           const body = await req.json().catch(() => null);
           const eingang = Array.isArray(body?.dreams) ? body.dreams : null;
           if (!eingang) return json({ error: "Nothing to store." }, 400);
+          /* Der Stapel ist begrenzt, nicht nur die Byte-Zahl: Jeder Traum
+             ist eine eigene Anweisung in einer Transaktion, und eine
+             Transaktion, die zehntausend davon hält, blockiert die Zeile
+             so lange, wie sie braucht. Ein volles Tagebuch wandert in
+             mehreren Aufrufen — dafür ist sync wiederholbar gebaut. */
+          if (eingang.length > MAX_SYNC_BATCH) {
+            return json({ error: `Too many dreams in one request (max ${MAX_SYNC_BATCH}).`,
+                          max: MAX_SYNC_BATCH, gesendet: eingang.length }, 413);
+          }
 
           const zeilen = eingang.map(toRow).filter(Boolean);
           if (!zeilen.length) return json({ error: "No usable dream in this request." }, 400);
@@ -3218,7 +3257,9 @@ const serveOptions = {
            ein Befehl. RLS lässt ohnehin nur die eigenen Zeilen zu. */
         if (url.pathname === "/api/dreams" && req.method === "DELETE") {
           const clientId = url.searchParams.get("client_id") || "";
-          if (!clientId) return json({ error: "Which dream? (client_id)" }, 400);
+          // 128 ist die Obergrenze der Spalte (dreamRow.js) — was länger
+          // ist, kann keine Zeile treffen und braucht keine Abfrage.
+          if (!clientId || clientId.length > 128) return json({ error: "Which dream? (client_id)" }, 400);
           const weg = await withUser(database, person.userId, (tx) =>
             tx`delete from public.dreams
                 where user_id = ${person.userId} and client_id = ${clientId}
