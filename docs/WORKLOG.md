@@ -177,6 +177,37 @@ fertig bist, Datei löschen"):
   Supabase-Werte, und einen Testnutzer hat nur Hanni. Erst dann sind
   Erneuern, PATCH und Abmelden am echten System belegt.
 
+**Nachtrag 11:00 (Antons Vergleich mit Moonly, vier Screenshots):**
+- **Feature-Kacheln umgebaut** (`FeatureTile`): zwei versetzte Spalten
+  (links kurz/lang, rechts lang/kurz), große Rundung (32), Etikett als
+  Glas-Pille, die über den Rand ragt (oben bei der oberen Reihe, unten bei
+  der unteren), nur noch das Etikett in der Kachel — der Satz ist der
+  Untertitel. Um jede Kachel ein Verlaufssaum (1,5 pt) und ein Schein, der
+  ATMET (Reanimated `withRepeat`, je Kachel versetzt) — Antons „Animation
+  am Rand". Darunter die Proof-Zeile: ⚠ PLATZHALTER („Bewertungen folgen",
+  „Auszeichnung folgt", Lorbeer als SF-Symbol), `onb.proof` in en+de.
+- **Überschriften mittig** mit Untertitel, in allen Shell-Bildschirmen.
+- **„Überspringen" komplett raus** (Antons Ansage). ⚠ Folge im
+  Entwicklungsbau: das Onboarding kommt bei jedem Start UND lässt sich
+  nur noch durchtippen — `__ONB_STEP__` oder `dev-store.ts` (`seen`) sind
+  der Ausweg, bis Anton sagt, wie er es haben will.
+- **Jahre-Kreis** statt großer Zahl (`SleepYears`): react-native-svg neu
+  installiert (Pods + Rebuild), drei Bögen als `AnimatedCircle` mit
+  `strokeDashoffset` über `useAnimatedProps` — Leben (80, matt) in 0,9 s,
+  dann Schlaf (warm) in 1,1 s, dann Träume (gold) in 0,8 s; die Zahl in
+  der Mitte läuft mit dem Schlaf-Bogen (gleiche Kurve, `setInterval` 40 ms
+  — nur die Zahl, nicht die Bögen). Legende darunter. Text neu: „Etwa 6
+  Jahre davon träumst du. Lass sie nicht einfach vorbeiziehen — hol sie
+  dir zurück …" (Antons Sinn).
+- **Hauptknopf app-weit** (`glass.tsx` `PrimaryButton`): dunkles Glas
+  (`tintColor rgba(8,14,26,0.55)`) mit Schein — warm links, kühl rechts,
+  unten ein Hauch heller — statt der vollen orangen Fläche; weißer Text.
+  Antons Referenz: der „Continue"-Knopf mit Lichtschein. Der Rückfall ohne
+  Liquid Glass ist dieselbe dunkle Fläche mit demselben Schein.
+- Geprüft per Screenshot: Feature-Bildschirm passt auf eine Höhe, Ring
+  läuft (drei Aufnahmen), Knopf sichtbar. Ungeprüft: das Atmen der Kacheln
+  in Bewegung (Standbild zeigt nur einen Zustand).
+
 **Was der Nächste wissen muss:**
 - `session/2026-09-13-anton` (ohne -b) war schon komplett in `main`; die
   heutige Sitzung heißt deshalb `-b`. Reservierung als leerer Commit.

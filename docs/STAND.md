@@ -18,7 +18,14 @@ die hat Hanni). ⚠ Registrieren gibt es nicht (kein Endpunkt, mit Absicht);
 ein Konto muss Hanni anlegen, bis „Mit Apple anmelden" kommt — der Platz
 dafür steht schon stumm unter dem Knopf. Dazu: **Journal-Karten zeigten
 kein Bild** (Vorschau-Versprechen, siehe dream-poster.tsx) — behoben; und
-der Begleiter-Text im Onboarding als Persönlichkeit. Davor (PR #45,
+der Begleiter-Text im Onboarding als Persönlichkeit. **Dann Antons
+Moonly-Vergleich (11:00):** Feature-Kacheln versetzt mit Etikett am Rand,
+atmendem Schein und Verlaufssaum, Überschriften mittig, Proof-Zeile als
+PLATZHALTER, **Jahre-Kreis** (react-native-svg, neu → Pods + Rebuild)
+statt großer Zahl, **Hauptknopf app-weit dunkles Glas mit Schein** (warm
+links, kühl rechts), **„Überspringen" raus** — ⚠ im Entwicklungsbau kommt
+das Onboarding bei jedem Start und lässt sich nur noch durchtippen
+(Ausweg: `__ONB_STEP__` oder `seen` in `store/dev-store.ts`). Davor (PR #45,
 10 Commits): **Onboarding nativ und in Antons Form** — eine Frage je
 Bildschirm mit Antwort-Raster, Mehrfachwahl beim Ziel, „Weiter" erst mit
 Antwort, Zwischenbild mit laufendem Film nach jeder Frage,
