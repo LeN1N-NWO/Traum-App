@@ -15,6 +15,7 @@
  */
 import { localDateKey } from "./dreamDays.js";
 import { realDreams } from "./atlas.js";
+import { moonForNight } from "./moon.js";
 
 /* Drei Stufen, absichtlich grob. Fünf Stufen zwingen zum Nachdenken; hier
  * soll man antworten, bevor man wach ist. Die Zahlen sind sortierbar (der
@@ -43,7 +44,11 @@ export function setCheckin(checkins, sleep, date = new Date()) {
   if (!SLEEP_LEVELS.includes(n)) return checkins || [];
   const key = localDateKey(date);
   const rest = (checkins || []).filter((c) => c && c.date !== key);
-  return [...rest, { date: key, sleep: n }]
+  /* Seit 13.09. (Antons Wunsch) trägt der Eintrag die Mondphase SEINER
+     Nacht — morgens um sieben ist das die Nacht davor (moonForNight zieht
+     vor 12:00 einen Tag ab, wie streak.js). Ortsunabhängig, also ohne
+     Erlaubnis; ein Wort, damit der Kalender es nicht nachrechnen muss. */
+  return [...rest, { date: key, sleep: n, moon: moonForNight(date).phase }]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(-MAX_CHECKINS);
 }

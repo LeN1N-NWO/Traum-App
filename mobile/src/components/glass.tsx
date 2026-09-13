@@ -1,7 +1,9 @@
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { colors } from "@/theme";
 
 /* Liquid Glass für Flächen und Knöpfe (Antons Wunsch 12.09.). Auf iOS 26
@@ -33,14 +35,37 @@ export function GlassButton({ label, onPress, style, disabled }: { label: string
    fällt — nicht mehr die volle orange Fläche. Weißer Text. Auf iOS 26
    echtes Liquid Glass, davor eine dunkle Fläche mit demselben Schein. */
 const SHEEN = ["rgba(242,167,101,0.62)", "rgba(242,167,101,0.16)", "rgba(96,150,255,0.14)", "rgba(96,150,255,0.55)"] as const;
-function Sheen() {
+/* Der Schein ist IMMER in Bewegung (Antons Wunsch 13.09.: „in Bewegung
+   immer"): der Verlauf ist doppelt so breit wie die Fläche und wandert
+   langsam hin und her — das Licht zieht, der Knopf steht. Breite aus
+   onLayout, weil Reanimated keine Prozente verschiebt. */
+export function Sheen() {
+  const [w, setW] = useState(0);
+  const k = useSharedValue(0);
+  useEffect(() => { k.value = withRepeat(withTiming(1, { duration: 4200, easing: Easing.inOut(Easing.sin) }), -1, true); }, [k]);
+  const drift = useAnimatedStyle(() => ({ transform: [{ translateX: (k.value - 0.5) * w * 0.5 }] }));
   return (
-    <>
-      <LinearGradient colors={[...SHEEN]} locations={[0, 0.42, 0.6, 1]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
+    <View style={StyleSheet.absoluteFill} pointerEvents="none" onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+      <Animated.View style={[{ position: "absolute", top: 0, bottom: 0, left: -w / 2, width: w * 2 }, drift]}>
+        <LinearGradient colors={[...SHEEN]} locations={[0, 0.42, 0.6, 1]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+      </Animated.View>
       {/* Unten ein Hauch heller, oben nichts — Glas, kein Sticker. */}
-      <LinearGradient colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.10)"]} style={StyleSheet.absoluteFill} pointerEvents="none" />
-    </>
+      <LinearGradient colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.10)"]} style={StyleSheet.absoluteFill} />
+    </View>
   );
+}
+/* Dieselbe Fläche für alles, was kein runder Knopf ist (die Rekorder-Kachel
+   im Wizard): dunkles Glas, wandernder Schein, Inhalt darüber. */
+export function SheenSurface({ style, children }: { style?: StyleProp<ViewStyle>; children?: React.ReactNode }) {
+  if (glass) {
+    return (
+      <GlassView style={[styles.primaryGlass, style]} glassEffectStyle="regular" tintColor="rgba(8,14,26,0.55)" isInteractive colorScheme="dark">
+        <Sheen />
+        {children}
+      </GlassView>
+    );
+  }
+  return <View style={[styles.primary, { overflow: "hidden" }, style]}><Sheen />{children}</View>;
 }
 export function PrimaryButton({ label, onPress, style, disabled, heavy }: { label: string; onPress: () => void; style?: StyleProp<ViewStyle>; disabled?: boolean; heavy?: boolean }) {
   const press = () => { Haptics.impactAsync(heavy ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Light); onPress(); };

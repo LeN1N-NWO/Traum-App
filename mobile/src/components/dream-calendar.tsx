@@ -12,7 +12,12 @@ import { localDateKey, monthCells } from "../../../src/lib/dreamDays.js";
    — für die Nacht, an die man sich per Datum erinnert. Geträumte Tage
    leuchten, leere Nächte sind ein blasser Punkt, mehrere Träume an einem
    Tag klappen als Liste auf. */
-export function DreamCalendar({ items, blankKeys, labels, onOpen }: { items: DreamItem[]; blankKeys: string[]; labels: Record<string, any>; onOpen: (id: string) => void }) {
+/* Die Farbe der Nacht: wie geschlafen (Check-in vom Home-Bildschirm),
+   Antons Wunsch 13.09. — rot schwer, gold okay, grün gut. Ein Ring um den
+   Tag, damit der blaue Kern „geträumt" darin bestehen bleibt. */
+export const SLEEP_COLORS: Record<number, string> = { 1: colors.bad, 2: colors.gold, 3: colors.ok };
+
+export function DreamCalendar({ items, blankKeys, sleep, sleepLevels, labels, onOpen }: { items: DreamItem[]; blankKeys: string[]; sleep: Record<string, number>; sleepLevels: { level: number; label: string }[]; labels: Record<string, any>; onOpen: (id: string) => void }) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -44,15 +49,24 @@ export function DreamCalendar({ items, blankKeys, labels, onOpen }: { items: Dre
           const key = localDateKey(new Date(year, month, day));
           const list = byDay.get(key);
           const isToday = key === todayKey, isPicked = key === picked, isBlank = !list && blanks.has(key);
+          const ring = SLEEP_COLORS[sleep[key]];
           return (
             <Pressable key={key} style={styles.cell} onPress={() => pick(key)} disabled={!list}>
-              <View style={[styles.day, list && styles.dreamt, isBlank && styles.blank, isToday && styles.today, isPicked && styles.picked]}>
+              <View style={[styles.day, list && styles.dreamt, isBlank && styles.blank, isToday && styles.today, ring ? { borderWidth: 2, borderColor: ring } : null, isPicked && styles.picked]}>
                 <Text style={[styles.dayText, list && styles.dreamtText]}>{day}</Text>
               </View>
             </Pressable>
           );
         })}
       </View>
+      {/* Die Legende der Ringe — nur, wenn es Check-ins gibt. */}
+      {Object.keys(sleep).length ? (
+        <View style={styles.legend}>
+          {sleepLevels.map((l) => (
+            <View key={l.level} style={styles.legendItem}><View style={[styles.legendDot, { borderColor: SLEEP_COLORS[l.level] }]} /><Text style={styles.legendText}>{l.label}</Text></View>
+          ))}
+        </View>
+      ) : null}
       {pickedList.length > 1 ? (
         <View style={{ marginTop: 8 }}>
           <Text style={styles.lede}>{String(labels.calSeveral ?? "").replace("{n}", String(pickedList.length))}</Text>
@@ -79,4 +93,8 @@ const styles = StyleSheet.create({
   today: { borderWidth: 1, borderColor: colors.accentSoft },
   picked: { backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.accentSoft },
   lede: { color: colors.faint, fontSize: 11, marginBottom: 4 },
+  legend: { flexDirection: "row", justifyContent: "center", gap: 14, marginTop: 8 },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+  legendDot: { width: 10, height: 10, borderRadius: 5, borderWidth: 2 },
+  legendText: { color: colors.faint, fontSize: 11 },
 });

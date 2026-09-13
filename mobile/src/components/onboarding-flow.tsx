@@ -606,14 +606,16 @@ function SleepYears({ O, answer, insets, step, total, onNext, onBack }: { O: Onb
             <G rotation={-90} origin={`${RING / 2}, ${RING / 2}`}>
               <Bogen anteil={1} k={leben} farbe="rgba(255,255,255,0.10)" />
               <Bogen anteil={schlaf / LIFE_YEARS} k={s} farbe={colors.warm} />
-              <Bogen anteil={traum / LIFE_YEARS} k={d} farbe={colors.gold} />
+              {/* Träume GRÜN, nicht gold: gold lag zu nah am warmen Schlaf-Bogen
+                  (Antons Befund 13.09.). */}
+              <Bogen anteil={traum / LIFE_YEARS} k={d} farbe={colors.ok} />
             </G>
           </Svg>
           <Text style={styles.ringYears}>{O.sleepYears(n)}</Text>
           <Text style={styles.ringLabel}>{O.sleepAsleep}</Text>
         </View>
         <View style={styles.legend}>
-          {[["rgba(255,255,255,0.18)", O.sleepLegend.life], [colors.warm, O.sleepLegend.sleep], [colors.gold, O.sleepLegend.dream]].map(([c, l]) => (
+          {[["rgba(255,255,255,0.18)", O.sleepLegend.life], [colors.warm, O.sleepLegend.sleep], [colors.ok, O.sleepLegend.dream]].map(([c, l]) => (
             <View key={l} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: c }]} /><Text style={styles.legendText}>{l}</Text></View>
           ))}
         </View>

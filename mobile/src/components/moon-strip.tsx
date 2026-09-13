@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { SLEEP_COLORS } from "@/components/dream-calendar";
 import { Glass } from "@/components/glass";
 import type { MoonData } from "@/store/journal-store";
 import { colors } from "@/theme";
@@ -18,6 +19,10 @@ export function MoonStrip({ M }: { M: MoonData }) {
               <Text style={[styles.weekday, d.today && styles.weekdayOn]}>{M.weekdays[d.weekday]}</Text>
               <Moon illum={d.illum} waxing={d.waxing} size={d.today ? 30 : 26} />
               <Text style={[styles.day, d.today && styles.dayOn]}>{d.day}</Text>
+              {/* Wie geschlafen (Check-in), als Punkt unter dem Tag — dieselben
+                  Farben wie die Ringe im Kalender. Ohne Eintrag ein leerer Platz,
+                  damit die Zeile nicht springt. */}
+              <View style={[styles.sleepDot, d.sleep ? { backgroundColor: SLEEP_COLORS[d.sleep] } : null]} />
             </>
           );
           return (
@@ -62,5 +67,6 @@ const styles = StyleSheet.create({
   weekdayOn: { color: colors.gold },
   day: { color: colors.muted, fontSize: 14, fontVariant: ["tabular-nums"] },
   dayOn: { color: colors.text, fontWeight: "700" },
+  sleepDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "transparent" },
   caption: { color: colors.faint, fontSize: 12.5, textAlign: "center" },
 });

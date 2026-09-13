@@ -56,6 +56,12 @@ import { t } from "../../../src/i18n/index.js";
 const API_BASE = globalThis.__ExpoImportMetaRegistry?.env?.VITE_API_BASE || "";
 const absolute = (u) => (typeof u === "string" && u.startsWith("/") && !u.startsWith("/media/") ? API_BASE + u : mediaUrl(u));
 
+/* Die Schlafstufe eines Kalendertags (Schlüssel wie localDateKey), oder null. */
+function sleepOn(checkins, key) {
+  const c = (checkins || []).find((x) => x && x.date === key);
+  return c && SLEEP_LEVELS.includes(c.sleep) ? c.sleep : null;
+}
+
 function takeLabel(f) {
   const pace = f.pace ? t.wizard.step5.paceNames?.[f.pace] || f.pace : t.journal.takeUnknown;
   return pace + (f.seconds ? ` · ${f.seconds}s` : "");
@@ -263,9 +269,14 @@ function snapshot() {
     castCount: (s.cast?.length || 0) + (s.me ? 1 : 0), creatures: (s.creatures || []).length, realDreams,
     /* Der Mond-Streifen (Antons Wunsch 12.09.): fuenf Naechte um heute,
        gerechnet aus dem Datum — kein Standort, keine Erlaubnis. */
+    /* Wie geschlafen, je Kalendertag (Antons Wunsch 13.09.): der Check-in
+       vom Home-Bildschirm gehört in den Kalender und an den Mond-Streifen —
+       auch an Tagen ohne Traum. Stufe 1..3, Farbe entscheidet die Hülle. */
+    sleep: Object.fromEntries((s.checkins || []).filter((c) => c && SLEEP_LEVELS.includes(c.sleep)).map((c) => [c.date, c.sleep])),
+    sleepLevels: SLEEP_LEVELS.map((l) => ({ level: l, label: t.checkin.levels[l] })),
     moon: {
       title: t.moon.title, tonight: t.moon.tonight, weekdays: t.moon.weekdays,
-      strip: moonStrip(new Date()).map((d) => ({ ...d, label: t.moon.phases[d.phase] || d.phase })),
+      strip: moonStrip(new Date()).map((d) => ({ ...d, label: t.moon.phases[d.phase] || d.phase, sleep: sleepOn(s.checkins, d.key) })),
     },
     labels: {
       title: t.journal.title, count1: t.journal.count(1), countN: t.journal.count(2).replace("2", "{n}"),

@@ -1,5 +1,6 @@
 import { test, expect } from "bun:test";
 import { checkinOn, setCheckin, sleepAverage, sleepNights, sleepByMood, SLEEP_LEVELS } from "./checkin.js";
+import { moonForNight } from "./moon.js";
 
 /* Der Check-in ist winzig — aber er hängt an zwei Stellen, an denen dieses
    Projekt schon einmal geblutet hat: Kalendertage in Ortszeit (der
@@ -70,8 +71,18 @@ test("an invalid level changes nothing", () => {
    casten — eine Falle, die genau einmal vergessen wird. */
 test("a numeric string is accepted — that is what a button hands over", () => {
   const list = setCheckin([], "3", d("2026-08-21T07:00:00"));
-  expect(list).toEqual([{ date: "2026-08-21", sleep: 3 }]);
+  expect(list).toMatchObject([{ date: "2026-08-21", sleep: 3 }]);
   expect(typeof list[0].sleep).toBe("number");
+});
+
+/* Der Eintrag trägt die Mondphase seiner NACHT (Antons Wunsch 13.09.):
+   morgens notiert heißt die Nacht davor — dieselbe Phase, die ein um
+   03:00 geschriebener Traum bekäme. */
+test("a check-in records the moon phase of its night", () => {
+  const morning = d("2026-08-21T07:00:00");
+  const [c] = setCheckin([], 2, morning);
+  expect(typeof c.moon).toBe("string");
+  expect(c.moon).toBe(moonForNight(d("2026-08-21T03:00:00")).phase);
 });
 
 test("the list is capped — localStorage is shared with the whole journal", () => {

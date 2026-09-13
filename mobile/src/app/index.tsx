@@ -1,5 +1,6 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { PrimaryButton } from "@/components/glass";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
@@ -69,9 +70,7 @@ export default function HomeScreen() {
           <View style={styles.posterBody}>
             <Text style={styles.title}>{L.homeTitle ?? "What did you dream?"}</Text>
             <Text style={styles.lede}>{L.homeLede ?? ""}</Text>
-            <Pressable style={styles.cta} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/dream"); }}>
-              <Text style={styles.ctaText}>{L.homeCta ?? "Record it"}</Text>
-            </Pressable>
+            <PrimaryButton label={L.homeCta ?? "Record it"} onPress={() => router.push("/dream")} style={styles.cta} />
           </View>
         </View>
 
@@ -180,8 +179,7 @@ const styles = StyleSheet.create({
   posterBody: { position: "absolute", left: 20, right: 20, bottom: 20, gap: 8 },
   title: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 38, color: colors.text, letterSpacing: -0.3 },
   lede: { color: colors.muted, fontSize: 15, lineHeight: 21 },
-  cta: { alignSelf: "flex-start", marginTop: 6, paddingVertical: 13, paddingHorizontal: 24, borderRadius: 999, backgroundColor: colors.warm },
-  ctaText: { color: colors.bg, fontSize: 15, fontWeight: "700" },
+  cta: { flex: 0, alignSelf: "flex-start", marginTop: 6, minWidth: 150 },
   line: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   lineText: { color: colors.text, fontSize: 15 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.warm },
