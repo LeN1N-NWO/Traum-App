@@ -152,6 +152,21 @@ das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
   (versioniert, `!public/clips/showcase-*.mp4`), Brücke `peopleClip`,
   `style-clips.ts` bündelt es (Muster `showcase-<name>`). Original
   480p in `media/clips-src/faces-a-9d94dd02.mp4`.
+- **Nachtrag 14:30 — die 720p-Fassung nativ**, mit Antons Umbau: die
+  Person sitzt SCHON da, das Foto liegt auf dem Tisch, der Zeiger zieht es
+  auf sie, eine laufende gestrichelte Auswahllinie fährt um die Silhouette,
+  beim Loslassen wird der Mann zur Frau vom Foto, dann Wechsel alle 0,8 s
+  mit großen Reaktionen. Drei Läufe: die ersten zwei brach Higgsfield NACH
+  voller Renderzeit mit `ip_detected` ab (kostenlos) — der Filter prüft das
+  ERGEBNIS, vermutlich ein erzeugtes Gesicht, das jemandem Echten glich.
+  Der dritte mit „everyday strangers with plain, unremarkable faces", ohne
+  Smoking/Brillenmann, sechs statt acht Wechsel, ging durch: 97,5 Credits
+  (Stand 3.733). Ergebnis trifft alles: Zeiger, Foto, Auswahllinie,
+  Verwandlung, Reaktionen. Liegt jetzt als `public/clips/showcase-faces.mp4`
+  (720p, 1.8 MB, crf 24); Original in `media/clips-src/faces-b-720p-2162c42d.mp4`,
+  die Topaz-Fassung des Tests bleibt daneben. Lehre: **bei
+  fotorealistischen Gesichtern „everyday strangers" in den Prompt** — der
+  Ergebnisfilter ist der teure (Zeit), nicht der Promptfilter.
 - ⚠ Während Anton selbst im Simulator tippt, die App NICHT neu starten —
   ein `simctl launch` wirft ihn aus dem Onboarding (heute passiert).
 
