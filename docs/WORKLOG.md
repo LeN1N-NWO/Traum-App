@@ -128,6 +128,33 @@ Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
 `settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
 das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
 
+## 2026-09-13 13:15 — Anton — Branch `session/2026-09-13-anton-c` — Clips versioniert und gebündelt, Onboarding-Showreel
+
+**Antons Auftrag:** alle Clips einbinden, in der Stil-Auswahl zuordnen und
+im Onboarding die stärksten zeigen — „nicht mehr diese alten Träume von mir".
+
+- **Ablage neu:** die 19 Vorschauen liegen als `public/clips/style-<id>.mp4`
+  IM REPOSITORY (~2 MB; `.gitignore` hat dafür die Ausnahme
+  `!public/clips/style-*.mp4` — die Regel `public/clips/*.mp4` stammt aus
+  der Zeit der Demo-Medien). `presets.js` zeigt auf `/clips/style-<id>.mp4`;
+  Dreamflow nimmt den Traumhaft-Clip. Der Web-Build kopiert nach
+  `dist/clips` (`bunx vite build` gemacht, Server liefert 200 video/mp4);
+  die Vorschauen in `media/pv…2609a.mp4` sind gelöscht, die Originale
+  bleiben in `media/clips-src/`.
+- **Nativ gebündelt:** `mobile/src/lib/style-clips.ts` hält je Stil ein
+  `require` auf dieselbe Datei; `Clip` (preset-tile.tsx) löst über
+  `clipSource(url)` auf — Stil-Clips laufen ohne Server und im
+  Produktionsbau, alles andere weiter über die Adresse. ⚠ Ein neuer Stil
+  braucht dort eine Zeile.
+- **Showreel im Onboarding:** `SHOWREEL` in der Brücke, von Hand gereiht
+  (Romantisch, Tusche, Scherenschnitt, Ölgemälde für die vier
+  Feature-Kacheln; Surreal, Anime, Abenteuer, Marionette für die
+  Zwischenbilder), der Guide-Trailer ist der Anime-Clip. Home behält das
+  Faultier (Maskottchen-Video), die Ertrags-Kachel der Paywall ihren Weg.
+- Geprüft per Screenshot: Stil-Raster (alle 20 Kacheln laufen aus dem
+  Bündel), Feature-Bildschirm, Zwischenbild, Server-Antwort auf
+  `/clips/style-ink.mp4`.
+
 ## 2026-09-13 12:50 — Anton — Branch `session/2026-09-13-anton-c` — Die neun Handwerksstile, Marker neu
 
 **Commits:** `35ed6c7` acht Handwerksstile · (Marker folgt im nächsten Commit).

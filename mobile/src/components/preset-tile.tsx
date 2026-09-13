@@ -3,6 +3,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { clipSource } from "@/lib/style-clips";
 import type { WizardPreset } from "@/store/journal-store";
 import { colors } from "@/theme";
 
@@ -29,8 +30,10 @@ export function PresetTile({ preset, active, size, onPress }: { preset: WizardPr
   );
 }
 
+/* Der Vorschau-Film in Schleife. Stil-Clips kommen aus dem Bündel
+   (lib/style-clips.ts), alles andere von der Adresse. */
 export function Clip({ url }: { url: string }) {
-  const player = useVideoPlayer(url, (p) => { p.loop = true; p.muted = true; p.play(); });
+  const player = useVideoPlayer(clipSource(url), (p) => { p.loop = true; p.muted = true; p.play(); });
   useEffect(() => { player.loop = true; player.muted = true; player.play(); }, [player]);
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
