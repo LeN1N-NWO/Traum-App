@@ -128,6 +128,34 @@ Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
 `settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
 das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
 
+## 2026-09-13 12:10 — Anton — Branch `session/2026-09-13-anton-b` — Sitzungsabschluss (wrap + Merge auf Antons Wort, während Higgsfield rendert)
+
+**Commits (12):** `4f36289` Journal-Bilder · `a92ab16` Merge Hannis PR #46 ·
+`cd952e8` Begleiter-Text · `af82fab` Anmeldung · `bed69bd` Kacheln, Ring,
+Knöpfe, kein Überspringen · `c83d574` Check-in sichtbar, Schein wandert ·
+`90cc3f8` Schlaf-Tab nach Moonly · `1a4abcc` Foto-Schritt · dazu vier
+Doku-Commits. Details in den Einträgen und Nachträgen darunter.
+
+**Prüfung:** Web 616 Tests grün, mobile `tsc` grün, `bunx expo lint`
+0 Fehler / 43 Warnungen. Drei native Pakete neu (expo-secure-store,
+react-native-svg, expo-image-manipulator) — Pods und Xcode-Build je
+gemacht, App läuft im Simulator mit dem letzten Build.
+
+**Was der Nächste wissen muss:**
+- **PR #47 trägt Hannis PR #46 mit** (Merge-Commit `a92ab16`); mit dem
+  Merge von #47 ist #46 in `main`.
+- **Style-Clips über Higgsfield** (Antons Auftrag 12:00): je Stil ein
+  5-s-Seedance-2.5-Clip, 3:4, 480p, ohne Ton, EIN Take mit starker
+  Kamerabewegung und einer absurden Traum-Idee (Verwandlungen: ein Mensch
+  wird zu Vögeln …). Kosten ~32 Credits je Clip (Antons Higgsfield-Konto,
+  4.123 Credits, Creator). Die ersten zwei (Surreal, Knete) laufen als
+  Jobs `3f0fddcf…` und `071137b4…`; Ziel: `media/pv….mp4` (270 px, stumm,
+  < 200 KB) und `clip:` in `presets.js`. ⚠ Higgsfield schlug für den
+  Surreal-Prompt ein Preset vor („IN THE DARK") — abgelehnt
+  (`declined_preset_id`), wörtlich gerendert.
+- Ohne „Überspringen" muss man das Onboarding im Entwicklungsbau bei jedem
+  Start durchtippen (17 Bildschirme); Antons Entscheidung dazu steht aus.
+
 ## 2026-09-13 10:40 — Anton — Branch `session/2026-09-13-anton-b` — Hannis Backend hereingeholt, Anmeldung nativ, Journal-Bilder zurück
 
 **Commits:** `4f36289` Journal-Karten zeigen ihr Bild wieder · `a92ab16`
