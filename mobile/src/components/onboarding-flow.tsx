@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming, type SharedValue } from "react-native-reanimated";
 import Svg, { Circle, G } from "react-native-svg";
 import { Clip } from "@/components/preset-tile";
+import { clipSource } from "@/lib/style-clips";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import { login, useAccountEmail, type LoginFailure } from "@/lib/auth";
 import type { OnboardData } from "@/store/journal-store";
@@ -269,7 +270,9 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
   // ── Das Zwischenbild mit Film (Antons Wunsch 13.09.)
   if (jetzt.kind === "showcase") {
     const sc = O.showcase[jetzt.at % Math.max(1, O.showcase.length)];
-    const clip = O.clips.length ? O.clips[(jetzt.at + 1) % O.clips.length] : null;
+    /* Das erste Zwischenbild („Neunzehn Blicke") schneidet im Sekundentakt
+       durch ALLE Stile (Antons Wunsch 13.09.); die anderen zeigen einen. */
+    const clip = jetzt.at === 0 && O.reel.length ? O.reel : O.clips.length ? O.clips[(jetzt.at + 1) % O.clips.length] : null;
     return <Showcase O={O} title={sc?.title ?? ""} text={sc?.text ?? ""} clip={clip} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
   }
 
@@ -469,12 +472,26 @@ function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; i
    ist die „Animation am Rand", die Anton am Vorbild gesehen hat. Der Rand
    selbst ist ein Verlauf, der als 1,5-Punkt-Saum um die Kachel liegt. */
 function FeatureTile({ i, title, clip, tall, labelBottom }: { i: number; title: string; clip: string | null; tall: boolean; labelBottom: boolean }) {
-  const k = useSharedValue(0);
+  /* Die leuchtende Kante (Antons Befund 13.09.: „Rand viel zu dick — schmal,
+     mehr Farbe, und das Licht soll drum herum fahren"): ein SCHMALER Ring
+     (1,5 pt), hinter dem ein großes Farbquadrat langsam ROTIERT — der Clip
+     deckt die Mitte ab, sichtbar bleibt nur die Kante, und weil das
+     Quadrat sich dreht, wandern die Farben um die Kachel. Zwei weitere,
+     fast durchsichtige Ringe außen sind der Schein. Kein breiter Halo mehr. */
+  const spin = useSharedValue(0);
+  const [box, setBox] = useState({ w: 0, h: 0 });
   useEffect(() => {
-    k.value = withDelay(400 * i, withRepeat(withTiming(1, { duration: 2600 + 300 * i, easing: Easing.inOut(Easing.sin) }), -1, true));
-  }, [k, i]);
-  const halo = useAnimatedStyle(() => ({ opacity: 0.35 + 0.45 * k.value, transform: [{ scale: 1 + 0.02 * k.value }] }));
-  const rim = useAnimatedStyle(() => ({ opacity: 0.55 + 0.45 * k.value }));
+    spin.value = withDelay(300 * i, withRepeat(withTiming(1, { duration: 7000 + 900 * i, easing: Easing.linear }), -1, false));
+  }, [spin, i]);
+  const rot = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.value * 360}deg` }] }));
+  const d = Math.hypot(box.w, box.h) + 24;                // das Quadrat deckt die Kachel in jeder Drehung
+  const ring = (inset: number, opacity: number) => (
+    <View key={inset} style={[StyleSheet.absoluteFill, { margin: -inset, borderRadius: 32 + inset, overflow: "hidden", opacity }]} pointerEvents="none">
+      <Animated.View style={[{ position: "absolute", width: d, height: d, left: (box.w + 2 * inset - d) / 2, top: (box.h + 2 * inset - d) / 2 }, rot]}>
+        <LinearGradient colors={["#8cc0ff", "#f2a765", "#ff7ab6", "#4fd6e6", "#8cc0ff"]} locations={[0, 0.3, 0.55, 0.8, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+    </View>
+  );
   const badge = (
     <View style={[styles.tileBadge, labelBottom ? { bottom: -6 } : { top: -6 }]}>
       <Glass style={styles.tileBadgeGlass}>
@@ -484,13 +501,8 @@ function FeatureTile({ i, title, clip, tall, labelBottom }: { i: number; title: 
     </View>
   );
   return (
-    <Animated.View entering={FadeInDown.delay(70 * i).duration(320)} style={[styles.tileCell, tall && styles.tileTall]}>
-      <Animated.View style={[styles.tileHalo, halo]} pointerEvents="none">
-        <LinearGradient colors={["rgba(140,192,255,0.55)", "rgba(242,167,101,0.35)", "rgba(140,192,255,0.0)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      </Animated.View>
-      <Animated.View style={[styles.tileRim, rim]} pointerEvents="none">
-        <LinearGradient colors={["rgba(255,255,255,0.55)", "rgba(140,192,255,0.25)", "rgba(242,167,101,0.4)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      </Animated.View>
+    <Animated.View entering={FadeInDown.delay(70 * i).duration(320)} style={[styles.tileCell, tall && styles.tileTall]} onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+      {box.w ? [ring(7, 0.10), ring(4, 0.22), ring(1.5, 1)] : null}
       <View style={styles.tileClip}>
         {clip ? <Clip url={clip} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
         <LinearGradient colors={["rgba(5,10,20,0.35)", "rgba(5,10,20,0)", "rgba(5,10,20,0.45)"]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
@@ -584,10 +596,10 @@ function MascotFace({ id }: { id: string }) {
    weiter. Nach jeder Frage eines — es macht Lust auf die App, statt nur zu
    fragen (Antons Wunsch 13.09.). Die Clips sind vorerst die Vorschau-Filme
    der Stile; eigene kommen später. */
-function Showcase({ O, title, text, clip, insets, step, total, onNext, onBack }: { O: OnboardData; title: string; text: string; clip: string | null; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
+function Showcase({ O, title, text, clip, insets, step, total, onNext, onBack }: { O: OnboardData; title: string; text: string; clip: string | string[] | null; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
   return (
     <View style={styles.screen}>
-      {clip ? <Clip url={clip} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
+      {Array.isArray(clip) ? <StyleReel urls={clip} /> : clip ? <Clip url={clip} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
       <LinearGradient colors={["rgba(5,10,20,0.8)", "rgba(5,10,20,0.25)", "rgba(5,10,20,0.9)"]} locations={[0, 0.42, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <View style={[styles.top, { paddingTop: insets.top + 10 }]}>
         <View style={styles.skipRow}>
@@ -608,6 +620,24 @@ function Showcase({ O, title, text, clip, insets, step, total, onNext, onBack }:
       </View>
     </View>
   );
+}
+
+/* Der Schnellschnitt durch alle Stile: EIN Player, dessen Quelle jede
+   Sekunde wechselt (`replaceAsync`) — neunzehn Player gleichzeitig wären
+   zu viel für den Renderer (Falle in STAND: „neun laufende Videos blockieren
+   ihn"). Die Clips kommen aus dem Bündel, der Wechsel ist deshalb sofort.
+   ⚠ Kein Player-Zugriff im Aufräumer — nur der Takt wird gestoppt. */
+function StyleReel({ urls }: { urls: string[] }) {
+  const player = useVideoPlayer(clipSource(urls[0]), (p) => { p.loop = true; p.muted = true; p.play(); });
+  useEffect(() => {
+    let i = 0;
+    const t = setInterval(() => {
+      i = (i + 1) % urls.length;
+      player.replaceAsync(clipSource(urls[i])).then(() => { player.loop = true; player.muted = true; player.play(); }).catch(() => {});
+    }, 1000);
+    return () => clearInterval(t);
+  }, [player, urls]);
+  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 
 /* Die Jahre im Schlaf als Kreis (Antons Wunsch 13.09.): erst zeichnet
@@ -704,8 +734,6 @@ const styles = StyleSheet.create({
   tileCol: { flex: 1, gap: 22 },
   tileCell: { height: 150 },
   tileTall: { height: 206 },
-  tileHalo: { position: "absolute", left: -10, right: -10, top: -10, bottom: -10, borderRadius: 42, overflow: "hidden" },
-  tileRim: { position: "absolute", left: -1.5, right: -1.5, top: -1.5, bottom: -1.5, borderRadius: 33, overflow: "hidden" },
   tileClip: { flex: 1, borderRadius: 32, overflow: "hidden", backgroundColor: colors.bg2 },
   tileBadge: { position: "absolute", left: -4, right: 8 },
   tileBadgeGlass: { flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 7, paddingHorizontal: 11, borderRadius: 999, alignSelf: "flex-start", maxWidth: "100%" },

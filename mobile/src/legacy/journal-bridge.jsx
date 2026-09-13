@@ -399,6 +399,9 @@ function snapshot() {
        „nicht mehr diese alten Träume von mir"). Reihenfolge = Feature-Kacheln
        1–4, danach die Zwischenbilder. */
     clips: SHOWREEL.map((id) => PRESETS.find((p) => p.id === id)).filter((p) => p && p.clip).map((p) => absolute(p.clip)),
+    /* Das Zwischenbild „Neunzehn Blicke": ALLE Stile im Sekundenschnitt
+       (Antons Wunsch 13.09.) — jeder Stil einmal, Dreamflow nicht doppelt. */
+    reel: PRESETS.filter((p) => p.clip && p.id !== DREAMFLOW).map((p) => absolute(p.clip)),
     values: {
       goal: werte("goal", t.dreamer.goalValues), recall: werte("recall", t.dreamer.recallValues),
       lucid: werte("lucid", t.dreamer.lucidValues), sleepHours: werte("sleepHours", t.dreamer.sleepValues),
