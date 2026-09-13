@@ -3,6 +3,131 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 20:10 — Hanni — Branch `session/2026-09-12-hanni-backend-auth` — Anmeldung, Konto und Träume im Backend
+
+**Commits (3):** `8b57221` src/lib/auth.js (Supabase Auth) · `41a3534`
+Routen in server.js + src/lib/dreamRow.js + gatekeeper-Klasse „auth" ·
+`200c830` scripts/test-konto.mjs.
+
+**Was:** Die Lücke geschlossen, die seit dem 11.09. alles Weitere
+blockierte. Das Schema stand, aber niemand konnte sagen, WESSEN Zeilen
+gemeint sind. Jetzt gibt es `POST /api/auth/login|refresh|logout`,
+`GET/PATCH /api/account`, `GET/DELETE /api/dreams` und
+`POST /api/dreams/sync`. Jeder Datenzugriff läuft durch `withUser()`; die
+Nutzerkennung stammt aus der bei Supabase geprüften Sitzung, nie aus dem
+Anfragekörper.
+
+**Warum so:** Der Client spricht weiterhin nur mit `server.js` (ADR-0005) —
+E-Mail und Passwort gehen an uns, wir an Supabase. Kein
+`@supabase/supabase-js`: vier REST-Aufrufe im selben `fetch`-Stil wie
+fal/DeepSeek/Gemini, mit Zeitgrenze. Die Sitzung wird bei Supabase selbst
+geprüft (`/auth/v1/user`) statt hier lokal — lokale JWT-Prüfung heißt
+Signaturgeheimnis halten und den Algorithmus richtig prüfen, und ein
+Fehler darin ist lautlos und total.
+
+**Keine neue Migration nötig** — das Schema vom 11.09. hatte die Grants und
+RLS-Policies für genau dieses CRUD bereits vollständig.
+
+**Was der Nächste wissen muss:**
+- ⚠⚠ **Die Anmeldung darf noch nicht hinter eine öffentliche Adresse.**
+  Befund S6 ist offen: der Server spricht `http://`. Passwort und Token
+  reisen damit im Klartext. Gegen localhost und Simulator gleichgültig, über
+  echtes WLAN nicht. TLS (Punkt 3 in `docs/ARCHITEKTUR.md`) kommt zuerst.
+- ⚠ **Gemessen 12.09.:** `db.<projekt>.supabase.co` löst NUR auf IPv6 auf.
+  Ohne IPv6 (Hannis Rechner) endet das als
+  `ERR_POSTGRES_CONNECTION_REFUSED` — das sieht aus wie ein falsches
+  Passwort und ist keines. Dann den Session Pooler nehmen (IPv4, Port 5432;
+  nicht 6543). Steht jetzt in `.env.example`.
+- **Abschlussdurchgang (23:10, Hannis Auftrag „kritisch auf Fehler und
+  Redundanzen"):** fünf Befunde im eigenen Code, alle behoben —
+  1. **`survey` im Profil hatte keine Größengrenze.** Bei Träumen deckelt
+     `safeJson()` jedes jsonb-Feld auf 64 KB; das Profil war die eine
+     Stelle, an der unbegrenztes Client-JSON in eine Spalte lief. Jetzt
+     dieselbe Konstante (`MAX_JSON` aus `dreamRow.js`, exportiert statt
+     verdoppelt) und **413 statt stiller Kürzung**.
+  2. `POST /api/auth/refresh` und `PATCH /api/account` lasen einen Körper
+     **ohne** die `MAX_BODY`-Prüfung, die jeder andere Endpunkt hat.
+  3. **⚠ Ein Feld ließ sich nicht wieder leeren.** „Nicht mitgeschickt" und
+     „auf leer gesetzt" waren dasselbe (`coalesce`) — ein einmal gesetzter
+     Anzeigenname war nicht mehr loszuwerden. Jetzt entscheidet die
+     **Anwesenheit des Schlüssels**: fehlt er, bleibt die Spalte; steht er
+     auf `null`, wird geleert. Falscher Typ → 400 mit Feldnamen.
+  4. Die Profil-Umformung stand zweimal wörtlich da → `profilFuerClient()`.
+  5. Das Prüfskript ließ bei einem Abbruch Träume in der **echten**
+     Datenbank liegen und behielt seine Werte im Profil des Testusers. Es
+     kehrt jetzt am Anfang alte Reste weg und stellt das Profil zurück —
+     möglich erst seit Befund 3.
+- **Persistenz empirisch belegt** (die Frage war ausdrücklich gestellt):
+  Abbruch mitten in der Transaktion lässt **nichts** zurück; ein Stapel mit
+  Fehler in der Mitte ebenso (SQLSTATE **23514**, Check-Verletzung); ein
+  Commit ist aus einer **anderen** Transaktion sichtbar. Mit Kontrollprobe:
+  das Einfügen wirkte innerhalb der Transaktion nachweislich, sonst wäre
+  der Rollback-Test hohl gewesen.
+- **Bewusst NICHT geändert:** die zwei fast gleichen Abfragen in
+  `GET /api/dreams` (mit und ohne Cursor). Eine zusammengefasste Fassung
+  (`… is null or (…) < (…)`) spart acht Zeilen und kostet die Indexnutzung.
+- **Nachgezogen (22:20, Hannis Hinweis):** `GET /api/dreams` gab alles auf
+  einmal zurück — die eine der vier genannten Regeln, die hier wirklich
+  fehlte (serverseitige Prüfung, keine rohen Datenbank-IDs in URLs und
+  Mengenbremsen standen bereits). Jetzt seitenweise per Cursor
+  (`src/lib/paging.js`, 11 Tests): `?limit=` mit Vorgabe 100 und Deckel 200,
+  `?cursor=`, geblättert bis `next` null ist. **Cursor statt OFFSET**, weil
+  OFFSET bei einem gelöschten Traum mitten im Blättern lautlos einen
+  Eintrag überspringt; und der Cursor trägt **zwei** Werte, weil zwei
+  Träume derselben Nacht denselben Zeitstempel haben. `sync` nimmt
+  höchstens 200 Träume je Aufruf (413) — nicht wegen der Bytes, sondern
+  wegen der Dauer einer Transaktion.
+- **Ende-zu-Ende geprüft (nachgereicht am selben Abend, 21:40, erweitert
+  22:20):** 25 von 25
+  gegen das echte Supabase — anmelden, falsches Passwort, Konto lesen,
+  Traum speichern/aktualisieren/lesen/löschen, Sitzung erneuern.
+  `node scripts/test-konto.mjs` (Zugangsdaten aus der Umgebung).
+- **⚠⚠ Der erste Lauf fand zwei Fehler, die kein Test ohne Datenbank
+  finden konnte** — der Grund, warum dieser Lauf nicht optional war:
+  1. **Bun.SQL gibt `jsonb` als ZEICHENKETTE zurück**, nicht als geparsten
+     Wert. `references` und `medien` kamen als String beim Client an, wo
+     eine Liste versprochen ist; `survey` im Profil genauso. Behoben mit
+     `fromJsonb()` in `db.js` — bewusst dort, weil es eine Eigenschaft des
+     Treibers ist: **jede künftige jsonb-Spalte hat dasselbe Problem.**
+  2. Ein **5xx von Supabase** wurde roh durchgereicht. Mitten im Lauf kam
+     ein 504 von deren Gateway (davor und danach sauber 400) — das hätte
+     dem Menschen gesagt, sein Passwort sei falsch, obwohl es nie geprüft
+     wurde. Jetzt 503; 429 sagt „zu viele Versuche".
+- **Rechte empirisch belegt, nicht behauptet** (mit Kontrollproben, sonst
+  beweist eine Verweigerung nichts): ohne Nutzererklärung sieht der Server
+  0 Zeilen, mit Erklärung 1, als fremder Nutzer wieder 0. Guthaben
+  schreiben, Ledger-Zeile einfügen und `credits_spend` direkt aufrufen:
+  alle drei **SQLSTATE 42501**. Guthaben lesen ist erlaubt — daran zeigt
+  sich, dass der Test überhaupt unterscheiden kann.
+- **⚠ Die Datenbank war zunächst gar nicht erreichbar**, und der Grund
+  sieht aus wie ein falsches Passwort: `db.<projekt>.supabase.co` löst nur
+  auf IPv6 auf. `DATABASE_URL` in Hannis `.env` zeigt jetzt auf
+  `aws-0-eu-central-1.pooler.supabase.com:5432` (Session Pooler, IPv4).
+- **Das Guthaben wird weiterhin NICHT abgebucht.** `/api/account` zeigt es
+  nur an; die 100 Test-Credits im Entwicklungsbau (`devTopUp`) sind
+  unberührt. Antons Übergabe zum Abbuchen (11.09., Punkt 2–6) ist jetzt
+  aber nicht mehr durch die Anmeldung blockiert.
+- **Neu für Anton:** `docs/uebergabe/2026-09-12-anton-login-ui.md` — der
+  Anmelde-Bildschirm, mit allen Endpunkten und dem Hinweis, dass die Token
+  in `expo-secure-store` gehören, nicht in AsyncStorage.
+- `src/lib/dreamRow.js` erzwingt serverseitig, was bisher nur der Client
+  tat: Referenzen behalten Tag und Kategorie, alles andere fällt weg, und
+  `data:`-Adressen fliegen aus den Medienpfaden — genau so käme ein
+  biometrisches Foto in die Datenbank.
+
+**Prüfung:** 615 Tests grün (vorher 564; neu: 19 auth, 13 dreamRow, 11 paging, 4
+gatekeeper) plus 35 Ende-zu-Ende gegen das echte Supabase.
+`server.js`: 321 hinzugefügte Zeilen in sechs Blöcken (Importe 9,
+Stapelgrenze 5, CORS 6, Routen 283, Profil-Helfer 8, Startmeldung 10 —
+Summe stimmt), die 4
+entfernten Zeilen sind der alte Import und drei CORS-Zeilen. Gegenprobe auf
+die Namen der Prompt-/Generierungs-Kette: kein Treffer, bei einer
+Kontrollprobe, die nachweislich trifft. Zusätzlich sind acht Funktionen der
+Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
+`falGenerateImage`, `craftPrompt`, `buildFallbackPrompt`, `jobStatus`,
+`settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
+das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
+
 ## 2026-09-12 18:30 — Anton — Branch `session/2026-09-12-anton-c` — Sitzungsabschluss (wrap + Merge auf Antons Wort)
 
 **Commits (10):** `3d8da21` Datums-Richtigstellung · `122dff7` Deck-Fächer
