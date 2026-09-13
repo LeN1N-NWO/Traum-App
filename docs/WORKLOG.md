@@ -232,6 +232,35 @@ fertig bist, Datei löschen"):
 - Offen (Antons Frage, nicht entschieden): den Check-in auch an der
   Traum-Seite noch einmal abfragen? Heute nur auf Home.
 
+**Nachtrag 11:45 (Antons Moonly-Screenshots zum Schlaf-Tab + Zuruf zum Onboarding):**
+- **Checkliste „Runterkommen"** (`sleep-checklist.tsx`): volle Zeilen statt
+  drei Kacheln nebeneinander („Text komisch gesqueezed") — Titel und Satz
+  mit Platz, rechts ein 64er-Bildfeld mit dem Zeichen (Platz für Antons
+  Illustration), fertig = grünes Feld mit Haken. Fortschritt bleibt.
+- **Luzid-Guide als Tutorial-Strecke** (`lucid-guide.tsx`, Moonlys Welcome
+  Guide): der Raum beginnt mit einem TRAILER über die Breite (4:5, Kicker
+  „Tutorial", Titel, Satz im Schleier — `Room` in `sleep/[view].tsx` hat
+  dafür `trailer`/`kicker`), darunter eine Zeitleiste: Schritt 1 die drei
+  Hebel, Schritt 2 die Methoden (Karten bleiben aufklappbar mit Schritten,
+  Trefferquote und dem Erinnerungs-Schalter unter den Realitätschecks),
+  Schritt 3 die Quelle. Jede Karte trägt rechts ein Bild — ⚠ PLATZHALTER
+  (Zeichen auf Verlauf, `ART`), und der Trailer ist der Vorschau-Clip eines
+  Stils (`heroClip` in der Brücke). Anton erzeugt die Videos später
+  (Seedream); dann wird aus `Art` ein `Clip`. Texte neu: `tutorialKicker`,
+  `tutorialStep`, `mediaSoon`, `methodsLede`, `sourceTitle` (en+de).
+- **Onboarding: „Wer bist du?"** — Antons Zuruf: direkt nach dem
+  Zwischenbild „Die Menschen darin sind deine" (er will dazu einen eigenen
+  Trailer) das Foto abfragen. Neuer Bildschirm `me` in der Liste (nach
+  `showcase at 1`): rundes Bildfeld, „Foto wählen" / „Selfie machen"
+  (expo-image-picker, quadratisch beschnitten), nativ auf 1600 px
+  verkleinert (**expo-image-manipulator neu**, Pods + Rebuild), als
+  JPEG-Data-URL über den neuen Befehl `mePhoto` an die Brücke — dort noch
+  einmal `compactDataUrl` wie im Avatar-Dialog, dann `me.img`. „Weiter"
+  erst mit Foto, darunter „Ohne Foto weiter" (kein Überspringen mehr, aber
+  niemand darf am Foto hängen bleiben). ⚠ Das Wählen selbst ist am Gerät
+  ungeprüft (hier tippt niemand in die Fotos-App); der Bildschirm ist per
+  Screenshot geprüft.
+
 **Was der Nächste wissen muss:**
 - `session/2026-09-13-anton` (ohne -b) war schon komplett in `main`; die
   heutige Sitzung heißt deshalb `-b`. Reservierung als leerer Commit.

@@ -903,6 +903,16 @@ export default {
       { title: "Es merkt sich die Muster", text: "Wasser, Fallen, Verfolgtwerden — die Symbole, die wiederkehren, gesammelt in deinem Atlas." },
       { title: "Und es behält die Nacht", text: "Deine Stimme, der Text, der Film, der Mond dieser Nacht. Alles auf einer Seite." },
     ],
+    /* Das Foto, direkt nach dem Zwischenbild „Die Menschen darin sind
+       deine" (Antons Platzwahl 13.09.): erst sehen, dass man mitspielt,
+       dann das Gesicht geben. */
+    meTitle: "Wer bist du?",
+    meText: "Ein Foto von dir — dann spielst du in deinen Träumen mit, mit deinem echten Gesicht. Es bleibt auf deinem Handy.",
+    mePick: "Foto wählen",
+    meCamera: "Selfie machen",
+    meChange: "Anderes Foto",
+    meLater: "Ohne Foto weiter",
+    meDone: "Das bist du.",
     mascotTitle: "Wähl deinen Traumbegleiter",
     mascotText: "Wacht mit dir über deine Nächte, wartet mit dir, während dein Film entsteht, und freut sich mit, wenn er fertig ist.",
     mascotSoon: "Kommt noch",

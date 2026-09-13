@@ -47,6 +47,7 @@ export function OnboardingGate() {
         {O ? (
           <OnboardingFlow
             O={O}
+            onPhoto={(photo) => { n.current += 1; setCommand({ type: "mePhoto", n: n.current, photo }); }}
             onDone={(answers) => {
               n.current += 1;
               setCommand({ type: "onboarded", n: n.current, answers });

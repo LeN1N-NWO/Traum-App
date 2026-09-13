@@ -29,7 +29,11 @@ das Onboarding bei jedem Start und lässt sich nur noch durchtippen
 Check-in (wie geschlafen) als farbiger Ring im Kalender und Punkt im
 Mond-Streifen (rot/gold/grün), Mondphase am Check-in, Träume im Ring grün,
 der Schein auf allen Hauptknöpfen WANDERT (auch Rekorder-Kachel und
-„Aufnehmen" auf Home). Davor (PR #45,
+„Aufnehmen" auf Home). **11:45:** Checkliste als volle Zeilen mit
+Bildfeld, Luzid-Guide als Tutorial-Strecke mit Trailer und Zeitleiste
+(Bilder/Trailer PLATZHALTER für Antons Videos), Onboarding-Schritt „Wer
+bist du?" mit Foto (expo-image-manipulator neu) nach dem Zwischenbild „du
+kommst drin vor" — Wählen am Gerät ungeprüft. Davor (PR #45,
 10 Commits): **Onboarding nativ und in Antons Form** — eine Frage je
 Bildschirm mit Antwort-Raster, Mehrfachwahl beim Ziel, „Weiter" erst mit
 Antwort, Zwischenbild mit laufendem Film nach jeder Frage,

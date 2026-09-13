@@ -1,5 +1,7 @@
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+import { Image } from "expo-image";
 import { requestRecordingPermissionsAsync } from "expo-audio";
 import { LinearGradient } from "expo-linear-gradient";
 import { SymbolView, type SFSymbol } from "expo-symbols";
@@ -46,13 +48,14 @@ function dreamYears(key: string) {
 
 const ICONS: Record<number, SFSymbol> = { 0: "waveform.and.mic", 1: "film", 2: "moon.stars", 3: "lock" };
 
-export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers: Answers) => void }) {
+export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone: (answers: Answers) => void; onPhoto?: (dataUrl: string) => void }) {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(() => (__DEV__ && typeof (globalThis as any).__ONB_STEP__ === "number" ? (globalThis as any).__ONB_STEP__ : 0));
   const [a, setA] = useState<Answers>(EMPTY);
   const [mic, setMic] = useState<boolean | null>(null);
   const [photos, setPhotos] = useState<boolean | null>(null);
   const [themeDraft, setThemeDraft] = useState("");
+  const [photo, setPhoto] = useState<string | null>(null);   // Vorschau (Datei-URI), das Bild selbst geht als Data-URL zur Brücke
 
   const set = <K extends keyof Answers>(k: K, v: Answers[K]) => setA((prev) => ({ ...prev, [k]: v }));
   // Ein zweiter Tipp nimmt die Antwort zurück — wie im Web-Formular.
@@ -107,12 +110,19 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
   type Screen =
     | { kind: "intro" } | { kind: "features" } | { kind: "permits" } | { kind: "name" }
     | { kind: "question"; at: number } | { kind: "showcase"; at: number }
-    | { kind: "sleepYears" } | { kind: "mascot" } | { kind: "themes" } | { kind: "account" } | { kind: "done" };
+    | { kind: "sleepYears" } | { kind: "mascot" } | { kind: "themes" } | { kind: "account" } | { kind: "me" } | { kind: "done" };
   const screens: Screen[] = [{ kind: "intro" }, { kind: "features" }, { kind: "permits" }, { kind: "name" }];
   fragen.forEach((f, i) => {
     screens.push({ kind: "question", at: i });
     if (f.key === "sleepHours") screens.push({ kind: "sleepYears" });
-    else screens.push({ kind: "showcase", at: i > 3 ? i - 1 : i });
+    else {
+      const at = i > 3 ? i - 1 : i;
+      screens.push({ kind: "showcase", at });
+      /* Nach dem Zwischenbild „Die Menschen darin sind deine" (at 1) das
+         eigene Foto (Antons Platzwahl 13.09.): erst sehen, dass man
+         mitspielt, dann das Gesicht geben. */
+      if (at === 1) screens.push({ kind: "me" });
+    }
   });
   /* Die Anmeldung GANZ AM ENDE (Antons Platzwahl 13.09.): Wer bis hierher
      geantwortet hat, sichert das Ergebnis — nicht umgekehrt. Am Anfang
@@ -124,6 +134,21 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
   function back() { Haptics.selectionAsync(); setStep((s: number) => Math.max(0, s - 1)); }
   function next() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setStep((s: number) => s + 1); }
   function finish() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onDone(a); }
+
+  /* Das eigene Foto: Bibliothek oder Kamera, quadratisch beschnitten,
+     nativ auf 1600 px verkleinert (wie compactDataUrl im Web) und als
+     JPEG-Data-URL an die Brücke — dort wird es `me.img`. */
+  async function pickPhoto(camera: boolean) {
+    Haptics.selectionAsync();
+    const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], quality: 0.9 };
+    const r = camera ? await ImagePicker.launchCameraAsync(opts).catch(() => null) : await ImagePicker.launchImageLibraryAsync(opts).catch(() => null);
+    const asset = r && !r.canceled ? r.assets[0] : null;
+    if (!asset) return;
+    const small = await ImageManipulator.manipulateAsync(asset.uri, [{ resize: { width: 1600 } }], { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG, base64: true });
+    setPhoto(small.uri);
+    if (small.base64) onPhoto?.(`data:image/jpeg;base64,${small.base64}`);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
 
   async function askMic() {
     Haptics.selectionAsync();
@@ -251,6 +276,30 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
   // ── Die Jahre im Schlaf (Antons Opal-Vorbild) — direkt nach der Schlaf-Frage
   if (jetzt.kind === "sleepYears") {
     return <SleepYears O={O} answer={a.sleepHours} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
+  }
+
+  // ── Wer bist du? Das eigene Foto (nach dem Zwischenbild „du kommst drin vor")
+  if (jetzt.kind === "me") {
+    return (
+      <Shell insets={insets} step={step} total={total} title={O.meTitle} lede={O.meText} onBack={back}>
+        <View style={{ alignItems: "center", gap: 18, width: "100%" }}>
+          <View style={styles.face}>
+            {photo ? <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : <SymbolView name="person.crop.circle.badge.plus" size={64} tintColor={colors.accentSoft} />}
+          </View>
+          {photo ? <Animated.Text entering={FadeIn.duration(260)} style={styles.faceDone}>{O.meDone}</Animated.Text> : null}
+          <View style={{ flexDirection: "row", gap: 10, width: "100%" }}>
+            <GlassButton label={photo ? O.meChange : O.mePick} onPress={() => pickPhoto(false)} />
+            <GlassButton label={O.meCamera} onPress={() => pickPhoto(true)} />
+          </View>
+        </View>
+        <View style={{ gap: 6 }}>
+          <PrimaryButton label={O.next} heavy onPress={next} disabled={!photo} style={{ flex: 0 }} />
+          <Pressable onPress={() => { Haptics.selectionAsync(); next(); }} hitSlop={10} style={{ alignSelf: "center", paddingVertical: 10 }}>
+            <Text style={styles.later}>{O.meLater}</Text>
+          </Pressable>
+        </View>
+      </Shell>
+    );
   }
 
   /* ── Die Maskottchen-Wahl. ⚠ Zwei von drei sind Platzhalter (mascots.js);
@@ -681,6 +730,8 @@ const styles = StyleSheet.create({
   appleText: { color: colors.text, fontSize: 15, fontWeight: "600" },
   later: { color: colors.faint, fontSize: 15 },
   signedIn: { flexDirection: "row", alignItems: "center", gap: 14, padding: 18, borderRadius: 18 },
+  face: { width: 168, height: 168, borderRadius: 84, overflow: "hidden", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(140,192,255,0.10)", borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  faceDone: { color: colors.ok, fontSize: 15, fontWeight: "600" },
   input: { minHeight: 56, color: colors.text, fontSize: 19, paddingHorizontal: 18, borderRadius: 18, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, marginBottom: 8 },
   themeRow: { flexDirection: "row", gap: 10, alignItems: "center" },
   themeAdd: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },

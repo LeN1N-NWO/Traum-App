@@ -28,6 +28,7 @@ import { styleById } from "../../../src/lib/styles.js";
 import { autoMatch } from "../../../src/wizard/useWizard.js";
 import { blankDays, localDateKey } from "../../../src/lib/dreamDays.js";
 import { moonForNight, moonStrip } from "../../../src/lib/moon.js";
+import { compactDataUrl } from "../../../src/lib/sheets.js";
 import { reminderWish, reminderState, MAX_PER_DAY, DEFAULT_PER_DAY } from "../../../src/lib/reminders.js";
 import { VOICES, DEFAULT_VOICE, isVoice } from "../../../src/lib/voices.js";
 import { withdrawPatch, consentPatch, needsConsent } from "../../../src/lib/consent.js";
@@ -376,6 +377,7 @@ function snapshot() {
       "accountWrong", "accountBusy", "accountUnavailable", "accountOffline", "accountApple"].map((k) => [k, onb[k]])),
     features: onb.features, showcase: onb.showcase, featuresLede: onb.featuresLede, proof: onb.proof, sleepLegend: onb.sleepLegend,
     mascotTitle: onb.mascotTitle, mascotText: onb.mascotText, mascotSoon: onb.mascotSoon,
+    meTitle: onb.meTitle, meText: onb.meText, mePick: onb.mePick, meCamera: onb.meCamera, meChange: onb.meChange, meLater: onb.meLater, meDone: onb.meDone,
     /* Die drei Maskottchen (mascots.js) — zwei noch Platzhalter. Das Video
        kommt als Modulpfad nicht durch die Brücke; nativ liegen dieselben
        Dateien, deshalb reicht die id samt Name und Marke. */
@@ -409,6 +411,21 @@ function snapshot() {
    prüfung vorher, abgebucht erst nach gelungenem Aufruf. Antwort geht per
    `onResult` zurück. */
 async function runAsync(cmd, onResult) {
+  /* Das eigene Foto aus dem Onboarding (13.09.): kommt nativ schon auf
+     1600 px verkleinert als Data-URL, wird hier wie im Avatar-Dialog noch
+     einmal durch compactDataUrl gezogen (JPEG, dieselbe Grenze) und liegt
+     dann als `me.img` — genau dort, wo Besetzung und Prompts es lesen. */
+  if (cmd.type === "mePhoto") {
+    try {
+      const img = typeof cmd.photo === "string" && cmd.photo.startsWith("data:") ? await compactDataUrl(cmd.photo) : "";
+      const s = loadState();
+      saveState({ ...s, me: { ...(s.me || {}), img } });
+      onResult({ n: cmd.n, result: { ok: true } });
+    } catch (e) {
+      onResult({ n: cmd.n, error: e?.message || String(e) });
+    }
+    return true;
+  }
   if (cmd.type === "cast") {
     /* Die Besetzung für die native Zuordnung: Namen aus der Analyse mit dem
        Auto-Treffer der Web-Logik (autoMatch) und die Bibliothek als Auswahl. */

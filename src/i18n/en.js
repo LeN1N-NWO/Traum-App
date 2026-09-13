@@ -983,6 +983,16 @@ export default {
     ],
     /* Die Maskottchen-Wahl (Anton 13.09.) — zwei von drei sind noch
        Platzhalter, das steht auch auf der Kachel. */
+    /* The photo, right after the "the people in it are yours" showcase
+       (Anton's placement, 13.09.): first see that you're in it, then give
+       it your face. */
+    meTitle: "Who are you?",
+    meText: "A photo of you — then you play in your dreams with your real face. It stays on your phone.",
+    mePick: "Choose a photo",
+    meCamera: "Take a selfie",
+    meChange: "Another photo",
+    meLater: "Continue without a photo",
+    meDone: "That’s you.",
     mascotTitle: "Pick your dream companion",
     mascotText: "Keeps watch over your nights, waits with you while your film comes to life, and cheers when it’s ready.",
     mascotSoon: "Coming",
