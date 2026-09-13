@@ -128,7 +128,7 @@ Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
 `settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
 das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
 
-## 2026-09-13 12:10 — Anton — Branch `session/2026-09-13-anton-b` — Sitzungsabschluss (wrap + Merge auf Antons Wort, während Higgsfield rendert)
+## 2026-09-13 11:40 — Anton — Branch `session/2026-09-13-anton-b` — Sitzungsabschluss (wrap + Merge auf Antons Wort, während Higgsfield rendert)
 
 **Commits (12):** `4f36289` Journal-Bilder · `a92ab16` Merge Hannis PR #46 ·
 `cd952e8` Begleiter-Text · `af82fab` Anmeldung · `bed69bd` Kacheln, Ring,
