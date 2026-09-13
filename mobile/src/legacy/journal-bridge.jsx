@@ -179,8 +179,10 @@ function snapshot() {
   };
   const sleep = {
     title: t.sleep.title, subtitle: t.sleep.subtitle, free: t.sleep.free,
-    tiles: ["breathe", "checklist", "sounds", "guide", "symbols"].map((id) => ({ id, title: t.sleep.tiles[id].title, text: t.sleep.tiles[id].text })),
+    tiles: ["breathe", "checklist", "sounds", "guide", "knowledge", "symbols"].map((id) => ({ id, title: t.sleep.tiles[id].title, text: t.sleep.tiles[id].text })),
     breathe: t.breathe,
+    /* Das Wissen (13.09.2026): Karten aus src/i18n, neueste zuerst. */
+    knowledge: t.knowledge,
     /* Das Mischpult (nativ, components/sound-mixer.tsx): Texte und die
        gespeicherte Mischung. Der Browser-Hinweis zum Autostart entfällt —
        nativ startet der Klang ohne Geste. */

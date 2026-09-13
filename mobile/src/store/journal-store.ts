@@ -30,7 +30,7 @@ export type LucidData = {
   reminderAsk: string; reminderPerDay: string; reminderWhy: string; reminderSoon: string; reminderActive: Record<number, string>; maxPerDay: number;
   reminder: { on: boolean; perDay: number };
 };
-export type SleepData = { title: string; subtitle: string; free: string; tiles: { id: string; title: string; text: string }[]; breathe: Record<string, string>; sounds: SoundsData; checklist: ChecklistData; lucid: LucidData };
+export type SleepData = { title: string; subtitle: string; free: string; tiles: { id: string; title: string; text: string }[]; breathe: Record<string, string>; knowledge: import("@/components/knowledge").KnowledgeData; sounds: SoundsData; checklist: ChecklistData; lucid: LucidData };
 export type ProfileData = {
   title: string; name: string; img: string | null; hint: string; credits: number; creditsWord: string;
   dreams: number; streak: number; statDreams: string; statStreak: string; settings: string;

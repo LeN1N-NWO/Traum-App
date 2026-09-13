@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { LegacyTab } from "@/components/legacy-tab";
 import { Breath } from "@/components/breath";
+import { Knowledge } from "@/components/knowledge";
 import { LucidGuide } from "@/components/lucid-guide";
 import { Clip } from "@/components/preset-tile";
 import { SleepChecklist } from "@/components/sleep-checklist";
@@ -20,6 +21,7 @@ export default function SleepSectionScreen() {
   const { view } = useLocalSearchParams<{ view: string }>();
   const v = String(view);
   if (v === "breathe") return <BreatheRoom />;
+  if (v === "knowledge") return <KnowledgeRoom />;
   if (v === "sounds") return <SoundsRoom />;
   if (v === "checklist") return <ChecklistRoom />;
   if (v === "guide") return <GuideRoom />;
@@ -77,6 +79,16 @@ function BreatheRoom() {
   return (
     <Room id="breathe" sf="wind" tint={colors.cyan} glow="rgba(79,214,230,0.30)">
       {B ? <Breath L={B} /> : null}
+    </Room>
+  );
+}
+
+function KnowledgeRoom() {
+  const { data } = useJournal();
+  const K = data?.sleep?.knowledge;
+  return (
+    <Room id="knowledge" sf="books.vertical" tint={colors.gold} glow="rgba(246,198,91,0.26)">
+      {K ? <Knowledge K={K} /> : null}
     </Room>
   );
 }
