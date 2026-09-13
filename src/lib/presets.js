@@ -49,11 +49,15 @@ export const PRESETS = [
   { id: "dreamlike",   styleId: "dreamlike",   emoji: "🌙", clip: "/media/pvt8t2asdudzc4.mp4", look: "saturate(.8) brightness(1.12)" },
   { id: "romantic",    styleId: "romantic",    emoji: "💗", clip: "/media/pv3q75trlqwsw61.mp4", look: "sepia(.25) saturate(1.3) hue-rotate(-12deg)" },
   { id: "dark",        styleId: "dark",        emoji: "🌑", clip: "/media/pv146xj01olre81.mp4", look: "brightness(.55) contrast(1.2) saturate(.7)" },
-  { id: "surreal",     styleId: "surreal",     emoji: "🌀", clip: "/media/pv3mbc0jejqwty8.mp4", look: "hue-rotate(35deg) saturate(1.5)" },
+  /* Eigener Clip seit 13.09. (Seedance 2.5 über Higgsfield, ein Take, 3:4):
+     der Mann im grauen Anzug wird zu Tauben, der Hut bleibt. Kein `look`
+     mehr — der Stil steckt im Film, nicht im Filter. Original in
+     media/clips-src/, Vorschau 270 px stumm. */
+  { id: "surreal",     styleId: "surreal",     emoji: "🌀", clip: "/media/pvsurreal2609a.mp4" },
   { id: "nostalgic",   styleId: "nostalgic",   emoji: "📻", clip: "/media/pv3nlve2uwl0zm.mp4", look: "sepia(.6) contrast(.95)" },
   { id: "adventurous", styleId: "adventurous", emoji: "🧭", clip: "/media/pvt8t2asdudzc4.mp4", look: "saturate(1.35) contrast(1.1)" },
   { id: "ink",         styleId: "ink",         emoji: "🖌" },
-  { id: "clay",        styleId: "clay",        emoji: "🗿" },
+  { id: "clay",        styleId: "clay",        emoji: "🗿", clip: "/media/pvclay2609a.mp4" },   // 13.09.: die Schläferin im Bett in der Teetasse
   // ── ab hier hinter „More styles" (styles.js: featured fehlt) ──
   { id: "goldenage",   styleId: "goldenage",   emoji: "🎞" },
   { id: "fantasyanime", styleId: "fantasyanime", emoji: "🐉" },
