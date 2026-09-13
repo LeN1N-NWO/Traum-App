@@ -175,6 +175,9 @@ gegengeprüft mit GummySearch und subredditstats.
 - Sleep Foundation (16.07.2025): „81% of people believe that at least some
   dreams have meaning", „more than 60% have looked up the meaning of a dream";
   Methodik nicht angegeben.
+- Zähne-Träume: „about 20% of people report having dreamed about their teeth
+  falling out" (Sleep Foundation).
+  https://www.sleepfoundation.org/dreams/dream-interpretation/teeth-falling-out
 
 ### Marktgrößen
 Report-Anbieter ohne offengelegte Methodik, Werte weichen stark ab; keine
@@ -187,6 +190,18 @@ Semrush, SpyFu, Wordtracker, Exploding Topics, Glimpse. **Folge:** keine
 geprüften aktuellen Suchvolumina; für deutsche Keywords gar keine.
 **Nächster Schritt:** Google Keyword Planner (kostenlos mit Ads-Konto) oder
 ein Sistrix-/Semrush-Testzugang.
+
+### Veröffentlichte Volumen-Schätzungen (älter, aus zweiter Hand)
+- Mornings.co.uk mit Ahrefs (via Vivid Maps, 04.03.2022, Datenstand 2022):
+  Schlange ist in 52 Ländern der meistgesuchte Traum. USA je Monat: „teeth
+  falling out" 81.000, Schlange 19.400, Ex 17.000, Spinnen 16.000, Urlaub
+  14.000; UK: Zähne 41.100, Schlange 3.500. https://vividmaps.com/googled-dreams/
+- dreams.co.uk (14.08.2025, addierte Google-Trends-Varianten, Zeitraum und
+  Region unklar, UNGEPRÜFT): falling 95.000, dying 57.500, teeth falling out
+  51.000, water 51.000, snakes 46.000.
+- The Lucid Guide (07.05.2023): „around 25k worldwide searches for 'lucid
+  dreaming' per month" — UNGEPRÜFT und unplausibel niedrig (der englische
+  Wikipedia-Artikel allein hatte 2023 monatlich 45–65 Tsd. Aufrufe).
 
 ### Harte Proxy-Daten: Wikipedia-Seitenaufrufe (nur Menschen)
 
@@ -258,4 +273,5 @@ Kampagnen und Content-Starts eher November bis Januar.
 
 **Offene Lücken:** TikTok-Zahlen nur mit Login; Suchvolumina nur über Keyword
 Planner/Sistrix; echte Google-Rankings manuell prüfen; YouTube-Kanäle mit
-nachgestellten Zuschauerträumen nicht gefunden.
+nachgestellten Zuschauerträumen nicht gefunden; Subreddit-Regeln nur als
+Archivkopie vom Februar 2025 — vor dem ersten Post die aktuellen Regeln lesen.
