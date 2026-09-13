@@ -427,6 +427,11 @@ export default {
     voiceSettingHint: "Which voice talks to you",
     withdrawConsent: "Withdraw consent",
     withdrawConsentHint: "Nothing leaves your device until you agree again",
+    account: "Account",
+    accountNone: "Not signed in",
+    accountSignedIn: "Signed in as",
+    signIn: "Sign in",
+    signOut: "Sign out",
     done: "Done",
     credits: "credits",
     creditsSoon: "Top-up coming soon",
@@ -494,6 +499,14 @@ export default {
   },
 
   lucid: {
+    /* The guide as a tutorial track (Anton's reference 13.09.: Moonly's
+       welcome guide): trailer on top, then steps along a timeline.
+       ⚠ The per-card videos are PLACEHOLDERS — Anton renders them later. */
+    tutorialKicker: "Tutorial",
+    tutorialStep: (n) => `Step ${n}`,
+    mediaSoon: "Video · coming soon",
+    methodsLede: "They all build on that one moment: the brief wake-up after about five hours. Tap a method to see its steps.",
+    sourceTitle: "Where the numbers come from",
     lede: "Lucid dreaming means noticing you're dreaming while it happens — and sometimes steering what comes next. It can be learned: in the largest comparison study to date, one week of practice was enough for many people. Here is what the evidence actually supports, including the part that contradicts most advice you'll find online.",
     leversTitle: "What actually moves the needle",
     levers: [
@@ -970,8 +983,18 @@ export default {
     ],
     /* Die Maskottchen-Wahl (Anton 13.09.) — zwei von drei sind noch
        Platzhalter, das steht auch auf der Kachel. */
-    mascotTitle: "Who keeps you company?",
-    mascotText: "It shows up while you wait, and when something works out.",
+    /* The photo, right after the "the people in it are yours" showcase
+       (Anton's placement, 13.09.): first see that you're in it, then give
+       it your face. */
+    meTitle: "Who are you?",
+    meText: "A photo of you — then you play in your dreams with your real face. It stays on your phone.",
+    mePick: "Choose a photo",
+    meCamera: "Take a selfie",
+    meChange: "Another photo",
+    meLater: "Continue without a photo",
+    meDone: "That’s you.",
+    mascotTitle: "Pick your dream companion",
+    mascotText: "Keeps watch over your nights, waits with you while your film comes to life, and cheers when it’s ready.",
     mascotSoon: "Coming",
     mascotNames: { frog: "The frog", sloth: "The sloth", owl: "The owl" },
     askTitle: "Two things up front",
@@ -983,14 +1006,38 @@ export default {
     askGranted: "Allowed",
     askDenied: "Not allowed — you can change this in Settings",
     askGo: "Ask me",
-    sleepTitle: "You will spend",
+    /* The years ring (Anton's wish, 13.09.): life first, then sleep, then
+       the dreams inside it — and the line says what the app is for. */
+    sleepTitle: "This much night is in your life",
     sleepYears: (y) => `${y} years`,
     sleepAsleep: "asleep",
-    sleepDream: (y) => `Around ${y} of them dreaming — and you remember almost none of it.`,
+    sleepDream: (y) => `Around ${y} of those years you spend dreaming. Don’t let them slip past — take them back, watch them, make them part of you.`,
     sleepNote: "Based on your answer and an average lifespan of 80 years.",
+    sleepLegend: { life: "80 years of life", sleep: "Sleep", dream: "Dreams" },
+    /* Tiles carry only their label now (Moonly reference); the sentences
+       become the subtitle. */
+    featuresLede: "Tell your dream half-asleep, watch it as a film, keep every night.",
+    /* ⚠ PLACEHOLDER, technical (Anton, 13.09.): replaced by real awards
+       once there are any. */
+    proof: [{ big: "★★★★★", small: "Reviews to come" }, { big: "App Store", small: "Award to come" }],
     doneTitle: "That's it",
     doneText: "Your nights have a place now.",
     doneCta: "Start tonight",
+    /* Sign-in at the end of onboarding (Anton's placement, 13.09.2026):
+       answer first, then keep it. Accounts exist only once Hanni created
+       one — sign-up arrives with "Sign in with Apple". */
+    accountTitle: "Keep your nights",
+    accountText: "With an account, your dreams, films and profile survive a new phone.",
+    accountEmail: "Email",
+    accountPassword: "Password",
+    accountCta: "Sign in",
+    accountLater: "Later",
+    accountSignedIn: "Signed in as",
+    accountWrong: "Email or password doesn’t match.",
+    accountBusy: "Too many attempts — wait a minute.",
+    accountUnavailable: "Sign-in isn’t reachable right now. You can do it later in Settings.",
+    accountOffline: "No connection to the server.",
+    accountApple: "Sign in with Apple — coming soon",
   },
   onboarding: {
     tagline: "Every night you make films. Start keeping them.",

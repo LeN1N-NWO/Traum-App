@@ -12,7 +12,7 @@ export type DreamItem = {
 };
 export type Labels = Record<string, string>;
 export type MoonInfo = { phase: string; illum: number; waxing: boolean; label: string; lit: string };
-export type MoonStripDay = { key: string; day: number; weekday: number; today: boolean; phase: string; illum: number; waxing: boolean; label: string };
+export type MoonStripDay = { key: string; day: number; weekday: number; today: boolean; phase: string; illum: number; waxing: boolean; label: string; sleep: number | null };
 export type MoonData = { title: string; tonight: string; weekdays: string[]; strip: MoonStripDay[] };
 export type HomeData = {
   streak: number; atRisk: boolean; rendering: boolean; nightMarked: boolean; checkin: number | null;
@@ -26,6 +26,7 @@ export type ChecklistData = { lede: string; hint: string; progressLabel: string;
 export type LucidMethod = { id: string; name: string; rate: string | null; summary: string; steps: string[]; note: string };
 export type LucidData = {
   lede: string; leversTitle: string; levers: { title: string; text: string }[]; methodsTitle: string; methods: LucidMethod[]; sourceNote: string;
+  tutorialKicker: string; tutorialSteps: string[]; mediaSoon: string; methodsLede: string; sourceTitle: string; heroClip: string | null;
   reminderAsk: string; reminderPerDay: string; reminderWhy: string; reminderSoon: string; reminderActive: Record<number, string>; maxPerDay: number;
   reminder: { on: boolean; perDay: number };
 };
@@ -40,6 +41,7 @@ export type ProfileData = {
 export type LegalDoc = { title: string; sections: { h: string; p: string }[] };
 export type SettingsData = {
   voiceSetting: string; voiceSettingHint: string; withdrawConsent: string; withdrawConsentHint: string; done: string;
+  account: string; accountNone: string; accountSignedIn: string; signIn: string; signOut: string;
   voice: string; voices: { id: string; trait: string }[]; pickTitle: string; pickHint: string; pickGo: string; cancel: string; sampleBase: string;
   legal: { close: string; updated: string; draftNote: string; terms: LegalDoc; privacy: LegalDoc };
 };
@@ -54,7 +56,7 @@ export type WizardData = {
   loading: string[]; queuedNote: string; step6Title: string; rendering: string; renderingHint: string; failedTitle: string; failedNote: string; failedHome: string;
   presets: WizardPreset[]; models: WizardModel[]; paces: { id: string; name: string; hint: string }[];
 };
-export type JournalMeta = { view: "deck" | "list"; blankKeys: string[]; castCount: number; creatures: number; realDreams: number; moon: MoonData; labels: Record<string, any> };
+export type JournalMeta = { view: "deck" | "list"; blankKeys: string[]; castCount: number; creatures: number; realDreams: number; moon: MoonData; sleep: Record<string, number>; sleepLevels: { level: number; label: string }[]; labels: Record<string, any> };
 export type PaywallPlan = { id: string; price: string; per: string; name: string; badge: string | null; sub: string; films: number; filmsLine: string; filmsWord: string; featured: boolean; yearly: boolean };
 export type PaywallData = {
   title: string; close: string; brand: string; plus: string;
@@ -70,22 +72,26 @@ export type OnboardValues = { order: string[]; labels: Record<string, string> };
 export type OnboardData = {
   skip: string; next: string; back: string;
   introKicker: string; introText: string; introCta: string; featuresTitle: string;
-  features: { title: string; text: string }[];
+  features: { title: string; text: string }[]; featuresLede: string; proof: { big: string; small: string }[];
+  sleepLegend: { life: string; sleep: string; dream: string };
   showcase: { title: string; text: string }[];
   clips: string[];
   mascotTitle: string; mascotText: string; mascotSoon: string;
+  meTitle: string; meText: string; mePick: string; meCamera: string; meChange: string; meLater: string; meDone: string;
   mascots: { id: string; name: string; placeholder: boolean }[];
   mascot: string;
   askTitle: string; askText: string; askMic: string; askMicWhy: string; askPhotos: string; askPhotosWhy: string; askGranted: string; askDenied: string; askGo: string;
   sleepTitle: string; sleepAsleep: string; sleepNote: string; sleepYears: (y: number) => string; sleepDream: (y: number) => string;
   doneTitle: string; doneText: string; doneCta: string;
+  accountTitle: string; accountText: string; accountEmail: string; accountPassword: string; accountCta: string; accountLater: string; accountSignedIn: string;
+  accountWrong: string; accountBusy: string; accountUnavailable: string; accountOffline: string; accountApple: string;
   formName: string; formNamePlaceholder: string; formGoal: string; formRecall: string; formLucid: string; formSleep: string; formTime: string;
   formThemes: string; formThemesPlaceholder: string;
   values: { goal: OnboardValues; recall: OnboardValues; lucid: OnboardValues; sleepHours: OnboardValues; timeBudget: OnboardValues };
 };
 export type ConsentData = { needed: boolean; title: string; intro: string; termsPre: string; termsLink: string; termsMid: string; privacyLink: string; termsPost: string; processing: string; adult: string; more: string; details: string[]; cta: string };
 export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData; symbols: SymbolsData; library: LibraryData; menagerie: MenagerieData; consent: ConsentData; onboard: Omit<OnboardData, "sleepYears" | "sleepDream"> & { sleepYearsTpl: string; sleepDreamTpl: string } };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded"; id?: string; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto"; id?: string; photo?: string; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
 export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null };
 
 let snapshot: JournalSnapshot | null = null;

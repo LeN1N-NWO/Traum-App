@@ -3,7 +3,40 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-12 abends — PR #41 bis #45 gemerged. Zuletzt (PR #45,
+**Stand:** 2026-09-13 mittags — Sitzung `session/2026-09-13-anton-b`
+(PR #47, gemerged auf Antons Wort; trägt Hannis #46 mit). ⚠ Offen: die
+ersten zwei **Style-Clips über Higgsfield** (Seedance 2.5, 3:4, 480p, 5 s,
+ein Take) — Jobs laufen, Ergebnis nach `media/pv….mp4` + `presets.js`.
+Inhalt der Sitzung: **Hannis Anmelde-Backend (PR #46) hereingeholt** und
+**die Anmeldung nativ gebaut** — als letzter Schritt des Onboardings vor
+dem Schluss (Antons Platzwahl: erst antworten, dann sichern). E-Mail,
+Passwort, „Anmelden" im Glas, Fehler in Worten, „Später" lässt ohne Konto
+durch; Token im Schlüsselbund (`mobile/src/lib/auth.ts`, expo-secure-store,
+neu → Pods + Rebuild gemacht); 401 → einmal erneuern → wiederholen;
+Abmelden räumt Server UND Gerät (Konto-Zeile in den Einstellungen). Nach dem
+Onboarding folgt das Profil per `PATCH /api/account` ins Konto, wenn eins da
+ist. Geprüft im Simulator bis zur Meldung „nicht erreichbar" (503, weil in
+Antons `.env` `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`DATABASE_URL` fehlen —
+die hat Hanni). ⚠ Registrieren gibt es nicht (kein Endpunkt, mit Absicht);
+ein Konto muss Hanni anlegen, bis „Mit Apple anmelden" kommt — der Platz
+dafür steht schon stumm unter dem Knopf. Dazu: **Journal-Karten zeigten
+kein Bild** (Vorschau-Versprechen, siehe dream-poster.tsx) — behoben; und
+der Begleiter-Text im Onboarding als Persönlichkeit. **Dann Antons
+Moonly-Vergleich (11:00):** Feature-Kacheln versetzt mit Etikett am Rand,
+atmendem Schein und Verlaufssaum, Überschriften mittig, Proof-Zeile als
+PLATZHALTER, **Jahre-Kreis** (react-native-svg, neu → Pods + Rebuild)
+statt großer Zahl, **Hauptknopf app-weit dunkles Glas mit Schein** (warm
+links, kühl rechts), **„Überspringen" raus** — ⚠ im Entwicklungsbau kommt
+das Onboarding bei jedem Start und lässt sich nur noch durchtippen
+(Ausweg: `__ONB_STEP__` oder `seen` in `store/dev-store.ts`). **11:15:**
+Check-in (wie geschlafen) als farbiger Ring im Kalender und Punkt im
+Mond-Streifen (rot/gold/grün), Mondphase am Check-in, Träume im Ring grün,
+der Schein auf allen Hauptknöpfen WANDERT (auch Rekorder-Kachel und
+„Aufnehmen" auf Home). **11:45:** Checkliste als volle Zeilen mit
+Bildfeld, Luzid-Guide als Tutorial-Strecke mit Trailer und Zeitleiste
+(Bilder/Trailer PLATZHALTER für Antons Videos), Onboarding-Schritt „Wer
+bist du?" mit Foto (expo-image-manipulator neu) nach dem Zwischenbild „du
+kommst drin vor" — Wählen am Gerät ungeprüft. Davor (PR #45,
 10 Commits): **Onboarding nativ und in Antons Form** — eine Frage je
 Bildschirm mit Antwort-Raster, Mehrfachwahl beim Ziel, „Weiter" erst mit
 Antwort, Zwischenbild mit laufendem Film nach jeder Frage,
@@ -58,7 +91,8 @@ den PR. Abweichung von AGENTS.md mit Grund.
   `simctl install` in den Simulator. Neue native Pakete (expo-audio,
   expo-blur heute) brauchen `bun run pods` + Rebuild.
 - **Entwicklungsbau hält 100 Test-Credits** (`devTopUp` in
-  journal-bridge.jsx, nur `__DEV__`) — bis Konto/Supabase stehen.
+  journal-bridge.jsx, nur `__DEV__`) — unverändert gültig: die Anmeldung
+  steht zwar seit 12.09., der Server bucht aber weiterhin nicht ab.
 - Prüfen ohne Tippen: Redirect-Trick in `mobile/src/app/index.tsx`
   (Sicherung `/tmp/index.tsx.bak`, vor dem Commit `grep Redirect` = 0),
   Screenshots per `simctl io booted screenshot`. Rekorder-Selbsttest:
@@ -158,16 +192,61 @@ installiert; Hanni bekommt die Anleitung beim nächsten Start
 
 **Der Server rechnet den Filmpreis selbst.** `src/lib/quote.js` ist EINE
 Rechnung für Wizard und Server (409 bei Abweichung nach oben). Punkte 2–6
-aus `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md` warten auf die
-Anmeldung (Supabase).
+aus `docs/uebergabe/2026-09-11-anton-credits-abbuchung.md` sind **nicht
+mehr blockiert** — die Anmeldung steht (siehe unten), das Abbuchen selbst
+ist noch nicht gebaut.
 
 **Geschäftliche Entscheidungen (Anton, 11.09.):** UG als Rechtsform; Seedance
 über Replicate direkt (Token liegt in `.env`); DeepSeek `deepseek-flash`
 (V4.1). Details in den WORKLOG-Einträgen vom 11.09.
 
-**`server.js` ist mit der Datenbank verbunden — nach Least Privilege**, die
-Verbindung wird noch nicht genutzt (Credits liegen im Gerät). Die
+**`server.js` ist mit der Datenbank verbunden — nach Least Privilege.** Die
 Architektur ist bewertet: `docs/ARCHITEKTUR.md` (S1–S8).
+
+**Die Anmeldung steht (12.09., PR #46, in #47 enthalten).** `server.js` hat jetzt
+`POST /api/auth/login|refresh|logout`, `GET/PATCH /api/account`,
+`GET/DELETE /api/dreams` und `POST /api/dreams/sync`. Der Client spricht
+weiterhin nur mit uns; Supabase Auth liegt dahinter (`src/lib/auth.js`,
+kein SDK). Jeder Datenzugriff läuft durch `withUser()`, die Nutzerkennung
+kommt aus der bei Supabase geprüften Sitzung. `POST /api/dreams/sync` ist
+zugleich der von ADR-0005 verlangte Migrationsweg für lokale Träume:
+wiederholbar über `unique (user_id, client_id)`.
+- ⚠⚠ **Nicht hinter eine öffentliche Adresse, solange S6 offen ist** — der
+  Server spricht `http://`, Passwort und Token reisen im Klartext.
+- **`GET /api/dreams` liefert SEITENWEISE**, nie alles: `?limit=` (Vorgabe
+  100, höchstens 200) und `?cursor=`, geblättert wird bis `next` null ist
+  (`src/lib/paging.js`). Cursor statt OFFSET, und er trägt **zwei** Werte —
+  zwei Träume derselben Nacht haben denselben Zeitstempel, und ein Cursor
+  nur auf der Zeit verlöre einen davon lautlos. `POST /api/dreams/sync`
+  nimmt höchstens 200 Träume je Aufruf (413 darüber).
+- **Profil-Felder lassen sich leeren:** Bei `PATCH /api/account` entscheidet
+  die **Anwesenheit des Schlüssels** — fehlt er, bleibt die Spalte
+  unverändert; steht er auf `null`, wird geleert (`server.js`, Block
+  „Anmeldung, Konto, Träume"). `streak` und `last_dream_on` stehen
+  absichtlich NICHT in der Erlaubnisliste. `survey` ist auf 64 KB begrenzt
+  (`MAX_JSON` aus `src/lib/dreamRow.js`) und wird bei Überschreitung
+  abgelehnt, nicht gekürzt.
+- **Persistenz belegt:** Abbruch mitten in der Transaktion lässt nichts
+  zurück, ein Stapel mit Fehler in der Mitte ebenso (23514), ein Commit ist
+  aus einer anderen Transaktion sichtbar.
+- **Ende-zu-Ende geprüft:** 35 von 35 gegen das echte Supabase
+  (`node scripts/test-konto.mjs`, Zugangsdaten aus der Umgebung). RLS
+  empirisch belegt: ohne Nutzererklärung 0 Zeilen, mit 1, als fremder
+  Nutzer 0; Guthaben schreiben/Ledger/`credits_spend` je **42501**.
+- ⚠⚠ **Bun.SQL gibt `jsonb` als TEXT zurück** — gefunden beim ersten
+  echten Lauf, unsichtbar für jeden Test ohne Datenbank. Wer eine neue
+  jsonb-Spalte liest, nimmt `fromJsonb()` aus `src/lib/db.js`.
+- ⚠ **IPv6-Falle (gemessen 12.09.):** `db.<projekt>.supabase.co` löst nur
+  auf IPv6 auf. Ohne IPv6 kommt `ERR_POSTGRES_CONNECTION_REFUSED` — das
+  sieht aus wie ein falsches Passwort und ist keines. `DATABASE_URL` zeigt
+  deshalb auf den Session Pooler (`aws-0-eu-central-1.pooler.supabase.com`,
+  Port 5432; nicht 6543). ⚠ Ein Editor mit altem Puffer überschreibt das
+  still wieder — am 12.09. genau so passiert.
+- **Der Testuser hat 0 Credits in der Datenbank.** Für Tests am Guthaben
+  eine Zeile im SQL-Editor (server.js darf das nicht, absichtlich):
+  `select public.credits_grant('3ecbfe28-21c1-4475-b931-1082d2b56ba7', 100, 'adjustment', null, 'Testguthaben');`
+- **Abgebucht wird weiterhin nichts.** `/api/account` zeigt das Guthaben
+  nur an. Registrieren gibt es nicht (kein Signup-Endpunkt, absichtlich).
 
 ## Wo wir stehen
 

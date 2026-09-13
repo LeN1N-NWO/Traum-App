@@ -383,6 +383,11 @@ export default {
     voiceSettingHint: "Wer mit dir spricht",
     withdrawConsent: "Einwilligung widerrufen",
     withdrawConsentHint: "Nichts verlässt dein Gerät, bis du erneut zustimmst",
+    account: "Konto",
+    accountNone: "Nicht angemeldet",
+    accountSignedIn: "Angemeldet als",
+    signIn: "Anmelden",
+    signOut: "Abmelden",
     done: "Fertig",
     credits: "Credits",
     creditsSoon: "Aufladen kommt bald",
@@ -450,6 +455,14 @@ export default {
   },
 
   lucid: {
+    /* Der Guide als Tutorial-Strecke (Antons Vorbild 13.09.: Moonlys
+       Welcome Guide): Trailer oben, dann Schritte an einer Zeitleiste.
+       ⚠ Die Videos je Karte sind PLATZHALTER — Anton erzeugt sie später. */
+    tutorialKicker: "Tutorial",
+    tutorialStep: (n) => `Schritt ${n}`,
+    mediaSoon: "Video · kommt noch",
+    methodsLede: "Alle bauen auf dem einen Moment auf: dem kurzen Aufwachen nach etwa fünf Stunden. Tipp auf eine Methode, dann stehen die Schritte darunter.",
+    sourceTitle: "Woher die Zahlen kommen",
     lede: "Klarträumen heißt zu merken, dass man träumt, während es passiert — und manchmal zu lenken, was als Nächstes kommt. Es ist erlernbar: In der bisher größten Vergleichsstudie genügte vielen eine Woche Übung. Hier steht, was die Belege wirklich hergeben. Auch der Teil, der dem widerspricht, was im Netz überall empfohlen wird.",
     leversTitle: "Was wirklich den Ausschlag gibt",
     levers: [
@@ -890,8 +903,18 @@ export default {
       { title: "Es merkt sich die Muster", text: "Wasser, Fallen, Verfolgtwerden — die Symbole, die wiederkehren, gesammelt in deinem Atlas." },
       { title: "Und es behält die Nacht", text: "Deine Stimme, der Text, der Film, der Mond dieser Nacht. Alles auf einer Seite." },
     ],
-    mascotTitle: "Wer begleitet dich?",
-    mascotText: "Es erscheint, während du wartest, und wenn etwas geklappt hat.",
+    /* Das Foto, direkt nach dem Zwischenbild „Die Menschen darin sind
+       deine" (Antons Platzwahl 13.09.): erst sehen, dass man mitspielt,
+       dann das Gesicht geben. */
+    meTitle: "Wer bist du?",
+    meText: "Ein Foto von dir — dann spielst du in deinen Träumen mit, mit deinem echten Gesicht. Es bleibt auf deinem Handy.",
+    mePick: "Foto wählen",
+    meCamera: "Selfie machen",
+    meChange: "Anderes Foto",
+    meLater: "Ohne Foto weiter",
+    meDone: "Das bist du.",
+    mascotTitle: "Wähl deinen Traumbegleiter",
+    mascotText: "Wacht mit dir über deine Nächte, wartet mit dir, während dein Film entsteht, und freut sich mit, wenn er fertig ist.",
     mascotSoon: "Kommt noch",
     mascotNames: { frog: "Der Frosch", sloth: "Das Faultier", owl: "Die Eule" },
     askTitle: "Zwei Dinge vorab",
@@ -903,14 +926,39 @@ export default {
     askGranted: "Erlaubt",
     askDenied: "Nicht erlaubt — in den Einstellungen änderbar",
     askGo: "Frag mich",
-    sleepTitle: "Du wirst",
+    /* Der Jahre-Kreis (Antons Wunsch 13.09.): erst das Leben, dann der
+       Schlaf, dann die Träume darin — und der Satz sagt, wofür die App da
+       ist: die Jahre nicht vorbeiziehen lassen. */
+    sleepTitle: "So viel Nacht steckt in deinem Leben",
     sleepYears: (y) => `${y} Jahre`,
-    sleepAsleep: "schlafen",
-    sleepDream: (y) => `Etwa ${y} davon träumst du — und erinnerst dich an fast nichts davon.`,
+    sleepAsleep: "Schlaf",
+    sleepDream: (y) => `Etwa ${y} Jahre davon träumst du. Lass sie nicht einfach vorbeiziehen — hol sie dir zurück, sieh sie an, mach sie zu einem Teil von dir.`,
     sleepNote: "Aus deiner Antwort und einem Leben von 80 Jahren gerechnet.",
+    sleepLegend: { life: "80 Jahre Leben", sleep: "Schlaf", dream: "Träume" },
+    /* Die Kacheln tragen nur noch ihr Etikett (Moonly-Vorbild, Antons
+       Befund 13.09.: „aufgeräumter"); die Sätze stehen als Untertitel. */
+    featuresLede: "Erzähl deinen Traum im Halbschlaf, sieh ihn als Film, behalte jede Nacht.",
+    /* ⚠ PLATZHALTER, technisch (Antons Ansage 13.09.): die Zeile wird
+       durch echte Auszeichnungen ersetzt, sobald es sie gibt. */
+    proof: [{ big: "★★★★★", small: "Bewertungen folgen" }, { big: "App Store", small: "Auszeichnung folgt" }],
     doneTitle: "Das war's",
     doneText: "Deine Nächte haben jetzt einen Ort.",
     doneCta: "Heute Nacht anfangen",
+    /* Die Anmeldung, am Ende des Onboardings (Antons Platzwahl 13.09.2026):
+       erst antworten, dann sichern. Ein Konto gibt es nur, wenn Hanni eins
+       angelegt hat — Registrieren kommt mit „Mit Apple anmelden". */
+    accountTitle: "Sichere deine Nächte",
+    accountText: "Mit einem Konto bleiben Träume, Filme und dein Profil erhalten, wenn das Handy wechselt.",
+    accountEmail: "E-Mail",
+    accountPassword: "Passwort",
+    accountCta: "Anmelden",
+    accountLater: "Später",
+    accountSignedIn: "Angemeldet als",
+    accountWrong: "E-Mail oder Passwort stimmen nicht.",
+    accountBusy: "Zu viele Versuche — eine Minute warten.",
+    accountUnavailable: "Die Anmeldung ist gerade nicht erreichbar. Du kannst sie später in den Einstellungen nachholen.",
+    accountOffline: "Keine Verbindung zum Server.",
+    accountApple: "Mit Apple anmelden — kommt noch",
   },
   onboarding: {
     tagline: "Jede Nacht drehst du Filme. Fang an, sie zu behalten.",

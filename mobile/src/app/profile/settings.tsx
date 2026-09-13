@@ -1,9 +1,11 @@
 import * as Haptics from "expo-haptics";
+import { useEffect } from "react";
 import { Stack, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Glass } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
+import { logout, restoreSession, useAccountEmail } from "@/lib/auth";
 import { colors, TAB_INSET } from "@/theme";
 
 /* Einstellungen, nativ — Settings.jsx im Aufbau: eine LISTE (die zweite
@@ -15,6 +17,11 @@ export default function SettingsScreen() {
   const { data, bridge, send } = useJournal();
   const p = data?.profile;
   const S = p?.settingsPage;
+  /* Das Konto (Hannis Backend): angemeldet als … / Abmelden. Abmelden
+     macht beides — Token bei Supabase ungültig UND vom Gerät (lib/auth.ts).
+     Anmelden geht heute nur im Onboarding; hier steht der Stand. */
+  const email = useAccountEmail();
+  useEffect(() => { restoreSession().catch(() => {}); }, []);
 
   const row = (label: string, hint: string | null, value: string | null, onPress: () => void) => (
     <Pressable key={label} onPress={() => { Haptics.selectionAsync(); onPress(); }}>
@@ -35,6 +42,9 @@ export default function SettingsScreen() {
       <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         {S ? (
           <>
+            {email
+              ? row(S.account, `${S.accountSignedIn} ${email}`, S.signOut, () => { logout().catch(() => {}); })
+              : row(S.account, S.accountNone, null, () => {})}
             {row(S.voiceSetting, S.voiceSettingHint, S.voice, () => router.push("/profile/voice"))}
             {row(S.legal.terms.title, null, null, () => router.push({ pathname: "/profile/legal", params: { doc: "terms" } }))}
             {row(S.legal.privacy.title, null, null, () => router.push({ pathname: "/profile/legal", params: { doc: "privacy" } }))}

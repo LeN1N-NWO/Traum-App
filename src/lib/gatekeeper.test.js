@@ -31,6 +31,27 @@ test("a brand-new API endpoint is limited by default, not forgotten", () => {
   expect(classOf("/api/etwas-das-es-noch-nicht-gibt")).toBe("generate");
 });
 
+/* Anmelden kostet kein fal-Guthaben, aber ein ungebremster Login-Endpunkt
+   lädt zum Durchprobieren von Passwörtern ein. Deshalb die strengste Zahl
+   der Tabelle — strenger als die teuerste Klasse. */
+test("signing in is the most tightly limited thing there is", () => {
+  expect(classOf("/api/auth/login")).toBe("auth");
+  expect(classOf("/api/auth/refresh")).toBe("auth");
+  expect(LIMITS.auth.max).toBeLessThan(LIMITS.generate.max);
+});
+
+/* Abmelden darf nie an der Bremse hängen bleiben: wer nach zehn
+   Fehlversuchen aussperrt wird, muss die Sitzung trotzdem beenden können. */
+test("signing out is not counted against the sign-in limit", () => {
+  expect(classOf("/api/auth/logout")).toBe("cheap");
+});
+
+test("account and journal go to our own database, so they get the loose cap", () => {
+  expect(classOf("/api/account")).toBe("cheap");
+  expect(classOf("/api/dreams")).toBe("cheap");
+  expect(classOf("/api/dreams/sync")).toBe("cheap");
+});
+
 test("a burst up to the limit passes, the next one is refused", () => {
   const { max } = LIMITS.generate;
   for (let i = 0; i < max; i++) {

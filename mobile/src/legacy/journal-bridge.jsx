@@ -28,6 +28,7 @@ import { styleById } from "../../../src/lib/styles.js";
 import { autoMatch } from "../../../src/wizard/useWizard.js";
 import { blankDays, localDateKey } from "../../../src/lib/dreamDays.js";
 import { moonForNight, moonStrip } from "../../../src/lib/moon.js";
+import { compactDataUrl } from "../../../src/lib/sheets.js";
 import { reminderWish, reminderState, MAX_PER_DAY, DEFAULT_PER_DAY } from "../../../src/lib/reminders.js";
 import { VOICES, DEFAULT_VOICE, isVoice } from "../../../src/lib/voices.js";
 import { withdrawPatch, consentPatch, needsConsent } from "../../../src/lib/consent.js";
@@ -55,6 +56,12 @@ import { t } from "../../../src/i18n/index.js";
    Server aus dem gebauten dist. */
 const API_BASE = globalThis.__ExpoImportMetaRegistry?.env?.VITE_API_BASE || "";
 const absolute = (u) => (typeof u === "string" && u.startsWith("/") && !u.startsWith("/media/") ? API_BASE + u : mediaUrl(u));
+
+/* Die Schlafstufe eines Kalendertags (Schlüssel wie localDateKey), oder null. */
+function sleepOn(checkins, key) {
+  const c = (checkins || []).find((x) => x && x.date === key);
+  return c && SLEEP_LEVELS.includes(c.sleep) ? c.sleep : null;
+}
 
 function takeLabel(f) {
   const pace = f.pace ? t.wizard.step5.paceNames?.[f.pace] || f.pace : t.journal.takeUnknown;
@@ -178,6 +185,10 @@ function snapshot() {
     lucid: (() => {
       const l = t.lucid; const r = s.reminders || null;
       return { lede: l.lede, leversTitle: l.leversTitle, levers: l.levers, methodsTitle: l.methodsTitle,
+        /* Tutorial-Strecke (13.09.): Trailer oben — PLATZHALTER ist der
+           Vorschau-Clip eines Stils, bis Antons Video da ist. */
+        tutorialKicker: l.tutorialKicker, tutorialSteps: [1, 2, 3].map((n) => l.tutorialStep(n)), mediaSoon: l.mediaSoon, methodsLede: l.methodsLede, sourceTitle: l.sourceTitle,
+        heroClip: (() => { const c = PRESETS.filter((p) => p.clip)[3]; return c ? absolute(c.clip) : null; })(),
         methods: l.methods.map((m) => ({ id: m.id, name: m.name, rate: m.rate || null, summary: m.summary, steps: m.steps, note: m.note })),
         sourceNote: l.sourceNote, reminderAsk: l.reminderAsk, reminderPerDay: l.reminderPerDay, reminderWhy: l.reminderWhy, reminderSoon: l.reminderSoon,
         reminderActive: Object.fromEntries(Array.from({ length: MAX_PER_DAY }, (_, i) => [i + 1, l.reminderActive(i + 1)])),
@@ -197,6 +208,7 @@ function snapshot() {
     settingsPage: {
       voiceSetting: t.profile.voiceSetting, voiceSettingHint: t.profile.voiceSettingHint,
       withdrawConsent: t.profile.withdrawConsent, withdrawConsentHint: t.profile.withdrawConsentHint, done: t.profile.done,
+      account: t.profile.account, accountNone: t.profile.accountNone, accountSignedIn: t.profile.accountSignedIn, signIn: t.profile.signIn, signOut: t.profile.signOut,
       voice: isVoice(s.voice) ? s.voice : DEFAULT_VOICE,
       voices: VOICES.map((v) => ({ id: v.id, trait: t.voice.traits[v.trait] || v.trait })),
       pickTitle: t.voice.pickTitle, pickHint: t.voice.pickHint, pickGo: t.voice.pickGo, cancel: t.voice.cancel,
@@ -262,9 +274,14 @@ function snapshot() {
     castCount: (s.cast?.length || 0) + (s.me ? 1 : 0), creatures: (s.creatures || []).length, realDreams,
     /* Der Mond-Streifen (Antons Wunsch 12.09.): fuenf Naechte um heute,
        gerechnet aus dem Datum — kein Standort, keine Erlaubnis. */
+    /* Wie geschlafen, je Kalendertag (Antons Wunsch 13.09.): der Check-in
+       vom Home-Bildschirm gehört in den Kalender und an den Mond-Streifen —
+       auch an Tagen ohne Traum. Stufe 1..3, Farbe entscheidet die Hülle. */
+    sleep: Object.fromEntries((s.checkins || []).filter((c) => c && SLEEP_LEVELS.includes(c.sleep)).map((c) => [c.date, c.sleep])),
+    sleepLevels: SLEEP_LEVELS.map((l) => ({ level: l, label: t.checkin.levels[l] })),
     moon: {
       title: t.moon.title, tonight: t.moon.tonight, weekdays: t.moon.weekdays,
-      strip: moonStrip(new Date()).map((d) => ({ ...d, label: t.moon.phases[d.phase] || d.phase })),
+      strip: moonStrip(new Date()).map((d) => ({ ...d, label: t.moon.phases[d.phase] || d.phase, sleep: sleepOn(s.checkins, d.key) })),
     },
     labels: {
       title: t.journal.title, count1: t.journal.count(1), countN: t.journal.count(2).replace("2", "{n}"),
@@ -355,9 +372,12 @@ function snapshot() {
   const onboard = {
     ...Object.fromEntries(["skip", "next", "back", "introKicker", "introText", "introCta", "featuresTitle",
       "askTitle", "askText", "askMic", "askMicWhy", "askPhotos", "askPhotosWhy", "askGranted", "askDenied", "askGo",
-      "sleepTitle", "sleepAsleep", "sleepNote", "doneTitle", "doneText", "doneCta"].map((k) => [k, onb[k]])),
-    features: onb.features, showcase: onb.showcase,
+      "sleepTitle", "sleepAsleep", "sleepNote", "doneTitle", "doneText", "doneCta",
+      "accountTitle", "accountText", "accountEmail", "accountPassword", "accountCta", "accountLater", "accountSignedIn",
+      "accountWrong", "accountBusy", "accountUnavailable", "accountOffline", "accountApple"].map((k) => [k, onb[k]])),
+    features: onb.features, showcase: onb.showcase, featuresLede: onb.featuresLede, proof: onb.proof, sleepLegend: onb.sleepLegend,
     mascotTitle: onb.mascotTitle, mascotText: onb.mascotText, mascotSoon: onb.mascotSoon,
+    meTitle: onb.meTitle, meText: onb.meText, mePick: onb.mePick, meCamera: onb.meCamera, meChange: onb.meChange, meLater: onb.meLater, meDone: onb.meDone,
     /* Die drei Maskottchen (mascots.js) — zwei noch Platzhalter. Das Video
        kommt als Modulpfad nicht durch die Brücke; nativ liegen dieselben
        Dateien, deshalb reicht die id samt Name und Marke. */
@@ -391,6 +411,21 @@ function snapshot() {
    prüfung vorher, abgebucht erst nach gelungenem Aufruf. Antwort geht per
    `onResult` zurück. */
 async function runAsync(cmd, onResult) {
+  /* Das eigene Foto aus dem Onboarding (13.09.): kommt nativ schon auf
+     1600 px verkleinert als Data-URL, wird hier wie im Avatar-Dialog noch
+     einmal durch compactDataUrl gezogen (JPEG, dieselbe Grenze) und liegt
+     dann als `me.img` — genau dort, wo Besetzung und Prompts es lesen. */
+  if (cmd.type === "mePhoto") {
+    try {
+      const img = typeof cmd.photo === "string" && cmd.photo.startsWith("data:") ? await compactDataUrl(cmd.photo) : "";
+      const s = loadState();
+      saveState({ ...s, me: { ...(s.me || {}), img } });
+      onResult({ n: cmd.n, result: { ok: true } });
+    } catch (e) {
+      onResult({ n: cmd.n, error: e?.message || String(e) });
+    }
+    return true;
+  }
   if (cmd.type === "cast") {
     /* Die Besetzung für die native Zuordnung: Namen aus der Analyse mit dem
        Auto-Treffer der Web-Logik (autoMatch) und die Bibliothek als Auswahl. */

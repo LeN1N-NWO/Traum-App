@@ -63,7 +63,7 @@ export default function JournalScreen() {
           </View>
         ) : null}
 
-        {J && (data?.items.length ?? 0) > 0 ? <DreamCalendar items={data!.items} blankKeys={J.blankKeys} labels={L} onOpen={open} /> : null}
+        {J && (data?.items.length ?? 0) > 0 ? <DreamCalendar items={data!.items} blankKeys={J.blankKeys} sleep={J.sleep} sleepLevels={J.sleepLevels} labels={L} onOpen={open} /> : null}
       </ScrollView>
       <Stack.Screen.Title large style={{ color: colors.text, fontFamily: fonts.serif }} largeStyle={{ color: colors.text, fontFamily: fonts.serif, fontSize: 36 }}>{L.title ?? "Journal"}</Stack.Screen.Title>
       <Stack.SearchBar placeholder={L.search ?? "Search"} onChangeText={(e) => setQuery(e.nativeEvent.text)} hideWhenScrolling />

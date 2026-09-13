@@ -3,7 +3,7 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { GlassButton, PrimaryButton } from "@/components/glass";
+import { GlassButton, PrimaryButton, SheenSurface } from "@/components/glass";
 import { MascotLoader } from "@/components/mascot-loader";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
@@ -62,12 +62,16 @@ export default function DreamTextScreen() {
           <View style={styles.reading}><MascotLoader /><Text style={styles.readingText}>{W?.reading}</Text><Text style={styles.hint}>{W?.readingHint}</Text></View>
         ) : !preview ? (
           <>
-            <Pressable style={styles.tell} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/dream/voice"); }}>
-              <View style={styles.tellIcon}><SymbolView name="waveform.and.mic" size={26} tintColor={colors.bg} /></View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.tellTitle}>{W?.record ?? W?.interview ?? "Tell it out loud"}</Text>
-                <Text style={styles.tellHint}>{W?.recordHint ?? W?.interviewHint}</Text>
-              </View>
+            {/* Die Rekorder-Kachel im selben Licht wie die Knöpfe (Antons
+                Wunsch 13.09.): dunkles Glas, der Schein wandert. */}
+            <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/dream/voice"); }} style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.98 : 1 }] })}>
+              <SheenSurface style={styles.tell}>
+                <View style={styles.tellIcon}><SymbolView name="waveform.and.mic" size={26} tintColor={colors.text} /></View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={styles.tellTitle}>{W?.record ?? W?.interview ?? "Tell it out loud"}</Text>
+                  <Text style={styles.tellHint}>{W?.recordHint ?? W?.interviewHint}</Text>
+                </View>
+              </SheenSurface>
             </Pressable>
             <View style={styles.or}><View style={styles.orLine} /><Text style={styles.orText}>{W?.or}</Text><View style={styles.orLine} /></View>
             <Text style={styles.label}>{W?.label}</Text>
@@ -102,10 +106,10 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 20, paddingBottom: TAB_INSET, gap: 14 },
   title: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 38, color: colors.text, marginTop: 8 },
-  tell: { flexDirection: "row", alignItems: "center", gap: 16, padding: 18, borderRadius: radius.lg, backgroundColor: colors.warm },
-  tellIcon: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(5,10,20,0.18)" },
-  tellTitle: { color: colors.bg, fontSize: 20, fontWeight: "700" },
-  tellHint: { color: "rgba(5,10,20,0.75)", fontSize: 13 },
+  tell: { flexDirection: "row", alignItems: "center", gap: 16, padding: 18, borderRadius: radius.lg },
+  tellIcon: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.14)" },
+  tellTitle: { color: colors.text, fontSize: 20, fontWeight: "700" },
+  tellHint: { color: colors.muted, fontSize: 13 },
   or: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 2 },
   orLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.panelLine },
   orText: { color: colors.faint, fontSize: 13 },

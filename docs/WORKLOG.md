@@ -3,6 +3,300 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-12 20:10 — Hanni — Branch `session/2026-09-12-hanni-backend-auth` — Anmeldung, Konto und Träume im Backend
+
+**Commits (3):** `8b57221` src/lib/auth.js (Supabase Auth) · `41a3534`
+Routen in server.js + src/lib/dreamRow.js + gatekeeper-Klasse „auth" ·
+`200c830` scripts/test-konto.mjs.
+
+**Was:** Die Lücke geschlossen, die seit dem 11.09. alles Weitere
+blockierte. Das Schema stand, aber niemand konnte sagen, WESSEN Zeilen
+gemeint sind. Jetzt gibt es `POST /api/auth/login|refresh|logout`,
+`GET/PATCH /api/account`, `GET/DELETE /api/dreams` und
+`POST /api/dreams/sync`. Jeder Datenzugriff läuft durch `withUser()`; die
+Nutzerkennung stammt aus der bei Supabase geprüften Sitzung, nie aus dem
+Anfragekörper.
+
+**Warum so:** Der Client spricht weiterhin nur mit `server.js` (ADR-0005) —
+E-Mail und Passwort gehen an uns, wir an Supabase. Kein
+`@supabase/supabase-js`: vier REST-Aufrufe im selben `fetch`-Stil wie
+fal/DeepSeek/Gemini, mit Zeitgrenze. Die Sitzung wird bei Supabase selbst
+geprüft (`/auth/v1/user`) statt hier lokal — lokale JWT-Prüfung heißt
+Signaturgeheimnis halten und den Algorithmus richtig prüfen, und ein
+Fehler darin ist lautlos und total.
+
+**Keine neue Migration nötig** — das Schema vom 11.09. hatte die Grants und
+RLS-Policies für genau dieses CRUD bereits vollständig.
+
+**Was der Nächste wissen muss:**
+- ⚠⚠ **Die Anmeldung darf noch nicht hinter eine öffentliche Adresse.**
+  Befund S6 ist offen: der Server spricht `http://`. Passwort und Token
+  reisen damit im Klartext. Gegen localhost und Simulator gleichgültig, über
+  echtes WLAN nicht. TLS (Punkt 3 in `docs/ARCHITEKTUR.md`) kommt zuerst.
+- ⚠ **Gemessen 12.09.:** `db.<projekt>.supabase.co` löst NUR auf IPv6 auf.
+  Ohne IPv6 (Hannis Rechner) endet das als
+  `ERR_POSTGRES_CONNECTION_REFUSED` — das sieht aus wie ein falsches
+  Passwort und ist keines. Dann den Session Pooler nehmen (IPv4, Port 5432;
+  nicht 6543). Steht jetzt in `.env.example`.
+- **Abschlussdurchgang (23:10, Hannis Auftrag „kritisch auf Fehler und
+  Redundanzen"):** fünf Befunde im eigenen Code, alle behoben —
+  1. **`survey` im Profil hatte keine Größengrenze.** Bei Träumen deckelt
+     `safeJson()` jedes jsonb-Feld auf 64 KB; das Profil war die eine
+     Stelle, an der unbegrenztes Client-JSON in eine Spalte lief. Jetzt
+     dieselbe Konstante (`MAX_JSON` aus `dreamRow.js`, exportiert statt
+     verdoppelt) und **413 statt stiller Kürzung**.
+  2. `POST /api/auth/refresh` und `PATCH /api/account` lasen einen Körper
+     **ohne** die `MAX_BODY`-Prüfung, die jeder andere Endpunkt hat.
+  3. **⚠ Ein Feld ließ sich nicht wieder leeren.** „Nicht mitgeschickt" und
+     „auf leer gesetzt" waren dasselbe (`coalesce`) — ein einmal gesetzter
+     Anzeigenname war nicht mehr loszuwerden. Jetzt entscheidet die
+     **Anwesenheit des Schlüssels**: fehlt er, bleibt die Spalte; steht er
+     auf `null`, wird geleert. Falscher Typ → 400 mit Feldnamen.
+  4. Die Profil-Umformung stand zweimal wörtlich da → `profilFuerClient()`.
+  5. Das Prüfskript ließ bei einem Abbruch Träume in der **echten**
+     Datenbank liegen und behielt seine Werte im Profil des Testusers. Es
+     kehrt jetzt am Anfang alte Reste weg und stellt das Profil zurück —
+     möglich erst seit Befund 3.
+- **Persistenz empirisch belegt** (die Frage war ausdrücklich gestellt):
+  Abbruch mitten in der Transaktion lässt **nichts** zurück; ein Stapel mit
+  Fehler in der Mitte ebenso (SQLSTATE **23514**, Check-Verletzung); ein
+  Commit ist aus einer **anderen** Transaktion sichtbar. Mit Kontrollprobe:
+  das Einfügen wirkte innerhalb der Transaktion nachweislich, sonst wäre
+  der Rollback-Test hohl gewesen.
+- **Bewusst NICHT geändert:** die zwei fast gleichen Abfragen in
+  `GET /api/dreams` (mit und ohne Cursor). Eine zusammengefasste Fassung
+  (`… is null or (…) < (…)`) spart acht Zeilen und kostet die Indexnutzung.
+- **Nachgezogen (22:20, Hannis Hinweis):** `GET /api/dreams` gab alles auf
+  einmal zurück — die eine der vier genannten Regeln, die hier wirklich
+  fehlte (serverseitige Prüfung, keine rohen Datenbank-IDs in URLs und
+  Mengenbremsen standen bereits). Jetzt seitenweise per Cursor
+  (`src/lib/paging.js`, 11 Tests): `?limit=` mit Vorgabe 100 und Deckel 200,
+  `?cursor=`, geblättert bis `next` null ist. **Cursor statt OFFSET**, weil
+  OFFSET bei einem gelöschten Traum mitten im Blättern lautlos einen
+  Eintrag überspringt; und der Cursor trägt **zwei** Werte, weil zwei
+  Träume derselben Nacht denselben Zeitstempel haben. `sync` nimmt
+  höchstens 200 Träume je Aufruf (413) — nicht wegen der Bytes, sondern
+  wegen der Dauer einer Transaktion.
+- **Ende-zu-Ende geprüft (nachgereicht am selben Abend, 21:40, erweitert
+  22:20):** 25 von 25
+  gegen das echte Supabase — anmelden, falsches Passwort, Konto lesen,
+  Traum speichern/aktualisieren/lesen/löschen, Sitzung erneuern.
+  `node scripts/test-konto.mjs` (Zugangsdaten aus der Umgebung).
+- **⚠⚠ Der erste Lauf fand zwei Fehler, die kein Test ohne Datenbank
+  finden konnte** — der Grund, warum dieser Lauf nicht optional war:
+  1. **Bun.SQL gibt `jsonb` als ZEICHENKETTE zurück**, nicht als geparsten
+     Wert. `references` und `medien` kamen als String beim Client an, wo
+     eine Liste versprochen ist; `survey` im Profil genauso. Behoben mit
+     `fromJsonb()` in `db.js` — bewusst dort, weil es eine Eigenschaft des
+     Treibers ist: **jede künftige jsonb-Spalte hat dasselbe Problem.**
+  2. Ein **5xx von Supabase** wurde roh durchgereicht. Mitten im Lauf kam
+     ein 504 von deren Gateway (davor und danach sauber 400) — das hätte
+     dem Menschen gesagt, sein Passwort sei falsch, obwohl es nie geprüft
+     wurde. Jetzt 503; 429 sagt „zu viele Versuche".
+- **Rechte empirisch belegt, nicht behauptet** (mit Kontrollproben, sonst
+  beweist eine Verweigerung nichts): ohne Nutzererklärung sieht der Server
+  0 Zeilen, mit Erklärung 1, als fremder Nutzer wieder 0. Guthaben
+  schreiben, Ledger-Zeile einfügen und `credits_spend` direkt aufrufen:
+  alle drei **SQLSTATE 42501**. Guthaben lesen ist erlaubt — daran zeigt
+  sich, dass der Test überhaupt unterscheiden kann.
+- **⚠ Die Datenbank war zunächst gar nicht erreichbar**, und der Grund
+  sieht aus wie ein falsches Passwort: `db.<projekt>.supabase.co` löst nur
+  auf IPv6 auf. `DATABASE_URL` in Hannis `.env` zeigt jetzt auf
+  `aws-0-eu-central-1.pooler.supabase.com:5432` (Session Pooler, IPv4).
+- **Das Guthaben wird weiterhin NICHT abgebucht.** `/api/account` zeigt es
+  nur an; die 100 Test-Credits im Entwicklungsbau (`devTopUp`) sind
+  unberührt. Antons Übergabe zum Abbuchen (11.09., Punkt 2–6) ist jetzt
+  aber nicht mehr durch die Anmeldung blockiert.
+- **Neu für Anton:** `docs/uebergabe/2026-09-12-anton-login-ui.md` — der
+  Anmelde-Bildschirm, mit allen Endpunkten und dem Hinweis, dass die Token
+  in `expo-secure-store` gehören, nicht in AsyncStorage.
+- `src/lib/dreamRow.js` erzwingt serverseitig, was bisher nur der Client
+  tat: Referenzen behalten Tag und Kategorie, alles andere fällt weg, und
+  `data:`-Adressen fliegen aus den Medienpfaden — genau so käme ein
+  biometrisches Foto in die Datenbank.
+
+**Prüfung:** 615 Tests grün (vorher 564; neu: 19 auth, 13 dreamRow, 11 paging, 4
+gatekeeper) plus 35 Ende-zu-Ende gegen das echte Supabase.
+`server.js`: 321 hinzugefügte Zeilen in sechs Blöcken (Importe 9,
+Stapelgrenze 5, CORS 6, Routen 283, Profil-Helfer 8, Startmeldung 10 —
+Summe stimmt), die 4
+entfernten Zeilen sind der alte Import und drei CORS-Zeilen. Gegenprobe auf
+die Namen der Prompt-/Generierungs-Kette: kein Treffer, bei einer
+Kontrollprobe, die nachweislich trifft. Zusätzlich sind acht Funktionen der
+Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
+`falGenerateImage`, `craftPrompt`, `buildFallbackPrompt`, `jobStatus`,
+`settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
+das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
+
+## 2026-09-13 11:40 — Anton — Branch `session/2026-09-13-anton-b` — Sitzungsabschluss (wrap + Merge auf Antons Wort, während Higgsfield rendert)
+
+**Commits (12):** `4f36289` Journal-Bilder · `a92ab16` Merge Hannis PR #46 ·
+`cd952e8` Begleiter-Text · `af82fab` Anmeldung · `bed69bd` Kacheln, Ring,
+Knöpfe, kein Überspringen · `c83d574` Check-in sichtbar, Schein wandert ·
+`90cc3f8` Schlaf-Tab nach Moonly · `1a4abcc` Foto-Schritt · dazu vier
+Doku-Commits. Details in den Einträgen und Nachträgen darunter.
+
+**Prüfung:** Web 616 Tests grün, mobile `tsc` grün, `bunx expo lint`
+0 Fehler / 43 Warnungen. Drei native Pakete neu (expo-secure-store,
+react-native-svg, expo-image-manipulator) — Pods und Xcode-Build je
+gemacht, App läuft im Simulator mit dem letzten Build.
+
+**Was der Nächste wissen muss:**
+- **PR #47 trägt Hannis PR #46 mit** (Merge-Commit `a92ab16`); mit dem
+  Merge von #47 ist #46 in `main`.
+- **Style-Clips über Higgsfield** (Antons Auftrag 12:00): je Stil ein
+  5-s-Seedance-2.5-Clip, 3:4, 480p, ohne Ton, EIN Take mit starker
+  Kamerabewegung und einer absurden Traum-Idee (Verwandlungen: ein Mensch
+  wird zu Vögeln …). Kosten ~32 Credits je Clip (Antons Higgsfield-Konto,
+  4.123 Credits, Creator). Die ersten zwei (Surreal, Knete) laufen als
+  Jobs `3f0fddcf…` und `071137b4…`; Ziel: `media/pv….mp4` (270 px, stumm,
+  < 200 KB) und `clip:` in `presets.js`. ⚠ Higgsfield schlug für den
+  Surreal-Prompt ein Preset vor („IN THE DARK") — abgelehnt
+  (`declined_preset_id`), wörtlich gerendert.
+- Ohne „Überspringen" muss man das Onboarding im Entwicklungsbau bei jedem
+  Start durchtippen (17 Bildschirme); Antons Entscheidung dazu steht aus.
+
+## 2026-09-13 10:40 — Anton — Branch `session/2026-09-13-anton-b` — Hannis Backend hereingeholt, Anmeldung nativ, Journal-Bilder zurück
+
+**Commits:** `4f36289` Journal-Karten zeigen ihr Bild wieder · `a92ab16`
+Merge Hannis PR #46 in die Sitzung · `cd952e8` Begleiter-Text ·
+`af82fab` Anmeldung am Ende des Onboardings.
+
+**Antons Befund am Morgen:** roter Bildschirm „No script URL provided" —
+Metro war mit der Sitzung gestorben, kein Fehler im Code. Dann „ich sehe
+meine Träume nicht": die Karten im Journal waren leer. Zwei Ursachen:
+API-Server aus (kein Film, kein Bild) UND ein echter Fehler in
+`dream-poster.tsx` — der Vorschau-Speicher hielt nur das ERGEBNIS; wurde
+das Bild fertig, während die Brücke die Karte schon mit einem neuen
+`media`-Objekt neu zeichnete, sprang der neue Effekt an `has()` heraus,
+und die Karte blieb für immer leer. Jetzt hält der Speicher das
+VERSPRECHEN, jeder Effekt wartet darauf. Lehre: ein Cache, der „schon
+unterwegs" nicht von „fertig" unterscheidet, verliert genau die Läufe,
+die während des Wartens neu starten.
+
+**Hannis PR #46** (Backend für Anmeldung, Konto, Träume in Supabase) per
+`git merge --no-ff` in die Sitzung geholt — keine Konflikte, 615 Tests
+grün. Auf `main` kommt er erst mit Hannis Merge; unser PR #47 trägt ihn
+mit.
+
+**Die Anmeldung nativ**, nach Hannis Übergabe
+(`docs/uebergabe/2026-09-12-anton-login-ui.md`, jetzt gelöscht — „wenn du
+fertig bist, Datei löschen"):
+- **Platz:** letzter Schritt des Onboardings vor dem Schluss (Antons
+  Entscheidung 13.09.: „der Platz ist dort richtig"). Am Anfang schreckt
+  es ab, beim Kauf ist es zu spät.
+- `mobile/src/lib/auth.ts`: `login/refresh/logout/authFetch/pushProfile`,
+  Token in **expo-secure-store** (neu installiert, Pods + Rebuild), nie im
+  Zustand. 401 → EINE Erneuerung (geteiltes Versprechen bei zwei
+  gleichzeitigen 401) → wiederholen; 401 beim Erneuern → Token weg.
+  Abmelden: Server-Aufruf UND Gerät leeren, beides (Hannis Punkt 4).
+- Bildschirm `Account` in `onboarding-flow.tsx`: Felder im Glas,
+  Fehlermeldungen je Grund (401 falsch, 429 zu viele, 503/5xx nicht
+  erreichbar, kein Netz), „Später" lässt ohne Konto durch (es gibt kein
+  Registrieren — Hannis Absicht; ohne „Später" käme ein neuer Nutzer nicht
+  durch). Unter dem Knopf steht stumm der Platz für „Mit Apple anmelden".
+- Nach dem Onboarding `PATCH /api/account` mit Name, Sprache, `onboarded`,
+  `survey_done`, `survey` — nur, wenn eine Sitzung da ist.
+- Einstellungen: Konto-Zeile („Angemeldet als … / Abmelden" bzw. „Nicht
+  angemeldet").
+- **Geprüft:** Feldbildschirm im Simulator, kompletter Aufruf bis zur
+  Server-Antwort 503 („nicht eingerichtet") mit der richtigen Meldung.
+  ⚠ NICHT geprüft: eine echte Anmeldung — Antons `.env` hat keine
+  Supabase-Werte, und einen Testnutzer hat nur Hanni. Erst dann sind
+  Erneuern, PATCH und Abmelden am echten System belegt.
+
+**Nachtrag 11:00 (Antons Vergleich mit Moonly, vier Screenshots):**
+- **Feature-Kacheln umgebaut** (`FeatureTile`): zwei versetzte Spalten
+  (links kurz/lang, rechts lang/kurz), große Rundung (32), Etikett als
+  Glas-Pille, die über den Rand ragt (oben bei der oberen Reihe, unten bei
+  der unteren), nur noch das Etikett in der Kachel — der Satz ist der
+  Untertitel. Um jede Kachel ein Verlaufssaum (1,5 pt) und ein Schein, der
+  ATMET (Reanimated `withRepeat`, je Kachel versetzt) — Antons „Animation
+  am Rand". Darunter die Proof-Zeile: ⚠ PLATZHALTER („Bewertungen folgen",
+  „Auszeichnung folgt", Lorbeer als SF-Symbol), `onb.proof` in en+de.
+- **Überschriften mittig** mit Untertitel, in allen Shell-Bildschirmen.
+- **„Überspringen" komplett raus** (Antons Ansage). ⚠ Folge im
+  Entwicklungsbau: das Onboarding kommt bei jedem Start UND lässt sich
+  nur noch durchtippen — `__ONB_STEP__` oder `dev-store.ts` (`seen`) sind
+  der Ausweg, bis Anton sagt, wie er es haben will.
+- **Jahre-Kreis** statt großer Zahl (`SleepYears`): react-native-svg neu
+  installiert (Pods + Rebuild), drei Bögen als `AnimatedCircle` mit
+  `strokeDashoffset` über `useAnimatedProps` — Leben (80, matt) in 0,9 s,
+  dann Schlaf (warm) in 1,1 s, dann Träume (gold) in 0,8 s; die Zahl in
+  der Mitte läuft mit dem Schlaf-Bogen (gleiche Kurve, `setInterval` 40 ms
+  — nur die Zahl, nicht die Bögen). Legende darunter. Text neu: „Etwa 6
+  Jahre davon träumst du. Lass sie nicht einfach vorbeiziehen — hol sie
+  dir zurück …" (Antons Sinn).
+- **Hauptknopf app-weit** (`glass.tsx` `PrimaryButton`): dunkles Glas
+  (`tintColor rgba(8,14,26,0.55)`) mit Schein — warm links, kühl rechts,
+  unten ein Hauch heller — statt der vollen orangen Fläche; weißer Text.
+  Antons Referenz: der „Continue"-Knopf mit Lichtschein. Der Rückfall ohne
+  Liquid Glass ist dieselbe dunkle Fläche mit demselben Schein.
+- Geprüft per Screenshot: Feature-Bildschirm passt auf eine Höhe, Ring
+  läuft (drei Aufnahmen), Knopf sichtbar. Ungeprüft: das Atmen der Kacheln
+  in Bewegung (Standbild zeigt nur einen Zustand).
+
+**Nachtrag 11:15 (Antons zwei Screenshots + Zuruf):**
+- **Träume im Ring GRÜN** (`colors.ok`) — gold lag zu nah am warmen
+  Schlaf-Bogen.
+- **Der Check-in wird sichtbar** („Wie hast du geschlafen?" auf Home): er
+  lag schon je Kalendertag in `state.checkins` (checkin.js, seit 21.08.),
+  war aber nirgends zu sehen. Jetzt: Ring um den Tag im Kalender und Punkt
+  unter dem Tag im Mond-Streifen, rot (1) / gold (2) / grün (3), auch an
+  Tagen ohne Traum; Legende unter dem Kalender, sobald es Einträge gibt.
+  `SLEEP_COLORS` in dream-calendar.tsx, `theme.bad` neu. Der Eintrag
+  trägt seit heute die **Mondphase seiner Nacht** (`moon`, über
+  `moonForNight` — morgens um sieben ist das die Nacht davor); Test dazu.
+  Am Gerät mit Antons echtem Eintrag vom 12.09. („schwer" → roter Punkt
+  unter SA 12) belegt; die Kalender-Ringe liegen unter dem Falz und sind
+  nur im Code geprüft.
+- **Schein in Bewegung** (`Sheen` in glass.tsx): der Verlauf ist doppelt
+  so breit wie die Fläche und wandert 4,2 s hin und her (Reanimated
+  `withRepeat`), Breite aus `onLayout`. `SheenSurface` für Flächen, die
+  keine Knöpfe sind: die Rekorder-Kachel im Wizard („Erzähl ihn laut",
+  vorher volle orange Fläche mit dunklem Text) und „Aufnehmen" auf Home
+  (jetzt `PrimaryButton`). ⚠ `buttonPrimary` in `journal/[id].tsx` ist ein
+  toter Stil, nicht angefasst.
+- Offen (Antons Frage, nicht entschieden): den Check-in auch an der
+  Traum-Seite noch einmal abfragen? Heute nur auf Home.
+
+**Nachtrag 11:45 (Antons Moonly-Screenshots zum Schlaf-Tab + Zuruf zum Onboarding):**
+- **Checkliste „Runterkommen"** (`sleep-checklist.tsx`): volle Zeilen statt
+  drei Kacheln nebeneinander („Text komisch gesqueezed") — Titel und Satz
+  mit Platz, rechts ein 64er-Bildfeld mit dem Zeichen (Platz für Antons
+  Illustration), fertig = grünes Feld mit Haken. Fortschritt bleibt.
+- **Luzid-Guide als Tutorial-Strecke** (`lucid-guide.tsx`, Moonlys Welcome
+  Guide): der Raum beginnt mit einem TRAILER über die Breite (4:5, Kicker
+  „Tutorial", Titel, Satz im Schleier — `Room` in `sleep/[view].tsx` hat
+  dafür `trailer`/`kicker`), darunter eine Zeitleiste: Schritt 1 die drei
+  Hebel, Schritt 2 die Methoden (Karten bleiben aufklappbar mit Schritten,
+  Trefferquote und dem Erinnerungs-Schalter unter den Realitätschecks),
+  Schritt 3 die Quelle. Jede Karte trägt rechts ein Bild — ⚠ PLATZHALTER
+  (Zeichen auf Verlauf, `ART`), und der Trailer ist der Vorschau-Clip eines
+  Stils (`heroClip` in der Brücke). Anton erzeugt die Videos später
+  (Seedream); dann wird aus `Art` ein `Clip`. Texte neu: `tutorialKicker`,
+  `tutorialStep`, `mediaSoon`, `methodsLede`, `sourceTitle` (en+de).
+- **Onboarding: „Wer bist du?"** — Antons Zuruf: direkt nach dem
+  Zwischenbild „Die Menschen darin sind deine" (er will dazu einen eigenen
+  Trailer) das Foto abfragen. Neuer Bildschirm `me` in der Liste (nach
+  `showcase at 1`): rundes Bildfeld, „Foto wählen" / „Selfie machen"
+  (expo-image-picker, quadratisch beschnitten), nativ auf 1600 px
+  verkleinert (**expo-image-manipulator neu**, Pods + Rebuild), als
+  JPEG-Data-URL über den neuen Befehl `mePhoto` an die Brücke — dort noch
+  einmal `compactDataUrl` wie im Avatar-Dialog, dann `me.img`. „Weiter"
+  erst mit Foto, darunter „Ohne Foto weiter" (kein Überspringen mehr, aber
+  niemand darf am Foto hängen bleiben). ⚠ Das Wählen selbst ist am Gerät
+  ungeprüft (hier tippt niemand in die Fotos-App); der Bildschirm ist per
+  Screenshot geprüft.
+
+**Was der Nächste wissen muss:**
+- `session/2026-09-13-anton` (ohne -b) war schon komplett in `main`; die
+  heutige Sitzung heißt deshalb `-b`. Reservierung als leerer Commit.
+- ⚠ `bunx --cwd mobile …` im Wurzelordner versucht, ein Paket „mobile" zu
+  installieren — Lint immer aus `mobile/` heraus (`cd mobile && bunx expo lint`).
+- Begleiter-Text: „Wähl deinen Traumbegleiter" — als Persönlichkeit, nicht
+  als Funktion (Antons Wunsch).
+
 ## 2026-09-12 18:30 — Anton — Branch `session/2026-09-12-anton-c` — Sitzungsabschluss (wrap + Merge auf Antons Wort)
 
 **Commits (10):** `3d8da21` Datums-Richtigstellung · `122dff7` Deck-Fächer

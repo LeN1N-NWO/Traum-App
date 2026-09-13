@@ -70,7 +70,15 @@ import { imageSubmitBody, imageModel,
 import { failureReason } from "./src/lib/falError.js";
 import { appGrid, GRID_SLOTS } from "./src/lib/gridLayout.js";
 // Accounts, ledger, journal (ADR-0005). Optional — see the head of db.js.
-import { openDatabase } from "./src/lib/db.js";
+import { openDatabase, withUser, fromJsonb } from "./src/lib/db.js";
+// Wer fragt: die fehlende Hälfte zu db.js. withUser() kann für eine Person
+// handeln, auth.js sagt, WER sie ist (eigene Datei, ohne Netz prüfbar).
+import { parseBearer, authConfig, passwordLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
+// Traum ⇄ Datenbankzeile. Eigene Datei, weil dort die Regel „nur die Tags,
+// nie die Fotos dahinter" serverseitig erzwungen wird (dreamRow.test.js).
+import { toRow, fromRow, MAX_JSON } from "./src/lib/dreamRow.js";
+// Listen kommen seitenweise, nie am Stück (paging.test.js).
+import { parseLimit, decodeCursor, buildPage } from "./src/lib/paging.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
   DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
@@ -159,6 +167,11 @@ const T = {
 const MAX_BODY = 12 * 1024 * 1024;
 const MAX_REFERENCES = 6;
 const MAX_DREAM = 2000;
+/* Wie viele Träume EIN /api/dreams/sync entgegennimmt. Nicht dieselbe
+   Grenze wie MAX_BODY: dort geht es um Bytes, hier um die Dauer einer
+   Transaktion, die je Traum eine Anweisung hält. Ein volles Tagebuch
+   wandert in mehreren Aufrufen — sync ist dafür wiederholbar gebaut. */
+const MAX_SYNC_BATCH = 200;
 const MAX_FRAGMENT = 120; // per pet/place description, mirrors the client-side cap
 /* Eine Szene ist ein ganzer Satz, kein Namensfragment — sie braucht mehr
  * Platz als eine Figurenbeschreibung. Gemessen am ersten Lauf ohne
@@ -2192,9 +2205,12 @@ function corsHeaders(req) {
        year — without this, one origin's response would be replayed to the
        next from a shared cache. */
     vary: "Origin",
-    "access-control-allow-methods": "GET, POST, OPTIONS",
-    // x-api-token is the gatekeeper's header (gatekeeper.js).
-    "access-control-allow-headers": "content-type, x-api-token",
+    // PATCH/DELETE seit der Anmeldung: das Konto wird geändert, ein Traum
+    // gelöscht. Ohne sie scheitert schon die Vorabfrage des Browsers.
+    "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS",
+    // x-api-token is the gatekeeper's header (gatekeeper.js); authorization
+    // trägt die Sitzung (auth.js).
+    "access-control-allow-headers": "content-type, x-api-token, authorization",
     "access-control-max-age": "86400",
   };
 }
@@ -3023,6 +3039,289 @@ const serveOptions = {
       }
     }
 
+    /* ── Anmeldung, Konto, Träume (ADR-0005) ────────────────────────────
+     *
+     * Der Client spricht auch hier nur mit uns: E-Mail und Passwort gehen an
+     * server.js, server.js an Supabase. Dasselbe Prinzip wie bei fal und
+     * DeepSeek, und es hält die Tür offen — ein zweiter Anmeldeweg (Sign in
+     * with Apple, später ein Unternehmens-Zugang) wird EIN weiterer Endpunkt
+     * hier, während alles dahinter unverändert weiterläuft: die Sitzung wird
+     * über verifyAccessToken() geprüft, dem der Anmeldeweg egal ist.
+     *
+     * ⚠ Es gibt bewusst KEIN /api/auth/signup. Über dieses Backend entsteht
+     *   kein neues Konto; anmelden kann sich nur, wer in Supabase schon
+     *   steht (heute: der eine Testuser).
+     *
+     * ⚠⚠ Solange Befund S6 offen ist (docs/ARCHITEKTUR.md: der Server spricht
+     *    http://, nicht https://), reisen Passwort und Token auf der Strecke
+     *    Client→Server im Klartext. Gegen localhost ist das gleichgültig;
+     *    hinter eine öffentliche Adresse gehört dieser Endpunkt erst, wenn
+     *    TLS davor steht. */
+    if (url.pathname === "/api/auth/login" && req.method === "POST") {
+      if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+        return json({ error: "Request too large." }, 413);
+      }
+      const body = await req.json().catch(() => null);
+      const r = await passwordLogin(body || {}, { config: AUTH });
+      /* Der Grund steht im Log, nicht in der Antwort: „welche Adresse hat
+         hier ein Konto" ist nichts, was ein Fremder erfragen können soll. */
+      if (!r.ok) {
+        console.warn(`[DreamRushes] Anmeldung abgelehnt (${r.status}): ${r.cause || r.error}`);
+        return json({ error: r.error }, r.status);
+      }
+      return json({ ok: true, ...r.session });
+    }
+
+    if (url.pathname === "/api/auth/refresh" && req.method === "POST") {
+      if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+        return json({ error: "Request too large." }, 413);
+      }
+      const body = await req.json().catch(() => null);
+      const r = await refreshSession(body?.refresh_token, { config: AUTH });
+      if (!r.ok) return json({ error: r.error }, r.status);
+      return json({ ok: true, ...r.session });
+    }
+
+    /* Abmelden macht das Aktualisierungs-Token bei Supabase ungültig. Es
+       schlägt absichtlich nie fehl: die Token werden auf dem Gerät ohnehin
+       weggeworfen, und ein Fehler, auf den niemand reagieren kann, ist
+       keiner, den man zeigen sollte. */
+    if (url.pathname === "/api/auth/logout" && req.method === "POST") {
+      await logout(parseBearer(req.headers.get("authorization")), { config: AUTH });
+      return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/account" || url.pathname.startsWith("/api/dreams")) {
+      /* Erst wer, dann was. Ein 401 kostet so keine Datenbankabfrage — und
+         wichtiger: unterhalb dieser Zeile gibt es keinen Pfad, der ohne
+         geprüfte Nutzerkennung an die Daten käme. */
+      const person = await verifyAccessToken(parseBearer(req.headers.get("authorization")), { config: AUTH });
+      if (!person) return json({ error: "Not signed in." }, 401);
+      if (!database) {
+        return json({ error: "Die Datenbank ist nicht eingerichtet — siehe DATABASE_URL in .env.example." }, 503);
+      }
+
+      try {
+        /* ⚠ withUser() ist der EINZIGE Weg an diese Tabellen. Es erklärt in
+           der Transaktion, für wen gehandelt wird; Row Level Security macht
+           daraus „nur dessen Zeilen". Ein vergessenes WHERE findet deshalb
+           nichts Fremdes, sondern gar nichts. Die Kennung kommt aus der
+           geprüften Sitzung, nie aus dem Anfragekörper. */
+        if (url.pathname === "/api/account" && req.method === "GET") {
+          const konto = await withUser(database, person.userId, async (tx) => {
+            const [profil] = await tx`select * from public.profiles where id = ${person.userId}`;
+            const [saldo] = await tx`select purchased, allowance from public.credits_balance where user_id = ${person.userId}`;
+            return { profil, saldo };
+          });
+          return json({
+            ok: true,
+            user: { id: person.userId, email: person.email },
+            profile: profilFuerClient(konto.profil),
+            /* Nur lesend. Guthaben bewegt sich ausschließlich über
+               server_spend()/server_grant() — die Rolle dieses Servers darf
+               auf diese Tabelle gar nicht schreiben (server_role.sql). */
+            credits: konto.saldo
+              ? { purchased: konto.saldo.purchased, allowance: konto.saldo.allowance,
+                  total: konto.saldo.purchased + konto.saldo.allowance }
+              : null,
+          });
+        }
+
+        if (url.pathname === "/api/account" && req.method === "PATCH") {
+          if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+            return json({ error: "Request too large." }, 413);
+          }
+          const body = await req.json().catch(() => null);
+          if (!body || typeof body !== "object") return json({ error: "Nothing to update." }, 400);
+
+          /* ⚠ `survey` ist das einzige Feld, dessen FORM dem Client gehört
+             (jsonb, „damit ein neues Feld keine Migration bedeutet") — und
+             damit das einzige, in das er beliebig viel schreiben könnte.
+             Dieselbe Grenze wie für analysis/reflection am Traum, aus
+             derselben Datei: eine zweite Zahl liefe irgendwann auseinander.
+             Laut abgelehnt statt still gekürzt: eine halbe Umfrage ist
+             schlimmer als gar keine, weil niemand merkt, dass sie fehlt. */
+          if (body.survey !== undefined && body.survey !== null) {
+            const groesse = (() => { try { return JSON.stringify(body.survey).length; } catch { return Infinity; } })();
+            if (groesse > MAX_JSON) {
+              return json({ error: `Survey too large (max ${MAX_JSON} bytes).`, max: MAX_JSON }, 413);
+            }
+          }
+
+          /* Erlaubte Liste, keine Durchreiche: `streak` und `last_dream_on`
+             fehlen hier mit Absicht — wer eine Serie selbst setzen kann,
+             hat keine Serie. Die gehören dorthin, wo die Regel dafür
+             entsteht, nicht in einen Client-Aufruf.
+
+             ⚠ „Nicht mitgeschickt" und „auf leer gesetzt" sind ZWEI Dinge.
+             Bis zum 12.09. waren sie eins (coalesce), und damit konnte man
+             einen einmal gesetzten Anzeigenamen nie wieder loswerden — ein
+             Mensch, der ihn zurücknehmen will, muss das können. Also
+             entscheidet ab hier die ANWESENHEIT des Schlüssels, nicht sein
+             Wert: fehlt er, bleibt die Spalte; steht er auf null, wird
+             geleert. Die beiden Ja/Nein-Felder können nicht leer werden,
+             die Spalte lässt es nicht zu (not null). */
+          const mitgeschickt = (k) => Object.prototype.hasOwnProperty.call(body, k);
+          const text = (k, max) => {
+            const v = body[k];
+            if (v === null) return null;
+            if (typeof v !== "string") return Symbol.for("falsch");
+            return v.slice(0, max);
+          };
+
+          const felder = {
+            display_name: mitgeschickt("display_name") ? text("display_name", 120) : undefined,
+            language: mitgeschickt("language") ? text("language", 16) : undefined,
+            voice: mitgeschickt("voice") ? text("voice", 64) : undefined,
+            onboarded: mitgeschickt("onboarded") && typeof body.onboarded === "boolean" ? body.onboarded : undefined,
+            survey_done: mitgeschickt("survey_done") && typeof body.survey_done === "boolean" ? body.survey_done : undefined,
+            survey: mitgeschickt("survey")
+              ? (body.survey === null ? null
+                 : typeof body.survey === "object" ? body.survey : Symbol.for("falsch"))
+              : undefined,
+          };
+          const falsch = Object.entries(felder).filter(([, v]) => v === Symbol.for("falsch")).map(([k]) => k);
+          if (falsch.length) {
+            return json({ error: `Wrong type for: ${falsch.join(", ")}.`, felder: falsch }, 400);
+          }
+          const gesetzt = Object.fromEntries(Object.entries(felder).filter(([, v]) => v !== undefined));
+          if (!Object.keys(gesetzt).length) return json({ error: "No known field to update." }, 400);
+
+          /* Ausgeschriebene Spalten statt eines dynamisch gebauten SET: eine
+             feste, lesbare Abfrage, in der ein Feldname des Clients niemals
+             zum Spaltennamen werden kann. Das `case when <mitgeschickt>`
+             trägt die Unterscheidung von oben bis in die Spalte: nur was
+             wirklich im Körper stand, wird überhaupt geschrieben. */
+          const hat = (k) => k in gesetzt;
+          const profil = await withUser(database, person.userId, async (tx) => {
+            const [zeile] = await tx`
+              update public.profiles set
+                display_name = case when ${hat("display_name")} then ${gesetzt.display_name ?? null} else display_name end,
+                language     = case when ${hat("language")}     then ${gesetzt.language ?? null}     else language     end,
+                voice        = case when ${hat("voice")}        then ${gesetzt.voice ?? null}        else voice        end,
+                onboarded    = case when ${hat("onboarded")}    then ${gesetzt.onboarded ?? false}   else onboarded    end,
+                survey_done  = case when ${hat("survey_done")}  then ${gesetzt.survey_done ?? false} else survey_done  end,
+                survey       = case when ${hat("survey")}
+                                    then ${gesetzt.survey == null ? null : JSON.stringify(gesetzt.survey)}::jsonb
+                                    else survey end,
+                updated_at   = now()
+               where id = ${person.userId}
+              returning *`;
+            return zeile;
+          });
+          if (!profil) return json({ error: "No profile for this account." }, 404);
+          return json({ ok: true, profile: profilFuerClient(profil) });
+        }
+
+        /* Seitenweise, per Cursor — nie „alles". Ein Tagebuch wächst mit
+           jeder Nacht, und jede Zeile trägt Analyse und Reflexion als jsonb;
+           die vollständige Liste wäre der erste Endpunkt, der unter dem
+           eigenen Erfolg zusammenbricht. Warum Cursor statt OFFSET und warum
+           er zwei Werte trägt: src/lib/paging.js. */
+        if (url.pathname === "/api/dreams" && req.method === "GET") {
+          const limit = parseLimit(url.searchParams.get("limit"));
+          const cursor = decodeCursor(url.searchParams.get("cursor"));
+
+          const zeilen = await withUser(database, person.userId, (tx) => cursor
+            /* Zeilenvergleich (a,b) < (x,y): „älter, und bei gleicher Zeit
+               weiter hinten". Genau die Ordnung, nach der sortiert wird —
+               sonst fiele bei zwei Träumen derselben Nacht einer durch. */
+            ? tx`select * from public.dreams
+                  where user_id = ${person.userId}
+                    and (created_at, client_id) < (${cursor.createdAt}::timestamptz, ${cursor.clientId})
+                  order by created_at desc, client_id desc
+                  limit ${limit + 1}`
+            : tx`select * from public.dreams
+                  where user_id = ${person.userId}
+                  order by created_at desc, client_id desc
+                  limit ${limit + 1}`);
+
+          // Eine Zeile mehr gelesen als angefragt — das beantwortet „gibt es
+          // noch mehr?" ohne ein zweites count(*) über die ganze Tabelle.
+          const { seite, next } = buildPage(zeilen, limit);
+          return json({ ok: true, dreams: seite.map(fromRow), next, limit });
+        }
+
+        /* Hochladen und Aktualisieren in EINEM Aufruf, und genau deshalb
+           auch der Weg, auf dem ein lokales Tagebuch in die Datenbank zieht
+           (ADR-0005 verlangt diesen Weg, bevor die erste Fassung ausgeliefert
+           wird). Wiederholbar durch `unique (user_id, client_id)`: derselbe
+           Traum ein zweites Mal geschickt wird aktualisiert, nicht verdoppelt. */
+        if (url.pathname === "/api/dreams/sync" && req.method === "POST") {
+          if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+            return json({ error: "Request too large." }, 413);
+          }
+          const body = await req.json().catch(() => null);
+          const eingang = Array.isArray(body?.dreams) ? body.dreams : null;
+          if (!eingang) return json({ error: "Nothing to store." }, 400);
+          /* Der Stapel ist begrenzt, nicht nur die Byte-Zahl: Jeder Traum
+             ist eine eigene Anweisung in einer Transaktion, und eine
+             Transaktion, die zehntausend davon hält, blockiert die Zeile
+             so lange, wie sie braucht. Ein volles Tagebuch wandert in
+             mehreren Aufrufen — dafür ist sync wiederholbar gebaut. */
+          if (eingang.length > MAX_SYNC_BATCH) {
+            return json({ error: `Too many dreams in one request (max ${MAX_SYNC_BATCH}).`,
+                          max: MAX_SYNC_BATCH, gesendet: eingang.length }, 413);
+          }
+
+          const zeilen = eingang.map(toRow).filter(Boolean);
+          if (!zeilen.length) return json({ error: "No usable dream in this request." }, 400);
+
+          const gespeichert = await withUser(database, person.userId, async (tx) => {
+            let n = 0;
+            for (const z of zeilen) {
+              await tx`
+                insert into public.dreams
+                  (user_id, client_id, kind, title, tagline, text, original_text,
+                   analysis, reflection, style, format, mode, image_count, creature_id,
+                   "references", media, created_at, edited_at)
+                values (
+                  ${person.userId}, ${z.client_id}, ${z.kind}, ${z.title}, ${z.tagline},
+                  ${z.text}, ${z.original_text},
+                  ${z.analysis === null ? null : JSON.stringify(z.analysis)}::jsonb,
+                  ${z.reflection === null ? null : JSON.stringify(z.reflection)}::jsonb,
+                  ${z.style}, ${z.format}, ${z.mode}, ${z.image_count}, ${z.creature_id},
+                  ${JSON.stringify(z.references)}::jsonb, ${JSON.stringify(z.media)}::jsonb,
+                  ${z.created_at ?? new Date().toISOString()}, ${z.edited_at})
+                on conflict (user_id, client_id) do update set
+                  kind = excluded.kind, title = excluded.title, tagline = excluded.tagline,
+                  text = excluded.text, original_text = excluded.original_text,
+                  analysis = excluded.analysis, reflection = excluded.reflection,
+                  style = excluded.style, format = excluded.format, mode = excluded.mode,
+                  image_count = excluded.image_count, creature_id = excluded.creature_id,
+                  "references" = excluded."references", media = excluded.media,
+                  edited_at = excluded.edited_at`;
+              n++;
+            }
+            return n;
+          });
+          return json({ ok: true, gespeichert, uebersprungen: eingang.length - zeilen.length });
+        }
+
+        /* Das Löschrecht, zum ersten Mal erfüllbar: eine Zeile, ein Besitzer,
+           ein Befehl. RLS lässt ohnehin nur die eigenen Zeilen zu. */
+        if (url.pathname === "/api/dreams" && req.method === "DELETE") {
+          const clientId = url.searchParams.get("client_id") || "";
+          // 128 ist die Obergrenze der Spalte (dreamRow.js) — was länger
+          // ist, kann keine Zeile treffen und braucht keine Abfrage.
+          if (!clientId || clientId.length > 128) return json({ error: "Which dream? (client_id)" }, 400);
+          const weg = await withUser(database, person.userId, (tx) =>
+            tx`delete from public.dreams
+                where user_id = ${person.userId} and client_id = ${clientId}
+               returning client_id`);
+          if (!weg.length) return json({ error: "No such dream." }, 404);
+          return json({ ok: true, geloescht: weg[0].client_id });
+        }
+
+        return json({ error: "Unknown account route." }, 404);
+      } catch (e) {
+        /* Der Text einer Datenbankmeldung kann Spaltennamen und Werte
+           enthalten — er gehört ins Log, nicht in die Antwort. */
+        console.error(`[DreamRushes] ${req.method} ${url.pathname} fehlgeschlagen:`, e?.message || e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
     if (url.pathname === "/api/panel" && req.method === "POST") {
       try {
         if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
@@ -3068,6 +3367,14 @@ const serveOptions = {
 
 Bun.serve(serveOptions);
 
+/* Eine Profilzeile, wie der Client sie bekommt. Eigene Funktion, weil zwei
+   Endpunkte sie liefern (lesen und ändern) — und `survey` ist jsonb, kommt
+   also als Text aus dem Treiber zurück (fromJsonb in db.js). Stünde die
+   Umformung an beiden Stellen, würde sie irgendwann nur an einer gepflegt. */
+function profilFuerClient(zeile) {
+  return zeile ? { ...zeile, survey: fromJsonb(zeile.survey) } : null;
+}
+
 function json(obj, status = 200, extraHeaders) {
   return new Response(JSON.stringify(obj), {
     status,
@@ -3094,6 +3401,16 @@ openDatabase(process.env.DATABASE_URL).then(({ db, status }) => {
   database = db;
   console.log(status);
 });
+
+/* Die Anmeldung. Optional wie die Datenbank und aus demselben Grund: ein
+ * frischer Klon, Antons Rechner und jede Cloud-Sitzung haben diese Werte
+ * nicht, und ein Server, der ohne sie nicht startet, wird am selben Tag
+ * abgeschaltet. Fehlen sie, antworten die Konto-Endpunkte 503 — alles
+ * andere läuft wie vorher. */
+const AUTH = authConfig();
+console.log(AUTH
+  ? "Supabase Auth: konfiguriert ✓ (Anmeldung über /api/auth/login)"
+  : "Supabase Auth: nicht konfiguriert (SUPABASE_URL/SUPABASE_ANON_KEY fehlen) — keine Anmeldung");
 /* Welches Bildmodell gerade wirklich läuft, und was es je Bild kostet.
  * Ein Slug in .env ist unsichtbar, bis die Rechnung kommt — diese Zeile
  * macht einen versehentlichen Rückweg auf das doppelt so teure Modell

@@ -16,6 +16,7 @@ export const colors = {
   gold: "#f6c65b",
   cyan: "#4fd6e6",
   ok: "#3ddc97",
+  bad: "#ef6a6a",          // schwer geschlafen — im Kalender und Mond-Streifen
 };
 export const fonts = {
   serif: "Iowan Old Style",     // Systemschrift auf iOS; Traumtitel

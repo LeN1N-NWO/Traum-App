@@ -1,7 +1,8 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, StyleSheet, View } from "react-native";
 import JournalBridge from "@/legacy/journal-bridge";
 import { OnboardingFlow } from "@/components/onboarding-flow";
+import { pushProfile, restoreSession } from "@/lib/auth";
 import { onboardingSeen, setOnboardingSeen } from "@/store/dev-store";
 import { setJournal, useJournalStore, type BridgeCommand, type JournalSnapshot, type OnboardData } from "@/store/journal-store";
 import { colors } from "@/theme";
@@ -28,6 +29,8 @@ export function OnboardingGate() {
   const n = useRef(0);
   const onJournal = useCallback(async (snap: JournalSnapshot) => { setJournal(snap); }, []);
   const raw = data?.onboard;
+  // Wer schon angemeldet ist, sieht im Anmelde-Schritt sein Konto statt der Felder.
+  useEffect(() => { restoreSession().catch(() => {}); }, []);
   if (!__DEV__) return null;
 
   /* Die Sätze mit Zahl kommen als Vorlage mit Platzhalter 1000 an — die
@@ -44,9 +47,14 @@ export function OnboardingGate() {
         {O ? (
           <OnboardingFlow
             O={O}
+            onPhoto={(photo) => { n.current += 1; setCommand({ type: "mePhoto", n: n.current, photo }); }}
             onDone={(answers) => {
               n.current += 1;
               setCommand({ type: "onboarded", n: n.current, answers });
+              /* Mit Konto folgt das Profil in die Datenbank (PATCH
+                 /api/account) — ohne Konto passiert nichts, das Gerät
+                 bleibt die Wahrheit (Hannis Übergabe). */
+              pushProfile({ display_name: answers.name || undefined, language: data?.language, onboarded: true, survey_done: true, survey: answers }).catch(() => {});
               setOnboardingSeen();
               setOpen(false);
             }}

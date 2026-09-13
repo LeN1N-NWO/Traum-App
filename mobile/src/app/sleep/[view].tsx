@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { LegacyTab } from "@/components/legacy-tab";
 import { LucidGuide } from "@/components/lucid-guide";
+import { Clip } from "@/components/preset-tile";
 import { SleepChecklist } from "@/components/sleep-checklist";
 import { SoundMixer } from "@/components/sound-mixer";
 import { SymbolsAtlas } from "@/components/symbols-atlas";
@@ -29,19 +30,36 @@ export default function SleepSectionScreen() {
   );
 }
 
-function Room({ id, sf, tint, glow, children }: { id: string; sf: SFSymbol; tint: string; glow: string; children: React.ReactNode }) {
+function Room({ id, sf, tint, glow, trailer, kicker, children }: { id: string; sf: SFSymbol; tint: string; glow: string; trailer?: string | null; kicker?: string; children: React.ReactNode }) {
   const { data, bridge } = useJournal();
   const tile = data?.sleep?.tiles.find((t) => t.id === id);
   return (
     <>
-      <Stack.Screen options={{ headerLargeTitle: false, title: "" }} />
-      <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
-        <LinearGradient colors={[glow, "rgba(0,0,0,0)"]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.hero} pointerEvents="none" />
-        <View style={styles.head}>
-          <View style={[styles.icon, { borderColor: tint }]}><SymbolView name={sf} size={24} tintColor={tint} /></View>
-          <Text style={styles.title}>{tile?.title ?? ""}</Text>
-          <Text style={styles.sub}>{tile?.text ?? ""}</Text>
-        </View>
+      <Stack.Screen options={{ headerLargeTitle: false, title: "", headerTransparent: !!trailer }} />
+      <ScrollView style={styles.screen} contentInsetAdjustmentBehavior={trailer ? "never" : "automatic"} contentContainerStyle={[styles.content, trailer && { paddingTop: 0 }]}>
+        {trailer ? (
+          /* Der Trailer oben (Antons Vorbild 13.09.: Moonlys Welcome Guide,
+             wie die Traum-Seite im Journal): Film über die Breite, unten
+             Kicker, Titel, Satz im Schleier. ⚠ PLATZHALTER-Clip. */
+          <View style={styles.trailer}>
+            <Clip url={trailer} />
+            <LinearGradient colors={["rgba(5,10,20,0.35)", "rgba(5,10,20,0)", "rgba(5,10,20,0.6)", "rgba(5,10,20,1)"]} locations={[0, 0.35, 0.75, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+            <View style={styles.trailerBody}>
+              {kicker ? <Text style={styles.kicker}>{kicker}</Text> : null}
+              <Text style={styles.trailerTitle}>{tile?.title ?? ""}</Text>
+              <Text style={styles.trailerSub}>{tile?.text ?? ""}</Text>
+            </View>
+          </View>
+        ) : (
+          <>
+            <LinearGradient colors={[glow, "rgba(0,0,0,0)"]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.hero} pointerEvents="none" />
+            <View style={styles.head}>
+              <View style={[styles.icon, { borderColor: tint }]}><SymbolView name={sf} size={24} tintColor={tint} /></View>
+              <Text style={styles.title}>{tile?.title ?? ""}</Text>
+              <Text style={styles.sub}>{tile?.text ?? ""}</Text>
+            </View>
+          </>
+        )}
         {data ? children : null}
       </ScrollView>
       <View style={styles.bridge}>{bridge}</View>
@@ -63,7 +81,7 @@ function GuideRoom() {
   const { data, send } = useJournal();
   const G = data?.sleep?.lucid;
   return (
-    <Room id="guide" sf="brain.head.profile" tint={colors.accent} glow="rgba(79,156,249,0.30)">
+    <Room id="guide" sf="brain.head.profile" tint={colors.accent} glow="rgba(79,156,249,0.30)" trailer={G?.heroClip ?? null} kicker={G?.tutorialKicker}>
       {G ? <LucidGuide G={G} onReminder={(wants, perDay) => send({ type: "reminders", wants, perDay })} /> : null}
     </Room>
   );
@@ -96,5 +114,10 @@ const styles = StyleSheet.create({
   icon: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", borderWidth: 1, backgroundColor: "rgba(255,255,255,0.05)" },
   title: { fontFamily: fonts.serif, fontSize: 30, color: colors.text, textAlign: "center" },
   sub: { color: colors.muted, fontSize: 15, textAlign: "center", lineHeight: 21 },
+  trailer: { aspectRatio: 4 / 5, marginHorizontal: -16, backgroundColor: colors.bg2, overflow: "hidden", justifyContent: "flex-end" },
+  trailerBody: { paddingHorizontal: 20, paddingBottom: 8, gap: 8 },
+  kicker: { color: colors.accentSoft, fontSize: 12, letterSpacing: 2, textTransform: "uppercase" },
+  trailerTitle: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 38, color: colors.text },
+  trailerSub: { color: colors.muted, fontSize: 15, lineHeight: 21 },
   bridge: { height: 0, overflow: "hidden" },
 });

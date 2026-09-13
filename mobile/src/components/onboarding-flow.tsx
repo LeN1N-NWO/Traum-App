@@ -1,15 +1,19 @@
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+import { Image } from "expo-image";
 import { requestRecordingPermissionsAsync } from "expo-audio";
 import { LinearGradient } from "expo-linear-gradient";
 import { SymbolView, type SFSymbol } from "expo-symbols";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
+import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming, type SharedValue } from "react-native-reanimated";
+import Svg, { Circle, G } from "react-native-svg";
 import { Clip } from "@/components/preset-tile";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
+import { login, useAccountEmail, type LoginFailure } from "@/lib/auth";
 import type { OnboardData } from "@/store/journal-store";
 import { colors, fonts, radius } from "@/theme";
 
@@ -44,13 +48,14 @@ function dreamYears(key: string) {
 
 const ICONS: Record<number, SFSymbol> = { 0: "waveform.and.mic", 1: "film", 2: "moon.stars", 3: "lock" };
 
-export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers: Answers) => void }) {
+export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone: (answers: Answers) => void; onPhoto?: (dataUrl: string) => void }) {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(() => (__DEV__ && typeof (globalThis as any).__ONB_STEP__ === "number" ? (globalThis as any).__ONB_STEP__ : 0));
   const [a, setA] = useState<Answers>(EMPTY);
   const [mic, setMic] = useState<boolean | null>(null);
   const [photos, setPhotos] = useState<boolean | null>(null);
   const [themeDraft, setThemeDraft] = useState("");
+  const [photo, setPhoto] = useState<string | null>(null);   // Vorschau (Datei-URI), das Bild selbst geht als Data-URL zur Brücke
 
   const set = <K extends keyof Answers>(k: K, v: Answers[K]) => setA((prev) => ({ ...prev, [k]: v }));
   // Ein zweiter Tipp nimmt die Antwort zurück — wie im Web-Formular.
@@ -105,20 +110,45 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
   type Screen =
     | { kind: "intro" } | { kind: "features" } | { kind: "permits" } | { kind: "name" }
     | { kind: "question"; at: number } | { kind: "showcase"; at: number }
-    | { kind: "sleepYears" } | { kind: "mascot" } | { kind: "themes" } | { kind: "done" };
+    | { kind: "sleepYears" } | { kind: "mascot" } | { kind: "themes" } | { kind: "account" } | { kind: "me" } | { kind: "done" };
   const screens: Screen[] = [{ kind: "intro" }, { kind: "features" }, { kind: "permits" }, { kind: "name" }];
   fragen.forEach((f, i) => {
     screens.push({ kind: "question", at: i });
     if (f.key === "sleepHours") screens.push({ kind: "sleepYears" });
-    else screens.push({ kind: "showcase", at: i > 3 ? i - 1 : i });
+    else {
+      const at = i > 3 ? i - 1 : i;
+      screens.push({ kind: "showcase", at });
+      /* Nach dem Zwischenbild „Die Menschen darin sind deine" (at 1) das
+         eigene Foto (Antons Platzwahl 13.09.): erst sehen, dass man
+         mitspielt, dann das Gesicht geben. */
+      if (at === 1) screens.push({ kind: "me" });
+    }
   });
-  screens.push({ kind: "mascot" }, { kind: "themes" }, { kind: "done" });
+  /* Die Anmeldung GANZ AM ENDE (Antons Platzwahl 13.09.): Wer bis hierher
+     geantwortet hat, sichert das Ergebnis — nicht umgekehrt. Am Anfang
+     schreckt sie ab, beim Kauf ist sie zu spät. */
+  screens.push({ kind: "mascot" }, { kind: "themes" }, { kind: "account" }, { kind: "done" });
   const total = screens.length;
   const jetzt = screens[Math.min(step, total - 1)];
 
   function back() { Haptics.selectionAsync(); setStep((s: number) => Math.max(0, s - 1)); }
   function next() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setStep((s: number) => s + 1); }
   function finish() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onDone(a); }
+
+  /* Das eigene Foto: Bibliothek oder Kamera, quadratisch beschnitten,
+     nativ auf 1600 px verkleinert (wie compactDataUrl im Web) und als
+     JPEG-Data-URL an die Brücke — dort wird es `me.img`. */
+  async function pickPhoto(camera: boolean) {
+    Haptics.selectionAsync();
+    const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], quality: 0.9 };
+    const r = camera ? await ImagePicker.launchCameraAsync(opts).catch(() => null) : await ImagePicker.launchImageLibraryAsync(opts).catch(() => null);
+    const asset = r && !r.canceled ? r.assets[0] : null;
+    if (!asset) return;
+    const small = await ImageManipulator.manipulateAsync(asset.uri, [{ resize: { width: 1600 } }], { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG, base64: true });
+    setPhoto(small.uri);
+    if (small.base64) onPhoto?.(`data:image/jpeg;base64,${small.base64}`);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
 
   async function askMic() {
     Haptics.selectionAsync();
@@ -139,25 +169,42 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
   // ── Was die App macht, als Glas-Kacheln mit laufenden Filmen
   if (jetzt.kind === "features") {
     return (
-      <Shell insets={insets} step={step} total={total} title={O.featuresTitle} onSkip={finish} skipLabel={O.skip} onBack={step > 0 ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.featuresTitle} lede={O.featuresLede} onBack={step > 0 ? back : undefined}>
         {/* Vier Kacheln im Glas, in denen die Traum-Clips laufen — Antons
             Vorbild (Moonly). Die Filme sind erst mal die Vorschau-Clips der
             Stile; jede Kachel trägt ihr Etikett wie dort. */}
+        {/* Zwei Spalten, versetzt wie beim Vorbild (Moonly): links kurz
+            über lang, rechts lang über kurz. Die Kachel trägt NUR ihr
+            Etikett — der Satz dazu ist der Untertitel oben (Antons Befund
+            13.09.: „aufgeräumter"). Etiketten der oberen Reihe sitzen am
+            oberen Rand, die der unteren am unteren. */}
         <View style={styles.tiles}>
-          {O.features.map((f, i) => (
-            <Animated.View key={f.title} entering={FadeInDown.delay(70 * i).duration(320)} style={[styles.tileCell, i % 3 === 1 && styles.tileTall]}>
-              <View style={styles.tileClip}>
-                {O.clips[i % Math.max(1, O.clips.length)] ? <Clip url={O.clips[i % O.clips.length]} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
-                <LinearGradient colors={["rgba(5,10,20,0.45)", "rgba(5,10,20,0)", "rgba(5,10,20,0.8)"]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
-                <View style={styles.tileBadge}>
-                  <Glass style={styles.tileBadgeGlass}>
-                    <SymbolView name={ICONS[i] ?? "sparkles"} size={12} tintColor={colors.accentSoft} />
-                    <Text style={styles.tileBadgeText} numberOfLines={1}>{f.title}</Text>
-                  </Glass>
-                </View>
-                <Text style={styles.tileFoot} numberOfLines={3}>{f.text}</Text>
+          {[[0, 2], [1, 3]].map((spalte, c) => (
+            <View key={c} style={styles.tileCol}>
+              {spalte.map((i, r) => {
+                const f = O.features[i];
+                if (!f) return null;
+                const lang = (c === 0) === (r === 1);
+                return (
+                  <FeatureTile key={f.title} i={i} title={f.title} clip={O.clips[i % Math.max(1, O.clips.length)] ?? null} tall={lang} labelBottom={r === 1} />
+                );
+              })}
+            </View>
+          ))}
+        </View>
+        {/* ⚠ PLATZHALTER: die Proof-Zeile (Antons Ansage 13.09.: „erst mal
+            fake, technisch") — Lorbeer, Sterne, „folgt". Wird gegen echte
+            Auszeichnungen getauscht. */}
+        <View style={styles.proofRow}>
+          {O.proof.map((pr, i) => (
+            <View key={i} style={styles.proof}>
+              <SymbolView name="laurel.leading" size={30} tintColor={colors.muted} />
+              <View style={{ alignItems: "center", gap: 1 }}>
+                <Text style={styles.proofBig}>{pr.big}</Text>
+                <Text style={styles.proofSmall}>{pr.small}</Text>
               </View>
-            </Animated.View>
+              <SymbolView name="laurel.trailing" size={30} tintColor={colors.muted} />
+            </View>
           ))}
         </View>
         <PrimaryButton label={O.next} heavy onPress={next} style={{ flex: 0 }} />
@@ -182,7 +229,7 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
       </Glass>
     );
     return (
-      <Shell insets={insets} step={step} total={total} title={O.askTitle} lede={O.askText} onSkip={finish} skipLabel={O.skip} onBack={step > 0 ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.askTitle} lede={O.askText} onBack={step > 0 ? back : undefined}>
         <View style={{ gap: 10, width: "100%" }}>
           {row(O.askMic, O.askMicWhy, mic, askMic, "mic.fill")}
           {row(O.askPhotos, O.askPhotosWhy, photos, askPhotos, "photo.on.rectangle")}
@@ -195,7 +242,7 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
   // ── Der Name
   if (jetzt.kind === "name") {
     return (
-      <Shell insets={insets} step={step} total={total} title={O.formName} onSkip={finish} skipLabel={O.skip} onBack={step > 0 ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.formName} onBack={step > 0 ? back : undefined}>
         <TextInput
           style={styles.input} value={a.name} onChangeText={(v) => set("name", v.slice(0, 40))}
           placeholder={O.formNamePlaceholder} placeholderTextColor={colors.faint}
@@ -210,7 +257,7 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
   if (jetzt.kind === "question") {
     const f = fragen[jetzt.at];
     return (
-      <Shell key={f.key} insets={insets} step={step} total={total} title={f.title} onSkip={finish} skipLabel={O.skip} onBack={step > 0 ? back : undefined}>
+      <Shell key={f.key} insets={insets} step={step} total={total} title={f.title} onBack={step > 0 ? back : undefined}>
         {f.body}
         {/* Ohne Antwort kein Weiter (Antons Befund 13.09.) — wer nicht
             antworten will, nimmt „Überspringen" oben rechts. */}
@@ -223,12 +270,36 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
   if (jetzt.kind === "showcase") {
     const sc = O.showcase[jetzt.at % Math.max(1, O.showcase.length)];
     const clip = O.clips.length ? O.clips[(jetzt.at + 1) % O.clips.length] : null;
-    return <Showcase O={O} title={sc?.title ?? ""} text={sc?.text ?? ""} clip={clip} insets={insets} step={step} total={total} onNext={next} onBack={back} onSkip={finish} />;
+    return <Showcase O={O} title={sc?.title ?? ""} text={sc?.text ?? ""} clip={clip} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
   }
 
   // ── Die Jahre im Schlaf (Antons Opal-Vorbild) — direkt nach der Schlaf-Frage
   if (jetzt.kind === "sleepYears") {
-    return <SleepYears O={O} answer={a.sleepHours} insets={insets} step={step} total={total} onNext={next} onSkip={finish} onBack={back} />;
+    return <SleepYears O={O} answer={a.sleepHours} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
+  }
+
+  // ── Wer bist du? Das eigene Foto (nach dem Zwischenbild „du kommst drin vor")
+  if (jetzt.kind === "me") {
+    return (
+      <Shell insets={insets} step={step} total={total} title={O.meTitle} lede={O.meText} onBack={back}>
+        <View style={{ alignItems: "center", gap: 18, width: "100%" }}>
+          <View style={styles.face}>
+            {photo ? <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : <SymbolView name="person.crop.circle.badge.plus" size={64} tintColor={colors.accentSoft} />}
+          </View>
+          {photo ? <Animated.Text entering={FadeIn.duration(260)} style={styles.faceDone}>{O.meDone}</Animated.Text> : null}
+          <View style={{ flexDirection: "row", gap: 10, width: "100%" }}>
+            <GlassButton label={photo ? O.meChange : O.mePick} onPress={() => pickPhoto(false)} />
+            <GlassButton label={O.meCamera} onPress={() => pickPhoto(true)} />
+          </View>
+        </View>
+        <View style={{ gap: 6 }}>
+          <PrimaryButton label={O.next} heavy onPress={next} disabled={!photo} style={{ flex: 0 }} />
+          <Pressable onPress={() => { Haptics.selectionAsync(); next(); }} hitSlop={10} style={{ alignSelf: "center", paddingVertical: 10 }}>
+            <Text style={styles.later}>{O.meLater}</Text>
+          </Pressable>
+        </View>
+      </Shell>
+    );
   }
 
   /* ── Die Maskottchen-Wahl. ⚠ Zwei von drei sind Platzhalter (mascots.js);
@@ -237,7 +308,7 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
   if (jetzt.kind === "mascot") {
     const gewaehlt = a.mascot || O.mascot;
     return (
-      <Shell insets={insets} step={step} total={total} title={O.mascotTitle} lede={O.mascotText} onSkip={finish} skipLabel={O.skip} onBack={back}>
+      <Shell insets={insets} step={step} total={total} title={O.mascotTitle} lede={O.mascotText} onBack={back}>
         <View style={styles.grid}>
           {O.mascots.map((m) => {
             const on = gewaehlt === m.id;
@@ -269,7 +340,7 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
       setThemeDraft("");
     };
     return (
-      <Shell insets={insets} step={step} total={total} title={O.formThemes} onSkip={finish} skipLabel={O.skip} onBack={step > 0 ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.formThemes} onBack={step > 0 ? back : undefined}>
         <View style={{ width: "100%", gap: 10 }}>
           <View style={styles.themeRow}>
             <TextInput
@@ -294,6 +365,11 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
     );
   }
 
+  // ── Die Anmeldung (Hannis Backend, Übergabe 12.09.)
+  if (jetzt.kind === "account") {
+    return <Account O={O} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
+  }
+
   // ── Schluss
   return (
     <Shell insets={insets} step={step} total={total} title={O.doneTitle} lede={O.doneText} onBack={back}>
@@ -305,25 +381,140 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
   );
 }
 
+/* Die Anmeldung: E-Mail, Passwort, „Anmelden" — mehr nicht (Hannis
+   Übergabe: kein Registrieren, kein Passwort-Vergessen; beides kommt mit
+   „Mit Apple anmelden", für das unten schon der Platz steht). Ohne Konto
+   geht es mit „Später" weiter — das Tagebuch lebt auf dem Gerät, das
+   Konto ist die Sicherung, nicht die Bedingung.
+   Die Token gehen in den Schlüsselbund (lib/auth.ts), nie in den Zustand. */
+function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
+  const signedIn = useAccountEmail();
+  const [mail, setMail] = useState("");
+  const [pw, setPw] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [fail, setFail] = useState<LoginFailure | null>(null);
+  const pwRef = useRef<TextInput>(null);
+  const ready = /\S+@\S+\.\S+/.test(mail.trim()) && pw.length >= 6 && !busy;
+
+  async function go() {
+    if (!ready) return;
+    setBusy(true); setFail(null);
+    const r = await login(mail, pw);
+    setBusy(false);
+    if (r.ok) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setPw(""); }
+    else { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); setFail(r.why); }
+  }
+  const reason: Record<LoginFailure, string> = { wrong: O.accountWrong, busy: O.accountBusy, unavailable: O.accountUnavailable, offline: O.accountOffline };
+
+  return (
+    <Shell insets={insets} step={step} total={total} title={O.accountTitle} lede={O.accountText} onBack={onBack}>
+      {signedIn ? (
+        <Animated.View entering={FadeIn.duration(260)} style={{ width: "100%", gap: 14 }}>
+          <Glass style={styles.signedIn}>
+            <SymbolView name="checkmark.seal.fill" size={26} tintColor={colors.ok} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={styles.cardText}>{O.accountSignedIn}</Text>
+              <Text style={styles.cardTitle} numberOfLines={1}>{signedIn}</Text>
+            </View>
+          </Glass>
+          <PrimaryButton label={O.next} heavy onPress={onNext} style={{ flex: 0 }} />
+        </Animated.View>
+      ) : (
+        <View style={{ width: "100%", gap: 10 }}>
+          {/* Die Felder im Glas, wie die Antwort-Kacheln — ein Bildschirm,
+              ein Material. Fehler stehen UNTER den Feldern, in Worten. */}
+          <Glass style={styles.field} interactive>
+            <SymbolView name="envelope" size={17} tintColor={colors.faint} />
+            <TextInput
+              style={styles.fieldInput} value={mail} onChangeText={(v) => { setMail(v); setFail(null); }}
+              placeholder={O.accountEmail} placeholderTextColor={colors.faint}
+              autoCapitalize="none" autoCorrect={false} keyboardType="email-address" textContentType="username" autoComplete="email"
+              keyboardAppearance="dark" returnKeyType="next" onSubmitEditing={() => pwRef.current?.focus()} editable={!busy}
+            />
+          </Glass>
+          <Glass style={styles.field} interactive>
+            <SymbolView name="key" size={17} tintColor={colors.faint} />
+            <TextInput
+              ref={pwRef} style={styles.fieldInput} value={pw} onChangeText={(v) => { setPw(v); setFail(null); }}
+              placeholder={O.accountPassword} placeholderTextColor={colors.faint}
+              secureTextEntry textContentType="password" autoComplete="password"
+              keyboardAppearance="dark" returnKeyType="go" onSubmitEditing={go} editable={!busy}
+            />
+          </Glass>
+          {fail ? <Animated.Text entering={FadeIn.duration(200)} style={styles.fail}>{reason[fail]}</Animated.Text> : null}
+          <View style={{ marginTop: 6 }}>
+            {busy ? (
+              <Glass style={styles.busy}><ActivityIndicator color={colors.text} /></Glass>
+            ) : (
+              <PrimaryButton label={O.accountCta} heavy onPress={go} disabled={!ready} style={{ flex: 0 }} />
+            )}
+          </View>
+          {/* Der Platz für den zweiten Knopf (Sign in with Apple, ADR-0005) —
+              heute noch stumm, damit die Anordnung später nicht springt. */}
+          <View style={[styles.apple, { opacity: 0.45 }]} pointerEvents="none">
+            <SymbolView name="apple.logo" size={16} tintColor={colors.text} />
+            <Text style={styles.appleText}>{O.accountApple}</Text>
+          </View>
+          <Pressable onPress={() => { Haptics.selectionAsync(); onNext(); }} hitSlop={10} disabled={busy} style={{ alignSelf: "center", paddingVertical: 10 }}>
+            <Text style={styles.later}>{O.accountLater}</Text>
+          </Pressable>
+        </View>
+      )}
+    </Shell>
+  );
+}
+
+/* Eine Feature-Kachel: der Clip hinter einer weichen Rundung, um die ein
+   Schein läuft — der ATMET (langsam auf und ab, jede Kachel versetzt), das
+   ist die „Animation am Rand", die Anton am Vorbild gesehen hat. Der Rand
+   selbst ist ein Verlauf, der als 1,5-Punkt-Saum um die Kachel liegt. */
+function FeatureTile({ i, title, clip, tall, labelBottom }: { i: number; title: string; clip: string | null; tall: boolean; labelBottom: boolean }) {
+  const k = useSharedValue(0);
+  useEffect(() => {
+    k.value = withDelay(400 * i, withRepeat(withTiming(1, { duration: 2600 + 300 * i, easing: Easing.inOut(Easing.sin) }), -1, true));
+  }, [k, i]);
+  const halo = useAnimatedStyle(() => ({ opacity: 0.35 + 0.45 * k.value, transform: [{ scale: 1 + 0.02 * k.value }] }));
+  const rim = useAnimatedStyle(() => ({ opacity: 0.55 + 0.45 * k.value }));
+  const badge = (
+    <View style={[styles.tileBadge, labelBottom ? { bottom: -6 } : { top: -6 }]}>
+      <Glass style={styles.tileBadgeGlass}>
+        <SymbolView name={ICONS[i] ?? "sparkles"} size={12} tintColor={colors.accentSoft} />
+        <Text style={styles.tileBadgeText} numberOfLines={1}>{title}</Text>
+      </Glass>
+    </View>
+  );
+  return (
+    <Animated.View entering={FadeInDown.delay(70 * i).duration(320)} style={[styles.tileCell, tall && styles.tileTall]}>
+      <Animated.View style={[styles.tileHalo, halo]} pointerEvents="none">
+        <LinearGradient colors={["rgba(140,192,255,0.55)", "rgba(242,167,101,0.35)", "rgba(140,192,255,0.0)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+      <Animated.View style={[styles.tileRim, rim]} pointerEvents="none">
+        <LinearGradient colors={["rgba(255,255,255,0.55)", "rgba(140,192,255,0.25)", "rgba(242,167,101,0.4)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+      <View style={styles.tileClip}>
+        {clip ? <Clip url={clip} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
+        <LinearGradient colors={["rgba(5,10,20,0.35)", "rgba(5,10,20,0)", "rgba(5,10,20,0.45)"]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+      </View>
+      {badge}
+    </Animated.View>
+  );
+}
+
 /* Der Rahmen jeder Frage: Fortschritt oben, Überspringen rechts, Titel in
    der Serife, darunter der Inhalt, unten der Knopf. */
-function Shell({ insets, step, total, title, lede, children, onSkip, skipLabel, onBack }: { insets: { top: number; bottom: number }; step: number; total: number; title: string; lede?: string; children: React.ReactNode; onSkip?: () => void; skipLabel?: string; onBack?: () => void }) {
+function Shell({ insets, step, total, title, lede, children, onBack }: { insets: { top: number; bottom: number }; step: number; total: number; title: string; lede?: string; children: React.ReactNode; onBack?: () => void }) {
   return (
     <View style={styles.screen}>
       <LinearGradient colors={["rgba(42,98,208,0.28)", "rgba(5,10,20,0)"]} style={styles.glow} pointerEvents="none" />
       <View style={[styles.top, { paddingTop: insets.top + 10 }]}>
-        {/* Überspringen ÜBER dem Fortschritt: neben ihm brach das Wort um
-            (Befund 13.09. am Screenshot). */}
+        {/* Nur der Zurück-Pfeil, kein Text, kein „Überspringen" mehr
+            (Antons Ansage 13.09.: „komplett weglassen"). */}
         <View style={styles.skipRow}>
-          {/* Zurück: nur ein Pfeil, kein Text (Antons Wunsch 13.09.). */}
           {onBack ? (
             <Pressable onPress={onBack} hitSlop={12} accessibilityLabel="Back">
               <SymbolView name="chevron.left" size={17} tintColor={colors.text} weight="semibold" />
             </Pressable>
           ) : <View style={{ width: 17 }} />}
-          {/* „Überspringen" bleibt vorerst — Antons Ansage: in der
-              Dev-Fassung noch drin, später raus. */}
-          {onSkip ? <Pressable onPress={onSkip} hitSlop={12}><Text style={styles.skip}>{skipLabel}</Text></Pressable> : null}
         </View>
         <View style={styles.progress}>
           {Array.from({ length: total }, (_, i) => <View key={i} style={[styles.pip, i <= step && styles.pipOn]} />)}
@@ -393,7 +584,7 @@ function MascotFace({ id }: { id: string }) {
    weiter. Nach jeder Frage eines — es macht Lust auf die App, statt nur zu
    fragen (Antons Wunsch 13.09.). Die Clips sind vorerst die Vorschau-Filme
    der Stile; eigene kommen später. */
-function Showcase({ O, title, text, clip, insets, step, total, onNext, onBack, onSkip }: { O: OnboardData; title: string; text: string; clip: string | null; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void; onSkip: () => void }) {
+function Showcase({ O, title, text, clip, insets, step, total, onNext, onBack }: { O: OnboardData; title: string; text: string; clip: string | null; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
   return (
     <View style={styles.screen}>
       {clip ? <Clip url={clip} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
@@ -403,7 +594,6 @@ function Showcase({ O, title, text, clip, insets, step, total, onNext, onBack, o
           <Pressable onPress={onBack} hitSlop={12} accessibilityLabel="Back">
             <SymbolView name="chevron.left" size={17} tintColor={colors.text} weight="semibold" />
           </Pressable>
-          <Pressable onPress={onSkip} hitSlop={12}><Text style={styles.skip}>{O.skip}</Text></Pressable>
         </View>
         <View style={styles.progress}>
           {Array.from({ length: total }, (_, i) => <View key={i} style={[styles.pip, i <= step && styles.pipOn]} />)}
@@ -420,26 +610,65 @@ function Showcase({ O, title, text, clip, insets, step, total, onNext, onBack, o
   );
 }
 
-/* Die Jahre im Schlaf: die Zahl zählt hoch, dann steht der Satz darunter. */
-function SleepYears({ O, answer, insets, step, total, onNext, onSkip, onBack }: { O: OnboardData; answer: string; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onSkip: () => void; onBack: () => void }) {
-  const ziel = sleepYears(answer);
+/* Die Jahre im Schlaf als Kreis (Antons Wunsch 13.09.): erst zeichnet
+   sich der Ring des ganzen Lebens (80 Jahre), dann läuft der warme Bogen
+   des Schlafs hinein, dann darin der goldene der Träume — die Zahl in
+   der Mitte zählt mit dem Bogen hoch. Der Satz darunter sagt, wofür das
+   alles ist: die Jahre nicht vorbeiziehen lassen.
+   ⚠ Bögen mit react-native-svg (seit 13.09. installiert, Pods + Rebuild):
+   strokeDashoffset über Reanimated — kein setState je Frame. */
+const RING = 220;
+const STROKE = 18;
+const R = (RING - STROKE) / 2;
+const UMFANG = 2 * Math.PI * R;
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+function Bogen({ anteil, k, farbe }: { anteil: number; k: SharedValue<number>; farbe: string }) {
+  const props = useAnimatedProps(() => ({ strokeDashoffset: UMFANG * (1 - anteil * k.value) }));
+  return <AnimatedCircle cx={RING / 2} cy={RING / 2} r={R} stroke={farbe} strokeWidth={STROKE} strokeLinecap="round" fill="none" strokeDasharray={`${UMFANG} ${UMFANG}`} animatedProps={props} />;
+}
+function SleepYears({ O, answer, insets, step, total, onNext, onBack }: { O: OnboardData; answer: string; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
+  const schlaf = sleepYears(answer);
+  const traum = dreamYears(answer);
+  const leben = useSharedValue(0), s = useSharedValue(0), d = useSharedValue(0);
   const [n, setN] = useState(0);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [zeigTraum, setZeigTraum] = useState(false);
   useEffect(() => {
-    let i = 0;
-    timer.current = setInterval(() => {
-      i += Math.max(1, Math.round(ziel / 24));
-      if (i >= ziel) { i = ziel; if (timer.current) clearInterval(timer.current); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }
-      setN(i);
-    }, 45);
-    return () => { if (timer.current) clearInterval(timer.current); };
-  }, [ziel]);
+    leben.value = withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) });
+    s.value = withDelay(900, withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.cubic) }));
+    d.value = withDelay(2100, withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) }));
+    // Die Zahl läuft mit dem Schlaf-Bogen (900 ms Start, 1100 ms Dauer).
+    const start = Date.now() + 900;
+    const t = setInterval(() => {
+      const p = Math.min(1, Math.max(0, (Date.now() - start) / 1100));
+      const e = 1 - Math.pow(1 - p, 3);
+      setN(Math.round(schlaf * e));
+      if (p >= 1) { clearInterval(t); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }
+    }, 40);
+    const t2 = setTimeout(() => { setZeigTraum(true); Haptics.selectionAsync(); }, 2300);
+    return () => { clearInterval(t); clearTimeout(t2); };
+  }, [schlaf, leben, s, d]);
   return (
-    <Shell insets={insets} step={step} total={total} title={O.sleepTitle} onSkip={onSkip} skipLabel={O.skip} onBack={onBack}>
-      <View style={{ alignItems: "center", gap: 4, paddingTop: 30 }}>
-        <Text style={styles.bigYears}>{O.sleepYears(n)}</Text>
-        <Text style={styles.bigAsleep}>{O.sleepAsleep}</Text>
-        <Text style={styles.sleepDream}>{O.sleepDream(dreamYears(answer))}</Text>
+    <Shell insets={insets} step={step} total={total} title={O.sleepTitle} onBack={onBack}>
+      <View style={{ alignItems: "center", gap: 16, paddingTop: 6 }}>
+        <View style={{ width: RING, height: RING, alignItems: "center", justifyContent: "center" }}>
+          <Svg width={RING} height={RING} style={StyleSheet.absoluteFill}>
+            <G rotation={-90} origin={`${RING / 2}, ${RING / 2}`}>
+              <Bogen anteil={1} k={leben} farbe="rgba(255,255,255,0.10)" />
+              <Bogen anteil={schlaf / LIFE_YEARS} k={s} farbe={colors.warm} />
+              {/* Träume GRÜN, nicht gold: gold lag zu nah am warmen Schlaf-Bogen
+                  (Antons Befund 13.09.). */}
+              <Bogen anteil={traum / LIFE_YEARS} k={d} farbe={colors.ok} />
+            </G>
+          </Svg>
+          <Text style={styles.ringYears}>{O.sleepYears(n)}</Text>
+          <Text style={styles.ringLabel}>{O.sleepAsleep}</Text>
+        </View>
+        <View style={styles.legend}>
+          {[["rgba(255,255,255,0.18)", O.sleepLegend.life], [colors.warm, O.sleepLegend.sleep], [colors.ok, O.sleepLegend.dream]].map(([c, l]) => (
+            <View key={l} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: c }]} /><Text style={styles.legendText}>{l}</Text></View>
+          ))}
+        </View>
+        {zeigTraum ? <Animated.Text entering={FadeInDown.duration(420)} style={styles.sleepDream}>{O.sleepDream(traum)}</Animated.Text> : <Text style={[styles.sleepDream, { opacity: 0 }]}>{O.sleepDream(traum)}</Text>}
         <Text style={styles.sleepNote}>{O.sleepNote}</Text>
       </View>
       <PrimaryButton label={O.next} onPress={onNext} style={{ flex: 0 }} />
@@ -455,10 +684,12 @@ const styles = StyleSheet.create({
   progress: { flex: 1, flexDirection: "row", gap: 4 },
   pip: { flex: 1, height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.12)" },
   pipOn: { backgroundColor: colors.accentSoft },
-  skip: { color: colors.faint, fontSize: 14 },
   body: { paddingHorizontal: 22, paddingTop: 18, gap: 18, flexGrow: 1 },
-  title: { fontFamily: fonts.serif, fontSize: 32, lineHeight: 38, color: colors.text },
-  lede: { color: colors.muted, fontSize: 15, lineHeight: 22 },
+  /* Überschrift und Untertitel MITTIG (Antons Vorbild 13.09.: Moonly) —
+     und mit etwas Luft zum Rand, damit sie über dem Raster stehen statt
+     an ihm zu kleben. */
+  title: { fontFamily: fonts.serif, fontSize: 31, lineHeight: 37, color: colors.text, textAlign: "center", paddingHorizontal: 8 },
+  lede: { color: colors.muted, fontSize: 15, lineHeight: 22, textAlign: "center", paddingHorizontal: 10 },
   content: { flex: 1, justifyContent: "space-between", gap: 20 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   gridCell: { width: "48%", flexGrow: 1 },
@@ -469,14 +700,20 @@ const styles = StyleSheet.create({
   tileOn: {},
   tileText: { color: colors.text, fontSize: 15, lineHeight: 20, textAlign: "center" },
   tileTextOn: { color: colors.accentSoft, fontWeight: "600" },
-  tiles: { flexDirection: "row", flexWrap: "wrap", gap: 10, width: "100%" },
-  tileCell: { width: "48%", flexGrow: 1, height: 190 },
-  tileTall: { height: 230 },
-  tileClip: { flex: 1, borderRadius: 22, overflow: "hidden", backgroundColor: colors.bg2, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
-  tileBadge: { position: "absolute", top: 8, left: 8, right: 8 },
-  tileBadgeGlass: { flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 5, paddingHorizontal: 9, borderRadius: 999, alignSelf: "flex-start", maxWidth: "100%" },
-  tileBadgeText: { color: colors.text, fontSize: 11.5, fontWeight: "600" },
-  tileFoot: { position: "absolute", left: 10, right: 10, bottom: 9, color: colors.text, fontSize: 11.5, lineHeight: 15 },
+  tiles: { flexDirection: "row", gap: 14, width: "100%", paddingTop: 8, paddingBottom: 6 },
+  tileCol: { flex: 1, gap: 22 },
+  tileCell: { height: 150 },
+  tileTall: { height: 206 },
+  tileHalo: { position: "absolute", left: -10, right: -10, top: -10, bottom: -10, borderRadius: 42, overflow: "hidden" },
+  tileRim: { position: "absolute", left: -1.5, right: -1.5, top: -1.5, bottom: -1.5, borderRadius: 33, overflow: "hidden" },
+  tileClip: { flex: 1, borderRadius: 32, overflow: "hidden", backgroundColor: colors.bg2 },
+  tileBadge: { position: "absolute", left: -4, right: 8 },
+  tileBadgeGlass: { flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 7, paddingHorizontal: 11, borderRadius: 999, alignSelf: "flex-start", maxWidth: "100%" },
+  tileBadgeText: { color: colors.text, fontSize: 12.5, fontWeight: "600" },
+  proofRow: { flexDirection: "row", justifyContent: "center", gap: 18, paddingTop: 4 },
+  proof: { flexDirection: "row", alignItems: "center", gap: 4 },
+  proofBig: { color: colors.text, fontSize: 12, fontWeight: "700", letterSpacing: 1 },
+  proofSmall: { color: colors.faint, fontSize: 9.5, letterSpacing: 1.2, textTransform: "uppercase" },
   cards: { gap: 10, width: "100%" },
   card: { flexDirection: "row", gap: 14, padding: 16, borderRadius: radius.card, alignItems: "flex-start" },
   cardIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(140,192,255,0.12)" },
@@ -485,6 +722,16 @@ const styles = StyleSheet.create({
   permit: { flexDirection: "row", gap: 14, padding: 16, borderRadius: radius.card, alignItems: "center" },
   permitBtn: { paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999 },
   permitBtnText: { color: colors.text, fontSize: 14, fontWeight: "600" },
+  field: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56, paddingHorizontal: 18, borderRadius: 18 },
+  fieldInput: { flex: 1, color: colors.text, fontSize: 17, paddingVertical: 14 },
+  fail: { color: colors.warm, fontSize: 14, lineHeight: 19, paddingHorizontal: 6 },
+  busy: { minHeight: 50, borderRadius: 999, alignItems: "center", justifyContent: "center" },
+  apple: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 50, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  appleText: { color: colors.text, fontSize: 15, fontWeight: "600" },
+  later: { color: colors.faint, fontSize: 15 },
+  signedIn: { flexDirection: "row", alignItems: "center", gap: 14, padding: 18, borderRadius: 18 },
+  face: { width: 168, height: 168, borderRadius: 84, overflow: "hidden", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(140,192,255,0.10)", borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  faceDone: { color: colors.ok, fontSize: 15, fontWeight: "600" },
   input: { minHeight: 56, color: colors.text, fontSize: 19, paddingHorizontal: 18, borderRadius: 18, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, marginBottom: 8 },
   themeRow: { flexDirection: "row", gap: 10, alignItems: "center" },
   themeAdd: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },
@@ -498,8 +745,12 @@ const styles = StyleSheet.create({
   showBody: { flex: 1, justifyContent: "flex-end", paddingHorizontal: 24, gap: 22 },
   showTitle: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 36, color: colors.text },
   showText: { color: colors.muted, fontSize: 15.5, lineHeight: 22 },
-  bigYears: { fontFamily: fonts.serif, fontSize: 64, color: colors.gold, fontVariant: ["tabular-nums"] },
-  bigAsleep: { color: colors.text, fontSize: 22, letterSpacing: 1, textTransform: "uppercase" },
-  sleepDream: { color: colors.muted, fontSize: 16, lineHeight: 23, textAlign: "center", marginTop: 14 },
-  sleepNote: { color: colors.faint, fontSize: 12.5, textAlign: "center", marginTop: 6 },
+  ringYears: { fontFamily: fonts.serif, fontSize: 40, color: colors.text, fontVariant: ["tabular-nums"] },
+  ringLabel: { color: colors.muted, fontSize: 13, letterSpacing: 2, textTransform: "uppercase", marginTop: 2 },
+  legend: { flexDirection: "row", gap: 16, flexWrap: "wrap", justifyContent: "center" },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+  legendDot: { width: 9, height: 9, borderRadius: 5 },
+  legendText: { color: colors.muted, fontSize: 12.5 },
+  sleepDream: { color: colors.text, fontSize: 16, lineHeight: 24, textAlign: "center", paddingHorizontal: 4 },
+  sleepNote: { color: colors.faint, fontSize: 12.5, textAlign: "center" },
 });
