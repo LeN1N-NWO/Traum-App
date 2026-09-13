@@ -63,15 +63,15 @@ export const PRESETS = [
   { id: "ink",         styleId: "ink",         emoji: "🖌", clip: "/media/pvink2609a.mp4" },           // der Kranich zerfällt zu Schriftzeichen
   { id: "clay",        styleId: "clay",        emoji: "🗿", clip: "/media/pvclay2609a.mp4" },   // 13.09.: die Schläferin im Bett in der Teetasse
   // ── ab hier hinter „More styles" (styles.js: featured fehlt) ──
-  { id: "goldenage",   styleId: "goldenage",   emoji: "🎞" },
-  { id: "fantasyanime", styleId: "fantasyanime", emoji: "🐉" },
-  { id: "oilpaint",    styleId: "oilpaint",    emoji: "🖼" },
+  { id: "goldenage",   styleId: "goldenage",   emoji: "🎞", clip: "/media/pvgoldenage2609a.mp4" },     // die Bäume ziehen den Hut
+  { id: "fantasyanime", styleId: "fantasyanime", emoji: "🐉", clip: "/media/pvfantasyanime2609a.mp4" }, // die Klinge wird zum Runenkreis, der Kreis zum Falter
+  { id: "oilpaint",    styleId: "oilpaint",    emoji: "🖼", clip: "/media/pvoilpaint2609a.mp4" },      // der Fischer knüpft ein Netz aus Regen
   { id: "marker",      styleId: "marker",      emoji: "🖍" },
-  { id: "actionfigure", styleId: "actionfigure", emoji: "🦸" },
-  { id: "marionette",  styleId: "marionette",  emoji: "🎭" },
-  { id: "papercut",    styleId: "papercut",    emoji: "✂️" },
-  { id: "papiermache", styleId: "papiermache", emoji: "📰" },
-  { id: "screenprint", styleId: "screenprint", emoji: "🖨" },
+  { id: "actionfigure", styleId: "actionfigure", emoji: "🦸", clip: "/media/pvactionfigure2609a.mp4" }, // die Katze als Drache, der Arm klickt wieder rein
+  { id: "marionette",  styleId: "marionette",  emoji: "🎭", clip: "/media/pvmarionette2609a.mp4" },    // über dem König hängt der Puppenspieler an Fäden
+  { id: "papercut",    styleId: "papercut",    emoji: "✂️", clip: "/media/pvpapercut2609a.mp4" },      // der Schatten des Fuchses geht neben ihm her
+  { id: "papiermache", styleId: "papiermache", emoji: "📰", clip: "/media/pvpapiermache2609a.mp4" },   // der Nieser, aus dem Kopf wird eine Sonnenblume
+  { id: "screenprint", styleId: "screenprint", emoji: "🖨", clip: "/media/pvscreenprint2609a.mp4" },   // die Farbschichten laufen als eigene Männer weiter
 ];
 
 /** Die erste Reihe: Dreamflow plus jedes Preset, dessen Stil `featured`
