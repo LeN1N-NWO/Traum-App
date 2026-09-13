@@ -105,7 +105,7 @@ Moonly ist keine Schlaf-App, sondern Mondkalender/Astrologie — nutzt aber „D
 
 ## A2. Nachfrage-Belege (Social Media, Reddit, Studien)
 
-*(Abschnitt noch nicht ausgewertet — die Recherche zu Social Media und Suchmaschinen lief bei Redaktionsschluss 14.09.2026 noch.)*
+Ausgewertet in `2026-09-14-recherche-nachfrage-seo.md` (Social Proof, Reddit, Studien, Suchinteresse, was rankt).
 
 ---
 
@@ -178,7 +178,7 @@ Quelle Zusammenfassung: https://www.revenuecat.com/blog/growth/subscription-app-
 
 ## A4. Content und SEO
 
-*(Abschnitt noch nicht ausgewertet — die Recherche zu Social Media und Suchmaschinen lief bei Redaktionsschluss 14.09.2026 noch.)*
+Ausgewertet in `2026-09-14-recherche-nachfrage-seo.md` (Social Proof, Reddit, Studien, Suchinteresse, was rankt).
 
 ---
 

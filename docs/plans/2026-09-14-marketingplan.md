@@ -5,7 +5,8 @@ höheren Ziel „wir verbringen so viel Zeit mit Schlafen und untersuchen das so
 gut wie nicht", einer Website mit Wissens-Blog und Namensideen.
 
 Baut auf `2026-08-16-wachstumsplan.md` und `2026-08-16-positionierung-und-store.md`
-auf. Marktzahlen, Quellen und Prüfmethode: `2026-09-14-recherche-markt-namen.md`.
+auf. Marktzahlen, Quellen und Prüfmethode: `2026-09-14-recherche-markt-namen.md`
+und `2026-09-14-recherche-nachfrage-seo.md` (Communities, Suchinteresse).
 Einschätzungen sind als solche erkennbar; Zahlen tragen ihr Lesedatum.
 
 ## 1. Die Mission — und warum sie Marketing ist
@@ -40,6 +41,14 @@ Deutsch: „Das Kino deiner Nächte."
   „film" im Namen oder Untertitel.** Der Suchraum „dream video" ist frei.
 - **Deutscher Store:** Die Kategorie ist klein (beste Traum-App 315
   Bewertungen). Englisch zuerst ist Pflicht, Deutsch ist der Heimvorteil.
+- **Die Communities wachsen:** r/Dreams hat 611 Tsd. Mitglieder (+38,5 % seit
+  Februar 2025), r/LucidDreaming 646 Tsd. Ein nachgestelltes Traumbild erreichte
+  dort 3.741 Punkte — Posts mit „AI" im Titel lagen bei 0.
+- **Die Idee gibt es auch als Gerät:** Modems „Dream Recorder" (Open Source,
+  2025 in der Designpresse). Gut für die Geschichte, kein Produktkonkurrent.
+- **Gegenwind:** „KI-Videos zu teilen ist wie fremde Träume erzählen —
+  belanglos." Die Antwort ist die eigene Besetzung: Träume mit mir als Figur
+  langweilen niemanden.
 
 ## 3. Wofür wir stehen — die vier Unterschiede
 
@@ -99,13 +108,17 @@ ohne Film, Schnellaktion, Erinnerungen. **Was fehlt:**
   schriftlicher Zustimmung der Gezeigten, immer mit „KI-generiert".
 
 ### Phase 1 — TestFlight mit 50–200 Menschen (4 Wochen)
-- Warteliste plus Klartraum-Foren und Discords (Regeln der Foren beachten:
-  erst beitragen, dann erzählen).
+- Warteliste plus Klartraum-Foren und Discords. **Foren-Regeln:** In
+  r/Dreams die Traumgeschichte vorn und „AI" nicht in den Titel; in
+  r/LucidDreaming gilt „No advertising" — dort nur Wissen beitragen.
 - **Die eine Messfrage** aus der Scheitern-Analyse: „Wie oft hast du in zwei
   Wochen geöffnet, ohne einen Film zu bestellen?"
 - Beste Filme (mit Erlaubnis) als Material für Launch und Store-Video.
 
 ### Phase 2 — Launch (6 Wochen)
+- **Timing:** Das Interesse an Träumen hat jedes Jahr ein Winterhoch und ein
+  Sommertief (Wikipedia-Aufrufe 2022–2026). Launch und Content-Start am besten
+  zwischen November und Januar.
 - **Creator-Seeding:** 30–50 kleine Creator aus Träumen, Klarträumen,
   Schlaf, ASMR und KI-Kunst bekommen ein Jahr Plus und Credits. Das Format:
   „Ich habe meinen Traum von letzter Nacht verfilmt." Kennzeichnung mit
@@ -144,6 +157,17 @@ dazu.
    Nachfrage), später Vorschau der Akademie.
 5. **Presse** — Mission, Gründer, Screens, Showreel.
 6. **Datenschutz, Nutzungsbedingungen, Impressum.**
+
+**Was ranken kann:** Das Nachschlage-Interesse sinkt (Wikipedia-Aufrufe zu
+Klarträumen −72 % seit 2021, KI-Antworten nehmen Klicks). Die englischen
+Kopfbegriffe gehören Wikipedia, Reddit und Gesundheitsverlagen. Die Chance
+liegt bei **deutschen Seiten zu häufigen Traumthemen** („Zähne fallen aus",
+„schwanger", „verfolgt werden") — dort ranken heute Zahnarztpraxen und
+Magazine. Jede Seite bekommt, was kein Lexikon hat: einen eigenen Clip,
+„Was die Forschung sagt" und den Knopf, den eigenen Traum zu verfilmen —
+ohne Deutung, mit Mustern. Dieselben Themen als TikTok-Serie. Englisch:
+„dream to video ai" statt „dream meaning". Suchvolumina fehlen noch
+(Keyword Planner).
 
 **Der Blog-Grundsatz:** belegt, verlinkt, ehrlich über Unsicherheit. Keine
 Traumdeutung, keine Heilversprechen. Das ist unsere Glaubwürdigkeit — und
