@@ -233,3 +233,21 @@ export function dreamsFor(credits) {
     films: Math.floor(credits / perFilm),
   };
 }
+
+/** Die Extra-Credits eines Pakets (Antons Frage 13.09.2026: „bei höherem
+ *  Preis Credits als Extras aufführen"). Bezug ist das KLEINSTE Paket,
+ *  auf ganze Dollar gerundet: $5 → 50 Credits, also 10 je Dollar. Was ein
+ *  größeres Paket darüber hinaus trägt, ist das Extra:
+ *    M  $13 → 130 + 20 Extra (+15 %)
+ *    L  $25 → 250 + 70 Extra (+28 %)
+ *    XL $50 → 500 + 200 Extra (+40 %)
+ *  Die Zahlen auf dem Knopf ändern sich dadurch nicht — nur, wie sie gelesen
+ *  werden. Ehrlich, weil der Bezug auf der Paywall selbst steht. */
+export function packBonus(pack, packs = PACKS) {
+  const whole = (p) => Math.round(Number(String(p.price).replace(/[^0-9.]/g, "")));
+  const smallest = [...packs].sort((a, b) => a.credits - b.credits)[0];
+  const perDollar = smallest.credits / whole(smallest);
+  const base = Math.round(whole(pack) * perDollar);
+  const extra = Math.max(0, pack.credits - base);
+  return { base, extra, percent: base ? Math.round((extra / base) * 100) : 0 };
+}

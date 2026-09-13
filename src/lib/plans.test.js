@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { SUBSCRIPTIONS, PACKS, CREDIT_COST_USD, FILM_UNIT, dreamsFor } from "./plans.js";
+import { SUBSCRIPTIONS, PACKS, CREDIT_COST_USD, FILM_UNIT, dreamsFor, packBonus } from "./plans.js";
 import { priceForFilm } from "./video.js";
 
 const num = (price) => Number(String(price).replace(/[^0-9.]/g, ""));
@@ -156,4 +156,20 @@ test("what a balance buys is whole, and never promises more than it can", () => 
 test("a balance too small for a film says zero, not one", () => {
   // Sonst stuende auf der Paywall eine 1, die man nicht einloesen kann.
   expect(dreamsFor(1).films).toBe(0);
+});
+
+/* Die Extras sind eine LESART der Preisliste, keine zweite Preisliste:
+   Basis + Extra ergibt immer genau die Credits auf dem Knopf, das kleinste
+   Paket hat kein Extra, und je größer das Paket, desto größer der Anteil. */
+test("pack extras add up and grow with the pack", () => {
+  const sorted = [...PACKS].sort((a, b) => a.credits - b.credits);
+  expect(packBonus(sorted[0]).extra).toBe(0);
+  let lastPercent = -1;
+  for (const p of sorted) {
+    const b = packBonus(p);
+    expect(b.base + b.extra).toBe(p.credits);
+    expect(b.percent).toBeGreaterThanOrEqual(lastPercent);
+    lastPercent = b.percent;
+  }
+  expect(packBonus(PACKS.find((p) => p.id === "pack-xl"))).toEqual({ base: 500, extra: 200, percent: 40 });
 });

@@ -78,6 +78,7 @@ export function PaywallSheet({ reason = "browse" }: { reason?: string }) {
                       <Text style={styles.planName}>{p.name}</Text>
                       {p.badge ? <View style={styles.badge}><Text style={styles.badgeText}>{p.badge}</Text></View> : null}
                     </View>
+                    {p.extraLine ? <Text style={styles.planExtra}>{p.extraLine}</Text> : null}
                     <Text style={styles.planSub}>{p.sub}</Text>
                   </View>
                   <View style={styles.price}>
@@ -172,6 +173,7 @@ const styles = StyleSheet.create({
   badge: { backgroundColor: "rgba(246,198,91,0.18)", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   badgeText: { color: colors.gold, fontSize: 11, fontWeight: "700" },
   planSub: { color: colors.muted, fontSize: 13, lineHeight: 18 },
+  planExtra: { color: colors.gold, fontSize: 12.5, fontWeight: "600", lineHeight: 17 },
   price: { alignItems: "flex-end", gap: 2, flexShrink: 0 },
   priceMain: { color: colors.text, fontSize: 17, fontWeight: "700", fontVariant: ["tabular-nums"] },
   pricePer: { color: colors.faint, fontSize: 11 },

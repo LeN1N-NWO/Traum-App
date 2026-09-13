@@ -19,6 +19,16 @@ export default {
     loading: "Dream Rushes lädt",
   },
 
+  /* Wenn die App-Logik nicht antwortet (13.09.2026, Antons Befund: „ewige
+     Ladeanimation" beim Avatar) — Texte, die OHNE Brücke gezeigt werden. */
+  offline: {
+    title: "Das lädt gerade nicht",
+    hint: "Die App bekommt keine Antwort. Prüf die Verbindung und versuch es noch mal.",
+    devHint: "Entwicklungsbau: Läuft Metro (bun run mobile) und der Server (bun run api)?",
+    retry: "Noch mal versuchen",
+    close: "Schließen",
+  },
+
   home: {
     quickRecord: "Traum aufnehmen",   // Schnellaktion am App-Symbol (13.09.2026)
     greeting: {
@@ -184,6 +194,9 @@ export default {
     actRewrite: "Umschreiben",
     actEdit: "Bearbeiten",
     actShare: "Teilen",
+    /* Die eigene Aufnahme am Traum (Antons Befund 13.09.: „Your recording" war zu wenig). */
+    recordingTitle: "So hast du ihn erzählt",
+    recordingHint: "Deine Stimme, kurz nach dem Aufwachen",
     /* Die Teilen-Karte (13.09.2026). */
     shareCard: "Als Karte teilen",
     shareCardCta: "Karte teilen",
@@ -440,6 +453,8 @@ export default {
     photoRemove: "Foto entfernen",
     descLabel: "Beschreibe sie",
     descLabelOptional: "Beschreibe sie (optional)",
+    descLabelMe: "Beschreibe dich",
+    descLabelMeOptional: "Beschreibe dich (optional)",
     descPlaceholder: "groß, dunkle lockige Haare, immer im grünen Mantel",
     previewAlt: "Vorschau des ausgewählten Fotos",
     privacy: "Dieses Foto geht an fal.ai, wenn ein Traum gerendert wird.",
@@ -1173,6 +1188,8 @@ export default {
     tabPack: "Credits kaufen",
     periodName: { week: "Wöchentlich", month: "Monatlich", year: "Jährlich" },
     packName: (n) => `${n} Credits`,
+    packExtra: (pct) => `+${pct} %`,
+    packExtraLine: (base, extra) => `${base} + ${extra} Extra-Credits`,
     per: { week: "pro Woche", month: "pro Monat", year: "pro Jahr" },
     oneTime: "einmalig",
     save: (pct) => `${pct} sparen`,
