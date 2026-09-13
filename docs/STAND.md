@@ -3,7 +3,13 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-13 abends — Sitzung `session/2026-09-13-anton-d`
+**Stand:** 2026-09-14 nachts — Sitzung `session/2026-09-13-anton-e`
+(PR #50, Entwurf): **Wissen-Raum** im Schlaf-Tab (18 geprüfte Karten),
+Paket-Extras, Avatar-Dialog mit Zeitgrenze, Aufnahme-Text, Einschätzung
+Abo-Gewicht/Jahresguthaben, **Marketingplan** mit Namensprüfung
+(`docs/plans/2026-09-14-marketingplan.md`). Zur Entscheidung: Jahrespreis
+($99,99 ist 2,5× Kategorie-Median) und Pakete auf der ersten Paywall.
+Davor: Sitzung `session/2026-09-13-anton-d`
 abgeschlossen, **PR #49 auf Antons Wort gemerged** („wrap und merge").
 **Offen für die nächste Sitzung:** (1) Test mit einem echten Foto an
 Replicate-Seedance und fal-Seedance (`bun scripts/seedance-gesicht-probe.mjs`,

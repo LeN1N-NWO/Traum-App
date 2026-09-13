@@ -3,6 +3,41 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-14 00:30 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — Wissen-Raum, Paket-Extras, Avatar-Laden, Aufnahme-Text, Abo-Einschätzung, Marketingplan, Namen
+
+**Commits:** `04429aa` Avatar-Zeitgrenze, Aufnahme-Text, Paket-Extras · `d5bb95a`
+Abo-Einschätzung · `a637164` Wissen-Raum + Marketingplan + Recherchen.
+
+- **„Ewige Ladeanimation" beim Avatar-„+":** Ursache waren gestoppte
+  Server — ohne Metro lädt die Brücke (DOM-Komponente) nicht, ohne sie
+  antwortet der Dialog nie. Beide neu gestartet; der Dialog zeigt jetzt nach
+  10 s Erklärung, „Noch mal versuchen" (baut die Brücke neu auf) und
+  Schließen, mit Texten ohne Brücke (`lib/offline-labels.ts`).
+- **Aufnahme am Traum:** „So hast du ihn erzählt · Deine Stimme, kurz nach dem
+  Aufwachen" statt des englischen Rückfalls „Your recording".
+- **Paket-Extras:** `packBonus()` (Bezug kleinstes Paket, 10 Credits je
+  Dollar) → „130 + 20 Extra-Credits" und Badge „+15 %"; Zahlen unverändert.
+- **Wissen-Raum** im Schlaf-Tab: 18 Karten, jede an der Primärquelle
+  geprüft, mit Sicherheit, Grenzen, „Was das für dich heißt" und Link.
+- **Einschätzungen (nicht gebaut):** Jahresabo mit Startguthaben (480 sofort,
+  dann monatlich, Credits bleiben im Abojahr) statt allem sofort;
+  Abo-Gewicht über Monatsfilm, Traumwelt und Klartraum-Akademie (Text-Guide
+  bleibt gratis) — `docs/plans/2026-09-13-abo-gewicht-und-jahresguthaben.md`.
+- **Marketingplan** (`docs/plans/2026-09-14-marketingplan.md`, auch als
+  private Artifact-Seite) mit Markt, Phasen, Website/Blog, Kennzahlen und
+  geprüften Namen.
+
+**Was der Nächste wissen muss:**
+- ⚠ **Wettbewerb:** „DreamReel: AI Dream Videos" (seit Juli 2026) verspricht
+  fast dasselbe; Lunicia hat Video-Erzeugung. Beide ohne Zugkraft. Der Name
+  „Dreamreel" ist damit verbrannt.
+- ⚠ **Preis:** $99,99 im Jahr ist das 2,5-Fache des H&F-Medians ($39,94);
+  Credit-Pakete auf der ersten Paywall kosten laut Mojo-Fall Abos. Beides
+  zur Entscheidung im Marketingplan §9, nicht umgesetzt.
+- Metro und API stoppen mit der Sitzung — vor jedem Test `bun run mobile`
+  und `bun run api`, sonst lädt die Brücke nicht.
+- Tests 631 grün, Typen sauber, Lint 0 Fehler.
+
 ## 2026-09-13 19:15 — Anton — Branch `session/2026-09-13-anton-d` — Abschluss: PR #49 gemerged
 
 **Commits der Sitzung seit dem letzten Merge (#48):** `c7b656f` Gesichter-Spot
