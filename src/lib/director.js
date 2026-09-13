@@ -112,11 +112,27 @@ const SIZE_FOR_HOOK = {
   turn: "MEDIUM CLOSE 29°, pushing in", reveal: "MEDIUM CLOSE 29°, pushing in", reversal: "MEDIUM CLOSE 29°",
   callback: "MEDIUM 47°", climax: "CLOSE 29° on the face, then WIDE 84° for the effect", resolution: "MEDIUM 47°, still",
 };
+/* Ohne Typ (alte Analysen: alles „build") entscheidet die POSITION — ein
+   Wechselschritt, damit nie zwei Cuts hintereinander gleich groß sind. */
+const CADENCE = ["MEDIUM 47°", "MEDIUM CLOSE 29°", "MEDIUM 47°", "CLOSE 29°", "WIDE 63°, tracking"];
 export function shotSize(hook, i = 0, total = 1) {
   /* Der erste Shot zeigt den Ort, wenn er nicht selbst der Höhepunkt ist;
      ein Einzelshot bleibt bei dem, was sein Typ verlangt. */
   if (i === 0 && total > 1 && hook !== "climax") return "WIDE 84°";
+  if (!hook || hook === "build") return total > 1 ? CADENCE[(i - 1 + CADENCE.length) % CADENCE.length] : SIZE_FOR_HOOK.build;
   return SIZE_FOR_HOOK[hook] || SIZE_FOR_HOOK.build;
+}
+/** Die Größen aller Shots eines Plans — und keine zwei Nachbarn gleich:
+ *  wo der Typ dieselbe Größe zweimal ergäbe (zwei „turn" in Folge), rückt
+ *  der zweite eine Stufe näher heran. */
+export function shotSizes(plan) {
+  const out = [];
+  plan.forEach((s, i) => {
+    let size = shotSize(s.hook, i, plan.length);
+    if (i > 0 && size === out[i - 1]) size = size.startsWith("CLOSE") ? "MEDIUM 47°" : size.startsWith("WIDE") ? "MEDIUM 47°" : "CLOSE 29°";
+    out.push(size);
+  });
+  return out;
 }
 
 /* Ein Schnittzeitpunkt, wie MiniMax H3 ihn liest: 00:04.000. Sekunden
@@ -213,15 +229,17 @@ export function buildDirectorBrief({ dream, still, beats = [], shots = [], refs 
        Zahl, und die Zahl allein hatte alle Blöcke gleich lang aussehen
        lassen. */
     const laengster = plan.reduce((m, s) => Math.max(m, s.to - s.from), 0);
+    const einzig = plan.filter((s) => s.to - s.from === laengster).length === 1;   // sonst wäre jeder Block „der längste"
     const halt = (s) => {
       const d = s.to - s.from;
-      return d === laengster && plan.length > 1 ? `the longest hold, ${d} s` : `${d} s`;
+      return einzig && d === laengster && plan.length > 1 ? `the longest hold, ${d} s` : `${d} s`;
     };
+    const sizes = shotSizes(plan);
     const zeile = (s, i) => (timeFormat === "ms"
       ? (i === 0
-        ? `[Shot 1] ${shotSize(s.hook, 0, plan.length)} — ${s.text} (${halt(s)})`
-        : `[Shot ${i + 1}] At ${msLabel(s.from)}, cut to: ${shotSize(s.hook, i, plan.length)} — ${s.text} (${halt(s)})`)
-      : `[${s.from}s-${s.to}s] SHOT ${i + 1} — ${shotSize(s.hook, i, plan.length)} — ${s.text} (${halt(s)})`);
+        ? `[Shot 1] ${sizes[0]} — ${s.text} (${halt(s)})`
+        : `[Shot ${i + 1}] At ${msLabel(s.from)}, cut to: ${sizes[i]} — ${s.text} (${halt(s)})`)
+      : `[${s.from}s-${s.to}s] SHOT ${i + 1} — ${sizes[i]} — ${s.text} (${halt(s)})`);
     parts.push(`THE SHOT PLAN — this is the cut, already decided. Stage it; do not re-plan it:\n`
       + plan.map(zeile).join("\n")
       + `\nOne block per shot, ${plan.length === 1 ? "no cuts" : `${plan.length - 1} hard cut${plan.length > 2 ? "s" : ""}`}, `
