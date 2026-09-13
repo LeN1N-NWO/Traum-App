@@ -499,6 +499,14 @@ export default {
   },
 
   lucid: {
+    /* The guide as a tutorial track (Anton's reference 13.09.: Moonly's
+       welcome guide): trailer on top, then steps along a timeline.
+       ⚠ The per-card videos are PLACEHOLDERS — Anton renders them later. */
+    tutorialKicker: "Tutorial",
+    tutorialStep: (n) => `Step ${n}`,
+    mediaSoon: "Video · coming soon",
+    methodsLede: "They all build on that one moment: the brief wake-up after about five hours. Tap a method to see its steps.",
+    sourceTitle: "Where the numbers come from",
     lede: "Lucid dreaming means noticing you're dreaming while it happens — and sometimes steering what comes next. It can be learned: in the largest comparison study to date, one week of practice was enough for many people. Here is what the evidence actually supports, including the part that contradicts most advice you'll find online.",
     leversTitle: "What actually moves the needle",
     levers: [

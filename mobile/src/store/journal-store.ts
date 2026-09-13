@@ -26,6 +26,7 @@ export type ChecklistData = { lede: string; hint: string; progressLabel: string;
 export type LucidMethod = { id: string; name: string; rate: string | null; summary: string; steps: string[]; note: string };
 export type LucidData = {
   lede: string; leversTitle: string; levers: { title: string; text: string }[]; methodsTitle: string; methods: LucidMethod[]; sourceNote: string;
+  tutorialKicker: string; tutorialSteps: string[]; mediaSoon: string; methodsLede: string; sourceTitle: string; heroClip: string | null;
   reminderAsk: string; reminderPerDay: string; reminderWhy: string; reminderSoon: string; reminderActive: Record<number, string>; maxPerDay: number;
   reminder: { on: boolean; perDay: number };
 };

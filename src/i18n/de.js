@@ -455,6 +455,14 @@ export default {
   },
 
   lucid: {
+    /* Der Guide als Tutorial-Strecke (Antons Vorbild 13.09.: Moonlys
+       Welcome Guide): Trailer oben, dann Schritte an einer Zeitleiste.
+       ⚠ Die Videos je Karte sind PLATZHALTER — Anton erzeugt sie später. */
+    tutorialKicker: "Tutorial",
+    tutorialStep: (n) => `Schritt ${n}`,
+    mediaSoon: "Video · kommt noch",
+    methodsLede: "Alle bauen auf dem einen Moment auf: dem kurzen Aufwachen nach etwa fünf Stunden. Tipp auf eine Methode, dann stehen die Schritte darunter.",
+    sourceTitle: "Woher die Zahlen kommen",
     lede: "Klarträumen heißt zu merken, dass man träumt, während es passiert — und manchmal zu lenken, was als Nächstes kommt. Es ist erlernbar: In der bisher größten Vergleichsstudie genügte vielen eine Woche Übung. Hier steht, was die Belege wirklich hergeben. Auch der Teil, der dem widerspricht, was im Netz überall empfohlen wird.",
     leversTitle: "Was wirklich den Ausschlag gibt",
     levers: [

@@ -184,6 +184,10 @@ function snapshot() {
     lucid: (() => {
       const l = t.lucid; const r = s.reminders || null;
       return { lede: l.lede, leversTitle: l.leversTitle, levers: l.levers, methodsTitle: l.methodsTitle,
+        /* Tutorial-Strecke (13.09.): Trailer oben — PLATZHALTER ist der
+           Vorschau-Clip eines Stils, bis Antons Video da ist. */
+        tutorialKicker: l.tutorialKicker, tutorialSteps: [1, 2, 3].map((n) => l.tutorialStep(n)), mediaSoon: l.mediaSoon, methodsLede: l.methodsLede, sourceTitle: l.sourceTitle,
+        heroClip: (() => { const c = PRESETS.filter((p) => p.clip)[3]; return c ? absolute(c.clip) : null; })(),
         methods: l.methods.map((m) => ({ id: m.id, name: m.name, rate: m.rate || null, summary: m.summary, steps: m.steps, note: m.note })),
         sourceNote: l.sourceNote, reminderAsk: l.reminderAsk, reminderPerDay: l.reminderPerDay, reminderWhy: l.reminderWhy, reminderSoon: l.reminderSoon,
         reminderActive: Object.fromEntries(Array.from({ length: MAX_PER_DAY }, (_, i) => [i + 1, l.reminderActive(i + 1)])),
