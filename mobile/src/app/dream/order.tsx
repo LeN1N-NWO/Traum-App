@@ -6,6 +6,7 @@ import { useJournal } from "@/components/journal-data";
 import { Celebration } from "@/components/celebration";
 import LegacyOrder from "@/legacy/legacy-order";
 import { showToast } from "@/store/toast-store";
+import { currentTap } from "@/store/tap-store";
 import { resetWizard, useWizardStore } from "@/store/wizard-store";
 import { colors } from "@/theme";
 
@@ -51,6 +52,16 @@ export default function DreamOrderScreen() {
   }, [data, ask, router, w]);
   const W = data?.wizard;
   const [startedAt] = useState(() => Date.now());
+  /* Tippt der Frosch (mascot-tap.tsx), beginnt die Feier im Moment des
+     Treffers und platzt aus dem Knopf; ohne Frosch sofort, aus der Mitte. */
+  const [tap] = useState(() => currentTap());
+  const celebrateFrom = tap ? Math.max(startedAt, tap.tapAt) : startedAt;
+  const [celebrating, setCelebrating] = useState(() => !tap || tap.tapAt <= Date.now());
+  useEffect(() => {
+    if (celebrating) return;
+    const t = setTimeout(() => setCelebrating(true), Math.max(0, celebrateFrom - Date.now()));
+    return () => clearTimeout(t);
+  }, [celebrating, celebrateFrom]);
   const firstDream = useRef<boolean | null>(null);
   const mineId = useRef<string | null>(null);
   const [showWeb, setShowWeb] = useState(false);
@@ -89,7 +100,7 @@ export default function DreamOrderScreen() {
         router.dismissAll();
         router.navigate("/journal");
         if (first) setTimeout(() => router.push({ pathname: "/journal/paywall", params: { reason: "first" } }), 900);
-      }, Math.max(startedAt + MIN_CELEBRATE_MS - Date.now(), w.audioUrl ? 900 : 50));
+      }, Math.max(celebrateFrom + MIN_CELEBRATE_MS - Date.now(), w.audioUrl ? 900 : 50));
     } else if (mine.failReason || !mine.pending) {
       setShowWeb(true);
     }
@@ -105,7 +116,7 @@ export default function DreamOrderScreen() {
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       {!showWeb ? (
         <View style={[styles.stage, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-          {W ? <Celebration title={title} text={W.celebrateText ?? ""} hint={W.celebrateHint} /> : null}
+          {W && celebrating ? <Celebration title={title} text={W.celebrateText ?? ""} hint={W.celebrateHint} origin={tap ? { x: tap.rect.x + tap.rect.width / 2, y: tap.rect.y + tap.rect.height / 2 - insets.top } : undefined} /> : null}
         </View>
       ) : null}
       <View style={showWeb ? styles.web : styles.hidden}>

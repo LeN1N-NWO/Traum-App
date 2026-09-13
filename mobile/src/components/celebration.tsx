@@ -44,7 +44,7 @@ function Bit({ p, t, w, h }: { p: Piece; t: SharedValue<number>; w: number; h: n
   return <Animated.View pointerEvents="none" style={[styles.bit, { width: p.size, height: p.round ? p.size : p.size * 0.45, borderRadius: p.round ? p.size / 2 : 1.5, backgroundColor: p.color }, style]} />;
 }
 
-export function Confetti({ burst }: { burst: number }) {
+export function Confetti({ burst, origin }: { burst: number; origin?: { x: number; y: number } }) {
   const { width, height } = useWindowDimensions();
   const t = useSharedValue(0);
   const pieces = useMemo(() => makePieces(burst * 7919 + 17), [burst]);
@@ -54,7 +54,7 @@ export function Confetti({ burst }: { burst: number }) {
   }, [burst, t]);
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}>
-      <View style={{ position: "absolute", top: height * 0.52, left: width / 2 }}>
+      <View style={{ position: "absolute", top: origin?.y ?? height * 0.52, left: origin?.x ?? width / 2 }}>
         {pieces.map((p, i) => <Bit key={i} p={p} t={t} w={width} h={height} />)}
       </View>
     </View>
@@ -62,7 +62,9 @@ export function Confetti({ burst }: { burst: number }) {
 }
 
 /** Der ganze Moment: Konfetti, ein pulsierender Stern, die Überschrift. */
-export function Celebration({ title, text, hint }: { title: string; text: string; hint?: string }) {
+/** `origin`: Wo das Konfetti herausplatzt — beim Frosch-Tipp die Mitte des
+ *  Knopfes, den er gerade getroffen hat (Fensterkoordinaten). */
+export function Celebration({ title, text, hint, origin }: { title: string; text: string; hint?: string; origin?: { x: number; y: number } }) {
   const star = useSharedValue(0);
   useEffect(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -73,7 +75,7 @@ export function Celebration({ title, text, hint }: { title: string; text: string
   const starStyle = useAnimatedStyle(() => ({ transform: [{ scale: star.value }, { rotate: `${(1 - Math.min(star.value, 1)) * -40}deg` }], opacity: Math.min(1, star.value * 1.4) }));
   return (
     <View style={styles.stage}>
-      <Confetti burst={1} />
+      <Confetti burst={1} origin={origin} />
       <Animated.View style={[styles.star, starStyle]}>
         <Text style={styles.starGlyph}>✦</Text>
       </Animated.View>

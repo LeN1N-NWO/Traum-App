@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
+import { startTap } from "@/store/tap-store";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 // Dieselbe Preisrechnung wie Wizard und Server (src/lib/quote.js, reine Logik).
@@ -56,10 +57,21 @@ export default function DreamLengthScreen() {
     return line;
   })();
 
+  /* Der Knopf wird im Moment des Drucks gemessen (Fensterkoordinaten) —
+     danach liegt der Auftragsbildschirm darüber, und der Frosch tippt auf
+     die Stelle, an der er war (components/mascot-tap.tsx). Der Auftrag
+     startet SOFORT, der Frosch ist geschenkte Wartezeit, nie ein Tor. */
+  const button = useRef<View>(null);
+  const label = `${W?.generate ?? "Create it"} · ${price} ${creditWord}`;
   function order() {
     if (!affordable) { router.push({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
     patchWizard({ seconds, orderId: "o_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) });
-    router.push("/dream/order");
+    const go = () => router.push("/dream/order");
+    if (!button.current) { go(); return; }
+    button.current.measureInWindow((x, y, width, height) => {
+      if (width > 0) startTap({ x, y, width, height }, label);
+      go();
+    });
   }
 
   return (
@@ -116,7 +128,9 @@ export default function DreamLengthScreen() {
           </>
         ) : null}
 
-        <PrimaryButton label={`${W?.generate ?? "Create it"} · ${price} ${creditWord}`} onPress={order} heavy style={[{ flex: 0, marginTop: 14 }, !affordable && { opacity: 0.6 }]} />
+        <View ref={button} collapsable={false} style={{ marginTop: 14 }}>
+          <PrimaryButton label={label} onPress={order} heavy style={[{ flex: 0 }, !affordable && { opacity: 0.6 }]} />
+        </View>
         {!affordable ? (
           <Pressable onPress={() => router.push({ pathname: "/dream/paywall", params: { reason: "spent" } })}>
             <Text style={[styles.hint, { color: colors.accentSoft }]}>{W?.noCredits}</Text>

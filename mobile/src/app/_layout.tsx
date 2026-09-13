@@ -2,6 +2,7 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { ConsentGate } from "@/components/consent-gate";
+import { MascotTapLayer } from "@/components/mascot-tap";
 import { OnboardingGate } from "@/components/onboarding-gate";
 import { Toasts } from "@/components/toasts";
 
@@ -39,6 +40,8 @@ export default function RootLayout() {
           <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
       </NativeTabs>
+      {/* Der Frosch-Tipp über allem (13.09.2026), unter Tor und Toasts. */}
+      <MascotTapLayer />
       <ConsentGate />
       {/* Nur im Entwicklungsbau, bei jedem Start (Antons Wunsch 13.09.). */}
       <OnboardingGate />
