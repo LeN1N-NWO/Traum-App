@@ -301,6 +301,14 @@ export function buildDirectorBrief({ dream, still, beats = [], shots = [], refs 
         + (shots.length > 3
           ? ` With ${shots.length} shots that is roughly ${Math.floor((promptBudget * 0.55) / shots.length)} characters per shot in ACTION TIMING — write them tight and telegraphic, and put the shared setting in LOCATION MAP once instead of repeating it per shot.`
           : "")
+        /* ⚠ Gemessen 13.09.2026 (Trockenlauf --live, Tornado, H3, fünf
+           Shots): mit PERFORMANCE und LOCKS schrieb der Regisseur 7 307
+           Zeichen bei 7 000 Limit — 300 zu viel, und die Notbremse kappt
+           am Ende, also genau die neuen Blöcke. Ein enges Budget braucht
+           Deckel JE BLOCK, nicht nur eine Gesamtzahl. */
+        + (promptBudget < 8000
+          ? ` Hard caps for this model: OPTICS one line per shot; PERFORMANCE at most two sentences per person; POSITIVE LOCKS at most four lines; STYLE under 250 characters.`
+          : "")
       : ""));
   /* Der Stil-Anker beschreibt den BILD-Stil und nennt dort teils Brennweiten
      in Millimetern — die Optik entscheidet hier aber der Regisseur nach
@@ -308,6 +316,44 @@ export function buildDirectorBrief({ dream, still, beats = [], shots = [], refs 
      sonst kollidiert er mit der Grad-Regel im Systemprompt. */
   if (style) parts.push(`STYLE ANCHOR (colour, light and texture only — the optics are yours to choose):\n${style}`);
   return parts.join("\n\n");
+}
+
+/**
+ * Einen fertigen Regie-Prompt ins Zeichenbudget bringen — so, wie der
+ * Brief es dem Regisseur selbst aufträgt: erst die Stilprosa, dann die
+ * Sperren kürzen, und erst zuletzt die Schere am Ende (die trifft sonst
+ * die letzten Shots, den Ton und den Schluss — gemessen 03.09. und wieder
+ * am 13.09.: 7 307 Zeichen für 7 000).
+ *
+ * Reihenfolge: STYLE-Block ganz streichen (der Stil-Anker steht im
+ * Keyframe, das Modell sieht ihn) → POSITIVE LOCKS auf die ersten drei
+ * Zeilen → Schere. Gibt den Text zurück und was passiert ist.
+ * @returns {{text:string, trimmed:"none"|"style"|"locks"|"cut"}}
+ */
+export function fitPromptBudget(text, max) {
+  let s = String(text || "");
+  const limit = Number(max) || Infinity;
+  if (s.length <= limit) return { text: s, trimmed: "none" };
+  /* Die Überschriften stehen nach der Hygiene INLINE („… AUDIO Wind. POSITIVE
+     LOCKS …"), nicht auf eigenen Zeilen — deshalb Wortgrenzen, keine
+     Zeilenanfänge. Der Schluss („Sharp clarity …") bleibt erhalten. */
+  const CLOSE = /\bSharp clarity[^.]*\./;
+  const closing = (CLOSE.exec(s) || [""])[0];
+  const styleAt = s.search(/\bSTYLE\b/);
+  if (styleAt >= 0) {
+    s = s.slice(0, styleAt).trimEnd() + (closing ? `\n${closing}` : "");
+    if (s.length <= limit) return { text: s, trimmed: "style" };
+  }
+  const locksAt = s.search(/\bPOSITIVE LOCKS\b/);
+  if (locksAt >= 0) {
+    const rest = s.slice(locksAt);
+    const bodyEnd = closing && rest.indexOf(closing) > 0 ? rest.indexOf(closing) : rest.length;
+    const body = rest.slice("POSITIVE LOCKS".length, bodyEnd);
+    const sentences = body.split(/(?<=\.)\s+/).map((x) => x.trim()).filter(Boolean);
+    s = s.slice(0, locksAt) + "POSITIVE LOCKS " + sentences.slice(0, 3).join(" ") + (closing ? `\n${closing}` : "");
+    if (s.length <= limit) return { text: s, trimmed: "locks" };
+  }
+  return { text: s.slice(0, limit), trimmed: "cut" };
 }
 
 /* Der erste Eintrag jeder Referenzliste eines Referenz-Films: das schon

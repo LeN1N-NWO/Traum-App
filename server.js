@@ -82,7 +82,7 @@ import { parseLimit, decodeCursor, buildPage } from "./src/lib/paging.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
   DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
-  buildDirectorBrief, checkDirectedPrompt, filmReferences,
+  buildDirectorBrief, checkDirectedPrompt, filmReferences, fitPromptBudget,
 } from "./src/lib/director.js";
 
 /* Wohin die erzeugten Dateien gehen. ⚠ NICHT einfach `import.meta.dir` —
@@ -966,16 +966,19 @@ async function directFilm({ dream, still, beats = [], shots = [], style, seconds
   // Referenzen sein; ohne Referenzen ist JEDES @Image eine Anweisung ins
   // Leere. Verstoß → Rückfall, nie ein halluziniertes Bild.
   const roh = sanitizePromptText(text);
-  const cleaned = roh.slice(0, m.promptMax);
+  /* Ins Budget bringen wie der Brief es verlangt: Stilprosa zuerst, dann
+     Sperren, erst zuletzt die Schere (fitPromptBudget, director.js). */
+  const fit = fitPromptBudget(roh, m.promptMax);
+  const cleaned = fit.text;
   /* ⚠ Die Kappung war bis zum 03.09.2026 STUMM — man sah nur eine
      Zeichenzahl, die zufällig genau dem Limit entsprach. Sie schneidet am
      Ende ab, und dort stehen die letzten Shots, der Ton und die Schlusszeile:
      Bei sieben Zwei-Sekunden-Blöcken kann das den halben Film kosten, ohne
      dass irgendwo ein Fehler auftaucht. Wenn das hier im Log steht, gehört
      das Zeichenbudget im Brief nachgeschärft (buildDirectorBrief). */
-  if (roh.length > m.promptMax) {
-    console.warn(`[DreamRushes] ⚠ Regie-Prompt gekappt: ${roh.length} → ${m.promptMax} Zeichen (${m.id}). `
-      + `Das Ende fehlt — Shots, Ton oder Schlusszeile.`);
+  if (fit.trimmed !== "none") {
+    console.warn(`[DreamRushes] ⚠ Regie-Prompt über Budget: ${roh.length} → ${cleaned.length} Zeichen (${m.id}), `
+      + (fit.trimmed === "cut" ? "am ENDE gekappt — Shots, Ton oder Schlusszeile fehlen." : `Block „${fit.trimmed}" gekürzt.`));
   }
   if (!checkDirectedPrompt(cleaned, refs.length).ok) throw new Error("DEEPSEEK_FAILED");
   // Eine Zeile Sichtbarkeit für ein bezahltes Feature: lief der Regisseur,

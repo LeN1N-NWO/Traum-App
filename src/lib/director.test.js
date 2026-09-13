@@ -334,3 +334,18 @@ test("v2: without beat types the sizes still alternate by position", () => {
   const brief = buildDirectorBrief({ dream: "x", shots: plan, seconds: 15, timeFormat: "s" });
   expect(brief).not.toContain("the longest hold");    // fünf gleich lange Blöcke haben keinen längsten
 });
+
+/* Das Budget: erst STYLE, dann LOCKS, erst zuletzt die Schere. */
+import { fitPromptBudget } from "./director.js";
+test("v2: fitPromptBudget drops STYLE before cutting the ending", () => {
+  const body = "SCENE CONTEXT\nA bridge.\nACTION TIMING\n1) 0-3 s: wind.\nAUDIO\nWind.\nPOSITIVE LOCKS\nOne. Two. Three. Four. Five.\nSTYLE\n" + "painterly ".repeat(60) + "\nSharp clarity.";
+  const fit = fitPromptBudget(body, body.length - 100);
+  expect(fit.trimmed).toBe("style");
+  expect(fit.text).not.toContain("painterly");
+  expect(fit.text).toContain("POSITIVE LOCKS");
+  expect(fit.text).toContain("AUDIO");
+  expect(fitPromptBudget("short", 100).trimmed).toBe("none");
+  const hard = fitPromptBudget("ACTION TIMING\n" + "x".repeat(500), 100);
+  expect(hard.trimmed).toBe("cut");
+  expect(hard.text).toHaveLength(100);
+});

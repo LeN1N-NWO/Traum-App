@@ -81,12 +81,31 @@ specified points"); wir haben jetzt beides.
 6. **Ton je Block**, auf das physische Ereignis getaktet.
 7. „The camera never cuts on its own" wörtlich im FORMAT-Block.
 
-Tests grün (`director.test.js`, `cut.test.js`), Trockenlauf
-(`scripts/dry-run-prompts.mjs`) zeigt die neuen Zeilen.
-⚠ **Ungeprüft am bezahlten Film.** Prompts werden länger (PERFORMANCE +
-LOCKS ≈ 600–900 Zeichen); der Tornado lag schon bei 6 107 von 7 000 (H3).
-Der Brief nennt das Budget je Shot, aber der erste echte Lauf muss zeigen,
-ob die Notbremse zuschlägt (steht dann als Warnung im Server-Log).
+**Gegengeprüft am 13.09. mit zwei Live-Läufen** (`scripts/dry-run-prompts.mjs
+--live`, nur DeepSeek, je ~$0,0005; der Tornado-Traum, echte Analyse):
+- Die Analyse gab fünf Szenen mit Typen (setup, build, climax …) und 6 s;
+  der Schnittplan daraus: WIDE 84° → MEDIUM CLOSE 29° pushing in → CLOSE
+  29° aufs Gesicht, dann WIDE (Höhepunkt, „the longest hold, 2 s") →
+  MEDIUM 47° → MEDIUM 47° still.
+- Der Regisseur schrieb alle Blöcke — OPTICS je Block mit Größe und
+  Abstand, PERFORMANCE mit echten Schauspiel-Beats („gaze flicks up-right,
+  swallow; eyes widen, jaw tightens, hands grip rail" — und der lachende
+  Mann: „shoulders shake, mouth opens, laugh, head tips back"), POSITIVE
+  LOCKS konkret (Fernsehturm behält Form und Abstand, Licht bleibt oben
+  links, keine neuen Leute).
+- **Erster Lauf: 7 307 Zeichen für H3 (Limit 7 000)** — die Notbremse hätte
+  am Ende gekappt, also genau LOCKS und STYLE. Zwei Reparaturen:
+  (1) bei engem Budget (< 8 000) nennt der Brief **Deckel je Block** (OPTICS
+  eine Zeile je Shot, PERFORMANCE zwei Sätze je Person, LOCKS vier Zeilen,
+  STYLE unter 250 Zeichen); (2) `fitPromptBudget()` im Server streicht bei
+  Überlänge erst STYLE, dann LOCKS auf drei Zeilen, und erst zuletzt
+  greift die Schere — auf die echte Antwort angewandt: 7 289 → 6 968, nur
+  STYLE weg, Shots und Ton unversehrt.
+- **Zweiter Lauf mit Deckeln: H3 6 085 Zeichen, Seedance 7 069** — beide im
+  Budget, alle Blöcke da.
+
+Tests grün (619). ⚠ **Ungeprüft am bezahlten Film** — der Prompt ist
+belegt, das Bild noch nicht.
 
 ## 5. Was als Nächstes kommt — in dieser Reihenfolge
 

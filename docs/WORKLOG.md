@@ -175,6 +175,13 @@ Schnitte und Takt.
   Auftragsnummer am Traum, dann abbuchen; Fehler als `failReason`. In
   `dream/order.tsx` hinter `NATIVE_ORDER = false` — **bleibt aus, bis
   ein echter bezahlter Auftrag ihn belegt** (Geldweg). Typ `OrderRequest`.
+- **Gegengeprüft, zwei Live-Läufe** (nur DeepSeek): erster Lauf 7 307
+  Zeichen für H3 bei 7 000 Limit → Deckel je Block im Brief bei engem
+  Budget + `fitPromptBudget()` (STYLE → LOCKS → Schere, statt blind am
+  Ende) im Server; zweiter Lauf 6 085 (H3) / 7 069 (Seedance), alle Blöcke
+  da. Ergebnis und Zitate im Plan §4. Dazu: Größen wechseln auch ohne
+  Beat-Typen (Kadenz nach Position), „the longest hold" nur, wenn es
+  genau einen längsten Block gibt.
 - ⚠ Fehler der Sitzung: ein Python-Einzeiler `open(p,"w").write(open(p).read())`
   hat `director.js` GELEERT (Schreiben öffnet vor Lesen). Per
   `git checkout` zurückgeholt, Änderungen neu angewandt. Nie wieder so
