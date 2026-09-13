@@ -66,7 +66,7 @@ export const PRESETS = [
   { id: "goldenage",   styleId: "goldenage",   emoji: "🎞", clip: "/media/pvgoldenage2609a.mp4" },     // die Bäume ziehen den Hut
   { id: "fantasyanime", styleId: "fantasyanime", emoji: "🐉", clip: "/media/pvfantasyanime2609a.mp4" }, // die Klinge wird zum Runenkreis, der Kreis zum Falter
   { id: "oilpaint",    styleId: "oilpaint",    emoji: "🖼", clip: "/media/pvoilpaint2609a.mp4" },      // der Fischer knüpft ein Netz aus Regen
-  { id: "marker",      styleId: "marker",      emoji: "🖍" },
+  { id: "marker",      styleId: "marker",      emoji: "🖍", clip: "/media/pvmarker2609a.mp4" },        // der Strich läuft voraus, sie rennt vom Blatt (3. Fassung)
   { id: "actionfigure", styleId: "actionfigure", emoji: "🦸", clip: "/media/pvactionfigure2609a.mp4" }, // die Katze als Drache, der Arm klickt wieder rein
   { id: "marionette",  styleId: "marionette",  emoji: "🎭", clip: "/media/pvmarionette2609a.mp4" },    // über dem König hängt der Puppenspieler an Fäden
   { id: "papercut",    styleId: "papercut",    emoji: "✂️", clip: "/media/pvpapercut2609a.mp4" },      // der Schatten des Fuchses geht neben ihm her

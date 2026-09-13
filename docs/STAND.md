@@ -5,8 +5,9 @@
 
 **Stand:** 2026-09-13 mittags — Sitzung `session/2026-09-13-anton-b`
 (PR #47, gemerged auf Antons Wort; trägt Hannis #46 mit). **Danach (Branch `-c`, PR #48): zehn Style-Clips über Higgsfield**
-(Seedance 2.5, 3:4, 480p, 5 s) — die acht Stimmungs-Stile, Tusche,
-Knete; neun Handwerksstile offen. Ablage und die Preset-Falle stehen im
+(Seedance 2.5, 3:4, 480p, 5 s) — seit 12:50 ALLE neunzehn Stile
+(Marker als dritte Fassung, siehe WORKLOG). Nächster Schritt dazu: Umzug
+der Clips nach `src/assets` (media/ ist ignoriert, Hanni sieht Zeichen). Ablage und die Preset-Falle stehen im
 WORKLOG 12:20.
 Inhalt der Sitzung: **Hannis Anmelde-Backend (PR #46) hereingeholt** und
 **die Anmeldung nativ gebaut** — als letzter Schritt des Onboardings vor

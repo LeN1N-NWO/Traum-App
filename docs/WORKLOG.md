@@ -128,6 +128,43 @@ Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
 `settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
 das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
 
+## 2026-09-13 12:50 — Anton — Branch `session/2026-09-13-anton-c` — Die neun Handwerksstile, Marker neu
+
+**Commits:** `35ed6c7` acht Handwerksstile · (Marker folgt im nächsten Commit).
+
+**Ideen je Stil, bewusst am Material:** Goldenes Zeitalter — die Bäume
+ziehen der Nachtwandlerin den Hut, Multiplane-Fahrt · Fantasy-Anime —
+die Klinge wird zum Runenkreis, der Kreis zum Falter, Tilt nach oben ·
+Ölgemälde — der Fischer knüpft ein Netz aus Regen, das nach oben fällt
+und als Wolke zurückregnet · Marker — der Strich läuft der Figur voraus,
+sie rennt vom Blatt auf den Tisch und schmiert · Actionfigur — die Katze
+als Drache, der Arm klickt wieder ins Gelenk · Marionette — Tilt an den
+Fäden hoch: über dem König hängt der Puppenspieler selbst an Fäden ·
+Scherenschnitt — der Schatten des Fuchses löst sich vom Papier und geht
+mit · Pappmaché — der Nieser, aus dem Kopf entfaltet sich eine
+Sonnenblume · Siebdruck — die Farbschichten laufen als eigene Männer
+weiter, zwei Ink-Wipes.
+
+**Was der Nächste wissen muss:**
+- **Marker zweimal neu:** Fassung 1 war zwar richtig (Junge rennt vom
+  Blatt), sah aber einer bekannten Comicfigur zu ähnlich — nicht
+  ausliefern. Fassung 2 wies Higgsfield mit `ip_detected` ab, vermutlich
+  weil der Prompt SELBST „nothing like any famous comic character" sagte
+  — ein Wort wie „famous comic character" reicht dem Filter. Fassung 3
+  beschreibt einfach eine eigene Figur (lila Wuschelhaar, orange Turnschuhe)
+  ohne Verneinung. Lehre: **nie verneinen, was man nicht will — der
+  Filter liest das Wort, nicht die Verneinung.**
+- Presets kamen diesmal je Stil verschieden („DROWN IN MUSIC" beim Anime,
+  „ACTION FIGURE" bei der Actionfigur) — die `declined_preset_id` muss zur
+  Empfehlung passen, eine pauschale reicht nicht.
+- Actionfigur: die Katze ist nur am Anfang im Bild (Standbild 0,5 s), der
+  Rest ist der Salut und der Arm — passt, aber wer die Katze prominenter
+  will, rendert neu.
+- **Kosten real ~12,5 Credits je Clip**, nicht die 32,5 aus der
+  Vorab-Kostenabfrage (`get_cost` hat offenbar 720p gerechnet): 4.123 →
+  3.998 nach zehn Clips, → 3.873 nach zehn weiteren. Alle 19 Stile zusammen
+  ≈ 250 Credits.
+
 ## 2026-09-13 12:20 — Anton — Branch `session/2026-09-13-anton-c` — Zehn Style-Clips über Higgsfield
 
 **Commits:** `9d7075d` Surreal + Knete · `828ba9e` acht Stimmungs-Stile + Tusche.
