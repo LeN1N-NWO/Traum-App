@@ -164,7 +164,7 @@ function snapshot() {
     soundsShortcut: t.home.soundsShortcut, checkinQuestion: t.checkin.question, checkinThanks: t.checkin.thanks,
     untitled: t.journal.untitled, takes: t.journal.takesLabel, reflectTitle: t.journal.reflectTitle,
     reflectNote: t.journal.reflectNote, reflectCta: t.journal.reflectCta, original: t.journal.original, rendering: t.journal.filmRendering,
-    share: t.journal.actShare, more: t.journal.menu, makeFilm: t.journal.makeFilm, anotherTake: t.journal.makeFilmAgain,
+    share: t.journal.actShare, shareCard: t.journal.shareCard, shareCardCta: t.journal.shareCardCta, shareCardFooter: t.journal.shareCardFooter, more: t.journal.menu, makeFilm: t.journal.makeFilm, anotherTake: t.journal.makeFilmAgain,
     dreams: t.journal.title,
     /* Das „…"-Menü der Traum-Seite (EntryMenu.jsx) als natives Aktionsblatt. */
     menuEdit: t.journal.edit, menuCorrect: t.journal.correct, menuRewrite: t.journal.rewrite, menuElaborate: t.journal.elaborate,

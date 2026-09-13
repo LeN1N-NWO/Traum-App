@@ -29,7 +29,7 @@ function thumbnail(url: string) {
   }
   return p;
 }
-function useThumbnail(media: DreamItem["media"]) {
+export function useThumbnail(media: DreamItem["media"]) {
   const url = media?.url ?? null;
   const kind = media?.kind ?? null;
   const [uri, setUri] = useState<string | null>(kind === "image" ? url : url ? done.get(url) ?? null : null);

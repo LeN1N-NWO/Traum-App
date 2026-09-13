@@ -183,6 +183,10 @@ export default {
     actRewrite: "Umschreiben",
     actEdit: "Bearbeiten",
     actShare: "Teilen",
+    /* Die Teilen-Karte (13.09.2026). */
+    shareCard: "Als Karte teilen",
+    shareCardCta: "Karte teilen",
+    shareCardFooter: "Geträumt mit Dream Rushes",
     refinePickTitle: "Wie soll ich ihn umschreiben?",
     refinePickLede: "Deine Fassung bleibt so oder so erhalten — nichts wird ersetzt, bevor du zustimmst.",
     correctHint: "Nur Rechtschreibung und Grammatik. Kein Wort deiner Stimme ändert sich.",
@@ -474,7 +478,7 @@ export default {
      mobile/src/lib/notifications.ts. */
   breathe: {
     ready: "Bereit?", in: "Einatmen", hold: "Halten", out: "Ausatmen", done: "Gut gemacht",
-    start: "Los geht's", stop: "Beenden", again: "Noch eine Minute",
+    start: "Los geht's", stop: "Beenden", again: "Noch eine Minute", guided: "Mit Anleitung atmen",
     round: "Runde {n} von {m}",
     how: "4 Sekunden einatmen, 7 halten, 8 ausatmen. Vier Runden. Du kannst die Augen schließen — das Handy tippt dich bei jedem Wechsel an.",
   },

@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SymbolView, type SFSymbol } from "expo-symbols";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
@@ -83,10 +83,11 @@ function BreatheRoom() {
 
 function ChecklistRoom() {
   const { data, send } = useJournal();
+  const router = useRouter();
   const C = data?.sleep?.checklist;
   return (
     <Room id="checklist" sf="moon.zzz.fill" tint={colors.warm} glow="rgba(242,167,101,0.30)">
-      {C ? <SleepChecklist C={C} onSave={(date, done) => send({ type: "sleepCheck", date, done })} /> : null}
+      {C ? <SleepChecklist C={C} onSave={(date, done) => send({ type: "sleepCheck", date, done })} onBreathe={() => router.push({ pathname: "/sleep/[view]", params: { view: "breathe" } })} breatheLabel={data?.sleep?.breathe?.guided} /> : null}
     </Room>
   );
 }

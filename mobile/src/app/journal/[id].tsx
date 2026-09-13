@@ -11,6 +11,7 @@ import { ActionSheetIOS, Alert, Modal, Platform, Pressable, ScrollView, Share, S
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeOut, ZoomIn } from "react-native-reanimated";
 import { MascotLoader } from "@/components/mascot-loader";
+import { ShareCard } from "@/components/share-card";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
@@ -28,6 +29,7 @@ export default function DreamScreen() {
   const { data, bridge, send, ask } = useJournal();
   const item = data?.items.find((e) => e.id === id) ?? null;
   const [reflecting, setReflecting] = useState(false);
+  const [card, setCard] = useState(false);
   /* „Nochmal, anders" / „Zum Leben erwecken": der native Fluss ab dem Stil
      mit Text und Analyse DIESES Traums (Antons Wunsch 12.09. — vorher
      landete man auf der alten Web-Seite). Mit entryId haengt der Auftrag
@@ -56,6 +58,8 @@ export default function DreamScreen() {
     if (!item) return;
     const go = (mode: string) => router.push({ pathname: "/journal/edit", params: { id: item.id, mode } });
     const entries: [string, () => void][] = [
+      // Die Teilen-Karte zuerst (13.09.2026): ein Traum als Bild, auch ohne Film.
+      [labels.shareCard ?? "Share as a card", () => { Haptics.selectionAsync(); setCard(true); }],
       [labels.menuEdit ?? "Edit", () => go("edit")],
       [labels.menuCorrect ?? "Correct", () => go("correct")],
       [labels.menuRewrite ?? "Rewrite", () => go("rewrite")],
@@ -93,6 +97,7 @@ export default function DreamScreen() {
       <Stack.Toolbar placement="right">
         {item ? <Stack.Toolbar.Button icon="ellipsis.circle" onPress={menu} /> : null}
       </Stack.Toolbar>
+      {item ? <ShareCard item={item} visible={card} onClose={() => setCard(false)} labels={labels} locale={locale} /> : null}
       <View style={styles.bridge}>{bridge}</View>
     </>
   );

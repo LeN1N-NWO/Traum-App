@@ -42,7 +42,7 @@ export function MoonStrip({ M }: { M: MoonData }) {
    dunkler Kreis geschoben wird; der Behälter beschneidet auf die Mondform.
    `waxing` entscheidet die Seite — auf der Nordhalbkugel leuchtet der
    zunehmende Mond rechts. */
-function Moon({ illum, waxing, size }: { illum: number; waxing: boolean; size: number }) {
+export function Moon({ illum, waxing, size }: { illum: number; waxing: boolean; size: number }) {
   const k = Math.max(0, Math.min(1, illum));
   /* Der Schatten deckt bei Neumond die ganze Scheibe (Versatz 0) und liegt
      bei Vollmond vollständig daneben (Versatz = Durchmesser). Zunehmend

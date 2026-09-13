@@ -207,6 +207,10 @@ export default {
     actRewrite: "Rewrite",
     actEdit: "Edit",
     actShare: "Share",
+    /* The share card (13.09.2026). */
+    shareCard: "Share as a card",
+    shareCardCta: "Share card",
+    shareCardFooter: "Dreamt with Dream Rushes",
     // The three refine modes, as offered in RefineSheet. Each hint says
     // what the mode will NOT do — that is the part people cannot guess,
     // and picking the wrong one costs a rewritten dream to find out.
@@ -517,7 +521,7 @@ export default {
      scheduling in mobile/src/lib/notifications.ts. */
   breathe: {
     ready: "Ready?", in: "Breathe in", hold: "Hold", out: "Breathe out", done: "Well done",
-    start: "Start", stop: "Stop", again: "One more minute",
+    start: "Start", stop: "Stop", again: "One more minute", guided: "Breathe with guidance",
     round: "Round {n} of {m}",
     how: "Breathe in for 4 seconds, hold for 7, out for 8. Four rounds. Close your eyes if you like — the phone taps you at every change.",
   },
