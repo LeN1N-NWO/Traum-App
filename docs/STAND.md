@@ -4,9 +4,13 @@
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
 **Stand:** 2026-09-13 mittags — Sitzung `session/2026-09-13-anton-b`
-(PR #47, gemerged auf Antons Wort; trägt Hannis #46 mit). ⚠ Offen: die
-ersten zwei **Style-Clips über Higgsfield** (Seedance 2.5, 3:4, 480p, 5 s,
-ein Take) — Jobs laufen, Ergebnis nach `media/pv….mp4` + `presets.js`.
+(PR #47, gemerged auf Antons Wort; trägt Hannis #46 mit). **Danach (Branch `-c`, PR #48): zehn Style-Clips über Higgsfield**
+(Seedance 2.5, 3:4, 480p, 5 s) — seit 12:50 ALLE neunzehn Stile
+(Marker als dritte Fassung, siehe WORKLOG). Die Clips sind VERSIONIERT
+(`public/clips/style-*.mp4`, Ausnahme in .gitignore) und nativ gebündelt
+(`mobile/src/lib/style-clips.ts`); Onboarding zeigt ein Showreel der
+stärksten (`SHOWREEL` in der Brücke). Ablage und die Preset-Falle stehen im
+WORKLOG 12:20.
 Inhalt der Sitzung: **Hannis Anmelde-Backend (PR #46) hereingeholt** und
 **die Anmeldung nativ gebaut** — als letzter Schritt des Onboardings vor
 dem Schluss (Antons Platzwahl: erst antworten, dann sichern). E-Mail,

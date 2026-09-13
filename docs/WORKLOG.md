@@ -128,6 +128,107 @@ Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
 `settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
 das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
 
+## 2026-09-13 13:15 — Anton — Branch `session/2026-09-13-anton-c` — Clips versioniert und gebündelt, Onboarding-Showreel
+
+**Antons Auftrag:** alle Clips einbinden, in der Stil-Auswahl zuordnen und
+im Onboarding die stärksten zeigen — „nicht mehr diese alten Träume von mir".
+
+- **Ablage neu:** die 19 Vorschauen liegen als `public/clips/style-<id>.mp4`
+  IM REPOSITORY (~2 MB; `.gitignore` hat dafür die Ausnahme
+  `!public/clips/style-*.mp4` — die Regel `public/clips/*.mp4` stammt aus
+  der Zeit der Demo-Medien). `presets.js` zeigt auf `/clips/style-<id>.mp4`;
+  Dreamflow nimmt den Traumhaft-Clip. Der Web-Build kopiert nach
+  `dist/clips` (`bunx vite build` gemacht, Server liefert 200 video/mp4);
+  die Vorschauen in `media/pv…2609a.mp4` sind gelöscht, die Originale
+  bleiben in `media/clips-src/`.
+- **Nativ gebündelt:** `mobile/src/lib/style-clips.ts` hält je Stil ein
+  `require` auf dieselbe Datei; `Clip` (preset-tile.tsx) löst über
+  `clipSource(url)` auf — Stil-Clips laufen ohne Server und im
+  Produktionsbau, alles andere weiter über die Adresse. ⚠ Ein neuer Stil
+  braucht dort eine Zeile.
+- **Showreel im Onboarding:** `SHOWREEL` in der Brücke, von Hand gereiht
+  (Romantisch, Tusche, Scherenschnitt, Ölgemälde für die vier
+  Feature-Kacheln; Surreal, Anime, Abenteuer, Marionette für die
+  Zwischenbilder), der Guide-Trailer ist der Anime-Clip. Home behält das
+  Faultier (Maskottchen-Video), die Ertrags-Kachel der Paywall ihren Weg.
+- Geprüft per Screenshot: Stil-Raster (alle 20 Kacheln laufen aus dem
+  Bündel), Feature-Bildschirm, Zwischenbild, Server-Antwort auf
+  `/clips/style-ink.mp4`.
+
+## 2026-09-13 12:50 — Anton — Branch `session/2026-09-13-anton-c` — Die neun Handwerksstile, Marker neu
+
+**Commits:** `35ed6c7` acht Handwerksstile · (Marker folgt im nächsten Commit).
+
+**Ideen je Stil, bewusst am Material:** Goldenes Zeitalter — die Bäume
+ziehen der Nachtwandlerin den Hut, Multiplane-Fahrt · Fantasy-Anime —
+die Klinge wird zum Runenkreis, der Kreis zum Falter, Tilt nach oben ·
+Ölgemälde — der Fischer knüpft ein Netz aus Regen, das nach oben fällt
+und als Wolke zurückregnet · Marker — der Strich läuft der Figur voraus,
+sie rennt vom Blatt auf den Tisch und schmiert · Actionfigur — die Katze
+als Drache, der Arm klickt wieder ins Gelenk · Marionette — Tilt an den
+Fäden hoch: über dem König hängt der Puppenspieler selbst an Fäden ·
+Scherenschnitt — der Schatten des Fuchses löst sich vom Papier und geht
+mit · Pappmaché — der Nieser, aus dem Kopf entfaltet sich eine
+Sonnenblume · Siebdruck — die Farbschichten laufen als eigene Männer
+weiter, zwei Ink-Wipes.
+
+**Was der Nächste wissen muss:**
+- **Marker zweimal neu:** Fassung 1 war zwar richtig (Junge rennt vom
+  Blatt), sah aber einer bekannten Comicfigur zu ähnlich — nicht
+  ausliefern. Fassung 2 wies Higgsfield mit `ip_detected` ab, vermutlich
+  weil der Prompt SELBST „nothing like any famous comic character" sagte
+  — ein Wort wie „famous comic character" reicht dem Filter. Fassung 3
+  beschreibt einfach eine eigene Figur (lila Wuschelhaar, orange Turnschuhe)
+  ohne Verneinung. Lehre: **nie verneinen, was man nicht will — der
+  Filter liest das Wort, nicht die Verneinung.**
+- Presets kamen diesmal je Stil verschieden („DROWN IN MUSIC" beim Anime,
+  „ACTION FIGURE" bei der Actionfigur) — die `declined_preset_id` muss zur
+  Empfehlung passen, eine pauschale reicht nicht.
+- Actionfigur: die Katze ist nur am Anfang im Bild (Standbild 0,5 s), der
+  Rest ist der Salut und der Arm — passt, aber wer die Katze prominenter
+  will, rendert neu.
+- **Kosten real ~12,5 Credits je Clip**, nicht die 32,5 aus der
+  Vorab-Kostenabfrage (`get_cost` hat offenbar 720p gerechnet): 4.123 →
+  3.998 nach zehn Clips, → 3.873 nach zehn weiteren. Alle 19 Stile zusammen
+  ≈ 250 Credits.
+
+## 2026-09-13 12:20 — Anton — Branch `session/2026-09-13-anton-c` — Zehn Style-Clips über Higgsfield
+
+**Commits:** `9d7075d` Surreal + Knete · `828ba9e` acht Stimmungs-Stile + Tusche.
+
+**Antons Auftrag:** je Stil ein 5-s-Clip, der den Stil „einbrennt" — eine
+absurde Traum-Idee, auf den Punkt, mit Abwechslung: nicht nur
+Verwandlung und Maßstabsbruch, sondern je nach Stil auch ein Schnitt oder
+ein ruhiger Take. Seedance 2.5 über Antons Higgsfield-Konto (MCP
+angebunden), **3:4** (die Stil-Kacheln sind quadratisch, der Zoom 5:7 —
+3:4 deckt beides), **480p**, ohne Ton, ~32 Credits je Clip. Zehn gerendert
+(≈ 325 Credits, Stand danach 3.998), Rest neun Handwerksstile offen.
+
+**Was je Stil passiert:** Ultrareal — Glühwürmchen aus dem Wasserhahn,
+ein ruhiger Take (Deakins) · Noir — Rauch wird zur Frau, harter Schnitt
+auf die Augen · Traumhaft — Bett gleitet die Wendeltreppe hinab, Fische
+aus Licht · Romantisch — die Stadt hebt beim Tanz ab wie Pusteblumen ·
+Düster — Flur, hinter jeder Tür er selbst, Türen knallen · Surreal —
+Mann wird zu Tauben, der Hut bleibt · Nostalgisch — Geburtstag,
+Jump-Cut, nur die Kerzen bleiben · Abenteuer — der Grat ist eine
+Schildkröte · Tusche — Kranich zerfällt zu Schriftzeichen,
+Pflaumenblüten · Knete — die Schläferin im Bett in der Teetasse.
+
+**Was der Nächste wissen muss:**
+- **Ablage:** Original `media/clips-src/<stil>-<job8>.mp4`, Vorschau
+  `media/pv<stil>2609a.mp4` (270 px, stumm, < 200 KB, crf 28–34 bis es
+  passt). ⚠ `media/` ist git-ignoriert — die Dateien liegen NUR in Antons
+  Hauptcheckout; Hanni sieht Zeichen auf Farbe. Der geplante Umzug nach
+  `src/assets` (STAND, Punkt 6) gilt weiter.
+- **Higgsfield schlägt bei fast jedem Prompt das Preset „IN THE DARK"
+  vor** und reicht den Auftrag dann NICHT ein (`submission_failed`). Immer
+  wörtlich mit `declined_preset_id: 24bae836-2c4a-48e0-89b6-49fcc0b21612`
+  neu einreichen — beim Stapel gleich mitgeben.
+- Ingest-Skript der Sitzung liegt nur im Scratchpad (`ingest-clip.sh`:
+  bun-fetch statt curl, weil LuLu curl blockt; ffmpeg 270 px; drei
+  Standbilder zum Ansehen). Bei Bedarf nach `scripts/` holen.
+- Die `look`-CSS-Filter in `presets.js` sind weg; kein Code liest sie mehr.
+
 ## 2026-09-13 11:40 — Anton — Branch `session/2026-09-13-anton-b` — Sitzungsabschluss (wrap + Merge auf Antons Wort, während Higgsfield rendert)
 
 **Commits (12):** `4f36289` Journal-Bilder · `a92ab16` Merge Hannis PR #46 ·

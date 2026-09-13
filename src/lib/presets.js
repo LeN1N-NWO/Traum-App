@@ -43,27 +43,34 @@ import { styleById } from "./styles.js";
 export const DREAMFLOW = "dreamflow";
 
 export const PRESETS = [
-  { id: DREAMFLOW, styleId: "dreamlike", pace: "flow", emoji: "🌊", clip: "/media/pv146xj01olre81.mp4", wide: true },
-  { id: "ultrareal",   styleId: "ultrareal",   emoji: "🎥", clip: "/media/pv3mbc0jejqwty8.mp4" },
-  { id: "noir",        styleId: "noir",        emoji: "🕶", clip: "/media/pv3nlve2uwl0zm.mp4", look: "grayscale(1) contrast(1.25)" },
-  { id: "dreamlike",   styleId: "dreamlike",   emoji: "🌙", clip: "/media/pvt8t2asdudzc4.mp4", look: "saturate(.8) brightness(1.12)" },
-  { id: "romantic",    styleId: "romantic",    emoji: "💗", clip: "/media/pv3q75trlqwsw61.mp4", look: "sepia(.25) saturate(1.3) hue-rotate(-12deg)" },
-  { id: "dark",        styleId: "dark",        emoji: "🌑", clip: "/media/pv146xj01olre81.mp4", look: "brightness(.55) contrast(1.2) saturate(.7)" },
-  { id: "surreal",     styleId: "surreal",     emoji: "🌀", clip: "/media/pv3mbc0jejqwty8.mp4", look: "hue-rotate(35deg) saturate(1.5)" },
-  { id: "nostalgic",   styleId: "nostalgic",   emoji: "📻", clip: "/media/pv3nlve2uwl0zm.mp4", look: "sepia(.6) contrast(.95)" },
-  { id: "adventurous", styleId: "adventurous", emoji: "🧭", clip: "/media/pvt8t2asdudzc4.mp4", look: "saturate(1.35) contrast(1.1)" },
-  { id: "ink",         styleId: "ink",         emoji: "🖌" },
-  { id: "clay",        styleId: "clay",        emoji: "🗿" },
+  { id: DREAMFLOW, styleId: "dreamlike", pace: "flow", emoji: "🌊", clip: "/clips/style-dreamlike.mp4", wide: true },   // derselbe Stil, derselbe Film
+  /* Eigene Clips seit 13.09. (Seedance 2.5 über Higgsfield, 5 s, 3:4, 480p,
+     je ~12,5 Credits) — die `look`-Filter sind weg, der Stil steckt im Film.
+     Vorschau 270 px stumm < 200 KB in public/clips/ (VERSIONIERT, Ausnahme
+     in .gitignore); der Web-Build kopiert sie nach dist/clips, der Server
+     reicht sie durch, die native Hülle bündelt sie selbst
+     (mobile/src/lib/style-clips.ts). Originale liegen in media/clips-src/
+     (nur in Antons Checkout). */
+  { id: "ultrareal",   styleId: "ultrareal",   emoji: "🎥", clip: "/clips/style-ultrareal.mp4" },     // die Glühwürmchen aus dem Wasserhahn, ein ruhiger Take
+  { id: "noir",        styleId: "noir",        emoji: "🕶", clip: "/clips/style-noir.mp4" },          // der Rauch wird zur Frau, ein harter Schnitt
+  { id: "dreamlike",   styleId: "dreamlike",   emoji: "🌙", clip: "/clips/style-dreamlike.mp4" },     // das Bett gleitet die Treppe hinab
+  { id: "romantic",    styleId: "romantic",    emoji: "💗", clip: "/clips/style-romantic.mp4" },      // die Stadt hebt ab wie Pusteblumen
+  { id: "dark",        styleId: "dark",        emoji: "🌑", clip: "/clips/style-dark.mp4" },          // der Flur, hinter jeder Tür er selbst
+  { id: "surreal",     styleId: "surreal",     emoji: "🌀", clip: "/clips/style-surreal.mp4" },
+  { id: "nostalgic",   styleId: "nostalgic",   emoji: "📻", clip: "/clips/style-nostalgic.mp4" },     // Geburtstag, Jump-Cut, nur die Kerzen bleiben
+  { id: "adventurous", styleId: "adventurous", emoji: "🧭", clip: "/clips/style-adventurous.mp4" },   // der Grat ist eine Schildkröte
+  { id: "ink",         styleId: "ink",         emoji: "🖌", clip: "/clips/style-ink.mp4" },           // der Kranich zerfällt zu Schriftzeichen
+  { id: "clay",        styleId: "clay",        emoji: "🗿", clip: "/clips/style-clay.mp4" },   // 13.09.: die Schläferin im Bett in der Teetasse
   // ── ab hier hinter „More styles" (styles.js: featured fehlt) ──
-  { id: "goldenage",   styleId: "goldenage",   emoji: "🎞" },
-  { id: "fantasyanime", styleId: "fantasyanime", emoji: "🐉" },
-  { id: "oilpaint",    styleId: "oilpaint",    emoji: "🖼" },
-  { id: "marker",      styleId: "marker",      emoji: "🖍" },
-  { id: "actionfigure", styleId: "actionfigure", emoji: "🦸" },
-  { id: "marionette",  styleId: "marionette",  emoji: "🎭" },
-  { id: "papercut",    styleId: "papercut",    emoji: "✂️" },
-  { id: "papiermache", styleId: "papiermache", emoji: "📰" },
-  { id: "screenprint", styleId: "screenprint", emoji: "🖨" },
+  { id: "goldenage",   styleId: "goldenage",   emoji: "🎞", clip: "/clips/style-goldenage.mp4" },     // die Bäume ziehen den Hut
+  { id: "fantasyanime", styleId: "fantasyanime", emoji: "🐉", clip: "/clips/style-fantasyanime.mp4" }, // die Klinge wird zum Runenkreis, der Kreis zum Falter
+  { id: "oilpaint",    styleId: "oilpaint",    emoji: "🖼", clip: "/clips/style-oilpaint.mp4" },      // der Fischer knüpft ein Netz aus Regen
+  { id: "marker",      styleId: "marker",      emoji: "🖍", clip: "/clips/style-marker.mp4" },        // der Strich läuft voraus, sie rennt vom Blatt (3. Fassung)
+  { id: "actionfigure", styleId: "actionfigure", emoji: "🦸", clip: "/clips/style-actionfigure.mp4" }, // die Katze als Drache, der Arm klickt wieder rein
+  { id: "marionette",  styleId: "marionette",  emoji: "🎭", clip: "/clips/style-marionette.mp4" },    // über dem König hängt der Puppenspieler an Fäden
+  { id: "papercut",    styleId: "papercut",    emoji: "✂️", clip: "/clips/style-papercut.mp4" },      // der Schatten des Fuchses geht neben ihm her
+  { id: "papiermache", styleId: "papiermache", emoji: "📰", clip: "/clips/style-papiermache.mp4" },   // der Nieser, aus dem Kopf wird eine Sonnenblume
+  { id: "screenprint", styleId: "screenprint", emoji: "🖨", clip: "/clips/style-screenprint.mp4" },   // die Farbschichten laufen als eigene Männer weiter
 ];
 
 /** Die erste Reihe: Dreamflow plus jedes Preset, dessen Stil `featured`

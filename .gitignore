@@ -23,6 +23,10 @@ Thumbs.db
 # Demo-Medien liegen seit dem Vite-Umbau in public/clips/ und werden von
 # dort nach dist/clips/ kopiert.
 public/clips/*.mp4
+# AUSNAHME (13.09.2026): die 19 Stil-Vorschauen (Seedance über Higgsfield,
+# 270 px, stumm, je < 200 KB, zusammen ~2 MB) gehören ins Repository — jede
+# Kachel braucht ihren Film, in jedem Checkout und im nativen Build.
+!public/clips/style-*.mp4
 
 # Lokale Kopien der erzeugten Bilder/Filme (server.js legt sie an).
 # Gehören dem jeweiligen Gerät, nicht dem Repository.

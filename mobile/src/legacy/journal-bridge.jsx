@@ -57,6 +57,11 @@ import { t } from "../../../src/i18n/index.js";
 const API_BASE = globalThis.__ExpoImportMetaRegistry?.env?.VITE_API_BASE || "";
 const absolute = (u) => (typeof u === "string" && u.startsWith("/") && !u.startsWith("/media/") ? API_BASE + u : mediaUrl(u));
 
+/* Die Vorzeige-Clips fürs Onboarding — die stärksten der 19, in der
+   Reihenfolge, in der sie erscheinen: erst die vier Feature-Kacheln
+   (Halbschlaf → Film → gratis → deiner), dann die Zwischenbilder. */
+const SHOWREEL = ["romantic", "ink", "papercut", "oilpaint", "surreal", "fantasyanime", "adventurous", "marionette"];
+
 /* Die Schlafstufe eines Kalendertags (Schlüssel wie localDateKey), oder null. */
 function sleepOn(checkins, key) {
   const c = (checkins || []).find((x) => x && x.date === key);
@@ -188,7 +193,7 @@ function snapshot() {
         /* Tutorial-Strecke (13.09.): Trailer oben — PLATZHALTER ist der
            Vorschau-Clip eines Stils, bis Antons Video da ist. */
         tutorialKicker: l.tutorialKicker, tutorialSteps: [1, 2, 3].map((n) => l.tutorialStep(n)), mediaSoon: l.mediaSoon, methodsLede: l.methodsLede, sourceTitle: l.sourceTitle,
-        heroClip: (() => { const c = PRESETS.filter((p) => p.clip)[3]; return c ? absolute(c.clip) : null; })(),
+        heroClip: (() => { const c = PRESETS.find((p) => p.id === "fantasyanime"); return c?.clip ? absolute(c.clip) : null; })(),
         methods: l.methods.map((m) => ({ id: m.id, name: m.name, rate: m.rate || null, summary: m.summary, steps: m.steps, note: m.note })),
         sourceNote: l.sourceNote, reminderAsk: l.reminderAsk, reminderPerDay: l.reminderPerDay, reminderWhy: l.reminderWhy, reminderSoon: l.reminderSoon,
         reminderActive: Object.fromEntries(Array.from({ length: MAX_PER_DAY }, (_, i) => [i + 1, l.reminderActive(i + 1)])),
@@ -390,9 +395,10 @@ function snapshot() {
     /* Die Saetze mit Zahl werden nativ gefuellt: Platzhalter 1000. */
     sleepYearsTpl: onb.sleepYears(1000), sleepDreamTpl: onb.sleepDream(1000),
     /* Bewegte Kacheln im Onboarding (Antons Wunsch 13.09., Moonly-Vorbild):
-       erst mal die Vorschau-Clips der Stile — dieselben Dateien, die der
-       Stil-Schritt zeigt. Später kommen eigene. */
-    clips: PRESETS.filter((p) => p.clip).slice(0, 6).map((p) => absolute(p.clip)),
+       die stärksten Stil-Clips, von Hand gereiht (Antons Ansage 13.09.:
+       „nicht mehr diese alten Träume von mir"). Reihenfolge = Feature-Kacheln
+       1–4, danach die Zwischenbilder. */
+    clips: SHOWREEL.map((id) => PRESETS.find((p) => p.id === id)).filter((p) => p && p.clip).map((p) => absolute(p.clip)),
     values: {
       goal: werte("goal", t.dreamer.goalValues), recall: werte("recall", t.dreamer.recallValues),
       lucid: werte("lucid", t.dreamer.lucidValues), sleepHours: werte("sleepHours", t.dreamer.sleepValues),
