@@ -1,17 +1,23 @@
 import { Image } from "expo-image";
 import { Stack, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { SymbolView } from "expo-symbols";
+import { SymbolView, type SFSymbol } from "expo-symbols";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
-/* Das Profil, nativ: Gesicht, Name, Guthaben, zwei Zahlen. Foto/Name,
-   Einstellungen und das Kaufblatt sind noch Web-Blätter (page.tsx). */
+const GROUP_ICON: Record<string, SFSymbol> = { person: "person.fill", pet: "pawprint.fill", place: "house.fill", object: "cube.fill" };
+
+/* Das Profil, nativ: Gesicht, Name, Guthaben, zwei Zahlen — und seit
+   13.09.2026 direkt darunter die Besetzung (Antons Ansage: „Diese Library
+   muss einen viel, viel größeren Wert bekommen … ein zentraler Punkt, damit
+   diese Träume auch geil sind"). Vier Gattungen mit Zahl und Gesichtern,
+   ein Tipp öffnet die ganze Liste. */
 export default function ProfileScreen() {
   const router = useRouter();
   const { data, bridge } = useJournal();
   const p = data?.profile;
+  const lib = data?.library;
   const open = (page: string) => { Haptics.selectionAsync(); router.push({ pathname: "/profile/page", params: { page } }); };
   return (
     <>
@@ -29,6 +35,31 @@ export default function ProfileScreen() {
               <View style={styles.stat}><Text style={styles.statN}>{p.dreams}</Text><Text style={styles.statL}>{p.statDreams}</Text></View>
               <View style={styles.stat}><Text style={styles.statN}>{p.streak}</Text><Text style={styles.statL}>{p.statStreak}</Text></View>
             </View>
+            {lib ? (
+              <Pressable style={styles.world} onPress={() => { Haptics.selectionAsync(); router.push("/profile/cast"); }} accessibilityRole="button">
+                <View style={styles.worldHead}>
+                  <Text style={styles.worldTitle}>{lib.title}</Text>
+                  <SymbolView name="chevron.right" size={14} tintColor={colors.faint} />
+                </View>
+                <Text style={styles.worldWhy}>{lib.why}</Text>
+                <View style={styles.worldGrid}>
+                  {lib.groups.map((g) => (
+                    <View key={g.category} style={styles.worldTile}>
+                      <View style={styles.faces}>
+                        {g.rows.slice(0, 3).map((r, i) => (
+                          r.img
+                            ? <Image key={r.id} source={{ uri: r.img }} style={[styles.miniFace, i > 0 && { marginLeft: -10 }]} contentFit="cover" />
+                            : <View key={r.id} style={[styles.miniFace, styles.miniInitial, i > 0 && { marginLeft: -10 }]}><Text style={styles.miniInitialText}>{r.initial}</Text></View>
+                        ))}
+                        {g.rows.length === 0 ? <View style={[styles.miniFace, styles.miniEmpty]}><SymbolView name={GROUP_ICON[g.category] ?? "circle"} size={13} tintColor={colors.faint} /></View> : null}
+                      </View>
+                      <Text style={styles.worldN}>{g.rows.length}</Text>
+                      <Text style={styles.worldL} numberOfLines={1}>{g.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              </Pressable>
+            ) : null}
             {!p.surveyDone ? (
               <Pressable style={styles.card} onPress={() => open("survey")}>
                 <View style={{ flex: 1, gap: 2 }}>
@@ -92,6 +123,19 @@ const styles = StyleSheet.create({
   cardTitle: { color: colors.text, fontSize: 16, fontWeight: "600" },
   cardHint: { color: colors.accentSoft, fontSize: 13 },
   bridge: { height: 0, overflow: "hidden" },
+  world: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(140,192,255,0.28)", gap: 8 },
+  worldHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  worldTitle: { fontFamily: fonts.serif, fontSize: 22, color: colors.text },
+  worldWhy: { color: colors.muted, fontSize: 13.5, lineHeight: 19 },
+  worldGrid: { flexDirection: "row", gap: 8, marginTop: 6 },
+  worldTile: { flex: 1, alignItems: "center", gap: 4, paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.03)" },
+  faces: { flexDirection: "row", height: 30, alignItems: "center" },
+  miniFace: { width: 30, height: 30, borderRadius: 15, borderWidth: 1.5, borderColor: colors.bg, backgroundColor: colors.sky },
+  miniInitial: { alignItems: "center", justifyContent: "center" },
+  miniInitialText: { color: colors.accentSoft, fontFamily: fonts.serif, fontSize: 13 },
+  miniEmpty: { alignItems: "center", justifyContent: "center", backgroundColor: "transparent", borderColor: colors.panelLine, borderStyle: "dashed" },
+  worldN: { color: colors.text, fontSize: 20, fontWeight: "600", fontVariant: ["tabular-nums"] },
+  worldL: { color: colors.faint, fontSize: 10.5, letterSpacing: 1, textTransform: "uppercase" },
   dreamer: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, gap: 10 },
   dreamerTitle: { fontFamily: fonts.serif, fontSize: 20, color: colors.text },
   retake: { color: colors.accentSoft, fontSize: 13, fontWeight: "600" },

@@ -43,6 +43,7 @@ import { dedupePeople } from "./src/lib/people.js";
 // Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
 import { guard } from "./src/lib/gatekeeper.js";
+import { checkResult } from "./src/lib/photoCheck.js";
 import { buildCharacterPrompt, buildSheetFromPhotoPrompt, stripReferenceClauses } from "./src/lib/promptBuilder.js";
 // Stiltexte sind Konstanten aus dem Repo — der Client schickt nur eine ID,
 // damit über dieses Feld kein Fremdtext in einen bezahlten Prompt wandert.
@@ -82,7 +83,7 @@ import { parseLimit, decodeCursor, buildPage } from "./src/lib/paging.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
   DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
-  buildDirectorBrief, checkDirectedPrompt, filmReferences,
+  buildDirectorBrief, checkDirectedPrompt, filmReferences, fitPromptBudget,
 } from "./src/lib/director.js";
 
 /* Wohin die erzeugten Dateien gehen. ⚠ NICHT einfach `import.meta.dir` —
@@ -807,7 +808,7 @@ function buildFallbackPrompt(dream, namedRefs = []) {
   const clauses = namedRefs.map((r, i) => {
     const tag = sanitizeTag(r.tag);
     if (!tag) return null;
-    const kind = r.category === "pet" ? "pet" : r.category === "place" ? "place" : "person";
+    const kind = r.category === "pet" ? "pet" : r.category === "place" ? "place" : r.category === "object" ? "object" : "person";
     const desc = sanitizeFragment(r.desc || "", MAX_FRAGMENT);
     const descClause = desc ? `, described as: ${desc}` : "";
     return `Reference image ${i + 1} shows @${tag} (${kind}${descClause}) — whenever "${tag}" appears in the dream below, depict them with this exact likeness, not a generic stand-in.`;
@@ -829,7 +830,7 @@ async function craftPromptViaDeepseek(dream, namedRefs = []) {
 
   const refLines = namedRefs.map((r) => {
     const tag = sanitizeTag(r.tag);
-    const kind = r.category === "pet" ? "pet" : r.category === "place" ? "place" : "person";
+    const kind = r.category === "pet" ? "pet" : r.category === "place" ? "place" : r.category === "object" ? "object" : "person";
     const desc = sanitizeFragment(r.desc || "", MAX_FRAGMENT);
     return `- @${tag} (${kind}${desc ? `: ${desc}` : ""})`;
   }).join("\n");
@@ -966,16 +967,19 @@ async function directFilm({ dream, still, beats = [], shots = [], style, seconds
   // Referenzen sein; ohne Referenzen ist JEDES @Image eine Anweisung ins
   // Leere. Verstoß → Rückfall, nie ein halluziniertes Bild.
   const roh = sanitizePromptText(text);
-  const cleaned = roh.slice(0, m.promptMax);
+  /* Ins Budget bringen wie der Brief es verlangt: Stilprosa zuerst, dann
+     Sperren, erst zuletzt die Schere (fitPromptBudget, director.js). */
+  const fit = fitPromptBudget(roh, m.promptMax);
+  const cleaned = fit.text;
   /* ⚠ Die Kappung war bis zum 03.09.2026 STUMM — man sah nur eine
      Zeichenzahl, die zufällig genau dem Limit entsprach. Sie schneidet am
      Ende ab, und dort stehen die letzten Shots, der Ton und die Schlusszeile:
      Bei sieben Zwei-Sekunden-Blöcken kann das den halben Film kosten, ohne
      dass irgendwo ein Fehler auftaucht. Wenn das hier im Log steht, gehört
      das Zeichenbudget im Brief nachgeschärft (buildDirectorBrief). */
-  if (roh.length > m.promptMax) {
-    console.warn(`[DreamRushes] ⚠ Regie-Prompt gekappt: ${roh.length} → ${m.promptMax} Zeichen (${m.id}). `
-      + `Das Ende fehlt — Shots, Ton oder Schlusszeile.`);
+  if (fit.trimmed !== "none") {
+    console.warn(`[DreamRushes] ⚠ Regie-Prompt über Budget: ${roh.length} → ${cleaned.length} Zeichen (${m.id}), `
+      + (fit.trimmed === "cut" ? "am ENDE gekappt — Shots, Ton oder Schlusszeile fehlen." : `Block „${fit.trimmed}" gekürzt.`));
   }
   if (!checkDirectedPrompt(cleaned, refs.length).ok) throw new Error("DEEPSEEK_FAILED");
   // Eine Zeile Sichtbarkeit für ein bezahltes Feature: lief der Regisseur,
@@ -1245,6 +1249,7 @@ Schema (every key is required, exactly these names):
     }
   ],
   "places": string[],      // every distinct location, in order, in the dream's language
+  "objects": string[],     // at most 3 KEY OBJECTS the dream turns on, in the dream's language — usually []
   "beats": string[],       // one per visible event in the dream, in order — ALWAYS IN ENGLISH
   "beatMeta": [            // exactly one entry per beat, same order
     {
@@ -1275,6 +1280,8 @@ If the dream is told in the FIRST PERSON, the dreamer is a character and belongs
 A dog, cat or other animal is kind "pet". Empty array only if truly nobody appears.
 
 Rules for "places": one entry per distinct SETTING — a location a film crew would have to build separately. Different parts, angles or heights of the SAME setting are ONE entry: a mountain's summit and the sky above that mountain are one place, a house and the rooms inside it are one place. The sky, air or water directly around a setting is never its own entry. List a second place only when the dream truly moves somewhere else (a bedroom, then later the open sea). Never let two entries share the same core location. Empty array if there is no discernible location.
+
+Rules for "objects": only the few THINGS the dream itself names and turns on, which must look the same in every shot — the letter, the red car, the tooth that falls out, a named landmark like a TV tower. Never clothing (that is "wearing"), never body parts of a person, never a whole setting (that is "places"), never animals (that is "people" with kind "pet"). Bare noun, no articles, in the dream's language. At most 3. An empty array is the normal answer.
 
 Rules for "beats": as many as the dream has VISIBLE EVENTS — typically 3 to 12, never fewer than 2 and never more than 14. Do NOT split evenly and do NOT pad to a fixed number: a dream with three events gets three beats, a dream with eleven gets eleven. A beat is the smallest unit of visible action: one action, one place, who is in frame. A feeling with no visible expression is not a beat. Never write the same event twice — if two moments share a place and an action, they are one beat. Each beat is one English sentence describing what is SEEN, not felt. Refer to people by their "name" so the app can bind reference images.
 
@@ -1412,6 +1419,9 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
     text,
     people,
     places: list(parsed.places),
+    /* Requisiten (13.09.2026, Regie v2 §5 D): die paar Dinge, an denen der
+       Traum hängt. Dieselbe Hygiene wie Orte, höchstens drei. */
+    objects: list(parsed.objects).slice(0, 3),
     beats,
     beatMeta,
     signature,
@@ -2557,6 +2567,47 @@ const serveOptions = {
       }
     }
 
+    /* Die Foto-Prüfung (13.09.2026, Antons Idee): gleich nach dem Haken im
+       Avatar-Dialog, im Hintergrund. Heute prüft sie den INHALT über fals
+       NSFW-Klassifikator ($0,001 je Bild, gemessen 5 s). Was sie bewusst
+       NICHT tut:
+         · Promi-Erkennung — ein Abgleich jedes Gesichts gegen eine
+           Personendatenbank ist biometrische Identifizierung (Art. 9 DSGVO),
+           einwilligen müsste die abgebildete Person, nicht der Hochlader.
+         · „Nimmt Seedance dieses Gesicht?" — dafür gibt es bei keinem
+           Anbieter einen kostenlosen Prüf-Endpunkt (Recherche 13.09.,
+           docs/plans/2026-09-13-bildpruefung-seedance.md). Das beantwortet
+           der erste Film; bei Replicate/BytePlus kostet eine Ablehnung nichts.
+       Ergebnisform aus src/lib/photoCheck.js: Netz- und Schlüsselprobleme
+       sind „unavailable", nie „blocked" — ein Funkloch sperrt kein Foto. */
+    if (url.pathname === "/api/photo-check" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json();
+        const image = typeof body.image === "string" && /^data:image\/(jpeg|png|webp);base64,/.test(body.image) ? body.image : null;
+        if (!image) return json({ status: "unavailable", reason: null });
+        const key = process.env.FAL_KEY;
+        if (!key) return json(checkResult({ error: "NO_FAL_KEY" }));
+        const res = await fetch("https://fal.run/fal-ai/imageutils/nsfw", {
+          method: "POST",
+          signal: AbortSignal.timeout(30_000),
+          headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
+          body: JSON.stringify({ image_url: image }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || typeof data?.nsfw_probability !== "number") {
+          return json(checkResult({ error: `nsfw check ${res.status}`, status: res.status >= 500 ? res.status : 503 }));
+        }
+        const p = data.nsfw_probability;
+        return json({ ...checkResult(p >= 0.6 ? { accepted: false, error: "NSFW content detected" } : { accepted: true }), checked: ["content"] });
+      } catch (e) {
+        console.warn("[DreamRushes] photo-check:", e?.message || e);
+        return json(checkResult({ error: String(e?.message || "network") }));
+      }
+    }
+
     if (url.pathname === "/api/character" && req.method === "POST") {
       try {
         if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
@@ -2566,7 +2617,7 @@ const serveOptions = {
         const desc = sanitizePromptText(body.desc);
         // Allowlist: die Kategorie wählt die Bildaufteilung, nichts wird
         // interpoliert.
-        const category = ["person", "pet", "place"].includes(body.category) ? body.category : "person";
+        const category = ["person", "pet", "place", "object"].includes(body.category) ? body.category : "person";
 
         /* Zwei Wege, ein Endpunkt (Plan 2026-08-20-charakterbogen-pflicht.md):
          * MIT Foto wird eine vorhandene Figur zum Bogen NORMALISIERT (grau,
@@ -2651,7 +2702,7 @@ const serveOptions = {
           .filter((c) => c && typeof c === "object" && typeof c.img === "string" && c.img)
           .map((c) => ({
             tag: sanitizeTag(c.tag),
-            category: ["person", "pet", "place"].includes(c.category) ? c.category : "person",
+            category: ["person", "pet", "place", "object"].includes(c.category) ? c.category : "person",
             desc: String(c.desc || "").slice(0, MAX_FRAGMENT),
             img: c.img,
           }))

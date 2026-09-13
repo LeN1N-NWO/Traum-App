@@ -98,3 +98,93 @@ export function reminderState(reminders) {
 export function reminderAnswered(reminders, granted, now = Date.now()) {
   return { ...(reminders || { wants: true, perDay: DEFAULT_PER_DAY }), granted: !!granted, askedAt: now };
 }
+
+/* ── Der Plan, seit es die native Schicht gibt (13.09.2026) ────────────────
+ *
+ * Antons Ansage: „Serie, Check-in, Erinnerung, Rekorder um drei Uhr nachts —
+ * das muss alles gebaut werden jetzt." Und: „Wenn jemand aus dem Schlaf
+ * kommt, die App anmachen und nicht noch einmal klicken müssen."
+ *
+ * Drei Erinnerungen und ein Verhalten:
+ *   morning     täglich (Vorgabe 07:30) „Was hast du geträumt?" → Rekorder
+ *   evening     täglich (Vorgabe 22:00) „Zeit zum Runterkommen" → Schlaf-Tab
+ *   reality     die Realitätschecks (wants/perDay von oben), 10–20 Uhr
+ *   autoRecord  App morgens geöffnet, heute noch nichts eingetragen →
+ *               der Rekorder läuft sofort (einmal je Tag)
+ *
+ * Alles hier ist rein: Die native Schicht (mobile/src/lib/notifications.ts)
+ * liest den Plan und plant; diese Datei entscheidet nur, WAS geplant wird. */
+export const DEFAULT_TIMES = { morning: "07:30", evening: "22:00" };
+export const REALITY_WINDOW = { from: 10, to: 20 };
+export const AUTO_RECORD_WINDOW = { from: 3, to: 11 };
+
+const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
+export function parseTime(value, fallback) {
+  const m = TIME.exec(String(value || "")) || TIME.exec(fallback);
+  return { hour: Number(m[1]), minute: Number(m[2]) };
+}
+
+/** Der vollständige Plan aus dem gespeicherten Zustand — mit Vorgaben für
+ *  alles, was noch nie eingestellt wurde. Morgens und abends starten AUS:
+ *  Eingeschaltet wird mit einem Tipp (Startseite oder Einstellungen), nie
+ *  still im Hintergrund. `autoRecord` startet AN — es ist keine
+ *  Benachrichtigung, sondern Antons Wunsch an das Öffnen der App. */
+export function reminderPlan(reminders) {
+  const r = reminders || {};
+  return {
+    morning: { on: r.morning?.on === true, time: TIME.test(r.morning?.time) ? r.morning.time : DEFAULT_TIMES.morning },
+    evening: { on: r.evening?.on === true, time: TIME.test(r.evening?.time) ? r.evening.time : DEFAULT_TIMES.evening },
+    reality: { on: r.wants === true, perDay: r.wants === true ? (r.perDay || DEFAULT_PER_DAY) : 0 },
+    autoRecord: r.autoRecord !== false,
+  };
+}
+
+/** Eine Einstellung ändern. Rein, gibt den neuen Zustand zurück. */
+export function setReminder(reminders, key, patch) {
+  const r = { ...(reminders || {}) };
+  if (key === "morning" || key === "evening") {
+    const cur = reminderPlan(r)[key];
+    const time = TIME.test(patch?.time) ? patch.time : cur.time;
+    r[key] = { on: typeof patch?.on === "boolean" ? patch.on : cur.on, time };
+  } else if (key === "autoRecord") {
+    r.autoRecord = patch?.on !== false;
+  } else if (key === "dismissAsk") {
+    r.homeAskDismissed = true;
+  }
+  return r;
+}
+
+/** Ist irgendetwas eingeschaltet, das eine Benachrichtigung braucht? */
+export function needsNotifications(reminders) {
+  const p = reminderPlan(reminders);
+  return p.morning.on || p.evening.on || p.reality.on;
+}
+
+/** Die Uhrzeiten der Realitätschecks für EINEN Tag: das Fenster in gleiche
+ *  Stücke geteilt, in jedem Stück ein Zeitpunkt — gestreut, damit der Check
+ *  nicht zur Routine wird (sonst prüft man um 14:00, nicht im Traum), aber
+ *  deterministisch je Tag, damit ein erneutes Planen dieselben Zeiten ergibt. */
+export function realityTimes(perDay, dayKey) {
+  const n = Math.max(0, Math.min(MAX_PER_DAY, Math.round(Number(perDay) || 0)));
+  if (!n) return [];
+  let h = 2166136261;
+  for (const ch of String(dayKey)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  const rnd = () => { h = Math.imul(h ^ (h >>> 13), 1103515245) >>> 0; return (h % 10000) / 10000; };
+  const span = (REALITY_WINDOW.to - REALITY_WINDOW.from) * 60;
+  const slot = span / n;
+  return Array.from({ length: n }, (_, i) => {
+    const minute = Math.floor(REALITY_WINDOW.from * 60 + i * slot + slot * (0.15 + rnd() * 0.7));
+    return { hour: Math.floor(minute / 60), minute: minute % 60 };
+  });
+}
+
+/** Soll die App beim Öffnen sofort den Rekorder zeigen? Nur morgens, nur
+ *  wenn heute noch kein Traum eingetragen ist, nur einmal je Tag — wer die
+ *  App danach ein zweites Mal öffnet, will etwas anderes. */
+export function shouldAutoRecord(reminders, { now = new Date(), todayKey, hasEntryToday }) {
+  if (!reminderPlan(reminders).autoRecord) return false;
+  const hour = now.getHours();
+  if (hour < AUTO_RECORD_WINDOW.from || hour >= AUTO_RECORD_WINDOW.to) return false;
+  if (hasEntryToday) return false;
+  return reminders?.lastAutoOpen !== todayKey;
+}

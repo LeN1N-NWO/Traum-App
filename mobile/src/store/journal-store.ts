@@ -30,7 +30,7 @@ export type LucidData = {
   reminderAsk: string; reminderPerDay: string; reminderWhy: string; reminderSoon: string; reminderActive: Record<number, string>; maxPerDay: number;
   reminder: { on: boolean; perDay: number };
 };
-export type SleepData = { title: string; subtitle: string; free: string; tiles: { id: string; title: string; text: string }[]; sounds: SoundsData; checklist: ChecklistData; lucid: LucidData };
+export type SleepData = { title: string; subtitle: string; free: string; tiles: { id: string; title: string; text: string }[]; breathe: Record<string, string>; sounds: SoundsData; checklist: ChecklistData; lucid: LucidData };
 export type ProfileData = {
   title: string; name: string; img: string | null; hint: string; credits: number; creditsWord: string;
   dreams: number; streak: number; statDreams: string; statStreak: string; settings: string;
@@ -66,7 +66,7 @@ export type PaywallData = {
 };
 export type SymbolEntry = { id: string; label: string; meaning: string; count: number; countLine: string; occurrences: { entryId: string; date: string; title: string }[] };
 export type SymbolsData = { title: string; subtitle: string; empty: string; close: string; disclaimer: string; groups: { key: string; label: string; symbols: SymbolEntry[] }[] };
-export type LibraryData = { title: string; lede: string; newLabel: string; empty: string; never: string; groups: { category: string; label: string; rows: { id: string; tag: string; img: string | null; initial: string; count: number; countWord: string }[] }[] };
+export type LibraryData = { title: string; lede: string; why: string; total: number; newLabel: string; empty: string; never: string; groups: { category: string; label: string; addLabel: string; rows: { id: string; tag: string; img: string | null; initial: string; count: number; countWord: string }[] }[] };
 export type MenagerieData = { title: string; lede: string; empty: string; creatures: { id: string; e: string; name: string; rare: string; rareClass: string; date: string }[] };
 export type OnboardValues = { order: string[]; labels: Record<string, string> };
 export type OnboardData = {
@@ -75,9 +75,9 @@ export type OnboardData = {
   features: { title: string; text: string }[]; featuresLede: string; proof: { big: string; small: string }[];
   sleepLegend: { life: string; sleep: string; dream: string };
   showcase: { title: string; text: string }[];
-  clips: string[];
+  clips: string[]; reel: string[]; peopleClip: string;
   mascotTitle: string; mascotText: string; mascotSoon: string;
-  meTitle: string; meText: string; mePick: string; meCamera: string; meChange: string; meLater: string; meDone: string;
+  meTitle: string; meText: string; mePick: string; meCamera: string; meChange: string; meLater: string; meDone: string; meConsent: string;
   mascots: { id: string; name: string; placeholder: boolean }[];
   mascot: string;
   askTitle: string; askText: string; askMic: string; askMicWhy: string; askPhotos: string; askPhotosWhy: string; askGranted: string; askDenied: string; askGo: string;
@@ -89,9 +89,21 @@ export type OnboardData = {
   formThemes: string; formThemesPlaceholder: string;
   values: { goal: OnboardValues; recall: OnboardValues; lucid: OnboardValues; sleepHours: OnboardValues; timeBudget: OnboardValues };
 };
+export type ReminderPlan = { morning: { on: boolean; time: string }; evening: { on: boolean; time: string }; reality: { on: boolean; perDay: number }; autoRecord: boolean };
+export type RemindersData = {
+  plan: ReminderPlan; granted: boolean | null; askedAt: number | null; homeAskDismissed: boolean; lastAutoOpen: string | null;
+  labels: { title: string; lede: string; settingsHint: string; morning: string; morningHint: string; evening: string; eveningHint: string; reality: string; realityHint: string; perDay: Record<number, string>; autoRecord: string; autoRecordHint: string; denied: string; openSettings: string; homeAskTitle: string; homeAskText: string; homeAskYes: string; homeAskNo: string };
+  texts: { morningTitle: string; morningBody: string; eveningTitle: string; eveningBody: string; realityTitle: string; realityBodies: string[] };
+};
 export type ConsentData = { needed: boolean; title: string; intro: string; termsPre: string; termsLink: string; termsMid: string; privacyLink: string; termsPost: string; processing: string; adult: string; more: string; details: string[]; cta: string };
-export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData; symbols: SymbolsData; library: LibraryData; menagerie: MenagerieData; consent: ConsentData; onboard: Omit<OnboardData, "sleepYears" | "sleepDream"> & { sleepYearsTpl: string; sleepDreamTpl: string } };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto"; id?: string; photo?: string; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
+export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData; symbols: SymbolsData; library: LibraryData; menagerie: MenagerieData; consent: ConsentData; reminders: RemindersData; onboard: Omit<OnboardData, "sleepYears" | "sleepDream"> & { sleepYearsTpl: string; sleepDreamTpl: string } };
+/* Der Film-Auftrag für den nativen Motor (Brücke `order`, Vorarbeit 13.09.). */
+export type OrderRequest = {
+  entryId?: string | null; text: string; originalText?: string; analysis: any | null; title?: string; tagline?: string;
+  styleId: string; pace: string; videoModel: string; quality: string | null; seconds: number; mode?: "film" | "images";
+  assignmentOverrides?: Record<string, { avatarId?: string; free?: boolean }>;
+};
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck"; order?: OrderRequest; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
 export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null };
 
 let snapshot: JournalSnapshot | null = null;

@@ -19,7 +19,14 @@ import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend } from "../../../src/lib/credits.js";
-import { analyze, reflect } from "../../../src/lib/api.js";
+import { analyze, reflect, refine, characterSheet, generate, photoCheck } from "../../../src/lib/api.js";
+import { quoteFor } from "../../../src/lib/quote.js";
+import { buildReferences, buildImagePrompt } from "../../../src/lib/promptBuilder.js";
+import { renderRef, needsSheet, sheetFingerprint } from "../../../src/lib/sheets.js";
+import { selectBeats, shotPlan } from "../../../src/lib/cut.js";
+import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PACE } from "../../../src/lib/video.js";
+import { startsFree } from "../../../src/wizard/useWizard.js";
+import { beatsForCount } from "../../../src/lib/beats.js";
 import { reflectionContext } from "../../../src/lib/atlas.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
@@ -29,7 +36,7 @@ import { autoMatch } from "../../../src/wizard/useWizard.js";
 import { blankDays, localDateKey } from "../../../src/lib/dreamDays.js";
 import { moonForNight, moonStrip } from "../../../src/lib/moon.js";
 import { compactDataUrl } from "../../../src/lib/sheets.js";
-import { reminderWish, reminderState, MAX_PER_DAY, DEFAULT_PER_DAY } from "../../../src/lib/reminders.js";
+import { reminderWish, reminderState, reminderPlan, reminderAnswered, setReminder, MAX_PER_DAY, DEFAULT_PER_DAY } from "../../../src/lib/reminders.js";
 import { VOICES, DEFAULT_VOICE, isVoice } from "../../../src/lib/voices.js";
 import { withdrawPatch, consentPatch, needsConsent } from "../../../src/lib/consent.js";
 import { FORM_FIELDS, profileFromAnswers } from "../../../src/lib/onboardingForm.js";
@@ -152,20 +159,28 @@ function snapshot() {
   const labels = {
     greetingNight: t.home.greeting.night, greetingMorning: t.home.greeting.morning,
     greetingAfternoon: t.home.greeting.afternoon, greetingEvening: t.home.greeting.evening,
-    homeTitle: t.home.title, homeLede: t.home.lede, homeCta: t.home.cta, renderingLine: t.home.renderingLine,
+    homeTitle: t.home.title, homeLede: t.home.lede, homeCta: t.home.cta, renderingLine: t.home.renderingLine, quickRecord: t.home.quickRecord,
     lastHeading: t.home.lastHeading, blankCta: t.home.blankCta, blankHint: t.home.blankHint, blankDone: t.home.blankDone,
     soundsShortcut: t.home.soundsShortcut, checkinQuestion: t.checkin.question, checkinThanks: t.checkin.thanks,
     untitled: t.journal.untitled, takes: t.journal.takesLabel, reflectTitle: t.journal.reflectTitle,
     reflectNote: t.journal.reflectNote, reflectCta: t.journal.reflectCta, original: t.journal.original, rendering: t.journal.filmRendering,
-    share: t.journal.actShare, more: t.journal.menu, makeFilm: t.journal.makeFilm, anotherTake: t.journal.makeFilmAgain,
+    share: t.journal.actShare, shareCard: t.journal.shareCard, shareCardCta: t.journal.shareCardCta, shareCardFooter: t.journal.shareCardFooter, more: t.journal.menu, makeFilm: t.journal.makeFilm, anotherTake: t.journal.makeFilmAgain,
     dreams: t.journal.title,
     /* Das „…"-Menü der Traum-Seite (EntryMenu.jsx) als natives Aktionsblatt. */
     menuEdit: t.journal.edit, menuCorrect: t.journal.correct, menuRewrite: t.journal.rewrite, menuElaborate: t.journal.elaborate,
     menuDelete: t.journal.delete, deleted: t.journal.deleted, cancel: t.wizard.cancel,
+    /* Bearbeiten und Umschreiben, nativ seit 13.09. (journal/edit.tsx) —
+       dieselben Texte wie JournalDetail.jsx, RefineSheet.jsx, RefineProposal. */
+    menuOriginal: t.journal.showOriginal, editing: t.journal.editing, save: t.journal.save, cancelEdit: t.journal.cancelEdit,
+    edited: t.journal.edited, working: t.journal.working, tooShort: t.wizard.tooShort,
+    refineTitle: t.journal.refineTitle, refineLede: t.journal.refineLede, before: t.journal.before, after: t.journal.after,
+    keep: t.journal.keep, accept: t.journal.accept,
+    refineHints: { correct: t.journal.correctHint, rewrite: t.journal.rewriteHint, elaborate: t.journal.elaborateHint },
   };
   const sleep = {
     title: t.sleep.title, subtitle: t.sleep.subtitle, free: t.sleep.free,
-    tiles: ["checklist", "sounds", "guide", "symbols"].map((id) => ({ id, title: t.sleep.tiles[id].title, text: t.sleep.tiles[id].text })),
+    tiles: ["breathe", "checklist", "sounds", "guide", "symbols"].map((id) => ({ id, title: t.sleep.tiles[id].title, text: t.sleep.tiles[id].text })),
+    breathe: t.breathe,
     /* Das Mischpult (nativ, components/sound-mixer.tsx): Texte und die
        gespeicherte Mischung. Der Browser-Hinweis zum Autostart entfällt —
        nativ startet der Klang ohne Geste. */
@@ -259,6 +274,7 @@ function snapshot() {
        die Bestätigung und den Fehlerfall — Web-Texte, nichts Neues. */
     loading: t.dream.loading, queuedNote: t.wizard.step5.queuedNote,
     step6Title: t.wizard.step6.title, rendering: t.wizard.step6.rendering, renderingHint: t.wizard.step6.renderingHint,
+    celebrateFirst: t.wizard.step6.celebrateFirst, celebrateN: t.wizard.step6.celebrateN("{n}"), celebrateText: t.wizard.step6.celebrateText, celebrateHint: t.wizard.step6.celebrateHint,
     failedTitle: t.wizard.step5.failedTitle, failedNote: t.wizard.step5.failedNote, failedHome: t.wizard.step5.failedHome,
     presets: PRESETS.map((p) => ({
       id: p.id, styleId: p.styleId, pace: p.pace || null, wide: !!p.wide, emoji: p.emoji || "",
@@ -306,7 +322,9 @@ function snapshot() {
   const dream = { ...step2, interview: t.dream.interview, interviewHint: t.dream.interviewHint, or: t.dream.or, label: t.dream.label,
     record: t.dream.record, recordHint: t.dream.recordHint, recording: t.dream.recording, recordStop: t.dream.recordStop,
     recordTranscribing: t.dream.recordTranscribing, recordTooShort: t.dream.recordTooShort, recordFailed: t.dream.recordFailed, recordDiscard: t.dream.recordDiscard,
-    recordAgain: t.dream.recordAgain, yourRecording: t.dream.yourRecording, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
+    recordAgain: t.dream.recordAgain, yourRecording: t.dream.yourRecording,
+    reviewTitle: t.dream.reviewTitle, reviewHint: t.dream.reviewHint, recordListen: t.dream.recordListen, recordPause: t.dream.recordPause, recordTranscribe: t.dream.recordTranscribe, recordRetake: t.dream.recordRetake,
+    typeInstead: t.dream.typeInstead, textTitle: t.dream.textTitle, textLede: t.dream.textLede, tellMore: t.dream.tellMore, rewriteAll: t.dream.rewriteAll, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
     placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
   /* Das Kaufblatt (Paywall.jsx), vorgerechnet: Texte sind im Web zum Teil
      Funktionen, über die Brücke gehen nur Strings. NUR Filme — Bilder sind
@@ -355,11 +373,14 @@ function snapshot() {
      Gattung, nach Häufigkeit sortiert (castStats.js) — und die Menagerie
      (Menagerie.jsx): ein Wesen je aufgeschriebenem Traum, neueste zuerst. */
   const library = {
-    title: t.journal.library, lede: t.journal.libraryLede, newLabel: t.journal.castNew, empty: t.journal.libraryCount(0), never: t.journal.castNever,
-    groups: [["person", t.profile.people], ["pet", t.profile.pets], ["place", t.profile.places]].map(([category, label]) => ({
-      category, label,
+    title: t.journal.library, lede: t.journal.libraryLede, why: t.journal.libraryWhy, newLabel: t.journal.castNew, empty: t.journal.libraryCount(0), never: t.journal.castNever,
+    total: (s.cast || []).length + (s.me?.img ? 1 : 0),
+    /* Alle vier Gattungen, auch leere (13.09.2026): Die Liste zeigt, was
+       hineingehört, statt nur, was schon da ist. */
+    groups: [["person", t.profile.people], ["pet", t.profile.pets], ["place", t.profile.places], ["object", t.profile.objects]].map(([category, label]) => ({
+      category, label, addLabel: t.avatarDialog.titleFor[category],
       rows: castByCategory(s.cast, s.journal, category).map((e) => ({ id: e.id, tag: e.tag, img: e.img ? mediaUrl(e.img) : null, initial: initialOf(e.tag), count: e.count, countWord: t.journal.castDreamsN(e.count) })),
-    })).filter((g) => g.rows.length > 0),
+    })),
   };
   const menagerie = {
     title: t.home.menagerieHeading, lede: t.journal.menagerieLede, empty: t.home.menagerieEmpty,
@@ -382,7 +403,7 @@ function snapshot() {
       "accountWrong", "accountBusy", "accountUnavailable", "accountOffline", "accountApple"].map((k) => [k, onb[k]])),
     features: onb.features, showcase: onb.showcase, featuresLede: onb.featuresLede, proof: onb.proof, sleepLegend: onb.sleepLegend,
     mascotTitle: onb.mascotTitle, mascotText: onb.mascotText, mascotSoon: onb.mascotSoon,
-    meTitle: onb.meTitle, meText: onb.meText, mePick: onb.mePick, meCamera: onb.meCamera, meChange: onb.meChange, meLater: onb.meLater, meDone: onb.meDone,
+    meTitle: onb.meTitle, meText: onb.meText, mePick: onb.mePick, meCamera: onb.meCamera, meChange: onb.meChange, meLater: onb.meLater, meDone: onb.meDone, meConsent: onb.meConsent,
     /* Die drei Maskottchen (mascots.js) — zwei noch Platzhalter. Das Video
        kommt als Modulpfad nicht durch die Brücke; nativ liegen dieselben
        Dateien, deshalb reicht die id samt Name und Marke. */
@@ -399,6 +420,13 @@ function snapshot() {
        „nicht mehr diese alten Träume von mir"). Reihenfolge = Feature-Kacheln
        1–4, danach die Zwischenbilder. */
     clips: SHOWREEL.map((id) => PRESETS.find((p) => p.id === id)).filter((p) => p && p.clip).map((p) => absolute(p.clip)),
+    /* Das Zwischenbild „Neunzehn Blicke": ALLE Stile im Sekundenschnitt
+       (Antons Wunsch 13.09.) — jeder Stil einmal, Dreamflow nicht doppelt. */
+    reel: PRESETS.filter((p) => p.clip && p.id !== DREAMFLOW).map((p) => absolute(p.clip)),
+    /* Das Zwischenbild „Die Menschen darin sind deine": Antons Spot (13.09.,
+       Seedance 15 s, 9:16, Topaz auf 720p) — der Cursor legt ein Foto auf
+       den Barhocker, und die Person wechselt im Sekundentakt. */
+    peopleClip: absolute("/clips/showcase-faces.mp4"),
     values: {
       goal: werte("goal", t.dreamer.goalValues), recall: werte("recall", t.dreamer.recallValues),
       lucid: werte("lucid", t.dreamer.lucidValues), sleepHours: werte("sleepHours", t.dreamer.sleepValues),
@@ -406,7 +434,21 @@ function snapshot() {
     },
   };
   const consent = { needed: needsConsent(s), ...Object.fromEntries(["title", "intro", "termsPre", "termsLink", "termsMid", "privacyLink", "termsPost", "processing", "adult", "more", "cta"].map((k) => [k, t.consent[k]])), details: t.consent.details };
-  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent, onboard };
+  /* Erinnerungen (13.09.2026): der Plan aus reminders.js, der Stand der
+     Erlaubnis und die Texte — auch die der Benachrichtigungen selbst, die
+     die native Schicht plant (lib/notifications.ts). */
+  const rm = t.reminders; const rs = s.reminders || null;
+  const reminders = {
+    plan: reminderPlan(rs), granted: rs?.granted ?? null, askedAt: rs?.askedAt ?? null, homeAskDismissed: !!rs?.homeAskDismissed, lastAutoOpen: rs?.lastAutoOpen ?? null,
+    labels: {
+      title: rm.title, lede: rm.lede, settingsHint: rm.settingsHint, morning: rm.morning, morningHint: rm.morningHint, evening: rm.evening, eveningHint: rm.eveningHint,
+      reality: rm.reality, realityHint: rm.realityHint, perDay: Object.fromEntries(Array.from({ length: MAX_PER_DAY }, (_, i) => [i + 1, rm.perDay(i + 1)])),
+      autoRecord: rm.autoRecord, autoRecordHint: rm.autoRecordHint, denied: rm.denied, openSettings: rm.openSettings,
+      homeAskTitle: rm.homeAskTitle, homeAskText: rm.homeAskText, homeAskYes: rm.homeAskYes, homeAskNo: rm.homeAskNo,
+    },
+    texts: { morningTitle: rm.morningTitle, morningBody: rm.morningBody, eveningTitle: rm.eveningTitle, eveningBody: rm.eveningBody, realityTitle: rm.realityTitle, realityBodies: rm.realityBodies },
+  };
+  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent, onboard, reminders };
 }
 
 /* Befehle nativ → Web: Die Hülle kann den Web-Speicher nicht schreiben, also
@@ -416,7 +458,265 @@ function snapshot() {
 /* Die Traumlesung (Analyse): kostet PRICES.improve, wie im Web — Kassen-
    prüfung vorher, abgebucht erst nach gelungenem Aufruf. Antwort geht per
    `onResult` zurück. */
+/* ── Der Avatar-Dialog, nativ (13.09.2026) ──────────────────────────────
+   Dieselben Regeln wie AvatarDialog.jsx, nur ohne Oberfläche: der Name
+   wird zum Tag ([a-z0-9], 12 Zeichen, wie sanitizeTag in server.js), ohne
+   Foto UND ohne Beschreibung wird nicht gespeichert, ein Tag darf nur mit
+   dem eigenen Eintrag kollidieren, Umbenennen zieht die `references` der
+   Träume mit, Löschen lässt alte Träume unangetastet, das eigene Porträt
+   (`me`) wird geändert, nie gelöscht. Die Oberfläche ist
+   components/avatar-editor.tsx. */
+const cleanTag = (raw) => String(raw || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
+function avatarLabels() {
+  const a = t.avatarDialog;
+  return {
+    titleFor: a.titleFor, editTitleFor: a.editTitleFor, meTitle: a.meTitle, kindLabel: a.kindLabel, kindFor: a.kindFor,
+    nameTpl: a.nameLabel("{tag}"), photoHint: a.photoHint, photoLabelClose: a.photoLabelClose, photoLabel: a.photoLabel,
+    photoLabelBody: a.photoLabelBody, photoBodyAdd: a.photoBodyAdd, photoBodyWhy: a.photoBodyWhy, photoAdd: a.photoAdd,
+    photoTake: a.photoTake, photoReplace: a.photoReplace, photoRemove: a.photoRemove, descLabel: a.descLabel,
+    descLabelOptional: a.descLabelOptional, descPlaceholder: a.descPlaceholder, privacy: a.privacy, cancel: a.cancel,
+    save: a.save, saveChanges: a.saveChanges, needPhotoOrDescHint: a.needPhotoOrDescHint, delete: a.delete,
+    drawFromDesc: a.drawFromDesc, drawingNow: a.drawingNow, drawHint: a.drawHint,
+    creditsWord: t.wizard.creditsN(PRICES.characterSheet),
+    consentFor: a.consentFor, consentSmall: a.consentSmall, needConsent: a.needConsent,
+    checking: a.checking, checkOk: a.checkOk, checkUnavailable: a.checkUnavailable, checkBlockedSave: a.checkBlockedSave,
+  };
+}
+
+/* Die Bestätigung je Foto (Antons Ansage 13.09.2026): Wer ein Foto
+   hochlädt, sagt bei JEDEM Foto ausdrücklich, dass er es verwenden darf.
+   Gespeichert wird, WANN und FÜR WELCHE Fotos — ein neues Foto braucht eine
+   neue Bestätigung, deshalb der Fingerabdruck über beide Bilder. Das ist der
+   Nachweis, dass die Verantwortung beim Hochladenden liegt. */
+const PHOTO_CONSENT_VERSION = 1;
+function photoPrint(e) {
+  const src = `${e?.img || ""}\0${e?.img2 || ""}`;
+  let h = 5381;
+  for (let i = 0; i < src.length; i++) h = ((h * 33) ^ src.charCodeAt(i)) >>> 0;
+  return `${src.length.toString(36)}.${h.toString(36)}`;
+}
+function photoConsentFor(a) {
+  return a.img || a.img2 ? { v: PHOTO_CONSENT_VERSION, at: new Date().toISOString(), of: photoPrint(a) } : undefined;
+}
+function hasPhotoConsent(e) {
+  return Boolean(e?.photoConsent && e.photoConsent.of === photoPrint(e));
+}
+async function runAvatar(cmd, onResult) {
+  const s = loadState();
+  if (cmd.type === "avatarLoad") {
+    const existing = cmd.mode === "me" ? (s.me || null) : cmd.mode === "edit" ? (s.cast || []).find((c) => c.id === cmd.id) || null : null;
+    if (cmd.mode === "edit" && !existing) { onResult({ n: cmd.n, error: "notfound" }); return true; }
+    onResult({ n: cmd.n, result: {
+      labels: avatarLabels(), price: PRICES.characterSheet,
+      entry: { tag: cleanTag(existing?.tag || cmd.tag || ""), desc: existing?.desc || "", img: existing?.img || "", img2: existing?.img2 || "", category: existing?.category || null, photoConsent: hasPhotoConsent(existing) },
+    } });
+    return true;
+  }
+  if (cmd.type === "avatarSave") {
+    const a = cmd.avatar || {};
+    const clean = cleanTag(a.tag);
+    const desc = String(a.desc || "").trim().slice(0, 120);
+    if (!clean) { onResult({ n: cmd.n, error: t.avatarDialog.needName }); return true; }
+    if (!a.img && !desc) { onResult({ n: cmd.n, error: t.avatarDialog.needPhotoOrDesc }); return true; }
+    if ((a.img || a.img2) && a.consent !== true) { onResult({ n: cmd.n, error: t.avatarDialog.needConsent }); return true; }
+    const photoConsent = photoConsentFor(a);
+    // Das Ergebnis der Foto-Prüfung reist mit, am selben Fingerabdruck wie der Haken.
+    const photoCheck = a.check && photoConsent ? { status: a.check, at: photoConsent.at, of: photoConsent.of } : undefined;
+    if (cmd.mode === "me") {
+      saveState({ ...s, me: { ...(s.me || {}), tag: clean, desc, img: a.img || "", img2: a.img2 || "", photoConsent, photoCheck } });
+      onResult({ n: cmd.n, result: { toast: t.avatarDialog.saved(clean) } });
+      return true;
+    }
+    if ((s.cast || []).some((p) => p.tag === clean && p.id !== cmd.id)) { onResult({ n: cmd.n, error: t.avatarDialog.exists(clean) }); return true; }
+    if (cmd.mode === "edit") {
+      const old = (s.cast || []).find((p) => p.id === cmd.id);
+      if (!old) { onResult({ n: cmd.n, error: "notfound" }); return true; }
+      const saved = { ...old, tag: clean, desc, img: a.img || "", img2: a.img2 || "", photoConsent, photoCheck };
+      const patch = { cast: (s.cast || []).map((p) => (p.id === old.id ? saved : p)) };
+      if (old.tag !== clean) {
+        patch.journal = (s.journal || []).map((e) => ({ ...e, references: (e.references || []).map((r) => (r.tag === old.tag ? { ...r, tag: clean } : r)) }));
+      }
+      saveState({ ...s, ...patch });
+      onResult({ n: cmd.n, result: { toast: t.avatarDialog.saved(clean), id: saved.id } });
+      return true;
+    }
+    const kind = ["person", "pet", "place", "object"].includes(a.category) ? a.category : "person";
+    const avatar = { id: genId("c"), tag: clean, category: kind, desc, img: a.img || "", img2: a.img2 || "", photoConsent, photoCheck };
+    saveState({ ...s, cast: [...(s.cast || []), avatar] });
+    onResult({ n: cmd.n, result: { toast: t.avatarDialog.created(clean), id: avatar.id } });
+    return true;
+  }
+  /* Die Foto-Prüfung im Hintergrund (13.09.2026): Der Dialog fragt, sobald
+     ein Foto mit Haken dasteht. Ein Netz- oder Serverfehler ist „nicht
+     prüfbar", nie „abgelehnt" — sonst sperrte ein Funkloch ein gutes Foto. */
+  if (cmd.type === "avatarCheck") {
+    const img = String(cmd.photo || "");
+    if (!img.startsWith("data:")) { onResult({ n: cmd.n, result: { status: "unavailable", reason: "nophoto" } }); return true; }
+    try {
+      const small = await compactDataUrl(img);
+      const r = await photoCheck({ image: small, category: cmd.category || "person" });
+      const reason = r?.reason || null;
+      const message = r?.status === "blocked" ? (t.avatarDialog.checkReasons[reason] || t.avatarDialog.checkReasons.provider) : null;
+      onResult({ n: cmd.n, result: { status: r?.status || "unavailable", reason, message } });
+    } catch (e) {
+      onResult({ n: cmd.n, result: { status: "unavailable", reason: "network" } });
+    }
+    return true;
+  }
+  if (cmd.type === "avatarDelete") {
+    const old = (s.cast || []).find((p) => p.id === cmd.id);
+    if (old) saveState({ ...s, cast: (s.cast || []).filter((p) => p.id !== cmd.id) });
+    onResult({ n: cmd.n, result: { toast: old ? t.profile.removed(old.tag) : null } });
+    return true;
+  }
+  if (cmd.type === "avatarDraw") {
+    /* Der Charakterbogen: erst rendern, DANN abbuchen — ein Fehlschlag
+       kostet nichts (wie überall). Als data:-URI, weil fal einen
+       /media/-Pfad dieses Rechners nicht laden kann (Befund 20.08.). */
+    if (!spend(s, PRICES.characterSheet)) { onResult({ n: cmd.n, error: "nocredits" }); return true; }
+    try {
+      const url = await characterSheet({ desc: String(cmd.text || "").trim(), category: cmd.category || "person" });
+      const img = await compactDataUrl(mediaUrl(url));
+      const now = loadState();
+      const paid = spend(now, PRICES.characterSheet);
+      if (paid) saveState({ ...now, ...paid });
+      onResult({ n: cmd.n, result: { img } });
+    } catch (e) {
+      onResult({ n: cmd.n, error: e?.message || String(e) });
+    }
+    return true;
+  }
+  return false;
+}
+
+/* ── Der Auftrag, nativ (Vorarbeit 13.09.2026) ──────────────────────────
+ * Step5Style.run() für den FILM, ohne Oberfläche — Schritt für Schritt
+ * dieselbe Reihenfolge, damit der Geldweg nicht auseinanderläuft:
+ *   1. Kassenprüfung (quoteFor, dieselbe Rechnung wie der Server; 409
+ *      dort, wenn er teurer liegt), noch nicht abgebucht.
+ *   2. Besetzung: Namen der Analyse, Auto-Treffer (autoMatch), Vorgaben
+ *      aus dem nativen Besetzungs-Schritt (assignmentOverrides).
+ *   3. Bogen-Pflicht: Fotos von Personen und Tieren werden VOR dem Render
+ *      einmal zum grauen Bogen (characterSheet), am Tag festgeschrieben.
+ *   4. Der Traum entsteht JETZT im Journal, mit Marke `pending` — ab hier
+ *      überlebt er jeden Bildschirmwechsel (Antons Befund 22.08.).
+ *   5. Schnittplan (selectBeats/shotPlan) und Auftrag (generate) — die
+ *      Auftragsnummer hängt sofort am Traum, dann wird abgebucht.
+ * Scheitert 5, bleibt der Traum mit `failReason`, wie im Web.
+ * ⚠ Noch NICHT der Weg der App: dream/order.tsx nutzt weiter den
+ * Web-Motor, bis dieser Befehl an einem echten Auftrag belegt ist
+ * (NATIVE_ORDER dort). Bilder-Aufträge kennt er nicht — es gibt nur Film. */
+async function runOrder(cmd, onResult) {
+  const o = cmd.order || {};
+  const s0 = loadState();
+  if ((o.mode || "film") !== "film") { onResult({ n: cmd.n, error: "unsupported" }); return true; }
+  const modelId = o.videoModel || "standard";
+  const seconds = clampSeconds(modelId, o.seconds);
+  const quality = filmQuality(modelId, o.quality).id;
+  const pace = o.pace || DEFAULT_PACE;
+  const price = quoteFor({ mode: "film", model: modelId, seconds, quality, keyframe: false });
+  if (!spend(s0, price)) { onResult({ n: cmd.n, error: "nocredits", price }); return true; }
+  const analysis = o.analysis || null;
+
+  /* 2. Besetzung — wie seedAssignments in useWizard.js, dann die Vorgaben. */
+  const build = (items, fallbackKind) => (items || []).reduce((acc, item) => {
+    const name = typeof item === "string" ? item : item?.name;
+    if (!name) return acc;
+    const kind = typeof item === "object" && item?.kind === "pet" ? "pet" : fallbackKind;
+    const wardrobe = (typeof item === "object" && item?.wearing) || "";
+    const avatar = autoMatch(name, s0.cast, s0.me);
+    acc[name] = { name, kind, ...(wardrobe ? { wardrobe } : {}), ...(avatar ? { avatar } : {}), ...(startsFree(kind, avatar) ? { free: true } : {}) };
+    return acc;
+  }, {});
+  const assignments = { ...build(analysis?.people, "person"), ...build(analysis?.places, "place"), ...build(analysis?.objects, "object") };
+  const byId = (id) => (id === "me" ? (s0.me ? { ...s0.me, id: "me", category: "person" } : null) : (s0.cast || []).find((c) => c.id === id) || null);
+  for (const [name, ov] of Object.entries(o.assignmentOverrides || {})) {
+    if (!assignments[name] || !ov) continue;
+    if (ov.free) assignments[name] = { ...assignments[name], avatar: undefined, free: true };
+    else if (ov.avatarId) { const av = byId(ov.avatarId); if (av) assignments[name] = { ...assignments[name], avatar: av, free: false }; }
+  }
+  const list = Object.values(assignments);
+  const { clauses } = buildReferences(list);
+
+  /* 3. Bogen-Pflicht — Arbeitskopien, über den TAG festgeschrieben (25.08.). */
+  let workingCast = s0.cast || [];
+  let workingMe = s0.me;
+  const members = list.filter((a) => a.avatar?.img).map((a) => ({
+    tag: a.avatar.tag, category: ["pet", "place", "object"].includes(a.kind) ? a.kind : "person",
+    desc: a.avatar.desc || "", img: a.avatar.img, img2: a.avatar.img2, sheet: a.avatar.sheet, sheetOf: a.avatar.sheetOf,
+  }));
+  for (const member of members) {
+    if (!needsSheet(member)) continue;
+    try {
+      const url = await characterSheet({ photo: member.img, photo2: member.img2, desc: member.desc, category: member.category });
+      member.sheet = await compactDataUrl(mediaUrl(url));
+      member.sheetOf = sheetFingerprint(member);
+      const bogen = { sheet: member.sheet, sheetOf: member.sheetOf };
+      if (workingCast.some((p) => p?.tag === member.tag)) workingCast = workingCast.map((p) => (p?.tag === member.tag ? { ...p, ...bogen } : p));
+      if (workingMe?.tag === member.tag) workingMe = { ...workingMe, ...bogen };
+      saveState({ ...loadState(), cast: workingCast, me: workingMe });
+    } catch (e) {
+      console.warn("[bridge] Bogen übersprungen:", e?.message || e);   // Kür, nie Pflicht im Fehlerfall
+    }
+  }
+  const castForApi = members.map((m) => ({ tag: m.tag, category: m.category, desc: m.desc, img: renderRef(m) }));
+
+  /* 4. Der Traum entsteht jetzt. */
+  const s1 = loadState();
+  const entryId = o.entryId || genId("e");
+  const isNew = !o.entryId || !(s1.journal || []).some((e) => e.id === entryId);
+  const entryRefs = list.filter((a) => a.avatar?.tag).map((a) => ({ tag: a.avatar.tag, category: a.kind }));
+  const common = {
+    mode: "film", style: o.styleId, format: "9:16", imageCount: 0, analysis, references: entryRefs,
+    pending: { kind: "film", n: 1 }, fallback: undefined, failReason: undefined,
+  };
+  if (isNew) {
+    const creature = newCreature(o.text, refreshStreak(s1).streak);
+    const entry = {
+      id: entryId, createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
+      title: String(o.title || analysis?.title || "").trim() || creature.title, tagline: String(o.tagline || analysis?.tagline || "").trim(),
+      media: { type: "image", urls: [], source: "none" }, creatureId: creature.id, moon: moonForNight(),
+      ...(s1.pendingAudioUrl ? { audio: { url: s1.pendingAudioUrl } } : {}),
+      ...common,
+    };
+    saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null });
+  } else {
+    saveState({ ...s1, journal: (s1.journal || []).map((e) => (e.id === entryId ? { ...e, ...common } : e)) });
+  }
+  onJournalTick?.();
+
+  /* 5. Schnitt und Auftrag. */
+  const arc = analysis?.beats || [];
+  const cap = Math.max(1, Math.min(beatBudget(modelId, seconds, pace), arc.length || 1));
+  const order = arc.length ? selectBeats(analysis, cap) : [];
+  const shots = arc.length ? shotPlan(analysis, order, seconds, filmPace(pace).minShot) : undefined;
+  const beats = arc.length ? order.map((i) => arc[i]) : [o.text];
+  try {
+    const { jobId } = await generate({
+      dream: o.text, mode: "film", seconds, title: String(o.title || analysis?.title || "").trim(), tagline: String(o.tagline || analysis?.tagline || "").trim(),
+      model: modelId, quality, quoted: price, cast: castForApi, styleId: o.styleId, beats, shots, pace,
+      prompt: buildImagePrompt({ beat: beatsForCount(arc.length ? arc : [o.text], 1)[0] || o.text, styleId: o.styleId, format: "9:16", clauses, index: 1, total: 1 }),
+    });
+    const s2 = loadState();
+    saveState({
+      ...s2, ...(spend(s2, price) || {}),
+      journal: (s2.journal || []).map((e) => (e.id === entryId
+        ? { ...e, jobId, pending: undefined, filmPlan: { model: modelId, quality, seconds, pace, scenes: order.length } }
+        : e)),
+    });
+    onResult({ n: cmd.n, result: { entryId, jobId, price } });
+  } catch (e) {
+    const s2 = loadState();
+    saveState({ ...s2, journal: (s2.journal || []).map((x) => (x.id === entryId ? { ...x, pending: undefined, failReason: e?.message || String(e) } : x)) });
+    onResult({ n: cmd.n, error: e?.message || String(e), entryId });
+  }
+  return true;
+}
+let onJournalTick = null;
+
 async function runAsync(cmd, onResult) {
+  if (cmd.type === "order") return runOrder(cmd, onResult);
+  if (String(cmd.type).startsWith("avatar")) return runAvatar(cmd, onResult);
   /* Das eigene Foto aus dem Onboarding (13.09.): kommt nativ schon auf
      1600 px verkleinert als Data-URL, wird hier wie im Avatar-Dialog noch
      einmal durch compactDataUrl gezogen (JPEG, dieselbe Grenze) und liegt
@@ -425,7 +725,11 @@ async function runAsync(cmd, onResult) {
     try {
       const img = typeof cmd.photo === "string" && cmd.photo.startsWith("data:") ? await compactDataUrl(cmd.photo) : "";
       const s = loadState();
-      saveState({ ...s, me: { ...(s.me || {}), img } });
+      /* Das Onboarding sagt unter dem Knopf „Mit dem Foto bestätigst du: Das
+         bist du." — die Wahl selbst ist die Bestätigung, also wird sie hier
+         wie im Avatar-Dialog festgehalten (13.09.2026). */
+      const me = { ...(s.me || {}), img };
+      saveState({ ...s, me: { ...me, photoConsent: photoConsentFor(me) } });
       onResult({ n: cmd.n, result: { ok: true } });
     } catch (e) {
       onResult({ n: cmd.n, error: e?.message || String(e) });
@@ -443,14 +747,39 @@ async function runAsync(cmd, onResult) {
     const row = (name, kind) => { const m = autoMatch(name, s.cast, s.me); return { name, kind, avatarId: m ? (m.id || null) : null }; };
     const a = cmd.analysis || {};
     onResult({ n: cmd.n, result: {
-      people: (a.people || []).map((x) => row(typeof x === "string" ? x : x.name, "person")),
+      people: (a.people || []).map((x) => row(typeof x === "string" ? x : x.name, typeof x === "object" && x?.kind === "pet" ? "pet" : "person")),
       places: (a.places || []).map((x) => row(typeof x === "string" ? x : x.name, "place")),
+      objects: (a.objects || []).map((x) => row(typeof x === "string" ? x : x.name, "object")),
       library: lib,
       labels: { people: t.wizard.step3.title, peopleLede: t.wizard.step3.lede, peopleEmpty: t.wizard.step3.empty,
                 places: t.wizard.step4.title, placesLede: t.wizard.step4.lede, placesEmpty: t.wizard.step4.empty,
                 free: t.wizard.cast.freeSet, freeShort: t.wizard.cast.freeShort, newShort: t.wizard.cast.newShort, undecided: t.wizard.cast.undecided, choose: t.wizard.cast.choose, change: t.wizard.cast.change,
-                createNew: t.wizard.cast.createNew },
+                createNew: t.wizard.cast.createNew,
+                objects: t.wizard.cast.objectsTitle, objectsLede: t.wizard.cast.objectsLede, objectsEmpty: t.wizard.cast.objectsEmpty,
+                textTitle: t.wizard.cast.textTitle, markHint: t.wizard.cast.markHint, addTitle: t.wizard.cast.addTitle, addName: t.wizard.cast.addName,
+                addAs: t.wizard.cast.addAs, add: t.wizard.cast.add, removeFromCast: t.wizard.cast.removeFromCast, whoIs: t.wizard.cast.whoIs("{name}"), close: t.wizard.cast.close,
+                kindFor: t.avatarDialog.kindFor },
     } });
+    return true;
+  }
+  /* Umschreiben (correct/rewrite/elaborate) — REFINE_MODES in server.js,
+     gratis wie jede Textarbeit (pricing.js). Die Brücke liefert nur den
+     VORSCHLAG; übernommen wird er erst mit `dreamText` — es ist sein Traum,
+     und nichts ersetzt ihn hinter seinem Rücken. */
+  if (cmd.type === "refine") {
+    const s = loadState();
+    const e = (s.journal || []).find((x) => x.id === cmd.id);
+    if (!e) { onResult({ n: cmd.n, error: "notfound" }); return true; }
+    const mode = ["correct", "rewrite", "elaborate"].includes(cmd.value) ? cmd.value : "correct";
+    const paid = spend(s, PRICES[mode] ?? 0);
+    if (!paid) { onResult({ n: cmd.n, error: "nocredits" }); return true; }
+    try {
+      const text = await refine(e.text, mode);
+      saveState({ ...loadState(), ...paid });
+      onResult({ n: cmd.n, result: { text } });
+    } catch (err) {
+      onResult({ n: cmd.n, error: err?.message || String(err) });
+    }
     return true;
   }
   if (cmd.type === "reflect") {
@@ -504,11 +833,25 @@ function run(cmd) {
     const mascotId = MASCOTS.some((m) => m.id === cmd.answers?.mascot) ? cmd.answers.mascot : null;
     patch = { onboarded: true, surveyDone: true, profile, ...(mascotId ? { mascot: mascotId } : {}), ...(profile.name ? { me: { ...(s.me || {}), tag: profile.name } } : {}) };
   }
+  else if (cmd.type === "dreamText") {
+    /* Neuer Wortlaut (Bearbeiten oder angenommener Vorschlag) — wie
+       commitText in JournalDetail.jsx: der erste Wortlaut bleibt als
+       `originalText`, die Reflection fällt weg (sie beschrieb den alten). */
+    const clean = String(cmd.text || "").trim();
+    if (clean.length >= 8) {
+      patch = { journal: (s.journal || []).map((e) => (e.id === cmd.id
+        ? { ...e, text: clean, reflection: undefined, originalText: e.originalText || e.text, editedAt: new Date().toISOString() }
+        : e)) };
+    }
+  }
   else if (cmd.type === "paywallSeen") patch = { paywallSeen: true };
   else if (cmd.type === "deleteDream") patch = { journal: (s.journal || []).filter((e) => e.id !== cmd.id) };
   else if (cmd.type === "voice") { if (isVoice(cmd.value)) patch = { voice: cmd.value }; }
   else if (cmd.type === "withdraw") patch = withdrawPatch();
   else if (cmd.type === "reminders") patch = { reminders: { ...(s.reminders || {}), ...reminderWish(!!cmd.wants, cmd.perDay || DEFAULT_PER_DAY) } };
+  else if (cmd.type === "reminderSet") patch = { reminders: setReminder(s.reminders, cmd.value, { on: cmd.wants, time: cmd.text }) };
+  else if (cmd.type === "reminderAnswered") patch = { reminders: reminderAnswered(s.reminders, !!cmd.wants) };
+  else if (cmd.type === "autoOpened") patch = { reminders: { ...(s.reminders || {}), lastAutoOpen: cmd.date } };
   else if (cmd.type === "saveDream") {
     /* Nur speichern (Step2Output.saveOnly): kein Render, keine Kosten, mit
        Wesen und Serie — dieselbe Reihenfolge wie im Web. */
@@ -589,6 +932,9 @@ export default function JournalBridge({ onJournal, onResult, refreshTick = 0, co
   }, [onJournal, onResult]);
   useEffect(() => {
     if (!command) return;
+    /* Ein langer Befehl (Auftrag) meldet Zwischenstände — der Traum
+       liegt im Journal, bevor die Auftragsnummer da ist. */
+    onJournalTick = () => onJournal(snapshot());
     (async () => {
       try {
         if (await runAsync(command, onResult || (() => {}))) { onJournal(snapshot()); return; }

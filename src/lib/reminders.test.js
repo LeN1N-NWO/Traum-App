@@ -72,3 +72,56 @@ test("an answer without a prior wish still records — the tap itself is consent
   expect(w.granted).toBe(true);
   expect(w.askedAt).toBe(500);
 });
+
+/* ── Der Plan (13.09.2026) ─────────────────────────────────────────── */
+import { reminderPlan, setReminder, realityTimes, shouldAutoRecord, needsNotifications, parseTime, DEFAULT_TIMES, REALITY_WINDOW } from "./reminders.js";
+
+test("morning and evening start off, auto-record starts on", () => {
+  const p = reminderPlan(null);
+  expect(p.morning).toEqual({ on: false, time: DEFAULT_TIMES.morning });
+  expect(p.evening).toEqual({ on: false, time: DEFAULT_TIMES.evening });
+  expect(p.reality).toEqual({ on: false, perDay: 0 });
+  expect(p.autoRecord).toBe(true);
+  expect(needsNotifications(null)).toBe(false);
+});
+
+test("a setting changes only what it names, and a bad time keeps the old one", () => {
+  let r = setReminder(null, "morning", { on: true });
+  expect(reminderPlan(r).morning).toEqual({ on: true, time: "07:30" });
+  r = setReminder(r, "morning", { time: "25:99" });
+  expect(reminderPlan(r).morning).toEqual({ on: true, time: "07:30" });
+  r = setReminder(r, "morning", { time: "06:45" });
+  expect(reminderPlan(r).morning.time).toBe("06:45");
+  expect(reminderPlan(r).evening.on).toBe(false);
+  expect(needsNotifications(r)).toBe(true);
+  expect(parseTime("06:45", "07:30")).toEqual({ hour: 6, minute: 45 });
+});
+
+test("reality checks stay inside the window, in order, the same for the same day", () => {
+  for (const n of [1, 2, 3, 4]) {
+    const a = realityTimes(n, "2026-09-13");
+    expect(a.length).toBe(n);
+    expect(realityTimes(n, "2026-09-13")).toEqual(a);
+    let last = -1;
+    for (const t of a) {
+      const m = t.hour * 60 + t.minute;
+      expect(m).toBeGreaterThanOrEqual(REALITY_WINDOW.from * 60);
+      expect(m).toBeLessThan(REALITY_WINDOW.to * 60);
+      expect(m).toBeGreaterThan(last);
+      last = m;
+    }
+  }
+  expect(realityTimes(0, "x")).toEqual([]);
+});
+
+test("auto-record: mornings only, once a day, never after a dream was written", () => {
+  const at = (h) => new Date(2026, 8, 13, h, 5);
+  const base = { todayKey: "2026-09-13", hasEntryToday: false };
+  expect(shouldAutoRecord(null, { ...base, now: at(3) })).toBe(true);
+  expect(shouldAutoRecord(null, { ...base, now: at(10) })).toBe(true);
+  expect(shouldAutoRecord(null, { ...base, now: at(11) })).toBe(false);
+  expect(shouldAutoRecord(null, { ...base, now: at(2) })).toBe(false);
+  expect(shouldAutoRecord(null, { ...base, now: at(7), hasEntryToday: true })).toBe(false);
+  expect(shouldAutoRecord({ lastAutoOpen: "2026-09-13" }, { ...base, now: at(7) })).toBe(false);
+  expect(shouldAutoRecord({ autoRecord: false }, { ...base, now: at(7) })).toBe(false);
+});

@@ -17,7 +17,9 @@ const SYMBOLS: Record<string, SFSymbol> = {
   screens: "iphone", relax: "figure.mind.and.body", breathe: "wind",
 };
 
-export function SleepChecklist({ C, onSave }: { C: ChecklistData; onSave: (date: string, done: string[]) => void }) {
+/* `onBreathe` (13.09.2026): Der Punkt „Atem verlangsamen" öffnet die geführte
+   Minute im Atem-Raum, statt nur zu beschreiben, wie es geht. */
+export function SleepChecklist({ C, onSave, onBreathe, breatheLabel }: { C: ChecklistData; onSave: (date: string, done: string[]) => void; onBreathe?: () => void; breatheLabel?: string }) {
   const [done, setDone] = useState<string[]>(C.done);
   useEffect(() => { setDone(C.done); }, [C.done.join(",")]);   // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -40,14 +42,14 @@ export function SleepChecklist({ C, onSave }: { C: ChecklistData; onSave: (date:
           13.09.: „den Text komisch gesqueezed") — Antons Vorbild sind
           Moonlys Report-Karten: Titel und Satz mit Platz, rechts das Bild. */}
       <View style={styles.list}>
-        {C.items.map((it) => <Card key={it.id} title={it.title} text={it.text} sf={SYMBOLS[it.id] ?? SYMBOLS.light} done={done.includes(it.id)} onPress={() => toggle(it.id)} />)}
+        {C.items.map((it) => <Card key={it.id} title={it.title} text={it.text} sf={SYMBOLS[it.id] ?? SYMBOLS.light} done={done.includes(it.id)} onPress={() => toggle(it.id)} extra={it.id === "breathe" && onBreathe && !done.includes(it.id) ? { label: breatheLabel ?? "›", onPress: onBreathe } : undefined} />)}
       </View>
       <Text style={styles.hint}>{C.hint}</Text>
     </View>
   );
 }
 
-function Card({ title, text, sf, done, onPress }: { title: string; text: string; sf: SFSymbol; done: boolean; onPress: () => void }) {
+function Card({ title, text, sf, done, onPress, extra }: { title: string; text: string; sf: SFSymbol; done: boolean; onPress: () => void; extra?: { label: string; onPress: () => void } }) {
   const scale = useSharedValue(1);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
@@ -57,6 +59,11 @@ function Card({ title, text, sf, done, onPress }: { title: string; text: string;
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={[styles.title, done && styles.titleDone]}>{title}</Text>
             <Text style={[styles.text, done && { color: colors.faint }]}>{text}</Text>
+            {extra ? (
+              <Pressable onPress={() => { Haptics.selectionAsync(); extra.onPress(); }} hitSlop={8} style={styles.extra} accessibilityRole="button">
+                <Text style={styles.extraText}>{extra.label} ›</Text>
+              </Pressable>
+            ) : null}
           </View>
           {/* Rechts das Bild — heute ein Zeichen auf Farbe, der Platz für
               Antons Illustration. Fertig: Haken statt Zeichen. */}
@@ -85,4 +92,6 @@ const styles = StyleSheet.create({
   titleDone: { color: colors.muted, textDecorationLine: "line-through" },
   text: { color: colors.muted, fontSize: 13.5, lineHeight: 19 },
   hint: { color: colors.faint, fontSize: 13, lineHeight: 18, textAlign: "center", marginTop: 6 },
+  extra: { alignSelf: "flex-start", marginTop: 6, paddingVertical: 5, paddingHorizontal: 11, borderRadius: 999, backgroundColor: "rgba(79,214,230,0.16)" },
+  extraText: { color: colors.cyan, fontSize: 13, fontWeight: "600" },
 });

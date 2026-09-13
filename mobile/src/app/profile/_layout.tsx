@@ -9,7 +9,7 @@ import { colors } from "@/theme";
 export const unstable_settings = { initialRouteName: "index" };
 
 const CARDS = new Set(["paywall", "voice"]);
-const SMALL = new Set(["settings", "legal"]);
+const SMALL = new Set(["settings", "legal", "reminders"]);
 
 export default function ProfileLayout() {
   return (

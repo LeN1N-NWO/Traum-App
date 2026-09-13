@@ -1,13 +1,14 @@
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJournal } from "@/components/journal-data";
-import { MascotLoader } from "@/components/mascot-loader";
+import { Celebration } from "@/components/celebration";
 import LegacyOrder from "@/legacy/legacy-order";
 import { showToast } from "@/store/toast-store";
+import { currentTap } from "@/store/tap-store";
 import { resetWizard, useWizardStore } from "@/store/wizard-store";
-import { colors, fonts } from "@/theme";
+import { colors } from "@/theme";
 
 
 /* Der Auftrag: Der Web-Motor (Step5Style.run) läuft UNSICHTBAR — er
@@ -19,24 +20,58 @@ import { colors, fonts } from "@/theme";
    Brücke holt den Film, ein Toast meldet ihn. Scheitert das Abgeben,
    erscheint der Web-Motor mit seinem Fehlerblatt (Preis geändert, Server).
    Der erste eigene Traum öffnet danach einmal das Kaufblatt (Step6Result). */
+/* ⚠ Vorarbeit (13.09.2026): Der Auftrag kann auch ohne Web-Motor laufen —
+   Brücken-Befehl `order` (journal-bridge.jsx, runOrder) tut dasselbe wie
+   Step5Style.run für den Film. Bleibt AUS, bis er an einem echten,
+   bezahlten Auftrag belegt ist: Es ist der Geldweg. Zum Prüfen auf `true`
+   setzen; der Ablauf darunter (Traum erscheint mit `pending`, dann mit
+   Auftragsnummer → Journal) bleibt derselbe, nur der Fehlerfall zeigt statt
+   des Web-Fehlerblatts einen Toast und geht zurück. */
+const NATIVE_ORDER = false;
+
+/* Seit 13.09.2026 steht hier statt des Faultiers die BELOHNUNG (Antons
+   Ansage): Konfetti, „Wow — dein erster Traumfilm" bzw. „Traum Nr. N ist
+   unterwegs", dann ins Journal. Mindestens so lange, dass man es sieht —
+   auch wenn der Auftrag schneller am Traum hängt. */
+const MIN_CELEBRATE_MS = 2800;
+
 export default function DreamOrderScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const w = useWizardStore();
-  const { data, bridge, send } = useJournal();
+  const { data, bridge, send, ask } = useJournal();
+  const nativeStarted = useRef(false);
+  useEffect(() => {
+    if (!NATIVE_ORDER || nativeStarted.current || !data) return;
+    nativeStarted.current = true;
+    ask({ type: "order", order: { entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, seconds: w.seconds, mode: w.mode, assignmentOverrides: w.assignmentOverrides } })
+      .then((r) => {
+        if (r.error === "nocredits") { router.replace({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
+        if (r.error) { showToast(`⚠ ${r.error}`); router.back(); }
+      });
+  }, [data, ask, router, w]);
   const W = data?.wizard;
   const [startedAt] = useState(() => Date.now());
+  /* Tippt der Frosch (mascot-tap.tsx), beginnt die Feier im Moment des
+     Treffers und platzt aus dem Knopf; ohne Frosch sofort, aus der Mitte. */
+  const [tap] = useState(() => currentTap());
+  const celebrateFrom = tap ? Math.max(startedAt, tap.tapAt) : startedAt;
+  const [celebrating, setCelebrating] = useState(() => !tap || tap.tapAt <= Date.now());
+  useEffect(() => {
+    if (celebrating) return;
+    const t = setTimeout(() => setCelebrating(true), Math.max(0, celebrateFrom - Date.now()));
+    return () => clearTimeout(t);
+  }, [celebrating, celebrateFrom]);
   const firstDream = useRef<boolean | null>(null);
   const mineId = useRef<string | null>(null);
-  const [msg, setMsg] = useState(0);
   const [showWeb, setShowWeb] = useState(false);
   const done = useRef(false);
-
-  useEffect(() => { const id = setInterval(() => setMsg((m) => m + 1), 2600); return () => clearInterval(id); }, []);
+  const [number, setNumber] = useState<number | null>(null);
 
   // Der Stand VOR dem Auftrag entscheidet über das Erster-Traum-Kaufblatt.
   useEffect(() => {
     if (firstDream.current === null && data) firstDream.current = data.journal.realDreams === 0 && !data.profile.paywallSeen;
+    if (number === null && data) setNumber(data.journal.realDreams + 1);
   }, [data]);
 
   useEffect(() => {
@@ -65,7 +100,7 @@ export default function DreamOrderScreen() {
         router.dismissAll();
         router.navigate("/journal");
         if (first) setTimeout(() => router.push({ pathname: "/journal/paywall", params: { reason: "first" } }), 900);
-      }, w.audioUrl ? 900 : 50);
+      }, Math.max(celebrateFrom + MIN_CELEBRATE_MS - Date.now(), w.audioUrl ? 900 : 50));
     } else if (mine.failReason || !mine.pending) {
       setShowWeb(true);
     }
@@ -74,20 +109,18 @@ export default function DreamOrderScreen() {
   // Rückfall: Meldet sich nach zwei Minuten kein Traum, zeigt der Motor, was los ist.
   useEffect(() => { const id = setTimeout(() => setShowWeb(true), 120_000); return () => clearTimeout(id); }, []);
 
-  const loading = W?.loading ?? [];
+  const n = number ?? (data ? data.journal.realDreams + 1 : 1);
+  const title = w.entryId ? (W?.rendering ?? "") : n <= 1 ? (W?.celebrateFirst ?? "") : String(W?.celebrateN ?? "").replace("{n}", String(n));
   return (
     <>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       {!showWeb ? (
-        <View style={[styles.stage, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }]}>
-          <MascotLoader size={200} />
-          <Text style={styles.title}>{W?.step6Title ?? ""}</Text>
-          <Text style={styles.text}>{loading.length ? loading[msg % loading.length] : ""}</Text>
-          <Text style={styles.hint}>{W?.renderingHint ?? ""}</Text>
+        <View style={[styles.stage, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+          {W && celebrating ? <Celebration title={title} text={W.celebrateText ?? ""} hint={W.celebrateHint} origin={tap ? { x: tap.rect.x + tap.rect.width / 2, y: tap.rect.y + tap.rect.height / 2 - insets.top } : undefined} /> : null}
         </View>
       ) : null}
       <View style={showWeb ? styles.web : styles.hidden}>
-        <LegacyOrder safeTop={insets.top} safeBottom={insets.bottom} order={{ entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, seconds: w.seconds, orderId: w.orderId, assignmentOverrides: w.assignmentOverrides, mode: w.mode }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />
+        {NATIVE_ORDER ? null : <LegacyOrder safeTop={insets.top} safeBottom={insets.bottom} order={{ entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, seconds: w.seconds, orderId: w.orderId, assignmentOverrides: w.assignmentOverrides, mode: w.mode }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
       </View>
       <View style={styles.bridge}>{bridge}</View>
     </>
@@ -95,10 +128,7 @@ export default function DreamOrderScreen() {
 }
 
 const styles = StyleSheet.create({
-  stage: { flex: 1, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center", paddingHorizontal: 28, gap: 14 },
-  title: { fontFamily: fonts.serif, fontSize: 28, color: colors.text, textAlign: "center" },
-  text: { color: colors.text, fontSize: 16, textAlign: "center", lineHeight: 23 },
-  hint: { color: colors.muted, fontSize: 14, textAlign: "center", lineHeight: 20 },
+  stage: { flex: 1, backgroundColor: colors.bg },
   web: { flex: 1 },
   hidden: { height: 0, opacity: 0, overflow: "hidden" },
   bridge: { height: 0, overflow: "hidden" },

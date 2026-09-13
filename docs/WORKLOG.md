@@ -3,6 +3,129 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-13 19:15 — Anton — Branch `session/2026-09-13-anton-d` — Abschluss: PR #49 gemerged
+
+**Commits der Sitzung seit dem letzten Merge (#48):** `c7b656f` Gesichter-Spot
+720p · `c1b8aa8` letzte Web-Blätter nativ · `237a6af` `ef7f121` `eca5664`
+Regie v2 · `8777b8b` Antons neun Punkte · `894fe3b` Doku · `d2f582c` Frosch ·
+`6560b4b` Teilen-Karte · `ffe524c` Foto-Prüfung/Schnellaktionen/Onboarding ·
+`d9f767a` Doku Foto-Prüfung · dieser Abschluss.
+
+**Warum gemerged:** Antons Ansage „wrap und merge". Tests 630 grün, Typen
+sauber, Lint 0 Fehler, PR ohne Konflikt gegen `main`.
+
+**Was der Nächste wissen muss:** Die offene Liste steht oben in STAND.md.
+Kein Worktree zu entfernen — die Sitzung lief bewusst im Haupt-Checkout
+(Medienordner und nativer Bau liegen hier, siehe STAND). Die ungetrackten
+`data/traeume/*.json` bleiben ungetrackt.
+
+## 2026-09-13 19:00 — Anton — Branch `session/2026-09-13-anton-d` — Frosch-Tipp, Teilen-Karte, Schnellaktionen, Foto-Prüfung, Seedance-Gesichtstest, Onboarding nachgeschärft
+
+**Commits:** `d2f582c` Frosch · `6560b4b` Teilen-Karte + Atem-Link · `ffe524c`
+Foto-Prüfung, Schnellaktionen, Onboarding · Doku-Commit danach.
+
+- **Frosch tippt auf „Erzeugen"** (Antons Wunsch: das Web-Maskottchen
+  zurück): `components/mascot-tap.tsx` als Ebene über allem, Knopf im
+  Moment des Drucks gemessen, Anker 14,5 %/78 % wie im Web. Die Web-Datei
+  ist eine Alpha-PACKUNG für einen WebGL-Shader; nativ als **HEVC mit
+  Alphakanal** umgerechnet (`mobile/assets/mascots/frog-tap.mov`, Befehl im
+  Dateikopf) — iOS spielt die Transparenz direkt, im Simulator belegt.
+  Konfetti platzt im Moment des Treffers aus dem Knopf. ⚠ Android kann
+  HEVC-Alpha nicht.
+- **Teilen-Karte** (`components/share-card.tsx`, react-native-view-shot neu
+  → Pods + Rebuild): Menü „…" der Traumseite → 9:16-Bild mit Standbild,
+  Mond, Titel, Satz, Absender. Aussehen geprüft, das Teilen selbst ungetippt.
+- **Schnellaktionen** (expo-quick-actions neu → Pods + Rebuild): lange auf
+  das App-Symbol → „Traum aufnehmen" (Rekorder läuft sofort), „Atmen".
+  Ungeprüft (lange drücken geht ohne Finger nicht).
+- **Foto-Prüfung** (Antons Idee): Haken im Avatar-Dialog → `/api/photo-check`
+  → grün/rot/grau, bei Rot kein Speichern. Heute Inhalt über fal
+  `imageutils/nsfw` ($0,001, am echten Server geprüft: 2,4 s, „ok").
+  `src/lib/photoCheck.js` übersetzt Anbieter-Ablehnungen in Gründe (Tests).
+  Plan und Grenzen: `docs/plans/2026-09-13-bildpruefung-seedance.md`.
+- **Gesichtstest Replicate-Seedance** (18:34): KI-erzeugtes, fotorealistisches
+  Gesicht aus unserem Onboarding-Clip → **angenommen**, gut getroffen,
+  $0,41. Das Log zeigt eine BytePlus-Auftragsnummer. Laut ByteDance-Doku
+  hätte es abgelehnt werden müssen. Echte Fotos: ungetestet, braucht Antons Ja.
+- **Onboarding** (Antons Befund 18:31): Kachel-Etikett jetzt in der Kachel
+  unten links statt auf der Kante; Auszeichnungen kleiner; im Jahre-Kreis
+  „5 Jahre Träume" in Grün unter „18 Jahre Schlaf". ⚠ Nicht per Screenshot
+  geprüft — Anton war in der App, kein Neustart; sichtbar beim nächsten
+  Onboarding-Durchlauf.
+- API-Server neu gestartet (neuer Endpunkt, und server.js hatte seit dem
+  Nachmittag die Gattung „Ding" im Analyse-Schema).
+
+**Was der Nächste wissen muss:**
+- ⚠ Drei neue native Pakete heute (expo-notifications, react-native-view-shot,
+  expo-quick-actions) → wer auf einem anderen Rechner baut: `bun run pods`
+  + Rebuild. `app.json` trägt das Plugin von expo-quick-actions.
+- Kein kostenloser „Nimmt Seedance dieses Foto?"-Aufruf existiert. Der
+  tragfähige Weg: Ablehnung beim ersten Film merken (bei Replicate gratis)
+  und am Eintrag speichern — Plan §4.
+- Verträge: Replicate hat keinen öffentlichen AVV (Formular
+  replicate.com/enterprise); BytePlus-Verträge sind öffentlich, DPA §4.2
+  (keine besonderen Datenkategorien) gegen Gesichtsdaten klären.
+- Tests 630 grün, Typen sauber, Lint 0 Fehler.
+
+## 2026-09-13 18:20 — Anton — Branch `session/2026-09-13-anton-d` — Antons neun Punkte: Rekorder zuerst, Besetzung im Text, Dinge, Foto-Bestätigung, Belohnung, Erinnerungen, Atmen, Preise
+
+**Commit:** `8777b8b` (Code) + Doku-Commit danach.
+
+**Antons Rückmeldung** auf die Scheitern-Analyse, neun Punkte plus
+Besetzung und Aufnahme-Ablauf. Antworten, Rechnung und Plan stehen in
+`docs/plans/2026-09-13-antworten-preise-recht-gratisfeatures.md`; die
+Recherchen mit Quellen daneben (`…-recherche-anbieter-recht.md`,
+`…-recherche-expo-erinnerungen-healthkit-widgets.md`).
+
+- **Rekorder zuerst** (`components/dream-recorder.tsx`, `dream/index.tsx`):
+  Traum-Tab öffnen = Aufnahme läuft; Stopp → anhören → „Aufschreiben" →
+  Text mit „Weiter erzählen" / „Neu schreiben". Tab-Wechsel während der
+  Aufnahme hält an und zeigt die Aufnahme zum Anhören. `dream/voice.tsx`
+  ist weg (auch der `?auto=`-Selbsttest). `resetWizard` zählt jetzt
+  `resets` hoch, damit der im Tab lebende Bildschirm nach einem Auftrag
+  von vorn beginnt.
+- **Besetzung im Text** (`components/cast-text.tsx`, Hannis Idee vom
+  07.08.): Markierungen je Gattung, Tipp = „Wer ist das?", anderes Wort =
+  hinzufügen; Neues landet in der Analyse (people/places/objects).
+- **Gattung „Ding"** durch die Kette: Analyse-Schema `objects` (≤ 3),
+  server.js-Allowlists, promptBuilder, `filmReferences`-Rang, `startsFree`,
+  Brücke, Avatar-Dialog. Bibliothek zeigt alle vier Gattungen, im Profil
+  als Karte ganz oben (`profile/cast.tsx`, `profile/avatar.tsx` leiten auf
+  die Journal-Seiten; der Pfad entscheidet den Stapel).
+- **Bestätigung je Foto** im Avatar-Dialog, gespeichert als
+  `photoConsent {v, at, of}` mit Fingerabdruck; Onboarding-Satz;
+  Nutzungsbedingungen geschärft → `CONSENT_VERSION` 3.
+- **Belohnung** (`components/celebration.tsx`) statt Faultier im Auftrag.
+- **Erinnerungen** (`lib/notifications.ts`, `lib/use-reminders.ts`,
+  `profile/reminders.tsx`, Logik in `src/lib/reminders.js` mit Tests):
+  morgens → `/dream`, abends → `/sleep`, Realitätschecks 7 Tage voraus;
+  Karte auf Home; „Morgens direkt aufnehmen" beim Öffnen.
+- **Atmen** (`components/breath.tsx`) als erster Schlaf-Raum; Räume mit
+  durchsichtigem Kopf (war weiß).
+- **Preise** (`plans.js`): Monat $9,99/160 Cr, Jahr $99,99/160, Woche weg,
+  Pakete 50/150/320/700; Paywall zählt „Filme à 15 s" in Standard.
+
+**Was der Nächste wissen muss:**
+- ⚠ **expo-notifications ist neu** → `bun run pods` + Rebuild gemacht,
+  App im Simulator installiert. **Kein `expo prebuild`** (Push-Entitlement).
+  Im unsignierten Simulator-Bau meldet das Paket einen Schlüsselbund-Fehler
+  der Push-Registrierung — harmlos, per `LogBox.ignoreLogs` ausgeblendet.
+- ⚠ **Ungeprüft:** Erlaubnis-Dialog und Zustellung der Erinnerungen
+  (braucht einen Finger; das Simulator-Panel meldet weiter „Xcode not
+  selected"), der Foto-Haken im Dialog (braucht ein gewähltes Foto), die
+  beiden Besetzungs-Blätter, der Atem-Ablauf. Geprüft per Deep-Link und
+  Screenshot: Profil-Karte, Bibliothek, Erinnerungen-Seite, Home-Karte,
+  Rekorder (Autostart, Stopp, Anhören 0:22), Besetzung mit Markierungen,
+  Konfetti, Atem-Raum, Avatar-Dialog mit vier Gattungen. Die Prüfhilfen
+  (Tore aus, Beispieltraum, Test-Route) sind wieder raus.
+- ⚠ **Seedance 2.5 und echte Gesichter:** ByteDance nimmt laut eigener Doku
+  keine Referenzbilder mit echten Gesichtern ohne Verifizierung. Vor dem
+  Replicate-Wechsel mit einem Besetzungsfoto testen.
+- ⚠ Das Einwilligungs-Tor kommt wegen Version 3 einmal neu.
+- Meine Aufnahme aus dem Test (22 s, still) liegt über `/api/panel` im
+  Medienordner — ohne Traum, kann weg.
+- Tests 626 grün (`bun test`), Typen sauber, Lint 0 Fehler.
+
 ## 2026-09-12 20:10 — Hanni — Branch `session/2026-09-12-hanni-backend-auth` — Anmeldung, Konto und Träume im Backend
 
 **Commits (3):** `8b57221` src/lib/auth.js (Supabase Auth) · `41a3534`
@@ -127,6 +250,158 @@ Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
 `falGenerateImage`, `craftPrompt`, `buildFallbackPrompt`, `jobStatus`,
 `settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
 das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
+
+## 2026-09-13 17:00 — Anton — Branch `session/2026-09-13-anton-d` — Regie v2 (Higgsfield case4k), Scheitern-Analyse, Auftragsmotor vorbereitet
+
+**Antons dreifacher Auftrag:** (1) den Auftragsmotor schon vorbereiten,
+(2) ehrlich aufschreiben, woran die App scheitern kann, welche
+Gratis-Features anderer Schlaf-Apps wir nehmen sollten und wie wir uns
+von den Großen wegbewegen, (3) den Higgsfield-Post „case4k" gegen unsere
+Pipeline halten und daraus eine bessere Regie ableiten — vor allem
+Schnitte und Takt.
+
+- **Regie v2** (`src/lib/director.js`, Plan
+  `docs/plans/2026-09-13-regie-v2-nach-higgsfield-case4k.md`): Der Post
+  ist derselbe Stamm wie unser CINEDANCE-Destillat, aber er gibt **jedem
+  Cut seine eigene Bildgröße und seinen eigenen Bildwinkel** — wir
+  hielten EINEN Winkel über den ganzen Film (der Tornado vom 12.09.: drei
+  Mal 84° wide, nie ein Gesicht). Eingebaut: `shotSize(hook)` je Shot im
+  Schnittplan (setup weit, climax nah aufs Gesicht dann weit …),
+  Haltedauer in Worten („the longest hold, 6 s"), Block PERFORMANCE
+  (Mimik, Atem, Verzögerung), Block POSITIVE LOCKS (Referenzen erben
+  nichts vom Bogen, Landmarken halten Form, Licht wechselt nie die
+  Seite), Kameramaße (Sway in cm, Fahrt in m/s), Ton je Block, „the
+  camera never cuts on its own". Beides Drehbücher (Referenz + Ein-Bild).
+  Tests grün (77), Trockenlauf repariert (`scripts/dry-run-prompts.mjs`
+  importierte noch `buildPosterPrompt`, das es nicht mehr gibt).
+  ⚠ Prompts werden ~600–900 Zeichen länger; H3 hat 7 000. Am bezahlten
+  Film ungeprüft — der Plan nennt den Beweis (drei Filme, einer fremd).
+  Weiter im Plan: 3-Ansichten-Bogen mit gelöschtem Gesicht auf dem
+  Ganzkörper-Panel, Orts-Bögen, Requisiten-Anker, lange Träume in
+  15-s-Teilen, die Nachbesserungs-Schleife.
+- **Scheitern-Analyse** (`docs/plans/2026-09-13-warum-die-app-scheitern-kann.md`):
+  neun Gründe nach Wahrscheinlichkeit (Gewohnheit stirbt vor dem Wert,
+  der erste bezahlte Film enttäuscht, Rechnung, die Großen, App Store,
+  Wartezeit, ein Mensch/eine Kette, Gesichter-Recht, Sprache); sechs
+  Gratis-Features, die einen Grund geben, morgens ohne Traum zu öffnen
+  (HealthKit-Schlaf lesen, Atem-Animation, Widget, Erinnerungen,
+  Teilen-Karte, Realitätscheck-Benachrichtigung) und was wir NICHT bauen
+  (Stories, Meditationen, eigenes Tracking, Astrologie); der Graben zu den
+  Großen: Besetzung als Kern, Traumwelt, Regisseur als Handwerk, Stimme,
+  Format. Drei Dinge vor jeder Werbung: Server-Abbuchung, Regie-v2-Beweis,
+  Erinnerungen + HealthKit.
+- **Auftragsmotor vorbereitet:** Brücken-Befehl `order`
+  (`runOrder` in journal-bridge.jsx) = Step5Style.run für den Film ohne
+  Oberfläche, in derselben Reihenfolge: Kassenprüfung (quoteFor) →
+  Besetzung (autoMatch + Vorgaben) → Bogen-Pflicht (characterSheet, am
+  Tag) → Traum ins Journal mit `pending` → Schnittplan → `generate` →
+  Auftragsnummer am Traum, dann abbuchen; Fehler als `failReason`. In
+  `dream/order.tsx` hinter `NATIVE_ORDER = false` — **bleibt aus, bis
+  ein echter bezahlter Auftrag ihn belegt** (Geldweg). Typ `OrderRequest`.
+- **Gegengeprüft, zwei Live-Läufe** (nur DeepSeek): erster Lauf 7 307
+  Zeichen für H3 bei 7 000 Limit → Deckel je Block im Brief bei engem
+  Budget + `fitPromptBudget()` (STYLE → LOCKS → Schere, statt blind am
+  Ende) im Server; zweiter Lauf 6 085 (H3) / 7 069 (Seedance), alle Blöcke
+  da. Ergebnis und Zitate im Plan §4. Dazu: Größen wechseln auch ohne
+  Beat-Typen (Kadenz nach Position), „the longest hold" nur, wenn es
+  genau einen längsten Block gibt.
+- ⚠ Fehler der Sitzung: ein Python-Einzeiler `open(p,"w").write(open(p).read())`
+  hat `director.js` GELEERT (Schreiben öffnet vor Lesen). Per
+  `git checkout` zurückgeholt, Änderungen neu angewandt. Nie wieder so
+  „kopieren".
+
+## 2026-09-13 15:45 — Anton — Branch `session/2026-09-13-anton-d` — Die letzten Web-Blätter nativ: Avatar, Bearbeiten/Umschreiben, Umfrage
+
+**Antons Auftrag:** „Gibt es noch Seiten, die Web sind? Damit kannst du
+weitermachen." Bestandsaufnahme: Avatar-Dialog (Profil, Besetzung,
+Wizard), Bearbeiten + drei Umschreib-Arten hinter „…", die Umfrage im
+Profil, der Home-Check-in-Link in den Web-Atlas, der unsichtbare
+Auftrags-Motor. Die ersten vier sind jetzt nativ.
+
+- **Avatar-Editor** (`components/avatar-editor.tsx`), genutzt von
+  `dream/avatar`, `journal/avatar` und `profile/page?page=avatar`: Bild
+  groß oben (System-Aktionsblatt: Mediathek / Kamera (Rückkamera) /
+  Entfernen), Gattung nur beim Anlegen ohne Vorgabe, Name mit Tag-Vorschau,
+  Beschreibung, Ganzkörperfoto erst wenn das Gesicht steht, „Aus deiner
+  Beschreibung zeichnen" erst ab 10 Zeichen (Charakterbogen, 2 Credits,
+  erst nach dem Rendern abgebucht), Datenschutz-Satz, Löschen abgesetzt
+  unten (nie fürs eigene Porträt). Fotos: nativ gewählt, > 1600 px
+  verkleinert, JPEG-Data-URL. **Die Regeln liegen in der Brücke**
+  (`runAvatar`: `avatarLoad/Save/Delete/Draw`) — Tag `[a-z0-9]{1,12}`,
+  Foto ODER Beschreibung Pflicht, Kollision nur mit sich selbst,
+  Umbenennen zieht `references` der Träume mit; dieselben wie
+  AvatarDialog.jsx.
+- **Bearbeiten/Umschreiben** (`app/journal/edit.tsx`, Modi edit / correct /
+  rewrite / elaborate / original): Das „…"-Menü der Traumseite öffnet ihn
+  direkt; Umschreiben holt den Vorschlag (Brücke `refine`, gratis), zeigt
+  „Jetzt ↔ Überarbeitet", übernommen wird erst mit „Diese Fassung
+  verwenden" (Befehl `dreamText`: erster Wortlaut bleibt als
+  `originalText`, Reflection fällt weg — wie commitText im Web). Neu im
+  Menü: „Zeigen, was ich zuerst geschrieben habe", wenn es ein anderes
+  Original gibt. **`journal/web-dream.tsx` und `legacy/legacy-dream.jsx`
+  gelöscht**, dazu das unbenutzte `legacy-voice.jsx`.
+- **Umfrage** (`profile/page?page=survey`): der Onboarding-Fluss im neuen
+  Modus `questionsOnly` (Name, fünf Fragen, Jahre-Kreis, Themen, Schluss),
+  Zurück am ersten Bildschirm verlässt ihn (`onExit`). Antworten über
+  `onboarded` in dasselbe Profil; der Bildschirm schließt erst, wenn die
+  eigene Brücke den neuen Stand gemeldet hat (sonst stirbt der Webview
+  mit dem Befehl).
+- Home: „Notiert — Schlaf und Träume treffen sich in deinem Atlas" öffnet
+  jetzt den nativen Atlas statt `journal/web?view=atlas`.
+- Geprüft per Screenshot: eigenes Porträt, neue Figur mit Gattungswahl,
+  Umschreiben-Vorschlag (Korrigieren am Tornado-Traum, echter
+  DeepSeek-Aufruf), Bearbeiten-Feld, Umfrage-Start. ⚠ Nicht getippt:
+  Foto wählen, Speichern, Löschen, Charakterbogen zeichnen (kostet 2 Cr).
+
+**Was noch Web ist:** (1) der **Auftrags-Motor** (`dream/order.tsx` →
+`legacy-order.jsx`, unsichtbar; Preisprüfung, Journal-Eintrag,
+Filmauftrag, Fehlerblatt) — bewusst nicht angefasst, das ist der Geldweg,
+der gehört mit der Server-Abbuchung (Supabase) in einem Stück umgebaut;
+(2) Rückfälle, die nativ niemand mehr erreicht: `journal/web` für
+unbekannte Nebenräume, `sleep/[view]` für unbekannte Räume,
+`profile/page` für settings/paywall.
+
+## 2026-09-13 13:50 — Anton — Branch `session/2026-09-13-anton-d` — Leuchtende Kante, Sekundenschnitt, der Gesichter-Spot
+
+**Commits:** `28d6b63` Kante + Schnellschnitt · (Spot folgt).
+
+- **Feature-Kacheln:** Antons Befund „Rand viel zu dick" — der breite Halo
+  ist weg. Jetzt ein 1,5-pt-Ring, hinter dem ein Farbquadrat (blau, orange,
+  rosa, türkis) rotiert (Reanimated, 7–10 s je Umlauf, je Kachel versetzt);
+  der Clip deckt die Mitte, sichtbar bleibt die Kante, und die Farben
+  fahren um die Kachel. Zwei fast durchsichtige Ringe außen als Schein.
+  Technik: `ring(inset, opacity)` in `FeatureTile`, Quadratseite =
+  Diagonale der Kachel + 24, Maße aus `onLayout`.
+- **„Neunzehn Blicke" als Schnellschnitt:** `StyleReel` — EIN Player,
+  `replaceAsync` jede Sekunde durch alle 19 Stil-Clips (`onb.reel` aus
+  der Brücke). Kein Player-Zugriff im Aufräumer, nur der Takt stoppt.
+- **Der Gesichter-Spot** für „Die Menschen darin sind deine" (Antons Idee,
+  Variante A von drei): Bar im Regen, ein Cursor legt ein Foto auf den
+  Hocker, die Person vom Foto sitzt da, dann wechselt die Person im
+  Takt, der Raum bleibt. Test in 480p, 15 s, 9:16 (37,5 Credits) —
+  Cursor sauber, vier Wechsel, Raum stabil. Anton: „nimm das Video". Statt
+  neu zu rendern (anderes Video) **Topaz-Upscale desselben Jobs** auf
+  1080p, daraus 720p für die App: `public/clips/showcase-faces.mp4`
+  (versioniert, `!public/clips/showcase-*.mp4`), Brücke `peopleClip`,
+  `style-clips.ts` bündelt es (Muster `showcase-<name>`). Original
+  480p in `media/clips-src/faces-a-9d94dd02.mp4`.
+- **Nachtrag 14:30 — die 720p-Fassung nativ**, mit Antons Umbau: die
+  Person sitzt SCHON da, das Foto liegt auf dem Tisch, der Zeiger zieht es
+  auf sie, eine laufende gestrichelte Auswahllinie fährt um die Silhouette,
+  beim Loslassen wird der Mann zur Frau vom Foto, dann Wechsel alle 0,8 s
+  mit großen Reaktionen. Drei Läufe: die ersten zwei brach Higgsfield NACH
+  voller Renderzeit mit `ip_detected` ab (kostenlos) — der Filter prüft das
+  ERGEBNIS, vermutlich ein erzeugtes Gesicht, das jemandem Echten glich.
+  Der dritte mit „everyday strangers with plain, unremarkable faces", ohne
+  Smoking/Brillenmann, sechs statt acht Wechsel, ging durch: 97,5 Credits
+  (Stand 3.733). Ergebnis trifft alles: Zeiger, Foto, Auswahllinie,
+  Verwandlung, Reaktionen. Liegt jetzt als `public/clips/showcase-faces.mp4`
+  (720p, 1.8 MB, crf 24); Original in `media/clips-src/faces-b-720p-2162c42d.mp4`,
+  die Topaz-Fassung des Tests bleibt daneben. Lehre: **bei
+  fotorealistischen Gesichtern „everyday strangers" in den Prompt** — der
+  Ergebnisfilter ist der teure (Zeit), nicht der Promptfilter.
+- ⚠ Während Anton selbst im Simulator tippt, die App NICHT neu starten —
+  ein `simctl launch` wirft ihn aus dem Onboarding (heute passiert).
 
 ## 2026-09-13 13:15 — Anton — Branch `session/2026-09-13-anton-c` — Clips versioniert und gebündelt, Onboarding-Showreel
 

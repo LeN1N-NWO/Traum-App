@@ -308,3 +308,44 @@ test("places fall off first when slots run out", () => {
   ];
   expect(filmReferences(cast, 3).map((c) => c.tag)).toEqual(["p1", "p2", "tier1"]);
 });
+
+/* Regie v2 (13.09.2026, nach dem Higgsfield-Fallbeispiel): jeder Shot
+   bekommt seine Bildgröße, keine zwei Nachbarn gleich, der Höhepunkt geht
+   ans Gesicht, und „the longest hold" steht nur an EINEM Block. */
+import { shotSizes } from "./director.js";
+test("v2: every shot carries a size, neighbours differ, climax goes close", () => {
+  const plan = [
+    { hook: "setup", text: "a", from: 0, to: 3 }, { hook: "build", text: "b", from: 3, to: 6 },
+    { hook: "climax", text: "c", from: 6, to: 12 }, { hook: "resolution", text: "d", from: 12, to: 15 },
+  ];
+  const sizes = shotSizes(plan);
+  expect(sizes[0]).toBe("WIDE 84°");
+  expect(sizes[2]).toMatch(/CLOSE 29° on the face/);
+  for (let i = 1; i < sizes.length; i++) expect(sizes[i]).not.toBe(sizes[i - 1]);
+  const brief = buildDirectorBrief({ dream: "x", shots: plan, seconds: 15, timeFormat: "s" });
+  expect(brief).toContain("SHOT 3 — CLOSE 29° on the face");
+  expect(brief.match(/the longest hold/g)).toHaveLength(1);
+  expect(brief).toContain("(the longest hold, 6 s)");
+});
+test("v2: without beat types the sizes still alternate by position", () => {
+  const plan = Array.from({ length: 5 }, (_, i) => ({ hook: "build", text: String(i), from: i * 3, to: i * 3 + 3 }));
+  const sizes = shotSizes(plan);
+  for (let i = 1; i < sizes.length; i++) expect(sizes[i]).not.toBe(sizes[i - 1]);
+  const brief = buildDirectorBrief({ dream: "x", shots: plan, seconds: 15, timeFormat: "s" });
+  expect(brief).not.toContain("the longest hold");    // fünf gleich lange Blöcke haben keinen längsten
+});
+
+/* Das Budget: erst STYLE, dann LOCKS, erst zuletzt die Schere. */
+import { fitPromptBudget } from "./director.js";
+test("v2: fitPromptBudget drops STYLE before cutting the ending", () => {
+  const body = "SCENE CONTEXT\nA bridge.\nACTION TIMING\n1) 0-3 s: wind.\nAUDIO\nWind.\nPOSITIVE LOCKS\nOne. Two. Three. Four. Five.\nSTYLE\n" + "painterly ".repeat(60) + "\nSharp clarity.";
+  const fit = fitPromptBudget(body, body.length - 100);
+  expect(fit.trimmed).toBe("style");
+  expect(fit.text).not.toContain("painterly");
+  expect(fit.text).toContain("POSITIVE LOCKS");
+  expect(fit.text).toContain("AUDIO");
+  expect(fitPromptBudget("short", 100).trimmed).toBe("none");
+  const hard = fitPromptBudget("ACTION TIMING\n" + "x".repeat(500), 100);
+  expect(hard.trimmed).toBe("cut");
+  expect(hard.text).toHaveLength(100);
+});

@@ -53,6 +53,9 @@ test("eine eindeutige Besetzung wird weiterhin erkannt, eine doppelte nicht", ()
 test("Orte starten frei, Menschen nicht", () => {
   expect(startsFree("place", undefined)).toBe(true);
   expect(startsFree("person", undefined)).toBe(false);
+  // Dinge (13.09.2026) wie Orte: der Brief, das Auto — dafür legt kaum jemand ein Foto an.
+  expect(startsFree("object", undefined)).toBe(true);
+  expect(startsFree("object", { id: "c1", tag: "brief", img: "x" })).toBe(false);
 });
 
 test("Ein gefundener Eintrag aus der Bibliothek gewinnt gegen die Vorauswahl", () => {

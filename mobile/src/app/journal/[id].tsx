@@ -11,6 +11,7 @@ import { ActionSheetIOS, Alert, Modal, Platform, Pressable, ScrollView, Share, S
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeOut, ZoomIn } from "react-native-reanimated";
 import { MascotLoader } from "@/components/mascot-loader";
+import { ShareCard } from "@/components/share-card";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
@@ -28,6 +29,7 @@ export default function DreamScreen() {
   const { data, bridge, send, ask } = useJournal();
   const item = data?.items.find((e) => e.id === id) ?? null;
   const [reflecting, setReflecting] = useState(false);
+  const [card, setCard] = useState(false);
   /* „Nochmal, anders" / „Zum Leben erwecken": der native Fluss ab dem Stil
      mit Text und Analyse DIESES Traums (Antons Wunsch 12.09. — vorher
      landete man auf der alten Web-Seite). Mit entryId haengt der Auftrag
@@ -48,22 +50,34 @@ export default function DreamScreen() {
     if (r.error) Alert.alert("⚠", String(r.error));
   }
 
-  /* Das „…"-Menü (EntryMenu.jsx) als natives Aktionsblatt: Bearbeiten und
-     die drei Umschreib-Arten öffnen die Web-Seite (dort läuft die KI),
-     Löschen ist nativ — mit Rückfrage, weil es der einzige unumkehrbare
-     Punkt ist und ein Aktionsblatt schneller getippt ist als das Web-Menü. */
+  /* Das „…"-Menü (EntryMenu.jsx) als natives Aktionsblatt — seit 13.09.
+     ganz nativ: Bearbeiten, die drei Umschreib-Arten und der erste
+     Wortlaut öffnen journal/edit.tsx; Löschen mit Rückfrage, weil es der
+     einzige unumkehrbare Punkt ist. */
   function menu() {
     if (!item) return;
-    const toWeb = () => router.push({ pathname: "/journal/web-dream", params: { id: item.id } });
-    const options = [labels.menuEdit ?? "Edit", labels.menuCorrect ?? "Correct", labels.menuRewrite ?? "Rewrite", labels.menuElaborate ?? "Elaborate", labels.menuDelete ?? "Delete", labels.cancel ?? "Cancel"];
+    const go = (mode: string) => router.push({ pathname: "/journal/edit", params: { id: item.id, mode } });
+    const entries: [string, () => void][] = [
+      // Die Teilen-Karte zuerst (13.09.2026): ein Traum als Bild, auch ohne Film.
+      [labels.shareCard ?? "Share as a card", () => { Haptics.selectionAsync(); setCard(true); }],
+      [labels.menuEdit ?? "Edit", () => go("edit")],
+      [labels.menuCorrect ?? "Correct", () => go("correct")],
+      [labels.menuRewrite ?? "Rewrite", () => go("rewrite")],
+      [labels.menuElaborate ?? "Elaborate", () => go("elaborate")],
+      ...(item.originalText ? [[labels.menuOriginal ?? "Original", () => go("original")] as [string, () => void]] : []),
+    ];
     const del = () => Alert.alert(labels.menuDelete ?? "Delete", item.title || labels.untitled || "", [
       { text: labels.cancel ?? "Cancel", style: "cancel" },
       { text: labels.menuDelete ?? "Delete", style: "destructive", onPress: () => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); send({ type: "deleteDream", id: item.id }); router.back(); } },
     ]);
+    const options = [...entries.map((e) => e[0]), labels.menuDelete ?? "Delete", labels.cancel ?? "Cancel"];
     if (Platform.OS === "ios") {
-      ActionSheetIOS.showActionSheetWithOptions({ options, destructiveButtonIndex: 4, cancelButtonIndex: 5, userInterfaceStyle: "dark" }, (i) => { if (i === 4) del(); else if (i < 4) toWeb(); });
+      ActionSheetIOS.showActionSheetWithOptions({ options, destructiveButtonIndex: entries.length, cancelButtonIndex: entries.length + 1, userInterfaceStyle: "dark" }, (i) => {
+        if (i < entries.length) entries[i][1]();
+        else if (i === entries.length) del();
+      });
     } else {
-      toWeb();
+      go("edit");
     }
   }
   const labels = data?.labels ?? {};
@@ -83,6 +97,7 @@ export default function DreamScreen() {
       <Stack.Toolbar placement="right">
         {item ? <Stack.Toolbar.Button icon="ellipsis.circle" onPress={menu} /> : null}
       </Stack.Toolbar>
+      {item ? <ShareCard item={item} visible={card} onClose={() => setCard(false)} labels={labels} locale={locale} /> : null}
       <View style={styles.bridge}>{bridge}</View>
     </>
   );

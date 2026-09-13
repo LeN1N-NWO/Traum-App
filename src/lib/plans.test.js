@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
-import { SUBSCRIPTIONS, PACKS, CREDIT_COST_USD, dreamsFor } from "./plans.js";
-import { priceForFilm, videoModel } from "./video.js";
+import { SUBSCRIPTIONS, PACKS, CREDIT_COST_USD, FILM_UNIT, dreamsFor } from "./plans.js";
+import { priceForFilm } from "./video.js";
 
 const num = (price) => Number(String(price).replace(/[^0-9.]/g, ""));
 
@@ -18,11 +18,39 @@ function perCredit(plan) {
    sinnlos — und das faellt beim Anpassen einzelner Zahlen niemandem auf, weil
    jede Zahl fuer sich plausibel bleibt. */
 test("longer commitment is cheaper per credit, in that order", () => {
-  const week = SUBSCRIPTIONS.find((p) => p.period === "week");
   const month = SUBSCRIPTIONS.find((p) => p.period === "month");
   const year = SUBSCRIPTIONS.find((p) => p.period === "year");
-  expect(perCredit(week)).toBeGreaterThan(perCredit(month));
   expect(perCredit(month)).toBeGreaterThan(perCredit(year));
+});
+
+/* Antons Vorgabe 13.09.2026: Das billigste Abo kostet rund 10 € und traegt
+   mindestens fuenf 15-s-H3-Filme in Standardqualitaet. Das Wochen-Abo ist
+   gestrichen — es trug nicht einmal EINEN solchen Film. */
+test("the cheapest subscription holds at least five 15-second standard films", () => {
+  const perFilm = priceForFilm(FILM_UNIT.model, FILM_UNIT.seconds, { quality: FILM_UNIT.quality });
+  const month = SUBSCRIPTIONS.find((p) => p.period === "month");
+  expect(num(month.price)).toBeLessThanOrEqual(10);
+  expect(Math.floor(month.credits / perFilm)).toBeGreaterThanOrEqual(5);
+  expect(SUBSCRIPTIONS.some((p) => p.period === "week")).toBe(false);
+});
+
+/* Die Paket-Leiter: je groesser, desto billiger je Credit (Mengenrabatt),
+   aber keine Stufe billiger als das Abo (Regel unten). */
+test("bigger packs are cheaper per credit, step by step", () => {
+  const sorted = [...PACKS].sort((a, b) => a.credits - b.credits);
+  for (let i = 1; i < sorted.length; i++) {
+    expect(termPerCredit(sorted[i])).toBeLessThan(termPerCredit(sorted[i - 1]));
+  }
+});
+
+/* Jedes Paket deckt seinen schlimmsten Einkauf (Credit als Bild) mit
+   1,75× nach MwSt. und 15 % Store — Pakete verfallen nie, also zaehlt
+   voller Verbrauch. */
+test("every pack clears its worst-case cost at 15 % store", () => {
+  for (const pack of PACKS) {
+    const net = (num(pack.price) / 1.19) * 0.85;
+    expect(net).toBeGreaterThan(pack.credits * CREDIT_COST_USD * 1.75);
+  }
 });
 
 /* Diese beiden Zeilen gibt es, weil die vorige Fassung einen Fehler
@@ -102,10 +130,10 @@ test("exactly one subscription is featured", () => {
    driften: Ändert jemand einen Preis oder eine Credit-Zahl, muss das Badge
    mitwandern — dieser Test rechnet beide gegen dieselbe Bezugsgröße nach
    (Preis je Credit gegenüber der Woche, siehe Kommentar in plans.js). */
-test("every save badge states the real per-credit saving vs the weekly plan", () => {
-  const week = SUBSCRIPTIONS.find((p) => p.period === "week");
+test("every save badge states the real per-credit saving vs the monthly plan", () => {
+  const month = SUBSCRIPTIONS.find((p) => p.period === "month");
   for (const plan of SUBSCRIPTIONS.filter((p) => p.saveHint)) {
-    const real = Math.round((1 - termPerCredit(plan) / termPerCredit(week)) * 100);
+    const real = Math.round((1 - termPerCredit(plan) / termPerCredit(month)) * 100);
     expect(plan.saveHint).toBe(`${real}%`);
   }
 });
@@ -116,8 +144,8 @@ test("every save badge states the real per-credit saving vs the weekly plan", ()
    laengst sieben (sechs Sekunden plus Keyframe), und die Paywall versprach
    entsprechend zu viel. Diese Zeilen halten fest, dass die Zahl mitwandert. */
 test("what a balance buys is whole, and never promises more than it can", () => {
-  const perFilm = priceForFilm("standard", videoModel("standard").preset);
-  for (const credits of [6, 12, 18, 45, 540]) {
+  const perFilm = priceForFilm(FILM_UNIT.model, FILM_UNIT.seconds, { quality: FILM_UNIT.quality });
+  for (const credits of [6, 12, 18, 45, 160, 540, 1920]) {
     const got = dreamsFor(credits);
     expect(got.images).toBe(credits);                 // 1 Credit = 1 Bild
     expect(Number.isInteger(got.films)).toBe(true);   // keine halben Filme

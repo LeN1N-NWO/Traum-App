@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming, type SharedValue } from "react-native-reanimated";
 import Svg, { Circle, G } from "react-native-svg";
 import { Clip } from "@/components/preset-tile";
+import { clipSource } from "@/lib/style-clips";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import { login, useAccountEmail, type LoginFailure } from "@/lib/auth";
 import type { OnboardData } from "@/store/journal-store";
@@ -48,7 +49,7 @@ function dreamYears(key: string) {
 
 const ICONS: Record<number, SFSymbol> = { 0: "waveform.and.mic", 1: "film", 2: "moon.stars", 3: "lock" };
 
-export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone: (answers: Answers) => void; onPhoto?: (dataUrl: string) => void }) {
+export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onExit }: { O: OnboardData; onDone: (answers: Answers) => void; onPhoto?: (dataUrl: string) => void; questionsOnly?: boolean; onExit?: () => void }) {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(() => (__DEV__ && typeof (globalThis as any).__ONB_STEP__ === "number" ? (globalThis as any).__ONB_STEP__ : 0));
   const [a, setA] = useState<Answers>(EMPTY);
@@ -128,10 +129,15 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
      geantwortet hat, sichert das Ergebnis — nicht umgekehrt. Am Anfang
      schreckt sie ab, beim Kauf ist sie zu spät. */
   screens.push({ kind: "mascot" }, { kind: "themes" }, { kind: "account" }, { kind: "done" });
-  const total = screens.length;
-  const jetzt = screens[Math.min(step, total - 1)];
+  /* Nur die Fragen (Profil → „Umfrage", seit 13.09. nativ statt der
+     Web-Umfrage): Name, die fünf Fragen samt Jahre-Kreis, Themen, Schluss —
+     ohne Intro, Berechtigungen, Zwischenbilder, Foto, Begleiter, Anmeldung. */
+  const shown = questionsOnly ? screens.filter((x) => ["name", "question", "sleepYears", "themes", "done"].includes(x.kind)) : screens;
+  const total = shown.length;
+  const jetzt = shown[Math.min(step, total - 1)];
 
-  function back() { Haptics.selectionAsync(); setStep((s: number) => Math.max(0, s - 1)); }
+  // Am ersten Bildschirm führt Zurück hinaus, wenn es ein Draußen gibt (Umfrage im Profil).
+  function back() { Haptics.selectionAsync(); if (step === 0 && onExit) { onExit(); return; } setStep((s: number) => Math.max(0, s - 1)); }
   function next() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setStep((s: number) => s + 1); }
   function finish() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onDone(a); }
 
@@ -169,7 +175,7 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
   // ── Was die App macht, als Glas-Kacheln mit laufenden Filmen
   if (jetzt.kind === "features") {
     return (
-      <Shell insets={insets} step={step} total={total} title={O.featuresTitle} lede={O.featuresLede} onBack={step > 0 ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.featuresTitle} lede={O.featuresLede} onBack={step > 0 || onExit ? back : undefined}>
         {/* Vier Kacheln im Glas, in denen die Traum-Clips laufen — Antons
             Vorbild (Moonly). Die Filme sind erst mal die Vorschau-Clips der
             Stile; jede Kachel trägt ihr Etikett wie dort. */}
@@ -198,12 +204,13 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
         <View style={styles.proofRow}>
           {O.proof.map((pr, i) => (
             <View key={i} style={styles.proof}>
-              <SymbolView name="laurel.leading" size={30} tintColor={colors.muted} />
-              <View style={{ alignItems: "center", gap: 1 }}>
-                <Text style={styles.proofBig}>{pr.big}</Text>
-                <Text style={styles.proofSmall}>{pr.small}</Text>
+              {/* Kleiner (Antons Befund 13.09. abends: ragten aus dem Bild). */}
+              <SymbolView name="laurel.leading" size={20} tintColor={colors.muted} />
+              <View style={{ alignItems: "center", gap: 1, flexShrink: 1 }}>
+                <Text style={styles.proofBig} numberOfLines={1} adjustsFontSizeToFit>{pr.big}</Text>
+                <Text style={styles.proofSmall} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{pr.small}</Text>
               </View>
-              <SymbolView name="laurel.trailing" size={30} tintColor={colors.muted} />
+              <SymbolView name="laurel.trailing" size={20} tintColor={colors.muted} />
             </View>
           ))}
         </View>
@@ -229,7 +236,7 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
       </Glass>
     );
     return (
-      <Shell insets={insets} step={step} total={total} title={O.askTitle} lede={O.askText} onBack={step > 0 ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.askTitle} lede={O.askText} onBack={step > 0 || onExit ? back : undefined}>
         <View style={{ gap: 10, width: "100%" }}>
           {row(O.askMic, O.askMicWhy, mic, askMic, "mic.fill")}
           {row(O.askPhotos, O.askPhotosWhy, photos, askPhotos, "photo.on.rectangle")}
@@ -242,7 +249,7 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
   // ── Der Name
   if (jetzt.kind === "name") {
     return (
-      <Shell insets={insets} step={step} total={total} title={O.formName} onBack={step > 0 ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.formName} onBack={step > 0 || onExit ? back : undefined}>
         <TextInput
           style={styles.input} value={a.name} onChangeText={(v) => set("name", v.slice(0, 40))}
           placeholder={O.formNamePlaceholder} placeholderTextColor={colors.faint}
@@ -257,7 +264,7 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
   if (jetzt.kind === "question") {
     const f = fragen[jetzt.at];
     return (
-      <Shell key={f.key} insets={insets} step={step} total={total} title={f.title} onBack={step > 0 ? back : undefined}>
+      <Shell key={f.key} insets={insets} step={step} total={total} title={f.title} onBack={step > 0 || onExit ? back : undefined}>
         {f.body}
         {/* Ohne Antwort kein Weiter (Antons Befund 13.09.) — wer nicht
             antworten will, nimmt „Überspringen" oben rechts. */}
@@ -269,7 +276,9 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
   // ── Das Zwischenbild mit Film (Antons Wunsch 13.09.)
   if (jetzt.kind === "showcase") {
     const sc = O.showcase[jetzt.at % Math.max(1, O.showcase.length)];
-    const clip = O.clips.length ? O.clips[(jetzt.at + 1) % O.clips.length] : null;
+    /* Das erste Zwischenbild („Neunzehn Blicke") schneidet im Sekundentakt
+       durch ALLE Stile (Antons Wunsch 13.09.); die anderen zeigen einen. */
+    const clip = jetzt.at === 0 && O.reel.length ? O.reel : jetzt.at === 1 ? O.peopleClip : O.clips.length ? O.clips[(jetzt.at + 1) % O.clips.length] : null;
     return <Showcase O={O} title={sc?.title ?? ""} text={sc?.text ?? ""} clip={clip} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
   }
 
@@ -291,6 +300,8 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
             <GlassButton label={photo ? O.meChange : O.mePick} onPress={() => pickPhoto(false)} />
             <GlassButton label={O.meCamera} onPress={() => pickPhoto(true)} />
           </View>
+          {/* Die Wahl ist die Bestätigung (13.09.2026) — klein, aber da. */}
+          <Text style={styles.later}>{O.meConsent}</Text>
         </View>
         <View style={{ gap: 6 }}>
           <PrimaryButton label={O.next} heavy onPress={next} disabled={!photo} style={{ flex: 0 }} />
@@ -340,7 +351,7 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
       setThemeDraft("");
     };
     return (
-      <Shell insets={insets} step={step} total={total} title={O.formThemes} onBack={step > 0 ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.formThemes} onBack={step > 0 || onExit ? back : undefined}>
         <View style={{ width: "100%", gap: 10 }}>
           <View style={styles.themeRow}>
             <TextInput
@@ -469,33 +480,44 @@ function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; i
    ist die „Animation am Rand", die Anton am Vorbild gesehen hat. Der Rand
    selbst ist ein Verlauf, der als 1,5-Punkt-Saum um die Kachel liegt. */
 function FeatureTile({ i, title, clip, tall, labelBottom }: { i: number; title: string; clip: string | null; tall: boolean; labelBottom: boolean }) {
-  const k = useSharedValue(0);
+  /* Die leuchtende Kante (Antons Befund 13.09.: „Rand viel zu dick — schmal,
+     mehr Farbe, und das Licht soll drum herum fahren"): ein SCHMALER Ring
+     (1,5 pt), hinter dem ein großes Farbquadrat langsam ROTIERT — der Clip
+     deckt die Mitte ab, sichtbar bleibt nur die Kante, und weil das
+     Quadrat sich dreht, wandern die Farben um die Kachel. Zwei weitere,
+     fast durchsichtige Ringe außen sind der Schein. Kein breiter Halo mehr. */
+  const spin = useSharedValue(0);
+  const [box, setBox] = useState({ w: 0, h: 0 });
   useEffect(() => {
-    k.value = withDelay(400 * i, withRepeat(withTiming(1, { duration: 2600 + 300 * i, easing: Easing.inOut(Easing.sin) }), -1, true));
-  }, [k, i]);
-  const halo = useAnimatedStyle(() => ({ opacity: 0.35 + 0.45 * k.value, transform: [{ scale: 1 + 0.02 * k.value }] }));
-  const rim = useAnimatedStyle(() => ({ opacity: 0.55 + 0.45 * k.value }));
+    spin.value = withDelay(300 * i, withRepeat(withTiming(1, { duration: 7000 + 900 * i, easing: Easing.linear }), -1, false));
+  }, [spin, i]);
+  const rot = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.value * 360}deg` }] }));
+  const d = Math.hypot(box.w, box.h) + 24;                // das Quadrat deckt die Kachel in jeder Drehung
+  const ring = (inset: number, opacity: number) => (
+    <View key={inset} style={[StyleSheet.absoluteFill, { margin: -inset, borderRadius: 32 + inset, overflow: "hidden", opacity }]} pointerEvents="none">
+      <Animated.View style={[{ position: "absolute", width: d, height: d, left: (box.w + 2 * inset - d) / 2, top: (box.h + 2 * inset - d) / 2 }, rot]}>
+        <LinearGradient colors={["#8cc0ff", "#f2a765", "#ff7ab6", "#4fd6e6", "#8cc0ff"]} locations={[0, 0.3, 0.55, 0.8, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+    </View>
+  );
+  /* Das Etikett IN der Kachel, unten links über einem Schleier (Antons
+     Befund 13.09. abends: „Textanordnung total out of place" — es saß halb
+     auf der Kante). Eine Stelle für alle vier Kacheln. */
+  void labelBottom;
   const badge = (
-    <View style={[styles.tileBadge, labelBottom ? { bottom: -6 } : { top: -6 }]}>
-      <Glass style={styles.tileBadgeGlass}>
-        <SymbolView name={ICONS[i] ?? "sparkles"} size={12} tintColor={colors.accentSoft} />
-        <Text style={styles.tileBadgeText} numberOfLines={1}>{title}</Text>
-      </Glass>
+    <View style={styles.tileLabel} pointerEvents="none">
+      <SymbolView name={ICONS[i] ?? "sparkles"} size={13} tintColor={colors.accentSoft} />
+      <Text style={styles.tileLabelText} numberOfLines={2}>{title}</Text>
     </View>
   );
   return (
-    <Animated.View entering={FadeInDown.delay(70 * i).duration(320)} style={[styles.tileCell, tall && styles.tileTall]}>
-      <Animated.View style={[styles.tileHalo, halo]} pointerEvents="none">
-        <LinearGradient colors={["rgba(140,192,255,0.55)", "rgba(242,167,101,0.35)", "rgba(140,192,255,0.0)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      </Animated.View>
-      <Animated.View style={[styles.tileRim, rim]} pointerEvents="none">
-        <LinearGradient colors={["rgba(255,255,255,0.55)", "rgba(140,192,255,0.25)", "rgba(242,167,101,0.4)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      </Animated.View>
+    <Animated.View entering={FadeInDown.delay(70 * i).duration(320)} style={[styles.tileCell, tall && styles.tileTall]} onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+      {box.w ? [ring(7, 0.10), ring(4, 0.22), ring(1.5, 1)] : null}
       <View style={styles.tileClip}>
         {clip ? <Clip url={clip} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
-        <LinearGradient colors={["rgba(5,10,20,0.35)", "rgba(5,10,20,0)", "rgba(5,10,20,0.45)"]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        <LinearGradient colors={["rgba(5,10,20,0)", "rgba(5,10,20,0)", "rgba(5,10,20,0.85)"]} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        {badge}
       </View>
-      {badge}
     </Animated.View>
   );
 }
@@ -584,10 +606,10 @@ function MascotFace({ id }: { id: string }) {
    weiter. Nach jeder Frage eines — es macht Lust auf die App, statt nur zu
    fragen (Antons Wunsch 13.09.). Die Clips sind vorerst die Vorschau-Filme
    der Stile; eigene kommen später. */
-function Showcase({ O, title, text, clip, insets, step, total, onNext, onBack }: { O: OnboardData; title: string; text: string; clip: string | null; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
+function Showcase({ O, title, text, clip, insets, step, total, onNext, onBack }: { O: OnboardData; title: string; text: string; clip: string | string[] | null; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
   return (
     <View style={styles.screen}>
-      {clip ? <Clip url={clip} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
+      {Array.isArray(clip) ? <StyleReel urls={clip} /> : clip ? <Clip url={clip} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
       <LinearGradient colors={["rgba(5,10,20,0.8)", "rgba(5,10,20,0.25)", "rgba(5,10,20,0.9)"]} locations={[0, 0.42, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <View style={[styles.top, { paddingTop: insets.top + 10 }]}>
         <View style={styles.skipRow}>
@@ -608,6 +630,24 @@ function Showcase({ O, title, text, clip, insets, step, total, onNext, onBack }:
       </View>
     </View>
   );
+}
+
+/* Der Schnellschnitt durch alle Stile: EIN Player, dessen Quelle jede
+   Sekunde wechselt (`replaceAsync`) — neunzehn Player gleichzeitig wären
+   zu viel für den Renderer (Falle in STAND: „neun laufende Videos blockieren
+   ihn"). Die Clips kommen aus dem Bündel, der Wechsel ist deshalb sofort.
+   ⚠ Kein Player-Zugriff im Aufräumer — nur der Takt wird gestoppt. */
+function StyleReel({ urls }: { urls: string[] }) {
+  const player = useVideoPlayer(clipSource(urls[0]), (p) => { p.loop = true; p.muted = true; p.play(); });
+  useEffect(() => {
+    let i = 0;
+    const t = setInterval(() => {
+      i = (i + 1) % urls.length;
+      player.replaceAsync(clipSource(urls[i])).then(() => { player.loop = true; player.muted = true; player.play(); }).catch(() => {});
+    }, 1000);
+    return () => clearInterval(t);
+  }, [player, urls]);
+  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 
 /* Die Jahre im Schlaf als Kreis (Antons Wunsch 13.09.): erst zeichnet
@@ -662,6 +702,12 @@ function SleepYears({ O, answer, insets, step, total, onNext, onBack }: { O: Onb
           </Svg>
           <Text style={styles.ringYears}>{O.sleepYears(n)}</Text>
           <Text style={styles.ringLabel}>{O.sleepAsleep}</Text>
+          {/* Die Träume IM Kreis, unter dem Schlaf (Antons Wunsch 13.09.
+              abends) — grün wie ihr Bogen, sobald der Bogen steht. */}
+          <View style={[styles.ringRule, { opacity: zeigTraum ? 1 : 0 }]} />
+          {zeigTraum
+            ? <Animated.View entering={FadeInDown.duration(420)} style={{ alignItems: "center" }}><Text style={styles.ringDream}>{O.sleepYears(traum)}</Text><Text style={[styles.ringLabel, { color: colors.ok }]}>{O.sleepLegend.dream}</Text></Animated.View>
+            : <View style={{ alignItems: "center", opacity: 0 }}><Text style={styles.ringDream}>{O.sleepYears(traum)}</Text><Text style={styles.ringLabel}>{O.sleepLegend.dream}</Text></View>}
         </View>
         <View style={styles.legend}>
           {[["rgba(255,255,255,0.18)", O.sleepLegend.life], [colors.warm, O.sleepLegend.sleep], [colors.ok, O.sleepLegend.dream]].map(([c, l]) => (
@@ -704,16 +750,13 @@ const styles = StyleSheet.create({
   tileCol: { flex: 1, gap: 22 },
   tileCell: { height: 150 },
   tileTall: { height: 206 },
-  tileHalo: { position: "absolute", left: -10, right: -10, top: -10, bottom: -10, borderRadius: 42, overflow: "hidden" },
-  tileRim: { position: "absolute", left: -1.5, right: -1.5, top: -1.5, bottom: -1.5, borderRadius: 33, overflow: "hidden" },
   tileClip: { flex: 1, borderRadius: 32, overflow: "hidden", backgroundColor: colors.bg2 },
-  tileBadge: { position: "absolute", left: -4, right: 8 },
-  tileBadgeGlass: { flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 7, paddingHorizontal: 11, borderRadius: 999, alignSelf: "flex-start", maxWidth: "100%" },
-  tileBadgeText: { color: colors.text, fontSize: 12.5, fontWeight: "600" },
-  proofRow: { flexDirection: "row", justifyContent: "center", gap: 18, paddingTop: 4 },
-  proof: { flexDirection: "row", alignItems: "center", gap: 4 },
-  proofBig: { color: colors.text, fontSize: 12, fontWeight: "700", letterSpacing: 1 },
-  proofSmall: { color: colors.faint, fontSize: 9.5, letterSpacing: 1.2, textTransform: "uppercase" },
+  tileLabel: { position: "absolute", left: 14, right: 14, bottom: 13, flexDirection: "row", alignItems: "center", gap: 6 },
+  tileLabelText: { flexShrink: 1, color: colors.text, fontSize: 13.5, lineHeight: 17, fontWeight: "700", textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
+  proofRow: { flexDirection: "row", justifyContent: "center", gap: 10, paddingTop: 4, paddingHorizontal: 4 },
+  proof: { flexDirection: "row", alignItems: "center", gap: 2, flexShrink: 1 },
+  proofBig: { color: colors.text, fontSize: 11, fontWeight: "700", letterSpacing: 0.8 },
+  proofSmall: { color: colors.faint, fontSize: 8, letterSpacing: 0.6, textTransform: "uppercase" },
   cards: { gap: 10, width: "100%" },
   card: { flexDirection: "row", gap: 14, padding: 16, borderRadius: radius.card, alignItems: "flex-start" },
   cardIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(140,192,255,0.12)" },
@@ -745,7 +788,9 @@ const styles = StyleSheet.create({
   showBody: { flex: 1, justifyContent: "flex-end", paddingHorizontal: 24, gap: 22 },
   showTitle: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 36, color: colors.text },
   showText: { color: colors.muted, fontSize: 15.5, lineHeight: 22 },
-  ringYears: { fontFamily: fonts.serif, fontSize: 40, color: colors.text, fontVariant: ["tabular-nums"] },
+  ringYears: { fontFamily: fonts.serif, fontSize: 36, lineHeight: 40, color: colors.text, fontVariant: ["tabular-nums"] },
+  ringRule: { width: 44, height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.25)", marginVertical: 9 },
+  ringDream: { fontFamily: fonts.serif, fontSize: 26, lineHeight: 30, color: colors.ok, fontVariant: ["tabular-nums"] },
   ringLabel: { color: colors.muted, fontSize: 13, letterSpacing: 2, textTransform: "uppercase", marginTop: 2 },
   legend: { flexDirection: "row", gap: 16, flexWrap: "wrap", justifyContent: "center" },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },

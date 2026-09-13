@@ -3,7 +3,50 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-13 mittags — Sitzung `session/2026-09-13-anton-b`
+**Stand:** 2026-09-13 abends — Sitzung `session/2026-09-13-anton-d`
+abgeschlossen, **PR #49 auf Antons Wort gemerged** („wrap und merge").
+**Offen für die nächste Sitzung:** (1) Test mit einem echten Foto an
+Replicate-Seedance und fal-Seedance (`bun scripts/seedance-gesicht-probe.mjs`,
+braucht Antons Ja und Einwilligung); (2) Seedance über Replicate anbinden und
+Ablehnungen am Besetzungseintrag merken (Plan `2026-09-13-bildpruefung-seedance.md`
+§4); (3) Onboarding-Nachschärfung ansehen (Etiketten, Auszeichnungen,
+„5 Jahre Träume"); (4) Erinnerungen, Foto-Haken, Teilen und Schnellaktionen
+mit dem Finger prüfen — dafür `sudo xcode-select -s
+/Applications/Xcode.app/Contents/Developer`; (5) Widget und HealthKit brauchen
+Signierung mit Apple-Team; (6) `NATIVE_ORDER` bleibt aus bis zum ersten
+bezahlten Beleg. **19:00:** Frosch tippt auf „Erzeugen" (HEVC-Alpha,
+`mascot-tap.tsx`), Teilen-Karte, Schnellaktionen am App-Symbol,
+**Foto-Prüfung nach dem Haken** (heute Inhalt via fal nsfw; Plan
+`2026-09-13-bildpruefung-seedance.md`), **Replicate-Seedance hat ein
+KI-Gesicht angenommen** ($0,41; echte Fotos ungetestet, braucht Antons Ja),
+Onboarding-Kacheln/Auszeichnungen/Jahre-Kreis nachgeschärft (ungesehen).
+**18:20, Antons neun Punkte gebaut** (`8777b8b`, Plan
+`docs/plans/2026-09-13-antworten-preise-recht-gratisfeatures.md`):
+Traum-Tab öffnet direkt die Aufnahme (anhören → aufschreiben → ergänzen);
+Namen/Orte/Dinge leuchten im Traumtext und lassen sich zuordnen oder
+hinzufügen; neue Gattung **Ding**; Besetzung als Karte oben im Profil;
+**Haken je Foto** (Einwilligung v3); Konfetti nach dem Abgeben;
+**Erinnerungen** (expo-notifications neu → Pods + Rebuild, kein prebuild)
+mit „morgens direkt aufnehmen"; **Atmen** im Schlaf-Tab; **Preise:** Monat
+$9,99 = 160 Cr = fünf 15-s-Filme, Jahr $99,99, Woche gestrichen, Pakete
+S–XL. ⚠ Ungeprüft: Erlaubnis/Zustellung der Erinnerungen, Foto-Haken,
+Besetzungs-Blätter (Simulator-Panel kann nicht tippen: `sudo xcode-select
+-s /Applications/Xcode.app/Contents/Developer`). ⚠ Seedance 2.5 nimmt laut
+ByteDance keine echten Gesichter ohne Verifizierung — vor Replicate testen.
+Davor am Nachmittag: leuchtende Kante um die Feature-Kacheln, Sekundenschnitt
+durch alle Stile im ersten Zwischenbild, Gesichter-Spot (Cursor legt Foto
+ab, Person wechselt) im zweiten — `public/clips/showcase-faces.mp4`.
+**17:00: Regie v2** (Bildgröße je Cut, PERFORMANCE, POSITIVE LOCKS,
+Kameramaße — Plan `2026-09-13-regie-v2-nach-higgsfield-case4k.md`,
+⚠ am bezahlten Film ungeprüft), **Scheitern-Analyse**
+(`2026-09-13-warum-die-app-scheitern-kann.md`), **Auftragsmotor als
+Brücken-Befehl `order` vorbereitet** (`NATIVE_ORDER = false` in
+`dream/order.tsx`, bis ein echter Auftrag ihn belegt).
+**Die letzten Web-Blätter sind nativ** (15:45): Avatar-Editor, Bearbeiten
+und Umschreiben, Umfrage; Web ist nur noch der unsichtbare Auftrags-Motor
+(`legacy-order.jsx`, Geldweg — kommt mit der Server-Abbuchung) und
+unerreichte Rückfälle.
+Davor Sitzung `session/2026-09-13-anton-b`
 (PR #47, gemerged auf Antons Wort; trägt Hannis #46 mit). **Danach (Branch `-c`, PR #48): zehn Style-Clips über Higgsfield**
 (Seedance 2.5, 3:4, 480p, 5 s) — seit 12:50 ALLE neunzehn Stile
 (Marker als dritte Fassung, siehe WORKLOG). Die Clips sind VERSIONIERT

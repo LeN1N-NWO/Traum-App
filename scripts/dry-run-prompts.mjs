@@ -22,9 +22,10 @@
  */
 
 import { beatsForCount, beatsForSeconds } from "../src/lib/beats.js";
-import { buildReferences, buildImagePrompt, buildGridPrompt, buildPosterPrompt, buildCharacterPrompt, stripReferenceClauses } from "../src/lib/promptBuilder.js";
+import { buildReferences, buildImagePrompt, buildGridPrompt, buildCharacterPrompt, stripReferenceClauses } from "../src/lib/promptBuilder.js";
 import { buildDirectorBrief, filmReferences, checkDirectedPrompt, KEYFRAME_REF, DIRECTOR_MOTION, DIRECTOR_FULL } from "../src/lib/director.js";
-import { videoSubmitBody, videoModel, clampSeconds, VIDEO_MODELS } from "../src/lib/video.js";
+import { videoSubmitBody, videoModel, clampSeconds, VIDEO_MODELS, beatBudget, filmPace, DEFAULT_PACE } from "../src/lib/video.js";
+import { selectBeats, shotPlan } from "../src/lib/cut.js";
 import { priceForFilm } from "../src/lib/video.js";
 import { styleById } from "../src/lib/styles.js";
 
@@ -190,11 +191,8 @@ async function main() {
   stage(4, "BILDPROMPTS → fal.ai Nano Banana 2",
     "src/lib/promptBuilder.js · JEDER dieser Prompts kostet beim Absenden $0,08");
 
-  block("A · Das Filmplakat (Titelkarte)", buildPosterPrompt({
-    title: analysis.title, tagline: analysis.tagline,
-    essence: analysis.beats[0], styleId: analysis.style,
-    format: "9:16", clauses,
-  }));
+  /* Kein Plakat mehr (Antons Ansage 21.08.: Titel als Typografie der App,
+     nicht als gemalte Buchstaben); das Poster NACH dem Film macht poster.js. */
 
   const five = beatsForCount(analysis.beats, 5);
   block("B · Einzelbild (Beat 3 von 5)", buildImagePrompt({
@@ -241,15 +239,26 @@ async function main() {
     /* Spiegelt den Aufruf in server.js directFilm(). Läuft der hier
        auseinander, zeigt der Trockenlauf etwas anderes als die App tut —
        director.test.js hält den Serveraufruf selbst fest. */
+    /* Der Schnittplan wie im Client (Step5Style → cut.js): seit 03.09. führt
+       er den Brief; ohne ihn liefe der Trockenlauf auf dem Rückfall („THE
+       ARC") und zeigte nie, was wirklich verschickt wird — seit v2 (13.09.)
+       auch die Bildgröße je Shot. Ohne beatMeta (Beispielanalyse) sind alle
+       Szenen „build"/3 s; mit --live kommen die echten Typen. */
+    const pace = DEFAULT_PACE;
+    const cap = Math.max(1, Math.min(beatBudget(m.id, seconds, pace), analysis.beats.length));
+    const order = selectBeats(analysis, cap);
+    const shots = shotPlan(analysis, order, seconds, filmPace(pace).minShot);
     const brief = buildDirectorBrief({
       dream: analysis.text,
       still: stripReferenceClauses(stillPrompt),
-      beats: beatsForSeconds(analysis.beats, seconds),
+      shots,
+      beats: [],
       style: styleById(analysis.style).prompt,
       refs: refsForBrief,
       seconds,
       audio: m.audio,
       promptBudget: m.promptMax,
+      refStyle: m.refStyle, maxRefs: m.maxRefs, timeFormat: m.timeFormat, pace,
     });
     block("② User-Nachricht (die Materialliste)", brief, `${brief.length} Zeichen`);
 

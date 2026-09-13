@@ -223,87 +223,28 @@ console.log(
  *
  * Gemessen wird der Preis JE CREDIT über die volle Laufzeit, weil nur das
  * beide Seiten vergleichbar macht. */
-console.log("\n=== 7. Die Rabattleiter — was jede Bindungsstufe wirklich bringt ===\n");
+console.log("\n=== 7. Die Rabattleiter — Abo und Pakete (seit 13.09.2026 ohne Woche) ===\n");
 
-const leiter = SUBSCRIPTIONS.map((p) => ({
-  id: p.id,
-  preis: p.price,
-  credits: p.credits,
-  proCredit: p.period === "year" ? num(p.price) / (12 * p.credits) : num(p.price) / p.credits,
-}));
-const woche = leiter[0];
-
-console.log("Plan       Preis     Cr   $/Credit   ggü. Woche   Schritt zur Stufe davor");
-let vorher = null;
-for (const p of leiter) {
-  const ggüWoche = (1 - p.proCredit / woche.proCredit) * 100;
-  const schritt = vorher ? (1 - p.proCredit / vorher.proCredit) * 100 : 0;
+/* Seit 13.09.2026 gibt es kein Wochen-Abo mehr (Antons Vorgabe): Bezugsgröße
+   ist der MONAT. Die Pakete bilden eine eigene Leiter — je größer, desto
+   billiger je Credit, aber keins billiger als das Abo. */
+const proCr = (p) => (p.period === "year" ? num(p.price) / (12 * p.credits) : num(p.price) / p.credits);
+const abo = SUBSCRIPTIONS.find((p) => p.period === "month");
+const teuersterCr = Math.max(...PRODUKTE.map((p) => p.einkauf / p.credits));
+console.log("Plan       Preis      Cr   $/Credit   ggü. Monat   Marge @15 % (voll)   @30 %");
+for (const p of [...SUBSCRIPTIONS, ...PACKS]) {
+  const credits = p.period === "year" ? p.credits : p.credits;
+  const monatlich = p.period === "year" ? num(p.price) / 12 : num(p.price);
+  const kosten = credits * teuersterCr;
   console.log(
-    `${p.id.padEnd(10)} ${p.preis.padEnd(8)} ${String(p.credits).padStart(3)}   ` +
-    `${p.proCredit.toFixed(4)}     ${ggüWoche.toFixed(0).padStart(3)} %        ` +
-    (vorher ? `${schritt.toFixed(0)} %` : "—")
-  );
-  vorher = p;
-}
-
-const gesamt = (1 - leiter[2].proCredit / woche.proCredit) * 100;
-const ersterSchritt = (1 - leiter[1].proCredit / woche.proCredit) * 100;
-console.log(
-  `\nVom gesamten Rabatt (${gesamt.toFixed(0)} %) liegen ${(ersterSchritt / gesamt * 100).toFixed(0)} % ` +
-  `schon im MONAT.\nDas Jahr — zwölf Monate Bindung, Vorkasse — holt nur den Rest.`
-);
-
-/* Gegenrechnung: Was müsste der Monat kosten, damit das Jahr einen
-   Schritt von X Prozent behält? Die Größe, die verschoben wird, ist der
-   Monatspreis; Woche und Jahr bleiben, wo sie sind. */
-console.log("\nWas ein flacherer Monatsrabatt bedeuten würde (Woche und Jahr fest):\n");
-console.log("Ziel-Schritt Monat→Jahr   nötiger Monatspreis bei 45 Cr   Monat ggü. Woche");
-for (const ziel of [0.35, 0.40, 0.45, 0.50]) {
-  const proCreditMonat = leiter[2].proCredit / (1 - ziel);
-  const preis = proCreditMonat * 45;
-  console.log(
-    `${(ziel * 100).toFixed(0).padStart(13)} %            ` +
-    `$${preis.toFixed(2).padStart(6)}                       ` +
-    `${((1 - proCreditMonat / woche.proCredit) * 100).toFixed(0).padStart(3)} %`
+    `${p.id.padEnd(10)} ${p.price.padEnd(9)} ${String(p.credits).padStart(4)}   ` +
+    `${proCr(p).toFixed(4)}     ${((1 - proCr(p) / proCr(abo)) * 100).toFixed(0).padStart(4)} %      ` +
+    `${(netto(monatlich, 0.15) / kosten).toFixed(2).padStart(5)}×              ${(netto(monatlich, 0.30) / kosten).toFixed(2)}×`
   );
 }
 console.log(
-  "\n⚠ Die andere Schraube ist die Credit-Zahl, nicht der Preis: 40 statt 45\n" +
-  "   Credits im Monat verschieben dasselbe, ohne dass die $9,99 fallen —\n" +
-  "   und $9,99 ist der Preispunkt, der in jedem Store funktioniert."
-);
-console.log();
-
-/* Die Gegenrichtung, und sie ist die bessere: Statt den Monat zu
-   verteuern, das JAHR großzügiger machen. Dasselbe Verhältnis, aber für
-   niemanden ein schlechteres Angebot — bezahlt aus dem, was auf der
-   Einkaufsseite gespart wurde. Antons Linie ist „günstiger anbieten",
-   nicht „Rabatt zurücknehmen". */
-console.log("=== 7b. Dasselbe Verhältnis, ohne jemanden zu verteuern ===\n");
-console.log("Jahr behält $79,99, bekommt aber mehr Credits je Monat:\n");
-console.log("Cr/Monat im Jahr   $/Credit   Schritt Monat→Jahr   ggü. Woche   Einkauf/Monat*");
-const monatProCredit = leiter[1].proCredit;
-for (const cr of [45, 50, 55, 60, 65]) {
-  const proCredit = num(leiter[2].preis) / (12 * cr);
-  const schritt = (1 - proCredit / monatProCredit) * 100;
-  const ggüWoche = (1 - proCredit / woche.proCredit) * 100;
-  // Was uns die Credits im schlimmsten Fall kosten (alles in Kino-Sekunden)
-  const teuerster = Math.max(...PRODUKTE.map((p) => p.einkauf / p.credits));
-  console.log(
-    `${String(cr).padStart(12)}       ${proCredit.toFixed(4)}         ` +
-    `${schritt.toFixed(0).padStart(3)} %             ${ggüWoche.toFixed(0).padStart(3)} %      ` +
-    `$${(cr * teuerster).toFixed(2)}`
-  );
-}
-const nettoJahr15 = netto(num(leiter[2].preis) / 12, 0.15);
-const nettoJahr30 = netto(num(leiter[2].preis) / 12, 0.30);
-console.log(
-  "\n* schlimmster Fall: jeder Credit geht in Kino-Sekunden.\n" +
-  `  Netto je Monat: $${nettoJahr15.toFixed(2)} bei 15 % Store-Anteil, ` +
-  `$${nettoJahr30.toFixed(2)} bei 30 %.\n` +
-  "  ⚠ Die Spalte darf BEIDE Zahlen nicht überschreiten, sonst zahlt der\n" +
-  "  Jahresplan im schlimmsten Fall drauf. Bei 30 % ist schon 50 Cr/Monat\n" +
-  "  die Grenze — Wachstum kostet den Spielraum, nicht der Kunde."
+  "\n„voll“ = jeder Credit im teuersten Einkauf verbraucht. Negative Prozente\n" +
+  "bei Paketen sind gewollt: Pakete verfallen nie und kosten je Credit mehr."
 );
 console.log();
 

@@ -1,9 +1,10 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SymbolView, type SFSymbol } from "expo-symbols";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { LegacyTab } from "@/components/legacy-tab";
+import { Breath } from "@/components/breath";
 import { LucidGuide } from "@/components/lucid-guide";
 import { Clip } from "@/components/preset-tile";
 import { SleepChecklist } from "@/components/sleep-checklist";
@@ -18,6 +19,7 @@ import { colors, fonts, TAB_INSET } from "@/theme";
 export default function SleepSectionScreen() {
   const { view } = useLocalSearchParams<{ view: string }>();
   const v = String(view);
+  if (v === "breathe") return <BreatheRoom />;
   if (v === "sounds") return <SoundsRoom />;
   if (v === "checklist") return <ChecklistRoom />;
   if (v === "guide") return <GuideRoom />;
@@ -35,7 +37,9 @@ function Room({ id, sf, tint, glow, trailer, kicker, children }: { id: string; s
   const tile = data?.sleep?.tiles.find((t) => t.id === id);
   return (
     <>
-      <Stack.Screen options={{ headerLargeTitle: false, title: "", headerTransparent: !!trailer }} />
+      {/* Kopf immer durchsichtig (13.09.2026): undurchsichtig malte iOS ihn
+          weiß über den dunklen Schein — die Räume haben ihren eigenen Kopf. */}
+      <Stack.Screen options={{ headerLargeTitle: false, title: "", headerTransparent: true }} />
       <ScrollView style={styles.screen} contentInsetAdjustmentBehavior={trailer ? "never" : "automatic"} contentContainerStyle={[styles.content, trailer && { paddingTop: 0 }]}>
         {trailer ? (
           /* Der Trailer oben (Antons Vorbild 13.09.: Moonlys Welcome Guide,
@@ -67,12 +71,23 @@ function Room({ id, sf, tint, glow, trailer, kicker, children }: { id: string; s
   );
 }
 
+function BreatheRoom() {
+  const { data } = useJournal();
+  const B = data?.sleep?.breathe;
+  return (
+    <Room id="breathe" sf="wind" tint={colors.cyan} glow="rgba(79,214,230,0.30)">
+      {B ? <Breath L={B} /> : null}
+    </Room>
+  );
+}
+
 function ChecklistRoom() {
   const { data, send } = useJournal();
+  const router = useRouter();
   const C = data?.sleep?.checklist;
   return (
     <Room id="checklist" sf="moon.zzz.fill" tint={colors.warm} glow="rgba(242,167,101,0.30)">
-      {C ? <SleepChecklist C={C} onSave={(date, done) => send({ type: "sleepCheck", date, done })} /> : null}
+      {C ? <SleepChecklist C={C} onSave={(date, done) => send({ type: "sleepCheck", date, done })} onBreathe={() => router.push({ pathname: "/sleep/[view]", params: { view: "breathe" } })} breatheLabel={data?.sleep?.breathe?.guided} /> : null}
     </Room>
   );
 }
