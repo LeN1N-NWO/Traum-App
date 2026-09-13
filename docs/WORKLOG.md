@@ -208,6 +208,30 @@ fertig bist, Datei löschen"):
   läuft (drei Aufnahmen), Knopf sichtbar. Ungeprüft: das Atmen der Kacheln
   in Bewegung (Standbild zeigt nur einen Zustand).
 
+**Nachtrag 11:15 (Antons zwei Screenshots + Zuruf):**
+- **Träume im Ring GRÜN** (`colors.ok`) — gold lag zu nah am warmen
+  Schlaf-Bogen.
+- **Der Check-in wird sichtbar** („Wie hast du geschlafen?" auf Home): er
+  lag schon je Kalendertag in `state.checkins` (checkin.js, seit 21.08.),
+  war aber nirgends zu sehen. Jetzt: Ring um den Tag im Kalender und Punkt
+  unter dem Tag im Mond-Streifen, rot (1) / gold (2) / grün (3), auch an
+  Tagen ohne Traum; Legende unter dem Kalender, sobald es Einträge gibt.
+  `SLEEP_COLORS` in dream-calendar.tsx, `theme.bad` neu. Der Eintrag
+  trägt seit heute die **Mondphase seiner Nacht** (`moon`, über
+  `moonForNight` — morgens um sieben ist das die Nacht davor); Test dazu.
+  Am Gerät mit Antons echtem Eintrag vom 12.09. („schwer" → roter Punkt
+  unter SA 12) belegt; die Kalender-Ringe liegen unter dem Falz und sind
+  nur im Code geprüft.
+- **Schein in Bewegung** (`Sheen` in glass.tsx): der Verlauf ist doppelt
+  so breit wie die Fläche und wandert 4,2 s hin und her (Reanimated
+  `withRepeat`), Breite aus `onLayout`. `SheenSurface` für Flächen, die
+  keine Knöpfe sind: die Rekorder-Kachel im Wizard („Erzähl ihn laut",
+  vorher volle orange Fläche mit dunklem Text) und „Aufnehmen" auf Home
+  (jetzt `PrimaryButton`). ⚠ `buttonPrimary` in `journal/[id].tsx` ist ein
+  toter Stil, nicht angefasst.
+- Offen (Antons Frage, nicht entschieden): den Check-in auch an der
+  Traum-Seite noch einmal abfragen? Heute nur auf Home.
+
 **Was der Nächste wissen muss:**
 - `session/2026-09-13-anton` (ohne -b) war schon komplett in `main`; die
   heutige Sitzung heißt deshalb `-b`. Reservierung als leerer Commit.

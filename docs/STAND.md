@@ -25,7 +25,11 @@ PLATZHALTER, **Jahre-Kreis** (react-native-svg, neu → Pods + Rebuild)
 statt großer Zahl, **Hauptknopf app-weit dunkles Glas mit Schein** (warm
 links, kühl rechts), **„Überspringen" raus** — ⚠ im Entwicklungsbau kommt
 das Onboarding bei jedem Start und lässt sich nur noch durchtippen
-(Ausweg: `__ONB_STEP__` oder `seen` in `store/dev-store.ts`). Davor (PR #45,
+(Ausweg: `__ONB_STEP__` oder `seen` in `store/dev-store.ts`). **11:15:**
+Check-in (wie geschlafen) als farbiger Ring im Kalender und Punkt im
+Mond-Streifen (rot/gold/grün), Mondphase am Check-in, Träume im Ring grün,
+der Schein auf allen Hauptknöpfen WANDERT (auch Rekorder-Kachel und
+„Aufnehmen" auf Home). Davor (PR #45,
 10 Commits): **Onboarding nativ und in Antons Form** — eine Frage je
 Bildschirm mit Antwort-Raster, Mehrfachwahl beim Ziel, „Weiter" erst mit
 Antwort, Zwischenbild mit laufendem Film nach jeder Frage,
