@@ -19,7 +19,7 @@ import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend } from "../../../src/lib/credits.js";
-import { analyze, reflect, refine, characterSheet, generate } from "../../../src/lib/api.js";
+import { analyze, reflect, refine, characterSheet, generate, photoCheck } from "../../../src/lib/api.js";
 import { quoteFor } from "../../../src/lib/quote.js";
 import { buildReferences, buildImagePrompt } from "../../../src/lib/promptBuilder.js";
 import { renderRef, needsSheet, sheetFingerprint } from "../../../src/lib/sheets.js";
@@ -159,7 +159,7 @@ function snapshot() {
   const labels = {
     greetingNight: t.home.greeting.night, greetingMorning: t.home.greeting.morning,
     greetingAfternoon: t.home.greeting.afternoon, greetingEvening: t.home.greeting.evening,
-    homeTitle: t.home.title, homeLede: t.home.lede, homeCta: t.home.cta, renderingLine: t.home.renderingLine,
+    homeTitle: t.home.title, homeLede: t.home.lede, homeCta: t.home.cta, renderingLine: t.home.renderingLine, quickRecord: t.home.quickRecord,
     lastHeading: t.home.lastHeading, blankCta: t.home.blankCta, blankHint: t.home.blankHint, blankDone: t.home.blankDone,
     soundsShortcut: t.home.soundsShortcut, checkinQuestion: t.checkin.question, checkinThanks: t.checkin.thanks,
     untitled: t.journal.untitled, takes: t.journal.takesLabel, reflectTitle: t.journal.reflectTitle,
@@ -479,6 +479,7 @@ function avatarLabels() {
     drawFromDesc: a.drawFromDesc, drawingNow: a.drawingNow, drawHint: a.drawHint,
     creditsWord: t.wizard.creditsN(PRICES.characterSheet),
     consentFor: a.consentFor, consentSmall: a.consentSmall, needConsent: a.needConsent,
+    checking: a.checking, checkOk: a.checkOk, checkUnavailable: a.checkUnavailable, checkBlockedSave: a.checkBlockedSave,
   };
 }
 
@@ -519,8 +520,10 @@ async function runAvatar(cmd, onResult) {
     if (!a.img && !desc) { onResult({ n: cmd.n, error: t.avatarDialog.needPhotoOrDesc }); return true; }
     if ((a.img || a.img2) && a.consent !== true) { onResult({ n: cmd.n, error: t.avatarDialog.needConsent }); return true; }
     const photoConsent = photoConsentFor(a);
+    // Das Ergebnis der Foto-Prüfung reist mit, am selben Fingerabdruck wie der Haken.
+    const photoCheck = a.check && photoConsent ? { status: a.check, at: photoConsent.at, of: photoConsent.of } : undefined;
     if (cmd.mode === "me") {
-      saveState({ ...s, me: { ...(s.me || {}), tag: clean, desc, img: a.img || "", img2: a.img2 || "", photoConsent } });
+      saveState({ ...s, me: { ...(s.me || {}), tag: clean, desc, img: a.img || "", img2: a.img2 || "", photoConsent, photoCheck } });
       onResult({ n: cmd.n, result: { toast: t.avatarDialog.saved(clean) } });
       return true;
     }
@@ -528,7 +531,7 @@ async function runAvatar(cmd, onResult) {
     if (cmd.mode === "edit") {
       const old = (s.cast || []).find((p) => p.id === cmd.id);
       if (!old) { onResult({ n: cmd.n, error: "notfound" }); return true; }
-      const saved = { ...old, tag: clean, desc, img: a.img || "", img2: a.img2 || "", photoConsent };
+      const saved = { ...old, tag: clean, desc, img: a.img || "", img2: a.img2 || "", photoConsent, photoCheck };
       const patch = { cast: (s.cast || []).map((p) => (p.id === old.id ? saved : p)) };
       if (old.tag !== clean) {
         patch.journal = (s.journal || []).map((e) => ({ ...e, references: (e.references || []).map((r) => (r.tag === old.tag ? { ...r, tag: clean } : r)) }));
@@ -538,9 +541,26 @@ async function runAvatar(cmd, onResult) {
       return true;
     }
     const kind = ["person", "pet", "place", "object"].includes(a.category) ? a.category : "person";
-    const avatar = { id: genId("c"), tag: clean, category: kind, desc, img: a.img || "", img2: a.img2 || "", photoConsent };
+    const avatar = { id: genId("c"), tag: clean, category: kind, desc, img: a.img || "", img2: a.img2 || "", photoConsent, photoCheck };
     saveState({ ...s, cast: [...(s.cast || []), avatar] });
     onResult({ n: cmd.n, result: { toast: t.avatarDialog.created(clean), id: avatar.id } });
+    return true;
+  }
+  /* Die Foto-Prüfung im Hintergrund (13.09.2026): Der Dialog fragt, sobald
+     ein Foto mit Haken dasteht. Ein Netz- oder Serverfehler ist „nicht
+     prüfbar", nie „abgelehnt" — sonst sperrte ein Funkloch ein gutes Foto. */
+  if (cmd.type === "avatarCheck") {
+    const img = String(cmd.photo || "");
+    if (!img.startsWith("data:")) { onResult({ n: cmd.n, result: { status: "unavailable", reason: "nophoto" } }); return true; }
+    try {
+      const small = await compactDataUrl(img);
+      const r = await photoCheck({ image: small, category: cmd.category || "person" });
+      const reason = r?.reason || null;
+      const message = r?.status === "blocked" ? (t.avatarDialog.checkReasons[reason] || t.avatarDialog.checkReasons.provider) : null;
+      onResult({ n: cmd.n, result: { status: r?.status || "unavailable", reason, message } });
+    } catch (e) {
+      onResult({ n: cmd.n, result: { status: "unavailable", reason: "network" } });
+    }
     return true;
   }
   if (cmd.type === "avatarDelete") {

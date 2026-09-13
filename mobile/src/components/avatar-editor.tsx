@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { SymbolView, type SFSymbol } from "expo-symbols";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActionSheetIOS, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
@@ -61,6 +61,12 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
      Bild zeigt niemanden Echtes und braucht sie nicht. */
   const [consent, setConsent] = useState(false);
   const [drawn, setDrawn] = useState(false);
+  /* Die Foto-Prüfung (Antons Idee 13.09.2026): In dem Moment, in dem der Haken
+     gesetzt wird, fragt die App im Hintergrund, ob der Filmdienst das Foto
+     annimmt — damit „das Bild können wir nicht verwenden" JETZT kommt und
+     nicht nach einem bezahlten Film. Ein neues Foto setzt sie zurück. */
+  const [check, setCheck] = useState<{ status: "idle" | "checking" | "ok" | "blocked" | "unavailable"; message?: string | null }>({ status: "idle" });
+  const checkRun = useRef(0);
   const choosing = mode === "new" && (!category || category === "any");
 
   useEffect(() => {
@@ -94,8 +100,8 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
       async (i) => {
         if (i === 0 || i === 1) {
           const url = await pickPhoto(i === 1, slot === 1 && kind !== "place");
-          if (url) { set(url); if (slot === 1) setDrawn(false); setConsent(false); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); }
-        } else if (has && i === 2) { set(""); if (slot === 1) setDrawn(false); setConsent(false); }
+          if (url) { set(url); if (slot === 1) setDrawn(false); setConsent(false); setCheck({ status: "idle" }); checkRun.current++; Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); }
+        } else if (has && i === 2) { set(""); if (slot === 1) setDrawn(false); setConsent(false); setCheck({ status: "idle" }); checkRun.current++; }
       },
     );
   }
@@ -115,13 +121,27 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
   async function save() {
     if (busy || !hasSubstance) return;
     if (needsConsent && !consent) { showToast(L!.needConsent ?? "⚠"); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); return; }
+    if (check.status === "blocked") { showToast(L!.checkBlockedSave ?? "⚠"); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); return; }
     setBusy("save");
-    const r = await ask({ type: "avatarSave", mode, id, avatar: { tag, desc, img, img2, category: kind, consent: !needsConsent || consent } });
+    const r = await ask({ type: "avatarSave", mode, id, avatar: { tag, desc, img, img2, category: kind, consent: !needsConsent || consent, check: check.status === "idle" || check.status === "checking" ? undefined : check.status } });
     setBusy(null);
     if (r.error) { showToast(r.error); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); return; }
     if (r.result?.toast) showToast(r.result.toast);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onDone(r.result?.id);
+  }
+
+  async function runCheck() {
+    const photo = img && !drawn ? img : img2;
+    if (!photo) return;
+    const run = ++checkRun.current;
+    setCheck({ status: "checking" });
+    const r = await ask({ type: "avatarCheck", photo, category: mode === "me" ? "person" : kind });
+    if (run !== checkRun.current) return;                 // inzwischen neues Foto oder Haken weg
+    const res = r.result ?? { status: "unavailable" };
+    setCheck({ status: res.status, message: res.message });
+    if (res.status === "ok") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (res.status === "blocked") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
   }
 
   async function remove() {
@@ -217,7 +237,7 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
 
         {/* Je Foto: „Ich darf das" — ohne Haken kein Speichern. */}
         {needsConsent ? (
-          <Pressable onPress={() => { Haptics.selectionAsync(); setConsent((c) => !c); }} accessibilityRole="checkbox" accessibilityState={{ checked: consent }}>
+          <Pressable onPress={() => { Haptics.selectionAsync(); const next = !consent; setConsent(next); if (next) runCheck(); else { checkRun.current++; setCheck({ status: "idle" }); } }} accessibilityRole="checkbox" accessibilityState={{ checked: consent }}>
             <Glass style={[styles.consent, consent && styles.consentOn]} interactive>
               <SymbolView name={consent ? "checkmark.square.fill" : "square"} size={24} tintColor={consent ? colors.ok : colors.muted} />
               <View style={{ flex: 1, gap: 4 }}>
@@ -227,11 +247,21 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
             </Glass>
           </Pressable>
         ) : null}
+        {needsConsent && check.status !== "idle" ? (
+          <View style={[styles.check, check.status === "ok" && styles.checkOk, check.status === "blocked" && styles.checkBad]} accessibilityLiveRegion="polite">
+            {check.status === "checking" ? <ActivityIndicator size="small" color={colors.muted} /> : (
+              <SymbolView name={check.status === "ok" ? "checkmark.seal.fill" : check.status === "blocked" ? "exclamationmark.octagon.fill" : "questionmark.circle"} size={20} tintColor={check.status === "ok" ? colors.ok : check.status === "blocked" ? colors.bad : colors.faint} />
+            )}
+            <Text style={[styles.checkText, check.status === "blocked" && { color: colors.text }]}>
+              {check.status === "checking" ? L.checking : check.status === "ok" ? L.checkOk : check.status === "blocked" ? (check.message ?? L.checkBlockedSave) : L.checkUnavailable}
+            </Text>
+          </View>
+        ) : null}
         <Text style={styles.privacy}>{L.privacy}</Text>
 
         <View style={styles.actions}>
           <GlassButton label={L.cancel} onPress={() => onDone()} />
-          <PrimaryButton label={busy === "save" ? "…" : mode === "new" ? L.save : L.saveChanges} heavy onPress={save} disabled={!hasSubstance || !clean || !!busy || (needsConsent && !consent)} />
+          <PrimaryButton label={busy === "save" ? "…" : mode === "new" ? L.save : L.saveChanges} heavy onPress={save} disabled={!hasSubstance || !clean || !!busy || (needsConsent && !consent) || check.status === "blocked"} />
         </View>
 
         {mode === "edit" ? (
@@ -279,6 +309,10 @@ const styles = StyleSheet.create({
   consentOn: { borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(61,220,151,0.4)" },
   consentText: { color: colors.text, fontSize: 15, lineHeight: 20, fontWeight: "600" },
   consentSmall: { color: colors.faint, fontSize: 11.5, lineHeight: 16 },
+  check: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.panel },
+  checkOk: { backgroundColor: "rgba(61,220,151,0.10)" },
+  checkBad: { backgroundColor: "rgba(239,106,106,0.16)" },
+  checkText: { flex: 1, color: colors.muted, fontSize: 13.5, lineHeight: 19 },
   actions: { flexDirection: "row", gap: 10, marginTop: 6 },
   delete: { alignSelf: "center", marginTop: 18, paddingVertical: 10, paddingHorizontal: 20, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.panelLine },
   deleteText: { color: colors.bad, fontSize: 15 },

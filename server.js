@@ -43,6 +43,7 @@ import { dedupePeople } from "./src/lib/people.js";
 // Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
 import { guard } from "./src/lib/gatekeeper.js";
+import { checkResult } from "./src/lib/photoCheck.js";
 import { buildCharacterPrompt, buildSheetFromPhotoPrompt, stripReferenceClauses } from "./src/lib/promptBuilder.js";
 // Stiltexte sind Konstanten aus dem Repo — der Client schickt nur eine ID,
 // damit über dieses Feld kein Fremdtext in einen bezahlten Prompt wandert.
@@ -2563,6 +2564,47 @@ const serveOptions = {
         }
         console.error("[DreamRushes] /api/film-outro failed:", e);
         return json({ error: "Could not add the end card." }, 502);
+      }
+    }
+
+    /* Die Foto-Prüfung (13.09.2026, Antons Idee): gleich nach dem Haken im
+       Avatar-Dialog, im Hintergrund. Heute prüft sie den INHALT über fals
+       NSFW-Klassifikator ($0,001 je Bild, gemessen 5 s). Was sie bewusst
+       NICHT tut:
+         · Promi-Erkennung — ein Abgleich jedes Gesichts gegen eine
+           Personendatenbank ist biometrische Identifizierung (Art. 9 DSGVO),
+           einwilligen müsste die abgebildete Person, nicht der Hochlader.
+         · „Nimmt Seedance dieses Gesicht?" — dafür gibt es bei keinem
+           Anbieter einen kostenlosen Prüf-Endpunkt (Recherche 13.09.,
+           docs/plans/2026-09-13-bildpruefung-seedance.md). Das beantwortet
+           der erste Film; bei Replicate/BytePlus kostet eine Ablehnung nichts.
+       Ergebnisform aus src/lib/photoCheck.js: Netz- und Schlüsselprobleme
+       sind „unavailable", nie „blocked" — ein Funkloch sperrt kein Foto. */
+    if (url.pathname === "/api/photo-check" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json();
+        const image = typeof body.image === "string" && /^data:image\/(jpeg|png|webp);base64,/.test(body.image) ? body.image : null;
+        if (!image) return json({ status: "unavailable", reason: null });
+        const key = process.env.FAL_KEY;
+        if (!key) return json(checkResult({ error: "NO_FAL_KEY" }));
+        const res = await fetch("https://fal.run/fal-ai/imageutils/nsfw", {
+          method: "POST",
+          signal: AbortSignal.timeout(30_000),
+          headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
+          body: JSON.stringify({ image_url: image }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || typeof data?.nsfw_probability !== "number") {
+          return json(checkResult({ error: `nsfw check ${res.status}`, status: res.status >= 500 ? res.status : 503 }));
+        }
+        const p = data.nsfw_probability;
+        return json({ ...checkResult(p >= 0.6 ? { accepted: false, error: "NSFW content detected" } : { accepted: true }), checked: ["content"] });
+      } catch (e) {
+        console.warn("[DreamRushes] photo-check:", e?.message || e);
+        return json(checkResult({ error: String(e?.message || "network") }));
       }
     }
 

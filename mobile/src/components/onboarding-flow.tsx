@@ -204,12 +204,13 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
         <View style={styles.proofRow}>
           {O.proof.map((pr, i) => (
             <View key={i} style={styles.proof}>
-              <SymbolView name="laurel.leading" size={30} tintColor={colors.muted} />
-              <View style={{ alignItems: "center", gap: 1 }}>
-                <Text style={styles.proofBig}>{pr.big}</Text>
-                <Text style={styles.proofSmall}>{pr.small}</Text>
+              {/* Kleiner (Antons Befund 13.09. abends: ragten aus dem Bild). */}
+              <SymbolView name="laurel.leading" size={20} tintColor={colors.muted} />
+              <View style={{ alignItems: "center", gap: 1, flexShrink: 1 }}>
+                <Text style={styles.proofBig} numberOfLines={1} adjustsFontSizeToFit>{pr.big}</Text>
+                <Text style={styles.proofSmall} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{pr.small}</Text>
               </View>
-              <SymbolView name="laurel.trailing" size={30} tintColor={colors.muted} />
+              <SymbolView name="laurel.trailing" size={20} tintColor={colors.muted} />
             </View>
           ))}
         </View>
@@ -499,12 +500,14 @@ function FeatureTile({ i, title, clip, tall, labelBottom }: { i: number; title: 
       </Animated.View>
     </View>
   );
+  /* Das Etikett IN der Kachel, unten links über einem Schleier (Antons
+     Befund 13.09. abends: „Textanordnung total out of place" — es saß halb
+     auf der Kante). Eine Stelle für alle vier Kacheln. */
+  void labelBottom;
   const badge = (
-    <View style={[styles.tileBadge, labelBottom ? { bottom: -6 } : { top: -6 }]}>
-      <Glass style={styles.tileBadgeGlass}>
-        <SymbolView name={ICONS[i] ?? "sparkles"} size={12} tintColor={colors.accentSoft} />
-        <Text style={styles.tileBadgeText} numberOfLines={1}>{title}</Text>
-      </Glass>
+    <View style={styles.tileLabel} pointerEvents="none">
+      <SymbolView name={ICONS[i] ?? "sparkles"} size={13} tintColor={colors.accentSoft} />
+      <Text style={styles.tileLabelText} numberOfLines={2}>{title}</Text>
     </View>
   );
   return (
@@ -512,9 +515,9 @@ function FeatureTile({ i, title, clip, tall, labelBottom }: { i: number; title: 
       {box.w ? [ring(7, 0.10), ring(4, 0.22), ring(1.5, 1)] : null}
       <View style={styles.tileClip}>
         {clip ? <Clip url={clip} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
-        <LinearGradient colors={["rgba(5,10,20,0.35)", "rgba(5,10,20,0)", "rgba(5,10,20,0.45)"]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        <LinearGradient colors={["rgba(5,10,20,0)", "rgba(5,10,20,0)", "rgba(5,10,20,0.85)"]} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        {badge}
       </View>
-      {badge}
     </Animated.View>
   );
 }
@@ -699,6 +702,12 @@ function SleepYears({ O, answer, insets, step, total, onNext, onBack }: { O: Onb
           </Svg>
           <Text style={styles.ringYears}>{O.sleepYears(n)}</Text>
           <Text style={styles.ringLabel}>{O.sleepAsleep}</Text>
+          {/* Die Träume IM Kreis, unter dem Schlaf (Antons Wunsch 13.09.
+              abends) — grün wie ihr Bogen, sobald der Bogen steht. */}
+          <View style={[styles.ringRule, { opacity: zeigTraum ? 1 : 0 }]} />
+          {zeigTraum
+            ? <Animated.View entering={FadeInDown.duration(420)} style={{ alignItems: "center" }}><Text style={styles.ringDream}>{O.sleepYears(traum)}</Text><Text style={[styles.ringLabel, { color: colors.ok }]}>{O.sleepLegend.dream}</Text></Animated.View>
+            : <View style={{ alignItems: "center", opacity: 0 }}><Text style={styles.ringDream}>{O.sleepYears(traum)}</Text><Text style={styles.ringLabel}>{O.sleepLegend.dream}</Text></View>}
         </View>
         <View style={styles.legend}>
           {[["rgba(255,255,255,0.18)", O.sleepLegend.life], [colors.warm, O.sleepLegend.sleep], [colors.ok, O.sleepLegend.dream]].map(([c, l]) => (
@@ -742,13 +751,12 @@ const styles = StyleSheet.create({
   tileCell: { height: 150 },
   tileTall: { height: 206 },
   tileClip: { flex: 1, borderRadius: 32, overflow: "hidden", backgroundColor: colors.bg2 },
-  tileBadge: { position: "absolute", left: -4, right: 8 },
-  tileBadgeGlass: { flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 7, paddingHorizontal: 11, borderRadius: 999, alignSelf: "flex-start", maxWidth: "100%" },
-  tileBadgeText: { color: colors.text, fontSize: 12.5, fontWeight: "600" },
-  proofRow: { flexDirection: "row", justifyContent: "center", gap: 18, paddingTop: 4 },
-  proof: { flexDirection: "row", alignItems: "center", gap: 4 },
-  proofBig: { color: colors.text, fontSize: 12, fontWeight: "700", letterSpacing: 1 },
-  proofSmall: { color: colors.faint, fontSize: 9.5, letterSpacing: 1.2, textTransform: "uppercase" },
+  tileLabel: { position: "absolute", left: 14, right: 14, bottom: 13, flexDirection: "row", alignItems: "center", gap: 6 },
+  tileLabelText: { flexShrink: 1, color: colors.text, fontSize: 13.5, lineHeight: 17, fontWeight: "700", textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
+  proofRow: { flexDirection: "row", justifyContent: "center", gap: 10, paddingTop: 4, paddingHorizontal: 4 },
+  proof: { flexDirection: "row", alignItems: "center", gap: 2, flexShrink: 1 },
+  proofBig: { color: colors.text, fontSize: 11, fontWeight: "700", letterSpacing: 0.8 },
+  proofSmall: { color: colors.faint, fontSize: 8, letterSpacing: 0.6, textTransform: "uppercase" },
   cards: { gap: 10, width: "100%" },
   card: { flexDirection: "row", gap: 14, padding: 16, borderRadius: radius.card, alignItems: "flex-start" },
   cardIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(140,192,255,0.12)" },
@@ -780,7 +788,9 @@ const styles = StyleSheet.create({
   showBody: { flex: 1, justifyContent: "flex-end", paddingHorizontal: 24, gap: 22 },
   showTitle: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 36, color: colors.text },
   showText: { color: colors.muted, fontSize: 15.5, lineHeight: 22 },
-  ringYears: { fontFamily: fonts.serif, fontSize: 40, color: colors.text, fontVariant: ["tabular-nums"] },
+  ringYears: { fontFamily: fonts.serif, fontSize: 36, lineHeight: 40, color: colors.text, fontVariant: ["tabular-nums"] },
+  ringRule: { width: 44, height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.25)", marginVertical: 9 },
+  ringDream: { fontFamily: fonts.serif, fontSize: 26, lineHeight: 30, color: colors.ok, fontVariant: ["tabular-nums"] },
   ringLabel: { color: colors.muted, fontSize: 13, letterSpacing: 2, textTransform: "uppercase", marginTop: 2 },
   legend: { flexDirection: "row", gap: 16, flexWrap: "wrap", justifyContent: "center" },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },

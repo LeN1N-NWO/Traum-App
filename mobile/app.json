@@ -11,7 +11,9 @@
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "app.dreamrushes",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "NSMicrophoneUsageDescription": "Dream Rushes listens while you tell your dream.",
         "NSCameraUsageDescription": "Dream Rushes takes a photo for a person or place in your cast.",
         "NSPhotoLibraryUsageDescription": "Dream Rushes picks a photo for a person or place in your cast."
@@ -40,7 +42,8 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-quick-actions"
     ],
     "experiments": {
       "typedRoutes": true,

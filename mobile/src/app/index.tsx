@@ -8,6 +8,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { useState, useEffect } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
+import { useQuickActions } from "@/lib/use-quick-actions";
 import { useReminders } from "@/lib/use-reminders";
 import { applyMix, isActive } from "@/lib/sound-engine";
 import { useRecording } from "@/store/recording-store";
@@ -35,6 +36,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { data, bridge, send } = useJournal();
   useReminders(data, send);
+  useQuickActions(data ? { record: data.labels.quickRecord, breathe: data.sleep?.tiles.find((t) => t.id === "breathe")?.title } : null);
   const L = data?.labels ?? {};
   const R = data?.reminders;
   /* Die eine Frage nach der Erinnerung (13.09.2026): solange nie gefragt,

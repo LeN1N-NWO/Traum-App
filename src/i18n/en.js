@@ -22,6 +22,7 @@ export default {
   },
 
   home: {
+    quickRecord: "Record a dream",   // Schnellaktion am App-Symbol (13.09.2026)
     greeting: {
       night: "Still awake",
       morning: "Good morning",
@@ -504,6 +505,20 @@ export default {
     },
     consentSmall: "No celebrities, no children without their parents' permission, nobody who hasn't agreed. You are responsible for what you upload — that's in the Terms of Use.",
     needConsent: "⚠ First confirm that you may use this photo.",
+    /* Photo check (13.09.2026): right after the tick, in the background. */
+    checking: "Checking the photo …",
+    checkOk: "Photo checked — it works.",
+    checkUnavailable: "Can't check right now. You can save; it will be checked when you create a film.",
+    checkBlockedSave: "This photo won't work — pick another one or remove it.",
+    checkReasons: {
+      celebrity: "This looks like a well-known person. We can't use photos like that.",
+      minor: "There seems to be a child in this photo. We can't put children into dreams.",
+      explicit: "This photo breaks the film service's content rules.",
+      noface: "No face can be seen in this photo. Use a close-up.",
+      manyfaces: "There are several people in this photo. Use one that shows only this person.",
+      realface: "The film service won't accept this face without the person's own approval.",
+      provider: "The film service rejects this photo.",
+    },
     exists: (tag) => `⚠ @${tag} already exists.`,
     created: (tag) => `@${tag} added`,
     saved: (tag) => `@${tag} updated`,

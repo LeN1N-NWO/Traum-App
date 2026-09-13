@@ -311,6 +311,14 @@ export async function characterSheet({ desc, category, photo, photo2 }) {
   return url;
 }
 
+/** Die Foto-Prüfung (13.09.2026, Antons Idee): Nimmt der Filmdienst dieses
+ *  Foto an, bevor jemand dafür bezahlt? Antwort `{ status, reason, message }`,
+ *  status "ok" | "blocked" | "unavailable". Wirft nie wegen des INHALTS —
+ *  eine Ablehnung ist ein Ergebnis, kein Fehler; nur Netz/Server werfen. */
+export async function photoCheck({ image, category }) {
+  return post("/api/photo-check", { image, category }, { timeout: 60_000 });
+}
+
 /** Store one cropped grid panel and get back its own /media/ path — the
  *  same kind of path a normal generation returns, so everything downstream
  *  (the journal, the carousel, sharing) treats it identically. */
