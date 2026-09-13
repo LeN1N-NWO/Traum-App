@@ -359,7 +359,7 @@ function snapshot() {
       "sleepTitle", "sleepAsleep", "sleepNote", "doneTitle", "doneText", "doneCta",
       "accountTitle", "accountText", "accountEmail", "accountPassword", "accountCta", "accountLater", "accountSignedIn",
       "accountWrong", "accountBusy", "accountUnavailable", "accountOffline", "accountApple"].map((k) => [k, onb[k]])),
-    features: onb.features, showcase: onb.showcase,
+    features: onb.features, showcase: onb.showcase, featuresLede: onb.featuresLede, proof: onb.proof, sleepLegend: onb.sleepLegend,
     mascotTitle: onb.mascotTitle, mascotText: onb.mascotText, mascotSoon: onb.mascotSoon,
     /* Die drei Maskottchen (mascots.js) — zwei noch Platzhalter. Das Video
        kommt als Modulpfad nicht durch die Brücke; nativ liegen dieselben

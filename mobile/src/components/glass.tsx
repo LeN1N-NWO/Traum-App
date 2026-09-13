@@ -27,18 +27,28 @@ export function GlassButton({ label, onPress, style, disabled }: { label: string
   );
 }
 
-/* Der eine warme Knopf: wächst mit seinem Text, bricht Zeilen um. Auf
-   iOS 26 getöntes Liquid Glass in der warmen Farbe (Antons Frage 12.09.:
-   „gibt es die nicht auch in Glas?"), davor die warme Fläche. */
+/* Der eine Hauptknopf: wächst mit seinem Text, bricht Zeilen um.
+   Seit 13.09. (Antons Referenz: der „Continue"-Knopf mit Lichtschein):
+   DUNKLES Glas, durch das links ein warmer und rechts ein kühler Schein
+   fällt — nicht mehr die volle orange Fläche. Weißer Text. Auf iOS 26
+   echtes Liquid Glass, davor eine dunkle Fläche mit demselben Schein. */
+const SHEEN = ["rgba(242,167,101,0.62)", "rgba(242,167,101,0.16)", "rgba(96,150,255,0.14)", "rgba(96,150,255,0.55)"] as const;
+function Sheen() {
+  return (
+    <>
+      <LinearGradient colors={[...SHEEN]} locations={[0, 0.42, 0.6, 1]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
+      {/* Unten ein Hauch heller, oben nichts — Glas, kein Sticker. */}
+      <LinearGradient colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.10)"]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+    </>
+  );
+}
 export function PrimaryButton({ label, onPress, style, disabled, heavy }: { label: string; onPress: () => void; style?: StyleProp<ViewStyle>; disabled?: boolean; heavy?: boolean }) {
   const press = () => { Haptics.impactAsync(heavy ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Light); onPress(); };
   if (glass) {
     return (
       <Pressable onPress={press} disabled={disabled} style={({ pressed }) => [{ flex: 1, opacity: disabled ? 0.5 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }, style]}>
-        <GlassView style={[styles.button, { overflow: "hidden" }]} glassEffectStyle="regular" tintColor={colors.warm} isInteractive colorScheme="dark">
-          {/* Der Verlauf von links warm nach rechts golden, unten heller —
-              Antons Referenz (Opal) in unserer Farbe. */}
-          <LinearGradient colors={["rgba(242,167,101,0.55)", "rgba(246,198,91,0.25)", "rgba(255,255,255,0.10)"]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        <GlassView style={[styles.button, styles.primaryGlass]} glassEffectStyle="regular" tintColor="rgba(8,14,26,0.55)" isInteractive colorScheme="dark">
+          <Sheen />
           <Text style={styles.primaryGlassText}>{label}</Text>
         </GlassView>
       </Pressable>
@@ -46,8 +56,8 @@ export function PrimaryButton({ label, onPress, style, disabled, heavy }: { labe
   }
   return (
     <Pressable onPress={press} disabled={disabled} style={({ pressed }) => [styles.button, styles.primary, { flex: 1, overflow: "hidden", opacity: disabled ? 0.5 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }, style]}>
-      <LinearGradient colors={[colors.warm, colors.gold]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
-      <Text style={styles.primaryText}>{label}</Text>
+      <Sheen />
+      <Text style={styles.primaryGlassText}>{label}</Text>
     </Pressable>
   );
 }
@@ -56,7 +66,7 @@ const styles = StyleSheet.create({
   fallback: { backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   button: { minHeight: 50, paddingVertical: 13, paddingHorizontal: 18, borderRadius: 999, alignItems: "center", justifyContent: "center" },
   buttonText: { color: colors.text, fontSize: 15, fontWeight: "600", textAlign: "center" },
-  primary: { backgroundColor: colors.warm },
-  primaryText: { color: colors.bg, fontSize: 15, fontWeight: "700", textAlign: "center" },
+  primary: { backgroundColor: "rgba(16,24,40,0.92)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.14)" },
+  primaryGlass: { overflow: "hidden", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.16)" },
   primaryGlassText: { color: "#fff", fontSize: 15, fontWeight: "700", textAlign: "center" },
 });

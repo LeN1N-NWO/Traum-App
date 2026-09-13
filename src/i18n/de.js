@@ -908,11 +908,21 @@ export default {
     askGranted: "Erlaubt",
     askDenied: "Nicht erlaubt — in den Einstellungen änderbar",
     askGo: "Frag mich",
-    sleepTitle: "Du wirst",
+    /* Der Jahre-Kreis (Antons Wunsch 13.09.): erst das Leben, dann der
+       Schlaf, dann die Träume darin — und der Satz sagt, wofür die App da
+       ist: die Jahre nicht vorbeiziehen lassen. */
+    sleepTitle: "So viel Nacht steckt in deinem Leben",
     sleepYears: (y) => `${y} Jahre`,
-    sleepAsleep: "schlafen",
-    sleepDream: (y) => `Etwa ${y} davon träumst du — und erinnerst dich an fast nichts davon.`,
+    sleepAsleep: "Schlaf",
+    sleepDream: (y) => `Etwa ${y} Jahre davon träumst du. Lass sie nicht einfach vorbeiziehen — hol sie dir zurück, sieh sie an, mach sie zu einem Teil von dir.`,
     sleepNote: "Aus deiner Antwort und einem Leben von 80 Jahren gerechnet.",
+    sleepLegend: { life: "80 Jahre Leben", sleep: "Schlaf", dream: "Träume" },
+    /* Die Kacheln tragen nur noch ihr Etikett (Moonly-Vorbild, Antons
+       Befund 13.09.: „aufgeräumter"); die Sätze stehen als Untertitel. */
+    featuresLede: "Erzähl deinen Traum im Halbschlaf, sieh ihn als Film, behalte jede Nacht.",
+    /* ⚠ PLATZHALTER, technisch (Antons Ansage 13.09.): die Zeile wird
+       durch echte Auszeichnungen ersetzt, sobald es sie gibt. */
+    proof: [{ big: "★★★★★", small: "Bewertungen folgen" }, { big: "App Store", small: "Auszeichnung folgt" }],
     doneTitle: "Das war's",
     doneText: "Deine Nächte haben jetzt einen Ort.",
     doneCta: "Heute Nacht anfangen",

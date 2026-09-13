@@ -71,7 +71,8 @@ export type OnboardValues = { order: string[]; labels: Record<string, string> };
 export type OnboardData = {
   skip: string; next: string; back: string;
   introKicker: string; introText: string; introCta: string; featuresTitle: string;
-  features: { title: string; text: string }[];
+  features: { title: string; text: string }[]; featuresLede: string; proof: { big: string; small: string }[];
+  sleepLegend: { life: string; sleep: string; dream: string };
   showcase: { title: string; text: string }[];
   clips: string[];
   mascotTitle: string; mascotText: string; mascotSoon: string;

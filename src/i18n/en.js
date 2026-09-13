@@ -988,11 +988,20 @@ export default {
     askGranted: "Allowed",
     askDenied: "Not allowed — you can change this in Settings",
     askGo: "Ask me",
-    sleepTitle: "You will spend",
+    /* The years ring (Anton's wish, 13.09.): life first, then sleep, then
+       the dreams inside it — and the line says what the app is for. */
+    sleepTitle: "This much night is in your life",
     sleepYears: (y) => `${y} years`,
     sleepAsleep: "asleep",
-    sleepDream: (y) => `Around ${y} of them dreaming — and you remember almost none of it.`,
+    sleepDream: (y) => `Around ${y} of those years you spend dreaming. Don’t let them slip past — take them back, watch them, make them part of you.`,
     sleepNote: "Based on your answer and an average lifespan of 80 years.",
+    sleepLegend: { life: "80 years of life", sleep: "Sleep", dream: "Dreams" },
+    /* Tiles carry only their label now (Moonly reference); the sentences
+       become the subtitle. */
+    featuresLede: "Tell your dream half-asleep, watch it as a film, keep every night.",
+    /* ⚠ PLACEHOLDER, technical (Anton, 13.09.): replaced by real awards
+       once there are any. */
+    proof: [{ big: "★★★★★", small: "Reviews to come" }, { big: "App Store", small: "Award to come" }],
     doneTitle: "That's it",
     doneText: "Your nights have a place now.",
     doneCta: "Start tonight",
