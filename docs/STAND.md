@@ -4,7 +4,13 @@
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
 **Stand:** 2026-09-13 abends — Sitzung `session/2026-09-13-anton-d`
-(PR #49, offen). **18:20, Antons neun Punkte gebaut** (`8777b8b`, Plan
+(PR #49, offen). **19:00:** Frosch tippt auf „Erzeugen" (HEVC-Alpha,
+`mascot-tap.tsx`), Teilen-Karte, Schnellaktionen am App-Symbol,
+**Foto-Prüfung nach dem Haken** (heute Inhalt via fal nsfw; Plan
+`2026-09-13-bildpruefung-seedance.md`), **Replicate-Seedance hat ein
+KI-Gesicht angenommen** ($0,41; echte Fotos ungetestet, braucht Antons Ja),
+Onboarding-Kacheln/Auszeichnungen/Jahre-Kreis nachgeschärft (ungesehen).
+**18:20, Antons neun Punkte gebaut** (`8777b8b`, Plan
 `docs/plans/2026-09-13-antworten-preise-recht-gratisfeatures.md`):
 Traum-Tab öffnet direkt die Aufnahme (anhören → aufschreiben → ergänzen);
 Namen/Orte/Dinge leuchten im Traumtext und lassen sich zuordnen oder

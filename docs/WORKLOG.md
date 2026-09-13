@@ -3,6 +3,54 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-13 19:00 — Anton — Branch `session/2026-09-13-anton-d` — Frosch-Tipp, Teilen-Karte, Schnellaktionen, Foto-Prüfung, Seedance-Gesichtstest, Onboarding nachgeschärft
+
+**Commits:** `d2f582c` Frosch · `6560b4b` Teilen-Karte + Atem-Link · `ffe524c`
+Foto-Prüfung, Schnellaktionen, Onboarding · Doku-Commit danach.
+
+- **Frosch tippt auf „Erzeugen"** (Antons Wunsch: das Web-Maskottchen
+  zurück): `components/mascot-tap.tsx` als Ebene über allem, Knopf im
+  Moment des Drucks gemessen, Anker 14,5 %/78 % wie im Web. Die Web-Datei
+  ist eine Alpha-PACKUNG für einen WebGL-Shader; nativ als **HEVC mit
+  Alphakanal** umgerechnet (`mobile/assets/mascots/frog-tap.mov`, Befehl im
+  Dateikopf) — iOS spielt die Transparenz direkt, im Simulator belegt.
+  Konfetti platzt im Moment des Treffers aus dem Knopf. ⚠ Android kann
+  HEVC-Alpha nicht.
+- **Teilen-Karte** (`components/share-card.tsx`, react-native-view-shot neu
+  → Pods + Rebuild): Menü „…" der Traumseite → 9:16-Bild mit Standbild,
+  Mond, Titel, Satz, Absender. Aussehen geprüft, das Teilen selbst ungetippt.
+- **Schnellaktionen** (expo-quick-actions neu → Pods + Rebuild): lange auf
+  das App-Symbol → „Traum aufnehmen" (Rekorder läuft sofort), „Atmen".
+  Ungeprüft (lange drücken geht ohne Finger nicht).
+- **Foto-Prüfung** (Antons Idee): Haken im Avatar-Dialog → `/api/photo-check`
+  → grün/rot/grau, bei Rot kein Speichern. Heute Inhalt über fal
+  `imageutils/nsfw` ($0,001, am echten Server geprüft: 2,4 s, „ok").
+  `src/lib/photoCheck.js` übersetzt Anbieter-Ablehnungen in Gründe (Tests).
+  Plan und Grenzen: `docs/plans/2026-09-13-bildpruefung-seedance.md`.
+- **Gesichtstest Replicate-Seedance** (18:34): KI-erzeugtes, fotorealistisches
+  Gesicht aus unserem Onboarding-Clip → **angenommen**, gut getroffen,
+  $0,41. Das Log zeigt eine BytePlus-Auftragsnummer. Laut ByteDance-Doku
+  hätte es abgelehnt werden müssen. Echte Fotos: ungetestet, braucht Antons Ja.
+- **Onboarding** (Antons Befund 18:31): Kachel-Etikett jetzt in der Kachel
+  unten links statt auf der Kante; Auszeichnungen kleiner; im Jahre-Kreis
+  „5 Jahre Träume" in Grün unter „18 Jahre Schlaf". ⚠ Nicht per Screenshot
+  geprüft — Anton war in der App, kein Neustart; sichtbar beim nächsten
+  Onboarding-Durchlauf.
+- API-Server neu gestartet (neuer Endpunkt, und server.js hatte seit dem
+  Nachmittag die Gattung „Ding" im Analyse-Schema).
+
+**Was der Nächste wissen muss:**
+- ⚠ Drei neue native Pakete heute (expo-notifications, react-native-view-shot,
+  expo-quick-actions) → wer auf einem anderen Rechner baut: `bun run pods`
+  + Rebuild. `app.json` trägt das Plugin von expo-quick-actions.
+- Kein kostenloser „Nimmt Seedance dieses Foto?"-Aufruf existiert. Der
+  tragfähige Weg: Ablehnung beim ersten Film merken (bei Replicate gratis)
+  und am Eintrag speichern — Plan §4.
+- Verträge: Replicate hat keinen öffentlichen AVV (Formular
+  replicate.com/enterprise); BytePlus-Verträge sind öffentlich, DPA §4.2
+  (keine besonderen Datenkategorien) gegen Gesichtsdaten klären.
+- Tests 630 grün, Typen sauber, Lint 0 Fehler.
+
 ## 2026-09-13 18:20 — Anton — Branch `session/2026-09-13-anton-d` — Antons neun Punkte: Rekorder zuerst, Besetzung im Text, Dinge, Foto-Bestätigung, Belohnung, Erinnerungen, Atmen, Preise
 
 **Commit:** `8777b8b` (Code) + Doku-Commit danach.
