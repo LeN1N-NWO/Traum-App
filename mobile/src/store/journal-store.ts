@@ -75,7 +75,7 @@ export type OnboardData = {
   features: { title: string; text: string }[]; featuresLede: string; proof: { big: string; small: string }[];
   sleepLegend: { life: string; sleep: string; dream: string };
   showcase: { title: string; text: string }[];
-  clips: string[]; reel: string[];
+  clips: string[]; reel: string[]; peopleClip: string;
   mascotTitle: string; mascotText: string; mascotSoon: string;
   meTitle: string; meText: string; mePick: string; meCamera: string; meChange: string; meLater: string; meDone: string;
   mascots: { id: string; name: string; placeholder: boolean }[];

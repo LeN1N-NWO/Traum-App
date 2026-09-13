@@ -402,6 +402,10 @@ function snapshot() {
     /* Das Zwischenbild „Neunzehn Blicke": ALLE Stile im Sekundenschnitt
        (Antons Wunsch 13.09.) — jeder Stil einmal, Dreamflow nicht doppelt. */
     reel: PRESETS.filter((p) => p.clip && p.id !== DREAMFLOW).map((p) => absolute(p.clip)),
+    /* Das Zwischenbild „Die Menschen darin sind deine": Antons Spot (13.09.,
+       Seedance 15 s, 9:16, Topaz auf 720p) — der Cursor legt ein Foto auf
+       den Barhocker, und die Person wechselt im Sekundentakt. */
+    peopleClip: absolute("/clips/showcase-faces.mp4"),
     values: {
       goal: werte("goal", t.dreamer.goalValues), recall: werte("recall", t.dreamer.recallValues),
       lucid: werte("lucid", t.dreamer.lucidValues), sleepHours: werte("sleepHours", t.dreamer.sleepValues),

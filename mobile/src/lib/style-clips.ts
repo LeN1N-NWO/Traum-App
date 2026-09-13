@@ -31,11 +31,14 @@ const STYLE_CLIPS: Record<string, number> = {
   papercut: require("../../../public/clips/style-papercut.mp4"),
   papiermache: require("../../../public/clips/style-papiermache.mp4"),
   screenprint: require("../../../public/clips/style-screenprint.mp4"),
+  /* Kein Stil, sondern Antons Spot fürs Zwischenbild „Die Menschen darin
+     sind deine" (15 s, 9:16, 720p) — derselbe Weg ins Bündel. */
+  "showcase-faces": require("../../../public/clips/showcase-faces.mp4"),
 };
 
 /** Die Quelle für expo-video: das gebündelte Modul, wenn die Adresse einen
  *  Stil-Clip meint, sonst die Adresse selbst. */
 export function clipSource(url: string): number | string {
-  const m = /\/clips\/style-([a-z]+)\.mp4$/.exec(url);
-  return (m && STYLE_CLIPS[m[1]]) ?? url;
+  const m = /\/clips\/(style-([a-z]+)|showcase-[a-z]+)\.mp4$/.exec(url);
+  return (m && (STYLE_CLIPS[m[2]] ?? STYLE_CLIPS[m[1]])) ?? url;
 }

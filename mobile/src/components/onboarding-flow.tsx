@@ -272,7 +272,7 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
     const sc = O.showcase[jetzt.at % Math.max(1, O.showcase.length)];
     /* Das erste Zwischenbild („Neunzehn Blicke") schneidet im Sekundentakt
        durch ALLE Stile (Antons Wunsch 13.09.); die anderen zeigen einen. */
-    const clip = jetzt.at === 0 && O.reel.length ? O.reel : O.clips.length ? O.clips[(jetzt.at + 1) % O.clips.length] : null;
+    const clip = jetzt.at === 0 && O.reel.length ? O.reel : jetzt.at === 1 ? O.peopleClip : O.clips.length ? O.clips[(jetzt.at + 1) % O.clips.length] : null;
     return <Showcase O={O} title={sc?.title ?? ""} text={sc?.text ?? ""} clip={clip} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
   }
 

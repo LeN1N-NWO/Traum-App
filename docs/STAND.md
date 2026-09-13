@@ -3,7 +3,11 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-13 mittags — Sitzung `session/2026-09-13-anton-b`
+**Stand:** 2026-09-13 nachmittags — Sitzung `session/2026-09-13-anton-d`
+(PR #49, offen): leuchtende Kante um die Feature-Kacheln, Sekundenschnitt
+durch alle Stile im ersten Zwischenbild, Gesichter-Spot (Cursor legt Foto
+ab, Person wechselt) im zweiten — `public/clips/showcase-faces.mp4`.
+Davor Sitzung `session/2026-09-13-anton-b`
 (PR #47, gemerged auf Antons Wort; trägt Hannis #46 mit). **Danach (Branch `-c`, PR #48): zehn Style-Clips über Higgsfield**
 (Seedance 2.5, 3:4, 480p, 5 s) — seit 12:50 ALLE neunzehn Stile
 (Marker als dritte Fassung, siehe WORKLOG). Die Clips sind VERSIONIERT

@@ -128,6 +128,33 @@ Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
 `settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
 das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
 
+## 2026-09-13 13:50 — Anton — Branch `session/2026-09-13-anton-d` — Leuchtende Kante, Sekundenschnitt, der Gesichter-Spot
+
+**Commits:** `28d6b63` Kante + Schnellschnitt · (Spot folgt).
+
+- **Feature-Kacheln:** Antons Befund „Rand viel zu dick" — der breite Halo
+  ist weg. Jetzt ein 1,5-pt-Ring, hinter dem ein Farbquadrat (blau, orange,
+  rosa, türkis) rotiert (Reanimated, 7–10 s je Umlauf, je Kachel versetzt);
+  der Clip deckt die Mitte, sichtbar bleibt die Kante, und die Farben
+  fahren um die Kachel. Zwei fast durchsichtige Ringe außen als Schein.
+  Technik: `ring(inset, opacity)` in `FeatureTile`, Quadratseite =
+  Diagonale der Kachel + 24, Maße aus `onLayout`.
+- **„Neunzehn Blicke" als Schnellschnitt:** `StyleReel` — EIN Player,
+  `replaceAsync` jede Sekunde durch alle 19 Stil-Clips (`onb.reel` aus
+  der Brücke). Kein Player-Zugriff im Aufräumer, nur der Takt stoppt.
+- **Der Gesichter-Spot** für „Die Menschen darin sind deine" (Antons Idee,
+  Variante A von drei): Bar im Regen, ein Cursor legt ein Foto auf den
+  Hocker, die Person vom Foto sitzt da, dann wechselt die Person im
+  Takt, der Raum bleibt. Test in 480p, 15 s, 9:16 (37,5 Credits) —
+  Cursor sauber, vier Wechsel, Raum stabil. Anton: „nimm das Video". Statt
+  neu zu rendern (anderes Video) **Topaz-Upscale desselben Jobs** auf
+  1080p, daraus 720p für die App: `public/clips/showcase-faces.mp4`
+  (versioniert, `!public/clips/showcase-*.mp4`), Brücke `peopleClip`,
+  `style-clips.ts` bündelt es (Muster `showcase-<name>`). Original
+  480p in `media/clips-src/faces-a-9d94dd02.mp4`.
+- ⚠ Während Anton selbst im Simulator tippt, die App NICHT neu starten —
+  ein `simctl launch` wirft ihn aus dem Onboarding (heute passiert).
+
 ## 2026-09-13 13:15 — Anton — Branch `session/2026-09-13-anton-c` — Clips versioniert und gebündelt, Onboarding-Showreel
 
 **Antons Auftrag:** alle Clips einbinden, in der Stil-Auswahl zuordnen und
