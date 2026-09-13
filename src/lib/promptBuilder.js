@@ -25,7 +25,7 @@ export function buildReferences(assignments = []) {
     // Only an assignment with an actual image earns an index.
     if (!a || !a.avatar?.img) continue;
     references.push({ tag: a.avatar.tag, img: a.avatar.img });
-    const kind = a.kind === "pet" ? "pet" : a.kind === "place" ? "place" : "person";
+    const kind = a.kind === "pet" ? "pet" : a.kind === "place" ? "place" : a.kind === "object" ? "object" : "person";
     const desc = a.avatar.desc ? `, described as: ${a.avatar.desc}` : "";
     /* Die Garderobe DIESES Traums — nicht die der Figur.
      *
@@ -287,6 +287,8 @@ export function buildCharacterPrompt({ desc, category = "person" }) {
     pet: "Reference photo of one animal, side-on to three-quarter view, whole animal in frame, "
        + "head clearly visible.",
     place: "Establishing reference photograph of one location, eye level, no people in frame.",
+    object: "Reference photograph of one object, three-quarter view, the whole object in frame, "
+          + "no hands, no people.",
   }[category] || "Reference portrait of one subject, facing the camera.";
 
   return [

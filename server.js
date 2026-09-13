@@ -807,7 +807,7 @@ function buildFallbackPrompt(dream, namedRefs = []) {
   const clauses = namedRefs.map((r, i) => {
     const tag = sanitizeTag(r.tag);
     if (!tag) return null;
-    const kind = r.category === "pet" ? "pet" : r.category === "place" ? "place" : "person";
+    const kind = r.category === "pet" ? "pet" : r.category === "place" ? "place" : r.category === "object" ? "object" : "person";
     const desc = sanitizeFragment(r.desc || "", MAX_FRAGMENT);
     const descClause = desc ? `, described as: ${desc}` : "";
     return `Reference image ${i + 1} shows @${tag} (${kind}${descClause}) — whenever "${tag}" appears in the dream below, depict them with this exact likeness, not a generic stand-in.`;
@@ -829,7 +829,7 @@ async function craftPromptViaDeepseek(dream, namedRefs = []) {
 
   const refLines = namedRefs.map((r) => {
     const tag = sanitizeTag(r.tag);
-    const kind = r.category === "pet" ? "pet" : r.category === "place" ? "place" : "person";
+    const kind = r.category === "pet" ? "pet" : r.category === "place" ? "place" : r.category === "object" ? "object" : "person";
     const desc = sanitizeFragment(r.desc || "", MAX_FRAGMENT);
     return `- @${tag} (${kind}${desc ? `: ${desc}` : ""})`;
   }).join("\n");
@@ -1248,6 +1248,7 @@ Schema (every key is required, exactly these names):
     }
   ],
   "places": string[],      // every distinct location, in order, in the dream's language
+  "objects": string[],     // at most 3 KEY OBJECTS the dream turns on, in the dream's language — usually []
   "beats": string[],       // one per visible event in the dream, in order — ALWAYS IN ENGLISH
   "beatMeta": [            // exactly one entry per beat, same order
     {
@@ -1278,6 +1279,8 @@ If the dream is told in the FIRST PERSON, the dreamer is a character and belongs
 A dog, cat or other animal is kind "pet". Empty array only if truly nobody appears.
 
 Rules for "places": one entry per distinct SETTING — a location a film crew would have to build separately. Different parts, angles or heights of the SAME setting are ONE entry: a mountain's summit and the sky above that mountain are one place, a house and the rooms inside it are one place. The sky, air or water directly around a setting is never its own entry. List a second place only when the dream truly moves somewhere else (a bedroom, then later the open sea). Never let two entries share the same core location. Empty array if there is no discernible location.
+
+Rules for "objects": only the few THINGS the dream itself names and turns on, which must look the same in every shot — the letter, the red car, the tooth that falls out, a named landmark like a TV tower. Never clothing (that is "wearing"), never body parts of a person, never a whole setting (that is "places"), never animals (that is "people" with kind "pet"). Bare noun, no articles, in the dream's language. At most 3. An empty array is the normal answer.
 
 Rules for "beats": as many as the dream has VISIBLE EVENTS — typically 3 to 12, never fewer than 2 and never more than 14. Do NOT split evenly and do NOT pad to a fixed number: a dream with three events gets three beats, a dream with eleven gets eleven. A beat is the smallest unit of visible action: one action, one place, who is in frame. A feeling with no visible expression is not a beat. Never write the same event twice — if two moments share a place and an action, they are one beat. Each beat is one English sentence describing what is SEEN, not felt. Refer to people by their "name" so the app can bind reference images.
 
@@ -1415,6 +1418,9 @@ export function normaliseAnalysis(rawText, fallbackDream = "") {
     text,
     people,
     places: list(parsed.places),
+    /* Requisiten (13.09.2026, Regie v2 §5 D): die paar Dinge, an denen der
+       Traum hängt. Dieselbe Hygiene wie Orte, höchstens drei. */
+    objects: list(parsed.objects).slice(0, 3),
     beats,
     beatMeta,
     signature,
@@ -2569,7 +2575,7 @@ const serveOptions = {
         const desc = sanitizePromptText(body.desc);
         // Allowlist: die Kategorie wählt die Bildaufteilung, nichts wird
         // interpoliert.
-        const category = ["person", "pet", "place"].includes(body.category) ? body.category : "person";
+        const category = ["person", "pet", "place", "object"].includes(body.category) ? body.category : "person";
 
         /* Zwei Wege, ein Endpunkt (Plan 2026-08-20-charakterbogen-pflicht.md):
          * MIT Foto wird eine vorhandene Figur zum Bogen NORMALISIERT (grau,
@@ -2654,7 +2660,7 @@ const serveOptions = {
           .filter((c) => c && typeof c === "object" && typeof c.img === "string" && c.img)
           .map((c) => ({
             tag: sanitizeTag(c.tag),
-            category: ["person", "pet", "place"].includes(c.category) ? c.category : "person",
+            category: ["person", "pet", "place", "object"].includes(c.category) ? c.category : "person",
             desc: String(c.desc || "").slice(0, MAX_FRAGMENT),
             img: c.img,
           }))

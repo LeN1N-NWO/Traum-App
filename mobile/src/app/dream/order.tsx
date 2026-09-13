@@ -1,13 +1,13 @@
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJournal } from "@/components/journal-data";
-import { MascotLoader } from "@/components/mascot-loader";
+import { Celebration } from "@/components/celebration";
 import LegacyOrder from "@/legacy/legacy-order";
 import { showToast } from "@/store/toast-store";
 import { resetWizard, useWizardStore } from "@/store/wizard-store";
-import { colors, fonts } from "@/theme";
+import { colors } from "@/theme";
 
 
 /* Der Auftrag: Der Web-Motor (Step5Style.run) läuft UNSICHTBAR — er
@@ -28,6 +28,12 @@ import { colors, fonts } from "@/theme";
    des Web-Fehlerblatts einen Toast und geht zurück. */
 const NATIVE_ORDER = false;
 
+/* Seit 13.09.2026 steht hier statt des Faultiers die BELOHNUNG (Antons
+   Ansage): Konfetti, „Wow — dein erster Traumfilm" bzw. „Traum Nr. N ist
+   unterwegs", dann ins Journal. Mindestens so lange, dass man es sieht —
+   auch wenn der Auftrag schneller am Traum hängt. */
+const MIN_CELEBRATE_MS = 2800;
+
 export default function DreamOrderScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -47,15 +53,14 @@ export default function DreamOrderScreen() {
   const [startedAt] = useState(() => Date.now());
   const firstDream = useRef<boolean | null>(null);
   const mineId = useRef<string | null>(null);
-  const [msg, setMsg] = useState(0);
   const [showWeb, setShowWeb] = useState(false);
   const done = useRef(false);
-
-  useEffect(() => { const id = setInterval(() => setMsg((m) => m + 1), 2600); return () => clearInterval(id); }, []);
+  const [number, setNumber] = useState<number | null>(null);
 
   // Der Stand VOR dem Auftrag entscheidet über das Erster-Traum-Kaufblatt.
   useEffect(() => {
     if (firstDream.current === null && data) firstDream.current = data.journal.realDreams === 0 && !data.profile.paywallSeen;
+    if (number === null && data) setNumber(data.journal.realDreams + 1);
   }, [data]);
 
   useEffect(() => {
@@ -84,7 +89,7 @@ export default function DreamOrderScreen() {
         router.dismissAll();
         router.navigate("/journal");
         if (first) setTimeout(() => router.push({ pathname: "/journal/paywall", params: { reason: "first" } }), 900);
-      }, w.audioUrl ? 900 : 50);
+      }, Math.max(startedAt + MIN_CELEBRATE_MS - Date.now(), w.audioUrl ? 900 : 50));
     } else if (mine.failReason || !mine.pending) {
       setShowWeb(true);
     }
@@ -93,16 +98,14 @@ export default function DreamOrderScreen() {
   // Rückfall: Meldet sich nach zwei Minuten kein Traum, zeigt der Motor, was los ist.
   useEffect(() => { const id = setTimeout(() => setShowWeb(true), 120_000); return () => clearTimeout(id); }, []);
 
-  const loading = W?.loading ?? [];
+  const n = number ?? (data ? data.journal.realDreams + 1 : 1);
+  const title = w.entryId ? (W?.rendering ?? "") : n <= 1 ? (W?.celebrateFirst ?? "") : String(W?.celebrateN ?? "").replace("{n}", String(n));
   return (
     <>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       {!showWeb ? (
-        <View style={[styles.stage, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }]}>
-          <MascotLoader size={200} />
-          <Text style={styles.title}>{W?.step6Title ?? ""}</Text>
-          <Text style={styles.text}>{loading.length ? loading[msg % loading.length] : ""}</Text>
-          <Text style={styles.hint}>{W?.renderingHint ?? ""}</Text>
+        <View style={[styles.stage, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+          {W ? <Celebration title={title} text={W.celebrateText ?? ""} hint={W.celebrateHint} /> : null}
         </View>
       ) : null}
       <View style={showWeb ? styles.web : styles.hidden}>
@@ -114,10 +117,7 @@ export default function DreamOrderScreen() {
 }
 
 const styles = StyleSheet.create({
-  stage: { flex: 1, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center", paddingHorizontal: 28, gap: 14 },
-  title: { fontFamily: fonts.serif, fontSize: 28, color: colors.text, textAlign: "center" },
-  text: { color: colors.text, fontSize: 16, textAlign: "center", lineHeight: 23 },
-  hint: { color: colors.muted, fontSize: 14, textAlign: "center", lineHeight: 20 },
+  stage: { flex: 1, backgroundColor: colors.bg },
   web: { flex: 1 },
   hidden: { height: 0, opacity: 0, overflow: "hidden" },
   bridge: { height: 0, overflow: "hidden" },

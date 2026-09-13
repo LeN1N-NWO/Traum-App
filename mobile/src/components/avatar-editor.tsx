@@ -27,10 +27,10 @@ import { colors, fonts, TAB_INSET } from "@/theme";
  * Web, das ist auch, was die Bildmodelle bekommen) und als JPEG-Data-URL
  * gespeichert — fal lädt keine Pfade dieses Rechners. */
 type Mode = "me" | "edit" | "new";
-type Kind = "person" | "pet" | "place";
+type Kind = "person" | "pet" | "place" | "object";
 type Labels = Record<string, any>;
 
-const KIND_ICON: Record<Kind, SFSymbol> = { person: "person.fill", pet: "pawprint.fill", place: "house.fill" };
+const KIND_ICON: Record<Kind, SFSymbol> = { person: "person.fill", pet: "pawprint.fill", place: "house.fill", object: "cube.fill" };
 const cleanTag = (raw: string) => String(raw || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
 
 async function pickPhoto(camera: boolean, square: boolean): Promise<string | null> {
@@ -50,12 +50,17 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
   const { bridge, ask } = useJournal();
   const [L, setL] = useState<Labels | null>(null);
   const [price, setPrice] = useState(2);
-  const [kind, setKind] = useState<Kind>((["person", "pet", "place"].includes(String(category)) ? category : "person") as Kind);
+  const [kind, setKind] = useState<Kind>((["person", "pet", "place", "object"].includes(String(category)) ? category : "person") as Kind);
   const [tag, setTag] = useState(suggested ?? "");
   const [desc, setDesc] = useState("");
   const [img, setImg] = useState("");
   const [img2, setImg2] = useState("");
   const [busy, setBusy] = useState<"save" | "draw" | null>(null);
+  /* Die Bestätigung je Foto (Antons Ansage 13.09.2026). Ein neues oder
+     entferntes Foto setzt sie zurück; ein aus der Beschreibung GEZEICHNETES
+     Bild zeigt niemanden Echtes und braucht sie nicht. */
+  const [consent, setConsent] = useState(false);
+  const [drawn, setDrawn] = useState(false);
   const choosing = mode === "new" && (!category || category === "any");
 
   useEffect(() => {
@@ -63,7 +68,7 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
       if (r.error || !r.result) { showToast("⚠ " + (r.error ?? "")); onDone(); return; }
       const e = r.result.entry;
       setL(r.result.labels); setPrice(r.result.price);
-      setTag(e.tag); setDesc(e.desc); setImg(e.img); setImg2(e.img2);
+      setTag(e.tag); setDesc(e.desc); setImg(e.img); setImg2(e.img2); setConsent(!!e.photoConsent);
       if (e.category) setKind(e.category);
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -76,6 +81,7 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
   const clean = cleanTag(tag);
   const title = mode === "me" ? L.meTitle : mode === "edit" ? (L.editTitleFor[kind] ?? L.editTitleFor.person) : L.titleFor[kind];
   const face = mode === "me" || kind === "person";
+  const needsConsent = Boolean((img && !drawn) || img2);
 
   /* Die Fotoquelle als System-Blatt — Mediathek, Kamera, Entfernen. */
   function photoMenu(slot: 1 | 2) {
@@ -88,8 +94,8 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
       async (i) => {
         if (i === 0 || i === 1) {
           const url = await pickPhoto(i === 1, slot === 1 && kind !== "place");
-          if (url) { set(url); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); }
-        } else if (has && i === 2) set("");
+          if (url) { set(url); if (slot === 1) setDrawn(false); setConsent(false); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); }
+        } else if (has && i === 2) { set(""); if (slot === 1) setDrawn(false); setConsent(false); }
       },
     );
   }
@@ -102,14 +108,15 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
     setBusy(null);
     if (r.error === "nocredits") { showToast("⚠ " + (L!.creditsWord ?? "Credits")); return; }
     if (r.error || !r.result?.img) { showToast("⚠ " + (r.error ?? "")); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); return; }
-    setImg(r.result.img);
+    setImg(r.result.img); setDrawn(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 
   async function save() {
     if (busy || !hasSubstance) return;
+    if (needsConsent && !consent) { showToast(L!.needConsent ?? "⚠"); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); return; }
     setBusy("save");
-    const r = await ask({ type: "avatarSave", mode, id, avatar: { tag, desc, img, img2, category: kind } });
+    const r = await ask({ type: "avatarSave", mode, id, avatar: { tag, desc, img, img2, category: kind, consent: !needsConsent || consent } });
     setBusy(null);
     if (r.error) { showToast(r.error); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); return; }
     if (r.result?.toast) showToast(r.result.toast);
@@ -166,7 +173,7 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
           <View style={styles.field}>
             <Text style={styles.label}>{L.kindLabel}</Text>
             <View style={styles.kinds}>
-              {(["person", "pet", "place"] as Kind[]).map((k) => {
+              {(["person", "pet", "place", "object"] as Kind[]).map((k) => {
                 const on = kind === k;
                 return (
                   <Pressable key={k} style={{ flex: 1 }} onPress={() => { Haptics.selectionAsync(); setKind(k); }}>
@@ -207,11 +214,24 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
         ) : null}
 
         {!hasSubstance ? <Text style={[styles.hint, { color: colors.warm }]}>{L.needPhotoOrDescHint}</Text> : null}
+
+        {/* Je Foto: „Ich darf das" — ohne Haken kein Speichern. */}
+        {needsConsent ? (
+          <Pressable onPress={() => { Haptics.selectionAsync(); setConsent((c) => !c); }} accessibilityRole="checkbox" accessibilityState={{ checked: consent }}>
+            <Glass style={[styles.consent, consent && styles.consentOn]} interactive>
+              <SymbolView name={consent ? "checkmark.square.fill" : "square"} size={24} tintColor={consent ? colors.ok : colors.muted} />
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={styles.consentText}>{L.consentFor?.[mode === "me" ? "me" : kind] ?? L.consentFor?.person}</Text>
+                <Text style={styles.consentSmall}>{L.consentSmall}</Text>
+              </View>
+            </Glass>
+          </Pressable>
+        ) : null}
         <Text style={styles.privacy}>{L.privacy}</Text>
 
         <View style={styles.actions}>
           <GlassButton label={L.cancel} onPress={() => onDone()} />
-          <PrimaryButton label={busy === "save" ? "…" : mode === "new" ? L.save : L.saveChanges} heavy onPress={save} disabled={!hasSubstance || !clean || !!busy} />
+          <PrimaryButton label={busy === "save" ? "…" : mode === "new" ? L.save : L.saveChanges} heavy onPress={save} disabled={!hasSubstance || !clean || !!busy || (needsConsent && !consent)} />
         </View>
 
         {mode === "edit" ? (
@@ -255,6 +275,10 @@ const styles = StyleSheet.create({
   bodyThumb: { width: 52, height: 72, borderRadius: 10, overflow: "hidden" },
   bodyEmpty: { alignItems: "center", justifyContent: "center", backgroundColor: "rgba(140,192,255,0.10)" },
   privacy: { color: colors.faint, fontSize: 12, textAlign: "center", marginTop: 4 },
+  consent: { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 14, borderRadius: 18 },
+  consentOn: { borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(61,220,151,0.4)" },
+  consentText: { color: colors.text, fontSize: 15, lineHeight: 20, fontWeight: "600" },
+  consentSmall: { color: colors.faint, fontSize: 11.5, lineHeight: 16 },
   actions: { flexDirection: "row", gap: 10, marginTop: 6 },
   delete: { alignSelf: "center", marginTop: 18, paddingVertical: 10, paddingHorizontal: 20, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.panelLine },
   deleteText: { color: colors.bad, fontSize: 15 },

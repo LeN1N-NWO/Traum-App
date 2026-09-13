@@ -45,6 +45,8 @@ export default function SettingsScreen() {
             {email
               ? row(S.account, `${S.accountSignedIn} ${email}`, S.signOut, () => { logout().catch(() => {}); })
               : row(S.account, S.accountNone, null, () => {})}
+            {/* Erinnerungen (13.09.2026) — ganz oben unter dem Konto: der Grund, morgens zu öffnen. */}
+            {data?.reminders ? row(data.reminders.labels.title, data.reminders.labels.settingsHint, null, () => router.push("/profile/reminders")) : null}
             {row(S.voiceSetting, S.voiceSettingHint, S.voice, () => router.push("/profile/voice"))}
             {row(S.legal.terms.title, null, null, () => router.push({ pathname: "/profile/legal", params: { doc: "terms" } }))}
             {row(S.legal.privacy.title, null, null, () => router.push({ pathname: "/profile/legal", params: { doc: "privacy" } }))}

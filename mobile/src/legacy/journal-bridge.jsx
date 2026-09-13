@@ -36,7 +36,7 @@ import { autoMatch } from "../../../src/wizard/useWizard.js";
 import { blankDays, localDateKey } from "../../../src/lib/dreamDays.js";
 import { moonForNight, moonStrip } from "../../../src/lib/moon.js";
 import { compactDataUrl } from "../../../src/lib/sheets.js";
-import { reminderWish, reminderState, MAX_PER_DAY, DEFAULT_PER_DAY } from "../../../src/lib/reminders.js";
+import { reminderWish, reminderState, reminderPlan, reminderAnswered, setReminder, MAX_PER_DAY, DEFAULT_PER_DAY } from "../../../src/lib/reminders.js";
 import { VOICES, DEFAULT_VOICE, isVoice } from "../../../src/lib/voices.js";
 import { withdrawPatch, consentPatch, needsConsent } from "../../../src/lib/consent.js";
 import { FORM_FIELDS, profileFromAnswers } from "../../../src/lib/onboardingForm.js";
@@ -179,7 +179,8 @@ function snapshot() {
   };
   const sleep = {
     title: t.sleep.title, subtitle: t.sleep.subtitle, free: t.sleep.free,
-    tiles: ["checklist", "sounds", "guide", "symbols"].map((id) => ({ id, title: t.sleep.tiles[id].title, text: t.sleep.tiles[id].text })),
+    tiles: ["breathe", "checklist", "sounds", "guide", "symbols"].map((id) => ({ id, title: t.sleep.tiles[id].title, text: t.sleep.tiles[id].text })),
+    breathe: t.breathe,
     /* Das Mischpult (nativ, components/sound-mixer.tsx): Texte und die
        gespeicherte Mischung. Der Browser-Hinweis zum Autostart entfällt —
        nativ startet der Klang ohne Geste. */
@@ -273,6 +274,7 @@ function snapshot() {
        die Bestätigung und den Fehlerfall — Web-Texte, nichts Neues. */
     loading: t.dream.loading, queuedNote: t.wizard.step5.queuedNote,
     step6Title: t.wizard.step6.title, rendering: t.wizard.step6.rendering, renderingHint: t.wizard.step6.renderingHint,
+    celebrateFirst: t.wizard.step6.celebrateFirst, celebrateN: t.wizard.step6.celebrateN("{n}"), celebrateText: t.wizard.step6.celebrateText, celebrateHint: t.wizard.step6.celebrateHint,
     failedTitle: t.wizard.step5.failedTitle, failedNote: t.wizard.step5.failedNote, failedHome: t.wizard.step5.failedHome,
     presets: PRESETS.map((p) => ({
       id: p.id, styleId: p.styleId, pace: p.pace || null, wide: !!p.wide, emoji: p.emoji || "",
@@ -320,7 +322,9 @@ function snapshot() {
   const dream = { ...step2, interview: t.dream.interview, interviewHint: t.dream.interviewHint, or: t.dream.or, label: t.dream.label,
     record: t.dream.record, recordHint: t.dream.recordHint, recording: t.dream.recording, recordStop: t.dream.recordStop,
     recordTranscribing: t.dream.recordTranscribing, recordTooShort: t.dream.recordTooShort, recordFailed: t.dream.recordFailed, recordDiscard: t.dream.recordDiscard,
-    recordAgain: t.dream.recordAgain, yourRecording: t.dream.yourRecording, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
+    recordAgain: t.dream.recordAgain, yourRecording: t.dream.yourRecording,
+    reviewTitle: t.dream.reviewTitle, reviewHint: t.dream.reviewHint, recordListen: t.dream.recordListen, recordPause: t.dream.recordPause, recordTranscribe: t.dream.recordTranscribe, recordRetake: t.dream.recordRetake,
+    typeInstead: t.dream.typeInstead, textTitle: t.dream.textTitle, textLede: t.dream.textLede, tellMore: t.dream.tellMore, rewriteAll: t.dream.rewriteAll, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
     placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
   /* Das Kaufblatt (Paywall.jsx), vorgerechnet: Texte sind im Web zum Teil
      Funktionen, über die Brücke gehen nur Strings. NUR Filme — Bilder sind
@@ -369,11 +373,14 @@ function snapshot() {
      Gattung, nach Häufigkeit sortiert (castStats.js) — und die Menagerie
      (Menagerie.jsx): ein Wesen je aufgeschriebenem Traum, neueste zuerst. */
   const library = {
-    title: t.journal.library, lede: t.journal.libraryLede, newLabel: t.journal.castNew, empty: t.journal.libraryCount(0), never: t.journal.castNever,
-    groups: [["person", t.profile.people], ["pet", t.profile.pets], ["place", t.profile.places]].map(([category, label]) => ({
-      category, label,
+    title: t.journal.library, lede: t.journal.libraryLede, why: t.journal.libraryWhy, newLabel: t.journal.castNew, empty: t.journal.libraryCount(0), never: t.journal.castNever,
+    total: (s.cast || []).length + (s.me?.img ? 1 : 0),
+    /* Alle vier Gattungen, auch leere (13.09.2026): Die Liste zeigt, was
+       hineingehört, statt nur, was schon da ist. */
+    groups: [["person", t.profile.people], ["pet", t.profile.pets], ["place", t.profile.places], ["object", t.profile.objects]].map(([category, label]) => ({
+      category, label, addLabel: t.avatarDialog.titleFor[category],
       rows: castByCategory(s.cast, s.journal, category).map((e) => ({ id: e.id, tag: e.tag, img: e.img ? mediaUrl(e.img) : null, initial: initialOf(e.tag), count: e.count, countWord: t.journal.castDreamsN(e.count) })),
-    })).filter((g) => g.rows.length > 0),
+    })),
   };
   const menagerie = {
     title: t.home.menagerieHeading, lede: t.journal.menagerieLede, empty: t.home.menagerieEmpty,
@@ -396,7 +403,7 @@ function snapshot() {
       "accountWrong", "accountBusy", "accountUnavailable", "accountOffline", "accountApple"].map((k) => [k, onb[k]])),
     features: onb.features, showcase: onb.showcase, featuresLede: onb.featuresLede, proof: onb.proof, sleepLegend: onb.sleepLegend,
     mascotTitle: onb.mascotTitle, mascotText: onb.mascotText, mascotSoon: onb.mascotSoon,
-    meTitle: onb.meTitle, meText: onb.meText, mePick: onb.mePick, meCamera: onb.meCamera, meChange: onb.meChange, meLater: onb.meLater, meDone: onb.meDone,
+    meTitle: onb.meTitle, meText: onb.meText, mePick: onb.mePick, meCamera: onb.meCamera, meChange: onb.meChange, meLater: onb.meLater, meDone: onb.meDone, meConsent: onb.meConsent,
     /* Die drei Maskottchen (mascots.js) — zwei noch Platzhalter. Das Video
        kommt als Modulpfad nicht durch die Brücke; nativ liegen dieselben
        Dateien, deshalb reicht die id samt Name und Marke. */
@@ -427,7 +434,21 @@ function snapshot() {
     },
   };
   const consent = { needed: needsConsent(s), ...Object.fromEntries(["title", "intro", "termsPre", "termsLink", "termsMid", "privacyLink", "termsPost", "processing", "adult", "more", "cta"].map((k) => [k, t.consent[k]])), details: t.consent.details };
-  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent, onboard };
+  /* Erinnerungen (13.09.2026): der Plan aus reminders.js, der Stand der
+     Erlaubnis und die Texte — auch die der Benachrichtigungen selbst, die
+     die native Schicht plant (lib/notifications.ts). */
+  const rm = t.reminders; const rs = s.reminders || null;
+  const reminders = {
+    plan: reminderPlan(rs), granted: rs?.granted ?? null, askedAt: rs?.askedAt ?? null, homeAskDismissed: !!rs?.homeAskDismissed, lastAutoOpen: rs?.lastAutoOpen ?? null,
+    labels: {
+      title: rm.title, lede: rm.lede, settingsHint: rm.settingsHint, morning: rm.morning, morningHint: rm.morningHint, evening: rm.evening, eveningHint: rm.eveningHint,
+      reality: rm.reality, realityHint: rm.realityHint, perDay: Object.fromEntries(Array.from({ length: MAX_PER_DAY }, (_, i) => [i + 1, rm.perDay(i + 1)])),
+      autoRecord: rm.autoRecord, autoRecordHint: rm.autoRecordHint, denied: rm.denied, openSettings: rm.openSettings,
+      homeAskTitle: rm.homeAskTitle, homeAskText: rm.homeAskText, homeAskYes: rm.homeAskYes, homeAskNo: rm.homeAskNo,
+    },
+    texts: { morningTitle: rm.morningTitle, morningBody: rm.morningBody, eveningTitle: rm.eveningTitle, eveningBody: rm.eveningBody, realityTitle: rm.realityTitle, realityBodies: rm.realityBodies },
+  };
+  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent, onboard, reminders };
 }
 
 /* Befehle nativ → Web: Die Hülle kann den Web-Speicher nicht schreiben, also
@@ -457,7 +478,27 @@ function avatarLabels() {
     save: a.save, saveChanges: a.saveChanges, needPhotoOrDescHint: a.needPhotoOrDescHint, delete: a.delete,
     drawFromDesc: a.drawFromDesc, drawingNow: a.drawingNow, drawHint: a.drawHint,
     creditsWord: t.wizard.creditsN(PRICES.characterSheet),
+    consentFor: a.consentFor, consentSmall: a.consentSmall, needConsent: a.needConsent,
   };
+}
+
+/* Die Bestätigung je Foto (Antons Ansage 13.09.2026): Wer ein Foto
+   hochlädt, sagt bei JEDEM Foto ausdrücklich, dass er es verwenden darf.
+   Gespeichert wird, WANN und FÜR WELCHE Fotos — ein neues Foto braucht eine
+   neue Bestätigung, deshalb der Fingerabdruck über beide Bilder. Das ist der
+   Nachweis, dass die Verantwortung beim Hochladenden liegt. */
+const PHOTO_CONSENT_VERSION = 1;
+function photoPrint(e) {
+  const src = `${e?.img || ""}\0${e?.img2 || ""}`;
+  let h = 5381;
+  for (let i = 0; i < src.length; i++) h = ((h * 33) ^ src.charCodeAt(i)) >>> 0;
+  return `${src.length.toString(36)}.${h.toString(36)}`;
+}
+function photoConsentFor(a) {
+  return a.img || a.img2 ? { v: PHOTO_CONSENT_VERSION, at: new Date().toISOString(), of: photoPrint(a) } : undefined;
+}
+function hasPhotoConsent(e) {
+  return Boolean(e?.photoConsent && e.photoConsent.of === photoPrint(e));
 }
 async function runAvatar(cmd, onResult) {
   const s = loadState();
@@ -466,7 +507,7 @@ async function runAvatar(cmd, onResult) {
     if (cmd.mode === "edit" && !existing) { onResult({ n: cmd.n, error: "notfound" }); return true; }
     onResult({ n: cmd.n, result: {
       labels: avatarLabels(), price: PRICES.characterSheet,
-      entry: { tag: cleanTag(existing?.tag || cmd.tag || ""), desc: existing?.desc || "", img: existing?.img || "", img2: existing?.img2 || "", category: existing?.category || null },
+      entry: { tag: cleanTag(existing?.tag || cmd.tag || ""), desc: existing?.desc || "", img: existing?.img || "", img2: existing?.img2 || "", category: existing?.category || null, photoConsent: hasPhotoConsent(existing) },
     } });
     return true;
   }
@@ -476,8 +517,10 @@ async function runAvatar(cmd, onResult) {
     const desc = String(a.desc || "").trim().slice(0, 120);
     if (!clean) { onResult({ n: cmd.n, error: t.avatarDialog.needName }); return true; }
     if (!a.img && !desc) { onResult({ n: cmd.n, error: t.avatarDialog.needPhotoOrDesc }); return true; }
+    if ((a.img || a.img2) && a.consent !== true) { onResult({ n: cmd.n, error: t.avatarDialog.needConsent }); return true; }
+    const photoConsent = photoConsentFor(a);
     if (cmd.mode === "me") {
-      saveState({ ...s, me: { ...(s.me || {}), tag: clean, desc, img: a.img || "", img2: a.img2 || "" } });
+      saveState({ ...s, me: { ...(s.me || {}), tag: clean, desc, img: a.img || "", img2: a.img2 || "", photoConsent } });
       onResult({ n: cmd.n, result: { toast: t.avatarDialog.saved(clean) } });
       return true;
     }
@@ -485,7 +528,7 @@ async function runAvatar(cmd, onResult) {
     if (cmd.mode === "edit") {
       const old = (s.cast || []).find((p) => p.id === cmd.id);
       if (!old) { onResult({ n: cmd.n, error: "notfound" }); return true; }
-      const saved = { ...old, tag: clean, desc, img: a.img || "", img2: a.img2 || "" };
+      const saved = { ...old, tag: clean, desc, img: a.img || "", img2: a.img2 || "", photoConsent };
       const patch = { cast: (s.cast || []).map((p) => (p.id === old.id ? saved : p)) };
       if (old.tag !== clean) {
         patch.journal = (s.journal || []).map((e) => ({ ...e, references: (e.references || []).map((r) => (r.tag === old.tag ? { ...r, tag: clean } : r)) }));
@@ -494,8 +537,8 @@ async function runAvatar(cmd, onResult) {
       onResult({ n: cmd.n, result: { toast: t.avatarDialog.saved(clean), id: saved.id } });
       return true;
     }
-    const kind = ["person", "pet", "place"].includes(a.category) ? a.category : "person";
-    const avatar = { id: genId("c"), tag: clean, category: kind, desc, img: a.img || "", img2: a.img2 || "" };
+    const kind = ["person", "pet", "place", "object"].includes(a.category) ? a.category : "person";
+    const avatar = { id: genId("c"), tag: clean, category: kind, desc, img: a.img || "", img2: a.img2 || "", photoConsent };
     saveState({ ...s, cast: [...(s.cast || []), avatar] });
     onResult({ n: cmd.n, result: { toast: t.avatarDialog.created(clean), id: avatar.id } });
     return true;
@@ -565,7 +608,7 @@ async function runOrder(cmd, onResult) {
     acc[name] = { name, kind, ...(wardrobe ? { wardrobe } : {}), ...(avatar ? { avatar } : {}), ...(startsFree(kind, avatar) ? { free: true } : {}) };
     return acc;
   }, {});
-  const assignments = { ...build(analysis?.people, "person"), ...build(analysis?.places, "place") };
+  const assignments = { ...build(analysis?.people, "person"), ...build(analysis?.places, "place"), ...build(analysis?.objects, "object") };
   const byId = (id) => (id === "me" ? (s0.me ? { ...s0.me, id: "me", category: "person" } : null) : (s0.cast || []).find((c) => c.id === id) || null);
   for (const [name, ov] of Object.entries(o.assignmentOverrides || {})) {
     if (!assignments[name] || !ov) continue;
@@ -579,7 +622,7 @@ async function runOrder(cmd, onResult) {
   let workingCast = s0.cast || [];
   let workingMe = s0.me;
   const members = list.filter((a) => a.avatar?.img).map((a) => ({
-    tag: a.avatar.tag, category: a.kind === "pet" ? "pet" : a.kind === "place" ? "place" : "person",
+    tag: a.avatar.tag, category: ["pet", "place", "object"].includes(a.kind) ? a.kind : "person",
     desc: a.avatar.desc || "", img: a.avatar.img, img2: a.avatar.img2, sheet: a.avatar.sheet, sheetOf: a.avatar.sheetOf,
   }));
   for (const member of members) {
@@ -662,7 +705,11 @@ async function runAsync(cmd, onResult) {
     try {
       const img = typeof cmd.photo === "string" && cmd.photo.startsWith("data:") ? await compactDataUrl(cmd.photo) : "";
       const s = loadState();
-      saveState({ ...s, me: { ...(s.me || {}), img } });
+      /* Das Onboarding sagt unter dem Knopf „Mit dem Foto bestätigst du: Das
+         bist du." — die Wahl selbst ist die Bestätigung, also wird sie hier
+         wie im Avatar-Dialog festgehalten (13.09.2026). */
+      const me = { ...(s.me || {}), img };
+      saveState({ ...s, me: { ...me, photoConsent: photoConsentFor(me) } });
       onResult({ n: cmd.n, result: { ok: true } });
     } catch (e) {
       onResult({ n: cmd.n, error: e?.message || String(e) });
@@ -680,13 +727,18 @@ async function runAsync(cmd, onResult) {
     const row = (name, kind) => { const m = autoMatch(name, s.cast, s.me); return { name, kind, avatarId: m ? (m.id || null) : null }; };
     const a = cmd.analysis || {};
     onResult({ n: cmd.n, result: {
-      people: (a.people || []).map((x) => row(typeof x === "string" ? x : x.name, "person")),
+      people: (a.people || []).map((x) => row(typeof x === "string" ? x : x.name, typeof x === "object" && x?.kind === "pet" ? "pet" : "person")),
       places: (a.places || []).map((x) => row(typeof x === "string" ? x : x.name, "place")),
+      objects: (a.objects || []).map((x) => row(typeof x === "string" ? x : x.name, "object")),
       library: lib,
       labels: { people: t.wizard.step3.title, peopleLede: t.wizard.step3.lede, peopleEmpty: t.wizard.step3.empty,
                 places: t.wizard.step4.title, placesLede: t.wizard.step4.lede, placesEmpty: t.wizard.step4.empty,
                 free: t.wizard.cast.freeSet, freeShort: t.wizard.cast.freeShort, newShort: t.wizard.cast.newShort, undecided: t.wizard.cast.undecided, choose: t.wizard.cast.choose, change: t.wizard.cast.change,
-                createNew: t.wizard.cast.createNew },
+                createNew: t.wizard.cast.createNew,
+                objects: t.wizard.cast.objectsTitle, objectsLede: t.wizard.cast.objectsLede, objectsEmpty: t.wizard.cast.objectsEmpty,
+                textTitle: t.wizard.cast.textTitle, markHint: t.wizard.cast.markHint, addTitle: t.wizard.cast.addTitle, addName: t.wizard.cast.addName,
+                addAs: t.wizard.cast.addAs, add: t.wizard.cast.add, removeFromCast: t.wizard.cast.removeFromCast, whoIs: t.wizard.cast.whoIs("{name}"), close: t.wizard.cast.close,
+                kindFor: t.avatarDialog.kindFor },
     } });
     return true;
   }
@@ -777,6 +829,9 @@ function run(cmd) {
   else if (cmd.type === "voice") { if (isVoice(cmd.value)) patch = { voice: cmd.value }; }
   else if (cmd.type === "withdraw") patch = withdrawPatch();
   else if (cmd.type === "reminders") patch = { reminders: { ...(s.reminders || {}), ...reminderWish(!!cmd.wants, cmd.perDay || DEFAULT_PER_DAY) } };
+  else if (cmd.type === "reminderSet") patch = { reminders: setReminder(s.reminders, cmd.value, { on: cmd.wants, time: cmd.text }) };
+  else if (cmd.type === "reminderAnswered") patch = { reminders: reminderAnswered(s.reminders, !!cmd.wants) };
+  else if (cmd.type === "autoOpened") patch = { reminders: { ...(s.reminders || {}), lastAutoOpen: cmd.date } };
   else if (cmd.type === "saveDream") {
     /* Nur speichern (Step2Output.saveOnly): kein Render, keine Kosten, mit
        Wesen und Serie — dieselbe Reihenfolge wie im Web. */

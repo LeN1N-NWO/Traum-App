@@ -1,38 +1,75 @@
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { GlassButton, PrimaryButton, SheenSurface } from "@/components/glass";
+import { DreamRecorder } from "@/components/dream-recorder";
+import { GlassButton, PrimaryButton } from "@/components/glass";
 import { MascotLoader } from "@/components/mascot-loader";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
-/* Schritt 1 — der Aufbau des Web (Step1Dream.jsx): Erzählen kommt zuerst
-   und ist das Größte auf dem Bildschirm, das ist der halbwache Fall, für den
-   die App gebaut ist. Darunter „oder schreib es", das Feld, die Lesung
-   (gratis), warum. Danach der Vergleich: deine Worte oder aufgeräumt. */
+/* Schritt 1 — Erzählen. Seit 13.09.2026 in Antons Reihenfolge:
+ *
+ *   1. voice    Der Tab öffnet, die Aufnahme läuft (ein Tipp: fertig).
+ *               Anhören, dann „Aufschreiben". (components/dream-recorder)
+ *   2. text     Der Text aus der Aufnahme — lesen, tippend ergänzen,
+ *               „Weiter erzählen" hängt eine zweite Aufnahme an, „Neu
+ *               schreiben" leert das Feld. Dann ✦ Lesen.
+ *   3. preview  Deine Worte oder aufgeräumt (wie bisher).
+ *
+ * „Wenn jemand aus dem Schlaf kommt, die App anmachen und nicht noch einmal
+ * klicken müssen." Wer lieber tippt, kommt mit „Lieber schreiben" direkt
+ * ins Feld. */
+type Stage = "voice" | "text";
+
 export default function DreamTextScreen() {
   const router = useRouter();
-  const { data, bridge, ask } = useJournal();
+  const { data, bridge, ask, send } = useJournal();
   const W = data?.wizard;
   const w = useWizardStore();
+  const [stage, setStage] = useState<Stage>(w.text ? "text" : "voice");
   const [text, setText] = useState(w.text);
+  const [fromVoice, setFromVoice] = useState(false);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [focused, setFocused] = useState(false);
+  const [autoKey, setAutoKey] = useState(0);
+  const input = useRef<TextInput>(null);
   const credits = data?.profile.credits ?? 0;
   const clean = text.trim();
 
-  // Aus der Aufnahme zurück (ADR-0007): Text übernehmen und sofort lesen (wie im Web nach dem Gespräch).
+  /* Öffnen = aufnehmen: jeder Fokus auf der Rekorder-Stufe stößt die
+     Aufnahme an (der Rekorder ignoriert es, wenn schon etwas läuft). */
+  useFocusEffect(useCallback(() => {
+    setFocused(true);
+    if (stage === "voice") setAutoKey((k) => k + 1);
+    return () => setFocused(false);
+  }, [stage]));
+
+  // Ein Auftrag ist durch (resetWizard): von vorn, mit Aufnahme.
+  const seenResets = useRef(w.resets);
   useEffect(() => {
-    if (!w.pendingRead || !W) return;
-    setText(w.text); patchWizard({ pendingRead: false });
-    read(w.text.trim());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [w.pendingRead, W]);
+    if (w.resets === seenResets.current) return;
+    seenResets.current = w.resets;
+    setText(""); setPreview(null); setError(null); setFromVoice(false); setStage("voice");
+  }, [w.resets]);
+
+  function onText(t: string, audioUrl: string | null) {
+    setText((prev) => (prev.trim() ? `${prev.trim()}\n\n${t}` : t));
+    if (audioUrl) patchWizard({ audioUrl });
+    setFromVoice(true);
+    setStage("text");
+  }
+
+  function onType() {
+    setFromVoice(false);
+    setStage("text");
+    setTimeout(() => input.current?.focus(), 350);
+  }
 
   async function read(t = clean) {
     if (t.length < 8) { setError(W?.tooShort ?? "Tell a little more."); return; }
@@ -57,33 +94,9 @@ export default function DreamTextScreen() {
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <WizardHeader step={1} cancel={W?.cancel} />
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{W?.title ?? "What did you dream?"}</Text>
         {busy ? (
           <View style={styles.reading}><MascotLoader /><Text style={styles.readingText}>{W?.reading}</Text><Text style={styles.hint}>{W?.readingHint}</Text></View>
-        ) : !preview ? (
-          <>
-            {/* Die Rekorder-Kachel im selben Licht wie die Knöpfe (Antons
-                Wunsch 13.09.): dunkles Glas, der Schein wandert. */}
-            <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/dream/voice"); }} style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.98 : 1 }] })}>
-              <SheenSurface style={styles.tell}>
-                <View style={styles.tellIcon}><SymbolView name="waveform.and.mic" size={26} tintColor={colors.text} /></View>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={styles.tellTitle}>{W?.record ?? W?.interview ?? "Tell it out loud"}</Text>
-                  <Text style={styles.tellHint}>{W?.recordHint ?? W?.interviewHint}</Text>
-                </View>
-              </SheenSurface>
-            </Pressable>
-            <View style={styles.or}><View style={styles.orLine} /><Text style={styles.orText}>{W?.or}</Text><View style={styles.orLine} /></View>
-            <Text style={styles.label}>{W?.label}</Text>
-            <TextInput
-              style={styles.input} multiline value={text} onChangeText={setText}
-              placeholder={W?.placeholder ?? "…"} placeholderTextColor={colors.faint} textAlignVertical="top" keyboardAppearance="dark"
-            />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-            <GlassButton label={`✦ ${W?.read ?? "Read my dream"} · ${price}`} onPress={() => read()} disabled={clean.length < 8} />
-            <Text style={styles.hint}>{W?.why}</Text>
-          </>
-        ) : (
+        ) : preview ? (
           <>
             <Text style={styles.h}>{W?.previewTitle}</Text>
             <Text style={styles.lede}>{W?.previewLede}</Text>
@@ -94,6 +107,37 @@ export default function DreamTextScreen() {
               <GlassButton label={W?.keepMine ?? "Keep my words"} onPress={() => go(false)} />
               <PrimaryButton label={W?.useImproved ?? "Use this version"} onPress={() => go(true)} />
             </View>
+          </>
+        ) : stage === "voice" ? (
+          <DreamRecorder
+            W={W} language={data?.language ?? ""} autoStartKey={autoKey} active={focused}
+            onText={onText} onType={onType}
+            onPendingAudio={(audioUrl) => { patchWizard({ audioUrl }); send({ type: "pendingAudio", audioUrl }); }}
+          />
+        ) : (
+          <>
+            <Text style={styles.title}>{W?.textTitle ?? W?.title ?? "What did you dream?"}</Text>
+            {fromVoice ? <Text style={styles.lede}>{W?.textLede}</Text> : null}
+            <TextInput
+              ref={input}
+              style={styles.input} multiline value={text} onChangeText={setText}
+              placeholder={W?.placeholder ?? "…"} placeholderTextColor={colors.faint} textAlignVertical="top" keyboardAppearance="dark"
+            />
+            <View style={styles.tools}>
+              <Pressable style={styles.tool} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); input.current?.blur(); setStage("voice"); /* der Fokus-Effekt startet die Aufnahme */ }} accessibilityRole="button">
+                <SymbolView name="mic.fill" size={15} tintColor={colors.warm} />
+                <Text style={styles.toolText}>{W?.tellMore ?? "Keep telling"}</Text>
+              </Pressable>
+              {clean ? (
+                <Pressable style={styles.tool} onPress={() => { Haptics.selectionAsync(); setText(""); setFromVoice(false); setTimeout(() => input.current?.focus(), 50); }} accessibilityRole="button">
+                  <SymbolView name="square.and.pencil" size={15} tintColor={colors.accentSoft} />
+                  <Text style={styles.toolText}>{W?.rewriteAll ?? "Start over"}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <PrimaryButton label={`✦ ${W?.read ?? "Read my dream"} · ${price}`} heavy onPress={() => read()} disabled={clean.length < 8} style={{ flex: 0 }} />
+            <Text style={styles.hint}>{W?.why}</Text>
           </>
         )}
       </ScrollView>
@@ -106,26 +150,16 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 20, paddingBottom: TAB_INSET, gap: 14 },
   title: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 38, color: colors.text, marginTop: 8 },
-  tell: { flexDirection: "row", alignItems: "center", gap: 16, padding: 18, borderRadius: radius.lg },
-  tellIcon: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.14)" },
-  tellTitle: { color: colors.text, fontSize: 20, fontWeight: "700" },
-  tellHint: { color: colors.muted, fontSize: 13 },
-  or: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 2 },
-  orLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.panelLine },
-  orText: { color: colors.faint, fontSize: 13 },
-  label: { color: colors.muted, fontSize: 13 },
-  input: { minHeight: 200, color: colors.text, fontSize: 17, lineHeight: 27, padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  input: { minHeight: 220, color: colors.text, fontSize: 17, lineHeight: 27, padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  tools: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
+  tool: { flexDirection: "row", alignItems: "center", gap: 7, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  toolText: { color: colors.text, fontSize: 14, fontWeight: "600" },
   error: { color: colors.warm, fontSize: 14 },
-  quiet: { flex: 1, height: 50, borderRadius: 999, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
-  quietText: { color: colors.text, fontSize: 15, fontWeight: "600" },
-  disabled: { opacity: 0.5 },
-  primary: { flex: 1, height: 50, borderRadius: 999, alignItems: "center", justifyContent: "center", backgroundColor: colors.warm },
-  primaryText: { color: colors.bg, fontSize: 15, fontWeight: "700" },
   hint: { color: colors.faint, fontSize: 12.5, lineHeight: 18 },
   reading: { alignItems: "center", gap: 10, paddingVertical: 60 },
   readingText: { color: colors.text, fontSize: 16 },
   h: { fontFamily: fonts.serif, fontSize: 26, color: colors.text },
-  lede: { color: colors.muted, fontSize: 14 },
+  lede: { color: colors.muted, fontSize: 14, lineHeight: 20 },
   card: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, gap: 6 },
   cardNew: { borderColor: colors.accent },
   cardLabel: { color: colors.faint, fontSize: 11, letterSpacing: 1.8, fontWeight: "600", textTransform: "uppercase" },

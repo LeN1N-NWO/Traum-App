@@ -62,7 +62,7 @@
  * conversion FIRST after launch, before trusting any number in this file.
  */
 
-import { priceForFilm, videoModel } from "./video.js";
+import { priceForFilm } from "./video.js";
 import { creditCostUsd } from "./gridLayout.js";
 
 /** Was uns ein Credit im Einkauf kostet. Jeder Preis unten leitet sich daraus ab.
@@ -137,18 +137,44 @@ export const CREDIT_COST_USD = creditCostUsd();
  * Anlegen der Store-Produkte unverändert übernommen werden können.
  */
 
-/** Subscriptions: the allowance refills each period and does not roll over.
+/* ── Preisliste, neu gerechnet 13.09.2026 (Antons Vorgabe) ────────────────
  *
- *  saveHint: EINE Bezugsgröße für beide Badges — der Preis je Credit
- *  gegenüber der Woche ($0,200). Monat $0,100 → 50 %, Jahr $0,067 → 67 %.
- *  Vorher trug nur das Jahr ein Badge (33 %, gerechnet gegen den Monat):
- *  zwei Badges mit zwei Bezugsgrößen wären Zahlen, die niemand nachrechnen
- *  kann. Antons Ansage 21.08.: der Monatsrabatt soll SICHTBAR sein — er
- *  existierte längst, stand nur nirgends. plans.test.js rechnet beide nach. */
+ * „Im Monatsabo müssen mindestens fünf H3-Videos in 15 Sekunden in der
+ * Standardqualität drin sein … das Billigste: 10 € im Monat. Ich weiß nicht,
+ * ob wöchentlich überhaupt Sinn macht … größere Packs mit Rabatt, wir müssen
+ * trotzdem unsere Marge behalten."
+ *
+ * Seit die Bilder weg sind (31.08./12.09.), ist der FILM die Einheit, in der
+ * jemand rechnet. Deshalb ist die Messlatte der Liste jetzt ein Film:
+ * FILM_UNIT = H3, 15 s, Qualität „Standard" (480P) = 31 Credits, $0,78
+ * Einkauf (15 × $0,05 + Keyframe). Fünf davon sind 155 Credits → 160.
+ *
+ *   Monat   $9,99  / 160 Cr  = $0,062/Cr   5 Filme à 15 s
+ *   Jahr   $99,99  / 160 Cr  = $0,052/Cr   (17 % günstiger als der Monat)
+ *   Woche   gestrichen — 25 Credits reichten nicht für EINEN 15-s-Film
+ *           (31 Cr); das Abo versprach, was es nicht halten konnte.
+ *
+ * Marge Monat (MwSt. 19 %, schlimmster Einkauf je Credit = Bild $0,0283):
+ *   Store 15 %: netto $7,14 gegen $4,52 bei vollem Verbrauch → 1,58×
+ *               ($4,00 wenn alles H3-Film ist → 1,79×)
+ *   Store 30 %: 1,30× bei vollem Verbrauch, 1,73× bei 75 %.
+ * Das Jahr ist wie immer die bindende Grenze: 1,32× bei 15 % Store und
+ * vollem Verbrauch, 1,76× bei 75 %. Unter $99,99 fällt es unter die
+ * Test-Schwelle (1,6× bei 75 %). ⇒ Small Business Program (15 %) bleibt
+ * Pflicht, wie seit 09.08. vermerkt.
+ *
+ * saveHint: Bezugsgröße ist jetzt der MONAT (die Woche gibt es nicht mehr).
+ * plans.test.js rechnet das Badge nach. */
+
+/** Die Einheit, in der die Paywall Filme zählt — ein 15-s-H3-Film in
+ *  Standardqualität. Steht hier, damit Paywall, Test und Doku dieselbe
+ *  Zahl meinen. */
+export const FILM_UNIT = { model: "standard", seconds: 15, quality: "sd" };
+
+/** Subscriptions: the allowance refills each period and does not roll over. */
 export const SUBSCRIPTIONS = [
-  { id: "weekly",    price: "$4.99",  period: "week",  credits: 25 },
-  { id: "monthly",   price: "$9.99",  period: "month", credits: 100, featured: true, saveHint: "50%" },
-  { id: "yearly",    price: "$79.99", period: "year",  credits: 100, perMonth: true, saveHint: "67%" },
+  { id: "monthly",   price: "$9.99",  period: "month", credits: 160, featured: true },
+  { id: "yearly",    price: "$99.99", period: "year",  credits: 160, perMonth: true, saveHint: "17%" },
 ];
 
 /* One-off packs: bought once, never expire, no commitment.
@@ -173,10 +199,20 @@ export const SUBSCRIPTIONS = [
  *      und er ist der ehrliche Grund, warum Pakete existieren: nicht als
  *      besseres Geschäft, sondern als eines ohne Bindung.
  */
+/* Die Paket-Leiter (13.09.2026): je größer, desto billiger je Credit —
+ * Antons Rabatt für große Käufe — und trotzdem jedes teurer als das Abo
+ * (Regel 2 oben bleibt). Marge bei 15 % Store und schlimmstem Einkauf:
+ *   S   $4,99 /  50 Cr  $0,100/Cr  1 Film (auch 1 × 15 s „Scharf")   2,5×
+ *   M  $12,99 / 150 Cr  $0,087/Cr  4 Filme              −13 %        2,2×
+ *   L  $24,99 / 320 Cr  $0,078/Cr  10 Filme             −22 %        2,0×
+ *   XL $49,99 / 700 Cr  $0,071/Cr  22 Filme             −28 %        1,8×
+ * XL existiert auch, weil der 30-s-Seedance-Film (241/511 Cr) vorher mit
+ * KEINEM einzelnen Kauf erreichbar war. */
 export const PACKS = [
-  { id: "pack-s", price: "$2.99",  credits: 13 },
-  { id: "pack-m", price: "$7.99",  credits: 36 },
-  { id: "pack-l", price: "$14.99", credits: 70 },
+  { id: "pack-s",  price: "$4.99",  credits: 50 },
+  { id: "pack-m",  price: "$12.99", credits: 150 },
+  { id: "pack-l",  price: "$24.99", credits: 320 },
+  { id: "pack-xl", price: "$49.99", credits: 700 },
 ];
 
 /** Was ein Guthaben konkret hergibt — die Zahlen hinter den zwei Symbolen
@@ -189,7 +225,9 @@ export const PACKS = [
  *  steht, driftet — also steht er nur noch an einer.
  */
 export function dreamsFor(credits) {
-  const perFilm = priceForFilm("standard", videoModel("standard").preset);
+  /* Seit 13.09.2026 zählt die Paywall in FILM_UNIT (15 s, Standard) statt
+     in der 6-s-Voreinstellung — „5 Filme" heißt fünf ganze 15-s-Filme. */
+  const perFilm = priceForFilm(FILM_UNIT.model, FILM_UNIT.seconds, { quality: FILM_UNIT.quality });
   return {
     images: credits,                          // 1 Credit = 1 Bild, per Definition
     films: Math.floor(credits / perFilm),

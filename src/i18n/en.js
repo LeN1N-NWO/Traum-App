@@ -156,6 +156,8 @@ export default {
     reflectNote: "A mirror, not an oracle: one way of reading it, offered gently.",
     library: "Your cast",
     libraryLede: "Who turns up in your dreams, most often first.",
+    /* The cast at the core (Anton, 13.09.2026): top of the profile. */
+    libraryWhy: "People, animals, places and things from your life. The more you add, the more your dreams look like yours.",
     /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie
        in Serife gesetzt wird — deshalb liefert castDreamsN NUR das
        Wort, so wie creditsN und yieldFilms es auch tun. */
@@ -445,6 +447,7 @@ export default {
     people: "People",
     pets: "Pets",
     places: "Places",
+    objects: "Things",
     new: "New",
     deleteLabel: (tag) => `Delete @${tag}`,
     editLabel: (tag) => `Edit @${tag}`,
@@ -453,14 +456,14 @@ export default {
   },
 
   avatarDialog: {
-    titleFor: { person: "Add a person", pet: "Add a pet", place: "Add a place" },
+    titleFor: { person: "Add a person", pet: "Add a pet", place: "Add a place", object: "Add a thing" },
     kindLabel: "What is this?",
-    kindFor: { person: "Person", pet: "Animal", place: "Place" },
+    kindFor: { person: "Person", pet: "Animal", place: "Place", object: "Thing" },
     delete: "Delete",
     drawFromDesc: "Draw them from your description",
     drawingNow: "Drawing…",
     drawHint: "One reference image, so they look the same in every picture",
-    editTitleFor: { person: "Edit person", pet: "Edit pet", place: "Edit place" },
+    editTitleFor: { person: "Edit person", pet: "Edit pet", place: "Edit place", object: "Edit thing" },
     meTitle: "This is you",
     nameLabel: (tag) => `Name (becomes @${tag})`,
     photoHint: "Two photos give the best likeness: one close-up of the face, one full body. The face photo is required, the body photo is optional.",
@@ -485,6 +488,18 @@ export default {
     needName: "⚠ Please use letters or numbers for the name.",
     needPhotoOrDesc: "⚠ Add a photo or describe them — the AI needs one of the two.",
     needPhotoOrDescHint: "Add a photo or a description. Without either there is nothing to draw from.",
+    /* Confirmation PER PHOTO (Anton, 13.09.2026): responsibility sits with
+       the person uploading — as on Higgsfield or Runway — and the app has
+       them say so for every photo. */
+    consentFor: {
+      me: "This is me in the photo.",
+      person: "I may use this photo: the person in it has agreed.",
+      pet: "The photo is mine, or I'm allowed to use it.",
+      place: "The photo is mine, or I'm allowed to use it.",
+      object: "The photo is mine, or I'm allowed to use it.",
+    },
+    consentSmall: "No celebrities, no children without their parents' permission, nobody who hasn't agreed. You are responsible for what you upload — that's in the Terms of Use.",
+    needConsent: "⚠ First confirm that you may use this photo.",
     exists: (tag) => `⚠ @${tag} already exists.`,
     created: (tag) => `@${tag} added`,
     saved: (tag) => `@${tag} updated`,
@@ -493,9 +508,51 @@ export default {
 
   tagCard: {
     label: (tag) => `About @${tag}`,
-    categories: { person: "Person", pet: "Pet", place: "Place" },
+    categories: { person: "Person", pet: "Pet", place: "Place", object: "Thing" },
     photoOnly: "No description — the photo is used on its own.",
     close: "Close",
+  },
+
+  /* Reminders, native (13.09.2026). Logic in src/lib/reminders.js,
+     scheduling in mobile/src/lib/notifications.ts. */
+  breathe: {
+    ready: "Ready?", in: "Breathe in", hold: "Hold", out: "Breathe out", done: "Well done",
+    start: "Start", stop: "Stop", again: "One more minute",
+    round: "Round {n} of {m}",
+    how: "Breathe in for 4 seconds, hold for 7, out for 8. Four rounds. Close your eyes if you like — the phone taps you at every change.",
+  },
+
+  reminders: {
+    title: "Reminders",
+    lede: "A dream fades within minutes. A nudge at the right moment makes all the difference.",
+    settingsHint: "Morning, evening, reality checks",
+    morning: "Morning reminder",
+    morningHint: "“What did you dream?” — tap the notification and the recorder is running.",
+    evening: "Evening reminder",
+    eveningHint: "Time to wind down — sounds on, phone away.",
+    reality: "Reality checks during the day",
+    realityHint: "For lucid dreaming: short questions between 10am and 8pm, at different times each day.",
+    perDay: (n) => `${n}× a day`,
+    autoRecord: "Record straight away in the morning",
+    autoRecordHint: "Open the app between 3 and 11am without an entry for today, and the recorder starts at once.",
+    denied: "Notifications for Dream Rushes are switched off in your iPhone settings.",
+    openSettings: "Open Settings",
+    homeAskTitle: "Want a nudge in the morning?",
+    homeAskText: "At 7:30. Tap the notification and the recorder is running — before the dream is gone.",
+    homeAskYes: "Yes, remind me",
+    homeAskNo: "No thanks",
+    morningTitle: "What did you dream?",
+    morningBody: "Tell it before it fades. One tap and I'm listening.",
+    eveningTitle: "Time to wind down",
+    eveningBody: "Sounds on, phone away. A dream is waiting tonight.",
+    realityTitle: "Are you dreaming right now?",
+    realityBodies: [
+      "Look at your hands. Count your fingers.",
+      "Read a sentence, look away, read it again. Did it stay the same?",
+      "Pinch your nose shut and try to breathe.",
+      "How did you actually get here?",
+      "Check a clock, then check it again. Is the time right?",
+    ],
   },
 
   lucid: {
@@ -571,7 +628,7 @@ export default {
     reminderActive: (n) => `Reminders on: ${n}× a day`,
     reminderPerDay: "How often a day",
     reminderWhy: "The check only works once it is a habit — and a habit needs a nudge during the day, not good intentions at night.",
-    reminderSoon: "Noted. The reminders themselves arrive with the iPhone build — for now this only records that you want them.",
+    reminderSoon: "On. The times change every day so the check never turns into routine.",
     reminderOn: "Noted — reminders arrive with the iPhone build",
   },
 
@@ -605,6 +662,11 @@ export default {
     recording: "Listening…", recordStop: "Done", recordDiscard: "Discard", recordTranscribing: "Writing it down…",
     recordTooShort: "That was too short — try again.", recordFailed: "Couldn't write that down. Try again.",
     recordAgain: "Record again", yourRecording: "Your recording",
+    /* Recorder first (Anton, 13.09.): record → listen back → write it down → add to it. */
+    reviewTitle: "Listen back", reviewHint: "Sounds right? Then I'll write it down.",
+    recordListen: "Play", recordPause: "Pause", recordTranscribe: "Write it down", recordRetake: "Record again",
+    typeInstead: "Type instead", textTitle: "Your dream", textLede: "From your recording. Read it through and add what's missing.",
+    tellMore: "Keep telling", rewriteAll: "Start over",
     interview: "Tell it out loud",
     interviewHint: "I'll ask, you talk — eyes closed if you like",
     reading: "Working out your dream…",
@@ -686,6 +748,19 @@ export default {
       freeShort: "AI",
       newShort: "Photo",
       undecided: "Not decided yet",
+      /* Things and marking in the text (13.09.2026, Hanni's idea from 07.08., native). */
+      objectsTitle: "Which things matter?",
+      objectsLede: "The letter, the red car, the TV tower — whatever must look the same in every shot.",
+      objectsEmpty: "Nothing special. Tap a word in the text if there is.",
+      textTitle: "Your dream",
+      markHint: "Highlighted is who and what the AI recognised. Tap a highlight to decide who it is — or tap any other word to add it.",
+      addTitle: "Add to the cast",
+      addName: "Name",
+      addAs: "This is …",
+      add: "Add",
+      removeFromCast: "Not part of the cast",
+      whoIs: (name) => `Who is “${name}”?`,
+      close: "Done",
       note: "Anything left undecided is invented by the AI.",
       removeLabel: (name) => `Remove ${name}`,
       pickTitle: (name) => `Who is “${name}”?`,
@@ -781,6 +856,11 @@ export default {
 
     step6: {
       title: "Your dream",
+      /* The reward after ordering (Anton, 13.09.2026). */
+      celebrateFirst: "Wow — your first dream film!",
+      celebrateN: (n) => `Dream no. ${n} is on its way`,
+      celebrateText: "It's being made now. No need to wait — the journal shows you when it's ready.",
+      celebrateHint: "We'll let you know as soon as it's there.",
       save: "Save to journal",
       added: "Added to your dream",
       saveWhileRendering: "Save — I'll come back for it",
@@ -802,6 +882,12 @@ export default {
     subtitle: "Everything around the dream — all of it free.",
     free: "Dreams cost credits. Sleep never will.",
     tiles: {
+      /* Breathing (13.09.2026): the 4-7-8 exercise as a guided minute. */
+      breathe: {
+        emoji: "🫧",
+        title: "Breathe",
+        text: "One minute of 4-7-8 — the quickest way to calm",
+      },
       checklist: {
         emoji: "🌜",
         title: "Wind down",
@@ -900,7 +986,7 @@ export default {
    * sich der Inhalt wesentlich, zählt CONSENT_VERSION hoch. */
   legal: {
     close: "Close",
-    updated: "Last updated: 21 August 2026",
+    updated: "Last updated: 13 September 2026",
     draftNote: "Written in plain language on purpose. A lawyer will review these texts before the app reaches the app stores.",
     terms: {
       title: "Terms of Use",
@@ -910,11 +996,11 @@ export default {
         { h: "Your content stays yours",
           p: "You keep all rights to your dream texts, photos and generated results. You grant us and the AI services we name in the Privacy Notice a limited permission to process your material for one purpose only: creating the images and films you asked for. We never sell your content, and this permission ends when the processing is done." },
         { h: "What you promise us",
-          p: "You only upload photos you are allowed to use — for photos of other people, you ask them first. You do not use the app to create unlawful, deceptive or abusive material, and you do not present generated scenes of real people as real events." },
+          p: "You only upload photos you are allowed to use — for photos of other people, you ask them first, and you confirm this in the app for every photo. No public figures, no minors without their parents' permission. You are responsible for what you upload and create; if someone brings a claim against us because you broke these promises, you answer for it. You do not use the app to create unlawful, deceptive or abusive material, and you do not present generated scenes of real people as real events." },
         { h: "Age",
           p: "Dream Rushes is for adults. By using the app you confirm that you are 18 or older." },
         { h: "Credits and purchases",
-          p: "Creating images and films costs credits; writing, voice and everything in the Sleep tab is free. Prices are always shown before you pay. Credits have no cash value and cannot be paid out; subscription credits expire at the end of each period, purchased packs do not." },
+          p: "Creating images and films costs credits; writing, voice and everything in the Sleep tab is free. Prices are always shown before you pay. Credits have no cash value and cannot be paid out; subscription credits expire at the end of each period, purchased packs do not. A film that has started uses up its credits — we pay the AI services at that moment too. You only get them back if the rendering fails for technical reasons." },
         { h: "AI-generated content",
           p: "Everything the AI produces is synthetic. It can be wrong, strange or unlike what you imagined — that is the nature of the technology, not a defect. Shared films carry a label that says they are AI-made; please leave it in place, in some countries the law requires it." },
         { h: "Availability",
@@ -992,6 +1078,7 @@ export default {
     meCamera: "Take a selfie",
     meChange: "Another photo",
     meLater: "Continue without a photo",
+    meConsent: "By choosing a photo you confirm: this is you.",
     meDone: "That’s you.",
     mascotTitle: "Pick your dream companion",
     mascotText: "Keeps watch over your nights, waits with you while your film comes to life, and cheers when it’s ready.",
@@ -1161,7 +1248,7 @@ export default {
       year: "year",
     },
     yieldImages: (n) => (n === 1 ? "image" : "images"),
-    yieldFilms: (n) => (n === 1 ? "film" : "films"),
+    yieldFilms: (n) => (n === 1 ? "15-second film" : "15-second films"),
     upTo: "up to",
     yieldOr: "or",
     packNote: "Never expire — a little dearer per credit for it.",
@@ -1169,7 +1256,7 @@ export default {
     /* Unter den Ertrags-Kacheln, nur beim Jahresabo: die Kacheln zeigen
        die Jahressumme (Antons Wunsch: „hochrechnen, damit es nach viel
        aussieht"), diese Zeile hält die ehrliche Mechanik daneben fest. */
-    yieldYearNote: "Your whole year — 45 fresh credits land every month.",
+    yieldYearNote: "Your whole year — 160 fresh credits land every month.",
     included: "Always included, free",
     chips: [
       "Unlimited journaling", "Voice recording", "AI rewriting",

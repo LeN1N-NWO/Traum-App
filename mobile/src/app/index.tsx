@@ -8,6 +8,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { useState, useEffect } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
+import { useReminders } from "@/lib/use-reminders";
 import { applyMix, isActive } from "@/lib/sound-engine";
 import { useRecording } from "@/store/recording-store";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
@@ -33,7 +34,13 @@ function greetingKey(hour: number) {
 export default function HomeScreen() {
   const router = useRouter();
   const { data, bridge, send } = useJournal();
+  useReminders(data, send);
   const L = data?.labels ?? {};
+  const R = data?.reminders;
+  /* Die eine Frage nach der Erinnerung (13.09.2026): solange nie gefragt,
+     nichts eingeschaltet und nicht weggeklickt. Ein Tipp = morgens 7:30 an
+     (die Erlaubnis fragt use-reminders gleich danach). */
+  const askReminder = !!R && R.askedAt === null && !R.homeAskDismissed && !R.plan.morning.on && !R.plan.evening.on && !R.plan.reality.on;
   const home = data?.home;
   /* „Start my mix when the app opens": nativ ohne Geste möglich — einmal
      je Start, sobald der erste Datenstand da ist und noch nichts läuft. */
@@ -73,6 +80,22 @@ export default function HomeScreen() {
             <PrimaryButton label={L.homeCta ?? "Record it"} onPress={() => router.push("/dream")} style={styles.cta} />
           </View>
         </View>
+
+        {askReminder && R ? (
+          <View style={styles.card}>
+            <Text style={styles.question}>{R.labels.homeAskTitle}</Text>
+            <Text style={styles.remindText}>{R.labels.homeAskText}</Text>
+            <View style={styles.remindRow}>
+              <Pressable style={[styles.remindBtn, styles.remindYes]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); send({ type: "reminderSet", value: "morning", wants: true }); }}>
+                <SymbolView name="bell.fill" size={15} tintColor={colors.bg} />
+                <Text style={styles.remindYesText}>{R.labels.homeAskYes}</Text>
+              </Pressable>
+              <Pressable style={styles.remindBtn} onPress={() => { Haptics.selectionAsync(); send({ type: "reminderSet", value: "dismissAsk" }); }}>
+                <Text style={styles.remindNoText}>{R.labels.homeAskNo}</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
 
         {home?.rendering ? (
           <Pressable style={styles.line} onPress={() => router.push("/journal")}>
@@ -188,6 +211,12 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 10 },
   rowText: { color: colors.text, fontSize: 15 },
   question: { color: colors.text, fontSize: 16, fontWeight: "600" },
+  remindText: { color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: -4 },
+  remindRow: { flexDirection: "row", gap: 10 },
+  remindBtn: { flexDirection: "row", alignItems: "center", gap: 7, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  remindYes: { backgroundColor: colors.warm, borderColor: colors.warm },
+  remindYesText: { color: colors.bg, fontSize: 15, fontWeight: "700" },
+  remindNoText: { color: colors.muted, fontSize: 15 },
   levels: { flexDirection: "row", gap: 8 },
   level: { flex: 1, alignItems: "center", gap: 4, paddingVertical: 12, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.04)", borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   levelText: { color: colors.muted, fontSize: 13 },

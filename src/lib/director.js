@@ -383,7 +383,7 @@ export const KEYFRAME_REF = {
  * @param {number} [slots]  freie Plätze NEBEN dem Startbild
  */
 export function filmReferences(cast = [], slots = 8) {
-  const rank = { person: 0, pet: 1, place: 2 };
+  const rank = { person: 0, pet: 1, object: 2, place: 3 };   // Requisiten vor Orten (13.09.2026)
   return cast
     .filter((c) => c && c.img && c.tag)
     .sort((a, b) => (rank[a.category] ?? 0) - (rank[b.category] ?? 0))

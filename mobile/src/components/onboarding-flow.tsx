@@ -299,6 +299,8 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
             <GlassButton label={photo ? O.meChange : O.mePick} onPress={() => pickPhoto(false)} />
             <GlassButton label={O.meCamera} onPress={() => pickPhoto(true)} />
           </View>
+          {/* Die Wahl ist die Bestätigung (13.09.2026) — klein, aber da. */}
+          <Text style={styles.later}>{O.meConsent}</Text>
         </View>
         <View style={{ gap: 6 }}>
           <PrimaryButton label={O.next} heavy onPress={next} disabled={!photo} style={{ flex: 0 }} />

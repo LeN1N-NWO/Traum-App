@@ -132,6 +132,8 @@ export default {
     reflectNote: "Ein Spiegel, kein Orakel: eine Lesart von vielen, behutsam angeboten.",
     library: "Deine Besetzung",
     libraryLede: "Wer in deinen Träumen auftritt, nach Häufigkeit.",
+    /* Die Besetzung als Kern (Antons Ansage 13.09.2026): im Profil ganz oben. */
+    libraryWhy: "Menschen, Tiere, Orte und Dinge aus deinem Leben. Je mehr hier steht, desto mehr sehen deine Träume nach dir aus.",
     /* Die Besetzungsliste. Die Zahl steht getrennt vom Wort, weil sie
        in Serife gesetzt wird — deshalb liefert castDreamsN NUR das
        Wort, so wie creditsN und yieldFilms es auch tun. */
@@ -140,7 +142,7 @@ export default {
     castNew: "Figur anlegen",
     libraryCount: (n) =>
       n === 0 ? "Noch niemand — füge die Gesichter hinzu, die deine Träume nutzen sollen"
-              : `${n} ${n === 1 ? "Eintrag" : "Einträge"} · Personen, Tiere, Orte`,
+              : `${n} ${n === 1 ? "Eintrag" : "Einträge"} · Personen, Tiere, Orte, Dinge`,
     title: "Journal",
     count: (n) => (n === 1 ? "1 Traum" : `${n} Träume`),
     search: "Träume durchsuchen…",
@@ -401,6 +403,7 @@ export default {
     people: "Personen",
     pets: "Tiere",
     places: "Orte",
+    objects: "Dinge",
     new: "Neu",
     deleteLabel: (tag) => `@${tag} löschen`,
     editLabel: (tag) => `@${tag} bearbeiten`,
@@ -409,14 +412,14 @@ export default {
   },
 
   avatarDialog: {
-    titleFor: { person: "Person hinzufügen", pet: "Tier hinzufügen", place: "Ort hinzufügen" },
+    titleFor: { person: "Person hinzufügen", pet: "Tier hinzufügen", place: "Ort hinzufügen", object: "Ding hinzufügen" },
     kindLabel: "Was ist das?",
-    kindFor: { person: "Person", pet: "Tier", place: "Ort" },
+    kindFor: { person: "Person", pet: "Tier", place: "Ort", object: "Ding" },
     delete: "Löschen",
     drawFromDesc: "Aus deiner Beschreibung zeichnen",
     drawingNow: "Wird gezeichnet…",
     drawHint: "Ein Referenzbild, damit sie in jedem Bild gleich aussehen",
-    editTitleFor: { person: "Person bearbeiten", pet: "Tier bearbeiten", place: "Ort bearbeiten" },
+    editTitleFor: { person: "Person bearbeiten", pet: "Tier bearbeiten", place: "Ort bearbeiten", object: "Ding bearbeiten" },
     meTitle: "Das bist du",
     nameLabel: (tag) => `Name (wird zu @${tag})`,
     photoHint: "Zwei Fotos treffen am besten: eine Nahaufnahme vom Gesicht, eine vom ganzen Körper. Das Gesichtsfoto ist Pflicht, das Ganzkörperfoto freiwillig.",
@@ -441,6 +444,18 @@ export default {
     needName: "⚠ Bitte nur Buchstaben oder Zahlen für den Namen verwenden.",
     needPhotoOrDesc: "⚠ Füge ein Foto hinzu oder beschreibe sie — die KI braucht eines von beidem.",
     needPhotoOrDescHint: "Füge ein Foto oder eine Beschreibung hinzu. Ohne beides gibt es nichts, wonach gezeichnet werden kann.",
+    /* Die Bestätigung JE FOTO (Antons Ansage 13.09.2026): Die Verantwortung
+       liegt beim Menschen, der hochlädt — wie bei Higgsfield oder Runway —,
+       und die App lässt ihn das bei jedem Foto ausdrücklich sagen. */
+    consentFor: {
+      me: "Das bin ich auf dem Foto.",
+      person: "Ich darf dieses Foto verwenden: Die Person darauf hat zugestimmt.",
+      pet: "Das Foto ist von mir, oder ich darf es verwenden.",
+      place: "Das Foto ist von mir, oder ich darf es verwenden.",
+      object: "Das Foto ist von mir, oder ich darf es verwenden.",
+    },
+    consentSmall: "Keine Fotos von Prominenten, keine Kinder ohne Erlaubnis der Eltern, niemand, der nicht zugestimmt hat. Du bist verantwortlich für das, was du hochlädst — so steht es in den Nutzungsbedingungen.",
+    needConsent: "⚠ Bestätige zuerst, dass du dieses Foto verwenden darfst.",
     exists: (tag) => `⚠ @${tag} gibt es schon.`,
     created: (tag) => `@${tag} hinzugefügt`,
     saved: (tag) => `@${tag} aktualisiert`,
@@ -449,9 +464,52 @@ export default {
 
   tagCard: {
     label: (tag) => `Über @${tag}`,
-    categories: { person: "Person", pet: "Tier", place: "Ort" },
+    categories: { person: "Person", pet: "Tier", place: "Ort", object: "Ding" },
     photoOnly: "Keine Beschreibung — das Foto steht für sich.",
     close: "Schließen",
+  },
+
+  /* Erinnerungen, nativ (13.09.2026, Antons Ansage: „das muss alles gebaut
+     werden jetzt"). Logik in src/lib/reminders.js, Planung in
+     mobile/src/lib/notifications.ts. */
+  breathe: {
+    ready: "Bereit?", in: "Einatmen", hold: "Halten", out: "Ausatmen", done: "Gut gemacht",
+    start: "Los geht's", stop: "Beenden", again: "Noch eine Minute",
+    round: "Runde {n} von {m}",
+    how: "4 Sekunden einatmen, 7 halten, 8 ausatmen. Vier Runden. Du kannst die Augen schließen — das Handy tippt dich bei jedem Wechsel an.",
+  },
+
+  reminders: {
+    title: "Erinnerungen",
+    lede: "Ein Traum verblasst in Minuten. Eine Erinnerung zur richtigen Zeit ist der ganze Unterschied.",
+    settingsHint: "Morgens, abends, Realitätschecks",
+    morning: "Morgens erinnern",
+    morningHint: "„Was hast du geträumt?“ — ein Tipp auf die Nachricht, und der Rekorder läuft.",
+    evening: "Abends erinnern",
+    eveningHint: "Zeit zum Runterkommen — Geräusche an, Handy weg.",
+    reality: "Realitätschecks am Tag",
+    realityHint: "Für Klarträume: kurze Fragen zwischen 10 und 20 Uhr, jeden Tag zu anderen Zeiten.",
+    perDay: (n) => `${n}× am Tag`,
+    autoRecord: "Morgens direkt aufnehmen",
+    autoRecordHint: "Öffnest du die App zwischen 3 und 11 Uhr und hast heute noch nichts eingetragen, läuft sofort der Rekorder.",
+    denied: "Benachrichtigungen sind für Dream Rushes in den iPhone-Einstellungen ausgeschaltet.",
+    openSettings: "Einstellungen öffnen",
+    homeAskTitle: "Soll ich dich morgens erinnern?",
+    homeAskText: "Um 7:30 Uhr. Ein Tipp auf die Nachricht, und der Rekorder läuft — bevor der Traum weg ist.",
+    homeAskYes: "Ja, erinnern",
+    homeAskNo: "Nein danke",
+    morningTitle: "Was hast du geträumt?",
+    morningBody: "Erzähl es, bevor es verblasst. Ein Tipp, und ich höre zu.",
+    eveningTitle: "Zeit zum Runterkommen",
+    eveningBody: "Geräusche an, Handy weg. Heute Nacht wartet ein Traum.",
+    realityTitle: "Träumst du gerade?",
+    realityBodies: [
+      "Schau auf deine Hände. Zähl die Finger.",
+      "Lies einen Satz, schau weg, lies ihn noch mal. Bleibt er gleich?",
+      "Halt dir die Nase zu und versuch zu atmen.",
+      "Wie bist du eigentlich hierhergekommen?",
+      "Schau auf eine Uhr, dann noch einmal. Stimmt die Zeit?",
+    ],
   },
 
   lucid: {
@@ -531,7 +589,7 @@ export default {
     reminderActive: (n) => `Erinnerung an: ${n}× am Tag`,
     reminderPerDay: "Wie oft am Tag",
     reminderWhy: "Der Check wirkt nur, wenn er zur Gewohnheit wird — dafür braucht es einen Anstoß am Tag, nicht guten Willen am Abend.",
-    reminderSoon: "Gemerkt. Die Erinnerungen selbst kommen mit der iPhone-Fassung — bis dahin steht hier nur dein Wunsch.",
+    reminderSoon: "Läuft. Die Zeiten wechseln jeden Tag, damit der Check nicht zur Routine wird.",
     reminderOn: "Gemerkt — die Erinnerungen kommen mit der iPhone-Fassung",
   },
 
@@ -558,6 +616,11 @@ export default {
     recording: "Ich höre zu …", recordStop: "Fertig", recordDiscard: "Verwerfen", recordTranscribing: "Ich schreibe auf …",
     recordTooShort: "Das war zu kurz — noch mal.", recordFailed: "Konnte das nicht aufschreiben. Noch mal versuchen.",
     recordAgain: "Noch mal aufnehmen", yourRecording: "Deine Aufnahme",
+    /* Rekorder zuerst (Antons Ansage 13.09.): aufnehmen → anhören → aufschreiben → ergänzen. */
+    reviewTitle: "Hör noch mal rein", reviewHint: "Passt es? Dann schreibe ich es auf.",
+    recordListen: "Anhören", recordPause: "Pause", recordTranscribe: "Aufschreiben", recordRetake: "Neu aufnehmen",
+    typeInstead: "Lieber schreiben", textTitle: "Dein Traum", textLede: "Aus deiner Aufnahme. Lies drüber und ergänze, was fehlt.",
+    tellMore: "Weiter erzählen", rewriteAll: "Neu schreiben",
     interview: "Laut erzählen",
     interviewHint: "Ich frage, du erzählst — Augen zu, wenn du magst",
     reading: "Dein Traum wird ausgewertet…",
@@ -641,6 +704,20 @@ export default {
       freeShort: "KI",
       newShort: "Foto",
       undecided: "Noch nicht entschieden",
+      /* Dinge und die Markierung im Text (13.09.2026, Hannis Idee vom 07.08.
+         nativ): Namen leuchten im Traumtext, ein Tipp legt fest, wer es ist. */
+      objectsTitle: "Welche Dinge zählen?",
+      objectsLede: "Der Brief, das rote Auto, der Fernsehturm — was in jeder Einstellung gleich aussehen muss.",
+      objectsEmpty: "Keine besonderen Dinge. Tippe im Text auf ein Wort, wenn doch.",
+      textTitle: "Dein Traum",
+      markHint: "Markiert ist, wen und was die KI erkannt hat. Tipp auf ein Markiertes, um festzulegen, wer es ist — oder auf ein anderes Wort, um es hinzuzufügen.",
+      addTitle: "Zur Besetzung hinzufügen",
+      addName: "Name",
+      addAs: "Das ist …",
+      add: "Hinzufügen",
+      removeFromCast: "Nicht Teil der Besetzung",
+      whoIs: (name) => `Wer ist „${name}"?`,
+      close: "Fertig",
       note: "Alles, was offen bleibt, erfindet die KI.",
       removeLabel: (name) => `${name} entfernen`,
       pickTitle: (name) => `Wer ist „${name}“?`,
@@ -726,6 +803,11 @@ export default {
 
     step6: {
       title: "Dein Traum",
+      /* Die Belohnung nach dem Abgeben (Antons Ansage 13.09.2026). */
+      celebrateFirst: "Wow — dein erster Traumfilm!",
+      celebrateN: (n) => `Traum Nr. ${n} ist unterwegs`,
+      celebrateText: "Er entsteht jetzt. Du musst nicht warten — im Journal siehst du, wann er fertig ist.",
+      celebrateHint: "Wir sagen dir Bescheid, sobald er da ist.",
       save: "Ins Journal speichern",
       added: "Zu deinem Traum hinzugefügt",
       saveWhileRendering: "Speichern — ich hole ihn später ab",
@@ -743,6 +825,12 @@ export default {
     subtitle: "Alles rund um den Traum — komplett gratis.",
     free: "Träume kosten Credits. Schlaf nie.",
     tiles: {
+      /* Der Atem (13.09.2026): die 4-7-8-Übung als geführte Minute. */
+      breathe: {
+        emoji: "🫧",
+        title: "Atmen",
+        text: "Eine Minute 4-7-8 — der schnellste Weg zur Ruhe",
+      },
       checklist: {
         emoji: "🌜",
         title: "Runterkommen",
@@ -829,7 +917,7 @@ export default {
 
   legal: {
     close: "Schließen",
-    updated: "Stand: 21. August 2026",
+    updated: "Stand: 13. September 2026",
     draftNote: "Bewusst in verständlicher Sprache geschrieben. Vor dem Start in den App-Stores prüft ein Anwalt diese Texte.",
     terms: {
       title: "Nutzungsbedingungen",
@@ -839,11 +927,11 @@ export default {
         { h: "Deine Inhalte bleiben deine",
           p: "Du behältst alle Rechte an deinen Traumtexten, Fotos und erzeugten Ergebnissen. Du räumst uns und den in den Datenschutzhinweisen genannten KI-Diensten eine begrenzte Erlaubnis ein, dein Material für genau einen Zweck zu verarbeiten: die Bilder und Filme zu erstellen, die du angefordert hast. Wir verkaufen deine Inhalte nie, und diese Erlaubnis endet, sobald die Verarbeitung abgeschlossen ist." },
         { h: "Was du uns versprichst",
-          p: "Du lädst nur Fotos hoch, die du verwenden darfst — bei Fotos anderer Personen fragst du sie vorher. Du nutzt die App nicht, um rechtswidriges, täuschendes oder verletzendes Material zu erzeugen, und gibst generierte Szenen mit echten Menschen nicht als echte Ereignisse aus." },
+          p: "Du lädst nur Fotos hoch, die du verwenden darfst — bei Fotos anderer Personen fragst du sie vorher, und du bestätigst das in der App bei jedem Foto. Keine Personen des öffentlichen Lebens, keine Minderjährigen ohne Erlaubnis ihrer Eltern. Für das, was du hochlädst und erzeugst, bist du selbst verantwortlich; stellt jemand deswegen Ansprüche an uns, weil du diese Zusagen gebrochen hast, stehst du dafür ein. Du nutzt die App nicht, um rechtswidriges, täuschendes oder verletzendes Material zu erzeugen, und gibst generierte Szenen mit echten Menschen nicht als echte Ereignisse aus." },
         { h: "Alter",
           p: "Dream Rushes ist für Erwachsene. Mit der Nutzung bestätigst du, dass du mindestens 18 Jahre alt bist." },
         { h: "Credits und Käufe",
-          p: "Bilder und Filme zu erzeugen kostet Credits; Schreiben, Sprechen und alles im Schlaf-Bereich ist gratis. Preise werden immer angezeigt, bevor du zahlst. Credits haben keinen Geldwert und werden nicht ausgezahlt; Abo-Credits verfallen am Ende jeder Periode, gekaufte Pakete nicht." },
+          p: "Bilder und Filme zu erzeugen kostet Credits; Schreiben, Sprechen und alles im Schlaf-Bereich ist gratis. Preise werden immer angezeigt, bevor du zahlst. Credits haben keinen Geldwert und werden nicht ausgezahlt; Abo-Credits verfallen am Ende jeder Periode, gekaufte Pakete nicht. Ein gestarteter Film verbraucht seine Credits — wir bezahlen die KI-Dienste in diesem Moment ebenfalls. Nur wenn das Rendering technisch scheitert, bekommst du sie zurück." },
         { h: "KI-generierte Inhalte",
           p: "Alles, was die KI erzeugt, ist synthetisch. Es kann falsch, seltsam oder anders sein, als du es dir vorgestellt hast — das liegt in der Natur der Technik und ist kein Mangel. Geteilte Filme tragen eine Kennzeichnung als KI-Werk; bitte lass sie dran, in manchen Ländern verlangt das Gesetz sie." },
         { h: "Verfügbarkeit",
@@ -912,6 +1000,7 @@ export default {
     meCamera: "Selfie machen",
     meChange: "Anderes Foto",
     meLater: "Ohne Foto weiter",
+    meConsent: "Mit dem Foto bestätigst du: Das bist du.",
     meDone: "Das bist du.",
     mascotTitle: "Wähl deinen Traumbegleiter",
     mascotText: "Wacht mit dir über deine Nächte, wartet mit dir, während dein Film entsteht, und freut sich mit, wenn er fertig ist.",
@@ -1077,12 +1166,12 @@ export default {
       year: "Monat",
     },
     yieldImages: (n) => (n === 1 ? "Bild" : "Bilder"),
-    yieldFilms: (n) => (n === 1 ? "Film" : "Filme"),
+    yieldFilms: (n) => (n === 1 ? "Film à 15 s" : "Filme à 15 s"),
     upTo: "bis zu",
     yieldOr: "oder",
     packNote: "Verfallen nie — dafür je Credit etwas teurer als im Abo.",
     packYield: (i, f) => (f ? `${i} Bilder, oder bis zu ${f} ${f === 1 ? "Film" : "Filme"}` : `${i} Bilder`),
-    yieldYearNote: "Dein ganzes Jahr — jeden Monat landen 45 frische Credits.",
+    yieldYearNote: "Dein ganzes Jahr — jeden Monat landen 160 frische Credits.",
     included: "Immer inklusive, gratis",
     chips: [
       "Unbegrenztes Journal", "Sprachaufnahme", "KI-Umschreiben",

@@ -17,7 +17,11 @@
  * jetzt lesbare Seiten hinter Links, und die Datenaufklärung nennt neu die
  * Film-Renderer MiniMax und ByteDance (Seedance) — inhaltliche Änderung,
  * also wird die Zustimmung allen neu vorgelegt. */
-export const CONSENT_VERSION = 2;
+/* Version 3 (13.09.2026): Die Nutzungsbedingungen verlangen die Bestätigung
+ * JE FOTO, nennen Prominente und Minderjährige und sagen klar, dass ein
+ * gestarteter Film seine Credits verbraucht — inhaltliche Änderung, also
+ * neu vorlegen. */
+export const CONSENT_VERSION = 3;
 
 /** Steht das Tor? Auch nach einer Textänderung (Versionssprung) wieder. */
 export function needsConsent(state) {

@@ -11,6 +11,7 @@ import { colors, fonts, radius, TAB_INSET } from "@/theme";
    — Checkliste, Klänge (Web Audio), Luzid-Guide, Symbole — bleiben Web und
    werden per Stack aufgeschoben ([view].tsx). */
 const TILES: Record<string, { sf: SFSymbol; tint: string }> = {
+  breathe: { sf: "wind", tint: colors.cyan },
   checklist: { sf: "moon.zzz.fill", tint: colors.warm },
   sounds: { sf: "waveform", tint: colors.cyan },
   guide: { sf: "brain.head.profile", tint: colors.accent },

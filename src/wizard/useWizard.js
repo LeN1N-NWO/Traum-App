@@ -144,7 +144,7 @@ export function useWizard() {
       }, {});
     setW((prev) => ({
       ...prev,
-      assignments: { ...build(analysis.people, "person"), ...build(analysis.places, "place") },
+      assignments: { ...build(analysis.people, "person"), ...build(analysis.places, "place"), ...build(analysis.objects, "object") },
     }));
   }, [state.cast, state.me]);
 
@@ -182,7 +182,8 @@ export function useWizard() {
  *  eine Prüfung haben kann — sie ist eine Produktentscheidung, keine
  *  Formsache. */
 export function startsFree(kind, avatar) {
-  return kind === "place" && !avatar;
+  // Dinge (13.09.2026) wie Orte: dafür legt kaum jemand ein Foto an.
+  return (kind === "place" || kind === "object") && !avatar;
 }
 
 /** The assignments for a set of kinds, in the order the analysis produced them. */
