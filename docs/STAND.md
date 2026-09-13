@@ -7,6 +7,12 @@
 (PR #49, offen): leuchtende Kante um die Feature-Kacheln, Sekundenschnitt
 durch alle Stile im ersten Zwischenbild, Gesichter-Spot (Cursor legt Foto
 ab, Person wechselt) im zweiten — `public/clips/showcase-faces.mp4`.
+**17:00: Regie v2** (Bildgröße je Cut, PERFORMANCE, POSITIVE LOCKS,
+Kameramaße — Plan `2026-09-13-regie-v2-nach-higgsfield-case4k.md`,
+⚠ am bezahlten Film ungeprüft), **Scheitern-Analyse**
+(`2026-09-13-warum-die-app-scheitern-kann.md`), **Auftragsmotor als
+Brücken-Befehl `order` vorbereitet** (`NATIVE_ORDER = false` in
+`dream/order.tsx`, bis ein echter Auftrag ihn belegt).
 **Die letzten Web-Blätter sind nativ** (15:45): Avatar-Editor, Bearbeiten
 und Umschreiben, Umfrage; Web ist nur noch der unsichtbare Auftrags-Motor
 (`legacy-order.jsx`, Geldweg — kommt mit der Server-Abbuchung) und

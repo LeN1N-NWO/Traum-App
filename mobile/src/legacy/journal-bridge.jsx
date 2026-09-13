@@ -19,7 +19,14 @@ import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend } from "../../../src/lib/credits.js";
-import { analyze, reflect, refine, characterSheet } from "../../../src/lib/api.js";
+import { analyze, reflect, refine, characterSheet, generate } from "../../../src/lib/api.js";
+import { quoteFor } from "../../../src/lib/quote.js";
+import { buildReferences, buildImagePrompt } from "../../../src/lib/promptBuilder.js";
+import { renderRef, needsSheet, sheetFingerprint } from "../../../src/lib/sheets.js";
+import { selectBeats, shotPlan } from "../../../src/lib/cut.js";
+import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PACE } from "../../../src/lib/video.js";
+import { startsFree } from "../../../src/wizard/useWizard.js";
+import { beatsForCount } from "../../../src/lib/beats.js";
 import { reflectionContext } from "../../../src/lib/atlas.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
@@ -519,7 +526,133 @@ async function runAvatar(cmd, onResult) {
   return false;
 }
 
+/* ── Der Auftrag, nativ (Vorarbeit 13.09.2026) ──────────────────────────
+ * Step5Style.run() für den FILM, ohne Oberfläche — Schritt für Schritt
+ * dieselbe Reihenfolge, damit der Geldweg nicht auseinanderläuft:
+ *   1. Kassenprüfung (quoteFor, dieselbe Rechnung wie der Server; 409
+ *      dort, wenn er teurer liegt), noch nicht abgebucht.
+ *   2. Besetzung: Namen der Analyse, Auto-Treffer (autoMatch), Vorgaben
+ *      aus dem nativen Besetzungs-Schritt (assignmentOverrides).
+ *   3. Bogen-Pflicht: Fotos von Personen und Tieren werden VOR dem Render
+ *      einmal zum grauen Bogen (characterSheet), am Tag festgeschrieben.
+ *   4. Der Traum entsteht JETZT im Journal, mit Marke `pending` — ab hier
+ *      überlebt er jeden Bildschirmwechsel (Antons Befund 22.08.).
+ *   5. Schnittplan (selectBeats/shotPlan) und Auftrag (generate) — die
+ *      Auftragsnummer hängt sofort am Traum, dann wird abgebucht.
+ * Scheitert 5, bleibt der Traum mit `failReason`, wie im Web.
+ * ⚠ Noch NICHT der Weg der App: dream/order.tsx nutzt weiter den
+ * Web-Motor, bis dieser Befehl an einem echten Auftrag belegt ist
+ * (NATIVE_ORDER dort). Bilder-Aufträge kennt er nicht — es gibt nur Film. */
+async function runOrder(cmd, onResult) {
+  const o = cmd.order || {};
+  const s0 = loadState();
+  if ((o.mode || "film") !== "film") { onResult({ n: cmd.n, error: "unsupported" }); return true; }
+  const modelId = o.videoModel || "standard";
+  const seconds = clampSeconds(modelId, o.seconds);
+  const quality = filmQuality(modelId, o.quality).id;
+  const pace = o.pace || DEFAULT_PACE;
+  const price = quoteFor({ mode: "film", model: modelId, seconds, quality, keyframe: false });
+  if (!spend(s0, price)) { onResult({ n: cmd.n, error: "nocredits", price }); return true; }
+  const analysis = o.analysis || null;
+
+  /* 2. Besetzung — wie seedAssignments in useWizard.js, dann die Vorgaben. */
+  const build = (items, fallbackKind) => (items || []).reduce((acc, item) => {
+    const name = typeof item === "string" ? item : item?.name;
+    if (!name) return acc;
+    const kind = typeof item === "object" && item?.kind === "pet" ? "pet" : fallbackKind;
+    const wardrobe = (typeof item === "object" && item?.wearing) || "";
+    const avatar = autoMatch(name, s0.cast, s0.me);
+    acc[name] = { name, kind, ...(wardrobe ? { wardrobe } : {}), ...(avatar ? { avatar } : {}), ...(startsFree(kind, avatar) ? { free: true } : {}) };
+    return acc;
+  }, {});
+  const assignments = { ...build(analysis?.people, "person"), ...build(analysis?.places, "place") };
+  const byId = (id) => (id === "me" ? (s0.me ? { ...s0.me, id: "me", category: "person" } : null) : (s0.cast || []).find((c) => c.id === id) || null);
+  for (const [name, ov] of Object.entries(o.assignmentOverrides || {})) {
+    if (!assignments[name] || !ov) continue;
+    if (ov.free) assignments[name] = { ...assignments[name], avatar: undefined, free: true };
+    else if (ov.avatarId) { const av = byId(ov.avatarId); if (av) assignments[name] = { ...assignments[name], avatar: av, free: false }; }
+  }
+  const list = Object.values(assignments);
+  const { clauses } = buildReferences(list);
+
+  /* 3. Bogen-Pflicht — Arbeitskopien, über den TAG festgeschrieben (25.08.). */
+  let workingCast = s0.cast || [];
+  let workingMe = s0.me;
+  const members = list.filter((a) => a.avatar?.img).map((a) => ({
+    tag: a.avatar.tag, category: a.kind === "pet" ? "pet" : a.kind === "place" ? "place" : "person",
+    desc: a.avatar.desc || "", img: a.avatar.img, img2: a.avatar.img2, sheet: a.avatar.sheet, sheetOf: a.avatar.sheetOf,
+  }));
+  for (const member of members) {
+    if (!needsSheet(member)) continue;
+    try {
+      const url = await characterSheet({ photo: member.img, photo2: member.img2, desc: member.desc, category: member.category });
+      member.sheet = await compactDataUrl(mediaUrl(url));
+      member.sheetOf = sheetFingerprint(member);
+      const bogen = { sheet: member.sheet, sheetOf: member.sheetOf };
+      if (workingCast.some((p) => p?.tag === member.tag)) workingCast = workingCast.map((p) => (p?.tag === member.tag ? { ...p, ...bogen } : p));
+      if (workingMe?.tag === member.tag) workingMe = { ...workingMe, ...bogen };
+      saveState({ ...loadState(), cast: workingCast, me: workingMe });
+    } catch (e) {
+      console.warn("[bridge] Bogen übersprungen:", e?.message || e);   // Kür, nie Pflicht im Fehlerfall
+    }
+  }
+  const castForApi = members.map((m) => ({ tag: m.tag, category: m.category, desc: m.desc, img: renderRef(m) }));
+
+  /* 4. Der Traum entsteht jetzt. */
+  const s1 = loadState();
+  const entryId = o.entryId || genId("e");
+  const isNew = !o.entryId || !(s1.journal || []).some((e) => e.id === entryId);
+  const entryRefs = list.filter((a) => a.avatar?.tag).map((a) => ({ tag: a.avatar.tag, category: a.kind }));
+  const common = {
+    mode: "film", style: o.styleId, format: "9:16", imageCount: 0, analysis, references: entryRefs,
+    pending: { kind: "film", n: 1 }, fallback: undefined, failReason: undefined,
+  };
+  if (isNew) {
+    const creature = newCreature(o.text, refreshStreak(s1).streak);
+    const entry = {
+      id: entryId, createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
+      title: String(o.title || analysis?.title || "").trim() || creature.title, tagline: String(o.tagline || analysis?.tagline || "").trim(),
+      media: { type: "image", urls: [], source: "none" }, creatureId: creature.id, moon: moonForNight(),
+      ...(s1.pendingAudioUrl ? { audio: { url: s1.pendingAudioUrl } } : {}),
+      ...common,
+    };
+    saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null });
+  } else {
+    saveState({ ...s1, journal: (s1.journal || []).map((e) => (e.id === entryId ? { ...e, ...common } : e)) });
+  }
+  onJournalTick?.();
+
+  /* 5. Schnitt und Auftrag. */
+  const arc = analysis?.beats || [];
+  const cap = Math.max(1, Math.min(beatBudget(modelId, seconds, pace), arc.length || 1));
+  const order = arc.length ? selectBeats(analysis, cap) : [];
+  const shots = arc.length ? shotPlan(analysis, order, seconds, filmPace(pace).minShot) : undefined;
+  const beats = arc.length ? order.map((i) => arc[i]) : [o.text];
+  try {
+    const { jobId } = await generate({
+      dream: o.text, mode: "film", seconds, title: String(o.title || analysis?.title || "").trim(), tagline: String(o.tagline || analysis?.tagline || "").trim(),
+      model: modelId, quality, quoted: price, cast: castForApi, styleId: o.styleId, beats, shots, pace,
+      prompt: buildImagePrompt({ beat: beatsForCount(arc.length ? arc : [o.text], 1)[0] || o.text, styleId: o.styleId, format: "9:16", clauses, index: 1, total: 1 }),
+    });
+    const s2 = loadState();
+    saveState({
+      ...s2, ...(spend(s2, price) || {}),
+      journal: (s2.journal || []).map((e) => (e.id === entryId
+        ? { ...e, jobId, pending: undefined, filmPlan: { model: modelId, quality, seconds, pace, scenes: order.length } }
+        : e)),
+    });
+    onResult({ n: cmd.n, result: { entryId, jobId, price } });
+  } catch (e) {
+    const s2 = loadState();
+    saveState({ ...s2, journal: (s2.journal || []).map((x) => (x.id === entryId ? { ...x, pending: undefined, failReason: e?.message || String(e) } : x)) });
+    onResult({ n: cmd.n, error: e?.message || String(e), entryId });
+  }
+  return true;
+}
+let onJournalTick = null;
+
 async function runAsync(cmd, onResult) {
+  if (cmd.type === "order") return runOrder(cmd, onResult);
   if (String(cmd.type).startsWith("avatar")) return runAvatar(cmd, onResult);
   /* Das eigene Foto aus dem Onboarding (13.09.): kommt nativ schon auf
      1600 px verkleinert als Data-URL, wird hier wie im Avatar-Dialog noch
@@ -724,6 +857,9 @@ export default function JournalBridge({ onJournal, onResult, refreshTick = 0, co
   }, [onJournal, onResult]);
   useEffect(() => {
     if (!command) return;
+    /* Ein langer Befehl (Auftrag) meldet Zwischenstände — der Traum
+       liegt im Journal, bevor die Auftragsnummer da ist. */
+    onJournalTick = () => onJournal(snapshot());
     (async () => {
       try {
         if (await runAsync(command, onResult || (() => {}))) { onJournal(snapshot()); return; }

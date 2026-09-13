@@ -19,11 +19,30 @@ import { colors, fonts } from "@/theme";
    Brücke holt den Film, ein Toast meldet ihn. Scheitert das Abgeben,
    erscheint der Web-Motor mit seinem Fehlerblatt (Preis geändert, Server).
    Der erste eigene Traum öffnet danach einmal das Kaufblatt (Step6Result). */
+/* ⚠ Vorarbeit (13.09.2026): Der Auftrag kann auch ohne Web-Motor laufen —
+   Brücken-Befehl `order` (journal-bridge.jsx, runOrder) tut dasselbe wie
+   Step5Style.run für den Film. Bleibt AUS, bis er an einem echten,
+   bezahlten Auftrag belegt ist: Es ist der Geldweg. Zum Prüfen auf `true`
+   setzen; der Ablauf darunter (Traum erscheint mit `pending`, dann mit
+   Auftragsnummer → Journal) bleibt derselbe, nur der Fehlerfall zeigt statt
+   des Web-Fehlerblatts einen Toast und geht zurück. */
+const NATIVE_ORDER = false;
+
 export default function DreamOrderScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const w = useWizardStore();
-  const { data, bridge, send } = useJournal();
+  const { data, bridge, send, ask } = useJournal();
+  const nativeStarted = useRef(false);
+  useEffect(() => {
+    if (!NATIVE_ORDER || nativeStarted.current || !data) return;
+    nativeStarted.current = true;
+    ask({ type: "order", order: { entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, seconds: w.seconds, mode: w.mode, assignmentOverrides: w.assignmentOverrides } })
+      .then((r) => {
+        if (r.error === "nocredits") { router.replace({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
+        if (r.error) { showToast(`⚠ ${r.error}`); router.back(); }
+      });
+  }, [data, ask, router, w]);
   const W = data?.wizard;
   const [startedAt] = useState(() => Date.now());
   const firstDream = useRef<boolean | null>(null);
@@ -87,7 +106,7 @@ export default function DreamOrderScreen() {
         </View>
       ) : null}
       <View style={showWeb ? styles.web : styles.hidden}>
-        <LegacyOrder safeTop={insets.top} safeBottom={insets.bottom} order={{ entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, seconds: w.seconds, orderId: w.orderId, assignmentOverrides: w.assignmentOverrides, mode: w.mode }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />
+        {NATIVE_ORDER ? null : <LegacyOrder safeTop={insets.top} safeBottom={insets.bottom} order={{ entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, seconds: w.seconds, orderId: w.orderId, assignmentOverrides: w.assignmentOverrides, mode: w.mode }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
       </View>
       <View style={styles.bridge}>{bridge}</View>
     </>

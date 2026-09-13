@@ -128,6 +128,58 @@ Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
 `settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
 das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
 
+## 2026-09-13 17:00 — Anton — Branch `session/2026-09-13-anton-d` — Regie v2 (Higgsfield case4k), Scheitern-Analyse, Auftragsmotor vorbereitet
+
+**Antons dreifacher Auftrag:** (1) den Auftragsmotor schon vorbereiten,
+(2) ehrlich aufschreiben, woran die App scheitern kann, welche
+Gratis-Features anderer Schlaf-Apps wir nehmen sollten und wie wir uns
+von den Großen wegbewegen, (3) den Higgsfield-Post „case4k" gegen unsere
+Pipeline halten und daraus eine bessere Regie ableiten — vor allem
+Schnitte und Takt.
+
+- **Regie v2** (`src/lib/director.js`, Plan
+  `docs/plans/2026-09-13-regie-v2-nach-higgsfield-case4k.md`): Der Post
+  ist derselbe Stamm wie unser CINEDANCE-Destillat, aber er gibt **jedem
+  Cut seine eigene Bildgröße und seinen eigenen Bildwinkel** — wir
+  hielten EINEN Winkel über den ganzen Film (der Tornado vom 12.09.: drei
+  Mal 84° wide, nie ein Gesicht). Eingebaut: `shotSize(hook)` je Shot im
+  Schnittplan (setup weit, climax nah aufs Gesicht dann weit …),
+  Haltedauer in Worten („the longest hold, 6 s"), Block PERFORMANCE
+  (Mimik, Atem, Verzögerung), Block POSITIVE LOCKS (Referenzen erben
+  nichts vom Bogen, Landmarken halten Form, Licht wechselt nie die
+  Seite), Kameramaße (Sway in cm, Fahrt in m/s), Ton je Block, „the
+  camera never cuts on its own". Beides Drehbücher (Referenz + Ein-Bild).
+  Tests grün (77), Trockenlauf repariert (`scripts/dry-run-prompts.mjs`
+  importierte noch `buildPosterPrompt`, das es nicht mehr gibt).
+  ⚠ Prompts werden ~600–900 Zeichen länger; H3 hat 7 000. Am bezahlten
+  Film ungeprüft — der Plan nennt den Beweis (drei Filme, einer fremd).
+  Weiter im Plan: 3-Ansichten-Bogen mit gelöschtem Gesicht auf dem
+  Ganzkörper-Panel, Orts-Bögen, Requisiten-Anker, lange Träume in
+  15-s-Teilen, die Nachbesserungs-Schleife.
+- **Scheitern-Analyse** (`docs/plans/2026-09-13-warum-die-app-scheitern-kann.md`):
+  neun Gründe nach Wahrscheinlichkeit (Gewohnheit stirbt vor dem Wert,
+  der erste bezahlte Film enttäuscht, Rechnung, die Großen, App Store,
+  Wartezeit, ein Mensch/eine Kette, Gesichter-Recht, Sprache); sechs
+  Gratis-Features, die einen Grund geben, morgens ohne Traum zu öffnen
+  (HealthKit-Schlaf lesen, Atem-Animation, Widget, Erinnerungen,
+  Teilen-Karte, Realitätscheck-Benachrichtigung) und was wir NICHT bauen
+  (Stories, Meditationen, eigenes Tracking, Astrologie); der Graben zu den
+  Großen: Besetzung als Kern, Traumwelt, Regisseur als Handwerk, Stimme,
+  Format. Drei Dinge vor jeder Werbung: Server-Abbuchung, Regie-v2-Beweis,
+  Erinnerungen + HealthKit.
+- **Auftragsmotor vorbereitet:** Brücken-Befehl `order`
+  (`runOrder` in journal-bridge.jsx) = Step5Style.run für den Film ohne
+  Oberfläche, in derselben Reihenfolge: Kassenprüfung (quoteFor) →
+  Besetzung (autoMatch + Vorgaben) → Bogen-Pflicht (characterSheet, am
+  Tag) → Traum ins Journal mit `pending` → Schnittplan → `generate` →
+  Auftragsnummer am Traum, dann abbuchen; Fehler als `failReason`. In
+  `dream/order.tsx` hinter `NATIVE_ORDER = false` — **bleibt aus, bis
+  ein echter bezahlter Auftrag ihn belegt** (Geldweg). Typ `OrderRequest`.
+- ⚠ Fehler der Sitzung: ein Python-Einzeiler `open(p,"w").write(open(p).read())`
+  hat `director.js` GELEERT (Schreiben öffnet vor Lesen). Per
+  `git checkout` zurückgeholt, Änderungen neu angewandt. Nie wieder so
+  „kopieren".
+
 ## 2026-09-13 15:45 — Anton — Branch `session/2026-09-13-anton-d` — Die letzten Web-Blätter nativ: Avatar, Bearbeiten/Umschreiben, Umfrage
 
 **Antons Auftrag:** „Gibt es noch Seiten, die Web sind? Damit kannst du

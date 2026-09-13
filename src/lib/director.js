@@ -26,11 +26,13 @@ export const DIRECTOR_MOTION = `You are the film director for a dream-film rende
 
 Structure the prompt as short labeled blocks, in this order:
 SCENE CONTEXT — one sentence: what happens in this shot, based on the still.
-CAMERA — one lens character expressed ONLY as a diagonal field of view in degrees (18 tight portrait, 29 portrait, 47 natural, 84 wide, 107 immersive wide), the camera height, and one slow physical movement written as operator behaviour. Never use millimeters and never name lens brands. Describe what the choice looks like on screen — how the background sits behind the subject, how much environment stays visible — and hold that character for the whole shot: closer or wider framing comes from moving the camera, never from changing the lens.
+CAMERA — one lens character expressed ONLY as a diagonal field of view in degrees (18 tight portrait, 29 portrait, 47 natural, 84 wide, 107 immersive wide), the camera height, and one slow physical movement written as measurable operator behaviour (handheld sway in centimeters, dolly speed in meters per second). Never use millimeters and never name lens brands. Describe what the choice looks like on screen — how the background sits behind the subject, how much environment stays visible — and hold that character for the whole shot: closer or wider framing comes from moving the camera, never from changing the lens.
 ACTION TIMING — numbered time blocks covering the full duration (0:00–…), each with one clear visible action and one physical event.
+PERFORMANCE — for every person visible, what the face and body do: gaze, breath, tension, the delay before a reaction. Physical detail, never named emotions.
 PHYSICS — weight, ground contact and follow-through for the main motions; cloth, hair and liquids follow gravity.
 LIGHTING — treat light as a constraint, not as decoration: keep the light of the still, name its source and direction and what stays in shadow.
-AUDIO — ambient sound and effects only; no speech, no subtitles, no music unless the dream itself contains it.
+AUDIO — real-world sound only, one cue per block timed to its physical event; no speech, no subtitles, no music unless the dream itself contains it.
+POSITIVE LOCKS — three to five one-line constraints that hold for the whole take: every person and object of the still keeps shape, size, markings and wardrobe; the light source never changes side; nothing appears that the still does not show.
 
 Introduce no new people, objects or places that are not visible in the still. Never quote the dream's original wording in any language — no written text may appear in the frame. Write concrete physical language over poetry and desired visual outcomes over camera hardware. Where a style anchor is given, weave its colour, light and texture in after the control blocks — never let it override the optics or lighting you just set. Close with a short line asking for sharp clarity, natural colour and a stable picture. Output only the prompt.`;
 
@@ -81,18 +83,41 @@ SCENE CONTEXT — one or two sentences: what happens in this shot only.
 ACTIVE REFERENCES — one line per provided reference, addressed by its ${handle} handle exactly as written in the materials, built as: type + current state + the visible anchors that must match. Close every line with a statement that the subject matches its reference exactly. Describe nothing a reference line does not give you — no invented clothing, props or features. Leave out any reference that does not appear in this shot.
 LOCATION MAP — before placing anyone, fix the geography: where the camera stands and which way it faces, what occupies foreground, midground and background, where the landmarks sit, and which way the light comes from. Every distance in the next block refers to this map.
 FIRST FRAME AND BLOCKING — the first visible frame already contains every required subject in position, readable immediately. No empty establishing frame, no delayed entrance. Give each subject a screen position, a distance to a landmark in meters or by physical contact, and body facing and gaze direction as two separate statements.
-FORMAT — if a SHOT PLAN is given, follow it exactly: one time block per listed shot, cutting at the stated times, never more cuts than the plan has and never fewer. Restate positions, gaze lines and lighting direction after every cut. Hard cuts only — no fades, dissolves or transition effects. If instead a TRANSFORMATION CHAIN is given, there are no cuts at all: write one unbroken take in which each state physically turns into the next, and say what becomes what. Without either, a single continuous take.
-OPTICS — choose ONE diagonal field of view in degrees (18 tight portrait, 29 portrait, 47 natural, 84 wide, 107 immersive wide) matching the content, and state the camera distance in meters. Express the lens ONLY as degrees — never millimeters, never lens brands. Then describe what that choice looks like on screen: for a long lens, how far the camera physically stands, how the background compresses and dissolves behind the subject; for a wide lens, how near the camera stands, how the foreground looms and how far the environment stays visible. Hold that lens character for the whole shot; wider or closer framing comes from moving the camera, never from changing the lens.
-CAMERA — height, side and movement written as physical operator behaviour.
+FORMAT — if a SHOT PLAN is given, follow it exactly: one time block per listed shot, cutting at the stated times, never more cuts than the plan has and never fewer. The camera never cuts on its own — cuts happen only at the listed points, and inside a block the take runs unbroken. Restate positions, gaze lines and lighting direction after every cut. Hard cuts only — no fades, dissolves or transition effects. If instead a TRANSFORMATION CHAIN is given, there are no cuts at all: write one unbroken take in which each state physically turns into the next, and say what becomes what. Without either, a single continuous take.
+OPTICS — express every lens ONLY as a diagonal field of view in degrees (18 tight portrait, 29 portrait, 47 natural, 63 observational, 84 wide, 107 immersive wide) — never millimeters, never lens brands. With a SHOT PLAN, give each shot its own shot size and field of view, using the size the plan suggests: name the size (WIDE, MEDIUM, MEDIUM CLOSE, CLOSE, OVER-SHOULDER) and the degrees, and vary them across the film — a wide shot for scale and geography, a close shot on a face for the moment that matters; never the same size for every cut. Inside one shot, hold the lens: wider or closer framing within a block comes from moving the camera, never from changing the lens. Without a plan, choose ONE field of view for the whole take. For each lens state the camera distance in meters and what it looks like on screen: for a long lens, how far the camera physically stands and how the background compresses and dissolves behind the subject; for a wide lens, how near the camera stands, how the foreground looms and how far the environment stays visible.
+CAMERA — height, side and movement written as measurable operator behaviour: handheld sway in centimeters (1–3 cm), dolly or crane speed in meters per second, a track that follows the subject half a beat late. One movement per shot; nothing that needs longer than the block to read.
 ACTION TIMING — numbered time blocks covering the full duration (0:00–…), each with subject position, one clear action, camera behaviour and one physical event.
+PERFORMANCE — for every person in frame, what the face and body do before and after the event: gaze shifts, breath, a swallow, muscle tension, a half-step back, the delay before a reaction. Acting in physical detail, never named emotions.
 PHYSICS — weight, ground contact and follow-through for the main motions; cloth, hair and liquids follow gravity.
 LIGHTING — treat light as a constraint, not as decoration: the primary source and its direction, which side the camera holds, what stays in shadow, and what the exposure prioritises.
-AUDIO — ambient sound and effects only; no speech, no subtitles, no music unless the dream itself contains it.
+AUDIO — real-world sound only, one cue per block timed to its physical event: footsteps, wind, water, cloth, impacts; no speech, no subtitles, no music unless the dream itself contains it.
+POSITIVE LOCKS — three to six one-line constraints that must hold in every block: each referenced person keeps face, hair and wardrobe identical to their reference and inherits nothing from the reference's background; every landmark and object named in the LOCATION MAP keeps its shape, size and markings; the light source never changes side; nothing and nobody appears that the blocks did not introduce.
 
 Write concrete physical language over poetry, measurable positions over vague nearness, and desired visual outcomes over camera hardware. Where a style anchor is given, weave its colour, light and texture in after the control blocks — never let it override the optics, blocking or lighting you just set. Close with a short line asking for sharp clarity, natural colour and a stable picture. Output only the prompt.`;
 }
 
 export const DIRECTOR_FULL = directorFull("at");
+
+/* Die Bildgröße je Shot, aus dem Beat-Typ (v2, 13.09.2026 — nach dem
+ * Higgsfield-Fallbeispiel „case4k", das jedem Schnitt seine eigene Größe
+ * und seinen eigenen Bildwinkel gibt). Vorher hielt der Regisseur EINEN
+ * Bildwinkel über alle Schnitte: der Tornado-Film vom 12.09. war drei Mal
+ * 84° wide — alles im Bild, nie ein Gesicht. Das Gesicht gehört an den
+ * Moment, der zählt.
+ *   setup/transit → weit (Ort und Maßstab), build → halbnah, turn/reveal/
+ *   reversal → Push von halbnah auf nah, climax → nah am Gesicht, dann weit
+ *   für die Wirkung, resolution → halbnah, ruhig. */
+const SIZE_FOR_HOOK = {
+  setup: "WIDE 84°", transit: "WIDE 63°, tracking", build: "MEDIUM 47°",
+  turn: "MEDIUM CLOSE 29°, pushing in", reveal: "MEDIUM CLOSE 29°, pushing in", reversal: "MEDIUM CLOSE 29°",
+  callback: "MEDIUM 47°", climax: "CLOSE 29° on the face, then WIDE 84° for the effect", resolution: "MEDIUM 47°, still",
+};
+export function shotSize(hook, i = 0, total = 1) {
+  /* Der erste Shot zeigt den Ort, wenn er nicht selbst der Höhepunkt ist;
+     ein Einzelshot bleibt bei dem, was sein Typ verlangt. */
+  if (i === 0 && total > 1 && hook !== "climax") return "WIDE 84°";
+  return SIZE_FOR_HOOK[hook] || SIZE_FOR_HOOK.build;
+}
 
 /* Ein Schnittzeitpunkt, wie MiniMax H3 ihn liest: 00:04.000. Sekunden
  * bleiben ganzzahlig — der Schnitt rechnet in ganzen Sekunden (cut.js), die
@@ -183,16 +208,26 @@ export function buildDirectorBrief({ dream, still, beats = [], shots = [], refs 
        Szenen — nicht ein Tempo-Name. Unter 2,5 s je Block gilt die
        Kurz-Regie (eine Bewegung, spaet rein, frueh raus). */
     const schnell = pace === "fast" || seconds / plan.length < 2.5;
+    /* Je Shot die vorgeschlagene Bildgröße (shotSize) und die Haltedauer in
+       Worten — das Modell liest „the longest hold" so verlässlich wie eine
+       Zahl, und die Zahl allein hatte alle Blöcke gleich lang aussehen
+       lassen. */
+    const laengster = plan.reduce((m, s) => Math.max(m, s.to - s.from), 0);
+    const halt = (s) => {
+      const d = s.to - s.from;
+      return d === laengster && plan.length > 1 ? `the longest hold, ${d} s` : `${d} s`;
+    };
     const zeile = (s, i) => (timeFormat === "ms"
       ? (i === 0
-        ? `[Shot 1] ${s.text}`
-        : `[Shot ${i + 1}] At ${msLabel(s.from)}, cut to: ${s.text}`)
-      : `[${s.from}s-${s.to}s] SHOT ${i + 1} — ${s.text}`);
+        ? `[Shot 1] ${shotSize(s.hook, 0, plan.length)} — ${s.text} (${halt(s)})`
+        : `[Shot ${i + 1}] At ${msLabel(s.from)}, cut to: ${shotSize(s.hook, i, plan.length)} — ${s.text} (${halt(s)})`)
+      : `[${s.from}s-${s.to}s] SHOT ${i + 1} — ${shotSize(s.hook, i, plan.length)} — ${s.text} (${halt(s)})`);
     parts.push(`THE SHOT PLAN — this is the cut, already decided. Stage it; do not re-plan it:\n`
       + plan.map(zeile).join("\n")
       + `\nOne block per shot, ${plan.length === 1 ? "no cuts" : `${plan.length - 1} hard cut${plan.length > 2 ? "s" : ""}`}, `
       + `covering all ${seconds} seconds with no gap. Keep every block's length as given: the long blocks carry the moments that matter. `
       + `One block, one event — if a block seems to hold two, stage the second as camera movement inside it, not as an extra cut. `
+      + `Each shot names its size and field of view; use the size suggested in the plan unless the content forbids it, and never give two consecutive shots the same size. `
       /* ⚠ Beim schnellen Schnitt muss die Kürze im Text stehen, nicht nur
          in den Zahlen: Ein Modell, dem man zwei Sekunden gibt und eine
          ausgebaute Handlung beschreibt, dehnt die Handlung und ignoriert

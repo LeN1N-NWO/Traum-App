@@ -22,7 +22,7 @@
  */
 
 import { beatsForCount, beatsForSeconds } from "../src/lib/beats.js";
-import { buildReferences, buildImagePrompt, buildGridPrompt, buildPosterPrompt, buildCharacterPrompt, stripReferenceClauses } from "../src/lib/promptBuilder.js";
+import { buildReferences, buildImagePrompt, buildGridPrompt, buildCharacterPrompt, stripReferenceClauses } from "../src/lib/promptBuilder.js";
 import { buildDirectorBrief, filmReferences, checkDirectedPrompt, KEYFRAME_REF, DIRECTOR_MOTION, DIRECTOR_FULL } from "../src/lib/director.js";
 import { videoSubmitBody, videoModel, clampSeconds, VIDEO_MODELS } from "../src/lib/video.js";
 import { priceForFilm } from "../src/lib/video.js";
@@ -190,11 +190,8 @@ async function main() {
   stage(4, "BILDPROMPTS → fal.ai Nano Banana 2",
     "src/lib/promptBuilder.js · JEDER dieser Prompts kostet beim Absenden $0,08");
 
-  block("A · Das Filmplakat (Titelkarte)", buildPosterPrompt({
-    title: analysis.title, tagline: analysis.tagline,
-    essence: analysis.beats[0], styleId: analysis.style,
-    format: "9:16", clauses,
-  }));
+  /* Kein Plakat mehr (Antons Ansage 21.08.: Titel als Typografie der App,
+     nicht als gemalte Buchstaben); das Poster NACH dem Film macht poster.js. */
 
   const five = beatsForCount(analysis.beats, 5);
   block("B · Einzelbild (Beat 3 von 5)", buildImagePrompt({
