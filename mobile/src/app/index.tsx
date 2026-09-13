@@ -83,7 +83,7 @@ export default function HomeScreen() {
         {!evening && home ? (
           <View style={styles.card}>
             {home.checkin ? (
-              <Pressable style={styles.row} onPress={() => router.push({ pathname: "/journal/web", params: { view: "atlas" } })}>
+              <Pressable style={styles.row} onPress={() => router.push("/journal/atlas")}>
                 <SymbolView name={SLEEP_SYMBOL[home.checkin] ?? "moon"} size={22} tintColor={colors.accentSoft} />
                 <Text style={[styles.rowText, { flex: 1 }]}>{L.checkinThanks}</Text><Text style={styles.chev}>›</Text>
               </Pressable>

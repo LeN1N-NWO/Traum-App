@@ -128,6 +128,57 @@ Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
 `settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
 das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
 
+## 2026-09-13 15:45 — Anton — Branch `session/2026-09-13-anton-d` — Die letzten Web-Blätter nativ: Avatar, Bearbeiten/Umschreiben, Umfrage
+
+**Antons Auftrag:** „Gibt es noch Seiten, die Web sind? Damit kannst du
+weitermachen." Bestandsaufnahme: Avatar-Dialog (Profil, Besetzung,
+Wizard), Bearbeiten + drei Umschreib-Arten hinter „…", die Umfrage im
+Profil, der Home-Check-in-Link in den Web-Atlas, der unsichtbare
+Auftrags-Motor. Die ersten vier sind jetzt nativ.
+
+- **Avatar-Editor** (`components/avatar-editor.tsx`), genutzt von
+  `dream/avatar`, `journal/avatar` und `profile/page?page=avatar`: Bild
+  groß oben (System-Aktionsblatt: Mediathek / Kamera (Rückkamera) /
+  Entfernen), Gattung nur beim Anlegen ohne Vorgabe, Name mit Tag-Vorschau,
+  Beschreibung, Ganzkörperfoto erst wenn das Gesicht steht, „Aus deiner
+  Beschreibung zeichnen" erst ab 10 Zeichen (Charakterbogen, 2 Credits,
+  erst nach dem Rendern abgebucht), Datenschutz-Satz, Löschen abgesetzt
+  unten (nie fürs eigene Porträt). Fotos: nativ gewählt, > 1600 px
+  verkleinert, JPEG-Data-URL. **Die Regeln liegen in der Brücke**
+  (`runAvatar`: `avatarLoad/Save/Delete/Draw`) — Tag `[a-z0-9]{1,12}`,
+  Foto ODER Beschreibung Pflicht, Kollision nur mit sich selbst,
+  Umbenennen zieht `references` der Träume mit; dieselben wie
+  AvatarDialog.jsx.
+- **Bearbeiten/Umschreiben** (`app/journal/edit.tsx`, Modi edit / correct /
+  rewrite / elaborate / original): Das „…"-Menü der Traumseite öffnet ihn
+  direkt; Umschreiben holt den Vorschlag (Brücke `refine`, gratis), zeigt
+  „Jetzt ↔ Überarbeitet", übernommen wird erst mit „Diese Fassung
+  verwenden" (Befehl `dreamText`: erster Wortlaut bleibt als
+  `originalText`, Reflection fällt weg — wie commitText im Web). Neu im
+  Menü: „Zeigen, was ich zuerst geschrieben habe", wenn es ein anderes
+  Original gibt. **`journal/web-dream.tsx` und `legacy/legacy-dream.jsx`
+  gelöscht**, dazu das unbenutzte `legacy-voice.jsx`.
+- **Umfrage** (`profile/page?page=survey`): der Onboarding-Fluss im neuen
+  Modus `questionsOnly` (Name, fünf Fragen, Jahre-Kreis, Themen, Schluss),
+  Zurück am ersten Bildschirm verlässt ihn (`onExit`). Antworten über
+  `onboarded` in dasselbe Profil; der Bildschirm schließt erst, wenn die
+  eigene Brücke den neuen Stand gemeldet hat (sonst stirbt der Webview
+  mit dem Befehl).
+- Home: „Notiert — Schlaf und Träume treffen sich in deinem Atlas" öffnet
+  jetzt den nativen Atlas statt `journal/web?view=atlas`.
+- Geprüft per Screenshot: eigenes Porträt, neue Figur mit Gattungswahl,
+  Umschreiben-Vorschlag (Korrigieren am Tornado-Traum, echter
+  DeepSeek-Aufruf), Bearbeiten-Feld, Umfrage-Start. ⚠ Nicht getippt:
+  Foto wählen, Speichern, Löschen, Charakterbogen zeichnen (kostet 2 Cr).
+
+**Was noch Web ist:** (1) der **Auftrags-Motor** (`dream/order.tsx` →
+`legacy-order.jsx`, unsichtbar; Preisprüfung, Journal-Eintrag,
+Filmauftrag, Fehlerblatt) — bewusst nicht angefasst, das ist der Geldweg,
+der gehört mit der Server-Abbuchung (Supabase) in einem Stück umgebaut;
+(2) Rückfälle, die nativ niemand mehr erreicht: `journal/web` für
+unbekannte Nebenräume, `sleep/[view]` für unbekannte Räume,
+`profile/page` für settings/paywall.
+
 ## 2026-09-13 13:50 — Anton — Branch `session/2026-09-13-anton-d` — Leuchtende Kante, Sekundenschnitt, der Gesichter-Spot
 
 **Commits:** `28d6b63` Kante + Schnellschnitt · (Spot folgt).

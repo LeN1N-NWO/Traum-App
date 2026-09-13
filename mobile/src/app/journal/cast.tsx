@@ -10,8 +10,7 @@ import { colors, fonts, TAB_INSET } from "@/theme";
    wie ein Abspann (Name links, Häufigkeit rechts, Haarlinie), sortiert
    nach Auftritten; leere Gattung ohne Überschrift; EIN Knopf zum Anlegen
    (Gattung fragt der Dialog); Löschen liegt im Dialog. Antippen öffnet den
-   Web-Dialog zum Bearbeiten (journal/avatar.tsx) — Foto und Charakterbogen
-   bleiben dort, bis der Bildwähler nativ ist. */
+   Dialog zum Bearbeiten (journal/avatar.tsx, seit 13.09. nativ). */
 export default function CastScreen() {
   const router = useRouter();
   const { data, bridge } = useJournal();

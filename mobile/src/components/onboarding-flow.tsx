@@ -49,7 +49,7 @@ function dreamYears(key: string) {
 
 const ICONS: Record<number, SFSymbol> = { 0: "waveform.and.mic", 1: "film", 2: "moon.stars", 3: "lock" };
 
-export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone: (answers: Answers) => void; onPhoto?: (dataUrl: string) => void }) {
+export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onExit }: { O: OnboardData; onDone: (answers: Answers) => void; onPhoto?: (dataUrl: string) => void; questionsOnly?: boolean; onExit?: () => void }) {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(() => (__DEV__ && typeof (globalThis as any).__ONB_STEP__ === "number" ? (globalThis as any).__ONB_STEP__ : 0));
   const [a, setA] = useState<Answers>(EMPTY);
@@ -129,10 +129,15 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
      geantwortet hat, sichert das Ergebnis — nicht umgekehrt. Am Anfang
      schreckt sie ab, beim Kauf ist sie zu spät. */
   screens.push({ kind: "mascot" }, { kind: "themes" }, { kind: "account" }, { kind: "done" });
-  const total = screens.length;
-  const jetzt = screens[Math.min(step, total - 1)];
+  /* Nur die Fragen (Profil → „Umfrage", seit 13.09. nativ statt der
+     Web-Umfrage): Name, die fünf Fragen samt Jahre-Kreis, Themen, Schluss —
+     ohne Intro, Berechtigungen, Zwischenbilder, Foto, Begleiter, Anmeldung. */
+  const shown = questionsOnly ? screens.filter((x) => ["name", "question", "sleepYears", "themes", "done"].includes(x.kind)) : screens;
+  const total = shown.length;
+  const jetzt = shown[Math.min(step, total - 1)];
 
-  function back() { Haptics.selectionAsync(); setStep((s: number) => Math.max(0, s - 1)); }
+  // Am ersten Bildschirm führt Zurück hinaus, wenn es ein Draußen gibt (Umfrage im Profil).
+  function back() { Haptics.selectionAsync(); if (step === 0 && onExit) { onExit(); return; } setStep((s: number) => Math.max(0, s - 1)); }
   function next() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setStep((s: number) => s + 1); }
   function finish() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onDone(a); }
 
@@ -170,7 +175,7 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
   // ── Was die App macht, als Glas-Kacheln mit laufenden Filmen
   if (jetzt.kind === "features") {
     return (
-      <Shell insets={insets} step={step} total={total} title={O.featuresTitle} lede={O.featuresLede} onBack={step > 0 ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.featuresTitle} lede={O.featuresLede} onBack={step > 0 || onExit ? back : undefined}>
         {/* Vier Kacheln im Glas, in denen die Traum-Clips laufen — Antons
             Vorbild (Moonly). Die Filme sind erst mal die Vorschau-Clips der
             Stile; jede Kachel trägt ihr Etikett wie dort. */}
@@ -230,7 +235,7 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
       </Glass>
     );
     return (
-      <Shell insets={insets} step={step} total={total} title={O.askTitle} lede={O.askText} onBack={step > 0 ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.askTitle} lede={O.askText} onBack={step > 0 || onExit ? back : undefined}>
         <View style={{ gap: 10, width: "100%" }}>
           {row(O.askMic, O.askMicWhy, mic, askMic, "mic.fill")}
           {row(O.askPhotos, O.askPhotosWhy, photos, askPhotos, "photo.on.rectangle")}
@@ -243,7 +248,7 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
   // ── Der Name
   if (jetzt.kind === "name") {
     return (
-      <Shell insets={insets} step={step} total={total} title={O.formName} onBack={step > 0 ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.formName} onBack={step > 0 || onExit ? back : undefined}>
         <TextInput
           style={styles.input} value={a.name} onChangeText={(v) => set("name", v.slice(0, 40))}
           placeholder={O.formNamePlaceholder} placeholderTextColor={colors.faint}
@@ -258,7 +263,7 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
   if (jetzt.kind === "question") {
     const f = fragen[jetzt.at];
     return (
-      <Shell key={f.key} insets={insets} step={step} total={total} title={f.title} onBack={step > 0 ? back : undefined}>
+      <Shell key={f.key} insets={insets} step={step} total={total} title={f.title} onBack={step > 0 || onExit ? back : undefined}>
         {f.body}
         {/* Ohne Antwort kein Weiter (Antons Befund 13.09.) — wer nicht
             antworten will, nimmt „Überspringen" oben rechts. */}
@@ -343,7 +348,7 @@ export function OnboardingFlow({ O, onDone, onPhoto }: { O: OnboardData; onDone:
       setThemeDraft("");
     };
     return (
-      <Shell insets={insets} step={step} total={total} title={O.formThemes} onBack={step > 0 ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.formThemes} onBack={step > 0 || onExit ? back : undefined}>
         <View style={{ width: "100%", gap: 10 }}>
           <View style={styles.themeRow}>
             <TextInput

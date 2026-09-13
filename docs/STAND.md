@@ -7,6 +7,10 @@
 (PR #49, offen): leuchtende Kante um die Feature-Kacheln, Sekundenschnitt
 durch alle Stile im ersten Zwischenbild, Gesichter-Spot (Cursor legt Foto
 ab, Person wechselt) im zweiten — `public/clips/showcase-faces.mp4`.
+**Die letzten Web-Blätter sind nativ** (15:45): Avatar-Editor, Bearbeiten
+und Umschreiben, Umfrage; Web ist nur noch der unsichtbare Auftrags-Motor
+(`legacy-order.jsx`, Geldweg — kommt mit der Server-Abbuchung) und
+unerreichte Rückfälle.
 Davor Sitzung `session/2026-09-13-anton-b`
 (PR #47, gemerged auf Antons Wort; trägt Hannis #46 mit). **Danach (Branch `-c`, PR #48): zehn Style-Clips über Higgsfield**
 (Seedance 2.5, 3:4, 480p, 5 s) — seit 12:50 ALLE neunzehn Stile

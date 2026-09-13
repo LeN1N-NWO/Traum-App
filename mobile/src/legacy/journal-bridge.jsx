@@ -19,7 +19,7 @@ import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend } from "../../../src/lib/credits.js";
-import { analyze, reflect } from "../../../src/lib/api.js";
+import { analyze, reflect, refine, characterSheet } from "../../../src/lib/api.js";
 import { reflectionContext } from "../../../src/lib/atlas.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
@@ -162,6 +162,13 @@ function snapshot() {
     /* Das „…"-Menü der Traum-Seite (EntryMenu.jsx) als natives Aktionsblatt. */
     menuEdit: t.journal.edit, menuCorrect: t.journal.correct, menuRewrite: t.journal.rewrite, menuElaborate: t.journal.elaborate,
     menuDelete: t.journal.delete, deleted: t.journal.deleted, cancel: t.wizard.cancel,
+    /* Bearbeiten und Umschreiben, nativ seit 13.09. (journal/edit.tsx) —
+       dieselben Texte wie JournalDetail.jsx, RefineSheet.jsx, RefineProposal. */
+    menuOriginal: t.journal.showOriginal, editing: t.journal.editing, save: t.journal.save, cancelEdit: t.journal.cancelEdit,
+    edited: t.journal.edited, working: t.journal.working, tooShort: t.wizard.tooShort,
+    refineTitle: t.journal.refineTitle, refineLede: t.journal.refineLede, before: t.journal.before, after: t.journal.after,
+    keep: t.journal.keep, accept: t.journal.accept,
+    refineHints: { correct: t.journal.correctHint, rewrite: t.journal.rewriteHint, elaborate: t.journal.elaborateHint },
   };
   const sleep = {
     title: t.sleep.title, subtitle: t.sleep.subtitle, free: t.sleep.free,
@@ -423,7 +430,97 @@ function snapshot() {
 /* Die Traumlesung (Analyse): kostet PRICES.improve, wie im Web — Kassen-
    prüfung vorher, abgebucht erst nach gelungenem Aufruf. Antwort geht per
    `onResult` zurück. */
+/* ── Der Avatar-Dialog, nativ (13.09.2026) ──────────────────────────────
+   Dieselben Regeln wie AvatarDialog.jsx, nur ohne Oberfläche: der Name
+   wird zum Tag ([a-z0-9], 12 Zeichen, wie sanitizeTag in server.js), ohne
+   Foto UND ohne Beschreibung wird nicht gespeichert, ein Tag darf nur mit
+   dem eigenen Eintrag kollidieren, Umbenennen zieht die `references` der
+   Träume mit, Löschen lässt alte Träume unangetastet, das eigene Porträt
+   (`me`) wird geändert, nie gelöscht. Die Oberfläche ist
+   components/avatar-editor.tsx. */
+const cleanTag = (raw) => String(raw || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
+function avatarLabels() {
+  const a = t.avatarDialog;
+  return {
+    titleFor: a.titleFor, editTitleFor: a.editTitleFor, meTitle: a.meTitle, kindLabel: a.kindLabel, kindFor: a.kindFor,
+    nameTpl: a.nameLabel("{tag}"), photoHint: a.photoHint, photoLabelClose: a.photoLabelClose, photoLabel: a.photoLabel,
+    photoLabelBody: a.photoLabelBody, photoBodyAdd: a.photoBodyAdd, photoBodyWhy: a.photoBodyWhy, photoAdd: a.photoAdd,
+    photoTake: a.photoTake, photoReplace: a.photoReplace, photoRemove: a.photoRemove, descLabel: a.descLabel,
+    descLabelOptional: a.descLabelOptional, descPlaceholder: a.descPlaceholder, privacy: a.privacy, cancel: a.cancel,
+    save: a.save, saveChanges: a.saveChanges, needPhotoOrDescHint: a.needPhotoOrDescHint, delete: a.delete,
+    drawFromDesc: a.drawFromDesc, drawingNow: a.drawingNow, drawHint: a.drawHint,
+    creditsWord: t.wizard.creditsN(PRICES.characterSheet),
+  };
+}
+async function runAvatar(cmd, onResult) {
+  const s = loadState();
+  if (cmd.type === "avatarLoad") {
+    const existing = cmd.mode === "me" ? (s.me || null) : cmd.mode === "edit" ? (s.cast || []).find((c) => c.id === cmd.id) || null : null;
+    if (cmd.mode === "edit" && !existing) { onResult({ n: cmd.n, error: "notfound" }); return true; }
+    onResult({ n: cmd.n, result: {
+      labels: avatarLabels(), price: PRICES.characterSheet,
+      entry: { tag: cleanTag(existing?.tag || cmd.tag || ""), desc: existing?.desc || "", img: existing?.img || "", img2: existing?.img2 || "", category: existing?.category || null },
+    } });
+    return true;
+  }
+  if (cmd.type === "avatarSave") {
+    const a = cmd.avatar || {};
+    const clean = cleanTag(a.tag);
+    const desc = String(a.desc || "").trim().slice(0, 120);
+    if (!clean) { onResult({ n: cmd.n, error: t.avatarDialog.needName }); return true; }
+    if (!a.img && !desc) { onResult({ n: cmd.n, error: t.avatarDialog.needPhotoOrDesc }); return true; }
+    if (cmd.mode === "me") {
+      saveState({ ...s, me: { ...(s.me || {}), tag: clean, desc, img: a.img || "", img2: a.img2 || "" } });
+      onResult({ n: cmd.n, result: { toast: t.avatarDialog.saved(clean) } });
+      return true;
+    }
+    if ((s.cast || []).some((p) => p.tag === clean && p.id !== cmd.id)) { onResult({ n: cmd.n, error: t.avatarDialog.exists(clean) }); return true; }
+    if (cmd.mode === "edit") {
+      const old = (s.cast || []).find((p) => p.id === cmd.id);
+      if (!old) { onResult({ n: cmd.n, error: "notfound" }); return true; }
+      const saved = { ...old, tag: clean, desc, img: a.img || "", img2: a.img2 || "" };
+      const patch = { cast: (s.cast || []).map((p) => (p.id === old.id ? saved : p)) };
+      if (old.tag !== clean) {
+        patch.journal = (s.journal || []).map((e) => ({ ...e, references: (e.references || []).map((r) => (r.tag === old.tag ? { ...r, tag: clean } : r)) }));
+      }
+      saveState({ ...s, ...patch });
+      onResult({ n: cmd.n, result: { toast: t.avatarDialog.saved(clean), id: saved.id } });
+      return true;
+    }
+    const kind = ["person", "pet", "place"].includes(a.category) ? a.category : "person";
+    const avatar = { id: genId("c"), tag: clean, category: kind, desc, img: a.img || "", img2: a.img2 || "" };
+    saveState({ ...s, cast: [...(s.cast || []), avatar] });
+    onResult({ n: cmd.n, result: { toast: t.avatarDialog.created(clean), id: avatar.id } });
+    return true;
+  }
+  if (cmd.type === "avatarDelete") {
+    const old = (s.cast || []).find((p) => p.id === cmd.id);
+    if (old) saveState({ ...s, cast: (s.cast || []).filter((p) => p.id !== cmd.id) });
+    onResult({ n: cmd.n, result: { toast: old ? t.profile.removed(old.tag) : null } });
+    return true;
+  }
+  if (cmd.type === "avatarDraw") {
+    /* Der Charakterbogen: erst rendern, DANN abbuchen — ein Fehlschlag
+       kostet nichts (wie überall). Als data:-URI, weil fal einen
+       /media/-Pfad dieses Rechners nicht laden kann (Befund 20.08.). */
+    if (!spend(s, PRICES.characterSheet)) { onResult({ n: cmd.n, error: "nocredits" }); return true; }
+    try {
+      const url = await characterSheet({ desc: String(cmd.text || "").trim(), category: cmd.category || "person" });
+      const img = await compactDataUrl(mediaUrl(url));
+      const now = loadState();
+      const paid = spend(now, PRICES.characterSheet);
+      if (paid) saveState({ ...now, ...paid });
+      onResult({ n: cmd.n, result: { img } });
+    } catch (e) {
+      onResult({ n: cmd.n, error: e?.message || String(e) });
+    }
+    return true;
+  }
+  return false;
+}
+
 async function runAsync(cmd, onResult) {
+  if (String(cmd.type).startsWith("avatar")) return runAvatar(cmd, onResult);
   /* Das eigene Foto aus dem Onboarding (13.09.): kommt nativ schon auf
      1600 px verkleinert als Data-URL, wird hier wie im Avatar-Dialog noch
      einmal durch compactDataUrl gezogen (JPEG, dieselbe Grenze) und liegt
@@ -458,6 +555,26 @@ async function runAsync(cmd, onResult) {
                 free: t.wizard.cast.freeSet, freeShort: t.wizard.cast.freeShort, newShort: t.wizard.cast.newShort, undecided: t.wizard.cast.undecided, choose: t.wizard.cast.choose, change: t.wizard.cast.change,
                 createNew: t.wizard.cast.createNew },
     } });
+    return true;
+  }
+  /* Umschreiben (correct/rewrite/elaborate) — REFINE_MODES in server.js,
+     gratis wie jede Textarbeit (pricing.js). Die Brücke liefert nur den
+     VORSCHLAG; übernommen wird er erst mit `dreamText` — es ist sein Traum,
+     und nichts ersetzt ihn hinter seinem Rücken. */
+  if (cmd.type === "refine") {
+    const s = loadState();
+    const e = (s.journal || []).find((x) => x.id === cmd.id);
+    if (!e) { onResult({ n: cmd.n, error: "notfound" }); return true; }
+    const mode = ["correct", "rewrite", "elaborate"].includes(cmd.value) ? cmd.value : "correct";
+    const paid = spend(s, PRICES[mode] ?? 0);
+    if (!paid) { onResult({ n: cmd.n, error: "nocredits" }); return true; }
+    try {
+      const text = await refine(e.text, mode);
+      saveState({ ...loadState(), ...paid });
+      onResult({ n: cmd.n, result: { text } });
+    } catch (err) {
+      onResult({ n: cmd.n, error: err?.message || String(err) });
+    }
     return true;
   }
   if (cmd.type === "reflect") {
@@ -510,6 +627,17 @@ function run(cmd) {
     const profile = profileFromAnswers(cmd.answers || {}, zodiacOf);   // nimmt `goals` ODER `goal`
     const mascotId = MASCOTS.some((m) => m.id === cmd.answers?.mascot) ? cmd.answers.mascot : null;
     patch = { onboarded: true, surveyDone: true, profile, ...(mascotId ? { mascot: mascotId } : {}), ...(profile.name ? { me: { ...(s.me || {}), tag: profile.name } } : {}) };
+  }
+  else if (cmd.type === "dreamText") {
+    /* Neuer Wortlaut (Bearbeiten oder angenommener Vorschlag) — wie
+       commitText in JournalDetail.jsx: der erste Wortlaut bleibt als
+       `originalText`, die Reflection fällt weg (sie beschrieb den alten). */
+    const clean = String(cmd.text || "").trim();
+    if (clean.length >= 8) {
+      patch = { journal: (s.journal || []).map((e) => (e.id === cmd.id
+        ? { ...e, text: clean, reflection: undefined, originalText: e.originalText || e.text, editedAt: new Date().toISOString() }
+        : e)) };
+    }
   }
   else if (cmd.type === "paywallSeen") patch = { paywallSeen: true };
   else if (cmd.type === "deleteDream") patch = { journal: (s.journal || []).filter((e) => e.id !== cmd.id) };
