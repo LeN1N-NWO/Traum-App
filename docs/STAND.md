@@ -3,8 +3,21 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-13 nachmittags — Sitzung `session/2026-09-13-anton-d`
-(PR #49, offen): leuchtende Kante um die Feature-Kacheln, Sekundenschnitt
+**Stand:** 2026-09-13 abends — Sitzung `session/2026-09-13-anton-d`
+(PR #49, offen). **18:20, Antons neun Punkte gebaut** (`8777b8b`, Plan
+`docs/plans/2026-09-13-antworten-preise-recht-gratisfeatures.md`):
+Traum-Tab öffnet direkt die Aufnahme (anhören → aufschreiben → ergänzen);
+Namen/Orte/Dinge leuchten im Traumtext und lassen sich zuordnen oder
+hinzufügen; neue Gattung **Ding**; Besetzung als Karte oben im Profil;
+**Haken je Foto** (Einwilligung v3); Konfetti nach dem Abgeben;
+**Erinnerungen** (expo-notifications neu → Pods + Rebuild, kein prebuild)
+mit „morgens direkt aufnehmen"; **Atmen** im Schlaf-Tab; **Preise:** Monat
+$9,99 = 160 Cr = fünf 15-s-Filme, Jahr $99,99, Woche gestrichen, Pakete
+S–XL. ⚠ Ungeprüft: Erlaubnis/Zustellung der Erinnerungen, Foto-Haken,
+Besetzungs-Blätter (Simulator-Panel kann nicht tippen: `sudo xcode-select
+-s /Applications/Xcode.app/Contents/Developer`). ⚠ Seedance 2.5 nimmt laut
+ByteDance keine echten Gesichter ohne Verifizierung — vor Replicate testen.
+Davor am Nachmittag: leuchtende Kante um die Feature-Kacheln, Sekundenschnitt
 durch alle Stile im ersten Zwischenbild, Gesichter-Spot (Cursor legt Foto
 ab, Person wechselt) im zweiten — `public/clips/showcase-faces.mp4`.
 **17:00: Regie v2** (Bildgröße je Cut, PERFORMANCE, POSITIVE LOCKS,

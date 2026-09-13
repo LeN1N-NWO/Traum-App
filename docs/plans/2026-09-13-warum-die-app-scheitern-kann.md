@@ -5,6 +5,12 @@ Scheitern dieser App passieren? Sollten wir mehr Features anderer
 Schlaf-Apps kostenlos hineinnehmen? Und wie driften wir weiter weg von
 den Großen, wenn die das Traum-Video auch bauen?"
 
+> **Nachtrag 13.09. abends:** Antons Antworten auf die neun Punkte und was
+> daraus gebaut wurde, stehen in `2026-09-13-antworten-preise-recht-gratisfeatures.md`.
+> Zwei Stellen unten waren falsch formuliert und sind dort richtiggestellt:
+> die „Erstattungsregel" (gestrichen) und das „Draufzahlen" (ein Guthaben
+> ist eine Obergrenze; gemeint war die dünne Marge einzelner Pläne).
+
 Das ist eine Einschätzung, keine Studie. Zahlen aus dem Repo, wo es sie
 gibt (STAND, plans.js, video.js); der Rest ist Erfahrung mit Apps dieser
 Art und ehrlich als Meinung markiert.
@@ -26,15 +32,16 @@ Requisite, die zwischen zwei Cuts ihre Form wechselt. Wer 46 Credits
 (≈ 4,60 €) für einen Film ausgibt, der „nicht mein Traum" ist, kauft
 nie wieder — und sagt es weiter. Alles, was in
 `2026-09-13-regie-v2-nach-higgsfield-case4k.md` steht, ist Arbeit
-gegen genau diesen Punkt. Dazu gehört auch: **eine Erstattungsregel**,
-die die App selbst ausspricht („Nicht dein Traum? Der nächste Versuch
-ist frei"), bevor es der App-Store-Reviewer tut.
+gegen genau diesen Punkt. ~~Dazu gehört auch eine Erstattungsregel („Nicht dein Traum? Der nächste
+Versuch ist frei").~~ Gestrichen am 13.09. (Anton: ein gestarteter Film ist
+bezahlt); Credits kommen nur bei technischem Scheitern zurück.
 
 **3. Die Rechnung geht nicht auf.** Der Gründervermerk verlangt
 ≈ 3 600 Abos à 9,99 € für zwei Gehälter. Ein 15-s-H3-Film in 768P kostet
 im Einkauf ≈ 0,93 $, Seedance 2,5 in 720p ≈ 7 $. Ein Monatsabo mit 100
-Credits trägt zwei H3-Filme, danach zahlen wir drauf, wenn jemand Kino
-bestellt. Die Modelle werden billiger — aber nicht schneller, als ein
+Credits trug zwei 15-s-H3-Filme. ~~Danach zahlen wir drauf~~ — falsch
+formuliert: Das Guthaben ist eine Obergrenze. Gemeint war die dünne Marge
+einzelner Pläne; neue Liste seit 13.09.: 160 Credits = fünf Filme. Die Modelle werden billiger — aber nicht schneller, als ein
 begeisterter Nutzer sie leert. Das ist kein Grund zur Panik, aber der
 Grund, warum Punkt 2–6 der Abbuchungs-Übergabe (Server bucht ab, nicht
 das Gerät) vor jeder Werbung kommen müssen.

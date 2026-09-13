@@ -3,6 +3,65 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-13 18:20 — Anton — Branch `session/2026-09-13-anton-d` — Antons neun Punkte: Rekorder zuerst, Besetzung im Text, Dinge, Foto-Bestätigung, Belohnung, Erinnerungen, Atmen, Preise
+
+**Commit:** `8777b8b` (Code) + Doku-Commit danach.
+
+**Antons Rückmeldung** auf die Scheitern-Analyse, neun Punkte plus
+Besetzung und Aufnahme-Ablauf. Antworten, Rechnung und Plan stehen in
+`docs/plans/2026-09-13-antworten-preise-recht-gratisfeatures.md`; die
+Recherchen mit Quellen daneben (`…-recherche-anbieter-recht.md`,
+`…-recherche-expo-erinnerungen-healthkit-widgets.md`).
+
+- **Rekorder zuerst** (`components/dream-recorder.tsx`, `dream/index.tsx`):
+  Traum-Tab öffnen = Aufnahme läuft; Stopp → anhören → „Aufschreiben" →
+  Text mit „Weiter erzählen" / „Neu schreiben". Tab-Wechsel während der
+  Aufnahme hält an und zeigt die Aufnahme zum Anhören. `dream/voice.tsx`
+  ist weg (auch der `?auto=`-Selbsttest). `resetWizard` zählt jetzt
+  `resets` hoch, damit der im Tab lebende Bildschirm nach einem Auftrag
+  von vorn beginnt.
+- **Besetzung im Text** (`components/cast-text.tsx`, Hannis Idee vom
+  07.08.): Markierungen je Gattung, Tipp = „Wer ist das?", anderes Wort =
+  hinzufügen; Neues landet in der Analyse (people/places/objects).
+- **Gattung „Ding"** durch die Kette: Analyse-Schema `objects` (≤ 3),
+  server.js-Allowlists, promptBuilder, `filmReferences`-Rang, `startsFree`,
+  Brücke, Avatar-Dialog. Bibliothek zeigt alle vier Gattungen, im Profil
+  als Karte ganz oben (`profile/cast.tsx`, `profile/avatar.tsx` leiten auf
+  die Journal-Seiten; der Pfad entscheidet den Stapel).
+- **Bestätigung je Foto** im Avatar-Dialog, gespeichert als
+  `photoConsent {v, at, of}` mit Fingerabdruck; Onboarding-Satz;
+  Nutzungsbedingungen geschärft → `CONSENT_VERSION` 3.
+- **Belohnung** (`components/celebration.tsx`) statt Faultier im Auftrag.
+- **Erinnerungen** (`lib/notifications.ts`, `lib/use-reminders.ts`,
+  `profile/reminders.tsx`, Logik in `src/lib/reminders.js` mit Tests):
+  morgens → `/dream`, abends → `/sleep`, Realitätschecks 7 Tage voraus;
+  Karte auf Home; „Morgens direkt aufnehmen" beim Öffnen.
+- **Atmen** (`components/breath.tsx`) als erster Schlaf-Raum; Räume mit
+  durchsichtigem Kopf (war weiß).
+- **Preise** (`plans.js`): Monat $9,99/160 Cr, Jahr $99,99/160, Woche weg,
+  Pakete 50/150/320/700; Paywall zählt „Filme à 15 s" in Standard.
+
+**Was der Nächste wissen muss:**
+- ⚠ **expo-notifications ist neu** → `bun run pods` + Rebuild gemacht,
+  App im Simulator installiert. **Kein `expo prebuild`** (Push-Entitlement).
+  Im unsignierten Simulator-Bau meldet das Paket einen Schlüsselbund-Fehler
+  der Push-Registrierung — harmlos, per `LogBox.ignoreLogs` ausgeblendet.
+- ⚠ **Ungeprüft:** Erlaubnis-Dialog und Zustellung der Erinnerungen
+  (braucht einen Finger; das Simulator-Panel meldet weiter „Xcode not
+  selected"), der Foto-Haken im Dialog (braucht ein gewähltes Foto), die
+  beiden Besetzungs-Blätter, der Atem-Ablauf. Geprüft per Deep-Link und
+  Screenshot: Profil-Karte, Bibliothek, Erinnerungen-Seite, Home-Karte,
+  Rekorder (Autostart, Stopp, Anhören 0:22), Besetzung mit Markierungen,
+  Konfetti, Atem-Raum, Avatar-Dialog mit vier Gattungen. Die Prüfhilfen
+  (Tore aus, Beispieltraum, Test-Route) sind wieder raus.
+- ⚠ **Seedance 2.5 und echte Gesichter:** ByteDance nimmt laut eigener Doku
+  keine Referenzbilder mit echten Gesichtern ohne Verifizierung. Vor dem
+  Replicate-Wechsel mit einem Besetzungsfoto testen.
+- ⚠ Das Einwilligungs-Tor kommt wegen Version 3 einmal neu.
+- Meine Aufnahme aus dem Test (22 s, still) liegt über `/api/panel` im
+  Medienordner — ohne Traum, kann weg.
+- Tests 626 grün (`bun test`), Typen sauber, Lint 0 Fehler.
+
 ## 2026-09-12 20:10 — Hanni — Branch `session/2026-09-12-hanni-backend-auth` — Anmeldung, Konto und Träume im Backend
 
 **Commits (3):** `8b57221` src/lib/auth.js (Supabase Auth) · `41a3534`
