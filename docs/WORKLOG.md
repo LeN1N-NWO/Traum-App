@@ -128,6 +128,43 @@ Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
 `settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
 das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
 
+## 2026-09-13 12:20 — Anton — Branch `session/2026-09-13-anton-c` — Zehn Style-Clips über Higgsfield
+
+**Commits:** `9d7075d` Surreal + Knete · `828ba9e` acht Stimmungs-Stile + Tusche.
+
+**Antons Auftrag:** je Stil ein 5-s-Clip, der den Stil „einbrennt" — eine
+absurde Traum-Idee, auf den Punkt, mit Abwechslung: nicht nur
+Verwandlung und Maßstabsbruch, sondern je nach Stil auch ein Schnitt oder
+ein ruhiger Take. Seedance 2.5 über Antons Higgsfield-Konto (MCP
+angebunden), **3:4** (die Stil-Kacheln sind quadratisch, der Zoom 5:7 —
+3:4 deckt beides), **480p**, ohne Ton, ~32 Credits je Clip. Zehn gerendert
+(≈ 325 Credits, Stand danach 3.998), Rest neun Handwerksstile offen.
+
+**Was je Stil passiert:** Ultrareal — Glühwürmchen aus dem Wasserhahn,
+ein ruhiger Take (Deakins) · Noir — Rauch wird zur Frau, harter Schnitt
+auf die Augen · Traumhaft — Bett gleitet die Wendeltreppe hinab, Fische
+aus Licht · Romantisch — die Stadt hebt beim Tanz ab wie Pusteblumen ·
+Düster — Flur, hinter jeder Tür er selbst, Türen knallen · Surreal —
+Mann wird zu Tauben, der Hut bleibt · Nostalgisch — Geburtstag,
+Jump-Cut, nur die Kerzen bleiben · Abenteuer — der Grat ist eine
+Schildkröte · Tusche — Kranich zerfällt zu Schriftzeichen,
+Pflaumenblüten · Knete — die Schläferin im Bett in der Teetasse.
+
+**Was der Nächste wissen muss:**
+- **Ablage:** Original `media/clips-src/<stil>-<job8>.mp4`, Vorschau
+  `media/pv<stil>2609a.mp4` (270 px, stumm, < 200 KB, crf 28–34 bis es
+  passt). ⚠ `media/` ist git-ignoriert — die Dateien liegen NUR in Antons
+  Hauptcheckout; Hanni sieht Zeichen auf Farbe. Der geplante Umzug nach
+  `src/assets` (STAND, Punkt 6) gilt weiter.
+- **Higgsfield schlägt bei fast jedem Prompt das Preset „IN THE DARK"
+  vor** und reicht den Auftrag dann NICHT ein (`submission_failed`). Immer
+  wörtlich mit `declined_preset_id: 24bae836-2c4a-48e0-89b6-49fcc0b21612`
+  neu einreichen — beim Stapel gleich mitgeben.
+- Ingest-Skript der Sitzung liegt nur im Scratchpad (`ingest-clip.sh`:
+  bun-fetch statt curl, weil LuLu curl blockt; ffmpeg 270 px; drei
+  Standbilder zum Ansehen). Bei Bedarf nach `scripts/` holen.
+- Die `look`-CSS-Filter in `presets.js` sind weg; kein Code liest sie mehr.
+
 ## 2026-09-13 11:40 — Anton — Branch `session/2026-09-13-anton-b` — Sitzungsabschluss (wrap + Merge auf Antons Wort, während Higgsfield rendert)
 
 **Commits (12):** `4f36289` Journal-Bilder · `a92ab16` Merge Hannis PR #46 ·
