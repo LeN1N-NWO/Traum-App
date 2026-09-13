@@ -197,6 +197,7 @@ function snapshot() {
     settingsPage: {
       voiceSetting: t.profile.voiceSetting, voiceSettingHint: t.profile.voiceSettingHint,
       withdrawConsent: t.profile.withdrawConsent, withdrawConsentHint: t.profile.withdrawConsentHint, done: t.profile.done,
+      account: t.profile.account, accountNone: t.profile.accountNone, accountSignedIn: t.profile.accountSignedIn, signIn: t.profile.signIn, signOut: t.profile.signOut,
       voice: isVoice(s.voice) ? s.voice : DEFAULT_VOICE,
       voices: VOICES.map((v) => ({ id: v.id, trait: t.voice.traits[v.trait] || v.trait })),
       pickTitle: t.voice.pickTitle, pickHint: t.voice.pickHint, pickGo: t.voice.pickGo, cancel: t.voice.cancel,
@@ -355,7 +356,9 @@ function snapshot() {
   const onboard = {
     ...Object.fromEntries(["skip", "next", "back", "introKicker", "introText", "introCta", "featuresTitle",
       "askTitle", "askText", "askMic", "askMicWhy", "askPhotos", "askPhotosWhy", "askGranted", "askDenied", "askGo",
-      "sleepTitle", "sleepAsleep", "sleepNote", "doneTitle", "doneText", "doneCta"].map((k) => [k, onb[k]])),
+      "sleepTitle", "sleepAsleep", "sleepNote", "doneTitle", "doneText", "doneCta",
+      "accountTitle", "accountText", "accountEmail", "accountPassword", "accountCta", "accountLater", "accountSignedIn",
+      "accountWrong", "accountBusy", "accountUnavailable", "accountOffline", "accountApple"].map((k) => [k, onb[k]])),
     features: onb.features, showcase: onb.showcase,
     mascotTitle: onb.mascotTitle, mascotText: onb.mascotText, mascotSoon: onb.mascotSoon,
     /* Die drei Maskottchen (mascots.js) — zwei noch Platzhalter. Das Video

@@ -383,6 +383,11 @@ export default {
     voiceSettingHint: "Wer mit dir spricht",
     withdrawConsent: "Einwilligung widerrufen",
     withdrawConsentHint: "Nichts verlässt dein Gerät, bis du erneut zustimmst",
+    account: "Konto",
+    accountNone: "Nicht angemeldet",
+    accountSignedIn: "Angemeldet als",
+    signIn: "Anmelden",
+    signOut: "Abmelden",
     done: "Fertig",
     credits: "Credits",
     creditsSoon: "Aufladen kommt bald",
@@ -911,6 +916,21 @@ export default {
     doneTitle: "Das war's",
     doneText: "Deine Nächte haben jetzt einen Ort.",
     doneCta: "Heute Nacht anfangen",
+    /* Die Anmeldung, am Ende des Onboardings (Antons Platzwahl 13.09.2026):
+       erst antworten, dann sichern. Ein Konto gibt es nur, wenn Hanni eins
+       angelegt hat — Registrieren kommt mit „Mit Apple anmelden". */
+    accountTitle: "Sichere deine Nächte",
+    accountText: "Mit einem Konto bleiben Träume, Filme und dein Profil erhalten, wenn das Handy wechselt.",
+    accountEmail: "E-Mail",
+    accountPassword: "Passwort",
+    accountCta: "Anmelden",
+    accountLater: "Später",
+    accountSignedIn: "Angemeldet als",
+    accountWrong: "E-Mail oder Passwort stimmen nicht.",
+    accountBusy: "Zu viele Versuche — eine Minute warten.",
+    accountUnavailable: "Die Anmeldung ist gerade nicht erreichbar. Du kannst sie später in den Einstellungen nachholen.",
+    accountOffline: "Keine Verbindung zum Server.",
+    accountApple: "Mit Apple anmelden — kommt noch",
   },
   onboarding: {
     tagline: "Jede Nacht drehst du Filme. Fang an, sie zu behalten.",

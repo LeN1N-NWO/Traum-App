@@ -427,6 +427,11 @@ export default {
     voiceSettingHint: "Which voice talks to you",
     withdrawConsent: "Withdraw consent",
     withdrawConsentHint: "Nothing leaves your device until you agree again",
+    account: "Account",
+    accountNone: "Not signed in",
+    accountSignedIn: "Signed in as",
+    signIn: "Sign in",
+    signOut: "Sign out",
     done: "Done",
     credits: "credits",
     creditsSoon: "Top-up coming soon",
@@ -991,6 +996,21 @@ export default {
     doneTitle: "That's it",
     doneText: "Your nights have a place now.",
     doneCta: "Start tonight",
+    /* Sign-in at the end of onboarding (Anton's placement, 13.09.2026):
+       answer first, then keep it. Accounts exist only once Hanni created
+       one — sign-up arrives with "Sign in with Apple". */
+    accountTitle: "Keep your nights",
+    accountText: "With an account, your dreams, films and profile survive a new phone.",
+    accountEmail: "Email",
+    accountPassword: "Password",
+    accountCta: "Sign in",
+    accountLater: "Later",
+    accountSignedIn: "Signed in as",
+    accountWrong: "Email or password doesn’t match.",
+    accountBusy: "Too many attempts — wait a minute.",
+    accountUnavailable: "Sign-in isn’t reachable right now. You can do it later in Settings.",
+    accountOffline: "No connection to the server.",
+    accountApple: "Sign in with Apple — coming soon",
   },
   onboarding: {
     tagline: "Every night you make films. Start keeping them.",

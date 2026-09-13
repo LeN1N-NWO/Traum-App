@@ -5,11 +5,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SymbolView, type SFSymbol } from "expo-symbols";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
 import { Clip } from "@/components/preset-tile";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
+import { login, useAccountEmail, type LoginFailure } from "@/lib/auth";
 import type { OnboardData } from "@/store/journal-store";
 import { colors, fonts, radius } from "@/theme";
 
@@ -105,14 +106,17 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
   type Screen =
     | { kind: "intro" } | { kind: "features" } | { kind: "permits" } | { kind: "name" }
     | { kind: "question"; at: number } | { kind: "showcase"; at: number }
-    | { kind: "sleepYears" } | { kind: "mascot" } | { kind: "themes" } | { kind: "done" };
+    | { kind: "sleepYears" } | { kind: "mascot" } | { kind: "themes" } | { kind: "account" } | { kind: "done" };
   const screens: Screen[] = [{ kind: "intro" }, { kind: "features" }, { kind: "permits" }, { kind: "name" }];
   fragen.forEach((f, i) => {
     screens.push({ kind: "question", at: i });
     if (f.key === "sleepHours") screens.push({ kind: "sleepYears" });
     else screens.push({ kind: "showcase", at: i > 3 ? i - 1 : i });
   });
-  screens.push({ kind: "mascot" }, { kind: "themes" }, { kind: "done" });
+  /* Die Anmeldung GANZ AM ENDE (Antons Platzwahl 13.09.): Wer bis hierher
+     geantwortet hat, sichert das Ergebnis — nicht umgekehrt. Am Anfang
+     schreckt sie ab, beim Kauf ist sie zu spät. */
+  screens.push({ kind: "mascot" }, { kind: "themes" }, { kind: "account" }, { kind: "done" });
   const total = screens.length;
   const jetzt = screens[Math.min(step, total - 1)];
 
@@ -294,6 +298,11 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
     );
   }
 
+  // ── Die Anmeldung (Hannis Backend, Übergabe 12.09.)
+  if (jetzt.kind === "account") {
+    return <Account O={O} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
+  }
+
   // ── Schluss
   return (
     <Shell insets={insets} step={step} total={total} title={O.doneTitle} lede={O.doneText} onBack={back}>
@@ -301,6 +310,89 @@ export function OnboardingFlow({ O, onDone }: { O: OnboardData; onDone: (answers
         <SymbolView name="moon.stars.fill" size={72} tintColor={colors.gold} />
       </View>
       <PrimaryButton label={O.doneCta} heavy onPress={finish} style={{ flex: 0 }} />
+    </Shell>
+  );
+}
+
+/* Die Anmeldung: E-Mail, Passwort, „Anmelden" — mehr nicht (Hannis
+   Übergabe: kein Registrieren, kein Passwort-Vergessen; beides kommt mit
+   „Mit Apple anmelden", für das unten schon der Platz steht). Ohne Konto
+   geht es mit „Später" weiter — das Tagebuch lebt auf dem Gerät, das
+   Konto ist die Sicherung, nicht die Bedingung.
+   Die Token gehen in den Schlüsselbund (lib/auth.ts), nie in den Zustand. */
+function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
+  const signedIn = useAccountEmail();
+  const [mail, setMail] = useState("");
+  const [pw, setPw] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [fail, setFail] = useState<LoginFailure | null>(null);
+  const pwRef = useRef<TextInput>(null);
+  const ready = /\S+@\S+\.\S+/.test(mail.trim()) && pw.length >= 6 && !busy;
+
+  async function go() {
+    if (!ready) return;
+    setBusy(true); setFail(null);
+    const r = await login(mail, pw);
+    setBusy(false);
+    if (r.ok) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setPw(""); }
+    else { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); setFail(r.why); }
+  }
+  const reason: Record<LoginFailure, string> = { wrong: O.accountWrong, busy: O.accountBusy, unavailable: O.accountUnavailable, offline: O.accountOffline };
+
+  return (
+    <Shell insets={insets} step={step} total={total} title={O.accountTitle} lede={O.accountText} onBack={onBack}>
+      {signedIn ? (
+        <Animated.View entering={FadeIn.duration(260)} style={{ width: "100%", gap: 14 }}>
+          <Glass style={styles.signedIn}>
+            <SymbolView name="checkmark.seal.fill" size={26} tintColor={colors.ok} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={styles.cardText}>{O.accountSignedIn}</Text>
+              <Text style={styles.cardTitle} numberOfLines={1}>{signedIn}</Text>
+            </View>
+          </Glass>
+          <PrimaryButton label={O.next} heavy onPress={onNext} style={{ flex: 0 }} />
+        </Animated.View>
+      ) : (
+        <View style={{ width: "100%", gap: 10 }}>
+          {/* Die Felder im Glas, wie die Antwort-Kacheln — ein Bildschirm,
+              ein Material. Fehler stehen UNTER den Feldern, in Worten. */}
+          <Glass style={styles.field} interactive>
+            <SymbolView name="envelope" size={17} tintColor={colors.faint} />
+            <TextInput
+              style={styles.fieldInput} value={mail} onChangeText={(v) => { setMail(v); setFail(null); }}
+              placeholder={O.accountEmail} placeholderTextColor={colors.faint}
+              autoCapitalize="none" autoCorrect={false} keyboardType="email-address" textContentType="username" autoComplete="email"
+              keyboardAppearance="dark" returnKeyType="next" onSubmitEditing={() => pwRef.current?.focus()} editable={!busy}
+            />
+          </Glass>
+          <Glass style={styles.field} interactive>
+            <SymbolView name="key" size={17} tintColor={colors.faint} />
+            <TextInput
+              ref={pwRef} style={styles.fieldInput} value={pw} onChangeText={(v) => { setPw(v); setFail(null); }}
+              placeholder={O.accountPassword} placeholderTextColor={colors.faint}
+              secureTextEntry textContentType="password" autoComplete="password"
+              keyboardAppearance="dark" returnKeyType="go" onSubmitEditing={go} editable={!busy}
+            />
+          </Glass>
+          {fail ? <Animated.Text entering={FadeIn.duration(200)} style={styles.fail}>{reason[fail]}</Animated.Text> : null}
+          <View style={{ marginTop: 6 }}>
+            {busy ? (
+              <Glass style={styles.busy}><ActivityIndicator color={colors.text} /></Glass>
+            ) : (
+              <PrimaryButton label={O.accountCta} heavy onPress={go} disabled={!ready} style={{ flex: 0 }} />
+            )}
+          </View>
+          {/* Der Platz für den zweiten Knopf (Sign in with Apple, ADR-0005) —
+              heute noch stumm, damit die Anordnung später nicht springt. */}
+          <View style={[styles.apple, { opacity: 0.45 }]} pointerEvents="none">
+            <SymbolView name="apple.logo" size={16} tintColor={colors.text} />
+            <Text style={styles.appleText}>{O.accountApple}</Text>
+          </View>
+          <Pressable onPress={() => { Haptics.selectionAsync(); onNext(); }} hitSlop={10} disabled={busy} style={{ alignSelf: "center", paddingVertical: 10 }}>
+            <Text style={styles.later}>{O.accountLater}</Text>
+          </Pressable>
+        </View>
+      )}
     </Shell>
   );
 }
@@ -485,6 +577,14 @@ const styles = StyleSheet.create({
   permit: { flexDirection: "row", gap: 14, padding: 16, borderRadius: radius.card, alignItems: "center" },
   permitBtn: { paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999 },
   permitBtnText: { color: colors.text, fontSize: 14, fontWeight: "600" },
+  field: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56, paddingHorizontal: 18, borderRadius: 18 },
+  fieldInput: { flex: 1, color: colors.text, fontSize: 17, paddingVertical: 14 },
+  fail: { color: colors.warm, fontSize: 14, lineHeight: 19, paddingHorizontal: 6 },
+  busy: { minHeight: 50, borderRadius: 999, alignItems: "center", justifyContent: "center" },
+  apple: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 50, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  appleText: { color: colors.text, fontSize: 15, fontWeight: "600" },
+  later: { color: colors.faint, fontSize: 15 },
+  signedIn: { flexDirection: "row", alignItems: "center", gap: 14, padding: 18, borderRadius: 18 },
   input: { minHeight: 56, color: colors.text, fontSize: 19, paddingHorizontal: 18, borderRadius: 18, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, marginBottom: 8 },
   themeRow: { flexDirection: "row", gap: 10, alignItems: "center" },
   themeAdd: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },
