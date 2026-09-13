@@ -3,6 +3,22 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-13 19:15 — Anton — Branch `session/2026-09-13-anton-d` — Abschluss: PR #49 gemerged
+
+**Commits der Sitzung seit dem letzten Merge (#48):** `c7b656f` Gesichter-Spot
+720p · `c1b8aa8` letzte Web-Blätter nativ · `237a6af` `ef7f121` `eca5664`
+Regie v2 · `8777b8b` Antons neun Punkte · `894fe3b` Doku · `d2f582c` Frosch ·
+`6560b4b` Teilen-Karte · `ffe524c` Foto-Prüfung/Schnellaktionen/Onboarding ·
+`d9f767a` Doku Foto-Prüfung · dieser Abschluss.
+
+**Warum gemerged:** Antons Ansage „wrap und merge". Tests 630 grün, Typen
+sauber, Lint 0 Fehler, PR ohne Konflikt gegen `main`.
+
+**Was der Nächste wissen muss:** Die offene Liste steht oben in STAND.md.
+Kein Worktree zu entfernen — die Sitzung lief bewusst im Haupt-Checkout
+(Medienordner und nativer Bau liegen hier, siehe STAND). Die ungetrackten
+`data/traeume/*.json` bleiben ungetrackt.
+
 ## 2026-09-13 19:00 — Anton — Branch `session/2026-09-13-anton-d` — Frosch-Tipp, Teilen-Karte, Schnellaktionen, Foto-Prüfung, Seedance-Gesichtstest, Onboarding nachgeschärft
 
 **Commits:** `d2f582c` Frosch · `6560b4b` Teilen-Karte + Atem-Link · `ffe524c`

@@ -4,7 +4,17 @@
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
 **Stand:** 2026-09-13 abends — Sitzung `session/2026-09-13-anton-d`
-(PR #49, offen). **19:00:** Frosch tippt auf „Erzeugen" (HEVC-Alpha,
+abgeschlossen, **PR #49 auf Antons Wort gemerged** („wrap und merge").
+**Offen für die nächste Sitzung:** (1) Test mit einem echten Foto an
+Replicate-Seedance und fal-Seedance (`bun scripts/seedance-gesicht-probe.mjs`,
+braucht Antons Ja und Einwilligung); (2) Seedance über Replicate anbinden und
+Ablehnungen am Besetzungseintrag merken (Plan `2026-09-13-bildpruefung-seedance.md`
+§4); (3) Onboarding-Nachschärfung ansehen (Etiketten, Auszeichnungen,
+„5 Jahre Träume"); (4) Erinnerungen, Foto-Haken, Teilen und Schnellaktionen
+mit dem Finger prüfen — dafür `sudo xcode-select -s
+/Applications/Xcode.app/Contents/Developer`; (5) Widget und HealthKit brauchen
+Signierung mit Apple-Team; (6) `NATIVE_ORDER` bleibt aus bis zum ersten
+bezahlten Beleg. **19:00:** Frosch tippt auf „Erzeugen" (HEVC-Alpha,
 `mascot-tap.tsx`), Teilen-Karte, Schnellaktionen am App-Symbol,
 **Foto-Prüfung nach dem Haken** (heute Inhalt via fal nsfw; Plan
 `2026-09-13-bildpruefung-seedance.md`), **Replicate-Seedance hat ein
