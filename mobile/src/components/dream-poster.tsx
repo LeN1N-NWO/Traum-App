@@ -11,18 +11,35 @@ import type { DreamItem } from "@/store/journal-store";
 
 /* Ein Film hat kein Poster — das erste Bild ist der erste Frame. Einmal
    gezogen, im Speicher gehalten: dieselbe Kachel darf nicht bei jedem
-   Scrollen neu rechnen. */
-const thumbs = new Map<string, string>();
+   Scrollen neu rechnen.
+   ⚠ Der Speicher hält das VERSPRECHEN, nicht nur das Ergebnis (Antons
+   Befund 13.09., „ich sehe meine Träume nicht"): Die Brücke liefert beim
+   Start mehrmals ein neues `media`-Objekt. Wurde das Bild fertig, während
+   die Karte schon neu gezeichnet war, stand es im Speicher, der neue Effekt
+   sprang wegen `has()` heraus — und die Karte blieb für immer leer. Jetzt
+   wartet jeder Effekt auf dasselbe Versprechen und setzt das Bild selbst. */
+const thumbs = new Map<string, Promise<string>>();
+const done = new Map<string, string>();
+function thumbnail(url: string) {
+  let p = thumbs.get(url);
+  if (!p) {
+    p = VideoThumbnails.getThumbnailAsync(url, { time: 800, quality: 0.7 }).then((r) => { done.set(url, r.uri); return r.uri; });
+    p.catch(() => thumbs.delete(url));      // ein Fehlschlag darf beim nächsten Mal neu versuchen
+    thumbs.set(url, p);
+  }
+  return p;
+}
 function useThumbnail(media: DreamItem["media"]) {
-  const [uri, setUri] = useState<string | null>(media ? (media.kind === "image" ? media.url : thumbs.get(media.url) ?? null) : null);
+  const url = media?.url ?? null;
+  const kind = media?.kind ?? null;
+  const [uri, setUri] = useState<string | null>(kind === "image" ? url : url ? done.get(url) ?? null : null);
   useEffect(() => {
-    if (!media || media.kind !== "film" || thumbs.has(media.url)) return;
+    if (!url) { setUri(null); return; }
+    if (kind === "image") { setUri(url); return; }
     let alive = true;
-    VideoThumbnails.getThumbnailAsync(media.url, { time: 800, quality: 0.7 })
-      .then((r) => { thumbs.set(media.url, r.uri); if (alive) setUri(r.uri); })
-      .catch(() => {});
+    thumbnail(url).then((u) => { if (alive) setUri(u); }).catch(() => {});
     return () => { alive = false; };
-  }, [media]);
+  }, [url, kind]);
   return uri;
 }
 
