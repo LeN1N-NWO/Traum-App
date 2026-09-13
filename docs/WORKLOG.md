@@ -128,6 +128,63 @@ Bild-/Filmerzeugung (`falSubmitVideo`, `startVideo`, `generateImages`,
 `settleCharge`) **hashgleich mit `main`** — geprüft gegen `corsHeaders`,
 das nachweislich abweicht, damit der Vergleich nicht wertlos ist.
 
+## 2026-09-13 10:40 — Anton — Branch `session/2026-09-13-anton-b` — Hannis Backend hereingeholt, Anmeldung nativ, Journal-Bilder zurück
+
+**Commits:** `4f36289` Journal-Karten zeigen ihr Bild wieder · `a92ab16`
+Merge Hannis PR #46 in die Sitzung · `cd952e8` Begleiter-Text ·
+`af82fab` Anmeldung am Ende des Onboardings.
+
+**Antons Befund am Morgen:** roter Bildschirm „No script URL provided" —
+Metro war mit der Sitzung gestorben, kein Fehler im Code. Dann „ich sehe
+meine Träume nicht": die Karten im Journal waren leer. Zwei Ursachen:
+API-Server aus (kein Film, kein Bild) UND ein echter Fehler in
+`dream-poster.tsx` — der Vorschau-Speicher hielt nur das ERGEBNIS; wurde
+das Bild fertig, während die Brücke die Karte schon mit einem neuen
+`media`-Objekt neu zeichnete, sprang der neue Effekt an `has()` heraus,
+und die Karte blieb für immer leer. Jetzt hält der Speicher das
+VERSPRECHEN, jeder Effekt wartet darauf. Lehre: ein Cache, der „schon
+unterwegs" nicht von „fertig" unterscheidet, verliert genau die Läufe,
+die während des Wartens neu starten.
+
+**Hannis PR #46** (Backend für Anmeldung, Konto, Träume in Supabase) per
+`git merge --no-ff` in die Sitzung geholt — keine Konflikte, 615 Tests
+grün. Auf `main` kommt er erst mit Hannis Merge; unser PR #47 trägt ihn
+mit.
+
+**Die Anmeldung nativ**, nach Hannis Übergabe
+(`docs/uebergabe/2026-09-12-anton-login-ui.md`, jetzt gelöscht — „wenn du
+fertig bist, Datei löschen"):
+- **Platz:** letzter Schritt des Onboardings vor dem Schluss (Antons
+  Entscheidung 13.09.: „der Platz ist dort richtig"). Am Anfang schreckt
+  es ab, beim Kauf ist es zu spät.
+- `mobile/src/lib/auth.ts`: `login/refresh/logout/authFetch/pushProfile`,
+  Token in **expo-secure-store** (neu installiert, Pods + Rebuild), nie im
+  Zustand. 401 → EINE Erneuerung (geteiltes Versprechen bei zwei
+  gleichzeitigen 401) → wiederholen; 401 beim Erneuern → Token weg.
+  Abmelden: Server-Aufruf UND Gerät leeren, beides (Hannis Punkt 4).
+- Bildschirm `Account` in `onboarding-flow.tsx`: Felder im Glas,
+  Fehlermeldungen je Grund (401 falsch, 429 zu viele, 503/5xx nicht
+  erreichbar, kein Netz), „Später" lässt ohne Konto durch (es gibt kein
+  Registrieren — Hannis Absicht; ohne „Später" käme ein neuer Nutzer nicht
+  durch). Unter dem Knopf steht stumm der Platz für „Mit Apple anmelden".
+- Nach dem Onboarding `PATCH /api/account` mit Name, Sprache, `onboarded`,
+  `survey_done`, `survey` — nur, wenn eine Sitzung da ist.
+- Einstellungen: Konto-Zeile („Angemeldet als … / Abmelden" bzw. „Nicht
+  angemeldet").
+- **Geprüft:** Feldbildschirm im Simulator, kompletter Aufruf bis zur
+  Server-Antwort 503 („nicht eingerichtet") mit der richtigen Meldung.
+  ⚠ NICHT geprüft: eine echte Anmeldung — Antons `.env` hat keine
+  Supabase-Werte, und einen Testnutzer hat nur Hanni. Erst dann sind
+  Erneuern, PATCH und Abmelden am echten System belegt.
+
+**Was der Nächste wissen muss:**
+- `session/2026-09-13-anton` (ohne -b) war schon komplett in `main`; die
+  heutige Sitzung heißt deshalb `-b`. Reservierung als leerer Commit.
+- ⚠ `bunx --cwd mobile …` im Wurzelordner versucht, ein Paket „mobile" zu
+  installieren — Lint immer aus `mobile/` heraus (`cd mobile && bunx expo lint`).
+- Begleiter-Text: „Wähl deinen Traumbegleiter" — als Persönlichkeit, nicht
+  als Funktion (Antons Wunsch).
+
 ## 2026-09-12 18:30 — Anton — Branch `session/2026-09-12-anton-c` — Sitzungsabschluss (wrap + Merge auf Antons Wort)
 
 **Commits (10):** `3d8da21` Datums-Richtigstellung · `122dff7` Deck-Fächer

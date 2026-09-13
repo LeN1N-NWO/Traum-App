@@ -3,9 +3,22 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-12 abends — PR #41 bis #45 gemerged, **PR #46 offen**
-(Hanni: Anmeldung, Konto und Träume im Backend — Abschnitt „Die Anmeldung
-steht" weiter unten). Zuletzt gemerged (PR #45,
+**Stand:** 2026-09-13 vormittags — Sitzung `session/2026-09-13-anton-b`
+(PR #47, offen): **Hannis Anmelde-Backend (PR #46) hereingeholt** und
+**die Anmeldung nativ gebaut** — als letzter Schritt des Onboardings vor
+dem Schluss (Antons Platzwahl: erst antworten, dann sichern). E-Mail,
+Passwort, „Anmelden" im Glas, Fehler in Worten, „Später" lässt ohne Konto
+durch; Token im Schlüsselbund (`mobile/src/lib/auth.ts`, expo-secure-store,
+neu → Pods + Rebuild gemacht); 401 → einmal erneuern → wiederholen;
+Abmelden räumt Server UND Gerät (Konto-Zeile in den Einstellungen). Nach dem
+Onboarding folgt das Profil per `PATCH /api/account` ins Konto, wenn eins da
+ist. Geprüft im Simulator bis zur Meldung „nicht erreichbar" (503, weil in
+Antons `.env` `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`DATABASE_URL` fehlen —
+die hat Hanni). ⚠ Registrieren gibt es nicht (kein Endpunkt, mit Absicht);
+ein Konto muss Hanni anlegen, bis „Mit Apple anmelden" kommt — der Platz
+dafür steht schon stumm unter dem Knopf. Dazu: **Journal-Karten zeigten
+kein Bild** (Vorschau-Versprechen, siehe dream-poster.tsx) — behoben; und
+der Begleiter-Text im Onboarding als Persönlichkeit. Davor (PR #45,
 10 Commits): **Onboarding nativ und in Antons Form** — eine Frage je
 Bildschirm mit Antwort-Raster, Mehrfachwahl beim Ziel, „Weiter" erst mit
 Antwort, Zwischenbild mit laufendem Film nach jeder Frage,
@@ -172,7 +185,7 @@ ist noch nicht gebaut.
 **`server.js` ist mit der Datenbank verbunden — nach Least Privilege.** Die
 Architektur ist bewertet: `docs/ARCHITEKTUR.md` (S1–S8).
 
-**Die Anmeldung steht (12.09., PR #46, noch offen).** `server.js` hat jetzt
+**Die Anmeldung steht (12.09., PR #46, in #47 enthalten).** `server.js` hat jetzt
 `POST /api/auth/login|refresh|logout`, `GET/PATCH /api/account`,
 `GET/DELETE /api/dreams` und `POST /api/dreams/sync`. Der Client spricht
 weiterhin nur mit uns; Supabase Auth liegt dahinter (`src/lib/auth.js`,
