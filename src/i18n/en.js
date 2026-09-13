@@ -970,8 +970,8 @@ export default {
     ],
     /* Die Maskottchen-Wahl (Anton 13.09.) — zwei von drei sind noch
        Platzhalter, das steht auch auf der Kachel. */
-    mascotTitle: "Who keeps you company?",
-    mascotText: "It shows up while you wait, and when something works out.",
+    mascotTitle: "Pick your dream companion",
+    mascotText: "Keeps watch over your nights, waits with you while your film comes to life, and cheers when it’s ready.",
     mascotSoon: "Coming",
     mascotNames: { frog: "The frog", sloth: "The sloth", owl: "The owl" },
     askTitle: "Two things up front",
