@@ -246,14 +246,16 @@ export function allowanceGrant(plan, monthIndex) {
  *   S   $4,99 /  50 Cr  $0,100/Cr  1 Film (auch 1 × 15 s „Scharf")   2,5×
  *   M  $12,99 / 150 Cr  $0,087/Cr  4 Filme              −13 %        2,2×
  *   L  $24,99 / 320 Cr  $0,078/Cr  10 Filme             −22 %        2,0×
- *   XL $49,99 / 700 Cr  $0,071/Cr  22 Filme             −28 %        1,8×
+ *   XL $49,99 / 650 Cr  $0,077/Cr  20 Filme             −23 %        1,9×
+ *   (bis 14.09.2026 700 Cr / +40 % Extra, 1,81× — Antons Entscheidung: 650,
+ *   Extra +30 %, damit die Leiter M +15 / L +28 / XL +30 steigend bleibt)
  * XL existiert auch, weil der 30-s-Seedance-Film (241/511 Cr) vorher mit
  * KEINEM einzelnen Kauf erreichbar war. */
 export const PACKS = [
   { id: "pack-s",  price: "$4.99",  credits: 50 },
   { id: "pack-m",  price: "$12.99", credits: 150 },
   { id: "pack-l",  price: "$24.99", credits: 320 },
-  { id: "pack-xl", price: "$49.99", credits: 700 },
+  { id: "pack-xl", price: "$49.99", credits: 650 },
 ];
 
 /** Was ein Guthaben konkret hergibt — die Zahlen hinter den zwei Symbolen
@@ -281,7 +283,7 @@ export function dreamsFor(credits) {
  *  größeres Paket darüber hinaus trägt, ist das Extra:
  *    M  $13 → 130 + 20 Extra (+15 %)
  *    L  $25 → 250 + 70 Extra (+28 %)
- *    XL $50 → 500 + 200 Extra (+40 %)
+ *    XL $50 → 500 + 150 Extra (+30 %)
  *  Die Zahlen auf dem Knopf ändern sich dadurch nicht — nur, wie sie gelesen
  *  werden. Ehrlich, weil der Bezug auf der Paywall selbst steht. */
 export function packBonus(pack, packs = PACKS) {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
-import { welcomeGrant, totalCredits } from "../../lib/credits.js";
+import { totalCredits } from "../../lib/credits.js";
 import { t } from "../../i18n/index.js";
 import AvatarDialog from "../../components/AvatarDialog.jsx";
 import OnboardingSurvey from "../Onboarding/OnboardingSurvey.jsx";
@@ -31,9 +31,8 @@ export default function ProfileScreen() {
    * to be final, only deferred, so the reward stays claimable here. */
   function surveyDone(profile) {
     setSurvey(false);
-    const grant = welcomeGrant(state);
-    update({ surveyDone: true, profile, ...(grant || {}) });
-    toast(grant ? t.onboarding.granted : t.onboarding.thanks);
+    update({ surveyDone: true, profile });
+    toast(t.onboarding.thanks);
   }
 
   return (

@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
-import { welcomeGrant } from "../../lib/credits.js";
 import { t } from "../../i18n/index.js";
 import Button from "../../components/Button.jsx";
 import AvatarDialog from "../../components/AvatarDialog.jsx";
@@ -45,18 +44,13 @@ export default function Onboarding({ onExit }) {
    * this component on demand even when state.onboarded is already true, so
    * that flip would not fire a second time and the screen would go nowhere. */
   function complete({ surveyDone = false, profile = null } = {}) {
-    const grant = surveyDone ? welcomeGrant(state) : null;
+    // Kein Willkommensgeschenk mehr (14.09.2026, credits.js).
     update({
       onboarded: true,
       ...(surveyDone ? { surveyDone: true } : {}),
       ...(profile ? { profile } : {}),
-      ...(grant || {}),
     });
-    // Only promise credits that were actually added — someone who installed
-    // before the survey existed already has the grant, and re-promising it
-    // would be a lie with a ✦ on it.
-    if (grant) toast(t.onboarding.granted);
-    else if (surveyDone) toast(t.onboarding.thanks);
+    if (surveyDone) toast(t.onboarding.thanks);
     onExit?.();
   }
 

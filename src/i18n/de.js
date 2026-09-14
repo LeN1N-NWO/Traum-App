@@ -1293,11 +1293,11 @@ export default {
        bekommt zuerst den Grund. Siehe Paywall.jsx. */
     headlineFor: {
       browse: "Deine Träume, als Filme.",
-      spent: "Deine Credits sind aufgebraucht.",
+      spent: "Filme brauchen Credits.",
       first: "Das war dein erster.",
     },
     ledeFor: {
-      spent: "Das ist das Einzige, was hier endet. Schreiben, Sprechen und alles im Schlaf-Tab bleiben gratis.",
+      spent: "Das ist das Einzige, was hier Geld kostet. Schreiben, Sprechen und alles im Schlaf-Tab bleiben gratis.",
       first: "Er liegt jetzt in deinem Tagebuch und gehört dir. Der nächste braucht Credits — hier steht, was sie kosten.",
     },
     tabSub: "Abonnieren",

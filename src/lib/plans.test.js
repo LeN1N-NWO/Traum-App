@@ -175,7 +175,7 @@ test("pack extras add up and grow with the pack", () => {
     expect(b.percent).toBeGreaterThanOrEqual(lastPercent);
     lastPercent = b.percent;
   }
-  expect(packBonus(PACKS.find((p) => p.id === "pack-xl"))).toEqual({ base: 500, extra: 200, percent: 40 });
+  expect(packBonus(PACKS.find((p) => p.id === "pack-xl"))).toEqual({ base: 500, extra: 150, percent: 30 });
 });
 
 /* ── Das Startguthaben des Jahresabos (Antons Entscheidung 14.09.2026) ─────

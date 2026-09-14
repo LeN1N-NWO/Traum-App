@@ -95,11 +95,8 @@ export function AppStateProvider({ children }) {
     setState((prev) => ({ ...prev, ...(typeof patch === "function" ? patch(prev) : patch) }));
   }, []);
 
-  /* No silent grant on mount anymore: the welcome credits are the reward for
-   * the onboarding survey (Onboarding.jsx / ProfileScreen.jsx). A gift with
-   * a face converts; a balance that was always there is furniture. People
-   * from before the survey keep what they were given — welcomeGrant() stays
-   * idempotent via its flag. */
+  /* Kein Willkommensgeschenk mehr (Antons Entscheidung 14.09.2026, siehe
+   * credits.js). Wer früher Credits bekommen hat, behält sie. */
 
   /* Eine Mechanik statt fünf Flicken. Vor dem 16.08.2026 endeten fünf
      Stellen im selben Toast „Aufladen kommt bald" — die teuersten Momente

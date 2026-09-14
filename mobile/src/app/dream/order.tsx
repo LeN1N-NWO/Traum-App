@@ -90,7 +90,10 @@ export default function DreamOrderScreen() {
     if (mine.rendering) {
       done.current = true;
       showToast(W?.queuedNote ?? "");
-      const first = firstDream.current;
+      /* Seit es kein Willkommensgeschenk mehr gibt (14.09.2026), ist auch der
+         erste Film bezahlt. „Der nächste braucht Credits" stimmt dann nur,
+         wenn der Rest keinen weiteren Film trägt — sonst kein Kaufblatt. */
+      const first = !!firstDream.current && (data.profile.credits ?? 0) < (W?.filmFrom ?? 0);
       if (first) send({ type: "paywallSeen" });
       /* Nicht sofort weg: der Befehl (Aufnahme anhaengen) laeuft im
          Bruecken-Webview DIESES Bildschirms. Verschwindet er im selben
