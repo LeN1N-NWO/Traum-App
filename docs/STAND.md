@@ -4,7 +4,11 @@
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
 **Stand:** 2026-09-14 nachmittags — Sitzung `session/2026-09-13-anton-e`
-(PR #50, Entwurf). **Entschieden und gebaut:** kein Willkommensgeschenk mehr
+abgeschlossen, **PR #50 auf Antons Wort gemerged** („wrappen und mergen“).
+**Offen:** Starter-Code-Menge (Vorschlag 22 Credits); Mit Apple anmelden →
+StoreKit mit Server-Prüfung → Offer Codes → Einladungen (Hanni, Übergabe
+unten); Jahrespreis $99,99 prüfen; Subreddit-Regeln selbst eintragen
+(`docs/marketing/hermes/`). **Entschieden und gebaut:** kein Willkommensgeschenk mehr
 (`welcomeGrant` entfernt, Kaufblatt „Filme brauchen Credits“, Blatt nach dem
 ersten Film nur noch, wenn der Rest keinen Film trägt), XL-Paket 650 Credits.
 **Einladungsprämie nur bei echtem Kauf**, 14 Tage ohne Erstattung: S 10, M 30,

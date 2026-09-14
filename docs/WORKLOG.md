@@ -3,6 +3,25 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-14 14:40 — Anton — Branch `session/2026-09-13-anton-e` (PR #50) — Abschluss, Merge auf Antons Wort
+
+**Commits dieser Sitzung (Auswahl):** `3269c13`/`7cda637` Jahresabo mit
+Startguthaben · `9a16c38` Werbung, Dream Recorder, Hermes-Agenten ·
+`583edea` Codes/Einladungen · `8e5c8fd` kein Willkommensgeschenk, XL 650 ·
+`ada7a50` Prämien festgelegt.
+
+- **Entschieden und gebaut:** Jahresabo 480 sofort, danach jeden Monat 131;
+  kein Willkommensgeschenk; XL 650 Credits.
+- **Entschieden, nicht gebaut:** keine Werbung; Einladungsprämie nur bei
+  echtem Kauf (S 10, M 30, L 60, XL 130, Monat 30, Jahr 100); Apple Offer
+  Codes statt eigener Codes.
+- **Übergabe an Hanni:** `docs/uebergabe/2026-09-14-hanni-codes-einladungen.md`.
+
+**Was der Nächste wissen muss:**
+- Tests 637 grün, Typen sauber, Lint 0 Fehler, kein TEMP-PRUEFUNG im Code.
+- Die untracked `data/traeume/*.json` bleiben absichtlich uncommittet.
+- Die Mail an Modem (Dream Recorder) ist nur ein Entwurf.
+
 ## 2026-09-14 14:20 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — Einladungsprämie festgelegt
 
 - **Antons Entscheidung:** Prämie rund 20 % der gekauften Credits, auf glatte
