@@ -3,6 +3,30 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-14 14:00 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — kein Willkommensgeschenk, XL 650, Einladungsprämie bei Kauf
+
+**Commits:** `8e5c8fd` Code · `e60b8e6` Übergabe · Doku-Commit dieses Eintrags.
+
+- **Antons Entscheidungen:** Einladungsprämie nur, wenn der Freund wirklich
+  kauft; kein Willkommensgeschenk mehr; XL-Paket 650 Credits.
+- **Gebaut:** `WELCOME_CREDITS`/`welcomeGrant` entfernt (credits.js, Web-
+  Onboarding, Profil, Tests); Kaufblatt-Überschrift „Filme brauchen Credits“
+  statt „aufgebraucht“ (stimmt auch für Menschen, die nie Credits hatten);
+  das Blatt nach dem ersten Film (`dream/order.tsx`) nur noch, wenn der Rest
+  keinen weiteren Film trägt — der erste Film ist jetzt bezahlt. XL 650,
+  Tests und Preisbericht nachgezogen.
+- **Prämiengröße (Vorschlag):** 20 % der gekauften Credits, mindestens 11,
+  14 Tage nach Kauf ohne Erstattung, höchstens 5 pro Monat — kostet 14–21 %
+  des Gewinns aus einem Paket. Übergabe an Hanni neu geschrieben.
+
+**Was der Nächste wissen muss:**
+- Nativ gab es ohnehin kein Geschenk (die Brücke bucht keins); das
+  Web-Onboarding hatte noch eins. Bestehende Credits bleiben.
+- Das Schema kennt `welcome_grant` weiter — der Server darf es nicht buchen.
+- Gratis-Codes (Preis 0, `offerType = 3`) und Sandbox-Käufe lösen nie eine
+  Prämie aus.
+- Tests 637 grün (4 Geschenk-Tests entfernt), Typen sauber, Lint 0 Fehler.
+
 ## 2026-09-14 12:30 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — Codes, Einladungen, Verlosungen geplant
 
 **Commits:** Doku-Commit dieses Eintrags.

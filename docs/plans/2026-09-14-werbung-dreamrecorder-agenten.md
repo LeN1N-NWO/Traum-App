@@ -12,7 +12,7 @@ Recherchen:
 in `2026-09-13-abo-gewicht-und-jahresguthaben.md`, Regel `allowanceGrant()` in
 `src/lib/plans.js`).
 
-## 2. XL-Paket: Sind +40 % zu viel? — offen, Antons Entscheidung
+## 2. XL-Paket: Sind +40 % zu viel? — entschieden: 650 Credits (14.09.2026)
 
 Vorsichtig gerechnet (Dollar = Euro, alle 700 Credits verbraucht, teuerster
 Einkauf je Credit):
@@ -81,8 +81,9 @@ Tracking-Abfrage (ATT), eine zertifizierte Einwilligungsabfrage nach TCF v2.3
 im EWR (Pflicht) und im App Store den Eintrag „Data Used to Track You" — auf
 einem Traumtagebuch. Das passt nicht zu dem, was wir versprechen.
 
-**Empfehlung: keine Werbung.** Wer gratis weiterkommen soll, bekommt Credits für
-Dinge, die uns mehr bringen als 1 Cent:
+**Empfehlung: keine Werbung** (Anton: einverstanden). ⚠ Die beiden Ideen darunter
+sind überholt — Einladungsprämie nur bei echtem Kauf des Freundes, kein
+Willkommensgeschenk (`2026-09-14-codes-einladungen-plan.md`). Ursprünglich:
 - **Freunde einladen:** Beide bekommen einen 5-s-Film (11 Credits, ~0,28 $
   Einkauf). Ein zahlender Neukunde ist ein Vielfaches wert.
 - **Serie:** Sieben Morgen hintereinander aufgenommen → ein 5-s-Film. Stärkt

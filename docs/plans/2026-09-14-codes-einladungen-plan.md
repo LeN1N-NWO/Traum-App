@@ -15,7 +15,7 @@ Belege: `2026-09-14-recherche-einladungen.md`,
 | Credits für die ersten Tester | Server bucht direkt ins Test-Konto | TestFlight, vor dem Launch |
 | Codes für Freunde, Instagram, Gewinner | **Apple Offer Codes** (Gratis-Angebot auf ein Credit-Paket) | ab Launch |
 | Verlosung | Instagram-Post, kostenlose Teilnahme, Gewinner bekommen einen Offer Code | ab Launch |
-| Einladungen | Einladungscode per Link, Prämie nur für den Einladenden nach dem ersten Film des Freundes | erstes Update nach dem Launch |
+| Einladungen | Einladungscode per Link, Prämie nur für den Einladenden, **wenn der Freund kauft** | erstes Update nach dem Launch |
 
 ## 1. Warum keine eigenen Codes in der App
 
@@ -60,19 +60,40 @@ und wir zahlen die Filme.
 
 **Was Apple erlaubt:** Belohnt werden darf der **Einladende** für eine echte
 Handlung des Freundes in der App. Ein Bonus für den **Eingeladenen** fürs
-Installieren oder Registrieren wurde 2021 abgelehnt. Die Forschung sagt zwar,
-ein Geschenk für den Freund wirkt am besten — das bekommen wir trotzdem: Der
-Freund bekommt den ersten Film geschenkt wie jeder neue Nutzer, und genau das
-steht im Einladungstext.
+Installieren oder Registrieren wurde 2021 abgelehnt. Der Freund bekommt
+deshalb nichts extra.
 
-**Vorschlag Prämie:**
-- Einladender **+11 Credits** (ein 5-s-Film), sobald der Freund seinen ersten
-  Film fertig hat. Höchstens 5 pro Monat.
-- Später zusätzlich **+33 Credits**, wenn der Freund zum ersten Mal kauft und
-  7 Tage nicht erstattet.
-- Kosten: rund $0,28 Prämie je aktiviertem Freund. Wer mit fünf eigenen
-  Zweitgeräten betrügt, holt sich im Monat Prämien für ~$1,40 und muss dafür
-  fünf Geräte, fünf Konten und fünf Filme aufsetzen — uninteressant.
+**Entschieden (Anton, 14.09.2026):** Prämie nur, **wenn der Freund wirklich
+kauft**. Kein Willkommensgeschenk mehr für neue Nutzer.
+
+**Erfahrungswerte zur Größe:**
+- Faustregel aus der Praxis: Prämie **10–25 % des Kaufs** des Geworbenen
+  (ReferralCandy, Rivo — Anbieter solcher Software, Methodik offen).
+- Größere Prämien bringen mehr Neukunden, aber **weniger profitable**
+  (Wolters, Schulze & Gedenk 2020, *Marketing Science*).
+- Bank-Studie: 25 € Prämie, rund 60 % Rendite (Schmitt et al. 2011).
+- Prämien über ~50 $ steigern Empfehlungen kaum noch (Anbieterdaten).
+- Kling: 500 Credits für den Werber je zahlenden Freund, 31 Tage gültig; nur
+  zahlende Kunden dürfen einladen. Higgsfield: einige Tage unbegrenzt Seedance,
+  wenn der Freund binnen 24 h kauft.
+
+**Vorschlag: 20 % der Credits, die der Freund kauft, mindestens 11** (ein
+5-s-Film); gezahlt 14 Tage nach dem Kauf, wenn nicht erstattet; höchstens 5
+Prämien pro Monat. Für den Einladenden fühlt es sich wie 20 % an — uns kostet
+es nur rund 3–9 % des Kaufpreises, weil ein Credit uns etwa ein Drittel dessen
+kostet, was er im Laden wert ist:
+
+| Freund kauft | Prämie | kostet uns höchstens | vom Gewinn aus dem Kauf |
+|---|---|---|---|
+| Paket S $4,99 | 11 | $0,31 | 14 % |
+| Paket M $12,99 | 30 | $0,85 | 17 % |
+| Paket L $24,99 | 64 | $1,81 | 21 % |
+| Paket XL $49,99 | 130 | $3,67 | 21 % |
+| Monatsabo $9,99 | 32 | $0,90 | 35 % des 1. Monats (bei 3 Monaten Verbleib ~11 %) |
+| Jahresabo $99,99 | 96 | $2,71 | 16 % |
+
+Apple 15 %, 19 % MwSt, voller Verbrauch, teuerster Einkauf je Credit.
+Gratis-Codes und TestFlight-Käufe lösen nie eine Prämie aus.
 
 ## 3. Einladungen — wie wird das nachverfolgt?
 
@@ -123,11 +144,11 @@ wie viele Installationen ein Post gebracht hat — nur als Summe, ohne Tracking.
 5. Vor dem öffentlichen Start: Anwältin für Einladungs- und Codebedingungen,
    Steuerberater zu geschenkten Credits.
 
-## Zur Entscheidung (Anton)
+## Entschieden am 14.09.2026
+- Einladungsprämie nur bei echtem Kauf des Freundes.
+- Kein Willkommensgeschenk mehr (im Code entfernt).
+- XL-Paket 650 Credits.
 
+## Noch zur Entscheidung (Anton)
 1. Starter-Code: 22 Credits?
-2. Einladungsprämie: +11 für den Einladenden nach dem ersten Film des Freundes,
-   5 pro Monat; später +33 nach Kauf?
-3. ⚠ **Willkommensgeschenk:** `WELCOME_CREDITS = 4` stammt aus der Bilderzeit
-   und kauft heute keinen Film (billigster: 11 Credits). Soll „der erste Film
-   geht auf uns" gelten, müssen es 11 sein — ~$0,28 je neuem Konto.
+2. Prämiengröße: 20 % der gekauften Credits, mindestens 11, höchstens 5 pro Monat?

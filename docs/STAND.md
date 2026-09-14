@@ -3,20 +3,21 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-14 mittags — Sitzung `session/2026-09-13-anton-e`
-(PR #50, Entwurf). **Codes und Einladungen geplant, nicht gebaut**
+**Stand:** 2026-09-14 nachmittags — Sitzung `session/2026-09-13-anton-e`
+(PR #50, Entwurf). **Entschieden und gebaut:** kein Willkommensgeschenk mehr
+(`welcomeGrant` entfernt, Kaufblatt „Filme brauchen Credits“, Blatt nach dem
+ersten Film nur noch, wenn der Rest keinen Film trägt), XL-Paket 650 Credits.
+**Einladungsprämie nur bei echtem Kauf** — Größe offen (Vorschlag 20 %,
+mindestens 11). **Codes und Einladungen geplant, nicht gebaut**
 (`docs/plans/2026-09-14-codes-einladungen-plan.md`, Übergabe an Hanni
 `docs/uebergabe/2026-09-14-hanni-codes-einladungen.md`): Apple Offer Codes
 statt eigenem Code-Feld (3.1.1-Ablehnungen), Einladungen erst nach dem Launch,
 Prämie nur für den Einladenden; ⚠ TestFlight-Käufe sind gratis — Sandbox nie
-ins echte Ledger; ⚠ `WELCOME_CREDITS = 4` kauft keinen Film mehr (Entscheidung
-Anton). **Jahresabo entschieden und gebaut:** 480 Credits am
+ins echte Ledger. **Jahresabo entschieden und gebaut:** 480 Credits am
 Kauftag, danach jeden Monat 131, Übertrag im Abojahr (`allowanceGrant()` in
 `src/lib/plans.js`, Paywall zeigt es). ⚠ Der Server kann das Abo-Guthaben nur
 SETZEN (`credits_set_allowance`), das Jahresabo braucht beim Store-Anschluss
-ein Dazulegen im Abojahr. **Zur Entscheidung:** XL-Paket 700 → 650 Credits
-(+30 %, 1,94× statt 1,81×) — `docs/plans/2026-09-14-werbung-dreamrecorder-agenten.md` §2.
-**Beantwortet, nicht gebaut:** keine Werbung gegen Credits (gut 1 Cent je
+ein Dazulegen im Abojahr. **Beantwortet, nicht gebaut:** keine Werbung gegen Credits (gut 1 Cent je
 Werbung, ~26 für den günstigsten Film), Dream Recorder nur als kleine Anfrage
 mit Fix-Angebot (Mail-Entwurf, nicht verschickt), Marketing-Agenten mit Hermes
 nur als Zuarbeiter — Skill-Vorlagen in `docs/marketing/hermes/`, Subreddit-Regeln

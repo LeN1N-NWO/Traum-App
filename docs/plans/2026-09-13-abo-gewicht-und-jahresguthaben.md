@@ -95,6 +95,8 @@ Paywall bekommt eine Zeile „In Plus enthalten" über den Credits.
 
 ## 3. Extras bei Einmalpaketen — gebaut
 
+> **14.09.2026:** XL auf Antons Wort auf 650 Credits gesenkt (+150 Extra, +30 %).
+
 Bezug ist das kleinste Paket: $5 ergeben 50 Credits, also 10 je Dollar. Was
 ein größeres Paket darüber hinaus trägt, steht jetzt golden in der Zeile, mit
 einem Prozent-Badge:
