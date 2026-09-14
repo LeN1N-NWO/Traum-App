@@ -124,6 +124,15 @@ export function refillAllowance(state, credits) {
   return { allowance: credits, credits: state?.credits ?? 0 };
 }
 
+/** Monatsbeginn eines Abos nach plans.js/allowanceGrant (14.09.2026): Das
+ *  Monatsabo und der Jahresbeginn SETZEN, im laufenden Abojahr wird
+ *  DAZUGELEGT — das Startguthaben des Jahresabos darf nicht im zweiten Monat
+ *  verschwinden. Gekaufte Credits bleiben in beiden Fällen unberührt. */
+export function applyAllowanceGrant(state, grant) {
+  if (grant.mode === "set") return refillAllowance(state, grant.amount);
+  return { allowance: (state?.allowance ?? 0) + grant.amount, credits: state?.credits ?? 0 };
+}
+
 /** One-time welcome grant. Flagged so it never repeats, including for people
  *  who installed before the grant existed. */
 export function welcomeGrant(state) {

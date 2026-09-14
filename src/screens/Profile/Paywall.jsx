@@ -118,7 +118,9 @@ export default function Paywall({ reason = "browse", onClose }) {
                   {p.saveHint && <span className="pw-badge">{t.paywall.save(p.saveHint)}</span>}
                 </span>
                 <span className="pw-plan-sub">
-                  {p.period
+                  {p.startCredits
+                    ? `${t.paywall.startLine(p.startCredits, dreamsFor(p.startCredits).films)} · ${t.paywall.thenFrom(p.credits, Math.round(p.startCredits / p.credits) + 1)}`
+                    : p.period
                     ? t.paywall.creditsPer(p.credits, t.paywall.periodUnit[p.period])
                     : t.paywall.packYield(dreamsFor(p.credits).images, dreamsFor(p.credits).films)}
                 </span>

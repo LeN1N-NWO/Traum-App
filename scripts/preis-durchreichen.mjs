@@ -14,7 +14,7 @@
  *   node scripts/preis-durchreichen.mjs
  */
 import { VIDEO_MODELS, videoModel, priceForFilm, QUALITIES, filmQuality } from "../src/lib/video.js";
-import { SUBSCRIPTIONS, PACKS } from "../src/lib/plans.js";
+import { SUBSCRIPTIONS, PACKS, CREDIT_COST_USD, allowanceGrant } from "../src/lib/plans.js";
 import { imageModel, DEFAULT_IMAGE_MODEL, imagePrice, imageStage } from "../src/lib/imageModel.js";
 import { appGrid } from "../src/lib/gridLayout.js";
 
@@ -275,4 +275,23 @@ console.log(
   "\nFür die Pakete gibt es KEINEN Tagespreis — sie haben keinen Zeitraum.\n" +
   "Einen zu erfinden wäre Schönrechnen, nicht Verständlichmachen."
 );
+
+/* ── 9. Das Startguthaben des Jahresabos (entschieden 14.09.2026) ─────────
+ * Am Kauftag drei Monatsraten, danach monatlich dazu, Übertrag im Abojahr.
+ * Die Frage, die diese Tabelle beantwortet: Was kostet uns jemand, der das
+ * Sofort-Guthaben verbraucht und sich das Geld beim Store zurückholt — und
+ * trägt das Jahr noch, wenn wegen des Übertrags ALLES verbraucht wird? */
+console.log("\n=== 9. Jahresabo: Startguthaben, Erstattung, voller Verbrauch ===\n");
+for (const p of SUBSCRIPTIONS.filter((s) => s.startCredits)) {
+  const plan = Array.from({ length: 12 }, (_, i) => allowanceGrant(p, i));
+  console.log(`Monate 1–12: ${plan.map((g) => (g.mode === "set" ? "=" : "+") + g.amount).join(" ")}`);
+  console.log(`Jahressumme ${plan.reduce((a, g) => a + g.amount, 0)} Credits (12 × ${p.credits} = ${12 * p.credits})`);
+  console.log(`Größter Verlust bei Erstattung nach Vollverbrauch des Startguthabens: $${(p.startCredits * CREDIT_COST_USD).toFixed(2)}` +
+    ` (alles auf einmal wären $${(12 * p.credits * CREDIT_COST_USD).toFixed(2)} gewesen)`);
+  for (const store of [0.15, 0.3]) {
+    const netto = (num(p.price) / 12 / 1.19) * (1 - store);
+    const kosten = p.credits * CREDIT_COST_USD;
+    console.log(`Store ${Math.round(store * 100)} %: netto $${netto.toFixed(2)}/Monat gegen $${kosten.toFixed(2)} bei vollem Verbrauch → ${(netto / kosten).toFixed(2)}×`);
+  }
+}
 console.log();

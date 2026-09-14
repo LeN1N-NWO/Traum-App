@@ -51,7 +51,7 @@ import { genId } from "../../../src/lib/storage.js";
 import { newCreature } from "../../../src/lib/creatures.js";
 import { IMAGE_COUNTS, priceForImages } from "../../../src/lib/pricing.js";
 import { priceForFilm } from "../../../src/lib/video.js";
-import { SUBSCRIPTIONS, PACKS, dreamsFor, packBonus } from "../../../src/lib/plans.js";
+import { SUBSCRIPTIONS, PACKS, allowanceGrant, dreamsFor, packBonus } from "../../../src/lib/plans.js";
 import { showcaseFrom } from "../../../src/lib/showcase.js";
 import { filmsOf, filmOf, imagesOf } from "../../../src/lib/entryMedia.js";
 import { isBlank } from "../../../src/lib/blankNight.js";
@@ -345,8 +345,13 @@ function snapshot() {
     balance: pw.balance(totalCredits(s)), credits: totalCredits(s),
     subs: SUBSCRIPTIONS.map((p) => {
       const films = dreamsFor(p.credits * (p.period === "year" ? 12 : 1)).films;
+      /* Startguthaben (14.09.2026): Das Jahresabo nennt, was am Kauftag
+         landet, und ab welchem Monat es weitergeht — beides aus
+         allowanceGrant(), also aus derselben Regel, die der Server bucht. */
+      const firstTopUp = p.startCredits ? Array.from({ length: 11 }, (_, i) => i + 1).find((m) => allowanceGrant(p, m).amount > 0) : null;
       return { id: p.id, price: p.price, per: pw.per[p.period], name: pw.periodName[p.period], badge: p.saveHint ? pw.save(p.saveHint) : null,
-        sub: pw.creditsPer(p.credits, pw.periodUnit[p.period]), films, filmsLine: filmsLine(films), filmsWord: pw.yieldFilms(films), featured: !!p.featured, yearly: p.period === "year" };
+        extraLine: p.startCredits ? pw.startLine(p.startCredits, dreamsFor(p.startCredits).films) : null,
+        sub: firstTopUp ? pw.thenFrom(p.credits, firstTopUp + 1) : pw.creditsPer(p.credits, pw.periodUnit[p.period]), films, filmsLine: filmsLine(films), filmsWord: pw.yieldFilms(films), featured: !!p.featured, yearly: p.period === "year" };
     }),
     packs: PACKS.map((p) => {
       const films = dreamsFor(p.credits).films;
