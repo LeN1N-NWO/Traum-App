@@ -174,13 +174,15 @@ export const FILM_UNIT = { model: "standard", seconds: 15, quality: "sd" };
 /* ── Das Jahresabo mit Startguthaben (entschieden 14.09.2026) ─────────────
  *
  * Antons Frage 13.09.: „Soll das Jahresabo alle Credits sofort freischalten?"
- * Entscheidung 14.09.: „… sofort und dann 160 im Monat weiter ist gut,
- * reduziert das Risiko." Umgesetzt mit 480 = drei Monatsraten, der Zahl aus
- * docs/plans/2026-09-13-abo-gewicht-und-jahresguthaben.md:
+ * Entscheidung 14.09.: 480 sofort statt alles auf einmal — „reduziert das
+ * Risiko". Erste Fassung: 480 trugen die Monate 1–3, ab Monat 4 wieder 160.
+ * Antons Nachtrag am selben Tag: keine Monate ohne Credits — „480 sofort und
+ * dann halt jeden Monat rechnerisch weniger". Also:
  *
- *   Kauftag      480 Credits — trägt die Monate 1–3 (15 Filme à 15 s)
- *   Monat 4–12   jeden Monat 160 dazu
- *   Jahressumme  1.920 = 12 × 160 — die Marge oben bleibt, wie sie war
+ *   Kauftag      480 Credits (15 Filme à 15 s)
+ *   Monat 2–12   jeden Monat 131 dazu = (12 × 160 − 480) / 11, aufgerundet
+ *   Jahressumme  1.921 — ein Credit über 12 × 160 durch das Aufrunden, die
+ *                Marge oben und das „17 % sparen" bleiben
  *   Übertrag     Im Abojahr bleibt, was übrig ist. Beim nächsten Jahresbeginn
  *                wird wieder GESETZT: der Rest des Vorjahres verfällt.
  *   Erstattung   Apple erstattet, nicht wir. Die Store-Meldung REFUND setzt
@@ -189,14 +191,16 @@ export const FILM_UNIT = { model: "standard", seconds: 15, quality: "sd" };
  *
  * Warum nicht alles sofort: Wer 1.920 Credits in der ersten Woche verbraucht
  * und sich das Geld bei Apple zurückholt, kostet bis zu $54. Mit 480 sind es
- * höchstens rund $13,60 — plans.test.js hält die Grenze fest.
+ * im ersten Monat höchstens $13,56; weil jetzt jeden Monat etwas dazukommt,
+ * bis Ende Monat 3 höchstens $20,96 (742 Credits) statt $13,56 — der Preis
+ * dafür, dass kein Monat leer bleibt. plans.test.js hält beide Grenzen fest.
  *
  * Das Monatsabo bleibt beim Setzen ohne Übertrag. */
 
 /** Subscriptions. Monthly: the allowance is SET each month and does not roll
- *  over. Yearly: `startCredits` land on day one, then `credits` are ADDED
- *  each month once the start grant's months are over; leftovers stay until
- *  the subscription year ends (see allowanceGrant). */
+ *  over. Yearly: `startCredits` land on day one, the rest of the year's
+ *  12 × `credits` is spread evenly over the other eleven months and ADDED;
+ *  leftovers stay until the subscription year ends (see allowanceGrant). */
 export const SUBSCRIPTIONS = [
   { id: "monthly",   price: "$9.99",  period: "month", credits: 160, featured: true },
   { id: "yearly",    price: "$99.99", period: "year",  credits: 160, perMonth: true, saveHint: "17%", startCredits: 480 },
@@ -210,9 +214,8 @@ export const SUBSCRIPTIONS = [
 export function allowanceGrant(plan, monthIndex) {
   if (!plan.startCredits) return { amount: plan.credits, mode: "set" };
   const month = ((monthIndex % 12) + 12) % 12;
-  const covered = Math.round(plan.startCredits / plan.credits);
   if (month === 0) return { amount: plan.startCredits, mode: "set" };
-  return { amount: month < covered ? 0 : plan.credits, mode: "add" };
+  return { amount: Math.ceil((plan.credits * 12 - plan.startCredits) / 11), mode: "add" };
 }
 
 /* One-off packs: bought once, never expire, no commitment.

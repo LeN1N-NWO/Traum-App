@@ -346,12 +346,12 @@ function snapshot() {
     subs: SUBSCRIPTIONS.map((p) => {
       const films = dreamsFor(p.credits * (p.period === "year" ? 12 : 1)).films;
       /* Startguthaben (14.09.2026): Das Jahresabo nennt, was am Kauftag
-         landet, und ab welchem Monat es weitergeht — beides aus
+         landet, und was danach jeden Monat dazukommt — beides aus
          allowanceGrant(), also aus derselben Regel, die der Server bucht. */
-      const firstTopUp = p.startCredits ? Array.from({ length: 11 }, (_, i) => i + 1).find((m) => allowanceGrant(p, m).amount > 0) : null;
+      const topUp = p.startCredits ? allowanceGrant(p, 1).amount : null;
       return { id: p.id, price: p.price, per: pw.per[p.period], name: pw.periodName[p.period], badge: p.saveHint ? pw.save(p.saveHint) : null,
         extraLine: p.startCredits ? pw.startLine(p.startCredits, dreamsFor(p.startCredits).films) : null,
-        sub: firstTopUp ? pw.thenFrom(p.credits, firstTopUp + 1) : pw.creditsPer(p.credits, pw.periodUnit[p.period]), films, filmsLine: filmsLine(films), filmsWord: pw.yieldFilms(films), featured: !!p.featured, yearly: p.period === "year" };
+        sub: topUp ? pw.thenEvery(topUp) : pw.creditsPer(p.credits, pw.periodUnit[p.period]), films, filmsLine: filmsLine(films), filmsWord: pw.yieldFilms(films), featured: !!p.featured, yearly: p.period === "year" };
     }),
     packs: PACKS.map((p) => {
       const films = dreamsFor(p.credits).films;

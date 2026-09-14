@@ -286,11 +286,13 @@ for (const p of SUBSCRIPTIONS.filter((s) => s.startCredits)) {
   const plan = Array.from({ length: 12 }, (_, i) => allowanceGrant(p, i));
   console.log(`Monate 1–12: ${plan.map((g) => (g.mode === "set" ? "=" : "+") + g.amount).join(" ")}`);
   console.log(`Jahressumme ${plan.reduce((a, g) => a + g.amount, 0)} Credits (12 × ${p.credits} = ${12 * p.credits})`);
-  console.log(`Größter Verlust bei Erstattung nach Vollverbrauch des Startguthabens: $${(p.startCredits * CREDIT_COST_USD).toFixed(2)}` +
+  let bisher = 0;
+  const verlust = plan.map((g) => (bisher += g.amount) * CREDIT_COST_USD);
+  console.log(`Größter Verlust bei Erstattung nach Vollverbrauch: Monat 1 $${verlust[0].toFixed(2)}, bis Monat 3 $${verlust[2].toFixed(2)}` +
     ` (alles auf einmal wären $${(12 * p.credits * CREDIT_COST_USD).toFixed(2)} gewesen)`);
   for (const store of [0.15, 0.3]) {
     const netto = (num(p.price) / 12 / 1.19) * (1 - store);
-    const kosten = p.credits * CREDIT_COST_USD;
+    const kosten = (plan.reduce((a, g) => a + g.amount, 0) / 12) * CREDIT_COST_USD;
     console.log(`Store ${Math.round(store * 100)} %: netto $${netto.toFixed(2)}/Monat gegen $${kosten.toFixed(2)} bei vollem Verbrauch → ${(netto / kosten).toFixed(2)}×`);
   }
 }

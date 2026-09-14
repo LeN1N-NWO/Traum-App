@@ -73,7 +73,9 @@ test("every pack clears its worst-case cost at 15 % store", () => {
  *  $0,148 gemeldet. */
 function termPerCredit(plan) {
   const price = num(plan.price);
-  const total = plan.perMonth ? plan.credits * 12 : plan.credits;
+  const total = plan.startCredits
+    ? Array.from({ length: 12 }, (_, i) => allowanceGrant(plan, i).amount).reduce((a, b) => a + b, 0)
+    : plan.perMonth ? plan.credits * 12 : plan.credits;
   return price / total;
 }
 
@@ -177,29 +179,33 @@ test("pack extras add up and grow with the pack", () => {
 });
 
 /* ── Das Startguthaben des Jahresabos (Antons Entscheidung 14.09.2026) ─────
-   Drei Monatsraten am Kauftag, dann monatlich dazu. Diese Zeilen halten die
-   drei Versprechen fest, an denen die Entscheidung hängt: das Jahr gibt nicht
-   mehr als vorher (Marge unverändert), eine Erstattung nach Vollverbrauch
-   bleibt klein, und der Übertrag macht das Jahr nicht zum Verlustgeschäft. */
+   480 am Kauftag, der Rest des Jahres gleichmäßig auf die übrigen elf Monate
+   (Antons Nachtrag: kein Monat ohne Credits). Diese Zeilen halten fest, woran
+   die Entscheidung hängt: das Jahr gibt so viel wie zwölf Monatsabos (Marge
+   unverändert), kein Monat bleibt leer, eine Erstattung bleibt klein, und der
+   Übertrag macht das Jahr nicht zum Verlustgeschäft. */
 const yearly = () => SUBSCRIPTIONS.find((p) => p.period === "year");
 const yearSum = (plan, from = 0) => Array.from({ length: 12 }, (_, i) => allowanceGrant(plan, from + i).amount).reduce((a, b) => a + b, 0);
 
-test("the yearly start grant is three months, and the year still totals twelve", () => {
+test("the yearly plan gives at least twelve months' credits — and only rounding more", () => {
   const year = yearly();
-  expect(year.startCredits).toBe(year.credits * 3);
-  expect(yearSum(year)).toBe(year.credits * 12);
-  expect(yearSum(year, 12)).toBe(year.credits * 12);      // auch im Verlängerungsjahr
+  expect(yearSum(year)).toBeGreaterThanOrEqual(year.credits * 12);
+  expect(yearSum(year)).toBeLessThan(year.credits * 12 + 11);   // höchstens das Aufrunden
+  expect(yearSum(year, 12)).toBe(yearSum(year));                 // auch im Verlängerungsjahr
   expect(dreamsFor(year.startCredits).films).toBeGreaterThanOrEqual(15);
 });
 
-test("the start grant lands on day one, the top-ups add, the next year starts fresh", () => {
+test("the start grant lands on day one, every later month adds the same, the next year starts fresh", () => {
   const year = yearly();
+  const topUp = allowanceGrant(year, 1).amount;
   expect(allowanceGrant(year, 0)).toEqual({ amount: year.startCredits, mode: "set" });
-  expect(allowanceGrant(year, 1)).toEqual({ amount: 0, mode: "add" });
-  expect(allowanceGrant(year, 2)).toEqual({ amount: 0, mode: "add" });
-  expect(allowanceGrant(year, 3)).toEqual({ amount: year.credits, mode: "add" });
-  expect(allowanceGrant(year, 11)).toEqual({ amount: year.credits, mode: "add" });
+  for (let m = 1; m < 12; m++) expect(allowanceGrant(year, m)).toEqual({ amount: topUp, mode: "add" });
   expect(allowanceGrant(year, 12)).toEqual({ amount: year.startCredits, mode: "set" });
+});
+
+test("no month of the yearly plan goes empty", () => {
+  // Antons Nachtrag 14.09.: lieber jeden Monat etwas weniger als Monate ohne.
+  for (let m = 0; m < 12; m++) expect(allowanceGrant(yearly(), m).amount).toBeGreaterThan(0);
 });
 
 test("the monthly plan never rolls over", () => {
@@ -207,12 +213,17 @@ test("the monthly plan never rolls over", () => {
   for (let i = 0; i < 24; i++) expect(allowanceGrant(month, i)).toEqual({ amount: month.credits, mode: "set" });
 });
 
-/* Der Grund für das Startguthaben: Apple erstattet, nicht wir. Wer das
-   Startguthaben sofort verbraucht und sich das Geld zurückholt, darf höchstens
-   so viel kosten — bei 1.920 Credits auf einmal wären es $54 gewesen. Steigt
-   der Einkauf je Credit, wird diese Zeile rot, bevor jemand es merkt. */
-test("a refund after burning the start grant stays under $14", () => {
-  expect(yearly().startCredits * CREDIT_COST_USD).toBeLessThan(14);
+/* Der Grund für das Startguthaben: Apple erstattet, nicht wir. Wer alles
+   verbraucht, was bis dahin gutgeschrieben ist, und sich das Geld
+   zurückholt, darf höchstens so viel kosten — bei 1.920 Credits auf einmal
+   wären es $54 gewesen. Weil jetzt jeden Monat etwas dazukommt, steigt die
+   Grenze bis Ende Monat 3 auf rund $21. Steigt der Einkauf je Credit, werden
+   diese Zeilen rot, bevor jemand es merkt. */
+test("a refund after burning everything granted so far stays small", () => {
+  const year = yearly();
+  const upTo = (months) => Array.from({ length: months }, (_, i) => allowanceGrant(year, i).amount).reduce((a, b) => a + b, 0);
+  expect(upTo(1) * CREDIT_COST_USD).toBeLessThan(14);
+  expect(upTo(3) * CREDIT_COST_USD).toBeLessThan(22);
 });
 
 /* Mit Übertrag verfällt im Abojahr nichts mehr — die 75-%-Annahme oben wird
@@ -221,7 +232,7 @@ test("a refund after burning the start grant stays under $14", () => {
 test("with rollover the yearly plan still clears full usage", () => {
   const year = yearly();
   const net = (num(year.price) / 12 / 1.19) * 0.85;
-  expect(net).toBeGreaterThan(year.credits * CREDIT_COST_USD * 1.25);
+  expect(net).toBeGreaterThan((yearSum(year) / 12) * CREDIT_COST_USD * 1.25);
 });
 
 /* Die Nutzungsbedingungen nennen die Zahlen ausgeschrieben. Ändert sich die
@@ -232,6 +243,6 @@ test("the terms name the same yearly numbers as the price list", () => {
   for (const t of [en, de]) {
     const terms = JSON.stringify(t);
     expect(terms).toContain(`${year.startCredits} `);
-    expect(terms).toContain(`${year.credits} `);
+    expect(terms).toContain(`${allowanceGrant(year, 1).amount} `);
   }
 });

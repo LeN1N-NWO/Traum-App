@@ -7,6 +7,14 @@ größeren Einmalpaketen.
 
 Das ist eine Empfehlung, keine Entscheidung. Zahlen aus `src/lib/plans.js`.
 
+> **Entschieden 14.09.2026 (Anton), gebaut:** 480 Credits am Kauftag, danach
+> **jeden Monat 131** — kein Monat ohne Credits („480 sofort und dann halt
+> jeden Monat rechnerisch weniger", statt der ersten Fassung mit leeren
+> Monaten 2 und 3). Jahressumme 1.921 (Aufrunden von 1.440 / 11), Übertrag
+> im Abojahr, Jahresbeginn setzt neu. Größter Verlust bei Erstattung nach
+> Vollverbrauch: Monat 1 $13,56, bis Monat 3 $20,96. Regel:
+> `allowanceGrant()` in `src/lib/plans.js`.
+
 ## 1. Das Jahresabo: alles sofort?
 
 **Der Wunsch ist richtig:** Wer gerade begeistert ist, will spielen, nicht

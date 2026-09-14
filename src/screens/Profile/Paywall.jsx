@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAppState } from "../../state/AppState.jsx";
-import { SUBSCRIPTIONS, PACKS, dreamsFor } from "../../lib/plans.js";
+import { SUBSCRIPTIONS, PACKS, allowanceGrant, dreamsFor } from "../../lib/plans.js";
 import { totalCredits } from "../../lib/credits.js";
 import { showcaseFrom } from "../../lib/showcase.js";
 import HeroGlow from "../../components/HeroGlow.jsx";
@@ -119,7 +119,7 @@ export default function Paywall({ reason = "browse", onClose }) {
                 </span>
                 <span className="pw-plan-sub">
                   {p.startCredits
-                    ? `${t.paywall.startLine(p.startCredits, dreamsFor(p.startCredits).films)} · ${t.paywall.thenFrom(p.credits, Math.round(p.startCredits / p.credits) + 1)}`
+                    ? `${t.paywall.startLine(p.startCredits, dreamsFor(p.startCredits).films)} · ${t.paywall.thenEvery(allowanceGrant(p, 1).amount)}`
                     : p.period
                     ? t.paywall.creditsPer(p.credits, t.paywall.periodUnit[p.period])
                     : t.paywall.packYield(dreamsFor(p.credits).images, dreamsFor(p.credits).films)}

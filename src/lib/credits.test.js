@@ -113,10 +113,10 @@ test("old installs without an allowance field still work", () => {
   expect(totalCredits({})).toBe(0);
 });
 
-/* Das Jahresabo mit Startguthaben (14.09.2026): Die Monate 2 und 3 dürfen
-   das Startguthaben NICHT auf 0 setzen, und ab Monat 4 wird dazugelegt. Ein
-   einziges falsches „set" hätte jemandem am zweiten Monat 480 bezahlte
-   Credits weggenommen — still, und in echtem Geld messbar. */
+/* Das Jahresabo mit Startguthaben (14.09.2026): Die Monate nach dem Kauftag
+   dürfen das Startguthaben NICHT ersetzen, sie legen dazu. Ein einziges
+   falsches „set" hätte jemandem im zweiten Monat bezahlte Credits
+   weggenommen — still, und in echtem Geld messbar. */
 test("a yearly subscriber keeps the start grant and gets top-ups on top", () => {
   const year = SUBSCRIPTIONS.find((p) => p.period === "year");
   let state = { credits: 7, allowance: 0 };
@@ -124,7 +124,7 @@ test("a yearly subscriber keeps the start grant and gets top-ups on top", () => 
   expect(state).toEqual({ allowance: 480, credits: 7 });
   state = { ...state, ...spend(state, 100) };               // 100 aus dem Abo
   for (let m = 1; m < 12; m++) state = applyAllowanceGrant(state, allowanceGrant(year, m));
-  expect(state).toEqual({ allowance: 380 + 9 * 160, credits: 7 });
+  expect(state).toEqual({ allowance: 380 + 11 * allowanceGrant(year, 1).amount, credits: 7 });
 });
 
 test("a new subscription year starts fresh — last year's rest expires, bought credits stay", () => {

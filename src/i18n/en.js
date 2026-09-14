@@ -1150,7 +1150,7 @@ export default {
         { h: "Age",
           p: "Dream Rushes is for adults. By using the app you confirm that you are 18 or older." },
         { h: "Credits and purchases",
-          p: "Creating images and films costs credits; writing, voice and everything in the Sleep tab is free. Prices are always shown before you pay. Credits have no cash value and cannot be paid out; credits from the monthly subscription expire at the end of each month. The yearly subscription gives you 480 credits on day one and 160 more every month from the fourth month; unused credits stay until the end of the subscription year. Purchased packs never expire. If the app store refunds a subscription, its unused credits are removed. A film that has started uses up its credits — we pay the AI services at that moment too. You only get them back if the rendering fails for technical reasons." },
+          p: "Creating images and films costs credits; writing, voice and everything in the Sleep tab is free. Prices are always shown before you pay. Credits have no cash value and cannot be paid out; credits from the monthly subscription expire at the end of each month. The yearly subscription gives you 480 credits on day one and 131 more every month after that; unused credits stay until the end of the subscription year. Purchased packs never expire. If the app store refunds a subscription, its unused credits are removed. A film that has started uses up its credits — we pay the AI services at that moment too. You only get them back if the rendering fails for technical reasons." },
         { h: "AI-generated content",
           p: "Everything the AI produces is synthetic. It can be wrong, strange or unlike what you imagined — that is the nature of the technology, not a defect. Shared films carry a label that says they are AI-made; please leave it in place, in some countries the law requires it." },
         { h: "Availability",
@@ -1410,9 +1410,9 @@ export default {
        aussieht"), diese Zeile hält die ehrliche Mechanik daneben fest. */
     yieldYearNote: "Unused credits stay with you until your subscription year ends.",
     /* Jahresabo mit Startguthaben (14.09.2026, plans.js): der Kauftag bringt
-       drei Monatsraten auf einmal, danach kommt monatlich etwas dazu. */
+       drei Monatsraten auf einmal, danach kommt jeden Monat etwas dazu. */
     startLine: (n, films) => `${n} credits right away — ${films} films`,
-    thenFrom: (n, month) => `from month ${month}: +${n} every month`,
+    thenEvery: (n) => `then +${n} every month`,
     included: "Always included, free",
     chips: [
       "Unlimited journaling", "Voice recording", "AI rewriting",
