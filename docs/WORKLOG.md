@@ -3,6 +3,14 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-14 14:20 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — Einladungsprämie festgelegt
+
+- **Antons Entscheidung:** Prämie rund 20 % der gekauften Credits, auf glatte
+  Zehner abgerundet, beim Jahresabo 100: S 10, M 30, L 60, XL 130,
+  Monatsabo 30, Jahresabo 100. Plan und Übergabe an Hanni nachgezogen.
+- ⚠ 10 Credits allein kaufen keinen Film (billigster 11) — sie zählen im
+  selben Guthaben mit.
+
 ## 2026-09-14 14:00 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — kein Willkommensgeschenk, XL 650, Einladungsprämie bei Kauf
 
 **Commits:** `8e5c8fd` Code · `e60b8e6` Übergabe · Doku-Commit dieses Eintrags.

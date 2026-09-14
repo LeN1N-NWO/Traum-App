@@ -77,20 +77,21 @@ kauft**. Kein Willkommensgeschenk mehr für neue Nutzer.
   zahlende Kunden dürfen einladen. Higgsfield: einige Tage unbegrenzt Seedance,
   wenn der Freund binnen 24 h kauft.
 
-**Vorschlag: 20 % der Credits, die der Freund kauft, mindestens 11** (ein
-5-s-Film); gezahlt 14 Tage nach dem Kauf, wenn nicht erstattet; höchstens 5
-Prämien pro Monat. Für den Einladenden fühlt es sich wie 20 % an — uns kostet
-es nur rund 3–9 % des Kaufpreises, weil ein Credit uns etwa ein Drittel dessen
-kostet, was er im Laden wert ist:
+**Entschieden (Anton, 14.09.2026): rund 20 % der Credits, die der Freund
+kauft, auf glatte Zehner abgerundet, beim Jahresabo 100.** Gezahlt 14 Tage
+nach dem Kauf, wenn nicht erstattet; höchstens 5 Prämien pro Monat. Für den
+Einladenden fühlt es sich wie ein Fünftel an — uns kostet es nur rund 3–9 %
+des Kaufpreises, weil ein Credit uns etwa ein Drittel dessen kostet, was er
+im Laden wert ist:
 
 | Freund kauft | Prämie | kostet uns höchstens | vom Gewinn aus dem Kauf |
 |---|---|---|---|
-| Paket S $4,99 | 11 | $0,31 | 14 % |
+| Paket S $4,99 | 10 | $0,28 | 13 % |
 | Paket M $12,99 | 30 | $0,85 | 17 % |
-| Paket L $24,99 | 64 | $1,81 | 21 % |
+| Paket L $24,99 | 60 | $1,70 | 19 % |
 | Paket XL $49,99 | 130 | $3,67 | 21 % |
-| Monatsabo $9,99 | 32 | $0,90 | 35 % des 1. Monats (bei 3 Monaten Verbleib ~11 %) |
-| Jahresabo $99,99 | 96 | $2,71 | 16 % |
+| Monatsabo $9,99 | 30 | $0,85 | 32 % des 1. Monats (bei 3 Monaten Verbleib ~11 %) |
+| Jahresabo $99,99 | 100 | $2,83 | 17 % |
 
 Apple 15 %, 19 % MwSt, voller Verbrauch, teuerster Einkauf je Credit.
 Gratis-Codes und TestFlight-Käufe lösen nie eine Prämie aus.
@@ -148,7 +149,7 @@ wie viele Installationen ein Post gebracht hat — nur als Summe, ohne Tracking.
 - Einladungsprämie nur bei echtem Kauf des Freundes.
 - Kein Willkommensgeschenk mehr (im Code entfernt).
 - XL-Paket 650 Credits.
+- Prämiengröße: S 10, M 30, L 60, XL 130, Monatsabo 30, Jahresabo 100.
 
 ## Noch zur Entscheidung (Anton)
 1. Starter-Code: 22 Credits?
-2. Prämiengröße: 20 % der gekauften Credits, mindestens 11, höchstens 5 pro Monat?

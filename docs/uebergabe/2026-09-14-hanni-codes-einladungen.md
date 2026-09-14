@@ -80,24 +80,26 @@ Für Freunde in TestFlight keine Codes: ein kleines Admin-Skript bucht
   Konten (Falle 1 und 2).
 - Kein Branch/AppsFlyer/Adjust/Detour (auf iOS Fingerprinting).
 
-**Prämie (Vorschlag, Anton entscheidet die Größe):**
+**Prämie (entschieden, Anton 14.09.2026):**
 - Auslöser: **erster echter Kauf** des Eingeladenen (Paket oder Abo, nicht
   Sandbox, nicht Preis 0) **und 14 Tage ohne `REFUND`** — so lange läuft auch
   das EU-Widerrufsrecht.
-- Größe: **20 % der Credits, die der Freund gekauft hat, mindestens 11** (ein
-  5-s-Film). Beim Abo zählt der erste Monat (160), beim Jahresabo der Kauftag
-  (480).
+- Größe: rund 20 % der gekauften Credits, **auf glatte Zehner abgerundet**,
+  beim Jahresabo **100**. Fest je Produkt — so steht es im Store-Katalog, nicht
+  als Formel:
 
 | Kauf des Freundes | Prämie | kostet uns höchstens | Anteil an unserem Gewinn aus dem Kauf |
 |---|---|---|---|
-| Paket S $4,99 | 11 | $0,31 | 14 % |
+| Paket S $4,99 | 10 | $0,28 | 13 % |
 | Paket M $12,99 | 30 | $0,85 | 17 % |
-| Paket L $24,99 | 64 | $1,81 | 21 % |
+| Paket L $24,99 | 60 | $1,70 | 19 % |
 | Paket XL $49,99 | 130 | $3,67 | 21 % |
-| Monatsabo $9,99 | 32 | $0,90 | 35 % des ersten Monats |
-| Jahresabo $99,99 | 96 | $2,71 | 16 % |
+| Monatsabo $9,99 | 30 | $0,85 | 32 % des ersten Monats |
+| Jahresabo $99,99 | 100 | $2,83 | 17 % |
 
 (Apple 15 %, 19 % MwSt, voller Verbrauch, teuerster Einkauf je Credit.)
+- Hinweis: 10 Credits allein reichen für keinen Film (billigster: 11) — sie
+  landen im selben Guthaben und zählen mit dem Rest.
 - Deckel: höchstens 5 Prämien pro Monat je Einladendem.
 - Buchung: `credits_grant(referrer, n, 'referral', ref = 'referral:<redemption_id>')`
   in `purchased` (kein Verfall; ein Verfall bräuchte einen dritten Topf und
@@ -130,4 +132,3 @@ lohnt Betrug kaum; App Attest erst vor dem öffentlichen Launch.
 
 ## Was Anton noch entscheidet
 - Menge des Starter-Codes (Vorschlag 22 Credits).
-- Prämiengröße (Vorschlag oben: 20 %, mindestens 11, höchstens 5 pro Monat).

@@ -7,8 +7,8 @@
 (PR #50, Entwurf). **Entschieden und gebaut:** kein Willkommensgeschenk mehr
 (`welcomeGrant` entfernt, Kaufblatt „Filme brauchen Credits“, Blatt nach dem
 ersten Film nur noch, wenn der Rest keinen Film trägt), XL-Paket 650 Credits.
-**Einladungsprämie nur bei echtem Kauf** — Größe offen (Vorschlag 20 %,
-mindestens 11). **Codes und Einladungen geplant, nicht gebaut**
+**Einladungsprämie nur bei echtem Kauf**, 14 Tage ohne Erstattung: S 10, M 30,
+L 60, XL 130, Monatsabo 30, Jahresabo 100 (geplant, nicht gebaut). **Codes und Einladungen geplant, nicht gebaut**
 (`docs/plans/2026-09-14-codes-einladungen-plan.md`, Übergabe an Hanni
 `docs/uebergabe/2026-09-14-hanni-codes-einladungen.md`): Apple Offer Codes
 statt eigenem Code-Feld (3.1.1-Ablehnungen), Einladungen erst nach dem Launch,
