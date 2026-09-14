@@ -3,8 +3,14 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-14 vormittags — Sitzung `session/2026-09-13-anton-e`
-(PR #50, Entwurf). **Jahresabo entschieden und gebaut:** 480 Credits am
+**Stand:** 2026-09-14 mittags — Sitzung `session/2026-09-13-anton-e`
+(PR #50, Entwurf). **Codes und Einladungen geplant, nicht gebaut**
+(`docs/plans/2026-09-14-codes-einladungen-plan.md`, Übergabe an Hanni
+`docs/uebergabe/2026-09-14-hanni-codes-einladungen.md`): Apple Offer Codes
+statt eigenem Code-Feld (3.1.1-Ablehnungen), Einladungen erst nach dem Launch,
+Prämie nur für den Einladenden; ⚠ TestFlight-Käufe sind gratis — Sandbox nie
+ins echte Ledger; ⚠ `WELCOME_CREDITS = 4` kauft keinen Film mehr (Entscheidung
+Anton). **Jahresabo entschieden und gebaut:** 480 Credits am
 Kauftag, danach jeden Monat 131, Übertrag im Abojahr (`allowanceGrant()` in
 `src/lib/plans.js`, Paywall zeigt es). ⚠ Der Server kann das Abo-Guthaben nur
 SETZEN (`credits_set_allowance`), das Jahresabo braucht beim Store-Anschluss

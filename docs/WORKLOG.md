@@ -3,6 +3,29 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-14 12:30 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — Codes, Einladungen, Verlosungen geplant
+
+**Commits:** Doku-Commit dieses Eintrags.
+
+- Antons Fragen: Einladungen nachverfolgen, lohnen sich Credits dafür;
+  Promo-Codes für die ersten Nutzer und Instagram; Verlosungen.
+- Zwei Recherchen (`docs/plans/2026-09-14-recherche-einladungen.md`,
+  `…-recherche-codes-verlosungen.md`), Plan
+  `docs/plans/2026-09-14-codes-einladungen-plan.md`, Übergabe an Hanni.
+- **Widerspruch der Recherchen aufgelöst:** Die Einladungs-Recherche empfahl
+  ein Code-Feld und Credits für beide Seiten; die Regel-Recherche fand
+  Apple-Ablehnungen genau dafür (3.1.1 für eigene Gratis-Codes 2018–2025,
+  3.2.2 für Bonus des Eingeladenen 2021). Der Plan folgt der vorsichtigeren:
+  Offer Codes, Prämie nur für den Einladenden nach dessen erstem Film,
+  Einladungen im Update nach dem Launch.
+
+**Was der Nächste wissen muss:**
+- ⚠ TestFlight-/Sandbox-Käufe dürfen nie echte Credits buchen.
+- ⚠ Offer Codes lassen sich erst erzeugen, wenn App und IAP freigegeben sind.
+- ⚠ `WELCOME_CREDITS = 4` (`src/lib/credits.js`) kauft keinen Film mehr.
+- Voraussetzungen in dieser Reihenfolge: Mit Apple anmelden → StoreKit mit
+  Server-Prüfung → Offer Codes → Einladungen.
+
 ## 2026-09-14 10:30 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — Jahresabo mit Startguthaben, XL-Rechnung, Werbung, Dream Recorder, Marketing-Agenten
 
 **Commits:** `3269c13` Startguthaben (erste Fassung) · `7cda637` 480 sofort,
