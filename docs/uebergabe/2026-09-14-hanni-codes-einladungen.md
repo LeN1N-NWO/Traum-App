@@ -85,8 +85,8 @@ Für Freunde in TestFlight keine Codes: ein kleines Admin-Skript bucht
   Sandbox, nicht Preis 0) **und 14 Tage ohne `REFUND`** — so lange läuft auch
   das EU-Widerrufsrecht.
 - Größe: rund 20 % der gekauften Credits, **auf glatte Zehner abgerundet**,
-  beim Jahresabo **100**. Fest je Produkt — so steht es im Store-Katalog, nicht
-  als Formel:
+  beim Jahresabo **100**. Am besten als feste Tabelle je Produkt-ID auf dem
+  Server, nicht als Formel:
 
 | Kauf des Freundes | Prämie | kostet uns höchstens | Anteil an unserem Gewinn aus dem Kauf |
 |---|---|---|---|
