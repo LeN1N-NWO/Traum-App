@@ -51,7 +51,7 @@ import { genId } from "../../../src/lib/storage.js";
 import { newCreature } from "../../../src/lib/creatures.js";
 import { IMAGE_COUNTS, priceForImages } from "../../../src/lib/pricing.js";
 import { priceForFilm } from "../../../src/lib/video.js";
-import { SUBSCRIPTIONS, PACKS, dreamsFor } from "../../../src/lib/plans.js";
+import { SUBSCRIPTIONS, PACKS, allowanceGrant, dreamsFor, packBonus } from "../../../src/lib/plans.js";
 import { showcaseFrom } from "../../../src/lib/showcase.js";
 import { filmsOf, filmOf, imagesOf } from "../../../src/lib/entryMedia.js";
 import { isBlank } from "../../../src/lib/blankNight.js";
@@ -164,7 +164,7 @@ function snapshot() {
     soundsShortcut: t.home.soundsShortcut, checkinQuestion: t.checkin.question, checkinThanks: t.checkin.thanks,
     untitled: t.journal.untitled, takes: t.journal.takesLabel, reflectTitle: t.journal.reflectTitle,
     reflectNote: t.journal.reflectNote, reflectCta: t.journal.reflectCta, original: t.journal.original, rendering: t.journal.filmRendering,
-    share: t.journal.actShare, shareCard: t.journal.shareCard, shareCardCta: t.journal.shareCardCta, shareCardFooter: t.journal.shareCardFooter, more: t.journal.menu, makeFilm: t.journal.makeFilm, anotherTake: t.journal.makeFilmAgain,
+    share: t.journal.actShare, recordingTitle: t.journal.recordingTitle, recordingHint: t.journal.recordingHint, shareCard: t.journal.shareCard, shareCardCta: t.journal.shareCardCta, shareCardFooter: t.journal.shareCardFooter, more: t.journal.menu, makeFilm: t.journal.makeFilm, anotherTake: t.journal.makeFilmAgain,
     dreams: t.journal.title,
     /* Das „…"-Menü der Traum-Seite (EntryMenu.jsx) als natives Aktionsblatt. */
     menuEdit: t.journal.edit, menuCorrect: t.journal.correct, menuRewrite: t.journal.rewrite, menuElaborate: t.journal.elaborate,
@@ -179,8 +179,10 @@ function snapshot() {
   };
   const sleep = {
     title: t.sleep.title, subtitle: t.sleep.subtitle, free: t.sleep.free,
-    tiles: ["breathe", "checklist", "sounds", "guide", "symbols"].map((id) => ({ id, title: t.sleep.tiles[id].title, text: t.sleep.tiles[id].text })),
+    tiles: ["breathe", "checklist", "sounds", "guide", "knowledge", "symbols"].map((id) => ({ id, title: t.sleep.tiles[id].title, text: t.sleep.tiles[id].text })),
     breathe: t.breathe,
+    /* Das Wissen (13.09.2026): Karten aus src/i18n, neueste zuerst. */
+    knowledge: t.knowledge,
     /* Das Mischpult (nativ, components/sound-mixer.tsx): Texte und die
        gespeicherte Mischung. Der Browser-Hinweis zum Autostart entfällt —
        nativ startet der Klang ohne Geste. */
@@ -343,12 +345,20 @@ function snapshot() {
     balance: pw.balance(totalCredits(s)), credits: totalCredits(s),
     subs: SUBSCRIPTIONS.map((p) => {
       const films = dreamsFor(p.credits * (p.period === "year" ? 12 : 1)).films;
+      /* Startguthaben (14.09.2026): Das Jahresabo nennt, was am Kauftag
+         landet, und was danach jeden Monat dazukommt — beides aus
+         allowanceGrant(), also aus derselben Regel, die der Server bucht. */
+      const topUp = p.startCredits ? allowanceGrant(p, 1).amount : null;
       return { id: p.id, price: p.price, per: pw.per[p.period], name: pw.periodName[p.period], badge: p.saveHint ? pw.save(p.saveHint) : null,
-        sub: pw.creditsPer(p.credits, pw.periodUnit[p.period]), films, filmsLine: filmsLine(films), filmsWord: pw.yieldFilms(films), featured: !!p.featured, yearly: p.period === "year" };
+        extraLine: p.startCredits ? pw.startLine(p.startCredits, dreamsFor(p.startCredits).films) : null,
+        sub: topUp ? pw.thenEvery(topUp) : pw.creditsPer(p.credits, pw.periodUnit[p.period]), films, filmsLine: filmsLine(films), filmsWord: pw.yieldFilms(films), featured: !!p.featured, yearly: p.period === "year" };
     }),
     packs: PACKS.map((p) => {
       const films = dreamsFor(p.credits).films;
-      return { id: p.id, price: p.price, per: pw.oneTime, name: pw.packName(p.credits), badge: null, sub: filmsLine(films) || pw.packNote, films, filmsLine: filmsLine(films), filmsWord: pw.yieldFilms(films), featured: p.id === "pack-m", yearly: false };
+      /* Extras sichtbar (13.09.2026): „150 Credits" liest sich als
+         „130 + 20 Extra", Bezug ist das kleinste Paket (plans.js). */
+      const bonus = packBonus(p);
+      return { id: p.id, price: p.price, per: pw.oneTime, name: pw.packName(p.credits), badge: bonus.extra > 0 ? pw.packExtra(bonus.percent) : null, extraLine: bonus.extra > 0 ? pw.packExtraLine(bonus.base, bonus.extra) : null, sub: filmsLine(films) || pw.packNote, films, filmsLine: filmsLine(films), filmsWord: pw.yieldFilms(films), featured: p.id === "pack-m", yearly: false };
     }),
     films: (show.films || []).map(absolute), filmsBackup: (show.filmsBackup || []).map(absolute),
   };
@@ -474,7 +484,7 @@ function avatarLabels() {
     nameTpl: a.nameLabel("{tag}"), photoHint: a.photoHint, photoLabelClose: a.photoLabelClose, photoLabel: a.photoLabel,
     photoLabelBody: a.photoLabelBody, photoBodyAdd: a.photoBodyAdd, photoBodyWhy: a.photoBodyWhy, photoAdd: a.photoAdd,
     photoTake: a.photoTake, photoReplace: a.photoReplace, photoRemove: a.photoRemove, descLabel: a.descLabel,
-    descLabelOptional: a.descLabelOptional, descPlaceholder: a.descPlaceholder, privacy: a.privacy, cancel: a.cancel,
+    descLabelOptional: a.descLabelOptional, descLabelMe: a.descLabelMe, descLabelMeOptional: a.descLabelMeOptional, descPlaceholder: a.descPlaceholder, privacy: a.privacy, cancel: a.cancel,
     save: a.save, saveChanges: a.saveChanges, needPhotoOrDescHint: a.needPhotoOrDescHint, delete: a.delete,
     drawFromDesc: a.drawFromDesc, drawingNow: a.drawingNow, drawHint: a.drawHint,
     creditsWord: t.wizard.creditsN(PRICES.characterSheet),

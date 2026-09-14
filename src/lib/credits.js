@@ -9,69 +9,18 @@
  * changes these three functions and nothing else.
  */
 
-/* New installs get enough to make one complete dream — three images, at full
- * quality. Three, not five, and not the old twenty-five:
+/* ── Kein Willkommensgeschenk mehr (Antons Entscheidung 14.09.2026) ───────
+ * „Es gibt kein Willkommensgeschenk mehr, das kostet uns nur Geld."
  *
- *   Every free credit is $0.08 of real money we hand out, and localStorage
- *   makes it repeatable by anyone who clears their site data. At 25 that was
- *   $2.00 per install, unlimited times.
- *
- *   Three credits cost $0.24. Against $2.09 of profit per subscriber-month
- *   and a three-month average stay, the giveaway pays for itself at a 3.8 %
- *   conversion rate — inside what freemium apps actually reach. At five
- *   credits it would need 6.4 %, which is not.
- *
- *   ⚠ Correction (09.08.2026): the 3.8 % ignores VAT. In the EU the tax
- *   comes off the sticker price BEFORE Apple's cut, so the $2.09 above is
- *   really ~$1.42 at the standard 30 % — break-even is ~4.5–5 %, not 3.8 %.
- *   Under the Small Business Program (15 %) it drops back to ~3.7 %. The
- *   fuller model (store cut × VAT × burn × conversion × stay) lives in the
- *   header of plans.js; the decision it forces is unchanged — fewer free
- *   credits, not worse ones — but the safety margin is thinner than this
- *   comment originally believed.
- *
- *   Deliberately NOT solved by rendering the free dream on a cheaper model:
- *   the first dream someone sees decides whether they ever pay for another,
- *   so it gets the same renderer as everything else. Fewer, not worse.
- *
- * ── The grant is now a written promise (10.08.2026) ───────────────────────
- * The welcome no longer says "3 credits" anywhere; it says "your first dream
- * is on us" (t.onboarding.gateReward, seven locales). That is better copy —
- * a dream is a thing, three credits is a conversion someone has to do — but
- * it also binds this number: the grant has to buy exactly one smallest
- * dream, no less and no more. credits.test.js pins that relationship,
- * because the promise and the numbers live in nine different files.
- *
- * It also settles the grid question. The smallest tier CAN be rendered as one
- * wide image cut into panels (Step5Style's `useGrid`), which would make this
- * giveaway cost one render instead of four — tempting, given how thin the
- * margins in plans.js are. Measured on a real render: the panels come out
- * 459×768 against 768×1376 for a normal still, a third of the pixels. So
- * that saving would be taken precisely on the one dream that has to be
- * good, and against the rule two paragraphs up. The free dream renders
- * full-size. If the grid is ever wanted, it belongs in front of someone as
- * a labelled cheaper choice, not behind their first impression.
- */
-/* ⚠ Von 3 auf 4 mitgezogen am 23.08.2026, als die Bildzahlen auf 4/8
- * umgestellt wurden. Die Regel ist die Beziehung, nicht die Zahl: Das
- * Geschenk zahlt GENAU EINEN kleinsten Traum. Wäre es bei 3 geblieben,
- * hätte der erste Traum plötzlich einen Credit gekostet, den niemand hat —
- * und das Versprechen „dein erster Traum geht auf uns" wäre eine Lüge mit
- * einem ✦ davor gewesen. credits.test.js nagelt die Beziehung fest.
- *
- * ⚠ Das Geschenk wird PRO INSTALLATION gezahlt, nicht pro Kunde — laut
- * plans.js ist es damit der größte einzelne Kostenposten überhaupt. Wer die
- * Conversion misst, misst gegen diese Zahl:
- *   4 × $0,035 = $0,140  (Seedream, bis 24.08.2026)
- *   4 × $0,0283 = $0,113 (GPT Image 2 im 2×2-Raster, heute)
- *
- * ⚠ Und deshalb ist die Zahl 4 am 24.08. NICHT mitgestiegen, obwohl die
- * Credit-Zahlen der Pläne sich mehr als verdoppelt haben (plans.js). Die
- * Pläne hängen an der Marge, das Geschenk hängt an einem Versprechen:
- * „dein erster Traum geht auf uns" — EIN Traum, nicht zwei. Wer es auf 8
- * setzt, verdoppelt den größten Kostenposten der App, um ein Versprechen
- * zu geben, das niemand verlangt hat. */
-export const WELCOME_CREDITS = 4;
+ * Bis dahin bekam jede Installation nach der Umfrage 4 Credits
+ * (WELCOME_CREDITS, welcomeGrant). Die Zahl stammte aus der Bilderzeit und
+ * kaufte seit dem Wegfall der Bilder ohnehin keinen Film mehr (billigster:
+ * 11 Credits) — und sie wurde PRO INSTALLATION gezahlt, laut plans.js der
+ * größte einzelne Kostenposten. Das Gratis-Erlebnis tragen jetzt die
+ * Beispielfilme im Onboarding, Schreiben, Sprechen und der Schlaf-Tab.
+ * Wer vorher schon Credits bekommen hat, behält sie (`credits` bleibt).
+ * Neue Credits kommen nur noch aus Käufen, Abos, Apple-Offer-Codes und
+ * Einladungsprämien (docs/plans/2026-09-14-codes-einladungen-plan.md). */
 
 /* ── Zwei Töpfe, nicht einer (16.08.2026) ─────────────────────────────────
  *
@@ -84,7 +33,8 @@ export const WELCOME_CREDITS = 4;
  *   `allowance` kommt aus einem Abo, füllt sich zum Periodenbeginn neu auf
  *              und wird dabei zurückgesetzt, nicht addiert (plans.js: „does
  *              not roll over" — daran hängt die Jahresrechnung).
- *   `credits`  kommt aus Paketen und aus dem Willkommensgeschenk. Bleibt.
+ *   `credits`  kommt aus Paketen (bis 14.09.2026 auch aus dem Willkommens-
+ *              geschenk). Bleibt.
  *              Auch wenn ein Abo endet.
  *
  * Ausgegeben wird IMMER zuerst das Verfallende. Das ist zugleich das
@@ -124,9 +74,12 @@ export function refillAllowance(state, credits) {
   return { allowance: credits, credits: state?.credits ?? 0 };
 }
 
-/** One-time welcome grant. Flagged so it never repeats, including for people
- *  who installed before the grant existed. */
-export function welcomeGrant(state) {
-  if (state?.creditsGranted) return null;
-  return { credits: (state?.credits ?? 0) + WELCOME_CREDITS, creditsGranted: true };
+/** Monatsbeginn eines Abos nach plans.js/allowanceGrant (14.09.2026): Das
+ *  Monatsabo und der Jahresbeginn SETZEN, im laufenden Abojahr wird
+ *  DAZUGELEGT — das Startguthaben des Jahresabos darf nicht im zweiten Monat
+ *  verschwinden. Gekaufte Credits bleiben in beiden Fällen unberührt. */
+export function applyAllowanceGrant(state, grant) {
+  if (grant.mode === "set") return refillAllowance(state, grant.amount);
+  return { allowance: (state?.allowance ?? 0) + grant.amount, credits: state?.credits ?? 0 };
 }
+

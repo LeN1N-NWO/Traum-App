@@ -171,11 +171,52 @@ export const CREDIT_COST_USD = creditCostUsd();
  *  Zahl meinen. */
 export const FILM_UNIT = { model: "standard", seconds: 15, quality: "sd" };
 
-/** Subscriptions: the allowance refills each period and does not roll over. */
+/* ── Das Jahresabo mit Startguthaben (entschieden 14.09.2026) ─────────────
+ *
+ * Antons Frage 13.09.: „Soll das Jahresabo alle Credits sofort freischalten?"
+ * Entscheidung 14.09.: 480 sofort statt alles auf einmal — „reduziert das
+ * Risiko". Erste Fassung: 480 trugen die Monate 1–3, ab Monat 4 wieder 160.
+ * Antons Nachtrag am selben Tag: keine Monate ohne Credits — „480 sofort und
+ * dann halt jeden Monat rechnerisch weniger". Also:
+ *
+ *   Kauftag      480 Credits (15 Filme à 15 s)
+ *   Monat 2–12   jeden Monat 131 dazu = (12 × 160 − 480) / 11, aufgerundet
+ *   Jahressumme  1.921 — ein Credit über 12 × 160 durch das Aufrunden, die
+ *                Marge oben und das „17 % sparen" bleiben
+ *   Übertrag     Im Abojahr bleibt, was übrig ist. Beim nächsten Jahresbeginn
+ *                wird wieder GESETZT: der Rest des Vorjahres verfällt.
+ *   Erstattung   Apple erstattet, nicht wir. Die Store-Meldung REFUND setzt
+ *                das Abo-Guthaben auf 0 (credits_set_allowance), gekaufte
+ *                Credits bleiben.
+ *
+ * Warum nicht alles sofort: Wer 1.920 Credits in der ersten Woche verbraucht
+ * und sich das Geld bei Apple zurückholt, kostet bis zu $54. Mit 480 sind es
+ * im ersten Monat höchstens $13,56; weil jetzt jeden Monat etwas dazukommt,
+ * bis Ende Monat 3 höchstens $20,96 (742 Credits) statt $13,56 — der Preis
+ * dafür, dass kein Monat leer bleibt. plans.test.js hält beide Grenzen fest.
+ *
+ * Das Monatsabo bleibt beim Setzen ohne Übertrag. */
+
+/** Subscriptions. Monthly: the allowance is SET each month and does not roll
+ *  over. Yearly: `startCredits` land on day one, the rest of the year's
+ *  12 × `credits` is spread evenly over the other eleven months and ADDED;
+ *  leftovers stay until the subscription year ends (see allowanceGrant). */
 export const SUBSCRIPTIONS = [
   { id: "monthly",   price: "$9.99",  period: "month", credits: 160, featured: true },
-  { id: "yearly",    price: "$99.99", period: "year",  credits: 160, perMonth: true, saveHint: "17%" },
+  { id: "yearly",    price: "$99.99", period: "year",  credits: 160, perMonth: true, saveHint: "17%", startCredits: 480 },
 ];
+
+/** Was ein Abo in einem Monat ausschüttet — `monthIndex` zählt ab dem
+ *  Kaufmonat (0) und läuft über Verlängerungen weiter (12 = neues Jahr).
+ *  `mode` sagt, was mit dem Rest passiert: "set" ersetzt ihn (Monatsabo,
+ *  Jahresbeginn), "add" legt dazu (laufendes Abojahr). Der Server bucht
+ *  genau das — credits.js/applyAllowanceGrant rechnet es lokal nach. */
+export function allowanceGrant(plan, monthIndex) {
+  if (!plan.startCredits) return { amount: plan.credits, mode: "set" };
+  const month = ((monthIndex % 12) + 12) % 12;
+  if (month === 0) return { amount: plan.startCredits, mode: "set" };
+  return { amount: Math.ceil((plan.credits * 12 - plan.startCredits) / 11), mode: "add" };
+}
 
 /* One-off packs: bought once, never expire, no commitment.
  *
@@ -205,14 +246,16 @@ export const SUBSCRIPTIONS = [
  *   S   $4,99 /  50 Cr  $0,100/Cr  1 Film (auch 1 × 15 s „Scharf")   2,5×
  *   M  $12,99 / 150 Cr  $0,087/Cr  4 Filme              −13 %        2,2×
  *   L  $24,99 / 320 Cr  $0,078/Cr  10 Filme             −22 %        2,0×
- *   XL $49,99 / 700 Cr  $0,071/Cr  22 Filme             −28 %        1,8×
+ *   XL $49,99 / 650 Cr  $0,077/Cr  20 Filme             −23 %        1,9×
+ *   (bis 14.09.2026 700 Cr / +40 % Extra, 1,81× — Antons Entscheidung: 650,
+ *   Extra +30 %, damit die Leiter M +15 / L +28 / XL +30 steigend bleibt)
  * XL existiert auch, weil der 30-s-Seedance-Film (241/511 Cr) vorher mit
  * KEINEM einzelnen Kauf erreichbar war. */
 export const PACKS = [
   { id: "pack-s",  price: "$4.99",  credits: 50 },
   { id: "pack-m",  price: "$12.99", credits: 150 },
   { id: "pack-l",  price: "$24.99", credits: 320 },
-  { id: "pack-xl", price: "$49.99", credits: 700 },
+  { id: "pack-xl", price: "$49.99", credits: 650 },
 ];
 
 /** Was ein Guthaben konkret hergibt — die Zahlen hinter den zwei Symbolen
@@ -232,4 +275,22 @@ export function dreamsFor(credits) {
     images: credits,                          // 1 Credit = 1 Bild, per Definition
     films: Math.floor(credits / perFilm),
   };
+}
+
+/** Die Extra-Credits eines Pakets (Antons Frage 13.09.2026: „bei höherem
+ *  Preis Credits als Extras aufführen"). Bezug ist das KLEINSTE Paket,
+ *  auf ganze Dollar gerundet: $5 → 50 Credits, also 10 je Dollar. Was ein
+ *  größeres Paket darüber hinaus trägt, ist das Extra:
+ *    M  $13 → 130 + 20 Extra (+15 %)
+ *    L  $25 → 250 + 70 Extra (+28 %)
+ *    XL $50 → 500 + 150 Extra (+30 %)
+ *  Die Zahlen auf dem Knopf ändern sich dadurch nicht — nur, wie sie gelesen
+ *  werden. Ehrlich, weil der Bezug auf der Paywall selbst steht. */
+export function packBonus(pack, packs = PACKS) {
+  const whole = (p) => Math.round(Number(String(p.price).replace(/[^0-9.]/g, "")));
+  const smallest = [...packs].sort((a, b) => a.credits - b.credits)[0];
+  const perDollar = smallest.credits / whole(smallest);
+  const base = Math.round(whole(pack) * perDollar);
+  const extra = Math.max(0, pack.credits - base);
+  return { base, extra, percent: base ? Math.round((extra / base) * 100) : 0 };
 }

@@ -1,5 +1,7 @@
 import { test, expect } from "bun:test";
-import { SUBSCRIPTIONS, PACKS, CREDIT_COST_USD, FILM_UNIT, dreamsFor } from "./plans.js";
+import { SUBSCRIPTIONS, PACKS, CREDIT_COST_USD, FILM_UNIT, allowanceGrant, dreamsFor, packBonus } from "./plans.js";
+import en from "../i18n/en.js";
+import de from "../i18n/de.js";
 import { priceForFilm } from "./video.js";
 
 const num = (price) => Number(String(price).replace(/[^0-9.]/g, ""));
@@ -71,7 +73,9 @@ test("every pack clears its worst-case cost at 15 % store", () => {
  *  $0,148 gemeldet. */
 function termPerCredit(plan) {
   const price = num(plan.price);
-  const total = plan.perMonth ? plan.credits * 12 : plan.credits;
+  const total = plan.startCredits
+    ? Array.from({ length: 12 }, (_, i) => allowanceGrant(plan, i).amount).reduce((a, b) => a + b, 0)
+    : plan.perMonth ? plan.credits * 12 : plan.credits;
   return price / total;
 }
 
@@ -156,4 +160,89 @@ test("what a balance buys is whole, and never promises more than it can", () => 
 test("a balance too small for a film says zero, not one", () => {
   // Sonst stuende auf der Paywall eine 1, die man nicht einloesen kann.
   expect(dreamsFor(1).films).toBe(0);
+});
+
+/* Die Extras sind eine LESART der Preisliste, keine zweite Preisliste:
+   Basis + Extra ergibt immer genau die Credits auf dem Knopf, das kleinste
+   Paket hat kein Extra, und je größer das Paket, desto größer der Anteil. */
+test("pack extras add up and grow with the pack", () => {
+  const sorted = [...PACKS].sort((a, b) => a.credits - b.credits);
+  expect(packBonus(sorted[0]).extra).toBe(0);
+  let lastPercent = -1;
+  for (const p of sorted) {
+    const b = packBonus(p);
+    expect(b.base + b.extra).toBe(p.credits);
+    expect(b.percent).toBeGreaterThanOrEqual(lastPercent);
+    lastPercent = b.percent;
+  }
+  expect(packBonus(PACKS.find((p) => p.id === "pack-xl"))).toEqual({ base: 500, extra: 150, percent: 30 });
+});
+
+/* ── Das Startguthaben des Jahresabos (Antons Entscheidung 14.09.2026) ─────
+   480 am Kauftag, der Rest des Jahres gleichmäßig auf die übrigen elf Monate
+   (Antons Nachtrag: kein Monat ohne Credits). Diese Zeilen halten fest, woran
+   die Entscheidung hängt: das Jahr gibt so viel wie zwölf Monatsabos (Marge
+   unverändert), kein Monat bleibt leer, eine Erstattung bleibt klein, und der
+   Übertrag macht das Jahr nicht zum Verlustgeschäft. */
+const yearly = () => SUBSCRIPTIONS.find((p) => p.period === "year");
+const yearSum = (plan, from = 0) => Array.from({ length: 12 }, (_, i) => allowanceGrant(plan, from + i).amount).reduce((a, b) => a + b, 0);
+
+test("the yearly plan gives at least twelve months' credits — and only rounding more", () => {
+  const year = yearly();
+  expect(yearSum(year)).toBeGreaterThanOrEqual(year.credits * 12);
+  expect(yearSum(year)).toBeLessThan(year.credits * 12 + 11);   // höchstens das Aufrunden
+  expect(yearSum(year, 12)).toBe(yearSum(year));                 // auch im Verlängerungsjahr
+  expect(dreamsFor(year.startCredits).films).toBeGreaterThanOrEqual(15);
+});
+
+test("the start grant lands on day one, every later month adds the same, the next year starts fresh", () => {
+  const year = yearly();
+  const topUp = allowanceGrant(year, 1).amount;
+  expect(allowanceGrant(year, 0)).toEqual({ amount: year.startCredits, mode: "set" });
+  for (let m = 1; m < 12; m++) expect(allowanceGrant(year, m)).toEqual({ amount: topUp, mode: "add" });
+  expect(allowanceGrant(year, 12)).toEqual({ amount: year.startCredits, mode: "set" });
+});
+
+test("no month of the yearly plan goes empty", () => {
+  // Antons Nachtrag 14.09.: lieber jeden Monat etwas weniger als Monate ohne.
+  for (let m = 0; m < 12; m++) expect(allowanceGrant(yearly(), m).amount).toBeGreaterThan(0);
+});
+
+test("the monthly plan never rolls over", () => {
+  const month = SUBSCRIPTIONS.find((p) => p.period === "month");
+  for (let i = 0; i < 24; i++) expect(allowanceGrant(month, i)).toEqual({ amount: month.credits, mode: "set" });
+});
+
+/* Der Grund für das Startguthaben: Apple erstattet, nicht wir. Wer alles
+   verbraucht, was bis dahin gutgeschrieben ist, und sich das Geld
+   zurückholt, darf höchstens so viel kosten — bei 1.920 Credits auf einmal
+   wären es $54 gewesen. Weil jetzt jeden Monat etwas dazukommt, steigt die
+   Grenze bis Ende Monat 3 auf rund $21. Steigt der Einkauf je Credit, werden
+   diese Zeilen rot, bevor jemand es merkt. */
+test("a refund after burning everything granted so far stays small", () => {
+  const year = yearly();
+  const upTo = (months) => Array.from({ length: months }, (_, i) => allowanceGrant(year, i).amount).reduce((a, b) => a + b, 0);
+  expect(upTo(1) * CREDIT_COST_USD).toBeLessThan(14);
+  expect(upTo(3) * CREDIT_COST_USD).toBeLessThan(22);
+});
+
+/* Mit Übertrag verfällt im Abojahr nichts mehr — die 75-%-Annahme oben wird
+   also wackeliger. Diese Zeile verlangt, dass das Jahr sogar bei VOLLEM
+   Verbrauch und schlimmstem Einkauf noch trägt (heute 1,31×). */
+test("with rollover the yearly plan still clears full usage", () => {
+  const year = yearly();
+  const net = (num(year.price) / 12 / 1.19) * 0.85;
+  expect(net).toBeGreaterThan((yearSum(year) / 12) * CREDIT_COST_USD * 1.25);
+});
+
+/* Die Nutzungsbedingungen nennen die Zahlen ausgeschrieben. Ändert sich die
+   Preisliste, müssen sie mitwandern — sonst versprechen die AGB etwas anderes
+   als die Paywall. */
+test("the terms name the same yearly numbers as the price list", () => {
+  const year = yearly();
+  for (const t of [en, de]) {
+    const terms = JSON.stringify(t);
+    expect(terms).toContain(`${year.startCredits} `);
+    expect(terms).toContain(`${allowanceGrant(year, 1).amount} `);
+  }
 });

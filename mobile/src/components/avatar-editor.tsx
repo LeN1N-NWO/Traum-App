@@ -8,6 +8,7 @@ import { ActionSheetIOS, ActivityIndicator, KeyboardAvoidingView, Platform, Pres
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
+import { useOfflineLabels } from "@/lib/offline-labels";
 import { showToast } from "@/store/toast-store";
 import { colors, fonts, TAB_INSET } from "@/theme";
 
@@ -69,18 +70,47 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
   const checkRun = useRef(0);
   const choosing = mode === "new" && (!category || category === "any");
 
+  /* Nie ewig laden (Antons Befund 13.09. abends): Antwortet die Brücke nicht
+     binnen 10 s — im Entwicklungsbau meist, weil Metro oder der Server nicht
+     läuft —, steht da, was los ist, mit „Noch mal versuchen". */
+  const O = useOfflineLabels();
+  const [attempt, setAttempt] = useState(0);
+  const [stuck, setStuck] = useState(false);
   useEffect(() => {
+    let done = false;
+    setStuck(false);
+    const timer = setTimeout(() => { if (!done) setStuck(true); }, 10_000);
     ask({ type: "avatarLoad", mode, id, tag: suggested }).then((r) => {
+      done = true; clearTimeout(timer); setStuck(false);
       if (r.error || !r.result) { showToast("⚠ " + (r.error ?? "")); onDone(); return; }
       const e = r.result.entry;
       setL(r.result.labels); setPrice(r.result.price);
       setTag(e.tag); setDesc(e.desc); setImg(e.img); setImg2(e.img2); setConsent(!!e.photoConsent);
       if (e.category) setKind(e.category);
     });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => clearTimeout(timer);
+  }, [attempt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!L) {
-    return <View style={[styles.screen, { alignItems: "center", justifyContent: "center" }]}><ActivityIndicator color={colors.muted} /><View style={styles.bridge}>{bridge}</View></View>;
+    return (
+      <View style={[styles.screen, { alignItems: "center", justifyContent: "center", padding: 32, gap: 14 }]}>
+        {stuck ? (
+          <>
+            <SymbolView name="wifi.exclamationmark" size={40} tintColor={colors.warm} />
+            <Text style={[styles.title, { flex: 0 }]}>{O.title}</Text>
+            <Text style={[styles.hint, { textAlign: "center" }]}>{O.hint}</Text>
+            {__DEV__ ? <Text style={[styles.hint, { textAlign: "center" }]}>{O.devHint}</Text> : null}
+            <View style={[styles.actions, { alignSelf: "stretch" }]}>
+              <GlassButton label={O.close} onPress={() => onDone()} />
+              <PrimaryButton label={O.retry} onPress={() => setAttempt((a) => a + 1)} />
+            </View>
+          </>
+        ) : <ActivityIndicator color={colors.muted} />}
+        {/* Ein neuer Versuch baut die Brücke neu auf (key), sonst bliebe ein
+            nie geladener Webview einfach tot. */}
+        <View key={attempt} style={styles.bridge}>{bridge}</View>
+      </View>
+    );
   }
 
   const hasSubstance = Boolean(img) || Boolean(desc.trim());
@@ -214,7 +244,7 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>{img ? L.descLabelOptional : L.descLabel}</Text>
+          <Text style={styles.label}>{mode === "me" ? (img ? L.descLabelMeOptional : L.descLabelMe) ?? L.descLabel : img ? L.descLabelOptional : L.descLabel}</Text>
           <TextInput style={[styles.input, styles.inputMulti]} value={desc} onChangeText={setDesc} maxLength={120} multiline placeholder={L.descPlaceholder} placeholderTextColor={colors.faint} keyboardAppearance="dark" />
         </View>
 

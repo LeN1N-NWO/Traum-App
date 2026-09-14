@@ -103,7 +103,7 @@ export default function DreamScreen() {
   );
 }
 
-function RecordingRow({ url, label }: { url: string; label: string }) {
+function RecordingRow({ url, label, hint }: { url: string; label: string; hint?: string }) {
   const player = useAudioPlayer({ uri: url });
   const st = useAudioPlayerStatus(player);
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -115,6 +115,7 @@ function RecordingRow({ url, label }: { url: string; label: string }) {
           <View style={styles.recBtn}><SymbolView name={st.playing ? "pause.fill" : "play.fill"} size={16} tintColor={colors.bg} /></View>
           <View style={{ flex: 1, gap: 6 }}>
             <Text style={styles.recLabel}>{label}</Text>
+            {hint ? <Text style={styles.recHint}>{hint}</Text> : null}
             <View style={styles.recBar}><View style={[styles.recFill, { width: `${Math.round(k * 100)}%` }]} /></View>
           </View>
           <Text style={styles.recTime}>{fmt(st.playing || st.currentTime > 0 ? st.currentTime : st.duration)}</Text>
@@ -197,7 +198,7 @@ function DreamBody({ item, labels, locale, onMore, onReflect, reflecting }: { it
       )}
 
       {/* Die eigene Aufnahme (ADR-0007): die Stimme von damals gehört zum Traum. */}
-      {item.audio ? <RecordingRow url={item.audio} label={labels.yourRecording ?? "Your recording"} /> : null}
+      {item.audio ? <RecordingRow url={item.audio} label={labels.recordingTitle ?? "How you told it"} hint={labels.recordingHint} /> : null}
 
       {item.cast.length ? (
         <View style={[styles.section, styles.chips]}>
@@ -343,6 +344,7 @@ const styles = StyleSheet.create({
   rec: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, paddingRight: 16, borderRadius: 18 },
   recBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.warm, alignItems: "center", justifyContent: "center" },
   recLabel: { color: colors.text, fontSize: 14, fontWeight: "600" },
+  recHint: { color: colors.faint, fontSize: 12, marginTop: -3 },
   recBar: { height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.12)", overflow: "hidden" },
   recFill: { height: 4, backgroundColor: colors.warm },
   recTime: { color: colors.muted, fontSize: 13, fontVariant: ["tabular-nums"] },

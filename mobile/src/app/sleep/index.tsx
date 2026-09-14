@@ -15,6 +15,7 @@ const TILES: Record<string, { sf: SFSymbol; tint: string }> = {
   checklist: { sf: "moon.zzz.fill", tint: colors.warm },
   sounds: { sf: "waveform", tint: colors.cyan },
   guide: { sf: "brain.head.profile", tint: colors.accent },
+  knowledge: { sf: "books.vertical", tint: colors.gold },
   symbols: { sf: "sparkles", tint: colors.accentSoft },
 };
 

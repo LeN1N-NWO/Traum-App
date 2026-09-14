@@ -3,6 +3,143 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-14 14:40 — Anton — Branch `session/2026-09-13-anton-e` (PR #50) — Abschluss, Merge auf Antons Wort
+
+**Commits dieser Sitzung (Auswahl):** `3269c13`/`7cda637` Jahresabo mit
+Startguthaben · `9a16c38` Werbung, Dream Recorder, Hermes-Agenten ·
+`583edea` Codes/Einladungen · `8e5c8fd` kein Willkommensgeschenk, XL 650 ·
+`ada7a50` Prämien festgelegt.
+
+- **Entschieden und gebaut:** Jahresabo 480 sofort, danach jeden Monat 131;
+  kein Willkommensgeschenk; XL 650 Credits.
+- **Entschieden, nicht gebaut:** keine Werbung; Einladungsprämie nur bei
+  echtem Kauf (S 10, M 30, L 60, XL 130, Monat 30, Jahr 100); Apple Offer
+  Codes statt eigener Codes.
+- **Übergabe an Hanni:** `docs/uebergabe/2026-09-14-hanni-codes-einladungen.md`.
+
+**Was der Nächste wissen muss:**
+- Tests 637 grün, Typen sauber, Lint 0 Fehler, kein TEMP-PRUEFUNG im Code.
+- Die untracked `data/traeume/*.json` bleiben absichtlich uncommittet.
+- Die Mail an Modem (Dream Recorder) ist nur ein Entwurf.
+
+## 2026-09-14 14:20 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — Einladungsprämie festgelegt
+
+- **Antons Entscheidung:** Prämie rund 20 % der gekauften Credits, auf glatte
+  Zehner abgerundet, beim Jahresabo 100: S 10, M 30, L 60, XL 130,
+  Monatsabo 30, Jahresabo 100. Plan und Übergabe an Hanni nachgezogen.
+- ⚠ 10 Credits allein kaufen keinen Film (billigster 11) — sie zählen im
+  selben Guthaben mit.
+
+## 2026-09-14 14:00 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — kein Willkommensgeschenk, XL 650, Einladungsprämie bei Kauf
+
+**Commits:** `8e5c8fd` Code · `e60b8e6` Übergabe · Doku-Commit dieses Eintrags.
+
+- **Antons Entscheidungen:** Einladungsprämie nur, wenn der Freund wirklich
+  kauft; kein Willkommensgeschenk mehr; XL-Paket 650 Credits.
+- **Gebaut:** `WELCOME_CREDITS`/`welcomeGrant` entfernt (credits.js, Web-
+  Onboarding, Profil, Tests); Kaufblatt-Überschrift „Filme brauchen Credits“
+  statt „aufgebraucht“ (stimmt auch für Menschen, die nie Credits hatten);
+  das Blatt nach dem ersten Film (`dream/order.tsx`) nur noch, wenn der Rest
+  keinen weiteren Film trägt — der erste Film ist jetzt bezahlt. XL 650,
+  Tests und Preisbericht nachgezogen.
+- **Prämiengröße (Vorschlag):** 20 % der gekauften Credits, mindestens 11,
+  14 Tage nach Kauf ohne Erstattung, höchstens 5 pro Monat — kostet 14–21 %
+  des Gewinns aus einem Paket. Übergabe an Hanni neu geschrieben.
+
+**Was der Nächste wissen muss:**
+- Nativ gab es ohnehin kein Geschenk (die Brücke bucht keins); das
+  Web-Onboarding hatte noch eins. Bestehende Credits bleiben.
+- Das Schema kennt `welcome_grant` weiter — der Server darf es nicht buchen.
+- Gratis-Codes (Preis 0, `offerType = 3`) und Sandbox-Käufe lösen nie eine
+  Prämie aus.
+- Tests 637 grün (4 Geschenk-Tests entfernt), Typen sauber, Lint 0 Fehler.
+
+## 2026-09-14 12:30 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — Codes, Einladungen, Verlosungen geplant
+
+**Commits:** Doku-Commit dieses Eintrags.
+
+- Antons Fragen: Einladungen nachverfolgen, lohnen sich Credits dafür;
+  Promo-Codes für die ersten Nutzer und Instagram; Verlosungen.
+- Zwei Recherchen (`docs/plans/2026-09-14-recherche-einladungen.md`,
+  `…-recherche-codes-verlosungen.md`), Plan
+  `docs/plans/2026-09-14-codes-einladungen-plan.md`, Übergabe an Hanni.
+- **Widerspruch der Recherchen aufgelöst:** Die Einladungs-Recherche empfahl
+  ein Code-Feld und Credits für beide Seiten; die Regel-Recherche fand
+  Apple-Ablehnungen genau dafür (3.1.1 für eigene Gratis-Codes 2018–2025,
+  3.2.2 für Bonus des Eingeladenen 2021). Der Plan folgt der vorsichtigeren:
+  Offer Codes, Prämie nur für den Einladenden nach dessen erstem Film,
+  Einladungen im Update nach dem Launch.
+
+**Was der Nächste wissen muss:**
+- ⚠ TestFlight-/Sandbox-Käufe dürfen nie echte Credits buchen.
+- ⚠ Offer Codes lassen sich erst erzeugen, wenn App und IAP freigegeben sind.
+- ⚠ `WELCOME_CREDITS = 4` (`src/lib/credits.js`) kauft keinen Film mehr.
+- Voraussetzungen in dieser Reihenfolge: Mit Apple anmelden → StoreKit mit
+  Server-Prüfung → Offer Codes → Einladungen.
+
+## 2026-09-14 10:30 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — Jahresabo mit Startguthaben, XL-Rechnung, Werbung, Dream Recorder, Marketing-Agenten
+
+**Commits:** `3269c13` Startguthaben (erste Fassung) · `7cda637` 480 sofort,
+danach jeden Monat 131 · Doku-Commit dieser Einträge.
+
+- **Jahresabo (Antons Entscheidung):** erst 480 sofort + ab Monat 4 wieder 160;
+  Anton wollte keine leeren Monate → 480 sofort, danach jeden Monat 131
+  (Rest des Jahres gleichmäßig, aufgerundet, Summe 1.921). Übertrag im
+  Abojahr, Jahresbeginn setzt neu. Paywall „480 Credits sofort — 15 Filme /
+  danach jeden Monat +131", AGB-Text en/de. Im Simulator geprüft.
+- **XL-Paket (Frage, nicht geändert):** 49,99 € bringen nach MwSt, Apple 15 %
+  und vollem Verbrauch 15,93 € (1,81×); Empfehlung 650 Credits.
+- **Drei Recherchen** in `docs/plans/2026-09-14-recherche-*.md` (Werbung gegen
+  Credits, Dream Recorder, Marketing-Agenten), Antworten in
+  `2026-09-14-werbung-dreamrecorder-agenten.md`, Hermes-Vorlagen in
+  `docs/marketing/hermes/`.
+
+**Was der Nächste wissen muss:**
+- ⚠ Jahresabo mit Übertrag und vollem Verbrauch: 1,32× bei Apple 15 %, nur
+  1,08× bei 30 % — Small Business Program bleibt Pflicht.
+- ⚠ Server: `credits_set_allowance` setzt nur; fürs Jahresabo braucht es beim
+  Store-Anschluss ein Dazulegen (in einer Transaktion) und REFUND → 0.
+- ⚠ Erstattungsrisiko bis Monat 3 jetzt $20,96 statt $13,56 (Preis für „kein
+  leerer Monat"), Tests halten beide Grenzen.
+- Die Mail an Modem ist ein Entwurf — nichts wurde verschickt, niemand
+  kontaktiert. Subreddit-Regeln sind ungeprüft.
+- Tests 641 grün, Typen sauber, Lint 0 Fehler.
+
+## 2026-09-14 00:30 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — Wissen-Raum, Paket-Extras, Avatar-Laden, Aufnahme-Text, Abo-Einschätzung, Marketingplan, Namen
+
+**Commits:** `04429aa` Avatar-Zeitgrenze, Aufnahme-Text, Paket-Extras · `d5bb95a`
+Abo-Einschätzung · `a637164` Wissen-Raum + Marketingplan + Recherchen.
+
+- **„Ewige Ladeanimation" beim Avatar-„+":** Ursache waren gestoppte
+  Server — ohne Metro lädt die Brücke (DOM-Komponente) nicht, ohne sie
+  antwortet der Dialog nie. Beide neu gestartet; der Dialog zeigt jetzt nach
+  10 s Erklärung, „Noch mal versuchen" (baut die Brücke neu auf) und
+  Schließen, mit Texten ohne Brücke (`lib/offline-labels.ts`).
+- **Aufnahme am Traum:** „So hast du ihn erzählt · Deine Stimme, kurz nach dem
+  Aufwachen" statt des englischen Rückfalls „Your recording".
+- **Paket-Extras:** `packBonus()` (Bezug kleinstes Paket, 10 Credits je
+  Dollar) → „130 + 20 Extra-Credits" und Badge „+15 %"; Zahlen unverändert.
+- **Wissen-Raum** im Schlaf-Tab: 18 Karten, jede an der Primärquelle
+  geprüft, mit Sicherheit, Grenzen, „Was das für dich heißt" und Link.
+- **Einschätzungen (nicht gebaut):** Jahresabo mit Startguthaben (480 sofort,
+  dann monatlich, Credits bleiben im Abojahr) statt allem sofort;
+  Abo-Gewicht über Monatsfilm, Traumwelt und Klartraum-Akademie (Text-Guide
+  bleibt gratis) — `docs/plans/2026-09-13-abo-gewicht-und-jahresguthaben.md`.
+- **Marketingplan** (`docs/plans/2026-09-14-marketingplan.md`, auch als
+  private Artifact-Seite) mit Markt, Phasen, Website/Blog, Kennzahlen und
+  geprüften Namen.
+
+**Was der Nächste wissen muss:**
+- ⚠ **Wettbewerb:** „DreamReel: AI Dream Videos" (seit Juli 2026) verspricht
+  fast dasselbe; Lunicia hat Video-Erzeugung. Beide ohne Zugkraft. Der Name
+  „Dreamreel" ist damit verbrannt.
+- ⚠ **Preis:** $99,99 im Jahr ist das 2,5-Fache des H&F-Medians ($39,94);
+  Credit-Pakete auf der ersten Paywall kosten laut Mojo-Fall Abos. Beides
+  zur Entscheidung im Marketingplan §9, nicht umgesetzt.
+- Metro und API stoppen mit der Sitzung — vor jedem Test `bun run mobile`
+  und `bun run api`, sonst lädt die Brücke nicht.
+- Tests 631 grün, Typen sauber, Lint 0 Fehler.
+
 ## 2026-09-13 19:15 — Anton — Branch `session/2026-09-13-anton-d` — Abschluss: PR #49 gemerged
 
 **Commits der Sitzung seit dem letzten Merge (#48):** `c7b656f` Gesichter-Spot

@@ -3,7 +3,34 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-13 abends — Sitzung `session/2026-09-13-anton-d`
+**Stand:** 2026-09-14 nachmittags — Sitzung `session/2026-09-13-anton-e`
+abgeschlossen, **PR #50 auf Antons Wort gemerged** („wrappen und mergen“).
+**Offen:** Starter-Code-Menge (Vorschlag 22 Credits); Mit Apple anmelden →
+StoreKit mit Server-Prüfung → Offer Codes → Einladungen (Hanni, Übergabe
+unten); Jahrespreis $99,99 prüfen; Subreddit-Regeln selbst eintragen
+(`docs/marketing/hermes/`). **Entschieden und gebaut:** kein Willkommensgeschenk mehr
+(`welcomeGrant` entfernt, Kaufblatt „Filme brauchen Credits“, Blatt nach dem
+ersten Film nur noch, wenn der Rest keinen Film trägt), XL-Paket 650 Credits.
+**Einladungsprämie nur bei echtem Kauf**, 14 Tage ohne Erstattung: S 10, M 30,
+L 60, XL 130, Monatsabo 30, Jahresabo 100 (geplant, nicht gebaut). **Codes und Einladungen geplant, nicht gebaut**
+(`docs/plans/2026-09-14-codes-einladungen-plan.md`, Übergabe an Hanni
+`docs/uebergabe/2026-09-14-hanni-codes-einladungen.md`): Apple Offer Codes
+statt eigenem Code-Feld (3.1.1-Ablehnungen), Einladungen erst nach dem Launch,
+Prämie nur für den Einladenden; ⚠ TestFlight-Käufe sind gratis — Sandbox nie
+ins echte Ledger. **Jahresabo entschieden und gebaut:** 480 Credits am
+Kauftag, danach jeden Monat 131, Übertrag im Abojahr (`allowanceGrant()` in
+`src/lib/plans.js`, Paywall zeigt es). ⚠ Der Server kann das Abo-Guthaben nur
+SETZEN (`credits_set_allowance`), das Jahresabo braucht beim Store-Anschluss
+ein Dazulegen im Abojahr. **Beantwortet, nicht gebaut:** keine Werbung gegen Credits (gut 1 Cent je
+Werbung, ~26 für den günstigsten Film), Dream Recorder nur als kleine Anfrage
+mit Fix-Angebot (Mail-Entwurf, nicht verschickt), Marketing-Agenten mit Hermes
+nur als Zuarbeiter — Skill-Vorlagen in `docs/marketing/hermes/`, Subreddit-Regeln
+muss Anton selbst eintragen. Davor in dieser Sitzung (nachts): **Wissen-Raum**
+im Schlaf-Tab (18 geprüfte Karten), Paket-Extras, Avatar-Dialog mit
+Zeitgrenze, Aufnahme-Text, **Marketingplan** mit Namensprüfung
+(`docs/plans/2026-09-14-marketingplan.md`). Offen: Jahrespreis ($99,99 ist
+2,5× Kategorie-Median).
+Davor: Sitzung `session/2026-09-13-anton-d`
 abgeschlossen, **PR #49 auf Antons Wort gemerged** („wrap und merge").
 **Offen für die nächste Sitzung:** (1) Test mit einem echten Foto an
 Replicate-Seedance und fal-Seedance (`bun scripts/seedance-gesicht-probe.mjs`,

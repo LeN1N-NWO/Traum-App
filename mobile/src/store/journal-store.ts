@@ -30,7 +30,7 @@ export type LucidData = {
   reminderAsk: string; reminderPerDay: string; reminderWhy: string; reminderSoon: string; reminderActive: Record<number, string>; maxPerDay: number;
   reminder: { on: boolean; perDay: number };
 };
-export type SleepData = { title: string; subtitle: string; free: string; tiles: { id: string; title: string; text: string }[]; breathe: Record<string, string>; sounds: SoundsData; checklist: ChecklistData; lucid: LucidData };
+export type SleepData = { title: string; subtitle: string; free: string; tiles: { id: string; title: string; text: string }[]; breathe: Record<string, string>; knowledge: import("@/components/knowledge").KnowledgeData; sounds: SoundsData; checklist: ChecklistData; lucid: LucidData };
 export type ProfileData = {
   title: string; name: string; img: string | null; hint: string; credits: number; creditsWord: string;
   dreams: number; streak: number; statDreams: string; statStreak: string; settings: string;
@@ -57,7 +57,7 @@ export type WizardData = {
   presets: WizardPreset[]; models: WizardModel[]; paces: { id: string; name: string; hint: string }[];
 };
 export type JournalMeta = { view: "deck" | "list"; blankKeys: string[]; castCount: number; creatures: number; realDreams: number; moon: MoonData; sleep: Record<string, number>; sleepLevels: { level: number; label: string }[]; labels: Record<string, any> };
-export type PaywallPlan = { id: string; price: string; per: string; name: string; badge: string | null; sub: string; films: number; filmsLine: string; filmsWord: string; featured: boolean; yearly: boolean };
+export type PaywallPlan = { id: string; price: string; per: string; name: string; badge: string | null; extraLine?: string | null; sub: string; films: number; filmsLine: string; filmsWord: string; featured: boolean; yearly: boolean };
 export type PaywallData = {
   title: string; close: string; brand: string; plus: string;
   headlineFor: Record<string, string>; ledeFor: Record<string, string>;
