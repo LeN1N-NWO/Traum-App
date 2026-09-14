@@ -3,12 +3,22 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-14 nachts — Sitzung `session/2026-09-13-anton-e`
-(PR #50, Entwurf): **Wissen-Raum** im Schlaf-Tab (18 geprüfte Karten),
-Paket-Extras, Avatar-Dialog mit Zeitgrenze, Aufnahme-Text, Einschätzung
-Abo-Gewicht/Jahresguthaben, **Marketingplan** mit Namensprüfung
-(`docs/plans/2026-09-14-marketingplan.md`). Zur Entscheidung: Jahrespreis
-($99,99 ist 2,5× Kategorie-Median) und Pakete auf der ersten Paywall.
+**Stand:** 2026-09-14 vormittags — Sitzung `session/2026-09-13-anton-e`
+(PR #50, Entwurf). **Jahresabo entschieden und gebaut:** 480 Credits am
+Kauftag, danach jeden Monat 131, Übertrag im Abojahr (`allowanceGrant()` in
+`src/lib/plans.js`, Paywall zeigt es). ⚠ Der Server kann das Abo-Guthaben nur
+SETZEN (`credits_set_allowance`), das Jahresabo braucht beim Store-Anschluss
+ein Dazulegen im Abojahr. **Zur Entscheidung:** XL-Paket 700 → 650 Credits
+(+30 %, 1,94× statt 1,81×) — `docs/plans/2026-09-14-werbung-dreamrecorder-agenten.md` §2.
+**Beantwortet, nicht gebaut:** keine Werbung gegen Credits (gut 1 Cent je
+Werbung, ~26 für den günstigsten Film), Dream Recorder nur als kleine Anfrage
+mit Fix-Angebot (Mail-Entwurf, nicht verschickt), Marketing-Agenten mit Hermes
+nur als Zuarbeiter — Skill-Vorlagen in `docs/marketing/hermes/`, Subreddit-Regeln
+muss Anton selbst eintragen. Davor in dieser Sitzung (nachts): **Wissen-Raum**
+im Schlaf-Tab (18 geprüfte Karten), Paket-Extras, Avatar-Dialog mit
+Zeitgrenze, Aufnahme-Text, **Marketingplan** mit Namensprüfung
+(`docs/plans/2026-09-14-marketingplan.md`). Offen: Jahrespreis ($99,99 ist
+2,5× Kategorie-Median).
 Davor: Sitzung `session/2026-09-13-anton-d`
 abgeschlossen, **PR #49 auf Antons Wort gemerged** („wrap und merge").
 **Offen für die nächste Sitzung:** (1) Test mit einem echten Foto an

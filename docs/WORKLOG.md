@@ -3,6 +3,34 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-14 10:30 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — Jahresabo mit Startguthaben, XL-Rechnung, Werbung, Dream Recorder, Marketing-Agenten
+
+**Commits:** `3269c13` Startguthaben (erste Fassung) · `7cda637` 480 sofort,
+danach jeden Monat 131 · Doku-Commit dieser Einträge.
+
+- **Jahresabo (Antons Entscheidung):** erst 480 sofort + ab Monat 4 wieder 160;
+  Anton wollte keine leeren Monate → 480 sofort, danach jeden Monat 131
+  (Rest des Jahres gleichmäßig, aufgerundet, Summe 1.921). Übertrag im
+  Abojahr, Jahresbeginn setzt neu. Paywall „480 Credits sofort — 15 Filme /
+  danach jeden Monat +131", AGB-Text en/de. Im Simulator geprüft.
+- **XL-Paket (Frage, nicht geändert):** 49,99 € bringen nach MwSt, Apple 15 %
+  und vollem Verbrauch 15,93 € (1,81×); Empfehlung 650 Credits.
+- **Drei Recherchen** in `docs/plans/2026-09-14-recherche-*.md` (Werbung gegen
+  Credits, Dream Recorder, Marketing-Agenten), Antworten in
+  `2026-09-14-werbung-dreamrecorder-agenten.md`, Hermes-Vorlagen in
+  `docs/marketing/hermes/`.
+
+**Was der Nächste wissen muss:**
+- ⚠ Jahresabo mit Übertrag und vollem Verbrauch: 1,32× bei Apple 15 %, nur
+  1,08× bei 30 % — Small Business Program bleibt Pflicht.
+- ⚠ Server: `credits_set_allowance` setzt nur; fürs Jahresabo braucht es beim
+  Store-Anschluss ein Dazulegen (in einer Transaktion) und REFUND → 0.
+- ⚠ Erstattungsrisiko bis Monat 3 jetzt $20,96 statt $13,56 (Preis für „kein
+  leerer Monat"), Tests halten beide Grenzen.
+- Die Mail an Modem ist ein Entwurf — nichts wurde verschickt, niemand
+  kontaktiert. Subreddit-Regeln sind ungeprüft.
+- Tests 641 grün, Typen sauber, Lint 0 Fehler.
+
 ## 2026-09-14 00:30 — Anton — Branch `session/2026-09-13-anton-e` (PR #50, Entwurf) — Wissen-Raum, Paket-Extras, Avatar-Laden, Aufnahme-Text, Abo-Einschätzung, Marketingplan, Namen
 
 **Commits:** `04429aa` Avatar-Zeitgrenze, Aufnahme-Text, Paket-Extras · `d5bb95a`

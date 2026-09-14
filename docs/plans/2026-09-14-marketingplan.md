@@ -205,6 +205,19 @@ Antons Entscheidung:**
   oder „sponsored".
 - **Keine Prominenten** in Werbefilmen, auch nicht als „Traum".
 - **Funktionsnamen prüfen:** Sora musste „Cameos" nach einer Klage umbenennen.
+- **Agenten arbeiten zu, Menschen veröffentlichen (14.09.2026):** Der
+  SEO-Agent liefert Entwürfe als Pull Request, ein fachkundiger Mensch prüft
+  und veröffentlicht (KI-Verordnung Art. 50 Abs. 4, Google „scaled content
+  abuse"). Keine Bots, die auf Reddit posten: Anton postet selbst vom offen
+  gekennzeichneten Gründer-Konto, neun von zehn Beiträgen ohne App-Nennung
+  (UWG Anhang Nr. 22, § 18 Abs. 3 MStV, Reddit-Genehmigungspflicht).
+  Vorlagen: `docs/marketing/hermes/`.
+- **Keine Werbung in der App:** Eine Werbung bringt gut 1 Cent, der günstigste
+  Film braucht rund 26 davon; dazu Tracking-Abfrage und Einwilligungsbanner auf
+  einem Traumtagebuch. Gratis-Credits lieber für Einladungen und Serien
+  (`2026-09-14-werbung-dreamrecorder-agenten.md`).
+- **Nie „Dream Recorder" verwenden:** Modems Projektname, in Deutschland
+  zusätzlich Wortmarke eines Dritten.
 
 ## 11. Namen
 
@@ -243,4 +256,6 @@ wärmeren Namen will: **Nachtfilm**. Wer international kürzer will:
 3. Wasserzeichen und „KI-generiert" im geteilten Film.
 4. Gründer-Account starten: zwei Filme und ein Wissens-Clip je Woche.
 5. TestFlight-Gruppe aufbauen: Warteliste und Klartraum-Foren.
-6. Preisfrage klären: Jahrespreis und erste Paywall (§9).
+6. Preisfrage klären: Jahrespreis und erste Paywall (§9). Jahresabo-Guthaben ist entschieden (480 sofort, dann 131 im Monat).
+7. Hermes-Agenten aufsetzen (`docs/marketing/hermes/`), vorher die Subreddit-Regeln selbst lesen und eintragen.
+8. Optional: eine kurze Mail an Modem (Dream Recorder) mit dem Fix-Angebot — Entwurf in der Recherche.
