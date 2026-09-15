@@ -43,7 +43,8 @@
           "imageWidth": 76
         }
       ],
-      "expo-quick-actions"
+      "expo-quick-actions",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,

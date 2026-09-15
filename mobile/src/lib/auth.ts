@@ -65,6 +65,20 @@ function failure(status: number): LoginFailure {
   return "unavailable";          // 503 nicht eingerichtet, 5xx von Supabase, alles andere
 }
 
+/* Der gemeinsame Schluss beider Anmeldewege: prüfen, in den Schlüsselbund
+   legen, der Oberfläche sagen, wer da ist. Die Antwort des Servers hat immer
+   Vorrang vor dem, was wir lokal zu wissen glauben — nur wenn sie keinen
+   Nutzer trägt, greift `fallbackEmail`. */
+async function completeLogin(res: Response, fallbackEmail: string): Promise<LoginResult> {
+  if (!res.ok) return { ok: false, why: failure(res.status) };
+  const s = (await res.json()) as Session;
+  if (!s.access_token || !s.refresh_token) return { ok: false, why: "unavailable" };
+  await store(s);
+  const user = s.user ?? { id: "", email: fallbackEmail };
+  announce(user.email);
+  return { ok: true, user };
+}
+
 export async function login(mail: string, password: string): Promise<LoginResult> {
   let res: Response;
   try {
@@ -75,13 +89,32 @@ export async function login(mail: string, password: string): Promise<LoginResult
   } catch {
     return { ok: false, why: "offline" };
   }
-  if (!res.ok) return { ok: false, why: failure(res.status) };
-  const s = (await res.json()) as Session;
-  if (!s.access_token || !s.refresh_token) return { ok: false, why: "unavailable" };
-  await store(s);
-  const user = s.user ?? { id: "", email: mail.trim() };
-  announce(user.email);
-  return { ok: true, user };
+  return completeLogin(res, mail.trim());
+}
+
+/* Mit Apple anmelden (15.09.2026). Anders als oben entsteht hier ein Konto,
+   wenn es noch keines gibt — Apple hat die Person schon geprüft.
+ *
+ * ⚠ Der `nonce` geht ROH an unseren Server; Apple hat nur den SHA-256-Abdruck
+ *   davon gesehen. Supabase bildet den Abdruck selbst und vergleicht. Wer hier
+ *   „sicherheitshalber" den gehashten Wert schickt, hasht einen Hash — und der
+ *   Fehler liest sich wie ein abgelehnter Token, also wie Apples Schuld.
+ *
+ * ⚠ `credential.email` gibt Apple NUR bei der allerersten Freigabe heraus,
+ *   danach nie wieder (und bei „Hide My Mail" ist es eine Weiterleitung).
+ *   Deshalb ist es hier nur der Notnagel: Supabase merkt sich die Adresse und
+ *   schickt sie in `s.user` bei jeder weiteren Anmeldung mit. */
+export async function loginWithApple(identityToken: string, nonce: string, appleEmail?: string | null): Promise<LoginResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/auth/apple`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ identityToken, nonce }),
+    });
+  } catch {
+    return { ok: false, why: "offline" };
+  }
+  return completeLogin(res, appleEmail ?? "");
 }
 
 /* Erneuern — EINMAL gleichzeitig. Gibt das neue Zugangstoken zurück oder
