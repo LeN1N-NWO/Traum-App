@@ -1274,7 +1274,7 @@ export default {
     accountBusy: "Too many attempts — wait a minute.",
     accountUnavailable: "Sign-in isn’t reachable right now. You can do it later in Settings.",
     accountOffline: "No connection to the server.",
-    accountApple: "Sign in with Apple — coming soon",
+    accountApple: "Sign in with Apple",
   },
   onboarding: {
     tagline: "Every night you make films. Start keeping them.",

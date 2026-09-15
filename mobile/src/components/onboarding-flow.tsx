@@ -1,3 +1,5 @@
+import * as AppleAuthentication from "expo-apple-authentication";
+import * as Crypto from "expo-crypto";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
@@ -14,7 +16,7 @@ import Svg, { Circle, G } from "react-native-svg";
 import { Clip } from "@/components/preset-tile";
 import { clipSource } from "@/lib/style-clips";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
-import { login, useAccountEmail, type LoginFailure } from "@/lib/auth";
+import { login, loginWithApple, useAccountEmail, type LoginFailure } from "@/lib/auth";
 import type { OnboardData } from "@/store/journal-store";
 import { colors, fonts, radius } from "@/theme";
 
@@ -404,6 +406,10 @@ function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; i
   const [pw, setPw] = useState("");
   const [busy, setBusy] = useState(false);
   const [fail, setFail] = useState<LoginFailure | null>(null);
+  /* Auf Android und im Web gibt es den Knopf nicht — dort fehlt Apples
+     Blatt, und ein Knopf, der nichts öffnen kann, ist schlimmer als keiner. */
+  const [appleReady, setAppleReady] = useState(false);
+  useEffect(() => { AppleAuthentication.isAvailableAsync().then(setAppleReady).catch(() => setAppleReady(false)); }, []);
   const pwRef = useRef<TextInput>(null);
   const ready = /\S+@\S+\.\S+/.test(mail.trim()) && pw.length >= 6 && !busy;
 
@@ -414,6 +420,34 @@ function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; i
     setBusy(false);
     if (r.ok) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setPw(""); }
     else { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); setFail(r.why); }
+  }
+
+  /* Mit Apple anmelden. Anders als oben braucht es kein Konto vorher — Apple
+     hat die Person geprüft, Supabase legt sie an, falls sie neu ist.
+     ⚠ Apple bekommt den ABDRUCK des Nonce, unser Server den rohen Wert:
+     Supabase bildet den Abdruck selbst und vergleicht. Zwei verschiedene
+     Werte, mit Absicht — siehe lib/auth.ts. */
+  async function goApple() {
+    setBusy(true); setFail(null);
+    try {
+      const nonce = [...Crypto.getRandomBytes(32)].map((b) => b.toString(16).padStart(2, "0")).join("");
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, nonce),
+      });
+      if (!credential.identityToken) { setBusy(false); setFail("unavailable"); return; }
+      const r = await loginWithApple(credential.identityToken, nonce, credential.email);
+      setBusy(false);
+      if (r.ok) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setPw(""); }
+      else { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); setFail(r.why); }
+    } catch (e) {
+      setBusy(false);
+      /* Wer selbst abbricht, hat keinen Fehler gemacht — nichts anzeigen. */
+      if ((e as { code?: string })?.code !== "ERR_REQUEST_CANCELED") setFail("unavailable");
+    }
   }
   const reason: Record<LoginFailure, string> = { wrong: O.accountWrong, busy: O.accountBusy, unavailable: O.accountUnavailable, offline: O.accountOffline };
 
@@ -460,12 +494,19 @@ function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; i
               <PrimaryButton label={O.accountCta} heavy onPress={go} disabled={!ready} style={{ flex: 0 }} />
             )}
           </View>
-          {/* Der Platz für den zweiten Knopf (Sign in with Apple, ADR-0005) —
-              heute noch stumm, damit die Anordnung später nicht springt. */}
-          <View style={[styles.apple, { opacity: 0.45 }]} pointerEvents="none">
-            <SymbolView name="apple.logo" size={16} tintColor={colors.text} />
-            <Text style={styles.appleText}>{O.accountApple}</Text>
-          </View>
+          {/* Der zweite Anmeldeweg (seit 15.09.2026): Apples eigenes Blatt.
+              Der einzige Weg, auf dem ein Konto ENTSTEHT — ohne den gäbe es
+              niemanden, dem eine Einladungsprämie gehören könnte. */}
+          {appleReady ? (
+            <Pressable
+              style={({ pressed }) => [styles.apple, { opacity: busy ? 0.45 : pressed ? 0.7 : 1 }]}
+              onPress={() => { Haptics.selectionAsync(); goApple(); }}
+              disabled={busy}
+            >
+              <SymbolView name="apple.logo" size={16} tintColor={colors.text} />
+              <Text style={styles.appleText}>{O.accountApple}</Text>
+            </Pressable>
+          ) : null}
           <Pressable onPress={() => { Haptics.selectionAsync(); onNext(); }} hitSlop={10} disabled={busy} style={{ alignSelf: "center", paddingVertical: 10 }}>
             <Text style={styles.later}>{O.accountLater}</Text>
           </Pressable>

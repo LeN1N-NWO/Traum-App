@@ -45,6 +45,12 @@ const AUTH_TIMEOUT = 10_000;
    unbounded password field is a way to waste memory, not to be more secure. */
 const MAX_EMAIL = 320;      // the longest address RFC 5321 permits
 const MAX_PASSWORD = 1024;
+/* An Apple identity token is a signed JWT — around 1 KB in practice. The cap
+   is generous enough that Apple can grow the payload and tight enough that
+   nobody posts a megabyte at the sign-in endpoint. The nonce is ours: 32
+   random bytes, hex or base64, never anywhere near this. */
+const MAX_ID_TOKEN = 8192;
+const MAX_NONCE = 256;
 
 /**
  * The token out of an `Authorization: Bearer …` header. Pure.
@@ -135,7 +141,15 @@ async function authCall(path, { method = "POST", body, token, config, fetchImpl 
       : status === 503 ? "Sign-in is unavailable right now."
       : status === 429 ? "Too many attempts. Wait a moment and try again."
       : "Sign-in failed.";
-    return { ok: false, status, error, cause: data?.error_code || data?.error || String(res.status) };
+    /* ⚠ Der Code allein sagt zu wenig: „validation_failed" steht sowohl über
+       einem abgeschalteten Anbieter als auch über einem krummen Feld. Die
+       Begründung trägt Supabase in `msg` (neue Form) oder `error_description`
+       (alte). Sie gehört in den Log — abgewiesen heißt nichts ohne den Grund,
+       und dieser Grund ist der Unterschied zwischen „ein Schalter ist aus"
+       und „das Passwort war falsch". Zum Client geht sie nie. */
+    const cause = [data?.error_code || data?.error || String(res.status),
+      data?.msg || data?.error_description].filter(Boolean).join(": ");
+    return { ok: false, status, error, cause };
   }
   return { ok: true, data: data || {} };
 }
@@ -163,6 +177,72 @@ export async function passwordLogin({ email, password } = {}, { config, fetchImp
     config,
     fetchImpl,
   });
+  if (!r.ok) return r;
+  return { ok: true, session: publicSession(r.data) };
+}
+
+/**
+ * Sign in with Apple — the second way in, and the first one that creates an
+ * account by itself (Übergabe 2026-09-14: "Konten ohne dich").
+ *
+ * The phone runs Apple's own sheet and comes back with an identity token: a
+ * JWT signed by Apple. We hand it to Supabase, which checks Apple's signature
+ * and either finds the person or creates them. From the next line on, nothing
+ * can tell this session from a password one — same shape, same verifyAccessToken().
+ *
+ * ⚠ The nonce travels RAW here and hashed at Apple. The app generates a random
+ *   value, sends SHA-256 of it into signInAsync(), and Apple puts that hash in
+ *   the token. Supabase hashes what we send and compares. Sending the hash
+ *   instead of the raw value therefore fails — it would hash a hash — and it
+ *   fails as "invalid credentials", which reads like Apple's fault. It is not.
+ *
+ * ⚠ We never see an Apple password, and often not a real address either:
+ *   "Hide My Mail" delivers a @privaterelay.appleid.com forwarder. That is a
+ *   valid address to us and must not be treated as second-class — it is the
+ *   only one such a person has.
+ *
+ * @returns {Promise<{ok: true, session: object} | {ok: false, status: number, error: string, cause?: string}>}
+ */
+export async function appleLogin({ identityToken, nonce } = {}, { config, fetchImpl } = {}) {
+  if (!config) return { ok: false, status: 503, error: "Sign-in is not configured." };
+  if (typeof identityToken !== "string" || !identityToken.trim()
+      || identityToken.length > MAX_ID_TOKEN
+      || (nonce !== undefined && nonce !== null
+          && (typeof nonce !== "string" || nonce.length > MAX_NONCE))) {
+    return { ok: false, status: 400, error: "An Apple identity token is required." };
+  }
+
+  const r = await authCall("/auth/v1/token?grant_type=id_token", {
+    body: {
+      provider: "apple",
+      id_token: identityToken.trim(),
+      ...(nonce ? { nonce } : {}),
+    },
+    config,
+    fetchImpl,
+  });
+  /* ⚠ A switched-off provider answers 400, which authCall reads — rightly, for
+     a password — as "wrong credentials". Here that would send whoever debugs
+     it to Apple, to the phone, to the token, and never to the Supabase switch
+     that is actually off. It is a configuration fault on our side, so it gets
+     the shape configuration faults get: 503, and it says which switch.
+     ⚠⚠ Match the CODE, never the prose. Both guesses at the wording were
+     wrong when measured against the real Supabase on 15.09.2026:
+       - a garbage token answers "Unable to detect issuer in ID token for
+         Apple provider" — the word "provider", but no switch is off;
+       - the switch being off answers `provider_disabled` with the message
+         "Provider (issuer \"https://appleid.apple.com\") is not enabled",
+         where the issuer sits BETWEEN "Provider" and "is not enabled", so a
+         phrase match on "provider is not enabled" misses it entirely.
+     The code says it once and says it plainly. */
+  if (!r.ok && r.status === 401 && /provider_disabled|unsupported provider/i.test(String(r.cause || ""))) {
+    return {
+      ok: false,
+      status: 503,
+      error: "Sign in with Apple is not switched on for this project.",
+      cause: r.cause,
+    };
+  }
   if (!r.ok) return r;
   return { ok: true, session: publicSession(r.data) };
 }

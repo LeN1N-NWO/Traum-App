@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { parseBearer, authConfig, passwordLogin, refreshSession, verifyAccessToken, logout } from "./auth.js";
+import { parseBearer, authConfig, passwordLogin, appleLogin, refreshSession, verifyAccessToken, logout } from "./auth.js";
 
 const config = { url: "https://projekt.supabase.co", anonKey: "anon-key" };
 const UID = "3ecbfe28-21c1-4475-b931-1082d2b56ba7";
@@ -149,6 +149,102 @@ test("nonsense is refused before it reaches the network", async () => {
 
 test("without configuration sign-in refuses instead of pretending", async () => {
   const r = await passwordLogin({ email: "a@b.co", password: "pw" }, { config: null });
+  expect(r.ok).toBe(false);
+  expect(r.status).toBe(503);
+});
+
+/* ── appleLogin ────────────────────────────────────────────────────────── */
+
+test("an Apple identity token is traded for a session", async () => {
+  const f = fakeFetch({ status: 200, body: SESSION });
+  const r = await appleLogin({ identityToken: "apple.jwt.here", nonce: "n-1" }, { config, fetchImpl: f });
+  expect(r.ok).toBe(true);
+  expect(r.session.access_token).toBe("at-1");
+  expect(f.calls[0].url).toBe("https://projekt.supabase.co/auth/v1/token?grant_type=id_token");
+  expect(f.calls[0].body).toEqual({ provider: "apple", id_token: "apple.jwt.here", nonce: "n-1" });
+});
+
+/* ⚠ The one that catches the mistake worth catching: Apple gets SHA-256 of the
+   nonce, Supabase gets the raw value and hashes it itself. Anything that
+   "helpfully" hashes here would hash a hash, and the failure would read as a
+   rejected token — Apple's fault, apparently. */
+test("the nonce travels raw, and is left out when there is none", async () => {
+  const f = fakeFetch({ status: 200, body: SESSION });
+  await appleLogin({ identityToken: "t", nonce: "raw-nonce" }, { config, fetchImpl: f });
+  expect(f.calls[0].body.nonce).toBe("raw-nonce");
+
+  const g = fakeFetch({ status: 200, body: SESSION });
+  await appleLogin({ identityToken: "t" }, { config, fetchImpl: g });
+  expect("nonce" in g.calls[0].body).toBe(false);
+});
+
+test("an Apple session is shaped like every other one", async () => {
+  const f = fakeFetch({ status: 200, body: { ...SESSION, user: { id: UID, email: "abc@privaterelay.appleid.com", identities: [{ provider: "apple" }] } } });
+  const { session } = await appleLogin({ identityToken: "t" }, { config, fetchImpl: f });
+  expect(session.user).toEqual({ id: UID, email: "abc@privaterelay.appleid.com" });
+  expect(Object.keys(session).sort()).toEqual(
+    ["access_token", "expires_at", "expires_in", "refresh_token", "token_type", "user"]);
+});
+
+/* ⚠⚠ The switch nobody remembers: Apple must be enabled in Supabase. That
+   answers 400, which for a password rightly means "wrong credentials" — here
+   it would send whoever debugs it to the phone, the token and Apple, and never
+   to the switch. Our configuration fault, so: 503, and it names the switch. */
+test("a provider that is switched off is our fault, not a wrong credential", async () => {
+  /* Wortlaut am echten Supabase abgelesen (15.09.2026) — nicht geraten. Die
+     Klammer mit dem Issuer steht MITTEN im Satz; ein Mustervergleich auf
+     „provider is not enabled" ginge daran vorbei. Darum der Code. */
+  const f = fakeFetch({ status: 400, body: { error_code: "provider_disabled", msg: 'Provider (issuer "https://appleid.apple.com") is not enabled' } });
+  const r = await appleLogin({ identityToken: "t" }, { config, fetchImpl: f });
+  expect(r.ok).toBe(false);
+  expect(r.status).toBe(503);
+  expect(r.error).toContain("not switched on");
+});
+
+/* ⚠⚠ Am echten Supabase gemessen (15.09.2026): ein kaputter Token antwortet
+   „Unable to detect issuer in ID token for Apple provider". Das Wort
+   „provider" steht also auch dort, wo der Schalter völlig in Ordnung ist —
+   wer darauf prüft, schickt jeden abgelehnten Token in die Irre. */
+test("a broken token is not mistaken for a switched-off provider", async () => {
+  const f = fakeFetch({ status: 400, body: { error_code: "validation_failed", msg: "Unable to detect issuer in ID token for Apple provider" } });
+  const r = await appleLogin({ identityToken: "not.a.jwt" }, { config, fetchImpl: f });
+  expect(r.status).toBe(401);
+  expect(r.error).toBe("Invalid login credentials.");
+});
+
+test("a token Apple did not sign is refused as a credential", async () => {
+  const f = fakeFetch({ status: 401, body: { error_code: "bad_jwt" } });
+  const r = await appleLogin({ identityToken: "forged" }, { config, fetchImpl: f });
+  expect(r.status).toBe(401);
+  expect(r.error).toBe("Invalid login credentials.");
+});
+
+test("a network failure during Apple sign-in is 503, not a verdict", async () => {
+  const r = await appleLogin({ identityToken: "t" },
+    { config, fetchImpl: fakeFetch(new Error("connect ECONNREFUSED")) });
+  expect(r.status).toBe(503);
+});
+
+test("nonsense from the app is refused before it reaches the network", async () => {
+  const bad = [
+    {},
+    { identityToken: "" },
+    { identityToken: 42 },
+    { identityToken: "x".repeat(8193) },
+    { identityToken: "t", nonce: 42 },
+    { identityToken: "t", nonce: "x".repeat(257) },
+  ];
+  for (const input of bad) {
+    const f = fakeFetch({ status: 200, body: SESSION });
+    const r = await appleLogin(input, { config, fetchImpl: f });
+    expect(r.ok).toBe(false);
+    expect(r.status).toBe(400);
+    expect(f.calls.length).toBe(0);
+  }
+});
+
+test("without configuration Apple sign-in refuses instead of pretending", async () => {
+  const r = await appleLogin({ identityToken: "t" }, { config: null });
   expect(r.ok).toBe(false);
   expect(r.status).toBe(503);
 });

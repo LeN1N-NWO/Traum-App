@@ -1197,7 +1197,7 @@ export default {
     accountBusy: "Zu viele Versuche — eine Minute warten.",
     accountUnavailable: "Die Anmeldung ist gerade nicht erreichbar. Du kannst sie später in den Einstellungen nachholen.",
     accountOffline: "Keine Verbindung zum Server.",
-    accountApple: "Mit Apple anmelden — kommt noch",
+    accountApple: "Mit Apple anmelden",
   },
   onboarding: {
     tagline: "Jede Nacht drehst du Filme. Fang an, sie zu behalten.",
