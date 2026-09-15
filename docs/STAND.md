@@ -3,10 +3,23 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-14 nachmittags — Sitzung `session/2026-09-13-anton-e`
+**Stand:** 2026-09-15 abends — Sitzung `session/2026-09-15-hanni-apple-signin`
+(PR #51, **Entwurf**): **„Mit Apple anmelden" ist gebaut** — Schritt 1 der
+Codes/Einladungen-Übergabe. `POST /api/auth/apple` tauscht Apples
+Identity-Token bei Supabase gegen eine Sitzung; dahinter ändert sich nichts,
+`verifyAccessToken()` ist der Anmeldeweg egal. **Es ist der erste Weg, auf dem
+ein Konto ENTSTEHT** (Passwort bleibt: nur wer in Supabase steht). ⚠ Zwei
+Schalter fehlen noch, beide nur von Hanni umzulegen: Capability „Sign In with
+Apple" für `app.dreamrushes` im Apple Developer Portal, und Apple als Provider
+in Supabase Studio mit `app.dreamrushes` als Client-ID. Bis dahin antwortet
+der Endpunkt 503 mit genau diesem Hinweis (am echten Supabase belegt), und der
+native Knopf ist ungeprüft — er braucht `bun run prebuild:ios` und einen
+Rebuild. Zwei Muster in der Fehlererkennung waren falsch und fielen NUR am
+echten Supabase auf; die Lehre steht im WORKLOG-Eintrag 22:30.
+Davor: 2026-09-14 nachmittags — Sitzung `session/2026-09-13-anton-e`
 abgeschlossen, **PR #50 auf Antons Wort gemerged** („wrappen und mergen“).
-**Offen:** Starter-Code-Menge (Vorschlag 22 Credits); Mit Apple anmelden →
-StoreKit mit Server-Prüfung → Offer Codes → Einladungen (Hanni, Übergabe
+**Offen:** Starter-Code-Menge (Vorschlag 22 Credits); StoreKit mit
+Server-Prüfung → Offer Codes → Einladungen (Hanni, Übergabe
 unten); Jahrespreis $99,99 prüfen; Subreddit-Regeln selbst eintragen
 (`docs/marketing/hermes/`). **Entschieden und gebaut:** kein Willkommensgeschenk mehr
 (`welcomeGrant` entfernt, Kaufblatt „Filme brauchen Credits“, Blatt nach dem
@@ -93,7 +106,8 @@ ist. Geprüft im Simulator bis zur Meldung „nicht erreichbar" (503, weil in
 Antons `.env` `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`DATABASE_URL` fehlen —
 die hat Hanni). ⚠ Registrieren gibt es nicht (kein Endpunkt, mit Absicht);
 ein Konto muss Hanni anlegen, bis „Mit Apple anmelden" kommt — der Platz
-dafür steht schon stumm unter dem Knopf. Dazu: **Journal-Karten zeigten
+dafür steht schon stumm unter dem Knopf. **(Überholt am 15.09.: der Knopf
+ist echt, siehe oben — Konten entstehen jetzt über Apple.)** Dazu: **Journal-Karten zeigten
 kein Bild** (Vorschau-Versprechen, siehe dream-poster.tsx) — behoben; und
 der Begleiter-Text im Onboarding als Persönlichkeit. **Dann Antons
 Moonly-Vergleich (11:00):** Feature-Kacheln versetzt mit Etikett am Rand,
@@ -277,8 +291,9 @@ ist noch nicht gebaut.
 **`server.js` ist mit der Datenbank verbunden — nach Least Privilege.** Die
 Architektur ist bewertet: `docs/ARCHITEKTUR.md` (S1–S8).
 
-**Die Anmeldung steht (12.09., PR #46, in #47 enthalten).** `server.js` hat jetzt
-`POST /api/auth/login|refresh|logout`, `GET/PATCH /api/account`,
+**Die Anmeldung steht (12.09., PR #46, in #47 enthalten); seit 15.09. mit
+einem zweiten Weg (Apple, PR #51).** `server.js` hat jetzt
+`POST /api/auth/login|apple|refresh|logout`, `GET/PATCH /api/account`,
 `GET/DELETE /api/dreams` und `POST /api/dreams/sync`. Der Client spricht
 weiterhin nur mit uns; Supabase Auth liegt dahinter (`src/lib/auth.js`,
 kein SDK). Jeder Datenzugriff läuft durch `withUser()`, die Nutzerkennung
@@ -320,7 +335,32 @@ wiederholbar über `unique (user_id, client_id)`.
   eine Zeile im SQL-Editor (server.js darf das nicht, absichtlich):
   `select public.credits_grant('3ecbfe28-21c1-4475-b931-1082d2b56ba7', 100, 'adjustment', null, 'Testguthaben');`
 - **Abgebucht wird weiterhin nichts.** `/api/account` zeigt das Guthaben
-  nur an. Registrieren gibt es nicht (kein Signup-Endpunkt, absichtlich).
+  nur an. Einen Signup-Endpunkt gibt es weiterhin nicht (absichtlich): über
+  E-Mail und Passwort entsteht kein Konto. **Über Apple schon** — dort hat
+  Apple die Person geprüft, und der Trigger `on_auth_user_created` legt
+  Profil und Guthabenzeile an. Das ist der Grund, warum Schritt 1 der
+  Codes/Einladungen-Übergabe genau dieser Weg war.
+- **Mit Apple anmelden (15.09., PR #51 — Entwurf, App-Seite ungeprüft):**
+  `POST /api/auth/apple` nimmt `{ identityToken, nonce }` und tauscht sie bei
+  Supabase (`grant_type=id_token`). ⚠ Der Nonce reist ROH zu uns; Apple hat
+  nur dessen SHA-256-Abdruck gesehen, Supabase bildet ihn selbst. Wer hier
+  den gehashten Wert schickt, hasht einen Hash — und der Fehler liest sich
+  wie ein abgelehnter Token.
+- ⚠⚠ **Fehlertexte von Supabase sind keine Erkennungsmerkmale** (15.09., zwei
+  Fehlgriffe hintereinander, beide nur am ECHTEN Supabase sichtbar): Ein
+  kaputter Token antwortet „Unable to detect issuer in ID token for Apple
+  **provider**" — das Wort steht also auch dort, wo kein Schalter aus ist.
+  Und der wirklich abgeschaltete Anbieter antwortet `provider_disabled` mit
+  „Provider (issuer \"…\") **is not enabled**", wobei der Issuer MITTEN im
+  Satz steht — ein Vergleich auf „provider is not enabled" geht daran vorbei.
+  **Auf den Fehlercode prüfen, nie auf die Prosa.** Um den zweiten Fall
+  überhaupt zu sehen, braucht es ein formal gültiges Apple-JWT mit falscher
+  Signatur; vorher prüft GoTrue den Anbieter gar nicht erst.
+- ⚠ **`mobile/node_modules` und `mobile/ios` fehlten am 15.09. in diesem
+  Checkout.** `bun install` in `mobile/` holt die Pakete zurück, der native
+  Ordner entsteht mit `bun run prebuild:ios` neu. Neue native Pakete dieser
+  Sitzung: `expo-apple-authentication`, `expo-crypto` — beide brauchen
+  Pods + Rebuild.
 
 ## Wo wir stehen
 

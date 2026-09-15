@@ -3,6 +3,62 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-15 22:30 — Hanni — Branch `session/2026-09-15-hanni-apple-signin` (PR #51, Entwurf) — Mit Apple anmelden
+
+**Commits:** `daf9b57` Eröffnung · `d8934f3` Sign in with Apple ·
+Doku-Commit dieses Eintrags.
+
+**Warum:** Schritt 1 aus Antons Übergabe
+`docs/uebergabe/2026-09-14-hanni-codes-einladungen.md`. Offer Codes und
+Einladungen brauchen Konten, die ohne mich entstehen — heute legt sie nur
+Hanni von Hand in Supabase an, und einer Prämie gehört dann niemand.
+
+**Gebaut:**
+- `appleLogin()` in `src/lib/auth.js` — tauscht Apples Identity-Token bei
+  Supabase gegen eine Sitzung (`grant_type=id_token`). Danach ist der Weg
+  nicht mehr zu erkennen: `verifyAccessToken()` blieb unangetastet.
+- `POST /api/auth/apple` in `server.js`, an genau der Stelle, die der
+  Kommentar dort seit dem 12.09. dafür freigehalten hatte. Diff: 30 Zeilen
+  hinzu, 8 entfernt, in drei Kategorien (Import 1/1, Kommentar 10/7,
+  Endpunkt 19/0) — die Summe geht auf, die Prompt-Kette ist unberührt.
+- App: `expo-apple-authentication` + `expo-crypto`, Plugin-Eintrag in
+  `app.json` (setzt das Entitlement beim Prebuild selbst, kein Handgriff
+  an der `.entitlements`). Der stumme Platzhalter im Onboarding ist ein
+  echter Knopf; auf Android/Web erscheint er gar nicht.
+- `loginWithApple()` in `mobile/src/lib/auth.ts`; der gemeinsame Schluss
+  beider Wege (speichern, melden) liegt jetzt in `completeLogin()`.
+
+**⚠⚠ Was der Nächste wissen muss — zwei Muster waren falsch, beide erst am
+ECHTEN Supabase aufgefallen, keines wäre gegen einen Mock aufgefallen:**
+1. Ein kaputter Token antwortet `validation_failed: Unable to detect
+   issuer in ID token for Apple provider`. Das Wort „provider" steht also
+   auch dort, wo gar kein Schalter aus ist — mein erstes Muster machte
+   daraus „Apple ist abgeschaltet" und hätte jeden abgelehnten Token an
+   den falschen Ort geschickt.
+2. Der wirklich abgeschaltete Anbieter antwortet `provider_disabled` mit
+   `Provider (issuer "https://appleid.apple.com") is not enabled` — der
+   Issuer steht MITTEN im Satz. Ein Vergleich auf „provider is not
+   enabled" geht daran vorbei, also hätte der 503-Zweig nie gegriffen und
+   Hanni bei ausgeschaltetem Schalter „Invalid login credentials" gelesen.
+   **Jetzt wird der Fehlercode geprüft, nicht die Prosa.**
+   Beide Fälle sind am echten Supabase belegt (503 mit Hinweis auf den
+   Schalter, bzw. 401). Um Fall 2 überhaupt zu sehen, braucht es ein
+   formal gültiges Apple-JWT (Issuer `https://appleid.apple.com`) mit
+   falscher Signatur — vorher prüft GoTrue den Anbieter gar nicht erst.
+- `cause` trägt jetzt zusätzlich Supabases `msg`/`error_description`.
+  `validation_failed` allein sagt nicht, was los war. Nur für den Log.
+- **`mobile/node_modules` und `mobile/ios` fehlten in diesem Checkout** —
+  `bun install` in `mobile/` holt die Pakete; der native Ordner entsteht
+  mit `bun run prebuild:ios` neu.
+
+**Noch offen (beides nicht von hier aus machbar):** Capability „Sign In
+with Apple" für `app.dreamrushes` im Apple Developer Portal, und Apple als
+Provider in Supabase Studio mit `app.dreamrushes` als Client-ID. Danach
+der echte Knopf am Gerät — bis dahin ist die App-Seite ungeprüft.
+
+**Prüfungen:** 646 Tests grün (638 + 8 neue), `vite build` grün, `tsc`
+sauber, `expo lint` 0 Fehler (52 Warnungen, alle in fremdem Altcode).
+
 ## 2026-09-14 14:40 — Anton — Branch `session/2026-09-13-anton-e` (PR #50) — Abschluss, Merge auf Antons Wort
 
 **Commits dieser Sitzung (Auswahl):** `3269c13`/`7cda637` Jahresabo mit
