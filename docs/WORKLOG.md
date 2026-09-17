@@ -3,6 +3,39 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-17 23:45 — Anton — Branch `session/2026-09-17-anton` (PR #52, Entwurf) — Erinnerungs-Schalter reagieren sofort, zehn Onboarding-Befunde für Hanni, Worktree-Falle dokumentiert
+
+**Commits:** `50f38e4` Befunde für Hanni · Code- und Doku-Commit dieses Eintrags.
+
+- **Onboarding einmal komplett durchgetippt** (Simulator, mit Foto aus der
+  Bibliothek): zehn Befunde, alle in Hannis Dateien → **nichts angefasst**,
+  Notiz in `docs/uebergabe/2026-09-17-hanni-onboarding-befunde.md`. Gut:
+  Auszeichnungen passen, Jahre-Kreis zeigt „25 Jahre Schlaf / 6 Jahre Träume",
+  Erlaubnis-Zeilen und Fotowahl laufen.
+- **Gefunden und behoben:** Die Schalter unter Erinnerungen wirkten tot, weil
+  jeder Tipp erst über die Brücke und zurück lief (Sekunden). `reminders.tsx`
+  hält jetzt den eigenen Wunsch, solange der Bildschirm offen ist. Zwei
+  Umwege, die NICHT gehen: Plan-Identität (alle drei Sekunden neues Objekt)
+  und Zeitablauf (`Date.now()` beim Zeichnen = Lint-Fehler).
+- **Mitteilungs-Erlaubnis geprüft:** Dialog erscheint beim Einschalten der
+  Morgen-Erinnerung, danach steht der Plan auf 07:30.
+
+**Was der Nächste wissen muss:**
+- ⚠ Nativ testen im Worktree braucht: Metro von Hand aus dem Worktree,
+  `mobile/ios` per rsync aus dem Hauptordner **inklusive `ios/build/generated`**,
+  und **`rm -rf /tmp/metro-cache`** — der geteilte Cache liefert sonst die
+  Brücke mit dem Pfad des Hauptordners, die App startet ohne Daten. Details
+  in STAND.md.
+- ⚠ Im Simulator-Werkzeug schaltet ein `Switch` zuverlässig nur per `swipe`,
+  nicht per `tap`.
+- ⚠ Anton hat die App per Xcode aufs iPhone gebracht. Eine Debug-Fassung
+  hängt am Metro des Macs — beim Umstellen auf den Worktree bleibt sie beim
+  Logo stehen. Für das iPhone die Release-Fassung bauen, vorher
+  `mobile/.env` mit `EXPO_PUBLIC_API_BASE` anlegen.
+- Offen: Teilen-Karte, Schnellaktionen, Atem-Raum mit dem Finger; echte
+  Zustellung um 07:30.
+- Tests 637 grün, Typen sauber, Lint 0 Fehler (52 Warnungen wie vorher).
+
 ## 2026-09-14 14:40 — Anton — Branch `session/2026-09-13-anton-e` (PR #50) — Abschluss, Merge auf Antons Wort
 
 **Commits dieser Sitzung (Auswahl):** `3269c13`/`7cda637` Jahresabo mit

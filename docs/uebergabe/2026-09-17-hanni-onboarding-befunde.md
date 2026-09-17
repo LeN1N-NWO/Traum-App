@@ -76,3 +76,14 @@ Simulator iPhone 17 Pro, Entwicklungsbau mit Metro aus
 `../Traum-App-anton`, Onboarding von „Los" bis „Heute Nacht anfangen"
 durchgetippt (Name, Foto aus der Bibliothek, alle Fragen beantwortet,
 Anmeldung mit „Später" übersprungen).
+
+## Nachtrag 23:40 — zwei Textfunde aus dem Einwilligungs- und Systemteil
+
+9. **Einwilligung nennt noch Bilder.** Das Tor „Before your first dream" sagt
+   „turns your words and photos into images and films". Bilder gibt es seit dem
+   12.09. nicht mehr (`consent`-Texte in `src/i18n/de.js` / `en.js`).
+10. **Systemtexte sind nur englisch.** Der Mikrofon-Dialog zeigt auf einem
+    deutschen Gerät den deutschen Titel von iOS und darunter unseren englischen
+    Satz („Dream Rushes listens while you tell your dream."). Die
+    Verwendungszwecke stehen in `mobile/app.json` (auch deine Datei) und
+    brauchen `CFBundleLocalizations` bzw. `InfoPlist.strings` je Sprache.

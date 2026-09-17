@@ -3,33 +3,60 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-14 nachmittags — Sitzung `session/2026-09-13-anton-e`
-abgeschlossen, **PR #50 auf Antons Wort gemerged** („wrappen und mergen“).
-**Offen:** Starter-Code-Menge (Vorschlag 22 Credits); Mit Apple anmelden →
-StoreKit mit Server-Prüfung → Offer Codes → Einladungen (Hanni, Übergabe
-unten); Jahrespreis $99,99 prüfen; Subreddit-Regeln selbst eintragen
-(`docs/marketing/hermes/`). **Entschieden und gebaut:** kein Willkommensgeschenk mehr
-(`welcomeGrant` entfernt, Kaufblatt „Filme brauchen Credits“, Blatt nach dem
-ersten Film nur noch, wenn der Rest keinen Film trägt), XL-Paket 650 Credits.
-**Einladungsprämie nur bei echtem Kauf**, 14 Tage ohne Erstattung: S 10, M 30,
-L 60, XL 130, Monatsabo 30, Jahresabo 100 (geplant, nicht gebaut). **Codes und Einladungen geplant, nicht gebaut**
-(`docs/plans/2026-09-14-codes-einladungen-plan.md`, Übergabe an Hanni
-`docs/uebergabe/2026-09-14-hanni-codes-einladungen.md`): Apple Offer Codes
-statt eigenem Code-Feld (3.1.1-Ablehnungen), Einladungen erst nach dem Launch,
-Prämie nur für den Einladenden; ⚠ TestFlight-Käufe sind gratis — Sandbox nie
-ins echte Ledger. **Jahresabo entschieden und gebaut:** 480 Credits am
-Kauftag, danach jeden Monat 131, Übertrag im Abojahr (`allowanceGrant()` in
-`src/lib/plans.js`, Paywall zeigt es). ⚠ Der Server kann das Abo-Guthaben nur
-SETZEN (`credits_set_allowance`), das Jahresabo braucht beim Store-Anschluss
-ein Dazulegen im Abojahr. **Beantwortet, nicht gebaut:** keine Werbung gegen Credits (gut 1 Cent je
-Werbung, ~26 für den günstigsten Film), Dream Recorder nur als kleine Anfrage
-mit Fix-Angebot (Mail-Entwurf, nicht verschickt), Marketing-Agenten mit Hermes
-nur als Zuarbeiter — Skill-Vorlagen in `docs/marketing/hermes/`, Subreddit-Regeln
-muss Anton selbst eintragen. Davor in dieser Sitzung (nachts): **Wissen-Raum**
-im Schlaf-Tab (18 geprüfte Karten), Paket-Extras, Avatar-Dialog mit
-Zeitgrenze, Aufnahme-Text, **Marketingplan** mit Namensprüfung
-(`docs/plans/2026-09-14-marketingplan.md`). Offen: Jahrespreis ($99,99 ist
-2,5× Kategorie-Median).
+**Stand:** 2026-09-17 nachts — Sitzung `session/2026-09-17-anton`
+(PR #52, Entwurf), Worktree `../Traum-App-anton`.
+
+**Gebaut und geprüft:** Die Schalter auf `profile/reminders.tsx` springen
+sofort um. Vorher lief jeder Tipp über die unsichtbare Brücke und zurück —
+das dauerte Sekunden, und die Seite wirkte tot. Der Bildschirm hält jetzt
+den eigenen Wunsch, solange er offen ist (kein Effekt, kein Zeitgeber:
+`Date.now()` beim Zeichnen bricht den Lint, die Plan-Identität wechselt alle
+drei Sekunden). Im Simulator gesehen, dazu die Mitteilungs-Erlaubnis
+(Dialog kommt beim Einschalten, Plan bleibt auf 07:30).
+
+**Befunde an Hanni, nichts angefasst:** zehn Punkte aus dem Onboarding und
+den Einwilligungstexten in `docs/uebergabe/2026-09-17-hanni-onboarding-befunde.md`
+(alter Text „Bilder" statt „Filme", doppeltes „Das bist du.", abgeschnittener
+Platzhalter, Kachel-Schrift auf hellem Clip, ungleiche Fragen, Maskottchen
+ohne Wirkung, leerer Schlussschritt, Jahre-Kreis, Einwilligung nennt Bilder,
+englische Systemtexte). Antons Ansage: Hannis Dateien bleiben bei Hanni
+(ihr PR #51: Sign in with Apple).
+
+⚠⚠ **Wer im Worktree nativ testen will, braucht drei Dinge** (heute drei
+Stunden gekostet):
+1. `preview_start expo` startet Metro IMMER im Hauptordner. Für den Worktree
+   von Hand: `cd ../Traum-App-anton/mobile && bun run start`.
+2. Es gibt kein `mobile/ios` im Worktree (erzeugt, ignoriert) — und
+   `expo prebuild` ist verboten (Push-Entitlement). Lösung: `rsync -a
+   --exclude build/` aus dem Hauptordner plus `ios/build/generated` (die
+   Codegen-Quellen, sonst bricht der Bau mit acht Fehlern ab), dann
+   `xcodebuild … -derivedDataPath /tmp/dr-dd-anton` und `simctl install`.
+3. ⚠ **Metros Cache liegt in `/tmp/metro-cache` und wird geteilt.** Er
+   liefert die Brücke mit dem PFAD DES HAUPTORDNERS aus, die DOM-Komponente
+   scheitert, und die App läuft ohne Daten und auf englischen Rückfalltexten.
+   Erste Maßnahme im Worktree: `rm -rf /tmp/metro-cache`, Metro mit `--clear`.
+
+⚠ **Simulator-Werkzeug:** Ein `tap` auf einen `Switch` wird nicht immer
+angenommen — ein kurzer `swipe` über den Schalter schaltet zuverlässig.
+Erst diese Erkenntnis hat den „die Schalter sind tot"-Verdacht aufgelöst.
+
+**Offen:** Finger-Tests für Teilen-Karte, Schnellaktionen am App-Symbol und
+Atem-Raum (heute nicht mehr geschafft); Zustellung einer echten
+Morgen-Erinnerung um 07:30; Starter-Code-Menge (Vorschlag 22 Credits); alles
+aus der Übergabe `2026-09-14-hanni-codes-einladungen.md` (Mit Apple anmelden →
+StoreKit mit Server-Prüfung → Offer Codes → Einladungen); Jahrespreis $99,99;
+Subreddit-Regeln in `docs/marketing/hermes/` eintragen.
+
+**Davor, Sitzung `session/2026-09-13-anton-e` (PR #50, gemerged 14.09.):**
+Jahresabo mit Startguthaben (480 Credits am Kauftag, danach jeden Monat 131,
+Übertrag im Abojahr, `allowanceGrant()` in `src/lib/plans.js`), kein
+Willkommensgeschenk mehr, XL-Paket 650 Credits, Wissen-Raum im Schlaf-Tab,
+Marketingplan, Recherchen zu Werbung/Dream Recorder/Marketing-Agenten und
+Codes/Einladungen/Verlosungen. Einladungsprämie entschieden, aber nicht
+gebaut: nur bei echtem Kauf, S 10, M 30, L 60, XL 130, Monat 30, Jahr 100.
+⚠ Der Server kann das Abo-Guthaben nur SETZEN (`credits_set_allowance`) —
+das Jahresabo braucht beim Store-Anschluss ein Dazulegen.
+
 Davor: Sitzung `session/2026-09-13-anton-d`
 abgeschlossen, **PR #49 auf Antons Wort gemerged** („wrap und merge").
 **Offen für die nächste Sitzung:** (1) Test mit einem echten Foto an
