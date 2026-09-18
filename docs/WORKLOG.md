@@ -3,6 +3,47 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-18 07:40 — Anton — Branch `session/2026-09-17-anton` (PR #52, Entwurf) — iPhone-Release-Absturz gefunden und behoben (alles lokal, kein Repo-Code)
+
+**Commits:** nur dieser Doku-Eintrag — der ganze Fix liegt in git-ignorierten
+Dateien des HAUPTordners und ist deshalb ausschließlich hier dokumentiert.
+
+**Antons iPhone blieb beim App-Logo stehen.** Nicht die Erlaubnis-Dialoge,
+nicht der Free-Account, nicht Metro: Der Release-Build stürzt **nativ** ab,
+bevor er irgendetwas zeichnet — `EXC_BAD_ACCESS` in
+`facebook::react::Props::Props()` beim Registrieren der Expo-Komponenten
+(Absturzbericht im Simulator, exakt reproduziert). Ursache: Expos
+**vorkompilierte React-Native-Pakete** (SDK 57, `React-Core-prebuilt`)
+vertragen sich in der Release-Variante nicht mit Xcode 26.3. Debug nimmt
+andere Paketvarianten — darum lief der Simulator immer.
+
+**Der Fix, drei Teile, alle im Hauptordner und alle git-ignoriert:**
+1. `mobile/ios/Podfile.properties.json`: `"ios.buildReactNativeFromSource": "true"`
+   → `pod install`. React Native wird aus dem Quelltext gebaut (10–20 min).
+2. Der Quelltextbau scheitert dann an Swift 6 in `expo-modules-core` 57.0.18
+   (`EventEmitter.swift:52/79`, „sending 'emitter' risks causing data races";
+   `SWIFT_STRICT_CONCURRENCY=minimal` hilft NICHT — `sending` ist Sprache,
+   nicht Strenge-Stufe). Lokaler Patch in `node_modules`: `WeakEmitterBox`
+   (`@unchecked Sendable`-Hülle um die schwache Referenz) statt
+   `nonisolated(unsafe) weak let`. ⚠ Fliegt bei jedem `bun install` raus —
+   Rezept steht in STAND.md.
+3. `mobile/.env` mit `EXPO_PUBLIC_API_BASE=http://192.168.178.97:8100`
+   MUSS vor dem Bauen existieren — sie fehlte, darum stand `localhost:8100`
+   im Bundle (auf dem iPhone ist localhost das iPhone).
+
+**Geprüft:** Release im Simulator startet bis zum Einwilligungs-Tor
+(vorher: Absturz zum Homescreen). Aufs iPhone installiert und gestartet
+(00:49) — **Antons Sichtbestätigung steht noch aus.**
+
+**Was der Nächste wissen muss:**
+- `xcodebuild` per CLI findet das iPhone oft nicht (auch wenn `devicectl`
+  es sieht, vermutlich Sperrbildschirm): mit
+  `-destination 'generic/platform=iOS'` bauen, dann
+  `xcrun devicectl device install app --device <UDID> <Pfad>.app`.
+- Release-Konsole ist stumm; Absturzberichte liegen als `.ips` in
+  `~/Library/Logs/DiagnosticReports/` (Simulator).
+- Free-Account: Signatur läuft nach 7 Tagen ab → neu bauen und installieren.
+
 ## 2026-09-17 23:45 — Anton — Branch `session/2026-09-17-anton` (PR #52, Entwurf) — Erinnerungs-Schalter reagieren sofort, zehn Onboarding-Befunde für Hanni, Worktree-Falle dokumentiert
 
 **Commits:** `50f38e4` Befunde für Hanni · Code- und Doku-Commit dieses Eintrags.

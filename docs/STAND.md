@@ -3,8 +3,38 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-17 nachts — Sitzung `session/2026-09-17-anton`
+**Stand:** 2026-09-18 früh — Sitzung `session/2026-09-17-anton`
 (PR #52, Entwurf), Worktree `../Traum-App-anton`.
+
+⚠⚠ **iPhone-Release-Absturz behoben (18.09., alles lokal im HAUPTordner,
+nichts davon im Repo — deshalb steht das Rezept nur hier):** Antons iPhone
+blieb beim Logo stehen, weil der Release-Build **nativ** abstürzt, bevor er
+zeichnet (`EXC_BAD_ACCESS` in `Props::Props()` beim Registrieren der
+Expo-Komponenten). Ursache: Expos vorkompilierte RN-Pakete
+(`React-Core-prebuilt`) vertragen sich in Release nicht mit Xcode 26.3;
+Debug nimmt andere Varianten, darum lief der Simulator immer. Das Rezept:
+1. `mobile/ios/Podfile.properties.json` →
+   `"ios.buildReactNativeFromSource": "true"`, dann `pod install`
+   (Quelltextbau, 10–20 min je Konfiguration).
+2. Danach scheitert `expo-modules-core` 57.0.18 an Swift 6
+   (`EventEmitter.swift:52/79`, „sending 'emitter' risks causing data
+   races" — `SWIFT_STRICT_CONCURRENCY=minimal` hilft NICHT). Patch in
+   `node_modules/expo-modules-core/ios/Core/Events/EventEmitter.swift`:
+   `private struct WeakEmitterBox<T: AnyObject>: @unchecked Sendable {
+   weak var value: T? }` statt `nonisolated(unsafe) weak let emitter =
+   self`; in den Closures `emitterBox.value`. ⚠ **Jedes `bun install`
+   löscht den Patch** — dann Schritt 2 wiederholen (oder prüfen, ob eine
+   neuere expo-modules-core es behoben hat).
+3. `mobile/.env` mit `EXPO_PUBLIC_API_BASE=http://<Mac-WLAN-IP>:8100`
+   MUSS vor dem Bauen existieren (sonst steht `localhost` im Bundle und
+   die App findet vom iPhone aus keinen Server).
+Bauen: `xcodebuild … -configuration Release -destination
+'generic/platform=iOS' -allowProvisioningUpdates` (die CLI findet das
+iPhone als Ziel oft nicht, auch wenn `devicectl` es sieht), installieren
+per `xcrun devicectl device install app --device <UDID> <…>.app`.
+Geprüft: Release-Simulator startet bis zum Einwilligungs-Tor; aufs iPhone
+installiert — **Antons Sichtbestätigung steht aus.** Free-Account: Signatur
+hält 7 Tage, dann neu bauen.
 
 **Gebaut und geprüft:** Die Schalter auf `profile/reminders.tsx` springen
 sofort um. Vorher lief jeder Tipp über die unsichtbare Brücke und zurück —
