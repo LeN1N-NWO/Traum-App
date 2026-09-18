@@ -7,9 +7,11 @@ import { onboardingSeen, setOnboardingSeen } from "@/store/dev-store";
 import { setJournal, useJournalStore, type BridgeCommand, type JournalSnapshot, type OnboardData } from "@/store/journal-store";
 import { colors } from "@/theme";
 
-/* Das Onboarding, vollbild über allem — bei JEDEM Start im
-   Entwicklungsbau (Antons Wunsch 12.09.: „ich möchte den Onboarding-Screen
-   jetzt erst mal immer sehen, weil ich in der Entwicklung bin").
+/* Das Onboarding, vollbild über allem — bei JEDEM Start, auch im
+   Release-Bau (Antons Ansage 18.09.: „Ich will eigentlich immer beim
+   Start den Onboarding-Screen" — er prüft es auf dem iPhone, und dort
+   läuft Release). Vor der Veröffentlichung muss hier wieder eine echte
+   Einmal-Marke hin.
  *
  * ⚠ Als Modal im Wurzel-Layout, NICHT als Route: Die Wurzel ist die
  * NativeTabs-Leiste; eine Datei daneben (`app/onboarding.tsx`) hat keinen
@@ -21,7 +23,7 @@ import { colors } from "@/theme";
  * rechnet `profileFromAnswers` sie ins Profil, wie im Web). */
 export function OnboardingGate() {
   const data = useJournalStore();
-  const [open, setOpen] = useState(() => __DEV__ && !onboardingSeen());
+  const [open, setOpen] = useState(() => !onboardingSeen());
   // ⚠ Pruefhilfe: mit `__ONB_STEP__` (global, nur __DEV__) startet der Fluss
   // bei einem bestimmten Schritt — so lassen sich alle Bildschirme ohne
   // Tippen fotografieren (Redirect-Trick fuer Bildschirme ohne Route).
@@ -31,7 +33,6 @@ export function OnboardingGate() {
   const raw = data?.onboard;
   // Wer schon angemeldet ist, sieht im Anmelde-Schritt sein Konto statt der Felder.
   useEffect(() => { restoreSession().catch(() => {}); }, []);
-  if (!__DEV__) return null;
 
   /* Die Sätze mit Zahl kommen als Vorlage mit Platzhalter 1000 an — die
      Sprachdateien halten die Zahlwörter, nicht dieser Bildschirm. */
