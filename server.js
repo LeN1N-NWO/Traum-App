@@ -2202,7 +2202,16 @@ async function serveStatic(pathname) {
  * generation is billed. With `*`, any page in any browser on this machine
  * or LAN could start paid runs in the background. The list stays narrow —
  * the two native schemes and a loopback dev server on any port. */
-const NATIVE_ORIGINS = new Set(["capacitor://localhost", "ionic://localhost"]);
+/* "null" ist der Absender der Expo-DOM-Webviews im RELEASE-Bau: Dort lädt
+ * der Web-Teil aus dem App-Bundle (file://…/www.bundle), und WebKit schickt
+ * für file-Seiten wörtlich `Origin: null`. Ohne diesen Eintrag erreicht die
+ * App auf dem iPhone einen gesunden Server und sieht trotzdem nur „Check
+ * your connection“ — dieselbe Falle wie capacitor:// am 09.09., gefunden
+ * 18.09. beim ersten Release-Lauf auf Antons iPhone. ⚠ `null` tragen ALLE
+ * file-Seiten, nicht nur unsere — für die Testphase im eigenen Netz
+ * vertretbar (S6 verbietet den öffentlichen Betrieb ohnehin); vor einem
+ * echten Deployment braucht es API_TOKEN, oder dieser Eintrag fliegt. */
+const NATIVE_ORIGINS = new Set(["capacitor://localhost", "ionic://localhost", "null"]);
 const LOOPBACK_ORIGIN = /^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/;
 
 function corsHeaders(req) {
