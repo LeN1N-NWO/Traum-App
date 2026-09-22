@@ -71,7 +71,8 @@ export function classOf(pathname) {
   /* Anmelden und Sitzung erneuern: eigene, strengere Klasse gegen das Raten
      von Passwörtern. Abmelden gehört NICHT dazu — wer abmelden will, soll das
      immer können, auch nach zehn Fehlversuchen. */
-  if (pathname === "/api/auth/login" || pathname === "/api/auth/refresh") return "auth";
+  if (pathname === "/api/auth/login" || pathname === "/api/auth/apple"
+      || pathname === "/api/auth/refresh") return "auth";
   /* Konto und Träume gehen an unsere eigene Datenbank, nicht an fal: keine
      Kosten je Aufruf, aber gedeckelt, damit eine Schleife im Client den
      Server nicht beschäftigt. Ohne diese Zeile fielen sie unter „generate"

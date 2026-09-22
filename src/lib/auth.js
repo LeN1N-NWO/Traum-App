@@ -141,14 +141,24 @@ async function authCall(path, { method = "POST", body, token, config, fetchImpl 
       : status === 503 ? "Sign-in is unavailable right now."
       : status === 429 ? "Too many attempts. Wait a moment and try again."
       : "Sign-in failed.";
-    /* ⚠ Der Code allein sagt zu wenig: „validation_failed" steht sowohl über
-       einem abgeschalteten Anbieter als auch über einem krummen Feld. Die
-       Begründung trägt Supabase in `msg` (neue Form) oder `error_description`
-       (alte). Sie gehört in den Log — abgewiesen heißt nichts ohne den Grund,
-       und dieser Grund ist der Unterschied zwischen „ein Schalter ist aus"
-       und „das Passwort war falsch". Zum Client geht sie nie. */
-    const cause = [data?.error_code || data?.error || String(res.status),
-      data?.msg || data?.error_description].filter(Boolean).join(": ");
+    /* The code alone says too little: "validation_failed" covers a switched-off
+       provider and a malformed field alike. Supabase puts the reason in `msg`
+       (current) or `error_description` (older). It goes to the log — a
+       rejection means nothing without its reason — and never to the client. */
+    const code = data?.error_code || data?.error || String(res.status);
+    const detail = data?.msg || data?.error_description;
+    const cause = [code, detail].filter(Boolean).join(": ");
+    /* ⚠ A sign-in method switched off in Supabase is OUR configuration fault,
+       not a wrong credential — so 503, and say which switch, for every way in.
+       Match the code, never the prose (measured on the real Supabase,
+       15.09.2026): the switch being off answers `provider_disabled` with
+       'Provider (issuer "…") is not enabled', the issuer sitting mid-sentence;
+       a garbage token answers "Unable to detect issuer in ID token for Apple
+       provider" — the word "provider", yet nothing is switched off. Older
+       GoTrue versions said "Unsupported provider". */
+    if (/provider_disabled/.test(code) || /unsupported provider/i.test(detail || "")) {
+      return { ok: false, status: 503, error: "This sign-in method is not switched on for this project.", cause };
+    }
     return { ok: false, status, error, cause };
   }
   return { ok: true, data: data || {} };
@@ -221,28 +231,6 @@ export async function appleLogin({ identityToken, nonce } = {}, { config, fetchI
     config,
     fetchImpl,
   });
-  /* ⚠ A switched-off provider answers 400, which authCall reads — rightly, for
-     a password — as "wrong credentials". Here that would send whoever debugs
-     it to Apple, to the phone, to the token, and never to the Supabase switch
-     that is actually off. It is a configuration fault on our side, so it gets
-     the shape configuration faults get: 503, and it says which switch.
-     ⚠⚠ Match the CODE, never the prose. Both guesses at the wording were
-     wrong when measured against the real Supabase on 15.09.2026:
-       - a garbage token answers "Unable to detect issuer in ID token for
-         Apple provider" — the word "provider", but no switch is off;
-       - the switch being off answers `provider_disabled` with the message
-         "Provider (issuer \"https://appleid.apple.com\") is not enabled",
-         where the issuer sits BETWEEN "Provider" and "is not enabled", so a
-         phrase match on "provider is not enabled" misses it entirely.
-     The code says it once and says it plainly. */
-  if (!r.ok && r.status === 401 && /provider_disabled|unsupported provider/i.test(String(r.cause || ""))) {
-    return {
-      ok: false,
-      status: 503,
-      error: "Sign in with Apple is not switched on for this project.",
-      cause: r.cause,
-    };
-  }
   if (!r.ok) return r;
   return { ok: true, session: publicSession(r.data) };
 }

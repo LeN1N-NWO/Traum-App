@@ -3135,12 +3135,11 @@ const serveOptions = {
       return json({ ok: true, ...r.session });
     }
 
-    /* Der zweite Anmeldeweg, den der Kommentar oben vorgesehen hat. Anders
-       als beim Passwort entsteht hier ein Konto, wenn es noch keines gibt —
-       Apple hat die Person bereits geprüft, und ohne Selbstanmeldung gäbe es
-       niemanden, dem später eine Einladungsprämie gehören könnte (Übergabe
-       2026-09-14). Der Trigger on_auth_user_created legt Profil und
-       Guthabenzeile an, ohne dass hier etwas davon weiß. */
+    /* The second way in that the comment above set aside. Unlike the
+       password, this creates an account if there is none — Apple has already
+       vouched for the person, and without self sign-up nobody could own an
+       invitation reward (handover 2026-09-14). The on_auth_user_created
+       trigger adds profile and balance rows without this code knowing. */
     if (url.pathname === "/api/auth/apple" && req.method === "POST") {
       if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
         return json({ error: "Request too large." }, 413);

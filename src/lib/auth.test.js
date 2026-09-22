@@ -191,9 +191,9 @@ test("an Apple session is shaped like every other one", async () => {
    it would send whoever debugs it to the phone, the token and Apple, and never
    to the switch. Our configuration fault, so: 503, and it names the switch. */
 test("a provider that is switched off is our fault, not a wrong credential", async () => {
-  /* Wortlaut am echten Supabase abgelesen (15.09.2026) — nicht geraten. Die
-     Klammer mit dem Issuer steht MITTEN im Satz; ein Mustervergleich auf
-     „provider is not enabled" ginge daran vorbei. Darum der Code. */
+  /* Wording read off the real Supabase (15.09.2026), not guessed. The issuer
+     sits MID-sentence, so a phrase match on "provider is not enabled" would
+     miss it — hence the code. */
   const f = fakeFetch({ status: 400, body: { error_code: "provider_disabled", msg: 'Provider (issuer "https://appleid.apple.com") is not enabled' } });
   const r = await appleLogin({ identityToken: "t" }, { config, fetchImpl: f });
   expect(r.ok).toBe(false);
@@ -201,15 +201,24 @@ test("a provider that is switched off is our fault, not a wrong credential", asy
   expect(r.error).toContain("not switched on");
 });
 
-/* ⚠⚠ Am echten Supabase gemessen (15.09.2026): ein kaputter Token antwortet
-   „Unable to detect issuer in ID token for Apple provider". Das Wort
-   „provider" steht also auch dort, wo der Schalter völlig in Ordnung ist —
-   wer darauf prüft, schickt jeden abgelehnten Token in die Irre. */
+/* ⚠⚠ Measured on the real Supabase (15.09.2026): a garbage token answers
+   "Unable to detect issuer in ID token for Apple provider". The word
+   "provider" appears even where the switch is perfectly fine — matching on it
+   would send every rejected token to the wrong place. */
 test("a broken token is not mistaken for a switched-off provider", async () => {
   const f = fakeFetch({ status: 400, body: { error_code: "validation_failed", msg: "Unable to detect issuer in ID token for Apple provider" } });
   const r = await appleLogin({ identityToken: "not.a.jwt" }, { config, fetchImpl: f });
   expect(r.status).toBe(401);
   expect(r.error).toBe("Invalid login credentials.");
+});
+
+/* The rule lives in authCall, not in one provider: any way in whose switch is
+   off in Supabase is a configuration fault, the password one included. */
+test("a switched-off sign-in method is 503 for the password way too", async () => {
+  const f = fakeFetch({ status: 400, body: { error_code: "email_provider_disabled", msg: "Email logins are disabled" } });
+  const r = await passwordLogin({ email: "a@b.co", password: "pw" }, { config, fetchImpl: f });
+  expect(r.status).toBe(503);
+  expect(r.error).toContain("not switched on");
 });
 
 test("a token Apple did not sign is refused as a credential", async () => {

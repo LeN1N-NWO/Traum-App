@@ -15,14 +15,12 @@ Codes/Einladungen-Übergabe erledigt: **Konten entstehen jetzt ohne Hanni.**
 bleibt `app.dreamrushes`. Supabase-Client-ID für Apple ebenfalls
 `com.dreamrushes.app`, kein Secret Key (nur der Browser-Weg bräuchte ihn).
 
-**Wer signiert was:** Das Apple-Konto läuft vorerst auf Hanni als
-**Einzelperson** — die UG kommt später (Wege, Falle, Quellen:
-`docs/plans/2026-09-22-apple-konto-einzelperson-organisation.md`; kurz:
-Umstellung beantragen, nach der Team-ID fragen, vor den ersten Käufen). Ein
-Einzelperson-Konto hat kein Team: `com.dreamrushes.app` signiert **nur Hanni**.
-Anton: Simulator mit jeder ID; echte App per **TestFlight** als interner
-Tester (Rolle „Entwickler", Eignung beim Hinzufügen prüfen); schnelle
-Gerätetests mit seiner eigenen ID — dort ohne „Mit Apple anmelden".
+**Apple-Konto:** vorerst Hanni als Einzelperson, `com.dreamrushes.app`
+signiert **nur sie**; Anton ist in App Store Connect **bewusst Admin**
+(Hannis Entscheidung, Ausnahme von Least Privilege) und bekommt die echte App
+per TestFlight. Alles Weitere — Weg zur UG, Team-ID-Falle, Antons Wege aufs
+Gerät, Quellen — steht nur an einer Stelle:
+`docs/plans/2026-09-22-apple-konto-einzelperson-organisation.md`.
 
 **Bauen auf Hannis Mac (23.09., erstmals):** `bun run prebuild:ios` ist auf
 Antons Mac zugeschnitten (`~/.local/node|hermes|rn` — seine Umwege, weil LuLu
@@ -73,22 +71,24 @@ noch — aufgeweckt, nicht neu.
 ⚠ **Im Apple-Portal:** an der App-ID nur „Sign In with Apple" anhaken —
 **nicht „Data Protection"** (dort ist „Complete Protection" vorausgewählt:
 Dateien bei gesperrtem Gerät unlesbar, die App nimmt aber im Hintergrund Ton
-auf). In Supabase „Allow users without an email" **AUS**: die App erkennt
-Angemeldete an der E-Mail (`mobile/src/lib/auth.ts:46/54`,
-`mobile/src/components/onboarding-flow.tsx:404`) — ein Konto ohne Adresse
-sähe nach jedem Start wieder die Anmeldung.
+auf). In Supabase steht „Allow users without an email" noch **AUS**. Seit
+23.09. dürfte er an: die App erkennt Angemeldete an der Sitzung, nicht mehr
+an der E-Mail (`useAccount()` in `mobile/src/lib/auth.ts`; ohne Adresse
+zeigt sie „Angemeldet" statt „Angemeldet als …").
 
 **Nächste Schritte (Hanni):**
-1. Anton in App Store Connect als Nutzer („Entwickler") und internen
-   TestFlight-Tester. ⚠ Für TestFlight braucht es einen **Release**-Bau
+1. Anton (Admin) als internen TestFlight-Tester eintragen. ⚠ Für
+   TestFlight braucht es einen **Release**-Bau
    (Archive) — Antons Release-Absturz vom 18.09. (vorkompilierte RN-Pakete
    gegen Xcode 26.3) ist auf Hannis Xcode 26.6 ungeprüft; sein Rezept steht
    unten.
 2. Umstellung Einzelperson → Organisation beantragen, sobald die UG steht
    (D-U-N-S); nach der Team-ID fragen.
 3. `bunfig.toml` für `bun test` (s. oben) — mit Anton abstimmen.
-4. Anmeldestatus in der App an der Nutzer-ID statt an der E-Mail festmachen,
-   dann darf „Allow users without an email" an.
+4. **Apple-Knopf-Optik entscheiden:** Er ist selbst gezeichnet (Glas), nicht
+   Apples `AppleAuthenticationButton`. App Review prüft solche Knöpfe gegen
+   die Human Interface Guidelines — Ablehnungsrisiko bei der ersten
+   Einreichung. Bewusst offen gelassen (Review 23.09.).
 5. Schritt 2 der Übergabe: StoreKit + App Store Server Notifications.
 
 **Davor:** 2026-09-18 früh — Sitzung `session/2026-09-17-anton`

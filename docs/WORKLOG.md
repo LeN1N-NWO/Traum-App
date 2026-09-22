@@ -3,6 +3,47 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-23 00:20 — Hanni — Branch `session/2026-09-15-hanni-apple-signin` (PR #51) — Review: neun von zehn Befunden behoben
+
+**Commits:** Fix-Commit dieses Eintrags.
+
+**Anlass:** Hanni ließ den ganzen PR noch einmal kritisch prüfen (Code-Review
+auf hoher Stufe, zehn Befunde). Behoben alle außer dem Apple-Knopf.
+
+**Behoben:**
+- ⚠⚠ **`/api/auth/apple` lief ohne die Anmeldebremse.** Der Gatekeeper
+  ordnete nur `/login` und `/refresh` der Klasse „auth" (10/min) zu; Apple
+  fiel in die Voreinstellung „generate" — doppelt so viele Versuche und
+  derselbe Topf wie bezahlte Renders. Jetzt „auth", mit Test.
+- **„Anbieter abgeschaltet → 503" gilt jetzt für jeden Anmeldeweg** (in
+  `authCall` statt als Sonderfall in `appleLogin`); ein neuer Test belegt
+  es für den Passwort-Weg.
+- **„Angemeldet" hängt an der Sitzung, nicht mehr an der E-Mail.**
+  `useAccount()` statt `useAccountEmail()`, die Nutzer-ID wird mitgespeichert,
+  neuer Text „Signed in" / „Angemeldet" für Konten ohne Adresse (en/de,
+  Brücke, Typen). Damit dürfte „Allow users without an email" in Supabase an.
+- **Unbewachtes `res.json()`**: Eine HTML-Antwort ließ den Passwort-Knopf für
+  immer drehen. Jetzt abgefangen; beide Wege laufen über ein gemeinsames
+  `signIn()` mit `finally`.
+- Apple-Knopf springt nicht mehr nach (startet auf iOS sichtbar); der
+  E-Mail-Rückfall von Apple greift jetzt wirklich; meine deutschen
+  Kommentare in englischen Dateien sind englisch (AGENTS.md).
+- **STAND** nennt die Konto-Details nicht mehr doppelt, sondern verweist auf
+  die Konto-Notiz. **Anton ist in App Store Connect bewusst Admin** —
+  Hannis Entscheidung, Ausnahme von Least Privilege; signieren darf er
+  trotzdem nicht (das hängt am Team).
+
+**Offen gelassen:** der selbst gezeichnete Apple-Knopf (Ablehnungsrisiko im
+App Review, STAND „Nächste Schritte" 4) — braucht Hannis Entscheidung zur Optik.
+
+**Was der Nächste wissen muss:**
+- `server.js`: nur ein Kommentar übersetzt, zeilenweise geprüft (5/6
+  Kommentar, 0/0 Code). Den älteren deutschen Kommentarblock darüber habe ich
+  nicht übersetzt — er stammt nicht aus diesem PR.
+- Prüfungen: 648 Tests grün (`cd src && bun test`), `tsc` Exit 0,
+  `expo lint` 0 Fehler (52 Warnungen wie vorher), `vite build` grün,
+  i18n-Form grün.
+
 ## 2026-09-23 00:07 — Hanni — Branch `session/2026-09-15-hanni-apple-signin` (PR #51) — „Mit Apple anmelden" läuft auf dem iPhone, Sitzung abgeschlossen
 
 **Commits:** `5d68da9` Bundle-ID `com.dreamrushes.app` · `6e21bc6` wer

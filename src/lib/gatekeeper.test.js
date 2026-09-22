@@ -40,6 +40,13 @@ test("signing in is the most tightly limited thing there is", () => {
   expect(LIMITS.auth.max).toBeLessThan(LIMITS.generate.max);
 });
 
+/* Every way in shares the sign-in brake. Left unlisted, a new sign-in route
+   falls into the "generate" default: twice the attempts per minute, drawn from
+   the same bucket as paid renders. /api/auth/apple did exactly that for a week. */
+test("Sign in with Apple is braked like every other sign-in", () => {
+  expect(classOf("/api/auth/apple")).toBe("auth");
+});
+
 /* Abmelden darf nie an der Bremse hängen bleiben: wer nach zehn
    Fehlversuchen aussperrt wird, muss die Sitzung trotzdem beenden können. */
 test("signing out is not counted against the sign-in limit", () => {

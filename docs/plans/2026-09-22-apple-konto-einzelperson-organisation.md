@@ -72,6 +72,11 @@ Hannis Entwicklerzertifikat (`.p12`) ginge, gibt aber einen privaten
 Schlüssel aus der Hand — nur bewusst, und später widerrufen. Erst mit der
 UG als Organisation wird Anton echtes Team-Mitglied.
 
+**Antons Rolle (23.09.):** In App Store Connect ist er **Admin** — Hannis
+bewusste Entscheidung, eine Ausnahme von Least Privilege für den Mitgründer.
+Admin heißt dort: Nutzer verwalten, Apps und TestFlight betreuen. Signieren
+darf er dadurch trotzdem **nicht** — das hängt am Team, nicht an der Rolle.
+
 ## Was daraus folgt
 
 1. **Weg A zuerst.** Im Antrag fragen, ob die Team-ID bleibt.
