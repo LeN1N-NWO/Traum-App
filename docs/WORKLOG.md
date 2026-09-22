@@ -3,6 +3,54 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-22 22:47 — Hanni — Branch `session/2026-09-15-hanni-apple-signin` (PR #51, Entwurf) — Apple-Portal eingerichtet, drei Befunde
+
+**Commits:** Merge von `main` (PR #52 herein) · Doku-Commit dieses Eintrags.
+
+**Anlass:** Hanni richtet im Apple-Portal die Capability „Sign In with
+Apple" ein — der offene Schritt aus PR #51.
+
+**Drei Befunde:**
+1. ⚠⚠ **Das Supabase-Projekt ist weg oder pausiert.**
+   `qinkvqmdtwjvygpgzwau.supabase.co` löst nicht auf (`ENOTFOUND`), der
+   Pooler meldet `tenant/user … not found`. Gegenprobe: `supabase.com`,
+   `api.fal.ai`, `appleid.apple.com` sind erreichbar — es liegt also am
+   Projekt, nicht am Netz. Letzter Zugriff 15.09., heute 22.09.: passt zur
+   Pause von Free-Tier-Projekten. → „Restore project" im Dashboard.
+2. ⚠ **`app.dreamrushes` ist „not available"** beim Speichern der App-ID.
+   Vermutlich hat Xcode sie bei Antons iPhone-Bau am 18.09. in seinem
+   kostenlosen Personal Team registriert. Unbestätigt; `app.json` bleibt
+   unberührt, bis Hanni und Anton entschieden haben.
+3. **Apple-Konto läuft vorerst als Einzelperson** (Hannis Entscheidung —
+   die UG dauert). Notiz mit Wegen, Falle und Quellen:
+   `docs/plans/2026-09-22-apple-konto-einzelperson-organisation.md`;
+   Verweis in Antons Codes/Einladungen-Übergabe als Nachtrag.
+
+**⚠ Richtigstellung, die ich selbst im Chat zuerst falsch gesagt habe:**
+Apple **kann** eine Einzelperson-Mitgliedschaft auf Organisation
+umstellen — per Antrag, mit D-U-N-S und Rechtsprüfung. Ich hatte zuerst
+behauptet, es gehe nur über Neueinschreibung plus App-Transfer. Das ist nur
+der Rückfall. Ungeklärt bleibt, ob bei der Umstellung die Team-ID bleibt;
+davon hängt ab, ob alle Apple-Anmeldungen migriert werden müssen. Apples
+Doku sagt es nicht → im Antrag fragen.
+
+**Am Doku belegt statt erinnert:** Transfer braucht eine im Store
+veröffentlichte Version; gleiche In-App-Produkt-IDs im Ziel blockieren
+ihn; Apple-Kennungen gelten pro Team, `transfer_sub` 60 Tage; auch
+„E-Mail verbergen"-Adressen wechseln mit dem Team.
+
+**Data Protection:** im Portal NICHT anhaken — dort ist „Complete
+Protection" vorausgewählt, und die App nimmt bei gesperrtem Gerät Ton auf.
+
+**Was der Nächste wissen muss:**
+- `main` kam per **Merge** herein, nicht per Rebase — der Branch ist
+  gepusht, ein Force-Push wäre verboten. `STAND.md` von Hand gelöst: meine
+  wörtliche Kopie des 14.09.-Blocks ist raus, Antons Verdichtung bleibt.
+- Der Union-Merge hat meinen Eintrag vom 15.09. 22:30 **über** Antons
+  Einträge vom 17./18.09. gesetzt. Nicht verschoben (alte Einträge bleiben
+  unangetastet) — die Reihenfolge unten ist deshalb dort nicht
+  chronologisch.
+
 ## 2026-09-15 22:30 — Hanni — Branch `session/2026-09-15-hanni-apple-signin` (PR #51, Entwurf) — Mit Apple anmelden
 
 **Commits:** `daf9b57` Eröffnung · `d8934f3` Sign in with Apple ·
