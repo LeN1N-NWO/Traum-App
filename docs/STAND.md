@@ -3,7 +3,95 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-18 früh — Sitzung `session/2026-09-17-anton`
+**Stand:** 2026-09-23 — Hanni, `session/2026-09-15-hanni-apple-signin`
+(PR #51) abgeschlossen. **„Mit Apple anmelden" läuft auf einem echten iPhone,
+Ende zu Ende** — Anmelden, App neu starten (bleibt angemeldet), Abmelden und
+wieder anmelden (kein zweiter Nutzer in Supabase). Damit ist Schritt 1 der
+Codes/Einladungen-Übergabe erledigt: **Konten entstehen jetzt ohne Hanni.**
+
+**Die iOS-Bundle-ID ist `com.dreamrushes.app`** (`mobile/app.json:12`).
+`app.dreamrushes` war belegt — von Xcode in Antons Gratis-Team registriert
+(iPhone-Bau 18.09.); dass die 7 Tage sie freigeben, ist nicht belegt. Android
+bleibt `app.dreamrushes`. Supabase-Client-ID für Apple ebenfalls
+`com.dreamrushes.app`, kein Secret Key (nur der Browser-Weg bräuchte ihn).
+
+**Apple-Konto:** vorerst Hanni als Einzelperson, `com.dreamrushes.app`
+signiert **nur sie**; Anton ist in App Store Connect **bewusst Admin**
+(Hannis Entscheidung, Ausnahme von Least Privilege) und bekommt die echte App
+per TestFlight. Alles Weitere — Weg zur UG, Team-ID-Falle, Antons Wege aufs
+Gerät, Quellen — steht nur an einer Stelle:
+`docs/plans/2026-09-22-apple-konto-einzelperson-organisation.md`.
+
+**Bauen auf Hannis Mac (23.09., erstmals):** `bun run prebuild:ios` ist auf
+Antons Mac zugeschnitten (`~/.local/node|hermes|rn` — seine Umwege, weil LuLu
+dort `curl` blockt) und läuft hier nicht. Die Schritte einzeln:
+1. `cd mobile && CI=1 bunx expo prebuild --platform ios --no-install` —
+   **mit Hannis bezahltem Team geht der Prebuild**: er trägt Bundle-ID,
+   „Sign In with Apple" und das Push-Entitlement selbst ein. Das Verbot
+   („kein prebuild, Push-Entitlement") gilt nur fürs Gratis-Team.
+2. `printf 'export NODE_BINARY=%s\n' "$(command -v node)" > ios/.xcode.env.local`
+3. `cd ios && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+   LC_ALL=en_US.UTF-8 pod install` — CocoaPods kam per `brew install
+   cocoapods` (bringt eigenes Ruby; das System-Ruby 2.6 ist zu alt).
+   `DEVELOPER_DIR` erspart das `sudo xcode-select`; **ohne UTF-8 stirbt `pod`**.
+4. `mobile/.env` mit `EXPO_PUBLIC_API_BASE=http://<WLAN-IP des Macs>:8100`
+   (heute `192.168.2.112`) — auf dem iPhone ist `localhost` das iPhone.
+5. Xcode: Team **„… (Individual)"**, nicht „Personal Team". Gerät
+   registrieren lassen. **„Update to recommended settings" ablehnen** — es
+   schaltet u. a. User Script Sandboxing ein, das im Projekt an 240 Stellen
+   bewusst aus ist; React Natives Bauskripte scheitern sonst.
+6. Metro (`bun run mobile`) und API (`bun run dev:api`) laufen lassen, ▶.
+
+⚠⚠ **„No script URL provided" beim allerersten Start ist kein Netzfehler.**
+Ein Debug-Bau fragt nur beim Start einmal bei Metro an; lief das, bevor iOS
+die Erlaubnis fürs lokale Netzwerk hatte, bleibt die Adresse leer — und der
+rote Bildschirm bleibt stehen. **App ganz schließen und neu öffnen.** Heute
+kostete das eine halbe Stunde Netzsuche (Firewall, WLAN-Isolation), weil
+ein Test vom Mac aus („WLAN-IP erreichbar ✓") nichts bewies: Verkehr vom
+eigenen Rechner lässt die Firewall immer durch. Erreichbarkeit fürs iPhone
+nur VOM iPhone aus prüfen — und ein Safari-Test braucht ausgeschriebenes
+`http://`.
+
+⚠⚠ **`bun test` im Projektordner endet lautlos mit Exit 1, sobald
+`mobile/ios` existiert** — keine Ausgabe außer der Kopfzeile, kein einziger
+Test. Die Suche nach Testdateien steigt irgendwo in den Pods (Ordner-
+Symlinks nach `node_modules`, Framework-Versionen) aus. Die Tests selbst
+sind grün: `cd src && bun test` → 646/646. ⚠ `bun test src` hilft NICHT —
+„src" ist nur ein Filter, gesucht wird trotzdem überall. Vorschlag, nicht
+gebaut: `bunfig.toml` mit `[test] root = "./src"` (alle 57 Testdateien
+liegen unter `src/`). Bis dahin gilt ein nacktes `bun test` hier nicht als
+Beweis.
+
+⚠ **Supabase pausiert Free-Tier-Projekte nach rund einer Woche ohne
+Zugriff** (22.09. passiert): Host `ENOTFOUND`, Pooler `tenant/user … not
+found`, der Server läuft ohne Datenbank weiter. Erst „Restore project" im
+Dashboard, nicht die `.env` umbauen. Danach bestand `dreamrushes_server`
+noch — aufgeweckt, nicht neu.
+
+⚠ **Im Apple-Portal:** an der App-ID nur „Sign In with Apple" anhaken —
+**nicht „Data Protection"** (dort ist „Complete Protection" vorausgewählt:
+Dateien bei gesperrtem Gerät unlesbar, die App nimmt aber im Hintergrund Ton
+auf). In Supabase steht „Allow users without an email" noch **AUS**. Seit
+23.09. dürfte er an: die App erkennt Angemeldete an der Sitzung, nicht mehr
+an der E-Mail (`useAccount()` in `mobile/src/lib/auth.ts`; ohne Adresse
+zeigt sie „Angemeldet" statt „Angemeldet als …").
+
+**Nächste Schritte (Hanni):**
+1. Anton (Admin) als internen TestFlight-Tester eintragen. ⚠ Für
+   TestFlight braucht es einen **Release**-Bau
+   (Archive) — Antons Release-Absturz vom 18.09. (vorkompilierte RN-Pakete
+   gegen Xcode 26.3) ist auf Hannis Xcode 26.6 ungeprüft; sein Rezept steht
+   unten.
+2. Umstellung Einzelperson → Organisation beantragen, sobald die UG steht
+   (D-U-N-S); nach der Team-ID fragen.
+3. `bunfig.toml` für `bun test` (s. oben) — mit Anton abstimmen.
+4. **Apple-Knopf-Optik entscheiden:** Er ist selbst gezeichnet (Glas), nicht
+   Apples `AppleAuthenticationButton`. App Review prüft solche Knöpfe gegen
+   die Human Interface Guidelines — Ablehnungsrisiko bei der ersten
+   Einreichung. Bewusst offen gelassen (Review 23.09.).
+5. Schritt 2 der Übergabe: StoreKit + App Store Server Notifications.
+
+**Davor:** 2026-09-18 früh — Sitzung `session/2026-09-17-anton`
 (PR #52, Entwurf), Worktree `../Traum-App-anton`.
 
 ⚠⚠ **iPhone-Release-Absturz behoben (18.09., alles lokal im HAUPTordner,
@@ -73,8 +161,8 @@ Erst diese Erkenntnis hat den „die Schalter sind tot"-Verdacht aufgelöst.
 **Offen:** Finger-Tests für Teilen-Karte, Schnellaktionen am App-Symbol und
 Atem-Raum (heute nicht mehr geschafft); Zustellung einer echten
 Morgen-Erinnerung um 07:30; Starter-Code-Menge (Vorschlag 22 Credits); alles
-aus der Übergabe `2026-09-14-hanni-codes-einladungen.md` (Mit Apple anmelden →
-StoreKit mit Server-Prüfung → Offer Codes → Einladungen); Jahrespreis $99,99;
+aus der Übergabe `2026-09-14-hanni-codes-einladungen.md` (Mit Apple anmelden — gebaut, s. oben —
+→ StoreKit mit Server-Prüfung → Offer Codes → Einladungen); Jahrespreis $99,99;
 Subreddit-Regeln in `docs/marketing/hermes/` eintragen.
 
 **Davor, Sitzung `session/2026-09-13-anton-e` (PR #50, gemerged 14.09.):**
@@ -150,7 +238,8 @@ ist. Geprüft im Simulator bis zur Meldung „nicht erreichbar" (503, weil in
 Antons `.env` `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`DATABASE_URL` fehlen —
 die hat Hanni). ⚠ Registrieren gibt es nicht (kein Endpunkt, mit Absicht);
 ein Konto muss Hanni anlegen, bis „Mit Apple anmelden" kommt — der Platz
-dafür steht schon stumm unter dem Knopf. Dazu: **Journal-Karten zeigten
+dafür steht schon stumm unter dem Knopf. **(Überholt am 15.09.: der Knopf
+ist echt, siehe oben — Konten entstehen jetzt über Apple.)** Dazu: **Journal-Karten zeigten
 kein Bild** (Vorschau-Versprechen, siehe dream-poster.tsx) — behoben; und
 der Begleiter-Text im Onboarding als Persönlichkeit. **Dann Antons
 Moonly-Vergleich (11:00):** Feature-Kacheln versetzt mit Etikett am Rand,
@@ -334,8 +423,9 @@ ist noch nicht gebaut.
 **`server.js` ist mit der Datenbank verbunden — nach Least Privilege.** Die
 Architektur ist bewertet: `docs/ARCHITEKTUR.md` (S1–S8).
 
-**Die Anmeldung steht (12.09., PR #46, in #47 enthalten).** `server.js` hat jetzt
-`POST /api/auth/login|refresh|logout`, `GET/PATCH /api/account`,
+**Die Anmeldung steht (12.09., PR #46, in #47 enthalten); seit 15.09. mit
+einem zweiten Weg (Apple, PR #51).** `server.js` hat jetzt
+`POST /api/auth/login|apple|refresh|logout`, `GET/PATCH /api/account`,
 `GET/DELETE /api/dreams` und `POST /api/dreams/sync`. Der Client spricht
 weiterhin nur mit uns; Supabase Auth liegt dahinter (`src/lib/auth.js`,
 kein SDK). Jeder Datenzugriff läuft durch `withUser()`, die Nutzerkennung
@@ -377,7 +467,32 @@ wiederholbar über `unique (user_id, client_id)`.
   eine Zeile im SQL-Editor (server.js darf das nicht, absichtlich):
   `select public.credits_grant('3ecbfe28-21c1-4475-b931-1082d2b56ba7', 100, 'adjustment', null, 'Testguthaben');`
 - **Abgebucht wird weiterhin nichts.** `/api/account` zeigt das Guthaben
-  nur an. Registrieren gibt es nicht (kein Signup-Endpunkt, absichtlich).
+  nur an. Einen Signup-Endpunkt gibt es weiterhin nicht (absichtlich): über
+  E-Mail und Passwort entsteht kein Konto. **Über Apple schon** — dort hat
+  Apple die Person geprüft, und der Trigger `on_auth_user_created` legt
+  Profil und Guthabenzeile an. Das ist der Grund, warum Schritt 1 der
+  Codes/Einladungen-Übergabe genau dieser Weg war.
+- **Mit Apple anmelden (15.09., PR #51 — Entwurf, App-Seite ungeprüft):**
+  `POST /api/auth/apple` nimmt `{ identityToken, nonce }` und tauscht sie bei
+  Supabase (`grant_type=id_token`). ⚠ Der Nonce reist ROH zu uns; Apple hat
+  nur dessen SHA-256-Abdruck gesehen, Supabase bildet ihn selbst. Wer hier
+  den gehashten Wert schickt, hasht einen Hash — und der Fehler liest sich
+  wie ein abgelehnter Token.
+- ⚠⚠ **Fehlertexte von Supabase sind keine Erkennungsmerkmale** (15.09., zwei
+  Fehlgriffe hintereinander, beide nur am ECHTEN Supabase sichtbar): Ein
+  kaputter Token antwortet „Unable to detect issuer in ID token for Apple
+  **provider**" — das Wort steht also auch dort, wo kein Schalter aus ist.
+  Und der wirklich abgeschaltete Anbieter antwortet `provider_disabled` mit
+  „Provider (issuer \"…\") **is not enabled**", wobei der Issuer MITTEN im
+  Satz steht — ein Vergleich auf „provider is not enabled" geht daran vorbei.
+  **Auf den Fehlercode prüfen, nie auf die Prosa.** Um den zweiten Fall
+  überhaupt zu sehen, braucht es ein formal gültiges Apple-JWT mit falscher
+  Signatur; vorher prüft GoTrue den Anbieter gar nicht erst.
+- ⚠ **`mobile/node_modules` und `mobile/ios` fehlten am 15.09. in diesem
+  Checkout.** `bun install` in `mobile/` holt die Pakete zurück, der native
+  Ordner entsteht mit `bun run prebuild:ios` neu. Neue native Pakete dieser
+  Sitzung: `expo-apple-authentication`, `expo-crypto` — beide brauchen
+  Pods + Rebuild.
 
 ## Wo wir stehen
 

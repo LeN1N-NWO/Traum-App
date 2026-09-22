@@ -74,7 +74,7 @@ import { appGrid, GRID_SLOTS } from "./src/lib/gridLayout.js";
 import { openDatabase, withUser, fromJsonb } from "./src/lib/db.js";
 // Wer fragt: die fehlende Hälfte zu db.js. withUser() kann für eine Person
 // handeln, auth.js sagt, WER sie ist (eigene Datei, ohne Netz prüfbar).
-import { parseBearer, authConfig, passwordLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
+import { parseBearer, authConfig, passwordLogin, appleLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
 // Traum ⇄ Datenbankzeile. Eigene Datei, weil dort die Regel „nur die Tags,
 // nie die Fotos dahinter" serverseitig erzwungen wird (dreamRow.test.js).
 import { toRow, fromRow, MAX_JSON } from "./src/lib/dreamRow.js";
@@ -3103,14 +3103,17 @@ const serveOptions = {
      *
      * Der Client spricht auch hier nur mit uns: E-Mail und Passwort gehen an
      * server.js, server.js an Supabase. Dasselbe Prinzip wie bei fal und
-     * DeepSeek, und es hält die Tür offen — ein zweiter Anmeldeweg (Sign in
-     * with Apple, später ein Unternehmens-Zugang) wird EIN weiterer Endpunkt
-     * hier, während alles dahinter unverändert weiterläuft: die Sitzung wird
-     * über verifyAccessToken() geprüft, dem der Anmeldeweg egal ist.
+     * DeepSeek, und es hält die Tür offen — der zweite Anmeldeweg (Sign in
+     * with Apple, seit 15.09.2026) ist genau EIN weiterer Endpunkt hier,
+     * während alles dahinter unverändert weiterläuft: die Sitzung wird über
+     * verifyAccessToken() geprüft, dem der Anmeldeweg egal ist. Ein
+     * Unternehmens-Zugang käme später genauso dazu.
      *
-     * ⚠ Es gibt bewusst KEIN /api/auth/signup. Über dieses Backend entsteht
-     *   kein neues Konto; anmelden kann sich nur, wer in Supabase schon
-     *   steht (heute: der eine Testuser).
+     * ⚠ Es gibt bewusst KEIN /api/auth/signup: über E-Mail und Passwort
+     *   entsteht hier kein Konto: wer sich so anmeldet, muss in Supabase
+     *   schon stehen. Über Apple entsteht eins — dort hat Apple die Person
+     *   bereits geprüft, und ohne Selbstanmeldung gäbe es niemanden, dem
+     *   eine Einladungsprämie gehören könnte (Übergabe 2026-09-14).
      *
      * ⚠⚠ Solange Befund S6 offen ist (docs/ARCHITEKTUR.md: der Server spricht
      *    http://, nicht https://), reisen Passwort und Token auf der Strecke
@@ -3127,6 +3130,24 @@ const serveOptions = {
          hier ein Konto" ist nichts, was ein Fremder erfragen können soll. */
       if (!r.ok) {
         console.warn(`[DreamRushes] Anmeldung abgelehnt (${r.status}): ${r.cause || r.error}`);
+        return json({ error: r.error }, r.status);
+      }
+      return json({ ok: true, ...r.session });
+    }
+
+    /* The second way in that the comment above set aside. Unlike the
+       password, this creates an account if there is none — Apple has already
+       vouched for the person, and without self sign-up nobody could own an
+       invitation reward (handover 2026-09-14). The on_auth_user_created
+       trigger adds profile and balance rows without this code knowing. */
+    if (url.pathname === "/api/auth/apple" && req.method === "POST") {
+      if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+        return json({ error: "Request too large." }, 413);
+      }
+      const body = await req.json().catch(() => null);
+      const r = await appleLogin(body || {}, { config: AUTH });
+      if (!r.ok) {
+        console.warn(`[DreamRushes] Apple-Anmeldung abgelehnt (${r.status}): ${r.cause || r.error}`);
         return json({ error: r.error }, r.status);
       }
       return json({ ok: true, ...r.session });
