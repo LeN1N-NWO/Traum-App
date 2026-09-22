@@ -913,11 +913,12 @@ async function collectOnce(onJournal, onResult) {
 }
 
 /* Test-Guthaben (Antons Ansage 12.09.: „so tun, als hätten wir immer 100
-   Credits, solange kein Konto und kein Supabase dahinter ist"): Die Hülle
-   gibt `devCredits` nur im Entwicklungsbau herein; dann füllt die Brücke
-   das Kauf-Töpfchen bei jedem Lesen auf mindestens diesen Stand — dieselbe
-   Stelle wie der „+100 test credits"-Knopf des Web-Startmenüs (StartMenu.jsx),
-   das die Hülle nicht zeigt. Im Produktionsbau passiert hier nichts. */
+   Credits, solange kein Konto und kein Supabase dahinter ist"): Die Brücke
+   füllt das Kauf-Töpfchen bei jedem Lesen auf mindestens `devCredits` auf —
+   dieselbe Stelle wie der „+100 test credits"-Knopf des Web-Startmenüs
+   (StartMenu.jsx), das die Hülle nicht zeigt. Seit 18.09. gibt die Hülle
+   500 in ALLEN Bauarten herein (Anton testet den Release-Bau auf dem
+   iPhone, journal-data.tsx) — vor der Veröffentlichung dort zurückdrehen. */
 function devTopUp(min) {
   if (!min) return;
   const s = loadState();

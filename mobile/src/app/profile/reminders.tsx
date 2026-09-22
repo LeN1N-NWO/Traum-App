@@ -7,6 +7,11 @@ import { useJournal } from "@/components/journal-data";
 import { permission, type Permission } from "@/lib/notifications";
 import { colors, TAB_INSET } from "@/theme";
 
+type Wish = {
+  morning?: boolean; evening?: boolean; autoRecord?: boolean; reality?: boolean;
+  morningTime?: string; eveningTime?: string;
+};
+
 const MORNING = ["06:00", "06:30", "07:00", "07:30", "08:00", "09:00"];
 const EVENING = ["21:00", "21:30", "22:00", "22:30", "23:00"];
 
@@ -21,11 +26,46 @@ export default function RemindersScreen() {
   const L = R?.labels;
   const [perm, setPerm] = useState<Permission | null>(null);
   useEffect(() => { permission().then(setPerm).catch(() => {}); }, [R]);
-  if (!R || !L) return <View style={styles.screen}><View style={styles.bridge}>{bridge}</View></View>;
-  const p = R.plan;
+
+  /* ⚠ Der Schalter muss SOFORT umspringen (Antons Finger-Test 17.09.2026).
+     Der Weg eines Tipps ist lang: send() → unsichtbarer Brücken-Webview →
+     localStorage → neuer Stand → Speicher → Anzeige. Im Simulator dauerte
+     das mehrere Sekunden, und in dieser Zeit sah die Seite aus, als wären
+     alle Schalter tot — ich habe selbst erst nach drei Versuchen gemerkt,
+     dass sie doch reagieren.
+
+     Also hält der Bildschirm den eigenen Wunsch und zeigt ihn statt des
+     Plans, solange dieser Bildschirm offen ist. Zurück und wieder herein
+     räumt ihn weg (der Bildschirm wird neu gebaut), und weil jeder Befehl
+     auch wirklich gespeichert wird, stimmen Wunsch und Stand nach einem
+     Augenblick ohnehin überein.
+
+     ⚠ Zwei Wege, die NICHT gehen: an der Plan-Identität festmachen (die
+     Brücke schickt alle drei Sekunden ein neues Objekt mit gleichem Inhalt
+     — der Wunsch wäre sofort weg) und den Wunsch nach Zeit ablaufen lassen
+     (`Date.now()` beim Zeichnen ist unrein, der Lint bricht ab).
+     ⚠ Preis dieser Lösung: Ändert etwas ANDERES den Plan, während dieser
+     Bildschirm offen ist (etwa „Einwilligung widerrufen"), zeigt er noch
+     den eigenen Wunsch. */
+  const [wish, setWish] = useState<Wish>({});
+  const plan = R?.plan;
+  if (!R || !L || !plan) return <View style={styles.screen}><View style={styles.bridge}>{bridge}</View></View>;
+
+  const patch = wish;
+  const p = {
+    morning: { on: patch.morning ?? plan.morning.on, time: patch.morningTime ?? plan.morning.time },
+    evening: { on: patch.evening ?? plan.evening.on, time: patch.eveningTime ?? plan.evening.time },
+    autoRecord: patch.autoRecord ?? plan.autoRecord,
+    reality: { on: patch.reality ?? plan.reality.on, perDay: plan.reality.perDay },
+  };
+  const wishFor = (more: Wish) => setWish((w) => ({ ...w, ...more }));
 
   const set = (value: "morning" | "evening" | "autoRecord", on?: boolean, time?: string) => {
     Haptics.selectionAsync();
+    wishFor({
+      ...(typeof on === "boolean" ? { [value]: on } : {}),
+      ...(time ? { [value === "evening" ? "eveningTime" : "morningTime"]: time } : {}),
+    });
     send({ type: "reminderSet", value, wants: on, text: time });
   };
 
@@ -79,7 +119,7 @@ export default function RemindersScreen() {
         <Glass style={styles.card}>
           <View style={styles.row}>
             <View style={{ flex: 1, gap: 3 }}><Text style={styles.label}>{L.reality}</Text><Text style={styles.hint}>{L.realityHint}</Text></View>
-            <Switch value={p.reality.on} onValueChange={(v) => { Haptics.selectionAsync(); send({ type: "reminders", wants: v, perDay: p.reality.perDay || 2 }); }} trackColor={{ true: colors.accent }} />
+            <Switch value={p.reality.on} onValueChange={(v) => { Haptics.selectionAsync(); wishFor({ reality: v }); send({ type: "reminders", wants: v, perDay: p.reality.perDay || 2 }); }} trackColor={{ true: colors.accent }} />
           </View>
           {p.reality.on ? (
             <View style={styles.chips}>
