@@ -35,6 +35,15 @@ nicht signieren kann (WORKLOG 13.09.). Also in Xcode unter *Signing &
 Capabilities* die Bundle-ID auf `com.dreamrushes.app` setzen und dort
 auch „Sign In with Apple" hinzufügen — beides erledigt sonst der Prebuild.
 Wer weiter mit dem Gratis-Team baut, braucht eine eigene, abweichende ID.
+⚠ **Wer darf `com.dreamrushes.app` signieren? Nur Hanni.** Ein
+Einzelperson-Konto hat kein Team: Eingeladene App-Store-Connect-Nutzer
+kommen nicht an *Certificates, Identifiers & Profiles* (Apple, bestätigt
+22.09.). Für Anton also: Simulator frei mit jeder ID; aufs iPhone die
+echte App per **TestFlight** (Hanni baut und lädt hoch, Anton ist interner
+Tester); schnelle Gerätetests mit seiner eigenen ID — dort geht „Mit Apple
+anmelden" nicht (Capability nur im bezahlten Programm, Supabase kennt nur
+`com.dreamrushes.app`). Mit dem Organisationskonto der UG wird er echtes
+Team-Mitglied.
 
 ⚠ **App-ID-Capabilities: nur „Sign In with Apple" anhaken, NICHT „Data
 Protection".** Dort ist „Complete Protection" vorausgewählt: Dateien sind

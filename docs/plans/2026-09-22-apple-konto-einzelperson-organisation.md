@@ -60,6 +60,18 @@ Guthaben hängen unsichtbar am alten Konto. Kein Fehler, nirgends.
 Das Umschreiben der Identitäten ist **noch nicht gebaut** und muss vor
 einem Transfer stehen.
 
+## Solange es ein Einzelperson-Konto ist: nur Hanni signiert
+
+Eingeladene App-Store-Connect-Nutzer (bis zu 50) sind **nicht Teil des
+Teams** und kommen nicht an *Certificates, Identifiers & Profiles* — das
+steht nur der Kontoinhaberin und Team-Mitgliedern einer Organisation
+offen. Anton kann `com.dreamrushes.app` also nicht selbst signieren:
+Simulator geht mit jeder ID, aufs iPhone kommt die echte App über
+TestFlight (Hanni baut, Anton ist interner Tester). Eine Weitergabe von
+Hannis Entwicklerzertifikat (`.p12`) ginge, gibt aber einen privaten
+Schlüssel aus der Hand — nur bewusst, und später widerrufen. Erst mit der
+UG als Organisation wird Anton echtes Team-Mitglied.
+
 ## Was daraus folgt
 
 1. **Weg A zuerst.** Im Antrag fragen, ob die Team-ID bleibt.
@@ -115,3 +127,4 @@ App-ID dabei automatisch in dessen *Personal Team*.
 - [TN3159: Migrating Sign in with Apple users for an app transfer](https://developer.apple.com/documentation/technotes/tn3159-migrating-sign-in-with-apple-users-for-an-app-transfer)
 - [Transferring your apps and users to another team](https://developer.apple.com/documentation/signinwithapple/transferring-your-apps-and-users-to-another-team)
 - [Updating your account information](https://developer.apple.com/help/account/membership/updating-your-account-information/) — Antrag Einzelperson → Organisation
+- [Programs overview](https://developer.apple.com/help/account/membership/programs-overview/) und [Overview of accounts and roles](https://developer.apple.com/help/app-store-connect/manage-your-team/overview-of-accounts-and-roles/) — eingeladene Nutzer eines Einzelperson-Kontos sind nicht Teil des Teams
