@@ -34,7 +34,8 @@ App-Transfer-Kriterien, soweit sie uns betreffen:
   (z. B. `credits.starter` aus der Codes-Übergabe).
 - Für „Mit Apple anmelden" darf die App-ID nicht gruppiert sein (wir sind
   „primary App ID" — passt). TestFlight-Tests müssen aus sein.
-- Die Bundle-ID `app.dreamrushes` bleibt beim Transfer gleich.
+- Die Bundle-ID (seit 22.09. `com.dreamrushes.app`, s. unten) bleibt beim
+  Transfer gleich.
 
 ## Die Falle: „Mit Apple anmelden" hängt am Team
 
@@ -72,7 +73,23 @@ einem Transfer stehen.
 5. Reihenfolge: UG im Handelsregister → D-U-N-S beantragen (dauert selbst)
    → Antrag bei Apple.
 
-## Verwandt: `app.dreamrushes` ist „not available" (22.09., unbestätigt)
+## Verwandt: `app.dreamrushes` war „not available" — gelöst durch neue Bundle-ID
+
+**Ausgang (22.09. abends):** Die ID stand nicht in Hannis Liste. Anton hat
+die Bundle-ID seines Gratis-Baus geändert, damit sein nächster Neubau sie
+nicht wieder belegt. Ob die alte Registrierung sich danach von selbst löst,
+ist nicht belegt — die 7 Tage betreffen die Signatur, nicht die Kennung;
+im Apple-Forum half verlässlich nur ein Anruf beim Developer Support.
+Statt zu warten hat Hanni **`com.dreamrushes.app`** registriert, im
+bezahlten Account — dort kann kein Gratis-Bau sie mehr belegen.
+`mobile/app.json` ist umgestellt (nur iOS; das Android-Paket
+`app.dreamrushes` ist davon unabhängig und bleibt). Die Supabase-Client-ID
+für „Mit Apple anmelden" ist damit ebenfalls `com.dreamrushes.app`.
+Kennungen von Erweiterungen müssen mit der App-Kennung beginnen: die
+Widget-Pläne in `2026-09-13-recherche-expo-erinnerungen-healthkit-widgets.md`
+würden `com.dreamrushes.app.widgets` und `group.com.dreamrushes.app`.
+
+Der ursprüngliche Befund:
 
 Beim Speichern der App-ID meldete das Portal: *„An App ID with Identifier
 'app.dreamrushes' is not available."* Bundle-IDs sind über **alle**

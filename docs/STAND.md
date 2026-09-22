@@ -22,12 +22,19 @@ Weg besser ist: `docs/plans/2026-09-22-apple-konto-einzelperson-organisation.md`
 Kurz: **Umstellung bei Apple beantragen statt neu einschreiben, dabei
 fragen, ob die Team-ID bleibt — und das vor den ersten zahlenden Nutzern.**
 
-⚠ **`app.dreamrushes` ist im Apple-Portal „not available" (22.09.,
-unbestätigt):** vermutlich von Xcode in Antons kostenlosem Personal Team
-registriert (iPhone-Bau 18.09.). `app.json` nicht eigenmächtig ändern —
-Antons Gratis-Signatur holt sich die ID bei jedem Neubau (alle 7 Tage)
-zurück. Erst klären, mit welchem Team Gerätebauten signieren. Details in
-derselben Notiz.
+⚠⚠ **Die iOS-Bundle-ID ist jetzt `com.dreamrushes.app` (22.09.).**
+`app.dreamrushes` war im Apple-Portal „not available" — belegt von Antons
+Gratis-Team (iPhone-Bau 18.09.); ob sie je frei würde, ist nicht belegt.
+Hanni hat `com.dreamrushes.app` im bezahlten Account registriert, dort kann
+kein Gratis-Bau sie mehr belegen. `mobile/app.json` ist umgestellt (nur iOS;
+Android bleibt `app.dreamrushes`). Die Supabase-Client-ID für Apple ist
+damit ebenfalls `com.dreamrushes.app`. ⚠ **`mobile/ios` erfährt davon nichts
+von selbst:** Es wird von Hand gepflegt, weil `expo prebuild` das
+Push-Entitlement von `expo-notifications` einsetzt, das ein Gratis-Team
+nicht signieren kann (WORKLOG 13.09.). Also in Xcode unter *Signing &
+Capabilities* die Bundle-ID auf `com.dreamrushes.app` setzen und dort
+auch „Sign In with Apple" hinzufügen — beides erledigt sonst der Prebuild.
+Wer weiter mit dem Gratis-Team baut, braucht eine eigene, abweichende ID.
 
 ⚠ **App-ID-Capabilities: nur „Sign In with Apple" anhaken, NICHT „Data
 Protection".** Dort ist „Complete Protection" vorausgewählt: Dateien sind
@@ -40,9 +47,11 @@ sind davon nicht berührt.
 **Mit Apple anmelden (15.09., PR #51):** gebaut — `POST /api/auth/apple`
 tauscht Apples Identity-Token bei Supabase gegen eine Sitzung,
 `verifyAccessToken()` ist der Weg egal. **Der erste Weg, auf dem ein Konto
-ENTSTEHT.** Offen: die Capability im Apple-Portal (hängt an der App-ID,
-s. oben), Apple als Provider in Supabase (hängt am pausierten Projekt),
-dann der native Knopf am Gerät (`bun run prebuild:ios` + Rebuild). Zwei
+ENTSTEHT.** Offen: die Capability an der App-ID `com.dreamrushes.app` im
+Apple-Portal, Apple als Provider in Supabase (hängt am pausierten Projekt;
+Client-ID `com.dreamrushes.app`), dann der native Knopf am Gerät — mit
+Bundle-ID und „Sign In with Apple" in Xcode von Hand gesetzt (s. oben), weil
+der Prebuild am Push-Entitlement scheitert. Zwei
 Muster in der Fehlererkennung waren falsch und fielen nur am echten
 Supabase auf — WORKLOG 15.09. 22:30.
 

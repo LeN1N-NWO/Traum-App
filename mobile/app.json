@@ -9,7 +9,7 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "app.dreamrushes",
+      "bundleIdentifier": "com.dreamrushes.app",
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
