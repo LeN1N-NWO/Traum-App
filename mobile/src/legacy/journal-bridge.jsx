@@ -56,7 +56,8 @@ import { showcaseFrom } from "../../../src/lib/showcase.js";
 import { filmsOf, filmOf, imagesOf } from "../../../src/lib/entryMedia.js";
 import { isBlank } from "../../../src/lib/blankNight.js";
 import { mediaUrl } from "../../../src/lib/api.js";
-import { t } from "../../../src/i18n/index.js";
+import { t, setLanguage } from "../../../src/i18n/index.js";
+import { LOCALES } from "../../../src/lib/locales.js";
 
 /* Nativ braucht absolute Adressen. `/media/…` löst mediaUrl auf; alles andere
    Relative (`/clips/…` der Beispielträume, aus public/) liefert derselbe
@@ -233,6 +234,13 @@ function snapshot() {
       account: t.profile.account, accountNone: t.profile.accountNone, accountSignedIn: t.profile.accountSignedIn, signIn: t.profile.signIn, signOut: t.profile.signOut,
       voice: isVoice(s.voice) ? s.voice : DEFAULT_VOICE,
       voices: VOICES.map((v) => ({ id: v.id, trait: t.voice.traits[v.trait] || v.trait })),
+      /* Face-ID-Schalter und Sprachwahl (22.09.2026). Die Sprachnamen
+         stehen absichtlich in ihrer eigenen Sprache (locales.js) —
+         wer die Oberfläche nicht lesen kann, muss seine Sprache trotzdem
+         erkennen. */
+      privacy: { title: t.profile.privacyLock, hint: t.profile.privacyLockHint, noBio: t.profile.privacyLockNoBio, unlock: t.profile.privacyUnlock, locked: t.profile.privacyLocked },
+      languageSetting: t.profile.languageSetting, languageSettingHint: t.profile.languageSettingHint,
+      languages: LOCALES.map((l) => ({ id: l.id, label: l.label })),
       pickTitle: t.voice.pickTitle, pickHint: t.voice.pickHint, pickGo: t.voice.pickGo, cancel: t.voice.cancel,
       sampleBase: API_BASE + "/api/voice-sample",
       legal: {
@@ -727,6 +735,15 @@ let onJournalTick = null;
 async function runAsync(cmd, onResult) {
   if (cmd.type === "order") return runOrder(cmd, onResult);
   if (String(cmd.type).startsWith("avatar")) return runAvatar(cmd, onResult);
+  /* Sprachwechsel wie im Web (LanguagePicker.jsx): ERST t umschalten —
+     für die fünf eingefrorenen Sprachen lädt das Modul erst nach, deshalb
+     asynchron — DANN den Zustand schreiben; der Snapshot danach ist schon
+     übersetzt. */
+  if (cmd.type === "language") {
+    const locale = await setLanguage(cmd.value);
+    saveState({ ...loadState(), language: locale.id });
+    return true;
+  }
   /* Das eigene Foto aus dem Onboarding (13.09.): kommt nativ schon auf
      1600 px verkleinert als Data-URL, wird hier wie im Avatar-Dialog noch
      einmal durch compactDataUrl gezogen (JPEG, dieselbe Grenze) und liegt

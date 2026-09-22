@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { ConsentGate } from "@/components/consent-gate";
 import { MascotTapLayer } from "@/components/mascot-tap";
 import { OnboardingGate } from "@/components/onboarding-gate";
+import { PrivacyGate } from "@/components/privacy-gate";
 import { Toasts } from "@/components/toasts";
 
 /* Die native Tab-Leiste — auf iOS 26 Liquid Glass vom System, auf Android
@@ -46,6 +47,8 @@ export default function RootLayout() {
       {/* Nur im Entwicklungsbau, bei jedem Start (Antons Wunsch 13.09.). */}
       <OnboardingGate />
       <Toasts />
+      {/* Der Face-ID-Schutz, ganz zuletzt: deckt alles darunter ab (22.09.). */}
+      <PrivacyGate />
     </GestureHandlerRootView>
   );
 }

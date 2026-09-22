@@ -445,6 +445,16 @@ export default {
     settings: "Settings",
     voiceSetting: "Assistant voice",
     voiceSettingHint: "Which voice talks to you",
+    /* Face-ID-Schutz und Sprachwahl in den Einstellungen (Antons Ansage
+       22.09.2026). Der Sperr-Bildschirm selbst trägt englische Rückfälle
+       im Code (privacy-gate.tsx), weil er VOR der Brücke steht. */
+    privacyLock: "Require Face ID",
+    privacyLockHint: "Lock the app. Opening it needs Face ID or your passcode.",
+    privacyLockNoBio: "Set up Face ID or a passcode in the iOS settings first.",
+    privacyUnlock: "Unlock",
+    privacyLocked: "Your dreams are locked.",
+    languageSetting: "Language",
+    languageSettingHint: "The language of the app",
     withdrawConsent: "Withdraw consent",
     withdrawConsentHint: "Nothing leaves your device until you agree again",
     account: "Account",

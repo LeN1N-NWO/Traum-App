@@ -43,6 +43,8 @@ export type SettingsData = {
   voiceSetting: string; voiceSettingHint: string; withdrawConsent: string; withdrawConsentHint: string; done: string;
   account: string; accountNone: string; accountSignedIn: string; signIn: string; signOut: string;
   voice: string; voices: { id: string; trait: string }[]; pickTitle: string; pickHint: string; pickGo: string; cancel: string; sampleBase: string;
+  privacy: { title: string; hint: string; noBio: string; unlock: string; locked: string };
+  languageSetting: string; languageSettingHint: string; languages: { id: string; label: string }[];
   legal: { close: string; updated: string; draftNote: string; terms: LegalDoc; privacy: LegalDoc };
 };
 export type WizardPreset = { id: string; styleId: string; pace: string | null; wide: boolean; emoji: string; label: string; clip: string | null; featured: boolean };
@@ -103,7 +105,7 @@ export type OrderRequest = {
   styleId: string; pace: string; videoModel: string; quality: string | null; seconds: number; mode?: "film" | "images";
   assignmentOverrides?: Record<string, { avatarId?: string; free?: boolean }>;
 };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck"; order?: OrderRequest; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language"; order?: OrderRequest; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
 export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null };
 
 let snapshot: JournalSnapshot | null = null;
