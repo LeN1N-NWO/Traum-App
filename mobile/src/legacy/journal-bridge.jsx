@@ -943,9 +943,25 @@ function devTopUp(min) {
   saveState({ ...s, credits: (s.credits ?? 0) + (min - totalCredits(s)) });
 }
 
+/* Sprachabgleich vor jedem Snapshot (22.09.2026): Jeder Tab hat seinen
+   eigenen Brücken-Webview, aber `t` schaltet nur dort um, wo der
+   language-Befehl ankam — die anderen pushten weiter die alte Sprache,
+   und der letzte Push gewann. Deshalb vergleicht jede Brücke vor dem
+   Snapshot den Zustand mit der eigenen Sprache und zieht `t` nach.
+   Für en/de füllt setLanguage synchron (i18n/index.js); bei den fünf
+   nachgeladenen Sprachen ist der eine Push noch alt — der nächste Takt
+   (3 s) trägt dann die Übersetzung. */
+let bridgeLang = null;
+function syncLanguage() {
+  const want = loadState().language || "en";
+  if (bridgeLang === want) return;
+  bridgeLang = want;
+  setLanguage(want);
+}
+
 export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, dom }) {
   useEffect(() => {
-    const push = () => { try { devTopUp(devCredits); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
+    const push = () => { try { syncLanguage(); devTopUp(devCredits); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
     push();
     window.addEventListener("storage", push);
     return () => window.removeEventListener("storage", push);
