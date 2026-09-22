@@ -32,8 +32,10 @@ export function useJournal() {
     n.current += 1; waiting.current.set(n.current, resolve); setCommand({ ...cmd, n: n.current });
   }), []);
   const bridge = (
-    // __DEV__: Test-Guthaben, solange kein Konto dahinter ist (Antons Ansage 12.09.).
-    <JournalBridge onJournal={onJournal} onResult={onResult} refreshTick={tick} command={command} devCredits={__DEV__ ? 100 : 0} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+    // Test-Guthaben, solange kein Konto dahinter ist (Antons Ansage 12.09.;
+    // seit 18.09. auch im Release-Bau mit 500 — er testet auf dem iPhone).
+    // ⚠ Vor der Veröffentlichung zurück auf `__DEV__ ? 100 : 0`.
+    <JournalBridge onJournal={onJournal} onResult={onResult} refreshTick={tick} command={command} devCredits={500} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
   );
   return { data, bridge, send, ask };
 }

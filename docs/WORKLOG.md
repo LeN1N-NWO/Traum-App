@@ -58,6 +58,79 @@ der echte Knopf am Gerät — bis dahin ist die App-Seite ungeprüft.
 
 **Prüfungen:** 646 Tests grün (638 + 8 neue), `vite build` grün, `tsc`
 sauber, `expo lint` 0 Fehler (52 Warnungen, alle in fremdem Altcode).
+## 2026-09-18 07:40 — Anton — Branch `session/2026-09-17-anton` (PR #52, Entwurf) — iPhone-Release-Absturz gefunden und behoben (alles lokal, kein Repo-Code)
+
+**Commits:** nur dieser Doku-Eintrag — der ganze Fix liegt in git-ignorierten
+Dateien des HAUPTordners und ist deshalb ausschließlich hier dokumentiert.
+
+**Antons iPhone blieb beim App-Logo stehen.** Nicht die Erlaubnis-Dialoge,
+nicht der Free-Account, nicht Metro: Der Release-Build stürzt **nativ** ab,
+bevor er irgendetwas zeichnet — `EXC_BAD_ACCESS` in
+`facebook::react::Props::Props()` beim Registrieren der Expo-Komponenten
+(Absturzbericht im Simulator, exakt reproduziert). Ursache: Expos
+**vorkompilierte React-Native-Pakete** (SDK 57, `React-Core-prebuilt`)
+vertragen sich in der Release-Variante nicht mit Xcode 26.3. Debug nimmt
+andere Paketvarianten — darum lief der Simulator immer.
+
+**Der Fix, drei Teile, alle im Hauptordner und alle git-ignoriert:**
+1. `mobile/ios/Podfile.properties.json`: `"ios.buildReactNativeFromSource": "true"`
+   → `pod install`. React Native wird aus dem Quelltext gebaut (10–20 min).
+2. Der Quelltextbau scheitert dann an Swift 6 in `expo-modules-core` 57.0.18
+   (`EventEmitter.swift:52/79`, „sending 'emitter' risks causing data races";
+   `SWIFT_STRICT_CONCURRENCY=minimal` hilft NICHT — `sending` ist Sprache,
+   nicht Strenge-Stufe). Lokaler Patch in `node_modules`: `WeakEmitterBox`
+   (`@unchecked Sendable`-Hülle um die schwache Referenz) statt
+   `nonisolated(unsafe) weak let`. ⚠ Fliegt bei jedem `bun install` raus —
+   Rezept steht in STAND.md.
+3. `mobile/.env` mit `EXPO_PUBLIC_API_BASE=http://192.168.178.97:8100`
+   MUSS vor dem Bauen existieren — sie fehlte, darum stand `localhost:8100`
+   im Bundle (auf dem iPhone ist localhost das iPhone).
+
+**Geprüft:** Release im Simulator startet bis zum Einwilligungs-Tor
+(vorher: Absturz zum Homescreen). Aufs iPhone installiert und gestartet
+(00:49) — **Antons Sichtbestätigung steht noch aus.**
+
+**Was der Nächste wissen muss:**
+- `xcodebuild` per CLI findet das iPhone oft nicht (auch wenn `devicectl`
+  es sieht, vermutlich Sperrbildschirm): mit
+  `-destination 'generic/platform=iOS'` bauen, dann
+  `xcrun devicectl device install app --device <UDID> <Pfad>.app`.
+- Release-Konsole ist stumm; Absturzberichte liegen als `.ips` in
+  `~/Library/Logs/DiagnosticReports/` (Simulator).
+- Free-Account: Signatur läuft nach 7 Tagen ab → neu bauen und installieren.
+
+## 2026-09-17 23:45 — Anton — Branch `session/2026-09-17-anton` (PR #52, Entwurf) — Erinnerungs-Schalter reagieren sofort, zehn Onboarding-Befunde für Hanni, Worktree-Falle dokumentiert
+
+**Commits:** `50f38e4` Befunde für Hanni · Code- und Doku-Commit dieses Eintrags.
+
+- **Onboarding einmal komplett durchgetippt** (Simulator, mit Foto aus der
+  Bibliothek): zehn Befunde, alle in Hannis Dateien → **nichts angefasst**,
+  Notiz in `docs/uebergabe/2026-09-17-hanni-onboarding-befunde.md`. Gut:
+  Auszeichnungen passen, Jahre-Kreis zeigt „25 Jahre Schlaf / 6 Jahre Träume",
+  Erlaubnis-Zeilen und Fotowahl laufen.
+- **Gefunden und behoben:** Die Schalter unter Erinnerungen wirkten tot, weil
+  jeder Tipp erst über die Brücke und zurück lief (Sekunden). `reminders.tsx`
+  hält jetzt den eigenen Wunsch, solange der Bildschirm offen ist. Zwei
+  Umwege, die NICHT gehen: Plan-Identität (alle drei Sekunden neues Objekt)
+  und Zeitablauf (`Date.now()` beim Zeichnen = Lint-Fehler).
+- **Mitteilungs-Erlaubnis geprüft:** Dialog erscheint beim Einschalten der
+  Morgen-Erinnerung, danach steht der Plan auf 07:30.
+
+**Was der Nächste wissen muss:**
+- ⚠ Nativ testen im Worktree braucht: Metro von Hand aus dem Worktree,
+  `mobile/ios` per rsync aus dem Hauptordner **inklusive `ios/build/generated`**,
+  und **`rm -rf /tmp/metro-cache`** — der geteilte Cache liefert sonst die
+  Brücke mit dem Pfad des Hauptordners, die App startet ohne Daten. Details
+  in STAND.md.
+- ⚠ Im Simulator-Werkzeug schaltet ein `Switch` zuverlässig nur per `swipe`,
+  nicht per `tap`.
+- ⚠ Anton hat die App per Xcode aufs iPhone gebracht. Eine Debug-Fassung
+  hängt am Metro des Macs — beim Umstellen auf den Worktree bleibt sie beim
+  Logo stehen. Für das iPhone die Release-Fassung bauen, vorher
+  `mobile/.env` mit `EXPO_PUBLIC_API_BASE` anlegen.
+- Offen: Teilen-Karte, Schnellaktionen, Atem-Raum mit dem Finger; echte
+  Zustellung um 07:30.
+- Tests 637 grün, Typen sauber, Lint 0 Fehler (52 Warnungen wie vorher).
 
 ## 2026-09-14 14:40 — Anton — Branch `session/2026-09-13-anton-e` (PR #50) — Abschluss, Merge auf Antons Wort
 

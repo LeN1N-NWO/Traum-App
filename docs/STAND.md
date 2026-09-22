@@ -3,46 +3,133 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-15 abends — Sitzung `session/2026-09-15-hanni-apple-signin`
-(PR #51, **Entwurf**): **„Mit Apple anmelden" ist gebaut** — Schritt 1 der
-Codes/Einladungen-Übergabe. `POST /api/auth/apple` tauscht Apples
-Identity-Token bei Supabase gegen eine Sitzung; dahinter ändert sich nichts,
-`verifyAccessToken()` ist der Anmeldeweg egal. **Es ist der erste Weg, auf dem
-ein Konto ENTSTEHT** (Passwort bleibt: nur wer in Supabase steht). ⚠ Zwei
-Schalter fehlen noch, beide nur von Hanni umzulegen: Capability „Sign In with
-Apple" für `app.dreamrushes` im Apple Developer Portal, und Apple als Provider
-in Supabase Studio mit `app.dreamrushes` als Client-ID. Bis dahin antwortet
-der Endpunkt 503 mit genau diesem Hinweis (am echten Supabase belegt), und der
-native Knopf ist ungeprüft — er braucht `bun run prebuild:ios` und einen
-Rebuild. Zwei Muster in der Fehlererkennung waren falsch und fielen NUR am
-echten Supabase auf; die Lehre steht im WORKLOG-Eintrag 22:30.
-Davor: 2026-09-14 nachmittags — Sitzung `session/2026-09-13-anton-e`
-abgeschlossen, **PR #50 auf Antons Wort gemerged** („wrappen und mergen“).
-**Offen:** Starter-Code-Menge (Vorschlag 22 Credits); StoreKit mit
-Server-Prüfung → Offer Codes → Einladungen (Hanni, Übergabe
-unten); Jahrespreis $99,99 prüfen; Subreddit-Regeln selbst eintragen
-(`docs/marketing/hermes/`). **Entschieden und gebaut:** kein Willkommensgeschenk mehr
-(`welcomeGrant` entfernt, Kaufblatt „Filme brauchen Credits“, Blatt nach dem
-ersten Film nur noch, wenn der Rest keinen Film trägt), XL-Paket 650 Credits.
-**Einladungsprämie nur bei echtem Kauf**, 14 Tage ohne Erstattung: S 10, M 30,
-L 60, XL 130, Monatsabo 30, Jahresabo 100 (geplant, nicht gebaut). **Codes und Einladungen geplant, nicht gebaut**
-(`docs/plans/2026-09-14-codes-einladungen-plan.md`, Übergabe an Hanni
-`docs/uebergabe/2026-09-14-hanni-codes-einladungen.md`): Apple Offer Codes
-statt eigenem Code-Feld (3.1.1-Ablehnungen), Einladungen erst nach dem Launch,
-Prämie nur für den Einladenden; ⚠ TestFlight-Käufe sind gratis — Sandbox nie
-ins echte Ledger. **Jahresabo entschieden und gebaut:** 480 Credits am
-Kauftag, danach jeden Monat 131, Übertrag im Abojahr (`allowanceGrant()` in
-`src/lib/plans.js`, Paywall zeigt es). ⚠ Der Server kann das Abo-Guthaben nur
-SETZEN (`credits_set_allowance`), das Jahresabo braucht beim Store-Anschluss
-ein Dazulegen im Abojahr. **Beantwortet, nicht gebaut:** keine Werbung gegen Credits (gut 1 Cent je
-Werbung, ~26 für den günstigsten Film), Dream Recorder nur als kleine Anfrage
-mit Fix-Angebot (Mail-Entwurf, nicht verschickt), Marketing-Agenten mit Hermes
-nur als Zuarbeiter — Skill-Vorlagen in `docs/marketing/hermes/`, Subreddit-Regeln
-muss Anton selbst eintragen. Davor in dieser Sitzung (nachts): **Wissen-Raum**
-im Schlaf-Tab (18 geprüfte Karten), Paket-Extras, Avatar-Dialog mit
-Zeitgrenze, Aufnahme-Text, **Marketingplan** mit Namensprüfung
-(`docs/plans/2026-09-14-marketingplan.md`). Offen: Jahrespreis ($99,99 ist
-2,5× Kategorie-Median).
+**Stand:** 2026-09-22 — Hanni, weiter auf `session/2026-09-15-hanni-apple-signin`
+(PR #51, Entwurf); `main` hereingeholt per Merge, nicht Rebase (der Branch
+ist gepusht, ein Force-Push wäre verboten).
+
+⚠⚠ **Das Supabase-Projekt ist nicht erreichbar (22.09.).**
+`qinkvqmdtwjvygpgzwau.supabase.co` löst nicht mehr auf (`ENOTFOUND`), der
+Pooler meldet `tenant/user … not found`; `supabase.com`, fal und Apple sind
+erreichbar. Letzter Zugriff 15.09. — passt zur automatischen Pause von
+Free-Tier-Projekten nach rund einer Woche. **Im Supabase-Dashboard
+„Restore project"** (nur Hanni). Bis dahin läuft der Server ohne Datenbank
+und ohne Anmeldung, wie vorgesehen; `/api/auth/apple` antwortet 503.
+
+**Apple-Konto: vorerst Hanni als Einzelperson, die UG kommt später.** Was
+das für „Mit Apple anmelden" heißt (Apple-Kennungen gelten pro Team,
+60-Tage-Migration, Transfer nur mit veröffentlichter Version) und welcher
+Weg besser ist: `docs/plans/2026-09-22-apple-konto-einzelperson-organisation.md`.
+Kurz: **Umstellung bei Apple beantragen statt neu einschreiben, dabei
+fragen, ob die Team-ID bleibt — und das vor den ersten zahlenden Nutzern.**
+
+⚠ **`app.dreamrushes` ist im Apple-Portal „not available" (22.09.,
+unbestätigt):** vermutlich von Xcode in Antons kostenlosem Personal Team
+registriert (iPhone-Bau 18.09.). `app.json` nicht eigenmächtig ändern —
+Antons Gratis-Signatur holt sich die ID bei jedem Neubau (alle 7 Tage)
+zurück. Erst klären, mit welchem Team Gerätebauten signieren. Details in
+derselben Notiz.
+
+⚠ **App-ID-Capabilities: nur „Sign In with Apple" anhaken, NICHT „Data
+Protection".** Dort ist „Complete Protection" vorausgewählt: Dateien sind
+bei gesperrtem Gerät weder les- noch schreibbar. Die App nimmt im
+Hintergrund Ton auf (`UIBackgroundModes: audio`) — eine Aufnahme bei
+gesperrtem Handy ginge still verloren. Die iOS-Vorgabe (bis zum ersten
+Entsperren) gilt ohnehin; die Anmelde-Token liegen im Schlüsselbund und
+sind davon nicht berührt.
+
+**Mit Apple anmelden (15.09., PR #51):** gebaut — `POST /api/auth/apple`
+tauscht Apples Identity-Token bei Supabase gegen eine Sitzung,
+`verifyAccessToken()` ist der Weg egal. **Der erste Weg, auf dem ein Konto
+ENTSTEHT.** Offen: die Capability im Apple-Portal (hängt an der App-ID,
+s. oben), Apple als Provider in Supabase (hängt am pausierten Projekt),
+dann der native Knopf am Gerät (`bun run prebuild:ios` + Rebuild). Zwei
+Muster in der Fehlererkennung waren falsch und fielen nur am echten
+Supabase auf — WORKLOG 15.09. 22:30.
+
+**Davor:** 2026-09-18 früh — Sitzung `session/2026-09-17-anton`
+(PR #52, Entwurf), Worktree `../Traum-App-anton`.
+
+⚠⚠ **iPhone-Release-Absturz behoben (18.09., alles lokal im HAUPTordner,
+nichts davon im Repo — deshalb steht das Rezept nur hier):** Antons iPhone
+blieb beim Logo stehen, weil der Release-Build **nativ** abstürzt, bevor er
+zeichnet (`EXC_BAD_ACCESS` in `Props::Props()` beim Registrieren der
+Expo-Komponenten). Ursache: Expos vorkompilierte RN-Pakete
+(`React-Core-prebuilt`) vertragen sich in Release nicht mit Xcode 26.3;
+Debug nimmt andere Varianten, darum lief der Simulator immer. Das Rezept:
+1. `mobile/ios/Podfile.properties.json` →
+   `"ios.buildReactNativeFromSource": "true"`, dann `pod install`
+   (Quelltextbau, 10–20 min je Konfiguration).
+2. Danach scheitert `expo-modules-core` 57.0.18 an Swift 6
+   (`EventEmitter.swift:52/79`, „sending 'emitter' risks causing data
+   races" — `SWIFT_STRICT_CONCURRENCY=minimal` hilft NICHT). Patch in
+   `node_modules/expo-modules-core/ios/Core/Events/EventEmitter.swift`:
+   `private struct WeakEmitterBox<T: AnyObject>: @unchecked Sendable {
+   weak var value: T? }` statt `nonisolated(unsafe) weak let emitter =
+   self`; in den Closures `emitterBox.value`. ⚠ **Jedes `bun install`
+   löscht den Patch** — dann Schritt 2 wiederholen (oder prüfen, ob eine
+   neuere expo-modules-core es behoben hat).
+3. `mobile/.env` mit `EXPO_PUBLIC_API_BASE=http://<Mac-WLAN-IP>:8100`
+   MUSS vor dem Bauen existieren (sonst steht `localhost` im Bundle und
+   die App findet vom iPhone aus keinen Server).
+Bauen: `xcodebuild … -configuration Release -destination
+'generic/platform=iOS' -allowProvisioningUpdates` (die CLI findet das
+iPhone als Ziel oft nicht, auch wenn `devicectl` es sieht), installieren
+per `xcrun devicectl device install app --device <UDID> <…>.app`.
+Geprüft: Release-Simulator startet bis zum Einwilligungs-Tor; aufs iPhone
+installiert — **Antons Sichtbestätigung steht aus.** Free-Account: Signatur
+hält 7 Tage, dann neu bauen.
+
+**Gebaut und geprüft:** Die Schalter auf `profile/reminders.tsx` springen
+sofort um. Vorher lief jeder Tipp über die unsichtbare Brücke und zurück —
+das dauerte Sekunden, und die Seite wirkte tot. Der Bildschirm hält jetzt
+den eigenen Wunsch, solange er offen ist (kein Effekt, kein Zeitgeber:
+`Date.now()` beim Zeichnen bricht den Lint, die Plan-Identität wechselt alle
+drei Sekunden). Im Simulator gesehen, dazu die Mitteilungs-Erlaubnis
+(Dialog kommt beim Einschalten, Plan bleibt auf 07:30).
+
+**Befunde an Hanni, nichts angefasst:** zehn Punkte aus dem Onboarding und
+den Einwilligungstexten in `docs/uebergabe/2026-09-17-hanni-onboarding-befunde.md`
+(alter Text „Bilder" statt „Filme", doppeltes „Das bist du.", abgeschnittener
+Platzhalter, Kachel-Schrift auf hellem Clip, ungleiche Fragen, Maskottchen
+ohne Wirkung, leerer Schlussschritt, Jahre-Kreis, Einwilligung nennt Bilder,
+englische Systemtexte). Antons Ansage: Hannis Dateien bleiben bei Hanni
+(ihr PR #51: Sign in with Apple).
+
+⚠⚠ **Wer im Worktree nativ testen will, braucht drei Dinge** (heute drei
+Stunden gekostet):
+1. `preview_start expo` startet Metro IMMER im Hauptordner. Für den Worktree
+   von Hand: `cd ../Traum-App-anton/mobile && bun run start`.
+2. Es gibt kein `mobile/ios` im Worktree (erzeugt, ignoriert) — und
+   `expo prebuild` ist verboten (Push-Entitlement). Lösung: `rsync -a
+   --exclude build/` aus dem Hauptordner plus `ios/build/generated` (die
+   Codegen-Quellen, sonst bricht der Bau mit acht Fehlern ab), dann
+   `xcodebuild … -derivedDataPath /tmp/dr-dd-anton` und `simctl install`.
+3. ⚠ **Metros Cache liegt in `/tmp/metro-cache` und wird geteilt.** Er
+   liefert die Brücke mit dem PFAD DES HAUPTORDNERS aus, die DOM-Komponente
+   scheitert, und die App läuft ohne Daten und auf englischen Rückfalltexten.
+   Erste Maßnahme im Worktree: `rm -rf /tmp/metro-cache`, Metro mit `--clear`.
+
+⚠ **Simulator-Werkzeug:** Ein `tap` auf einen `Switch` wird nicht immer
+angenommen — ein kurzer `swipe` über den Schalter schaltet zuverlässig.
+Erst diese Erkenntnis hat den „die Schalter sind tot"-Verdacht aufgelöst.
+
+**Offen:** Finger-Tests für Teilen-Karte, Schnellaktionen am App-Symbol und
+Atem-Raum (heute nicht mehr geschafft); Zustellung einer echten
+Morgen-Erinnerung um 07:30; Starter-Code-Menge (Vorschlag 22 Credits); alles
+aus der Übergabe `2026-09-14-hanni-codes-einladungen.md` (Mit Apple anmelden — gebaut, s. oben —
+→ StoreKit mit Server-Prüfung → Offer Codes → Einladungen); Jahrespreis $99,99;
+Subreddit-Regeln in `docs/marketing/hermes/` eintragen.
+
+**Davor, Sitzung `session/2026-09-13-anton-e` (PR #50, gemerged 14.09.):**
+Jahresabo mit Startguthaben (480 Credits am Kauftag, danach jeden Monat 131,
+Übertrag im Abojahr, `allowanceGrant()` in `src/lib/plans.js`), kein
+Willkommensgeschenk mehr, XL-Paket 650 Credits, Wissen-Raum im Schlaf-Tab,
+Marketingplan, Recherchen zu Werbung/Dream Recorder/Marketing-Agenten und
+Codes/Einladungen/Verlosungen. Einladungsprämie entschieden, aber nicht
+gebaut: nur bei echtem Kauf, S 10, M 30, L 60, XL 130, Monat 30, Jahr 100.
+⚠ Der Server kann das Abo-Guthaben nur SETZEN (`credits_set_allowance`) —
+das Jahresabo braucht beim Store-Anschluss ein Dazulegen.
+
 Davor: Sitzung `session/2026-09-13-anton-d`
 abgeschlossen, **PR #49 auf Antons Wort gemerged** („wrap und merge").
 **Offen für die nächste Sitzung:** (1) Test mit einem echten Foto an
