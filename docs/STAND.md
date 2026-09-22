@@ -3,79 +3,93 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-22 — Hanni, weiter auf `session/2026-09-15-hanni-apple-signin`
-(PR #51, Entwurf); `main` hereingeholt per Merge, nicht Rebase (der Branch
-ist gepusht, ein Force-Push wäre verboten).
+**Stand:** 2026-09-23 — Hanni, `session/2026-09-15-hanni-apple-signin`
+(PR #51) abgeschlossen. **„Mit Apple anmelden" läuft auf einem echten iPhone,
+Ende zu Ende** — Anmelden, App neu starten (bleibt angemeldet), Abmelden und
+wieder anmelden (kein zweiter Nutzer in Supabase). Damit ist Schritt 1 der
+Codes/Einladungen-Übergabe erledigt: **Konten entstehen jetzt ohne Hanni.**
+
+**Die iOS-Bundle-ID ist `com.dreamrushes.app`** (`mobile/app.json:12`).
+`app.dreamrushes` war belegt — von Xcode in Antons Gratis-Team registriert
+(iPhone-Bau 18.09.); dass die 7 Tage sie freigeben, ist nicht belegt. Android
+bleibt `app.dreamrushes`. Supabase-Client-ID für Apple ebenfalls
+`com.dreamrushes.app`, kein Secret Key (nur der Browser-Weg bräuchte ihn).
+
+**Wer signiert was:** Das Apple-Konto läuft vorerst auf Hanni als
+**Einzelperson** — die UG kommt später (Wege, Falle, Quellen:
+`docs/plans/2026-09-22-apple-konto-einzelperson-organisation.md`; kurz:
+Umstellung beantragen, nach der Team-ID fragen, vor den ersten Käufen). Ein
+Einzelperson-Konto hat kein Team: `com.dreamrushes.app` signiert **nur Hanni**.
+Anton: Simulator mit jeder ID; echte App per **TestFlight** als interner
+Tester (Rolle „Entwickler", Eignung beim Hinzufügen prüfen); schnelle
+Gerätetests mit seiner eigenen ID — dort ohne „Mit Apple anmelden".
+
+**Bauen auf Hannis Mac (23.09., erstmals):** `bun run prebuild:ios` ist auf
+Antons Mac zugeschnitten (`~/.local/node|hermes|rn` — seine Umwege, weil LuLu
+dort `curl` blockt) und läuft hier nicht. Die Schritte einzeln:
+1. `cd mobile && CI=1 bunx expo prebuild --platform ios --no-install` —
+   **mit Hannis bezahltem Team geht der Prebuild**: er trägt Bundle-ID,
+   „Sign In with Apple" und das Push-Entitlement selbst ein. Das Verbot
+   („kein prebuild, Push-Entitlement") gilt nur fürs Gratis-Team.
+2. `printf 'export NODE_BINARY=%s\n' "$(command -v node)" > ios/.xcode.env.local`
+3. `cd ios && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+   LC_ALL=en_US.UTF-8 pod install` — CocoaPods kam per `brew install
+   cocoapods` (bringt eigenes Ruby; das System-Ruby 2.6 ist zu alt).
+   `DEVELOPER_DIR` erspart das `sudo xcode-select`; **ohne UTF-8 stirbt `pod`**.
+4. `mobile/.env` mit `EXPO_PUBLIC_API_BASE=http://<WLAN-IP des Macs>:8100`
+   (heute `192.168.2.112`) — auf dem iPhone ist `localhost` das iPhone.
+5. Xcode: Team **„… (Individual)"**, nicht „Personal Team". Gerät
+   registrieren lassen. **„Update to recommended settings" ablehnen** — es
+   schaltet u. a. User Script Sandboxing ein, das im Projekt an 240 Stellen
+   bewusst aus ist; React Natives Bauskripte scheitern sonst.
+6. Metro (`bun run mobile`) und API (`bun run dev:api`) laufen lassen, ▶.
+
+⚠⚠ **„No script URL provided" beim allerersten Start ist kein Netzfehler.**
+Ein Debug-Bau fragt nur beim Start einmal bei Metro an; lief das, bevor iOS
+die Erlaubnis fürs lokale Netzwerk hatte, bleibt die Adresse leer — und der
+rote Bildschirm bleibt stehen. **App ganz schließen und neu öffnen.** Heute
+kostete das eine halbe Stunde Netzsuche (Firewall, WLAN-Isolation), weil
+ein Test vom Mac aus („WLAN-IP erreichbar ✓") nichts bewies: Verkehr vom
+eigenen Rechner lässt die Firewall immer durch. Erreichbarkeit fürs iPhone
+nur VOM iPhone aus prüfen — und ein Safari-Test braucht ausgeschriebenes
+`http://`.
+
+⚠⚠ **`bun test` im Projektordner endet lautlos mit Exit 1, sobald
+`mobile/ios` existiert** — keine Ausgabe außer der Kopfzeile, kein einziger
+Test. Die Suche nach Testdateien steigt irgendwo in den Pods (Ordner-
+Symlinks nach `node_modules`, Framework-Versionen) aus. Die Tests selbst
+sind grün: `cd src && bun test` → 646/646. ⚠ `bun test src` hilft NICHT —
+„src" ist nur ein Filter, gesucht wird trotzdem überall. Vorschlag, nicht
+gebaut: `bunfig.toml` mit `[test] root = "./src"` (alle 57 Testdateien
+liegen unter `src/`). Bis dahin gilt ein nacktes `bun test` hier nicht als
+Beweis.
 
 ⚠ **Supabase pausiert Free-Tier-Projekte nach rund einer Woche ohne
-Zugriff** — am 22.09. passiert (letzter Zugriff 15.09.): der Host löste
-nicht mehr auf (`ENOTFOUND`), der Pooler meldete `tenant/user … not found`,
-der Server lief ohne Datenbank weiter. Hanni hat es im Dashboard
-wiederhergestellt; danach verband sich `dreamrushes_server` wieder — die
-Rolle bestand also noch, das Projekt war aufgeweckt, nicht neu. **Wer nach
-einer Pause hier ankommt und `ENOTFOUND` sieht: erst „Restore project",
-nicht die `.env` umbauen.**
+Zugriff** (22.09. passiert): Host `ENOTFOUND`, Pooler `tenant/user … not
+found`, der Server läuft ohne Datenbank weiter. Erst „Restore project" im
+Dashboard, nicht die `.env` umbauen. Danach bestand `dreamrushes_server`
+noch — aufgeweckt, nicht neu.
 
-**Apple ist in Supabase eingeschaltet (22.09.)**, Client-ID
-`com.dreamrushes.app`, ohne Secret Key (nur der Browser-Weg bräuchte ihn),
-„Allow users without an email" bewusst AUS — die App erkennt Angemeldete
-bisher an der E-Mail (`auth.ts:46/54`, `onboarding-flow.tsx:404`), ein
-Konto ohne Adresse sähe nach jedem Start wieder die Anmeldung. Erst dort
-auf die Nutzer-ID umstellen, dann darf der Schalter an. Belegt mit der
-Sonde (gefälschtes Apple-JWT): vorher `provider_disabled` → 503, jetzt
-`Bad ID token` → 401.
+⚠ **Im Apple-Portal:** an der App-ID nur „Sign In with Apple" anhaken —
+**nicht „Data Protection"** (dort ist „Complete Protection" vorausgewählt:
+Dateien bei gesperrtem Gerät unlesbar, die App nimmt aber im Hintergrund Ton
+auf). In Supabase „Allow users without an email" **AUS**: die App erkennt
+Angemeldete an der E-Mail (`mobile/src/lib/auth.ts:46/54`,
+`mobile/src/components/onboarding-flow.tsx:404`) — ein Konto ohne Adresse
+sähe nach jedem Start wieder die Anmeldung.
 
-**Apple-Konto: vorerst Hanni als Einzelperson, die UG kommt später.** Was
-das für „Mit Apple anmelden" heißt (Apple-Kennungen gelten pro Team,
-60-Tage-Migration, Transfer nur mit veröffentlichter Version) und welcher
-Weg besser ist: `docs/plans/2026-09-22-apple-konto-einzelperson-organisation.md`.
-Kurz: **Umstellung bei Apple beantragen statt neu einschreiben, dabei
-fragen, ob die Team-ID bleibt — und das vor den ersten zahlenden Nutzern.**
-
-⚠⚠ **Die iOS-Bundle-ID ist jetzt `com.dreamrushes.app` (22.09.).**
-`app.dreamrushes` war im Apple-Portal „not available" — belegt von Antons
-Gratis-Team (iPhone-Bau 18.09.); ob sie je frei würde, ist nicht belegt.
-Hanni hat `com.dreamrushes.app` im bezahlten Account registriert, dort kann
-kein Gratis-Bau sie mehr belegen. `mobile/app.json` ist umgestellt (nur iOS;
-Android bleibt `app.dreamrushes`). Die Supabase-Client-ID für Apple ist
-damit ebenfalls `com.dreamrushes.app`. ⚠ **`mobile/ios` erfährt davon nichts
-von selbst:** Es wird von Hand gepflegt, weil `expo prebuild` das
-Push-Entitlement von `expo-notifications` einsetzt, das ein Gratis-Team
-nicht signieren kann (WORKLOG 13.09.). Also in Xcode unter *Signing &
-Capabilities* die Bundle-ID auf `com.dreamrushes.app` setzen und dort
-auch „Sign In with Apple" hinzufügen — beides erledigt sonst der Prebuild.
-Wer weiter mit dem Gratis-Team baut, braucht eine eigene, abweichende ID.
-⚠ **Wer darf `com.dreamrushes.app` signieren? Nur Hanni.** Ein
-Einzelperson-Konto hat kein Team: Eingeladene App-Store-Connect-Nutzer
-kommen nicht an *Certificates, Identifiers & Profiles* (Apple, bestätigt
-22.09.). Für Anton also: Simulator frei mit jeder ID; aufs iPhone die
-echte App per **TestFlight** (Hanni baut und lädt hoch, Anton ist interner
-Tester); schnelle Gerätetests mit seiner eigenen ID — dort geht „Mit Apple
-anmelden" nicht (Capability nur im bezahlten Programm, Supabase kennt nur
-`com.dreamrushes.app`). Mit dem Organisationskonto der UG wird er echtes
-Team-Mitglied.
-
-⚠ **App-ID-Capabilities: nur „Sign In with Apple" anhaken, NICHT „Data
-Protection".** Dort ist „Complete Protection" vorausgewählt: Dateien sind
-bei gesperrtem Gerät weder les- noch schreibbar. Die App nimmt im
-Hintergrund Ton auf (`UIBackgroundModes: audio`) — eine Aufnahme bei
-gesperrtem Handy ginge still verloren. Die iOS-Vorgabe (bis zum ersten
-Entsperren) gilt ohnehin; die Anmelde-Token liegen im Schlüsselbund und
-sind davon nicht berührt.
-
-**Mit Apple anmelden (15.09., PR #51):** gebaut — `POST /api/auth/apple`
-tauscht Apples Identity-Token bei Supabase gegen eine Sitzung,
-`verifyAccessToken()` ist der Weg egal. **Der erste Weg, auf dem ein Konto
-ENTSTEHT.** Supabase-Seite fertig (s. oben), App-Store-Connect-Eintrag
-angelegt. Offen: die Capability an der App-ID `com.dreamrushes.app` prüfen,
-dann der native Knopf am Gerät — mit Bundle-ID und „Sign In with Apple" in
-Xcode von Hand gesetzt (s. oben), weil der Prebuild am Push-Entitlement
-scheitert. Erster echter Test: nach der Anmeldung muss in Supabase eine
-neue Zeile in `auth.users` stehen, samt `profiles`- und
-`credits_balance`-Zeile (Trigger). Anton als interner TestFlight-Tester
-mit Rolle „Entwickler" (Tester-Eignung noch am echten Hinzufügen prüfen). Zwei
-Muster in der Fehlererkennung waren falsch und fielen nur am echten
-Supabase auf — WORKLOG 15.09. 22:30.
+**Nächste Schritte (Hanni):**
+1. Anton in App Store Connect als Nutzer („Entwickler") und internen
+   TestFlight-Tester. ⚠ Für TestFlight braucht es einen **Release**-Bau
+   (Archive) — Antons Release-Absturz vom 18.09. (vorkompilierte RN-Pakete
+   gegen Xcode 26.3) ist auf Hannis Xcode 26.6 ungeprüft; sein Rezept steht
+   unten.
+2. Umstellung Einzelperson → Organisation beantragen, sobald die UG steht
+   (D-U-N-S); nach der Team-ID fragen.
+3. `bunfig.toml` für `bun test` (s. oben) — mit Anton abstimmen.
+4. Anmeldestatus in der App an der Nutzer-ID statt an der E-Mail festmachen,
+   dann darf „Allow users without an email" an.
+5. Schritt 2 der Übergabe: StoreKit + App Store Server Notifications.
 
 **Davor:** 2026-09-18 früh — Sitzung `session/2026-09-17-anton`
 (PR #52, Entwurf), Worktree `../Traum-App-anton`.

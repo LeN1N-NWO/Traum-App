@@ -3,6 +3,59 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-23 00:07 — Hanni — Branch `session/2026-09-15-hanni-apple-signin` (PR #51) — „Mit Apple anmelden" läuft auf dem iPhone, Sitzung abgeschlossen
+
+**Commits:** `5d68da9` Bundle-ID `com.dreamrushes.app` · `6e21bc6` wer
+signieren darf · `0e3f1eb` Supabase wieder da · Doku-Commit dieses Eintrags.
+
+**Ergebnis:** Auf Hannis iPhone 15 geprüft — mit Apple anmelden, App neu
+starten (bleibt angemeldet), abmelden und wieder anmelden (kein zweiter
+Nutzer in Supabase). Server- und Metro-Log ohne Ablehnung, ohne Fehler.
+Schritt 1 der Codes/Einladungen-Übergabe ist damit erledigt.
+
+**Was dazu nötig war:**
+- **Bundle-ID gewechselt** auf `com.dreamrushes.app`: `app.dreamrushes`
+  lag in Antons Gratis-Team. Antons Gegenmaßnahme (eigene ID für seinen
+  Gratis-Bau) schließt die Schleife; ob die alte ID je frei würde, ist nicht
+  belegt (Forum: nur der Developer Support hilft verlässlich).
+- **Supabase** war pausiert (Free-Tier, eine Woche) → Hanni hat es
+  wiederhergestellt, Apple eingeschaltet. Beleg per Sonde: vorher
+  `provider_disabled`, danach `Bad ID token`.
+- **Apple-Konto:** App Store Connect-Eintrag angelegt (SKU
+  `dreamrushes-ios`, Vollzugriff). Einzelperson-Konto → nur Hanni kann
+  signieren (Apple, bestätigt).
+- **Bauen auf Hannis Mac zum ersten Mal:** CocoaPods per Homebrew,
+  Prebuild einzeln statt `bun run prebuild:ios` (Antons Pfade), mit
+  `DEVELOPER_DIR` statt `sudo`, `pod` nur mit UTF-8. Rezept in STAND.
+  Mit dem bezahlten Team geht der Prebuild — das Push-Entitlement war nur
+  fürs Gratis-Team ein Hindernis.
+
+**⚠⚠ Drei Fallen, alle heute gesehen:**
+1. **„No script URL provided"** beim ersten Start: Die App fragte Metro an,
+   bevor iOS das lokale Netzwerk erlaubt hatte. Neustart der App löst es.
+   Ich habe vorher eine halbe Stunde das Netz verdächtigt (Firewall,
+   WLAN-Isolation) — auf Grundlage eines Tests, der nicht fehlschlagen
+   konnte: `curl` vom Mac an seine eigene WLAN-Adresse geht immer durch,
+   auch an der Firewall vorbei. **Erreichbarkeit fürs iPhone nur vom iPhone
+   aus prüfen.**
+2. **`bun test` endet lautlos mit Exit 1**, sobald `mobile/ios` existiert —
+   nur die Kopfzeile, kein Test, kein Fehlertext. Die Tests sind grün
+   (`cd src && bun test` → 646/646); die Dateisuche steigt in den Pods aus.
+   `bun test src` hilft nicht, „src" ist nur ein Filter. Vorschlag
+   `bunfig.toml` mit `[test] root = "./src"` — **nicht gebaut**, liegt
+   außerhalb dieser Sitzung, mit Anton abstimmen.
+3. **Xcodes „Update to recommended settings"** hätte User Script
+   Sandboxing eingeschaltet — im Projekt an 240 Stellen bewusst aus.
+   Abgelehnt.
+
+**Was der Nächste wissen muss:**
+- `mobile/ios`, `mobile/node_modules`, `mobile/.env` (WLAN-IP
+  `192.168.2.112`) liegen jetzt in Hannis Checkout — alle git-ignoriert.
+- Ein TestFlight-Bau ist ein **Release**-Bau. Antons Release-Absturz vom
+  18.09. (Xcode 26.3) ist auf Hannis Xcode 26.6 ungeprüft.
+- Prüfungen: 646 Tests grün (über `src/`), `tsc` Exit 0, `expo lint`
+  0 Fehler.
+
 ## 2026-09-22 22:47 — Hanni — Branch `session/2026-09-15-hanni-apple-signin` (PR #51, Entwurf) — Apple-Portal eingerichtet, drei Befunde
 
 **Commits:** Merge von `main` (PR #52 herein) · Doku-Commit dieses Eintrags.
