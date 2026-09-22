@@ -7,13 +7,23 @@
 (PR #51, Entwurf); `main` hereingeholt per Merge, nicht Rebase (der Branch
 ist gepusht, ein Force-Push wäre verboten).
 
-⚠⚠ **Das Supabase-Projekt ist nicht erreichbar (22.09.).**
-`qinkvqmdtwjvygpgzwau.supabase.co` löst nicht mehr auf (`ENOTFOUND`), der
-Pooler meldet `tenant/user … not found`; `supabase.com`, fal und Apple sind
-erreichbar. Letzter Zugriff 15.09. — passt zur automatischen Pause von
-Free-Tier-Projekten nach rund einer Woche. **Im Supabase-Dashboard
-„Restore project"** (nur Hanni). Bis dahin läuft der Server ohne Datenbank
-und ohne Anmeldung, wie vorgesehen; `/api/auth/apple` antwortet 503.
+⚠ **Supabase pausiert Free-Tier-Projekte nach rund einer Woche ohne
+Zugriff** — am 22.09. passiert (letzter Zugriff 15.09.): der Host löste
+nicht mehr auf (`ENOTFOUND`), der Pooler meldete `tenant/user … not found`,
+der Server lief ohne Datenbank weiter. Hanni hat es im Dashboard
+wiederhergestellt; danach verband sich `dreamrushes_server` wieder — die
+Rolle bestand also noch, das Projekt war aufgeweckt, nicht neu. **Wer nach
+einer Pause hier ankommt und `ENOTFOUND` sieht: erst „Restore project",
+nicht die `.env` umbauen.**
+
+**Apple ist in Supabase eingeschaltet (22.09.)**, Client-ID
+`com.dreamrushes.app`, ohne Secret Key (nur der Browser-Weg bräuchte ihn),
+„Allow users without an email" bewusst AUS — die App erkennt Angemeldete
+bisher an der E-Mail (`auth.ts:46/54`, `onboarding-flow.tsx:404`), ein
+Konto ohne Adresse sähe nach jedem Start wieder die Anmeldung. Erst dort
+auf die Nutzer-ID umstellen, dann darf der Schalter an. Belegt mit der
+Sonde (gefälschtes Apple-JWT): vorher `provider_disabled` → 503, jetzt
+`Bad ID token` → 401.
 
 **Apple-Konto: vorerst Hanni als Einzelperson, die UG kommt später.** Was
 das für „Mit Apple anmelden" heißt (Apple-Kennungen gelten pro Team,
@@ -56,11 +66,14 @@ sind davon nicht berührt.
 **Mit Apple anmelden (15.09., PR #51):** gebaut — `POST /api/auth/apple`
 tauscht Apples Identity-Token bei Supabase gegen eine Sitzung,
 `verifyAccessToken()` ist der Weg egal. **Der erste Weg, auf dem ein Konto
-ENTSTEHT.** Offen: die Capability an der App-ID `com.dreamrushes.app` im
-Apple-Portal, Apple als Provider in Supabase (hängt am pausierten Projekt;
-Client-ID `com.dreamrushes.app`), dann der native Knopf am Gerät — mit
-Bundle-ID und „Sign In with Apple" in Xcode von Hand gesetzt (s. oben), weil
-der Prebuild am Push-Entitlement scheitert. Zwei
+ENTSTEHT.** Supabase-Seite fertig (s. oben), App-Store-Connect-Eintrag
+angelegt. Offen: die Capability an der App-ID `com.dreamrushes.app` prüfen,
+dann der native Knopf am Gerät — mit Bundle-ID und „Sign In with Apple" in
+Xcode von Hand gesetzt (s. oben), weil der Prebuild am Push-Entitlement
+scheitert. Erster echter Test: nach der Anmeldung muss in Supabase eine
+neue Zeile in `auth.users` stehen, samt `profiles`- und
+`credits_balance`-Zeile (Trigger). Anton als interner TestFlight-Tester
+mit Rolle „Entwickler" (Tester-Eignung noch am echten Hinzufügen prüfen). Zwei
 Muster in der Fehlererkennung waren falsch und fielen nur am echten
 Supabase auf — WORKLOG 15.09. 22:30.
 
