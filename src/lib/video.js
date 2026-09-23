@@ -163,6 +163,13 @@ const MODELLE = [
             solo: { usdPerSecond: 0.025, creditsPerSecond: 1 } },
       hd: { resolution: "768P", usdPerSecond: 0.08, creditsPerSecond: 3,
             solo: { usdPerSecond: 0.04, creditsPerSecond: 2 } },
+      /* Die dritte Stufe (Antons Ansage 23.09.: „einfach 480p, 720p und
+       * 1080p schreiben"): erst mit H3 Max bezahlbar geworden. Seedance
+       * bietet sie weiter NICHT an — dort kostete 1080p $1,164/s, also
+       * 42 Credits je Sekunde. Der Schalter im Wizard liest die Stufen
+       * seit 23.09. je Modell aus DIESER Tabelle, nicht aus QUALITIES. */
+      fhd: { resolution: "1080P", usdPerSecond: 0.16, creditsPerSecond: 6,
+             solo: { usdPerSecond: 0.08, creditsPerSecond: 3 } },
     },
     preferred: "hd",
     min: 5, max: 15, step: 1, preset: 6,
@@ -196,7 +203,11 @@ const MODELLE = [
   },
 ];
 
-export const QUALITIES = ["sd", "hd"];
+/* Alle Stufen-IDs, die es IRGENDWO gibt — die Allowlist des Servers.
+ * Welche ein Modell wirklich anbietet, sagt seine qualities-Tabelle
+ * (Seedance kennt kein fhd; Unbekanntes fällt in filmQuality auf die
+ * Vorgabe zurück, in Preis UND Bestellung gleichermaßen). */
+export const QUALITIES = ["sd", "hd", "fhd"];
 
 export const VIDEO_MODELS = MODELLE.map((m) => ({ ...m, ...m.qualities[m.preferred] }));
 /* Reihenfolge = UI-Reihenfolge = aufsteigender Preis. Eintrag [0] muss

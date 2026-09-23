@@ -911,7 +911,6 @@ export default {
         },
       },
       qualityLabel: "Qualität",
-      qualityNames: { sd: "Standard", hd: "Scharf" },
       aboutModel: "Über dieses Modell",
       aboutStyle: "Über diesen Stil",
       moreStyles: (n) => `Mehr Stile (${n})`,

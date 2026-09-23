@@ -75,10 +75,18 @@ describe("compareQuote — Antons Ultimatum", () => {
 });
 
 describe("priceTable", () => {
-  test("carries both models with both qualities and the flat prices", () => {
+  test("carries both models with each model's own qualities and the flat prices", () => {
     const t = priceTable();
     expect(t.films.map((f) => f.id)).toEqual(["standard", "premium"]);
-    for (const f of t.films) expect(Object.keys(f.qualities).sort()).toEqual(["hd", "sd"]);
+    /* Seit 23.09. je Modell die EIGENE Stufenliste: H3 hat 1080p dazu-
+       bekommen, Seedance bewusst nicht (42 Credits/s). Standard trägt
+       zusätzlich den Turbo-Satz ohne Referenzen. */
+    const std = t.films.find((f) => f.id === "standard");
+    const prem = t.films.find((f) => f.id === "premium");
+    expect(Object.keys(std.qualities).sort()).toEqual(["fhd", "hd", "sd"]);
+    expect(Object.keys(prem.qualities).sort()).toEqual(["hd", "sd"]);
+    expect(std.qualities.sd.soloCreditsPerSecond).toBe(1);
+    expect("soloCreditsPerSecond" in prem.qualities.sd).toBe(false);
     expect(t.prices.keyframe).toBe(PRICES.keyframe);
   });
 });

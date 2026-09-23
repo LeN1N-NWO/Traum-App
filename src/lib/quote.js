@@ -104,7 +104,13 @@ export function priceTable() {
       return {
         id, min: m.min, max: m.max, step: m.step, preferred: m.preferred,
         qualities: Object.fromEntries(
-          Object.entries(m.qualities).map(([k, v]) => [k, { creditsPerSecond: v.creditsPerSecond, resolution: v.resolution }]),
+          Object.entries(m.qualities).map(([k, v]) => [k, {
+            creditsPerSecond: v.creditsPerSecond, resolution: v.resolution,
+            /* Der Turbo-Satz ohne Besetzungs-Referenzen (23.09.), wo es
+               ihn gibt — derselbe Grund wie oben: der Client soll SEINE
+               Zahlen gegen die des Servers prüfen können. */
+            ...(v.solo ? { soloCreditsPerSecond: v.solo.creditsPerSecond } : {}),
+          }]),
         ),
       };
     }),

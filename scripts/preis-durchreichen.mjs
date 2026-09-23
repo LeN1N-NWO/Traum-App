@@ -56,7 +56,7 @@ const BILD_EINKAUF = imagePrice(DEFAULT_IMAGE_MODEL, imageStage(DEFAULT_IMAGE_MO
    und ohne (Turbo, `solo` — halber Einkauf, videoSubmitBody/filmRate).
    Beide stehen hier untereinander, damit die Margenrechnung keinen Satz
    übersieht. */
-const STUFEN = VIDEO_MODELS.flatMap((m) => QUALITIES.flatMap((q) => {
+const STUFEN = VIDEO_MODELS.flatMap((m) => Object.keys(m.qualities).flatMap((q) => {
   const k = filmQuality(m.id, q);
   const zeile = { ...m, quality: q, name: `${m.id} ${k.resolution}`, usd: k.usdPerSecond, credits: k.creditsPerSecond };
   return k.solo

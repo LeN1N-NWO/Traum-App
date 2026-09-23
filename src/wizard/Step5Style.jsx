@@ -14,7 +14,7 @@ import { bumpStreak, refreshStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
 import { moonForNight } from "../lib/moon.js";
 import { priceForImages, PRICES, IMAGE_COUNTS, PREVIEW_COUNT } from "../lib/pricing.js";
-import { VIDEO_MODELS, QUALITIES, PACE_IDS, DEFAULT_PACE, priceForFilm, clampSeconds, videoModel, filmQuality, shotBudget, beatBudget, filmPace, flowStationSeconds, FLOW_MIN_STATION } from "../lib/video.js";
+import { VIDEO_MODELS, PACE_IDS, DEFAULT_PACE, priceForFilm, clampSeconds, videoModel, filmQuality, shotBudget, beatBudget, filmPace, flowStationSeconds, FLOW_MIN_STATION } from "../lib/video.js";
 import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
@@ -891,10 +891,14 @@ export default function Step5Style({ w, patch }) {
               die Hinweistexte nennen deshalb keine Credits mehr. Beim
               Modellwechsel fällt die Wahl auf `null` zurück, also auf die
               Vorgabe des NEUEN Modells: 720p bei Seedance kostet neunmal so
-              viel wie bei H3 ein Stufenwechsel, das erbt man nicht still. */}
+              viel wie bei H3 ein Stufenwechsel, das erbt man nicht still.
+              Seit 23.09. steht die AUFLÖSUNG selbst auf dem Knopf (Antons
+              Ansage: „einfach 480p, 720p, 1080p statt Verschleierung"),
+              und die Stufenliste kommt je Modell aus der Tabelle — H3 hat
+              drei, Seedance zwei (1080p kostete dort 42 Credits/s). */}
           <h2 className="wiz-sub">{t.wizard.step5.qualityLabel}</h2>
           <div className="wiz-formats" role="group" aria-label={t.wizard.step5.qualityLabel}>
-            {QUALITIES.map((q) => {
+            {Object.keys(videoModel(w.videoModel).qualities).map((q) => {
               const k = filmQuality(w.videoModel, q);
               const on = filmQuality(w.videoModel, w.quality).id === q;
               return (
@@ -904,8 +908,8 @@ export default function Step5Style({ w, patch }) {
                   onClick={() => patch({ quality: q })}
                   aria-pressed={on}
                 >
-                  <span>{t.wizard.step5.qualityNames[q]}</span>
-                  <small>{k.resolution} · {k.creditsPerSecond} {t.wizard.creditsN(k.creditsPerSecond)}/s</small>
+                  <span>{k.resolution.toLowerCase()}</span>
+                  <small>{k.creditsPerSecond} {t.wizard.creditsN(k.creditsPerSecond)}/s</small>
                 </button>
               );
             })}
