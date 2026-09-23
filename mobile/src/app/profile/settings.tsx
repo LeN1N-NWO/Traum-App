@@ -5,7 +5,7 @@ import { SymbolView } from "expo-symbols";
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Glass } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
-import { logout, restoreSession, useAccountEmail } from "@/lib/auth";
+import { logout, restoreSession, useAccount } from "@/lib/auth";
 import { canLock, isLockEnabled, setLockEnabled, unlock } from "@/lib/privacy-lock";
 import { colors, TAB_INSET } from "@/theme";
 
@@ -21,7 +21,7 @@ export default function SettingsScreen() {
   /* Das Konto (Hannis Backend): angemeldet als … / Abmelden. Abmelden
      macht beides — Token bei Supabase ungültig UND vom Gerät (lib/auth.ts).
      Anmelden geht heute nur im Onboarding; hier steht der Stand. */
-  const email = useAccountEmail();
+  const account = useAccount();
   useEffect(() => { restoreSession().catch(() => {}); }, []);
 
   /* Face-ID-Schalter (22.09.2026): Die Marke liegt im Schlüsselbund
@@ -65,8 +65,8 @@ export default function SettingsScreen() {
       <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         {S ? (
           <>
-            {email
-              ? row(S.account, `${S.accountSignedIn} ${email}`, S.signOut, () => { logout().catch(() => {}); })
+            {account
+              ? row(S.account, account.email ? `${S.accountSignedIn} ${account.email}` : S.accountSignedInNoEmail, S.signOut, () => { logout().catch(() => {}); })
               : row(S.account, S.accountNone, null, () => {})}
             {/* Erinnerungen (13.09.2026) — ganz oben unter dem Konto: der Grund, morgens zu öffnen. */}
             {data?.reminders ? row(data.reminders.labels.title, data.reminders.labels.settingsHint, null, () => router.push("/profile/reminders")) : null}

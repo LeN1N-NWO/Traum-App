@@ -231,7 +231,7 @@ function snapshot() {
     settingsPage: {
       voiceSetting: t.profile.voiceSetting, voiceSettingHint: t.profile.voiceSettingHint,
       withdrawConsent: t.profile.withdrawConsent, withdrawConsentHint: t.profile.withdrawConsentHint, done: t.profile.done,
-      account: t.profile.account, accountNone: t.profile.accountNone, accountSignedIn: t.profile.accountSignedIn, signIn: t.profile.signIn, signOut: t.profile.signOut,
+      account: t.profile.account, accountNone: t.profile.accountNone, accountSignedIn: t.profile.accountSignedIn, accountSignedInNoEmail: t.profile.accountSignedInNoEmail, signIn: t.profile.signIn, signOut: t.profile.signOut,
       voice: isVoice(s.voice) ? s.voice : DEFAULT_VOICE,
       voices: VOICES.map((v) => ({ id: v.id, trait: t.voice.traits[v.trait] || v.trait })),
       /* Face-ID-Schalter und Sprachwahl (22.09.2026). Die Sprachnamen
@@ -417,7 +417,7 @@ function snapshot() {
     ...Object.fromEntries(["skip", "next", "back", "introKicker", "introText", "introCta", "featuresTitle",
       "askTitle", "askText", "askMic", "askMicWhy", "askPhotos", "askPhotosWhy", "askGranted", "askDenied", "askGo",
       "sleepTitle", "sleepAsleep", "sleepNote", "doneTitle", "doneText", "doneCta",
-      "accountTitle", "accountText", "accountEmail", "accountPassword", "accountCta", "accountLater", "accountSignedIn",
+      "accountTitle", "accountText", "accountEmail", "accountPassword", "accountCta", "accountLater", "accountSignedIn", "accountSignedInNoEmail",
       "accountWrong", "accountBusy", "accountUnavailable", "accountOffline", "accountApple"].map((k) => [k, onb[k]])),
     features: onb.features, showcase: onb.showcase, featuresLede: onb.featuresLede, proof: onb.proof, sleepLegend: onb.sleepLegend,
     mascotTitle: onb.mascotTitle, mascotText: onb.mascotText, mascotSoon: onb.mascotSoon,

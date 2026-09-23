@@ -3,6 +3,203 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-23 00:20 — Hanni — Branch `session/2026-09-15-hanni-apple-signin` (PR #51) — Review: neun von zehn Befunden behoben
+
+**Commits:** Fix-Commit dieses Eintrags.
+
+**Anlass:** Hanni ließ den ganzen PR noch einmal kritisch prüfen (Code-Review
+auf hoher Stufe, zehn Befunde). Behoben alle außer dem Apple-Knopf.
+
+**Behoben:**
+- ⚠⚠ **`/api/auth/apple` lief ohne die Anmeldebremse.** Der Gatekeeper
+  ordnete nur `/login` und `/refresh` der Klasse „auth" (10/min) zu; Apple
+  fiel in die Voreinstellung „generate" — doppelt so viele Versuche und
+  derselbe Topf wie bezahlte Renders. Jetzt „auth", mit Test.
+- **„Anbieter abgeschaltet → 503" gilt jetzt für jeden Anmeldeweg** (in
+  `authCall` statt als Sonderfall in `appleLogin`); ein neuer Test belegt
+  es für den Passwort-Weg.
+- **„Angemeldet" hängt an der Sitzung, nicht mehr an der E-Mail.**
+  `useAccount()` statt `useAccountEmail()`, die Nutzer-ID wird mitgespeichert,
+  neuer Text „Signed in" / „Angemeldet" für Konten ohne Adresse (en/de,
+  Brücke, Typen). Damit dürfte „Allow users without an email" in Supabase an.
+- **Unbewachtes `res.json()`**: Eine HTML-Antwort ließ den Passwort-Knopf für
+  immer drehen. Jetzt abgefangen; beide Wege laufen über ein gemeinsames
+  `signIn()` mit `finally`.
+- Apple-Knopf springt nicht mehr nach (startet auf iOS sichtbar); der
+  E-Mail-Rückfall von Apple greift jetzt wirklich; meine deutschen
+  Kommentare in englischen Dateien sind englisch (AGENTS.md).
+- **STAND** nennt die Konto-Details nicht mehr doppelt, sondern verweist auf
+  die Konto-Notiz. **Anton ist in App Store Connect bewusst Admin** —
+  Hannis Entscheidung, Ausnahme von Least Privilege; signieren darf er
+  trotzdem nicht (das hängt am Team).
+
+**Offen gelassen:** der selbst gezeichnete Apple-Knopf (Ablehnungsrisiko im
+App Review, STAND „Nächste Schritte" 4) — braucht Hannis Entscheidung zur Optik.
+
+**Was der Nächste wissen muss:**
+- `server.js`: nur ein Kommentar übersetzt, zeilenweise geprüft (5/6
+  Kommentar, 0/0 Code). Den älteren deutschen Kommentarblock darüber habe ich
+  nicht übersetzt — er stammt nicht aus diesem PR.
+- Prüfungen: 648 Tests grün (`cd src && bun test`), `tsc` Exit 0,
+  `expo lint` 0 Fehler (52 Warnungen wie vorher), `vite build` grün,
+  i18n-Form grün.
+
+## 2026-09-23 00:07 — Hanni — Branch `session/2026-09-15-hanni-apple-signin` (PR #51) — „Mit Apple anmelden" läuft auf dem iPhone, Sitzung abgeschlossen
+
+**Commits:** `5d68da9` Bundle-ID `com.dreamrushes.app` · `6e21bc6` wer
+signieren darf · `0e3f1eb` Supabase wieder da · Doku-Commit dieses Eintrags.
+
+**Ergebnis:** Auf Hannis iPhone 15 geprüft — mit Apple anmelden, App neu
+starten (bleibt angemeldet), abmelden und wieder anmelden (kein zweiter
+Nutzer in Supabase). Server- und Metro-Log ohne Ablehnung, ohne Fehler.
+Schritt 1 der Codes/Einladungen-Übergabe ist damit erledigt.
+
+**Was dazu nötig war:**
+- **Bundle-ID gewechselt** auf `com.dreamrushes.app`: `app.dreamrushes`
+  lag in Antons Gratis-Team. Antons Gegenmaßnahme (eigene ID für seinen
+  Gratis-Bau) schließt die Schleife; ob die alte ID je frei würde, ist nicht
+  belegt (Forum: nur der Developer Support hilft verlässlich).
+- **Supabase** war pausiert (Free-Tier, eine Woche) → Hanni hat es
+  wiederhergestellt, Apple eingeschaltet. Beleg per Sonde: vorher
+  `provider_disabled`, danach `Bad ID token`.
+- **Apple-Konto:** App Store Connect-Eintrag angelegt (SKU
+  `dreamrushes-ios`, Vollzugriff). Einzelperson-Konto → nur Hanni kann
+  signieren (Apple, bestätigt).
+- **Bauen auf Hannis Mac zum ersten Mal:** CocoaPods per Homebrew,
+  Prebuild einzeln statt `bun run prebuild:ios` (Antons Pfade), mit
+  `DEVELOPER_DIR` statt `sudo`, `pod` nur mit UTF-8. Rezept in STAND.
+  Mit dem bezahlten Team geht der Prebuild — das Push-Entitlement war nur
+  fürs Gratis-Team ein Hindernis.
+
+**⚠⚠ Drei Fallen, alle heute gesehen:**
+1. **„No script URL provided"** beim ersten Start: Die App fragte Metro an,
+   bevor iOS das lokale Netzwerk erlaubt hatte. Neustart der App löst es.
+   Ich habe vorher eine halbe Stunde das Netz verdächtigt (Firewall,
+   WLAN-Isolation) — auf Grundlage eines Tests, der nicht fehlschlagen
+   konnte: `curl` vom Mac an seine eigene WLAN-Adresse geht immer durch,
+   auch an der Firewall vorbei. **Erreichbarkeit fürs iPhone nur vom iPhone
+   aus prüfen.**
+2. **`bun test` endet lautlos mit Exit 1**, sobald `mobile/ios` existiert —
+   nur die Kopfzeile, kein Test, kein Fehlertext. Die Tests sind grün
+   (`cd src && bun test` → 646/646); die Dateisuche steigt in den Pods aus.
+   `bun test src` hilft nicht, „src" ist nur ein Filter. Vorschlag
+   `bunfig.toml` mit `[test] root = "./src"` — **nicht gebaut**, liegt
+   außerhalb dieser Sitzung, mit Anton abstimmen.
+3. **Xcodes „Update to recommended settings"** hätte User Script
+   Sandboxing eingeschaltet — im Projekt an 240 Stellen bewusst aus.
+   Abgelehnt.
+
+**Was der Nächste wissen muss:**
+- `mobile/ios`, `mobile/node_modules`, `mobile/.env` (WLAN-IP
+  `192.168.2.112`) liegen jetzt in Hannis Checkout — alle git-ignoriert.
+- Ein TestFlight-Bau ist ein **Release**-Bau. Antons Release-Absturz vom
+  18.09. (Xcode 26.3) ist auf Hannis Xcode 26.6 ungeprüft.
+- Prüfungen: 646 Tests grün (über `src/`), `tsc` Exit 0, `expo lint`
+  0 Fehler.
+
+## 2026-09-22 22:47 — Hanni — Branch `session/2026-09-15-hanni-apple-signin` (PR #51, Entwurf) — Apple-Portal eingerichtet, drei Befunde
+
+**Commits:** Merge von `main` (PR #52 herein) · Doku-Commit dieses Eintrags.
+
+**Anlass:** Hanni richtet im Apple-Portal die Capability „Sign In with
+Apple" ein — der offene Schritt aus PR #51.
+
+**Drei Befunde:**
+1. ⚠⚠ **Das Supabase-Projekt ist weg oder pausiert.**
+   `qinkvqmdtwjvygpgzwau.supabase.co` löst nicht auf (`ENOTFOUND`), der
+   Pooler meldet `tenant/user … not found`. Gegenprobe: `supabase.com`,
+   `api.fal.ai`, `appleid.apple.com` sind erreichbar — es liegt also am
+   Projekt, nicht am Netz. Letzter Zugriff 15.09., heute 22.09.: passt zur
+   Pause von Free-Tier-Projekten. → „Restore project" im Dashboard.
+2. ⚠ **`app.dreamrushes` ist „not available"** beim Speichern der App-ID.
+   Vermutlich hat Xcode sie bei Antons iPhone-Bau am 18.09. in seinem
+   kostenlosen Personal Team registriert. Unbestätigt; `app.json` bleibt
+   unberührt, bis Hanni und Anton entschieden haben.
+3. **Apple-Konto läuft vorerst als Einzelperson** (Hannis Entscheidung —
+   die UG dauert). Notiz mit Wegen, Falle und Quellen:
+   `docs/plans/2026-09-22-apple-konto-einzelperson-organisation.md`;
+   Verweis in Antons Codes/Einladungen-Übergabe als Nachtrag.
+
+**⚠ Richtigstellung, die ich selbst im Chat zuerst falsch gesagt habe:**
+Apple **kann** eine Einzelperson-Mitgliedschaft auf Organisation
+umstellen — per Antrag, mit D-U-N-S und Rechtsprüfung. Ich hatte zuerst
+behauptet, es gehe nur über Neueinschreibung plus App-Transfer. Das ist nur
+der Rückfall. Ungeklärt bleibt, ob bei der Umstellung die Team-ID bleibt;
+davon hängt ab, ob alle Apple-Anmeldungen migriert werden müssen. Apples
+Doku sagt es nicht → im Antrag fragen.
+
+**Am Doku belegt statt erinnert:** Transfer braucht eine im Store
+veröffentlichte Version; gleiche In-App-Produkt-IDs im Ziel blockieren
+ihn; Apple-Kennungen gelten pro Team, `transfer_sub` 60 Tage; auch
+„E-Mail verbergen"-Adressen wechseln mit dem Team.
+
+**Data Protection:** im Portal NICHT anhaken — dort ist „Complete
+Protection" vorausgewählt, und die App nimmt bei gesperrtem Gerät Ton auf.
+
+**Was der Nächste wissen muss:**
+- `main` kam per **Merge** herein, nicht per Rebase — der Branch ist
+  gepusht, ein Force-Push wäre verboten. `STAND.md` von Hand gelöst: meine
+  wörtliche Kopie des 14.09.-Blocks ist raus, Antons Verdichtung bleibt.
+- Der Union-Merge hat meinen Eintrag vom 15.09. 22:30 **über** Antons
+  Einträge vom 17./18.09. gesetzt. Nicht verschoben (alte Einträge bleiben
+  unangetastet) — die Reihenfolge unten ist deshalb dort nicht
+  chronologisch.
+
+## 2026-09-15 22:30 — Hanni — Branch `session/2026-09-15-hanni-apple-signin` (PR #51, Entwurf) — Mit Apple anmelden
+
+**Commits:** `daf9b57` Eröffnung · `d8934f3` Sign in with Apple ·
+Doku-Commit dieses Eintrags.
+
+**Warum:** Schritt 1 aus Antons Übergabe
+`docs/uebergabe/2026-09-14-hanni-codes-einladungen.md`. Offer Codes und
+Einladungen brauchen Konten, die ohne mich entstehen — heute legt sie nur
+Hanni von Hand in Supabase an, und einer Prämie gehört dann niemand.
+
+**Gebaut:**
+- `appleLogin()` in `src/lib/auth.js` — tauscht Apples Identity-Token bei
+  Supabase gegen eine Sitzung (`grant_type=id_token`). Danach ist der Weg
+  nicht mehr zu erkennen: `verifyAccessToken()` blieb unangetastet.
+- `POST /api/auth/apple` in `server.js`, an genau der Stelle, die der
+  Kommentar dort seit dem 12.09. dafür freigehalten hatte. Diff: 30 Zeilen
+  hinzu, 8 entfernt, in drei Kategorien (Import 1/1, Kommentar 10/7,
+  Endpunkt 19/0) — die Summe geht auf, die Prompt-Kette ist unberührt.
+- App: `expo-apple-authentication` + `expo-crypto`, Plugin-Eintrag in
+  `app.json` (setzt das Entitlement beim Prebuild selbst, kein Handgriff
+  an der `.entitlements`). Der stumme Platzhalter im Onboarding ist ein
+  echter Knopf; auf Android/Web erscheint er gar nicht.
+- `loginWithApple()` in `mobile/src/lib/auth.ts`; der gemeinsame Schluss
+  beider Wege (speichern, melden) liegt jetzt in `completeLogin()`.
+
+**⚠⚠ Was der Nächste wissen muss — zwei Muster waren falsch, beide erst am
+ECHTEN Supabase aufgefallen, keines wäre gegen einen Mock aufgefallen:**
+1. Ein kaputter Token antwortet `validation_failed: Unable to detect
+   issuer in ID token for Apple provider`. Das Wort „provider" steht also
+   auch dort, wo gar kein Schalter aus ist — mein erstes Muster machte
+   daraus „Apple ist abgeschaltet" und hätte jeden abgelehnten Token an
+   den falschen Ort geschickt.
+2. Der wirklich abgeschaltete Anbieter antwortet `provider_disabled` mit
+   `Provider (issuer "https://appleid.apple.com") is not enabled` — der
+   Issuer steht MITTEN im Satz. Ein Vergleich auf „provider is not
+   enabled" geht daran vorbei, also hätte der 503-Zweig nie gegriffen und
+   Hanni bei ausgeschaltetem Schalter „Invalid login credentials" gelesen.
+   **Jetzt wird der Fehlercode geprüft, nicht die Prosa.**
+   Beide Fälle sind am echten Supabase belegt (503 mit Hinweis auf den
+   Schalter, bzw. 401). Um Fall 2 überhaupt zu sehen, braucht es ein
+   formal gültiges Apple-JWT (Issuer `https://appleid.apple.com`) mit
+   falscher Signatur — vorher prüft GoTrue den Anbieter gar nicht erst.
+- `cause` trägt jetzt zusätzlich Supabases `msg`/`error_description`.
+  `validation_failed` allein sagt nicht, was los war. Nur für den Log.
+- **`mobile/node_modules` und `mobile/ios` fehlten in diesem Checkout** —
+  `bun install` in `mobile/` holt die Pakete; der native Ordner entsteht
+  mit `bun run prebuild:ios` neu.
+
+**Noch offen (beides nicht von hier aus machbar):** Capability „Sign In
+with Apple" für `app.dreamrushes` im Apple Developer Portal, und Apple als
+Provider in Supabase Studio mit `app.dreamrushes` als Client-ID. Danach
+der echte Knopf am Gerät — bis dahin ist die App-Seite ungeprüft.
+
+**Prüfungen:** 646 Tests grün (638 + 8 neue), `vite build` grün, `tsc`
+sauber, `expo lint` 0 Fehler (52 Warnungen, alle in fremdem Altcode).
 ## 2026-09-18 07:40 — Anton — Branch `session/2026-09-17-anton` (PR #52, Entwurf) — iPhone-Release-Absturz gefunden und behoben (alles lokal, kein Repo-Code)
 
 **Commits:** nur dieser Doku-Eintrag — der ganze Fix liegt in git-ignorierten

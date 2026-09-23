@@ -130,5 +130,17 @@ lohnt Betrug kaum; App Attest erst vor dem öffentlichen Launch.
 3. **Offer Codes** auf `credits.starter`.
 4. **Einladungen** im ersten Update nach dem Launch.
 
+> **Nachtrag 22.09. (Hanni):** Schritt 1 ist gebaut (PR #51), aber das
+> Apple-Konto läuft vorerst auf Hanni als **Einzelperson** — die UG kommt
+> später. Apples Nutzerkennungen gelten pro Team; wechselt beim Umzug auf die
+> UG das Team, bekommt jeder Apple-Nutzer eine neue Kennung, und Konten mit
+> Guthaben und Einladungen hingen am alten. **Deshalb gehört der Umzug vor
+> die ersten echten Käufe und vor die Einladungen** — Details, Wege und die
+> offene Frage an Apple in
+> `docs/plans/2026-09-22-apple-konto-einzelperson-organisation.md`.
+> ⚠ Für Schritt 3: In der UG vorab keine In-App-Produkte mit denselben IDs
+> anlegen (z. B. `credits.starter`) — gleiche Produkt-IDs im Ziel-Account
+> blockieren einen App-Transfer.
+
 ## Was Anton noch entscheidet
 - Menge des Starter-Codes (Vorschlag 22 Credits).

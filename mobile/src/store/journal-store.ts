@@ -41,7 +41,7 @@ export type ProfileData = {
 export type LegalDoc = { title: string; sections: { h: string; p: string }[] };
 export type SettingsData = {
   voiceSetting: string; voiceSettingHint: string; withdrawConsent: string; withdrawConsentHint: string; done: string;
-  account: string; accountNone: string; accountSignedIn: string; signIn: string; signOut: string;
+  account: string; accountNone: string; accountSignedIn: string; accountSignedInNoEmail: string; signIn: string; signOut: string;
   voice: string; voices: { id: string; trait: string }[]; pickTitle: string; pickHint: string; pickGo: string; cancel: string; sampleBase: string;
   privacy: { title: string; hint: string; noBio: string; unlock: string; locked: string };
   languageSetting: string; languageSettingHint: string; languages: { id: string; label: string }[];
@@ -85,7 +85,7 @@ export type OnboardData = {
   askTitle: string; askText: string; askMic: string; askMicWhy: string; askPhotos: string; askPhotosWhy: string; askGranted: string; askDenied: string; askGo: string;
   sleepTitle: string; sleepAsleep: string; sleepNote: string; sleepYears: (y: number) => string; sleepDream: (y: number) => string;
   doneTitle: string; doneText: string; doneCta: string;
-  accountTitle: string; accountText: string; accountEmail: string; accountPassword: string; accountCta: string; accountLater: string; accountSignedIn: string;
+  accountTitle: string; accountText: string; accountEmail: string; accountPassword: string; accountCta: string; accountLater: string; accountSignedIn: string; accountSignedInNoEmail: string;
   accountWrong: string; accountBusy: string; accountUnavailable: string; accountOffline: string; accountApple: string;
   formName: string; formNamePlaceholder: string; formGoal: string; formRecall: string; formLucid: string; formSleep: string; formTime: string;
   formThemes: string; formThemesPlaceholder: string;

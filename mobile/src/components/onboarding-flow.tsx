@@ -1,3 +1,5 @@
+import * as AppleAuthentication from "expo-apple-authentication";
+import * as Crypto from "expo-crypto";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
@@ -7,14 +9,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SymbolView, type SFSymbol } from "expo-symbols";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming, type SharedValue } from "react-native-reanimated";
 import Svg, { Circle, G } from "react-native-svg";
 import { Clip } from "@/components/preset-tile";
 import { clipSource } from "@/lib/style-clips";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
-import { login, useAccountEmail, type LoginFailure } from "@/lib/auth";
+import { login, loginWithApple, useAccount, type LoginFailure, type LoginResult } from "@/lib/auth";
 import type { OnboardData } from "@/store/journal-store";
 import { colors, fonts, radius } from "@/theme";
 
@@ -399,33 +401,70 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
    Konto ist die Sicherung, nicht die Bedingung.
    Die Token gehen in den Schlüsselbund (lib/auth.ts), nie in den Zustand. */
 function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
-  const signedIn = useAccountEmail();
+  const account = useAccount();
   const [mail, setMail] = useState("");
   const [pw, setPw] = useState("");
   const [busy, setBusy] = useState(false);
   const [fail, setFail] = useState<LoginFailure | null>(null);
+  /* No button on Android or the web: Apple's sheet is missing there, and a
+     button that cannot open anything is worse than none. Starts true on iOS
+     (available from iOS 13 on) so the layout does not jump when the check lands. */
+  const [appleReady, setAppleReady] = useState(Platform.OS === "ios");
+  useEffect(() => { AppleAuthentication.isAvailableAsync().then(setAppleReady).catch(() => setAppleReady(false)); }, []);
   const pwRef = useRef<TextInput>(null);
   const ready = /\S+@\S+\.\S+/.test(mail.trim()) && pw.length >= 6 && !busy;
 
-  async function go() {
-    if (!ready) return;
+  /* Both ways in end here. `busy` is released in `finally`, so no throw can
+     leave the form spinning for good. `null` means the person cancelled. */
+  async function signIn(attempt: () => Promise<LoginResult | null>) {
     setBusy(true); setFail(null);
-    const r = await login(mail, pw);
-    setBusy(false);
-    if (r.ok) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setPw(""); }
-    else { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); setFail(r.why); }
+    try {
+      const r = await attempt();
+      if (!r) return;
+      if (r.ok) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setPw(""); }
+      else { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); setFail(r.why); }
+    } catch {
+      setFail("unavailable");
+    } finally {
+      setBusy(false);
+    }
   }
+
+  const go = () => { if (ready) signIn(() => login(mail, pw)); };
+
+  /* Sign in with Apple needs no account beforehand — Apple has vouched for the
+     person, Supabase creates them if they are new.
+     ⚠ Apple gets the HASH of the nonce, our server the raw value: Supabase
+     hashes it itself and compares. Two different values on purpose — see
+     lib/auth.ts. */
+  const goApple = () => signIn(async (): Promise<LoginResult | null> => {
+    const nonce = [...Crypto.getRandomBytes(32)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, nonce),
+      });
+      if (!credential.identityToken) return { ok: false, why: "unavailable" };
+      return loginWithApple(credential.identityToken, nonce, credential.email);
+    } catch (e) {
+      if ((e as { code?: string })?.code === "ERR_REQUEST_CANCELED") return null;
+      throw e;
+    }
+  });
   const reason: Record<LoginFailure, string> = { wrong: O.accountWrong, busy: O.accountBusy, unavailable: O.accountUnavailable, offline: O.accountOffline };
 
   return (
     <Shell insets={insets} step={step} total={total} title={O.accountTitle} lede={O.accountText} onBack={onBack}>
-      {signedIn ? (
+      {account ? (
         <Animated.View entering={FadeIn.duration(260)} style={{ width: "100%", gap: 14 }}>
           <Glass style={styles.signedIn}>
             <SymbolView name="checkmark.seal.fill" size={26} tintColor={colors.ok} />
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.cardText}>{O.accountSignedIn}</Text>
-              <Text style={styles.cardTitle} numberOfLines={1}>{signedIn}</Text>
+              <Text style={styles.cardText}>{account.email ? O.accountSignedIn : O.accountSignedInNoEmail}</Text>
+              {account.email ? <Text style={styles.cardTitle} numberOfLines={1}>{account.email}</Text> : null}
             </View>
           </Glass>
           <PrimaryButton label={O.next} heavy onPress={onNext} style={{ flex: 0 }} />
@@ -460,12 +499,19 @@ function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; i
               <PrimaryButton label={O.accountCta} heavy onPress={go} disabled={!ready} style={{ flex: 0 }} />
             )}
           </View>
-          {/* Der Platz für den zweiten Knopf (Sign in with Apple, ADR-0005) —
-              heute noch stumm, damit die Anordnung später nicht springt. */}
-          <View style={[styles.apple, { opacity: 0.45 }]} pointerEvents="none">
-            <SymbolView name="apple.logo" size={16} tintColor={colors.text} />
-            <Text style={styles.appleText}>{O.accountApple}</Text>
-          </View>
+          {/* The second way in (since 15.09.2026): Apple's own sheet. The only
+              way an account COMES INTO BEING — without it, nobody could own an
+              invitation reward. */}
+          {appleReady ? (
+            <Pressable
+              style={({ pressed }) => [styles.apple, { opacity: busy ? 0.45 : pressed ? 0.7 : 1 }]}
+              onPress={() => { Haptics.selectionAsync(); goApple(); }}
+              disabled={busy}
+            >
+              <SymbolView name="apple.logo" size={16} tintColor={colors.text} />
+              <Text style={styles.appleText}>{O.accountApple}</Text>
+            </Pressable>
+          ) : null}
           <Pressable onPress={() => { Haptics.selectionAsync(); onNext(); }} hitSlop={10} disabled={busy} style={{ alignSelf: "center", paddingVertical: 10 }}>
             <Text style={styles.later}>{O.accountLater}</Text>
           </Pressable>

@@ -9,7 +9,7 @@ import { useSyncExternalStore } from "react";
  * ⚠ Die Token liegen im sicheren Speicher des Geräts (expo-secure-store,
  * iOS-Schlüsselbund), nie in AsyncStorage, nie im Zustand der Brücke: Wer
  * das refresh_token hat, IST der Nutzer, bis es widerrufen wird. Im
- * Arbeitsspeicher hält dieses Modul nur, wer angemeldet ist (E-Mail), für
+ * Arbeitsspeicher hält dieses Modul nur, wer angemeldet ist (ID, E-Mail), für
  * die Oberfläche.
  *
  * Ablauf bei einem Aufruf mit Konto (`authFetch`): Token mitschicken; bei
@@ -22,40 +22,47 @@ const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "http://localhost:8100";
 const KEY_ACCESS = "dreamrushes.access";
 const KEY_REFRESH = "dreamrushes.refresh";
 const KEY_EMAIL = "dreamrushes.email";
+const KEY_USER = "dreamrushes.user";
 
-export type AuthUser = { id: string; email: string };
-type Session = { access_token: string; refresh_token: string; user?: AuthUser };
+export type AuthUser = { id: string; email: string | null };
+type Session = { access_token: string; refresh_token: string; user?: AuthUser | null };
 
 export type LoginFailure = "wrong" | "busy" | "unavailable" | "offline";
 export type LoginResult = { ok: true; user: AuthUser } | { ok: false; why: LoginFailure };
 
-/* Wer angemeldet ist, für die Oberfläche — beim Start aus dem Schlüsselbund
-   nachgelesen (`restoreSession`), danach im Speicher. */
-let email: string | null = null;
+/* Who is signed in, for the UI — read back from the keychain at start
+   (`restoreSession`), held in memory afterwards.
+   ⚠ Signed in means: a session exists. The e-mail is shown, never tested —
+   Sign in with Apple can create accounts without one, and keying on it put
+   such a person back on the sign-in screen after every start. */
+let account: AuthUser | null = null;
 let restored = false;
 const listeners = new Set<() => void>();
-function announce(next: string | null) { email = next; listeners.forEach((l) => l()); }
-export function useAccountEmail() {
-  return useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; }, () => email, () => email);
+function announce(next: AuthUser | null) { account = next; listeners.forEach((l) => l()); }
+export function useAccount() {
+  return useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; }, () => account, () => account);
 }
 
 export async function restoreSession() {
-  if (restored) return email;
+  if (restored) return account;
   restored = true;
-  const [access, saved] = await Promise.all([SecureStore.getItemAsync(KEY_ACCESS), SecureStore.getItemAsync(KEY_EMAIL)]);
-  announce(access && saved ? saved : null);
-  return email;
+  const [access, id, saved] = await Promise.all([KEY_ACCESS, KEY_USER, KEY_EMAIL].map((k) => SecureStore.getItemAsync(k)));
+  announce(access ? { id: id ?? "", email: saved } : null);
+  return account;
 }
 
-async function store(s: Session) {
+/* Only what is known gets written: a refresh answer without an e-mail must
+   not wipe the one saved at sign-in. */
+async function store(s: Session, user: AuthUser | null | undefined = s.user) {
   await Promise.all([
     SecureStore.setItemAsync(KEY_ACCESS, s.access_token),
     SecureStore.setItemAsync(KEY_REFRESH, s.refresh_token),
-    s.user?.email ? SecureStore.setItemAsync(KEY_EMAIL, s.user.email) : Promise.resolve(),
+    user?.id ? SecureStore.setItemAsync(KEY_USER, user.id) : Promise.resolve(),
+    user?.email ? SecureStore.setItemAsync(KEY_EMAIL, user.email) : Promise.resolve(),
   ]);
 }
 async function forget() {
-  await Promise.all([KEY_ACCESS, KEY_REFRESH, KEY_EMAIL].map((k) => SecureStore.deleteItemAsync(k).catch(() => {})));
+  await Promise.all([KEY_ACCESS, KEY_REFRESH, KEY_EMAIL, KEY_USER].map((k) => SecureStore.deleteItemAsync(k).catch(() => {})));
   announce(null);
 }
 
@@ -63,6 +70,21 @@ function failure(status: number): LoginFailure {
   if (status === 401) return "wrong";
   if (status === 429) return "busy";
   return "unavailable";          // 503 nicht eingerichtet, 5xx von Supabase, alles andere
+}
+
+/* The shared end of both ways in: check, keychain, tell the UI who is there.
+   The server's answer wins; `fallbackEmail` only fills an e-mail the server
+   does not carry. */
+async function completeLogin(res: Response, fallbackEmail: string | null): Promise<LoginResult> {
+  if (!res.ok) return { ok: false, why: failure(res.status) };
+  /* A proxy or captive portal can answer 200 with HTML. Unguarded, that threw
+     past the caller and left the sign-in form spinning for good. */
+  const s = (await res.json().catch(() => null)) as Session | null;
+  if (!s?.access_token || !s.refresh_token) return { ok: false, why: "unavailable" };
+  const user: AuthUser = { id: s.user?.id ?? "", email: s.user?.email || fallbackEmail || null };
+  await store(s, user);
+  announce(user);
+  return { ok: true, user };
 }
 
 export async function login(mail: string, password: string): Promise<LoginResult> {
@@ -75,13 +97,31 @@ export async function login(mail: string, password: string): Promise<LoginResult
   } catch {
     return { ok: false, why: "offline" };
   }
-  if (!res.ok) return { ok: false, why: failure(res.status) };
-  const s = (await res.json()) as Session;
-  if (!s.access_token || !s.refresh_token) return { ok: false, why: "unavailable" };
-  await store(s);
-  const user = s.user ?? { id: "", email: mail.trim() };
-  announce(user.email);
-  return { ok: true, user };
+  return completeLogin(res, mail.trim());
+}
+
+/* Sign in with Apple (15.09.2026). Unlike the password way, this creates an
+   account if there is none — Apple has already vouched for the person.
+ *
+ * ⚠ The `nonce` goes RAW to our server; Apple only saw its SHA-256. Supabase
+ *   hashes it itself and compares. Sending the hash "to be safe" hashes a hash,
+ *   and the failure reads like a rejected token — like Apple's fault.
+ *
+ * ⚠ Apple hands out `credential.email` ONLY on the very first authorisation
+ *   (and with "Hide My Email" it is a relay). So it is just the fallback:
+ *   Supabase keeps the address and returns it in `s.user` on every later
+ *   sign-in. */
+export async function loginWithApple(identityToken: string, nonce: string, appleEmail?: string | null): Promise<LoginResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/auth/apple`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ identityToken, nonce }),
+    });
+  } catch {
+    return { ok: false, why: "offline" };
+  }
+  return completeLogin(res, appleEmail ?? null);
 }
 
 /* Erneuern — EINMAL gleichzeitig. Gibt das neue Zugangstoken zurück oder

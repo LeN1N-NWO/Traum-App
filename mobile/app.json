@@ -9,7 +9,7 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "app.dreamrushes",
+      "bundleIdentifier": "com.dreamrushes.app",
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
@@ -43,7 +43,8 @@
           "imageWidth": 76
         }
       ],
-      "expo-quick-actions"
+      "expo-quick-actions",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,
