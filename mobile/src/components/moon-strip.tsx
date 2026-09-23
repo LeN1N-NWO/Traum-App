@@ -42,6 +42,20 @@ export function MoonStrip({ M }: { M: MoonData }) {
    dunkler Kreis geschoben wird; der Behälter beschneidet auf die Mondform.
    `waxing` entscheidet die Seite — auf der Nordhalbkugel leuchtet der
    zunehmende Mond rechts. */
+/* Die Mare-Flecken (Antons Befund 23.09., Vollmondwoche: „komplett weiß"):
+   Bei 90 %+ Beleuchtung ist die Scheibe auf 26 px von einem weißen Punkt
+   nicht zu unterscheiden — die Phase stimmte, die LESBARKEIT nicht. Drei
+   angedeutete Mare geben der leuchtenden Fläche in jeder Phase Struktur;
+   sie liegen UNTER dem Schatten und verschwinden mit ihm, wie am Himmel.
+   Positionen/Größen relativ zur Scheibe, Werte nach Augenmaß am echten
+   Mondgesicht (Mare Imbrium links oben, Serenitatis/Tranquillitatis
+   rechts, Nubium unten). */
+const MARE = [
+  { x: 0.22, y: 0.18, r: 0.30 },
+  { x: 0.55, y: 0.28, r: 0.22 },
+  { x: 0.34, y: 0.58, r: 0.20 },
+];
+
 export function Moon({ illum, waxing, size }: { illum: number; waxing: boolean; size: number }) {
   const k = Math.max(0, Math.min(1, illum));
   /* Der Schatten deckt bei Neumond die ganze Scheibe (Versatz 0) und liegt
@@ -51,6 +65,9 @@ export function Moon({ illum, waxing, size }: { illum: number; waxing: boolean; 
   return (
     <View style={[styles.disc, { width: size, height: size, borderRadius: size / 2 }]}>
       <View style={[StyleSheet.absoluteFill, { backgroundColor: "#e8eefc", borderRadius: size / 2 }]} />
+      {MARE.map((m, i) => (
+        <View key={i} style={{ position: "absolute", left: m.x * size, top: m.y * size, width: m.r * size, height: m.r * size, borderRadius: (m.r * size) / 2, backgroundColor: "rgba(96,112,148,0.28)" }} />
+      ))}
       <View style={{ position: "absolute", top: 0, left: shift, width: size, height: size, borderRadius: size / 2, backgroundColor: colors.bg }} />
     </View>
   );
