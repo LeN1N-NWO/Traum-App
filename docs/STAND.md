@@ -3,18 +3,36 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-23 nachmittags — Anton, `session/2026-09-22-anton`
-(PR #54, freigegeben, **Merge steht aus — nur auf Antons Wort**). Die App
-kann jetzt: **Face-ID-Schutz** für die ganze App (Schalter in den
-Einstellungen; Positivpfad nur am Gerät prüfbar), **Sprache nachträglich
-ändern** (de/en, Chips in den Einstellungen), **Klartext-Kacheln** auf dem
-Einwilligungs-Tor, **Konto-Löschung** (rote Zeile → `DELETE /api/account`
+**Stand:** 2026-09-23 abends — Anton, `session/2026-09-22-anton`
+(PR #54, **auf Antons Wort gemerged**). Die App kann jetzt: **Face-ID-Schutz**
+für die ganze App (Schalter in den Einstellungen; Positivpfad nur am Gerät
+prüfbar), **Sprache nachträglich ändern** (de/en, Chips in den
+Einstellungen), **Klartext-Kacheln** auf dem Einwilligungs-Tor,
+**Konto-Löschung** (rote Zeile → `DELETE /api/account`
 → `server_delete_account()`; ⚠ **Migration
 `supabase/migrations/20260923090000_account_delete.sql` muss Hanni erst im
 Dashboard ausführen**, bis dahin 503), Einstellungen als **Zahnrad** oben im
 Profil, **StoreKit-Kaufstrecke im Client** (echte Käufe, sobald Produkte in
 App Store Connect existieren; lokal testbar über
 `mobile/ios/DreamRushes.storekit` mit Xcode ▶).
+
+**Filme rendern seit 23.09. abends über H3 Max Turbo — zum halben Preis**
+(Antons Entscheid; Plan `docs/plans/2026-09-23-h3-max-turbo-weiche.md`):
+- Standard = `minimax/h3-max-turbo/image-to-video`, EIN-Bild-Modell:
+  die Besetzungs-Fotos wirken übers KEYFRAME (Turbo beginnt pixelgenau
+  damit — bezahlt gemessen). Preise: **480p 1 · 768p 2 · 1080p 3 Cr/s**
+  (1080p neu); Kino/Seedance unverändert 8/17, bewusst ohne 1080p.
+- Qualitätsknöpfe zeigen **Auflösung + Credits/s** aus der Modelltabelle
+  (Web und nativ); Kino trägt das Abzeichen „Beste Qualität"; Tempo
+  „Ein Fluss" heißt jetzt **„One-Take"**.
+- **Formatwahl 9:16/16:9/1:1 gilt für Filme** (Keyframe im Wunschformat,
+  Turbo folgt ihm; Seedance bekommt aspect_ratio, Schema-bestätigt).
+- Die neuen H3-Endpunkte VERLANGEN `prompt_expansion_mode` ("disabled");
+  Regie hat für H3 einen NEGATIVE-RULES-Block.
+- ⚠ **UNGEMESSEN: hält Turbo Gesichter über 15 s Bewegung?** Beim ersten
+  echten Foto-Film prüfen. Rückweg (teurere Max-R2V-Weiche): Commit
+  `0155f6c` + Plan. Ebenfalls offen: 16:9/1:1 einmal echt rendern.
+- H3 lokal auf Antons 5090: technisch ja, **Lizenz verbietet die EU** — nein.
 
 **App-Store-Vorbereitung:** Guide `docs/APP-STORE-EINREICHUNG.md`
 (Weg in 10 Schritten, Blocker B1–B8, Teil 2b StoreKit-Teststrategie,
@@ -36,9 +54,11 @@ Hannis expo-crypto). Gilt in beide Richtungen: unser PR #54 bringt
 `expo-local-authentication` und `expo-iap` mit.
 
 **Nächste Schritte:**
-1. **Anton testet gesammelt am iPhone** (Tabs, Face-ID an/aus + Positivpfad,
-   Sprachwechsel, Kacheln, Zahnrad, Konto-Löschung nach Hannis Migration);
-   auf sein Okay PR #54 mergen.
+1. **Anton testet gesammelt am iPhone** (aktueller Build ist drauf,
+   23.09. 19:20): Tabs, Face-ID an/aus + Positivpfad, Sprachwechsel,
+   Kacheln, Zahnrad, neuer „Wie lang"-Bildschirm (Klartext-Stufen,
+   Badge, One-Take), Konto-Löschung nach Hannis Migration — und der
+   **erste echte Turbo-Film mit Foto** (Identitätsfrage oben).
 2. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
    `server_grant()`; Sandbox-Belege ins Test-Ledger. Braucht Hannis
    ASC-Schlüssel.

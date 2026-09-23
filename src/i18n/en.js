@@ -968,7 +968,7 @@ export default {
         dreamflowInfo: "One unbroken take. Nothing is cut: the office turns into the lift, the lift into the cockpit, the sky into the ground. The whole dream in a single flow — dream logic as the form itself. Renders in the soft, glowing look, because a hard photoreal edge works against transitions.",
       },
       paceLabel: "Pace",
-      paceNames: { calm: "With cuts", fast: "Fast", flow: "One flow" },
+      paceNames: { calm: "With cuts", fast: "Fast", flow: "One-take" },
       paceHints: {
         calm: "Every scene, hard cuts — the length sets the pace",
         fast: "Two-second cuts, more scenes",

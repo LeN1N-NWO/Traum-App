@@ -923,7 +923,7 @@ export default {
         dreamflowInfo: "Eine einzige Einstellung. Nichts wird geschnitten: Das Büro wird zum Aufzug, der Aufzug zum Cockpit, der Himmel zum Boden. Der ganze Traum in einem Fluss — die Traumlogik als Form. Rendert im weichen, leuchtenden Look, weil eine harte fotoreale Kante gegen Übergänge arbeitet.",
       },
       paceLabel: "Tempo",
-      paceNames: { calm: "Mit Schnitten", fast: "Schnell", flow: "Ein Fluss" },
+      paceNames: { calm: "Mit Schnitten", fast: "Schnell", flow: "One-Take" },
       paceHints: {
         calm: "Jede Szene, harte Schnitte — die Länge macht das Tempo",
         fast: "Zwei-Sekunden-Schnitte, mehr Szenen",

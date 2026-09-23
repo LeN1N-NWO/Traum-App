@@ -3,6 +3,60 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-23 19:15 — Anton — Branch `session/2026-09-22-anton` (PR #54) — H3 Max Turbo, halbe Filmpreise, Formatwahl für Filme, Klartext-Qualitäten nativ
+
+**Commits:** `0155f6c` Turbo-Weiche (überholt) · `61600f2` Klartext-Stufen +
+1080p · `66319c0` Turbo-only + Formatwahl · `bc12227` native Qualitäts-UI +
+Badge · One-Take-Umbenennung + dieser Doku-Commit.
+
+**Antons Entscheide (Reihenfolge des Tages):**
+1. „Turbo verwenden, Ersparnis an die Kunden weitergeben" — aber erst
+   Referenzbilder TESTEN, „nicht alles für bare Münze nehmen".
+2. Nach dem Befund: „Ich will Max Turbo mit Bildern."
+3. „Einfach 480p, 720p, 1080p schreiben statt Verschleierung."
+4. Formatwahl „mach das mal" (9:16/16:9/1:1 für Filme).
+5. Badge „Beste Qualität" ans Kino-Modell; „Ein Fluss" → „One-Take".
+
+**Gemessen statt geglaubt** (fal-OpenAPI + zwei bezahlte Renders ~0,38 $,
+Plan `docs/plans/2026-09-23-h3-max-turbo-weiche.md`):
+- Turbo-Reference-to-Video existiert NICHT (404); Turbo-i2v nimmt EIN
+  Startbild und beginnt PIXELGENAU damit (Frosch-Test, Frame 0 = Input).
+- H3-Max-R2V (bis 9 Bilder) hielt die Identität; Data-URIs gehen überall.
+- Beide neuen Endpunkte: Pflichtfeld `prompt_expansion_mode` (das alte
+  enable_prompt_expansion gibt es nicht mehr), natives Audio ohne
+  Parameter, Seedance-2.5-Schema bestätigt 16:9/1:1.
+- H3-Gewichte sind offen, aber die Lizenz VERBIETET lokale Nutzung in
+  der EU — Antons 5090 ist rechtlich raus.
+
+**Gebaut:**
+- Standard = `minimax/h3-max-turbo/image-to-video`, Ein-Bild-Modell;
+  Fotos wirken übers Keyframe. Preise halbiert: 480p 1 · 768p 2 ·
+  **1080p (neu) 3 Cr/s**; Seedance bewusst ohne 1080p (42 Cr/s).
+- Qualitätsknöpfe zeigen Auflösung + Credits/s aus der MODELLTABELLE
+  (Web `Step5Style` UND nativ über die Brücke; `qualityNames` samt
+  i18n-Schlüsseln entfernt — ⚠ die Brücke hätte sonst rohe IDs gezeigt).
+- Formatwahl 9:16/16:9/**1:1 (neu)** wirkt jetzt auf FILME: Keyframe im
+  Wunschformat, Turbo folgt ihm; Seedance bekommt aspect_ratio gegen
+  gemessene `aspects`-Liste. Vorher war der Schalter beim Film Deko.
+- Regie: NEGATIVE-RULES-Block (`negatives` in der Tabelle, nur H3);
+  `directorMotion()` als Funktion.
+- Nativ (`length.tsx`): Stufen-Pills mit Preis, Badge „Beste Qualität"
+  am Kino (`badge` je Modell aus der Sprachdatei), Modellname ehrlich
+  „MiniMax H3 Max Turbo"; Tempo „Ein Fluss" → „One-Take" (en+de,
+  Übersetzungs-Stopp gilt).
+
+**Sim-verifiziert** (Release, iPhone 17 Pro): Lebendig 1/2/3 Cr/s,
+Kino 8/17, Badge sitzt, Preis live (12 s×1+1=13 · 10 s×8+1=81). Beide
+Stände per devicectl auf Antons iPhone. 648 Tests, tsc 0, Lint 0 Fehler.
+
+**Was der Nächste wissen muss:**
+- ⚠ UNGEMESSEN: hält Turbo Gesichter über 15 s, wenn sie nur im
+  Keyframe stecken? Beim ersten echten Foto-Film prüfen; Rückweg
+  (Max-R2V-Weiche) steht in `0155f6c` und im Plan.
+- Formatwahl 16:9/1:1 einmal echt rendern (bisher nur Schema-bestätigt).
+- Buchführung geklärt (Guide Teil 2c): Apple ist Merchant of Record,
+  Small Business Program 15 % → in Hannis Übergabe.
+
 ## 2026-09-23 14:45 — Anton — Branch `session/2026-09-22-anton` (PR #54) — Face-ID-Schutz, Sprachwechsel, Konto-Löschung, StoreKit-Client, App-Store-Guide + Preflight
 
 **Commits:** `b02af6f` Klartext-Kacheln · `455c41c` Einreichungs-101 ·
