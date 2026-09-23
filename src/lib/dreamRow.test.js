@@ -158,3 +158,12 @@ test("imageCount takes whole numbers only", () => {
   expect(toRow({ id: "e_1", imageCount: 2.5 }).image_count).toBe(null);
   expect(toRow({ id: "e_1", imageCount: "3" }).image_count).toBe(null);
 });
+
+/* Die Sprachaufnahme (23.09.): ein Pfad, genau einer, nie Daten. */
+test("the voice recording travels as one path, never as data", () => {
+  expect(safeMedia({ audio: ["/media/v.m4a", "/media/zweite.m4a"] }).audio).toEqual(["/media/v.m4a"]);
+  expect(safeMedia({ audio: ["data:audio/m4a;base64,AAAA"] }).audio).toBe(undefined);
+  expect("audio" in safeMedia({ bilder: [] })).toBe(false);
+  const traum = backupEntry({ id: "e_v", createdAt: "2026-09-23T06:00:00.000Z", text: "x", audio: { url: "/media/v.m4a" } });
+  expect(fromRow({ ...toRow(traum), created_at: new Date(traum.createdAt) }).medien.audio).toEqual(["/media/v.m4a"]);
+});

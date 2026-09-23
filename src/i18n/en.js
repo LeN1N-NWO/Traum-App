@@ -456,9 +456,9 @@ export default {
     privacyLocked: "Your dreams are locked.",
     /* Konto-Löschung in der App (Apple 5.1.1(v), Antons Ansage 23.09.2026). */
     deleteAccount: "Delete account",
-    deleteAccountHint: "Removes your account and its profile from our server. Dreams on this device stay.",
+    deleteAccountHint: "Removes your account, its profile and your backed-up dreams from our server. Dreams on this device stay.",
     deleteAccountConfirmTitle: "Delete your account?",
-    deleteAccountConfirmText: "This cannot be undone. Your account and its profile are removed from our server. Dreams saved on this device stay yours.",
+    deleteAccountConfirmText: "This cannot be undone. Your account, its profile and the dreams backed up with it are removed from our server. Dreams saved on this device stay yours.",
     deleteAccountGo: "Delete",
     deleteAccountDone: "Your account is deleted.",
     deleteAccountFailed: "That didn't work. Check your connection and try again.",
@@ -1145,7 +1145,7 @@ export default {
     facts: [
       { id: "ai", title: "AI-made", text: "Films and images come from AI, marked as such." },
       { id: "send", title: "Sent to create", text: "Dream text and photos go to AI services only to render." },
-      { id: "device", title: "Stays with you", text: "Your journal lives on this device." },
+      { id: "device", title: "Stays with you", text: "Your journal lives on this device — with an account, also in your private backup." },
       { id: "adult", title: "18+", text: "For adults only." },
     ],
     more: "Where does my data go?",

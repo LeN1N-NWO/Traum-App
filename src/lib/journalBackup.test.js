@@ -163,3 +163,15 @@ test("mergeShared ueberschreibt einen vorhandenen Film NIE", () => {
   const gesichert = [{ id: "e1", medien: { bilder: [], film: ["/media/fremd.mp4"] } }];
   expect(mergeShared(journal, gesichert)).toBe(null);
 });
+
+/* Konto-Sicherung (23.09.): die eigene Stimme reist als Pfad mit. */
+test("die Sprachaufnahme wird als Pfad gesichert und zurückgeholt", () => {
+  const e = { id: "e_voice", createdAt: "2026-09-23T06:00:00.000Z", text: "Ich flog.", audio: { url: "/media/1i6hqj1xbk9es.m4a" } };
+  const g = backupEntry(e);
+  expect(g.medien.audio).toEqual(["/media/1i6hqj1xbk9es.m4a"]);
+  expect(restoreEntry(g).audio).toEqual({ url: "/media/1i6hqj1xbk9es.m4a" });
+  // Ohne Aufnahme entsteht kein leeres Feld.
+  const ohne = backupEntry({ id: "e_still", createdAt: "2026-09-23T06:00:00.000Z", text: "Stille." });
+  expect("audio" in ohne.medien).toBe(false);
+  expect(restoreEntry(ohne).audio).toBe(undefined);
+});

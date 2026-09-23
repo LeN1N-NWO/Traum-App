@@ -410,9 +410,9 @@ export default {
     privacyLocked: "Deine Träume sind gesperrt.",
     /* Konto-Löschung (23.09.2026) — siehe en.js. */
     deleteAccount: "Konto löschen",
-    deleteAccountHint: "Entfernt dein Konto und sein Profil von unserem Server. Träume auf diesem Gerät bleiben.",
+    deleteAccountHint: "Entfernt dein Konto, sein Profil und deine gesicherten Träume von unserem Server. Träume auf diesem Gerät bleiben.",
     deleteAccountConfirmTitle: "Konto wirklich löschen?",
-    deleteAccountConfirmText: "Das lässt sich nicht rückgängig machen. Dein Konto und sein Profil werden von unserem Server entfernt. Träume auf diesem Gerät bleiben deine.",
+    deleteAccountConfirmText: "Das lässt sich nicht rückgängig machen. Dein Konto, sein Profil und die damit gesicherten Träume werden von unserem Server entfernt. Träume auf diesem Gerät bleiben deine.",
     deleteAccountGo: "Löschen",
     deleteAccountDone: "Dein Konto ist gelöscht.",
     deleteAccountFailed: "Das hat nicht geklappt. Prüf deine Verbindung und versuch es noch einmal.",
@@ -1076,7 +1076,7 @@ export default {
     facts: [
       { id: "ai", title: "KI-gemacht", text: "Filme und Bilder erzeugt eine KI — so gekennzeichnet." },
       { id: "send", title: "Nur zum Erzeugen", text: "Traumtext und Fotos gehen nur fürs Rendern an KI-Dienste." },
-      { id: "device", title: "Bleibt bei dir", text: "Dein Tagebuch liegt auf diesem Gerät." },
+      { id: "device", title: "Bleibt bei dir", text: "Dein Tagebuch liegt auf diesem Gerät — mit Konto zusätzlich in deiner privaten Sicherung." },
       { id: "adult", title: "18+", text: "Nur für Erwachsene." },
     ],
     more: "Wohin gehen meine Daten?",

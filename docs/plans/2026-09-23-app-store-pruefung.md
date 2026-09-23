@@ -43,7 +43,7 @@ Code, sondern aus diesem Abstand.
 | N10 | **Der Prüfer braucht Credits**, um einen Film zu sehen; mit B4a gibt es keine Gratis-Credits mehr. Entweder Sandbox-Kauf (IAP müssen dafür mit der ersten Version eingereicht und „vollständig, sichtbar, funktionsfähig" sein) oder ein Willkommensguthaben. | 2.1(b) | Entscheidung |
 | N11 | Face-ID-Schalter im Simulator ohne Reaktion; Fehlschlag in jedem Fall stumm. | 2.1 | `mobile/src/app/profile/settings.tsx:40` |
 | N12 | „Mit Apple anmelden"-Knopf ist selbst gezeichnet (Glas) statt Apples Knopf. | 4.8 / HIG | Onboarding |
-| N13 | **Der Konto-Schritt verspricht, was es nicht gibt:** „Mit einem Konto bleiben Träume, Filme und dein Profil erhalten, wenn das Handy wechselt" — Träume und Filme werden bisher nicht mit dem Konto gesichert (kein Client ruft `/api/dreams`). Entweder den Satz auf das Profil beschränken oder die Sicherung bauen. | 2.3.1 | `de.js:1216`, `en.js:1298` |
+| N13 | ✅ (23.09., Konto-Sicherung gebaut, Neues-Handy-Test im Simulator bestanden: App gelöscht, neu installiert → Traum samt Film wieder da) **Der Konto-Schritt versprach, was es nicht gab:** „Mit einem Konto bleiben Träume, Filme und dein Profil erhalten, wenn das Handy wechselt" — Träume und Filme werden bisher nicht mit dem Konto gesichert (kein Client ruft `/api/dreams`). Entweder den Satz auf das Profil beschränken oder die Sicherung bauen. | 2.3.1 | `de.js:1216`, `en.js:1298` |
 
 ## Entscheidungen, die zuerst fallen müssen (Phase 0)
 
@@ -80,7 +80,13 @@ Kein Risiko, keine Abhängigkeit. **Claude mit Hanni.**
   folgen mit der Sammelübersetzung). **Befund 9 bewusst NICHT umgesetzt:**
   Die App erzeugt weiter Bilder (Startbild jedes Films, gezeichnete
   Besetzung) — die Einwilligung muss „images" nennen.
-- N13 (Konto-Versprechen) — Entscheidung Hanni/Anton.
+- ✅ N13: Träume-Sicherung mit dem Konto (`mobile/src/lib/dream-sync.ts`,
+  `components/dream-sync-layer.tsx`, Brücke `syncExport`/`syncImport`).
+  Holen vor Schicken, nie überschreiben/löschen beim Holen; Server nimmt
+  keinen älteren Stand über einen neueren; Sprachaufnahme als Pfad dabei;
+  nur mit Konto UND gültiger Einwilligung. ⚠ Grenze (Hanni 23.09.): Löschen
+  auf Gerät A kann von Gerät B zurückkommen — Lösch-Merkliste auf dem Server
+  vor Mehrgeräte-Nutzung/Android nachrüsten.
 - ✅ B5, B7 und `NSFaceIDUsageDescription` in `mobile/app.json`
   (`ios.infoPlist`, `ios.config.usesNonExemptEncryption`, `locales` →
   `mobile/locales/{en,de}.json`). Nach Prebuild belegt: Flag gesetzt,

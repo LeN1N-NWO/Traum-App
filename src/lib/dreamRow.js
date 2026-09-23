@@ -71,6 +71,9 @@ export function safeMedia(medien) {
   const out = { bilder: liste(m.bilder), film: liste(m.film) };
   const szenen = liste(m.szenen);
   if (szenen.length) out.szenen = szenen;
+  /* Die Sprachaufnahme zum Traum (23.09.): ebenfalls nur ein Pfad. */
+  const audio = liste(m.audio).slice(0, 1);
+  if (audio.length) out.audio = audio;
   return out;
 }
 

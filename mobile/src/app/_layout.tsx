@@ -2,6 +2,7 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { ConsentGate } from "@/components/consent-gate";
+import { DreamSyncLayer } from "@/components/dream-sync-layer";
 import { MascotTapLayer } from "@/components/mascot-tap";
 import { OnboardingGate } from "@/components/onboarding-gate";
 import { PrivacyGate } from "@/components/privacy-gate";
@@ -48,6 +49,8 @@ export default function RootLayout() {
       {/* Der Frosch-Tipp über allem (13.09.2026), unter Tor und Toasts. */}
       <MascotTapLayer />
       <ConsentGate />
+      {/* Konto-Sicherung der Träume (23.09.), unsichtbar. */}
+      <DreamSyncLayer />
       {/* Nur im Entwicklungsbau, bei jedem Start (Antons Wunsch 13.09.). */}
       <OnboardingGate />
       <Toasts />

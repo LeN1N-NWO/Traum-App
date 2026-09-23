@@ -39,6 +39,7 @@ import { compactDataUrl } from "../../../src/lib/sheets.js";
 import { reminderWish, reminderState, reminderPlan, reminderAnswered, setReminder, MAX_PER_DAY, DEFAULT_PER_DAY } from "../../../src/lib/reminders.js";
 import { VOICES, DEFAULT_VOICE, isVoice } from "../../../src/lib/voices.js";
 import { withdrawPatch, consentPatch, needsConsent } from "../../../src/lib/consent.js";
+import { backupPayload, mergeShared } from "../../../src/lib/journalBackup.js";
 import { FORM_FIELDS, profileFromAnswers } from "../../../src/lib/onboardingForm.js";
 import { MASCOTS, DEFAULT_MASCOT } from "../../../src/lib/mascots.js";
 import { zodiacOf } from "../../../src/lib/zodiac.js";
@@ -749,6 +750,23 @@ let onJournalTick = null;
 
 async function runAsync(cmd, onResult) {
   if (cmd.type === "order") return runOrder(cmd, onResult);
+  /* Konto-Sicherung (23.09.2026, mobile/src/lib/dream-sync.ts): Die Brücke
+     kennt das Tagebuch, die native Seite das Konto. Hinaus geht die
+     Sicherungsform aus journalBackup.js — dieselbe erlaubte Liste wie für
+     die Dateisicherung, also nie ein Foto. Herein kommt sie über
+     mergeShared(): nur Unbekanntes ergänzen und leere Bilder/Filme
+     nachfüllen, NIE einen vorhandenen Eintrag überschreiben oder löschen. */
+  if (cmd.type === "syncExport") {
+    onResult({ n: cmd.n, result: { dreams: backupPayload(loadState().journal).map((x) => x.traum) } });
+    return true;
+  }
+  if (cmd.type === "syncImport") {
+    const s = loadState();
+    const merged = mergeShared(s.journal || [], Array.isArray(cmd.dreams) ? cmd.dreams : []);
+    if (merged) saveState({ ...s, journal: merged });
+    onResult({ n: cmd.n, result: { changed: Boolean(merged) } });
+    return true;
+  }
   if (String(cmd.type).startsWith("avatar")) return runAvatar(cmd, onResult);
   /* Sprachwechsel wie im Web (LanguagePicker.jsx): ERST t umschalten —
      für die fünf eingefrorenen Sprachen lädt das Modul erst nach, deshalb
