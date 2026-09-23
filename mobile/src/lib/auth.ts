@@ -164,15 +164,30 @@ export async function logout() {
    Server fehl, bleibt die Sitzung da und die App kann es sagen, statt ein
    totes Konto zurückzulassen, an das niemand mehr herankommt. Die lokalen
    Träume auf dem Gerät bleiben absichtlich: Sie gehören der Person, nicht
-   dem Konto (die App läuft auch ohne Konto). */
-export async function deleteAccount(): Promise<boolean> {
+   dem Konto (die App läuft auch ohne Konto).
+
+   Apple-Konten (Weg A, 23.09.2026): Der Server antwortet 409 mit
+   `reauth: "apple"` und will einen frischen Apple-Code, um die Apple-Token
+   vor dem Löschen zu widerrufen. `appleCode` holt ihn (Apples Blatt);
+   null heißt abgebrochen → "cancelled", nichts ist passiert. Der Aufrufer
+   reicht die Funktion herein, damit dieses Modul Apple nicht kennen muss. */
+export type DeleteResult = "done" | "failed" | "cancelled";
+export async function deleteAccount(appleCode: () => Promise<string | null>): Promise<DeleteResult> {
   try {
-    const res = await authFetch("/api/account", { method: "DELETE" });
-    if (!res.ok) return false;
+    let res = await authFetch("/api/account", { method: "DELETE" });
+    if (res.status === 409 && (await res.clone().json().catch(() => null))?.reauth === "apple") {
+      const code = await appleCode();
+      if (!code) return "cancelled";
+      res = await authFetch("/api/account", {
+        method: "DELETE", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ appleAuthorizationCode: code }),
+      });
+    }
+    if (!res.ok) return "failed";
     await forget();
-    return true;
+    return "done";
   } catch {
-    return false;
+    return "failed";
   }
 }
 

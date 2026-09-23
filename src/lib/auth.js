@@ -280,7 +280,18 @@ export async function verifyAccessToken(token, { config, fetchImpl } = {}) {
 
   const r = await authCall("/auth/v1/user", { method: "GET", token: token.trim(), config, fetchImpl });
   if (!r.ok || !r.data?.id) return null;
-  return { userId: r.data.id, email: r.data.email ?? null };
+  return { userId: r.data.id, email: r.data.email ?? null, appleSub: appleSubOf(r.data) };
+}
+
+/* The Apple `sub` behind an account, or null for a password-only account.
+   Deleting needs it (apple-revoke.js): an Apple-linked account must revoke
+   its Apple tokens first, and only with a code from the same Apple ID.
+   GoTrue keeps it in the identity as identity_data.sub; provider_id and the
+   older `id` field carry the same value and are the fallbacks. */
+function appleSubOf(user) {
+  const apple = Array.isArray(user?.identities) ? user.identities.find((i) => i?.provider === "apple") : null;
+  const sub = apple?.identity_data?.sub || apple?.provider_id || apple?.id;
+  return typeof sub === "string" && sub ? sub : null;
 }
 
 /**
