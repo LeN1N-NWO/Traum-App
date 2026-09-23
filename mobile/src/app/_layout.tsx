@@ -6,6 +6,7 @@ import { MascotTapLayer } from "@/components/mascot-tap";
 import { OnboardingGate } from "@/components/onboarding-gate";
 import { PrivacyGate } from "@/components/privacy-gate";
 import { Toasts } from "@/components/toasts";
+import { useJournalStore } from "@/store/journal-store";
 
 /* Die native Tab-Leiste — auf iOS 26 Liquid Glass vom System, auf Android
    Material 3. Fünf Tabs, der Traum in der Mitte mit gefülltem Plus (Antons
@@ -16,29 +17,32 @@ export default function RootLayout() {
   /* ⚠ Einmal um ALLES: Ohne diese Wurzel erkennt react-native-gesture-handler
      keine Gesten („GestureDetector must be used as a descendant of
      GestureHandlerRootView") — Befund 13.09. beim Deck-Fächer. */
+  /* Die Beschriftungen kommen aus der Brücke wie jeder andere Text, damit
+     der Sprachwechsel sie erreicht; bis der erste Stand da ist, Englisch. */
+  const L = useJournalStore()?.labels;
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
       <NativeTabs tintColor="#8cc0ff" minimizeBehavior="onScrollDown">
         <NativeTabs.Trigger name="index">
           <NativeTabs.Trigger.Icon sf={{ default: "moon.stars", selected: "moon.stars.fill" }} md="bedtime" />
-          <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{L?.tabHome ?? "Home"}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="journal">
           <NativeTabs.Trigger.Icon sf={{ default: "book.closed", selected: "book.closed.fill" }} md="menu_book" />
-          <NativeTabs.Trigger.Label>Journal</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{L?.tabJournal ?? "Journal"}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="dream">
           <NativeTabs.Trigger.Icon sf="plus.circle.fill" md="add_circle" />
-          <NativeTabs.Trigger.Label>Dream</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{L?.tabDream ?? "Dream"}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="sleep">
           <NativeTabs.Trigger.Icon sf={{ default: "bed.double", selected: "bed.double.fill" }} md="bed" />
-          <NativeTabs.Trigger.Label>Sleep</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{L?.tabSleep ?? "Sleep"}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="profile">
           <NativeTabs.Trigger.Icon sf={{ default: "person.crop.circle", selected: "person.crop.circle.fill" }} md="person" />
-          <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{L?.tabProfile ?? "Profile"}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
       </NativeTabs>
       {/* Der Frosch-Tipp über allem (13.09.2026), unter Tor und Toasts. */}

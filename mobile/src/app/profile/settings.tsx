@@ -87,7 +87,10 @@ export default function SettingsScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: p?.settings ?? "Settings" }} />
+      {/* headerBackTitle ausdrücklich: iOS merkt sich den Zurück-Text beim
+          Schieben — ohne ihn stand nach dem Sprachwechsel hier noch die
+          alte Sprache („Profil" über „Settings", Test 23.09.). */}
+      <Stack.Screen options={{ title: p?.settings ?? "Settings", headerBackTitle: p?.title ?? "Profile" }} />
       <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         {S ? (
           <>

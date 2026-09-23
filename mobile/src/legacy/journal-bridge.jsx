@@ -158,6 +158,9 @@ function snapshot() {
     })(),
   };
   const labels = {
+    /* Die native Tab-Leiste (app/_layout.tsx) — bis hierher stand sie fest
+       auf Englisch, der Sprachwechsel erreichte sie nie (Test 23.09.). */
+    tabHome: t.tabs.home, tabJournal: t.tabs.journal, tabDream: t.tabs.dream, tabSleep: t.tabs.sleep, tabProfile: t.tabs.profile,
     greetingNight: t.home.greeting.night, greetingMorning: t.home.greeting.morning,
     greetingAfternoon: t.home.greeting.afternoon, greetingEvening: t.home.greeting.evening,
     homeTitle: t.home.title, homeLede: t.home.lede, homeCta: t.home.cta, renderingLine: t.home.renderingLine, quickRecord: t.home.quickRecord,
