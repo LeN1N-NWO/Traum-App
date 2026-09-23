@@ -3,7 +3,52 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-23 — Hanni, `session/2026-09-15-hanni-apple-signin`
+**Stand:** 2026-09-23 nachmittags — Anton, `session/2026-09-22-anton`
+(PR #54, freigegeben, **Merge steht aus — nur auf Antons Wort**). Die App
+kann jetzt: **Face-ID-Schutz** für die ganze App (Schalter in den
+Einstellungen; Positivpfad nur am Gerät prüfbar), **Sprache nachträglich
+ändern** (de/en, Chips in den Einstellungen), **Klartext-Kacheln** auf dem
+Einwilligungs-Tor, **Konto-Löschung** (rote Zeile → `DELETE /api/account`
+→ `server_delete_account()`; ⚠ **Migration
+`supabase/migrations/20260923090000_account_delete.sql` muss Hanni erst im
+Dashboard ausführen**, bis dahin 503), Einstellungen als **Zahnrad** oben im
+Profil, **StoreKit-Kaufstrecke im Client** (echte Käufe, sobald Produkte in
+App Store Connect existieren; lokal testbar über
+`mobile/ios/DreamRushes.storekit` mit Xcode ▶).
+
+**App-Store-Vorbereitung:** Guide `docs/APP-STORE-EINREICHUNG.md`
+(Weg in 10 Schritten, Blocker B1–B8, Teil 2b StoreKit-Teststrategie,
+Teil 2c Geld/Abrechnung — Apple ist Merchant of Record, Small Business
+Program 15 %), Prüfwerkzeug **`bun run preflight`** (Exit 1 bei Blockern).
+Preflight meldet noch **4 Blocker — alle bewusste Testphasen-Schalter**,
+vor der Einreichung zurückdrehen:
+- B3a: `"null"` in `NATIVE_ORIGINS` (server.js) raus oder API_TOKEN
+- B3b: HTTPS-Deployment statt `http://192.168…` (= Baustelle S6)
+- B4a: `devTopUp` 500 Credits → zurück auf `__DEV__ ? 100 : 0`
+  (journal-bridge.jsx)
+- B4b: Onboarding kommt bei JEDEM Start (Antons Testphasen-Wunsch) →
+  Einmal-Marke (onboarding-gate.tsx)
+
+⚠⚠ **Nach jedem Merge, der neue native Pakete bringt: `pod install` —
+bun install reicht NICHT.** Sonst friert der Release-Bau kommentarlos ein
+(JS-Fatal „Cannot find native module …", Tabs tot — Antons iPhone, 23.09.,
+Hannis expo-crypto). Gilt in beide Richtungen: unser PR #54 bringt
+`expo-local-authentication` und `expo-iap` mit.
+
+**Nächste Schritte:**
+1. **Anton testet gesammelt am iPhone** (Tabs, Face-ID an/aus + Positivpfad,
+   Sprachwechsel, Kacheln, Zahnrad, Konto-Löschung nach Hannis Migration);
+   auf sein Okay PR #54 mergen.
+2. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
+   `server_grant()`; Sandbox-Belege ins Test-Ledger. Braucht Hannis
+   ASC-Schlüssel.
+3. **Hanni** (Übergabe `docs/uebergabe/2026-09-23-hanni-konto-loeschung-appstore.md`):
+   Migration ausführen + Löschung testen, Produkte/Sandbox-Tester in ASC,
+   Paid-Applications-Vertrag + Small Business Program, Bundle-ID- und
+   Kontoform-Entscheidung, InfoPlist-Lokalisierung in app.json.
+4. Vor Einreichung: die 4 Preflight-Schalter oben.
+
+**Davor (23.09. früh):** Hanni, `session/2026-09-15-hanni-apple-signin`
 (PR #51) abgeschlossen. **„Mit Apple anmelden" läuft auf einem echten iPhone,
 Ende zu Ende** — Anmelden, App neu starten (bleibt angemeldet), Abmelden und
 wieder anmelden (kein zweiter Nutzer in Supabase). Damit ist Schritt 1 der
@@ -92,7 +137,7 @@ zeigt sie „Angemeldet" statt „Angemeldet als …").
 5. Schritt 2 der Übergabe: StoreKit + App Store Server Notifications.
 
 **Davor:** 2026-09-18 früh — Sitzung `session/2026-09-17-anton`
-(PR #52, Entwurf), Worktree `../Traum-App-anton`.
+(PR #52, gemerged 22.09.), Worktree `../Traum-App-anton`.
 
 ⚠⚠ **iPhone-Release-Absturz behoben (18.09., alles lokal im HAUPTordner,
 nichts davon im Repo — deshalb steht das Rezept nur hier):** Antons iPhone
@@ -121,8 +166,8 @@ Bauen: `xcodebuild … -configuration Release -destination
 iPhone als Ziel oft nicht, auch wenn `devicectl` es sieht), installieren
 per `xcrun devicectl device install app --device <UDID> <…>.app`.
 Geprüft: Release-Simulator startet bis zum Einwilligungs-Tor; aufs iPhone
-installiert — **Antons Sichtbestätigung steht aus.** Free-Account: Signatur
-hält 7 Tage, dann neu bauen.
+installiert — **von Anton bestätigt (20./23.09.): die App läuft.**
+Free-Account: Signatur hält 7 Tage, dann neu bauen.
 
 **Gebaut und geprüft:** Die Schalter auf `profile/reminders.tsx` springen
 sofort um. Vorher lief jeder Tipp über die unsichtbare Brücke und zurück —

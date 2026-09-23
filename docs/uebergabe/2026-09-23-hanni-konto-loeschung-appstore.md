@@ -53,6 +53,11 @@ Anton hat einen Einreichungs-Guide beauftragt —
   Beleg-Prüfung, `server_grant()`); du machst das Konto-Gebundene:
   Produkte in App Store Connect anlegen (Pakete S/M/L/XL, Monats-/
   Jahresabo), Sandbox-Tester anlegen, TestFlight-Builds.
+- **Geld-Setup in App Store Connect** (einmalig, vor den ersten
+  Verkäufen): Paid-Applications-Vertrag annehmen, Bank- und Steuerdaten
+  hinterlegen, und ins **Small Business Program** eintragen — 15 % statt
+  30 % Provision unter 1 Mio. $ Jahresumsatz, kostenlos. Details und
+  Buchführungs-Überblick: Guide Teil 2c.
 - **Systemtexte lokalisieren** (`mobile/app.json`, deine Datei):
   NSMicrophone/NSPhoto/NSFaceID-Begründungen brauchen deutsche Fassungen
   (`CFBundleLocalizations`/`InfoPlist.strings`) — Onboarding-Befund 10,

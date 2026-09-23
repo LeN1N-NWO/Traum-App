@@ -93,6 +93,33 @@ Atem-Raum).
    prüft ihn und bucht per `server_grant()` gut. Die heutigen
    500 Spielgeld-Credits verschwinden mit B4a.
 
+## Teil 2c — Geld, Abrechnung, Buchführung (Antons Frage, 23.09.)
+
+- **Apple ist der Händler (Merchant of Record):** Der Kunde kauft von
+  Apple, nicht von uns. Apple stellt die Kundenquittung aus, führt die
+  Umsatzsteuer weltweit ab und wickelt Rückerstattungen ab. Wir stellen
+  Endkunden NIE Rechnungen und brauchen KEINEN Zahlungsanbieter (Stripe
+  o. Ä. wäre für digitale Güter in der App sogar verboten).
+- **Auszahlung:** Eine Sammelüberweisung pro Monat, ca. 30 Tage nach
+  Monatsende, abzüglich Provision. Standard 30 % — mit dem **App Store
+  Small Business Program nur 15 %** (unter 1 Mio. $ Jahresumsatz).
+  Anmeldung kostenlos in App Store Connect, gehört zu Hannis
+  Kontoeinrichtung (VOR den ersten Verkäufen erledigen).
+- **Buchführung:** In den Büchern landet die monatliche Apple-Auszahlung
+  als Umsatz (Belege: Finanzberichte aus App Store Connect + Kontoauszug);
+  Higgsfield/Hosting/Developer-Konto sind normale Betriebsausgaben. Die
+  Apple-Provision kommt aus Irland → Reverse-Charge (§ 13b UStG),
+  Standardfall für jeden Steuerberater. Unser Credits-Ledger ist rein
+  intern und steuerlich irrelevant.
+- **RevenueCat & Co.** sind Technik-Dienste (Beleg-Prüfung, Abo-Status,
+  Statistik), keine Buchhaltung. Für unser einfaches Modell (Kauf →
+  Credits ins eigene Ledger) unnötig — Beleg-Prüfung bauen wir selbst
+  über die App-Store-Server-API. Erst erwägen, wenn komplexe Abo-Logik
+  oder Android dazukommt (kostenlos bis ~2 500 $ Monatsumsatz).
+- **Offene Steuerfragen** (Kleinunternehmerregelung, Gewerbeform) hängen
+  an der Einzelperson/Organisation-Entscheidung → einmal Steuerberater
+  fragen, das ist keine Technikfrage.
+
 ## Teil 3 — Was wir SCHON richtig machen (nicht kaputtmachen)
 
 - **Das Einwilligungs-Tor ist genau das, was Apple seit Nov. 2025 für

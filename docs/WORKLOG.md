@@ -3,6 +3,62 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-23 14:45 — Anton — Branch `session/2026-09-22-anton` (PR #54) — Face-ID-Schutz, Sprachwechsel, Konto-Löschung, StoreKit-Client, App-Store-Guide + Preflight
+
+**Commits:** `b02af6f` Klartext-Kacheln · `455c41c` Einreichungs-101 ·
+`6d9b6ee` Konto-Löschung + Zahnrad + Preflight · `6c7885a` Hanni-Übergabe ·
+`26c4efb` StoreKit-Kaufstrecke, deutsche Systemtexte, Encryption-Flag ·
+Doku-Commit dieses Eintrags (Teil 2c Geld/Abrechnung).
+
+**Was gebaut wurde (alles auf Antons iPhone bzw. im Simulator geprüft):**
+- **Face-ID-Schutz für die ganze App** (`privacy-gate.tsx`, `privacy-lock.ts`,
+  Schalter in den Einstellungen). Deckende View statt Modal, fail-closed,
+  sperrt bei Hintergrund neu. Negativpfade sim-verifiziert; der Positivpfad
+  (echtes Face-ID-Ja) geht nur am Gerät.
+- **Sprache nachträglich änderbar** (Chips in den Einstellungen, Befehl
+  `language` in der Brücke). ⚠ `t` lebt je Webview — `syncLanguage()` vor
+  jedem Bridge-Push gleicht ab, sonst wechselt nur der Settings-Tab.
+- **Klartext-Kacheln** auf dem Einwilligungs-Tor (2×2: KI, Versand, Gerät, 18+).
+- **Konto-Löschung:** rote Zeile in den Einstellungen → `DELETE /api/account`
+  → Migration `20260923090000_account_delete.sql` (`server_delete_account()`,
+  security definer, Kaskade über `auth.users`). **Hanni muss die Migration
+  im Dashboard ausführen**, vorher liefert die Route 503.
+- **Einstellungen als Zahnrad** oben im Profil (Toolbar), versteckte Karte raus.
+- **StoreKit-Client fertig (B1-Client):** `mobile/src/lib/iap.ts` (expo-iap),
+  Kaufblatt kauft echt, sobald Produkte existieren; Gutschrift über
+  Brücken-Befehl `purchase` (Menge NIE aus dem Befehl). Lokale Testdatei
+  `mobile/ios/DreamRushes.storekit` im Scheme — Xcode ▶ zeigt echte
+  Kaufdialoge ohne Apple-Konto.
+- **App-Store-Paket:** Guide `docs/APP-STORE-EINREICHUNG.md` (inkl. neu
+  Teil 2c: Apple ist Merchant of Record, Small Business Program 15 %,
+  Buchführung = eine Monatsauszahlung), Prüfwerkzeug `bun run preflight`
+  (7→4 Blocker; die 4 offenen sind bewusste Testphasen-Schalter
+  B3a/B3b/B4a/B4b), Encryption-Flag, `CFBundleLocalizations` + deutsche
+  `InfoPlist.strings` (B5), Übergabe an Hanni aktualisiert.
+- **Onboarding kommt jetzt bei JEDEM Start, auch Release** (Antons Ansage
+  Testphase; `onboarding-gate.tsx`, vor Veröffentlichung Einmal-Marke = B4b).
+- **500 Test-Credits** in allen Bauarten (`devTopUp`, Testphase, = B4a).
+
+**Behobene Fehler:**
+- ⚠⚠ **Eingefrorene Tabs auf Antons iPhone** = fataler JS-Fehler „Cannot
+  find native module 'ExpoCrypto'": Hannis Merge brachte native Pakete,
+  bun install reicht NICHT — **nach jedem Merge mit neuen nativen Paketen
+  `pod install`**, sonst friert Release kommentarlos ein.
+- **PR-#54-Konflikt** nach Hannis Merge gelöst (settings.tsx: ihre
+  `useAccount`-API übernommen).
+- Preflight-Check B4b war falsch-grün (Kommentar enthielt `__DEV__`) —
+  Regex präzisiert.
+
+**Was der Nächste wissen muss:**
+- Das iPhone-Release-Rezept steht im STAND (buildReactNativeFromSource,
+  EventEmitter-Patch — **fliegt bei jedem bun install raus** —, `mobile/.env`
+  vor dem Build, devicectl-Install).
+- Prüfungen: 648 Tests grün (`cd src && bun test`), tsc Exit 0, Lint 0 Fehler.
+- PR #54 ist freigegeben; **Merge nur auf Antons Wort** (steht aus, Anton
+  testet erst gesammelt am Gerät).
+- Offen für B1-Server: Beleg-Prüfung über die App-Store-Server-API →
+  `server_grant()` — braucht Hannis ASC-Schlüssel.
+
 ## 2026-09-23 00:20 — Hanni — Branch `session/2026-09-15-hanni-apple-signin` (PR #51) — Review: neun von zehn Befunden behoben
 
 **Commits:** Fix-Commit dieses Eintrags.
