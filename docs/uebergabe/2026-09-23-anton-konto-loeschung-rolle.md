@@ -67,3 +67,24 @@ die Zeilen.
   angefangen.
 
 Hanni
+
+## Nachtrag 21:40 — Apple-Token-Widerruf (gilt für dich ab dem Merge)
+
+Apple verlangt beim Löschen eines „Mit Apple anmelden"-Kontos, dass die
+Apple-Token widerrufen werden; Supabase tut das nicht. Jetzt gebaut
+(`src/lib/apple-revoke.js`, am iPhone belegt): Beim Löschen eines
+Apple-Kontos antwortet der Server 409, die App öffnet Apples Blatt noch
+einmal, der Server widerruft mit dem frischen Code und löscht erst danach.
+
+**Für dich wichtig:** Der Server braucht dafür einen Sign-in-with-Apple-
+Schlüssel (`APPLE_TEAM_ID`, `APPLE_SIGNIN_KEY_ID`, `APPLE_SIGNIN_KEY`, siehe
+`.env.example`). Den hat nur Hannis `.env`. **Auf deinem Mac meldet der
+Server beim Start „Apple-Widerruf: nicht konfiguriert", und Apple-Konten
+lassen sich dort nicht löschen (503).** Das ist Absicht — lieber nicht
+löschen als ohne Widerruf. Konten mit E-Mail/Passwort betrifft es nicht.
+
+Und eine Bitte zu deinem Stand vom 23.09. (`26c4efb`): B5, B7 und
+`NSFaceIDUsageDescription` stehen nur in deinem lokalen `mobile/ios`, nicht in
+`app.json` — in Hannis Bau (und damit TestFlight) fehlen sie. Das ziehen wir
+nach `app.json` (Hannis Datei); bitte dort nichts mehr von Hand ins
+Xcode-Projekt, was auch im Bau der anderen landen muss.

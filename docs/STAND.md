@@ -3,18 +3,44 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-23 abends — Anton, `session/2026-09-22-anton`
-(PR #54, **auf Antons Wort gemerged**). Die App kann jetzt: **Face-ID-Schutz**
-für die ganze App (Schalter in den Einstellungen; Positivpfad nur am Gerät
-prüfbar), **Sprache nachträglich ändern** (de/en, Chips in den
-Einstellungen), **Klartext-Kacheln** auf dem Einwilligungs-Tor,
-**Konto-Löschung** (rote Zeile → `DELETE /api/account`
-→ `server_delete_account()`; ⚠ **Migration
-`supabase/migrations/20260923090000_account_delete.sql` muss Hanni erst im
-Dashboard ausführen**, bis dahin 503), Einstellungen als **Zahnrad** oben im
-Profil, **StoreKit-Kaufstrecke im Client** (echte Käufe, sobald Produkte in
-App Store Connect existieren; lokal testbar über
-`mobile/ios/DreamRushes.storekit` mit Xcode ▶).
+**Stand:** 2026-09-23 abends — Hanni, `session/2026-09-23-hanni`
+(PR #55, fertig, **Merge durch Hanni**). Anton parallel auf
+`session/2026-09-23-anton` (PR #56, Begleiter-Animationen — keine
+Überschneidung).
+
+**Konto-Löschung: fertig und Ende zu Ende belegt (23.09.).**
+- Migration `supabase/migrations/20260923090000_account_delete.sql` ist
+  **im Dashboard ausgeführt** — in korrigierter Fassung: Recht an
+  `dreamrushes_server` (die PR-#54-Fassung sagte `server_role`, die Rolle
+  gibt es nicht), `anon`/`authenticated` ausdrücklich entzogen, in
+  `begin/commit`. Repo-Datei = ausgeführter Code, Zeile für Zeile.
+- Belegt per SQL: nur `dreamrushes_server` darf `server_delete_account()`;
+  ohne erklärten Nutzer `42501` aus dem RAISE; mit erklärtem Nutzer sind alle
+  sechs Zeilen eines Wegwerf-Kontos weg (auth.users, auth.identities,
+  profiles, dreams, credits_balance, credits_ledger). Nebenbei: alle sechs
+  Geldfunktionen haben die richtigen Rechte, anon/authenticated keine.
+- **Apple-Token-Widerruf beim Löschen (Weg A, `src/lib/apple-revoke.js`):**
+  Apple-Konto löschen → Server 409 `reauth:"apple"` → App öffnet Apples Blatt
+  (`mobile/src/lib/apple-reauth.ts`) → frischer Code → Server tauscht, prüft
+  das Apple-`sub` gegen das Konto, widerruft, **erst dann** löscht er. Kein
+  Apple-Token wird gespeichert. **Am iPhone belegt:** Apple-Identitäten 1→0,
+  Dream Rushes aus „Mit Apple anmelden" verschwunden, Server-Log sauber.
+- Schlüssel: `APPLE_TEAM_ID`, `APPLE_SIGNIN_KEY_ID`, `APPLE_SIGNIN_KEY` in
+  Hannis `Traum-App/.env` (Anleitung `.env.example`); Apple akzeptiert ihn
+  (Gegenprobe mit ungültigem Code → `invalid_grant`, nicht `invalid_client`).
+  **Ohne Schlüssel (Antons Mac, Cloud) sind Apple-Konten nicht löschbar
+  (503)** — mit Absicht, statt ohne Widerruf zu verschwinden.
+- ⚠ Ein erster Schlüssel wurde am 23.09. widerrufen (Teile standen im Chat).
+  `.env` ist jetzt `600`.
+
+**Sprache:** Tab-Leiste (`mobile/src/app/_layout.tsx`) und Zurück-Knopf der
+Einstellungen folgen dem Sprachwechsel sofort (vorher fest Englisch bzw.
+alte Sprache). Neu: `t.tabs.dream`.
+
+**Die App kann außerdem (PR #54, Anton):** Face-ID-Schutz, Sprache
+nachträglich ändern, Klartext-Kacheln auf dem Einwilligungs-Tor,
+Einstellungen als Zahnrad, StoreKit-Kaufstrecke im Client (echte Käufe,
+sobald Produkte in App Store Connect existieren).
 
 **Filme rendern seit 23.09. abends über H3 Max Turbo — zum halben Preis**
 (Antons Entscheid; Plan `docs/plans/2026-09-23-h3-max-turbo-weiche.md`):
@@ -47,26 +73,59 @@ vor der Einreichung zurückdrehen:
 - B4b: Onboarding kommt bei JEDEM Start (Antons Testphasen-Wunsch) →
   Einmal-Marke (onboarding-gate.tsx)
 
+⚠⚠ **B5, B7 und NSFaceIDUsageDescription gibt es nur auf Antons Mac.** Er hat
+sie am 23.09. von Hand ins Xcode-Projekt gesetzt (`26c4efb`, „prebuild bleibt
+tabu") — `mobile/ios` ist nicht in Git, `mobile/app.json` kennt keins davon.
+Auf Hannis Mac (sie signiert, sie baut TestFlight) meldet der Preflight
+deshalb 7 statt 4 Blocker; nach Hannis Prebuild steht nur Expos englischer
+Standard-Face-ID-Text drin. **Muss nach `app.json`** (`ios.infoPlist`
++ `locales` für de/en), sonst fehlt es in jedem Bau außer Antons.
+
 ⚠⚠ **Nach jedem Merge, der neue native Pakete bringt: `pod install` —
-bun install reicht NICHT.** Sonst friert der Release-Bau kommentarlos ein
-(JS-Fatal „Cannot find native module …", Tabs tot — Antons iPhone, 23.09.,
-Hannis expo-crypto). Gilt in beide Richtungen: unser PR #54 bringt
-`expo-local-authentication` und `expo-iap` mit.
+bun install reicht NICHT.** Sonst friert die App kommentarlos ein
+(„Cannot find native module …" — Antons iPhone, 23.09., Hannis
+expo-crypto). Bei Hanni (23.09.) war nach PR #54 zusätzlich ein **Prebuild**
+nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
+`mobile/ios` dabei **komplett neu an** (inkl. `.xcode.env.local`, s. unten).
+
+**Befunde aus dem Simulator-Test 23.09. (Hanni/Claude), offen:**
+1. **Face-ID-Schalter reagiert im Simulator gar nicht** — kein Dialog, keine
+   Meldung. Am iPhone prüfen. Fehlschlag ist in jedem Fall stumm:
+   `mobile/src/app/profile/settings.tsx:40`
+   (`if (!(await unlock(…))) return;`).
+2. **Datenschutz-Aussagen widersprechen dem, was passiert** (App-Review-
+   und DSGVO-Risiko): „It stays on your phone" beim eigenen Foto
+   (`src/i18n/en.js:1257`), obwohl Fotos an die KI-Dienste gehen;
+   Kachel „Your journal lives on this device" (`en.js:1148`, `de.js:1079`),
+   obwohl Träume mit Konto in Supabase liegen.
+3. **Löschhinweis verspricht, Filme zu entfernen** (`de.js:413`/`:415`) —
+   erzeugte Medien bleiben aber auf der Platte (Kommentar am Endpunkt).
+   Entweder löschen oder den Text ändern.
+4. **Platzhalter im Onboarding:** „★★★★★ Reviews to come" / „App Store
+   Award to come" (`en.js:1290`) — Apple lehnt Platzhalter und
+   nicht existierende Auszeichnungen ab.
+5. Antons Onboarding-Befunde 1 und 9 noch offen: „Sie zu Bildern machen"
+   (`de.js:379`, `en.js:423`), Einwilligung nennt „images" (`en.js:1129`).
+6. Einmal kam das Einwilligungs-Tor nach Widerruf + Neustart + Onboarding
+   nicht; direkt nach Widerruf erscheint es zuverlässig. Nicht reproduziert.
+7. Mikrofon zeigt im Onboarding „Frag mich", obwohl iOS es schon erlaubt hat.
+8. Android: Apples Blatt gibt es dort nicht — ein Apple-verknüpftes Konto
+   ließe sich auf Android still nicht löschen. Erst relevant mit Android-Bau.
 
 **Nächste Schritte:**
-1. **Anton testet gesammelt am iPhone** (aktueller Build ist drauf,
-   23.09. 19:20): Tabs, Face-ID an/aus + Positivpfad, Sprachwechsel,
-   Kacheln, Zahnrad, neuer „Wie lang"-Bildschirm (Klartext-Stufen,
-   Badge, One-Take), Konto-Löschung nach Hannis Migration — und der
-   **erste echte Turbo-Film mit Foto** (Identitätsfrage oben).
-2. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
-   `server_grant()`; Sandbox-Belege ins Test-Ledger. Braucht Hannis
-   ASC-Schlüssel.
-3. **Hanni** (Übergabe `docs/uebergabe/2026-09-23-hanni-konto-loeschung-appstore.md`):
-   Migration ausführen + Löschung testen, Produkte/Sandbox-Tester in ASC,
-   Paid-Applications-Vertrag + Small Business Program, Bundle-ID- und
-   Kontoform-Entscheidung, InfoPlist-Lokalisierung in app.json.
-4. Vor Einreichung: die 4 Preflight-Schalter oben.
+1. **Hanni:** PR #55 mergen. Danach Anton: Migration NICHT erneut ausführen
+   (Notiz `docs/uebergabe/2026-09-23-anton-konto-loeschung-rolle.md`).
+2. **B5/B7/Face-ID-Text nach `app.json`** (s. oben) — Hannis Datei.
+3. **Befunde 2–5** oben — Texte; 2 und 3 vor der Einreichung Pflicht.
+4. **Anton testet am iPhone:** Face ID (Befund 1), erster echter Turbo-Film
+   mit Foto (Identitätsfrage oben).
+5. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
+   `server_grant()`. Braucht einen App-Store-Connect-API-Schlüssel (ASC →
+   Benutzer und Zugriffsrechte → Integrationen — ⚠ NICHT der
+   Sign-in-with-Apple-Schlüssel aus dem Developer Portal).
+6. **Hanni in App Store Connect:** Produkte (S/M/L/XL, Monats-/Jahresabo),
+   Sandbox-Tester, Paid-Applications-Vertrag, Small Business Program.
+7. Vor Einreichung: die 4 Preflight-Schalter oben.
 
 **Davor (23.09. früh):** Hanni, `session/2026-09-15-hanni-apple-signin`
 (PR #51) abgeschlossen. **„Mit Apple anmelden" läuft auf einem echten iPhone,
@@ -95,10 +154,12 @@ dort `curl` blockt) und läuft hier nicht. Die Schritte einzeln:
    „Sign In with Apple" und das Push-Entitlement selbst ein. Das Verbot
    („kein prebuild, Push-Entitlement") gilt nur fürs Gratis-Team.
 2. `printf 'export NODE_BINARY=%s\n' "$(command -v node)" > ios/.xcode.env.local`
-3. `cd ios && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-   LC_ALL=en_US.UTF-8 pod install` — CocoaPods kam per `brew install
-   cocoapods` (bringt eigenes Ruby; das System-Ruby 2.6 ist zu alt).
-   `DEVELOPER_DIR` erspart das `sudo xcode-select`; **ohne UTF-8 stirbt `pod`**.
+3. `cd ios && LC_ALL=en_US.UTF-8 pod install` — CocoaPods kam per `brew
+   install cocoapods` (bringt eigenes Ruby; das System-Ruby 2.6 ist zu alt).
+   **Ohne UTF-8 stirbt `pod`.** Seit 23.09. zeigt `xcode-select` auf Xcode
+   (Hanni per `sudo`); `DEVELOPER_DIR` ist nicht mehr nötig — und der
+   Simulator lässt sich jetzt im Panel der Claude-App steuern (vorher
+   `simctl` Exit 72).
 4. `mobile/.env` mit `EXPO_PUBLIC_API_BASE=http://<WLAN-IP des Macs>:8100`
    (heute `192.168.2.112`) — auf dem iPhone ist `localhost` das iPhone.
 5. Xcode: Team **„… (Individual)"**, nicht „Personal Team". Gerät
@@ -141,7 +202,7 @@ auf). In Supabase steht „Allow users without an email" noch **AUS**. Seit
 an der E-Mail (`useAccount()` in `mobile/src/lib/auth.ts`; ohne Adresse
 zeigt sie „Angemeldet" statt „Angemeldet als …").
 
-**Nächste Schritte (Hanni):**
+**Weitere Schritte (Hanni, Apple-Seite):**
 1. Anton (Admin) als internen TestFlight-Tester eintragen. ⚠ Für
    TestFlight braucht es einen **Release**-Bau
    (Archive) — Antons Release-Absturz vom 18.09. (vorkompilierte RN-Pakete
