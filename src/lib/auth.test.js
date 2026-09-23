@@ -282,11 +282,23 @@ test("a missing refresh token is refused without a call", async () => {
 
 test("a valid token names the person it belongs to", async () => {
   const f = fakeFetch({ status: 200, body: { id: UID, email: "test@example.com", app_metadata: {} } });
-  expect(await verifyAccessToken("at-1", { config, fetchImpl: f })).toEqual({ userId: UID, email: "test@example.com" });
+  expect(await verifyAccessToken("at-1", { config, fetchImpl: f })).toEqual({ userId: UID, email: "test@example.com", appleSub: null });
   expect(f.calls[0].url).toBe("https://projekt.supabase.co/auth/v1/user");
   expect(f.calls[0].init.method).toBe("GET");
   // The token under test must be what authorises the call — not the anon key.
   expect(f.calls[0].init.headers.authorization).toBe("Bearer at-1");
+});
+
+/* Deleting an Apple account needs its Apple `sub` (apple-revoke.js). */
+test("an Apple-linked account carries its Apple sub, a password account none", async () => {
+  const apple = { provider: "apple", identity_data: { sub: "000123.abc.4567" }, provider_id: "000123.abc.4567" };
+  const email = { provider: "email", identity_data: { sub: UID } };
+  const ask = (identities) => verifyAccessToken("at-1", { config, fetchImpl: fakeFetch({ status: 200, body: { id: UID, email: null, identities } }) });
+  expect((await ask([email, apple])).appleSub).toBe("000123.abc.4567");
+  expect((await ask([email])).appleSub).toBe(null);
+  expect((await ask(undefined)).appleSub).toBe(null);
+  // Older GoTrue answers without identity_data still name the sub.
+  expect((await ask([{ provider: "apple", provider_id: "000999.x" }])).appleSub).toBe("000999.x");
 });
 
 /* ⚠⚠ Every failure is the same failure here. Whatever this returns becomes

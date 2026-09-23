@@ -12,6 +12,7 @@ export default {
     symbols: "Symbole",
     profile: "Profil",
     sleep: "Schlaf",
+    dream: "Traum",
     newDream: "Neuen Traum aufnehmen",
   },
 

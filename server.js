@@ -75,6 +75,7 @@ import { openDatabase, withUser, fromJsonb } from "./src/lib/db.js";
 // Wer fragt: die fehlende Hälfte zu db.js. withUser() kann für eine Person
 // handeln, auth.js sagt, WER sie ist (eigene Datei, ohne Netz prüfbar).
 import { parseBearer, authConfig, passwordLogin, appleLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
+import { appleRevokeConfig, revokeAppleForDeletion } from "./src/lib/apple-revoke.js";
 // Traum ⇄ Datenbankzeile. Eigene Datei, weil dort die Regel „nur die Tags,
 // nie die Fotos dahinter" serverseitig erzwungen wird (dreamRow.test.js).
 import { toRow, fromRow, MAX_JSON } from "./src/lib/dreamRow.js";
@@ -3319,10 +3320,29 @@ const serveOptions = {
            `on delete cascade` mit: profiles, dreams, credits. Erzeugte
            Medien auf der Platte hängen an Traum-IDs, nicht an Konten —
            verwaiste Dateien räumt der Medien-Weg, nicht dieser Endpunkt.
-           Kein Bestätigungs-Body: Die Bestätigung ist Sache der App
+           Kein Bestätigungs-Body (Ausnahme: der Apple-Code, siehe unten —
+           der ist kein „wirklich?", sondern Apples Pflicht): Die Bestätigung ist Sache der App
            (Alert + Face ID, settings.tsx); ein zweites „wirklich?" im
            Protokoll schützt niemanden, der schon ein gültiges Token hat. */
         if (url.pathname === "/api/account" && req.method === "DELETE") {
+          /* Ein Apple-Konto widerruft ERST seine Apple-Token (Weg A, Hanni
+             23.09.2026, src/lib/apple-revoke.js) und wird erst danach
+             gelöscht — umgekehrt bliebe bei einem Fehler ein gelöschtes
+             Konto, dessen Apple-Verknüpfung niemand mehr widerrufen kann.
+             Fehlt der Code, antwortet 409 mit `reauth: "apple"`: die App
+             holt Apples Blatt und fragt noch einmal. Konten ohne Apple
+             gehen den Weg wie bisher, ohne Body. */
+          if (person.appleSub) {
+            if (Number(req.headers.get("content-length") || 0) > 16 * 1024) return json({ error: "Request too large." }, 413);
+            const body = await req.json().catch(() => null);
+            const code = body?.appleAuthorizationCode;
+            if (!code) return json({ error: "Please confirm with Apple.", reauth: "apple" }, 409);
+            const r = await revokeAppleForDeletion(code, person.appleSub, { config: APPLE_REVOKE });
+            if (!r.ok) {
+              console.warn(`[DreamRushes] Apple-Widerruf vor Konto-Löschung abgelehnt (${r.status}): ${r.cause || r.error}`);
+              return json({ error: r.error }, r.status);
+            }
+          }
           await withUser(database, person.userId, (tx) => tx`select public.server_delete_account()`);
           return json({ ok: true });
         }
@@ -3525,6 +3545,13 @@ const AUTH = authConfig();
 console.log(AUTH
   ? "Supabase Auth: konfiguriert ✓ (Anmeldung über /api/auth/login)"
   : "Supabase Auth: nicht konfiguriert (SUPABASE_URL/SUPABASE_ANON_KEY fehlen) — keine Anmeldung");
+/* Apple-Token widerrufen beim Löschen eines Apple-Kontos (apple-revoke.js).
+ * Fehlt der Schlüssel, läuft alles wie vorher — nur ein Apple-Konto lässt
+ * sich dann nicht löschen (503), statt ohne Widerruf zu verschwinden. */
+const APPLE_REVOKE = appleRevokeConfig();
+console.log(APPLE_REVOKE
+  ? "Apple-Widerruf: konfiguriert ✓ (Konto-Löschung widerruft Apple-Token)"
+  : "Apple-Widerruf: nicht konfiguriert (APPLE_TEAM_ID/APPLE_SIGNIN_KEY_ID/APPLE_SIGNIN_KEY fehlen) — Apple-Konten nicht löschbar");
 /* Welches Bildmodell gerade wirklich läuft, und was es je Bild kostet.
  * Ein Slug in .env ist unsichtbar, bis die Rechnung kommt — diese Zeile
  * macht einen versehentlichen Rückweg auf das doppelt so teure Modell

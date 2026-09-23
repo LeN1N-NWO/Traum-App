@@ -14,6 +14,7 @@ export default {
     symbols: "Symbols",
     profile: "Profile",
     sleep: "Sleep",
+    dream: "Dream",
     newDream: "Record a new dream",
   },
 

@@ -3,6 +3,61 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-23 21:40 — Hanni — Branch `session/2026-09-23-hanni` (PR #55) — Konto-Löschung belegt, Apple-Token-Widerruf, Sprache in Tabs
+
+**Commits:** `37df765` Migration korrigiert + Notiz an Anton · `9f4d189`
+Tab-Leiste/Zurück-Knopf folgen dem Sprachwechsel · `f9fcecf`
+Apple-Token-Widerruf beim Löschen (Weg A) · Doku-Commit dieses Eintrags.
+
+**Anlass:** Antons Übergabe `2026-09-23-hanni-konto-loeschung-appstore.md`,
+Punkt 1 (Migration ausführen, Löschung echt testen).
+
+**Migration:** Die Fassung aus PR #54 gab EXECUTE an `server_role` — die
+Rolle heißt `dreamrushes_server`. Vor dem Ausführen korrigiert (dazu
+`anon`/`authenticated` entzogen, `begin/commit`), im Dashboard ausgeführt.
+Belegt: Rechte per `has_function_privilege` (vorher auch die sechs
+Geldfunktionen geprüft — Verdacht auf Supabase-Default-Privileges an
+anon/authenticated **widerlegt**, alle richtig); ohne erklärten Nutzer `42501`
+aus dem RAISE (nicht aus fehlendem Recht); Wegwerf-Konto mit Traum und
+Guthaben: sechs Tabellen je 1 → je 0, gezählt nach ID, nicht nach E-Mail.
+Die erste Ausführung kam nicht an (Funktion fehlte danach) — erst die Prüfung
+danach hat das gezeigt; „Success" allein hätte es verdeckt.
+
+**Simulator-Test PR #54** (erstmals im Panel der Claude-App, nach
+`sudo xcode-select -s …Xcode.app` durch Hanni): Tabs, Zahnrad, Sprache,
+Einwilligungs-Kacheln laufen; die Pod-Falle ist weg. Befunde stehen mit
+Datei:Zeile in STAND („Befunde aus dem Simulator-Test"). Ein eigener Befund
+(„Hann" statt „Hanna") war ein Artefakt meiner Eingabe, zurückgenommen.
+
+**Apple-Token-Widerruf (Weg A):** Apple verlangt ihn beim Löschen von
+Sign-in-with-Apple-Konten; Supabase tut es nicht (supabase/auth#1308).
+Umgesetzt ohne gespeicherte Apple-Token: frischer Code per zweitem
+Apple-Blatt, Tausch + `sub`-Abgleich + Widerruf, dann Löschung. 7 neue Tests;
+Gegenprobe: DER-Signatur und fehlender `sub`-Abgleich werden gefangen.
+`server.js`: 29 Zeilen in 4 Hunks, alle im Konto-/Auth-Bereich, Summe
+geprüft. **Am iPhone Ende zu Ende belegt** (Apple-Identitäten 1→0, App aus
+„Mit Apple anmelden" verschwunden).
+
+**Warum Weg A statt gespeichertem Refresh-Token:** Least Privilege — sonst
+läge für jedes Apple-Konto ein langlebiges Apple-Token in der Datenbank.
+Kostet die Person ein zweites Apple-Blatt beim Löschen.
+
+**⚠ Was der Nächste wissen muss:**
+- **Ohne `APPLE_*`-Schlüssel sind Apple-Konten nicht löschbar (503).** Der
+  Schlüssel liegt nur in Hannis `.env` — Antons Server sagt beim Start
+  „Apple-Widerruf: nicht konfiguriert". Absicht, kein Fehler.
+- **`.env` nie zeilenweise anzeigen**, auch nicht „gefiltert": Ein
+  mehrzeiliger `.p8`-Wert rutschte am 23.09. an einem `sed 's/=.*/=…/'`
+  vorbei in den Chat; der Schlüssel wurde widerrufen und neu angelegt. Werte
+  nur per Skript prüfen, das „vorhanden/fehlt" meldet. `.env` ist jetzt `600`.
+- **B5/B7/NSFaceIDUsageDescription existieren nur in Antons lokalem
+  `mobile/ios`** (nicht in Git, nicht in `app.json`) — jeder andere Bau,
+  auch Hannis TestFlight, hat sie nicht. Muss nach `app.json`.
+- Nach PR #54 brauchte Hannis Mac einen **Prebuild** (neues Plugin
+  `expo-iap`), nicht nur `pod install`; `CI=1 expo prebuild` legt `ios/` ganz
+  neu an — `.xcode.env.local` danach neu schreiben.
+- Die erste Face-ID-Probe im Simulator ist ungeklärt (Schalter tut nichts).
+
 ## 2026-09-23 19:15 — Anton — Branch `session/2026-09-22-anton` (PR #54) — H3 Max Turbo, halbe Filmpreise, Formatwahl für Filme, Klartext-Qualitäten nativ
 
 **Commits:** `0155f6c` Turbo-Weiche (überholt) · `61600f2` Klartext-Stufen +

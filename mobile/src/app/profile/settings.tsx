@@ -5,6 +5,7 @@ import { SymbolView } from "expo-symbols";
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Glass } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
+import { appleReauthCode } from "@/lib/apple-reauth";
 import { deleteAccount, logout, restoreSession, useAccount } from "@/lib/auth";
 import { canLock, isLockEnabled, setLockEnabled, unlock } from "@/lib/privacy-lock";
 import { colors, TAB_INSET } from "@/theme";
@@ -65,7 +66,10 @@ export default function SettingsScreen() {
           setDeleting(true);
           try {
             if (lock && !(await unlock(D.title))) return;
-            Alert.alert(D.title, (await deleteAccount()) ? D.done : D.failed);
+            /* Apple-Konten: deleteAccount öffnet bei Bedarf Apples Blatt
+               (Token-Widerruf, Weg A). Abgebrochen = nichts passiert, still. */
+            const result = await deleteAccount(appleReauthCode);
+            if (result !== "cancelled") Alert.alert(D.title, result === "done" ? D.done : D.failed);
           } finally { setDeleting(false); }
         },
       },
@@ -87,7 +91,10 @@ export default function SettingsScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: p?.settings ?? "Settings" }} />
+      {/* headerBackTitle ausdrücklich: iOS merkt sich den Zurück-Text beim
+          Schieben — ohne ihn stand nach dem Sprachwechsel hier noch die
+          alte Sprache („Profil" über „Settings", Test 23.09.). */}
+      <Stack.Screen options={{ title: p?.settings ?? "Settings", headerBackTitle: p?.title ?? "Profile" }} />
       <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         {S ? (
           <>
