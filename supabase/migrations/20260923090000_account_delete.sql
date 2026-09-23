@@ -13,6 +13,16 @@
 -- deletion right") — profiles, dreams, credits_balance, credits_ledger
 -- fallen mit. Der service_role-Schlüssel bleibt, wo er hingehört: nirgends
 -- (.env.example) — deshalb security definer statt Admin-API.
+--
+-- ⚠ Korrigiert 23.09.2026 abends (Hanni), bevor sie lief: die erste Fassung
+-- gab das Recht an `server_role` — die Rolle heißt `dreamrushes_server`
+-- (server_role.sql ist nur der Dateiname). Genau diese Fassung ist in der
+-- Datenbank ausgeführt und belegt: Rechte (nur dreamrushes_server), ohne
+-- erklärten Nutzer 42501 aus dem RAISE, mit erklärtem Nutzer alle sechs
+-- Zeilen weg (auth.users, auth.identities, profiles, dreams,
+-- credits_balance, credits_ledger).
+
+begin;
 
 create or replace function public.server_delete_account()
 returns void
@@ -32,5 +42,7 @@ begin
 end;
 $$;
 
-revoke all on function public.server_delete_account() from public;
-grant execute on function public.server_delete_account() to server_role;
+revoke all on function public.server_delete_account() from public, anon, authenticated;
+grant execute on function public.server_delete_account() to dreamrushes_server;
+
+commit;
