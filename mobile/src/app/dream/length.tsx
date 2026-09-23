@@ -84,6 +84,11 @@ export default function DreamLengthScreen() {
         <View style={styles.row}>
           {(W?.models ?? []).map((m) => (
             <Pressable key={m.id} style={[styles.choice, m.id === w.videoModel && styles.choiceOn]} onPress={() => { Haptics.selectionAsync(); patchWizard({ videoModel: m.id as any, quality: null, seconds: clampSeconds(m.id, w.seconds) }); }}>
+              {m.badge ? (
+                <View style={styles.badge} pointerEvents="none">
+                  <Text style={styles.badgeText}>{m.badge}</Text>
+                </View>
+              ) : null}
               <Text style={[styles.choiceTitle, m.id === w.videoModel && styles.on]}>{m.name}</Text>
               <Text style={styles.choiceHint} numberOfLines={2}>{m.hint}</Text>
             </Pressable>
@@ -99,6 +104,7 @@ export default function DreamLengthScreen() {
                 return (
                   <Pressable key={q.id} style={[styles.pill, on && styles.choiceOn]} onPress={() => { Haptics.selectionAsync(); patchWizard({ quality: q.id as any }); }}>
                     <Text style={[styles.pillText, on && styles.on]}>{q.name}</Text>
+                    <Text style={styles.pillSub}>{q.perSec}</Text>
                   </Pressable>
                 );
               })}
@@ -153,8 +159,11 @@ const styles = StyleSheet.create({
   choiceTitle: { fontFamily: fonts.serif, fontSize: 19, color: colors.text },
   choiceHint: { color: colors.muted, fontSize: 12, lineHeight: 16 },
   on: { color: colors.accentSoft },
-  pill: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.panelLine },
+  pill: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.panelLine, alignItems: "center", gap: 1 },
   pillText: { color: colors.text, fontSize: 14, fontWeight: "600" },
+  pillSub: { color: colors.muted, fontSize: 11, fontVariant: ["tabular-nums"] },
+  badge: { position: "absolute", top: -9, right: 10, backgroundColor: colors.accentSoft, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8, zIndex: 1 },
+  badgeText: { color: colors.bg, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textTransform: "uppercase" },
   secondsRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
   seconds: { color: colors.text, fontSize: 22, fontWeight: "600", fontVariant: ["tabular-nums"] },
   primary: { height: 54, borderRadius: 999, alignItems: "center", justifyContent: "center", backgroundColor: colors.warm, marginTop: 14 },

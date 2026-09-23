@@ -947,11 +947,12 @@ export default {
       filmModels: {
         standard: {
           name: "Alive", hint: "your opening image starts to move, with sound · up to 15 seconds",
-          model: "MiniMax H3",
+          model: "MiniMax H3 Max Turbo",
           info: "The quick tier: it brings your opening image convincingly to life, sound included, and carries up to four reference photos so the real faces stay themselves. Films top out at 15 seconds. Pick the quality below — the credits per second are shown on the switch.",
         },
         premium: {
           name: "Cinema", hint: "up to 30 seconds in one take, with sound",
+          badge: "Best quality",
           model: "Seedance 2.5",
           info: "The longest story: one unbroken take of up to 30 seconds, with sound and second-precise timing — and your reference photos stay in the film the whole way. Pick the quality below; the sharp tier costs more than double here, the credits are on the switch.",
         },

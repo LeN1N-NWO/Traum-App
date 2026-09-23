@@ -294,8 +294,19 @@ function snapshot() {
     })),
     models: VIDEO_MODELS.map((m) => ({
       id: m.id, name: w5.filmModels[m.id]?.name || m.id, hint: w5.filmModels[m.id]?.hint || "",
+      /* Kleines Abzeichen am Modell („Beste Qualität" am Kino — Antons
+         Ansage 23.09.); Text aus der Sprachdatei, nie hart. */
+      badge: w5.filmModels[m.id]?.badge || null,
       min: m.min, max: m.max, step: m.step, preset: m.preset, preferred: m.preferred,
-      qualities: Object.keys(m.qualities).map((q) => ({ id: q, name: w5.qualityNames?.[q] || q })),
+      /* Klartext statt Marketing-Namen (Antons Ansage 23.09.: „einfach
+         480p, 768p, 1080p schreiben"): Name = Auflösung, dazu die Credits
+         je Sekunde — beides aus der Modelltabelle, nie aus Sprachdateien,
+         damit ein Preiswechsel nirgends nachgepflegt werden muss. */
+      qualities: Object.entries(m.qualities).map(([q, k]) => ({
+        id: q,
+        name: k.resolution.toLowerCase(),
+        perSec: `${k.creditsPerSecond} ${t.wizard.creditsN(k.creditsPerSecond)}/s`,
+      })),
     })),
     paces: PACE_IDS.map((id) => ({ id, name: w5.paceNames?.[id] || id, hint: w5.paceHints?.[id] || "" })),
   };

@@ -902,11 +902,12 @@ export default {
       filmModels: {
         standard: {
           name: "Lebendig", hint: "dein Startbild beginnt sich zu bewegen, mit Ton · bis 15 Sekunden",
-          model: "MiniMax H3",
+          model: "MiniMax H3 Max Turbo",
           info: "Die schnelle Stufe: Sie erweckt dein Startbild überzeugend zum Leben, Ton inklusive, und nimmt bis zu vier Referenzfotos mit, damit die echten Gesichter sie selbst bleiben. Bei 15 Sekunden ist Schluss. Die Qualität wählst du darunter — die Credits je Sekunde stehen am Schalter.",
         },
         premium: {
           name: "Kino", hint: "bis zu 30 Sekunden in einer Einstellung, mit Ton",
+          badge: "Beste Qualität",
           model: "Seedance 2.5",
           info: "Die längste Geschichte: eine ununterbrochene Einstellung von bis zu 30 Sekunden, mit Ton und sekundengenauem Timing — und deine Referenzfotos bleiben den ganzen Film über dabei. Die Qualität wählst du darunter; die scharfe Stufe kostet hier mehr als das Doppelte, die Credits stehen am Schalter.",
         },
