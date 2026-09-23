@@ -420,7 +420,7 @@ export default {
     goalValues: {
       remember: "Remembering more",
       understand: "Understanding them",
-      create: "Turning them into pictures",
+      create: "Turning them into films",
       "sleep-better": "Sleeping better",
       nightmares: "Getting out from under bad dreams",
     },
@@ -456,9 +456,9 @@ export default {
     privacyLocked: "Your dreams are locked.",
     /* Konto-Löschung in der App (Apple 5.1.1(v), Antons Ansage 23.09.2026). */
     deleteAccount: "Delete account",
-    deleteAccountHint: "Removes your account, films and credits from our server. Dreams on this device stay.",
+    deleteAccountHint: "Removes your account, its profile and your backed-up dreams from our server. Dreams on this device stay.",
     deleteAccountConfirmTitle: "Delete your account?",
-    deleteAccountConfirmText: "This cannot be undone. Your account, the films stored on our server and your credits are removed. Dreams saved on this device stay yours.",
+    deleteAccountConfirmText: "This cannot be undone. Your account, its profile and the dreams backed up with it are removed from our server. Dreams saved on this device stay yours.",
     deleteAccountGo: "Delete",
     deleteAccountDone: "Your account is deleted.",
     deleteAccountFailed: "That didn't work. Check your connection and try again.",
@@ -1145,7 +1145,7 @@ export default {
     facts: [
       { id: "ai", title: "AI-made", text: "Films and images come from AI, marked as such." },
       { id: "send", title: "Sent to create", text: "Dream text and photos go to AI services only to render." },
-      { id: "device", title: "Stays with you", text: "Your journal lives on this device." },
+      { id: "device", title: "Stays with you", text: "Your journal lives on this device — with an account, also in your private backup." },
       { id: "adult", title: "18+", text: "For adults only." },
     ],
     more: "Where does my data go?",
@@ -1254,7 +1254,7 @@ export default {
        (Anton's placement, 13.09.): first see that you're in it, then give
        it your face. */
     meTitle: "Who are you?",
-    meText: "A photo of you — then you play in your dreams with your real face. It stays on your phone.",
+    meText: "A photo of you — then you play in your dreams with your real face. It only leaves your phone for a safety check and to make your films.",
     mePick: "Choose a photo",
     meCamera: "Take a selfie",
     meChange: "Another photo",
@@ -1287,7 +1287,7 @@ export default {
     featuresLede: "Tell your dream half-asleep, watch it as a film, keep every night.",
     /* ⚠ PLACEHOLDER, technical (Anton, 13.09.): replaced by real awards
        once there are any. */
-    proof: [{ big: "★★★★★", small: "Reviews to come" }, { big: "App Store", small: "Award to come" }],
+    proof: [],
     doneTitle: "That's it",
     doneText: "Your nights have a place now.",
     doneCta: "Start tonight",

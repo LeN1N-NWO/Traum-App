@@ -14,6 +14,7 @@ import { MascotLoader } from "@/components/mascot-loader";
 import { ShareCard } from "@/components/share-card";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
+import { deleteDreamRemote } from "@/lib/dream-sync";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 import { patchWizard, resetWizard } from "@/store/wizard-store";
 import type { DreamItem } from "@/store/journal-store";
@@ -68,7 +69,7 @@ export default function DreamScreen() {
     ];
     const del = () => Alert.alert(labels.menuDelete ?? "Delete", item.title || labels.untitled || "", [
       { text: labels.cancel ?? "Cancel", style: "cancel" },
-      { text: labels.menuDelete ?? "Delete", style: "destructive", onPress: () => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); send({ type: "deleteDream", id: item.id }); router.back(); } },
+      { text: labels.menuDelete ?? "Delete", style: "destructive", onPress: () => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); send({ type: "deleteDream", id: item.id }); deleteDreamRemote(item.id); router.back(); } },
     ]);
     const options = [...entries.map((e) => e[0]), labels.menuDelete ?? "Delete", labels.cancel ?? "Cancel"];
     if (Platform.OS === "ios") {

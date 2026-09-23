@@ -3401,10 +3401,17 @@ const serveOptions = {
           const zeilen = eingang.map(toRow).filter(Boolean);
           if (!zeilen.length) return json({ error: "No usable dream in this request." }, 400);
 
+          /* ⚠ Ein älterer Stand überschreibt keinen neueren (23.09.2026,
+             Konto-Sicherung der App). Bis dahin gewann, wer zuletzt schickte
+             — ein zweites Gerät mit einem alten Tagebuch hätte neuere
+             Änderungen still ersetzt. Maßstab ist der Bearbeitungsstand
+             (edited_at, sonst created_at); gleich alt darf überschreiben,
+             damit ein nachgereichter Film ohne neue Bearbeitung ankommt.
+             `gespeichert` zählt jetzt nur, was wirklich geschrieben wurde. */
           const gespeichert = await withUser(database, person.userId, async (tx) => {
             let n = 0;
             for (const z of zeilen) {
-              await tx`
+              const r = await tx`
                 insert into public.dreams
                   (user_id, client_id, kind, title, tagline, text, original_text,
                    analysis, reflection, style, format, mode, image_count, creature_id,
@@ -3424,8 +3431,11 @@ const serveOptions = {
                   style = excluded.style, format = excluded.format, mode = excluded.mode,
                   image_count = excluded.image_count, creature_id = excluded.creature_id,
                   "references" = excluded."references", media = excluded.media,
-                  edited_at = excluded.edited_at`;
-              n++;
+                  edited_at = excluded.edited_at
+                where coalesce(excluded.edited_at, excluded.created_at)
+                   >= coalesce(public.dreams.edited_at, public.dreams.created_at)
+                returning client_id`;
+              n += r.length;
             }
             return n;
           });
