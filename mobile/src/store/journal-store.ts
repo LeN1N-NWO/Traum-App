@@ -44,6 +44,7 @@ export type SettingsData = {
   account: string; accountNone: string; accountSignedIn: string; accountSignedInNoEmail: string; signIn: string; signOut: string;
   voice: string; voices: { id: string; trait: string }[]; pickTitle: string; pickHint: string; pickGo: string; cancel: string; sampleBase: string;
   privacy: { title: string; hint: string; noBio: string; unlock: string; locked: string };
+  deleteAccount: { title: string; hint: string; confirmTitle: string; confirmText: string; go: string; done: string; failed: string };
   languageSetting: string; languageSettingHint: string; languages: { id: string; label: string }[];
   legal: { close: string; updated: string; draftNote: string; terms: LegalDoc; privacy: LegalDoc };
 };

@@ -239,6 +239,7 @@ function snapshot() {
          wer die Oberfläche nicht lesen kann, muss seine Sprache trotzdem
          erkennen. */
       privacy: { title: t.profile.privacyLock, hint: t.profile.privacyLockHint, noBio: t.profile.privacyLockNoBio, unlock: t.profile.privacyUnlock, locked: t.profile.privacyLocked },
+      deleteAccount: { title: t.profile.deleteAccount, hint: t.profile.deleteAccountHint, confirmTitle: t.profile.deleteAccountConfirmTitle, confirmText: t.profile.deleteAccountConfirmText, go: t.profile.deleteAccountGo, done: t.profile.deleteAccountDone, failed: t.profile.deleteAccountFailed },
       languageSetting: t.profile.languageSetting, languageSettingHint: t.profile.languageSettingHint,
       languages: LOCALES.map((l) => ({ id: l.id, label: l.label })),
       pickTitle: t.voice.pickTitle, pickHint: t.voice.pickHint, pickGo: t.voice.pickGo, cancel: t.voice.cancel,

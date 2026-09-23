@@ -158,6 +158,24 @@ export async function logout() {
   fetch(`${API_BASE}/api/auth/logout`, { method: "POST", headers: { authorization: `Bearer ${access}` } }).catch(() => {});
 }
 
+/* Konto löschen (Apple 5.1.1(v), 23.09.2026): DELETE /api/account löscht
+   den Auth-Nutzer, die Kaskade in der Datenbank nimmt Profil, Träume und
+   Guthaben mit. ERST der Server, DANN das Gerät vergessen — schlägt der
+   Server fehl, bleibt die Sitzung da und die App kann es sagen, statt ein
+   totes Konto zurückzulassen, an das niemand mehr herankommt. Die lokalen
+   Träume auf dem Gerät bleiben absichtlich: Sie gehören der Person, nicht
+   dem Konto (die App läuft auch ohne Konto). */
+export async function deleteAccount(): Promise<boolean> {
+  try {
+    const res = await authFetch("/api/account", { method: "DELETE" });
+    if (!res.ok) return false;
+    await forget();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /* Ein Aufruf mit Konto. Pfad relativ (`/api/account`). Ohne Sitzung
    kommt ein 401 zurück, ohne dass etwas gesendet wurde. */
 export async function authFetch(path: string, init: RequestInit = {}): Promise<Response> {

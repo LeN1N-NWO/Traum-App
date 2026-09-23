@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun scripts/dev.mjs",
+    "preflight": "node scripts/appstore-preflight.mjs",
     "dev:api": "bun server.js",
     "dev:web": "vite",
     "build": "vite build",

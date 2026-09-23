@@ -5,7 +5,7 @@ import { SymbolView } from "expo-symbols";
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Glass } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
-import { logout, restoreSession, useAccount } from "@/lib/auth";
+import { deleteAccount, logout, restoreSession, useAccount } from "@/lib/auth";
 import { canLock, isLockEnabled, setLockEnabled, unlock } from "@/lib/privacy-lock";
 import { colors, TAB_INSET } from "@/theme";
 
@@ -46,6 +46,32 @@ export default function SettingsScreen() {
      nächste Snapshot liefert alle Texte übersetzt. */
   const [langOpen, setLangOpen] = useState(false);
 
+  /* Konto löschen (Apple 5.1.1(v), 23.09.2026): Bestätigungs-Dialog mit
+     destruktivem Knopf; steht die Face-ID-Sperre an, verlangt der Weg
+     zusätzlich Face ID — dieselbe Hürde wie beim Abschalten des Schutzes.
+     Erst wenn der Server gelöscht hat, verschwindet die Sitzung
+     (deleteAccount in lib/auth.ts). */
+  const [deleting, setDeleting] = useState(false);
+  const askDelete = () => {
+    const D = S?.deleteAccount;
+    if (!D) return;
+    Haptics.selectionAsync();
+    Alert.alert(D.confirmTitle, D.confirmText, [
+      { text: S.cancel, style: "cancel" },
+      {
+        text: D.go, style: "destructive",
+        onPress: async () => {
+          if (deleting) return;
+          setDeleting(true);
+          try {
+            if (lock && !(await unlock(D.title))) return;
+            Alert.alert(D.title, (await deleteAccount()) ? D.done : D.failed);
+          } finally { setDeleting(false); }
+        },
+      },
+    ]);
+  };
+
   const row = (label: string, hint: string | null, value: string | null, onPress: () => void) => (
     <Pressable key={label} onPress={() => { Haptics.selectionAsync(); onPress(); }}>
       <Glass style={styles.row} interactive>
@@ -68,6 +94,18 @@ export default function SettingsScreen() {
             {account
               ? row(S.account, account.email ? `${S.accountSignedIn} ${account.email}` : S.accountSignedInNoEmail, S.signOut, () => { logout().catch(() => {}); })
               : row(S.account, S.accountNone, null, () => {})}
+            {/* Konto löschen — nur mit Konto sichtbar; Apple 5.1.1(v). */}
+            {account ? (
+              <Pressable onPress={askDelete} disabled={deleting}>
+                <Glass style={styles.row} interactive>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.danger}>{S.deleteAccount.title}</Text>
+                    <Text style={styles.hint}>{S.deleteAccount.hint}</Text>
+                  </View>
+                  <SymbolView name="trash" size={15} tintColor={colors.danger} />
+                </Glass>
+              </Pressable>
+            ) : null}
             {/* Erinnerungen (13.09.2026) — ganz oben unter dem Konto: der Grund, morgens zu öffnen. */}
             {data?.reminders ? row(data.reminders.labels.title, data.reminders.labels.settingsHint, null, () => router.push("/profile/reminders")) : null}
             {row(S.voiceSetting, S.voiceSettingHint, S.voice, () => router.push("/profile/voice"))}
@@ -119,6 +157,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: TAB_INSET, gap: 10 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 15, paddingHorizontal: 16, borderRadius: 18 },
   label: { color: colors.text, fontSize: 16 },
+  danger: { color: colors.danger, fontSize: 16 },
   hint: { color: colors.faint, fontSize: 13, lineHeight: 17 },
   value: { color: colors.accentSoft, fontSize: 15 },
   rowOpen: { borderBottomLeftRadius: 6, borderBottomRightRadius: 6 },

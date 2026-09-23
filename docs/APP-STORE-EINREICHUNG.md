@@ -65,6 +65,34 @@ Erinnerungs-Zustellung real testen (2.1: „Feature tut nichts" fällt auf)
 und die drei offenen Finger-Tests (Teilen-Karte, Schnellaktionen,
 Atem-Raum).
 
+## Teil 2b — B1 im Detail: StoreKit-Plan und Test-Strategie (23.09.)
+
+**Arbeitsteilung (Vorschlag, von Anton abzusegnen):**
+- **Claude/Antons Sessions bauen die Technik:** StoreKit-2-Anbindung im
+  Client (Kaufblatt → echte Produkte), Server-Prüfung des Kaufbelegs
+  (App-Store-Server-Belege verifizieren, dann `server_grant()` — die
+  DB-Funktion existiert seit dem 11.09.), Sandbox-Belege in ein
+  Test-Ledger statt ins echte (Übergabe 14.09.: „Sandbox nie ins echte
+  Ledger").
+- **Hanni macht, was das bezahlte Konto braucht:** Produkte in App Store
+  Connect anlegen (Paket-IDs S/M/L/XL, Monats-/Jahresabo), Sandbox-Tester
+  anlegen, signierte TestFlight-Builds.
+
+**Und so testet Anton weiter, ohne dass je echtes Geld fließt:**
+1. **Ohne jedes Apple-Konto:** Xcode-StoreKit-Konfigurationsdatei
+   (`.storekit`) im Projekt — Simulator und Xcode-Geräte-Builds zeigen
+   damit echte Kauf-Dialoge, komplett lokal simuliert. Der heutige
+   Testweg bleibt also unverändert möglich.
+2. **Echter Kauf-Dialog, null Euro:** Sandbox-Apple-ID (legt Hanni in App
+   Store Connect an). Damit auf dem Gerät anmelden (nur unter
+   Einstellungen → App Store → Sandbox-Konto, NICHT als iCloud-Konto) —
+   jeder Kauf läuft durch Apples echte Kasse, wird aber nie berechnet.
+3. **Wichtig zum Verständnis:** Das Guthaben liegt danach NICHT „am
+   Apple-Konto", sondern wie geplant in unserem Ledger am
+   Dream-Rushes-Konto — Apple liefert nur den Kaufbeleg, unser Server
+   prüft ihn und bucht per `server_grant()` gut. Die heutigen
+   500 Spielgeld-Credits verschwinden mit B4a.
+
 ## Teil 3 — Was wir SCHON richtig machen (nicht kaputtmachen)
 
 - **Das Einwilligungs-Tor ist genau das, was Apple seit Nov. 2025 für

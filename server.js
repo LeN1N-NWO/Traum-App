@@ -3294,6 +3294,21 @@ const serveOptions = {
           return json({ ok: true, profile: profilFuerClient(profil) });
         }
 
+        /* Konto löschen (Apple 5.1.1(v), 23.09.2026): löscht die Zeile in
+           auth.users über server_delete_account() — die Funktion handelt
+           für den in der Transaktion erklärten Nutzer, nie für ein
+           Argument (Migration 20260923090000). Alles Weitere fällt per
+           `on delete cascade` mit: profiles, dreams, credits. Erzeugte
+           Medien auf der Platte hängen an Traum-IDs, nicht an Konten —
+           verwaiste Dateien räumt der Medien-Weg, nicht dieser Endpunkt.
+           Kein Bestätigungs-Body: Die Bestätigung ist Sache der App
+           (Alert + Face ID, settings.tsx); ein zweites „wirklich?" im
+           Protokoll schützt niemanden, der schon ein gültiges Token hat. */
+        if (url.pathname === "/api/account" && req.method === "DELETE") {
+          await withUser(database, person.userId, (tx) => tx`select public.server_delete_account()`);
+          return json({ ok: true });
+        }
+
         /* Seitenweise, per Cursor — nie „alles". Ein Tagebuch wächst mit
            jeder Nacht, und jede Zeile trägt Analyse und Reflexion als jsonb;
            die vollständige Liste wäre der erste Endpunkt, der unter dem
