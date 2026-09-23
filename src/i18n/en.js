@@ -1127,6 +1127,16 @@ export default {
     termsPost: ".",
     processing: "My dream texts and the photos I upload may be sent to the AI services named below (fal.ai, Google, DeepSeek — and for films MiniMax or ByteDance) to create my images and films.",
     adult: "I am 18 or older.",
+    /* Klartext-Kacheln über den Häkchen (Antons Ansage 23.09.2026): auf
+       einen Blick, was die App tut, ohne die langen Texte zu lesen. Die
+       Symbole wählt das Tor (consent-gate.tsx) über die id — hier stehen
+       nur Worte. Nichts behaupten, was die details nicht auch sagen. */
+    facts: [
+      { id: "ai", title: "AI-made", text: "Films and images come from AI, marked as such." },
+      { id: "send", title: "Sent to create", text: "Dream text and photos go to AI services only to render." },
+      { id: "device", title: "Stays with you", text: "Your journal lives on this device." },
+      { id: "adult", title: "18+", text: "For adults only." },
+    ],
     more: "Where does my data go?",
     details: [
       "Your dream text goes to fal.ai and DeepSeek (which helps write the image instructions). Photos you upload go to fal.ai and Google only. Your journal itself stays on this device.",

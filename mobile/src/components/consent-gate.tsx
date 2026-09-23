@@ -8,6 +8,15 @@ import JournalBridge from "@/legacy/journal-bridge";
 import { setJournal, useJournalStore, type BridgeCommand, type JournalSnapshot, type LegalDoc } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
+/* Symbol je Klartext-Kachel — die Worte liegen in en.js/de.js, das Bild
+   gehört zur Oberfläche. Unbekannte id fällt auf info.circle zurück. */
+const FACT_ICONS: Record<string, import("expo-symbols").SFSymbol> = {
+  ai: "sparkles",
+  send: "paperplane",
+  device: "iphone",
+  adult: "18.circle",
+};
+
 /* Das Einwilligungs-Tor, nativ — ConsentGate.jsx: VOR allem, was Daten
    an KI-Anbieter schickt. Drei eigene Häkchen (AGB/Datenschutz ·
    Datenverarbeitung · 18+), keins vorangekreuzt; „Wohin gehen meine
@@ -38,6 +47,21 @@ export function ConsentGate() {
             <>
               <Text style={styles.title}>{C.title}</Text>
               <Text style={styles.intro}>{C.intro}</Text>
+              {/* Klartext-Kacheln (Antons Ansage 23.09.2026): auf einen
+                  Blick, was die App tut — zusätzlich zu den langen Texten,
+                  nie statt ihnen. Die Worte kommen aus der Brücke
+                  (t.consent.facts), die Symbole hängen an der id. */}
+              {C.facts ? (
+                <View style={styles.facts}>
+                  {C.facts.map((f) => (
+                    <Glass key={f.id} style={styles.fact}>
+                      <SymbolView name={FACT_ICONS[f.id] ?? "info.circle"} size={20} tintColor={colors.accentSoft} />
+                      <Text style={styles.factTitle}>{f.title}</Text>
+                      <Text style={styles.factText}>{f.text}</Text>
+                    </Glass>
+                  ))}
+                </View>
+              ) : null}
               <View style={styles.rows}>
                 <Row on={terms} set={setTerms}>
                   {C.termsPre}<Text style={styles.link} onPress={() => L && setDoc(L.terms)}>{C.termsLink}</Text>
@@ -101,6 +125,11 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.serif, fontSize: 32, color: colors.text, lineHeight: 38 },
   intro: { color: colors.muted, fontSize: 15, lineHeight: 22 },
   rows: { gap: 10, marginTop: 6 },
+  facts: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 2, marginBottom: 4 },
+  /* Zwei Spalten: 50 % minus die halbe Lücke — vier Kacheln, klein. */
+  fact: { width: "48.8%", borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12, gap: 3, alignItems: "flex-start" },
+  factTitle: { color: colors.text, fontSize: 13, fontWeight: "700", marginTop: 2 },
+  factText: { color: colors.muted, fontSize: 11.5, lineHeight: 15 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 18 },
   rowText: { flex: 1, color: colors.text, fontSize: 15, lineHeight: 21 },
   link: { color: colors.accentSoft, textDecorationLine: "underline" },

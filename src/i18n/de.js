@@ -1061,6 +1061,13 @@ export default {
     termsPost: " gelesen.",
     processing: "Meine Traumtexte und hochgeladenen Fotos dürfen an die unten genannten KI-Dienste (fal.ai, Google, DeepSeek — und für Filme MiniMax oder ByteDance) übermittelt werden, um meine Bilder und Filme zu erzeugen.",
     adult: "Ich bin mindestens 18 Jahre alt.",
+    /* Klartext-Kacheln (23.09.2026) — siehe en.js. */
+    facts: [
+      { id: "ai", title: "KI-gemacht", text: "Filme und Bilder erzeugt eine KI — so gekennzeichnet." },
+      { id: "send", title: "Nur zum Erzeugen", text: "Traumtext und Fotos gehen nur fürs Rendern an KI-Dienste." },
+      { id: "device", title: "Bleibt bei dir", text: "Dein Tagebuch liegt auf diesem Gerät." },
+      { id: "adult", title: "18+", text: "Nur für Erwachsene." },
+    ],
     more: "Wohin gehen meine Daten?",
     details: [
       "Dein Traumtext geht an fal.ai und DeepSeek (hilft beim Formulieren der Bildanweisungen). Hochgeladene Fotos gehen nur an fal.ai und Google. Dein Journal selbst bleibt auf diesem Gerät.",

@@ -451,7 +451,7 @@ function snapshot() {
       timeBudget: werte("timeBudget", t.dreamer.timeValues),
     },
   };
-  const consent = { needed: needsConsent(s), ...Object.fromEntries(["title", "intro", "termsPre", "termsLink", "termsMid", "privacyLink", "termsPost", "processing", "adult", "more", "cta"].map((k) => [k, t.consent[k]])), details: t.consent.details };
+  const consent = { needed: needsConsent(s), ...Object.fromEntries(["title", "intro", "termsPre", "termsLink", "termsMid", "privacyLink", "termsPost", "processing", "adult", "more", "cta"].map((k) => [k, t.consent[k]])), details: t.consent.details, facts: t.consent.facts };
   /* Erinnerungen (13.09.2026): der Plan aus reminders.js, der Stand der
      Erlaubnis und die Texte — auch die der Benachrichtigungen selbst, die
      die native Schicht plant (lib/notifications.ts). */

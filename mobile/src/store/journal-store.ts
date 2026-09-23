@@ -97,7 +97,7 @@ export type RemindersData = {
   labels: { title: string; lede: string; settingsHint: string; morning: string; morningHint: string; evening: string; eveningHint: string; reality: string; realityHint: string; perDay: Record<number, string>; autoRecord: string; autoRecordHint: string; denied: string; openSettings: string; homeAskTitle: string; homeAskText: string; homeAskYes: string; homeAskNo: string };
   texts: { morningTitle: string; morningBody: string; eveningTitle: string; eveningBody: string; realityTitle: string; realityBodies: string[] };
 };
-export type ConsentData = { needed: boolean; title: string; intro: string; termsPre: string; termsLink: string; termsMid: string; privacyLink: string; termsPost: string; processing: string; adult: string; more: string; details: string[]; cta: string };
+export type ConsentData = { needed: boolean; title: string; intro: string; termsPre: string; termsLink: string; termsMid: string; privacyLink: string; termsPost: string; processing: string; adult: string; more: string; details: string[]; facts: { id: string; title: string; text: string }[]; cta: string };
 export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData; symbols: SymbolsData; library: LibraryData; menagerie: MenagerieData; consent: ConsentData; reminders: RemindersData; onboard: Omit<OnboardData, "sleepYears" | "sleepDream"> & { sleepYearsTpl: string; sleepDreamTpl: string } };
 /* Der Film-Auftrag für den nativen Motor (Brücke `order`, Vorarbeit 13.09.). */
 export type OrderRequest = {
