@@ -85,8 +85,9 @@ export default function Step2Output({ w, patch }) {
           <span className="wiz-choice-hint">{t.wizard.step2.filmHint}</span>
         </span>
         {/* Same reasoning as above: renderer and length are chosen in step 5,
-            so only the cheapest possible film is quoted here. */}
-        <span className="wiz-price">{t.wizard.from} {priceForFilm("standard", 5)}</span>
+            so only the cheapest possible film is quoted here — since the
+            Turbo split (23.09.) that is 480P without cast references. */}
+        <span className="wiz-price">{t.wizard.from} {priceForFilm("standard", 5, { quality: "sd", withRefs: false })}</span>
       </Card>
     </section>
   );

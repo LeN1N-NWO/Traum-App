@@ -46,6 +46,11 @@ import { priceForFilm, videoModel, clampSeconds, filmQuality } from "./video.js"
  * @param {number} [order.seconds]    Film
  * @param {string} [order.quality]    Film: "sd" | "hd"
  * @param {boolean} [order.keyframe]  Film: eigenes Startbild → kein Keyframe-Credit
+ * @param {number} [order.refs]       Film: Zahl der Besetzungs-Referenzen —
+ *   0 nimmt den günstigen Turbo-Weg (filmRate). FEHLT das Feld (älterer
+ *   Client), gilt der teurere Referenz-Satz: Unbekanntes zieht den Preis
+ *   nie nach unten, und der Server rechnet ohnehin aus seiner eigenen
+ *   Besetzungsliste nach.
  * @param {number} [order.count]      Bilder: 4 | 8 (Anzahl im Auftrag, bei Rastern: Kacheln)
  * @param {boolean} [order.fallback]  Bilder: Plan B (teureres Modell)
  * @returns {number} Credits, ganzzahlig, nie negativ
@@ -56,7 +61,8 @@ export function quoteFor(order = {}) {
     const m = videoModel(order.model);
     const secs = clampSeconds(m.id, order.seconds);
     const q = filmQuality(m.id, order.quality).id;
-    return priceForFilm(m.id, secs, { ownKeyframe: !!order.keyframe, quality: q });
+    const withRefs = order.refs === undefined ? true : Number(order.refs) > 0;
+    return priceForFilm(m.id, secs, { ownKeyframe: !!order.keyframe, quality: q, withRefs });
   }
   if (mode === "preview") return PRICES.preview;
   if (mode === "character") return PRICES.characterSheet;

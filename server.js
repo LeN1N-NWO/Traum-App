@@ -82,7 +82,7 @@ import { toRow, fromRow, MAX_JSON } from "./src/lib/dreamRow.js";
 import { parseLimit, decodeCursor, buildPage } from "./src/lib/paging.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
-  DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
+  directorMotion, directorFull, KEYFRAME_REF,
   buildDirectorBrief, checkDirectedPrompt, filmReferences, fitPromptBudget,
 } from "./src/lib/director.js";
 
@@ -951,7 +951,9 @@ async function directFilm({ dream, still, beats = [], shots = [], style, seconds
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
       messages: [
-        { role: "system", content: withRefs ? directorFull(m.refStyle) : DIRECTOR_MOTION },
+        /* `negatives` ist Modellwissen (video.js): H3 Max bekommt den
+           NEGATIVE-RULES-Block, Seedance nicht — auf beiden Drehbüchern. */
+        { role: "system", content: withRefs ? directorFull(m.refStyle, { negatives: m.negatives }) : directorMotion({ negatives: m.negatives }) },
         { role: "user", content: brief },
       ],
       stream: false,
@@ -2835,7 +2837,17 @@ const serveOptions = {
              Stand), bekommt den Server-Preis ohne Rückfrage.
              ⚠ Abgebucht wird hier noch NICHT — dafür fehlt die Anmeldung
              (wessen Credits?). settleCharge() ist die vorbereitete Stelle. */
-          const actual = quoteFor({ mode: "film", model: modelId, seconds: body.seconds, quality, keyframe: !!keyframe });
+          /* Referenz-Film — seit dem Neuzuschnitt vom 20.08. sind das ALLE
+             Stufen: Auswahl und Reihenfolge kommen aus filmReferences() —
+             Position in der Liste ist Referenznummer minus eins, Referenz 1
+             ist immer das Startbild. Die Auswahl steht seit 23.09. VOR der
+             Preisrechnung, weil sie den Satz mitentscheidet: ohne
+             Besetzungs-Referenzen rendert der günstige Turbo-Weg
+             (video.js, filmRate), und `refs` unten trägt GENAU diese Zahl
+             in die Quote — aus der servergeprüften Besetzung, nie aus einem
+             Client-Feld. */
+          const kept = filmModel.maxRefs ? filmReferences(cast, filmModel.maxRefs - 1) : [];
+          const actual = quoteFor({ mode: "film", model: modelId, seconds: body.seconds, quality, keyframe: !!keyframe, refs: kept.length });
           const preis = compareQuote(body.quoted, actual);
           if (!preis.ok) {
             console.warn(`[DreamRushes] Preis abgewiesen: angezeigt ${preis.quoted}, gerechnet ${preis.actual} Credits (${modelId}/${quality || "vorgabe"}/${body.seconds}s)`);
@@ -2843,14 +2855,11 @@ const serveOptions = {
           }
           settleCharge({ kind: "film", charge: preis.charge, quoted: preis.quoted });
 
-          /* Referenz-Film — seit dem Neuzuschnitt vom 20.08. sind das ALLE
-             Stufen: Auswahl und Reihenfolge kommen aus filmReferences() —
-             Position in der Liste ist Referenznummer minus eins, Referenz 1
-             ist immer das Startbild. Materialliste (für den Regisseur) und
-             Bildliste (für fal) entstehen aus DERSELBEN Auswahl, damit sie
-             nicht auseinanderlaufen können. Die Platzzahl kommt aus der
-             Modelltabelle: H3 nimmt 5 (die gratis-Grenze), Seedance 9. */
-          const kept = filmModel.maxRefs ? filmReferences(cast, filmModel.maxRefs - 1) : [];
+          /* Materialliste (für den Regisseur) und Bildliste (für fal)
+             entstehen aus DERSELBEN Auswahl (`kept`, oben vor der Quote),
+             damit sie nicht auseinanderlaufen können. Die Platzzahl kommt
+             aus der Modelltabelle: H3 nimmt 5 (Aufpreis je Extra-Bild am
+             neuen Endpunkt ungemessen), Seedance 9. */
           const refsForBrief = filmModel.maxRefs
             ? [KEYFRAME_REF, ...kept.map((c) => ({ tag: c.tag, kind: c.category, desc: c.desc }))]
             : [];

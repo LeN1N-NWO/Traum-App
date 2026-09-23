@@ -85,15 +85,20 @@ export default function Step5Style({ w, patch }) {
      hier; jetzt ist sie eine, und der Server prüft sie. Hat er beim letzten
      Versuch teurer gerechnet (409), gilt SEIN Preis, bis der Auftrag
      geändert wird. */
+  const assignments = Object.values(w.assignments);
+  const named = assignments.filter((a) => a.avatar?.img).length;
+  /* `refs: named` entscheidet seit 23.09. den Film-Satz mit: ohne
+     Besetzungs-Referenzen rendert der günstige Turbo-Weg (video.js,
+     filmRate). Der Server zählt aus seiner eigenen Besetzungsliste nach —
+     zählt er weniger (etwa ein Mitglied ohne Bild), wird es nur BILLIGER,
+     und compareQuote lässt das durch. */
   const price = serverPrice ?? (isFilm
-    ? quoteFor({ mode: "film", model: w.videoModel, seconds: w.seconds, quality: w.quality, keyframe: ownKeyframe })
+    ? quoteFor({ mode: "film", model: w.videoModel, seconds: w.seconds, quality: w.quality, keyframe: ownKeyframe, refs: named })
     : isPreview ? PRICES.preview
     /* ⚠ Plan B kostet mehr, weil er uns mehr kostet: Nano Banana im
        4K-Raster $0,16 gegen $0,113. Die Zahl steht in pricing.js, nicht
        hier — und sie ist am Jahresabo nachgerechnet, dem engsten Plan. */
     : priceForImages(w.imageCount, w.fallback));
-  const assignments = Object.values(w.assignments);
-  const named = assignments.filter((a) => a.avatar?.img).length;
 
   /* Der Szenenbogen und was die gewählte Länge davon trägt — für das
      Storyboard UND für den Film-Aufruf, deshalb hier oben statt im JSX.

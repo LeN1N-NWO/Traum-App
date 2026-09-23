@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { VIDEO_MODELS, QUALITIES, videoModel, filmQuality, clampSeconds, priceForFilm, videoSubmitBody } from "./video.js";
+import { VIDEO_MODELS, QUALITIES, videoModel, filmQuality, filmRate, clampSeconds, priceForFilm, videoSubmitBody } from "./video.js";
 import { CREDIT_COST_USD } from "./plans.js";
 
 /* Diese Datei existiert wegen eines echten Fehlers (Befund 2 des
@@ -32,11 +32,20 @@ test("price and order agree on the seconds, for every model", () => {
 });
 
 test("each model orders at its own address with its own resolution", () => {
-  const std = videoSubmitBody("standard", { imageUrl: "img", prompt: "p", seconds: 6 });
-  expect(std.slug).toBe("minimax/h3/reference-to-video");
-  /* "768P" ist Geld, nicht Geschmack: die Schema-Vorgabe ist "2K" und
-     kostet $0,13/s statt $0,06/s (Filmplan §10b). */
+  /* Die Turbo-Weiche (23.09.2026): NUR das Keyframe → der halbe-Preis-
+     Endpunkt (i2v, Startbild als image_url); mit Besetzungs-Referenzen →
+     H3 Max reference-to-video. Turbo-R2V existiert nicht (404 gemessen). */
+  const solo = videoSubmitBody("standard", { imageUrl: "img", prompt: "p", seconds: 6 });
+  expect(solo.slug).toBe("minimax/h3-max-turbo/image-to-video");
+  expect(solo.body.image_url).toBe("img");
+  expect("reference_image_urls" in solo.body).toBe(false);
+
+  const std = videoSubmitBody("standard", { imageUrl: "img", imageUrls: ["img", "ref"], prompt: "p", seconds: 6 });
+  expect(std.slug).toBe("minimax/h3-max/reference-to-video");
+  /* "768P" ist Geld, nicht Geschmack: die Schema-Vorgabe wäre teurer
+     (beim alten H3 "2K" für $0,13/s — Filmplan §10b). */
   expect(std.body.resolution).toBe("768P");
+  expect(solo.body.resolution).toBe("768P");
 
   const prem = videoSubmitBody("premium", { imageUrl: "img", prompt: "p", seconds: 30 });
   expect(prem.slug).toBe("bytedance/seedance-2.5/reference-to-video");
@@ -54,14 +63,23 @@ test("every tier orders from a different model", () => {
   expect(new Set(slugs).size).toBe(slugs.length);
 });
 
-/* H3 formuliert Prompts standardmäßig selbst um (enable_prompt_expansion
-   steht im Schema AN) — bliebe das an, überschriebe ein fremdes Modell die
-   Arbeit unseres Regisseurs. Seedance kennt den Parameter nicht, und ein
-   unbekanntes Feld kann einen bezahlten Auftrag kosten. */
-test("prompt expansion is switched off exactly where it exists", () => {
-  expect(videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6 }).body.enable_prompt_expansion).toBe(false);
-  expect("enable_prompt_expansion" in videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 6 }).body).toBe(false);
-  expect("enable_prompt_expansion" in videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 6 }).body).toBe(false);
+/* H3 formuliert Prompts standardmäßig selbst um — bliebe das an,
+   überschriebe ein fremdes Modell die Arbeit unseres Regisseurs. Die neuen
+   H3-Max-Endpunkte tragen dafür das PFLICHTfeld prompt_expansion_mode
+   (das alte enable_prompt_expansion kennen sie nicht mehr); Seedance kennt
+   keins von beiden, und ein unbekanntes Feld kann einen bezahlten Auftrag
+   kosten. Beide Wege der Weiche müssen es tragen — ein Pflichtfeld, das
+   auf einem Weg fehlt, ist eine Ablehnung nach bezahlter Runde. */
+test("prompt expansion is disabled exactly where the schema has the field", () => {
+  const solo = videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6 });
+  const refs = videoSubmitBody("standard", { imageUrl: "x", imageUrls: ["x", "r"], prompt: "p", seconds: 6 });
+  expect(solo.body.prompt_expansion_mode).toBe("disabled");
+  expect(refs.body.prompt_expansion_mode).toBe("disabled");
+  const prem = videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 6 }).body;
+  expect("prompt_expansion_mode" in prem).toBe(false);
+  expect("enable_prompt_expansion" in prem).toBe(false);
+  expect("enable_prompt_expansion" in solo.body).toBe(false);
+  expect("enable_prompt_expansion" in refs.body).toBe(false);
 });
 
 /* minimax kennt generate_audio nicht — ein unbekanntes Feld kann bei einem
@@ -105,9 +123,48 @@ test("h3 orders with reference_image_urls, keyframe first, capped at its 5 free 
   expect(got.body.reference_image_urls).toEqual(["keyframe", "a", "b", "c", "d"]);
 });
 
-test("without an explicit list, reference models still get their keyframe as an array", () => {
+test("without an explicit list, seedance still gets its keyframe as an array; standard takes the turbo lane", () => {
   expect(videoSubmitBody("premium", { imageUrl: "kf", prompt: "p", seconds: 8 }).body.image_urls).toEqual(["kf"]);
-  expect(videoSubmitBody("standard", { imageUrl: "kf", prompt: "p", seconds: 8 }).body.reference_image_urls).toEqual(["kf"]);
+  /* Standard OHNE Referenzen ist seit 23.09. der Turbo-Weg: ein Startbild
+     als image_url, kein Array — genau die Bedingung, die auch filmRate()
+     auf den halben Satz schaltet. */
+  const solo = videoSubmitBody("standard", { imageUrl: "kf", prompt: "p", seconds: 8 });
+  expect(solo.body.image_url).toBe("kf");
+  expect("reference_image_urls" in solo.body).toBe(false);
+});
+
+/* ── Die Turbo-Weiche und der Preis müssen an DERSELBEN Bedingung hängen ──
+   (23.09.2026) Wer nur die Route umstellt, verkauft Turbo zum Max-Preis;
+   wer nur den Preis umstellt, verkauft Max zum Turbo-Preis. Beide Tests
+   rechnen die Paarung nach — inklusive der Herleitung der solo-Credits aus
+   dem halbierten Einkauf. */
+test("the turbo lane halves the purchase price and derives its credits the same way", () => {
+  for (const q of QUALITIES) {
+    const refs = filmRate("standard", q, { withRefs: true });
+    const solo = filmRate("standard", q, { withRefs: false });
+    expect(solo.usdPerSecond).toBe(refs.usdPerSecond / 2);
+    expect(solo.creditsPerSecond).toBe(Math.ceil(solo.usdPerSecond / CREDIT_COST_USD));
+    expect(solo.creditsPerSecond * CREDIT_COST_USD).toBeGreaterThanOrEqual(solo.usdPerSecond);
+    expect(solo.resolution).toBe(refs.resolution);   // dieselbe Stufe, nur billiger
+  }
+  /* Seedance hat keinen Turbo-Weg — withRefs darf dort nichts ändern. */
+  expect(filmRate("premium", "sd", { withRefs: false })).toEqual(filmRate("premium", "sd", { withRefs: true }));
+});
+
+test("price and order take the turbo lane under the same condition", () => {
+  const secs = 10;
+  const soloOrder = videoSubmitBody("standard", { imageUrl: "kf", prompt: "p", seconds: secs });
+  const refsOrder = videoSubmitBody("standard", { imageUrl: "kf", imageUrls: ["kf", "r"], prompt: "p", seconds: secs });
+  expect(soloOrder.slug).toBe("minimax/h3-max-turbo/image-to-video");
+  expect(refsOrder.slug).toBe("minimax/h3-max/reference-to-video");
+  const soloPrice = priceForFilm("standard", secs, { ownKeyframe: true, withRefs: false });
+  const refsPrice = priceForFilm("standard", secs, { ownKeyframe: true, withRefs: true });
+  expect(soloPrice).toBe(secs * filmRate("standard", undefined, { withRefs: false }).creditsPerSecond);
+  expect(refsPrice).toBe(secs * filmRate("standard", undefined, { withRefs: true }).creditsPerSecond);
+  expect(soloPrice).toBeLessThan(refsPrice);
+  /* Ohne Angabe gilt der TEURERE Satz — Unbekanntes zieht den Preis nie
+     nach unten (quote.js verlässt sich darauf). */
+  expect(priceForFilm("standard", secs, { ownKeyframe: true })).toBe(refsPrice);
 });
 
 /* R2V hat kein Startbild, aus dem sich das Format ableiten ließe — wo das
@@ -118,8 +175,11 @@ test("without an explicit list, reference models still get their keyframe as an 
    bekommt (sein Schema war der eine ungemessene Punkt). Das Modell ist
    raus; die beiden verbliebenen haben 9:16 bestätigt und bekommen es. */
 test("aspect_ratio goes only where the schema confirmed it", () => {
-  expect(videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6 }).body.aspect_ratio).toBe("9:16");
+  expect(videoSubmitBody("standard", { imageUrl: "x", imageUrls: ["x", "r"], prompt: "p", seconds: 6 }).body.aspect_ratio).toBe("9:16");
   expect(videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 10 }).body.aspect_ratio).toBe("9:16");
+  /* Turbo-i2v kennt KEIN aspect_ratio — das Format folgt dem Startbild
+     (fal-Schema 23.09.); ein unbekanntes Feld kann den Auftrag kosten. */
+  expect("aspect_ratio" in videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6 }).body).toBe(false);
 });
 
 /* Seedance 2.5 läuft in Fünferschritten (5–30) — eine Wunschlänge von
