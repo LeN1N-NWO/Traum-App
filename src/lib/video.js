@@ -131,53 +131,41 @@ import { PRICES } from "./pricing.js";
  *   Seedance 2.5: Referenzen in `image_urls`, adressiert als [Image1];
  *       generate_audio nötig, sonst stumm. 9 Referenzen (Keyframe + 8),
  *       damit die Brief-Form aller Stufen gleich bleibt. */
-/* ── Standard = H3 Max Turbo / H3 Max, zwei Endpunkte, EIN Kundenmodell ──
- * (23.09.2026, Antons Entscheid: „Turbo verwenden, Ersparnis an die Kunden
- * weitergeben.") Am fal-Schema GEMESSEN, nicht aus Blogs übernommen:
- *   · minimax/h3-max-turbo/reference-to-video existiert NICHT (404) —
- *     Turbo kann keine Referenz-Arrays. Sein image-to-video nimmt EIN
- *     Startbild und beginnt pixelgenau damit (bezahlt geprüft 23.09.,
- *     Frosch-Test: Frame 0 = unser Bild).
- *   · minimax/h3-max/reference-to-video nimmt bis 9 Bilder (dazu je 3
- *     Video-/Audio-Referenzen) und hielt im Test die Identität der
- *     Referenz. Data-URIs gehen auf beiden Wegen.
- * Deshalb die Weiche in videoSubmitBody: MIT Besetzungs-Referenzen rendert
- * H3 Max (Preis wie bisher), OHNE rendert Turbo zum HALBEN Einkauf — und
- * `solo` je Qualität gibt genau diese Ersparnis weiter (filmRate).
- * Einkauf lt. fal-Modellseite 23.09.: Max 480P $0,05 · 768P $0,08 ·
- * Turbo 480P $0,025 · 768P $0,04 (1080P gäbe es: $0,16/$0,08 — nicht
- * angeboten, zwei Stufen bleiben zwei Stufen).
- * ⚠ Beide neuen Endpunkte VERLANGEN prompt_expansion_mode (Pflichtfeld im
- * Schema); "disabled", denn die Umformulierung würde unseren Regisseur
- * überschreiben. enable_prompt_expansion gibt es dort nicht mehr.
- * ⚠ maxRefs bleibt 5, obwohl das Schema 9 erlaubt: was ein Bild über dem
- * alten Gratis-Kontingent beim NEUEN Endpunkt kostet, ist ungemessen —
- * erst messen, dann aufdrehen. */
+/* ── Standard = H3 Max Turbo, NUR image-to-video (Antons Entscheid, zwei
+ * Ansagen am 23.09.2026) ─────────────────────────────────────────────────
+ * Erst: „Turbo verwenden, Ersparnis weitergeben." Dann, auf den Befund
+ * „Turbo kann keine Referenz-Arrays" (minimax/h3-max-turbo/reference-to-
+ * video existiert nicht, 404 am fal-Schema gemessen): „Ich will Max Turbo
+ * mit Bildern." Das geht, weil die Fotos ÜBERS KEYFRAME wirken: das
+ * Bildmodell rendert das Startbild MIT den Besetzungs-Referenzen, und
+ * Turbo beginnt pixelgenau mit diesem Bild (bezahlt geprüft 23.09.,
+ * Frosch-Test: Frame 0 = unser Bild). Das Videomodell selbst bekommt EIN
+ * Bild (image_url) und keine Referenzliste mehr.
+ * ⚠ Ungemessen: ob Turbo Gesichter über 15 s Bewegung hält. Beim ersten
+ * echten Foto-Film prüfen. Der doppelte-Preis-Rückweg mit echter
+ * Identitätsführung existiert: minimax/h3-max/reference-to-video (bis 9
+ * Bilder, hielt im Frosch-Test die Identität; Weiche und Preise standen
+ * in Commit 0155f6c).
+ * Einkauf lt. fal-Modellseite 23.09.: 480P $0,025 · 768P $0,04 ·
+ * 1080P $0,08 (Antons Ansage: Auflösungen im Klartext, drei Stufen;
+ * Seedance bietet 1080p weiter nicht an — dort hieße es 42 Credits/s).
+ * ⚠ Der Endpunkt VERLANGT prompt_expansion_mode (Pflichtfeld); "disabled",
+ * denn die Umformulierung würde unseren Regisseur überschreiben. Ein
+ * aspect_ratio kennt i2v nicht: DAS KEYFRAME führt das Format — die
+ * Formatwahl des Wizards reist deshalb als aspectRatio in die
+ * KEYFRAME-Erzeugung (server.js startVideo), nicht in diesen Auftrag. */
 const MODELLE = [
   {
     id: "standard",
-    slug: "minimax/h3-max/reference-to-video",
-    slugSolo: "minimax/h3-max-turbo/image-to-video",
+    slug: "minimax/h3-max-turbo/image-to-video",
     qualities: {
-      sd: { resolution: "480P", usdPerSecond: 0.05, creditsPerSecond: 2,
-            solo: { usdPerSecond: 0.025, creditsPerSecond: 1 } },
-      hd: { resolution: "768P", usdPerSecond: 0.08, creditsPerSecond: 3,
-            solo: { usdPerSecond: 0.04, creditsPerSecond: 2 } },
-      /* Die dritte Stufe (Antons Ansage 23.09.: „einfach 480p, 720p und
-       * 1080p schreiben"): erst mit H3 Max bezahlbar geworden. Seedance
-       * bietet sie weiter NICHT an — dort kostete 1080p $1,164/s, also
-       * 42 Credits je Sekunde. Der Schalter im Wizard liest die Stufen
-       * seit 23.09. je Modell aus DIESER Tabelle, nicht aus QUALITIES. */
-      fhd: { resolution: "1080P", usdPerSecond: 0.16, creditsPerSecond: 6,
-             solo: { usdPerSecond: 0.08, creditsPerSecond: 3 } },
+      sd: { resolution: "480P", usdPerSecond: 0.025, creditsPerSecond: 1 },
+      hd: { resolution: "768P", usdPerSecond: 0.04, creditsPerSecond: 2 },
+      fhd: { resolution: "1080P", usdPerSecond: 0.08, creditsPerSecond: 3 },
     },
     preferred: "hd",
     min: 5, max: 15, step: 1, preset: 6,
-    audio: true,          // H3 Max/Turbo rendern nativen, synchronen Ton — ohne Parameter
-    maxRefs: 5,
-    refsField: "reference_image_urls",
-    refStyle: "plain",
-    aspect: "9:16",       // nur der Referenz-Weg kennt aspect_ratio; i2v folgt dem Startbild
+    audio: true,          // H3 Max Turbo rendert nativen, synchronen Ton — ohne Parameter
     expansionMode: "disabled",
     negatives: true,      // H3 nimmt Negativ-Regeln ungewöhnlich ernst (fal-Prompting-Guide)
     promptMax: 10000,     // Schema erlaubt 50 000; 10 000 ist unser Regie-Budget (wie Seedance)
@@ -198,6 +186,10 @@ const MODELLE = [
     refsField: "image_urls",
     refStyle: "bracket",
     aspect: "9:16",
+    /* Die Formate, die das 2.5-Schema BESTÄTIGT (gemessen 23.09.; das Enum
+     * kennt auch 21:9/4:3/3:4/auto — nicht angeboten). Ein Wunsch außerhalb
+     * dieser Liste fällt in videoSubmitBody auf `aspect` zurück. */
+    aspects: ["9:16", "16:9", "1:1"],
     promptMax: 10000,
     shotEvery: 4, maxShots: 9, timeFormat: "s",
   },
@@ -227,19 +219,6 @@ export function filmQuality(modelId, quality) {
   return { id: q, ...m.qualities[q] };
 }
 
-/** Der Sekundensatz eines Auftrags — und erst HIER entscheidet sich, ob der
- *  günstige Turbo-Weg gilt: ohne Besetzungs-Referenzen rendert `slugSolo`
- *  (nur das Keyframe), und `solo` je Qualität trägt dessen halbierten
- *  Einkauf samt Credits. `withRefs` steht bewusst auf true als Vorgabe:
- *  Wer die Referenzlage nicht kennt, rechnet den TEUREREN Satz — ein zu
- *  hoch angezeigter Preis korrigiert sich beim Server-Vergleich nach unten,
- *  ein zu niedriger wäre ein 409 für den Kunden. */
-export function filmRate(modelId, quality, { withRefs = true } = {}) {
-  const m = videoModel(modelId);
-  const q = filmQuality(modelId, quality);
-  const solo = m.slugSolo && !withRefs ? m.qualities[q.id]?.solo : null;
-  return solo ? { ...q, ...solo } : q;
-}
 
 /* Der komplette fal-Auftrag für einen Film, als reine Funktion — damit die
  * Form je Modell TESTBAR ist, ohne das Netz zu berühren.
@@ -253,9 +232,8 @@ export function filmRate(modelId, quality, { withRefs = true } = {}) {
  *
  * `duration` wird hier je Modell geklemmt. Der Server ruft DIESE Funktion —
  * der Client kann lügen, die Tabelle nicht. */
-export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds, quality }) {
+export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds, quality, aspect }) {
   const m = videoModel(modelId);
-  const urls = (imageUrls?.length ? imageUrls : [imageUrl]).filter(Boolean);
   const body = {
     prompt,
     duration: clampSeconds(m.id, seconds),
@@ -266,47 +244,40 @@ export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds,
   // Das alte enable_prompt_expansion kennen sie nicht mehr.
   if (m.expansionMode) body.prompt_expansion_mode = m.expansionMode;
 
-  /* ── Die Turbo-Weiche (23.09.2026) ──────────────────────────────────────
-   * urls[0] ist immer das Keyframe; alles dahinter sind Besetzungs-
-   * Referenzen. OHNE Referenzen rendert der halbe-Preis-Endpunkt
-   * (slugSolo, Turbo-i2v): er nimmt genau EIN Startbild als image_url,
-   * beginnt pixelgenau damit und kennt weder Referenz-Array noch
-   * aspect_ratio (das Format folgt dem Bild). Dieselbe Bedingung —
-   * „mehr als das Keyframe?" — entscheidet in filmRate() den Preis;
-   * wer hier die Weiche verstellt, verstellt sie DORT mit. */
-  if (m.slugSolo && urls.length <= 1) {
-    body.image_url = urls[0];
-    return { slug: m.slugSolo, body };
-  }
-
   /* Referenzmodelle nehmen ein ARRAY, Ein-Bild-Modelle ein FELD (image_url) —
-   * und der Array-NAME ist selbst Modellwissen: H3-R2V will
-   * reference_image_urls, Seedance will image_urls, und keins von beiden
-   * verzeiht das jeweils andere. Der nano-banana-Vorfall vom 07.08.
+   * und der Array-NAME ist selbst Modellwissen: Seedance will image_urls
+   * und verzeiht keinen anderen. Der nano-banana-Vorfall vom 07.08.
    * (image_urls still ignoriert, Renders ohne Gesichter tagelang bezahlt)
    * ist genau die Fehlerklasse, die hier lauert. Deshalb entscheidet die
-   * Tabelle, nie der Aufrufer. */
+   * Tabelle, nie der Aufrufer. Standard (Turbo-i2v) ist seit 23.09. ein
+   * Ein-Bild-Modell: es bekommt NUR das Keyframe — die Besetzungs-Fotos
+   * stecken da längst drin (Bildmodell), eine mitgeschickte Liste wird
+   * bewusst ignoriert statt an ein Feld geschickt, das es nicht gibt. */
   if (m.maxRefs) {
-    body[m.refsField || "image_urls"] = urls.slice(0, m.maxRefs);
+    const urls = (imageUrls?.length ? imageUrls : [imageUrl]).filter(Boolean).slice(0, m.maxRefs);
+    body[m.refsField || "image_urls"] = urls;
   } else {
     body.image_url = imageUrl;
   }
 
   // Nur senden, wo der Parameter existiert: ein unbekanntes Feld kann bei
-  // einem strengen Validator den ganzen Auftrag kosten. H3 Max liefert
-  // seinen Ton OHNE Parameter; nur Seedance braucht generate_audio.
+  // einem strengen Validator den ganzen Auftrag kosten. H3 Max Turbo
+  // liefert seinen Ton OHNE Parameter; nur Seedance braucht generate_audio.
   if (m.audioParam) body.generate_audio = true;
-  // R2V hat kein Startbild als Formatgeber; nur setzen, wo das Schema den
-  // Wert bestätigt (H3 stünde sonst auf "adaptive").
-  if (m.aspect) body.aspect_ratio = m.aspect;
+  /* Das Format (23.09.: Wizard-Wahl reist bis hierher durch): nur setzen,
+   * wo das Schema es kennt — Turbo-i2v hat KEIN aspect_ratio, dort führt
+   * das Keyframe (der Wunsch wirkt über dessen Erzeugung, server.js).
+   * Ein Wunsch außerhalb der gemessenen `aspects`-Liste fällt auf die
+   * Vorgabe zurück, nie durchgereicht. */
+  if (m.aspect) body.aspect_ratio = m.aspects?.includes(aspect) ? aspect : m.aspect;
   return { slug: m.slug, body };
 }
 
 /** What a film costs: the animation, plus a keyframe — unless the film
  *  animates an image the dream already has, which costs nothing new. */
-export function priceForFilm(modelId, seconds, { ownKeyframe = false, quality, withRefs = true } = {}) {
+export function priceForFilm(modelId, seconds, { ownKeyframe = false, quality } = {}) {
   const secs = clampSeconds(modelId, seconds);
-  return secs * filmRate(modelId, quality, { withRefs }).creditsPerSecond + (ownKeyframe ? 0 : PRICES.keyframe);
+  return secs * filmQuality(modelId, quality).creditsPerSecond + (ownKeyframe ? 0 : PRICES.keyframe);
 }
 
 /* Wie viele Schnitte eine Filmlänge bei DIESEM Modell trägt — die Zahl, an

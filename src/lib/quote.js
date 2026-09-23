@@ -46,11 +46,6 @@ import { priceForFilm, videoModel, clampSeconds, filmQuality } from "./video.js"
  * @param {number} [order.seconds]    Film
  * @param {string} [order.quality]    Film: "sd" | "hd"
  * @param {boolean} [order.keyframe]  Film: eigenes Startbild → kein Keyframe-Credit
- * @param {number} [order.refs]       Film: Zahl der Besetzungs-Referenzen —
- *   0 nimmt den günstigen Turbo-Weg (filmRate). FEHLT das Feld (älterer
- *   Client), gilt der teurere Referenz-Satz: Unbekanntes zieht den Preis
- *   nie nach unten, und der Server rechnet ohnehin aus seiner eigenen
- *   Besetzungsliste nach.
  * @param {number} [order.count]      Bilder: 4 | 8 (Anzahl im Auftrag, bei Rastern: Kacheln)
  * @param {boolean} [order.fallback]  Bilder: Plan B (teureres Modell)
  * @returns {number} Credits, ganzzahlig, nie negativ
@@ -61,8 +56,7 @@ export function quoteFor(order = {}) {
     const m = videoModel(order.model);
     const secs = clampSeconds(m.id, order.seconds);
     const q = filmQuality(m.id, order.quality).id;
-    const withRefs = order.refs === undefined ? true : Number(order.refs) > 0;
-    return priceForFilm(m.id, secs, { ownKeyframe: !!order.keyframe, quality: q, withRefs });
+    return priceForFilm(m.id, secs, { ownKeyframe: !!order.keyframe, quality: q });
   }
   if (mode === "preview") return PRICES.preview;
   if (mode === "character") return PRICES.characterSheet;
@@ -104,13 +98,7 @@ export function priceTable() {
       return {
         id, min: m.min, max: m.max, step: m.step, preferred: m.preferred,
         qualities: Object.fromEntries(
-          Object.entries(m.qualities).map(([k, v]) => [k, {
-            creditsPerSecond: v.creditsPerSecond, resolution: v.resolution,
-            /* Der Turbo-Satz ohne Besetzungs-Referenzen (23.09.), wo es
-               ihn gibt — derselbe Grund wie oben: der Client soll SEINE
-               Zahlen gegen die des Servers prüfen können. */
-            ...(v.solo ? { soloCreditsPerSecond: v.solo.creditsPerSecond } : {}),
-          }]),
+          Object.entries(m.qualities).map(([k, v]) => [k, { creditsPerSecond: v.creditsPerSecond, resolution: v.resolution }]),
         ),
       };
     }),

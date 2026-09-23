@@ -1,7 +1,16 @@
 # H3 Max Turbo: Umstellung, Messungen, Prompt-Regeln (23.09.2026)
 
-**Antons Entscheid:** H3 Max Turbo verwenden, die Ersparnis an die Kunden
-weitergeben. Vorher die Referenzbild-Frage TESTEN, nicht Blogs glauben.
+**Antons Entscheid (zwei Stufen am selben Tag):** Erst „Turbo verwenden,
+Ersparnis weitergeben" (daraus entstand kurz eine Zwei-Wege-Weiche: mit
+Referenzen H3 Max, ohne Turbo — Commit 0155f6c). Dann, nach dem Befund:
+**„Ich will Max Turbo mit Bildern"** → Standard rendert seitdem IMMER
+über Turbo-i2v; die Fotos wirken übers Keyframe (das Bildmodell rendert
+es mit den Referenzen, Turbo startet pixelgenau damit), und der halbe
+Satz gilt für jeden Standard-Film: **480p 1 · 768p 2 · 1080p 3 Cr/s.**
+Dazu Antons Ansage „Auflösungen im Klartext" (Knopf zeigt 480p/768p/
+1080p) und die **Formatwahl 9:16/16:9/1:1 gilt jetzt auch für Filme**
+(Keyframe wird im Wunschformat gerendert; Seedance bekommt zusätzlich
+aspect_ratio, am Schema bestätigt).
 
 ## Was gemessen wurde (fal-OpenAPI-Schemata + zwei bezahlte Renders, ~0,38 $)
 
@@ -64,12 +73,15 @@ Für Dream Rushes als deutsches Gewerbe keine Option — API bleibt der Weg.
 
 ## Offen
 
-1. **Erster bezahlter Kundenpfad-Film über beide neuen Endpunkte** (der
-   Frosch-Test lief direkt gegen fal, nicht durch server.js) — bei der
-   Gelegenheit prüfen, ob Turbos Identitätshaltung über 15 s reicht.
-2. **Aufpreis je Extra-Referenzbild am neuen Max-Endpunkt messen** — bis
-   dahin bleibt maxRefs bei 5 (die alte Gratis-Grenze).
-3. **1080P als dritte Stufe?** Gäbe es zum Turbo-Satz von 3 Cr/s —
-   Produktentscheidung, nicht Technik.
-4. UI-Hinweis „mit Foto-Referenzen kostet der Film mehr" (heute sieht man
-   nur die Preisänderung am Knopf) — Textfrage, ggf. mit Hanni.
+1. **Erster bezahlter Kundenpfad-Film über server.js** (der Frosch-Test
+   lief direkt gegen fal) — dabei DIE offene Qualitätsfrage prüfen:
+   **hält Turbo Gesichter über 15 s Bewegung**, wenn sie nur im Keyframe
+   stecken? Falls nein: der Rückweg mit echter Identitätsführung ist
+   `minimax/h3-max/reference-to-video` (doppelter Einkauf; Weiche und
+   Preise standen in Commit 0155f6c).
+2. **Formatwahl einmal echt rendern** (16:9 und 1:1): Keyframe-Format →
+   Turbo folgt; Seedance mit aspect_ratio — beides bisher nur am Schema
+   bestätigt.
+3. Modell-Infotext im Kaufblatt (en/de `filmModels.standard.info`) nennt
+   noch „carries up to four reference photos" — stimmt weiter fürs
+   KEYFRAME, aber die Formulierung beim nächsten Textdurchgang schärfen.

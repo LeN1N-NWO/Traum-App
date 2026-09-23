@@ -87,13 +87,8 @@ export default function Step5Style({ w, patch }) {
      geändert wird. */
   const assignments = Object.values(w.assignments);
   const named = assignments.filter((a) => a.avatar?.img).length;
-  /* `refs: named` entscheidet seit 23.09. den Film-Satz mit: ohne
-     Besetzungs-Referenzen rendert der günstige Turbo-Weg (video.js,
-     filmRate). Der Server zählt aus seiner eigenen Besetzungsliste nach —
-     zählt er weniger (etwa ein Mitglied ohne Bild), wird es nur BILLIGER,
-     und compareQuote lässt das durch. */
   const price = serverPrice ?? (isFilm
-    ? quoteFor({ mode: "film", model: w.videoModel, seconds: w.seconds, quality: w.quality, keyframe: ownKeyframe, refs: named })
+    ? quoteFor({ mode: "film", model: w.videoModel, seconds: w.seconds, quality: w.quality, keyframe: ownKeyframe })
     : isPreview ? PRICES.preview
     /* ⚠ Plan B kostet mehr, weil er uns mehr kostet: Nano Banana im
        4K-Raster $0,16 gegen $0,113. Die Zahl steht in pricing.js, nicht
@@ -413,6 +408,10 @@ export default function Step5Style({ w, patch }) {
              Wer hier die Vorgabe schickt statt der aufgelösten Stufe, riskiert,
              dass Client und Server verschieden auflösen. */
           quality: filmQuality(w.videoModel, w.quality).id,
+          /* Das Format gilt seit 23.09. auch für den FILM: Es bestimmt das
+             Keyframe, und Turbo folgt dem Keyframe; Seedance bekommt es
+             zusätzlich als aspect_ratio (Server-Allowlist). */
+          format: w.format,
           /* Der angezeigte Preis reist mit — als Zusage an den Menschen,
              nicht als Anweisung an den Server. Der rechnet selbst und lehnt
              mit 409 ab, wenn er teurer liegt (quote.js). */
@@ -803,21 +802,26 @@ export default function Step5Style({ w, patch }) {
 
       {/* Hidden during a preview: the grid is 16:9 by construction and its
           panels come out near-portrait whatever is chosen here, so leaving
-          the control visible would be a switch that changes nothing. */}
+          the control visible would be a switch that changes nothing.
+          Seit 23.09. wirkt die Wahl auch auf den FILM (vorher stand der
+          Schalter beim Film sichtbar da und änderte nichts): das Keyframe
+          wird im gewählten Format gerendert, Turbo folgt ihm, Seedance
+          bekommt es als aspect_ratio. Neu dabei: 1:1 (beide Modellwege
+          am fal-Schema bestätigt). */}
       {!isPreview && (
         <>
       <h2 className="wiz-sub">{t.wizard.step5.formatLabel}</h2>
       <div className="wiz-formats" role="group" aria-label={t.wizard.step5.formatLabel}>
-        {["9:16", "16:9"].map((f) => (
+        {["9:16", "16:9", "1:1"].map((f) => (
           <button
             key={f}
             className={"wiz-format" + (w.format === f ? " wiz-format-on" : "")}
             onClick={() => patch({ format: f })}
             aria-pressed={w.format === f}
           >
-            <span className={f === "9:16" ? "wiz-format-tall" : "wiz-format-wide"} aria-hidden="true" />
+            <span className={f === "9:16" ? "wiz-format-tall" : f === "16:9" ? "wiz-format-wide" : "wiz-format-square"} aria-hidden="true" />
             <span>{f}</span>
-            <small>{f === "9:16" ? t.wizard.step5.portrait : t.wizard.step5.landscape}</small>
+            <small>{f === "9:16" ? t.wizard.step5.portrait : f === "16:9" ? t.wizard.step5.landscape : t.wizard.step5.square}</small>
           </button>
         ))}
       </div>

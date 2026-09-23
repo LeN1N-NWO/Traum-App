@@ -1567,11 +1567,11 @@ const writeJob = (id, job) => Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.st
  *  (server-side) through that same table: the queue only validates duration
  *  at RENDER time (re-measured 09.08.2026), so a bad value burns the fee
  *  and comes back as a failed job minutes later. */
-async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, quality, poster = null }) {
+async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, quality, poster = null, aspect }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
-  const { slug, body } = videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds, quality });
+  const { slug, body } = videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds, quality, aspect });
   /* Die Größe des Auftrags im Log, VOR dem Absenden (03.09.2026). Beim
      ersten Lauf mit dem neuen Schnitt starb der Submit an ECONNRESET —
      „the socket connection was closed unexpectedly" — und ohne diese Zeile
@@ -2129,24 +2129,30 @@ function settleCharge({ kind, charge, quoted }) {
   return { charged: false, charge };
 }
 
-async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, quality, refImages = [], poster = null }) {
+async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, quality, refImages = [], poster = null, format = "9:16" }) {
   const filmPrompt = motionPrompt || prompt || dream;
   /* `refImages` kommt aus filmReferences() und steht in EXAKT der
    * Reihenfolge der Materialliste des Regisseurs — das Startbild davor
    * macht @Image1 aus dem Keyframe, @Image2.. aus der Besetzung.
-   * Ein-Bild-Modelle ignorieren das Array (videoSubmitBody entscheidet). */
+   * Ein-Bild-Modelle ignorieren das Array (videoSubmitBody entscheidet).
+   *
+   * `format` (23.09.): Beim NEU gerenderten Keyframe bestimmt es dessen
+   * Seitenverhältnis — und weil Turbo-i2v dem Startbild folgt, IST das
+   * das Filmformat. Bei einem eigenen Keyframe (Film aus vorhandenem
+   * Bild) führt DAS Bild das Format; der Wunsch geht trotzdem als aspect
+   * an Modelle, deren Schema ihn kennt (Seedance). */
   if (keyframe) {
     const hit = resolveMedia(keyframe);
     const file = hit && Bun.file(resolve(MEDIA_DIR, hit.name));
     if (!hit || !(await file.exists())) throw new Error("GENERATION_FAILED");
     const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
     const dataUri = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
-    return falSubmitVideo({ modelId, quality, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds, poster });
+    return falSubmitVideo({ modelId, quality, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds, poster, aspect: format });
   }
-  const stills = await generateImages({ dream, namedRefs, prompt });
+  const stills = await generateImages({ dream, namedRefs, prompt, aspectRatio: format });
   const first = stills[0];
   if (!first) throw new Error("GENERATION_FAILED");
-  return falSubmitVideo({ modelId, quality, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds, poster });
+  return falSubmitVideo({ modelId, quality, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds, poster, aspect: format });
 }
 
 // ---- static file serving ----
@@ -2837,17 +2843,20 @@ const serveOptions = {
              Stand), bekommt den Server-Preis ohne Rückfrage.
              ⚠ Abgebucht wird hier noch NICHT — dafür fehlt die Anmeldung
              (wessen Credits?). settleCharge() ist die vorbereitete Stelle. */
-          /* Referenz-Film — seit dem Neuzuschnitt vom 20.08. sind das ALLE
-             Stufen: Auswahl und Reihenfolge kommen aus filmReferences() —
-             Position in der Liste ist Referenznummer minus eins, Referenz 1
-             ist immer das Startbild. Die Auswahl steht seit 23.09. VOR der
-             Preisrechnung, weil sie den Satz mitentscheidet: ohne
-             Besetzungs-Referenzen rendert der günstige Turbo-Weg
-             (video.js, filmRate), und `refs` unten trägt GENAU diese Zahl
-             in die Quote — aus der servergeprüften Besetzung, nie aus einem
-             Client-Feld. */
+          /* Referenz-Auswahl (filmReferences): Position in der Liste ist
+             Referenznummer minus eins, Referenz 1 ist immer das Startbild.
+             Seit Antons Turbo-Entscheid (23.09.) betrifft das nur noch
+             Premium/Seedance — Standard ist ein Ein-Bild-Modell (kein
+             maxRefs, kept bleibt leer), die Fotos wirken dort übers
+             Keyframe. Der Preis hängt nicht mehr an der Referenzlage. */
           const kept = filmModel.maxRefs ? filmReferences(cast, filmModel.maxRefs - 1) : [];
-          const actual = quoteFor({ mode: "film", model: modelId, seconds: body.seconds, quality, keyframe: !!keyframe, refs: kept.length });
+          /* Das Format des Films (23.09., Antons Ansage): dieselbe
+             Allowlist-Haltung wie bei quality — ein Wert, nie Text. Es
+             steuert die KEYFRAME-Erzeugung (Turbo folgt dem Startbild)
+             und reist bei Seedance zusätzlich als aspect_ratio mit
+             (videoSubmitBody prüft gegen die gemessene aspects-Liste). */
+          const filmFormat = ["9:16", "16:9", "1:1"].includes(body.format) ? body.format : "9:16";
+          const actual = quoteFor({ mode: "film", model: modelId, seconds: body.seconds, quality, keyframe: !!keyframe });
           const preis = compareQuote(body.quoted, actual);
           if (!preis.ok) {
             console.warn(`[DreamRushes] Preis abgewiesen: angezeigt ${preis.quoted}, gerechnet ${preis.actual} Credits (${modelId}/${quality || "vorgabe"}/${body.seconds}s)`);
@@ -2887,7 +2896,7 @@ const serveOptions = {
           const jobId = await startVideo({
             dream, namedRefs: cast, prompt, motionPrompt,
             seconds: body.seconds, keyframe, modelId, quality,
-            refImages: kept.map((c) => c.img), poster,
+            refImages: kept.map((c) => c.img), poster, format: filmFormat,
           });
           return json({ ok: true, jobId });
         }

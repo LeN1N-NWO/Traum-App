@@ -895,6 +895,7 @@ export default {
       formatLabel: "Format",
       portrait: "Handy, Stories",
       landscape: "Breitbild",
+      square: "Quadrat, Feed",
       keyframeLabel: "Welches Bild wird lebendig?",
       keyframeHint: "Der Film beginnt bei diesem Bild — sein Look zieht sich durch.",
       filmModelLabel: "Welches Modell",

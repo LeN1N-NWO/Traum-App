@@ -940,6 +940,7 @@ export default {
       formatLabel: "Format",
       portrait: "Phone, stories",
       landscape: "Widescreen",
+      square: "Square, feed",
       keyframeLabel: "Which image comes to life?",
       keyframeHint: "The film starts from this picture — its look carries through.",
       filmModelLabel: "Which model",
