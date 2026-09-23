@@ -200,10 +200,12 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
             </View>
           ))}
         </View>
-        {/* ⚠ PLATZHALTER: die Proof-Zeile (Antons Ansage 13.09.: „erst mal
-            fake, technisch") — Lorbeer, Sterne, „folgt". Wird gegen echte
-            Auszeichnungen getauscht. */}
-        <View style={styles.proofRow}>
+        {/* Die Proof-Zeile (Antons Ansage 13.09.: „erst mal fake, technisch")
+            ist seit 23.09. LEER — Platzhalter wie „Reviews to come" und eine
+            Auszeichnung, die es nicht gibt, lehnt App Review ab (2.1/2.3,
+            docs/plans/2026-09-23-app-store-pruefung.md N2). Echte Bewertungen
+            oder Auszeichnungen kommen in `proof` (en/de), dann erscheint sie. */}
+        {O.proof.length ? <View style={styles.proofRow}>
           {O.proof.map((pr, i) => (
             <View key={i} style={styles.proof}>
               {/* Kleiner (Antons Befund 13.09. abends: ragten aus dem Bild). */}
@@ -215,7 +217,7 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
               <SymbolView name="laurel.trailing" size={20} tintColor={colors.muted} />
             </View>
           ))}
-        </View>
+        </View> : null}
         <PrimaryButton label={O.next} heavy onPress={next} style={{ flex: 0 }} />
       </Shell>
     );

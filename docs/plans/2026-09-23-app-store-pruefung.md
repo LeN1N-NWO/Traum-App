@@ -22,18 +22,18 @@ Code, sondern aus diesem Abstand.
 | B2 | Konto-Löschung | ✅ fertig, am iPhone belegt, inkl. Apple-Token-Widerruf (PR #55) |
 | B3 | Server aus dem Internet erreichbar | ❌ offen — größter Brocken neben B1, siehe Phase 2 |
 | B4 | Testphasen-Schalter | ❌ offen, trivial, bewusst als Letztes |
-| B5 | Systemtexte lokalisieren | ⚠ nur in Antons lokalem `mobile/ios`, nicht in `app.json` → in Hannis Bau fehlt es |
+| B5 | Systemtexte lokalisieren | ✅ in `app.json` + `mobile/locales/` (23.09., Phase 1) — entsteht bei jedem Prebuild |
 | B6 | Privacy Manifest | ⚠ Preflight ✓, Inhalt nicht fachlich geprüft |
-| B7 | Export-Compliance-Flag | ⚠ wie B5: nur auf Antons Mac |
+| B7 | Export-Compliance-Flag | ✅ `ios.config.usesNonExemptEncryption: false` in `app.json` (23.09.) |
 | B8 | Medien-Speicherung/-Löschung | ❌ offen, hängt an B3 (und an Befund N3) |
 
 ## Neu seit dem Leitfaden (Test 23.09. und Recherche)
 
 | # | Punkt | Apple-Regel | Wo |
 |---|-------|-------------|----|
-| N1 | **Datenschutz-Aussagen stimmen nicht:** „It stays on your phone" beim eigenen Foto — Fotos gehen an die KI-Dienste; Kachel „Your journal lives on this device" — mit Konto liegen Träume in Supabase. | 5.1.1(i), 2.3 | `src/i18n/en.js:1257`, `:1148`, `de.js:1079` |
-| N2 | **Platzhalter im Onboarding:** „★★★★★ Reviews to come", „App Store Award to come". | 2.1(a), 2.3.1 | `src/i18n/en.js:1290` (+ de) |
-| N3 | **Löschhinweis verspricht, Filme zu entfernen** — sie bleiben auf der Platte. | 5.1.1(v) | `de.js:413`, `:415` |
+| N1 | ✅ **Datenschutz-Aussage beim eigenen Foto stimmte nicht:** „It stays on your phone" — das Foto geht beim Hinzufügen an fal.ai (Prüfung auf anstößige Inhalte, `server.js:2601`) und für Filme an die KI-Dienste. Neu: „verlässt dein Handy nur für eine Sicherheitsprüfung und für deine Filme". ⚠ Korrektur am Entwurf: Die Kachel „Your journal lives on this device" **stimmt** — kein Client ruft `/api/dreams` auf, Träume werden bisher nicht hochgeladen. | 5.1.1(i), 2.3 | `src/i18n/en.js:1257`, `de.js:1174` |
+| N2 | ✅ **Platzhalter im Onboarding** (Liste geleert, Zeile wird ohne Einträge nicht gezeichnet): „★★★★★ Reviews to come", „App Store Award to come". | 2.1(a), 2.3.1 | `src/i18n/en.js:1290` (+ de) |
+| N3 | ✅ (Text) **Löschhinweis versprach, Filme zu entfernen** — sie bleiben auf der Platte. Text sagt jetzt nur, was stimmt: Konto und Profil. Filme wirklich mitlöschen bleibt Phase 2 (B8). | 5.1.1(v) | `de.js:413`, `:415`, `en.js:459`, `:461` |
 | N4 | **„Vor dem Start prüft ein Anwalt diese Texte"** steht sichtbar in der App (Rechtstexte). Muss vor der Einreichung wahr geworden und verschwunden sein. | 2.1(a) | `de.js:1097`, `en.js:1171` |
 | N5 | **Datenschutzerklärung als öffentliche Webseite.** Apple verlangt den Link in den Metadaten UND leicht erreichbar in der App; in der App gibt es sie, eine URL nicht. Dazu eine Support-URL. | 5.1.1(i), 2.1 | neu |
 | N6 | **EU-Händlerstatus (DSA)** muss in App Store Connect erklärt werden. Als Händler werden **Adresse, Telefon und E-Mail öffentlich** auf der Produktseite gezeigt — bei einer Einzelperson Hannis private Daten. Wer Umsatz macht, ist praktisch immer Händler. | EU-Recht | App Store Connect |
@@ -43,13 +43,15 @@ Code, sondern aus diesem Abstand.
 | N10 | **Der Prüfer braucht Credits**, um einen Film zu sehen; mit B4a gibt es keine Gratis-Credits mehr. Entweder Sandbox-Kauf (IAP müssen dafür mit der ersten Version eingereicht und „vollständig, sichtbar, funktionsfähig" sein) oder ein Willkommensguthaben. | 2.1(b) | Entscheidung |
 | N11 | Face-ID-Schalter im Simulator ohne Reaktion; Fehlschlag in jedem Fall stumm. | 2.1 | `mobile/src/app/profile/settings.tsx:40` |
 | N12 | „Mit Apple anmelden"-Knopf ist selbst gezeichnet (Glas) statt Apples Knopf. | 4.8 / HIG | Onboarding |
+| N13 | **Der Konto-Schritt verspricht, was es nicht gibt:** „Mit einem Konto bleiben Träume, Filme und dein Profil erhalten, wenn das Handy wechselt" — Träume und Filme werden bisher nicht mit dem Konto gesichert (kein Client ruft `/api/dreams`). Entweder den Satz auf das Profil beschränken oder die Sicherung bauen. | 2.3.1 | `de.js:1216`, `en.js:1298` |
 
 ## Entscheidungen, die zuerst fallen müssen (Phase 0)
 
 Ohne diese lässt sich der Rest nicht sinnvoll bauen. **Wer entscheidet:**
 Hanni (Konto, Recht), Anton (Produkt, Geld) — gemeinsam.
 
-1. **Erste Einreichung als Einzelperson oder erst mit der UG?** Hängt direkt
+1. ✅ **Entschieden (Hanni, 23.09.): jetzt vorbereiten und TestFlight als
+   Einzelperson, verkaufen erst als UG.** — Frage war: Erste Einreichung als Einzelperson oder erst mit der UG? Hängt direkt
    an N6: Als Einzelperson mit Käufen stehen Hannis Adresse und Telefon
    öffentlich im EU-Store. Und STAND sagt schon: echte, zahlende Nutzer erst
    nach dem Wechsel zur Organisation. **Vorschlag:** TestFlight und die
@@ -74,11 +76,17 @@ Hanni (Konto, Recht), Anton (Produkt, Geld) — gemeinsam.
 
 ### Phase 1 — Texte und Konfiguration (klein, sofort, eine Sitzung)
 Kein Risiko, keine Abhängigkeit. **Claude mit Hanni.**
-- N1, N2, N3 (Text an die Wahrheit anpassen oder, bei N3, entscheiden:
-  Medien mitlöschen → dann Phase 2), Antons Befunde 1 und 9 („Bilder").
-- B5, B7 und `NSFaceIDUsageDescription` nach `mobile/app.json`
-  (`ios.infoPlist` + `locales` für en/de) — danach Prebuild, prüfen, dass
-  der Preflight auf Hannis Mac die drei nicht mehr meldet. **Mit Anton
+- ✅ N1, N2, N3 (Text), Antons Befund 1 („Sie zu Filmen machen"; es/fr/zh/hi/ar
+  folgen mit der Sammelübersetzung). **Befund 9 bewusst NICHT umgesetzt:**
+  Die App erzeugt weiter Bilder (Startbild jedes Films, gezeichnete
+  Besetzung) — die Einwilligung muss „images" nennen.
+- N13 (Konto-Versprechen) — Entscheidung Hanni/Anton.
+- ✅ B5, B7 und `NSFaceIDUsageDescription` in `mobile/app.json`
+  (`ios.infoPlist`, `ios.config.usesNonExemptEncryption`, `locales` →
+  `mobile/locales/{en,de}.json`). Nach Prebuild belegt: Flag gesetzt,
+  `Supporting/de.lproj/InfoPlist.strings` mit allen vier Texten; Preflight
+  kennt jetzt beide Orte. ⚠ B6 (Privacy Manifest) entsteht erst bei
+  `pod install`, nicht beim Prebuild. **Mit Anton
   abstimmen**, damit sein lokales Xcode-Projekt nicht auseinanderläuft.
 - N11 (Face ID am iPhone prüfen; Fehlschlag sichtbar machen).
 - **Fertig, wenn:** Preflight auf Hannis Mac = nur noch B3/B4-Schalter;

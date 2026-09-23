@@ -376,7 +376,7 @@ export default {
     goalValues: {
       remember: "Mehr behalten",
       understand: "Verstehen, was sie meinen",
-      create: "Sie zu Bildern machen",
+      create: "Sie zu Filmen machen",
       "sleep-better": "Besser schlafen",
       nightmares: "Aus den schlechten Träumen herauskommen",
     },
@@ -410,9 +410,9 @@ export default {
     privacyLocked: "Deine Träume sind gesperrt.",
     /* Konto-Löschung (23.09.2026) — siehe en.js. */
     deleteAccount: "Konto löschen",
-    deleteAccountHint: "Entfernt Konto, Filme und Guthaben von unserem Server. Träume auf diesem Gerät bleiben.",
+    deleteAccountHint: "Entfernt dein Konto und sein Profil von unserem Server. Träume auf diesem Gerät bleiben.",
     deleteAccountConfirmTitle: "Konto wirklich löschen?",
-    deleteAccountConfirmText: "Das lässt sich nicht rückgängig machen. Dein Konto, die auf unserem Server gespeicherten Filme und dein Guthaben werden entfernt. Träume auf diesem Gerät bleiben deine.",
+    deleteAccountConfirmText: "Das lässt sich nicht rückgängig machen. Dein Konto und sein Profil werden von unserem Server entfernt. Träume auf diesem Gerät bleiben deine.",
     deleteAccountGo: "Löschen",
     deleteAccountDone: "Dein Konto ist gelöscht.",
     deleteAccountFailed: "Das hat nicht geklappt. Prüf deine Verbindung und versuch es noch einmal.",
@@ -1171,7 +1171,7 @@ export default {
        deine" (Antons Platzwahl 13.09.): erst sehen, dass man mitspielt,
        dann das Gesicht geben. */
     meTitle: "Wer bist du?",
-    meText: "Ein Foto von dir — dann spielst du in deinen Träumen mit, mit deinem echten Gesicht. Es bleibt auf deinem Handy.",
+    meText: "Ein Foto von dir — dann spielst du in deinen Träumen mit, mit deinem echten Gesicht. Es verlässt dein Handy nur für eine Sicherheitsprüfung und für deine Filme.",
     mePick: "Foto wählen",
     meCamera: "Selfie machen",
     meChange: "Anderes Foto",
@@ -1205,7 +1205,7 @@ export default {
     featuresLede: "Erzähl deinen Traum im Halbschlaf, sieh ihn als Film, behalte jede Nacht.",
     /* ⚠ PLATZHALTER, technisch (Antons Ansage 13.09.): die Zeile wird
        durch echte Auszeichnungen ersetzt, sobald es sie gibt. */
-    proof: [{ big: "★★★★★", small: "Bewertungen folgen" }, { big: "App Store", small: "Auszeichnung folgt" }],
+    proof: [],
     doneTitle: "Das war's",
     doneText: "Deine Nächte haben jetzt einen Ort.",
     doneCta: "Heute Nacht anfangen",
