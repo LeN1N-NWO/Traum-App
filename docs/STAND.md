@@ -3,10 +3,31 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-23 abends — Hanni, `session/2026-09-23-hanni`
-(PR #55, fertig, **Merge durch Hanni**). Anton parallel auf
+**Stand:** 2026-09-23 spätabends — Hanni, `session/2026-09-23-hanni-2`
+(PR #57, fertig, **Merge durch Hanni**). Anton parallel auf
 `session/2026-09-23-anton` (PR #56, Begleiter-Animationen — keine
-Überschneidung).
+Überschneidung). **Der Weg durch die App-Store-Prüfung steht als Plan:
+`docs/plans/2026-09-23-app-store-pruefung.md`** (Blocker-Stand, Befunde
+N1–N13, Phase-0-Entscheidungen, Phasen 1–5, wer was macht). Entschieden:
+**vorbereiten und TestFlight jetzt als Einzelperson, verkaufen erst als UG**
+(DSA-Händlerstatus: sonst stehen Hannis Adresse und Telefon öffentlich).
+
+**Träume werden jetzt mit dem Konto gesichert (23.09., N13).** Das
+Onboarding versprach es, getan hat es nichts. Jetzt: `mobile/src/lib/dream-sync.ts`
++ `components/dream-sync-layer.tsx` (unsichtbar im Wurzel-Layout), Brücke
+`syncExport`/`syncImport`, `/api/dreams` holt-dann-schickt; Server lässt
+keinen älteren Stand über einen neueren; Sprachaufnahme als Pfad dabei; nur
+mit Konto UND Einwilligung. **Belegt:** App im Simulator gelöscht und neu
+installiert → Traum samt Film wieder im Journal. ⚠ Grenze: Löschen auf
+Gerät A kann von Gerät B zurückkommen (Lösch-Merkliste nachrüsten vor
+Mehrgeräte/Android). ⚠ Die Anmeldung überlebt eine Neuinstallation
+(iOS-Schlüsselbund bleibt).
+
+**Phase 1 des Plans erledigt:** Texte an die Wahrheit (Foto verlässt das
+Handy für Prüfung und Filme; Platzhalter-Bewertungen weg; Löschhinweis),
+„Sie zu Filmen machen", und **B5/B7/Face-ID-Text jetzt in `mobile/app.json`
++ `mobile/locales/{en,de}.json`** — entstehen bei jedem Prebuild, nicht mehr
+nur auf Antons Mac. Preflight kennt beide Orte der InfoPlist.strings.
 
 **Konto-Löschung: fertig und Ende zu Ende belegt (23.09.).**
 - Migration `supabase/migrations/20260923090000_account_delete.sql` ist
@@ -73,13 +94,9 @@ vor der Einreichung zurückdrehen:
 - B4b: Onboarding kommt bei JEDEM Start (Antons Testphasen-Wunsch) →
   Einmal-Marke (onboarding-gate.tsx)
 
-⚠⚠ **B5, B7 und NSFaceIDUsageDescription gibt es nur auf Antons Mac.** Er hat
-sie am 23.09. von Hand ins Xcode-Projekt gesetzt (`26c4efb`, „prebuild bleibt
-tabu") — `mobile/ios` ist nicht in Git, `mobile/app.json` kennt keins davon.
-Auf Hannis Mac (sie signiert, sie baut TestFlight) meldet der Preflight
-deshalb 7 statt 4 Blocker; nach Hannis Prebuild steht nur Expos englischer
-Standard-Face-ID-Text drin. **Muss nach `app.json`** (`ios.infoPlist`
-+ `locales` für de/en), sonst fehlt es in jedem Bau außer Antons.
+⚠ **Anton: B5/B7 stehen jetzt in `app.json`.** Sein von Hand gepflegtes
+Xcode-Projekt (`26c4efb`) nicht weiter von Hand ändern, sondern einmal neu
+prebuilden, damit beide Macs dasselbe bauen.
 
 ⚠⚠ **Nach jedem Merge, der neue native Pakete bringt: `pod install` —
 bun install reicht NICHT.** Sonst friert die App kommentarlos ein
@@ -88,44 +105,33 @@ expo-crypto). Bei Hanni (23.09.) war nach PR #54 zusätzlich ein **Prebuild**
 nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
 `mobile/ios` dabei **komplett neu an** (inkl. `.xcode.env.local`, s. unten).
 
-**Befunde aus dem Simulator-Test 23.09. (Hanni/Claude), offen:**
-1. **Face-ID-Schalter reagiert im Simulator gar nicht** — kein Dialog, keine
-   Meldung. Am iPhone prüfen. Fehlschlag ist in jedem Fall stumm:
-   `mobile/src/app/profile/settings.tsx:40`
-   (`if (!(await unlock(…))) return;`).
-2. **Datenschutz-Aussagen widersprechen dem, was passiert** (App-Review-
-   und DSGVO-Risiko): „It stays on your phone" beim eigenen Foto
-   (`src/i18n/en.js:1257`), obwohl Fotos an die KI-Dienste gehen;
-   Kachel „Your journal lives on this device" (`en.js:1148`, `de.js:1079`),
-   obwohl Träume mit Konto in Supabase liegen.
-3. **Löschhinweis verspricht, Filme zu entfernen** (`de.js:413`/`:415`) —
-   erzeugte Medien bleiben aber auf der Platte (Kommentar am Endpunkt).
-   Entweder löschen oder den Text ändern.
-4. **Platzhalter im Onboarding:** „★★★★★ Reviews to come" / „App Store
-   Award to come" (`en.js:1290`) — Apple lehnt Platzhalter und
-   nicht existierende Auszeichnungen ab.
-5. Antons Onboarding-Befunde 1 und 9 noch offen: „Sie zu Bildern machen"
-   (`de.js:379`, `en.js:423`), Einwilligung nennt „images" (`en.js:1129`).
-6. Einmal kam das Einwilligungs-Tor nach Widerruf + Neustart + Onboarding
-   nicht; direkt nach Widerruf erscheint es zuverlässig. Nicht reproduziert.
-7. Mikrofon zeigt im Onboarding „Frag mich", obwohl iOS es schon erlaubt hat.
-8. Android: Apples Blatt gibt es dort nicht — ein Apple-verknüpftes Konto
-   ließe sich auf Android still nicht löschen. Erst relevant mit Android-Bau.
+**Offen aus den Tests vom 23.09.** (vollständige Liste mit Datei:Zeile im Plan, N1–N13):
+1. **Face ID (N11):** Schalter reagiert im Simulator gar nicht; Fehlschlag
+   ist stumm (`mobile/src/app/profile/settings.tsx:40`). Am iPhone prüfen.
+2. **Anwalts-Hinweis in den Rechtstexten (N4)** (`src/i18n/de.js:1097`,
+   `en.js:1171`) — muss vor der Einreichung erfüllt und weg sein.
+3. **Filme bleiben nach Konto-Löschung auf der Platte (B8)** — gehört zu
+   Phase 2 (Medien hinter Zugangsprüfung, S2).
+4. Einwilligungs-Tor kam einmal nach Widerruf + Neustart nicht (nicht
+   reproduziert). Mikrofon zeigt „Frag mich", obwohl erlaubt.
+5. Nicht einzeln belegt: dass die Träume-Sicherung ohne Einwilligung
+   wirklich nichts schickt (im Code gesperrt, `dream-sync-layer.tsx`).
+6. Android: Apples Blatt fehlt dort — Apple-Konto dort nicht löschbar.
 
-**Nächste Schritte:**
-1. **Hanni:** PR #55 mergen. Danach Anton: Migration NICHT erneut ausführen
-   (Notiz `docs/uebergabe/2026-09-23-anton-konto-loeschung-rolle.md`).
-2. **B5/B7/Face-ID-Text nach `app.json`** (s. oben) — Hannis Datei.
-3. **Befunde 2–5** oben — Texte; 2 und 3 vor der Einreichung Pflicht.
-4. **Anton testet am iPhone:** Face ID (Befund 1), erster echter Turbo-Film
-   mit Foto (Identitätsfrage oben).
-5. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
+**Nächste Schritte (morgen):**
+1. **Hanni:** PR #57 mergen.
+2. **Phase 0 — Entscheidungen** (Plan): Hosting (B3), Domain, Anwalt,
+   wie der Prüfer einen Film sieht (N10), Store-Länder. Vorher geht
+   Phase 2 nicht.
+3. **Anton:** Face ID am iPhone (N11), erster echter Turbo-Film mit Foto;
+   sein Xcode-Projekt neu prebuilden (s. oben).
+4. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
    `server_grant()`. Braucht einen App-Store-Connect-API-Schlüssel (ASC →
    Benutzer und Zugriffsrechte → Integrationen — ⚠ NICHT der
    Sign-in-with-Apple-Schlüssel aus dem Developer Portal).
-6. **Hanni in App Store Connect:** Produkte (S/M/L/XL, Monats-/Jahresabo),
+5. **Hanni in App Store Connect:** Produkte (S/M/L/XL, Monats-/Jahresabo),
    Sandbox-Tester, Paid-Applications-Vertrag, Small Business Program.
-7. Vor Einreichung: die 4 Preflight-Schalter oben.
+6. Vor Einreichung: die 4 Preflight-Schalter oben, Preflight = 0.
 
 **Davor (23.09. früh):** Hanni, `session/2026-09-15-hanni-apple-signin`
 (PR #51) abgeschlossen. **„Mit Apple anmelden" läuft auf einem echten iPhone,

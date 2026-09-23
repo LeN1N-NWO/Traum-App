@@ -3,6 +3,53 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-23 23:50 — Hanni — Branch `session/2026-09-23-hanni-2` (PR #57) — App-Store-Plan, Phase 1, Träume-Sicherung mit dem Konto
+
+**Commits:** `65ff523` Plan · `5c497d2` Phase 1 (Texte, app.json) ·
+`9297036` Träume-Sicherung · Doku-Commit dieses Eintrags.
+
+**Anlass:** Hanni: „einen Plan, wie wir die App durch die Apple-Prüfung
+bringen" — und dann gleich Phase 1 und die Träume-Sicherung umsetzen.
+
+**Plan** `docs/plans/2026-09-23-app-store-pruefung.md`: baut auf Antons
+Leitfaden auf, ergänzt 13 Befunde (N1–N13) aus Test und Recherche, sechs
+Phase-0-Entscheidungen, fünf Phasen. Entschieden: TestFlight/Vorbereitung als
+Einzelperson, Verkauf erst als UG (EU-DSA: Händlerkontakt wird öffentlich).
+
+**Phase 1:** Datenschutz-Sätze an die Wahrheit angepasst — beim eigenen Foto
+stand „bleibt auf deinem Handy", es geht aber an fal.ai (Prüfung) und für
+Filme an die KI-Dienste. ⚠ Selbstkorrektur: Die Tagebuch-Kachel „liegt auf
+diesem Gerät" hielt ich zuerst für falsch — sie stimmte, weil kein Client
+`/api/dreams` aufrief; das führte zu N13. Platzhalter-Bewertungen entfernt,
+Löschhinweis ehrlich, „Sie zu Filmen machen". Antons Befund 9 („images")
+bewusst NICHT: die App erzeugt weiter Bilder. B5/B7/Face-ID-Text in
+`app.json` + `mobile/locales/`, per Prebuild belegt.
+
+**Träume-Sicherung (N13):** holen-dann-schicken, nie überschreiben beim
+Holen, Server verweigert älteren Stand, Sprachaufnahme als Pfad, nur mit
+Konto + Einwilligung. Neues-Handy-Test im Simulator bestanden (App gelöscht,
+neu installiert → Traum samt Film zurück; Hanni hat die Zeile in
+`public.dreams` per SQL bestätigt).
+
+**⚠ Zwei eigene Fehler, im Test gefunden:**
+- Die unsichtbare Sync-Brücke stand im Wurzel-Layout im Fluss → Tab-Leiste in
+  der Mitte, untere Hälfte tot. Jetzt absolut, ohne Größe. Lehre: jede
+  zusätzliche Brücke außerhalb eines Modals aus dem Layout nehmen.
+- Die Sicherung fragte die Einwilligung zunächst nicht ab — der Widerruf
+  verspricht „nichts verlässt dein Gerät". Nachgezogen, aber nur im Code
+  belegt.
+
+**Was der Nächste wissen muss:**
+- **Simulator in der Claude-App:** `xcode-select` zeigt seit 23.09. auf Xcode.
+  Das Werkzeug kann nach einem Absturz auf ein ANDERES Gerät springen (hier:
+  iPhone 17 statt 17 Pro) — Taps immer mit `device` angeben.
+- **Eingaben im Simulator:** Die Mac-Tastatur liefert auf deutschem Layout
+  kein @ (⌥L kommt als L an). Software-Tastatur (⌘K) benutzen.
+  Passwörter tippt Claude nicht — Anmelden macht der Mensch.
+- Die Anmeldung überlebt Löschen der App (Schlüsselbund) — für einen echten
+  „neues Handy"-Test zusätzlich abmelden.
+- Tests: 659 grün, tsc 0, keine neuen Lint-Warnungen.
+
 ## 2026-09-23 21:40 — Hanni — Branch `session/2026-09-23-hanni` (PR #55) — Konto-Löschung belegt, Apple-Token-Widerruf, Sprache in Tabs
 
 **Commits:** `37df765` Migration korrigiert + Notiz an Anton · `9f4d189`
