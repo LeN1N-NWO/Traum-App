@@ -1451,6 +1451,9 @@ export default {
     freeNote: "Only image and film generation costs credits — that is the part we pay the generative AI for.",
     cta: "Continue",
     notYet: "⚠ Payment is not connected yet — this is a preview of the plans.",
+    /* StoreKit-Kaufstrecke (B1, 23.09.2026). */
+    purchaseThanks: "Done — your credits are in.",
+    purchaseFailed: "The purchase didn't go through. Nothing was charged — try again.",
     balance: (n) => `You currently have ${n} credits.`,
   },
 

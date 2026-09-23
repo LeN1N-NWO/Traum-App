@@ -18,7 +18,7 @@ import { failureTextKey } from "../../../src/lib/falError.js";
 import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
-import { totalCredits, spend } from "../../../src/lib/credits.js";
+import { totalCredits, spend, applyAllowanceGrant } from "../../../src/lib/credits.js";
 import { analyze, reflect, refine, characterSheet, generate, photoCheck } from "../../../src/lib/api.js";
 import { quoteFor } from "../../../src/lib/quote.js";
 import { buildReferences, buildImagePrompt } from "../../../src/lib/promptBuilder.js";
@@ -350,7 +350,7 @@ function snapshot() {
     headlineFor: { browse: pw.headlineFor.browse, spent: pw.headlineFor.spent, first: pw.headlineFor.first },
     ledeFor: { browse: pw.lede, spent: pw.ledeFor.spent, first: pw.ledeFor.first },
     tabSub: pw.tabSub, tabPack: pw.tabPack, packNote: pw.packNote, yieldYearNote: pw.yieldYearNote,
-    included: pw.included, chips: pw.chips, freeNote: pw.freeNote, cta: pw.cta, notYet: pw.notYet, upTo: pw.upTo,
+    included: pw.included, chips: pw.chips, freeNote: pw.freeNote, cta: pw.cta, notYet: pw.notYet, purchaseThanks: pw.purchaseThanks, purchaseFailed: pw.purchaseFailed, upTo: pw.upTo,
     balance: pw.balance(totalCredits(s)), credits: totalCredits(s),
     subs: SUBSCRIPTIONS.map((p) => {
       const films = dreamsFor(p.credits * (p.period === "year" ? 12 : 1)).films;
@@ -875,6 +875,18 @@ function run(cmd) {
   else if (cmd.type === "paywallSeen") patch = { paywallSeen: true };
   else if (cmd.type === "deleteDream") patch = { journal: (s.journal || []).filter((e) => e.id !== cmd.id) };
   else if (cmd.type === "voice") { if (isVoice(cmd.value)) patch = { voice: cmd.value }; }
+  /* Gutschrift nach bestätigtem Apple-Kauf (B1, 23.09.2026): Die Hülle
+     meldet nur die plan-id — die MENGE steht hier, in plans.js, nie im
+     Befehl (ein manipulierter Befehl könnte sonst beliebig gutschreiben).
+     Pakete erhöhen das Kauf-Töpfchen, Abos setzen das Monatsguthaben
+     (applyAllowanceGrant, wie im Web geplant). ⚠ Lokal, bis der Server
+     Belege prüft — siehe mobile/src/lib/iap.ts. */
+  else if (cmd.type === "purchase") {
+    const pack = PACKS.find((p) => p.id === cmd.value);
+    const sub = SUBSCRIPTIONS.find((p) => p.id === cmd.value);
+    if (pack) patch = { credits: (s.credits ?? 0) + pack.credits };
+    else if (sub) patch = applyAllowanceGrant(s, allowanceGrant(sub, 0));
+  }
   else if (cmd.type === "withdraw") patch = withdrawPatch();
   else if (cmd.type === "reminders") patch = { reminders: { ...(s.reminders || {}), ...reminderWish(!!cmd.wants, cmd.perDay || DEFAULT_PER_DAY) } };
   else if (cmd.type === "reminderSet") patch = { reminders: setReminder(s.reminders, cmd.value, { on: cmd.wants, time: cmd.text }) };

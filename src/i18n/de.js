@@ -1359,6 +1359,9 @@ export default {
     freeNote: "Nur Bild- und Filmerzeugung kosten Credits — das ist der Teil, für den wir die generative KI bezahlen.",
     cta: "Weiter",
     notYet: "⚠ Zahlung ist noch nicht angebunden — das ist eine Vorschau der Pakete.",
+    /* StoreKit-Kaufstrecke (B1, 23.09.2026). */
+    purchaseThanks: "Fertig — deine Credits sind da.",
+    purchaseFailed: "Der Kauf ging nicht durch. Es wurde nichts berechnet — versuch es noch einmal.",
     balance: (n) => `Du hast aktuell ${n} Credits.`,
   },
 

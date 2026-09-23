@@ -8,6 +8,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glass, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
+import { buyPlan, storeReady } from "@/lib/iap";
 import type { PaywallPlan } from "@/store/journal-store";
 import { colors, fonts, radius } from "@/theme";
 
@@ -25,11 +26,37 @@ const fallbackFilm = require("../../../src/assets/home-faultier.mp4");
 export function PaywallSheet({ reason = "browse" }: { reason?: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data, bridge } = useJournal();
+  const { data, bridge, send } = useJournal();
   const P = data?.paywall;
   const [tab, setTab] = useState<"sub" | "pack">("sub");
   const [chosen, setChosen] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+
+  /* StoreKit (B1, 23.09.2026): Gibt es echte Produkte — lokale
+     .storekit-Konfiguration (Xcode ▶) oder später App Store Connect —
+     kauft der Knopf wirklich; die Gutschrift bucht der Brücken-Befehl
+     `purchase` (Menge steht in plans.js, nie im Befehl). Ohne Store
+     bleibt alles beim heutigen „kommt bald". */
+  const [ready, setReady] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { let alive = true; storeReady().then((r) => { if (alive) setReady(r); }).catch(() => {}); return () => { alive = false; }; }, []);
+  const buy = async () => {
+    if (!plan) return;
+    if (!ready) { setNote(P?.notYet ?? ""); return; }
+    if (busy) return;
+    setBusy(true);
+    try {
+      const out = await buyPlan(plan.id);
+      if (out === "done") {
+        send({ type: "purchase", value: plan.id });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setNote(P?.purchaseThanks ?? "");
+      } else if (out === "failed" || out === "unavailable") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setNote(P?.purchaseFailed ?? "");
+      }
+    } finally { setBusy(false); }
+  };
 
   const plans = (tab === "sub" ? P?.subs : P?.packs) ?? [];
   const plan = plans.find((p) => p.id === chosen) ?? plans.find((p) => p.featured) ?? plans[0];
@@ -107,7 +134,7 @@ export function PaywallSheet({ reason = "browse" }: { reason?: string }) {
         </View>
 
         <View style={styles.foot}>
-          <PrimaryButton label={P?.cta ?? "Continue"} heavy onPress={() => { setNote(P?.notYet ?? ""); }} style={{ flex: 0 }} />
+          <PrimaryButton label={P?.cta ?? "Continue"} heavy onPress={buy} style={{ flex: 0 }} />
           {note ? <Text style={styles.notYet}>{note}</Text> : null}
           <Text style={styles.balance}>{P?.balance}</Text>
         </View>
