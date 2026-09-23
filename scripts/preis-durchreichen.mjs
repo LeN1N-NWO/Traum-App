@@ -52,7 +52,10 @@ const BILD_EINKAUF = imagePrice(DEFAULT_IMAGE_MODEL, imageStage(DEFAULT_IMAGE_MO
 /* Seit 31.08. je Modell ZWEI Qualitäten — jede Stufe der Rechnung ist eine
    Modell-Qualitäts-Kombination, damit 480p und 720p nebeneinanderstehen
    (Antons Frage: „die Unterschiede zwischen 480p und 720p in Preisen"). */
-const STUFEN = VIDEO_MODELS.flatMap((m) => QUALITIES.map((q) => {
+/* Je Modell die EIGENE Stufenliste (seit 23.09. hat Standard drei —
+   480P/768P/1080P zum Turbo-Einkauf —, Seedance weiter zwei); QUALITIES
+   wäre die Vereinigung und erzeugte Duplikat-Zeilen über den Rückfall. */
+const STUFEN = VIDEO_MODELS.flatMap((m) => Object.keys(m.qualities).map((q) => {
   const k = filmQuality(m.id, q);
   return { ...m, quality: q, name: `${m.id} ${k.resolution}`, usd: k.usdPerSecond, credits: k.creditsPerSecond };
 }));

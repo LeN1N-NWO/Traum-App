@@ -3,7 +3,72 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-23 — Hanni, `session/2026-09-15-hanni-apple-signin`
+**Stand:** 2026-09-23 abends — Anton, `session/2026-09-22-anton`
+(PR #54, **auf Antons Wort gemerged**). Die App kann jetzt: **Face-ID-Schutz**
+für die ganze App (Schalter in den Einstellungen; Positivpfad nur am Gerät
+prüfbar), **Sprache nachträglich ändern** (de/en, Chips in den
+Einstellungen), **Klartext-Kacheln** auf dem Einwilligungs-Tor,
+**Konto-Löschung** (rote Zeile → `DELETE /api/account`
+→ `server_delete_account()`; ⚠ **Migration
+`supabase/migrations/20260923090000_account_delete.sql` muss Hanni erst im
+Dashboard ausführen**, bis dahin 503), Einstellungen als **Zahnrad** oben im
+Profil, **StoreKit-Kaufstrecke im Client** (echte Käufe, sobald Produkte in
+App Store Connect existieren; lokal testbar über
+`mobile/ios/DreamRushes.storekit` mit Xcode ▶).
+
+**Filme rendern seit 23.09. abends über H3 Max Turbo — zum halben Preis**
+(Antons Entscheid; Plan `docs/plans/2026-09-23-h3-max-turbo-weiche.md`):
+- Standard = `minimax/h3-max-turbo/image-to-video`, EIN-Bild-Modell:
+  die Besetzungs-Fotos wirken übers KEYFRAME (Turbo beginnt pixelgenau
+  damit — bezahlt gemessen). Preise: **480p 1 · 768p 2 · 1080p 3 Cr/s**
+  (1080p neu); Kino/Seedance unverändert 8/17, bewusst ohne 1080p.
+- Qualitätsknöpfe zeigen **Auflösung + Credits/s** aus der Modelltabelle
+  (Web und nativ); Kino trägt das Abzeichen „Beste Qualität"; Tempo
+  „Ein Fluss" heißt jetzt **„One-Take"**.
+- **Formatwahl 9:16/16:9/1:1 gilt für Filme** (Keyframe im Wunschformat,
+  Turbo folgt ihm; Seedance bekommt aspect_ratio, Schema-bestätigt).
+- Die neuen H3-Endpunkte VERLANGEN `prompt_expansion_mode` ("disabled");
+  Regie hat für H3 einen NEGATIVE-RULES-Block.
+- ⚠ **UNGEMESSEN: hält Turbo Gesichter über 15 s Bewegung?** Beim ersten
+  echten Foto-Film prüfen. Rückweg (teurere Max-R2V-Weiche): Commit
+  `0155f6c` + Plan. Ebenfalls offen: 16:9/1:1 einmal echt rendern.
+- H3 lokal auf Antons 5090: technisch ja, **Lizenz verbietet die EU** — nein.
+
+**App-Store-Vorbereitung:** Guide `docs/APP-STORE-EINREICHUNG.md`
+(Weg in 10 Schritten, Blocker B1–B8, Teil 2b StoreKit-Teststrategie,
+Teil 2c Geld/Abrechnung — Apple ist Merchant of Record, Small Business
+Program 15 %), Prüfwerkzeug **`bun run preflight`** (Exit 1 bei Blockern).
+Preflight meldet noch **4 Blocker — alle bewusste Testphasen-Schalter**,
+vor der Einreichung zurückdrehen:
+- B3a: `"null"` in `NATIVE_ORIGINS` (server.js) raus oder API_TOKEN
+- B3b: HTTPS-Deployment statt `http://192.168…` (= Baustelle S6)
+- B4a: `devTopUp` 500 Credits → zurück auf `__DEV__ ? 100 : 0`
+  (journal-bridge.jsx)
+- B4b: Onboarding kommt bei JEDEM Start (Antons Testphasen-Wunsch) →
+  Einmal-Marke (onboarding-gate.tsx)
+
+⚠⚠ **Nach jedem Merge, der neue native Pakete bringt: `pod install` —
+bun install reicht NICHT.** Sonst friert der Release-Bau kommentarlos ein
+(JS-Fatal „Cannot find native module …", Tabs tot — Antons iPhone, 23.09.,
+Hannis expo-crypto). Gilt in beide Richtungen: unser PR #54 bringt
+`expo-local-authentication` und `expo-iap` mit.
+
+**Nächste Schritte:**
+1. **Anton testet gesammelt am iPhone** (aktueller Build ist drauf,
+   23.09. 19:20): Tabs, Face-ID an/aus + Positivpfad, Sprachwechsel,
+   Kacheln, Zahnrad, neuer „Wie lang"-Bildschirm (Klartext-Stufen,
+   Badge, One-Take), Konto-Löschung nach Hannis Migration — und der
+   **erste echte Turbo-Film mit Foto** (Identitätsfrage oben).
+2. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
+   `server_grant()`; Sandbox-Belege ins Test-Ledger. Braucht Hannis
+   ASC-Schlüssel.
+3. **Hanni** (Übergabe `docs/uebergabe/2026-09-23-hanni-konto-loeschung-appstore.md`):
+   Migration ausführen + Löschung testen, Produkte/Sandbox-Tester in ASC,
+   Paid-Applications-Vertrag + Small Business Program, Bundle-ID- und
+   Kontoform-Entscheidung, InfoPlist-Lokalisierung in app.json.
+4. Vor Einreichung: die 4 Preflight-Schalter oben.
+
+**Davor (23.09. früh):** Hanni, `session/2026-09-15-hanni-apple-signin`
 (PR #51) abgeschlossen. **„Mit Apple anmelden" läuft auf einem echten iPhone,
 Ende zu Ende** — Anmelden, App neu starten (bleibt angemeldet), Abmelden und
 wieder anmelden (kein zweiter Nutzer in Supabase). Damit ist Schritt 1 der
@@ -92,7 +157,7 @@ zeigt sie „Angemeldet" statt „Angemeldet als …").
 5. Schritt 2 der Übergabe: StoreKit + App Store Server Notifications.
 
 **Davor:** 2026-09-18 früh — Sitzung `session/2026-09-17-anton`
-(PR #52, Entwurf), Worktree `../Traum-App-anton`.
+(PR #52, gemerged 22.09.), Worktree `../Traum-App-anton`.
 
 ⚠⚠ **iPhone-Release-Absturz behoben (18.09., alles lokal im HAUPTordner,
 nichts davon im Repo — deshalb steht das Rezept nur hier):** Antons iPhone
@@ -121,8 +186,8 @@ Bauen: `xcodebuild … -configuration Release -destination
 iPhone als Ziel oft nicht, auch wenn `devicectl` es sieht), installieren
 per `xcrun devicectl device install app --device <UDID> <…>.app`.
 Geprüft: Release-Simulator startet bis zum Einwilligungs-Tor; aufs iPhone
-installiert — **Antons Sichtbestätigung steht aus.** Free-Account: Signatur
-hält 7 Tage, dann neu bauen.
+installiert — **von Anton bestätigt (20./23.09.): die App läuft.**
+Free-Account: Signatur hält 7 Tage, dann neu bauen.
 
 **Gebaut und geprüft:** Die Schalter auf `profile/reminders.tsx` springen
 sofort um. Vorher lief jeder Tipp über die unsichtbare Brücke und zurück —

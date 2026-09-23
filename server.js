@@ -82,7 +82,7 @@ import { toRow, fromRow, MAX_JSON } from "./src/lib/dreamRow.js";
 import { parseLimit, decodeCursor, buildPage } from "./src/lib/paging.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
 import {
-  DIRECTOR_MOTION, directorFull, KEYFRAME_REF,
+  directorMotion, directorFull, KEYFRAME_REF,
   buildDirectorBrief, checkDirectedPrompt, filmReferences, fitPromptBudget,
 } from "./src/lib/director.js";
 
@@ -951,7 +951,9 @@ async function directFilm({ dream, still, beats = [], shots = [], style, seconds
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
       messages: [
-        { role: "system", content: withRefs ? directorFull(m.refStyle) : DIRECTOR_MOTION },
+        /* `negatives` ist Modellwissen (video.js): H3 Max bekommt den
+           NEGATIVE-RULES-Block, Seedance nicht — auf beiden Drehbüchern. */
+        { role: "system", content: withRefs ? directorFull(m.refStyle, { negatives: m.negatives }) : directorMotion({ negatives: m.negatives }) },
         { role: "user", content: brief },
       ],
       stream: false,
@@ -1565,11 +1567,11 @@ const writeJob = (id, job) => Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.st
  *  (server-side) through that same table: the queue only validates duration
  *  at RENDER time (re-measured 09.08.2026), so a bad value burns the fee
  *  and comes back as a failed job minutes later. */
-async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, quality, poster = null }) {
+async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, quality, poster = null, aspect }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
-  const { slug, body } = videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds, quality });
+  const { slug, body } = videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds, quality, aspect });
   /* Die Größe des Auftrags im Log, VOR dem Absenden (03.09.2026). Beim
      ersten Lauf mit dem neuen Schnitt starb der Submit an ECONNRESET —
      „the socket connection was closed unexpectedly" — und ohne diese Zeile
@@ -2127,24 +2129,30 @@ function settleCharge({ kind, charge, quoted }) {
   return { charged: false, charge };
 }
 
-async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, quality, refImages = [], poster = null }) {
+async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, quality, refImages = [], poster = null, format = "9:16" }) {
   const filmPrompt = motionPrompt || prompt || dream;
   /* `refImages` kommt aus filmReferences() und steht in EXAKT der
    * Reihenfolge der Materialliste des Regisseurs — das Startbild davor
    * macht @Image1 aus dem Keyframe, @Image2.. aus der Besetzung.
-   * Ein-Bild-Modelle ignorieren das Array (videoSubmitBody entscheidet). */
+   * Ein-Bild-Modelle ignorieren das Array (videoSubmitBody entscheidet).
+   *
+   * `format` (23.09.): Beim NEU gerenderten Keyframe bestimmt es dessen
+   * Seitenverhältnis — und weil Turbo-i2v dem Startbild folgt, IST das
+   * das Filmformat. Bei einem eigenen Keyframe (Film aus vorhandenem
+   * Bild) führt DAS Bild das Format; der Wunsch geht trotzdem als aspect
+   * an Modelle, deren Schema ihn kennt (Seedance). */
   if (keyframe) {
     const hit = resolveMedia(keyframe);
     const file = hit && Bun.file(resolve(MEDIA_DIR, hit.name));
     if (!hit || !(await file.exists())) throw new Error("GENERATION_FAILED");
     const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
     const dataUri = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
-    return falSubmitVideo({ modelId, quality, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds, poster });
+    return falSubmitVideo({ modelId, quality, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds, poster, aspect: format });
   }
-  const stills = await generateImages({ dream, namedRefs, prompt });
+  const stills = await generateImages({ dream, namedRefs, prompt, aspectRatio: format });
   const first = stills[0];
   if (!first) throw new Error("GENERATION_FAILED");
-  return falSubmitVideo({ modelId, quality, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds, poster });
+  return falSubmitVideo({ modelId, quality, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds, poster, aspect: format });
 }
 
 // ---- static file serving ----
@@ -2835,6 +2843,19 @@ const serveOptions = {
              Stand), bekommt den Server-Preis ohne Rückfrage.
              ⚠ Abgebucht wird hier noch NICHT — dafür fehlt die Anmeldung
              (wessen Credits?). settleCharge() ist die vorbereitete Stelle. */
+          /* Referenz-Auswahl (filmReferences): Position in der Liste ist
+             Referenznummer minus eins, Referenz 1 ist immer das Startbild.
+             Seit Antons Turbo-Entscheid (23.09.) betrifft das nur noch
+             Premium/Seedance — Standard ist ein Ein-Bild-Modell (kein
+             maxRefs, kept bleibt leer), die Fotos wirken dort übers
+             Keyframe. Der Preis hängt nicht mehr an der Referenzlage. */
+          const kept = filmModel.maxRefs ? filmReferences(cast, filmModel.maxRefs - 1) : [];
+          /* Das Format des Films (23.09., Antons Ansage): dieselbe
+             Allowlist-Haltung wie bei quality — ein Wert, nie Text. Es
+             steuert die KEYFRAME-Erzeugung (Turbo folgt dem Startbild)
+             und reist bei Seedance zusätzlich als aspect_ratio mit
+             (videoSubmitBody prüft gegen die gemessene aspects-Liste). */
+          const filmFormat = ["9:16", "16:9", "1:1"].includes(body.format) ? body.format : "9:16";
           const actual = quoteFor({ mode: "film", model: modelId, seconds: body.seconds, quality, keyframe: !!keyframe });
           const preis = compareQuote(body.quoted, actual);
           if (!preis.ok) {
@@ -2843,14 +2864,11 @@ const serveOptions = {
           }
           settleCharge({ kind: "film", charge: preis.charge, quoted: preis.quoted });
 
-          /* Referenz-Film — seit dem Neuzuschnitt vom 20.08. sind das ALLE
-             Stufen: Auswahl und Reihenfolge kommen aus filmReferences() —
-             Position in der Liste ist Referenznummer minus eins, Referenz 1
-             ist immer das Startbild. Materialliste (für den Regisseur) und
-             Bildliste (für fal) entstehen aus DERSELBEN Auswahl, damit sie
-             nicht auseinanderlaufen können. Die Platzzahl kommt aus der
-             Modelltabelle: H3 nimmt 5 (die gratis-Grenze), Seedance 9. */
-          const kept = filmModel.maxRefs ? filmReferences(cast, filmModel.maxRefs - 1) : [];
+          /* Materialliste (für den Regisseur) und Bildliste (für fal)
+             entstehen aus DERSELBEN Auswahl (`kept`, oben vor der Quote),
+             damit sie nicht auseinanderlaufen können. Die Platzzahl kommt
+             aus der Modelltabelle: H3 nimmt 5 (Aufpreis je Extra-Bild am
+             neuen Endpunkt ungemessen), Seedance 9. */
           const refsForBrief = filmModel.maxRefs
             ? [KEYFRAME_REF, ...kept.map((c) => ({ tag: c.tag, kind: c.category, desc: c.desc }))]
             : [];
@@ -2878,7 +2896,7 @@ const serveOptions = {
           const jobId = await startVideo({
             dream, namedRefs: cast, prompt, motionPrompt,
             seconds: body.seconds, keyframe, modelId, quality,
-            refImages: kept.map((c) => c.img), poster,
+            refImages: kept.map((c) => c.img), poster, format: filmFormat,
           });
           return json({ ok: true, jobId });
         }
@@ -3292,6 +3310,21 @@ const serveOptions = {
           });
           if (!profil) return json({ error: "No profile for this account." }, 404);
           return json({ ok: true, profile: profilFuerClient(profil) });
+        }
+
+        /* Konto löschen (Apple 5.1.1(v), 23.09.2026): löscht die Zeile in
+           auth.users über server_delete_account() — die Funktion handelt
+           für den in der Transaktion erklärten Nutzer, nie für ein
+           Argument (Migration 20260923090000). Alles Weitere fällt per
+           `on delete cascade` mit: profiles, dreams, credits. Erzeugte
+           Medien auf der Platte hängen an Traum-IDs, nicht an Konten —
+           verwaiste Dateien räumt der Medien-Weg, nicht dieser Endpunkt.
+           Kein Bestätigungs-Body: Die Bestätigung ist Sache der App
+           (Alert + Face ID, settings.tsx); ein zweites „wirklich?" im
+           Protokoll schützt niemanden, der schon ein gültiges Token hat. */
+        if (url.pathname === "/api/account" && req.method === "DELETE") {
+          await withUser(database, person.userId, (tx) => tx`select public.server_delete_account()`);
+          return json({ ok: true });
         }
 
         /* Seitenweise, per Cursor — nie „alles". Ein Tagebuch wächst mit

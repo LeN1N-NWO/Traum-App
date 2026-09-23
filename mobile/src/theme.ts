@@ -13,6 +13,8 @@ export const colors = {
   accentSoft: "#8cc0ff",
   accentDeep: "#2a62d0",
   warm: "#f2a765",
+  danger: "#e2726b",              // Destruktives (Konto löschen) — gedecktes Rot zur Nacht-Palette
+
   gold: "#f6c65b",
   cyan: "#4fd6e6",
   ok: "#3ddc97",

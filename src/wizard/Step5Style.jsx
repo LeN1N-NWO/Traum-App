@@ -14,7 +14,7 @@ import { bumpStreak, refreshStreak } from "../lib/streak.js";
 import { newCreature } from "../lib/creatures.js";
 import { moonForNight } from "../lib/moon.js";
 import { priceForImages, PRICES, IMAGE_COUNTS, PREVIEW_COUNT } from "../lib/pricing.js";
-import { VIDEO_MODELS, QUALITIES, PACE_IDS, DEFAULT_PACE, priceForFilm, clampSeconds, videoModel, filmQuality, shotBudget, beatBudget, filmPace, flowStationSeconds, FLOW_MIN_STATION } from "../lib/video.js";
+import { VIDEO_MODELS, PACE_IDS, DEFAULT_PACE, priceForFilm, clampSeconds, videoModel, filmQuality, shotBudget, beatBudget, filmPace, flowStationSeconds, FLOW_MIN_STATION } from "../lib/video.js";
 import { spend, canAfford } from "../lib/credits.js";
 import { useAppState } from "../state/AppState.jsx";
 import { t } from "../i18n/index.js";
@@ -85,6 +85,8 @@ export default function Step5Style({ w, patch }) {
      hier; jetzt ist sie eine, und der Server prüft sie. Hat er beim letzten
      Versuch teurer gerechnet (409), gilt SEIN Preis, bis der Auftrag
      geändert wird. */
+  const assignments = Object.values(w.assignments);
+  const named = assignments.filter((a) => a.avatar?.img).length;
   const price = serverPrice ?? (isFilm
     ? quoteFor({ mode: "film", model: w.videoModel, seconds: w.seconds, quality: w.quality, keyframe: ownKeyframe })
     : isPreview ? PRICES.preview
@@ -92,8 +94,6 @@ export default function Step5Style({ w, patch }) {
        4K-Raster $0,16 gegen $0,113. Die Zahl steht in pricing.js, nicht
        hier — und sie ist am Jahresabo nachgerechnet, dem engsten Plan. */
     : priceForImages(w.imageCount, w.fallback));
-  const assignments = Object.values(w.assignments);
-  const named = assignments.filter((a) => a.avatar?.img).length;
 
   /* Der Szenenbogen und was die gewählte Länge davon trägt — für das
      Storyboard UND für den Film-Aufruf, deshalb hier oben statt im JSX.
@@ -408,6 +408,10 @@ export default function Step5Style({ w, patch }) {
              Wer hier die Vorgabe schickt statt der aufgelösten Stufe, riskiert,
              dass Client und Server verschieden auflösen. */
           quality: filmQuality(w.videoModel, w.quality).id,
+          /* Das Format gilt seit 23.09. auch für den FILM: Es bestimmt das
+             Keyframe, und Turbo folgt dem Keyframe; Seedance bekommt es
+             zusätzlich als aspect_ratio (Server-Allowlist). */
+          format: w.format,
           /* Der angezeigte Preis reist mit — als Zusage an den Menschen,
              nicht als Anweisung an den Server. Der rechnet selbst und lehnt
              mit 409 ab, wenn er teurer liegt (quote.js). */
@@ -798,21 +802,26 @@ export default function Step5Style({ w, patch }) {
 
       {/* Hidden during a preview: the grid is 16:9 by construction and its
           panels come out near-portrait whatever is chosen here, so leaving
-          the control visible would be a switch that changes nothing. */}
+          the control visible would be a switch that changes nothing.
+          Seit 23.09. wirkt die Wahl auch auf den FILM (vorher stand der
+          Schalter beim Film sichtbar da und änderte nichts): das Keyframe
+          wird im gewählten Format gerendert, Turbo folgt ihm, Seedance
+          bekommt es als aspect_ratio. Neu dabei: 1:1 (beide Modellwege
+          am fal-Schema bestätigt). */}
       {!isPreview && (
         <>
       <h2 className="wiz-sub">{t.wizard.step5.formatLabel}</h2>
       <div className="wiz-formats" role="group" aria-label={t.wizard.step5.formatLabel}>
-        {["9:16", "16:9"].map((f) => (
+        {["9:16", "16:9", "1:1"].map((f) => (
           <button
             key={f}
             className={"wiz-format" + (w.format === f ? " wiz-format-on" : "")}
             onClick={() => patch({ format: f })}
             aria-pressed={w.format === f}
           >
-            <span className={f === "9:16" ? "wiz-format-tall" : "wiz-format-wide"} aria-hidden="true" />
+            <span className={f === "9:16" ? "wiz-format-tall" : f === "16:9" ? "wiz-format-wide" : "wiz-format-square"} aria-hidden="true" />
             <span>{f}</span>
-            <small>{f === "9:16" ? t.wizard.step5.portrait : t.wizard.step5.landscape}</small>
+            <small>{f === "9:16" ? t.wizard.step5.portrait : f === "16:9" ? t.wizard.step5.landscape : t.wizard.step5.square}</small>
           </button>
         ))}
       </div>
@@ -886,10 +895,14 @@ export default function Step5Style({ w, patch }) {
               die Hinweistexte nennen deshalb keine Credits mehr. Beim
               Modellwechsel fällt die Wahl auf `null` zurück, also auf die
               Vorgabe des NEUEN Modells: 720p bei Seedance kostet neunmal so
-              viel wie bei H3 ein Stufenwechsel, das erbt man nicht still. */}
+              viel wie bei H3 ein Stufenwechsel, das erbt man nicht still.
+              Seit 23.09. steht die AUFLÖSUNG selbst auf dem Knopf (Antons
+              Ansage: „einfach 480p, 720p, 1080p statt Verschleierung"),
+              und die Stufenliste kommt je Modell aus der Tabelle — H3 hat
+              drei, Seedance zwei (1080p kostete dort 42 Credits/s). */}
           <h2 className="wiz-sub">{t.wizard.step5.qualityLabel}</h2>
           <div className="wiz-formats" role="group" aria-label={t.wizard.step5.qualityLabel}>
-            {QUALITIES.map((q) => {
+            {Object.keys(videoModel(w.videoModel).qualities).map((q) => {
               const k = filmQuality(w.videoModel, q);
               const on = filmQuality(w.videoModel, w.quality).id === q;
               return (
@@ -899,8 +912,8 @@ export default function Step5Style({ w, patch }) {
                   onClick={() => patch({ quality: q })}
                   aria-pressed={on}
                 >
-                  <span>{t.wizard.step5.qualityNames[q]}</span>
-                  <small>{k.resolution} · {k.creditsPerSecond} {t.wizard.creditsN(k.creditsPerSecond)}/s</small>
+                  <span>{k.resolution.toLowerCase()}</span>
+                  <small>{k.creditsPerSecond} {t.wizard.creditsN(k.creditsPerSecond)}/s</small>
                 </button>
               );
             })}

@@ -131,23 +131,44 @@ import { PRICES } from "./pricing.js";
  *   Seedance 2.5: Referenzen in `image_urls`, adressiert als [Image1];
  *       generate_audio nötig, sonst stumm. 9 Referenzen (Keyframe + 8),
  *       damit die Brief-Form aller Stufen gleich bleibt. */
+/* ── Standard = H3 Max Turbo, NUR image-to-video (Antons Entscheid, zwei
+ * Ansagen am 23.09.2026) ─────────────────────────────────────────────────
+ * Erst: „Turbo verwenden, Ersparnis weitergeben." Dann, auf den Befund
+ * „Turbo kann keine Referenz-Arrays" (minimax/h3-max-turbo/reference-to-
+ * video existiert nicht, 404 am fal-Schema gemessen): „Ich will Max Turbo
+ * mit Bildern." Das geht, weil die Fotos ÜBERS KEYFRAME wirken: das
+ * Bildmodell rendert das Startbild MIT den Besetzungs-Referenzen, und
+ * Turbo beginnt pixelgenau mit diesem Bild (bezahlt geprüft 23.09.,
+ * Frosch-Test: Frame 0 = unser Bild). Das Videomodell selbst bekommt EIN
+ * Bild (image_url) und keine Referenzliste mehr.
+ * ⚠ Ungemessen: ob Turbo Gesichter über 15 s Bewegung hält. Beim ersten
+ * echten Foto-Film prüfen. Der doppelte-Preis-Rückweg mit echter
+ * Identitätsführung existiert: minimax/h3-max/reference-to-video (bis 9
+ * Bilder, hielt im Frosch-Test die Identität; Weiche und Preise standen
+ * in Commit 0155f6c).
+ * Einkauf lt. fal-Modellseite 23.09.: 480P $0,025 · 768P $0,04 ·
+ * 1080P $0,08 (Antons Ansage: Auflösungen im Klartext, drei Stufen;
+ * Seedance bietet 1080p weiter nicht an — dort hieße es 42 Credits/s).
+ * ⚠ Der Endpunkt VERLANGT prompt_expansion_mode (Pflichtfeld); "disabled",
+ * denn die Umformulierung würde unseren Regisseur überschreiben. Ein
+ * aspect_ratio kennt i2v nicht: DAS KEYFRAME führt das Format — die
+ * Formatwahl des Wizards reist deshalb als aspectRatio in die
+ * KEYFRAME-Erzeugung (server.js startVideo), nicht in diesen Auftrag. */
 const MODELLE = [
   {
     id: "standard",
-    slug: "minimax/h3/reference-to-video",
+    slug: "minimax/h3-max-turbo/image-to-video",
     qualities: {
-      sd: { resolution: "480P", usdPerSecond: 0.05, creditsPerSecond: 2 },
-      hd: { resolution: "768P", usdPerSecond: 0.06, creditsPerSecond: 3 },
+      sd: { resolution: "480P", usdPerSecond: 0.025, creditsPerSecond: 1 },
+      hd: { resolution: "768P", usdPerSecond: 0.04, creditsPerSecond: 2 },
+      fhd: { resolution: "1080P", usdPerSecond: 0.08, creditsPerSecond: 3 },
     },
     preferred: "hd",
     min: 5, max: 15, step: 1, preset: 6,
-    audio: false,
-    maxRefs: 5,
-    refsField: "reference_image_urls",
-    refStyle: "plain",
-    aspect: "9:16",
-    noExpand: true,
-    promptMax: 7000,
+    audio: true,          // H3 Max Turbo rendert nativen, synchronen Ton — ohne Parameter
+    expansionMode: "disabled",
+    negatives: true,      // H3 nimmt Negativ-Regeln ungewöhnlich ernst (fal-Prompting-Guide)
+    promptMax: 10000,     // Schema erlaubt 50 000; 10 000 ist unser Regie-Budget (wie Seedance)
     shotEvery: 5, maxShots: 3, timeFormat: "ms",
   },
   {
@@ -160,16 +181,25 @@ const MODELLE = [
     preferred: "sd",
     min: 5, max: 30, step: 5, preset: 15,
     audio: true,
+    audioParam: true,     // Seedance braucht generate_audio, sonst kommt der Film stumm
     maxRefs: 9,
     refsField: "image_urls",
     refStyle: "bracket",
     aspect: "9:16",
+    /* Die Formate, die das 2.5-Schema BESTÄTIGT (gemessen 23.09.; das Enum
+     * kennt auch 21:9/4:3/3:4/auto — nicht angeboten). Ein Wunsch außerhalb
+     * dieser Liste fällt in videoSubmitBody auf `aspect` zurück. */
+    aspects: ["9:16", "16:9", "1:1"],
     promptMax: 10000,
     shotEvery: 4, maxShots: 9, timeFormat: "s",
   },
 ];
 
-export const QUALITIES = ["sd", "hd"];
+/* Alle Stufen-IDs, die es IRGENDWO gibt — die Allowlist des Servers.
+ * Welche ein Modell wirklich anbietet, sagt seine qualities-Tabelle
+ * (Seedance kennt kein fhd; Unbekanntes fällt in filmQuality auf die
+ * Vorgabe zurück, in Preis UND Bestellung gleichermaßen). */
+export const QUALITIES = ["sd", "hd", "fhd"];
 
 export const VIDEO_MODELS = MODELLE.map((m) => ({ ...m, ...m.qualities[m.preferred] }));
 /* Reihenfolge = UI-Reihenfolge = aufsteigender Preis. Eintrag [0] muss
@@ -189,6 +219,7 @@ export function filmQuality(modelId, quality) {
   return { id: q, ...m.qualities[q] };
 }
 
+
 /* Der komplette fal-Auftrag für einen Film, als reine Funktion — damit die
  * Form je Modell TESTBAR ist, ohne das Netz zu berühren.
  *
@@ -201,21 +232,27 @@ export function filmQuality(modelId, quality) {
  *
  * `duration` wird hier je Modell geklemmt. Der Server ruft DIESE Funktion —
  * der Client kann lügen, die Tabelle nicht. */
-export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds, quality }) {
+export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds, quality, aspect }) {
   const m = videoModel(modelId);
   const body = {
     prompt,
     duration: clampSeconds(m.id, seconds),
     resolution: filmQuality(m.id, quality).resolution,
   };
+  // Die neuen H3-Endpunkte VERLANGEN prompt_expansion_mode (Pflichtfeld);
+  // "disabled", sonst überschreibt fremde Umformulierung unseren Regisseur.
+  // Das alte enable_prompt_expansion kennen sie nicht mehr.
+  if (m.expansionMode) body.prompt_expansion_mode = m.expansionMode;
 
   /* Referenzmodelle nehmen ein ARRAY, Ein-Bild-Modelle ein FELD (image_url) —
-   * und der Array-NAME ist selbst Modellwissen: H3-R2V will
-   * reference_image_urls, Seedance will image_urls, und keins von beiden
-   * verzeiht das jeweils andere. Der nano-banana-Vorfall vom 07.08.
+   * und der Array-NAME ist selbst Modellwissen: Seedance will image_urls
+   * und verzeiht keinen anderen. Der nano-banana-Vorfall vom 07.08.
    * (image_urls still ignoriert, Renders ohne Gesichter tagelang bezahlt)
    * ist genau die Fehlerklasse, die hier lauert. Deshalb entscheidet die
-   * Tabelle, nie der Aufrufer. */
+   * Tabelle, nie der Aufrufer. Standard (Turbo-i2v) ist seit 23.09. ein
+   * Ein-Bild-Modell: es bekommt NUR das Keyframe — die Besetzungs-Fotos
+   * stecken da längst drin (Bildmodell), eine mitgeschickte Liste wird
+   * bewusst ignoriert statt an ein Feld geschickt, das es nicht gibt. */
   if (m.maxRefs) {
     const urls = (imageUrls?.length ? imageUrls : [imageUrl]).filter(Boolean).slice(0, m.maxRefs);
     body[m.refsField || "image_urls"] = urls;
@@ -224,14 +261,15 @@ export function videoSubmitBody(modelId, { imageUrl, imageUrls, prompt, seconds,
   }
 
   // Nur senden, wo der Parameter existiert: ein unbekanntes Feld kann bei
-  // einem strengen Validator den ganzen Auftrag kosten.
-  if (m.audio) body.generate_audio = true;
-  // R2V hat kein Startbild als Formatgeber; nur setzen, wo das Schema den
-  // Wert bestätigt (H3 stünde sonst auf "adaptive").
-  if (m.aspect) body.aspect_ratio = m.aspect;
-  // H3 formuliert Prompts standardmäßig um — für Regie-Prompts ausdrücklich
-  // aus, sonst überschreibt fremde Umformulierung unseren Regisseur (§10b).
-  if (m.noExpand) body.enable_prompt_expansion = false;
+  // einem strengen Validator den ganzen Auftrag kosten. H3 Max Turbo
+  // liefert seinen Ton OHNE Parameter; nur Seedance braucht generate_audio.
+  if (m.audioParam) body.generate_audio = true;
+  /* Das Format (23.09.: Wizard-Wahl reist bis hierher durch): nur setzen,
+   * wo das Schema es kennt — Turbo-i2v hat KEIN aspect_ratio, dort führt
+   * das Keyframe (der Wunsch wirkt über dessen Erzeugung, server.js).
+   * Ein Wunsch außerhalb der gemessenen `aspects`-Liste fällt auf die
+   * Vorgabe zurück, nie durchgereicht. */
+  if (m.aspect) body.aspect_ratio = m.aspects?.includes(aspect) ? aspect : m.aspect;
   return { slug: m.slug, body };
 }
 

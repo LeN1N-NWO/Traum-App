@@ -401,6 +401,22 @@ export default {
     settings: "Einstellungen",
     voiceSetting: "Stimme des Assistenten",
     voiceSettingHint: "Wer mit dir spricht",
+    /* Face-ID-Schutz und Sprachwahl (Antons Ansage 22.09.2026) — siehe en.js. */
+    privacyLock: "Face ID verlangen",
+    privacyLockHint: "Sperrt die App. Öffnen geht nur mit Face ID oder deinem Code.",
+    privacyLockNoBio: "Richte zuerst Face ID oder einen Code in den iOS-Einstellungen ein.",
+    privacyUnlock: "Entsperren",
+    privacyLocked: "Deine Träume sind gesperrt.",
+    /* Konto-Löschung (23.09.2026) — siehe en.js. */
+    deleteAccount: "Konto löschen",
+    deleteAccountHint: "Entfernt Konto, Filme und Guthaben von unserem Server. Träume auf diesem Gerät bleiben.",
+    deleteAccountConfirmTitle: "Konto wirklich löschen?",
+    deleteAccountConfirmText: "Das lässt sich nicht rückgängig machen. Dein Konto, die auf unserem Server gespeicherten Filme und dein Guthaben werden entfernt. Träume auf diesem Gerät bleiben deine.",
+    deleteAccountGo: "Löschen",
+    deleteAccountDone: "Dein Konto ist gelöscht.",
+    deleteAccountFailed: "Das hat nicht geklappt. Prüf deine Verbindung und versuch es noch einmal.",
+    languageSetting: "Sprache",
+    languageSettingHint: "Die Sprache der App",
     withdrawConsent: "Einwilligung widerrufen",
     withdrawConsentHint: "Nichts verlässt dein Gerät, bis du erneut zustimmst",
     account: "Konto",
@@ -879,23 +895,24 @@ export default {
       formatLabel: "Format",
       portrait: "Handy, Stories",
       landscape: "Breitbild",
+      square: "Quadrat, Feed",
       keyframeLabel: "Welches Bild wird lebendig?",
       keyframeHint: "Der Film beginnt bei diesem Bild — sein Look zieht sich durch.",
       filmModelLabel: "Welches Modell",
       filmModels: {
         standard: {
           name: "Lebendig", hint: "dein Startbild beginnt sich zu bewegen, mit Ton · bis 15 Sekunden",
-          model: "MiniMax H3",
+          model: "MiniMax H3 Max Turbo",
           info: "Die schnelle Stufe: Sie erweckt dein Startbild überzeugend zum Leben, Ton inklusive, und nimmt bis zu vier Referenzfotos mit, damit die echten Gesichter sie selbst bleiben. Bei 15 Sekunden ist Schluss. Die Qualität wählst du darunter — die Credits je Sekunde stehen am Schalter.",
         },
         premium: {
           name: "Kino", hint: "bis zu 30 Sekunden in einer Einstellung, mit Ton",
+          badge: "Beste Qualität",
           model: "Seedance 2.5",
           info: "Die längste Geschichte: eine ununterbrochene Einstellung von bis zu 30 Sekunden, mit Ton und sekundengenauem Timing — und deine Referenzfotos bleiben den ganzen Film über dabei. Die Qualität wählst du darunter; die scharfe Stufe kostet hier mehr als das Doppelte, die Credits stehen am Schalter.",
         },
       },
       qualityLabel: "Qualität",
-      qualityNames: { sd: "Standard", hd: "Scharf" },
       aboutModel: "Über dieses Modell",
       aboutStyle: "Über diesen Stil",
       moreStyles: (n) => `Mehr Stile (${n})`,
@@ -906,7 +923,7 @@ export default {
         dreamflowInfo: "Eine einzige Einstellung. Nichts wird geschnitten: Das Büro wird zum Aufzug, der Aufzug zum Cockpit, der Himmel zum Boden. Der ganze Traum in einem Fluss — die Traumlogik als Form. Rendert im weichen, leuchtenden Look, weil eine harte fotoreale Kante gegen Übergänge arbeitet.",
       },
       paceLabel: "Tempo",
-      paceNames: { calm: "Mit Schnitten", fast: "Schnell", flow: "Ein Fluss" },
+      paceNames: { calm: "Mit Schnitten", fast: "Schnell", flow: "One-Take" },
       paceHints: {
         calm: "Jede Szene, harte Schnitte — die Länge macht das Tempo",
         fast: "Zwei-Sekunden-Schnitte, mehr Szenen",
@@ -1054,6 +1071,13 @@ export default {
     termsPost: " gelesen.",
     processing: "Meine Traumtexte und hochgeladenen Fotos dürfen an die unten genannten KI-Dienste (fal.ai, Google, DeepSeek — und für Filme MiniMax oder ByteDance) übermittelt werden, um meine Bilder und Filme zu erzeugen.",
     adult: "Ich bin mindestens 18 Jahre alt.",
+    /* Klartext-Kacheln (23.09.2026) — siehe en.js. */
+    facts: [
+      { id: "ai", title: "KI-gemacht", text: "Filme und Bilder erzeugt eine KI — so gekennzeichnet." },
+      { id: "send", title: "Nur zum Erzeugen", text: "Traumtext und Fotos gehen nur fürs Rendern an KI-Dienste." },
+      { id: "device", title: "Bleibt bei dir", text: "Dein Tagebuch liegt auf diesem Gerät." },
+      { id: "adult", title: "18+", text: "Nur für Erwachsene." },
+    ],
     more: "Wohin gehen meine Daten?",
     details: [
       "Dein Traumtext geht an fal.ai und DeepSeek (hilft beim Formulieren der Bildanweisungen). Hochgeladene Fotos gehen nur an fal.ai und Google. Dein Journal selbst bleibt auf diesem Gerät.",
@@ -1336,6 +1360,9 @@ export default {
     freeNote: "Nur Bild- und Filmerzeugung kosten Credits — das ist der Teil, für den wir die generative KI bezahlen.",
     cta: "Weiter",
     notYet: "⚠ Zahlung ist noch nicht angebunden — das ist eine Vorschau der Pakete.",
+    /* StoreKit-Kaufstrecke (B1, 23.09.2026). */
+    purchaseThanks: "Fertig — deine Credits sind da.",
+    purchaseFailed: "Der Kauf ging nicht durch. Es wurde nichts berechnet — versuch es noch einmal.",
     balance: (n) => `Du hast aktuell ${n} Credits.`,
   },
 

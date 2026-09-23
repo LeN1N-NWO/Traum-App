@@ -3,6 +3,116 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-23 19:15 — Anton — Branch `session/2026-09-22-anton` (PR #54) — H3 Max Turbo, halbe Filmpreise, Formatwahl für Filme, Klartext-Qualitäten nativ
+
+**Commits:** `0155f6c` Turbo-Weiche (überholt) · `61600f2` Klartext-Stufen +
+1080p · `66319c0` Turbo-only + Formatwahl · `bc12227` native Qualitäts-UI +
+Badge · One-Take-Umbenennung + dieser Doku-Commit.
+
+**Antons Entscheide (Reihenfolge des Tages):**
+1. „Turbo verwenden, Ersparnis an die Kunden weitergeben" — aber erst
+   Referenzbilder TESTEN, „nicht alles für bare Münze nehmen".
+2. Nach dem Befund: „Ich will Max Turbo mit Bildern."
+3. „Einfach 480p, 720p, 1080p schreiben statt Verschleierung."
+4. Formatwahl „mach das mal" (9:16/16:9/1:1 für Filme).
+5. Badge „Beste Qualität" ans Kino-Modell; „Ein Fluss" → „One-Take".
+
+**Gemessen statt geglaubt** (fal-OpenAPI + zwei bezahlte Renders ~0,38 $,
+Plan `docs/plans/2026-09-23-h3-max-turbo-weiche.md`):
+- Turbo-Reference-to-Video existiert NICHT (404); Turbo-i2v nimmt EIN
+  Startbild und beginnt PIXELGENAU damit (Frosch-Test, Frame 0 = Input).
+- H3-Max-R2V (bis 9 Bilder) hielt die Identität; Data-URIs gehen überall.
+- Beide neuen Endpunkte: Pflichtfeld `prompt_expansion_mode` (das alte
+  enable_prompt_expansion gibt es nicht mehr), natives Audio ohne
+  Parameter, Seedance-2.5-Schema bestätigt 16:9/1:1.
+- H3-Gewichte sind offen, aber die Lizenz VERBIETET lokale Nutzung in
+  der EU — Antons 5090 ist rechtlich raus.
+
+**Gebaut:**
+- Standard = `minimax/h3-max-turbo/image-to-video`, Ein-Bild-Modell;
+  Fotos wirken übers Keyframe. Preise halbiert: 480p 1 · 768p 2 ·
+  **1080p (neu) 3 Cr/s**; Seedance bewusst ohne 1080p (42 Cr/s).
+- Qualitätsknöpfe zeigen Auflösung + Credits/s aus der MODELLTABELLE
+  (Web `Step5Style` UND nativ über die Brücke; `qualityNames` samt
+  i18n-Schlüsseln entfernt — ⚠ die Brücke hätte sonst rohe IDs gezeigt).
+- Formatwahl 9:16/16:9/**1:1 (neu)** wirkt jetzt auf FILME: Keyframe im
+  Wunschformat, Turbo folgt ihm; Seedance bekommt aspect_ratio gegen
+  gemessene `aspects`-Liste. Vorher war der Schalter beim Film Deko.
+- Regie: NEGATIVE-RULES-Block (`negatives` in der Tabelle, nur H3);
+  `directorMotion()` als Funktion.
+- Nativ (`length.tsx`): Stufen-Pills mit Preis, Badge „Beste Qualität"
+  am Kino (`badge` je Modell aus der Sprachdatei), Modellname ehrlich
+  „MiniMax H3 Max Turbo"; Tempo „Ein Fluss" → „One-Take" (en+de,
+  Übersetzungs-Stopp gilt).
+
+**Sim-verifiziert** (Release, iPhone 17 Pro): Lebendig 1/2/3 Cr/s,
+Kino 8/17, Badge sitzt, Preis live (12 s×1+1=13 · 10 s×8+1=81). Beide
+Stände per devicectl auf Antons iPhone. 648 Tests, tsc 0, Lint 0 Fehler.
+
+**Was der Nächste wissen muss:**
+- ⚠ UNGEMESSEN: hält Turbo Gesichter über 15 s, wenn sie nur im
+  Keyframe stecken? Beim ersten echten Foto-Film prüfen; Rückweg
+  (Max-R2V-Weiche) steht in `0155f6c` und im Plan.
+- Formatwahl 16:9/1:1 einmal echt rendern (bisher nur Schema-bestätigt).
+- Buchführung geklärt (Guide Teil 2c): Apple ist Merchant of Record,
+  Small Business Program 15 % → in Hannis Übergabe.
+
+## 2026-09-23 14:45 — Anton — Branch `session/2026-09-22-anton` (PR #54) — Face-ID-Schutz, Sprachwechsel, Konto-Löschung, StoreKit-Client, App-Store-Guide + Preflight
+
+**Commits:** `b02af6f` Klartext-Kacheln · `455c41c` Einreichungs-101 ·
+`6d9b6ee` Konto-Löschung + Zahnrad + Preflight · `6c7885a` Hanni-Übergabe ·
+`26c4efb` StoreKit-Kaufstrecke, deutsche Systemtexte, Encryption-Flag ·
+Doku-Commit dieses Eintrags (Teil 2c Geld/Abrechnung).
+
+**Was gebaut wurde (alles auf Antons iPhone bzw. im Simulator geprüft):**
+- **Face-ID-Schutz für die ganze App** (`privacy-gate.tsx`, `privacy-lock.ts`,
+  Schalter in den Einstellungen). Deckende View statt Modal, fail-closed,
+  sperrt bei Hintergrund neu. Negativpfade sim-verifiziert; der Positivpfad
+  (echtes Face-ID-Ja) geht nur am Gerät.
+- **Sprache nachträglich änderbar** (Chips in den Einstellungen, Befehl
+  `language` in der Brücke). ⚠ `t` lebt je Webview — `syncLanguage()` vor
+  jedem Bridge-Push gleicht ab, sonst wechselt nur der Settings-Tab.
+- **Klartext-Kacheln** auf dem Einwilligungs-Tor (2×2: KI, Versand, Gerät, 18+).
+- **Konto-Löschung:** rote Zeile in den Einstellungen → `DELETE /api/account`
+  → Migration `20260923090000_account_delete.sql` (`server_delete_account()`,
+  security definer, Kaskade über `auth.users`). **Hanni muss die Migration
+  im Dashboard ausführen**, vorher liefert die Route 503.
+- **Einstellungen als Zahnrad** oben im Profil (Toolbar), versteckte Karte raus.
+- **StoreKit-Client fertig (B1-Client):** `mobile/src/lib/iap.ts` (expo-iap),
+  Kaufblatt kauft echt, sobald Produkte existieren; Gutschrift über
+  Brücken-Befehl `purchase` (Menge NIE aus dem Befehl). Lokale Testdatei
+  `mobile/ios/DreamRushes.storekit` im Scheme — Xcode ▶ zeigt echte
+  Kaufdialoge ohne Apple-Konto.
+- **App-Store-Paket:** Guide `docs/APP-STORE-EINREICHUNG.md` (inkl. neu
+  Teil 2c: Apple ist Merchant of Record, Small Business Program 15 %,
+  Buchführung = eine Monatsauszahlung), Prüfwerkzeug `bun run preflight`
+  (7→4 Blocker; die 4 offenen sind bewusste Testphasen-Schalter
+  B3a/B3b/B4a/B4b), Encryption-Flag, `CFBundleLocalizations` + deutsche
+  `InfoPlist.strings` (B5), Übergabe an Hanni aktualisiert.
+- **Onboarding kommt jetzt bei JEDEM Start, auch Release** (Antons Ansage
+  Testphase; `onboarding-gate.tsx`, vor Veröffentlichung Einmal-Marke = B4b).
+- **500 Test-Credits** in allen Bauarten (`devTopUp`, Testphase, = B4a).
+
+**Behobene Fehler:**
+- ⚠⚠ **Eingefrorene Tabs auf Antons iPhone** = fataler JS-Fehler „Cannot
+  find native module 'ExpoCrypto'": Hannis Merge brachte native Pakete,
+  bun install reicht NICHT — **nach jedem Merge mit neuen nativen Paketen
+  `pod install`**, sonst friert Release kommentarlos ein.
+- **PR-#54-Konflikt** nach Hannis Merge gelöst (settings.tsx: ihre
+  `useAccount`-API übernommen).
+- Preflight-Check B4b war falsch-grün (Kommentar enthielt `__DEV__`) —
+  Regex präzisiert.
+
+**Was der Nächste wissen muss:**
+- Das iPhone-Release-Rezept steht im STAND (buildReactNativeFromSource,
+  EventEmitter-Patch — **fliegt bei jedem bun install raus** —, `mobile/.env`
+  vor dem Build, devicectl-Install).
+- Prüfungen: 648 Tests grün (`cd src && bun test`), tsc Exit 0, Lint 0 Fehler.
+- PR #54 ist freigegeben; **Merge nur auf Antons Wort** (steht aus, Anton
+  testet erst gesammelt am Gerät).
+- Offen für B1-Server: Beleg-Prüfung über die App-Store-Server-API →
+  `server_grant()` — braucht Hannis ASC-Schlüssel.
+
 ## 2026-09-23 00:20 — Hanni — Branch `session/2026-09-15-hanni-apple-signin` (PR #51) — Review: neun von zehn Befunden behoben
 
 **Commits:** Fix-Commit dieses Eintrags.

@@ -445,6 +445,24 @@ export default {
     settings: "Settings",
     voiceSetting: "Assistant voice",
     voiceSettingHint: "Which voice talks to you",
+    /* Face-ID-Schutz und Sprachwahl in den Einstellungen (Antons Ansage
+       22.09.2026). Der Sperr-Bildschirm selbst trägt englische Rückfälle
+       im Code (privacy-gate.tsx), weil er VOR der Brücke steht. */
+    privacyLock: "Require Face ID",
+    privacyLockHint: "Lock the app. Opening it needs Face ID or your passcode.",
+    privacyLockNoBio: "Set up Face ID or a passcode in the iOS settings first.",
+    privacyUnlock: "Unlock",
+    privacyLocked: "Your dreams are locked.",
+    /* Konto-Löschung in der App (Apple 5.1.1(v), Antons Ansage 23.09.2026). */
+    deleteAccount: "Delete account",
+    deleteAccountHint: "Removes your account, films and credits from our server. Dreams on this device stay.",
+    deleteAccountConfirmTitle: "Delete your account?",
+    deleteAccountConfirmText: "This cannot be undone. Your account, the films stored on our server and your credits are removed. Dreams saved on this device stay yours.",
+    deleteAccountGo: "Delete",
+    deleteAccountDone: "Your account is deleted.",
+    deleteAccountFailed: "That didn't work. Check your connection and try again.",
+    languageSetting: "Language",
+    languageSettingHint: "The language of the app",
     withdrawConsent: "Withdraw consent",
     withdrawConsentHint: "Nothing leaves your device until you agree again",
     account: "Account",
@@ -922,23 +940,24 @@ export default {
       formatLabel: "Format",
       portrait: "Phone, stories",
       landscape: "Widescreen",
+      square: "Square, feed",
       keyframeLabel: "Which image comes to life?",
       keyframeHint: "The film starts from this picture — its look carries through.",
       filmModelLabel: "Which model",
       filmModels: {
         standard: {
           name: "Alive", hint: "your opening image starts to move, with sound · up to 15 seconds",
-          model: "MiniMax H3",
+          model: "MiniMax H3 Max Turbo",
           info: "The quick tier: it brings your opening image convincingly to life, sound included, and carries up to four reference photos so the real faces stay themselves. Films top out at 15 seconds. Pick the quality below — the credits per second are shown on the switch.",
         },
         premium: {
           name: "Cinema", hint: "up to 30 seconds in one take, with sound",
+          badge: "Best quality",
           model: "Seedance 2.5",
           info: "The longest story: one unbroken take of up to 30 seconds, with sound and second-precise timing — and your reference photos stay in the film the whole way. Pick the quality below; the sharp tier costs more than double here, the credits are on the switch.",
         },
       },
       qualityLabel: "Quality",
-      qualityNames: { sd: "Standard", hd: "Sharp" },
       aboutModel: "About this model",
       aboutStyle: "About this style",
       moreStyles: (n) => `More styles (${n})`,
@@ -949,7 +968,7 @@ export default {
         dreamflowInfo: "One unbroken take. Nothing is cut: the office turns into the lift, the lift into the cockpit, the sky into the ground. The whole dream in a single flow — dream logic as the form itself. Renders in the soft, glowing look, because a hard photoreal edge works against transitions.",
       },
       paceLabel: "Pace",
-      paceNames: { calm: "With cuts", fast: "Fast", flow: "One flow" },
+      paceNames: { calm: "With cuts", fast: "Fast", flow: "One-take" },
       paceHints: {
         calm: "Every scene, hard cuts — the length sets the pace",
         fast: "Two-second cuts, more scenes",
@@ -1118,6 +1137,16 @@ export default {
     termsPost: ".",
     processing: "My dream texts and the photos I upload may be sent to the AI services named below (fal.ai, Google, DeepSeek — and for films MiniMax or ByteDance) to create my images and films.",
     adult: "I am 18 or older.",
+    /* Klartext-Kacheln über den Häkchen (Antons Ansage 23.09.2026): auf
+       einen Blick, was die App tut, ohne die langen Texte zu lesen. Die
+       Symbole wählt das Tor (consent-gate.tsx) über die id — hier stehen
+       nur Worte. Nichts behaupten, was die details nicht auch sagen. */
+    facts: [
+      { id: "ai", title: "AI-made", text: "Films and images come from AI, marked as such." },
+      { id: "send", title: "Sent to create", text: "Dream text and photos go to AI services only to render." },
+      { id: "device", title: "Stays with you", text: "Your journal lives on this device." },
+      { id: "adult", title: "18+", text: "For adults only." },
+    ],
     more: "Where does my data go?",
     details: [
       "Your dream text goes to fal.ai and DeepSeek (which helps write the image instructions). Photos you upload go to fal.ai and Google only. Your journal itself stays on this device.",
@@ -1423,6 +1452,9 @@ export default {
     freeNote: "Only image and film generation costs credits — that is the part we pay the generative AI for.",
     cta: "Continue",
     notYet: "⚠ Payment is not connected yet — this is a preview of the plans.",
+    /* StoreKit-Kaufstrecke (B1, 23.09.2026). */
+    purchaseThanks: "Done — your credits are in.",
+    purchaseFailed: "The purchase didn't go through. Nothing was charged — try again.",
     balance: (n) => `You currently have ${n} credits.`,
   },
 

@@ -18,7 +18,7 @@ import { failureTextKey } from "../../../src/lib/falError.js";
 import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
-import { totalCredits, spend } from "../../../src/lib/credits.js";
+import { totalCredits, spend, applyAllowanceGrant } from "../../../src/lib/credits.js";
 import { analyze, reflect, refine, characterSheet, generate, photoCheck } from "../../../src/lib/api.js";
 import { quoteFor } from "../../../src/lib/quote.js";
 import { buildReferences, buildImagePrompt } from "../../../src/lib/promptBuilder.js";
@@ -56,7 +56,8 @@ import { showcaseFrom } from "../../../src/lib/showcase.js";
 import { filmsOf, filmOf, imagesOf } from "../../../src/lib/entryMedia.js";
 import { isBlank } from "../../../src/lib/blankNight.js";
 import { mediaUrl } from "../../../src/lib/api.js";
-import { t } from "../../../src/i18n/index.js";
+import { t, setLanguage } from "../../../src/i18n/index.js";
+import { LOCALES } from "../../../src/lib/locales.js";
 
 /* Nativ braucht absolute Adressen. `/media/…` löst mediaUrl auf; alles andere
    Relative (`/clips/…` der Beispielträume, aus public/) liefert derselbe
@@ -233,6 +234,14 @@ function snapshot() {
       account: t.profile.account, accountNone: t.profile.accountNone, accountSignedIn: t.profile.accountSignedIn, accountSignedInNoEmail: t.profile.accountSignedInNoEmail, signIn: t.profile.signIn, signOut: t.profile.signOut,
       voice: isVoice(s.voice) ? s.voice : DEFAULT_VOICE,
       voices: VOICES.map((v) => ({ id: v.id, trait: t.voice.traits[v.trait] || v.trait })),
+      /* Face-ID-Schalter und Sprachwahl (22.09.2026). Die Sprachnamen
+         stehen absichtlich in ihrer eigenen Sprache (locales.js) —
+         wer die Oberfläche nicht lesen kann, muss seine Sprache trotzdem
+         erkennen. */
+      privacy: { title: t.profile.privacyLock, hint: t.profile.privacyLockHint, noBio: t.profile.privacyLockNoBio, unlock: t.profile.privacyUnlock, locked: t.profile.privacyLocked },
+      deleteAccount: { title: t.profile.deleteAccount, hint: t.profile.deleteAccountHint, confirmTitle: t.profile.deleteAccountConfirmTitle, confirmText: t.profile.deleteAccountConfirmText, go: t.profile.deleteAccountGo, done: t.profile.deleteAccountDone, failed: t.profile.deleteAccountFailed },
+      languageSetting: t.profile.languageSetting, languageSettingHint: t.profile.languageSettingHint,
+      languages: LOCALES.map((l) => ({ id: l.id, label: l.label })),
       pickTitle: t.voice.pickTitle, pickHint: t.voice.pickHint, pickGo: t.voice.pickGo, cancel: t.voice.cancel,
       sampleBase: API_BASE + "/api/voice-sample",
       legal: {
@@ -285,8 +294,19 @@ function snapshot() {
     })),
     models: VIDEO_MODELS.map((m) => ({
       id: m.id, name: w5.filmModels[m.id]?.name || m.id, hint: w5.filmModels[m.id]?.hint || "",
+      /* Kleines Abzeichen am Modell („Beste Qualität" am Kino — Antons
+         Ansage 23.09.); Text aus der Sprachdatei, nie hart. */
+      badge: w5.filmModels[m.id]?.badge || null,
       min: m.min, max: m.max, step: m.step, preset: m.preset, preferred: m.preferred,
-      qualities: Object.keys(m.qualities).map((q) => ({ id: q, name: w5.qualityNames?.[q] || q })),
+      /* Klartext statt Marketing-Namen (Antons Ansage 23.09.: „einfach
+         480p, 768p, 1080p schreiben"): Name = Auflösung, dazu die Credits
+         je Sekunde — beides aus der Modelltabelle, nie aus Sprachdateien,
+         damit ein Preiswechsel nirgends nachgepflegt werden muss. */
+      qualities: Object.entries(m.qualities).map(([q, k]) => ({
+        id: q,
+        name: k.resolution.toLowerCase(),
+        perSec: `${k.creditsPerSecond} ${t.wizard.creditsN(k.creditsPerSecond)}/s`,
+      })),
     })),
     paces: PACE_IDS.map((id) => ({ id, name: w5.paceNames?.[id] || id, hint: w5.paceHints?.[id] || "" })),
   };
@@ -341,7 +361,7 @@ function snapshot() {
     headlineFor: { browse: pw.headlineFor.browse, spent: pw.headlineFor.spent, first: pw.headlineFor.first },
     ledeFor: { browse: pw.lede, spent: pw.ledeFor.spent, first: pw.ledeFor.first },
     tabSub: pw.tabSub, tabPack: pw.tabPack, packNote: pw.packNote, yieldYearNote: pw.yieldYearNote,
-    included: pw.included, chips: pw.chips, freeNote: pw.freeNote, cta: pw.cta, notYet: pw.notYet, upTo: pw.upTo,
+    included: pw.included, chips: pw.chips, freeNote: pw.freeNote, cta: pw.cta, notYet: pw.notYet, purchaseThanks: pw.purchaseThanks, purchaseFailed: pw.purchaseFailed, upTo: pw.upTo,
     balance: pw.balance(totalCredits(s)), credits: totalCredits(s),
     subs: SUBSCRIPTIONS.map((p) => {
       const films = dreamsFor(p.credits * (p.period === "year" ? 12 : 1)).films;
@@ -443,7 +463,7 @@ function snapshot() {
       timeBudget: werte("timeBudget", t.dreamer.timeValues),
     },
   };
-  const consent = { needed: needsConsent(s), ...Object.fromEntries(["title", "intro", "termsPre", "termsLink", "termsMid", "privacyLink", "termsPost", "processing", "adult", "more", "cta"].map((k) => [k, t.consent[k]])), details: t.consent.details };
+  const consent = { needed: needsConsent(s), ...Object.fromEntries(["title", "intro", "termsPre", "termsLink", "termsMid", "privacyLink", "termsPost", "processing", "adult", "more", "cta"].map((k) => [k, t.consent[k]])), details: t.consent.details, facts: t.consent.facts };
   /* Erinnerungen (13.09.2026): der Plan aus reminders.js, der Stand der
      Erlaubnis und die Texte — auch die der Benachrichtigungen selbst, die
      die native Schicht plant (lib/notifications.ts). */
@@ -727,6 +747,15 @@ let onJournalTick = null;
 async function runAsync(cmd, onResult) {
   if (cmd.type === "order") return runOrder(cmd, onResult);
   if (String(cmd.type).startsWith("avatar")) return runAvatar(cmd, onResult);
+  /* Sprachwechsel wie im Web (LanguagePicker.jsx): ERST t umschalten —
+     für die fünf eingefrorenen Sprachen lädt das Modul erst nach, deshalb
+     asynchron — DANN den Zustand schreiben; der Snapshot danach ist schon
+     übersetzt. */
+  if (cmd.type === "language") {
+    const locale = await setLanguage(cmd.value);
+    saveState({ ...loadState(), language: locale.id });
+    return true;
+  }
   /* Das eigene Foto aus dem Onboarding (13.09.): kommt nativ schon auf
      1600 px verkleinert als Data-URL, wird hier wie im Avatar-Dialog noch
      einmal durch compactDataUrl gezogen (JPEG, dieselbe Grenze) und liegt
@@ -857,6 +886,18 @@ function run(cmd) {
   else if (cmd.type === "paywallSeen") patch = { paywallSeen: true };
   else if (cmd.type === "deleteDream") patch = { journal: (s.journal || []).filter((e) => e.id !== cmd.id) };
   else if (cmd.type === "voice") { if (isVoice(cmd.value)) patch = { voice: cmd.value }; }
+  /* Gutschrift nach bestätigtem Apple-Kauf (B1, 23.09.2026): Die Hülle
+     meldet nur die plan-id — die MENGE steht hier, in plans.js, nie im
+     Befehl (ein manipulierter Befehl könnte sonst beliebig gutschreiben).
+     Pakete erhöhen das Kauf-Töpfchen, Abos setzen das Monatsguthaben
+     (applyAllowanceGrant, wie im Web geplant). ⚠ Lokal, bis der Server
+     Belege prüft — siehe mobile/src/lib/iap.ts. */
+  else if (cmd.type === "purchase") {
+    const pack = PACKS.find((p) => p.id === cmd.value);
+    const sub = SUBSCRIPTIONS.find((p) => p.id === cmd.value);
+    if (pack) patch = { credits: (s.credits ?? 0) + pack.credits };
+    else if (sub) patch = applyAllowanceGrant(s, allowanceGrant(sub, 0));
+  }
   else if (cmd.type === "withdraw") patch = withdrawPatch();
   else if (cmd.type === "reminders") patch = { reminders: { ...(s.reminders || {}), ...reminderWish(!!cmd.wants, cmd.perDay || DEFAULT_PER_DAY) } };
   else if (cmd.type === "reminderSet") patch = { reminders: setReminder(s.reminders, cmd.value, { on: cmd.wants, time: cmd.text }) };
@@ -926,9 +967,25 @@ function devTopUp(min) {
   saveState({ ...s, credits: (s.credits ?? 0) + (min - totalCredits(s)) });
 }
 
+/* Sprachabgleich vor jedem Snapshot (22.09.2026): Jeder Tab hat seinen
+   eigenen Brücken-Webview, aber `t` schaltet nur dort um, wo der
+   language-Befehl ankam — die anderen pushten weiter die alte Sprache,
+   und der letzte Push gewann. Deshalb vergleicht jede Brücke vor dem
+   Snapshot den Zustand mit der eigenen Sprache und zieht `t` nach.
+   Für en/de füllt setLanguage synchron (i18n/index.js); bei den fünf
+   nachgeladenen Sprachen ist der eine Push noch alt — der nächste Takt
+   (3 s) trägt dann die Übersetzung. */
+let bridgeLang = null;
+function syncLanguage() {
+  const want = loadState().language || "en";
+  if (bridgeLang === want) return;
+  bridgeLang = want;
+  setLanguage(want);
+}
+
 export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, dom }) {
   useEffect(() => {
-    const push = () => { try { devTopUp(devCredits); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
+    const push = () => { try { syncLanguage(); devTopUp(devCredits); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
     push();
     window.addEventListener("storage", push);
     return () => window.removeEventListener("storage", push);

@@ -32,10 +32,18 @@ test("price and order agree on the seconds, for every model", () => {
 });
 
 test("each model orders at its own address with its own resolution", () => {
-  const std = videoSubmitBody("standard", { imageUrl: "img", prompt: "p", seconds: 6 });
-  expect(std.slug).toBe("minimax/h3/reference-to-video");
-  /* "768P" ist Geld, nicht Geschmack: die Schema-Vorgabe ist "2K" und
-     kostet $0,13/s statt $0,06/s (Filmplan §10b). */
+  /* Antons Turbo-Entscheid (23.09.2026): Standard ist ein EIN-Bild-Modell
+     auf dem Turbo-Endpunkt — die Fotos wirken übers Keyframe, das
+     Videomodell bekommt image_url und NIE ein Referenz-Array (Turbo-R2V
+     existiert nicht, 404 am fal-Schema gemessen). Auch eine mitgeschickte
+     Liste ändert daran nichts. */
+  const std = videoSubmitBody("standard", { imageUrl: "img", imageUrls: ["img", "ref"], prompt: "p", seconds: 6 });
+  expect(std.slug).toBe("minimax/h3-max-turbo/image-to-video");
+  expect(std.body.image_url).toBe("img");
+  expect("reference_image_urls" in std.body).toBe(false);
+  expect("image_urls" in std.body).toBe(false);
+  /* "768P" ist Geld, nicht Geschmack: die Schema-Vorgabe wäre teurer
+     (beim alten H3 "2K" für $0,13/s — Filmplan §10b). */
   expect(std.body.resolution).toBe("768P");
 
   const prem = videoSubmitBody("premium", { imageUrl: "img", prompt: "p", seconds: 30 });
@@ -54,14 +62,20 @@ test("every tier orders from a different model", () => {
   expect(new Set(slugs).size).toBe(slugs.length);
 });
 
-/* H3 formuliert Prompts standardmäßig selbst um (enable_prompt_expansion
-   steht im Schema AN) — bliebe das an, überschriebe ein fremdes Modell die
-   Arbeit unseres Regisseurs. Seedance kennt den Parameter nicht, und ein
-   unbekanntes Feld kann einen bezahlten Auftrag kosten. */
-test("prompt expansion is switched off exactly where it exists", () => {
-  expect(videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6 }).body.enable_prompt_expansion).toBe(false);
-  expect("enable_prompt_expansion" in videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 6 }).body).toBe(false);
-  expect("enable_prompt_expansion" in videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 6 }).body).toBe(false);
+/* H3 formuliert Prompts standardmäßig selbst um — bliebe das an,
+   überschriebe ein fremdes Modell die Arbeit unseres Regisseurs. Die neuen
+   H3-Max-Endpunkte tragen dafür das PFLICHTfeld prompt_expansion_mode
+   (das alte enable_prompt_expansion kennen sie nicht mehr); Seedance kennt
+   keins von beiden, und ein unbekanntes Feld kann einen bezahlten Auftrag
+   kosten. Beide Wege der Weiche müssen es tragen — ein Pflichtfeld, das
+   auf einem Weg fehlt, ist eine Ablehnung nach bezahlter Runde. */
+test("prompt expansion is disabled exactly where the schema has the field", () => {
+  const std = videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6 });
+  expect(std.body.prompt_expansion_mode).toBe("disabled");
+  expect("enable_prompt_expansion" in std.body).toBe(false);
+  const prem = videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 6 }).body;
+  expect("prompt_expansion_mode" in prem).toBe(false);
+  expect("enable_prompt_expansion" in prem).toBe(false);
 });
 
 /* minimax kennt generate_audio nicht — ein unbekanntes Feld kann bei einem
@@ -91,23 +105,20 @@ test("seedance orders with image_urls, keyframe first, capped at 9", () => {
   expect(got.body.generate_audio).toBe(true);
 });
 
-test("h3 orders with reference_image_urls, keyframe first, capped at its 5 free slots", () => {
-  const got = videoSubmitBody("standard", {
-    imageUrl: "keyframe",
-    imageUrls: ["keyframe", "a", "b", "c", "d", "e", "f"],
-    prompt: "p", seconds: 6,
-  });
-  expect("image_url" in got.body).toBe(false);
-  expect("image_urls" in got.body).toBe(false);
-  /* Die 5 ist die gratis-Grenze: ab dem 6. Bild berechnet fal $0,08 je
-     Referenz, und ein Festpreis, der von der Besetzungsgröße abhängt,
-     wäre keiner mehr. */
-  expect(got.body.reference_image_urls).toEqual(["keyframe", "a", "b", "c", "d"]);
+test("without an explicit list, seedance still gets its keyframe as an array", () => {
+  expect(videoSubmitBody("premium", { imageUrl: "kf", prompt: "p", seconds: 8 }).body.image_urls).toEqual(["kf"]);
 });
 
-test("without an explicit list, reference models still get their keyframe as an array", () => {
-  expect(videoSubmitBody("premium", { imageUrl: "kf", prompt: "p", seconds: 8 }).body.image_urls).toEqual(["kf"]);
-  expect(videoSubmitBody("standard", { imageUrl: "kf", prompt: "p", seconds: 8 }).body.reference_image_urls).toEqual(["kf"]);
+/* ── Antons Turbo-Entscheid in Zahlen (23.09.2026) ────────────────────────
+   „Ich will Max Turbo mit Bildern" — die Fotos wirken übers Keyframe, das
+   Videomodell rendert zum Turbo-Einkauf, und der halbierte Preis gilt für
+   JEDEN Standard-Film, mit wie ohne Besetzung. Diese Zeilen nageln die
+   drei Klartext-Stufen fest, damit ein Modellwechsel sie nicht still
+   verteuert. */
+test("standard sells three plain-named tiers at the turbo purchase price", () => {
+  expect(filmQuality("standard", "sd")).toMatchObject({ resolution: "480P", creditsPerSecond: 1 });
+  expect(filmQuality("standard", "hd")).toMatchObject({ resolution: "768P", creditsPerSecond: 2 });
+  expect(filmQuality("standard", "fhd")).toMatchObject({ resolution: "1080P", creditsPerSecond: 3 });
 });
 
 /* R2V hat kein Startbild, aus dem sich das Format ableiten ließe — wo das
@@ -117,9 +128,18 @@ test("without an explicit list, reference models still get their keyframe as an 
 /* Bis 31.08. prüfte diese Zeile auch, dass Seedance 2.0 KEIN aspect_ratio
    bekommt (sein Schema war der eine ungemessene Punkt). Das Modell ist
    raus; die beiden verbliebenen haben 9:16 bestätigt und bekommen es. */
-test("aspect_ratio goes only where the schema confirmed it", () => {
-  expect(videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6 }).body.aspect_ratio).toBe("9:16");
+test("aspect_ratio goes only where the schema confirmed it, and only measured values", () => {
+  /* Turbo-i2v kennt KEIN aspect_ratio — das Format folgt dem Startbild
+     (fal-Schema 23.09.); ein unbekanntes Feld kann den Auftrag kosten.
+     Die Formatwahl wirkt dort über die KEYFRAME-Erzeugung (server.js). */
+  expect("aspect_ratio" in videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6, aspect: "16:9" }).body).toBe(false);
+  /* Seedance: ohne Wunsch die Vorgabe, gemessene Werte reisen durch,
+     alles außerhalb der aspects-Liste fällt auf die Vorgabe zurück —
+     "auto" stünde sonst drin und ließe das MODELL das Format wählen. */
   expect(videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 10 }).body.aspect_ratio).toBe("9:16");
+  expect(videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 10, aspect: "16:9" }).body.aspect_ratio).toBe("16:9");
+  expect(videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 10, aspect: "1:1" }).body.aspect_ratio).toBe("1:1");
+  expect(videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 10, aspect: "auto" }).body.aspect_ratio).toBe("9:16");
 });
 
 /* Seedance 2.5 läuft in Fünferschritten (5–30) — eine Wunschlänge von
