@@ -3,6 +3,35 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-24 15:30 — Hanni — Branch `session/2026-09-24-hanni-3` — Sicherheitscheck `/security-check`
+
+**Was:** Ein Sicherheitscheck, der nach Bedarf läuft. Hannis Liste mit 50
+Punkten gegen den echten Code eingeordnet: 34 bei jedem Lauf, 12 ab
+öffentlichem Betrieb, 4 treffen heute nicht zu (mit Auslöser, z. B. App Store
+Server Notifications → Signatur prüfen).
+- `scripts/security-check.mjs` — 22 mechanische Prüfungen, liest nur.
+- `src/lib/securityScan.js` + Test — Detektoren; jeder spielt vor dem Lauf
+  seine Probe ab, sonst Abbruch (Mutationstest: kaputtes Muster → rot).
+- `.claude/agents/security-expert.md` — Agent für das, was Urteil braucht
+  (IDOR, SSRF, Prompt-Injection, Gemini-Werkzeuge …). Ohne Schreibrechte,
+  liest keine `.env`, macht keine bezahlten Aufrufe.
+- `.claude/commands/security-check.md` — `/security-check [schnell]`.
+  Berichte nach `~/Claude/Sicherheitsberichte/`, **nicht** ins Repo (öffentlich).
+
+**Erster Lauf (nur Skript):** 4 ❌, 7 ⚠️. Kein Schlüssel in 595 Commits.
+Bekannt: S1 (8 bezahlte Routen ohne Anmeldung), S7 (keine Abbuchung).
+**Neu:** `/api/cast-backup` (Figuren MIT Fotos) und `/api/journal-backup`
+antworten ohne Anmeldung; die DEV-Sperre sitzt nur im Client, und
+`Bun.serve` lauscht ohne `hostname` auf allen Schnittstellen — jedes Gerät
+im selben WLAN kommt dran. Nicht behoben (eigene Sitzung, `server.js`).
+
+**Was der Nächste wissen muss:**
+- Neue Agenten lädt Claude Code erst beim Sitzungsstart.
+- Neue Route mit Personendaten, die kein Geld kostet? In
+  `scripts/security-check.mjs` bei `FREE`/`DEV_DATA` eintragen, sonst
+  zählt sie als kostenpflichtig (bewusst streng, wie der Gatekeeper).
+- `docs/STAND.md` bleibt für PR #59 (Hosting) — beide Sitzungen am selben Tag.
+
 ## 2026-09-24 12:40 — Hanni — Branch `session/2026-09-24-hanni` (PR #58) — Phase 0: Domain, Markenrecherche, Anfrage an den Anwalt
 
 **Commits:** `b53ef8e` Domain + Markenrecherche · `f8c7290` Anwaltsanfrage +
