@@ -31,6 +31,10 @@ public class DreamSketchModule: Module {
 
     Function("modelBytes") { () -> Double in Double(SketchModel.totalBytes) }
 
+    /// Was noch zu laden ist — nach dem Tiefen-Update (25.09.) nur ~50 MB
+    /// für alle, die das Mal-Modell schon haben.
+    Function("missingBytes") { () -> Double in Double(SketchModel.missingBytes) }
+
     /// Wo die fertigen Skizzen liegen (file://…/Documents/sketches/). Die
     /// App löst `sketch:<name>` zur Anzeige damit auf.
     Function("sketchesDir") { () -> String in Self.sketchesDir().absoluteString }
@@ -97,7 +101,8 @@ public class DreamSketchModule: Module {
         do {
           let dir = Self.sketchesDir()
           let urls = frames.map { dir.appendingPathComponent($0.replacingOccurrences(of: "sketch:", with: "")) }
-          try SketchRenderer.render(images: urls, to: dir.appendingPathComponent(name))
+          // Tiefe (Parallaxe) wenn möglich; fehlt das Modell, fährt der Film ohne.
+          try SketchRenderer.render(images: urls, depthModel: SketchModel.depthModel(), to: dir.appendingPathComponent(name))
           promise.resolve("sketch:" + name)
         } catch {
           promise.reject("E_RENDER", error.localizedDescription)

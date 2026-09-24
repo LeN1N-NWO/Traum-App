@@ -120,5 +120,22 @@ fal.ai/models/fal-ai/ltx-2.3/image-to-video/fast
 3. **Modell-Hosting:** lädt heute direkt von Hugging Face — für den
    Betrieb auf eigenen Speicher legen (Hannis Hosting-Plan).
 4. Stil: SD 1.5 roh; ein Traum-LoRA/Fein-Stil würde den Look tragen.
-5. Nächste Ausbaustufe: Tiefenkarte (Depth Anything V2) für echte
-   2.5D-Parallaxe statt reiner Fahrt.
+5. ~~Tiefenkarte für echte 2.5D-Parallaxe~~ — **gebaut 25.09.** (s. u.)
+
+## v2: Tiefe (25.09.2026, Antons Befund „nur eine Slideshow")
+
+- `SketchDepth.swift`: Depth Anything V2 small (Apple, Core ML F16,
+  ~50 MB, als .mlpackage geladen und auf dem Gerät EINMAL kompiliert).
+  `SketchParallax.warp`: je Bild eine Verschiebung je Tiefe — seitlicher
+  Schwenk (Richtung wechselt je Szene) + Dolly nach vorn, Fokus im
+  Mittelgrund; rückwärts gerechnet (keine Löcher), Tiefe zweimal
+  nachgeschlagen gegen verschmierte Ränder. Das Fenster über dem
+  Quadrat gleitet mit Tiefe nur noch ruhig — die Bewegung trägt die Tiefe.
+- Stärke am Leuchtturm-Test eingestellt: dx 0,065 / Dolly 0,15 (0,045 /
+  0,10 war zu zaghaft; darüber reißt Turm-vor-Himmel auf).
+- Geräte mit Mal-Modell laden nur die ~50 MB nach (Knopf zeigt
+  „Laden · 50 MB"; `isReady` prüft jetzt jede Datei, nicht nur die Marke).
+- Belegt: Mac-Probe (gleiche Swift-Dateien) 1,5 s für den ganzen Film
+  inkl. 4 Tiefenkarten, Tiefenkarte deckungsgleich; Simulator Ende zu Ende
+  inkl. On-Device-Kompilierung; derselbe Frame mit/ohne Tiefe weicht im
+  Mittel 20,9/255 ab (die Tiefe wirkt, kein stiller Rückfall).

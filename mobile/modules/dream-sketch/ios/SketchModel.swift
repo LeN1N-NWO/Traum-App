@@ -1,3 +1,4 @@
+import CoreML
 import Foundation
 
 /// Das Bildmodell der Traum-Skizze: Stable Diffusion 1.5, von Apple für
@@ -13,10 +14,14 @@ import Foundation
 enum SketchModel {
   static let version = "sd15-palettized-split-einsum-v2"
   static let base = "https://huggingface.co/apple/coreml-stable-diffusion-v1-5-palettized/resolve/main/split_einsum_v2/compiled/"
+  /// Das Tiefenmodell (25.09.: Parallaxe statt Diashow) — ein .mlpackage,
+  /// das auf dem Gerät EINMAL kompiliert wird (SketchModel.depthModel).
+  static let depthBase = "https://huggingface.co/apple/coreml-depth-anything-v2-small/resolve/main/"
+  static let depthPackage = "DepthAnythingV2SmallF16.mlpackage"
 
   /// Pfad relativ zu `base` und Größe in Bytes (Hugging-Face-API, 24.09.2026).
   /// Die Größen dienen dem Fortschrittsbalken UND der Vollständigkeitsprüfung.
-  static let files: [(String, Int64)] = [
+  static let sdFiles: [(String, Int64)] = [
     ("TextEncoder.mlmodelc/analytics/coremldata.bin", 207),
     ("TextEncoder.mlmodelc/weights/weight.bin", 139866304),
     ("TextEncoder.mlmodelc/coremldata.bin", 825),
@@ -36,7 +41,21 @@ enum SketchModel {
     ("vocab.json", 862328),
   ]
 
-  static var totalBytes: Int64 { files.reduce(0) { $0 + $1.1 } }
+  static let depthFiles: [(String, Int64)] = [
+    ("\(depthPackage)/Manifest.json", 617),
+    ("\(depthPackage)/Data/com.apple.CoreML/model.mlmodel", 399433),
+    ("\(depthPackage)/Data/com.apple.CoreML/weights/weight.bin", 49419072),
+  ]
+
+  /// Alles, was geladen wird: (Quelle, Zielpfad relativ zum Modellordner, Bytes).
+  static var files: [(url: String, path: String, size: Int64)] {
+    sdFiles.map { (base + $0.0, $0.0, $0.1) } + depthFiles.map { (depthBase + $0.0, "Depth/" + $0.0, $0.1) }
+  }
+
+  static var totalBytes: Int64 { files.reduce(0) { $0 + $1.size } }
+
+  /// Was noch fehlt — wer das Mal-Modell schon hat, lädt nur die Tiefe nach.
+  static var missingBytes: Int64 { files.filter { !hasFile($0.path, size: $0.size) }.reduce(0) { $0 + $1.size } }
 
   /// Application Support statt Documents: Das Modell ist kein Nutzerinhalt.
   static var directory: URL {
@@ -46,7 +65,33 @@ enum SketchModel {
 
   private static var readyMarker: URL { directory.appendingPathComponent(".ready") }
 
-  static var isReady: Bool { FileManager.default.fileExists(atPath: readyMarker.path) }
+  /// Fertig heißt: Marke gesetzt UND jede Datei in voller Größe da. Die
+  /// Marke allein reicht seit 25.09. nicht mehr — Geräte, die das
+  /// Mal-Modell schon hatten, bekommen so das Tiefenmodell nachgeliefert.
+  static var isReady: Bool {
+    FileManager.default.fileExists(atPath: readyMarker.path) && files.allSatisfy { hasFile($0.path, size: $0.size) }
+  }
+
+  /// Das Tiefenmodell, beim ersten Gebrauch auf dem Gerät kompiliert und
+  /// danach aus dem Cache. nil → der Film fährt ohne Tiefe (Rückfall).
+  static func depthModel() -> MLModel? {
+    let compiled = directory.appendingPathComponent("Depth/DepthAnythingV2SmallF16.mlmodelc")
+    let fm = FileManager.default
+    do {
+      if !fm.fileExists(atPath: compiled.path) {
+        let package = directory.appendingPathComponent("Depth/" + depthPackage)
+        guard fm.fileExists(atPath: package.path) else { return nil }
+        let temp = try MLModel.compileModel(at: package)
+        try? fm.removeItem(at: compiled)
+        try fm.moveItem(at: temp, to: compiled)
+      }
+      let config = MLModelConfiguration()
+      config.computeUnits = .cpuAndNeuralEngine
+      return try MLModel(contentsOf: compiled, configuration: config)
+    } catch {
+      return nil
+    }
+  }
 
   /// Was schon vollständig da ist — für die Wiederaufnahme nach Abbruch.
   static func hasFile(_ path: String, size: Int64) -> Bool {
@@ -105,7 +150,7 @@ final class SketchDownloader: NSObject, URLSessionDownloadDelegate {
     try fm.createDirectory(at: SketchModel.directory, withIntermediateDirectories: true)
     let total = SketchModel.totalBytes
 
-    for (path, size) in SketchModel.files {
+    for (source, path, size) in SketchModel.files {
       if cancelled { throw CancellationError() }
       let dest = SketchModel.directory.appendingPathComponent(path)
       if SketchModel.hasFile(path, size: size) {
@@ -114,7 +159,7 @@ final class SketchDownloader: NSObject, URLSessionDownloadDelegate {
         continue
       }
       try fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
-      guard let url = URL(string: SketchModel.base + path) else { throw URLError(.badURL) }
+      guard let url = URL(string: source) else { throw URLError(.badURL) }
       target = dest
       _ = try await withCheckedThrowingContinuation { (c: CheckedContinuation<URL, Error>) in
         self.continuation = c

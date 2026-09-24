@@ -179,7 +179,7 @@ export default function DreamSketchScreen() {
               <Text style={styles.kicker}>{S?.needsModel}</Text>
               <Text style={styles.body}>{S?.modelInfo}</Text>
             </Glass>
-            <PrimaryButton label={S?.download ?? "Download"} onPress={startDownload} heavy style={{ flex: 0 }} />
+            <PrimaryButton label={fill(S?.download, { mb: Math.max(1, mb(DreamSketch?.missingBytes() ?? 0)) })} onPress={startDownload} heavy style={{ flex: 0 }} />
           </>
         ) : null}
 

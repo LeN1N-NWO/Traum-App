@@ -11,6 +11,7 @@ type NativeSketch = {
   isSupported(): boolean;
   modelReady(): boolean;
   modelBytes(): number;
+  missingBytes(): number;
   sketchesDir(): string;
   downloadModel(): Promise<boolean>;
   cancelDownload(): void;
