@@ -4,7 +4,7 @@ import {
   SECRET_PATTERNS, PLACEHOLDER_PROBES, scanSecrets, jwtRole, envShape,
   trackedEnvFiles, secretLookingPublicVars, rlsGaps, publicGrants,
   routeInventory, corsOrigins, chargeArmed, errorLeaks, sensitiveLogs,
-  headersSet, bindsAllInterfaces, auditCounts, selfTest,
+  headersSet, bindsAllInterfaces, auditCounts, selfTest, localOnlyPaths,
 } from "./securityScan.js";
 
 describe("Selbsttest", () => {
@@ -80,6 +80,10 @@ describe("server.js", () => {
     expect(routes.find((r) => r.path === "/api/auth/login")?.authed).toBe(false);
     // Regression: ein Kommentar, der verifyAccessToken() erwähnt, ist keine Anmeldung.
     expect(routes.find((r) => r.path === "/api/journal-backup" && r.method === "POST")?.authed).toBe(false);
+  });
+
+  test("die Entwicklungs-Routen sind im echten Server nur lokal erreichbar", () => {
+    expect(localOnlyPaths(src).sort()).toEqual(["/api/cast-backup", "/api/journal-backup"]);
   });
 
   test("corsOrigins liest die echte Positivliste", () => {

@@ -3,6 +3,29 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-24 16:10 — Hanni — Branch `session/2026-09-24-hanni-3` — Lücke geschlossen: Sicherungs-Routen nur noch lokal
+
+**Was:** `/api/cast-backup` und `/api/journal-backup` antworten nur noch
+diesem Rechner (`src/lib/localOnly.js` + Test). Von außen: 404. „Lokal“
+heißt Loopback-Adresse UND keine Weiterleitungs-Kopfzeile — hinter einem
+Proxy kommt jede Anfrage von localhost, und ohne diese Bedingung wären die
+Routen nach dem Hosting für alle offen.
+
+**`server.js`:** 11 Zeilen dazu, 0 weg — 3 Import, 8 Sperrblock vor den
+Sicherungs-Routen. Sonst nichts berührt, Prompt-Kette unberührt.
+
+**Belegt am laufenden Server** (Worktree, Port 8199, ohne `.env`):
+localhost → 200 · WLAN-IP → 404 (GET beide, POST) · localhost mit
+`X-Forwarded-For` → 404 · `/api/prices` über WLAN-IP weiter 200.
+**Gegenprobe:** derselbe Server ohne den Sperrblock → über WLAN-IP 200.
+Der Sicherheitscheck erkennt die Sperre (`localOnlyPaths`) und wird rot,
+wenn sie verschwindet.
+
+**Bewusst NICHT geändert:** `Bun.serve` lauscht weiter auf allen
+Schnittstellen — der iPhone-Test über `EXPO_PUBLIC_API_BASE=http://<WLAN-IP>`
+braucht das. Die bezahlten Routen bleiben damit im WLAN erreichbar (S1,
+bekannt); geschlossen wird das mit Anmeldung + `server_spend()`.
+
 ## 2026-09-24 15:30 — Hanni — Branch `session/2026-09-24-hanni-3` — Sicherheitscheck `/security-check`
 
 **Was:** Ein Sicherheitscheck, der nach Bedarf läuft. Hannis Liste mit 50

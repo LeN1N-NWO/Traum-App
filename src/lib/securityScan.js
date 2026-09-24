@@ -222,6 +222,22 @@ export function routeInventory(src) {
   return routes;
 }
 
+/** Pfade, die ein `if (…) && !isLocalRequest(…)`-Block vor allen anderen
+ *  Rechnern sperrt (src/lib/localOnly.js). Liest die Bedingung bis zu drei
+ *  Zeilen vor dem Aufruf und verlangt, dass der Block mit 404/403 endet. */
+export function localOnlyPaths(src) {
+  const lines = String(src).split("\n");
+  const paths = new Set();
+  for (let i = 0; i < lines.length; i++) {
+    if (!/!isLocalRequest\(/.test(lines[i])) continue;
+    const cond = lines.slice(Math.max(0, i - 3), i + 1).join("\n");
+    const refuses = /status:\s*40[34]/.test(lines.slice(i, i + 3).join("\n"));
+    if (!refuses || !/^\s*if \(/m.test(cond)) continue;
+    for (const m of cond.matchAll(/url\.pathname === "([^"]+)"/g)) paths.add(m[1]);
+  }
+  return [...paths];
+}
+
 /** Die erlaubten Absender aus corsHeaders(). */
 export function corsOrigins(src) {
   const m = /NATIVE_ORIGINS\s*=\s*new Set\(\[([^\]]*)\]\)/.exec(String(src));
@@ -338,6 +354,14 @@ export function selfTest() {
   const backup = r.find((x) => x.path === "/api/backup");
   if (!gen || gen.authed || !dreams || !dreams.authed || !backup || backup.authed) {
     errors.push("routeInventory stuft die Anmeldung falsch ein");
+  }
+  const guarded = localOnlyPaths([
+    '    if ((url.pathname === "/a" || url.pathname === "/b")',
+    "        && !isLocalRequest(ip, req.headers)) {",
+    '      return new Response("Not found", { status: 404 });',
+  ].join("\n"));
+  if (guarded.join() !== "/a,/b" || localOnlyPaths('if (url.pathname === "/a" && !isLocalRequest(x)) {\n  log();\n}').length) {
+    errors.push("localOnlyPaths erkennt die Sperre falsch");
   }
   if (!corsOrigins('const NATIVE_ORIGINS = new Set(["capacitor://localhost", "null"]);').list?.includes("null")) {
     errors.push("corsOrigins liest die Positivliste nicht");

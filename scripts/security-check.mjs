@@ -30,7 +30,7 @@ import {
   selfTest, scanSecrets, jwtRole, SECRET_PATTERNS, trackedEnvFiles, envShape,
   secretLookingPublicVars, rlsGaps, publicGrants, routeInventory, corsOrigins,
   chargeArmed, errorLeaks, sensitiveLogs, headersSet, SECURITY_HEADERS,
-  bindsAllInterfaces, auditCounts,
+  bindsAllInterfaces, auditCounts, localOnlyPaths,
 } from "../src/lib/securityScan.js";
 import { classOf } from "../src/lib/gatekeeper.js";
 
@@ -221,21 +221,25 @@ else {
     "/api/cast-backup": "Figuren MIT Fotos realer Menschen",
     "/api/journal-backup": "Traumtexte",
   };
-  const devOpen = open.filter((r) => DEV_DATA[r.path]);
-  const paidOpen = open.filter((r) => !FREE[r.path] && !DEV_DATA[r.path]
+  const localOnly = new Set(localOnlyPaths(serverSrc));
+  const devRoutes = routes.filter((r) => DEV_DATA[r.path]);
+  const devOpen = devRoutes.filter((r) => !r.authed && !localOnly.has(r.path));
+  const paidOpen = open.filter((r) => !FREE[r.path] && !DEV_DATA[r.path] && !localOnly.has(r.path)
     && (["generate", "text"].includes(classOf(r.path)) || r.path === "/api/voice"));
   report([4, 5, 9, 34], "Anmeldepflicht der kostenpflichtigen Routen", paidOpen.length ? "fail" : "ok",
     `${routes.length} Routen, ${routes.length - open.length} hinter verifyAccessToken, ${paidOpen.length} kostenpflichtige OHNE Anmeldung`,
     [
       ...paidOpen.map((r) => `💸 ${r.method} ${r.path} (server.js:${r.line}, Klasse ${classOf(r.path) || "WebSocket"})`),
-      ...open.filter((r) => !paidOpen.includes(r) && !devOpen.includes(r))
+      ...open.filter((r) => !paidOpen.includes(r) && !DEV_DATA[r.path])
         .map((r) => `   ${r.method} ${r.path} (server.js:${r.line}, ${FREE[r.path] || "Klasse " + (classOf(r.path) ?? "ungebremst")})`),
     ]);
   report([6, 10, 33], "Entwicklungs-Routen mit Personendaten", devOpen.length ? "fail" : "ok",
     devOpen.length
       ? `${devOpen.length} Route(n) ohne Anmeldung — im Client nur hinter import.meta.env.DEV, der Server selbst sperrt sie nicht`
-      : "keine Entwicklungs-Routen mehr im Server",
-    devOpen.map((r) => `${r.method} ${r.path} (server.js:${r.line}) — ${DEV_DATA[r.path]}`));
+      : devRoutes.length
+        ? `${devRoutes.length} Route(n), alle nur von diesem Rechner erreichbar (isLocalRequest, src/lib/localOnly.js)`
+        : "keine Entwicklungs-Routen mehr im Server",
+    (devOpen.length ? devOpen : devRoutes).map((r) => `${r.method} ${r.path} (server.js:${r.line}) — ${DEV_DATA[r.path]}`));
 
   const armed = chargeArmed(serverSrc);
   report([15, 32], "Abbuchung der Credits auf dem Server", armed === true ? "ok" : armed === false ? "fail" : "warn",
