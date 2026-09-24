@@ -1081,7 +1081,7 @@ export default {
     ],
     more: "Wohin gehen meine Daten?",
     details: [
-      "Dein Traumtext geht an fal.ai und DeepSeek (hilft beim Formulieren der Bildanweisungen). Hochgeladene Fotos gehen nur an fal.ai und Google. Dein Journal selbst bleibt auf diesem Gerät.",
+      "Dein Traumtext geht an fal.ai und DeepSeek (hilft beim Formulieren der Bildanweisungen). Hochgeladene Fotos gehen nur an fal.ai und Google. Dein Journal bleibt auf diesem Gerät — mit Konto liegt zusätzlich eine Kopie deiner Träume (Text, keine Fotos) in deiner privaten Sicherung auf unserem Server.",
       "Filme rendert MiniMax (Hailuo) oder ByteDance (Seedance), je nach gewählter Qualitätsstufe — fal.ai reicht deine Bilder und Szenentexte genau für dieses eine Rendering an sie weiter, für nichts sonst.",
       "Gerenderte Bilder und Filme liegen auf unserem Server, damit die App sie dir zeigen kann.",
       "Training: Googles bezahlte API trainiert nicht mit deinen Inhalten. DeepSeeks bezahlte API wird standardmäßig nicht zum Training genutzt. fal.ai darf anonymisierte Nutzungsdaten zur Verbesserung seiner Dienste verwenden.",
@@ -1126,7 +1126,7 @@ export default {
         { h: "Wer verantwortlich ist",
           p: "Dream Rushes ist verantwortlich für die hier beschriebene Verarbeitung. Deine Einwilligung kannst du jederzeit direkt in der App widerrufen, unter Profil → Einstellungen — danach verlässt nichts mehr dein Gerät, bis du erneut zustimmst." },
         { h: "Was wir verarbeiten",
-          p: "Deine Traumtexte, die Fotos, die du hochlädst, deine Stimme im Gespräch mit der Assistentin, und die daraus erzeugten Bilder und Filme. Dein Journal, deine Einstellungen und dein Guthaben bleiben auf deinem Gerät — es gibt kein Konto und keine Cloud-Kopie deines Tagebuchs." },
+          p: "Deine Traumtexte, die Fotos, die du hochlädst, deine Stimme im Gespräch mit der Assistentin, und die daraus erzeugten Bilder und Filme. Dein Journal, deine Einstellungen und dein Guthaben bleiben auf deinem Gerät. Das Konto ist freiwillig: Legst du eines an, speichern wir deine E-Mail-Adresse (oder deine Apple-Anmeldung), dein Profil und eine Sicherungskopie deiner Träume (Text und Verweise auf deine Filme, nie deine Fotos), damit sie ein neues Handy überstehen." },
         { h: "Wohin deine Daten gehen",
           p: "Gerendert wird bei namentlich genannten KI-Diensten, jeder nur für seine Aufgabe: DeepSeek hilft beim Schreiben und Analysieren von Text, Google übernimmt das Sprachgespräch und das Bilder-Rendern, fal.ai rendert Bilder und reicht Filme je nach gewählter Stufe an MiniMax (Hailuo) oder ByteDance (Seedance) weiter. Keiner von ihnen erhält mehr als das Material, das für dein konkretes Rendering nötig ist." },
         { h: "Training",

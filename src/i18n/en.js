@@ -1150,7 +1150,7 @@ export default {
     ],
     more: "Where does my data go?",
     details: [
-      "Your dream text goes to fal.ai and DeepSeek (which helps write the image instructions). Photos you upload go to fal.ai and Google only. Your journal itself stays on this device.",
+      "Your dream text goes to fal.ai and DeepSeek (which helps write the image instructions). Photos you upload go to fal.ai and Google only. Your journal stays on this device — with an account, a copy of your dreams (text, not photos) is kept in your private backup on our server.",
       "Films are rendered by MiniMax (Hailuo) or ByteDance (Seedance), depending on the quality tier you pick — fal.ai passes your images and scene text on to them for exactly that render, nothing else.",
       "Rendered images and films are stored on our server so the app can show them to you.",
       "Training: Google's paid API does not train on your content. DeepSeek's paid API is not used for training by default. fal.ai may use anonymized usage data to improve its services.",
@@ -1200,7 +1200,7 @@ export default {
         { h: "Who is responsible",
           p: "Dream Rushes is the controller for the processing described here. You can withdraw your consent at any time directly in the app under Profile → Settings — after that, nothing leaves your device until you agree again." },
         { h: "What we process",
-          p: "Your dream texts, the photos you upload, your voice while you talk to the assistant, and the images and films made from them. Your journal, your settings and your credit balance stay on your device — there is no account and no cloud copy of your diary." },
+          p: "Your dream texts, the photos you upload, your voice while you talk to the assistant, and the images and films made from them. Your journal, your settings and your credit balance stay on your device. The account is optional: if you create one, we store your e-mail address (or your Apple sign-in), your profile and a backup copy of your dreams (text and links to your renders, never your photos) so they survive a new phone." },
         { h: "Where your data goes",
           p: "Rendering happens at named AI services, each only for its job: DeepSeek helps write and analyse text, Google handles the voice conversation and image rendering, fal.ai renders images and passes films on to MiniMax (Hailuo) or ByteDance (Seedance) depending on the tier you choose. None of them receives more than the material needed for your specific render." },
         { h: "Training",
