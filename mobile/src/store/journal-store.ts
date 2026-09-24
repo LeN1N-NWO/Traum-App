@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { localMedia, onMediaReady } from "@/lib/media-cache";
 
 /* Das Journal, nativ vorgehalten — gespeist von der Web-Brücke
    (legacy/journal-bridge.jsx). Ein Modul-Speicher statt Context, weil Liste
@@ -110,10 +111,30 @@ export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refre
 export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null };
 
 let snapshot: JournalSnapshot | null = null;
+let raw: JournalSnapshot | null = null;
 const listeners = new Set<() => void>();
 
+/* Träume liegen auf dem Gerät (24.09.2026, lib/media-cache.ts): Jede
+   `/media/…`-Adresse eines Traums wird hier gegen die lokale Kopie getauscht,
+   sobald es sie gibt — für die Oberfläche, nicht für die Brücke. */
+function withLocalMedia(s: JournalSnapshot): JournalSnapshot {
+  return {
+    ...s,
+    items: s.items.map((i) => ({
+      ...i,
+      media: i.media ? { ...i.media, url: localMedia(i.media.url) } : null,
+      poster: localMedia(i.poster),
+      audio: localMedia(i.audio),
+      images: i.images.map((u) => localMedia(u)),
+      films: i.films.map((f) => ({ ...f, url: localMedia(f.url) })),
+    })),
+  };
+}
+onMediaReady(() => { if (raw) setJournal(raw); });
+
 export function setJournal(next: JournalSnapshot) {
-  snapshot = next;
+  raw = next;
+  snapshot = withLocalMedia(next);
   listeners.forEach((l) => l());
 }
 export function useJournalStore() {
