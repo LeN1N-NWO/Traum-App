@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { useCallback, useRef, useState } from "react";
 import { showToast } from "@/store/toast-store";
 import JournalBridge from "@/legacy/journal-bridge";
+import { resolveSketchesDeep } from "../../modules/dream-sketch";
 import { setJournal, useJournalStore, type BridgeCommand, type BridgeResult, type JournalSnapshot } from "@/store/journal-store";
 
 /* Bindet die Web-Brücke (journal-bridge.jsx) an den nativen Speicher. Der
@@ -16,7 +17,9 @@ export function useJournal() {
   const n = useRef(0);
   const waiting = useRef(new Map<number, (r: BridgeResult) => void>());
   useFocusEffect(useCallback(() => { setTick((t) => t + 1); }, []));
-  const onJournal = useCallback(async (snap: JournalSnapshot) => { setJournal(snap); }, []);
+  // `sketch:`-Adressen (Traum-Skizze, auf dem Gerät gerendert) werden hier
+  // EINMAL zu spielbaren Dateipfaden — alle Bildschirme dahinter bleiben ahnungslos.
+  const onJournal = useCallback(async (snap: JournalSnapshot) => { setJournal(resolveSketchesDeep(snap)); }, []);
   const onResult = useCallback(async (r: BridgeResult) => {
     // n = -1: kein Befehl, sondern eine Meldung des Abholers (Film da, Erstattung, Fehler).
     if (r.n === -1) {

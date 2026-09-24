@@ -57,7 +57,7 @@ export type WizardData = {
   record: string; recordHint: string; recording: string; recordStop: string; recordDiscard: string; recordTranscribing: string; recordTooShort: string; recordFailed: string; recordAgain: string; yourRecording: string; transcribeUrl: string; panelUrl: string;
   cutOneShot: string; cutAll: string; cutSome: string; cutMoreAt: string; cutTwoParter: string; flowAll: string; flowFast: string; cutAllIn: string; cutRecommend: string;
   loading: string[]; queuedNote: string; step6Title: string; rendering: string; renderingHint: string; failedTitle: string; failedNote: string; failedHome: string;
-  presets: WizardPreset[]; models: WizardModel[]; paces: { id: string; name: string; hint: string }[];
+  presets: WizardPreset[]; models: WizardModel[]; paces: { id: string; name: string; hint: string }[]; sketch: SketchTexts | null;
 };
 export type JournalMeta = { view: "deck" | "list"; blankKeys: string[]; castCount: number; creatures: number; realDreams: number; moon: MoonData; sleep: Record<string, number>; sleepLevels: { level: number; label: string }[]; labels: Record<string, any> };
 export type PaywallPlan = { id: string; price: string; per: string; name: string; badge: string | null; extraLine?: string | null; sub: string; films: number; filmsLine: string; filmsWord: string; featured: boolean; yearly: boolean };
@@ -106,8 +106,15 @@ export type OrderRequest = {
   styleId: string; pace: string; videoModel: string; quality: string | null; seconds: number; mode?: "film" | "images";
   assignmentOverrides?: Record<string, { avatarId?: string; free?: boolean }>;
 };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase"; order?: OrderRequest; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
-export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "sketch"; order?: OrderRequest; sketch?: SketchRequest; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
+/* Die fertige Traum-Skizze fürs Journal (journal-bridge runSketch). */
+export type SketchRequest = { entryId: string | null; text: string; originalText: string; analysis: any; styleId: string; film: string; stills: string[]; seconds: number };
+export type SketchTexts = {
+  title: string; lede: string; needsModel: string; modelInfo: string; download: string; downloading: string; cancel: string;
+  loading: string; painting: string; rendering: string; saving: string; stayHint: string; failed: string; retry: string;
+  unsupported: string; create: string; takeLabel: string; card: { name: string; hint: string; badge: string } | null;
+};
+export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null; entryId?: string };
 
 let snapshot: JournalSnapshot | null = null;
 const listeners = new Set<() => void>();

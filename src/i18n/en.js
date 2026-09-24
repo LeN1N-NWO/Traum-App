@@ -956,6 +956,12 @@ export default {
           model: "Seedance 2.5",
           info: "The longest story: one unbroken take of up to 30 seconds, with sound and second-precise timing — and your reference photos stay in the film the whole way. Pick the quality below; the sharp tier costs more than double here, the credits are on the switch.",
         },
+        /* Die Traum-Skizze (24.09.2026): entsteht auf dem iPhone selbst,
+           kostet keine Credits. Nur auf Geräten, die es können. */
+        sketch: {
+          name: "Sketch", hint: "made on your iPhone · no credits",
+          badge: "Free",
+        },
       },
       qualityLabel: "Quality",
       aboutModel: "About this model",
@@ -1016,6 +1022,28 @@ export default {
       failedTitle: "That didn't work",
       failedNote: "Nothing was charged — your credits are untouched.",
       failedHome: "Back to start",
+    },
+
+    /* Die Traum-Skizze — dream/sketch.tsx. Platzhalter {i} {n} {done} {total}
+       werden nativ ersetzt (die Brücke reicht nur Zeichenketten). */
+    sketch: {
+      title: "Dream sketch",
+      lede: "Your iPhone paints the scenes itself and moves the camera through them. Rough, dreamy — and free.",
+      needsModel: "One-time download",
+      modelInfo: "The sketch painter lives on your phone: about 890 MB, downloaded once. Wi-Fi recommended.",
+      download: "Download · 890 MB",
+      downloading: "{done} of {total} MB",
+      cancel: "Cancel",
+      loading: "Waking up the painter… The very first time takes about a minute.",
+      painting: "Painting scene {i} of {n}",
+      rendering: "Moving the camera through your dream…",
+      saving: "Putting it in your journal…",
+      stayHint: "Keep the app open — your iPhone is doing the work.",
+      failed: "The sketch didn't work out.",
+      retry: "Try again",
+      unsupported: "Sketches need an iPhone 15 Pro or newer.",
+      create: "Create sketch · Free",
+      takeLabel: "Sketch",
     },
 
     step6: {

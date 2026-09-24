@@ -77,6 +77,7 @@ function sleepOn(checkins, key) {
 }
 
 function takeLabel(f) {
+  if (f.kind === "sketch") return (t.wizard.sketch?.takeLabel || "Sketch") + (f.seconds ? ` · ${f.seconds}s` : "");
   const pace = f.pace ? t.wizard.step5.paceNames?.[f.pace] || f.pace : t.journal.takeUnknown;
   return pace + (f.seconds ? ` · ${f.seconds}s` : "");
 }
@@ -309,6 +310,9 @@ function snapshot() {
       })),
     })),
     paces: PACE_IDS.map((id) => ({ id, name: w5.paceNames?.[id] || id, hint: w5.paceHints?.[id] || "" })),
+    /* Die Traum-Skizze (24.09.): kein Modell der Tabelle — sie läuft auf
+       dem iPhone, ohne Server und ohne Preis. Karte + Bildschirmtexte. */
+    sketch: t.wizard.sketch ? { ...t.wizard.sketch, card: w5.filmModels?.sketch || null } : null,
   };
   const realDreams = items.filter((e) => !String(e.id).startsWith("e_seed")).length;
   const journal = {
@@ -744,8 +748,45 @@ async function runOrder(cmd, onResult) {
 }
 let onJournalTick = null;
 
+/* Die Traum-Skizze ins Journal (24.09.2026). Der Film ist schon fertig —
+   auf dem iPhone gerendert (modules/dream-sketch) —, deshalb kein Preis,
+   kein Auftrag, kein Abholer: Der Traum entsteht MIT seinem Film. Adressen
+   bleiben `sketch:<datei>`; aufgelöst wird erst nativ zur Anzeige, weil der
+   Container-Pfad der App bei jedem Update wechselt. Mit `entryId` wird die
+   Skizze eine weitere Fassung eines bestehenden Traums. */
+function runSketch(cmd, onResult) {
+  const o = cmd.sketch || {};
+  const isSketch = (u) => typeof u === "string" && u.startsWith("sketch:");
+  if (!isSketch(o.film)) { onResult({ n: cmd.n, error: "invalid" }); return true; }
+  const stills = (Array.isArray(o.stills) ? o.stills : []).filter(isSketch);
+  const film = { url: o.film, at: new Date().toISOString(), kind: "sketch", ...(Number(o.seconds) > 0 ? { seconds: Math.round(Number(o.seconds)) } : {}) };
+  const s1 = loadState();
+  const existing = o.entryId ? (s1.journal || []).find((e) => e.id === o.entryId) : null;
+  if (existing) {
+    saveState({ ...s1, journal: s1.journal.map((e) => (e.id === existing.id ? { ...e, films: [...filmsOf(e), film], poster: e.poster || stills[0] } : e)) });
+    onJournalTick?.();
+    onResult({ n: cmd.n, entryId: existing.id });
+    return true;
+  }
+  const analysis = o.analysis || null;
+  const creature = newCreature(o.text, refreshStreak(s1).streak);
+  const entry = {
+    id: genId("e"), createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
+    title: String(analysis?.title || "").trim() || creature.title, tagline: String(analysis?.tagline || "").trim(),
+    media: { type: "image", urls: stills, source: "sketch" }, creatureId: creature.id, moon: moonForNight(),
+    ...(s1.pendingAudioUrl ? { audio: { url: s1.pendingAudioUrl } } : {}),
+    mode: "film", style: o.styleId, format: "9:16", imageCount: 0, analysis, references: [],
+    films: [film], ...(stills[0] ? { poster: stills[0] } : {}),
+  };
+  saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null });
+  onJournalTick?.();
+  onResult({ n: cmd.n, entryId: entry.id });
+  return true;
+}
+
 async function runAsync(cmd, onResult) {
   if (cmd.type === "order") return runOrder(cmd, onResult);
+  if (cmd.type === "sketch") return runSketch(cmd, onResult);
   if (String(cmd.type).startsWith("avatar")) return runAvatar(cmd, onResult);
   /* Sprachwechsel wie im Web (LanguagePicker.jsx): ERST t umschalten —
      für die fünf eingefrorenen Sprachen lädt das Modul erst nach, deshalb

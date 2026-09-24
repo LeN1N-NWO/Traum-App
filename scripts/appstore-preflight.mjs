@@ -46,6 +46,19 @@ check("B3b", "App-Serveradresse ist HTTPS (kein LAN-HTTP eingebacken)",
   /EXPO_PUBLIC_API_BASE\s*=\s*https:\/\//.test(env) ? "ok" : "fail",
   /http:\/\//.test(env) ? `mobile/.env zeigt auf ${env.match(/EXPO_PUBLIC_API_BASE=(\S+)/)?.[1] ?? "?"}` : "mobile/.env fehlt oder ohne https-Adresse.");
 
+// ── B8: Traum-Skizze — Inhaltsprüfung der On-Device-Bilder (1.2) ───────────
+/* Seit 24.09.: Stable Diffusion malt auf dem iPhone, OHNE Server dazwischen.
+   Der SafetyChecker (580 MB) wird bewusst nicht geladen; bis eine
+   Inhaltsprüfung steht, schützt nur der Negativ-Prompt — für App Review
+   nicht genug. Plan: docs/plans/2026-09-24-traum-skizze-on-device.md */
+const sketchModule = read("mobile/modules/dream-sketch/ios/DreamSketchModule.swift");
+if (sketchModule) {
+  const unsafe = /config\.disableSafety\s*=\s*true/.test(sketchModule);
+  check("B8", "Traum-Skizze: Inhaltsprüfung der auf dem Gerät gemalten Bilder",
+    unsafe ? "fail" : "ok",
+    unsafe ? "DreamSketchModule.swift malt mit disableSafety = true — SafetyChecker (oder eigene Prüfung) vor der Einreichung einbauen." : null);
+}
+
 // ── B4: Testphasen-Schalter ────────────────────────────────────────────────
 const journalData = read("mobile/src/components/journal-data.tsx") ?? "";
 const testCredits = /devCredits=\{(?!__DEV__)[^}]*\}/.test(journalData) && !/devCredits=\{__DEV__/.test(journalData);

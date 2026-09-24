@@ -1,5 +1,10 @@
 # Traum-Skizze: Gratis-Generierung auf dem iPhone (Recherche 24.09.2026)
 
+> **Stand 25.09.2026: GEBAUT (v1)** — Antons „können wir das jetzt bauen".
+> Ende zu Ende im Simulator belegt (Download 889 MB → 4 Szenen gemalt →
+> 11,7-s-Film 576×1024 → Journal, spielt ab); auf Antons iPhone 17 Pro
+> installiert, dort noch ungetestet. Aufbau unten unter „Umsetzung v1".
+
 **Antons Vision:** Eine Stufe ohne Credits — Traum reinsprechen, das iPhone
 rendert mit eigener Rechenleistung etwas daraus. Darf niedrig aufgelöst,
 „richtig schlecht", aber kostenlos sein. Unterhaltung wie im Film. KEINE
@@ -85,3 +90,35 @@ developer.apple.com/news/?id=dz9wvq0r · Core ML SD: github.com/apple/ml-stable-
 Depth Anything V2: huggingface.co/apple/coreml-depth-anything-v2-small ·
 Wan 2.2 Lizenz: huggingface.co/Wan-AI/Wan2.2-TI2V-5B · LTX-2 Preise:
 fal.ai/models/fal-ai/ltx-2.3/image-to-video/fast
+
+## Umsetzung v1 (25.09.2026)
+
+- **Natives Modul** `mobile/modules/dream-sketch` (lokales Expo-Modul,
+  autolinked, nur `pod install` — kein Hand-Edit in `mobile/ios`):
+  Apples `ml-stable-diffusion` (MIT, 26 Dateien ohne SD3/T5, Herkunft in
+  `ios/StableDiffusion/UPSTREAM.txt`), `SketchModel.swift` (Download der
+  4 nötigen Teile, 889 MB statt 1,5 GB, dateiweise Wiederaufnahme, aus
+  dem iCloud-Backup ausgenommen), `SketchRenderer.swift` (Kamerafahrt
+  durchs Quadrat als 9:16-Fenster, Überblendungen, Bloom + Vignette,
+  AVAssetWriter), `DreamSketchModule.swift` (JS-Schnittstelle).
+- **App:** dritte Karte „Skizze · GRATIS" in `dream/length.tsx` (nur wo
+  das Gerät ≥ 8 GB RAM hat), Bildschirm `dream/sketch.tsx` (Download →
+  Malen mit Live-Vorschau → Film → Journal), Brücken-Befehl `sketch`
+  (`runSketch`), Adressen als `sketch:<datei>` — aufgelöst EINMAL in
+  `journal-data.tsx` (`resolveSketchesDeep`), weil der Container-Pfad
+  bei jedem Update wechselt.
+- **Gemessen (Simulator, Mac-CPU statt Neural Engine):** ~50 s je Bild,
+  4 Szenen + Film ≈ 5 min. Auf dem iPhone deutlich schneller zu erwarten
+  — beim ersten Mal kommt einmalig die Neural-Engine-Kompilierung dazu.
+
+## Vor der Einreichung offen
+
+1. **Inhaltsprüfung (Preflight B8):** heute `disableSafety = true`, nur
+   Negativ-Prompt. SafetyChecker (580 MB) oder eigene Prüfung einbauen.
+2. **Lizenzhinweis SD 1.5** (CreativeML OpenRAIL-M verlangt, die
+   Nutzungsbeschränkungen an Nutzer weiterzugeben) → Rechtstexte.
+3. **Modell-Hosting:** lädt heute direkt von Hugging Face — für den
+   Betrieb auf eigenen Speicher legen (Hannis Hosting-Plan).
+4. Stil: SD 1.5 roh; ein Traum-LoRA/Fein-Stil würde den Look tragen.
+5. Nächste Ausbaustufe: Tiefenkarte (Depth Anything V2) für echte
+   2.5D-Parallaxe statt reiner Fahrt.

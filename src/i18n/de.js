@@ -911,6 +911,12 @@ export default {
           model: "Seedance 2.5",
           info: "Die längste Geschichte: eine ununterbrochene Einstellung von bis zu 30 Sekunden, mit Ton und sekundengenauem Timing — und deine Referenzfotos bleiben den ganzen Film über dabei. Die Qualität wählst du darunter; die scharfe Stufe kostet hier mehr als das Doppelte, die Credits stehen am Schalter.",
         },
+        /* Die Traum-Skizze (24.09.2026): entsteht auf dem iPhone selbst,
+           kostet keine Credits. Nur auf Geräten, die es können. */
+        sketch: {
+          name: "Skizze", hint: "entsteht auf deinem iPhone · ohne Credits",
+          badge: "Gratis",
+        },
       },
       qualityLabel: "Qualität",
       aboutModel: "Über dieses Modell",
@@ -961,6 +967,28 @@ export default {
       failedTitle: "Das hat nicht geklappt",
       failedNote: "Es wurde nichts abgebucht — deine Credits sind unberührt.",
       failedHome: "Zurück zum Anfang",
+    },
+
+    /* Die Traum-Skizze — dream/sketch.tsx. Platzhalter {i} {n} {done} {total}
+       werden nativ ersetzt (die Brücke reicht nur Zeichenketten). */
+    sketch: {
+      title: "Traum-Skizze",
+      lede: "Dein iPhone malt die Szenen selbst und fährt mit der Kamera hindurch. Grob, traumhaft — und kostenlos.",
+      needsModel: "Einmaliger Download",
+      modelInfo: "Der Skizzen-Maler wohnt auf deinem iPhone: etwa 890 MB, einmal geladen. WLAN empfohlen.",
+      download: "Laden · 890 MB",
+      downloading: "{done} von {total} MB",
+      cancel: "Abbrechen",
+      loading: "Der Maler wacht auf … Beim allerersten Mal dauert das etwa eine Minute.",
+      painting: "Male Szene {i} von {n}",
+      rendering: "Die Kamera fährt durch deinen Traum …",
+      saving: "Kommt ins Journal …",
+      stayHint: "Lass die App offen — dein iPhone rechnet gerade.",
+      failed: "Die Skizze hat nicht geklappt.",
+      retry: "Nochmal",
+      unsupported: "Skizzen brauchen ein iPhone 15 Pro oder neuer.",
+      create: "Skizze erstellen · Gratis",
+      takeLabel: "Skizze",
     },
 
     step6: {

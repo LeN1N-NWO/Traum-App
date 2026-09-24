@@ -1,0 +1,6 @@
+ea2805dc1945be20561c77e5f6d1d9a5a637cda2 Fri Sep 11 16:04:51 2026 +0000
+Quelle: https://github.com/apple/ml-stable-diffusion (MIT, siehe LICENSE-ml-stable-diffusion.md)
+Übernommen: swift/StableDiffusion/{pipeline,tokenizer} OHNE die SD3/T5-Dateien
+(StableDiffusion3Pipeline*, TextEncoderT5, T5Tokenizer, MultiModalDiffusionTransformer),
+weil nur diese die externe Abhängigkeit swift-transformers brauchen. Unverändert kopiert —
+bei einem Update dieselbe Auswahl erneut kopieren.
