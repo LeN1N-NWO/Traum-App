@@ -3373,7 +3373,11 @@ const serveOptions = {
           // Eine Zeile mehr gelesen als angefragt — das beantwortet „gibt es
           // noch mehr?" ohne ein zweites count(*) über die ganze Tabelle.
           const { seite, next } = buildPage(zeilen, limit);
-          return json({ ok: true, dreams: seite.map(fromRow), next, limit });
+          /* `format` (24.09.2026): Die App schickt NUR, wenn der Server das
+             ankündigt. Ein alter Server ohne Verschlüsselungs-Endpunkt hat
+             versiegelte Träume als leere Klartext-Träume gespeichert und
+             damit die Sicherung überschrieben (Test 24.09.). */
+          return json({ ok: true, format: "sealed-v1", dreams: seite.map(fromRow), next, limit });
         }
 
         /* Hochladen und Aktualisieren in EINEM Aufruf, und genau deshalb

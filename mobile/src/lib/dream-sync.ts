@@ -50,20 +50,28 @@ let running: Promise<SyncResult> | null = null;
    Schaden an). */
 let lastSent = new Map<string, string>();
 
-export type SyncResult = "done" | "skipped" | "failed" | "foreign-key";
+export type SyncResult = "done" | "skipped" | "failed" | "foreign-key" | "server-too-old";
 
 type Stored = { id?: string; createdAt?: string; editedAt?: string | null; sealed?: string; keyId?: string };
 
 /** Holt alles und spielt es ein. Meldet, welche Schlüssel-Kennungen der
  *  Server kennt — daran entscheidet sich, ob dieses Gerät schicken darf. */
-async function pull(ask: Ask, key: BackupKey | null): Promise<{ ok: boolean; foreign: boolean; any: boolean }> {
+/* Das Format, das der Server beim Holen ankündigen muss (server.js
+   GET /api/dreams). ⚠ Fehlt es, schickt diese App NICHTS: Ein alter Server
+   ohne Verschlüsselung hat versiegelte Träume als leere Klartext-Träume
+   gespeichert — die Sicherung war danach überschrieben (Test 24.09.2026).
+   Eine neue App darf vor einem neuen Server nie Schaden anrichten. */
+const SERVER_FORMAT = "sealed-v1";
+
+async function pull(ask: Ask, key: BackupKey | null): Promise<{ ok: boolean; foreign: boolean; any: boolean; format: boolean }> {
   let cursor: string | null = null;
-  let foreign = false, any = false;
+  let foreign = false, any = false, format = true;
   for (let page = 0; page < MAX_PAGES; page++) {
     const res = await authFetch(`/api/dreams?limit=${BATCH}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`);
-    if (!res.ok) return { ok: false, foreign, any };
-    const body = (await res.json().catch(() => null)) as { dreams?: Stored[]; next?: string | null } | null;
-    if (!body || !Array.isArray(body.dreams)) return { ok: false, foreign, any };
+    if (!res.ok) return { ok: false, foreign, any, format };
+    const body = (await res.json().catch(() => null)) as { dreams?: Stored[]; next?: string | null; format?: string } | null;
+    if (!body || !Array.isArray(body.dreams)) return { ok: false, foreign, any, format };
+    if (body.format !== SERVER_FORMAT) format = false;
     const readable: unknown[] = [];
     for (const d of body.dreams) {
       if (!d.sealed) { readable.push(d); continue; }       // Klartext von vor dem 24.09.
@@ -74,9 +82,9 @@ async function pull(ask: Ask, key: BackupKey | null): Promise<{ ok: boolean; for
     }
     if (readable.length) await ask({ type: "syncImport", dreams: readable });
     cursor = body.next ?? null;
-    if (!cursor) return { ok: true, foreign, any };
+    if (!cursor) return { ok: true, foreign, any, format };
   }
-  return { ok: true, foreign, any };
+  return { ok: true, foreign, any, format };
 }
 
 async function push(ask: Ask, key: BackupKey): Promise<boolean> {
@@ -114,6 +122,7 @@ export function syncDreams(ask: Ask): Promise<SyncResult> {
       let key = await existingBackupKey();
       const got = await pull(ask, key);
       if (!got.ok) return "failed";
+      if (!got.format) return "server-too-old";
       if (got.foreign) return "foreign-key";
       key = key ?? await backupKey();
       return (await push(ask, key)) ? "done" : "failed";
