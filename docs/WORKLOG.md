@@ -52,6 +52,145 @@ und ohne Ankündigung schickt die App nichts.
 - Schritt C (Medien verschlüsselt nach Hetzner Object Storage, Server löscht
   nach Abholung) wartet auf Antons VPS; Filme liegen bis dahin
   unverschlüsselt auf dem Server.
+## 2026-09-24 20:45 — Hanni — Branch `session/2026-09-24-hanni-3` (PR #60) — Sitzungsende
+
+**Commits:** `dcd846b` Sicherheitscheck · `d5b3630` Sicherungs-Routen nur lokal ·
+`5ad73af` PDF-Bericht · `0b171f6` Durchsicht · dieser Doku-Commit.
+
+**Ergebnis:** `/security-check` steht (Skript + Agent + PDF-Bericht außerhalb
+des Repos), eine echte Lücke ist geschlossen (Fotos/Traumtexte im WLAN).
+Einzelheiten in den drei Einträgen darunter; `STAND.md` fasst den Stand zusammen.
+
+**Entschieden (Hanni):** Dieser Check bleibt Traum-App-spezifisch. Ein
+wiederverwendbarer Security-Tester entsteht getrennt im privaten Repo
+`H4nn40x/Security_Expert` — hier nichts verallgemeinern.
+
+**Was der Nächste wissen muss:**
+- Der Agent `security-expert` lädt erst in einer NEUEN Sitzung.
+- Der erste volle Lauf (mit Agent) steht aus.
+- Neue Route mit Personendaten, die nichts kostet → in
+  `scripts/security-check.mjs` bei `FREE`/`DEV_DATA` eintragen.
+- Nach dem Merge: `git worktree remove ../Traum-App-hanni-3 && git worktree prune`.
+
+## 2026-09-24 20:30 — Hanni — Branch `session/2026-09-24-hanni-3` — Kritische Durchsicht des Sicherheitschecks
+
+Auf Hannis Bitte alles noch einmal gelesen. **Gefundene Fehler (alle behoben):**
+- **dist/-Scan war blind:** `scanSecrets` übersprang Zeilen > 5000 Zeichen —
+  ein Vite-Bundle ist eine Zeile. Jetzt ganz gelesen, alle Treffer je Zeile.
+- **Chrome beendete sich nie:** Das PDF war nach Sekunden da, das Skript
+  wartete bis zur 60-s-Grenze und meldete dann Erfolg; `kill()` ließ acht
+  Hilfsprozesse verwaist zurück. Jetzt: warten auf `%%EOF` + stabile Größe,
+  dann die ganze Prozessgruppe beenden. 64 s → 11 s, 0 Reste.
+- **Falsches ✅ bei Tabellenrechten:** Supabase vergibt per Default
+  Privileges Rechte an anon/authenticated, ohne dass eine Migration es sagt.
+  „Keine Grants gefunden“ bewies nichts → jetzt ℹ️ mit Begründung.
+- **errorLeaks übersah den echten Fall** (`json(checkResult({ error: String(e?.message) }))`).
+- **Routen-Inventar zählte den Sperrblock als 2 Phantom-Routen**; Kommentare
+  mit `url.pathname` wären ebenfalls Routen geworden.
+- **Blinder Fleck im Verlaufs-Scan:** Ausnahme für `securityScan*.js`
+  entfernt — ein Test belegt, dass die Dateien sich selbst nicht finden.
+- **envShape** hielt Base64-Folgezeilen eines mehrzeiligen Werts für Namen.
+- **isLocalRequest** ließ ohne Kopfzeilen-Objekt durch → jetzt gesperrt.
+- Unbekannte Repo-Sichtbarkeit ergab „ok“ statt ⚠; `--mech` wurde nicht auf
+  Geheimnisse gescannt; `ROOT` brach bei Leerzeichen im Pfad.
+- **Neue Grenze erkannt und überwacht:** Lauscht Vite im WLAN (`--host`),
+  hebelt sein Proxy die Lokal-Sperre aus → Check wird rot (Gegenprobe belegt).
+
+**Redundanzen raus:** Mengenbremse per Import von `LIMITS` statt Regex über
+den Quelltext; JWT-Rolle aus `scanSecrets` statt zweitem Muster im Läufer;
+doppelter `bindsAllInterfaces`-Aufruf; veraltetes Chrome-Flag; „9 Detektoren“ fest verdrahtet.
+
+**Tests:** getrennt in Einheiten (feste Eingaben, je Test ein Verhalten) und
+Invarianten gegen den echten Code (nur Sicherheitsaussagen). Entfernt: zwei
+Tests, die den Ist-Zustand festschrieben — einer davon „journal-backup POST
+ist NICHT angemeldet“, wäre also rot geworden, sobald jemand die Lücke
+schließt. Neu: `scripts/security-report.test.js` ruft das Skript echt auf,
+je Test eigenes Wegwerf-Verzeichnis, nie `~/Claude/Sicherheitsberichte`.
+Mutationstests: jede der drei neuen Selbsttest-Proben wird bei kaputter
+Logik rot (eine war es zuerst nicht → Probe ergänzt). 109 Tests in den
+Sicherheitsmodulen grün; die 3 roten der Gesamtsuite sind fehlende
+`node_modules` in diesem Worktree (react, @capacitor/core).
+
+## 2026-09-24 19:55 — Hanni — Branch `session/2026-09-24-hanni-3` — Sicherheitsbericht als PDF
+
+**Was:** `/security-check` liefert jetzt einen PDF-Bericht im Stil eines
+Security Assessment Reports: Deckblatt mit Gesamtbewertung, Zusammenfassung,
+Befunde nach Kritikalität (Kritisch/Hoch/Mittel/Niedrig/Info), Details mit
+Beleg und Empfehlung, Geprüftes, Nicht-Geprüftes, Methodik, Anhang mit den
+mechanischen Prüfungen. Seitenzahlen und „VERTRAULICH“ auf jeder Seite.
+- Der Agent antwortet mit JSON (Schema in `.claude/agents/security-expert.md`).
+- `scripts/security-report.mjs` setzt das PDF per Chrome headless —
+  nichts nachinstalliert, wie beim Rechtstexte-PDF.
+- `src/lib/securityReport.js` + Test: prüfen, sortieren, mit dem letzten
+  Lauf vergleichen (stabile `key`s → neu / offen / behoben / höher eingestuft).
+
+**Nie ins Repo:** Ablage `~/Claude/Sicherheitsberichte/` (700/600). Das
+Skript bricht ab, wenn der Zielordner in einem Git-Arbeitsbaum liegt (auch
+mit `--out`), und prüft das VOR dem Anlegen — die erste Fassung ließ einen
+leeren Ordner im Repo zurück. Enthält der Bericht einen Geheimniswert: Abbruch, kein PDF.
+
+**Belegt:** Probe-PDFs gerendert und per PDFKit Seite für Seite angesehen
+(erste Fassung: Kopf-/Fußzeile lagen über den Überschriften → auf
+`@page`-Randfelder umgestellt). Sperren mit echten Ausgangscodes geprüft:
+Repo-Ziel → 2, Geheimnis → 1, ungültig → 1, jeweils kein PDF. Zweiter Lauf
+erkennt neu/behoben/höher eingestuft.
+
+**Nebenbei behoben:** Der Build-Variablen-Scan meldete seine eigenen
+Testnamen, sobald `securityScan*.js` versioniert war — Tests und Skripte
+landen nie im Bundle und zählen nicht mehr; die Probe im Modul ist
+zusammengesetzt.
+
+## 2026-09-24 16:10 — Hanni — Branch `session/2026-09-24-hanni-3` — Lücke geschlossen: Sicherungs-Routen nur noch lokal
+
+**Was:** `/api/cast-backup` und `/api/journal-backup` antworten nur noch
+diesem Rechner (`src/lib/localOnly.js` + Test). Von außen: 404. „Lokal“
+heißt Loopback-Adresse UND keine Weiterleitungs-Kopfzeile — hinter einem
+Proxy kommt jede Anfrage von localhost, und ohne diese Bedingung wären die
+Routen nach dem Hosting für alle offen.
+
+**`server.js`:** 11 Zeilen dazu, 0 weg — 3 Import, 8 Sperrblock vor den
+Sicherungs-Routen. Sonst nichts berührt, Prompt-Kette unberührt.
+
+**Belegt am laufenden Server** (Worktree, Port 8199, ohne `.env`):
+localhost → 200 · WLAN-IP → 404 (GET beide, POST) · localhost mit
+`X-Forwarded-For` → 404 · `/api/prices` über WLAN-IP weiter 200.
+**Gegenprobe:** derselbe Server ohne den Sperrblock → über WLAN-IP 200.
+Der Sicherheitscheck erkennt die Sperre (`localOnlyPaths`) und wird rot,
+wenn sie verschwindet.
+
+**Bewusst NICHT geändert:** `Bun.serve` lauscht weiter auf allen
+Schnittstellen — der iPhone-Test über `EXPO_PUBLIC_API_BASE=http://<WLAN-IP>`
+braucht das. Die bezahlten Routen bleiben damit im WLAN erreichbar (S1,
+bekannt); geschlossen wird das mit Anmeldung + `server_spend()`.
+
+## 2026-09-24 15:30 — Hanni — Branch `session/2026-09-24-hanni-3` — Sicherheitscheck `/security-check`
+
+**Was:** Ein Sicherheitscheck, der nach Bedarf läuft. Hannis Liste mit 50
+Punkten gegen den echten Code eingeordnet: 34 bei jedem Lauf, 12 ab
+öffentlichem Betrieb, 4 treffen heute nicht zu (mit Auslöser, z. B. App Store
+Server Notifications → Signatur prüfen).
+- `scripts/security-check.mjs` — 22 mechanische Prüfungen, liest nur.
+- `src/lib/securityScan.js` + Test — Detektoren; jeder spielt vor dem Lauf
+  seine Probe ab, sonst Abbruch (Mutationstest: kaputtes Muster → rot).
+- `.claude/agents/security-expert.md` — Agent für das, was Urteil braucht
+  (IDOR, SSRF, Prompt-Injection, Gemini-Werkzeuge …). Ohne Schreibrechte,
+  liest keine `.env`, macht keine bezahlten Aufrufe.
+- `.claude/commands/security-check.md` — `/security-check [schnell]`.
+  Berichte nach `~/Claude/Sicherheitsberichte/`, **nicht** ins Repo (öffentlich).
+
+**Erster Lauf (nur Skript):** 4 ❌, 7 ⚠️. Kein Schlüssel in 595 Commits.
+Bekannt: S1 (8 bezahlte Routen ohne Anmeldung), S7 (keine Abbuchung).
+**Neu:** `/api/cast-backup` (Figuren MIT Fotos) und `/api/journal-backup`
+antworten ohne Anmeldung; die DEV-Sperre sitzt nur im Client, und
+`Bun.serve` lauscht ohne `hostname` auf allen Schnittstellen — jedes Gerät
+im selben WLAN kommt dran. Nicht behoben (eigene Sitzung, `server.js`).
+
+**Was der Nächste wissen muss:**
+- Neue Agenten lädt Claude Code erst beim Sitzungsstart.
+- Neue Route mit Personendaten, die kein Geld kostet? In
+  `scripts/security-check.mjs` bei `FREE`/`DEV_DATA` eintragen, sonst
+  zählt sie als kostenpflichtig (bewusst streng, wie der Gatekeeper).
+- `docs/STAND.md` bleibt für PR #59 (Hosting) — beide Sitzungen am selben Tag.
 
 ## 2026-09-24 12:40 — Hanni — Branch `session/2026-09-24-hanni` (PR #58) — Phase 0: Domain, Markenrecherche, Anfrage an den Anwalt
 

@@ -3,10 +3,33 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-24 abends — Hanni, `session/2026-09-24-hanni-2`
-(PR #59, **fertig, wartet auf Merge**). Danach geht es auf einem neuen
-Branch weiter. Anton parallel auf `session/2026-09-23-anton` (PR #56).
-**Weg durch die App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
+**Stand:** 2026-09-24 abends — Hanni. `session/2026-09-24-hanni-3`
+(PR #60, Sicherheitscheck) ist gemergt; `session/2026-09-24-hanni-2`
+(PR #59, Hosting + Medienablage A/B/D) fertig, **Merge durch Hanni**.
+Schritt C folgt auf einem neuen Branch. Anton parallel auf
+`session/2026-09-23-anton` (PR #56). **Weg durch die App-Store-Prüfung:
+`docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Sicherheitscheck `/security-check` (PR #60, 24.09.):** Skript
+`scripts/security-check.mjs` (23 mechanische Prüfungen, jeder Detektor mit
+Selbsttest) + Agent `.claude/agents/security-expert.md` (nur lesend, Hannis
+50-Punkte-Liste auf dieses Projekt zugeschnitten) → **PDF-Bericht nach
+Kritikalität** über `scripts/security-report.mjs`, abgelegt in
+`~/Claude/Sicherheitsberichte/` — **nie im Repo** (öffentlich; das Skript
+verweigert Ziele in Git-Arbeitsbäumen). Der Agent lädt erst in einer neuen
+Sitzung; der erste echte Lauf steht aus.
+- ✅ Behoben: `/api/cast-backup` (Fotos) und `/api/journal-backup` antworteten
+  jedem Gerät im WLAN → jetzt nur noch diesem Rechner (`src/lib/localOnly.js`,
+  Sperre in `server.js` vor den Sicherungs-Routen). ⚠ Hält nur, solange Vite
+  nicht mit `--host` läuft — der Check wird dann rot.
+- ❌ Offen und bekannt: 8 bezahlte Routen ohne Anmeldung (S1, `API_TOKEN`
+  nicht gesetzt), `settleCharge()` bucht nicht ab (S7, `server.js:2125`),
+  CORS erlaubt `"null"`, 0/5 Sicherheits-Kopfzeilen, Abhängigkeiten mit je
+  2 hohen Meldungen (`bun audit`), eine Antwort reicht `e.message` durch
+  (`/api/photo-check`, Agent soll bewerten).
+- Der wiederverwendbare Security-Tester für andere Projekte entsteht
+  getrennt in Hannis privatem Repo `H4nn40x/Security_Expert`; dieser Check
+  bleibt bewusst Traum-App-spezifisch.
 
 **Medienablage neu (Entscheidung Hanni + Anton 24.09.,
 `docs/plans/2026-09-24-medienablage.md`):** Träume liegen auf dem Gerät,
@@ -58,8 +81,8 @@ Phase-0-Stand sonst:
 Konto UND Einwilligung. ⚠ Löschen auf Gerät A kann von Gerät B
 zurückkommen (Lösch-Merkliste nachrüsten vor Mehrgeräte/Android). ⚠ Die
 Anmeldung überlebt eine Neuinstallation (iOS-Schlüsselbund bleibt).
-⚠ `/api/cast-backup` speichert Fotos (`server.js:3028`) — vor der
-Veröffentlichung entfernen.
+⚠ `/api/cast-backup` speichert Fotos (`server.js:3039`, seit PR #60 nur
+noch von diesem Rechner erreichbar) — vor der Veröffentlichung entfernen.
 
 **Phase 1 des Plans erledigt:** Texte an die Wahrheit (Foto verlässt das
 Handy für Prüfung und Filme; Platzhalter-Bewertungen weg; Löschhinweis),
@@ -158,8 +181,10 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
 
 **Nächste Schritte:**
 1. **Hanni:** PR #59 mergen; danach im Hauptordner `bun install`,
-   Prebuild, `pod install`, Server neu starten, dann App bauen. Anfrage an
-   den Anwalt abschicken; Domains prüfen.
+   Prebuild, `pod install`, Server neu starten, dann App bauen. Worktree
+   `Traum-App-hanni-3` entfernen. Ersten vollen `/security-check` in einer
+   neuen Sitzung laufen lassen. Anfrage an den Anwalt abschicken; Domains
+   prüfen.
 2. **Anton:** Notiz `2026-09-24-anton-medienablage-ausrollen.md` lesen;
    Server vor App aktualisieren; am iPhone App löschen/neu installieren
    (iCloud-Schlüssel); VPS nach den Bedingungen + Object-Storage-Bucket →

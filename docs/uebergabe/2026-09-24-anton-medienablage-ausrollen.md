@@ -97,7 +97,7 @@ Filme ausliefern kann.
    - Auftragsstand (`media/jobs`) bleibt vorerst auf der Server-Platte —
      einverstanden?
    - `/api/cast-backup` speichert Fotos auf dem Server und muss vor der
-     Veröffentlichung raus (`server.js:3028`). Brauchst du es noch?
+     Veröffentlichung raus (`server.js:3039`; seit PR #60 immerhin nur noch vom Server-Rechner selbst erreichbar). Brauchst du es noch?
 
 Bauen würde ich C als ein Speicher-Modul mit vier Befehlen (ablegen, holen,
 löschen, alles eines Kontos löschen), mit `local` für die Entwicklung —
