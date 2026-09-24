@@ -81,7 +81,7 @@ import { appleRevokeConfig, revokeAppleForDeletion } from "./src/lib/apple-revok
 import { isLocalRequest } from "./src/lib/localOnly.js";
 // Traum ⇄ Datenbankzeile. Eigene Datei, weil dort die Regel „nur die Tags,
 // nie die Fotos dahinter" serverseitig erzwungen wird (dreamRow.test.js).
-import { toRow, fromRow, MAX_JSON } from "./src/lib/dreamRow.js";
+import { toSealedRow, fromRow, MAX_JSON } from "./src/lib/dreamRow.js";
 // Listen kommen seitenweise, nie am Stück (paging.test.js).
 import { parseLimit, decodeCursor, buildPage } from "./src/lib/paging.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
@@ -3384,7 +3384,11 @@ const serveOptions = {
           // Eine Zeile mehr gelesen als angefragt — das beantwortet „gibt es
           // noch mehr?" ohne ein zweites count(*) über die ganze Tabelle.
           const { seite, next } = buildPage(zeilen, limit);
-          return json({ ok: true, dreams: seite.map(fromRow), next, limit });
+          /* `format` (24.09.2026): Die App schickt NUR, wenn der Server das
+             ankündigt. Ein alter Server ohne Verschlüsselungs-Endpunkt hat
+             versiegelte Träume als leere Klartext-Träume gespeichert und
+             damit die Sicherung überschrieben (Test 24.09.). */
+          return json({ ok: true, format: "sealed-v1", dreams: seite.map(fromRow), next, limit });
         }
 
         /* Hochladen und Aktualisieren in EINEM Aufruf, und genau deshalb
@@ -3409,42 +3413,39 @@ const serveOptions = {
                           max: MAX_SYNC_BATCH, gesendet: eingang.length }, 413);
           }
 
-          const zeilen = eingang.map(toRow).filter(Boolean);
+          /* ⚠ Nur noch versiegelt (24.09.2026, Plan medienablage, Schritt B):
+             Die App verschlüsselt jeden Traum auf dem Gerät. Klartext wird
+             nicht mehr angenommen — sonst schickte ein alter Client ihn
+             weiter, und „Ende-zu-Ende" wäre nur eine Behauptung. */
+          const zeilen = eingang.map(toSealedRow).filter(Boolean);
           if (!zeilen.length) return json({ error: "No usable dream in this request." }, 400);
 
-          /* ⚠ Ein älterer Stand überschreibt keinen neueren (23.09.2026,
-             Konto-Sicherung der App). Bis dahin gewann, wer zuletzt schickte
-             — ein zweites Gerät mit einem alten Tagebuch hätte neuere
-             Änderungen still ersetzt. Maßstab ist der Bearbeitungsstand
-             (edited_at, sonst created_at); gleich alt darf überschreiben,
-             damit ein nachgereichter Film ohne neue Bearbeitung ankommt.
-             `gespeichert` zählt jetzt nur, was wirklich geschrieben wurde. */
+          /* ⚠ Ein älterer Stand überschreibt keinen neueren (23.09.2026) —
+             Maßstab edited_at, sonst created_at; gleich alt darf, damit ein
+             nachgereichter Film ohne neue Bearbeitung ankommt.
+             ⚠ Und ein Gerät mit einem ANDEREN Schlüssel überschreibt nie eine
+             fremde Sicherung (24.09.): Die gehört zu einem Schlüssel, den
+             dieses Gerät nicht hat — überschrieben wäre sie für immer weg.
+             Klartext-Zeilen von vorher (key_id leer) werden versiegelt
+             überschrieben, ihre Klartext-Spalten geleert.
+             `gespeichert` zählt nur, was wirklich geschrieben wurde. */
           const gespeichert = await withUser(database, person.userId, async (tx) => {
             let n = 0;
             for (const z of zeilen) {
               const r = await tx`
                 insert into public.dreams
-                  (user_id, client_id, kind, title, tagline, text, original_text,
-                   analysis, reflection, style, format, mode, image_count, creature_id,
-                   "references", media, created_at, edited_at)
+                  (user_id, client_id, sealed, key_id, created_at, edited_at)
                 values (
-                  ${person.userId}, ${z.client_id}, ${z.kind}, ${z.title}, ${z.tagline},
-                  ${z.text}, ${z.original_text},
-                  ${z.analysis === null ? null : JSON.stringify(z.analysis)}::jsonb,
-                  ${z.reflection === null ? null : JSON.stringify(z.reflection)}::jsonb,
-                  ${z.style}, ${z.format}, ${z.mode}, ${z.image_count}, ${z.creature_id},
-                  ${JSON.stringify(z.references)}::jsonb, ${JSON.stringify(z.media)}::jsonb,
+                  ${person.userId}, ${z.client_id}, ${z.sealed}, ${z.key_id},
                   ${z.created_at ?? new Date().toISOString()}, ${z.edited_at})
                 on conflict (user_id, client_id) do update set
-                  kind = excluded.kind, title = excluded.title, tagline = excluded.tagline,
-                  text = excluded.text, original_text = excluded.original_text,
-                  analysis = excluded.analysis, reflection = excluded.reflection,
-                  style = excluded.style, format = excluded.format, mode = excluded.mode,
-                  image_count = excluded.image_count, creature_id = excluded.creature_id,
-                  "references" = excluded."references", media = excluded.media,
-                  edited_at = excluded.edited_at
+                  sealed = excluded.sealed, key_id = excluded.key_id, edited_at = excluded.edited_at,
+                  kind = 'dream', title = '', tagline = '', text = '', original_text = '',
+                  analysis = null, reflection = null, style = null, format = null, mode = null,
+                  image_count = null, creature_id = null, "references" = '[]'::jsonb, media = '{}'::jsonb
                 where coalesce(excluded.edited_at, excluded.created_at)
                    >= coalesce(public.dreams.edited_at, public.dreams.created_at)
+                  and (public.dreams.key_id is null or public.dreams.key_id = excluded.key_id)
                 returning client_id`;
               n += r.length;
             }

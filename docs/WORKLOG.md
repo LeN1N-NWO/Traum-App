@@ -3,6 +3,55 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-24 20:50 — Hanni — Branch `session/2026-09-24-hanni-2` (PR #59) — Hosting, Medienablage neu: Träume lokal, Sicherung Ende-zu-Ende verschlüsselt (A, B, D)
+
+**Commits:** `4268232` `4b5a79a` `5fc4487` Hosting-Plan + Kostenvergleich ·
+`8c3d7f3` Notiz an Anton (Hosting) · `506bbc8` erste Fassung Medienablage
+(Supabase Storage, überholt) · `cf42402` Plan neu · `a1cc88f` Schritt A ·
+`5e9357a` Schritte B + D · `89788a7` Sperre gegen alten Server ·
+Doku-Commit dieses Eintrags (WORKLOG, STAND, Notiz an Anton zum Ausrollen).
+
+**Entscheidungen (Hanni + Anton, 24.09. abends):** Träume liegen auf dem
+Gerät (Text UND Medien); der Server hält nur eine Ende-zu-Ende
+verschlüsselte Sicherung; Konto löschen löscht auch sie. Server: Antons
+vorhandener Hetzner-VPS unter Bedingungen (Plan
+`docs/plans/2026-09-24-medienablage.md`). Die Supabase-Storage-Fassung vom
+Mittag (`506bbc8`) ist damit überholt.
+
+**Gebaut:**
+- A: `mobile/src/lib/media-cache.ts` lädt jede `/media/`-Datei einmal nach
+  `Documents/media/`; `journal-store.ts` tauscht die Adressen nur für die
+  Oberfläche, die Brücke behält `/media/`-Pfade.
+- B: `backup-key.ts` (AES-256-GCM, Schlüssel im iCloud-Schlüsselbund per
+  Bun-Patch an `expo-secure-store@57.0.4`, `kSecAttrSynchronizable`);
+  `dream-sync.ts` versiegelt/entschlüsselt; Server nimmt nur noch
+  versiegelte Träume (`toSealedRow`), überschreibt nie eine fremde
+  `key_id`. Migration `20260924100000_dreams_sealed.sql` — in Supabase
+  ausgeführt.
+- D: Texte en/de versprechen Verschlüsselung NUR für Träume, nicht Filme.
+
+**Belegt im Simulator:** DB enthält nur `sealed` (1856 Zeichen) + `key_id`,
+Titel/Text leer · App gelöscht + neu installiert → Traum entschlüsselt
+zurück, Film + Aufnahme wieder lokal · Server aus → Film spielt vom Gerät ·
+alter Server + neue App → `server-too-old`, nichts geschickt.
+
+**⚠ Im Test selbst verursacht und gefunden:** Der API-Server lief noch auf
+dem alten Stand, nahm die versiegelten Träume als leere Klartext-Träume an
+(„gespeichert: 1") und überschrieb die Sicherung. Nichts verloren (Traum lag
+auf dem Gerät). Seitdem kündigt `GET /api/dreams` `format: "sealed-v1"` an,
+und ohne Ankündigung schickt die App nichts.
+
+**Was der Nächste wissen muss:**
+- **Reihenfolge beim Ausrollen: Migration (erledigt) → Server → App.**
+  Notiz an Anton: `docs/uebergabe/2026-09-24-anton-medienablage-ausrollen.md`.
+- Nach dem Merge braucht jeder Checkout `bun install` (Patch), Prebuild,
+  `pod install`, neuen App-Bau — nativer Code.
+- **iCloud-Synchronisation des Schlüssels ist nicht belegt** (Simulator ohne
+  Apple-ID). Belegt ist nur: Schlüssel übersteht das Löschen der App.
+  Test am echten iPhone steht aus.
+- Schritt C (Medien verschlüsselt nach Hetzner Object Storage, Server löscht
+  nach Abholung) wartet auf Antons VPS; Filme liegen bis dahin
+  unverschlüsselt auf dem Server.
 ## 2026-09-24 20:45 — Hanni — Branch `session/2026-09-24-hanni-3` (PR #60) — Sitzungsende
 
 **Commits:** `dcd846b` Sicherheitscheck · `d5b3630` Sicherungs-Routen nur lokal ·

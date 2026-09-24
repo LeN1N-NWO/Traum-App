@@ -294,6 +294,9 @@ function FullPlayer({ url }: { url: string }) {
    dafür einmal in den Cache geladen. */
 async function shareFile(url: string) {
   try {
+    /* Liegt der Film schon auf dem Gerät (lib/media-cache.ts), wird er
+       direkt geteilt — kein zweiter Download. */
+    if (url.startsWith("file:")) { await Share.share({ url }); return; }
     const dir = new Directory(Paths.cache, "share");
     try { dir.create({ idempotent: true }); } catch {}
     const file = await File.downloadFileAsync(url, dir, { idempotent: true });

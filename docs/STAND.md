@@ -3,10 +3,11 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-24 abends — Hanni, `session/2026-09-24-hanni-3`
-(PR #60, Sicherheitscheck, fertig, **Merge durch Hanni**). Offen daneben:
-PR #59 (`session/2026-09-24-hanni-2`, Hosting-Entscheidungsgrundlage) und
-Antons PR #56 (Begleiter-Animationen). **Weg durch die App-Store-Prüfung:
+**Stand:** 2026-09-24 abends — Hanni. `session/2026-09-24-hanni-3`
+(PR #60, Sicherheitscheck) ist gemergt; `session/2026-09-24-hanni-2`
+(PR #59, Hosting + Medienablage A/B/D) fertig, **Merge durch Hanni**.
+Schritt C folgt auf einem neuen Branch. Anton parallel auf
+`session/2026-09-23-anton` (PR #56). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
 **Sicherheitscheck `/security-check` (PR #60, 24.09.):** Skript
@@ -29,31 +30,59 @@ Sitzung; der erste echte Lauf steht aus.
 - Der wiederverwendbare Security-Tester für andere Projekte entsteht
   getrennt in Hannis privatem Repo `H4nn40x/Security_Expert`; dieser Check
   bleibt bewusst Traum-App-spezifisch.
-Phase-0-Stand:
-- ✅ 1: vorbereiten/TestFlight als Einzelperson, **verkaufen erst als UG**.
-- ⏳ 3: **Domains `dreamrushes.app` + `dreamrushes.de` bei Strato bestellt**
-  (24.09.) — bei der letzten Prüfung (RDAP/DENIC, 24.09. mittags) **noch
-  nicht registriert**. Erst als erledigt eintragen, wenn die Registry sie
-  zeigt: `curl -s -o /dev/null -w "%{http_code}" https://pubapi.registry.google/rdap/domain/dreamrushes.app`
-  (200 = registriert) und `whois -h whois.denic.de dreamrushes.de`.
-- 📝 4: **Anfrage an den Anwalt fertig, Absenden bei Hanni** —
-  `docs/plans/2026-09-24-anfrage-anwalt.md` (Anschreiben + „welche Daten
-  gehen wohin") + Rechtstexte-PDF (erzeugt 24.09., nicht im Repo, bei Bedarf
-  neu bauen) + Markenrecherche `docs/plans/2026-09-24-markenpruefung.md`.
-  ⚠ **Eingetragene EU-Marke „RUSHES" (Kl. 41, 42) und französische „Rushes"
-  (Kl. 9)** — Verwechslungsgefahr ist Frage an den Anwalt.
-- ❓ 2 Hosting (nächste Sitzung), 5 Prüfer-Credits, 6 Store-Länder — mit Anton.
 
-**Träume werden jetzt mit dem Konto gesichert (23.09., N13).** Das
-Onboarding versprach es, getan hat es nichts. Jetzt: `mobile/src/lib/dream-sync.ts`
-+ `components/dream-sync-layer.tsx` (unsichtbar im Wurzel-Layout), Brücke
-`syncExport`/`syncImport`, `/api/dreams` holt-dann-schickt; Server lässt
-keinen älteren Stand über einen neueren; Sprachaufnahme als Pfad dabei; nur
-mit Konto UND Einwilligung. **Belegt:** App im Simulator gelöscht und neu
-installiert → Traum samt Film wieder im Journal. ⚠ Grenze: Löschen auf
-Gerät A kann von Gerät B zurückkommen (Lösch-Merkliste nachrüsten vor
-Mehrgeräte/Android). ⚠ Die Anmeldung überlebt eine Neuinstallation
-(iOS-Schlüsselbund bleibt).
+**Medienablage neu (Entscheidung Hanni + Anton 24.09.,
+`docs/plans/2026-09-24-medienablage.md`):** Träume liegen auf dem Gerät,
+der Server hält nur eine Ende-zu-Ende verschlüsselte Sicherung.
+- ✅ **A** Medien auf dem Gerät (`mobile/src/lib/media-cache.ts`,
+  `Documents/media/`); Server aus → Film spielt.
+- ✅ **B** Träume auf dem Gerät versiegelt (AES-256-GCM,
+  `mobile/src/lib/backup-key.ts`, Schlüssel im iCloud-Schlüsselbund per
+  Patch `mobile/patches/expo-secure-store@57.0.4.patch`); Server nimmt nur
+  versiegelte Träume (`src/lib/dreamRow.js` `toSealedRow`), kündigt
+  `format: "sealed-v1"` an; ohne Ankündigung schickt die App nichts.
+  Migration `supabase/migrations/20260924100000_dreams_sealed.sql` **ist
+  ausgeführt**.
+- ✅ **D** Texte en/de: Verschlüsselung nur für Träume versprochen.
+- ⏳ **C** Medien verschlüsselt nach Hetzner Object Storage, Server löscht
+  Filme nach Abholung — **wartet auf Antons VPS** (Bedingungen im Plan).
+  Bis dahin liegen Filme unverschlüsselt und ohne Zugangsprüfung auf dem
+  Server (S2/S3, B8).
+- ⚠ **Nicht belegt:** dass der Schlüssel über iCloud auf ein anderes Gerät
+  wandert (Simulator hat keine Apple-ID). Belegt: übersteht App-Löschen.
+- ⚠⚠ **Ausrollen: Migration (✅) → Server → App.** Nach dem Merge braucht
+  jeder Checkout `bun install` in `mobile` (Patch), Prebuild, `pod install`,
+  neuen App-Bau. Alte App-Bauten danach nicht mehr benutzen (Server lehnt
+  Klartext ab; nach Neuinstallation einer alten App erscheinen leere
+  Einträge). Notiz an Anton:
+  `docs/uebergabe/2026-09-24-anton-medienablage-ausrollen.md`.
+
+**Hosting (Phase 0, Entscheidung 2):** Grundlage
+`docs/plans/2026-09-24-hosting.md`; entschieden: Antons Hetzner-VPS unter
+Bedingungen (DE/FI, eigener Nutzer + `.env`, Firewall, Zuständigkeit,
+AV-Vertrag, Einrichtungsskript im Repo). Die Supabase-Storage-Idee aus
+`docs/uebergabe/2026-09-24-anton-hosting.md` ist überholt; offen bleiben
+dort Budget, Prüfer-Credits, Store-Länder.
+
+Phase-0-Stand sonst:
+- ✅ 1: vorbereiten/TestFlight als Einzelperson, **verkaufen erst als UG**.
+- ⏳ 3: Domains `dreamrushes.app` + `dreamrushes.de` bei Strato bestellt —
+  erst als erledigt eintragen, wenn die Registry sie zeigt:
+  `curl -s -o /dev/null -w "%{http_code}" https://pubapi.registry.google/rdap/domain/dreamrushes.app`
+  (200 = registriert) und `whois -h whois.denic.de dreamrushes.de`.
+- 📝 4: Anfrage an den Anwalt fertig, Absenden bei Hanni —
+  `docs/plans/2026-09-24-anfrage-anwalt.md`, Markenrecherche
+  `docs/plans/2026-09-24-markenpruefung.md` (⚠ EU-Marke „RUSHES").
+  Neu für den Anwalt: Aufbewahrungsdauer der Sicherung.
+- ❓ 5 Prüfer-Credits, 6 Store-Länder — mit Anton.
+
+**Träume-Sicherung mit dem Konto (seit 23.09., N13, jetzt versiegelt):**
+`mobile/src/lib/dream-sync.ts` + `components/dream-sync-layer.tsx`, nur mit
+Konto UND Einwilligung. ⚠ Löschen auf Gerät A kann von Gerät B
+zurückkommen (Lösch-Merkliste nachrüsten vor Mehrgeräte/Android). ⚠ Die
+Anmeldung überlebt eine Neuinstallation (iOS-Schlüsselbund bleibt).
+⚠ `/api/cast-backup` speichert Fotos (`server.js:3039`, seit PR #60 nur
+noch von diesem Rechner erreichbar) — vor der Veröffentlichung entfernen.
 
 **Phase 1 des Plans erledigt:** Texte an die Wahrheit (Foto verlässt das
 Handy für Prüfung und Filme; Platzhalter-Bewertungen weg; Löschhinweis),
@@ -151,23 +180,24 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
 6. Android: Apples Blatt fehlt dort — Apple-Konto dort nicht löschbar.
 
 **Nächste Schritte:**
-1. **Hanni:** PR #60 mergen (danach Worktree `Traum-App-hanni-3` entfernen),
-   PR #59 abschließen; Anfrage an den Anwalt abschicken; Domains im
-   Strato-Konto prüfen, bis die Registry sie zeigt. Ersten vollen
-   `/security-check` in einer neuen Sitzung laufen lassen.
-2. **Hosting (Phase 0, Entscheidung 2)** — nächste Sitzung. Anforderungen im
-   Plan: HTTPS, EU, IPv6, langlebige Prozesse (bis 300 s), ffmpeg, Medien
-   hinter Zugangsprüfung (N9/S2).
-3. **Mit Anton:** Prüfer-Credits (N10), Store-Länder, Hosting-Kosten und wer
-   den Server pflegt.
+1. **Hanni:** PR #59 mergen; danach im Hauptordner `bun install`,
+   Prebuild, `pod install`, Server neu starten, dann App bauen. Worktree
+   `Traum-App-hanni-3` entfernen. Ersten vollen `/security-check` in einer
+   neuen Sitzung laufen lassen. Anfrage an den Anwalt abschicken; Domains
+   prüfen.
+2. **Anton:** Notiz `2026-09-24-anton-medienablage-ausrollen.md` lesen;
+   Server vor App aktualisieren; am iPhone App löschen/neu installieren
+   (iCloud-Schlüssel); VPS nach den Bedingungen + Object-Storage-Bucket →
+   dann baut Hanni **Schritt C** (neuer Branch).
+3. **Mit Anton:** Prüfer-Credits (N10), Store-Länder, Budget, `media/jobs`,
+   `/api/cast-backup`.
 4. **Anton:** Face ID am iPhone (N11), erster echter Turbo-Film mit Foto;
-   sein Xcode-Projekt neu prebuilden (B5/B7 jetzt in `app.json`).
+   Xcode-Projekt neu prebuilden (B5/B7 in `app.json`).
 5. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
-   `server_grant()`. Braucht einen App-Store-Connect-API-Schlüssel (ASC →
-   Benutzer und Zugriffsrechte → Integrationen — ⚠ NICHT der
-   Sign-in-with-Apple-Schlüssel aus dem Developer Portal).
-6. **Hanni in App Store Connect:** Produkte (S/M/L/XL, Monats-/Jahresabo),
-   Sandbox-Tester, Paid-Applications-Vertrag, Small Business Program.
+   `server_grant()`. Braucht einen App-Store-Connect-API-Schlüssel (⚠ NICHT
+   der Sign-in-with-Apple-Schlüssel).
+6. **Hanni in App Store Connect:** Produkte, Sandbox-Tester,
+   Paid-Applications-Vertrag, Small Business Program.
 7. Vor Einreichung: die 4 Preflight-Schalter oben, Preflight = 0.
 
 **Davor (23.09. früh):** Hanni, `session/2026-09-15-hanni-apple-signin`
