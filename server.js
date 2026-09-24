@@ -76,6 +76,9 @@ import { openDatabase, withUser, fromJsonb } from "./src/lib/db.js";
 // handeln, auth.js sagt, WER sie ist (eigene Datei, ohne Netz prüfbar).
 import { parseBearer, authConfig, passwordLogin, appleLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
 import { appleRevokeConfig, revokeAppleForDeletion } from "./src/lib/apple-revoke.js";
+// Die Entwicklungs-Routen mit Fotos und Traumtexten nur für diesen Rechner
+// (eigene Datei mit Test, src/lib/localOnly.test.js).
+import { isLocalRequest } from "./src/lib/localOnly.js";
 // Traum ⇄ Datenbankzeile. Eigene Datei, weil dort die Regel „nur die Tags,
 // nie die Fotos dahinter" serverseitig erzwungen wird (dreamRow.test.js).
 import { toRow, fromRow, MAX_JSON } from "./src/lib/dreamRow.js";
@@ -3002,6 +3005,14 @@ const serveOptions = {
     // content-type maps to a real image extension, so nothing about the
     // request — not its size, not its declared type — reaches the filesystem
     // unchecked.
+    /* Die beiden Sicherungs-Routen unten sind Entwicklungswerkzeug und
+       tragen Fotos realer Menschen und Traumtexte — sie antworten nur
+       diesem Rechner (Begründung in src/lib/localOnly.js). 404 statt 403:
+       Wer von außen fragt, erfährt nicht, dass es sie gibt. */
+    if ((url.pathname === "/api/cast-backup" || url.pathname === "/api/journal-backup")
+        && !isLocalRequest(server.requestIP(req)?.address, req.headers)) {
+      return new Response("Not found", { status: 404 });
+    }
     /* Träume als Dateien sichern (Antons Ansage 22.08.2026: „Meine
        Testträume bitte hier abspeichern … und drinnen bleiben, bis ich
        ausdrücklich sage, dass man die Memory löschen soll.").
