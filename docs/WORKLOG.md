@@ -3,6 +3,42 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-24 12:40 — Hanni — Branch `session/2026-09-24-hanni` (PR #58) — Phase 0: Domain, Markenrecherche, Anfrage an den Anwalt
+
+**Commits:** `b53ef8e` Domain + Markenrecherche · `f8c7290` Anwaltsanfrage +
+zwei Datenschutz-Sätze · Doku-Commit dieses Eintrags.
+
+**Domain:** `dreamrushes.app` + `dreamrushes.de` gewählt und von Hanni bei
+Strato bestellt (ohne „Domain Guard"; stattdessen 2FA am Strato-Konto).
+⚠ Die erste Verfügbarkeitsprüfung per `whois` meldete `.app` fälschlich als
+vergeben (die Zeile kam aus dem Eintrag der Endung `.app`, nicht der
+Domain). Belastbar ist nur RDAP bei der zuständigen Registry — **mit
+Gegenprobe an einer sicher vergebenen Domain** (200 vs. 404). Bei
+Sitzungsende noch nicht registriert.
+
+**Markenrecherche** (TMview, Gegenprobe „headspace" = 192 Treffer): „Dream
+Rushes" — keine Marke. „Dream Rush" — in DE/EU/US/UK in Kl. 9/41/42 nichts
+Aktives. ⚠ „RUSHES" als EU-Marke eingetragen (2015, Kl. 35/40/41/42) und in
+Frankreich (2025, Kl. 9). App Store: keine gleichnamige App. Frage an den
+Anwalt, keine Rechtsauskunft.
+
+**Anfrage an den Anwalt** mit Übersicht „welche Daten gehen wohin" und einem
+Rechtstexte-PDF (15 Seiten, per Skript aus den Sprachdateien, per PDFKit
+zurückgelesen: alle 157 Texte wortgleich). Chrome headless statt reportlab —
+nichts nachinstalliert.
+
+**⚠ Beim Vorbereiten gefunden:** Datenschutzerklärung („es gibt kein Konto
+und keine Cloud-Kopie") und Einwilligungs-Detail („Dein Journal selbst
+bleibt auf diesem Gerät") waren seit der Träume-Sicherung vom 23.09. falsch
+— hätte ich dort mitziehen müssen. Beide Sätze korrigiert (de/en); die
+Neufassung (Verantwortlicher, Supabase, Apple, Hosting) bleibt beim Anwalt.
+
+**Was der Nächste wissen muss:**
+- Jede Änderung daran, WAS mit Daten passiert, braucht einen Blick in
+  `consent.details` und `legal.privacy` (en/de) — sonst lügt die App.
+- `t.dream.privacy` (en/de) ist toter Text, nirgends angezeigt.
+- Nächste Sitzung: Hosting (Phase 0, Entscheidung 2).
+
 ## 2026-09-23 23:50 — Hanni — Branch `session/2026-09-23-hanni-2` (PR #57) — App-Store-Plan, Phase 1, Träume-Sicherung mit dem Konto
 
 **Commits:** `65ff523` Plan · `5c497d2` Phase 1 (Texte, app.json) ·

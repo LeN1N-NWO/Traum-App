@@ -63,6 +63,13 @@ Hanni (Konto, Recht), Anton (Produkt, Geld) — gemeinsam.
    Anforderungen: HTTPS, EU-Standort (DSGVO), Domain, IPv6 (Apples
    Prüfnetz), Medien hinter Zugangsprüfung (N9).
 3. **Domain** für API, Datenschutzerklärung und Support (N5).
+   ✅ **Entschieden (Hanni, 24.09.): `dreamrushes.app` (Haupt) +
+   `dreamrushes.de` (Schutz/Weiterleitung)** — beide frei laut Registry
+   (RDAP/DENIC, mit Gegenprobe), Kauf durch Hanni. `dreamrushes.com` seit 2004
+   vergeben. Geplant: `api.dreamrushes.app`, `/datenschutz`, `/impressum`,
+   `/support`. ⚠ Markenlage vorher mit dem Anwalt klären: eingetragene
+   EU-Marke „RUSHES" in Klasse 41/42 — Recherche
+   `docs/plans/2026-09-24-markenpruefung.md`.
 4. **Anwalt** für Nutzungsbedingungen und Datenschutzerklärung (N4) — wann
    und wer. Die Texte bestimmen, was N1/N3 sagen dürfen.
 5. **Wie testet der Prüfer den Film (N10)?** Vorschlag: Sandbox-Kauf mit
