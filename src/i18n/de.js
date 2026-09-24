@@ -1076,12 +1076,12 @@ export default {
     facts: [
       { id: "ai", title: "KI-gemacht", text: "Filme und Bilder erzeugt eine KI — so gekennzeichnet." },
       { id: "send", title: "Nur zum Erzeugen", text: "Traumtext und Fotos gehen nur fürs Rendern an KI-Dienste." },
-      { id: "device", title: "Bleibt bei dir", text: "Dein Tagebuch liegt auf diesem Gerät — mit Konto zusätzlich in deiner privaten Sicherung." },
+      { id: "device", title: "Bleibt bei dir", text: "Dein Tagebuch liegt auf diesem Gerät — mit Konto zusätzlich verschlüsselt gesichert, nur für dich lesbar." },
       { id: "adult", title: "18+", text: "Nur für Erwachsene." },
     ],
     more: "Wohin gehen meine Daten?",
     details: [
-      "Dein Traumtext geht an fal.ai und DeepSeek (hilft beim Formulieren der Bildanweisungen). Hochgeladene Fotos gehen nur an fal.ai und Google. Dein Journal bleibt auf diesem Gerät — mit Konto liegt zusätzlich eine Kopie deiner Träume (Text, keine Fotos) in deiner privaten Sicherung auf unserem Server.",
+      "Dein Traumtext geht an fal.ai und DeepSeek (hilft beim Formulieren der Bildanweisungen). Hochgeladene Fotos gehen nur an fal.ai und Google. Dein Journal bleibt auf diesem Gerät — mit Konto werden deine Träume (Text, nie Fotos) zusätzlich auf unserem Server gesichert, vorher auf deinem Handy verschlüsselt, sodass nur du sie lesen kannst.",
       "Filme rendert MiniMax (Hailuo) oder ByteDance (Seedance), je nach gewählter Qualitätsstufe — fal.ai reicht deine Bilder und Szenentexte genau für dieses eine Rendering an sie weiter, für nichts sonst.",
       "Gerenderte Bilder und Filme liegen auf unserem Server, damit die App sie dir zeigen kann.",
       "Training: Googles bezahlte API trainiert nicht mit deinen Inhalten. DeepSeeks bezahlte API wird standardmäßig nicht zum Training genutzt. fal.ai darf anonymisierte Nutzungsdaten zur Verbesserung seiner Dienste verwenden.",
@@ -1126,7 +1126,7 @@ export default {
         { h: "Wer verantwortlich ist",
           p: "Dream Rushes ist verantwortlich für die hier beschriebene Verarbeitung. Deine Einwilligung kannst du jederzeit direkt in der App widerrufen, unter Profil → Einstellungen — danach verlässt nichts mehr dein Gerät, bis du erneut zustimmst." },
         { h: "Was wir verarbeiten",
-          p: "Deine Traumtexte, die Fotos, die du hochlädst, deine Stimme im Gespräch mit der Assistentin, und die daraus erzeugten Bilder und Filme. Dein Journal, deine Einstellungen und dein Guthaben bleiben auf deinem Gerät. Das Konto ist freiwillig: Legst du eines an, speichern wir deine E-Mail-Adresse (oder deine Apple-Anmeldung), dein Profil und eine Sicherungskopie deiner Träume (Text und Verweise auf deine Filme, nie deine Fotos), damit sie ein neues Handy überstehen." },
+          p: "Deine Traumtexte, die Fotos, die du hochlädst, deine Stimme im Gespräch mit der Assistentin, und die daraus erzeugten Bilder und Filme. Dein Journal, deine Einstellungen und dein Guthaben bleiben auf deinem Gerät. Das Konto ist freiwillig: Legst du eines an, speichern wir deine E-Mail-Adresse (oder deine Apple-Anmeldung), dein Profil und eine Sicherung deiner Träume, damit sie ein neues Handy überstehen. Die Sicherung wird auf deinem Handy verschlüsselt, bevor sie es verlässt (Ende-zu-Ende, Schlüssel in deinem iCloud-Schlüsselbund) — wir können sie nicht lesen. Deine Fotos sind nie darin." },
         { h: "Wohin deine Daten gehen",
           p: "Gerendert wird bei namentlich genannten KI-Diensten, jeder nur für seine Aufgabe: DeepSeek hilft beim Schreiben und Analysieren von Text, Google übernimmt das Sprachgespräch und das Bilder-Rendern, fal.ai rendert Bilder und reicht Filme je nach gewählter Stufe an MiniMax (Hailuo) oder ByteDance (Seedance) weiter. Keiner von ihnen erhält mehr als das Material, das für dein konkretes Rendering nötig ist." },
         { h: "Training",

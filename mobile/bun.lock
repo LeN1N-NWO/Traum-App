@@ -58,6 +58,7 @@
     },
   },
   "patchedDependencies": {
+    "expo-secure-store@57.0.4": "patches/expo-secure-store@57.0.4.patch",
     "expo-modules-jsi@57.1.0": "patches/expo-modules-jsi@57.1.0.patch",
   },
   "packages": {

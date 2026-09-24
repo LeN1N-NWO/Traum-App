@@ -152,5 +152,34 @@ export function fromRow(row) {
     creatureId: row.creature_id ?? undefined,
     references: fromJsonb(row.references, []) || [],
     medien: fromJsonb(row.media, null) || { bilder: [], film: [] },
+    /* Versiegelt (24.09.2026): Dann steht der Traum NUR hier, die
+       Klartext-Felder oben sind leer. Die App entschlüsselt. */
+    ...(row.sealed ? { sealed: row.sealed, keyId: row.key_id } : {}),
+  };
+}
+
+/* ── Versiegelte Träume (24.09.2026, Plan medienablage, Schritt B) ────────
+ * Die App verschlüsselt jeden Traum auf dem Gerät. Hierher kommt nur noch:
+ * die eigene Id, die zwei Zeitstempel (für Seiten und „neuer gewinnt") und
+ * der versiegelte Block mit seiner Schlüssel-Kennung. Kein Klartext — und
+ * sync nimmt auch keinen mehr an, damit ein alter Client nie wieder welchen
+ * schickt. */
+const SEALED = /^[A-Za-z0-9+/]+={0,2}$/;
+const KEY_ID = /^[0-9a-f]{16}$/;
+/** Obergrenze eines versiegelten Traums, wie der CHECK in der Migration. */
+export const MAX_SEALED = 1024 * 1024;
+
+/** Versiegelter Traum vom Client → Spaltenwerte, oder null. */
+export function toSealedRow(traum) {
+  const clientId = str(traum?.id, MAX_CLIENT_ID).trim();
+  const sealed = typeof traum?.sealed === "string" ? traum.sealed : "";
+  const keyId = typeof traum?.keyId === "string" ? traum.keyId : "";
+  if (!clientId || !sealed || sealed.length > MAX_SEALED || !SEALED.test(sealed) || !KEY_ID.test(keyId)) return null;
+  return {
+    client_id: clientId,
+    created_at: isoOrNull(traum.createdAt),
+    edited_at: isoOrNull(traum.editedAt),
+    sealed,
+    key_id: keyId,
   };
 }
