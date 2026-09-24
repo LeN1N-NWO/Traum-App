@@ -3,14 +3,24 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-23 spätabends — Hanni, `session/2026-09-23-hanni-2`
-(PR #57, fertig, **Merge durch Hanni**). Anton parallel auf
-`session/2026-09-23-anton` (PR #56, Begleiter-Animationen — keine
-Überschneidung). **Der Weg durch die App-Store-Prüfung steht als Plan:
-`docs/plans/2026-09-23-app-store-pruefung.md`** (Blocker-Stand, Befunde
-N1–N13, Phase-0-Entscheidungen, Phasen 1–5, wer was macht). Entschieden:
-**vorbereiten und TestFlight jetzt als Einzelperson, verkaufen erst als UG**
-(DSA-Händlerstatus: sonst stehen Hannis Adresse und Telefon öffentlich).
+**Stand:** 2026-09-24 mittags — Hanni, `session/2026-09-24-hanni`
+(PR #58, fertig, **Merge durch Hanni**). Anton parallel auf
+`session/2026-09-23-anton` (PR #56, Begleiter-Animationen). **Weg durch die
+App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
+Phase-0-Stand:
+- ✅ 1: vorbereiten/TestFlight als Einzelperson, **verkaufen erst als UG**.
+- ⏳ 3: **Domains `dreamrushes.app` + `dreamrushes.de` bei Strato bestellt**
+  (24.09.) — bei der letzten Prüfung (RDAP/DENIC, 24.09. mittags) **noch
+  nicht registriert**. Erst als erledigt eintragen, wenn die Registry sie
+  zeigt: `curl -s -o /dev/null -w "%{http_code}" https://pubapi.registry.google/rdap/domain/dreamrushes.app`
+  (200 = registriert) und `whois -h whois.denic.de dreamrushes.de`.
+- 📝 4: **Anfrage an den Anwalt fertig, Absenden bei Hanni** —
+  `docs/plans/2026-09-24-anfrage-anwalt.md` (Anschreiben + „welche Daten
+  gehen wohin") + Rechtstexte-PDF (erzeugt 24.09., nicht im Repo, bei Bedarf
+  neu bauen) + Markenrecherche `docs/plans/2026-09-24-markenpruefung.md`.
+  ⚠ **Eingetragene EU-Marke „RUSHES" (Kl. 41, 42) und französische „Rushes"
+  (Kl. 9)** — Verwechslungsgefahr ist Frage an den Anwalt.
+- ❓ 2 Hosting (nächste Sitzung), 5 Prüfer-Credits, 6 Store-Länder — mit Anton.
 
 **Träume werden jetzt mit dem Konto gesichert (23.09., N13).** Das
 Onboarding versprach es, getan hat es nichts. Jetzt: `mobile/src/lib/dream-sync.ts`
@@ -118,20 +128,23 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
    wirklich nichts schickt (im Code gesperrt, `dream-sync-layer.tsx`).
 6. Android: Apples Blatt fehlt dort — Apple-Konto dort nicht löschbar.
 
-**Nächste Schritte (morgen):**
-1. **Hanni:** PR #57 mergen.
-2. **Phase 0 — Entscheidungen** (Plan): Hosting (B3), Domain, Anwalt,
-   wie der Prüfer einen Film sieht (N10), Store-Länder. Vorher geht
-   Phase 2 nicht.
-3. **Anton:** Face ID am iPhone (N11), erster echter Turbo-Film mit Foto;
-   sein Xcode-Projekt neu prebuilden (s. oben).
-4. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
+**Nächste Schritte:**
+1. **Hanni:** PR #58 mergen; Anfrage an den Anwalt abschicken; Domains im
+   Strato-Konto prüfen, bis die Registry sie zeigt.
+2. **Hosting (Phase 0, Entscheidung 2)** — nächste Sitzung. Anforderungen im
+   Plan: HTTPS, EU, IPv6, langlebige Prozesse (bis 300 s), ffmpeg, Medien
+   hinter Zugangsprüfung (N9/S2).
+3. **Mit Anton:** Prüfer-Credits (N10), Store-Länder, Hosting-Kosten und wer
+   den Server pflegt.
+4. **Anton:** Face ID am iPhone (N11), erster echter Turbo-Film mit Foto;
+   sein Xcode-Projekt neu prebuilden (B5/B7 jetzt in `app.json`).
+5. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
    `server_grant()`. Braucht einen App-Store-Connect-API-Schlüssel (ASC →
    Benutzer und Zugriffsrechte → Integrationen — ⚠ NICHT der
    Sign-in-with-Apple-Schlüssel aus dem Developer Portal).
-5. **Hanni in App Store Connect:** Produkte (S/M/L/XL, Monats-/Jahresabo),
+6. **Hanni in App Store Connect:** Produkte (S/M/L/XL, Monats-/Jahresabo),
    Sandbox-Tester, Paid-Applications-Vertrag, Small Business Program.
-6. Vor Einreichung: die 4 Preflight-Schalter oben, Preflight = 0.
+7. Vor Einreichung: die 4 Preflight-Schalter oben, Preflight = 0.
 
 **Davor (23.09. früh):** Hanni, `session/2026-09-15-hanni-apple-signin`
 (PR #51) abgeschlossen. **„Mit Apple anmelden" läuft auf einem echten iPhone,
