@@ -3,6 +3,26 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-24 20:45 — Hanni — Branch `session/2026-09-24-hanni-3` (PR #60) — Sitzungsende
+
+**Commits:** `dcd846b` Sicherheitscheck · `d5b3630` Sicherungs-Routen nur lokal ·
+`5ad73af` PDF-Bericht · `0b171f6` Durchsicht · dieser Doku-Commit.
+
+**Ergebnis:** `/security-check` steht (Skript + Agent + PDF-Bericht außerhalb
+des Repos), eine echte Lücke ist geschlossen (Fotos/Traumtexte im WLAN).
+Einzelheiten in den drei Einträgen darunter; `STAND.md` fasst den Stand zusammen.
+
+**Entschieden (Hanni):** Dieser Check bleibt Traum-App-spezifisch. Ein
+wiederverwendbarer Security-Tester entsteht getrennt im privaten Repo
+`H4nn40x/Security_Expert` — hier nichts verallgemeinern.
+
+**Was der Nächste wissen muss:**
+- Der Agent `security-expert` lädt erst in einer NEUEN Sitzung.
+- Der erste volle Lauf (mit Agent) steht aus.
+- Neue Route mit Personendaten, die nichts kostet → in
+  `scripts/security-check.mjs` bei `FREE`/`DEV_DATA` eintragen.
+- Nach dem Merge: `git worktree remove ../Traum-App-hanni-3 && git worktree prune`.
+
 ## 2026-09-24 20:30 — Hanni — Branch `session/2026-09-24-hanni-3` — Kritische Durchsicht des Sicherheitschecks
 
 Auf Hannis Bitte alles noch einmal gelesen. **Gefundene Fehler (alle behoben):**

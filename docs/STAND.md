@@ -3,10 +3,32 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-24 mittags — Hanni, `session/2026-09-24-hanni`
-(PR #58, fertig, **Merge durch Hanni**). Anton parallel auf
-`session/2026-09-23-anton` (PR #56, Begleiter-Animationen). **Weg durch die
-App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
+**Stand:** 2026-09-24 abends — Hanni, `session/2026-09-24-hanni-3`
+(PR #60, Sicherheitscheck, fertig, **Merge durch Hanni**). Offen daneben:
+PR #59 (`session/2026-09-24-hanni-2`, Hosting-Entscheidungsgrundlage) und
+Antons PR #56 (Begleiter-Animationen). **Weg durch die App-Store-Prüfung:
+`docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Sicherheitscheck `/security-check` (PR #60, 24.09.):** Skript
+`scripts/security-check.mjs` (23 mechanische Prüfungen, jeder Detektor mit
+Selbsttest) + Agent `.claude/agents/security-expert.md` (nur lesend, Hannis
+50-Punkte-Liste auf dieses Projekt zugeschnitten) → **PDF-Bericht nach
+Kritikalität** über `scripts/security-report.mjs`, abgelegt in
+`~/Claude/Sicherheitsberichte/` — **nie im Repo** (öffentlich; das Skript
+verweigert Ziele in Git-Arbeitsbäumen). Der Agent lädt erst in einer neuen
+Sitzung; der erste echte Lauf steht aus.
+- ✅ Behoben: `/api/cast-backup` (Fotos) und `/api/journal-backup` antworteten
+  jedem Gerät im WLAN → jetzt nur noch diesem Rechner (`src/lib/localOnly.js`,
+  Sperre in `server.js` vor den Sicherungs-Routen). ⚠ Hält nur, solange Vite
+  nicht mit `--host` läuft — der Check wird dann rot.
+- ❌ Offen und bekannt: 8 bezahlte Routen ohne Anmeldung (S1, `API_TOKEN`
+  nicht gesetzt), `settleCharge()` bucht nicht ab (S7, `server.js:2125`),
+  CORS erlaubt `"null"`, 0/5 Sicherheits-Kopfzeilen, Abhängigkeiten mit je
+  2 hohen Meldungen (`bun audit`), eine Antwort reicht `e.message` durch
+  (`/api/photo-check`, Agent soll bewerten).
+- Der wiederverwendbare Security-Tester für andere Projekte entsteht
+  getrennt in Hannis privatem Repo `H4nn40x/Security_Expert`; dieser Check
+  bleibt bewusst Traum-App-spezifisch.
 Phase-0-Stand:
 - ✅ 1: vorbereiten/TestFlight als Einzelperson, **verkaufen erst als UG**.
 - ⏳ 3: **Domains `dreamrushes.app` + `dreamrushes.de` bei Strato bestellt**
@@ -129,8 +151,10 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
 6. Android: Apples Blatt fehlt dort — Apple-Konto dort nicht löschbar.
 
 **Nächste Schritte:**
-1. **Hanni:** PR #58 mergen; Anfrage an den Anwalt abschicken; Domains im
-   Strato-Konto prüfen, bis die Registry sie zeigt.
+1. **Hanni:** PR #60 mergen (danach Worktree `Traum-App-hanni-3` entfernen),
+   PR #59 abschließen; Anfrage an den Anwalt abschicken; Domains im
+   Strato-Konto prüfen, bis die Registry sie zeigt. Ersten vollen
+   `/security-check` in einer neuen Sitzung laufen lassen.
 2. **Hosting (Phase 0, Entscheidung 2)** — nächste Sitzung. Anforderungen im
    Plan: HTTPS, EU, IPv6, langlebige Prozesse (bis 300 s), ffmpeg, Medien
    hinter Zugangsprüfung (N9/S2).
