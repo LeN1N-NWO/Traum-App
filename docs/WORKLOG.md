@@ -3,6 +3,35 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-24 19:55 — Hanni — Branch `session/2026-09-24-hanni-3` — Sicherheitsbericht als PDF
+
+**Was:** `/security-check` liefert jetzt einen PDF-Bericht im Stil eines
+Security Assessment Reports: Deckblatt mit Gesamtbewertung, Zusammenfassung,
+Befunde nach Kritikalität (Kritisch/Hoch/Mittel/Niedrig/Info), Details mit
+Beleg und Empfehlung, Geprüftes, Nicht-Geprüftes, Methodik, Anhang mit den
+mechanischen Prüfungen. Seitenzahlen und „VERTRAULICH“ auf jeder Seite.
+- Der Agent antwortet mit JSON (Schema in `.claude/agents/security-expert.md`).
+- `scripts/security-report.mjs` setzt das PDF per Chrome headless —
+  nichts nachinstalliert, wie beim Rechtstexte-PDF.
+- `src/lib/securityReport.js` + Test: prüfen, sortieren, mit dem letzten
+  Lauf vergleichen (stabile `key`s → neu / offen / behoben / höher eingestuft).
+
+**Nie ins Repo:** Ablage `~/Claude/Sicherheitsberichte/` (700/600). Das
+Skript bricht ab, wenn der Zielordner in einem Git-Arbeitsbaum liegt (auch
+mit `--out`), und prüft das VOR dem Anlegen — die erste Fassung ließ einen
+leeren Ordner im Repo zurück. Enthält der Bericht einen Geheimniswert: Abbruch, kein PDF.
+
+**Belegt:** Probe-PDFs gerendert und per PDFKit Seite für Seite angesehen
+(erste Fassung: Kopf-/Fußzeile lagen über den Überschriften → auf
+`@page`-Randfelder umgestellt). Sperren mit echten Ausgangscodes geprüft:
+Repo-Ziel → 2, Geheimnis → 1, ungültig → 1, jeweils kein PDF. Zweiter Lauf
+erkennt neu/behoben/höher eingestuft.
+
+**Nebenbei behoben:** Der Build-Variablen-Scan meldete seine eigenen
+Testnamen, sobald `securityScan*.js` versioniert war — Tests und Skripte
+landen nie im Bundle und zählen nicht mehr; die Probe im Modul ist
+zusammengesetzt.
+
 ## 2026-09-24 16:10 — Hanni — Branch `session/2026-09-24-hanni-3` — Lücke geschlossen: Sicherungs-Routen nur noch lokal
 
 **Was:** `/api/cast-backup` und `/api/journal-backup` antworten nur noch

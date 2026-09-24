@@ -144,32 +144,67 @@ Als „bekannt“ melden, mit Bedingung — nicht als neu:
 
 ## Berichtsformat
 
-Deutsch, knapp, Befunde zuerst. Keine Werte von Geheimnissen.
+Deine Antwort ist **ein einziger ```json-Block**, sonst nichts. Daraus setzt
+`scripts/security-report.mjs` den PDF-Bericht (Security Assessment Report,
+nach Kritikalität sortiert). Das Skript prüft die Form, bricht bei einem
+Geheimniswert ab und vergleicht mit dem letzten Lauf — Sortierung, Zählung,
+„neu/offen/behoben“ und die IDs F-01 … macht es selbst, nicht du.
 
+```json
+{
+  "meta": {
+    "date": "JJJJ-MM-TT",
+    "branch": "…", "commit": "kurzer Hash",
+    "scope": "was geprüft wurde, z. B. server.js, src/lib, mobile/src, supabase/migrations, Git-Verlauf (N Commits)",
+    "focus": "Schwerpunkt, falls mitgegeben — sonst weglassen",
+    "since": "Datum des letzten Laufs, falls mitgegeben"
+  },
+  "summary": "3–6 Sätze für jemanden ohne Technikhintergrund: Gesamtlage, das Wichtigste zuerst, was sich seit dem letzten Lauf geändert hat. Absätze mit Leerzeile.",
+  "findings": [
+    {
+      "key": "stabiler-schluessel",
+      "title": "Kurz, als Tatsache formuliert",
+      "severity": "critical | high | medium | low | info",
+      "status": "neu | bekannt",
+      "condition": "nur bei bekannt: unter welcher Bedingung hingenommen",
+      "points": [4, 34],
+      "location": ["server.js:2702 /api/generate"],
+      "effort": "klein | mittel | groß",
+      "description": "Was ist das Problem. `Code` in Backticks.",
+      "evidence": "Wie belegt: Datei:Zeile, Suchmuster, warum die Suche scharf war. NIE ein Geheimniswert.",
+      "impact_now": "Schaden heute (Prototyp, eigenes WLAN)",
+      "impact_prod": "Schaden ab öffentlichem Betrieb",
+      "recommendation": "Kleinste Änderung, die den Befund schließt, mit Stelle.",
+      "touches_prompt_chain": false
+    }
+  ],
+  "passed": [
+    { "points": [7], "check": "Was geprüft wurde", "why_sharp": "Warum die Prüfung hätte anschlagen können" }
+  ],
+  "not_checked": [
+    { "what": "…", "why": "…", "how": "So prüft es ein Mensch" }
+  ]
+}
 ```
-# Sicherheitscheck <JJJJ-MM-TT> — <Branch> @ <kurzer Commit>
 
-## Neu seit dem letzten Lauf
-(oder „nichts Neues“ — mit dem, was geprüft wurde)
-
-## ❌ Handeln
-| # | Befund | Beleg (Datei:Zeile) | Schaden heute / ab Betrieb | Vorschlag |
-
-## ⚠️ Beobachten
-| # | … |
-
-## Bekannt und entschieden
-- S1 … (Bedingung noch erfüllt: ja/nein, woran gesehen)
-
-## ✅ Geprüft, in Ordnung
-Eine Zeile je Punkt: was geprüft, warum die Prüfung hätte anschlagen können.
-
-## Nicht geprüft
-Was und warum (z. B. „Supabase-Dashboard: kein Zugang, bitte selbst: …“).
-```
-
-Vorschläge sind Vorschläge: Nenne die Stelle und die kleinste Änderung,
-die den Befund schließt. Berührt ein Vorschlag die Prompt-Kette oder die
-Bild-/Filmgenerierung (Prompt-Bau, Modell-Slugs, Anfragekörper an fal,
-DeepSeek oder Gemini, Regie-Logik), sag das ausdrücklich dazu — dort
-entscheidet nicht der Sicherheitscheck allein.
+- **`key`** bleibt über Läufe gleich für denselben Befund (z. B.
+  `S1-paid-routes-open`, `cors-null-origin`) — daran erkennt das Skript
+  „offen seit letztem Lauf“ und „behoben“. Die Schlüssel des letzten Laufs
+  bekommst du mitgegeben; verwende sie wieder.
+- **`severity`** nach dieser Skala, gemessen am Schaden für dieses Projekt:
+  - `critical` — heute ohne Voraussetzung ausnutzbar: Geldverlust,
+    Personendaten Dritter (Gesichter = DSGVO Art. 9), Kontoübernahme.
+  - `high` — mit geringer Voraussetzung ausnutzbar (gleiches WLAN, erratbare
+    Adresse), oder kritisch mit dem nächsten geplanten Schritt (Hosting,
+    TestFlight extern, Store).
+  - `medium` — mehrere Voraussetzungen oder Insiderwissen; Schaden begrenzt.
+  - `low` — Härtung, Tiefenverteidigung.
+  - `info` — Beobachtung, Frage an Hanni/Anton.
+- **`status`**: `neu` oder `bekannt` (siehe „Bekannte, bewusst entschiedene
+  Befunde“, dann mit `condition`). „Offen seit letztem Lauf“ setzt das
+  Skript selbst.
+- **`touches_prompt_chain`**: `true`, wenn die Empfehlung Prompt-Bau,
+  Modell-Slugs, Anfragekörper an fal/DeepSeek/Gemini oder die Regie-Logik
+  berührt — dort entscheidet nicht der Sicherheitscheck allein.
+- Stufe-C-Punkte ohne eingetretenen Auslöser sind keine Befunde; sie
+  gehören höchstens als eine Zeile nach `passed`.

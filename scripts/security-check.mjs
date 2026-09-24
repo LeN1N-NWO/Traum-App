@@ -167,6 +167,9 @@ if (args.has("--no-history")) {
   const publicNames = [];
   for (const f of tracked) {
     if (!/\.(js|jsx|ts|tsx|mjs|json)$/.test(f)) continue;
+    // Nur was ins Bundle kommt: Tests und Skripte nennen solche Namen als
+    // Beispiel (securityScan.test.js) und werden nie ausgeliefert.
+    if (/\.test\.[jt]sx?$/.test(f) || f.startsWith("scripts/")) continue;
     const s = readFileSync(join(ROOT, f), "utf8");
     for (const m of s.matchAll(/\b(EXPO_PUBLIC_[A-Z0-9_]+|VITE_[A-Z0-9_]+)/g)) publicNames.push(m[1]);
   }
@@ -229,7 +232,7 @@ else {
   report([4, 5, 9, 34], "Anmeldepflicht der kostenpflichtigen Routen", paidOpen.length ? "fail" : "ok",
     `${routes.length} Routen, ${routes.length - open.length} hinter verifyAccessToken, ${paidOpen.length} kostenpflichtige OHNE Anmeldung`,
     [
-      ...paidOpen.map((r) => `💸 ${r.method} ${r.path} (server.js:${r.line}, Klasse ${classOf(r.path) || "WebSocket"})`),
+      ...paidOpen.map((r) => `€ ${r.method} ${r.path} (server.js:${r.line}, Klasse ${classOf(r.path) || "WebSocket"})`),
       ...open.filter((r) => !paidOpen.includes(r) && !DEV_DATA[r.path])
         .map((r) => `   ${r.method} ${r.path} (server.js:${r.line}, ${FREE[r.path] || "Klasse " + (classOf(r.path) ?? "ungebremst")})`),
     ]);
