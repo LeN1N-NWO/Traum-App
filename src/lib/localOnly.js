@@ -17,6 +17,11 @@
  * X-Forwarded-For bzw. Forwarded — trägt die Anfrage eine davon, ist sie
  * weitergereicht und damit nicht lokal. Andersherum ist das ungefährlich:
  * Wer die Kopfzeile selbst setzt, sperrt sich nur selbst aus.
+ *
+ * ⚠ Grenze: Vites Proxy setzt keine solche Kopfzeile. Lauscht Vite im WLAN
+ * (`vite --host`, `server.host` in vite.config.js), reicht er Anfragen
+ * fremder Geräte als localhost weiter, und die Sperre greift nicht. Heute
+ * startet scripts/dev.mjs Vite ohne --host (nur localhost).
  */
 
 const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
@@ -29,5 +34,7 @@ const FORWARD_HEADERS = ["x-forwarded-for", "forwarded", "x-real-ip"];
  */
 export function isLocalRequest(address, headers) {
   if (!LOOPBACK.has(String(address || ""))) return false;
-  return !FORWARD_HEADERS.some((h) => headers?.get?.(h));
+  // Ohne lesbare Kopfzeilen lässt sich „nicht weitergereicht“ nicht belegen → gesperrt.
+  if (typeof headers?.get !== "function") return false;
+  return !FORWARD_HEADERS.some((h) => headers.get(h));
 }

@@ -27,15 +27,15 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import {
-  selfTest, scanSecrets, jwtRole, SECRET_PATTERNS, trackedEnvFiles, envShape,
+  selfTest, scanSecrets, SECRET_PATTERNS, trackedEnvFiles, envShape,
   secretLookingPublicVars, rlsGaps, publicGrants, routeInventory, corsOrigins,
   chargeArmed, errorLeaks, sensitiveLogs, headersSet, SECURITY_HEADERS,
   bindsAllInterfaces, auditCounts, localOnlyPaths,
 } from "../src/lib/securityScan.js";
-import { classOf } from "../src/lib/gatekeeper.js";
+import { classOf, LIMITS } from "../src/lib/gatekeeper.js";
 
 const args = new Set(process.argv.slice(2));
-const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
+const ROOT = resolve(import.meta.dir, "..");
 
 function sh(cmd, argv, opts = {}) {
   const r = spawnSync(cmd, argv, { cwd: opts.cwd || ROOT, encoding: "utf8", maxBuffer: 1024 * 1024 * 1024, env: { ...process.env, LC_ALL: "en_US.UTF-8" } });
@@ -61,29 +61,28 @@ if (broken.length) {
 /* ── 1. Geheimnisse in versionierten Dateien (Fragen 1, 3, 14) ─────────── */
 const tracked = sh("git", ["ls-files", "-z"]).out.split("\0").filter(Boolean);
 {
-  let scanned = 0;
+  let scanned = 0, binary = 0;
+  const big = [];
   const hits = [];
   for (const f of tracked) {
     const abs = join(ROOT, f);
     let st;
     try { st = statSync(abs); } catch { continue; }
-    if (!st.isFile() || st.size > 3_000_000) continue;
+    if (!st.isFile()) continue;
+    if (st.size > 3_000_000) { big.push(f); continue; }
     const buf = readFileSync(abs);
-    if (buf.includes(0)) continue; // binär
+    if (buf.includes(0)) { binary++; continue; }
     scanned++;
     for (const h of scanSecrets(buf.toString("utf8"))) {
-      let note = "";
-      if (h.pattern === "jwt") {
-        const line = buf.toString("utf8").split("\n")[h.line - 1];
-        const tok = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.exec(line)?.[0];
-        note = ` (Rolle: ${jwtRole(tok || "") ?? "unbekannt"})`;
-      }
+      const note = h.pattern === "jwt" ? ` (Rolle: ${h.role ?? "unbekannt"})` : "";
       hits.push(`${f}:${h.line} — ${label(h.pattern)}${note}`);
     }
   }
+  // Übersprungenes wird genannt, nicht verschwiegen — sonst hieße „kein Fund“ auch „nicht gelesen“.
+  const skipped = `${binary} binär übersprungen${big.length ? `, ${big.length} über 3 MB NICHT gelesen: ${big.slice(0, 3).join(", ")}` : ""}`;
   if (!scanned) report([1, 3], "Geheimnisse in versionierten Dateien", "skip", "keine Datei gelesen — Lauf kaputt?");
-  else if (hits.length) report([1, 3, 14], "Geheimnisse in versionierten Dateien", "fail", `${hits.length} Fund(e) in ${scanned} Dateien`, hits);
-  else report([1, 3, 14], "Geheimnisse in versionierten Dateien", "ok", `${scanned} Textdateien geprüft, kein Fund`);
+  else if (hits.length) report([1, 3, 14], "Geheimnisse in versionierten Dateien", "fail", `${hits.length} Fund(e) in ${scanned} Dateien (${skipped})`, hits);
+  else report([1, 3, 14], "Geheimnisse in versionierten Dateien", big.length ? "warn" : "ok", `${scanned} Textdateien geprüft, kein Fund (${skipped})`);
 }
 
 /* ── 2. Geheimnisse im Git-Verlauf (Frage 13) ──────────────────────────── */
@@ -100,7 +99,10 @@ if (args.has("--no-history")) {
     let commits = 0, added = 0, commit = "", file = "", buf = [];
     const hits = new Map();
     const flush = () => {
-      if (buf.length && !/securityScan(\.test)?\.js$/.test(file)) {
+      /* Keine Ausnahme für securityScan*.js: Deren Proben sind zusammengesetzt
+         und finden sich selbst nicht (securityScan.test.js prüft das). Eine
+         Ausnahme wäre ein blinder Fleck für echte Schlüssel in genau diesen Dateien. */
+      if (buf.length) {
         for (const h of scanSecrets(buf.join("\n"))) {
           const key = `${file} — ${label(h.pattern)}`;
           if (!hits.has(key)) hits.set(key, new Set());
@@ -226,7 +228,12 @@ else {
   };
   const localOnly = new Set(localOnlyPaths(serverSrc));
   const devRoutes = routes.filter((r) => DEV_DATA[r.path]);
-  const devOpen = devRoutes.filter((r) => !r.authed && !localOnly.has(r.path));
+  /* Die Lokal-Sperre hält nur, solange Vite nicht im WLAN lauscht: Sein
+     Proxy reicht fremde Anfragen als localhost weiter (src/lib/localOnly.js). */
+  const readIf = (f) => (existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f), "utf8") : "");
+  const viteOnLan = /^\s*host\s*:/m.test(readIf("vite.config.js"))
+    || /(?:^|[\s"'])--host\b/.test(readIf("package.json") + readIf("scripts/dev.mjs"));
+  const devOpen = devRoutes.filter((r) => !r.authed && (viteOnLan || !localOnly.has(r.path)));
   const paidOpen = open.filter((r) => !FREE[r.path] && !DEV_DATA[r.path] && !localOnly.has(r.path)
     && (["generate", "text"].includes(classOf(r.path)) || r.path === "/api/voice"));
   report([4, 5, 9, 34], "Anmeldepflicht der kostenpflichtigen Routen", paidOpen.length ? "fail" : "ok",
@@ -238,7 +245,9 @@ else {
     ]);
   report([6, 10, 33], "Entwicklungs-Routen mit Personendaten", devOpen.length ? "fail" : "ok",
     devOpen.length
-      ? `${devOpen.length} Route(n) ohne Anmeldung — im Client nur hinter import.meta.env.DEV, der Server selbst sperrt sie nicht`
+      ? viteOnLan
+        ? `${devOpen.length} Route(n): Vite lauscht im WLAN (host/--host) — sein Proxy hebelt die Lokal-Sperre aus`
+        : `${devOpen.length} Route(n) ohne Anmeldung — im Client nur hinter import.meta.env.DEV, der Server selbst sperrt sie nicht`
       : devRoutes.length
         ? `${devRoutes.length} Route(n), alle nur von diesem Rechner erreichbar (isLocalRequest, src/lib/localOnly.js)`
         : "keine Entwicklungs-Routen mehr im Server",
@@ -272,12 +281,12 @@ else {
     `${hs.length}/${SECURITY_HEADERS.length} gesetzt${hs.length ? ": " + hs.join(", ") : ""} — Pflicht, sobald die Web-Oberfläche öffentlich ausgeliefert wird; kann auch der TLS-Proxy setzen`,
     SECURITY_HEADERS.filter((h) => !hs.includes(h)).map((h) => "fehlt: " + h));
 
-  report([29], "Erreichbarkeit des Servers", bindsAllInterfaces(serverSrc) ? "warn" : "ok",
-    bindsAllInterfaces(serverSrc) ? "Bun.serve ohne hostname → lauscht auf ALLEN Schnittstellen: jedes Gerät im selben WLAN erreicht die Geld-Routen" : "an eine Adresse gebunden");
+  const allIfaces = bindsAllInterfaces(serverSrc);
+  report([29], "Erreichbarkeit des Servers", allIfaces ? "warn" : "ok",
+    allIfaces ? "Bun.serve ohne hostname → lauscht auf ALLEN Schnittstellen: jedes Gerät im selben WLAN erreicht die Geld-Routen" : "an eine Adresse gebunden");
 
-  const gk = readFileSync(join(ROOT, "src/lib/gatekeeper.js"), "utf8");
-  const limits = [...gk.matchAll(/^\s{2}(\w+):\s*\{\s*windowMs:\s*([\d_]+),\s*max:\s*(\d+)/gm)].map((m) => `${m[1]}: ${m[3]}/${Number(m[2].replace(/_/g, "")) / 1000}s`);
-  report([28], "Mengenbremse", limits.length >= 4 ? "info" : "warn",
+  const limits = Object.entries(LIMITS).map(([k, l]) => `${k}: ${l.max}/${l.windowMs / 1000}s`);
+  report([28], "Mengenbremse", LIMITS.auth ? "info" : "warn",
     `${limits.join(" · ")} — je IP und im Arbeitsspeicher (S5): hinter einem Proxy teilen sich alle einen Eimer, Neustart setzt zurück`);
 }
 
@@ -291,9 +300,14 @@ else {
     const { tables, gaps } = rlsGaps(sql);
     report([7, 8, 49], "Row Level Security", gaps.length ? "fail" : tables ? "ok" : "skip",
       `${tables} Tabelle(n) in ${files.length} Migration(en), ${gaps.length} ohne RLS`, gaps);
+    /* Kein ✅ möglich: Supabase gibt anon/authenticated über Default
+       Privileges Rechte auf jede neue Tabelle in public, ohne dass eine
+       Migration es sagt. „Keine Grants in den Migrationen“ bewiese also
+       nichts — der Schutz ist RLS (Prüfung oben). */
     const grants = publicGrants(sql);
-    report([7, 41], "Tabellenrechte an anon/authenticated", grants.length ? "warn" : "ok",
-      grants.length ? `${grants.length} Recht(e) — jedes davon muss eine RLS-Richtlinie haben` : "keine Tabellenrechte an öffentliche Rollen",
+    report([7, 41], "Tabellenrechte an anon/authenticated", grants.length ? "warn" : "info",
+      grants.length ? `${grants.length} ausdrückliche(s) Recht(e) — jedes davon muss eine RLS-Richtlinie haben`
+        : "keine ausdrücklichen Grants — Supabase vergibt trotzdem Rechte per Default Privileges; Schutz ist allein RLS",
       grants);
     report([7, 8], "Stimmen die Migrationen mit der Datenbank überein?", "info",
       "nicht mechanisch prüfbar ohne Admin-Zugang (bewusst nicht in der .env). Hanni prüft im SQL-Editor: supabase/tests/credits_invariants.sql");
@@ -304,10 +318,11 @@ else {
 {
   const dreams = tracked.filter((f) => f.startsWith("data/traeume/"));
   const media = tracked.filter((f) => /^media\//.test(f));
-  const status = visibility === "PUBLIC" && (dreams.length || media.length) ? "warn" : "ok";
+  // Unbekannte Sichtbarkeit (gh nicht angemeldet) ist kein „privat“ — sonst wäre das ✅ geraten.
+  const status = (dreams.length || media.length) && visibility !== "PRIVATE" ? "warn" : "ok";
   report([13, 48], "Traumtexte/Medien im Repository", status,
     `${dreams.length} Traum-Datei(en), ${media.length} Mediendatei(en) versioniert · Repo ist ${visibility}`,
-    dreams.length && visibility === "PUBLIC" ? ["Antons Entscheid 22.08.: Testdaten, sichtbar für alle — vor dem Launch Ordner UND Ladepfad in AppState.jsx entfernen (steht in .gitignore)"] : []);
+    dreams.length && visibility !== "PRIVATE" ? ["Antons Entscheid 22.08.: Testdaten, sichtbar für alle — vor dem Launch Ordner UND Ladepfad in AppState.jsx entfernen (steht in .gitignore)"] : []);
 }
 
 /* ── 9. Abhängigkeiten (Fragen 37, 38) ─────────────────────────────────── */
@@ -334,7 +349,7 @@ if (args.has("--json")) {
   console.log(JSON.stringify({ root: ROOT, visibility, results }, null, 2));
 } else {
   console.log(`Sicherheitscheck (mechanisch) — ${ROOT}`);
-  console.log(`Selbsttest: alle ${SECRET_PATTERNS.length} Suchmuster und 9 Detektoren scharf\n`);
+  console.log(`Selbsttest bestanden: ${SECRET_PATTERNS.length} Suchmuster und alle Detektoren finden ihre Probe\n`);
   for (const r of results) {
     console.log(`${LABEL[r.status]} [${r.ids.join(",")}] ${r.title}: ${r.detail}`);
     for (const e of r.evidence.slice(0, 25)) console.log(`      · ${e}`);

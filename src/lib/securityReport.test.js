@@ -36,19 +36,25 @@ test("sortFindings: kritisch zuerst, innerhalb der Stufe neu vor bekannt", () =>
   expect(s.map((x) => x.key)).toEqual(["c", "b", "a", "d"]);
 });
 
-test("compareRuns: neu, behoben, höher eingestuft", () => {
+describe("compareRuns", () => {
   const prev = report([f("A", "low"), f("B", "high")]);
   const now = report([f("A", "critical"), f("C", "medium")]);
-  expect(compareRuns(now, prev)).toEqual({
-    since: "2026-09-24", added: ["C"], resolved: [{ key: "B", title: "Befund B", severity: "high" }], escalated: ["A"],
-  });
-  expect(compareRuns(now, null)).toBeNull();
+  test("neu", () => { expect(compareRuns(now, prev).added).toEqual(["C"]); });
+  test("behoben", () => { expect(compareRuns(now, prev).resolved).toEqual([{ key: "B", title: "Befund B", severity: "high" }]); });
+  test("höher eingestuft", () => { expect(compareRuns(now, prev).escalated).toEqual(["A"]); });
+  test("herabgestuft zählt nicht als höher", () => { expect(compareRuns(prev, now).escalated).toEqual([]); });
+  test("ohne früheren Lauf null", () => { expect(compareRuns(now, null)).toBeNull(); });
 });
 
-test("countBySeverity und overallRating", () => {
-  const xs = [f("a", "high"), f("b", "high"), f("c", "info")];
-  expect(countBySeverity(xs)).toEqual({ critical: 0, high: 2, medium: 0, low: 0, info: 1 });
-  expect(overallRating(xs).label).toBe("Hoch");
+test("countBySeverity zählt je Stufe", () => {
+  expect(countBySeverity([f("a", "high"), f("b", "high"), f("c", "info")])).toEqual({ critical: 0, high: 2, medium: 0, low: 0, info: 1 });
+});
+
+test("overallRating ist die höchste Stufe", () => {
+  expect(overallRating([f("a", "low"), f("b", "high")]).label).toBe("Hoch");
+});
+
+test("overallRating ohne Befunde", () => {
   expect(overallRating([]).id).toBe("none");
 });
 
@@ -63,14 +69,22 @@ describe("renderReportHtml", () => {
     expect(html.indexOf("Kritischer Fund")).toBeLessThan(html.indexOf("Niedriger Fund"));
     expect(html).toContain("F-01");
   });
-  test("Vertraulichkeitsvermerk, Deckblatt-Urteil und Anhang", () => {
-    const html = renderReportHtml(report([f("K", "critical")]), { results: [{ ids: [2], title: "Env", status: "ok", detail: "gut", evidence: [] }] });
-    expect(html).toContain("VERTRAULICH");
-    expect(html).toContain("Gesamtbewertung");
-    expect(html).toContain("Anhang A");
+  test("trägt den Vertraulichkeitsvermerk", () => {
+    expect(renderReportHtml(report([]))).toContain("VERTRAULICH");
   });
-  test("Prompt-Ketten-Hinweis nur, wenn gesetzt", () => {
-    expect(renderReportHtml(report([f("P", "low", "neu", { touches_prompt_chain: true })]))).toContain("Prompt-Kette");
+  test("Deckblatt nennt die höchste Stufe als Gesamtbewertung", () => {
+    const html = renderReportHtml(report([f("K", "critical"), f("L", "low")]));
+    expect(html).toMatch(/Gesamtbewertung[\s\S]*?class="big"[^>]*>Kritisch</);
+  });
+  test("Anhang nur mit Skriptausgabe", () => {
+    const mech = { results: [{ ids: [2], title: "Env", status: "ok", detail: "gut", evidence: [] }] };
+    expect(renderReportHtml(report([]), mech)).toContain("Anhang A");
+    expect(renderReportHtml(report([]))).not.toContain("Anhang A");
+  });
+  test("Prompt-Ketten-Hinweis, wenn gesetzt", () => {
+    expect(renderReportHtml(report([f("P", "low", "neu", { touches_prompt_chain: true })]))).toContain("berührt die Prompt-Kette");
+  });
+  test("kein Prompt-Ketten-Hinweis, wenn nicht gesetzt", () => {
     expect(renderReportHtml(report([f("P", "low")]))).not.toContain("berührt die Prompt-Kette");
   });
 });
@@ -79,8 +93,11 @@ test("esc", () => {
   expect(esc(`<a href="x">'&'</a>`)).toBe("&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;");
 });
 
-test("cssStr bricht weder die CSS-Regel noch die style-Sektion", () => {
+test("cssStr maskiert Anführungszeichen, Backslash, Umbruch und <", () => {
   expect(cssStr('a"b\\c\n</style>')).toBe('a\\"b\\\\c \\3c /style>');
+});
+
+test("Metadaten können die style-Sektion nicht verlassen", () => {
   const html = renderReportHtml({ ...report([]), meta: { ...report([]).meta, branch: 'x"}</style><script>' } });
   expect(html).not.toContain("</style><script>");
 });

@@ -26,3 +26,8 @@ test("127.0.0.10 und ähnliche Tricks zählen nicht", () => {
   expect(isLocalRequest("127.0.0.10", h())).toBe(false);
   expect(isLocalRequest(" 127.0.0.1", h())).toBe(false);
 });
+
+test("ohne lesbare Kopfzeilen gesperrt (fail closed)", () => {
+  expect(isLocalRequest("127.0.0.1", undefined)).toBe(false);
+  expect(isLocalRequest("127.0.0.1", {})).toBe(false);
+});

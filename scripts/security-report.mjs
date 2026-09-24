@@ -19,10 +19,11 @@
  * Ausgang: 0 = PDF geschrieben · 1 = Bericht ungültig/unsicher · 2 = Aufruf/Umgebung
  */
 
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, mkdtempSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { validateReport, compareRuns, renderReportHtml, countBySeverity, SEVERITIES } from "../src/lib/securityReport.js";
 import { scanSecrets } from "../src/lib/securityScan.js";
 
@@ -53,16 +54,19 @@ if (problems.length) {
   for (const p of problems) console.error("   - " + p);
   process.exit(1);
 }
-const leaks = scanSecrets(raw);
-if (leaks.length) {
-  console.error(`❌ Der Bericht enthält ${leaks.length} geheimnisartige Stelle(n) (Zeilen ${leaks.map((l) => l.line).join(", ")}, Muster ${[...new Set(leaks.map((l) => l.pattern))].join(", ")}).`);
-  console.error("   Kein PDF. Wert aus dem Bericht entfernen, nur Datei:Zeile nennen.");
-  process.exit(1);
-}
 const mechPath = opt("--mech");
-let mech = null;
+let mech = null, mechRaw = "";
 if (mechPath) {
-  try { mech = readJson(mechPath).data; } catch (e) { console.error(`⚠ --mech nicht lesbar, Anhang entfällt: ${e.message}`); }
+  try { ({ raw: mechRaw, data: mech } = readJson(mechPath)); } catch (e) { console.error(`⚠ --mech nicht lesbar, Anhang entfällt: ${e.message}`); }
+}
+/* Beide Eingaben gehen ins PDF, also werden beide gescannt — auch die
+   Skriptausgabe, obwohl sie keine Werte enthalten soll: „soll“ ist kein Beleg. */
+for (const [name, text] of [["Bericht", raw], ["--mech", mechRaw]]) {
+  const leaks = scanSecrets(text);
+  if (!leaks.length) continue;
+  console.error(`❌ ${name} enthält ${leaks.length} geheimnisartige Stelle(n) (Zeilen ${leaks.map((l) => l.line).join(", ")}, Muster ${[...new Set(leaks.map((l) => l.pattern))].join(", ")}).`);
+  console.error("   Kein PDF. Wert entfernen, nur Datei:Zeile nennen.");
+  process.exit(1);
 }
 
 /* ── Ablage: außerhalb von Git, sonst nicht ─────────────────────────────── */
@@ -80,7 +84,7 @@ mkdirSync(outDir, { recursive: true, mode: 0o700 });
 chmodSync(outDir, 0o700);
 
 /* ── Vergleich mit dem letzten Lauf ─────────────────────────────────────── */
-const previousFile = readdirSync(outDir).filter((f) => /^\d{4}-\d{2}-\d{2}-\d{4,6}\.json$/.test(f)).sort().pop();
+const previousFile = readdirSync(outDir).filter((f) => /^\d{4}-\d{2}-\d{2}-\d{6}\.json$/.test(f)).sort().pop();
 let previous = null;
 if (previousFile) {
   try { previous = JSON.parse(readFileSync(join(outDir, previousFile), "utf8")); } catch { /* kaputter Altbericht: dann ohne Vergleich */ }
@@ -111,16 +115,47 @@ if (!existsSync(chrome)) {
   console.error(`❌ Chrome nicht gefunden (${chrome}). Pfad über CHROME=… angeben.`);
   process.exit(2);
 }
-const run = spawnSync(chrome, [
+/* Nicht auf das Ende von Chrome warten, sondern auf ein FERTIGES PDF.
+ * Gemessen am 24.09.2026: Chrome headless schreibt das PDF in ~2 s und
+ * beendet sich danach erst, wenn man ihn beendet — die erste Fassung wartete
+ * per spawnSync bis zur Zeitgrenze (60 s) und meldete dann „Erfolg“.
+ * Fertig heißt: Datei endet auf %%EOF und ist zweimal hintereinander gleich groß. */
+/* Eigene Prozessgruppe (detached), damit am Ende die GANZE Gruppe fällt:
+ * Chrome startet Hilfsprozesse, und ein kill() nur auf den Hauptprozess ließ
+ * sie weiterlaufen — acht verwaiste Prozesse nach drei Testläufen. */
+const chromeProc = spawn(chrome, [
   "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
   `--user-data-dir=${join(work, "profil")}`,
-  "--no-pdf-header-footer", "--print-to-pdf-no-header",
-  `--print-to-pdf=${pdfPath}`, `file://${htmlPath}`,
-], { encoding: "utf8", timeout: 60_000 });
+  "--no-pdf-header-footer",
+  `--print-to-pdf=${pdfPath}`, pathToFileURL(htmlPath).href,
+], { detached: true, stdio: ["ignore", "ignore", "pipe"] });
+let chromeErr = "";
+chromeProc.stderr.on("data", (d) => { chromeErr = (chromeErr + d).slice(-4000); });
+const exited = new Promise((r) => chromeProc.once("exit", r));
+const killGroup = () => { try { process.kill(-chromeProc.pid, "SIGKILL"); } catch { /* schon weg */ } };
+
+function pdfComplete(path, lastSize) {
+  if (!existsSync(path)) return { done: false, size: -1 };
+  const size = statSync(path).size;
+  if (size < 1000 || size !== lastSize) return { done: false, size };
+  const tail = readFileSync(path).subarray(-1024).toString("latin1");
+  return { done: tail.includes("%%EOF"), size };
+}
+
+const deadline = Date.now() + 60_000;
+let done = false, lastSize = -1;
+while (Date.now() < deadline) {
+  await Bun.sleep(250);
+  ({ done, size: lastSize } = pdfComplete(pdfPath, lastSize));
+  if (done || (chromeProc.exitCode !== null && !existsSync(pdfPath))) break;
+}
+killGroup();
+await Promise.race([exited, Bun.sleep(2000)]);
 rmSync(work, { recursive: true, force: true });
 
-if (!existsSync(pdfPath) || statSync(pdfPath).size < 1000) {
-  console.error("❌ Chrome hat kein PDF geschrieben:\n" + (run.stderr || "").split("\n").slice(-5).join("\n"));
+if (!done) {
+  rmSync(pdfPath, { force: true }); // kein halbes PDF liegen lassen
+  console.error("❌ Chrome hat kein vollständiges PDF geschrieben:\n" + chromeErr.split("\n").slice(-5).join("\n"));
   process.exit(2);
 }
 writeFileSync(jsonPath, JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });

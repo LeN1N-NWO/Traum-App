@@ -3,6 +3,45 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-24 20:30 — Hanni — Branch `session/2026-09-24-hanni-3` — Kritische Durchsicht des Sicherheitschecks
+
+Auf Hannis Bitte alles noch einmal gelesen. **Gefundene Fehler (alle behoben):**
+- **dist/-Scan war blind:** `scanSecrets` übersprang Zeilen > 5000 Zeichen —
+  ein Vite-Bundle ist eine Zeile. Jetzt ganz gelesen, alle Treffer je Zeile.
+- **Chrome beendete sich nie:** Das PDF war nach Sekunden da, das Skript
+  wartete bis zur 60-s-Grenze und meldete dann Erfolg; `kill()` ließ acht
+  Hilfsprozesse verwaist zurück. Jetzt: warten auf `%%EOF` + stabile Größe,
+  dann die ganze Prozessgruppe beenden. 64 s → 11 s, 0 Reste.
+- **Falsches ✅ bei Tabellenrechten:** Supabase vergibt per Default
+  Privileges Rechte an anon/authenticated, ohne dass eine Migration es sagt.
+  „Keine Grants gefunden“ bewies nichts → jetzt ℹ️ mit Begründung.
+- **errorLeaks übersah den echten Fall** (`json(checkResult({ error: String(e?.message) }))`).
+- **Routen-Inventar zählte den Sperrblock als 2 Phantom-Routen**; Kommentare
+  mit `url.pathname` wären ebenfalls Routen geworden.
+- **Blinder Fleck im Verlaufs-Scan:** Ausnahme für `securityScan*.js`
+  entfernt — ein Test belegt, dass die Dateien sich selbst nicht finden.
+- **envShape** hielt Base64-Folgezeilen eines mehrzeiligen Werts für Namen.
+- **isLocalRequest** ließ ohne Kopfzeilen-Objekt durch → jetzt gesperrt.
+- Unbekannte Repo-Sichtbarkeit ergab „ok“ statt ⚠; `--mech` wurde nicht auf
+  Geheimnisse gescannt; `ROOT` brach bei Leerzeichen im Pfad.
+- **Neue Grenze erkannt und überwacht:** Lauscht Vite im WLAN (`--host`),
+  hebelt sein Proxy die Lokal-Sperre aus → Check wird rot (Gegenprobe belegt).
+
+**Redundanzen raus:** Mengenbremse per Import von `LIMITS` statt Regex über
+den Quelltext; JWT-Rolle aus `scanSecrets` statt zweitem Muster im Läufer;
+doppelter `bindsAllInterfaces`-Aufruf; veraltetes Chrome-Flag; „9 Detektoren“ fest verdrahtet.
+
+**Tests:** getrennt in Einheiten (feste Eingaben, je Test ein Verhalten) und
+Invarianten gegen den echten Code (nur Sicherheitsaussagen). Entfernt: zwei
+Tests, die den Ist-Zustand festschrieben — einer davon „journal-backup POST
+ist NICHT angemeldet“, wäre also rot geworden, sobald jemand die Lücke
+schließt. Neu: `scripts/security-report.test.js` ruft das Skript echt auf,
+je Test eigenes Wegwerf-Verzeichnis, nie `~/Claude/Sicherheitsberichte`.
+Mutationstests: jede der drei neuen Selbsttest-Proben wird bei kaputter
+Logik rot (eine war es zuerst nicht → Probe ergänzt). 109 Tests in den
+Sicherheitsmodulen grün; die 3 roten der Gesamtsuite sind fehlende
+`node_modules` in diesem Worktree (react, @capacitor/core).
+
 ## 2026-09-24 19:55 — Hanni — Branch `session/2026-09-24-hanni-3` — Sicherheitsbericht als PDF
 
 **Was:** `/security-check` liefert jetzt einen PDF-Bericht im Stil eines

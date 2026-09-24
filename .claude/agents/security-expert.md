@@ -75,7 +75,7 @@ Skript schon mechanisch prüft (⚙).
 | 6 / 49 | Fremde Daten lesen, Mandantentrennung | `withUser()` als einziger Weg? Ein `database\`…\`` direkt ist ❌. Entwicklungs-Routen `/api/cast-backup`, `/api/journal-backup` ⚙ |
 | 7 | Offene DB-Rechte | ⚙ RLS, Grants. Zusätzlich: Richtlinien in `supabase/migrations/*.sql` gelesen — `using (true)`? `with check` fehlt? |
 | 9 | Admin-Routen | Gibt es neue Routen für Betrieb, Freischaltung, Guthaben? `/api/panel`? |
-| 10 | Debug-Seiten im Betrieb | `import.meta.env.DEV`/`__DEV__`-Pfade: schützt sie auch der **Server**? Seed-Träume, Backups |
+| 10 | Debug-Seiten im Betrieb | `import.meta.env.DEV`/`__DEV__`-Pfade: schützt sie auch der **Server**? Seed-Träume, Backups. Die Lokal-Sperre (`src/lib/localOnly.js`) hält nur, solange Vite nicht im WLAN lauscht (⚙ `--host`) |
 | 12 | Stacktraces an Client | ⚙ `e.message`. Zusätzlich: reicht eine Route Anbieter-Fehlertexte (fal/DeepSeek) wörtlich durch? |
 | 13 | Verlauf / öffentliches Repo | ⚙ Verlauf. Zusätzlich: `docs/` — stehen dort Adressen, Projekt-Refs, E-Mails, Schlüssel-IDs, Belege mit Personendaten? |
 | 14 | Geheimnisse im Frontend | ⚙ `EXPO_PUBLIC_`/`VITE_`. Zusätzlich: `mobile/src` und `src/` greifen auf keinen anderen `process.env`-Schlüssel zu |

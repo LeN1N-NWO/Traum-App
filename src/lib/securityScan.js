@@ -103,24 +103,38 @@ function hasPemBody(lines, i, index) {
   return /-----\s*\n?\s*[A-Za-z0-9+/=]{40,}/.test(rest.replace(/-----BEGIN [A-Z ]*PRIVATE KEY/, ""));
 }
 
+const GLOBAL = new Map(SECRET_PATTERNS.map((p) => [p.id, new RegExp(p.re.source, "g")]));
+
 /**
- * Durchsucht einen Text nach Geheimnissen. Gibt NIE den Wert zurück.
- * @returns {{ pattern: string, line: number }[]}
+ * Durchsucht einen Text nach Geheimnissen. Gibt NIE den Wert zurück — bei
+ * einem JWT nur dessen Rolle, die kein Geheimnis ist.
+ *
+ * Jede Zeile wird ganz gelesen, auch eine Million Zeichen lang: Ein
+ * Vite-Bundle IST eine einzige Zeile, und genau dort landet ein Schlüssel,
+ * der versehentlich über VITE_… ins Frontend gerät (Checklisten-Punkt 14).
+ * Die erste Fassung übersprang lange Zeilen und war im dist/-Scan damit blind.
+ *
+ * Je Zeile und Muster höchstens ein Treffer, und `env-assign` nur, wenn kein
+ * genaueres Muster dieselbe Zeile schon gemeldet hat — sonst zählte
+ * `DATABASE_URL=postgres://…` doppelt.
+ * @returns {{ pattern: string, line: number, role?: string | null }[]}
  */
 export function scanSecrets(text) {
   const hits = [];
   const lines = String(text).split("\n");
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.length > 5000) continue; // eingebettete Binärdaten, Minifikate
+    const found = new Map();
     for (const p of SECRET_PATTERNS) {
-      const m = p.re.exec(line);
-      if (!m) continue;
-      const value = p.valueGroup ? m[p.valueGroup] : m[0];
-      if (PLACEHOLDER.test(value) || WORDY.test(value)) continue;
-      if (p.needsBody && !hasPemBody(lines, i, m.index)) continue;
-      hits.push({ pattern: p.id, line: i + 1 });
+      if (p.id === "env-assign" && found.size) continue;
+      for (const m of lines[i].matchAll(GLOBAL.get(p.id))) {
+        const value = p.valueGroup ? m[p.valueGroup] : m[0];
+        if (PLACEHOLDER.test(value) || WORDY.test(value)) continue;
+        if (p.needsBody && !hasPemBody(lines, i, m.index)) continue;
+        found.set(p.id, p.id === "jwt" ? { role: jwtRole(m[0]) } : {});
+        break;
+      }
     }
+    for (const [pattern, extra] of found) hits.push({ pattern, line: i + 1, ...extra });
   }
   return hits;
 }
@@ -141,18 +155,38 @@ export function jwtRole(token) {
 
 /** Welche Pfade aus `git ls-files` sind Geheimnis-Dateien? */
 export function trackedEnvFiles(paths) {
-  return paths.filter((p) => /(^|\/)\.env(\.[^/]+)?$/.test(p) && !/\.env\.example$/.test(p)
+  return paths.filter((p) => (/(^|\/)\.env(\.[^/]+)?$/.test(p) && !/\.env\.example$/.test(p))
     || /\.(pem|p8|p12|key|mobileprovision)$/.test(p));
 }
 
-/** Nur die NAMEN aus einer .env — Werte verlassen diese Funktion als Länge. */
+/** Nur die NAMEN aus einer .env — Werte verlassen diese Funktion als Länge.
+ *
+ *  ⚠ Mehrzeilige Werte in Anführungszeichen (ein PEM-Schlüssel) werden bis
+ *  zum schließenden Zeichen übersprungen. Ohne das hielte der Parser eine
+ *  Base64-Zeile wie `MIGT…Qg=` für einen Variablennamen — und Namen werden
+ *  ausgegeben. Am 23.09.2026 sind über einen zeilenweisen Filter Teile eines
+ *  mehrzeiligen Schlüssels in den Chat geraten; hier darf das nicht wieder
+ *  durch die Hintertür passieren. */
 export function envShape(text) {
   const out = {};
-  for (const raw of String(text).split("\n")) {
-    const m = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(raw);
+  const lines = String(text).split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const m = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(lines[i]);
     if (!m) continue;
-    const v = m[2].trim().replace(/^["']|["']$/g, "");
-    out[m[1]] = v.length;
+    let v = m[2].trim();
+    const q = /^["']/.exec(v)?.[0];
+    if (q && (v.length === 1 || !v.endsWith(q))) {
+      // Offenes Anführungszeichen: Wert läuft über die folgenden Zeilen.
+      let len = v.length - 1;
+      while (++i < lines.length) {
+        const end = lines[i].indexOf(q);
+        if (end >= 0) { len += 1 + end; break; }
+        len += 1 + lines[i].length;
+      }
+      out[m[1]] = len;
+      continue;
+    }
+    out[m[1]] = v.replace(/^["']|["']$/g, "").length;
   }
   return out;
 }
@@ -209,6 +243,11 @@ export function routeInventory(src) {
     const body = lines.slice(i, j).filter((l) => !/^\s*(?:\/\/|\/\*|\*)/.test(l)).join("\n");
     const authed = /await verifyAccessToken\(/.test(body);
     for (let k = i; k < j; k++) {
+      /* Eine Route ist eine Verzweigung `if (url.pathname …`. Nicht dazu
+         zählen Kommentare und Sperrblöcke wie `if ((url.pathname === a ||
+         …) && !isLocalRequest(…))` — die erste Fassung führte deren Pfade
+         als zusätzliche „*“-Routen ohne Anmeldung. */
+      if (!/^\s*(?:\} else )?if \(url\.pathname/.test(lines[k])) continue;
       for (const m of lines[k].matchAll(ANY)) {
         const path = m[1] || m[2] || m[3];
         const method = m[4] || "*";
@@ -230,9 +269,15 @@ export function localOnlyPaths(src) {
   const paths = new Set();
   for (let i = 0; i < lines.length; i++) {
     if (!/!isLocalRequest\(/.test(lines[i])) continue;
-    const cond = lines.slice(Math.max(0, i - 3), i + 1).join("\n");
+    // Die Bedingung beginnt beim nächsten `if (` darüber (höchstens drei
+    // Zeilen) — nicht einfach drei Zeilen: sonst zählten Pfade aus dem
+    // vorigen Block als gesperrt.
+    let start = -1;
+    for (let k = i; k >= Math.max(0, i - 3); k--) if (/^\s*if \(/.test(lines[k])) { start = k; break; }
+    if (start < 0) continue;
+    const cond = lines.slice(start, i + 1).join("\n");
     const refuses = /status:\s*40[34]/.test(lines.slice(i, i + 3).join("\n"));
-    if (!refuses || !/^\s*if \(/m.test(cond)) continue;
+    if (!refuses) continue;
     for (const m of cond.matchAll(/url\.pathname === "([^"]+)"/g)) paths.add(m[1]);
   }
   return [...paths];
@@ -253,13 +298,17 @@ export function chargeArmed(src) {
   return !/charged:\s*false/.test(m[0]) && /server_spend/.test(m[0]);
 }
 
-/** Antworten, die eine Fehlermeldung oder einen Stack an den Client geben. */
+/** Antworten, die eine Fehlermeldung oder einen Stack an den Client geben
+ *  könnten. Bewusst weit: jede Zeile, die eine Antwort baut und dabei
+ *  `.message`/`.stack` oder `String(e)` anfasst — auch verpackt wie
+ *  `json(checkResult({ error: String(e?.message) }))`, das die erste,
+ *  engere Fassung übersah. Ob wirklich Internes sichtbar wird, urteilt der Agent. */
 export function errorLeaks(src) {
   const out = [];
   String(src).split("\n").forEach((line, i) => {
-    if (/json\(\s*\{[^}]*error:[^}]*\b(?:e|err|error)(?:\?)?\.(?:message|stack)\b/.test(line)
-      || /json\(\s*\{[^}]*error:\s*String\(\s*(?:e|err)\s*\)/.test(line)
-      || /\.stack\b[^;]*\)\s*;?\s*$/.test(line) && /new Response|json\(/.test(line)) {
+    if (/^\s*(?:\/\/|\/\*|\*)/.test(line)) return;
+    if (/\b(?:json|new Response)\(/.test(line)
+      && /\b(?:e|err|error)\??\.(?:message|stack)\b|String\(\s*(?:e|err|error)\s*\)/.test(line)) {
       out.push(i + 1);
     }
   });
@@ -271,7 +320,7 @@ export function sensitiveLogs(src) {
   const out = [];
   String(src).split("\n").forEach((line, i) => {
     if (/console\.(?:log|info|warn|error|debug)\(/.test(line)
-      && /\b(?:token|password|passwort|email|authorization|refresh_token|access_token|apiKey|secret)\b/i.test(line)) {
+      && /\b(?:token|password|passwort|email|authorization|refresh_token|access_token|apiKey|secret)\b|(?:access|refresh|id|api)Token\b/i.test(line)) {
       out.push(i + 1);
     }
   });
@@ -325,6 +374,9 @@ const ROUTE_FIXTURE = [
   '        if (url.pathname === "/api/dreams" && req.method === "GET") {',
   "        }",
   "    }",
+  '    if ((url.pathname === "/api/backup" || url.pathname === "/api/other")',
+  "        && !isLocalRequest(ip, req.headers)) {",
+  "    }",
   '    if (url.pathname === "/api/backup" && req.method === "POST") {',
   "      /* Anders als dort, wo await verifyAccessToken(t) prüft … */",
   "    }",
@@ -342,6 +394,10 @@ export function selfTest() {
   for (const p of SECRET_PATTERNS) {
     if (!scanSecrets(p.probe).some((h) => h.pattern === p.id)) errors.push(`Muster ${p.id} findet seine Probe nicht`);
   }
+  // Minifiziertes Bundle: eine sehr lange Zeile mit dem Schlüssel am Ende.
+  if (!scanSecrets("x".repeat(200_000) + " " + SECRET_PATTERNS[1].probe).length) {
+    errors.push("scanSecrets übersieht Schlüssel in langen Zeilen (Bundles)");
+  }
   for (const probe of PLACEHOLDER_PROBES) {
     if (scanSecrets(probe).length) errors.push(`Platzhalter wird als Fund gemeldet: ${probe.slice(0, 30)}…`);
   }
@@ -352,7 +408,8 @@ export function selfTest() {
   const gen = r.find((x) => x.path === "/api/generate");
   const dreams = r.find((x) => x.path === "/api/dreams");
   const backup = r.find((x) => x.path === "/api/backup");
-  if (!gen || gen.authed || !dreams || !dreams.authed || !backup || backup.authed) {
+  const phantom = r.some((x) => x.path === "/api/other");  // Sperrblock ist keine Route
+  if (!gen || gen.authed || !dreams || !dreams.authed || !backup || backup.authed || phantom) {
     errors.push("routeInventory stuft die Anmeldung falsch ein");
   }
   const guarded = localOnlyPaths([
@@ -367,7 +424,10 @@ export function selfTest() {
     errors.push("corsOrigins liest die Positivliste nicht");
   }
   if (chargeArmed("function settleCharge(x) {\n  return { charged: false };\n}") !== false) errors.push("chargeArmed erkennt die unscharfe Abbuchung nicht");
-  if (errorLeaks('    return json({ error: e.message }, 500);').length !== 1) errors.push("errorLeaks findet e.message nicht");
+  if (errorLeaks("    return json({ error: e.message }, 500);").length !== 1
+    || errorLeaks("return json(checkResult({ error: String(e?.message || 1) }));").length !== 1) {
+    errors.push("errorLeaks findet e.message nicht");
+  }
   if (sensitiveLogs('console.log("token", token);').length !== 1) errors.push("sensitiveLogs findet Token-Log nicht");
   if (!bindsAllInterfaces("const serveOptions = {\n  port: 1,\n  async route(") || bindsAllInterfaces("const serveOptions = {\n  hostname: \"127.0.0.1\",\n  async route(")) {
     errors.push("bindsAllInterfaces liest hostname falsch");
