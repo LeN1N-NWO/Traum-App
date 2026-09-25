@@ -3,6 +3,35 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-25 — Hanni — Branch `session/2026-09-25-hanni` (PR #63) — Speicher-Modul für Schritt C, VPS und Domains
+
+**Commits:** `2305857` media-store.js + Tests · `1c72a70`, `3244ba7`,
+`eb505e0` Pläne (VPS, Domains, IPv6) · Doku-Commit dieses Eintrags.
+
+**Vorab:** Der Wrap der Sitzung vom 24.09. abends war bereits von einer
+anderen (Cloud-)Claude-Sitzung erledigt und PR #59 gemergt — geprüft, dass
+alle Commits auf main sind und die Notiz an Anton die Format-Sperre kennt.
+
+**Speicher-Modul** `src/lib/media-store.js` (Schritt C, Teil 1): lokal + S3
+(Buns S3Client), `keyOf()` als Wand zwischen Konten. S3-Auflistung per
+`startAfter` (laut Bun-Doku; `continuationToken` hatte ich zuerst geraten).
+Der Test hat einen echten Fehler gefunden (Namen doppelt bei stehender
+Auflistung). **Worktree-Falle vermieden:** Der lokale Ordner hatte zuerst
+einen relativen Standard (`media-backup`) — der wäre im Worktree gelandet;
+jetzt Pflichtangabe, absolut. Gegenprobe mit vier eingebauten Fehlern.
+
+**⚠ Stolperfalle beim Testen:** In einem frischen Worktree ohne
+`bun install` enden drei Testdateien mit „Cannot find package 'react'" — das
+sind keine Testfehler. Erst installieren, dann zählen.
+
+**VPS/Domains:** Antons VPS in Falkenstein, nur SSH offen (nur
+Verbindungsversuche, keine Anmeldung). IPv6-Adresse von hier nicht prüfbar
+(kein IPv6 am Anschluss). Domains inzwischen registriert.
+
+**⚠ Selbstkritik:** Einen eigenen, eine Minute alten Commit mit
+`--force-with-lease` überschrieben (nur eine Formatierung im Plan). Branch
+nicht geteilt, trotzdem gegen den Geist von AGENTS.md — künftig neuer Commit.
+
 ## 2026-09-24 20:50 — Hanni — Branch `session/2026-09-24-hanni-2` (PR #59) — Hosting, Medienablage neu: Träume lokal, Sicherung Ende-zu-Ende verschlüsselt (A, B, D)
 
 **Commits:** `4268232` `4b5a79a` `5fc4487` Hosting-Plan + Kostenvergleich ·

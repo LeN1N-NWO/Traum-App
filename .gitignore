@@ -76,3 +76,7 @@ public/clips/*.mp4
 .agents/
 .claude/skills/*
 !.claude/skills/regisseur-schnitt/
+
+# Lokale Sicherung der Filme (src/lib/media-store.js) — verschlüsselte Blobs
+# eines Nutzers, gehören nie ins Repo.
+media-backup/

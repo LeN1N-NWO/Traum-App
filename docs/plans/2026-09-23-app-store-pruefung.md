@@ -65,7 +65,8 @@ Hanni (Konto, Recht), Anton (Produkt, Geld) — gemeinsam.
 3. **Domain** für API, Datenschutzerklärung und Support (N5).
    ✅ **Entschieden (Hanni, 24.09.): `dreamrushes.app` (Haupt) +
    `dreamrushes.de` (Schutz/Weiterleitung)** — beide frei laut Registry
-   (RDAP/DENIC, mit Gegenprobe), Kauf durch Hanni. `dreamrushes.com` seit 2004
+   (RDAP/DENIC, mit Gegenprobe), Kauf durch Hanni. **Registriert: belegt
+   25.09.2026** (RDAP `.app` 200, DENIC `.de` Status connect). `dreamrushes.com` seit 2004
    vergeben. Geplant: `api.dreamrushes.app`, `/datenschutz`, `/impressum`,
    `/support`. ⚠ Markenlage vorher mit dem Anwalt klären: eingetragene
    EU-Marke „RUSHES" in Klasse 41/42 — Recherche
