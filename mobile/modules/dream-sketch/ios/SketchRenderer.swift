@@ -30,6 +30,7 @@ enum SketchRenderer {
     var landingFade = 0.8    // letztes Foto-Traumbild → erste Szene
     var source = 512         // Rechenraster der Parallaxe (= SD-Auflösung)
     var flow: Float = 2.4    // Wogen des Fernen, in Punkten
+    var fog = 0.3            // höchste Nebeldichte im Fernsten (0 = aus)
   }
 
   struct Plan {
@@ -46,6 +47,7 @@ enum SketchRenderer {
     let hold: Double
     let fade: Double
     let scene: Int           // Szenen-Index, -1 = Eröffnung/Zwischenbild
+    var opening = false      // eigenes Foto und seine Traumstufen: ohne Nebel
     var start = 0.0, full = 0.0, end = 0.0
   }
 
@@ -55,7 +57,7 @@ enum SketchRenderer {
     // ── Drehplan → Zeitleiste ────────────────────────────────────────────
     var items: [Item] = []
     for (k, url) in plan.opening.enumerated() {
-      items.append(Item(url: url, hold: k == 0 ? o.openingHold : 0, fade: k == 0 ? 0 : o.morphFade, scene: -1))
+      items.append(Item(url: url, hold: k == 0 ? o.openingHold : 0, fade: k == 0 ? 0 : o.morphFade, scene: -1, opening: true))
     }
     for (i, url) in plan.scenes.enumerated() {
       let between = i > 0 && i - 1 < plan.morphs.count ? plan.morphs[i - 1] : []
@@ -174,7 +176,10 @@ enum SketchRenderer {
         if let d = depths[k] {
           let warped = SketchParallax.warp(rgba: pixels[k], depth: d, size: n0, camera: cam, time: Float(t), flow: o.flow)
           shot = SketchParallax.image(warped, size: n0)
-          if let mask = farMasks[k] { shot = fog(fogBase, time: t, mask: mask, size: n0).composited(over: shot) }
+          // Kein Nebel auf dem eigenen Foto: Im Porträt liegt die Person für
+          // die Tiefenschätzung im Mittelgrund (Hände/Glas sind näher) und
+          // verschwände im Dunst — das echte Gesicht soll klar bleiben.
+          if o.fog > 0, !items[k].opening, let mask = farMasks[k] { shot = fog(fogBase, time: t, mask: mask, size: n0, density: o.fog).composited(over: shot) }
         } else {
           shot = stills[k].transformed(by: CGAffineTransform(scaleX: Double(n0) / stills[k].extent.width, y: Double(n0) / stills[k].extent.height))
         }
@@ -221,33 +226,45 @@ enum SketchRenderer {
     return total
   }
 
-  /// Wo Nebel liegen darf: das Ferne (Tiefe → 0), weich auslaufend.
-  private static func farMask(_ depth: [Float], size: Int) -> CIImage {
-    let bytes = depth.map { UInt8(min(max(powf(1 - $0, 1.6) * 255, 0), 255)) }
+  /// Wo Nebel liegen darf: NUR das Ferne. Unter Tiefe 0,45 steigt er an,
+  /// ab da ist alles frei — eine weiche Kurve über die ganze Tiefe legte
+  /// am 25.09. Nebel auch auf Figuren und Vordergrund.
+  static func farMask(_ depth: [Float], size: Int) -> CIImage {
+    let bytes = depth.map { (d: Float) -> UInt8 in
+      let m: Float = min(max((0.45 - d) / 0.35, 0), 1)
+      let s: Float = m * m * (3 - 2 * m)
+      return UInt8(s * 255)
+    }
     return CIImage(bitmapData: Data(bytes), bytesPerRow: size, size: CGSize(width: size, height: size),
                    format: .L8, colorSpace: nil)
   }
 
   /// Wolkiges Rauschen als Nebelvorlage — einmal gebaut, je Bild nur verschoben.
-  private static func fogNoise() -> CIImage {
+  static func fogNoise() -> CIImage {
     let random = CIFilter.randomGenerator().outputImage ?? CIImage(color: .gray)
+    // ⚠ Der Zufallsgenerator würfelt auch Alpha (~0,5). Farbfilter teilen
+    // vorher durch Alpha („unpremultiply") — das Rauschen lag dadurch bei
+    // ~0,94 statt ~0,47 und der Nebel war siebenmal zu dicht (25.09.,
+    // Simulator-Film). Also erst deckend machen.
+    let big = CGRect(x: -4000, y: -4000, width: 8000, height: 8000)
     return random
+      .cropped(to: big).settingAlphaOne(in: big)
       .transformed(by: CGAffineTransform(scaleX: 40, y: 40))
       .applyingGaussianBlur(sigma: 26)
   }
 
-  private static func fog(_ noise: CIImage, time t: Double, mask: CIImage, size: Int) -> CIImage {
+  static func fog(_ noise: CIImage, time t: Double, mask: CIImage, size: Int, density d: Double) -> CIImage {
     let square = CGRect(x: 0, y: 0, width: size, height: size)
     // Alles in Graustufen (deckend) rechnen, erst am Ende färben — so gibt
     // es keine Fragen nach vormultipliziertem Alpha.
     let clouds = noise
       .transformed(by: CGAffineTransform(translationX: -t * 14, y: t * 3))
       .applyingFilter("CIColorMatrix", parameters: [
-        "inputRVector": CIVector(x: 1.3, y: 0, z: 0, w: 0),
-        "inputGVector": CIVector(x: 1.3, y: 0, z: 0, w: 0),
-        "inputBVector": CIVector(x: 1.3, y: 0, z: 0, w: 0),
+        "inputRVector": CIVector(x: 3.2, y: 0, z: 0, w: 0),
+        "inputGVector": CIVector(x: 3.2, y: 0, z: 0, w: 0),
+        "inputBVector": CIVector(x: 3.2, y: 0, z: 0, w: 0),
         "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
-        "inputBiasVector": CIVector(x: -0.52, y: -0.52, z: -0.52, w: 1),
+        "inputBiasVector": CIVector(x: -1.25, y: -1.25, z: -1.25, w: 1),
       ])
       .applyingFilter("CIColorClamp")
       .cropped(to: square)
@@ -255,9 +272,9 @@ enum SketchRenderer {
     let density = clouds
       .applyingFilter("CIMultiplyCompositing", parameters: [kCIInputBackgroundImageKey: mask])
       .applyingFilter("CIColorMatrix", parameters: [
-        "inputRVector": CIVector(x: 0.4, y: 0, z: 0, w: 0),
-        "inputGVector": CIVector(x: 0, y: 0.4, z: 0, w: 0),
-        "inputBVector": CIVector(x: 0, y: 0, z: 0.4, w: 0),
+        "inputRVector": CIVector(x: d, y: 0, z: 0, w: 0),
+        "inputGVector": CIVector(x: 0, y: d, z: 0, w: 0),
+        "inputBVector": CIVector(x: 0, y: 0, z: d, w: 0),
       ])
       .cropped(to: square)
     let tint = CIImage(color: CIColor(red: 0.84, green: 0.88, blue: 1.0)).cropped(to: square)
