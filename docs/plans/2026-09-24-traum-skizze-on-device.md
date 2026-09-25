@@ -211,3 +211,26 @@ kostet Credits).
   Seed wie SD 1.5): deutlich filmischer, Figur und Schnee im Glaswald
   getroffen, wo SD 1.5 beides verlor. Empfehlung: DreamShaper als Standard,
   sobald Lizenz/Hosting (eigene Umwandlung oder Spiegel) geklärt sind.
+
+## v4-Test: Cloud-Raster + iPhone-Film (25.09.2026, Antons Idee)
+
+Ein bezahlter Aufruf, 2×2-Raster 1024² mit dem Besetzungsfoto als Referenz
+und dem Look-Preset im Prompt (`buildGridPrompt`, neu: `tile: "1:1"`) →
+vier 512²-Kacheln → iPhone macht nur Tiefe/Kamera/Nebel/Teilchen.
+Gemessen am Jonas-Test (Traum „schwimmender Leuchtturm", Stil Surreal):
+
+| Modell | Dauer | Preis je Traum | Ergebnis |
+|---|---|---|---|
+| GPT Image 2 `low` (edit) | 18 s | $0,015 (Preistabelle) | Gesicht hält, vier klare Einstellungen, bester Look |
+| FLUX.2 klein 9B (edit) | 4 s | ~$0,012–0,02 ($0,011/MP) | Gesicht hält etwas schwächer, sonst gut |
+| FLUX Kontext dev | 16 s | ~$0,026 | unbrauchbar: kein Raster, nur das Foto zurück |
+
+Befund zum Übermalen: SD-Bild-zu-Bild (Stärke 0,5) für Morph-Bilder
+tauscht das Gesicht aus. Antons Punkt dazu: nicht übermalen — der Look
+kommt schon über das Preset im Bildprompt. Folge: Mit Cloud-Kacheln
+braucht das iPhone das 1-GB-Malmodell NICHT, nur die Tiefe (50 MB); der
+Film rechnet in Sekunden (Mac-Probe 3–4 s).
+
+Noch zu tun, falls es so kommt: Nebel und nahes Bokeh sind für
+Porträt-Kacheln zu kräftig (legen sich vor Gesichter) — für echte Fotos
+zurücknehmen.
