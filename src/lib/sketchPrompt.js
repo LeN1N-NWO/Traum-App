@@ -15,8 +15,8 @@
  *     neutrale Worte rein. Schlechter, aber nie Kauderwelsch.
  *
  * Alles hier ist rein (kein Netz), damit es getestet werden kann. */
-import { buildGridPrompt } from "./promptBuilder.js";
-import { styleById } from "./styles.js";
+import { styleById, photorealFor } from "./styles.js";
+import { shotClause, photorealClause } from "./cinematography.js";
 
 export const PARTICLES = ["dust", "snow", "fireflies", "embers", "bubbles", "none"];
 
@@ -118,16 +118,40 @@ export function pickParticles(text) {
  * Deshalb hier: der Look ZUERST als Regieanweisung, und ausdrücklich, dass
  * ein Foto nur sagt, WER jemand ist — nie, wie das Bild aussieht.
  * Der Film-Weg (buildGridPrompt allein) bleibt unberührt. */
+/* Seit 26.09. (Antons Befund: „die 9:16 sind gecropped oder gezoomt, wir
+ * verlieren Auflösung"): KEIN 2×2 aus Quadraten mehr, sondern ein breiter
+ * Streifen aus VIER hochkanten 9:16-Feldern nebeneinander. Bei 2304×1024
+ * ist jedes Feld 576×1024 — genau das Filmformat, nichts wird weggeschnitten.
+ * Der Film-Weg (buildGridPrompt) bleibt unberührt. */
+export const SKETCH_STRIP = { cols: 4, rows: 1, width: 2304, height: 1024 };
+
 export function buildSketchGridPrompt({ beats, styleId, clauses = [] }) {
   const style = styleById(styleId);
+  const photoreal = photorealFor(styleId);
   const lead =
-    `ART DIRECTION — the most important instruction: every tile is rendered in this look, ` +
+    `ART DIRECTION — the most important instruction: every panel is rendered in this look, ` +
     `and nothing in the image may look like an ordinary photograph unless the look asks for it: ${style.prompt}\n` +
     (clauses.length
       ? `The reference images ONLY tell you WHO the characters are (face, hair, build). Re-create those people ` +
-        `inside this look — same identity, but drawn/lit/rendered exactly like everything else in the tile. ` +
+        `inside this look — same identity, but drawn/lit/rendered exactly like everything else in the panel. ` +
         `Never copy a reference photo's lighting, colours, camera, background, room, furniture, lamp or window, ` +
-        `and never paste the photo itself into a tile.\n`
+        `and never paste the photo itself into a panel.\n`
       : "");
-  return lead + buildGridPrompt({ beats, styleId, clauses, cols: 2, rows: 2, tile: "1:1" });
+  const names = ["far left", "second from left", "second from right", "far right"];
+  const four = beats.slice(0, 4);
+  while (four.length < 4) four.push("a quiet establishing shot of the same dream world — same place, same light, no characters");
+  const panels = four
+    .map((b, i) => `Panel ${i + 1} (${names[i]}): ${b}\n  ${shotClause(i + 1, 4)}`)
+    .join("\n");
+  const layout =
+    `A single wide image divided into exactly FOUR equal VERTICAL panels side by side, each a tall 9:16 portrait ` +
+    `frame, separated by thin solid black divider lines running the full height. The panels fill the ENTIRE canvas ` +
+    `edge to edge: no letterboxing, no black bars, no outer frame or margin. Each panel is a self-contained ` +
+    `${photoreal ? "cinematic photoreal film still" : "cinematic frame in the style described above"}, composed for a ` +
+    `tall phone screen, with no bleed, no shared elements and no continuing scenery across the divider lines.\n` +
+    `${panels}\n` +
+    `Consistent color grade, lighting and wardrobe across all four panels so they read as one continuous sequence ` +
+    `from the same film.\nUltra-detailed, accurate hands and faces. No text, no captions, no numbers, no watermarks.` +
+    `${photorealClause(photoreal)}${clauses.length ? `\n${clauses.join(" ")}` : ""}`;
+  return lead + layout;
 }

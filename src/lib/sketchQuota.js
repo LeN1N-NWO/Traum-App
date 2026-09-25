@@ -1,7 +1,8 @@
 /* Die Traum-Skizze aus der Cloud (25.09.2026, Antons Entscheidung): EIN
- * Rasterbild bei GPT Image 2 „low" (2×2, 1024², mit den Besetzungsfotos als
+ * Rasterbild bei GPT Image 2 „low" (mit den Besetzungsfotos als
  * Referenz) liefert vier Szenen; den Film macht das iPhone. Einkauf je Traum
- * $0,015 mit Foto (Edit-Preistabelle 1024² low), weniger ohne.
+ * ~$0,017 mit Foto (Edit-Preistabelle, 2304×1024 low — seit 26.09. vier
+ * Hochkant-Felder statt 2×2), weniger ohne.
  *
  * Die Regel: SKETCH_FREE Skizzen je Kalendermonat gratis, danach kostet eine
  * SKETCH_PRICE Credits. Hochgerechnet (Plan 2026-09-24, v4): höchstens

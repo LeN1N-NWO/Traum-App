@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { GlassButton, PrimaryButton } from "@/components/glass";
 import { MascotLoader } from "@/components/mascot-loader";
 import { holdForRecording } from "@/lib/sound-engine";
@@ -17,7 +17,8 @@ import { colors, fonts } from "@/theme";
  *   recorden können. Nachdem wir recorded haben, können wir unser Recording
  *   anhören. Erst dann Transkribieren … so wenige Klicks wie möglich."
  *
- * Also: öffnen = Aufnahme läuft (autoStartKey), ein Tipp = fertig, dann
+ * Seit 26.09.: öffnen zeigt das Mikrofon, erst ein Tipp nimmt auf (autoStartKey
+ * nur noch für „Weiter erzählen"); ein Tipp = fertig, dann
  * die Aufnahme zum Anhören, EIN Knopf „Aufschreiben". Wer lieber tippt,
  * kommt von jeder Phase aus mit „Lieber schreiben" ins Textfeld.
  *
@@ -48,6 +49,13 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [say, setSay] = useState(0);
+  // Die Sprechblase wechselt alle paar Sekunden, solange nachgehört wird.
+  useEffect(() => {
+    if (phase !== "review") return;
+    const t = setInterval(() => setSay((n) => n + 1), 4200);
+    return () => clearInterval(t);
+  }, [phase]);
   const uri = useRef<string | null>(null);
   const audioUrl = useRef<string | null>(null);
   const lastKey = useRef(0);
@@ -188,19 +196,27 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   }
 
   if (phase === "review") {
+    /* Antons Ansage 26.09.: oben das Maskottchen mit Sprechblase, darunter
+       ein klarer „Anhören"-Knopf, dann „Aufschreiben" mit Leuchtrand. */
+    const lines = W?.mascotReview?.length ? W.mascotReview : [W?.reviewHint ?? ""];
     return (
       <View style={styles.center}>
-        <Text style={styles.title}>{W?.reviewTitle ?? "Listen back"}</Text>
-        <Text style={styles.hint}>{W?.reviewHint ?? ""}</Text>
-        <View style={styles.playerCard}>
-          <Pressable onPress={togglePlay} accessibilityRole="button" accessibilityLabel={ps.playing ? (W?.recordPause ?? "Pause") : (W?.recordListen ?? "Play")} hitSlop={8}>
-            <View style={styles.play}><SymbolView name={ps.playing ? "pause.fill" : "play.fill"} size={24} tintColor={colors.bg} /></View>
-          </Pressable>
-          <View style={{ flex: 1, gap: 8 }}>
-            <View style={styles.track}><View style={[styles.trackFill, { width: `${progress * 100}%` }]} /></View>
-            <Text style={styles.time}>{clock(ps.currentTime || 0)} / {clock(ps.duration || 0)}</Text>
-          </View>
+        <View style={styles.mascotRow}>
+          <MascotLoader size={120} />
+          <Animated.View key={say % lines.length} entering={FadeIn.duration(400)} style={styles.bubble}>
+            <Text style={styles.bubbleText}>{lines[say % lines.length]}</Text>
+            <View style={styles.bubbleTail} />
+          </Animated.View>
         </View>
+        <Pressable onPress={togglePlay} style={({ pressed }) => [styles.listen, pressed && { transform: [{ scale: 0.98 }] }]}
+          accessibilityRole="button" accessibilityLabel={ps.playing ? (W?.recordPause ?? "Pause") : (W?.recordListen ?? "Listen back")}>
+          <View style={styles.play}><SymbolView name={ps.playing ? "pause.fill" : "play.fill"} size={24} tintColor={colors.bg} /></View>
+          <View style={{ flex: 1, gap: 8 }}>
+            <Text style={styles.listenLabel}>{ps.playing ? (W?.recordPause ?? "Pause") : (W?.recordListen ?? "Listen back")}</Text>
+            <View style={styles.track}><View style={[styles.trackFill, { width: `${progress * 100}%` }]} /></View>
+          </View>
+          <Text style={styles.time}>{clock(ps.currentTime || 0)} / {clock(ps.duration || 0)}</Text>
+        </Pressable>
         <PrimaryButton label={`✎ ${W?.recordTranscribe ?? "Write it down"}`} heavy onPress={transcribe} style={{ flex: 0, alignSelf: "stretch", marginTop: 8 }} />
         <View style={styles.row}>
           <GlassButton label={W?.recordRetake ?? W?.recordAgain ?? "Record again"} onPress={async () => { await discard(); start(); }} />
@@ -259,6 +275,12 @@ const styles = StyleSheet.create({
   stopHint: { color: colors.faint, fontSize: 13 },
   error: { color: colors.warm, fontSize: 14, textAlign: "center" },
   row: { flexDirection: "row", gap: 10, alignSelf: "stretch", marginTop: 6 },
+  mascotRow: { flexDirection: "row", alignItems: "center", alignSelf: "stretch", gap: 4 },
+  bubble: { flex: 1, padding: 14, borderRadius: 18, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  bubbleText: { color: colors.text, fontSize: 15, lineHeight: 21 },
+  bubbleTail: { position: "absolute", left: -6, top: 22, width: 12, height: 12, backgroundColor: colors.panel, transform: [{ rotate: "45deg" }], borderLeftWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  listen: { flexDirection: "row", alignItems: "center", gap: 14, alignSelf: "stretch", padding: 14, borderRadius: 22, backgroundColor: "rgba(242,167,101,0.10)", borderWidth: 1, borderColor: "rgba(242,167,101,0.45)", marginTop: 6 },
+  listenLabel: { color: colors.text, fontSize: 17, fontWeight: "700" },
   playerCard: { flexDirection: "row", alignItems: "center", gap: 14, alignSelf: "stretch", padding: 16, borderRadius: 22, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, marginTop: 14 },
   play: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.warm, alignItems: "center", justifyContent: "center" },
   track: { height: 4, borderRadius: 2, backgroundColor: colors.panelLine, overflow: "hidden" },

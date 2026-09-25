@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import { OrbitGlow } from "@/components/orbit-glow";
 import { colors } from "@/theme";
 
 /* Liquid Glass für Flächen und Knöpfe (Antons Wunsch 12.09.). Auf iOS 26
@@ -67,8 +68,12 @@ export function SheenSurface({ style, children }: { style?: StyleProp<ViewStyle>
   }
   return <View style={[styles.primary, { overflow: "hidden" }, style]}><Sheen />{children}</View>;
 }
-export function PrimaryButton({ label, onPress, style, disabled, heavy }: { label: string; onPress: () => void; style?: StyleProp<ViewStyle>; disabled?: boolean; heavy?: boolean }) {
+/* Seit 26.09. trägt jeder Hauptknopf den umlaufenden Leuchtrand (OrbitGlow):
+   Er ist per Definition das, was man als Nächstes drückt. `glow={false}`
+   schaltet ihn ab (z. B. zwei Hauptknöpfe nebeneinander); ausgegraut nie. */
+export function PrimaryButton({ label, onPress, style, disabled, heavy, glow = true }: { label: string; onPress: () => void; style?: StyleProp<ViewStyle>; disabled?: boolean; heavy?: boolean; glow?: boolean }) {
   const press = () => { Haptics.impactAsync(heavy ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Light); onPress(); };
+  const ring = glow && !disabled ? <OrbitGlow /> : null;
   if (glass) {
     return (
       <Pressable onPress={press} disabled={disabled} style={({ pressed }) => [{ flex: 1, opacity: disabled ? 0.5 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }, style]}>
@@ -76,6 +81,7 @@ export function PrimaryButton({ label, onPress, style, disabled, heavy }: { labe
           <Sheen />
           <Text style={styles.primaryGlassText}>{label}</Text>
         </GlassView>
+        {ring}
       </Pressable>
     );
   }
@@ -83,6 +89,7 @@ export function PrimaryButton({ label, onPress, style, disabled, heavy }: { labe
     <Pressable onPress={press} disabled={disabled} style={({ pressed }) => [styles.button, styles.primary, { flex: 1, overflow: "hidden", opacity: disabled ? 0.5 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }, style]}>
       <Sheen />
       <Text style={styles.primaryGlassText}>{label}</Text>
+      {ring}
     </Pressable>
   );
 }

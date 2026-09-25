@@ -45,7 +45,7 @@ export default function DreamSketchScreen() {
   const S = W?.sketch;
   const w = useWizardStore();
   const { width } = useWindowDimensions();
-  const tileSize = Math.floor((width - 40 - 8) / 2);   // zwei Kacheln je Reihe, feste Größe
+  const tileW = Math.floor((width - 40 - 3 * 6) / 4);   // vier Hochkant-Kacheln in einer Reihe
 
   const [phase, setPhase] = useState<Phase>(() => (!sketchAvailable() ? "unsupported" : "setup"));
   const [prep, setPrep] = useState<SketchPrep | null>(null);
@@ -109,9 +109,9 @@ export default function DreamSketchScreen() {
       if (g.error || !g.result?.url) throw new Error(g.error || "grid");
       if (!alive.current) return;
 
-      // 2. Schneiden — vier 512²-Kacheln.
+      // 2. Schneiden — vier 576×1024-Kacheln, genau das Filmformat.
       const id = "s_" + Date.now().toString(36);
-      const scenes = await DreamSketch.importGrid(g.result.url, id);
+      const scenes = await DreamSketch.importGrid(g.result.url, id, 4, 1);   // vier Hochkant-Felder nebeneinander
       if (alive.current) setTiles(scenes);
 
       // 3. Der Film.
@@ -221,7 +221,7 @@ export default function DreamSketchScreen() {
           <>
             {tiles.length ? (
               <View style={styles.grid}>
-                {tiles.map((t) => <Image key={t} source={{ uri: resolveSketchUrl(t)! }} style={[styles.tile, { width: tileSize, height: tileSize }]} />)}
+                {tiles.map((t) => <Image key={t} source={{ uri: resolveSketchUrl(t)! }} style={[styles.tile, { width: tileW, height: tileW * 16 / 9 }]} />)}
               </View>
             ) : (
               <View style={styles.mascot}><MascotLoader size={200} /></View>
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   kicker: { color: colors.faint, fontSize: 11, letterSpacing: 1.8, fontWeight: "600", textTransform: "uppercase" },
   body: { color: colors.text, fontSize: 15, lineHeight: 21 },
   small: { color: colors.muted, fontSize: 12, lineHeight: 16 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 6 },
+  grid: { flexDirection: "row", gap: 6, marginTop: 6 },
   tile: { borderRadius: 14, backgroundColor: colors.panel },
   status: { color: colors.text, fontSize: 16, fontWeight: "600", textAlign: "center" },
   track: { height: 6, borderRadius: 3, backgroundColor: colors.panel, overflow: "hidden" },

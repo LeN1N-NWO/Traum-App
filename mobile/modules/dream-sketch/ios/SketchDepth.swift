@@ -11,11 +11,12 @@ import Vision
 /// gegen den Hintergrund, die Kamera scheint IN das Bild zu fahren
 /// („3D-Foto"). Keine Vorlage: Die Tiefe steckt im gemalten Bild selbst.
 enum SketchDepth {
-  /// Tiefenkarte in `size`×`size`, 0 = fern … 1 = nah, leicht geglättet
+  /// Tiefenkarte in `w`×`h`, 0 = fern … 1 = nah, leicht geglättet
   /// (harte Kanten in der Tiefe reißen beim Verschieben sonst sichtbar auf).
-  static func estimate(_ image: CIImage, model: MLModel, size: Int, context: CIContext) throws -> [Float] {
+  /// Seit 26.09. auch hochkant (Kacheln 576×1024 statt 512²).
+  static func estimate(_ image: CIImage, model: MLModel, w: Int, h: Int, context: CIContext) throws -> [Float] {
     let request = VNCoreMLRequest(model: try VNCoreMLModel(for: model))
-    // Das Modell will 518×392; das quadratische Bild wird dafür gestaucht —
+    // Das Modell will 518×392; das Bild wird dafür gestaucht —
     // die Tiefe kommt beim Zurückskalieren unverzerrt wieder heraus.
     request.imageCropAndScaleOption = .scaleFill
     try VNImageRequestHandler(ciImage: image, options: [:]).perform([request])
@@ -23,20 +24,21 @@ enum SketchDepth {
       throw NSError(domain: "DreamSketch", code: 30, userInfo: [NSLocalizedDescriptionKey: "Keine Tiefenkarte"])
     }
     let raw = CIImage(cvPixelBuffer: obs.pixelBuffer)
-    let sx = CGFloat(size) / raw.extent.width, sy = CGFloat(size) / raw.extent.height
+    let sx = CGFloat(w) / raw.extent.width, sy = CGFloat(h) / raw.extent.height
+    let m = Double(min(w, h))
     // Erst das Nahe um ein paar Punkte weiten, dann glätten: Bei der
     // stärkeren Fahrt (25.09.) reißt sonst die Kante des Vordergrunds auf —
     // so dehnt sich der Hintergrund statt der Figur.
     let scaled = raw.transformed(by: CGAffineTransform(scaleX: sx, y: sy))
       .clampedToExtent()
-      .applyingFilter("CIMorphologyMaximum", parameters: [kCIInputRadiusKey: Double(size) / 128])
-      .applyingGaussianBlur(sigma: Double(size) / 170)
-      .cropped(to: CGRect(x: 0, y: 0, width: size, height: size))
+      .applyingFilter("CIMorphologyMaximum", parameters: [kCIInputRadiusKey: m / 128])
+      .applyingGaussianBlur(sigma: m / 170)
+      .cropped(to: CGRect(x: 0, y: 0, width: w, height: h))
 
-    var out = [Float](repeating: 0, count: size * size)
+    var out = [Float](repeating: 0, count: w * h)
     out.withUnsafeMutableBytes { buf in
-      context.render(scaled, toBitmap: buf.baseAddress!, rowBytes: size * 4,
-                     bounds: CGRect(x: 0, y: 0, width: size, height: size), format: .Lf, colorSpace: nil)
+      context.render(scaled, toBitmap: buf.baseAddress!, rowBytes: w * 4,
+                     bounds: CGRect(x: 0, y: 0, width: w, height: h), format: .Lf, colorSpace: nil)
     }
     // ⚠ Zeilenreihenfolge: Bild (SketchParallax.rgba) und Tiefe werden über
     // DIESELBE Schnittstelle gelesen (render toBitmap) — dann liegen sie
@@ -62,51 +64,51 @@ enum SketchParallax {
 
   /// Ein Bild als RGBA-Bytes, über dieselbe Schnittstelle wie die Tiefe
   /// (render toBitmap) — siehe Warnung in `SketchDepth.estimate`.
-  static func rgba(_ image: CIImage, size: Int, context: CIContext) -> [UInt8] {
-    let sx = CGFloat(size) / image.extent.width, sy = CGFloat(size) / image.extent.height
+  static func rgba(_ image: CIImage, w: Int, h: Int, context: CIContext) -> [UInt8] {
+    let sx = CGFloat(w) / image.extent.width, sy = CGFloat(h) / image.extent.height
     let scaled = image.transformed(by: CGAffineTransform(scaleX: sx, y: sy))
-    var out = [UInt8](repeating: 0, count: size * size * 4)
+    var out = [UInt8](repeating: 0, count: w * h * 4)
     out.withUnsafeMutableBytes { buf in
-      context.render(scaled, toBitmap: buf.baseAddress!, rowBytes: size * 4,
-                     bounds: CGRect(x: 0, y: 0, width: size, height: size), format: .RGBA8,
+      context.render(scaled, toBitmap: buf.baseAddress!, rowBytes: w * 4,
+                     bounds: CGRect(x: 0, y: 0, width: w, height: h), format: .RGBA8,
                      colorSpace: CGColorSpace(name: CGColorSpace.sRGB))
     }
     return out
   }
 
   /// Umkehrung von `rgba` — Bytes zurück in ein CIImage für den Film.
-  static func image(_ rgba: [UInt8], size: Int) -> CIImage {
-    CIImage(bitmapData: Data(rgba), bytesPerRow: size * 4,
-            size: CGSize(width: size, height: size), format: .RGBA8,
+  static func image(_ rgba: [UInt8], w: Int, h: Int) -> CIImage {
+    CIImage(bitmapData: Data(rgba), bytesPerRow: w * 4,
+            size: CGSize(width: w, height: h), format: .RGBA8,
             colorSpace: CGColorSpace(name: CGColorSpace.sRGB))
   }
 
-  /// `rgba`: size×size, 4 Bytes je Punkt. `flow` (Punkte) lässt das Ferne —
+  /// `rgba`: w×h, 4 Bytes je Punkt. `flow` (Punkte) lässt das Ferne —
   /// Himmel, Wasser, Nebel — sacht wogen, `time` in Sekunden treibt es an:
   /// Das Bild atmet, statt stillzustehen (25.09.).
-  static func warp(rgba: [UInt8], depth: [Float], size: Int, camera c: Camera, time: Float = 0, flow: Float = 0) -> [UInt8] {
+  static func warp(rgba: [UInt8], depth: [Float], w: Int, h: Int, camera c: Camera, time: Float = 0, flow: Float = 0) -> [UInt8] {
     var out = [UInt8](repeating: 0, count: rgba.count)
-    let n = size
-    let half = Float(n) / 2
-    let fn = Float(n)
+    let n = w
+    let halfX = Float(w) / 2, halfY = Float(h) / 2
+    let fw = Float(w), fh = Float(h)
     rgba.withUnsafeBufferPointer { src in
       depth.withUnsafeBufferPointer { dep in
         out.withUnsafeMutableBufferPointer { dst in
           let s = src.baseAddress!, d = dep.baseAddress!, o = dst.baseAddress!
           func depthAt(_ x: Float, _ y: Float) -> Float {
-            let xi = min(max(Int(x), 0), n - 1), yi = min(max(Int(y), 0), n - 1)
+            let xi = min(max(Int(x), 0), w - 1), yi = min(max(Int(y), 0), h - 1)
             return d[yi * n + xi]
           }
-          DispatchQueue.concurrentPerform(iterations: n) { y in
+          DispatchQueue.concurrentPerform(iterations: h) { y in
             let fy = Float(y) + 0.5
-            for x in 0..<n {
+            for x in 0..<w {
               let fx = Float(x) + 0.5
               var px = fx, py = fy
               for _ in 0..<2 {
                 let sh = depthAt(px, py) - c.focus
                 let z = 1 + c.zoom * sh
-                px = half + (fx - half) / z - c.dx * sh * fn
-                py = half + (fy - half) / z - c.dy * sh * fn
+                px = halfX + (fx - halfX) / z - c.dx * sh * fw
+                py = halfY + (fy - halfY) / z - c.dy * sh * fw
               }
               if flow > 0 {
                 let far = max(0, 0.42 - depthAt(fx, fy)) / 0.42
@@ -117,7 +119,7 @@ enum SketchParallax {
                 }
               }
               // bilinear, am Rand geklemmt
-              let cx = min(max(px - 0.5, 0), fn - 1.001), cy = min(max(py - 0.5, 0), fn - 1.001)
+              let cx = min(max(px - 0.5, 0), fw - 1.001), cy = min(max(py - 0.5, 0), fh - 1.001)
               let x0 = Int(cx), y0 = Int(cy)
               let ax = cx - Float(x0), ay = cy - Float(y0)
               let i00 = (y0 * n + x0) * 4, i10 = i00 + 4, i01 = i00 + n * 4, i11 = i01 + 4

@@ -43,13 +43,14 @@ export default function DreamTextScreen() {
   const credits = data?.profile.credits ?? 0;
   const clean = text.trim();
 
-  /* Öffnen = aufnehmen: jeder Fokus auf der Rekorder-Stufe stößt die
-     Aufnahme an (der Rekorder ignoriert es, wenn schon etwas läuft). */
+  /* Seit 26.09. (Antons Befund: „Wenn man auf Traum klickt, sollte es nicht
+     automatisch angehen — die Aufnahme müsste man bestätigen"): Öffnen
+     zeigt das Mikrofon, aufgenommen wird erst auf Tipp. Nur „Weiter
+     erzählen" startet direkt — das ist selbst schon ein bewusster Tipp. */
   useFocusEffect(useCallback(() => {
     setFocused(true);
-    if (stage === "voice") setAutoKey((k) => k + 1);
     return () => setFocused(false);
-  }, [stage]));
+  }, []));
 
   // Ein Auftrag ist durch (resetWizard): von vorn, mit Aufnahme.
   const seenResets = useRef(w.resets);
@@ -142,7 +143,7 @@ export default function DreamTextScreen() {
               placeholder={W?.placeholder ?? "…"} placeholderTextColor={colors.faint} textAlignVertical="top" keyboardAppearance="dark"
             />
             <View style={styles.tools}>
-              <Pressable style={styles.tool} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); input.current?.blur(); setStage("voice"); /* der Fokus-Effekt startet die Aufnahme */ }} accessibilityRole="button">
+              <Pressable style={styles.tool} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); input.current?.blur(); setStage("voice"); setAutoKey((k) => k + 1); /* bewusster Tipp: gleich aufnehmen */ }} accessibilityRole="button">
                 <SymbolView name="mic.fill" size={15} tintColor={colors.warm} />
                 <Text style={styles.toolText}>{W?.tellMore ?? "Keep telling"}</Text>
               </Pressable>

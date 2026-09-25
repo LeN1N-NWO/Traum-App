@@ -774,12 +774,14 @@ export default {
     tooShort: "⚠ Schreib erst noch etwas mehr.",
     caught: (name) => `✦ ${name} ist deiner Menagerie beigetreten`,
     /* Der Rekorder (ADR-0007): einsprechen, fertig — keine Rückfragen. */
-    record: "Erzähl ihn laut", recordHint: "Sprich einfach. Ich schreibe mit.",
+    record: "Erzähl ihn laut", recordHint: "Tipp aufs Mikrofon und erzähl einfach. Ich schreibe mit.",
     recording: "Ich höre zu …", recordStop: "Fertig", recordDiscard: "Verwerfen", recordTranscribing: "Ich schreibe auf …",
     recordTooShort: "Das war zu kurz — noch mal.", recordFailed: "Konnte das nicht aufschreiben. Noch mal versuchen.",
     recordAgain: "Noch mal aufnehmen", yourRecording: "Deine Aufnahme",
     /* Rekorder zuerst (Antons Ansage 13.09.): aufnehmen → anhören → aufschreiben → ergänzen. */
     reviewTitle: "Hör noch mal rein", reviewHint: "Passt es? Dann schreibe ich es auf.",
+    /* Die Sprechblase des Maskottchens nach der Aufnahme (26.09.) — wechselt alle paar Sekunden. */
+    mascotReview: ["Das war eine Nacht! Willst du sie nochmal hören?", "Tipp auf Anhören — ich höre mit.", "Passt alles? Dann schreibe ich es für dich auf."],
     recordListen: "Anhören", recordPause: "Pause", recordTranscribe: "Aufschreiben", recordRetake: "Neu aufnehmen",
     typeInstead: "Lieber schreiben", textTitle: "Dein Traum", textLede: "Aus deiner Aufnahme. Lies drüber und ergänze, was fehlt.",
     tellMore: "Weiter erzählen", rewriteAll: "Neu schreiben",
@@ -835,6 +837,8 @@ export default {
     step2: {
       title: "Was soll daraus werden?",
       saveOnly: "Nur speichern",
+      saveCta: "Speichern",
+      filmCta: "Den Film machen",
       saveOnlyHint: "Ins Journal, nichts wird erzeugt",
       images: "Eine Bildgeschichte",
       imagesHint: "Standbilder deines Traums, der Reihe nach",
@@ -918,9 +922,12 @@ export default {
         sketch: {
           name: "Skizze", hint: "4 Szenen mit deinen Gesichtern, der Film entsteht auf deinem iPhone",
           badge: "Am günstigsten",
+          model: "GPT Image 2 + dein iPhone",
+          info: "Der schnelle, günstige Weg in deinen Traum: Ein Bild mit vier Szenen wird in deinem gewählten Look gemalt — mit den Gesichtern aus deiner Besetzung. Dein iPhone misst dann, wie tief jede Szene ist, und fliegt mit der Kamera hindurch, mit treibendem Licht und Staub. Keine echte Bewegung der Figuren, aber eine bewegte Erinnerung in Sekunden. Drei im Monat sind gratis.",
         },
       },
       qualityLabel: "Qualität",
+      holdHint: "Halte ein Modell gedrückt, um mehr zu erfahren",
       aboutModel: "Über dieses Modell",
       aboutStyle: "Über diesen Stil",
       moreStyles: (n) => `Mehr Stile (${n})`,

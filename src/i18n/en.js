@@ -822,12 +822,14 @@ export default {
     tooShort: "⚠ Write a little more first.",
     caught: (name) => `✦ ${name} joined your menagerie`,
     /* Der Rekorder (ADR-0007): einsprechen, fertig — keine Rückfragen. */
-    record: "Tell it out loud", recordHint: "Just talk. I'll write it down.",
+    record: "Tell it out loud", recordHint: "Tap the mic and just talk. I'll write along.",
     recording: "Listening…", recordStop: "Done", recordDiscard: "Discard", recordTranscribing: "Writing it down…",
     recordTooShort: "That was too short — try again.", recordFailed: "Couldn't write that down. Try again.",
     recordAgain: "Record again", yourRecording: "Your recording",
     /* Recorder first (Anton, 13.09.): record → listen back → write it down → add to it. */
     reviewTitle: "Listen back", reviewHint: "Sounds right? Then I'll write it down.",
+    /* Die Sprechblase des Maskottchens nach der Aufnahme (26.09.) — wechselt alle paar Sekunden. */
+    mascotReview: ["That was quite a night! Want to hear it again?", "Tap play — I'll listen along.", "Sounds right? Then I'll write it down for you."],
     recordListen: "Play", recordPause: "Pause", recordTranscribe: "Write it down", recordRetake: "Record again",
     typeInstead: "Type instead", textTitle: "Your dream", textLede: "From your recording. Read it through and add what's missing.",
     tellMore: "Keep telling", rewriteAll: "Start over",
@@ -881,6 +883,8 @@ export default {
     step2: {
       title: "What should become of it?",
       saveOnly: "Just save it",
+      saveCta: "Save it",
+      filmCta: "Make the film",
       saveOnlyHint: "Into your journal, nothing generated",
       images: "A photo story",
       imagesHint: "Stills of your dream, in order",
@@ -963,9 +967,12 @@ export default {
         sketch: {
           name: "Sketch", hint: "4 scenes with your faces, the film is made on your iPhone",
           badge: "Cheapest",
+          model: "GPT Image 2 + your iPhone",
+          info: "The quick, cheap way into your dream: one image with four scenes is painted in your chosen look — with the faces from your cast. Your iPhone then measures how deep every scene is and flies a camera through it, with drifting light and dust. No real motion of people, but a moving memory in seconds. Three a month are free.",
         },
       },
       qualityLabel: "Quality",
+      holdHint: "Press and hold a model to learn more",
       aboutModel: "About this model",
       aboutStyle: "About this style",
       moreStyles: (n) => `More styles (${n})`,

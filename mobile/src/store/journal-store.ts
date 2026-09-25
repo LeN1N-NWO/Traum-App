@@ -50,7 +50,7 @@ export type SettingsData = {
   legal: { close: string; updated: string; draftNote: string; terms: LegalDoc; privacy: LegalDoc };
 };
 export type WizardPreset = { id: string; styleId: string; pace: string | null; wide: boolean; emoji: string; label: string; clip: string | null; featured: boolean };
-export type WizardModel = { id: string; name: string; hint: string; badge: string | null; min: number; max: number; step: number; preset: number; preferred: string; qualities: { id: string; name: string; perSec: string }[] };
+export type WizardModel = { id: string; name: string; hint: string; badge: string | null; info: string; modelName: string; min: number; max: number; step: number; preset: number; preferred: string; qualities: { id: string; name: string; perSec: string }[] };
 export type WizardData = {
   title: string; next: string; read: string; reading: string; tooShort: string; previewTitle: string; previewLede: string;
   yours: string; improved: string; keepMine: string; useImproved: string; styleTitle: string; styleLabel: string; useStyle: string; moreStyles: string;
@@ -120,7 +120,7 @@ export type SketchTexts = {
   unsupported: string; create: string; createCredit: string; freeLeft: string; noneLeft: string; takeLabel: string;
   photoTitle: string; photoHint: string; preparing: string; priceFree: string; creditWord: string;
   working: string[]; filming: string[];
-  card: { name: string; hint: string; badge: string } | null;
+  card: { name: string; hint: string; badge: string; info?: string; model?: string } | null;
   price: string;   // was die NÄCHSTE Skizze kostet, fertig formuliert
 };
 export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null; entryId?: string };

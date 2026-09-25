@@ -25,7 +25,7 @@ type NativeSketch = {
   generateImage(prompt: string, negative: string, seed: number, steps: number, name: string, options?: GenerateOptions): Promise<string>;
   importReference(source: string, name: string): Promise<string>;
   referenceData(source: string): Promise<string>;
-  importGrid(source: string, prefix: string): Promise<string[]>;
+  importGrid(source: string, prefix: string, cols: number, rows: number): Promise<string[]>;
   canPaint(): boolean;
   renderSketch(plan: RenderPlan, name: string): Promise<{ film: string; seconds: number }>;
   unload(): void;

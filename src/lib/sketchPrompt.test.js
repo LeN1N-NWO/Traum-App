@@ -58,14 +58,20 @@ test("sketchUserMessage: Figuren mit Beschreibung, Szenen nummeriert", () => {
 test("buildSketchGridPrompt: der Look steht ZUERST, das Foto nur für die Identität", () => {
   const p = buildSketchGridPrompt({ beats: ["a", "b", "c", "d"], styleId: "clay", clauses: ["Reference image 1 shows @me (person) — x"] });
   expect(p.startsWith("ART DIRECTION")).toBe(true);
-  expect(p.indexOf(styleById("clay").prompt)).toBeLessThan(p.indexOf("A single image laid out"));
+  expect(p.indexOf(styleById("clay").prompt)).toBeLessThan(p.indexOf("A single wide image"));
   expect(p).toContain("ONLY tell you WHO");
   expect(p).toContain("Never copy a reference photo's lighting");
-  expect(p).toContain("a SQUARE 1:1 frame");
-  expect(p).toContain("2×2 grid");
+  expect(p).toContain("FOUR equal VERTICAL panels");
+  expect(p).toContain("Panel 4 (far right)");
 });
 
 test("buildSketchGridPrompt: ohne Fotos keine Foto-Regeln", () => {
   const p = buildSketchGridPrompt({ beats: ["a", "b", "c", "d"], styleId: "surreal", clauses: [] });
   expect(p).not.toContain("reference");
+});
+
+test("buildSketchGridPrompt: weniger als vier Szenen → das freie Feld wird eine ruhige Totale", () => {
+  const p = buildSketchGridPrompt({ beats: ["a", "b"], styleId: "surreal" });
+  expect(p).toContain("Panel 3 (second from right): a quiet establishing shot");
+  expect(p).toContain("Panel 4 (far right): a quiet establishing shot");
 });

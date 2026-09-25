@@ -286,7 +286,7 @@ function snapshot() {
     cutOneShot: w5.cutOneShot, cutAll: w5.cutAll(1000), cutSome: w5.cutSome(1000, 2000), cutMoreAt: w5.cutMoreAt(1000, 2000),
     cutTwoParter: w5.cutTwoParter, flowAll: w5.flowAll(1000), flowFast: w5.flowFast(1000),
     cutAllIn: w5.cutAllIn(1000, 2000, 3000), cutRecommend: w5.cutRecommend(1000),
-    lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
+    lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel, holdHint: w5.holdHint, close: t.wizard.cast?.close, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
     readPrice: PRICES.improve, noCredits: t.wizard.noCreditsCta,
     /* Die native Auftragsseite (dream/order.tsx): Sätze fürs Abgeben,
        die Bestätigung und den Fehlerfall — Web-Texte, nichts Neues. */
@@ -304,6 +304,8 @@ function snapshot() {
       /* Kleines Abzeichen am Modell („Beste Qualität" am Kino — Antons
          Ansage 23.09.); Text aus der Sprachdatei, nie hart. */
       badge: w5.filmModels[m.id]?.badge || null,
+      /* Für das Info-Blatt beim Gedrückthalten (26.09.). */
+      info: w5.filmModels[m.id]?.info || "", modelName: w5.filmModels[m.id]?.model || "",
       min: m.min, max: m.max, step: m.step, preset: m.preset, preferred: m.preferred,
       /* Klartext statt Marketing-Namen (Antons Ansage 23.09.: „einfach
          480p, 768p, 1080p schreiben"): Name = Auflösung, dazu die Credits
@@ -353,7 +355,7 @@ function snapshot() {
       months: t.journal.months, calMonths: t.journal.calMonths, calWeekdays: t.journal.calWeekdays,
     },
   };
-  const step2 = { outputTitle: t.wizard.step2.title, saveOnly: t.wizard.step2.saveOnly, saveOnlyHint: t.wizard.step2.saveOnlyHint,
+  const step2 = { outputTitle: t.wizard.step2.title, saveOnly: t.wizard.step2.saveOnly, saveOnlyHint: t.wizard.step2.saveOnlyHint, saveCta: t.wizard.step2.saveCta, filmCta: t.wizard.step2.filmCta,
     images: t.wizard.step2.images, imagesHint: t.wizard.step2.imagesHint, film: t.wizard.step2.film, filmHint: t.wizard.step2.filmHint,
     saved: t.wizard.step2.saved, from: t.wizard.from, cancel: t.wizard.cancel, back: t.wizard.back,
     imagesFrom: priceForImages(Math.min(...IMAGE_COUNTS)), filmFrom: priceForFilm("standard", 5), steps: 6 };
@@ -361,7 +363,7 @@ function snapshot() {
     record: t.dream.record, recordHint: t.dream.recordHint, recording: t.dream.recording, recordStop: t.dream.recordStop,
     recordTranscribing: t.dream.recordTranscribing, recordTooShort: t.dream.recordTooShort, recordFailed: t.dream.recordFailed, recordDiscard: t.dream.recordDiscard,
     recordAgain: t.dream.recordAgain, yourRecording: t.dream.yourRecording,
-    reviewTitle: t.dream.reviewTitle, reviewHint: t.dream.reviewHint, recordListen: t.dream.recordListen, recordPause: t.dream.recordPause, recordTranscribe: t.dream.recordTranscribe, recordRetake: t.dream.recordRetake,
+    reviewTitle: t.dream.reviewTitle, reviewHint: t.dream.reviewHint, mascotReview: t.dream.mascotReview || [], recordListen: t.dream.recordListen, recordPause: t.dream.recordPause, recordTranscribe: t.dream.recordTranscribe, recordRetake: t.dream.recordRetake,
     typeInstead: t.dream.typeInstead, textTitle: t.dream.textTitle, textLede: t.dream.textLede, tellMore: t.dream.tellMore, rewriteAll: t.dream.rewriteAll, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
     placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
   /* Das Kaufblatt (Paywall.jsx), vorgerechnet: Texte sind im Web zum Teil

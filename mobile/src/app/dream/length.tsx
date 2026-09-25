@@ -2,7 +2,10 @@ import { Host, Slider } from "@expo/ui/swift-ui";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { BlurView } from "expo-blur";
+import Animated, { Easing, FadeIn, ZoomIn } from "react-native-reanimated";
+import { Clip } from "@/components/preset-tile";
 import { PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
@@ -63,6 +66,18 @@ export default function DreamLengthScreen() {
      die Stelle, an der er war (components/mascot-tap.tsx). Der Auftrag
      startet SOFORT, der Frosch ist geschenkte Wartezeit, nie ein Tor. */
   const button = useRef<View>(null);
+  /* Gedrückthalten öffnet das Info-Blatt (Antons Ansage 26.09.: „fester
+     draufdrücken, dann geht das Feld auf und erklärt, was es ist" — mit
+     Beispielfilm). Doppelte Haptik wie bei Haptic Touch. */
+  const [about, setAbout] = useState<{ title: string; model: string; info: string; clip: string } | null>(null);
+  const explain = (a: { title: string; model?: string; info?: string; clip: string }) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid), 90);
+    setAbout({ title: a.title, model: a.model || "", info: a.info || "", clip: a.clip });
+  };
+  const EXAMPLE: Record<string, string> = {
+    standard: "/clips/style-ultrareal.mp4", premium: "/clips/style-goldenage.mp4", sketch: "/clips/style-dreamlike.mp4",
+  };
   /* Die Traum-Skizze als dritte Karte (Antons Ansage 24.09.: „kostenlose
      Alternative, die keine Credits kostet, bei der Auswahl der Modelle").
      Nur wo das Gerät sie kann (iPhone 15 Pro+, natives Modul im Bau) —
@@ -94,9 +109,10 @@ export default function DreamLengthScreen() {
           {(W?.models ?? []).map((m) => {
             const on = !sketching && m.id === w.videoModel;
             return (
-              <Pressable key={m.id} style={[styles.choice, on && styles.choiceOn]} onPress={() => { Haptics.selectionAsync(); patchWizard({ videoModel: m.id as any, quality: null, seconds: clampSeconds(m.id, w.seconds), sketch: false }); }}>
+              <Pressable key={m.id} style={[styles.choice, on && styles.choiceOn]} delayLongPress={380}
+                onLongPress={() => explain({ title: m.name, model: m.modelName, info: m.info, clip: EXAMPLE[m.id] ?? EXAMPLE.standard })} onPress={() => { Haptics.selectionAsync(); patchWizard({ videoModel: m.id as any, quality: null, seconds: clampSeconds(m.id, w.seconds), sketch: false }); }}>
                 {m.badge ? (
-                  <View style={styles.badge} pointerEvents="none">
+                  <View style={[styles.badge, m.id === "premium" && styles.badgeBest]} pointerEvents="none">
                     <Text style={styles.badgeText}>{m.badge}</Text>
                   </View>
                 ) : null}
@@ -107,7 +123,8 @@ export default function DreamLengthScreen() {
           })}
         </View>
         {canSketch && S?.card ? (
-          <Pressable style={[styles.choice, styles.sketchCard, sketching && styles.choiceOn]} onPress={() => { Haptics.selectionAsync(); patchWizard({ sketch: true }); }}>
+          <Pressable style={[styles.choice, styles.sketchCard, sketching && styles.choiceOn]} delayLongPress={380}
+            onLongPress={() => explain({ title: S.card!.name, model: S.card!.model, info: S.card!.info, clip: EXAMPLE.sketch })} onPress={() => { Haptics.selectionAsync(); patchWizard({ sketch: true }); }}>
             <View style={[styles.badge, styles.badgeFree]} pointerEvents="none">
               <Text style={styles.badgeText}>{S.card.badge}</Text>
             </View>
@@ -118,6 +135,7 @@ export default function DreamLengthScreen() {
             <Text style={styles.choiceHint} numberOfLines={2}>{S.card.hint}</Text>
           </Pressable>
         ) : null}
+        {W?.holdHint ? <Text style={styles.holdHint}>{W.holdHint}</Text> : null}
 
         {model && !sketching ? (
           <>
@@ -174,6 +192,25 @@ export default function DreamLengthScreen() {
         ) : null}
       </ScrollView>
       <View style={styles.bridge}>{bridge}</View>
+      <Modal visible={!!about} transparent animationType="none" onRequestClose={() => setAbout(null)}>
+        {about ? (
+          <Animated.View entering={FadeIn.duration(160)} style={StyleSheet.absoluteFill}>
+            <BlurView intensity={60} tint="systemThickMaterialDark" style={StyleSheet.absoluteFill} />
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setAbout(null)} />
+            <View style={styles.aboutCenter} pointerEvents="box-none">
+              <Animated.View entering={ZoomIn.duration(260).easing(Easing.out(Easing.back(1.4)))} style={styles.aboutCard}>
+                <View style={styles.aboutVideo}><Clip url={about.clip} /></View>
+                <View style={{ padding: 18, gap: 6 }}>
+                  <Text style={styles.aboutTitle}>{about.title}</Text>
+                  {about.model ? <Text style={styles.aboutModel}>{about.model}</Text> : null}
+                  <Text style={styles.aboutInfo}>{about.info}</Text>
+                  <PrimaryButton label={W?.close ?? "Close"} glow={false} onPress={() => setAbout(null)} style={{ flex: 0, marginTop: 8 }} />
+                </View>
+              </Animated.View>
+            </View>
+          </Animated.View>
+        ) : null}
+      </Modal>
     </>
   );
 }
@@ -194,6 +231,14 @@ const styles = StyleSheet.create({
   pillSub: { color: colors.muted, fontSize: 11, fontVariant: ["tabular-nums"] },
   badge: { position: "absolute", top: -9, right: 10, backgroundColor: colors.accentSoft, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8, zIndex: 1 },
   badgeFree: { backgroundColor: colors.ok },
+  badgeBest: { backgroundColor: colors.warm },
+  aboutCenter: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
+  aboutCard: { width: "100%", maxWidth: 440, borderRadius: 28, overflow: "hidden", backgroundColor: colors.bg2, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.14)" },
+  aboutVideo: { width: "100%", aspectRatio: 16 / 10, backgroundColor: colors.panel },
+  aboutTitle: { fontFamily: fonts.serif, fontSize: 28, color: colors.text },
+  aboutModel: { color: colors.accentSoft, fontSize: 12, letterSpacing: 1.4, fontWeight: "700", textTransform: "uppercase" },
+  aboutInfo: { color: colors.muted, fontSize: 15, lineHeight: 22 },
+  holdHint: { color: colors.faint, fontSize: 12, textAlign: "center", marginTop: -4 },
   sketchCard: { flex: 0, marginTop: 2 },
   sketchHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10 },
   sketchPrice: { color: colors.ok, fontSize: 13, fontWeight: "700", fontVariant: ["tabular-nums"] },

@@ -1235,15 +1235,17 @@ async function sketchPrompts({ beats, people, mood }) {
   return normaliseSketch(raw, beats.length);
 }
 
-/* Traum-Skizze aus der Cloud (25.09., Antons Entscheidung): EIN 2×2-Raster
-   bei GPT Image 2 „low", 1024² — vier 512²-Kacheln, die das iPhone schneidet
+/* Traum-Skizze aus der Cloud (25.09., Antons Entscheidung): EIN Rasterbild
+   bei GPT Image 2 „low" — vier Kacheln, die das iPhone schneidet
    und zum Film macht (Tiefe, Kamera, Teilchen). Der Look kommt über das
    Stil-Preset im Prompt (buildGridPrompt), das Gesicht über die Fotos.
    Einkauf je Aufruf höchstens $0,015 (Edit-Tabelle, 1024² low); ohne Foto
    läuft Text-zu-Bild und ist billiger. Das Gratis-Kontingent (3 je Monat,
    src/lib/sketchQuota.js) zählt heute das Gerät — settleCharge loggt. */
 const SKETCH_GRID_MODEL = "gpt-image-2";
-const SKETCH_GRID_SIZE = { width: 1024, height: 1024 };
+/* 26.09.: vier Hochkant-Felder nebeneinander (SKETCH_STRIP in sketchPrompt.js)
+   — 2304×1024, je Feld 576×1024. GPT: Vielfache von 16, Seiten bis 3:1. */
+const SKETCH_GRID_SIZE = { width: 2304, height: 1024 };
 async function sketchGrid({ prompt, refs }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");

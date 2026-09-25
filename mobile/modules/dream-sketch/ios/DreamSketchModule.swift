@@ -189,11 +189,12 @@ public class DreamSketchModule: Module {
       }
     }
 
-    /// Das 2×2-Raster aus der Cloud laden und in vier 512²-Kacheln schneiden
-    /// (Lesereihenfolge: oben links, oben rechts, unten links, unten rechts).
+    /// Das Raster aus der Cloud laden und schneiden. Seit 26.09. ein
+    /// Streifen aus VIER Hochkant-Kacheln (1×4, je 576×1024 — genau das
+    /// Filmformat, nichts wird mehr weggeschnitten); `cols`/`rows` sagen es.
     /// Trennlinien und ein dünner Rand fallen dabei weg. Gibt die vier
     /// `sketch:`-Namen zurück.
-    AsyncFunction("importGrid") { (source: String, prefix: String, promise: Promise) in
+    AsyncFunction("importGrid") { (source: String, prefix: String, cols: Int, rows: Int, promise: Promise) in
       self.work.async {
         do {
           guard let url = URL(string: source) else { throw URLError(.badURL) }
@@ -201,7 +202,9 @@ public class DreamSketchModule: Module {
             throw NSError(domain: "DreamSketch", code: 28, userInfo: [NSLocalizedDescriptionKey: "Raster unlesbar"])
           }
           var names: [String] = []
-          for (i, tile) in SketchReference.gridTiles(grid, cols: 2, rows: 2, size: 512).enumerated() {
+          let portrait = rows == 1 && cols >= 3
+          let tw = portrait ? 576 : 512, th = portrait ? 1024 : 512
+          for (i, tile) in SketchReference.gridTiles(grid, cols: max(1, cols), rows: max(1, rows), tileW: tw, tileH: th).enumerated() {
             let name = prefix + "-\(i).png"
             guard let png = UIImage(cgImage: tile).pngData() else { throw NSError(domain: "DreamSketch", code: 29) }
             try png.write(to: Self.sketchesDir().appendingPathComponent(name), options: .atomic)

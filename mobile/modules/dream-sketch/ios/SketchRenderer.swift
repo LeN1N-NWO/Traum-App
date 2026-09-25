@@ -28,7 +28,7 @@ enum SketchRenderer {
     var morphFade = 0.45     // je Zwischenbild
     var plainFade = 1.4      // Übergang ohne Zwischenbilder: Tiefen-Überblendung
     var landingFade = 0.8    // letztes Foto-Traumbild → erste Szene
-    var source = 512         // Rechenraster der Parallaxe (= SD-Auflösung)
+    var source = 512         // Rechenraster bei QUADRATISCHEN Bildern (alter SD-Weg)
     var flow: Float = 2.4    // Wogen des Fernen, in Punkten
     var fog = 0.3            // höchste Nebeldichte im Fernsten (0 = aus)
   }
@@ -81,20 +81,26 @@ enum SketchRenderer {
 
     // ── Bilder, Tiefe, Nebelmaske — einmal je Bild ───────────────────────
     let context = CIContext(options: [.cacheIntermediates: false])
-    let n0 = o.source
     let stills: [CIImage] = try items.map { item in
       guard let img = CIImage(contentsOf: item.url) else {
         throw NSError(domain: "DreamSketch", code: 10, userInfo: [NSLocalizedDescriptionKey: "Bild fehlt: \(item.url.lastPathComponent)"])
       }
       return img
     }
-    let pixels = stills.map { SketchParallax.rgba($0, size: n0, context: context) }
+    /* Das Rechenraster folgt den Bildern (26.09., Antons Befund: „die 9:16
+       sind gecropped, wir verlieren Auflösung"). Hochkant-Kacheln aus dem
+       4er-Streifen (576×1024) werden in voller Größe gerechnet und brauchen
+       kaum Fensterfahrt; quadratische (SD, 512²) wie bisher. */
+    let aspect = stills.first.map { $0.extent.width / max(1, $0.extent.height) } ?? 1
+    let portrait = aspect < 0.8
+    let sw = portrait ? o.width : o.source, sh = portrait ? o.height : o.source
+    let pixels = stills.map { SketchParallax.rgba($0, w: sw, h: sh, context: context) }
     let depths: [[Float]?] = stills.map { still in
       guard let m = depthModel else { return nil }
-      return try? SketchDepth.estimate(still, model: m, size: n0, context: context)
+      return try? SketchDepth.estimate(still, model: m, w: sw, h: sh, context: context)
     }
-    let farMasks: [CIImage?] = depths.map { d in d.map { farMask($0, size: n0) } }
-    let nearMaps: [CIImage?] = depths.map { d in d.map { nearMap($0, size: n0) } }
+    let farMasks: [CIImage?] = depths.map { d in d.map { farMask($0, w: sw, h: sh) } }
+    let nearMaps: [CIImage?] = depths.map { d in d.map { nearMap($0, w: sw, h: sh) } }
     let fogBase = fogNoise()
 
     // ── Kamera: fester Zufall je Traum ───────────────────────────────────
@@ -130,11 +136,14 @@ enum SketchRenderer {
       // Oben und unten ist wenig Rand (das Quadrat ist nur 12 % höher als
       // das Fenster) — dort gleitet es sparsam, sonst sieht man die geklemmten
       // Kanten der Parallaxe. Beim Dolly-Zoom etwas enger.
-      let s = Double(o.height) / Double(n0) * (1.12 + 0.05 * sin(tau * t / 12 + ph[3]) + 0.08 * vertigo(t))
-      let side = Double(n0) * s
-      let fx = 0.5 + 0.28 * sin(tau * t / 10 + ph[4])
-      let fy = 0.5 + 0.2 * sin(tau * t / 14 + ph[5])
-      return (s, -(side - Double(o.width)) * fx, -(side - Double(o.height)) * fy)
+      // Hochkant füllt das Bild das Fenster schon — nur ein Hauch Rand gegen
+      // die geklemmten Kanten der Parallaxe, fast nichts geht verloren.
+      let base = portrait ? 1.07 + 0.025 * sin(tau * t / 12 + ph[3]) : 1.12 + 0.05 * sin(tau * t / 12 + ph[3])
+      let s = Double(o.height) / Double(sh) * (base + 0.08 * vertigo(t))
+      let wide = Double(sw) * s, tall = Double(sh) * s
+      let fx = 0.5 + (portrait ? 0.35 : 0.28) * sin(tau * t / 10 + ph[4])
+      let fy = 0.5 + (portrait ? 0.3 : 0.2) * sin(tau * t / 14 + ph[5])
+      return (s, -(wide - Double(o.width)) * fx, -(tall - Double(o.height)) * fy)
     }
 
     let particles = SketchParticles.make(plan.particles, seed: plan.seed)
@@ -178,14 +187,14 @@ enum SketchRenderer {
       for k in visible {
         var shot: CIImage
         if let d = depths[k] {
-          let warped = SketchParallax.warp(rgba: pixels[k], depth: d, size: n0, camera: cam, time: Float(t), flow: o.flow)
-          shot = SketchParallax.image(warped, size: n0)
+          let warped = SketchParallax.warp(rgba: pixels[k], depth: d, w: sw, h: sh, camera: cam, time: Float(t), flow: o.flow)
+          shot = SketchParallax.image(warped, w: sw, h: sh)
           // Kein Nebel auf dem eigenen Foto: Im Porträt liegt die Person für
           // die Tiefenschätzung im Mittelgrund (Hände/Glas sind näher) und
           // verschwände im Dunst — das echte Gesicht soll klar bleiben.
-          if o.fog > 0, !items[k].opening, let mask = farMasks[k] { shot = fog(fogBase, time: t, mask: mask, size: n0, density: o.fog).composited(over: shot) }
+          if o.fog > 0, !items[k].opening, let mask = farMasks[k] { shot = fog(fogBase, time: t, mask: mask, w: sw, h: sh, density: o.fog).composited(over: shot) }
         } else {
-          shot = stills[k].transformed(by: CGAffineTransform(scaleX: Double(n0) / stills[k].extent.width, y: Double(n0) / stills[k].extent.height))
+          shot = stills[k].transformed(by: CGAffineTransform(scaleX: Double(sw) / stills[k].extent.width, y: Double(sh) / stills[k].extent.height))
         }
         shot = shot.transformed(by: place).cropped(to: canvas)
         let a = alphaOf(k)
@@ -210,15 +219,15 @@ enum SketchRenderer {
       // Teilchen: gleiche Kamera, verdeckt von der Szene, die gerade vorherrscht.
       if let layer = SketchParticles.layer(particles, kind: plan.particles, time: t, width: o.width, height: o.height,
         shift: { z in
-          let sh = z - Double(cam.focus)
-          return CGPoint(x: Double(cam.dx) * sh * Double(n0) * win.s, y: -Double(cam.dy) * sh * Double(n0) * win.s)
+          let dz = z - Double(cam.focus)
+          return CGPoint(x: Double(cam.dx) * dz * Double(sw) * win.s, y: -Double(cam.dy) * dz * Double(sw) * win.s)
         },
         surface: { u, v in
           guard let k = dominant, let d = depths[k] else { return nil }
           let sx = (u * Double(o.width) - win.x) / win.s, sy = (v * Double(o.height) - win.y) / win.s
-          let col = Int(sx), row = n0 - 1 - Int(sy)
-          guard col >= 0, col < n0, row >= 0, row < n0 else { return nil }
-          return d[row * n0 + col]
+          let col = Int(sx), row = sh - 1 - Int(sy)
+          guard col >= 0, col < sw, row >= 0, row < sh else { return nil }
+          return d[row * sw + col]
         }) {
         frame = layer.applyingFilter("CIAdditionCompositing", parameters: [kCIInputBackgroundImageKey: frame]).cropped(to: canvas)
       }
@@ -242,22 +251,22 @@ enum SketchRenderer {
   }
 
   /// Die Tiefe als Graubild (nah = hell) — Maske der Tiefen-Überblendung.
-  static func nearMap(_ depth: [Float], size: Int) -> CIImage {
+  static func nearMap(_ depth: [Float], w: Int, h: Int) -> CIImage {
     let bytes = depth.map { (d: Float) -> UInt8 in UInt8(min(max(d, 0), 1) * 255) }
-    return CIImage(bitmapData: Data(bytes), bytesPerRow: size, size: CGSize(width: size, height: size),
+    return CIImage(bitmapData: Data(bytes), bytesPerRow: w, size: CGSize(width: w, height: h),
                    format: .L8, colorSpace: nil)
   }
 
   /// Wo Nebel liegen darf: NUR das Ferne. Unter Tiefe 0,45 steigt er an,
   /// ab da ist alles frei — eine weiche Kurve über die ganze Tiefe legte
   /// am 25.09. Nebel auch auf Figuren und Vordergrund.
-  static func farMask(_ depth: [Float], size: Int) -> CIImage {
+  static func farMask(_ depth: [Float], w: Int, h: Int) -> CIImage {
     let bytes = depth.map { (d: Float) -> UInt8 in
       let m: Float = min(max((0.45 - d) / 0.35, 0), 1)
       let s: Float = m * m * (3 - 2 * m)
       return UInt8(s * 255)
     }
-    return CIImage(bitmapData: Data(bytes), bytesPerRow: size, size: CGSize(width: size, height: size),
+    return CIImage(bitmapData: Data(bytes), bytesPerRow: w, size: CGSize(width: w, height: h),
                    format: .L8, colorSpace: nil)
   }
 
@@ -275,8 +284,8 @@ enum SketchRenderer {
       .applyingGaussianBlur(sigma: 26)
   }
 
-  static func fog(_ noise: CIImage, time t: Double, mask: CIImage, size: Int, density d: Double) -> CIImage {
-    let square = CGRect(x: 0, y: 0, width: size, height: size)
+  static func fog(_ noise: CIImage, time t: Double, mask: CIImage, w: Int, h: Int, density d: Double) -> CIImage {
+    let square = CGRect(x: 0, y: 0, width: w, height: h)
     // Alles in Graustufen (deckend) rechnen, erst am Ende färben — so gibt
     // es keine Fragen nach vormultipliziertem Alpha.
     let clouds = noise
