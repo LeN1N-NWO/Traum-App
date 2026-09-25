@@ -145,15 +145,18 @@ else
 fi
 
 # ── Start oder Hinweis ────────────────────────────────────────────────────
+# Deployt wird der Stand, der gerade ausgecheckt ist — nicht stillschweigend
+# origin/main. Wer zum Testen einen Branch geklont hat, bekommt genau den.
+HEAD_NOW="$(git -C "$APP_DIR" rev-parse --short HEAD)"
 if [[ -f "$ENV_FILE" ]]; then
-  say "Erster Deploy"
-  bash "$APP_DIR/deploy/deploy.sh"
+  say "Erster Deploy ($HEAD_NOW)"
+  bash "$APP_DIR/deploy/deploy.sh" "$HEAD_NOW"
 else
   say "Fast fertig"
   cat <<EOF
 Es fehlt nur noch die .env des Servers: $ENV_FILE
 Anlegen wie in deploy/README.md beschrieben, dann:
 
-  sudo bash $APP_DIR/deploy/deploy.sh
+  sudo bash $APP_DIR/deploy/deploy.sh $HEAD_NOW
 EOF
 fi
