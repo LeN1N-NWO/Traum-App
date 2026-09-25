@@ -196,3 +196,18 @@ bleiben.
 **Noch nicht:** Erzählstimme + Untertitel, Klangteppich, LCM-Schnellmodus
 (bräuchte eigenen Scheduler), „mit echter Bewegung aufwerten" (Turbo-Cloud,
 kostet Credits).
+
+**Belegt (25.09.):**
+- Simulator Ende zu Ende mit Foto: Server-Szenen kommen an (Figur „von
+  hinten", in allen Szenen gleich), Foto → 0,42 → 0,64 → Szene verwandelt
+  sich sichtbar, 6 Morph-Bilder, Film 20,2 s / 484 Bilder, ins Journal.
+  Dauer im Simulator (Mac-CPU) 19 min für 12 Bilder.
+- Neural Engine (Mac-Probe, dieselben Swift-Dateien): **12 s je Bild**,
+  erstes Laden einmalig ~4 min (Übersetzung für die Neural Engine). Fürs
+  iPhone 17 Pro ähnlich zu erwarten → 12 Bilder ≈ 2–3 min.
+- Nebel-Fehler gefunden und behoben (Alpha im Zufallsgenerator, s. Commit
+  677a3cf); Renderer-Probe rendert den ganzen Film in ~3,5 s.
+- DreamShaper 8 läuft mit unserer Pipeline (Mac-Probe, gleicher Prompt und
+  Seed wie SD 1.5): deutlich filmischer, Figur und Schnee im Glaswald
+  getroffen, wo SD 1.5 beides verlor. Empfehlung: DreamShaper als Standard,
+  sobald Lizenz/Hosting (eigene Umwandlung oder Spiegel) geklärt sind.
