@@ -3,12 +3,29 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-24 abends — Hanni. `session/2026-09-24-hanni-3`
-(PR #60, Sicherheitscheck) ist gemergt; `session/2026-09-24-hanni-2`
-(PR #59, Hosting + Medienablage A/B/D) fertig, **Merge durch Hanni**.
-Schritt C folgt auf einem neuen Branch. Anton parallel auf
-`session/2026-09-23-anton` (PR #56). **Weg durch die App-Store-Prüfung:
-`docs/plans/2026-09-23-app-store-pruefung.md`.**
+**Stand:** 2026-09-25 — Hanni, `session/2026-09-25-hanni` (PR #63, fertig,
+**Merge durch Hanni**). Anton parallel auf `session/2026-09-25-anton`
+(PR #62, Traum-Skizze on-device — ändert `server.js`, `journal-bridge.jsx`,
+`journal-store.ts`, i18n; deshalb wartet die Anbindung von Schritt C darauf).
+**Weg durch die App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Schritt C, Teil 1 fertig (25.09.): Speicher-Modul `src/lib/media-store.js`**
+— put/get/list/remove/removeAll, lokal (atomar) und S3 über Buns
+eingebauten S3Client (Hetzner Object Storage, keine neue Abhängigkeit).
+`keyOf()` ist die einzige Wand zwischen Konten (UUID/Dateiname). Ohne
+Zugangsdaten → lokal; `MEDIA_STORE=s3` unvollständig → **Fehler**, kein
+stiller Rückfall; lokaler Ordner **ohne Standard** (Worktree-Falle) —
+Aufrufer leitet ihn über `mediaRootFrom()` ab. 27 Tests (Vertrag gegen
+beide Umsetzungen, Live-S3-Test nur mit `MEDIA_S3_*`), Gegenprobe mit vier
+eingebauten Fehlern. **Noch nicht angebunden** (nach PR #62): Endpunkte,
+Verschlüsseln in der App, Löschen beim Konto-Löschen, Format-Sperre.
+`.env.example` hat die `MEDIA_S3_*`-Anleitung.
+
+**Hetzner-VPS (Antons, nur für die App):** `ubuntu-4gb-fsn1-2`,
+`188.245.92.121`, Falkenstein (DE). Von außen: nur SSH offen. IPv6-Netz
+`2a01:4f8:c013:ace3::/64`, Server-Adresse (vermutlich `::1`) **unbelegt** —
+Hannis Anschluss hat kein IPv6. **Domains `dreamrushes.app` +
+`dreamrushes.de` sind registriert** (25.09., RDAP/DENIC).
 
 **Sicherheitscheck `/security-check` (PR #60, 24.09.):** Skript
 `scripts/security-check.mjs` (23 mechanische Prüfungen, jeder Detektor mit
@@ -66,10 +83,7 @@ dort Budget, Prüfer-Credits, Store-Länder.
 
 Phase-0-Stand sonst:
 - ✅ 1: vorbereiten/TestFlight als Einzelperson, **verkaufen erst als UG**.
-- ⏳ 3: Domains `dreamrushes.app` + `dreamrushes.de` bei Strato bestellt —
-  erst als erledigt eintragen, wenn die Registry sie zeigt:
-  `curl -s -o /dev/null -w "%{http_code}" https://pubapi.registry.google/rdap/domain/dreamrushes.app`
-  (200 = registriert) und `whois -h whois.denic.de dreamrushes.de`.
+- ✅ 3: Domains `dreamrushes.app` + `dreamrushes.de` registriert (25.09.).
 - 📝 4: Anfrage an den Anwalt fertig, Absenden bei Hanni —
   `docs/plans/2026-09-24-anfrage-anwalt.md`, Markenrecherche
   `docs/plans/2026-09-24-markenpruefung.md` (⚠ EU-Marke „RUSHES").
@@ -180,25 +194,25 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
 6. Android: Apples Blatt fehlt dort — Apple-Konto dort nicht löschbar.
 
 **Nächste Schritte:**
-1. **Hanni:** PR #59 mergen; danach im Hauptordner `bun install`,
-   Prebuild, `pod install`, Server neu starten, dann App bauen. Worktree
-   `Traum-App-hanni-3` entfernen. Ersten vollen `/security-check` in einer
-   neuen Sitzung laufen lassen. Anfrage an den Anwalt abschicken; Domains
-   prüfen.
-2. **Anton:** Notiz `2026-09-24-anton-medienablage-ausrollen.md` lesen;
-   Server vor App aktualisieren; am iPhone App löschen/neu installieren
-   (iCloud-Schlüssel); VPS nach den Bedingungen + Object-Storage-Bucket →
-   dann baut Hanni **Schritt C** (neuer Branch).
-3. **Mit Anton:** Prüfer-Credits (N10), Store-Länder, Budget, `media/jobs`,
-   `/api/cast-backup`.
-4. **Anton:** Face ID am iPhone (N11), erster echter Turbo-Film mit Foto;
-   Xcode-Projekt neu prebuilden (B5/B7 in `app.json`).
-5. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
-   `server_grant()`. Braucht einen App-Store-Connect-API-Schlüssel (⚠ NICHT
-   der Sign-in-with-Apple-Schlüssel).
-6. **Hanni in App Store Connect:** Produkte, Sandbox-Tester,
-   Paid-Applications-Vertrag, Small Business Program.
-7. Vor Einreichung: die 4 Preflight-Schalter oben, Preflight = 0.
+1. **Hanni:** PR #63 mergen. DNS bei Strato: A `api` → `188.245.92.121`
+   (AAAA erst nach Antons Bestätigung). Anfrage an den Anwalt abschicken.
+   Ersten `/security-check` in neuer Sitzung.
+2. **Anton:** `ip -6 addr show scope global` auf dem VPS (IPv6-Adresse);
+   klären, wer SSH-Zugang hat; Object-Storage-Bucket im eigenen
+   Hetzner-Projekt (Anleitung `.env.example`), Zugangsdaten in die Server-
+   `.env` — dann Live-Test `bun --env-file=… test src/lib/media-store.test.js`.
+   Notiz `2026-09-24-anton-medienablage-ausrollen.md` (Reihenfolge
+   Migration → Server → App).
+3. **Nächste Claude-Sitzung:** Einrichtungsskript für den VPS (Bun, ffmpeg,
+   Caddy/HTTPS für `api.dreamrushes.app`, eigener Systemnutzer, systemd,
+   Updates, Firewall 22/80/443, Deploy mit einem Befehl) — neue Dateien,
+   keine Überschneidung mit PR #62.
+4. **Nach PR #62:** Schritt C anbinden (Server-Endpunkte, App-Seite).
+5. **Mit Anton:** Prüfer-Credits (N10), Store-Länder, Budget, `media/jobs`.
+6. **Anton:** Face ID am iPhone (N11), erster echter Turbo-Film mit Foto.
+7. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API. Hanni in
+   App Store Connect: Produkte, Sandbox, Verträge, Small Business Program.
+8. Vor Einreichung: Preflight = 0.
 
 **Davor (23.09. früh):** Hanni, `session/2026-09-15-hanni-apple-signin`
 (PR #51) abgeschlossen. **„Mit Apple anmelden" läuft auf einem echten iPhone,
