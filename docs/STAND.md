@@ -3,60 +3,73 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-25 morgens — Anton, `session/2026-09-23-anton`
-(PR #56, freigegeben, **Merge auf Antons Wort**; main mit Hannis PR #59/#60
-ist schon hereingeholt, Konflikte gelöst). Hannis PR #59 (Medienablage
-A/B/D) und #60 (Sicherheitscheck) sind auf main. **Weg durch die
+**Stand:** 2026-09-26 — Anton, `session/2026-09-25-anton` (PR #62, stapelt
+auf PR #56; beide **Merge auf Antons Wort**). main mit Hannis PR #63
+(Schritt C Teil 1, VPS, Domains) ist hereingeholt. **Hanni wartet mit der
+Anbindung von Schritt C auf PR #62** (berührt `server.js`,
+`journal-bridge.jsx`, `journal-store.ts`, i18n). **Weg durch die
 App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Traum-Skizze — gratis, komplett auf dem iPhone (PR #56, neu):**
-Dritte Modellkarte „Skizze · GRATIS" in `mobile/src/app/dream/length.tsx`
-(nur auf Geräten ≥ 8 GB RAM). Das iPhone malt je Szene ein Bild (Stable
-Diffusion 1.5, Core ML), schätzt die Tiefe (Depth Anything V2) und rendert
-eine 2.5D-Kamerafahrt als Film ins Journal — ohne Server, ohne Credits.
-Plan und Messwerte: `docs/plans/2026-09-24-traum-skizze-on-device.md`.
-- Code: `mobile/modules/dream-sketch/` (lokales Expo-Modul, autolinked,
-  nur `pod install`), Bildschirm `mobile/src/app/dream/sketch.tsx`,
-  Brücken-Befehl `sketch` (`runSketch` in `journal-bridge.jsx`), Adressen
-  `sketch:<datei>`, aufgelöst in `mobile/src/components/journal-data.tsx`.
-- Modelle ~940 MB, einmal nachgeladen (Hugging Face), aus dem
-  iCloud-Backup ausgenommen; Tiefe als .mlpackage, auf dem Gerät kompiliert.
-- ✅ Belegt im Simulator (Ende zu Ende, mit Tiefe) und per Mac-Probe.
-  ⚠ **Auf Antons iPhone noch nicht getestet** — die Tiefen-Fassung ist
-  seit 25.09. morgens installiert (Stand VOR dem Merge mit Hannis
-  Medienablage); Antons Erstlauf mit Messung der Dauer steht aus.
-- ❌ Vor der Einreichung: **Inhaltsprüfung** (Preflight **B8**,
-  `DreamSketchModule.swift` `disableSafety = true`), Lizenzhinweis SD 1.5
-  in die Rechtstexte, Modelle von eigenem Speicher statt Hugging Face.
-- ⚠ Skizzen liegen nur in `Documents/sketches` und sind NICHT in der
-  verschlüsselten Sicherung (Schritt B) — nach Neuinstallation fehlt der
-  Skizzen-Film, der Traumtext kommt zurück.
+**Traum-Skizze — jetzt Cloud-Raster + Film auf dem iPhone (PR #62):**
+EIN Aufruf GPT Image 2 `low`, **Streifen aus vier 9:16-Feldern**
+(2304×1024, je 576×1024, ≈ $0,017), Look-Preset ZUERST im Prompt, Fotos
+der Besetzung nur als Identität (`buildSketchGridPrompt` in
+`src/lib/sketchPrompt.js`, Server `/api/sketch-grid`). Das iPhone schneidet
+(`importGrid`) und rendert den Film: Tiefe (Depth Anything, 50 MB),
+schwebende Kamera, Tiefen-Überblendung, Nebel, Teilchen
+(`mobile/modules/dream-sketch/ios/SketchRenderer.swift`). **3 Skizzen je
+Monat gratis, dann 1 Credit** (`src/lib/sketchQuota.js` — zählt heute das
+Gerät, scharf erst mit Anmeldung). Kein 1-GB-Maler mehr im Ablauf (der
+SD-Code liegt noch im Modul, wird nicht aufgerufen → Preflight B8 grün).
+Plan mit allen Messungen: `docs/plans/2026-09-24-traum-skizze-on-device.md`
+(v3–v5). ✅ Streifen-Weg echt getestet (Server → Schnitt → Film, Mac-Probe);
+Simulator Ende zu Ende mit dem 2×2-Vorgänger.
+- ⚠ Skizzen liegen nur in `Documents/sketches`, NICHT in der Sicherung.
+- ⚠ Der Server im Hauptordner läuft gerade aus diesem Worktree
+  (`bun …/Traum-App-anton/server.js`, Port 8100) — nach dem Merge wieder
+  aus dem Hauptordner auf main starten.
 
-**Nächster App-Bau auf Antons Mac (nach Hannis Medienablage):**
-`cd mobile && bun install` (spielt `patches/expo-secure-store@57.0.4.patch`
-ein) → **EventEmitter-Patch erneut setzen** (bun install löscht ihn, Rezept
-unten) → `cd ios && pod install` → Release-Bau → `devicectl` installieren.
-⚠ **KEIN Prebuild auf Antons Mac** (Gratis-Team, Push-Entitlement) — Hannis
-Ausroll-Notiz (`docs/uebergabe/2026-09-24-anton-medienablage-ausrollen.md`)
-nennt Prebuild, das gilt nur für ihren Mac. Server im Hauptordner vorher
-auf main ziehen und neu starten („Server vor App"). iCloud-Schlüsselbund
-am iPhone an.
+**Design-Runde 25./26.09. (PR #62):** Vorschau nach dem Einsprechen
+(„Verbessert" oben, leuchtend; eigene Worte aufklappbar) · Traum-Tab nimmt
+NICHT mehr von selbst auf · Nachhören mit Maskottchen + Sprechblase ·
+umlaufender Leuchtrand an jedem Hauptknopf (`components/orbit-glow.tsx`) ·
+„Was soll daraus werden?" als zwei große Filmkacheln mit Glaswelle
+(Platzhalter-Clips) · **Besetzung Karte für Karte** (`dream/cast.tsx`) ·
+Stilwahl mit dominanter Auswahl und Pfeilen · Modellwahl: „Bester Preis",
+„Beste Qualität" orange, „Am günstigsten" + Preis, Gedrückthalten →
+Info-Blatt mit Beispielfilm (Platzhalter) · Menüleiste schrumpft nicht mehr
+(„Menü-Buttons oft nicht klickbar" — auf dem iPhone noch zu bestätigen).
 
-**Sonst neu (PR #56):** Warte-Frosch nativ transparent (HEVC-Alpha,
-`mobile/assets/mascots/frog-idle.mov`); Mond-Streifen mit echter
-NASA-Mondoberfläche (`mobile/assets/moon-full.png`); Begleiter-Plan
-`docs/plans/2026-09-23-begleiter-animationsplan.md` (Faultier und Eule
-brauchen je Idle + Knopf-Tipp — 4 Zeichnungen); SessionStart-Hook läuft
-wieder (`scripts/package.json` → commonjs). Bundle-ID
-`com.dreamrushes.app` lässt sich mit Antons Gratis-Team NICHT signieren
-(Apple-Fehler belegt) — Entscheidung bei Hanni:
-`docs/uebergabe/2026-09-24-hanni-bundle-id-signierung.md`.
+**Offen für Anton:** den letzten Build aufs iPhone (liegt fertig in
+`~/.dr-dd-anton`, iPhone war beim Wrap nicht erreichbar); Skizze und
+Design am Gerät prüfen; echte Clips für die Kacheln und Info-Blätter;
+Seedance-2.5-**Draft** (480p-Entwurf, binnen 7 Tagen auf 1080p
+fertigstellen) — Preis der Fertigstellung noch messen; Hannis Fragen
+(Hosting-Budget, Prüfer-Credits, Store-Länder).
 
-**Offen für Anton aus Hannis Notizen:** Hosting-Fragen (Budget, Prüfer-
-Credits, Store-Länder) in `docs/uebergabe/2026-09-24-anton-hosting.md`;
-für Schritt C die VPS-Bedingungen, ein Hetzner-Bucket und der Zeitpunkt
-(`…-medienablage-ausrollen.md`); am iPhone die iCloud-Probe (Traum
-anlegen, App löschen, neu installieren → Text muss zurückkommen).
+**Nächster App-Bau auf Antons Mac:** `cd mobile && bun install` →
+**EventEmitter-Patch erneut setzen** → `cd ios && pod install` →
+Release-Bau → `devicectl`. ⚠ **KEIN Prebuild auf Antons Mac.**
+`mobile/.env` zeigt auf `192.168.178.97:8100` (Mac-Adresse prüfen, sie
+wechselte am 25.09. kurz auf 192.168.1.152).
+
+**Schritt C, Teil 1 fertig (25.09.): Speicher-Modul `src/lib/media-store.js`**
+— put/get/list/remove/removeAll, lokal (atomar) und S3 über Buns
+eingebauten S3Client (Hetzner Object Storage, keine neue Abhängigkeit).
+`keyOf()` ist die einzige Wand zwischen Konten (UUID/Dateiname). Ohne
+Zugangsdaten → lokal; `MEDIA_STORE=s3` unvollständig → **Fehler**, kein
+stiller Rückfall; lokaler Ordner **ohne Standard** (Worktree-Falle) —
+Aufrufer leitet ihn über `mediaRootFrom()` ab. 27 Tests (Vertrag gegen
+beide Umsetzungen, Live-S3-Test nur mit `MEDIA_S3_*`), Gegenprobe mit vier
+eingebauten Fehlern. **Noch nicht angebunden** (nach PR #62): Endpunkte,
+Verschlüsseln in der App, Löschen beim Konto-Löschen, Format-Sperre.
+`.env.example` hat die `MEDIA_S3_*`-Anleitung.
+
+**Hetzner-VPS (Antons, nur für die App):** `ubuntu-4gb-fsn1-2`,
+`188.245.92.121`, Falkenstein (DE). Von außen: nur SSH offen. IPv6-Netz
+`2a01:4f8:c013:ace3::/64`, Server-Adresse (vermutlich `::1`) **unbelegt** —
+Hannis Anschluss hat kein IPv6. **Domains `dreamrushes.app` +
+`dreamrushes.de` sind registriert** (25.09., RDAP/DENIC).
 
 **Sicherheitscheck `/security-check` (PR #60, 24.09.):** Skript
 `scripts/security-check.mjs` (23 mechanische Prüfungen, jeder Detektor mit
@@ -114,10 +127,7 @@ dort Budget, Prüfer-Credits, Store-Länder.
 
 Phase-0-Stand sonst:
 - ✅ 1: vorbereiten/TestFlight als Einzelperson, **verkaufen erst als UG**.
-- ⏳ 3: Domains `dreamrushes.app` + `dreamrushes.de` bei Strato bestellt —
-  erst als erledigt eintragen, wenn die Registry sie zeigt:
-  `curl -s -o /dev/null -w "%{http_code}" https://pubapi.registry.google/rdap/domain/dreamrushes.app`
-  (200 = registriert) und `whois -h whois.denic.de dreamrushes.de`.
+- ✅ 3: Domains `dreamrushes.app` + `dreamrushes.de` registriert (25.09.).
 - 📝 4: Anfrage an den Anwalt fertig, Absenden bei Hanni —
   `docs/plans/2026-09-24-anfrage-anwalt.md`, Markenrecherche
   `docs/plans/2026-09-24-markenpruefung.md` (⚠ EU-Marke „RUSHES").
@@ -228,25 +238,25 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
 6. Android: Apples Blatt fehlt dort — Apple-Konto dort nicht löschbar.
 
 **Nächste Schritte:**
-1. **Hanni:** PR #59 mergen; danach im Hauptordner `bun install`,
-   Prebuild, `pod install`, Server neu starten, dann App bauen. Worktree
-   `Traum-App-hanni-3` entfernen. Ersten vollen `/security-check` in einer
-   neuen Sitzung laufen lassen. Anfrage an den Anwalt abschicken; Domains
-   prüfen.
-2. **Anton:** Notiz `2026-09-24-anton-medienablage-ausrollen.md` lesen;
-   Server vor App aktualisieren; am iPhone App löschen/neu installieren
-   (iCloud-Schlüssel); VPS nach den Bedingungen + Object-Storage-Bucket →
-   dann baut Hanni **Schritt C** (neuer Branch).
-3. **Mit Anton:** Prüfer-Credits (N10), Store-Länder, Budget, `media/jobs`,
-   `/api/cast-backup`.
-4. **Anton:** Face ID am iPhone (N11), erster echter Turbo-Film mit Foto;
-   Xcode-Projekt neu prebuilden (B5/B7 in `app.json`).
-5. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
-   `server_grant()`. Braucht einen App-Store-Connect-API-Schlüssel (⚠ NICHT
-   der Sign-in-with-Apple-Schlüssel).
-6. **Hanni in App Store Connect:** Produkte, Sandbox-Tester,
-   Paid-Applications-Vertrag, Small Business Program.
-7. Vor Einreichung: die 4 Preflight-Schalter oben, Preflight = 0.
+1. **Hanni:** PR #63 mergen. DNS bei Strato: A `api` → `188.245.92.121`
+   (AAAA erst nach Antons Bestätigung). Anfrage an den Anwalt abschicken.
+   Ersten `/security-check` in neuer Sitzung.
+2. **Anton:** `ip -6 addr show scope global` auf dem VPS (IPv6-Adresse);
+   klären, wer SSH-Zugang hat; Object-Storage-Bucket im eigenen
+   Hetzner-Projekt (Anleitung `.env.example`), Zugangsdaten in die Server-
+   `.env` — dann Live-Test `bun --env-file=… test src/lib/media-store.test.js`.
+   Notiz `2026-09-24-anton-medienablage-ausrollen.md` (Reihenfolge
+   Migration → Server → App).
+3. **Nächste Claude-Sitzung:** Einrichtungsskript für den VPS (Bun, ffmpeg,
+   Caddy/HTTPS für `api.dreamrushes.app`, eigener Systemnutzer, systemd,
+   Updates, Firewall 22/80/443, Deploy mit einem Befehl) — neue Dateien,
+   keine Überschneidung mit PR #62.
+4. **Nach PR #62:** Schritt C anbinden (Server-Endpunkte, App-Seite).
+5. **Mit Anton:** Prüfer-Credits (N10), Store-Länder, Budget, `media/jobs`.
+6. **Anton:** Face ID am iPhone (N11), erster echter Turbo-Film mit Foto.
+7. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API. Hanni in
+   App Store Connect: Produkte, Sandbox, Verträge, Small Business Program.
+8. Vor Einreichung: Preflight = 0.
 
 **Davor (23.09. früh):** Hanni, `session/2026-09-15-hanni-apple-signin`
 (PR #51) abgeschlossen. **„Mit Apple anmelden" läuft auf einem echten iPhone,

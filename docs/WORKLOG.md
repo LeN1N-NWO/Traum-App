@@ -3,6 +3,46 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-26 01:30 — Anton — Branch `session/2026-09-25-anton` (PR #62) — Traum-Skizze aus der Cloud (Hochkant-Streifen), Design-Runde, Besetzung Karte für Karte
+
+**Was:** Die Traum-Skizze ist in drei Stufen gewachsen und am Ende umgebaut:
+(1) v3 auf dem Gerät — Szenen-Prompts per DeepSeek (`/api/sketch-prompts`),
+Foto-Eröffnung per Bild-zu-Bild, Morph über gemischte Prompt-Einbettung
+(einzige Änderung am Apple-Code, UPSTREAM.txt), neuer Renderer (schwebende
+Kamera, Vertigo, Nebel, Teilchen), zweiter Maler DreamShaper 8. (2) Nach
+Antons Kostenrechnung und Raster-Test (GPT low / FLUX.2 klein / Kontext
+dev): **Cloud-Raster statt Gerätemaler** — `/api/sketch-grid`,
+`sketchQuota.js` (3 gratis/Monat, dann 1 Credit), iPhone nur noch Tiefe
++ Film. (3) Nach Antons iPhone-Test: Look ZUERST im Prompt, Foto nur als
+Identität (`buildSketchGridPrompt`), keine Foto-Eröffnung; dann auf Antons
+Befund „9:16 wird gecroppt" **vier Hochkant-Felder nebeneinander**
+(2304×1024), Renderer/Tiefe/Schnitt für freie Formate.
+Dazu die Design-Runden: Vorschau „Verbessert" oben, Stilwahl mit Haken und
+Pfeilen, Abzeichen und Preis an den Modellen, Info-Blatt beim
+Gedrückthalten, umlaufender Leuchtrand (`orbit-glow.tsx`), Filmkacheln mit
+Glaswelle auf „Was soll daraus werden?", Nachhören mit Maskottchen, Traum-Tab
+ohne Auto-Aufnahme, **Besetzung Karte für Karte** (Antons Wahl „C"),
+Menüleiste ohne Schrumpfen.
+
+**Warum:** Antons Befunde am Gerät („Kontext komisch", „Stil kam nicht
+durch", „eigenes Foto als Ausgang", „9:16 gecroppt", „Menü-Buttons oft nicht
+klickbar", „Aufnahme soll nicht von selbst starten") und seine
+Designwünsche.
+
+**Belege:** Raster-/Stil-/Streifen-Tests über den echten Server (fal ≈ $0,35
+gesamt); Nebel-Fehler per CIAreaAverage gefunden (Alpha im Zufallsgenerator,
+Dichte 0,68 statt 0,1); Mac-Probe Neural Engine 12 s/Bild; Streifen-Film in
+4,9 s. Simulator Ende zu Ende (2×2-Stand) und Besetzung/Kacheln/Leuchtrand
+angesehen. 786 Tests, tsc, Lint, i18n grün. Preflight B8 grün.
+
+**Für den Nächsten:** Letzter Build liegt in `~/.dr-dd-anton`, war beim
+Wrap nicht aufs iPhone zu bringen (Gerät „unavailable"). Server 8100 läuft
+aus diesem Worktree. Kontext-Endpunkt `/api/sketch-prompts` und der
+SD-Gerätemaler sind im Code, aber seit dem Cloud-Umbau ungenutzt —
+aufräumen, wenn der Cloud-Weg sich am Gerät bewährt. Seedance 2.5 hat
+einen Draft-Modus (480p → 1080p binnen 7 Tagen), Preis der Fertigstellung
+ungemessen. Commits: 6abe476 … 69c0bae (+ Merge).
+
 ## 2026-09-25 08:25 — Anton — Branch `session/2026-09-23-anton` (PR #56) — Traum-Skizze (gratis, auf dem iPhone) mit Tiefe, echter Mond, Begleiter-Plan
 
 **Commits:** `edcd6b6` Begleiter-Plan + Warte-Frosch transparent · `bb9200a`
@@ -46,6 +86,34 @@ Checkpoints liefen unter Node 26 nicht (`scripts/package.json` commonjs).
   (Traumtext kommt zurück). Vor Mehrgeräte-Nutzung klären.
 - Preflight: 5 Blocker (die 4 Testphasen-Schalter + neu B8: Skizze ohne
   Inhaltsprüfung).
+## 2026-09-25 — Hanni — Branch `session/2026-09-25-hanni` (PR #63) — Speicher-Modul für Schritt C, VPS und Domains
+
+**Commits:** `2305857` media-store.js + Tests · `1c72a70`, `3244ba7`,
+`eb505e0` Pläne (VPS, Domains, IPv6) · Doku-Commit dieses Eintrags.
+
+**Vorab:** Der Wrap der Sitzung vom 24.09. abends war bereits von einer
+anderen (Cloud-)Claude-Sitzung erledigt und PR #59 gemergt — geprüft, dass
+alle Commits auf main sind und die Notiz an Anton die Format-Sperre kennt.
+
+**Speicher-Modul** `src/lib/media-store.js` (Schritt C, Teil 1): lokal + S3
+(Buns S3Client), `keyOf()` als Wand zwischen Konten. S3-Auflistung per
+`startAfter` (laut Bun-Doku; `continuationToken` hatte ich zuerst geraten).
+Der Test hat einen echten Fehler gefunden (Namen doppelt bei stehender
+Auflistung). **Worktree-Falle vermieden:** Der lokale Ordner hatte zuerst
+einen relativen Standard (`media-backup`) — der wäre im Worktree gelandet;
+jetzt Pflichtangabe, absolut. Gegenprobe mit vier eingebauten Fehlern.
+
+**⚠ Stolperfalle beim Testen:** In einem frischen Worktree ohne
+`bun install` enden drei Testdateien mit „Cannot find package 'react'" — das
+sind keine Testfehler. Erst installieren, dann zählen.
+
+**VPS/Domains:** Antons VPS in Falkenstein, nur SSH offen (nur
+Verbindungsversuche, keine Anmeldung). IPv6-Adresse von hier nicht prüfbar
+(kein IPv6 am Anschluss). Domains inzwischen registriert.
+
+**⚠ Selbstkritik:** Einen eigenen, eine Minute alten Commit mit
+`--force-with-lease` überschrieben (nur eine Formatierung im Plan). Branch
+nicht geteilt, trotzdem gegen den Geist von AGENTS.md — künftig neuer Commit.
 
 ## 2026-09-24 20:50 — Hanni — Branch `session/2026-09-24-hanni-2` (PR #59) — Hosting, Medienablage neu: Träume lokal, Sicherung Ende-zu-Ende verschlüsselt (A, B, D)
 
