@@ -2,9 +2,11 @@ import { useKeepAwake } from "expo-keep-awake";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { Glass, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
+import { MascotLoader } from "@/components/mascot-loader";
 import { WizardHeader } from "@/components/wizard-header";
 import type { SketchPrep } from "@/store/journal-store";
 import { resetWizard, useWizardStore } from "@/store/wizard-store";
@@ -21,7 +23,8 @@ import { DreamSketch, resolveSketchUrl, sketchAvailable } from "../../../modules
      2. Das iPhone schneidet die vier Kacheln und macht den Film: Tiefe,
         Kamera, Tiefen-Überblendung, Teilchen (SketchRenderer.swift). Dafür
         braucht es nur das Tiefenmodell (~50 MB) — kein 1-GB-Maler mehr.
-   Optional beginnt der Film mit dem echten Foto aus der Besetzung.
+   Das echte Foto ist NUR Referenz für die Gesichter — seit Antons
+   iPhone-Test (25.09.) beginnt der Film nicht mehr damit.
    Plan: docs/plans/2026-09-24-traum-skizze-on-device.md (v4/v5) */
 
 const SCENES = 4;
@@ -44,7 +47,7 @@ export default function DreamSketchScreen() {
 
   const [phase, setPhase] = useState<Phase>(() => (!sketchAvailable() ? "unsupported" : "setup"));
   const [prep, setPrep] = useState<SketchPrep | null>(null);
-  const [usePhoto, setUsePhoto] = useState(true);
+  const [tick, setTick] = useState(0);
   const [download, setDownload] = useState({ done: 0, total: 1 });
   const [tiles, setTiles] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +84,16 @@ export default function DreamSketchScreen() {
     if (phase === "setup" && W && !prep) loadPrep();
   }, [phase, W, prep, loadPrep]);
 
-  const photo = prep?.refs?.find((r) => r.kind === "person" || r.kind === "pet") ?? null;
+  const faces = prep?.refs ?? [];
+
+  /* Man soll spüren, dass etwas passiert (Antons Ansage 25.09.): alle paar
+     Sekunden eine neue Zeile — beim Malen und beim Film je eigene. */
+  useEffect(() => {
+    if (phase !== "creating" && phase !== "rendering") return;
+    setTick(0);
+    const t = setInterval(() => setTick((n) => n + 1), 2800);
+    return () => clearInterval(t);
+  }, [phase]);
 
   const run = useCallback(async (p: SketchPrep) => {
     if (!DreamSketch || !W) return;
@@ -100,17 +112,11 @@ export default function DreamSketchScreen() {
       const scenes = await DreamSketch.importGrid(g.result.url, id);
       if (alive.current) setTiles(scenes);
 
-      // 3. Optional: das echte Foto als erste Einstellung.
-      let opening: string[] = [];
-      if (usePhoto && photo) {
-        try { opening = [await DreamSketch.importReference(photo.img, `${id}-ref.png`)]; } catch { opening = []; }
-      }
-
-      // 4. Der Film.
+      // 3. Der Film.
       if (!alive.current) return;
       setPhase("rendering");
       const film = await DreamSketch.renderSketch(
-        { opening, scenes, morphs: [], particles: p.particles || "dust", vertigo: plan.vertigo, seed: seedOf(w.text), fog: 0.12 },
+        { opening: [], scenes, morphs: [], particles: p.particles || "dust", vertigo: plan.vertigo, seed: seedOf(w.text), fog: 0.12 },
         `${id}.mp4`,
       );
       if (!alive.current) return;
@@ -132,7 +138,7 @@ export default function DreamSketchScreen() {
       setPhase("failed");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-  }, [W, w, ask, router, plan, usePhoto, photo]);
+  }, [W, w, ask, router, plan]);
 
   async function start() {
     if (!DreamSketch) return;
@@ -162,10 +168,11 @@ export default function DreamSketchScreen() {
   let status = "";
   let bar: number | null = null;
   if (phase === "downloading") { status = fill(S?.downloading, { done: mb(download.done), total: mb(download.total) }); bar = download.done / Math.max(1, download.total); }
-  else if (phase === "creating") status = S?.creating ?? "";
-  else if (phase === "rendering") status = S?.rendering ?? "";
+  else if (phase === "creating") status = S?.working?.length ? S.working[Math.min(tick, S.working.length - 1)] : (S?.creating ?? "");
+  else if (phase === "rendering") status = S?.filming?.length ? S.filming[tick % S.filming.length] : (S?.rendering ?? "");
   else if (phase === "saving") status = S?.saving ?? "";
 
+  const line = status;
   const working = phase === "downloading" || phase === "creating" || phase === "rendering" || phase === "saving";
   const label = !prep ? (S?.create ?? "Create sketch")
     : prep.cost > 0 ? fill(S?.createCredit, { n: prep.cost }) : (S?.create ?? "Create sketch");
@@ -182,14 +189,15 @@ export default function DreamSketchScreen() {
           <>
             <Text style={styles.lede}>{S?.lede}</Text>
 
-            {photo ? (
+            {faces.length ? (
               <Glass style={styles.photoCard}>
-                <Image source={{ uri: photo.img }} style={styles.photo} />
+                <View style={styles.faces}>
+                  {faces.map((f, i) => <Image key={f.img + i} source={{ uri: f.img }} style={[styles.photo, i > 0 && { marginLeft: -14 }]} />)}
+                </View>
                 <View style={{ flex: 1, gap: 3 }}>
                   <Text style={styles.body}>{S?.photoTitle}</Text>
-                  <Text style={styles.small}>{fill(S?.photoHint, { name: photo.name })}</Text>
+                  <Text style={styles.small}>{fill(S?.photoHint, { name: faces.map((f) => f.name).join(", ") })}</Text>
                 </View>
-                <Switch value={usePhoto} onValueChange={(v) => { Haptics.selectionAsync(); setUsePhoto(v); }} />
               </Glass>
             ) : null}
 
@@ -209,14 +217,16 @@ export default function DreamSketchScreen() {
 
         {working ? (
           <>
-            <View style={styles.grid}>
-              {[0, 1, 2, 3].map((i) => (
-                tiles[i]
-                  ? <Image key={i} source={{ uri: resolveSketchUrl(tiles[i])! }} style={styles.tile} />
-                  : <View key={i} style={[styles.tile, styles.tileEmpty]} />
-              ))}
-            </View>
-            <Text style={styles.status}>{status}</Text>
+            {tiles.length ? (
+              <View style={styles.grid}>
+                {tiles.map((t) => <Image key={t} source={{ uri: resolveSketchUrl(t)! }} style={styles.tile} />)}
+              </View>
+            ) : (
+              <View style={styles.mascot}><MascotLoader size={200} /></View>
+            )}
+            <Animated.Text key={`${phase}-${line}`} entering={FadeIn.duration(350)} exiting={FadeOut.duration(200)} style={styles.status}>
+              {line}
+            </Animated.Text>
             {bar !== null ? (
               <View style={styles.track}><View style={[styles.barFill, { width: `${Math.round(Math.min(1, bar) * 100)}%` }]} /></View>
             ) : null}
@@ -260,5 +270,7 @@ const styles = StyleSheet.create({
   cancel: { color: colors.accentSoft, fontSize: 15, textAlign: "center", marginTop: 4 },
   bridge: { height: 0, overflow: "hidden" },
   photoCard: { padding: 12, borderRadius: radius.card, flexDirection: "row", alignItems: "center", gap: 12 },
-  photo: { width: 52, height: 52, borderRadius: 12, backgroundColor: colors.panel },
+  photo: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.panel, borderWidth: 2, borderColor: colors.bg },
+  faces: { flexDirection: "row" },
+  mascot: { alignItems: "center", paddingVertical: 24 },
 });

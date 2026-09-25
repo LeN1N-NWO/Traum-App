@@ -948,6 +948,7 @@ export default {
       filmModels: {
         standard: {
           name: "Alive", hint: "your opening image starts to move, with sound · up to 15 seconds",
+          badge: "Best price",
           model: "MiniMax H3 Max Turbo",
           info: "The quick tier: it brings your opening image convincingly to life, sound included, and carries up to four reference photos so the real faces stay themselves. Films top out at 15 seconds. Pick the quality below — the credits per second are shown on the switch.",
         },
@@ -960,8 +961,8 @@ export default {
         /* Die Traum-Skizze (24.09.2026): entsteht auf dem iPhone selbst,
            kostet keine Credits. Nur auf Geräten, die es können. */
         sketch: {
-          name: "Sketch", hint: "4 scenes with your faces, film made on your iPhone · 3 free a month",
-          badge: "Free",
+          name: "Sketch", hint: "4 scenes with your faces, the film is made on your iPhone",
+          badge: "Cheapest",
         },
       },
       qualityLabel: "Quality",
@@ -1047,9 +1048,25 @@ export default {
       freeLeft: "{n} free sketches left this month",
       noneLeft: "Your free sketches for this month are used up",
       takeLabel: "Sketch",
-      photoTitle: "Begin with your photo",
-      photoHint: "The film opens on your photo of {name} — then the dream takes over.",
+      photoTitle: "With the faces from your cast",
+      photoHint: "{name} — as the model for the characters, painted in your look.",
       preparing: "Reading your dream…",
+      priceFree: "Free · {n} left this month",
+      creditWord: "credit",
+      working: [
+        "Reading your dream…",
+        "Finding the right light for your look…",
+        "Placing everyone in the scene…",
+        "Painting four moments of your night…",
+        "Checking the faces…",
+        "Almost there — the last brushstrokes…",
+      ],
+      filming: [
+        "Measuring how deep every scene goes…",
+        "Setting up the camera…",
+        "Letting the dust drift…",
+        "Rolling the film…",
+      ],
     },
 
     step6: {

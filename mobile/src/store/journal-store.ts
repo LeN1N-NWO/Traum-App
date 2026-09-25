@@ -118,8 +118,10 @@ export type SketchTexts = {
   title: string; lede: string; needsModel: string; modelInfo: string; download: string; downloading: string; cancel: string;
   creating: string; rendering: string; saving: string; stayHint: string; failed: string; retry: string;
   unsupported: string; create: string; createCredit: string; freeLeft: string; noneLeft: string; takeLabel: string;
-  photoTitle: string; photoHint: string; preparing: string;
+  photoTitle: string; photoHint: string; preparing: string; priceFree: string; creditWord: string;
+  working: string[]; filming: string[];
   card: { name: string; hint: string; badge: string } | null;
+  price: string;   // was die NÄCHSTE Skizze kostet, fertig formuliert
 };
 export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null; entryId?: string };
 

@@ -38,6 +38,7 @@ export default function DreamTextScreen() {
   const [error, setError] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
   const [autoKey, setAutoKey] = useState(0);
+  const [mineOpen, setMineOpen] = useState(false);
   const input = useRef<TextInput>(null);
   const credits = data?.profile.credits ?? 0;
   const clean = text.trim();
@@ -79,6 +80,7 @@ export default function DreamTextScreen() {
     const r = await ask({ type: "analyze", text: t });
     setBusy(false);
     if (r.error) { setError(r.error === "nocredits" ? (W?.noCredits ?? "No credits") : r.error); return; }
+    setMineOpen(false);
     setPreview(r.result);
   }
   function go(useImproved: boolean) {
@@ -100,8 +102,24 @@ export default function DreamTextScreen() {
           <>
             <Text style={styles.h}>{W?.previewTitle}</Text>
             <Text style={styles.lede}>{W?.previewLede}</Text>
-            <View style={styles.card}><Text style={styles.cardLabel}>{W?.yours}</Text><Text style={styles.body}>{clean}</Text></View>
-            <View style={[styles.card, styles.cardNew]}><Text style={styles.cardLabel}>{W?.improved}</Text><Text style={styles.body}>{preview.text}</Text></View>
+            {/* Antons Ansage 25.09.: „Verbessert" oben und leuchtend, die eigenen
+                Worte klein darunter — die ersten Zeilen, ein Tipp klappt auf. */}
+            <View style={styles.glow}>
+              <View style={[styles.card, styles.cardNew]}>
+                <View style={styles.newHead}>
+                  <SymbolView name="sparkles" size={13} tintColor={colors.accentSoft} />
+                  <Text style={[styles.cardLabel, { color: colors.accentSoft }]}>{W?.improved}</Text>
+                </View>
+                <Text style={styles.body}>{preview.text}</Text>
+              </View>
+            </View>
+            <Pressable onPress={() => { Haptics.selectionAsync(); setMineOpen((o) => !o); }} style={[styles.card, styles.cardMine]} accessibilityRole="button">
+              <View style={styles.newHead}>
+                <Text style={[styles.cardLabel, { flex: 1 }]}>{W?.yours}</Text>
+                <SymbolView name={mineOpen ? "chevron.up" : "chevron.down"} size={12} tintColor={colors.faint} />
+              </View>
+              <Text style={styles.bodySmall} numberOfLines={mineOpen ? undefined : 2}>{clean}</Text>
+            </Pressable>
             {preview.title ? <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><SymbolView name="film" size={14} tintColor={colors.muted} /><Text style={styles.poster}><Text style={{ fontWeight: "700" }}>{preview.title}</Text>{preview.tagline ? ` — ${preview.tagline}` : ""}</Text></View> : null}
             <View style={styles.actions}>
               <GlassButton label={W?.keepMine ?? "Keep my words"} onPress={() => go(false)} />
@@ -161,7 +179,12 @@ const styles = StyleSheet.create({
   h: { fontFamily: fonts.serif, fontSize: 26, color: colors.text },
   lede: { color: colors.muted, fontSize: 14, lineHeight: 20 },
   card: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, gap: 6 },
-  cardNew: { borderColor: colors.accent },
+  cardNew: { borderColor: colors.accentSoft, borderWidth: 1.5, backgroundColor: "rgba(79,156,249,0.10)" },
+  /* Das Leuchten: ein weicher farbiger Schatten um die Karte (iOS). */
+  glow: { borderRadius: radius.card, shadowColor: colors.accentSoft, shadowOpacity: 0.55, shadowRadius: 18, shadowOffset: { width: 0, height: 0 } },
+  newHead: { flexDirection: "row", alignItems: "center", gap: 6 },
+  cardMine: { paddingVertical: 12, opacity: 0.85 },
+  bodySmall: { color: colors.muted, fontSize: 14, lineHeight: 21 },
   cardLabel: { color: colors.faint, fontSize: 11, letterSpacing: 1.8, fontWeight: "600", textTransform: "uppercase" },
   body: { color: colors.text, fontSize: 16, lineHeight: 25 },
   poster: { color: colors.muted, fontSize: 14 },

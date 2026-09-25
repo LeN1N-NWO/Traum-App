@@ -20,10 +20,10 @@ import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend, applyAllowanceGrant } from "../../../src/lib/credits.js";
 import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchGrid } from "../../../src/lib/api.js";
-import { pickParticles } from "../../../src/lib/sketchPrompt.js";
+import { pickParticles, buildSketchGridPrompt } from "../../../src/lib/sketchPrompt.js";
 import { sketchFreeLeft, sketchCost, countSketch } from "../../../src/lib/sketchQuota.js";
 import { quoteFor } from "../../../src/lib/quote.js";
-import { buildReferences, buildImagePrompt, buildGridPrompt } from "../../../src/lib/promptBuilder.js";
+import { buildReferences, buildImagePrompt } from "../../../src/lib/promptBuilder.js";
 import { renderRef, needsSheet, sheetFingerprint } from "../../../src/lib/sheets.js";
 import { selectBeats, shotPlan } from "../../../src/lib/cut.js";
 import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PACE } from "../../../src/lib/video.js";
@@ -318,7 +318,13 @@ function snapshot() {
     paces: PACE_IDS.map((id) => ({ id, name: w5.paceNames?.[id] || id, hint: w5.paceHints?.[id] || "" })),
     /* Die Traum-Skizze (24.09.): kein Modell der Tabelle — sie läuft auf
        dem iPhone, ohne Server und ohne Preis. Karte + Bildschirmtexte. */
-    sketch: t.wizard.sketch ? { ...t.wizard.sketch, card: w5.filmModels?.sketch || null } : null,
+    /* Seit 25.09. abends Cloud-Raster: 3 je Monat gratis, dann 1 Credit —
+       die Karte zeigt, was die NÄCHSTE Skizze kostet (Antons Ansage: der
+       Preis steht oben an der Karte). */
+    sketch: t.wizard.sketch ? {
+      ...t.wizard.sketch, card: w5.filmModels?.sketch || null,
+      price: sketchCost(s) > 0 ? `${sketchCost(s)} ${t.wizard.sketch.creditWord}` : t.wizard.sketch.priceFree.replace("{n}", String(sketchFreeLeft(s))),
+    } : null,
   };
   const realDreams = items.filter((e) => !String(e.id).startsWith("e_seed")).length;
   const journal = {
@@ -693,7 +699,8 @@ async function runSketchPrep(cmd, onResult) {
     });
   const { references, clauses } = buildReferences(list);
   const refs = list.filter((a) => a.avatar?.img).map((a) => ({ name: a.name, kind: a.kind, img: absolute(a.avatar.img) }));
-  const prompt = buildGridPrompt({ beats, styleId: p.styleId, clauses, cols: 2, rows: 2, tile: "1:1" });
+  // Look zuerst, Foto nur für die Identität (Antons iPhone-Test 25.09.: Stil kam nicht durch).
+  const prompt = buildSketchGridPrompt({ beats, styleId: p.styleId, clauses });
   onResult({ n: cmd.n, result: {
     prompt, refs: refs.slice(0, references.length),
     particles: pickParticles(beats.join(" ")),

@@ -15,6 +15,8 @@
  *     neutrale Worte rein. Schlechter, aber nie Kauderwelsch.
  *
  * Alles hier ist rein (kein Netz), damit es getestet werden kann. */
+import { buildGridPrompt } from "./promptBuilder.js";
+import { styleById } from "./styles.js";
 
 export const PARTICLES = ["dust", "snow", "fireflies", "embers", "bubbles", "none"];
 
@@ -105,4 +107,27 @@ export function pickParticles(text) {
   if (has("underwater|ocean|sea|lake|swim\\w*|water|meer|wasser|schwimm\\w*")) return "bubbles";
   if (has("night|forest|garden|stars?|moon\\w*|nachts?|wald|garten|sterne?|mond")) return "fireflies";
   return "dust";
+}
+
+/* ── Der Raster-Prompt der Cloud-Skizze (25.09. abends) ────────────────────
+ * Antons iPhone-Test: „Der Style ist überhaupt nicht durchgekommen." Grund:
+ * In buildGridPrompt steht der Look am ENDE, und die Referenzklausel sagt
+ * „exact likeness" — bei GPT Image 2 „low" gewinnt dann das Foto samt
+ * seinem fotografischen Licht und seinem Hintergrund (Lampe und Fenster aus
+ * dem Referenzfoto tauchten in den Kacheln auf).
+ * Deshalb hier: der Look ZUERST als Regieanweisung, und ausdrücklich, dass
+ * ein Foto nur sagt, WER jemand ist — nie, wie das Bild aussieht.
+ * Der Film-Weg (buildGridPrompt allein) bleibt unberührt. */
+export function buildSketchGridPrompt({ beats, styleId, clauses = [] }) {
+  const style = styleById(styleId);
+  const lead =
+    `ART DIRECTION — the most important instruction: every tile is rendered in this look, ` +
+    `and nothing in the image may look like an ordinary photograph unless the look asks for it: ${style.prompt}\n` +
+    (clauses.length
+      ? `The reference images ONLY tell you WHO the characters are (face, hair, build). Re-create those people ` +
+        `inside this look — same identity, but drawn/lit/rendered exactly like everything else in the tile. ` +
+        `Never copy a reference photo's lighting, colours, camera, background, room, furniture, lamp or window, ` +
+        `and never paste the photo itself into a tile.\n`
+      : "");
+  return lead + buildGridPrompt({ beats, styleId, clauses, cols: 2, rows: 2, tile: "1:1" });
 }

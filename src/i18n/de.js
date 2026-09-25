@@ -903,6 +903,7 @@ export default {
       filmModels: {
         standard: {
           name: "Lebendig", hint: "dein Startbild beginnt sich zu bewegen, mit Ton · bis 15 Sekunden",
+          badge: "Bester Preis",
           model: "MiniMax H3 Max Turbo",
           info: "Die schnelle Stufe: Sie erweckt dein Startbild überzeugend zum Leben, Ton inklusive, und nimmt bis zu vier Referenzfotos mit, damit die echten Gesichter sie selbst bleiben. Bei 15 Sekunden ist Schluss. Die Qualität wählst du darunter — die Credits je Sekunde stehen am Schalter.",
         },
@@ -915,8 +916,8 @@ export default {
         /* Die Traum-Skizze (24.09.2026): entsteht auf dem iPhone selbst,
            kostet keine Credits. Nur auf Geräten, die es können. */
         sketch: {
-          name: "Skizze", hint: "4 Szenen mit deinen Gesichtern, Film auf deinem iPhone · 3 gratis im Monat",
-          badge: "Gratis",
+          name: "Skizze", hint: "4 Szenen mit deinen Gesichtern, der Film entsteht auf deinem iPhone",
+          badge: "Am günstigsten",
         },
       },
       qualityLabel: "Qualität",
@@ -992,9 +993,25 @@ export default {
       freeLeft: "Noch {n} Gratis-Skizzen in diesem Monat",
       noneLeft: "Deine Gratis-Skizzen für diesen Monat sind aufgebraucht",
       takeLabel: "Skizze",
-      photoTitle: "Mit deinem Foto beginnen",
-      photoHint: "Der Film beginnt mit deinem Foto von {name} — dann übernimmt der Traum.",
+      photoTitle: "Mit den Gesichtern deiner Besetzung",
+      photoHint: "{name} — als Vorlage für die Figuren, gemalt in deinem Look.",
       preparing: "Dein Traum wird gelesen …",
+      priceFree: "Gratis · noch {n} diesen Monat",
+      creditWord: "Credit",
+      working: [
+        "Dein Traum wird gelesen …",
+        "Das Licht für deinen Look wird gesucht …",
+        "Alle werden in die Szene gestellt …",
+        "Vier Momente deiner Nacht werden gemalt …",
+        "Die Gesichter werden geprüft …",
+        "Gleich geschafft — die letzten Pinselstriche …",
+      ],
+      filming: [
+        "Die Tiefe jeder Szene wird vermessen …",
+        "Die Kamera wird aufgebaut …",
+        "Der Staub darf schweben …",
+        "Der Film läuft …",
+      ],
     },
 
     step6: {

@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { normaliseSketch, sketchFallback, sketchUserMessage, pickParticles, PARTICLES } from "./sketchPrompt.js";
+import { normaliseSketch, sketchFallback, sketchUserMessage, pickParticles, PARTICLES, buildSketchGridPrompt } from "./sketchPrompt.js";
+import { styleById } from "./styles.js";
 
 test("normaliseSketch: nimmt saubere Szenen, auch in Zaun-Blöcken", () => {
   const raw = '```json\n{"cast":{"Anna":"a woman"},"scenes":["a woman in red, forest, dusk, wide shot","a lone figure, rooftop, night"],"particles":"fireflies"}\n```';
@@ -51,4 +52,20 @@ test("sketchUserMessage: Figuren mit Beschreibung, Szenen nummeriert", () => {
   expect(msg).toContain("- Anna: person, tall, red hair, wearing a yellow coat");
   expect(msg).toContain("- Rex: animal");
   expect(msg).toContain("1. Anna runs.\n2. The sea rises.");
+});
+
+
+test("buildSketchGridPrompt: der Look steht ZUERST, das Foto nur für die Identität", () => {
+  const p = buildSketchGridPrompt({ beats: ["a", "b", "c", "d"], styleId: "clay", clauses: ["Reference image 1 shows @me (person) — x"] });
+  expect(p.startsWith("ART DIRECTION")).toBe(true);
+  expect(p.indexOf(styleById("clay").prompt)).toBeLessThan(p.indexOf("A single image laid out"));
+  expect(p).toContain("ONLY tell you WHO");
+  expect(p).toContain("Never copy a reference photo's lighting");
+  expect(p).toContain("a SQUARE 1:1 frame");
+  expect(p).toContain("2×2 grid");
+});
+
+test("buildSketchGridPrompt: ohne Fotos keine Foto-Regeln", () => {
+  const p = buildSketchGridPrompt({ beats: ["a", "b", "c", "d"], styleId: "surreal", clauses: [] });
+  expect(p).not.toContain("reference");
 });

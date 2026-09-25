@@ -111,7 +111,10 @@ export default function DreamLengthScreen() {
             <View style={[styles.badge, styles.badgeFree]} pointerEvents="none">
               <Text style={styles.badgeText}>{S.card.badge}</Text>
             </View>
-            <Text style={[styles.choiceTitle, sketching && styles.on]}>{S.card.name}</Text>
+            <View style={styles.sketchHead}>
+              <Text style={[styles.choiceTitle, sketching && styles.on]}>{S.card.name}</Text>
+              <Text style={styles.sketchPrice}>{S.price}</Text>
+            </View>
             <Text style={styles.choiceHint} numberOfLines={2}>{S.card.hint}</Text>
           </Pressable>
         ) : null}
@@ -192,6 +195,8 @@ const styles = StyleSheet.create({
   badge: { position: "absolute", top: -9, right: 10, backgroundColor: colors.accentSoft, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8, zIndex: 1 },
   badgeFree: { backgroundColor: colors.ok },
   sketchCard: { flex: 0, marginTop: 2 },
+  sketchHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10 },
+  sketchPrice: { color: colors.ok, fontSize: 13, fontWeight: "700", fontVariant: ["tabular-nums"] },
   badgeText: { color: colors.bg, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textTransform: "uppercase" },
   secondsRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
   seconds: { color: colors.text, fontSize: 22, fontWeight: "600", fontVariant: ["tabular-nums"] },
