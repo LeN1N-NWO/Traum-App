@@ -3,6 +3,333 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-24 20:50 — Hanni — Branch `session/2026-09-24-hanni-2` (PR #59) — Hosting, Medienablage neu: Träume lokal, Sicherung Ende-zu-Ende verschlüsselt (A, B, D)
+
+**Commits:** `4268232` `4b5a79a` `5fc4487` Hosting-Plan + Kostenvergleich ·
+`8c3d7f3` Notiz an Anton (Hosting) · `506bbc8` erste Fassung Medienablage
+(Supabase Storage, überholt) · `cf42402` Plan neu · `a1cc88f` Schritt A ·
+`5e9357a` Schritte B + D · `89788a7` Sperre gegen alten Server ·
+Doku-Commit dieses Eintrags (WORKLOG, STAND, Notiz an Anton zum Ausrollen).
+
+**Entscheidungen (Hanni + Anton, 24.09. abends):** Träume liegen auf dem
+Gerät (Text UND Medien); der Server hält nur eine Ende-zu-Ende
+verschlüsselte Sicherung; Konto löschen löscht auch sie. Server: Antons
+vorhandener Hetzner-VPS unter Bedingungen (Plan
+`docs/plans/2026-09-24-medienablage.md`). Die Supabase-Storage-Fassung vom
+Mittag (`506bbc8`) ist damit überholt.
+
+**Gebaut:**
+- A: `mobile/src/lib/media-cache.ts` lädt jede `/media/`-Datei einmal nach
+  `Documents/media/`; `journal-store.ts` tauscht die Adressen nur für die
+  Oberfläche, die Brücke behält `/media/`-Pfade.
+- B: `backup-key.ts` (AES-256-GCM, Schlüssel im iCloud-Schlüsselbund per
+  Bun-Patch an `expo-secure-store@57.0.4`, `kSecAttrSynchronizable`);
+  `dream-sync.ts` versiegelt/entschlüsselt; Server nimmt nur noch
+  versiegelte Träume (`toSealedRow`), überschreibt nie eine fremde
+  `key_id`. Migration `20260924100000_dreams_sealed.sql` — in Supabase
+  ausgeführt.
+- D: Texte en/de versprechen Verschlüsselung NUR für Träume, nicht Filme.
+
+**Belegt im Simulator:** DB enthält nur `sealed` (1856 Zeichen) + `key_id`,
+Titel/Text leer · App gelöscht + neu installiert → Traum entschlüsselt
+zurück, Film + Aufnahme wieder lokal · Server aus → Film spielt vom Gerät ·
+alter Server + neue App → `server-too-old`, nichts geschickt.
+
+**⚠ Im Test selbst verursacht und gefunden:** Der API-Server lief noch auf
+dem alten Stand, nahm die versiegelten Träume als leere Klartext-Träume an
+(„gespeichert: 1") und überschrieb die Sicherung. Nichts verloren (Traum lag
+auf dem Gerät). Seitdem kündigt `GET /api/dreams` `format: "sealed-v1"` an,
+und ohne Ankündigung schickt die App nichts.
+
+**Was der Nächste wissen muss:**
+- **Reihenfolge beim Ausrollen: Migration (erledigt) → Server → App.**
+  Notiz an Anton: `docs/uebergabe/2026-09-24-anton-medienablage-ausrollen.md`.
+- Nach dem Merge braucht jeder Checkout `bun install` (Patch), Prebuild,
+  `pod install`, neuen App-Bau — nativer Code.
+- **iCloud-Synchronisation des Schlüssels ist nicht belegt** (Simulator ohne
+  Apple-ID). Belegt ist nur: Schlüssel übersteht das Löschen der App.
+  Test am echten iPhone steht aus.
+- Schritt C (Medien verschlüsselt nach Hetzner Object Storage, Server löscht
+  nach Abholung) wartet auf Antons VPS; Filme liegen bis dahin
+  unverschlüsselt auf dem Server.
+## 2026-09-24 20:45 — Hanni — Branch `session/2026-09-24-hanni-3` (PR #60) — Sitzungsende
+
+**Commits:** `dcd846b` Sicherheitscheck · `d5b3630` Sicherungs-Routen nur lokal ·
+`5ad73af` PDF-Bericht · `0b171f6` Durchsicht · dieser Doku-Commit.
+
+**Ergebnis:** `/security-check` steht (Skript + Agent + PDF-Bericht außerhalb
+des Repos), eine echte Lücke ist geschlossen (Fotos/Traumtexte im WLAN).
+Einzelheiten in den drei Einträgen darunter; `STAND.md` fasst den Stand zusammen.
+
+**Entschieden (Hanni):** Dieser Check bleibt Traum-App-spezifisch. Ein
+wiederverwendbarer Security-Tester entsteht getrennt im privaten Repo
+`H4nn40x/Security_Expert` — hier nichts verallgemeinern.
+
+**Was der Nächste wissen muss:**
+- Der Agent `security-expert` lädt erst in einer NEUEN Sitzung.
+- Der erste volle Lauf (mit Agent) steht aus.
+- Neue Route mit Personendaten, die nichts kostet → in
+  `scripts/security-check.mjs` bei `FREE`/`DEV_DATA` eintragen.
+- Nach dem Merge: `git worktree remove ../Traum-App-hanni-3 && git worktree prune`.
+
+## 2026-09-24 20:30 — Hanni — Branch `session/2026-09-24-hanni-3` — Kritische Durchsicht des Sicherheitschecks
+
+Auf Hannis Bitte alles noch einmal gelesen. **Gefundene Fehler (alle behoben):**
+- **dist/-Scan war blind:** `scanSecrets` übersprang Zeilen > 5000 Zeichen —
+  ein Vite-Bundle ist eine Zeile. Jetzt ganz gelesen, alle Treffer je Zeile.
+- **Chrome beendete sich nie:** Das PDF war nach Sekunden da, das Skript
+  wartete bis zur 60-s-Grenze und meldete dann Erfolg; `kill()` ließ acht
+  Hilfsprozesse verwaist zurück. Jetzt: warten auf `%%EOF` + stabile Größe,
+  dann die ganze Prozessgruppe beenden. 64 s → 11 s, 0 Reste.
+- **Falsches ✅ bei Tabellenrechten:** Supabase vergibt per Default
+  Privileges Rechte an anon/authenticated, ohne dass eine Migration es sagt.
+  „Keine Grants gefunden“ bewies nichts → jetzt ℹ️ mit Begründung.
+- **errorLeaks übersah den echten Fall** (`json(checkResult({ error: String(e?.message) }))`).
+- **Routen-Inventar zählte den Sperrblock als 2 Phantom-Routen**; Kommentare
+  mit `url.pathname` wären ebenfalls Routen geworden.
+- **Blinder Fleck im Verlaufs-Scan:** Ausnahme für `securityScan*.js`
+  entfernt — ein Test belegt, dass die Dateien sich selbst nicht finden.
+- **envShape** hielt Base64-Folgezeilen eines mehrzeiligen Werts für Namen.
+- **isLocalRequest** ließ ohne Kopfzeilen-Objekt durch → jetzt gesperrt.
+- Unbekannte Repo-Sichtbarkeit ergab „ok“ statt ⚠; `--mech` wurde nicht auf
+  Geheimnisse gescannt; `ROOT` brach bei Leerzeichen im Pfad.
+- **Neue Grenze erkannt und überwacht:** Lauscht Vite im WLAN (`--host`),
+  hebelt sein Proxy die Lokal-Sperre aus → Check wird rot (Gegenprobe belegt).
+
+**Redundanzen raus:** Mengenbremse per Import von `LIMITS` statt Regex über
+den Quelltext; JWT-Rolle aus `scanSecrets` statt zweitem Muster im Läufer;
+doppelter `bindsAllInterfaces`-Aufruf; veraltetes Chrome-Flag; „9 Detektoren“ fest verdrahtet.
+
+**Tests:** getrennt in Einheiten (feste Eingaben, je Test ein Verhalten) und
+Invarianten gegen den echten Code (nur Sicherheitsaussagen). Entfernt: zwei
+Tests, die den Ist-Zustand festschrieben — einer davon „journal-backup POST
+ist NICHT angemeldet“, wäre also rot geworden, sobald jemand die Lücke
+schließt. Neu: `scripts/security-report.test.js` ruft das Skript echt auf,
+je Test eigenes Wegwerf-Verzeichnis, nie `~/Claude/Sicherheitsberichte`.
+Mutationstests: jede der drei neuen Selbsttest-Proben wird bei kaputter
+Logik rot (eine war es zuerst nicht → Probe ergänzt). 109 Tests in den
+Sicherheitsmodulen grün; die 3 roten der Gesamtsuite sind fehlende
+`node_modules` in diesem Worktree (react, @capacitor/core).
+
+## 2026-09-24 19:55 — Hanni — Branch `session/2026-09-24-hanni-3` — Sicherheitsbericht als PDF
+
+**Was:** `/security-check` liefert jetzt einen PDF-Bericht im Stil eines
+Security Assessment Reports: Deckblatt mit Gesamtbewertung, Zusammenfassung,
+Befunde nach Kritikalität (Kritisch/Hoch/Mittel/Niedrig/Info), Details mit
+Beleg und Empfehlung, Geprüftes, Nicht-Geprüftes, Methodik, Anhang mit den
+mechanischen Prüfungen. Seitenzahlen und „VERTRAULICH“ auf jeder Seite.
+- Der Agent antwortet mit JSON (Schema in `.claude/agents/security-expert.md`).
+- `scripts/security-report.mjs` setzt das PDF per Chrome headless —
+  nichts nachinstalliert, wie beim Rechtstexte-PDF.
+- `src/lib/securityReport.js` + Test: prüfen, sortieren, mit dem letzten
+  Lauf vergleichen (stabile `key`s → neu / offen / behoben / höher eingestuft).
+
+**Nie ins Repo:** Ablage `~/Claude/Sicherheitsberichte/` (700/600). Das
+Skript bricht ab, wenn der Zielordner in einem Git-Arbeitsbaum liegt (auch
+mit `--out`), und prüft das VOR dem Anlegen — die erste Fassung ließ einen
+leeren Ordner im Repo zurück. Enthält der Bericht einen Geheimniswert: Abbruch, kein PDF.
+
+**Belegt:** Probe-PDFs gerendert und per PDFKit Seite für Seite angesehen
+(erste Fassung: Kopf-/Fußzeile lagen über den Überschriften → auf
+`@page`-Randfelder umgestellt). Sperren mit echten Ausgangscodes geprüft:
+Repo-Ziel → 2, Geheimnis → 1, ungültig → 1, jeweils kein PDF. Zweiter Lauf
+erkennt neu/behoben/höher eingestuft.
+
+**Nebenbei behoben:** Der Build-Variablen-Scan meldete seine eigenen
+Testnamen, sobald `securityScan*.js` versioniert war — Tests und Skripte
+landen nie im Bundle und zählen nicht mehr; die Probe im Modul ist
+zusammengesetzt.
+
+## 2026-09-24 16:10 — Hanni — Branch `session/2026-09-24-hanni-3` — Lücke geschlossen: Sicherungs-Routen nur noch lokal
+
+**Was:** `/api/cast-backup` und `/api/journal-backup` antworten nur noch
+diesem Rechner (`src/lib/localOnly.js` + Test). Von außen: 404. „Lokal“
+heißt Loopback-Adresse UND keine Weiterleitungs-Kopfzeile — hinter einem
+Proxy kommt jede Anfrage von localhost, und ohne diese Bedingung wären die
+Routen nach dem Hosting für alle offen.
+
+**`server.js`:** 11 Zeilen dazu, 0 weg — 3 Import, 8 Sperrblock vor den
+Sicherungs-Routen. Sonst nichts berührt, Prompt-Kette unberührt.
+
+**Belegt am laufenden Server** (Worktree, Port 8199, ohne `.env`):
+localhost → 200 · WLAN-IP → 404 (GET beide, POST) · localhost mit
+`X-Forwarded-For` → 404 · `/api/prices` über WLAN-IP weiter 200.
+**Gegenprobe:** derselbe Server ohne den Sperrblock → über WLAN-IP 200.
+Der Sicherheitscheck erkennt die Sperre (`localOnlyPaths`) und wird rot,
+wenn sie verschwindet.
+
+**Bewusst NICHT geändert:** `Bun.serve` lauscht weiter auf allen
+Schnittstellen — der iPhone-Test über `EXPO_PUBLIC_API_BASE=http://<WLAN-IP>`
+braucht das. Die bezahlten Routen bleiben damit im WLAN erreichbar (S1,
+bekannt); geschlossen wird das mit Anmeldung + `server_spend()`.
+
+## 2026-09-24 15:30 — Hanni — Branch `session/2026-09-24-hanni-3` — Sicherheitscheck `/security-check`
+
+**Was:** Ein Sicherheitscheck, der nach Bedarf läuft. Hannis Liste mit 50
+Punkten gegen den echten Code eingeordnet: 34 bei jedem Lauf, 12 ab
+öffentlichem Betrieb, 4 treffen heute nicht zu (mit Auslöser, z. B. App Store
+Server Notifications → Signatur prüfen).
+- `scripts/security-check.mjs` — 22 mechanische Prüfungen, liest nur.
+- `src/lib/securityScan.js` + Test — Detektoren; jeder spielt vor dem Lauf
+  seine Probe ab, sonst Abbruch (Mutationstest: kaputtes Muster → rot).
+- `.claude/agents/security-expert.md` — Agent für das, was Urteil braucht
+  (IDOR, SSRF, Prompt-Injection, Gemini-Werkzeuge …). Ohne Schreibrechte,
+  liest keine `.env`, macht keine bezahlten Aufrufe.
+- `.claude/commands/security-check.md` — `/security-check [schnell]`.
+  Berichte nach `~/Claude/Sicherheitsberichte/`, **nicht** ins Repo (öffentlich).
+
+**Erster Lauf (nur Skript):** 4 ❌, 7 ⚠️. Kein Schlüssel in 595 Commits.
+Bekannt: S1 (8 bezahlte Routen ohne Anmeldung), S7 (keine Abbuchung).
+**Neu:** `/api/cast-backup` (Figuren MIT Fotos) und `/api/journal-backup`
+antworten ohne Anmeldung; die DEV-Sperre sitzt nur im Client, und
+`Bun.serve` lauscht ohne `hostname` auf allen Schnittstellen — jedes Gerät
+im selben WLAN kommt dran. Nicht behoben (eigene Sitzung, `server.js`).
+
+**Was der Nächste wissen muss:**
+- Neue Agenten lädt Claude Code erst beim Sitzungsstart.
+- Neue Route mit Personendaten, die kein Geld kostet? In
+  `scripts/security-check.mjs` bei `FREE`/`DEV_DATA` eintragen, sonst
+  zählt sie als kostenpflichtig (bewusst streng, wie der Gatekeeper).
+- `docs/STAND.md` bleibt für PR #59 (Hosting) — beide Sitzungen am selben Tag.
+
+## 2026-09-24 12:40 — Hanni — Branch `session/2026-09-24-hanni` (PR #58) — Phase 0: Domain, Markenrecherche, Anfrage an den Anwalt
+
+**Commits:** `b53ef8e` Domain + Markenrecherche · `f8c7290` Anwaltsanfrage +
+zwei Datenschutz-Sätze · Doku-Commit dieses Eintrags.
+
+**Domain:** `dreamrushes.app` + `dreamrushes.de` gewählt und von Hanni bei
+Strato bestellt (ohne „Domain Guard"; stattdessen 2FA am Strato-Konto).
+⚠ Die erste Verfügbarkeitsprüfung per `whois` meldete `.app` fälschlich als
+vergeben (die Zeile kam aus dem Eintrag der Endung `.app`, nicht der
+Domain). Belastbar ist nur RDAP bei der zuständigen Registry — **mit
+Gegenprobe an einer sicher vergebenen Domain** (200 vs. 404). Bei
+Sitzungsende noch nicht registriert.
+
+**Markenrecherche** (TMview, Gegenprobe „headspace" = 192 Treffer): „Dream
+Rushes" — keine Marke. „Dream Rush" — in DE/EU/US/UK in Kl. 9/41/42 nichts
+Aktives. ⚠ „RUSHES" als EU-Marke eingetragen (2015, Kl. 35/40/41/42) und in
+Frankreich (2025, Kl. 9). App Store: keine gleichnamige App. Frage an den
+Anwalt, keine Rechtsauskunft.
+
+**Anfrage an den Anwalt** mit Übersicht „welche Daten gehen wohin" und einem
+Rechtstexte-PDF (15 Seiten, per Skript aus den Sprachdateien, per PDFKit
+zurückgelesen: alle 157 Texte wortgleich). Chrome headless statt reportlab —
+nichts nachinstalliert.
+
+**⚠ Beim Vorbereiten gefunden:** Datenschutzerklärung („es gibt kein Konto
+und keine Cloud-Kopie") und Einwilligungs-Detail („Dein Journal selbst
+bleibt auf diesem Gerät") waren seit der Träume-Sicherung vom 23.09. falsch
+— hätte ich dort mitziehen müssen. Beide Sätze korrigiert (de/en); die
+Neufassung (Verantwortlicher, Supabase, Apple, Hosting) bleibt beim Anwalt.
+
+**Was der Nächste wissen muss:**
+- Jede Änderung daran, WAS mit Daten passiert, braucht einen Blick in
+  `consent.details` und `legal.privacy` (en/de) — sonst lügt die App.
+- `t.dream.privacy` (en/de) ist toter Text, nirgends angezeigt.
+- Nächste Sitzung: Hosting (Phase 0, Entscheidung 2).
+
+## 2026-09-23 23:50 — Hanni — Branch `session/2026-09-23-hanni-2` (PR #57) — App-Store-Plan, Phase 1, Träume-Sicherung mit dem Konto
+
+**Commits:** `65ff523` Plan · `5c497d2` Phase 1 (Texte, app.json) ·
+`9297036` Träume-Sicherung · Doku-Commit dieses Eintrags.
+
+**Anlass:** Hanni: „einen Plan, wie wir die App durch die Apple-Prüfung
+bringen" — und dann gleich Phase 1 und die Träume-Sicherung umsetzen.
+
+**Plan** `docs/plans/2026-09-23-app-store-pruefung.md`: baut auf Antons
+Leitfaden auf, ergänzt 13 Befunde (N1–N13) aus Test und Recherche, sechs
+Phase-0-Entscheidungen, fünf Phasen. Entschieden: TestFlight/Vorbereitung als
+Einzelperson, Verkauf erst als UG (EU-DSA: Händlerkontakt wird öffentlich).
+
+**Phase 1:** Datenschutz-Sätze an die Wahrheit angepasst — beim eigenen Foto
+stand „bleibt auf deinem Handy", es geht aber an fal.ai (Prüfung) und für
+Filme an die KI-Dienste. ⚠ Selbstkorrektur: Die Tagebuch-Kachel „liegt auf
+diesem Gerät" hielt ich zuerst für falsch — sie stimmte, weil kein Client
+`/api/dreams` aufrief; das führte zu N13. Platzhalter-Bewertungen entfernt,
+Löschhinweis ehrlich, „Sie zu Filmen machen". Antons Befund 9 („images")
+bewusst NICHT: die App erzeugt weiter Bilder. B5/B7/Face-ID-Text in
+`app.json` + `mobile/locales/`, per Prebuild belegt.
+
+**Träume-Sicherung (N13):** holen-dann-schicken, nie überschreiben beim
+Holen, Server verweigert älteren Stand, Sprachaufnahme als Pfad, nur mit
+Konto + Einwilligung. Neues-Handy-Test im Simulator bestanden (App gelöscht,
+neu installiert → Traum samt Film zurück; Hanni hat die Zeile in
+`public.dreams` per SQL bestätigt).
+
+**⚠ Zwei eigene Fehler, im Test gefunden:**
+- Die unsichtbare Sync-Brücke stand im Wurzel-Layout im Fluss → Tab-Leiste in
+  der Mitte, untere Hälfte tot. Jetzt absolut, ohne Größe. Lehre: jede
+  zusätzliche Brücke außerhalb eines Modals aus dem Layout nehmen.
+- Die Sicherung fragte die Einwilligung zunächst nicht ab — der Widerruf
+  verspricht „nichts verlässt dein Gerät". Nachgezogen, aber nur im Code
+  belegt.
+
+**Was der Nächste wissen muss:**
+- **Simulator in der Claude-App:** `xcode-select` zeigt seit 23.09. auf Xcode.
+  Das Werkzeug kann nach einem Absturz auf ein ANDERES Gerät springen (hier:
+  iPhone 17 statt 17 Pro) — Taps immer mit `device` angeben.
+- **Eingaben im Simulator:** Die Mac-Tastatur liefert auf deutschem Layout
+  kein @ (⌥L kommt als L an). Software-Tastatur (⌘K) benutzen.
+  Passwörter tippt Claude nicht — Anmelden macht der Mensch.
+- Die Anmeldung überlebt Löschen der App (Schlüsselbund) — für einen echten
+  „neues Handy"-Test zusätzlich abmelden.
+- Tests: 659 grün, tsc 0, keine neuen Lint-Warnungen.
+
+## 2026-09-23 21:40 — Hanni — Branch `session/2026-09-23-hanni` (PR #55) — Konto-Löschung belegt, Apple-Token-Widerruf, Sprache in Tabs
+
+**Commits:** `37df765` Migration korrigiert + Notiz an Anton · `9f4d189`
+Tab-Leiste/Zurück-Knopf folgen dem Sprachwechsel · `f9fcecf`
+Apple-Token-Widerruf beim Löschen (Weg A) · Doku-Commit dieses Eintrags.
+
+**Anlass:** Antons Übergabe `2026-09-23-hanni-konto-loeschung-appstore.md`,
+Punkt 1 (Migration ausführen, Löschung echt testen).
+
+**Migration:** Die Fassung aus PR #54 gab EXECUTE an `server_role` — die
+Rolle heißt `dreamrushes_server`. Vor dem Ausführen korrigiert (dazu
+`anon`/`authenticated` entzogen, `begin/commit`), im Dashboard ausgeführt.
+Belegt: Rechte per `has_function_privilege` (vorher auch die sechs
+Geldfunktionen geprüft — Verdacht auf Supabase-Default-Privileges an
+anon/authenticated **widerlegt**, alle richtig); ohne erklärten Nutzer `42501`
+aus dem RAISE (nicht aus fehlendem Recht); Wegwerf-Konto mit Traum und
+Guthaben: sechs Tabellen je 1 → je 0, gezählt nach ID, nicht nach E-Mail.
+Die erste Ausführung kam nicht an (Funktion fehlte danach) — erst die Prüfung
+danach hat das gezeigt; „Success" allein hätte es verdeckt.
+
+**Simulator-Test PR #54** (erstmals im Panel der Claude-App, nach
+`sudo xcode-select -s …Xcode.app` durch Hanni): Tabs, Zahnrad, Sprache,
+Einwilligungs-Kacheln laufen; die Pod-Falle ist weg. Befunde stehen mit
+Datei:Zeile in STAND („Befunde aus dem Simulator-Test"). Ein eigener Befund
+(„Hann" statt „Hanna") war ein Artefakt meiner Eingabe, zurückgenommen.
+
+**Apple-Token-Widerruf (Weg A):** Apple verlangt ihn beim Löschen von
+Sign-in-with-Apple-Konten; Supabase tut es nicht (supabase/auth#1308).
+Umgesetzt ohne gespeicherte Apple-Token: frischer Code per zweitem
+Apple-Blatt, Tausch + `sub`-Abgleich + Widerruf, dann Löschung. 7 neue Tests;
+Gegenprobe: DER-Signatur und fehlender `sub`-Abgleich werden gefangen.
+`server.js`: 29 Zeilen in 4 Hunks, alle im Konto-/Auth-Bereich, Summe
+geprüft. **Am iPhone Ende zu Ende belegt** (Apple-Identitäten 1→0, App aus
+„Mit Apple anmelden" verschwunden).
+
+**Warum Weg A statt gespeichertem Refresh-Token:** Least Privilege — sonst
+läge für jedes Apple-Konto ein langlebiges Apple-Token in der Datenbank.
+Kostet die Person ein zweites Apple-Blatt beim Löschen.
+
+**⚠ Was der Nächste wissen muss:**
+- **Ohne `APPLE_*`-Schlüssel sind Apple-Konten nicht löschbar (503).** Der
+  Schlüssel liegt nur in Hannis `.env` — Antons Server sagt beim Start
+  „Apple-Widerruf: nicht konfiguriert". Absicht, kein Fehler.
+- **`.env` nie zeilenweise anzeigen**, auch nicht „gefiltert": Ein
+  mehrzeiliger `.p8`-Wert rutschte am 23.09. an einem `sed 's/=.*/=…/'`
+  vorbei in den Chat; der Schlüssel wurde widerrufen und neu angelegt. Werte
+  nur per Skript prüfen, das „vorhanden/fehlt" meldet. `.env` ist jetzt `600`.
+- **B5/B7/NSFaceIDUsageDescription existieren nur in Antons lokalem
+  `mobile/ios`** (nicht in Git, nicht in `app.json`) — jeder andere Bau,
+  auch Hannis TestFlight, hat sie nicht. Muss nach `app.json`.
+- Nach PR #54 brauchte Hannis Mac einen **Prebuild** (neues Plugin
+  `expo-iap`), nicht nur `pod install`; `CI=1 expo prebuild` legt `ios/` ganz
+  neu an — `.xcode.env.local` danach neu schreiben.
+- Die erste Face-ID-Probe im Simulator ist ungeklärt (Schalter tut nichts).
+
 ## 2026-09-23 19:15 — Anton — Branch `session/2026-09-22-anton` (PR #54) — H3 Max Turbo, halbe Filmpreise, Formatwahl für Filme, Klartext-Qualitäten nativ
 
 **Commits:** `0155f6c` Turbo-Weiche (überholt) · `61600f2` Klartext-Stufen +

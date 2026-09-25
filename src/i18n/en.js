@@ -14,6 +14,7 @@ export default {
     symbols: "Symbols",
     profile: "Profile",
     sleep: "Sleep",
+    dream: "Dream",
     newDream: "Record a new dream",
   },
 
@@ -419,7 +420,7 @@ export default {
     goalValues: {
       remember: "Remembering more",
       understand: "Understanding them",
-      create: "Turning them into pictures",
+      create: "Turning them into films",
       "sleep-better": "Sleeping better",
       nightmares: "Getting out from under bad dreams",
     },
@@ -455,9 +456,9 @@ export default {
     privacyLocked: "Your dreams are locked.",
     /* Konto-Löschung in der App (Apple 5.1.1(v), Antons Ansage 23.09.2026). */
     deleteAccount: "Delete account",
-    deleteAccountHint: "Removes your account, films and credits from our server. Dreams on this device stay.",
+    deleteAccountHint: "Removes your account, its profile and your backed-up dreams from our server. Dreams on this device stay.",
     deleteAccountConfirmTitle: "Delete your account?",
-    deleteAccountConfirmText: "This cannot be undone. Your account, the films stored on our server and your credits are removed. Dreams saved on this device stay yours.",
+    deleteAccountConfirmText: "This cannot be undone. Your account, its profile and the dreams backed up with it are removed from our server. Dreams saved on this device stay yours.",
     deleteAccountGo: "Delete",
     deleteAccountDone: "Your account is deleted.",
     deleteAccountFailed: "That didn't work. Check your connection and try again.",
@@ -1172,12 +1173,12 @@ export default {
     facts: [
       { id: "ai", title: "AI-made", text: "Films and images come from AI, marked as such." },
       { id: "send", title: "Sent to create", text: "Dream text and photos go to AI services only to render." },
-      { id: "device", title: "Stays with you", text: "Your journal lives on this device." },
+      { id: "device", title: "Stays with you", text: "Your journal lives on this device — with an account, also in an encrypted backup only you can read." },
       { id: "adult", title: "18+", text: "For adults only." },
     ],
     more: "Where does my data go?",
     details: [
-      "Your dream text goes to fal.ai and DeepSeek (which helps write the image instructions). Photos you upload go to fal.ai and Google only. Your journal itself stays on this device.",
+      "Your dream text goes to fal.ai and DeepSeek (which helps write the image instructions). Photos you upload go to fal.ai and Google only. Your journal stays on this device — with an account, your dreams (text, never photos) are also backed up on our server, encrypted on your phone first so that only you can read them.",
       "Films are rendered by MiniMax (Hailuo) or ByteDance (Seedance), depending on the quality tier you pick — fal.ai passes your images and scene text on to them for exactly that render, nothing else.",
       "Rendered images and films are stored on our server so the app can show them to you.",
       "Training: Google's paid API does not train on your content. DeepSeek's paid API is not used for training by default. fal.ai may use anonymized usage data to improve its services.",
@@ -1227,7 +1228,7 @@ export default {
         { h: "Who is responsible",
           p: "Dream Rushes is the controller for the processing described here. You can withdraw your consent at any time directly in the app under Profile → Settings — after that, nothing leaves your device until you agree again." },
         { h: "What we process",
-          p: "Your dream texts, the photos you upload, your voice while you talk to the assistant, and the images and films made from them. Your journal, your settings and your credit balance stay on your device — there is no account and no cloud copy of your diary." },
+          p: "Your dream texts, the photos you upload, your voice while you talk to the assistant, and the images and films made from them. Your journal, your settings and your credit balance stay on your device. The account is optional: if you create one, we store your e-mail address (or your Apple sign-in), your profile and a backup of your dreams so they survive a new phone. The dream backup is encrypted on your phone before it leaves it (end-to-end, key in your iCloud Keychain) — we cannot read it. It never contains your photos." },
         { h: "Where your data goes",
           p: "Rendering happens at named AI services, each only for its job: DeepSeek helps write and analyse text, Google handles the voice conversation and image rendering, fal.ai renders images and passes films on to MiniMax (Hailuo) or ByteDance (Seedance) depending on the tier you choose. None of them receives more than the material needed for your specific render." },
         { h: "Training",
@@ -1281,7 +1282,7 @@ export default {
        (Anton's placement, 13.09.): first see that you're in it, then give
        it your face. */
     meTitle: "Who are you?",
-    meText: "A photo of you — then you play in your dreams with your real face. It stays on your phone.",
+    meText: "A photo of you — then you play in your dreams with your real face. It only leaves your phone for a safety check and to make your films.",
     mePick: "Choose a photo",
     meCamera: "Take a selfie",
     meChange: "Another photo",
@@ -1314,7 +1315,7 @@ export default {
     featuresLede: "Tell your dream half-asleep, watch it as a film, keep every night.",
     /* ⚠ PLACEHOLDER, technical (Anton, 13.09.): replaced by real awards
        once there are any. */
-    proof: [{ big: "★★★★★", small: "Reviews to come" }, { big: "App Store", small: "Award to come" }],
+    proof: [],
     doneTitle: "That's it",
     doneText: "Your nights have a place now.",
     doneCta: "Start tonight",

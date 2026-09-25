@@ -16,7 +16,11 @@
         ],
         "NSMicrophoneUsageDescription": "Dream Rushes listens while you tell your dream.",
         "NSCameraUsageDescription": "Dream Rushes takes a photo for a person or place in your cast.",
-        "NSPhotoLibraryUsageDescription": "Dream Rushes picks a photo for a person or place in your cast."
+        "NSPhotoLibraryUsageDescription": "Dream Rushes picks a photo for a person or place in your cast.",
+        "NSFaceIDUsageDescription": "Dream Rushes uses Face ID to keep your dreams locked."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
@@ -51,6 +55,10 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "backgroundColor": "#0a0d16"
+    "backgroundColor": "#0a0d16",
+    "locales": {
+      "en": "./locales/en.json",
+      "de": "./locales/de.json"
+    }
   }
 }

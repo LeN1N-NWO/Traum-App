@@ -12,6 +12,7 @@ export default {
     symbols: "Symbole",
     profile: "Profil",
     sleep: "Schlaf",
+    dream: "Traum",
     newDream: "Neuen Traum aufnehmen",
   },
 
@@ -375,7 +376,7 @@ export default {
     goalValues: {
       remember: "Mehr behalten",
       understand: "Verstehen, was sie meinen",
-      create: "Sie zu Bildern machen",
+      create: "Sie zu Filmen machen",
       "sleep-better": "Besser schlafen",
       nightmares: "Aus den schlechten Träumen herauskommen",
     },
@@ -409,9 +410,9 @@ export default {
     privacyLocked: "Deine Träume sind gesperrt.",
     /* Konto-Löschung (23.09.2026) — siehe en.js. */
     deleteAccount: "Konto löschen",
-    deleteAccountHint: "Entfernt Konto, Filme und Guthaben von unserem Server. Träume auf diesem Gerät bleiben.",
+    deleteAccountHint: "Entfernt dein Konto, sein Profil und deine gesicherten Träume von unserem Server. Träume auf diesem Gerät bleiben.",
     deleteAccountConfirmTitle: "Konto wirklich löschen?",
-    deleteAccountConfirmText: "Das lässt sich nicht rückgängig machen. Dein Konto, die auf unserem Server gespeicherten Filme und dein Guthaben werden entfernt. Träume auf diesem Gerät bleiben deine.",
+    deleteAccountConfirmText: "Das lässt sich nicht rückgängig machen. Dein Konto, sein Profil und die damit gesicherten Träume werden von unserem Server entfernt. Träume auf diesem Gerät bleiben deine.",
     deleteAccountGo: "Löschen",
     deleteAccountDone: "Dein Konto ist gelöscht.",
     deleteAccountFailed: "Das hat nicht geklappt. Prüf deine Verbindung und versuch es noch einmal.",
@@ -1103,12 +1104,12 @@ export default {
     facts: [
       { id: "ai", title: "KI-gemacht", text: "Filme und Bilder erzeugt eine KI — so gekennzeichnet." },
       { id: "send", title: "Nur zum Erzeugen", text: "Traumtext und Fotos gehen nur fürs Rendern an KI-Dienste." },
-      { id: "device", title: "Bleibt bei dir", text: "Dein Tagebuch liegt auf diesem Gerät." },
+      { id: "device", title: "Bleibt bei dir", text: "Dein Tagebuch liegt auf diesem Gerät — mit Konto zusätzlich verschlüsselt gesichert, nur für dich lesbar." },
       { id: "adult", title: "18+", text: "Nur für Erwachsene." },
     ],
     more: "Wohin gehen meine Daten?",
     details: [
-      "Dein Traumtext geht an fal.ai und DeepSeek (hilft beim Formulieren der Bildanweisungen). Hochgeladene Fotos gehen nur an fal.ai und Google. Dein Journal selbst bleibt auf diesem Gerät.",
+      "Dein Traumtext geht an fal.ai und DeepSeek (hilft beim Formulieren der Bildanweisungen). Hochgeladene Fotos gehen nur an fal.ai und Google. Dein Journal bleibt auf diesem Gerät — mit Konto werden deine Träume (Text, nie Fotos) zusätzlich auf unserem Server gesichert, vorher auf deinem Handy verschlüsselt, sodass nur du sie lesen kannst.",
       "Filme rendert MiniMax (Hailuo) oder ByteDance (Seedance), je nach gewählter Qualitätsstufe — fal.ai reicht deine Bilder und Szenentexte genau für dieses eine Rendering an sie weiter, für nichts sonst.",
       "Gerenderte Bilder und Filme liegen auf unserem Server, damit die App sie dir zeigen kann.",
       "Training: Googles bezahlte API trainiert nicht mit deinen Inhalten. DeepSeeks bezahlte API wird standardmäßig nicht zum Training genutzt. fal.ai darf anonymisierte Nutzungsdaten zur Verbesserung seiner Dienste verwenden.",
@@ -1153,7 +1154,7 @@ export default {
         { h: "Wer verantwortlich ist",
           p: "Dream Rushes ist verantwortlich für die hier beschriebene Verarbeitung. Deine Einwilligung kannst du jederzeit direkt in der App widerrufen, unter Profil → Einstellungen — danach verlässt nichts mehr dein Gerät, bis du erneut zustimmst." },
         { h: "Was wir verarbeiten",
-          p: "Deine Traumtexte, die Fotos, die du hochlädst, deine Stimme im Gespräch mit der Assistentin, und die daraus erzeugten Bilder und Filme. Dein Journal, deine Einstellungen und dein Guthaben bleiben auf deinem Gerät — es gibt kein Konto und keine Cloud-Kopie deines Tagebuchs." },
+          p: "Deine Traumtexte, die Fotos, die du hochlädst, deine Stimme im Gespräch mit der Assistentin, und die daraus erzeugten Bilder und Filme. Dein Journal, deine Einstellungen und dein Guthaben bleiben auf deinem Gerät. Das Konto ist freiwillig: Legst du eines an, speichern wir deine E-Mail-Adresse (oder deine Apple-Anmeldung), dein Profil und eine Sicherung deiner Träume, damit sie ein neues Handy überstehen. Die Sicherung wird auf deinem Handy verschlüsselt, bevor sie es verlässt (Ende-zu-Ende, Schlüssel in deinem iCloud-Schlüsselbund) — wir können sie nicht lesen. Deine Fotos sind nie darin." },
         { h: "Wohin deine Daten gehen",
           p: "Gerendert wird bei namentlich genannten KI-Diensten, jeder nur für seine Aufgabe: DeepSeek hilft beim Schreiben und Analysieren von Text, Google übernimmt das Sprachgespräch und das Bilder-Rendern, fal.ai rendert Bilder und reicht Filme je nach gewählter Stufe an MiniMax (Hailuo) oder ByteDance (Seedance) weiter. Keiner von ihnen erhält mehr als das Material, das für dein konkretes Rendering nötig ist." },
         { h: "Training",
@@ -1198,7 +1199,7 @@ export default {
        deine" (Antons Platzwahl 13.09.): erst sehen, dass man mitspielt,
        dann das Gesicht geben. */
     meTitle: "Wer bist du?",
-    meText: "Ein Foto von dir — dann spielst du in deinen Träumen mit, mit deinem echten Gesicht. Es bleibt auf deinem Handy.",
+    meText: "Ein Foto von dir — dann spielst du in deinen Träumen mit, mit deinem echten Gesicht. Es verlässt dein Handy nur für eine Sicherheitsprüfung und für deine Filme.",
     mePick: "Foto wählen",
     meCamera: "Selfie machen",
     meChange: "Anderes Foto",
@@ -1232,7 +1233,7 @@ export default {
     featuresLede: "Erzähl deinen Traum im Halbschlaf, sieh ihn als Film, behalte jede Nacht.",
     /* ⚠ PLATZHALTER, technisch (Antons Ansage 13.09.): die Zeile wird
        durch echte Auszeichnungen ersetzt, sobald es sie gibt. */
-    proof: [{ big: "★★★★★", small: "Bewertungen folgen" }, { big: "App Store", small: "Auszeichnung folgt" }],
+    proof: [],
     doneTitle: "Das war's",
     doneText: "Deine Nächte haben jetzt einen Ort.",
     doneCta: "Heute Nacht anfangen",

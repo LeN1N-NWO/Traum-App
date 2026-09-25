@@ -1,0 +1,48 @@
+diff --git a/build/SecureStore.d.ts b/build/SecureStore.d.ts
+index 1dc7828ff5a877361ae94383ece61b133a66913f..c9ca694c39ccd9d2eeb557dfd113a7b6e1511195 100644
+--- a/build/SecureStore.d.ts
++++ b/build/SecureStore.d.ts
+@@ -79,6 +79,10 @@ export type SecureStoreOptions = {
+      * @platform ios
+      */
+     accessGroup?: string;
++    /**
++     * Dream Rushes patch: store in the iCloud Keychain (kSecAttrSynchronizable). iOS only.
++     */
++    synchronizable?: boolean;
+ };
+ /**
+  * Returns whether the SecureStore API is enabled on the current device. This does not check the app
+diff --git a/ios/SecureStoreModule.swift b/ios/SecureStoreModule.swift
+index 584df218365e2ebf176f6d332970a3ba64d7a12e..de901723563932a587ecdb59e2d1bd15ec382883 100644
+--- a/ios/SecureStoreModule.swift
++++ b/ios/SecureStoreModule.swift
+@@ -188,6 +188,13 @@ public final class SecureStoreModule: Module {
+       query[kSecAttrAccessGroup as String] = accessGroup
+     }
+ 
++    // Dream Rushes patch: synchronizable items live in the iCloud Keychain.
++    // The same flag goes into add, search and delete, so each only ever
++    // touches the synced copy.
++    if options.synchronizable {
++      query[kSecAttrSynchronizable as String] = kCFBooleanTrue
++    }
++
+     return query
+   }
+ 
+diff --git a/ios/SecureStoreOptions.swift b/ios/SecureStoreOptions.swift
+index 7e3fa4dfca55cdb9fada4b7fb794b8d91ef0e15c..321dd5deea07800b56081e03d00877750b3a06a1 100644
+--- a/ios/SecureStoreOptions.swift
++++ b/ios/SecureStoreOptions.swift
+@@ -15,4 +15,10 @@ internal struct SecureStoreOptions: Record {
+ 
+   @Field
+   var accessGroup: String?
++
++  // Dream Rushes patch (24.09.2026): store the item in the iCloud Keychain
++  // (kSecAttrSynchronizable), so it survives deleting the app and follows
++  // the Apple ID to a new iPhone. Used only for the backup key.
++  @Field
++  var synchronizable: Bool = false
+ }

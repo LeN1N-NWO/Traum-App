@@ -67,8 +67,14 @@ export function backupEntry(entry) {
       bilder: entry.media?.urls || [],
       film: entry.film?.urls || [],
       szenen: entry.sceneImages || undefined,
+      /* Die eigene Stimme (seit 23.09., Konto-Sicherung): ein Pfad wie die
+         Filme — die Aufnahme liegt schon auf unserem Server (/api/panel).
+         `data:` käme hier nie an und würde serverseitig verworfen. */
+      audio: entry.audio?.url ? [entry.audio.url] : undefined,
     },
   };
+  if (sicher.medien.szenen === undefined) delete sicher.medien.szenen;
+  if (sicher.medien.audio === undefined) delete sicher.medien.audio;
   for (const [k, v] of Object.entries(sicher)) if (v === undefined) delete sicher[k];
   return sicher;
 }
@@ -118,6 +124,7 @@ export function restoreEntry(gesichert) {
   }
   if (gesichert.medien?.film?.length) e.film = { urls: gesichert.medien.film, source: "api" };
   if (gesichert.medien?.szenen) e.sceneImages = gesichert.medien.szenen;
+  if (gesichert.medien?.audio?.[0]) e.audio = { url: gesichert.medien.audio[0] };
   return e;
 }
 

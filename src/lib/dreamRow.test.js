@@ -158,3 +158,39 @@ test("imageCount takes whole numbers only", () => {
   expect(toRow({ id: "e_1", imageCount: 2.5 }).image_count).toBe(null);
   expect(toRow({ id: "e_1", imageCount: "3" }).image_count).toBe(null);
 });
+
+/* Die Sprachaufnahme (23.09.): ein Pfad, genau einer, nie Daten. */
+test("the voice recording travels as one path, never as data", () => {
+  expect(safeMedia({ audio: ["/media/v.m4a", "/media/zweite.m4a"] }).audio).toEqual(["/media/v.m4a"]);
+  expect(safeMedia({ audio: ["data:audio/m4a;base64,AAAA"] }).audio).toBe(undefined);
+  expect("audio" in safeMedia({ bilder: [] })).toBe(false);
+  const traum = backupEntry({ id: "e_v", createdAt: "2026-09-23T06:00:00.000Z", text: "x", audio: { url: "/media/v.m4a" } });
+  expect(fromRow({ ...toRow(traum), created_at: new Date(traum.createdAt) }).medien.audio).toEqual(["/media/v.m4a"]);
+});
+
+/* ── Versiegelte Träume (24.09.2026) ──────────────────────────────────── */
+import { toSealedRow, MAX_SEALED } from "./dreamRow.js";
+
+test("a sealed dream keeps id, dates, block and key id — nothing else", () => {
+  const r = toSealedRow({ id: "e_x", createdAt: "2026-09-24T06:00:00.000Z", editedAt: null,
+    sealed: "QUJDRA==", keyId: "0123456789abcdef", text: "Klartext, der hier nichts verloren hat" });
+  expect(r).toEqual({ client_id: "e_x", created_at: "2026-09-24T06:00:00.000Z", edited_at: null, sealed: "QUJDRA==", key_id: "0123456789abcdef" });
+  expect("text" in r).toBe(false);
+});
+
+/* ⚠ Klartext wird nicht mehr angenommen — sonst schickte ein alter Client
+   ihn weiter, und die Verschlüsselung wäre nur eine Behauptung. */
+test("a plaintext dream is refused, not stored unencrypted", () => {
+  expect(toSealedRow({ id: "e_x", createdAt: "2026-09-24T06:00:00.000Z", text: "Ich flog." })).toBe(null);
+  expect(toSealedRow({ id: "e_x", sealed: "QUJDRA==" })).toBe(null);                          // ohne Kennung
+  expect(toSealedRow({ id: "e_x", sealed: "QUJDRA==", keyId: "NICHT-HEX-0000000" })).toBe(null);
+  expect(toSealedRow({ id: "e_x", sealed: "kein base64!", keyId: "0123456789abcdef" })).toBe(null);
+  expect(toSealedRow({ id: "e_x", sealed: "A".repeat(MAX_SEALED + 4), keyId: "0123456789abcdef" })).toBe(null);
+  expect(toSealedRow({ sealed: "QUJDRA==", keyId: "0123456789abcdef" })).toBe(null);          // ohne Id
+});
+
+test("a sealed row comes back with its block, a plaintext row without", () => {
+  const sealedRow = { client_id: "e_s", created_at: new Date("2026-09-24T06:00:00Z"), edited_at: null, text: "", sealed: "QUJDRA==", key_id: "0123456789abcdef" };
+  expect(fromRow(sealedRow)).toMatchObject({ id: "e_s", sealed: "QUJDRA==", keyId: "0123456789abcdef", text: "" });
+  expect("sealed" in fromRow({ client_id: "e_p", created_at: "2026-09-24T06:00:00Z", text: "alt" })).toBe(false);
+});

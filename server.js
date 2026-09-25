@@ -75,9 +75,13 @@ import { openDatabase, withUser, fromJsonb } from "./src/lib/db.js";
 // Wer fragt: die fehlende Hälfte zu db.js. withUser() kann für eine Person
 // handeln, auth.js sagt, WER sie ist (eigene Datei, ohne Netz prüfbar).
 import { parseBearer, authConfig, passwordLogin, appleLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
+import { appleRevokeConfig, revokeAppleForDeletion } from "./src/lib/apple-revoke.js";
+// Die Entwicklungs-Routen mit Fotos und Traumtexten nur für diesen Rechner
+// (eigene Datei mit Test, src/lib/localOnly.test.js).
+import { isLocalRequest } from "./src/lib/localOnly.js";
 // Traum ⇄ Datenbankzeile. Eigene Datei, weil dort die Regel „nur die Tags,
 // nie die Fotos dahinter" serverseitig erzwungen wird (dreamRow.test.js).
-import { toRow, fromRow, MAX_JSON } from "./src/lib/dreamRow.js";
+import { toSealedRow, fromRow, MAX_JSON } from "./src/lib/dreamRow.js";
 // Listen kommen seitenweise, nie am Stück (paging.test.js).
 import { parseLimit, decodeCursor, buildPage } from "./src/lib/paging.js";
 // Der Filmregisseur: Bauanleitung + mechanische Prüfung (director.test.js).
@@ -3001,6 +3005,14 @@ const serveOptions = {
     // content-type maps to a real image extension, so nothing about the
     // request — not its size, not its declared type — reaches the filesystem
     // unchecked.
+    /* Die beiden Sicherungs-Routen unten sind Entwicklungswerkzeug und
+       tragen Fotos realer Menschen und Traumtexte — sie antworten nur
+       diesem Rechner (Begründung in src/lib/localOnly.js). 404 statt 403:
+       Wer von außen fragt, erfährt nicht, dass es sie gibt. */
+    if ((url.pathname === "/api/cast-backup" || url.pathname === "/api/journal-backup")
+        && !isLocalRequest(server.requestIP(req)?.address, req.headers)) {
+      return new Response("Not found", { status: 404 });
+    }
     /* Träume als Dateien sichern (Antons Ansage 22.08.2026: „Meine
        Testträume bitte hier abspeichern … und drinnen bleiben, bis ich
        ausdrücklich sage, dass man die Memory löschen soll.").
@@ -3319,10 +3331,29 @@ const serveOptions = {
            `on delete cascade` mit: profiles, dreams, credits. Erzeugte
            Medien auf der Platte hängen an Traum-IDs, nicht an Konten —
            verwaiste Dateien räumt der Medien-Weg, nicht dieser Endpunkt.
-           Kein Bestätigungs-Body: Die Bestätigung ist Sache der App
+           Kein Bestätigungs-Body (Ausnahme: der Apple-Code, siehe unten —
+           der ist kein „wirklich?", sondern Apples Pflicht): Die Bestätigung ist Sache der App
            (Alert + Face ID, settings.tsx); ein zweites „wirklich?" im
            Protokoll schützt niemanden, der schon ein gültiges Token hat. */
         if (url.pathname === "/api/account" && req.method === "DELETE") {
+          /* Ein Apple-Konto widerruft ERST seine Apple-Token (Weg A, Hanni
+             23.09.2026, src/lib/apple-revoke.js) und wird erst danach
+             gelöscht — umgekehrt bliebe bei einem Fehler ein gelöschtes
+             Konto, dessen Apple-Verknüpfung niemand mehr widerrufen kann.
+             Fehlt der Code, antwortet 409 mit `reauth: "apple"`: die App
+             holt Apples Blatt und fragt noch einmal. Konten ohne Apple
+             gehen den Weg wie bisher, ohne Body. */
+          if (person.appleSub) {
+            if (Number(req.headers.get("content-length") || 0) > 16 * 1024) return json({ error: "Request too large." }, 413);
+            const body = await req.json().catch(() => null);
+            const code = body?.appleAuthorizationCode;
+            if (!code) return json({ error: "Please confirm with Apple.", reauth: "apple" }, 409);
+            const r = await revokeAppleForDeletion(code, person.appleSub, { config: APPLE_REVOKE });
+            if (!r.ok) {
+              console.warn(`[DreamRushes] Apple-Widerruf vor Konto-Löschung abgelehnt (${r.status}): ${r.cause || r.error}`);
+              return json({ error: r.error }, r.status);
+            }
+          }
           await withUser(database, person.userId, (tx) => tx`select public.server_delete_account()`);
           return json({ ok: true });
         }
@@ -3353,7 +3384,11 @@ const serveOptions = {
           // Eine Zeile mehr gelesen als angefragt — das beantwortet „gibt es
           // noch mehr?" ohne ein zweites count(*) über die ganze Tabelle.
           const { seite, next } = buildPage(zeilen, limit);
-          return json({ ok: true, dreams: seite.map(fromRow), next, limit });
+          /* `format` (24.09.2026): Die App schickt NUR, wenn der Server das
+             ankündigt. Ein alter Server ohne Verschlüsselungs-Endpunkt hat
+             versiegelte Träume als leere Klartext-Träume gespeichert und
+             damit die Sicherung überschrieben (Test 24.09.). */
+          return json({ ok: true, format: "sealed-v1", dreams: seite.map(fromRow), next, limit });
         }
 
         /* Hochladen und Aktualisieren in EINEM Aufruf, und genau deshalb
@@ -3378,34 +3413,41 @@ const serveOptions = {
                           max: MAX_SYNC_BATCH, gesendet: eingang.length }, 413);
           }
 
-          const zeilen = eingang.map(toRow).filter(Boolean);
+          /* ⚠ Nur noch versiegelt (24.09.2026, Plan medienablage, Schritt B):
+             Die App verschlüsselt jeden Traum auf dem Gerät. Klartext wird
+             nicht mehr angenommen — sonst schickte ein alter Client ihn
+             weiter, und „Ende-zu-Ende" wäre nur eine Behauptung. */
+          const zeilen = eingang.map(toSealedRow).filter(Boolean);
           if (!zeilen.length) return json({ error: "No usable dream in this request." }, 400);
 
+          /* ⚠ Ein älterer Stand überschreibt keinen neueren (23.09.2026) —
+             Maßstab edited_at, sonst created_at; gleich alt darf, damit ein
+             nachgereichter Film ohne neue Bearbeitung ankommt.
+             ⚠ Und ein Gerät mit einem ANDEREN Schlüssel überschreibt nie eine
+             fremde Sicherung (24.09.): Die gehört zu einem Schlüssel, den
+             dieses Gerät nicht hat — überschrieben wäre sie für immer weg.
+             Klartext-Zeilen von vorher (key_id leer) werden versiegelt
+             überschrieben, ihre Klartext-Spalten geleert.
+             `gespeichert` zählt nur, was wirklich geschrieben wurde. */
           const gespeichert = await withUser(database, person.userId, async (tx) => {
             let n = 0;
             for (const z of zeilen) {
-              await tx`
+              const r = await tx`
                 insert into public.dreams
-                  (user_id, client_id, kind, title, tagline, text, original_text,
-                   analysis, reflection, style, format, mode, image_count, creature_id,
-                   "references", media, created_at, edited_at)
+                  (user_id, client_id, sealed, key_id, created_at, edited_at)
                 values (
-                  ${person.userId}, ${z.client_id}, ${z.kind}, ${z.title}, ${z.tagline},
-                  ${z.text}, ${z.original_text},
-                  ${z.analysis === null ? null : JSON.stringify(z.analysis)}::jsonb,
-                  ${z.reflection === null ? null : JSON.stringify(z.reflection)}::jsonb,
-                  ${z.style}, ${z.format}, ${z.mode}, ${z.image_count}, ${z.creature_id},
-                  ${JSON.stringify(z.references)}::jsonb, ${JSON.stringify(z.media)}::jsonb,
+                  ${person.userId}, ${z.client_id}, ${z.sealed}, ${z.key_id},
                   ${z.created_at ?? new Date().toISOString()}, ${z.edited_at})
                 on conflict (user_id, client_id) do update set
-                  kind = excluded.kind, title = excluded.title, tagline = excluded.tagline,
-                  text = excluded.text, original_text = excluded.original_text,
-                  analysis = excluded.analysis, reflection = excluded.reflection,
-                  style = excluded.style, format = excluded.format, mode = excluded.mode,
-                  image_count = excluded.image_count, creature_id = excluded.creature_id,
-                  "references" = excluded."references", media = excluded.media,
-                  edited_at = excluded.edited_at`;
-              n++;
+                  sealed = excluded.sealed, key_id = excluded.key_id, edited_at = excluded.edited_at,
+                  kind = 'dream', title = '', tagline = '', text = '', original_text = '',
+                  analysis = null, reflection = null, style = null, format = null, mode = null,
+                  image_count = null, creature_id = null, "references" = '[]'::jsonb, media = '{}'::jsonb
+                where coalesce(excluded.edited_at, excluded.created_at)
+                   >= coalesce(public.dreams.edited_at, public.dreams.created_at)
+                  and (public.dreams.key_id is null or public.dreams.key_id = excluded.key_id)
+                returning client_id`;
+              n += r.length;
             }
             return n;
           });
@@ -3525,6 +3567,13 @@ const AUTH = authConfig();
 console.log(AUTH
   ? "Supabase Auth: konfiguriert ✓ (Anmeldung über /api/auth/login)"
   : "Supabase Auth: nicht konfiguriert (SUPABASE_URL/SUPABASE_ANON_KEY fehlen) — keine Anmeldung");
+/* Apple-Token widerrufen beim Löschen eines Apple-Kontos (apple-revoke.js).
+ * Fehlt der Schlüssel, läuft alles wie vorher — nur ein Apple-Konto lässt
+ * sich dann nicht löschen (503), statt ohne Widerruf zu verschwinden. */
+const APPLE_REVOKE = appleRevokeConfig();
+console.log(APPLE_REVOKE
+  ? "Apple-Widerruf: konfiguriert ✓ (Konto-Löschung widerruft Apple-Token)"
+  : "Apple-Widerruf: nicht konfiguriert (APPLE_TEAM_ID/APPLE_SIGNIN_KEY_ID/APPLE_SIGNIN_KEY fehlen) — Apple-Konten nicht löschbar");
 /* Welches Bildmodell gerade wirklich läuft, und was es je Bild kostet.
  * Ein Slug in .env ist unsichtbar, bis die Rechnung kommt — diese Zeile
  * macht einen versehentlichen Rückweg auf das doppelt so teure Modell

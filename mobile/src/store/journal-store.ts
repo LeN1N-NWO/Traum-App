@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { localMedia, onMediaReady } from "@/lib/media-cache";
 
 /* Das Journal, nativ vorgehalten — gespeist von der Web-Brücke
    (legacy/journal-bridge.jsx). Ein Modul-Speicher statt Context, weil Liste
@@ -106,7 +107,7 @@ export type OrderRequest = {
   styleId: string; pace: string; videoModel: string; quality: string | null; seconds: number; mode?: "film" | "images";
   assignmentOverrides?: Record<string, { avatarId?: string; free?: boolean }>;
 };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "sketch"; order?: OrderRequest; sketch?: SketchRequest; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "syncExport" | "syncImport" | "sketch"; order?: OrderRequest; dreams?: unknown[]; sketch?: SketchRequest; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
 /* Die fertige Traum-Skizze fürs Journal (journal-bridge runSketch). */
 export type SketchRequest = { entryId: string | null; text: string; originalText: string; analysis: any; styleId: string; film: string; stills: string[]; seconds: number };
 export type SketchTexts = {
@@ -117,10 +118,30 @@ export type SketchTexts = {
 export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null; entryId?: string };
 
 let snapshot: JournalSnapshot | null = null;
+let raw: JournalSnapshot | null = null;
 const listeners = new Set<() => void>();
 
+/* Träume liegen auf dem Gerät (24.09.2026, lib/media-cache.ts): Jede
+   `/media/…`-Adresse eines Traums wird hier gegen die lokale Kopie getauscht,
+   sobald es sie gibt — für die Oberfläche, nicht für die Brücke. */
+function withLocalMedia(s: JournalSnapshot): JournalSnapshot {
+  return {
+    ...s,
+    items: s.items.map((i) => ({
+      ...i,
+      media: i.media ? { ...i.media, url: localMedia(i.media.url) } : null,
+      poster: localMedia(i.poster),
+      audio: localMedia(i.audio),
+      images: i.images.map((u) => localMedia(u)),
+      films: i.films.map((f) => ({ ...f, url: localMedia(f.url) })),
+    })),
+  };
+}
+onMediaReady(() => { if (raw) setJournal(raw); });
+
 export function setJournal(next: JournalSnapshot) {
-  snapshot = next;
+  raw = next;
+  snapshot = withLocalMedia(next);
   listeners.forEach((l) => l());
 }
 export function useJournalStore() {

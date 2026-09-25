@@ -3,18 +3,126 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-23 abends — Anton, `session/2026-09-22-anton`
-(PR #54, **auf Antons Wort gemerged**). Die App kann jetzt: **Face-ID-Schutz**
-für die ganze App (Schalter in den Einstellungen; Positivpfad nur am Gerät
-prüfbar), **Sprache nachträglich ändern** (de/en, Chips in den
-Einstellungen), **Klartext-Kacheln** auf dem Einwilligungs-Tor,
-**Konto-Löschung** (rote Zeile → `DELETE /api/account`
-→ `server_delete_account()`; ⚠ **Migration
-`supabase/migrations/20260923090000_account_delete.sql` muss Hanni erst im
-Dashboard ausführen**, bis dahin 503), Einstellungen als **Zahnrad** oben im
-Profil, **StoreKit-Kaufstrecke im Client** (echte Käufe, sobald Produkte in
-App Store Connect existieren; lokal testbar über
-`mobile/ios/DreamRushes.storekit` mit Xcode ▶).
+**Stand:** 2026-09-24 abends — Hanni. `session/2026-09-24-hanni-3`
+(PR #60, Sicherheitscheck) ist gemergt; `session/2026-09-24-hanni-2`
+(PR #59, Hosting + Medienablage A/B/D) fertig, **Merge durch Hanni**.
+Schritt C folgt auf einem neuen Branch. Anton parallel auf
+`session/2026-09-23-anton` (PR #56). **Weg durch die App-Store-Prüfung:
+`docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Sicherheitscheck `/security-check` (PR #60, 24.09.):** Skript
+`scripts/security-check.mjs` (23 mechanische Prüfungen, jeder Detektor mit
+Selbsttest) + Agent `.claude/agents/security-expert.md` (nur lesend, Hannis
+50-Punkte-Liste auf dieses Projekt zugeschnitten) → **PDF-Bericht nach
+Kritikalität** über `scripts/security-report.mjs`, abgelegt in
+`~/Claude/Sicherheitsberichte/` — **nie im Repo** (öffentlich; das Skript
+verweigert Ziele in Git-Arbeitsbäumen). Der Agent lädt erst in einer neuen
+Sitzung; der erste echte Lauf steht aus.
+- ✅ Behoben: `/api/cast-backup` (Fotos) und `/api/journal-backup` antworteten
+  jedem Gerät im WLAN → jetzt nur noch diesem Rechner (`src/lib/localOnly.js`,
+  Sperre in `server.js` vor den Sicherungs-Routen). ⚠ Hält nur, solange Vite
+  nicht mit `--host` läuft — der Check wird dann rot.
+- ❌ Offen und bekannt: 8 bezahlte Routen ohne Anmeldung (S1, `API_TOKEN`
+  nicht gesetzt), `settleCharge()` bucht nicht ab (S7, `server.js:2125`),
+  CORS erlaubt `"null"`, 0/5 Sicherheits-Kopfzeilen, Abhängigkeiten mit je
+  2 hohen Meldungen (`bun audit`), eine Antwort reicht `e.message` durch
+  (`/api/photo-check`, Agent soll bewerten).
+- Der wiederverwendbare Security-Tester für andere Projekte entsteht
+  getrennt in Hannis privatem Repo `H4nn40x/Security_Expert`; dieser Check
+  bleibt bewusst Traum-App-spezifisch.
+
+**Medienablage neu (Entscheidung Hanni + Anton 24.09.,
+`docs/plans/2026-09-24-medienablage.md`):** Träume liegen auf dem Gerät,
+der Server hält nur eine Ende-zu-Ende verschlüsselte Sicherung.
+- ✅ **A** Medien auf dem Gerät (`mobile/src/lib/media-cache.ts`,
+  `Documents/media/`); Server aus → Film spielt.
+- ✅ **B** Träume auf dem Gerät versiegelt (AES-256-GCM,
+  `mobile/src/lib/backup-key.ts`, Schlüssel im iCloud-Schlüsselbund per
+  Patch `mobile/patches/expo-secure-store@57.0.4.patch`); Server nimmt nur
+  versiegelte Träume (`src/lib/dreamRow.js` `toSealedRow`), kündigt
+  `format: "sealed-v1"` an; ohne Ankündigung schickt die App nichts.
+  Migration `supabase/migrations/20260924100000_dreams_sealed.sql` **ist
+  ausgeführt**.
+- ✅ **D** Texte en/de: Verschlüsselung nur für Träume versprochen.
+- ⏳ **C** Medien verschlüsselt nach Hetzner Object Storage, Server löscht
+  Filme nach Abholung — **wartet auf Antons VPS** (Bedingungen im Plan).
+  Bis dahin liegen Filme unverschlüsselt und ohne Zugangsprüfung auf dem
+  Server (S2/S3, B8).
+- ⚠ **Nicht belegt:** dass der Schlüssel über iCloud auf ein anderes Gerät
+  wandert (Simulator hat keine Apple-ID). Belegt: übersteht App-Löschen.
+- ⚠⚠ **Ausrollen: Migration (✅) → Server → App.** Nach dem Merge braucht
+  jeder Checkout `bun install` in `mobile` (Patch), Prebuild, `pod install`,
+  neuen App-Bau. Alte App-Bauten danach nicht mehr benutzen (Server lehnt
+  Klartext ab; nach Neuinstallation einer alten App erscheinen leere
+  Einträge). Notiz an Anton:
+  `docs/uebergabe/2026-09-24-anton-medienablage-ausrollen.md`.
+
+**Hosting (Phase 0, Entscheidung 2):** Grundlage
+`docs/plans/2026-09-24-hosting.md`; entschieden: Antons Hetzner-VPS unter
+Bedingungen (DE/FI, eigener Nutzer + `.env`, Firewall, Zuständigkeit,
+AV-Vertrag, Einrichtungsskript im Repo). Die Supabase-Storage-Idee aus
+`docs/uebergabe/2026-09-24-anton-hosting.md` ist überholt; offen bleiben
+dort Budget, Prüfer-Credits, Store-Länder.
+
+Phase-0-Stand sonst:
+- ✅ 1: vorbereiten/TestFlight als Einzelperson, **verkaufen erst als UG**.
+- ⏳ 3: Domains `dreamrushes.app` + `dreamrushes.de` bei Strato bestellt —
+  erst als erledigt eintragen, wenn die Registry sie zeigt:
+  `curl -s -o /dev/null -w "%{http_code}" https://pubapi.registry.google/rdap/domain/dreamrushes.app`
+  (200 = registriert) und `whois -h whois.denic.de dreamrushes.de`.
+- 📝 4: Anfrage an den Anwalt fertig, Absenden bei Hanni —
+  `docs/plans/2026-09-24-anfrage-anwalt.md`, Markenrecherche
+  `docs/plans/2026-09-24-markenpruefung.md` (⚠ EU-Marke „RUSHES").
+  Neu für den Anwalt: Aufbewahrungsdauer der Sicherung.
+- ❓ 5 Prüfer-Credits, 6 Store-Länder — mit Anton.
+
+**Träume-Sicherung mit dem Konto (seit 23.09., N13, jetzt versiegelt):**
+`mobile/src/lib/dream-sync.ts` + `components/dream-sync-layer.tsx`, nur mit
+Konto UND Einwilligung. ⚠ Löschen auf Gerät A kann von Gerät B
+zurückkommen (Lösch-Merkliste nachrüsten vor Mehrgeräte/Android). ⚠ Die
+Anmeldung überlebt eine Neuinstallation (iOS-Schlüsselbund bleibt).
+⚠ `/api/cast-backup` speichert Fotos (`server.js:3039`, seit PR #60 nur
+noch von diesem Rechner erreichbar) — vor der Veröffentlichung entfernen.
+
+**Phase 1 des Plans erledigt:** Texte an die Wahrheit (Foto verlässt das
+Handy für Prüfung und Filme; Platzhalter-Bewertungen weg; Löschhinweis),
+„Sie zu Filmen machen", und **B5/B7/Face-ID-Text jetzt in `mobile/app.json`
++ `mobile/locales/{en,de}.json`** — entstehen bei jedem Prebuild, nicht mehr
+nur auf Antons Mac. Preflight kennt beide Orte der InfoPlist.strings.
+
+**Konto-Löschung: fertig und Ende zu Ende belegt (23.09.).**
+- Migration `supabase/migrations/20260923090000_account_delete.sql` ist
+  **im Dashboard ausgeführt** — in korrigierter Fassung: Recht an
+  `dreamrushes_server` (die PR-#54-Fassung sagte `server_role`, die Rolle
+  gibt es nicht), `anon`/`authenticated` ausdrücklich entzogen, in
+  `begin/commit`. Repo-Datei = ausgeführter Code, Zeile für Zeile.
+- Belegt per SQL: nur `dreamrushes_server` darf `server_delete_account()`;
+  ohne erklärten Nutzer `42501` aus dem RAISE; mit erklärtem Nutzer sind alle
+  sechs Zeilen eines Wegwerf-Kontos weg (auth.users, auth.identities,
+  profiles, dreams, credits_balance, credits_ledger). Nebenbei: alle sechs
+  Geldfunktionen haben die richtigen Rechte, anon/authenticated keine.
+- **Apple-Token-Widerruf beim Löschen (Weg A, `src/lib/apple-revoke.js`):**
+  Apple-Konto löschen → Server 409 `reauth:"apple"` → App öffnet Apples Blatt
+  (`mobile/src/lib/apple-reauth.ts`) → frischer Code → Server tauscht, prüft
+  das Apple-`sub` gegen das Konto, widerruft, **erst dann** löscht er. Kein
+  Apple-Token wird gespeichert. **Am iPhone belegt:** Apple-Identitäten 1→0,
+  Dream Rushes aus „Mit Apple anmelden" verschwunden, Server-Log sauber.
+- Schlüssel: `APPLE_TEAM_ID`, `APPLE_SIGNIN_KEY_ID`, `APPLE_SIGNIN_KEY` in
+  Hannis `Traum-App/.env` (Anleitung `.env.example`); Apple akzeptiert ihn
+  (Gegenprobe mit ungültigem Code → `invalid_grant`, nicht `invalid_client`).
+  **Ohne Schlüssel (Antons Mac, Cloud) sind Apple-Konten nicht löschbar
+  (503)** — mit Absicht, statt ohne Widerruf zu verschwinden.
+- ⚠ Ein erster Schlüssel wurde am 23.09. widerrufen (Teile standen im Chat).
+  `.env` ist jetzt `600`.
+
+**Sprache:** Tab-Leiste (`mobile/src/app/_layout.tsx`) und Zurück-Knopf der
+Einstellungen folgen dem Sprachwechsel sofort (vorher fest Englisch bzw.
+alte Sprache). Neu: `t.tabs.dream`.
+
+**Die App kann außerdem (PR #54, Anton):** Face-ID-Schutz, Sprache
+nachträglich ändern, Klartext-Kacheln auf dem Einwilligungs-Tor,
+Einstellungen als Zahnrad, StoreKit-Kaufstrecke im Client (echte Käufe,
+sobald Produkte in App Store Connect existieren).
 
 **Filme rendern seit 23.09. abends über H3 Max Turbo — zum halben Preis**
 (Antons Entscheid; Plan `docs/plans/2026-09-23-h3-max-turbo-weiche.md`):
@@ -47,26 +155,50 @@ vor der Einreichung zurückdrehen:
 - B4b: Onboarding kommt bei JEDEM Start (Antons Testphasen-Wunsch) →
   Einmal-Marke (onboarding-gate.tsx)
 
+⚠ **Anton: B5/B7 stehen jetzt in `app.json`.** Sein von Hand gepflegtes
+Xcode-Projekt (`26c4efb`) nicht weiter von Hand ändern, sondern einmal neu
+prebuilden, damit beide Macs dasselbe bauen.
+
 ⚠⚠ **Nach jedem Merge, der neue native Pakete bringt: `pod install` —
-bun install reicht NICHT.** Sonst friert der Release-Bau kommentarlos ein
-(JS-Fatal „Cannot find native module …", Tabs tot — Antons iPhone, 23.09.,
-Hannis expo-crypto). Gilt in beide Richtungen: unser PR #54 bringt
-`expo-local-authentication` und `expo-iap` mit.
+bun install reicht NICHT.** Sonst friert die App kommentarlos ein
+(„Cannot find native module …" — Antons iPhone, 23.09., Hannis
+expo-crypto). Bei Hanni (23.09.) war nach PR #54 zusätzlich ein **Prebuild**
+nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
+`mobile/ios` dabei **komplett neu an** (inkl. `.xcode.env.local`, s. unten).
+
+**Offen aus den Tests vom 23.09.** (vollständige Liste mit Datei:Zeile im Plan, N1–N13):
+1. **Face ID (N11):** Schalter reagiert im Simulator gar nicht; Fehlschlag
+   ist stumm (`mobile/src/app/profile/settings.tsx:40`). Am iPhone prüfen.
+2. **Anwalts-Hinweis in den Rechtstexten (N4)** (`src/i18n/de.js:1097`,
+   `en.js:1171`) — muss vor der Einreichung erfüllt und weg sein.
+3. **Filme bleiben nach Konto-Löschung auf der Platte (B8)** — gehört zu
+   Phase 2 (Medien hinter Zugangsprüfung, S2).
+4. Einwilligungs-Tor kam einmal nach Widerruf + Neustart nicht (nicht
+   reproduziert). Mikrofon zeigt „Frag mich", obwohl erlaubt.
+5. Nicht einzeln belegt: dass die Träume-Sicherung ohne Einwilligung
+   wirklich nichts schickt (im Code gesperrt, `dream-sync-layer.tsx`).
+6. Android: Apples Blatt fehlt dort — Apple-Konto dort nicht löschbar.
 
 **Nächste Schritte:**
-1. **Anton testet gesammelt am iPhone** (aktueller Build ist drauf,
-   23.09. 19:20): Tabs, Face-ID an/aus + Positivpfad, Sprachwechsel,
-   Kacheln, Zahnrad, neuer „Wie lang"-Bildschirm (Klartext-Stufen,
-   Badge, One-Take), Konto-Löschung nach Hannis Migration — und der
-   **erste echte Turbo-Film mit Foto** (Identitätsfrage oben).
-2. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
-   `server_grant()`; Sandbox-Belege ins Test-Ledger. Braucht Hannis
-   ASC-Schlüssel.
-3. **Hanni** (Übergabe `docs/uebergabe/2026-09-23-hanni-konto-loeschung-appstore.md`):
-   Migration ausführen + Löschung testen, Produkte/Sandbox-Tester in ASC,
-   Paid-Applications-Vertrag + Small Business Program, Bundle-ID- und
-   Kontoform-Entscheidung, InfoPlist-Lokalisierung in app.json.
-4. Vor Einreichung: die 4 Preflight-Schalter oben.
+1. **Hanni:** PR #59 mergen; danach im Hauptordner `bun install`,
+   Prebuild, `pod install`, Server neu starten, dann App bauen. Worktree
+   `Traum-App-hanni-3` entfernen. Ersten vollen `/security-check` in einer
+   neuen Sitzung laufen lassen. Anfrage an den Anwalt abschicken; Domains
+   prüfen.
+2. **Anton:** Notiz `2026-09-24-anton-medienablage-ausrollen.md` lesen;
+   Server vor App aktualisieren; am iPhone App löschen/neu installieren
+   (iCloud-Schlüssel); VPS nach den Bedingungen + Object-Storage-Bucket →
+   dann baut Hanni **Schritt C** (neuer Branch).
+3. **Mit Anton:** Prüfer-Credits (N10), Store-Länder, Budget, `media/jobs`,
+   `/api/cast-backup`.
+4. **Anton:** Face ID am iPhone (N11), erster echter Turbo-Film mit Foto;
+   Xcode-Projekt neu prebuilden (B5/B7 in `app.json`).
+5. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API →
+   `server_grant()`. Braucht einen App-Store-Connect-API-Schlüssel (⚠ NICHT
+   der Sign-in-with-Apple-Schlüssel).
+6. **Hanni in App Store Connect:** Produkte, Sandbox-Tester,
+   Paid-Applications-Vertrag, Small Business Program.
+7. Vor Einreichung: die 4 Preflight-Schalter oben, Preflight = 0.
 
 **Davor (23.09. früh):** Hanni, `session/2026-09-15-hanni-apple-signin`
 (PR #51) abgeschlossen. **„Mit Apple anmelden" läuft auf einem echten iPhone,
@@ -95,10 +227,12 @@ dort `curl` blockt) und läuft hier nicht. Die Schritte einzeln:
    „Sign In with Apple" und das Push-Entitlement selbst ein. Das Verbot
    („kein prebuild, Push-Entitlement") gilt nur fürs Gratis-Team.
 2. `printf 'export NODE_BINARY=%s\n' "$(command -v node)" > ios/.xcode.env.local`
-3. `cd ios && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-   LC_ALL=en_US.UTF-8 pod install` — CocoaPods kam per `brew install
-   cocoapods` (bringt eigenes Ruby; das System-Ruby 2.6 ist zu alt).
-   `DEVELOPER_DIR` erspart das `sudo xcode-select`; **ohne UTF-8 stirbt `pod`**.
+3. `cd ios && LC_ALL=en_US.UTF-8 pod install` — CocoaPods kam per `brew
+   install cocoapods` (bringt eigenes Ruby; das System-Ruby 2.6 ist zu alt).
+   **Ohne UTF-8 stirbt `pod`.** Seit 23.09. zeigt `xcode-select` auf Xcode
+   (Hanni per `sudo`); `DEVELOPER_DIR` ist nicht mehr nötig — und der
+   Simulator lässt sich jetzt im Panel der Claude-App steuern (vorher
+   `simctl` Exit 72).
 4. `mobile/.env` mit `EXPO_PUBLIC_API_BASE=http://<WLAN-IP des Macs>:8100`
    (heute `192.168.2.112`) — auf dem iPhone ist `localhost` das iPhone.
 5. Xcode: Team **„… (Individual)"**, nicht „Personal Team". Gerät
@@ -141,7 +275,7 @@ auf). In Supabase steht „Allow users without an email" noch **AUS**. Seit
 an der E-Mail (`useAccount()` in `mobile/src/lib/auth.ts`; ohne Adresse
 zeigt sie „Angemeldet" statt „Angemeldet als …").
 
-**Nächste Schritte (Hanni):**
+**Weitere Schritte (Hanni, Apple-Seite):**
 1. Anton (Admin) als internen TestFlight-Tester eintragen. ⚠ Für
    TestFlight braucht es einen **Release**-Bau
    (Archive) — Antons Release-Absturz vom 18.09. (vorkompilierte RN-Pakete

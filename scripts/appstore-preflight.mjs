@@ -76,7 +76,11 @@ check("B4b", "Onboarding nur einmal (nicht bei jedem Start im Release)",
 // ── B5: Lokalisierte Systemtexte ───────────────────────────────────────────
 const iosDir = existsSync(resolve(root, "mobile/ios/DreamRushes"));
 if (iosDir) {
-  const deStrings = existsSync(resolve(root, "mobile/ios/DreamRushes/de.lproj/InfoPlist.strings"));
+  /* Zwei Orte: Antons Handarbeit im Xcode-Projekt (de.lproj direkt unter
+     DreamRushes/) und seit 23.09. Expos `locales` aus app.json, die der
+     Prebuild unter Supporting/de.lproj/ anlegt. */
+  const deStrings = ["mobile/ios/DreamRushes/de.lproj/InfoPlist.strings", "mobile/ios/DreamRushes/Supporting/de.lproj/InfoPlist.strings"]
+    .some((p) => existsSync(resolve(root, p)));
   check("B5", "Erlaubnis-Texte lokalisiert (InfoPlist.strings de)",
     deStrings ? "ok" : "fail",
     deStrings ? null : "NSMicrophone/NSPhoto/NSFaceID-Texte sind nur englisch (Onboarding-Befund 10).");
