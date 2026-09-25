@@ -933,6 +933,18 @@ export default {
       removeLabel: (name) => `Remove ${name}`,
       pickTitle: (name) => `Who is “${name}”?`,
       libraryEmpty: "Your library is still empty.",
+      /* Karte für Karte (26.09., Antons Wahl „C"): eine Figur je Bildschirm. */
+      stepOf: "{i} of {n}",
+      whoYou: "How do you appear?",
+      nextName: "Next · {name}",
+      missing: "Someone missing?",
+      tilePhoto: "This photo",
+      tileAi: "AI invents",
+      tileNew: "New photo",
+      tileLibrary: "Library",
+      placesTitle: "And the places?",
+      placesHint: "The AI invents them — or tap one to give it a photo of the real place.",
+      noPeople: "Nobody in particular — the AI invents everyone.",
     },
 
     step5: {

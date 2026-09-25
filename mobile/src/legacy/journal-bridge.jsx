@@ -933,7 +933,10 @@ async function runAsync(cmd, onResult) {
                 objects: t.wizard.cast.objectsTitle, objectsLede: t.wizard.cast.objectsLede, objectsEmpty: t.wizard.cast.objectsEmpty,
                 textTitle: t.wizard.cast.textTitle, markHint: t.wizard.cast.markHint, addTitle: t.wizard.cast.addTitle, addName: t.wizard.cast.addName,
                 addAs: t.wizard.cast.addAs, add: t.wizard.cast.add, removeFromCast: t.wizard.cast.removeFromCast, whoIs: t.wizard.cast.whoIs("{name}"), close: t.wizard.cast.close,
-                kindFor: t.avatarDialog.kindFor },
+                kindFor: t.avatarDialog.kindFor,
+                stepOf: t.wizard.cast.stepOf, whoYou: t.wizard.cast.whoYou, nextName: t.wizard.cast.nextName, missing: t.wizard.cast.missing,
+                tilePhoto: t.wizard.cast.tilePhoto, tileAi: t.wizard.cast.tileAi, tileNew: t.wizard.cast.tileNew, tileLibrary: t.wizard.cast.tileLibrary,
+                placesTitle: t.wizard.cast.placesTitle, placesHint: t.wizard.cast.placesHint, noPeople: t.wizard.cast.noPeople },
     } });
     return true;
   }
