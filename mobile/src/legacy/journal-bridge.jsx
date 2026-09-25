@@ -19,7 +19,8 @@ import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend, applyAllowanceGrant } from "../../../src/lib/credits.js";
-import { analyze, reflect, refine, characterSheet, generate, photoCheck } from "../../../src/lib/api.js";
+import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchPrompts } from "../../../src/lib/api.js";
+import { sketchFallback } from "../../../src/lib/sketchPrompt.js";
 import { quoteFor } from "../../../src/lib/quote.js";
 import { buildReferences, buildImagePrompt } from "../../../src/lib/promptBuilder.js";
 import { renderRef, needsSheet, sheetFingerprint } from "../../../src/lib/sheets.js";
@@ -644,6 +645,55 @@ async function runAvatar(cmd, onResult) {
  * ⚠ Noch NICHT der Weg der App: dream/order.tsx nutzt weiter den
  * Web-Motor, bis dieser Befehl an einem echten Auftrag belegt ist
  * (NATIVE_ORDER dort). Bilder-Aufträge kennt er nicht — es gibt nur Film. */
+/* Die Besetzung eines Traums: Namen der Analyse, Auto-Treffer (autoMatch),
+   dann die Vorgaben aus dem nativen Besetzungs-Schritt. Für den Film-Auftrag
+   (runOrder) und seit 25.09. für die Skizze (eigene Fotos als Startbild). */
+function resolveCast(analysis, overrides, s0) {
+  const build = (items, fallbackKind) => (items || []).reduce((acc, item) => {
+    const name = typeof item === "string" ? item : item?.name;
+    if (!name) return acc;
+    const kind = typeof item === "object" && item?.kind === "pet" ? "pet" : fallbackKind;
+    const wardrobe = (typeof item === "object" && item?.wearing) || "";
+    const avatar = autoMatch(name, s0.cast, s0.me);
+    acc[name] = { name, kind, ...(wardrobe ? { wardrobe } : {}), ...(avatar ? { avatar } : {}), ...(startsFree(kind, avatar) ? { free: true } : {}) };
+    return acc;
+  }, {});
+  const assignments = { ...build(analysis?.people, "person"), ...build(analysis?.places, "place"), ...build(analysis?.objects, "object") };
+  const byId = (id) => (id === "me" ? (s0.me ? { ...s0.me, id: "me", category: "person" } : null) : (s0.cast || []).find((c) => c.id === id) || null);
+  for (const [name, ov] of Object.entries(overrides || {})) {
+    if (!assignments[name] || !ov) continue;
+    if (ov.free) assignments[name] = { ...assignments[name], avatar: undefined, free: true };
+    else if (ov.avatarId) { const av = byId(ov.avatarId); if (av) assignments[name] = { ...assignments[name], avatar: av, free: false }; }
+  }
+  return assignments;
+}
+
+/* Traum-Skizze vorbereiten (25.09.): die Szenen als SD-Stichworte (Server,
+   sonst Ersatzweg — src/lib/sketchPrompt.js) und die eigenen Fotos der
+   Besetzung. Reihenfolge der Fotos: erst Menschen (das eigene zuerst), dann
+   Tiere, dann Orte — das erste wird zur Foto-Eröffnung des Films. */
+async function runSketchPrep(cmd, onResult) {
+  const p = cmd.sketchPrep || {};
+  const analysis = p.analysis || {};
+  const beats = (p.beats || []).filter((b) => typeof b === "string" && b.trim());
+  const people = (analysis.people || []).map((x) => (typeof x === "string" ? { name: x } : x)).filter((x) => x?.name);
+  let prompts;
+  try {
+    prompts = { ...(await sketchPrompts({ beats, people, mood: analysis.mood })), source: "server" };
+  } catch {
+    prompts = { ...sketchFallback(beats, people), source: "fallback" };
+  }
+  const rank = { person: 0, pet: 1, place: 2, object: 3 };
+  const s0 = loadState();
+  const isMe = (a) => a.avatar.id === "me" || (!!s0.me && a.avatar.img === s0.me.img);
+  const refs = Object.values(resolveCast(analysis, p.assignmentOverrides, s0))
+    .filter((a) => !a.free && a.avatar?.img)
+    .sort((a, b) => (rank[a.kind] - rank[b.kind]) || (isMe(b) - isMe(a)))
+    .map((a) => ({ name: a.name, kind: a.kind, img: absolute(a.avatar.img) }));
+  onResult({ n: cmd.n, result: { ...prompts, refs } });
+  return true;
+}
+
 async function runOrder(cmd, onResult) {
   const o = cmd.order || {};
   const s0 = loadState();
@@ -657,23 +707,7 @@ async function runOrder(cmd, onResult) {
   const analysis = o.analysis || null;
 
   /* 2. Besetzung — wie seedAssignments in useWizard.js, dann die Vorgaben. */
-  const build = (items, fallbackKind) => (items || []).reduce((acc, item) => {
-    const name = typeof item === "string" ? item : item?.name;
-    if (!name) return acc;
-    const kind = typeof item === "object" && item?.kind === "pet" ? "pet" : fallbackKind;
-    const wardrobe = (typeof item === "object" && item?.wearing) || "";
-    const avatar = autoMatch(name, s0.cast, s0.me);
-    acc[name] = { name, kind, ...(wardrobe ? { wardrobe } : {}), ...(avatar ? { avatar } : {}), ...(startsFree(kind, avatar) ? { free: true } : {}) };
-    return acc;
-  }, {});
-  const assignments = { ...build(analysis?.people, "person"), ...build(analysis?.places, "place"), ...build(analysis?.objects, "object") };
-  const byId = (id) => (id === "me" ? (s0.me ? { ...s0.me, id: "me", category: "person" } : null) : (s0.cast || []).find((c) => c.id === id) || null);
-  for (const [name, ov] of Object.entries(o.assignmentOverrides || {})) {
-    if (!assignments[name] || !ov) continue;
-    if (ov.free) assignments[name] = { ...assignments[name], avatar: undefined, free: true };
-    else if (ov.avatarId) { const av = byId(ov.avatarId); if (av) assignments[name] = { ...assignments[name], avatar: av, free: false }; }
-  }
-  const list = Object.values(assignments);
+  const list = Object.values(resolveCast(analysis, o.assignmentOverrides, s0));
   const { clauses } = buildReferences(list);
 
   /* 3. Bogen-Pflicht — Arbeitskopien, über den TAG festgeschrieben (25.08.). */
@@ -791,6 +825,7 @@ function runSketch(cmd, onResult) {
 async function runAsync(cmd, onResult) {
   if (cmd.type === "order") return runOrder(cmd, onResult);
   if (cmd.type === "sketch") return runSketch(cmd, onResult);
+  if (cmd.type === "sketchPrep") return runSketchPrep(cmd, onResult);
   /* Konto-Sicherung (23.09.2026, mobile/src/lib/dream-sync.ts): Die Brücke
      kennt das Tagebuch, die native Seite das Konto. Hinaus geht die
      Sicherungsform aus journalBackup.js — dieselbe erlaubte Liste wie für

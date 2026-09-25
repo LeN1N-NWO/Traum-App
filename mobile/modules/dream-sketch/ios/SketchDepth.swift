@@ -24,8 +24,12 @@ enum SketchDepth {
     }
     let raw = CIImage(cvPixelBuffer: obs.pixelBuffer)
     let sx = CGFloat(size) / raw.extent.width, sy = CGFloat(size) / raw.extent.height
+    // Erst das Nahe um ein paar Punkte weiten, dann glätten: Bei der
+    // stärkeren Fahrt (25.09.) reißt sonst die Kante des Vordergrunds auf —
+    // so dehnt sich der Hintergrund statt der Figur.
     let scaled = raw.transformed(by: CGAffineTransform(scaleX: sx, y: sy))
       .clampedToExtent()
+      .applyingFilter("CIMorphologyMaximum", parameters: [kCIInputRadiusKey: Double(size) / 128])
       .applyingGaussianBlur(sigma: Double(size) / 170)
       .cropped(to: CGRect(x: 0, y: 0, width: size, height: size))
 
@@ -77,8 +81,10 @@ enum SketchParallax {
             colorSpace: CGColorSpace(name: CGColorSpace.sRGB))
   }
 
-  /// `rgba`: size×size, 4 Bytes je Punkt.
-  static func warp(rgba: [UInt8], depth: [Float], size: Int, camera c: Camera) -> [UInt8] {
+  /// `rgba`: size×size, 4 Bytes je Punkt. `flow` (Punkte) lässt das Ferne —
+  /// Himmel, Wasser, Nebel — sacht wogen, `time` in Sekunden treibt es an:
+  /// Das Bild atmet, statt stillzustehen (25.09.).
+  static func warp(rgba: [UInt8], depth: [Float], size: Int, camera c: Camera, time: Float = 0, flow: Float = 0) -> [UInt8] {
     var out = [UInt8](repeating: 0, count: rgba.count)
     let n = size
     let half = Float(n) / 2
@@ -101,6 +107,14 @@ enum SketchParallax {
                 let z = 1 + c.zoom * sh
                 px = half + (fx - half) / z - c.dx * sh * fn
                 py = half + (fy - half) / z - c.dy * sh * fn
+              }
+              if flow > 0 {
+                let far = max(0, 0.42 - depthAt(fx, fy)) / 0.42
+                if far > 0 {
+                  let f = far * far * flow
+                  px += f * sinf(fy * 0.041 + time * 1.15) + f * 0.5 * sinf(fy * 0.013 - time * 0.6)
+                  py += f * 0.45 * sinf(fx * 0.033 + time * 0.85)
+                }
               }
               // bilinear, am Rand geklemmt
               let cx = min(max(px - 0.5, 0), fn - 1.001), cy = min(max(py - 0.5, 0), fn - 1.001)

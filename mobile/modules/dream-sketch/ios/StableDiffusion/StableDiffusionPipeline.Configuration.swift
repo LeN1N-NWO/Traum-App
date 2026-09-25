@@ -18,6 +18,10 @@ public struct PipelineConfiguration: Hashable {
     public var prompt: String
     /// Negative text prompt to guide sampling
     public var negativePrompt: String = ""
+    /// Dream Rushes: second prompt whose embedding is blended in (prompt morph)
+    public var morphPrompt: String? = nil
+    /// Dream Rushes: 0 = only `prompt`, 1 = only `morphPrompt`
+    public var morphWeight: Float = 0
     /// Starting image for image2image or in-painting
     public var startingImage: CGImage? = nil
     /// Fraction of inference steps to be used in `.imageToImage` pipeline mode

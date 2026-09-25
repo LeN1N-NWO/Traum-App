@@ -107,13 +107,18 @@ export type OrderRequest = {
   styleId: string; pace: string; videoModel: string; quality: string | null; seconds: number; mode?: "film" | "images";
   assignmentOverrides?: Record<string, { avatarId?: string; free?: boolean }>;
 };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "syncExport" | "syncImport" | "sketch"; order?: OrderRequest; dreams?: unknown[]; sketch?: SketchRequest; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "syncExport" | "syncImport" | "sketch" | "sketchPrep"; order?: OrderRequest; dreams?: unknown[]; sketch?: SketchRequest; sketchPrep?: SketchPrepRequest; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
 /* Die fertige Traum-Skizze fürs Journal (journal-bridge runSketch). */
+/* Skizze vorbereiten (25.09.): Szenen → SD-Stichworte, Besetzung → eigene Fotos. */
+export type SketchPrepRequest = { beats: string[]; analysis: any; assignmentOverrides: Record<string, { avatarId?: string; free?: boolean }> };
+export type SketchPrep = { scenes: string[]; particles: string; source: "server" | "fallback"; refs: { name: string; kind: string; img: string }[] };
 export type SketchRequest = { entryId: string | null; text: string; originalText: string; analysis: any; styleId: string; film: string; stills: string[]; seconds: number };
 export type SketchTexts = {
   title: string; lede: string; needsModel: string; modelInfo: string; download: string; downloading: string; cancel: string;
   loading: string; painting: string; rendering: string; saving: string; stayHint: string; failed: string; retry: string;
   unsupported: string; create: string; takeLabel: string; card: { name: string; hint: string; badge: string } | null;
+  painterTitle: string; painters: Record<string, { name: string; hint: string }>; painterReady: string; painterSize: string;
+  photoTitle: string; photoHint: string; preparing: string; start: string; morphing: string; dreamingPhoto: string;
 };
 export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null; entryId?: string };
 

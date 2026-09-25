@@ -1031,7 +1031,7 @@ export default {
       title: "Dream sketch",
       lede: "Your iPhone paints the scenes itself and moves the camera through them. Rough, dreamy — and free.",
       needsModel: "One-time download",
-      modelInfo: "The sketch painter lives on your phone: about 940 MB, downloaded once. Wi-Fi recommended.",
+      modelInfo: "The sketch painter lives on your phone: about 1 GB, downloaded once. Wi-Fi recommended.",
       download: "Download · {mb} MB",
       downloading: "{done} of {total} MB",
       cancel: "Cancel",
@@ -1045,6 +1045,19 @@ export default {
       unsupported: "Sketches need an iPhone 15 Pro or newer.",
       create: "Create sketch · Free",
       takeLabel: "Sketch",
+      painterTitle: "Painter",
+      painters: {
+        sd15: { name: "Classic", hint: "Stable Diffusion 1.5 by Apple — calm, a little plain" },
+        dreamshaper8: { name: "DreamShaper", hint: "Richer and more painterly — community model" },
+      },
+      painterReady: "on your iPhone",
+      painterSize: "{mb} MB to download",
+      photoTitle: "Begin with your photo",
+      photoHint: "The film opens on your photo of {name} — then it starts to dream.",
+      preparing: "Reading your dream…",
+      start: "Paint the sketch",
+      morphing: "Scene {a} turns into scene {b}",
+      dreamingPhoto: "Your photo starts dreaming…",
     },
 
     step6: {

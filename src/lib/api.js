@@ -180,6 +180,15 @@ export async function refine(dream, mode) {
   return data.text;
 }
 
+/** Traum-Skizze (25.09.): die Szenen als kurze SD-1.5-Stichworte, mit
+ *  festen Figurenbeschreibungen statt Namen (src/lib/sketchPrompt.js).
+ *  Gratis; die App fällt bei Fehler auf sketchFallback zurück. */
+export async function sketchPrompts({ beats, people, mood }) {
+  const data = await post("/api/sketch-prompts", { beats, people, mood });
+  if (!Array.isArray(data?.scenes)) throw new Error(t.errors.unexpected);
+  return { scenes: data.scenes, particles: data.particles };
+}
+
 /** Die Reflection zu einem Traum — Spiegel, nicht Orakel. `context` sind
  *  die Musterzeilen aus atlas.js (reflectionContext), gratis wie alle
  *  Textarbeit. `lang` ist die App-Sprache (state.language): Ohne sie rät

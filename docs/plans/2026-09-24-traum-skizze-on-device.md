@@ -139,3 +139,60 @@ fal.ai/models/fal-ai/ltx-2.3/image-to-video/fast
   inkl. 4 Tiefenkarten, Tiefenkarte deckungsgleich; Simulator Ende zu Ende
   inkl. On-Device-Kompilierung; derselbe Frame mit/ohne Tiefe weicht im
   Mittel 20,9/255 ab (die Tiefe wirkt, kein stiller Rückfall).
+
+## v3: „Das Bestmögliche" (25.09.2026, Antons Auftrag: alle Schritte)
+
+Antons Befunde nach dem ersten Blick: eigene Fotos gehen nicht, der
+Kontext ist komisch, mehr Tiefe, besseres Modell probieren, Übergänge
+morphen statt überblenden. Umgesetzt:
+
+1. **Kontext** — `src/lib/sketchPrompt.js` + `/api/sketch-prompts`. Die
+   Analyse-Beats sind Regiesätze mit Namen; SD 1.5 liest 77 Tokens und
+   kennt keine Namen (jede Szene malte eine andere Person). DeepSeek
+   schreibt die gewählten Beats zu kurzen SD-Stichworten um, jede Figur
+   bekommt EINE feste Beschreibung, die in jeder Szene wörtlich wiederkehrt;
+   der Träumer wird „von hinten" gemalt (kein falsches Gesicht). Dazu wählt
+   es die Teilchen-Art. Gratis für den Menschen (Klasse „text" im
+   Gatekeeper), ~10 s, läuft schon während der Einrichtung. Ohne Server:
+   `sketchFallback` (Namen raus, neutrale Worte rein). Belegt am
+   U-Bahn/Wal-Traum: „a young man, grey hoodie, dark wet hair …" in allen
+   vier Szenen gleich.
+2. **Eigene Fotos** — die Besetzung (`resolveCast`, dieselbe wie beim
+   Film-Auftrag) liefert die Fotos; das erste (Menschen vor Tieren vor
+   Orten, das eigene zuerst) wird zur **Foto-Eröffnung**: das echte Foto mit
+   Tiefe und Kamera, dann zwei Bild-zu-Bild-Stufen (Stärke 0,42 / 0,64) auf
+   die erste Szene hin — „dein Foto beginnt zu träumen" — und es löst sich
+   in die erste Szene auf. Dafür lädt der Maler den VAEEncoder nach (68 MB).
+   Der Ausschnitt folgt dem Gesicht (Vision), EXIF-Drehung wird beachtet.
+   Das Foto bleibt auf dem Gerät. Ehrliche Grenze: Gesichtstreue IN den
+   gemalten Szenen gibt SD 1.5 ohne IP-Adapter nicht her — die Eröffnung ist
+   der Weg, das echte Gesicht in den Film zu bringen.
+3. **Morph** — `morphPrompt`/`morphWeight` in Apples Pipeline (einzige
+   Änderung am Fremdcode, UPSTREAM.txt): gleiches Rauschen (ein Seed je
+   Traum), Prompt-Einbettung zwischen Szene A und B gemischt → Zwischenbilder
+   (2 je Übergang, Gewicht ⅓ / ⅔), dicht überblendet (0,45 s je Stufe).
+   Anfang und Ende sind exakt die Szenen, dazwischen verwandelt sich A in B.
+4. **Mehr Tiefe und Bewegung** — `SketchRenderer.swift` neu: EINE
+   durchgehende, schwebende Kamera über den ganzen Film (dx 0,085 statt
+   0,065, Dolly 0,04–0,20 atmend), das Nahe in der Tiefenkarte vorher
+   geweitet (Kanten reißen weniger), eine **Vertigo-Szene** (Dolly-Zoom auf
+   der Signatur-Szene des Traums), das Ferne **wogt** (Himmel/Wasser, im
+   Warp), **Nebel** treibt im Fernen (Rauschen × Tiefenmaske), **Teilchen in
+   der Tiefe** (`SketchParticles.swift`: Staub/Schnee/Glühwürmchen/Funken/
+   Blasen, mit Parallaxe, Bokeh nah, verdeckt von Figuren davor).
+5. **Zweiter Maler zum Vergleich** — DreamShaper 8 (Lykon, OpenRAIL-M;
+   Civitai: Nennung nicht Pflicht), fertig umgewandelt von
+   `darkmaniac7/TokForge-DreamShaper-8-CoreML-6bit`, **auf Commit 03c659e
+   festgenagelt**, gleicher Aufbau wie Apples Modell (958 MB, mit Encoder).
+   Wahl auf dem Skizzen-Bildschirm, das Gerät merkt sie sich. ⚠ Umwandlung
+   eines Dritten mit 0 Downloads — vor dem Store selbst umwandeln oder
+   spiegeln (Hosting-Punkt oben).
+
+**Rechenzeit:** 4 Szenen + 6 Zwischenbilder + 2 Foto-Stufen = 12 Bilder
+statt 4. Stellschrauben in `sketch.tsx`: `MORPHS`, `PHOTO_STRENGTHS`,
+`STEPS`. Antons Stoppuhr vom iPhone entscheidet, ob 2 Zwischenbilder
+bleiben.
+
+**Noch nicht:** Erzählstimme + Untertitel, Klangteppich, LCM-Schnellmodus
+(bräuchte eigenen Scheduler), „mit echter Bewegung aufwerten" (Turbo-Cloud,
+kostet Credits).

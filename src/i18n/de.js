@@ -976,7 +976,7 @@ export default {
       title: "Traum-Skizze",
       lede: "Dein iPhone malt die Szenen selbst und fährt mit der Kamera hindurch. Grob, traumhaft — und kostenlos.",
       needsModel: "Einmaliger Download",
-      modelInfo: "Der Skizzen-Maler wohnt auf deinem iPhone: etwa 940 MB, einmal geladen. WLAN empfohlen.",
+      modelInfo: "Der Skizzen-Maler wohnt auf deinem iPhone: etwa 1 GB, einmal geladen. WLAN empfohlen.",
       download: "Laden · {mb} MB",
       downloading: "{done} von {total} MB",
       cancel: "Abbrechen",
@@ -990,6 +990,19 @@ export default {
       unsupported: "Skizzen brauchen ein iPhone 15 Pro oder neuer.",
       create: "Skizze erstellen · Gratis",
       takeLabel: "Skizze",
+      painterTitle: "Maler",
+      painters: {
+        sd15: { name: "Klassisch", hint: "Stable Diffusion 1.5 von Apple — ruhig, etwas schlicht" },
+        dreamshaper8: { name: "DreamShaper", hint: "Satter und malerischer — Community-Modell" },
+      },
+      painterReady: "auf deinem iPhone",
+      painterSize: "{mb} MB zu laden",
+      photoTitle: "Mit deinem Foto beginnen",
+      photoHint: "Der Film beginnt mit deinem Foto von {name} — dann fängt es an zu träumen.",
+      preparing: "Dein Traum wird gelesen …",
+      start: "Skizze malen",
+      morphing: "Szene {a} verwandelt sich in Szene {b}",
+      dreamingPhoto: "Dein Foto beginnt zu träumen …",
     },
 
     step6: {

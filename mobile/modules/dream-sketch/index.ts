@@ -7,8 +7,14 @@ import { requireOptionalNativeModule } from "expo";
    Web, ein älteres Binary über ein OTA-Update) bekommt `null` statt eines
    Absturzes — die Skizze erscheint dann einfach nicht in der Modellwahl. */
 type Subscription = { remove(): void };
+export type Painter = { id: string; ready: boolean; missing: number; total: number };
+export type GenerateOptions = { morphPrompt?: string; morphWeight?: number; startImage?: string; strength?: number };
+export type RenderPlan = { opening: string[]; scenes: string[]; morphs: string[][]; particles: string; vertigo: number; seed: number };
 type NativeSketch = {
   isSupported(): boolean;
+  painters(): Painter[];
+  painter(): string;
+  selectPainter(id: string): void;
   modelReady(): boolean;
   modelBytes(): number;
   missingBytes(): number;
@@ -16,8 +22,9 @@ type NativeSketch = {
   downloadModel(): Promise<boolean>;
   cancelDownload(): void;
   cancelGeneration(): void;
-  generateImage(prompt: string, negative: string, seed: number, steps: number, name: string): Promise<string>;
-  renderSketch(frames: string[], name: string): Promise<string>;
+  generateImage(prompt: string, negative: string, seed: number, steps: number, name: string, options?: GenerateOptions): Promise<string>;
+  importReference(source: string, name: string): Promise<string>;
+  renderSketch(plan: RenderPlan, name: string): Promise<{ film: string; seconds: number }>;
   unload(): void;
   removeModel(): void;
   addListener(event: "onDownloadProgress", cb: (e: { done: number; total: number }) => void): Subscription;

@@ -51,6 +51,7 @@ import { featuredStyles, filmStyleAnchor } from "./src/lib/styles.js";
 // Wie viele Szenen in eine Filmlänge passen — drei Sekunden je Szene ist
 // die Untergrenze, darunter wird aus Regie eine Schnittfolge.
 import { beatsForSeconds } from "./src/lib/beats.js";
+import { SKETCH_SYSTEM, normaliseSketch, sketchUserMessage } from "./src/lib/sketchPrompt.js";
 // Die Beat-Typen des Schnitts. Der Server prüft damit nur die Modellantwort;
 // gewählt und geplant wird im Client (cut.js), weil dort die Analyse liegt.
 import { HOOKS, MIN_SHOT_SECONDS } from "./src/lib/cut.js";
@@ -1202,6 +1203,37 @@ async function refineDream(dream, mode) {
   return cleaned;
 }
 
+
+/* Traum-Skizze (25.09.): die ausgewählten Beats als SD-1.5-Stichworte, mit
+   festen Figurenbeschreibungen statt Namen — src/lib/sketchPrompt.js erklärt
+   warum. Gratis für den Menschen wie alle Textarbeit; die App hat einen
+   Ersatzweg, falls das hier scheitert. */
+async function sketchPrompts({ beats, people, mood }) {
+  const key = process.env.DEEPSEEK_KEY;
+  if (!key) throw new Error("NO_DEEPSEEK_KEY");
+  const res = await fetch(DEEPSEEK_API_URL, {
+    method: "POST",
+    signal: AbortSignal.timeout(T.deepseek),
+    headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      messages: [
+        { role: "system", content: SKETCH_SYSTEM },
+        { role: "user", content: sketchUserMessage({ beats, people, mood }) },
+      ],
+      response_format: { type: "json_object" },
+      stream: false,
+    }),
+  });
+  if (!res.ok) {
+    console.error("[DreamRushes] sketch-prompts request failed:", res.status, await res.text().catch(() => ""));
+    throw new Error("SKETCH_FAILED");
+  }
+  const data = await res.json().catch(() => null);
+  const raw = data?.choices?.[0]?.message?.content;
+  if (typeof raw !== "string") throw new Error("SKETCH_FAILED");
+  return normaliseSketch(raw, beats.length);
+}
 
 // ---- dream analysis (the ONE llm call per dream) ----
 //
@@ -2472,6 +2504,36 @@ const serveOptions = {
         const hit = map[e.message];
         if (hit) return json({ error: hit[1] }, hit[0]);
         console.error("[DreamRushes] /api/refine failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/sketch-prompts" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json();
+        // Alles, was hier ankommt, wird Prompt-Material: gewaschen und gedeckelt.
+        const beats = (Array.isArray(body.beats) ? body.beats : [])
+          .map((b) => sanitizePromptText(b).slice(0, 400)).filter(Boolean).slice(0, 8);
+        if (!beats.length) return json({ error: "No scenes." }, 400);
+        const people = (Array.isArray(body.people) ? body.people : []).slice(0, 12).map((p) => ({
+          name: sanitizePromptText(p?.name).slice(0, 60),
+          kind: p?.kind === "pet" ? "pet" : "person",
+          desc: sanitizePromptText(p?.desc).slice(0, 160),
+          wearing: sanitizePromptText(p?.wearing).slice(0, 120),
+        })).filter((p) => p.name);
+        const mood = sanitizePromptText(body.mood).slice(0, 40);
+        return json({ ok: true, ...(await sketchPrompts({ beats, people, mood })) });
+      } catch (e) {
+        const map = {
+          NO_DEEPSEEK_KEY: [503, "Backend has no DeepSeek key. Set DEEPSEEK_KEY and restart."],
+          SKETCH_FAILED: [502, "Could not prepare the sketch scenes."],
+        };
+        const hit = map[e.message];
+        if (hit) return json({ error: hit[1] }, hit[0]);
+        console.error("[DreamRushes] /api/sketch-prompts failed:", e);
         return json({ error: "Server error." }, 500);
       }
     }

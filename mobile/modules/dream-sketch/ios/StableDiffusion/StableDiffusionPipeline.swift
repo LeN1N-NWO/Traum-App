@@ -213,6 +213,17 @@ public struct StableDiffusionPipeline: StableDiffusionPipelineProtocol {
         // Encode the input prompt
         var promptEmbedding = try textEncoder.encode(config.prompt)
 
+        // Dream Rushes: prompt morph — blend toward a second prompt's embedding.
+        // Same seed + blended embedding = a smooth in-between of two scenes.
+        if let mix = config.morphPrompt, config.morphWeight > 0 {
+            let target = try textEncoder.encode(mix)
+            let w = min(max(config.morphWeight, 0), 1)
+            promptEmbedding = MLShapedArray<Float32>(
+                scalars: zip(promptEmbedding.scalars, target.scalars).map { $0 * (1 - w) + $1 * w },
+                shape: promptEmbedding.shape
+            )
+        }
+
         if config.guidanceScale >= 1.0 {
             // Convert to Unet hidden state representation
             // Concatenate the prompt and negative prompt embeddings

@@ -27,25 +27,48 @@ public class DreamSketchModule: Module {
       ProcessInfo.processInfo.physicalMemory >= 7_500_000_000
     }
 
-    Function("modelReady") { () -> Bool in SketchModel.isReady }
+    /// Die Maler zur Wahl (25.09.: Antons Vergleichstest) — je Maler, ob er
+    /// geladen ist und was noch fehlt. Die Tiefe teilen sich alle.
+    Function("painters") { () -> [[String: Any]] in
+      SketchPainter.all.map { p in
+        ["id": p.id, "ready": SketchModel.isReady(p),
+         "missing": Double(SketchModel.missingBytes(p)), "total": Double(SketchModel.totalBytes(p))]
+      }
+    }
 
-    Function("modelBytes") { () -> Double in Double(SketchModel.totalBytes) }
+    Function("painter") { () -> String in SketchModel.painter.id }
 
-    /// Was noch zu laden ist — nach dem Tiefen-Update (25.09.) nur ~50 MB
-    /// für alle, die das Mal-Modell schon haben.
-    Function("missingBytes") { () -> Double in Double(SketchModel.missingBytes) }
+    Function("selectPainter") { (id: String) in
+      let next = SketchPainter.named(id)
+      guard next.id != SketchModel.painter.id else { return }
+      SketchModel.painter = next
+      // Der geladene Maler passt nicht mehr — beim nächsten Bild neu laden.
+      self.work.async {
+        self.pipeline?.unloadResources()
+        self.pipeline = nil
+      }
+    }
+
+    Function("modelReady") { () -> Bool in SketchModel.isReady(SketchModel.painter) }
+
+    Function("modelBytes") { () -> Double in Double(SketchModel.totalBytes(SketchModel.painter)) }
+
+    /// Was noch zu laden ist — nach einem Update oft nur ein paar MB
+    /// (Tiefe 25.09., Encoder 25.09.) für alle, die den Maler schon haben.
+    Function("missingBytes") { () -> Double in Double(SketchModel.missingBytes(SketchModel.painter)) }
 
     /// Wo die fertigen Skizzen liegen (file://…/Documents/sketches/). Die
     /// App löst `sketch:<name>` zur Anzeige damit auf.
     Function("sketchesDir") { () -> String in Self.sketchesDir().absoluteString }
 
     AsyncFunction("downloadModel") { (promise: Promise) in
-      if SketchModel.isReady { promise.resolve(true); return }
+      let painter = SketchModel.painter
+      if SketchModel.isReady(painter) { promise.resolve(true); return }
       let d = SketchDownloader()
       self.downloader = d
       Task {
         do {
-          try await d.run { done, total in
+          try await d.run(painter) { done, total in
             self.sendEvent("onDownloadProgress", ["done": Double(done), "total": Double(total)])
           }
           self.downloader = nil
@@ -65,7 +88,12 @@ public class DreamSketchModule: Module {
     /// Engine — beim allerersten Mal kompiliert iOS sie dafür, das kann
     /// eine Minute dauern (danach zwischengespeichert). Die App zeigt die
     /// Phase über `onGenerateProgress` an.
-    AsyncFunction("generateImage") { (prompt: String, negative: String, seed: Int, steps: Int, name: String, promise: Promise) in
+    ///
+    /// `options` (alle optional, 25.09.):
+    ///  - morphPrompt + morphWeight: Zwischenbild zweier Szenen (Traum-Morph)
+    ///  - startImage (`sketch:`-Name) + strength: Bild-zu-Bild — das eigene
+    ///    Foto wird geträumt (0 = Foto bleibt, 1 = nur noch Prompt)
+    AsyncFunction("generateImage") { (prompt: String, negative: String, seed: Int, steps: Int, name: String, options: [String: Any]?, promise: Promise) in
       self.cancelGeneration = false
       self.work.async {
         do {
@@ -77,6 +105,18 @@ public class DreamSketchModule: Module {
           config.guidanceScale = 7.5
           config.schedulerType = .dpmSolverMultistepScheduler
           config.disableSafety = true
+          if let mix = options?["morphPrompt"] as? String, let w = options?["morphWeight"] as? Double {
+            config.morphPrompt = mix
+            config.morphWeight = Float(w)
+          }
+          if let start = options?["startImage"] as? String {
+            let url = Self.sketchesDir().appendingPathComponent(start.replacingOccurrences(of: "sketch:", with: ""))
+            guard let src = UIImage(contentsOfFile: url.path)?.cgImage else {
+              throw NSError(domain: "DreamSketch", code: 21, userInfo: [NSLocalizedDescriptionKey: "Startbild fehlt"])
+            }
+            config.startingImage = src
+            config.strength = Float(min(max((options?["strength"] as? Double) ?? 0.6, 0.05), 0.99))
+          }
           let images = try pipe.generateImages(configuration: config) { progress in
             self.sendEvent("onGenerateProgress", ["phase": "step", "step": progress.step, "steps": progress.stepCount])
             return !self.cancelGeneration
@@ -95,15 +135,52 @@ public class DreamSketchModule: Module {
       }
     }
 
-    /// Die Keyframes (`sketch:`-Namen) werden zum Film; gibt `sketch:<name>` zurück.
-    AsyncFunction("renderSketch") { (frames: [String], name: String, promise: Promise) in
+    /// Ein eigenes Foto (Bibliothek/Besetzung: http(s)-, file:- oder
+    /// data:-Adresse) als 512²-Startbild ablegen. Der Ausschnitt folgt dem
+    /// Gesicht, falls Vision eins findet — ein Porträt soll nicht am Kinn
+    /// enden. Gibt `sketch:<name>` zurück.
+    AsyncFunction("importReference") { (source: String, name: String, promise: Promise) in
+      self.work.async {
+        do {
+          guard let url = URL(string: source) else { throw URLError(.badURL) }
+          let data = try Data(contentsOf: url)
+          guard let ui = UIImage(data: data) else {
+            throw NSError(domain: "DreamSketch", code: 22, userInfo: [NSLocalizedDescriptionKey: "Foto unlesbar"])
+          }
+          // Handyfotos tragen ihre Drehung als EXIF — `cgImage` ignoriert sie.
+          let format = UIGraphicsImageRendererFormat()
+          format.scale = 1
+          let upright = ui.imageOrientation == .up ? ui.cgImage
+            : UIGraphicsImageRenderer(size: ui.size, format: format).image { _ in ui.draw(at: .zero) }.cgImage
+          guard let img = upright else { throw NSError(domain: "DreamSketch", code: 22) }
+          let square = try SketchReference.square(img, size: 512)
+          guard let png = UIImage(cgImage: square).pngData() else { throw NSError(domain: "DreamSketch", code: 23) }
+          try png.write(to: Self.sketchesDir().appendingPathComponent(name), options: .atomic)
+          promise.resolve("sketch:" + name)
+        } catch {
+          promise.reject("E_REFERENCE", error.localizedDescription)
+        }
+      }
+    }
+
+    /// Der Film aus dem Drehplan (25.09.): optional die Foto-Eröffnung,
+    /// die Szenen, je Übergang die Morph-Zwischenbilder, dazu Partikel und
+    /// eine Vertigo-Szene. Gibt `{ film: "sketch:<name>", seconds }` zurück.
+    AsyncFunction("renderSketch") { (plan: [String: Any], name: String, promise: Promise) in
       self.work.async {
         do {
           let dir = Self.sketchesDir()
-          let urls = frames.map { dir.appendingPathComponent($0.replacingOccurrences(of: "sketch:", with: "")) }
+          let file = { (s: String) in dir.appendingPathComponent(s.replacingOccurrences(of: "sketch:", with: "")) }
+          var p = SketchRenderer.Plan()
+          p.opening = ((plan["opening"] as? [String]) ?? []).map(file)
+          p.scenes = ((plan["scenes"] as? [String]) ?? []).map(file)
+          p.morphs = ((plan["morphs"] as? [[String]]) ?? []).map { $0.map(file) }
+          p.particles = SketchParticles.Kind(rawValue: (plan["particles"] as? String) ?? "dust") ?? .dust
+          p.vertigo = (plan["vertigo"] as? Int) ?? -1
+          p.seed = UInt64(truncatingIfNeeded: (plan["seed"] as? Int) ?? 1)
           // Tiefe (Parallaxe) wenn möglich; fehlt das Modell, fährt der Film ohne.
-          try SketchRenderer.render(images: urls, depthModel: SketchModel.depthModel(), to: dir.appendingPathComponent(name))
-          promise.resolve("sketch:" + name)
+          let seconds = try SketchRenderer.render(p, depthModel: SketchModel.depthModel(), to: dir.appendingPathComponent(name))
+          promise.resolve(["film": "sketch:" + name, "seconds": seconds])
         } catch {
           promise.reject("E_RENDER", error.localizedDescription)
         }
@@ -129,14 +206,15 @@ public class DreamSketchModule: Module {
 
   private func loadedPipeline() throws -> StableDiffusionPipeline {
     if let p = pipeline { return p }
-    guard SketchModel.isReady else {
+    let painter = SketchModel.painter
+    guard SketchModel.isReady(painter) else {
       throw NSError(domain: "DreamSketch", code: 1, userInfo: [NSLocalizedDescriptionKey: "Modell nicht geladen"])
     }
     sendEvent("onGenerateProgress", ["phase": "loading"])
     let config = MLModelConfiguration()
     config.computeUnits = .cpuAndNeuralEngine
     let p = try StableDiffusionPipeline(
-      resourcesAt: SketchModel.directory,
+      resourcesAt: SketchModel.directory(painter),
       controlNet: [],
       configuration: config,
       disableSafety: true,
