@@ -26,8 +26,9 @@ Der Dienst läuft als Systemnutzer `dreamrushes` ohne Login. Von außen offen:
 
 ## Vorher (Hetzner Console / Strato)
 
-1. DNS bei Strato: A-Eintrag `api.dreamrushes.app` → `188.245.92.121`.
-   AAAA erst, wenn die IPv6-Adresse des Servers belegt ist.
+1. ✅ DNS bei Strato: A-Eintrag `api.dreamrushes.app` → `188.245.92.121`
+   (gesetzt, geprüft 25.09.). AAAA erst, wenn die IPv6-Adresse des Servers
+   belegt ist.
 2. Hetzner Console → Firewall: eingehend nur 22, 80, 443 (TCP) und 443 (UDP).
 3. Hetzner Console → Snapshots/Backups einschalten.
 
@@ -101,8 +102,9 @@ journalctl -u dreamrushes -f
 2. **Das Rate-Limit zählt hinter Caddy alle zusammen.** `server.js` nimmt die
    Absender-IP von Bun (`server.requestIP`), und hinter Caddy ist das für
    jede Anfrage `127.0.0.1`. Alle Nutzer teilten sich dann 10 Anmeldungen
-   und 20 Bilder pro Minute; einer könnte alle aussperren. Der Kommentar
-   über `guard(` in `server.js` sagt das selbst voraus. Lösung: hinter dem
+   und 20 Bilder pro Minute; einer könnte alle aussperren. Befund S5 in
+   `docs/ARCHITEKTUR.md`; der Kommentar über `guard(` in `server.js` sagt
+   es ebenfalls voraus. Lösung: hinter dem
    Proxy `X-Forwarded-For` lesen — Caddy (ab 2.5, ohne `trusted_proxies`)
    ersetzt eine mitgeschickte Kopfzeile durch die echte Adresse, man kann
    sie also nicht fälschen. Vor dem Umbau auf dem Server nachprüfen. Änderung in
