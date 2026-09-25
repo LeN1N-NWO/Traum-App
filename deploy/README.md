@@ -69,7 +69,7 @@ Zeilenumbrüche als `\n` — Bun liest die Datei selbst (`--env-file`).
 Prüfen, ohne zu starten:
 
 ```bash
-sudo -u dreamrushes bun --env-file=/etc/dreamrushes/dreamrushes.env /opt/dreamrushes/app/deploy/check-env.mjs
+cd /opt/dreamrushes/app && sudo -u dreamrushes bun --no-install --env-file=/etc/dreamrushes/dreamrushes.env deploy/check-env.mjs
 ```
 
 ## Deployen
@@ -79,7 +79,7 @@ sudo bash /opt/dreamrushes/app/deploy/deploy.sh             # origin/main
 sudo bash /opt/dreamrushes/app/deploy/deploy.sh 1a2b3c4     # bestimmter Stand
 ```
 
-Antwortet der Server nach dem Neustart nicht innerhalb von 30 Sekunden auf
+Antwortet der Server nach dem Neustart nicht nach rund 30 Versuchen (je eine Sekunde Abstand) auf
 `/api/prices` (mit Token), geht der Deploy von selbst auf den vorigen Stand
 zurück. Liegen im Checkout Handänderungen, bricht er ab, statt sie zu
 überschreiben.

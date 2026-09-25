@@ -48,9 +48,8 @@ export function checkEnv(env, appDir) {
   if (!token) {
     errors.push("API_TOKEN fehlt — die bezahlten Routen wären für jeden offen (S1).");
   } else if (token.length < MIN_TOKEN_LENGTH) {
+    // Fängt auch den Platzhalter aus .env.example (27 Zeichen).
     errors.push(`API_TOKEN ist kürzer als ${MIN_TOKEN_LENGTH} Zeichen — erzeugen mit: openssl rand -hex 32`);
-  } else if (token === "ein-langes-zufaelliges-wort") {
-    errors.push("API_TOKEN ist der Platzhalter aus .env.example.");
   }
 
   /* Ohne DREAMRUSHES_MEDIA legt mediaRootFrom() den Ordner in den Checkout.

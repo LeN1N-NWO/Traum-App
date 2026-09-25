@@ -43,15 +43,22 @@ git checkout --quiet --detach "$REF"
 NEW="$(git rev-parse HEAD)"
 git log -1 --format='%h %s (%an, %ad)' --date=short
 
+# Als Dienstnutzer und mit dessen Umgebung wie in dreamrushes.service —
+# runuser behielte sonst HOME=/root, und Bun sähe dort hinein.
+as_service() {
+  runuser -u "$APP_USER" -- env HOME=/opt/dreamrushes BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 \
+    /usr/local/bin/bun --no-install --env-file="$ENV_FILE" "$@"
+}
+
 check_env() {
-  runuser -u "$APP_USER" -- /usr/local/bin/bun --env-file="$ENV_FILE" deploy/check-env.mjs
+  as_service deploy/check-env.mjs
 }
 
 # Mit Token, wie die App fragen muss: Ist API_TOKEN gesetzt, sperrt der
 # Türsteher (src/lib/gatekeeper.js) JEDE /api/-Route ohne ihn — ein 401 hieße
 # nur „Server lebt", nicht „Server bedient".
 answers() {
-  runuser -u "$APP_USER" -- /usr/local/bin/bun --env-file="$ENV_FILE" -e '
+  as_service -e '
     const r = await fetch(process.argv[1], {
       headers: { "x-api-token": process.env.API_TOKEN ?? "" },
       signal: AbortSignal.timeout(2000),

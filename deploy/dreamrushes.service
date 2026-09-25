@@ -9,6 +9,10 @@
 Description=Dream Rushes API
 After=network-online.target
 Wants=network-online.target
+# Startet er fünfmal in einer Minute nicht (z. B. .env falsch), gibt systemd
+# auf, statt alle drei Sekunden dieselbe Fehlermeldung ins Log zu schreiben.
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -23,8 +27,11 @@ Environment=BUN_RUNTIME_TRANSPILER_CACHE_PATH=0
 
 # Bun liest die Datei selbst, nicht systemd — sonst käme der Apple-Schlüssel
 # (Zeilenumbrüche als \n) anders an als beim lokalen Start.
-ExecStartPre=/usr/local/bin/bun --env-file=/etc/dreamrushes/dreamrushes.env deploy/check-env.mjs
-ExecStart=/usr/local/bin/bun --env-file=/etc/dreamrushes/dreamrushes.env server.js
+# --no-install: server.js braucht keine Pakete (belegt 25.09.: läuft ohne
+# node_modules). Ohne den Schalter würde Bun ein neu dazugekommenes Paket
+# still aus dem Netz nachladen wollen — hier soll es laut scheitern.
+ExecStartPre=/usr/local/bin/bun --no-install --env-file=/etc/dreamrushes/dreamrushes.env deploy/check-env.mjs
+ExecStart=/usr/local/bin/bun --no-install --env-file=/etc/dreamrushes/dreamrushes.env server.js
 
 Restart=on-failure
 RestartSec=3
