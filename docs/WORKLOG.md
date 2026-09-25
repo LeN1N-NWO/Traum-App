@@ -3,6 +3,50 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-25 08:25 — Anton — Branch `session/2026-09-23-anton` (PR #56) — Traum-Skizze (gratis, auf dem iPhone) mit Tiefe, echter Mond, Begleiter-Plan
+
+**Commits:** `edcd6b6` Begleiter-Plan + Warte-Frosch transparent · `bb9200a`
+/ `98d5fa1` Mond (Mare, dann echter NASA-Mond) · `60c3a25` Notiz Bundle-ID
+an Hanni · `36ee025` Recherche Traum-Skizze · `cd36b74` Hook-Fix Node 26 ·
+`75155f5` Traum-Skizze v1 · `883fdb2` Tiefe · `f2c084a` Merge main (Hannis
+Medienablage + Sicherheitscheck) · Doku-Commit dieses Eintrags.
+
+**Traum-Skizze (Antons Vision 24.09.: „ohne Credits, durch die eigene
+Rechenleistung auf dem Telefon, keine Templates"):**
+- Recherche (`docs/plans/2026-09-24-traum-skizze-on-device.md`): echtes
+  Text-zu-Video on-device ist Forschung (On-device Sora 10½ min für 256²),
+  Bilder sind gelöst; Apples ImageCreator fällt mit iOS 27 weg.
+- Gebaut: dritte Modellkarte „Skizze · GRATIS" (nur ≥ 8 GB RAM). Lokales
+  Expo-Modul `mobile/modules/dream-sketch` (autolinked, nur `pod install`):
+  Apples ml-stable-diffusion (MIT, ohne SD3/T5) malt je Szene ein Bild auf
+  der Neural Engine, Depth Anything V2 schätzt die Tiefe, eine 2.5D-Kamera
+  (Parallaxe + Dolly) fährt hindurch, Film 576×1024 · ~12 s → Journal über
+  Brücken-Befehl `sketch`. Modelle ~940 MB, einmal nachgeladen, aus dem
+  iCloud-Backup ausgenommen.
+- Belegt: Simulator Ende zu Ende (zweimal, einmal mit Tiefe inkl. On-Device-
+  Kompilierung); Mac-Probe mit denselben Swift-Dateien (ganzer Film 1,5 s).
+  ⚠ Auf Antons iPhone noch NICHT gelaufen: v1 installiert, Tiefe gebaut aber
+  nicht installiert (Gerät war „unavailable").
+
+**Sonst:** Warte-Frosch nativ ohne schwarzen Kasten (HEVC-Alpha);
+Mond-Streifen zeigt die echte Mondoberfläche (NASA LRO, orthografisch
+projiziert); Begleiter-Plan (4 Animationen fehlen: Faultier/Eule je Idle
++ Tipp); Hanni-Punkte gemerkt, Bundle-ID-Umstellung probiert — Apple lehnt
+sie für Antons Gratis-Team ab (Notiz an Hanni); SessionStart-Hook und
+Checkpoints liefen unter Node 26 nicht (`scripts/package.json` commonjs).
+
+**Was der Nächste wissen muss:**
+- ⚠ Der Merge mit Hannis Medienablage braucht auf Antons Mac: `bun install`
+  in `mobile` (neuer expo-secure-store-Patch) → **EventEmitter-Patch neu**
+  (bun install löscht ihn) → `pod install` → neuer Bau. **KEIN Prebuild**
+  auf Antons Mac (Gratis-Team, Push-Entitlement) — Hannis Notiz sagt
+  „Prebuild", das gilt nur für ihren Mac.
+- Skizzen liegen nur auf dem Gerät (`Documents/sketches`) und sind NICHT in
+  Hannis verschlüsselter Sicherung — nach Neuinstallation fehlt der Film
+  (Traumtext kommt zurück). Vor Mehrgeräte-Nutzung klären.
+- Preflight: 5 Blocker (die 4 Testphasen-Schalter + neu B8: Skizze ohne
+  Inhaltsprüfung).
+
 ## 2026-09-24 20:50 — Hanni — Branch `session/2026-09-24-hanni-2` (PR #59) — Hosting, Medienablage neu: Träume lokal, Sicherung Ende-zu-Ende verschlüsselt (A, B, D)
 
 **Commits:** `4268232` `4b5a79a` `5fc4487` Hosting-Plan + Kostenvergleich ·

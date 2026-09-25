@@ -3,12 +3,60 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-24 abends — Hanni. `session/2026-09-24-hanni-3`
-(PR #60, Sicherheitscheck) ist gemergt; `session/2026-09-24-hanni-2`
-(PR #59, Hosting + Medienablage A/B/D) fertig, **Merge durch Hanni**.
-Schritt C folgt auf einem neuen Branch. Anton parallel auf
-`session/2026-09-23-anton` (PR #56). **Weg durch die App-Store-Prüfung:
-`docs/plans/2026-09-23-app-store-pruefung.md`.**
+**Stand:** 2026-09-25 morgens — Anton, `session/2026-09-23-anton`
+(PR #56, freigegeben, **Merge auf Antons Wort**; main mit Hannis PR #59/#60
+ist schon hereingeholt, Konflikte gelöst). Hannis PR #59 (Medienablage
+A/B/D) und #60 (Sicherheitscheck) sind auf main. **Weg durch die
+App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Traum-Skizze — gratis, komplett auf dem iPhone (PR #56, neu):**
+Dritte Modellkarte „Skizze · GRATIS" in `mobile/src/app/dream/length.tsx`
+(nur auf Geräten ≥ 8 GB RAM). Das iPhone malt je Szene ein Bild (Stable
+Diffusion 1.5, Core ML), schätzt die Tiefe (Depth Anything V2) und rendert
+eine 2.5D-Kamerafahrt als Film ins Journal — ohne Server, ohne Credits.
+Plan und Messwerte: `docs/plans/2026-09-24-traum-skizze-on-device.md`.
+- Code: `mobile/modules/dream-sketch/` (lokales Expo-Modul, autolinked,
+  nur `pod install`), Bildschirm `mobile/src/app/dream/sketch.tsx`,
+  Brücken-Befehl `sketch` (`runSketch` in `journal-bridge.jsx`), Adressen
+  `sketch:<datei>`, aufgelöst in `mobile/src/components/journal-data.tsx`.
+- Modelle ~940 MB, einmal nachgeladen (Hugging Face), aus dem
+  iCloud-Backup ausgenommen; Tiefe als .mlpackage, auf dem Gerät kompiliert.
+- ✅ Belegt im Simulator (Ende zu Ende, mit Tiefe) und per Mac-Probe.
+  ⚠ **Auf Antons iPhone noch nicht gelaufen** — v1 ist installiert, die
+  Tiefen-Fassung gebaut (`~/.dr-dd-anton/…/DreamRushes.app`), aber noch
+  nicht aufgespielt (Gerät war gesperrt).
+- ❌ Vor der Einreichung: **Inhaltsprüfung** (Preflight **B8**,
+  `DreamSketchModule.swift` `disableSafety = true`), Lizenzhinweis SD 1.5
+  in die Rechtstexte, Modelle von eigenem Speicher statt Hugging Face.
+- ⚠ Skizzen liegen nur in `Documents/sketches` und sind NICHT in der
+  verschlüsselten Sicherung (Schritt B) — nach Neuinstallation fehlt der
+  Skizzen-Film, der Traumtext kommt zurück.
+
+**Nächster App-Bau auf Antons Mac (nach Hannis Medienablage):**
+`cd mobile && bun install` (spielt `patches/expo-secure-store@57.0.4.patch`
+ein) → **EventEmitter-Patch erneut setzen** (bun install löscht ihn, Rezept
+unten) → `cd ios && pod install` → Release-Bau → `devicectl` installieren.
+⚠ **KEIN Prebuild auf Antons Mac** (Gratis-Team, Push-Entitlement) — Hannis
+Ausroll-Notiz (`docs/uebergabe/2026-09-24-anton-medienablage-ausrollen.md`)
+nennt Prebuild, das gilt nur für ihren Mac. Server im Hauptordner vorher
+auf main ziehen und neu starten („Server vor App"). iCloud-Schlüsselbund
+am iPhone an.
+
+**Sonst neu (PR #56):** Warte-Frosch nativ transparent (HEVC-Alpha,
+`mobile/assets/mascots/frog-idle.mov`); Mond-Streifen mit echter
+NASA-Mondoberfläche (`mobile/assets/moon-full.png`); Begleiter-Plan
+`docs/plans/2026-09-23-begleiter-animationsplan.md` (Faultier und Eule
+brauchen je Idle + Knopf-Tipp — 4 Zeichnungen); SessionStart-Hook läuft
+wieder (`scripts/package.json` → commonjs). Bundle-ID
+`com.dreamrushes.app` lässt sich mit Antons Gratis-Team NICHT signieren
+(Apple-Fehler belegt) — Entscheidung bei Hanni:
+`docs/uebergabe/2026-09-24-hanni-bundle-id-signierung.md`.
+
+**Offen für Anton aus Hannis Notizen:** Hosting-Fragen (Budget, Prüfer-
+Credits, Store-Länder) in `docs/uebergabe/2026-09-24-anton-hosting.md`;
+für Schritt C die VPS-Bedingungen, ein Hetzner-Bucket und der Zeitpunkt
+(`…-medienablage-ausrollen.md`); am iPhone die iCloud-Probe (Traum
+anlegen, App löschen, neu installieren → Text muss zurückkommen).
 
 **Sicherheitscheck `/security-check` (PR #60, 24.09.):** Skript
 `scripts/security-check.mjs` (23 mechanische Prüfungen, jeder Detektor mit
