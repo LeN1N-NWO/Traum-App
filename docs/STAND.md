@@ -22,9 +22,9 @@ Plan und Messwerte: `docs/plans/2026-09-24-traum-skizze-on-device.md`.
 - Modelle ~940 MB, einmal nachgeladen (Hugging Face), aus dem
   iCloud-Backup ausgenommen; Tiefe als .mlpackage, auf dem Gerät kompiliert.
 - ✅ Belegt im Simulator (Ende zu Ende, mit Tiefe) und per Mac-Probe.
-  ⚠ **Auf Antons iPhone noch nicht gelaufen** — v1 ist installiert, die
-  Tiefen-Fassung gebaut (`~/.dr-dd-anton/…/DreamRushes.app`), aber noch
-  nicht aufgespielt (Gerät war gesperrt).
+  ⚠ **Auf Antons iPhone noch nicht getestet** — die Tiefen-Fassung ist
+  seit 25.09. morgens installiert (Stand VOR dem Merge mit Hannis
+  Medienablage); Antons Erstlauf mit Messung der Dauer steht aus.
 - ❌ Vor der Einreichung: **Inhaltsprüfung** (Preflight **B8**,
   `DreamSketchModule.swift` `disableSafety = true`), Lizenzhinweis SD 1.5
   in die Rechtstexte, Modelle von eigenem Speicher statt Hugging Face.
