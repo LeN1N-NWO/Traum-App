@@ -2,8 +2,8 @@ import { useKeepAwake } from "expo-keep-awake";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { Glass, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { MascotLoader } from "@/components/mascot-loader";
@@ -44,6 +44,8 @@ export default function DreamSketchScreen() {
   const W = data?.wizard;
   const S = W?.sketch;
   const w = useWizardStore();
+  const { width } = useWindowDimensions();
+  const tileSize = Math.floor((width - 40 - 8) / 2);   // zwei Kacheln je Reihe, feste Größe
 
   const [phase, setPhase] = useState<Phase>(() => (!sketchAvailable() ? "unsupported" : "setup"));
   const [prep, setPrep] = useState<SketchPrep | null>(null);
@@ -219,12 +221,12 @@ export default function DreamSketchScreen() {
           <>
             {tiles.length ? (
               <View style={styles.grid}>
-                {tiles.map((t) => <Image key={t} source={{ uri: resolveSketchUrl(t)! }} style={styles.tile} />)}
+                {tiles.map((t) => <Image key={t} source={{ uri: resolveSketchUrl(t)! }} style={[styles.tile, { width: tileSize, height: tileSize }]} />)}
               </View>
             ) : (
               <View style={styles.mascot}><MascotLoader size={200} /></View>
             )}
-            <Animated.Text key={`${phase}-${line}`} entering={FadeIn.duration(350)} exiting={FadeOut.duration(200)} style={styles.status}>
+            <Animated.Text key={`${phase}-${line}`} entering={FadeIn.duration(450)} style={styles.status}>
               {line}
             </Animated.Text>
             {bar !== null ? (
@@ -261,8 +263,7 @@ const styles = StyleSheet.create({
   body: { color: colors.text, fontSize: 15, lineHeight: 21 },
   small: { color: colors.muted, fontSize: 12, lineHeight: 16 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 6 },
-  tile: { width: "48.5%", aspectRatio: 1, borderRadius: 14, backgroundColor: colors.panel },
-  tileEmpty: { borderWidth: 1, borderColor: colors.panelLine },
+  tile: { borderRadius: 14, backgroundColor: colors.panel },
   status: { color: colors.text, fontSize: 16, fontWeight: "600", textAlign: "center" },
   track: { height: 6, borderRadius: 3, backgroundColor: colors.panel, overflow: "hidden" },
   barFill: { height: 6, borderRadius: 3, backgroundColor: colors.accentSoft },
