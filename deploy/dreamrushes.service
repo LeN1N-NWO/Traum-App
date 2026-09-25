@@ -1,0 +1,46 @@
+# Dream Rushes API als systemd-Dienst. Installiert von deploy/setup.sh nach
+# /etc/systemd/system/dreamrushes.service — Änderungen HIER machen, nicht dort.
+#
+# Der Dienst läuft als eigener Systemnutzer ohne Login. Der Code gehört root
+# und ist für ihn nur lesbar; schreiben darf er nur unter /var/lib/dreamrushes
+# (Medien, Aufträge, Träume-Sicherung — alles hängt an DREAMRUSHES_MEDIA).
+
+[Unit]
+Description=Dream Rushes API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dreamrushes
+Group=dreamrushes
+WorkingDirectory=/opt/dreamrushes/app
+
+# Wie lokal (package.json "test"): Datumslogik rechnet in Berliner Zeit.
+Environment=TZ=Europe/Berlin
+# Bun würde sonst einen Übersetzungs-Cache ins (schreibgeschützte) Home legen.
+Environment=BUN_RUNTIME_TRANSPILER_CACHE_PATH=0
+
+# Bun liest die Datei selbst, nicht systemd — sonst käme der Apple-Schlüssel
+# (Zeilenumbrüche als \n) anders an als beim lokalen Start.
+ExecStartPre=/usr/local/bin/bun --env-file=/etc/dreamrushes/dreamrushes.env deploy/check-env.mjs
+ExecStart=/usr/local/bin/bun --env-file=/etc/dreamrushes/dreamrushes.env server.js
+
+Restart=on-failure
+RestartSec=3
+
+# Abschottung
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/dreamrushes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

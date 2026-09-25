@@ -1,0 +1,28 @@
+# Caddy vor der Dream-Rushes-API. deploy/setup.sh setzt die Domain für
+# __DOMAIN__ ein und legt das Ergebnis nach /etc/caddy/Caddyfile.
+#
+# Caddy holt und erneuert das HTTPS-Zertifikat selbst (Let's Encrypt); dafür
+# müssen 80 und 443 offen sein und der DNS-Eintrag auf diesen Server zeigen.
+
+__DOMAIN__ {
+	# Entwicklungs-Routen mit Fotos realer Menschen und Traumtexten. server.js
+	# sperrt sie schon (src/lib/localOnly.js erkennt die Weiterleitung an
+	# X-Forwarded-For, das Caddy immer setzt) — hier zusätzlich, weil eine
+	# einzelne Sperre vor diesen Daten zu wenig ist.
+	@devonly path /api/cast-backup /api/cast-backup/* /api/journal-backup /api/journal-backup/*
+	respond @devonly 404
+
+	# Sicherheits-Kopfzeilen (Sicherheitscheck: 0 von 5). Eine
+	# Content-Security-Policy fehlt bewusst: die bräuchte eine Prüfung gegen den
+	# Web-Build, und die App (nativ) liest sie ohnehin nicht.
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# Keine Kompression (encode): Filme werden mit Range-Anfragen gestreamt.
+	reverse_proxy 127.0.0.1:8100
+}
