@@ -234,3 +234,36 @@ Film rechnet in Sekunden (Mac-Probe 3–4 s).
 Noch zu tun, falls es so kommt: Nebel und nahes Bokeh sind für
 Porträt-Kacheln zu kräftig (legen sich vor Gesichter) — für echte Fotos
 zurücknehmen.
+
+## v5: Umgebaut auf Cloud-Raster (25.09.2026 abends, Antons „so umbauen")
+
+- **Ablauf:** sketchPrep (Brücke: Besetzung → höchstens 3 Fotos in
+  Klausel-Reihenfolge, `buildGridPrompt` 2×2 mit `tile: "1:1"` und dem
+  gewählten Look-Preset, Teilchen aus den Beats, Kontingent) →
+  `referenceData` (nativ: Foto → JPEG-data-URI ≤ 1024) → sketchGrid (Brücke →
+  `/api/sketch-grid` → GPT Image 2 `low` 1024², edit mit Fotos / t2i ohne) →
+  `importGrid` (nativ: 4 Kacheln, 2 % Rand weg) → optional echtes Foto als
+  Eröffnung → `renderSketch` (keine Morph-Bilder, stattdessen
+  **Tiefen-Überblendung**: die neue Szene taucht vom Nahen her auf, 1,4 s;
+  Nebel 0,12; ruhigeres Bokeh).
+- **Kosten:** `src/lib/sketchQuota.js` — 3 je Kalendermonat gratis, danach
+  1 Credit; gezählt/abgebucht erst nach gelungenem Raster. Zähler liegt wie
+  die Credits auf dem Gerät (scharf erst mit der Anmeldung); der Server loggt
+  jeden Aufruf mit Preis (settleCharge + „≤ $0.015").
+- **iPhone:** braucht nur noch die Tiefe (Maler „cloud" = 50 MB), jedes Gerät
+  (`isSupported` = true; `canPaint` für den alten SD-Weg). Film in ~4 s
+  (Mac-Probe). Der SD-Code bleibt vorerst im Modul, wird aber nicht mehr
+  aufgerufen → Preflight B8 grün.
+- **Test 25.09.** (neuer Traum „Dach mit Uhren, Katze Mila, Wolkentreppe,
+  Lichtzug", eigenes Foto für „ich", Looks zufällig: surreal, actionfigure,
+  romantic): drei Raster je ~20 s über den echten Server-Weg, Schnitt mit
+  dem App-Code sauber (keine Trennlinien), drei Filme je 19,4 s in ~4 s.
+  Gesicht hält über alle drei. Befunde: (1) **Action Figure kommt bei
+  „low" kaum an** — sieht eher nach 3D-Film aus als nach Spielfigur;
+  (2) der **Hintergrund des Referenzfotos sickert** in einzelne Kacheln
+  (Fenster/Lampe aus dem Foto). Beides betrifft den Raster-Prompt allgemein.
+- **Ton (Antons Frage):** Auf dem Gerät gibt es nichts Fertiges — Stable
+  Audio Open Small (Stability, ~341 M Parameter, läuft auf Handys) bräuchte
+  eine eigene Core-ML-Umwandlung und steht unter der Stability-Community-
+  Lizenz (frei unter $1 Mio. Umsatz). Günstig und sofort: fal MMAudio v2
+  (Video → passender Ton) für $0,001 je Sekunde, also ~2 Cent je Skizze.

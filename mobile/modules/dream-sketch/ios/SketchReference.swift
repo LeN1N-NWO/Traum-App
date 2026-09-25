@@ -39,4 +39,25 @@ enum SketchReference {
     guard let out = ctx.makeImage() else { throw NSError(domain: "DreamSketch", code: 26) }
     return out
   }
+
+  /// Ein Raster in gleich große Kacheln schneiden, je Kachel 2 % Rand weg
+  /// (Trennlinie und Außenrand des Modells), dann auf `size`² bringen.
+  static func gridTiles(_ grid: CGImage, cols: Int, rows: Int, size: Int) -> [CGImage] {
+    let w = CGFloat(grid.width) / CGFloat(cols), h = CGFloat(grid.height) / CGFloat(rows)
+    let inset = min(w, h) * 0.02
+    var out: [CGImage] = []
+    for r in 0..<rows {
+      for c in 0..<cols {
+        let rect = CGRect(x: CGFloat(c) * w + inset, y: CGFloat(r) * h + inset, width: w - 2 * inset, height: h - 2 * inset).integral
+        guard let crop = grid.cropping(to: rect),
+              let ctx = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: size * 4,
+                                  space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+        else { continue }
+        ctx.interpolationQuality = .high
+        ctx.draw(crop, in: CGRect(x: 0, y: 0, width: size, height: size))
+        if let img = ctx.makeImage() { out.append(img) }
+      }
+    }
+    return out
+  }
 }

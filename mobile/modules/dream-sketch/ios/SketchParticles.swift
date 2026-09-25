@@ -90,8 +90,8 @@ enum SketchParticles {
 
       // Nahes groß und weich (Bokeh), Fernes klein und klar.
       let near = max(0, p.z - 0.8) / 0.2
-      let radius = W * 0.0045 * p.size * (0.5 + 1.6 * p.z) * (1 + 2.2 * near) * (kind == .fireflies ? 1.4 : 1)
-      ctx.setAlpha(CGFloat(max(0, min(1, alpha * (1 - 0.55 * near)))))
+      let radius = W * 0.0045 * p.size * (0.5 + 1.6 * p.z) * (1 + 1.0 * near) * (kind == .fireflies ? 1.4 : 1)
+      ctx.setAlpha(CGFloat(max(0, min(1, alpha * (1 - 0.7 * near)))))
       let c = CGPoint(x: px, y: py)
       ctx.drawRadialGradient(glow, startCenter: c, startRadius: 0, endCenter: c, endRadius: CGFloat(radius), options: [])
     }

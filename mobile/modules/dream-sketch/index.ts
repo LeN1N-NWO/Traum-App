@@ -9,7 +9,7 @@ import { requireOptionalNativeModule } from "expo";
 type Subscription = { remove(): void };
 export type Painter = { id: string; ready: boolean; missing: number; total: number };
 export type GenerateOptions = { morphPrompt?: string; morphWeight?: number; startImage?: string; strength?: number };
-export type RenderPlan = { opening: string[]; scenes: string[]; morphs: string[][]; particles: string; vertigo: number; seed: number };
+export type RenderPlan = { opening: string[]; scenes: string[]; morphs: string[][]; particles: string; vertigo: number; seed: number; fog?: number };
 type NativeSketch = {
   isSupported(): boolean;
   painters(): Painter[];
@@ -24,6 +24,9 @@ type NativeSketch = {
   cancelGeneration(): void;
   generateImage(prompt: string, negative: string, seed: number, steps: number, name: string, options?: GenerateOptions): Promise<string>;
   importReference(source: string, name: string): Promise<string>;
+  referenceData(source: string): Promise<string>;
+  importGrid(source: string, prefix: string): Promise<string[]>;
+  canPaint(): boolean;
   renderSketch(plan: RenderPlan, name: string): Promise<{ film: string; seconds: number }>;
   unload(): void;
   removeModel(): void;

@@ -85,7 +85,11 @@ struct SketchPainter {
       ("vocab.json", 862328),
     ])
 
-  static let all = [sd15, dreamshaper]
+  /// Seit 25.09. abends der Normalfall: Die Szenen malt die Cloud (ein
+  /// 2×2-Raster), das iPhone braucht nur noch die Tiefe (~50 MB).
+  static let cloud = SketchPainter(id: "cloud", folder: "cloud", base: "", files: [])
+
+  static let all = [cloud, sd15, dreamshaper]
   static func named(_ id: String?) -> SketchPainter { all.first { $0.id == id } ?? sd15 }
 }
 

@@ -19,10 +19,11 @@ import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend, applyAllowanceGrant } from "../../../src/lib/credits.js";
-import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchPrompts } from "../../../src/lib/api.js";
-import { sketchFallback } from "../../../src/lib/sketchPrompt.js";
+import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchGrid } from "../../../src/lib/api.js";
+import { pickParticles } from "../../../src/lib/sketchPrompt.js";
+import { sketchFreeLeft, sketchCost, countSketch } from "../../../src/lib/sketchQuota.js";
 import { quoteFor } from "../../../src/lib/quote.js";
-import { buildReferences, buildImagePrompt } from "../../../src/lib/promptBuilder.js";
+import { buildReferences, buildImagePrompt, buildGridPrompt } from "../../../src/lib/promptBuilder.js";
 import { renderRef, needsSheet, sheetFingerprint } from "../../../src/lib/sheets.js";
 import { selectBeats, shotPlan } from "../../../src/lib/cut.js";
 import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PACE } from "../../../src/lib/video.js";
@@ -668,29 +669,57 @@ function resolveCast(analysis, overrides, s0) {
   return assignments;
 }
 
-/* Traum-Skizze vorbereiten (25.09.): die Szenen als SD-Stichworte (Server,
-   sonst Ersatzweg — src/lib/sketchPrompt.js) und die eigenen Fotos der
-   Besetzung. Reihenfolge der Fotos: erst Menschen (das eigene zuerst), dann
-   Tiere, dann Orte — das erste wird zur Foto-Eröffnung des Films. */
+/* Traum-Skizze vorbereiten (25.09., Cloud-Raster): der Prompt für EIN
+   2×2-Raster (Look-Preset + Referenzklauseln, buildGridPrompt mit
+   quadratischen Kacheln), die Fotos der Besetzung in GENAU der Reihenfolge
+   der Klauseln, die Teilchen-Art und was die Skizze kostet.
+   ⚠ Höchstens drei Fotos: Wer darüber liegt, wird zur „frei erfundenen"
+   Figur — sonst zeigten die Klauseln auf Bilder, die nie mitgeschickt werden. */
+const SKETCH_MAX_REFS = 3;
 async function runSketchPrep(cmd, onResult) {
   const p = cmd.sketchPrep || {};
   const analysis = p.analysis || {};
   const beats = (p.beats || []).filter((b) => typeof b === "string" && b.trim());
-  const people = (analysis.people || []).map((x) => (typeof x === "string" ? { name: x } : x)).filter((x) => x?.name);
-  let prompts;
-  try {
-    prompts = { ...(await sketchPrompts({ beats, people, mood: analysis.mood })), source: "server" };
-  } catch {
-    prompts = { ...sketchFallback(beats, people), source: "fallback" };
-  }
-  const rank = { person: 0, pet: 1, place: 2, object: 3 };
   const s0 = loadState();
-  const isMe = (a) => a.avatar.id === "me" || (!!s0.me && a.avatar.img === s0.me.img);
-  const refs = Object.values(resolveCast(analysis, p.assignmentOverrides, s0))
-    .filter((a) => !a.free && a.avatar?.img)
-    .sort((a, b) => (rank[a.kind] - rank[b.kind]) || (isMe(b) - isMe(a)))
-    .map((a) => ({ name: a.name, kind: a.kind, img: absolute(a.avatar.img) }));
-  onResult({ n: cmd.n, result: { ...prompts, refs } });
+  const rank = { person: 0, pet: 1, place: 2, object: 3 };
+  const isMe = (a) => !!a.avatar && (a.avatar.id === "me" || (!!s0.me && a.avatar.img === s0.me.img));
+  let kept = 0;
+  const list = Object.values(resolveCast(analysis, p.assignmentOverrides, s0))
+    .sort((a, b) => (rank[a.kind] - rank[b.kind]) || (Number(isMe(b)) - Number(isMe(a))))
+    .map((a) => {
+      if (!a.avatar?.img) return a;
+      kept += 1;
+      return kept <= SKETCH_MAX_REFS ? a : { ...a, avatar: undefined, free: true };
+    });
+  const { references, clauses } = buildReferences(list);
+  const refs = list.filter((a) => a.avatar?.img).map((a) => ({ name: a.name, kind: a.kind, img: absolute(a.avatar.img) }));
+  const prompt = buildGridPrompt({ beats, styleId: p.styleId, clauses, cols: 2, rows: 2, tile: "1:1" });
+  onResult({ n: cmd.n, result: {
+    prompt, refs: refs.slice(0, references.length),
+    particles: pickParticles(beats.join(" ")),
+    freeLeft: sketchFreeLeft(s0), cost: sketchCost(s0), credits: totalCredits(s0),
+  } });
+  return true;
+}
+
+/* Das Raster bestellen — nach der Kassenprüfung: im Gratis-Kontingent
+   kostet es nichts, danach SKETCH_PRICE Credits. Gezählt und abgebucht
+   wird erst NACH dem gelungenen Aufruf (dann ist unser Geld ausgegeben);
+   scheitert er, bleibt alles, wie es war. */
+async function runSketchGrid(cmd, onResult) {
+  const g = cmd.sketchGrid || {};
+  const s0 = loadState();
+  const cost = sketchCost(s0);
+  if (cost > 0 && !spend(s0, cost)) { onResult({ n: cmd.n, error: "nocredits", price: cost }); return true; }
+  try {
+    const url = await sketchGrid({ prompt: g.prompt, refs: g.refs || [] });
+    const s1 = loadState();
+    saveState({ ...s1, ...countSketch(s1), ...(cost > 0 ? spend(s1, cost) || {} : {}) });
+    onJournalTick?.();
+    onResult({ n: cmd.n, result: { url, cost } });
+  } catch (e) {
+    onResult({ n: cmd.n, error: String(e?.message || e) });
+  }
   return true;
 }
 
@@ -826,6 +855,7 @@ async function runAsync(cmd, onResult) {
   if (cmd.type === "order") return runOrder(cmd, onResult);
   if (cmd.type === "sketch") return runSketch(cmd, onResult);
   if (cmd.type === "sketchPrep") return runSketchPrep(cmd, onResult);
+  if (cmd.type === "sketchGrid") return runSketchGrid(cmd, onResult);
   /* Konto-Sicherung (23.09.2026, mobile/src/lib/dream-sync.ts): Die Brücke
      kennt das Tagebuch, die native Seite das Konto. Hinaus geht die
      Sicherungsform aus journalBackup.js — dieselbe erlaubte Liste wie für

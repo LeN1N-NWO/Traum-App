@@ -21,9 +21,12 @@ public class DreamSketchModule: Module {
     Name("DreamSketch")
     Events("onDownloadProgress", "onGenerateProgress")
 
-    /// Ab 8 GB Arbeitsspeicher (iPhone 15 Pro und neuer): Darunter würde
-    /// iOS die App beim Laden des UNet beenden.
-    Function("isSupported") { () -> Bool in
+    /// Seit dem Cloud-Raster (25.09.) rechnet das iPhone nur Tiefe und Film —
+    /// das kann jedes Gerät mit dem Modul. Das Malen auf dem Gerät (SD, ab
+    /// 8 GB) fragt `canPaint`.
+    Function("isSupported") { () -> Bool in true }
+
+    Function("canPaint") { () -> Bool in
       ProcessInfo.processInfo.physicalMemory >= 7_500_000_000
     }
 
@@ -163,6 +166,54 @@ public class DreamSketchModule: Module {
       }
     }
 
+    /// Ein Foto der Besetzung als data:-URI für die Cloud (JPEG, lange Seite
+    /// ≤ 1024, EXIF-Drehung beachtet) — egal ob es als data:, file: oder
+    /// http(s) vorliegt. Die Reihenfolge der Fotos entscheidet die Brücke.
+    AsyncFunction("referenceData") { (source: String, promise: Promise) in
+      self.work.async {
+        do {
+          guard let url = URL(string: source) else { throw URLError(.badURL) }
+          guard let ui = UIImage(data: try Data(contentsOf: url)) else {
+            throw NSError(domain: "DreamSketch", code: 22, userInfo: [NSLocalizedDescriptionKey: "Foto unlesbar"])
+          }
+          let scale = min(1, 1024 / max(ui.size.width, ui.size.height))
+          let size = CGSize(width: (ui.size.width * scale).rounded(), height: (ui.size.height * scale).rounded())
+          let format = UIGraphicsImageRendererFormat()
+          format.scale = 1
+          let small = UIGraphicsImageRenderer(size: size, format: format).image { _ in ui.draw(in: CGRect(origin: .zero, size: size)) }
+          guard let jpg = small.jpegData(compressionQuality: 0.85) else { throw NSError(domain: "DreamSketch", code: 27) }
+          promise.resolve("data:image/jpeg;base64," + jpg.base64EncodedString())
+        } catch {
+          promise.reject("E_REFERENCE", error.localizedDescription)
+        }
+      }
+    }
+
+    /// Das 2×2-Raster aus der Cloud laden und in vier 512²-Kacheln schneiden
+    /// (Lesereihenfolge: oben links, oben rechts, unten links, unten rechts).
+    /// Trennlinien und ein dünner Rand fallen dabei weg. Gibt die vier
+    /// `sketch:`-Namen zurück.
+    AsyncFunction("importGrid") { (source: String, prefix: String, promise: Promise) in
+      self.work.async {
+        do {
+          guard let url = URL(string: source) else { throw URLError(.badURL) }
+          guard let grid = UIImage(data: try Data(contentsOf: url))?.cgImage else {
+            throw NSError(domain: "DreamSketch", code: 28, userInfo: [NSLocalizedDescriptionKey: "Raster unlesbar"])
+          }
+          var names: [String] = []
+          for (i, tile) in SketchReference.gridTiles(grid, cols: 2, rows: 2, size: 512).enumerated() {
+            let name = prefix + "-\(i).png"
+            guard let png = UIImage(cgImage: tile).pngData() else { throw NSError(domain: "DreamSketch", code: 29) }
+            try png.write(to: Self.sketchesDir().appendingPathComponent(name), options: .atomic)
+            names.append("sketch:" + name)
+          }
+          promise.resolve(names)
+        } catch {
+          promise.reject("E_GRID", error.localizedDescription)
+        }
+      }
+    }
+
     /// Der Film aus dem Drehplan (25.09.): optional die Foto-Eröffnung,
     /// die Szenen, je Übergang die Morph-Zwischenbilder, dazu Partikel und
     /// eine Vertigo-Szene. Gibt `{ film: "sketch:<name>", seconds }` zurück.
@@ -178,8 +229,10 @@ public class DreamSketchModule: Module {
           p.particles = SketchParticles.Kind(rawValue: (plan["particles"] as? String) ?? "dust") ?? .dust
           p.vertigo = (plan["vertigo"] as? Int) ?? -1
           p.seed = UInt64(truncatingIfNeeded: (plan["seed"] as? Int) ?? 1)
+          var o = SketchRenderer.Options()
+          if let fog = plan["fog"] as? Double { o.fog = max(0, min(fog, 0.6)) }
           // Tiefe (Parallaxe) wenn möglich; fehlt das Modell, fährt der Film ohne.
-          let seconds = try SketchRenderer.render(p, depthModel: SketchModel.depthModel(), to: dir.appendingPathComponent(name))
+          let seconds = try SketchRenderer.render(p, depthModel: SketchModel.depthModel(), to: dir.appendingPathComponent(name), options: o)
           promise.resolve(["film": "sketch:" + name, "seconds": seconds])
         } catch {
           promise.reject("E_RENDER", error.localizedDescription)

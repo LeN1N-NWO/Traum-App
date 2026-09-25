@@ -26,7 +26,7 @@ enum SketchRenderer {
     var sceneHold = 3.0      // Szene steht (und fährt) so lange voll im Bild
     var openingHold = 2.4    // das Foto, bevor es zu träumen beginnt
     var morphFade = 0.45     // je Zwischenbild
-    var plainFade = 0.9      // Übergang ohne Zwischenbilder
+    var plainFade = 1.4      // Übergang ohne Zwischenbilder: Tiefen-Überblendung
     var landingFade = 0.8    // letztes Foto-Traumbild → erste Szene
     var source = 512         // Rechenraster der Parallaxe (= SD-Auflösung)
     var flow: Float = 2.4    // Wogen des Fernen, in Punkten
@@ -48,6 +48,7 @@ enum SketchRenderer {
     let fade: Double
     let scene: Int           // Szenen-Index, -1 = Eröffnung/Zwischenbild
     var opening = false      // eigenes Foto und seine Traumstufen: ohne Nebel
+    var dissolve = false     // Tiefen-Überblendung: das Nahe taucht zuerst auf
     var start = 0.0, full = 0.0, end = 0.0
   }
 
@@ -63,7 +64,9 @@ enum SketchRenderer {
       let between = i > 0 && i - 1 < plan.morphs.count ? plan.morphs[i - 1] : []
       for m in between { items.append(Item(url: m, hold: 0, fade: o.morphFade, scene: -1)) }
       let fade = items.isEmpty ? 0 : (i == 0 ? o.landingFade : (between.isEmpty ? o.plainFade : o.morphFade))
-      items.append(Item(url: url, hold: o.sceneHold, fade: fade, scene: i))
+      // Ohne Zwischenbilder kein Morph — dafür blendet die neue Szene nach
+      // Tiefe ein: erst die Figur, dann der Raum um sie (25.09., Cloud-Raster).
+      items.append(Item(url: url, hold: o.sceneHold, fade: fade, scene: i, dissolve: fade > 0 && between.isEmpty))
     }
     guard !items.isEmpty else { throw NSError(domain: "DreamSketch", code: 11) }
     for k in items.indices {
@@ -91,6 +94,7 @@ enum SketchRenderer {
       return try? SketchDepth.estimate(still, model: m, size: n0, context: context)
     }
     let farMasks: [CIImage?] = depths.map { d in d.map { farMask($0, size: n0) } }
+    let nearMaps: [CIImage?] = depths.map { d in d.map { nearMap($0, size: n0) } }
     let fogBase = fogNoise()
 
     // ── Kamera: fester Zufall je Traum ───────────────────────────────────
@@ -185,10 +189,21 @@ enum SketchRenderer {
         }
         shot = shot.transformed(by: place).cropped(to: canvas)
         let a = alphaOf(k)
-        if a < 1 {
-          shot = shot.applyingFilter("CIColorMatrix", parameters: ["inputAVector": CIVector(x: 0, y: 0, z: 0, w: CGFloat(a))])
+        if a < 1, items[k].dissolve, let near = nearMaps[k] {
+          // Maske = Nähe + (2a − 1): bei a = 0 nichts, bei a = 1 alles, dazwischen
+          // zuerst das Nahe. Weich, weil die Tiefenkarte schon geglättet ist.
+          let b = CGFloat(2 * a - 1)
+          let mask = near
+            .applyingFilter("CIColorMatrix", parameters: ["inputBiasVector": CIVector(x: b, y: b, z: b, w: 0)])
+            .applyingFilter("CIColorClamp")
+            .transformed(by: place).cropped(to: canvas)
+          frame = shot.applyingFilter("CIBlendWithMask", parameters: [kCIInputBackgroundImageKey: frame, kCIInputMaskImageKey: mask]).cropped(to: canvas)
+        } else {
+          if a < 1 {
+            shot = shot.applyingFilter("CIColorMatrix", parameters: ["inputAVector": CIVector(x: 0, y: 0, z: 0, w: CGFloat(a))])
+          }
+          frame = shot.composited(over: frame)
         }
-        frame = shot.composited(over: frame)
         if a >= 0.5 || dominant == nil { dominant = k }
       }
 
@@ -224,6 +239,13 @@ enum SketchRenderer {
     done.wait()
     if writer.status != .completed { throw writer.error ?? NSError(domain: "DreamSketch", code: 15) }
     return total
+  }
+
+  /// Die Tiefe als Graubild (nah = hell) — Maske der Tiefen-Überblendung.
+  static func nearMap(_ depth: [Float], size: Int) -> CIImage {
+    let bytes = depth.map { (d: Float) -> UInt8 in UInt8(min(max(d, 0), 1) * 255) }
+    return CIImage(bitmapData: Data(bytes), bytesPerRow: size, size: CGSize(width: size, height: size),
+                   format: .L8, colorSpace: nil)
   }
 
   /// Wo Nebel liegen darf: NUR das Ferne. Unter Tiefe 0,45 steigt er an,

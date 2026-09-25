@@ -1235,6 +1235,42 @@ async function sketchPrompts({ beats, people, mood }) {
   return normaliseSketch(raw, beats.length);
 }
 
+/* Traum-Skizze aus der Cloud (25.09., Antons Entscheidung): EIN 2×2-Raster
+   bei GPT Image 2 „low", 1024² — vier 512²-Kacheln, die das iPhone schneidet
+   und zum Film macht (Tiefe, Kamera, Teilchen). Der Look kommt über das
+   Stil-Preset im Prompt (buildGridPrompt), das Gesicht über die Fotos.
+   Einkauf je Aufruf höchstens $0,015 (Edit-Tabelle, 1024² low); ohne Foto
+   läuft Text-zu-Bild und ist billiger. Das Gratis-Kontingent (3 je Monat,
+   src/lib/sketchQuota.js) zählt heute das Gerät — settleCharge loggt. */
+const SKETCH_GRID_MODEL = "gpt-image-2";
+const SKETCH_GRID_SIZE = { width: 1024, height: 1024 };
+async function sketchGrid({ prompt, refs }) {
+  const key = process.env.FAL_KEY;
+  if (!key) throw new Error("NO_FAL_KEY");
+  const { model, input } = imageSubmitBody(SKETCH_GRID_MODEL, {
+    // GPT kennt `resolution` nicht und lässt es weg (imageSubmitBody) —
+    // mitgeschickt wird es trotzdem, siehe Verdrahtungstest in imageModel.test.js.
+    prompt, imageUrls: refs, size: SKETCH_GRID_SIZE, quality: "low", resolution: null,
+  });
+  input.output_format = "png";
+  const res = await fetch(`https://fal.run/${model}`, {
+    method: "POST",
+    signal: AbortSignal.timeout(T.falImage),
+    headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const roh = await res.text().catch(() => "");
+  const data = (() => { try { return JSON.parse(roh); } catch { return null; } })();
+  if (!res.ok) {
+    console.error("[DreamRushes] sketch-grid request failed:", res.status, roh.slice(0, 400));
+    throw imageFailure(data);
+  }
+  const url = data?.images?.[0]?.url;
+  if (!url) throw imageFailure(data);
+  console.log(`[DreamRushes] sketch-grid ${model}: ${refs.length} Referenz(en), ≤ $${imagePrice(SKETCH_GRID_MODEL, "low", SKETCH_GRID_SIZE)}`);
+  return url;
+}
+
 // ---- dream analysis (the ONE llm call per dream) ----
 //
 // This is the wizard's foundation. A single DeepSeek call returns everything
@@ -2504,6 +2540,29 @@ const serveOptions = {
         const hit = map[e.message];
         if (hit) return json({ error: hit[1] }, hit[0]);
         console.error("[DreamRushes] /api/refine failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/sketch-grid" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json();
+        const prompt = sanitizePromptText(body.prompt).slice(0, MAX_CRAFTED_PROMPT);
+        if (prompt.length < 20) return json({ error: "Prompt missing." }, 400);
+        /* Nur echte Bilddaten, höchstens drei — das geht wörtlich an fal.
+           Keine fremden Adressen: fal soll nichts laden, was wir nicht sehen. */
+        const refs = (Array.isArray(body.refs) ? body.refs : [])
+          .filter((r) => typeof r === "string" && /^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(r) && r.length < 3_000_000)
+          .slice(0, 3);
+        settleCharge({ kind: "sketch-grid", charge: 0 });
+        return json({ ok: true, url: await sketchGrid({ prompt, refs }) });
+      } catch (e) {
+        if (e.message === "NO_FAL_KEY") return json({ error: "Backend has no fal key." }, 503);
+        if (e.message === "GENERATION_FAILED") return json({ error: "Could not paint the sketch.", reason: e.reason || null }, 502);
+        console.error("[DreamRushes] /api/sketch-grid failed:", e);
         return json({ error: "Server error." }, 500);
       }
     }

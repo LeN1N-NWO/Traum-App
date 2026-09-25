@@ -46,17 +46,17 @@ check("B3b", "App-Serveradresse ist HTTPS (kein LAN-HTTP eingebacken)",
   /EXPO_PUBLIC_API_BASE\s*=\s*https:\/\//.test(env) ? "ok" : "fail",
   /http:\/\//.test(env) ? `mobile/.env zeigt auf ${env.match(/EXPO_PUBLIC_API_BASE=(\S+)/)?.[1] ?? "?"}` : "mobile/.env fehlt oder ohne https-Adresse.");
 
-// ── B8: Traum-Skizze — Inhaltsprüfung der On-Device-Bilder (1.2) ───────────
-/* Seit 24.09.: Stable Diffusion malt auf dem iPhone, OHNE Server dazwischen.
-   Der SafetyChecker (580 MB) wird bewusst nicht geladen; bis eine
-   Inhaltsprüfung steht, schützt nur der Negativ-Prompt — für App Review
-   nicht genug. Plan: docs/plans/2026-09-24-traum-skizze-on-device.md */
-const sketchModule = read("mobile/modules/dream-sketch/ios/DreamSketchModule.swift");
-if (sketchModule) {
-  const unsafe = /config\.disableSafety\s*=\s*true/.test(sketchModule);
-  check("B8", "Traum-Skizze: Inhaltsprüfung der auf dem Gerät gemalten Bilder",
-    unsafe ? "fail" : "ok",
-    unsafe ? "DreamSketchModule.swift malt mit disableSafety = true — SafetyChecker (oder eigene Prüfung) vor der Einreichung einbauen." : null);
+// ── B8: Traum-Skizze — Inhaltsprüfung der Bilder (1.2) ─────────────────
+/* 24.09.: Stable Diffusion malte auf dem iPhone OHNE Prüfung (disableSafety).
+   Seit 25.09. abends malt die Cloud (GPT Image 2, mit der Inhaltsprüfung
+   des Anbieters); das iPhone macht nur noch den Film. Blocker ist es also
+   nur, solange die App den Gerätemaler (generateImage) wirklich aufruft. */
+const sketchScreen = read("mobile/src/app/dream/sketch.tsx");
+if (sketchScreen) {
+  const paintsOnDevice = /\.generateImage\(/.test(sketchScreen);
+  check("B8", "Traum-Skizze: keine ungeprüften Bilder vom Gerätemaler",
+    paintsOnDevice ? "fail" : "ok",
+    paintsOnDevice ? "sketch.tsx ruft DreamSketch.generateImage — der malt mit disableSafety = true. Prüfung einbauen oder Cloud-Raster nutzen." : null);
 }
 
 // ── B4: Testphasen-Schalter ────────────────────────────────────────────────
