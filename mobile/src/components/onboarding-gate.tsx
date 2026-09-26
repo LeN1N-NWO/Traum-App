@@ -3,7 +3,7 @@ import { Modal, StyleSheet, View } from "react-native";
 import JournalBridge from "@/legacy/journal-bridge";
 import { OnboardingFlow } from "@/components/onboarding-flow";
 import { pushProfile, restoreSession } from "@/lib/auth";
-import { onboardingSeen, setOnboardingSeen } from "@/store/dev-store";
+import { onboardingSeen, setOnboardingGone, setOnboardingSeen } from "@/store/dev-store";
 import { setJournal, useJournalStore, type BridgeCommand, type JournalSnapshot, type OnboardData } from "@/store/journal-store";
 import { colors } from "@/theme";
 
@@ -24,6 +24,8 @@ import { colors } from "@/theme";
 export function OnboardingGate() {
   const data = useJournalStore();
   const [open, setOpen] = useState(() => !onboardingSeen());
+  // Schon gesehen (Modal erscheint gar nicht): das Einwilligungs-Tor gleich freigeben.
+  useEffect(() => { if (!open) setOnboardingGone(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // ⚠ Pruefhilfe: mit `__ONB_STEP__` (global, nur __DEV__) startet der Fluss
   // bei einem bestimmten Schritt — so lassen sich alle Bildschirme ohne
   // Tippen fotografieren (Redirect-Trick fuer Bildschirme ohne Route).
@@ -43,7 +45,7 @@ export function OnboardingGate() {
   } : null;
 
   return (
-    <Modal visible={open} animationType="fade" presentationStyle="fullScreen" onRequestClose={() => {}}>
+    <Modal visible={open} animationType="fade" presentationStyle="fullScreen" onRequestClose={() => {}} onDismiss={setOnboardingGone}>
       <View style={styles.screen}>
         {O ? (
           <OnboardingFlow
