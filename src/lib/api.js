@@ -198,6 +198,15 @@ export async function sketchGrid({ prompt, refs }) {
   return data.url;
 }
 
+/** Der Ton zum Glimpse (26.09.): nur die Zutaten — Look, Stimmung, Szenen,
+ *  Filmlänge; den Prompt baut der Server (src/lib/sketchSound.js). Gibt die
+ *  Adresse der gemischten m4a-Spur zurück. */
+export async function sketchSound({ styleId, mood, beats, seconds }) {
+  const data = await post("/api/sketch-sound", { styleId, mood, beats, seconds }, { timeout: TIMEOUTS.film });
+  if (typeof data?.url !== "string") throw new Error(t.errors.unexpected);
+  return data.url;
+}
+
 /** Die Reflection zu einem Traum — Spiegel, nicht Orakel. `context` sind
  *  die Musterzeilen aus atlas.js (reflectionContext), gratis wie alle
  *  Textarbeit. `lang` ist die App-Sprache (state.language): Ohne sie rät

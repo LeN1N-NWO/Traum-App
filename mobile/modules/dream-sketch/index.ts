@@ -9,7 +9,11 @@ import { requireOptionalNativeModule } from "expo";
 type Subscription = { remove(): void };
 export type Painter = { id: string; ready: boolean; missing: number; total: number };
 export type GenerateOptions = { morphPrompt?: string; morphWeight?: number; startImage?: string; strength?: number };
-export type RenderPlan = { opening: string[]; scenes: string[]; morphs: string[][]; particles: string; vertigo: number; seed: number; fog?: number };
+export type RenderPlan = { opening: string[]; scenes: string[]; morphs: string[][]; particles: string; vertigo: number; seed: number; fog?: number;
+  /** Sekunden je Szene und je Überblendung (26.09., sketchTiming). */
+  hold?: number; fade?: number;
+  /** Adresse der Tonspur (m4a) — wird unter den Film gelegt; ohne = stumm. */
+  sound?: string };
 type NativeSketch = {
   isSupported(): boolean;
   painters(): Painter[];
@@ -27,7 +31,7 @@ type NativeSketch = {
   referenceData(source: string): Promise<string>;
   importGrid(source: string, prefix: string, cols: number, rows: number): Promise<string[]>;
   canPaint(): boolean;
-  renderSketch(plan: RenderPlan, name: string): Promise<{ film: string; seconds: number }>;
+  renderSketch(plan: RenderPlan, name: string): Promise<{ film: string; seconds: number; sound?: boolean }>;
   unload(): void;
   removeModel(): void;
   addListener(event: "onDownloadProgress", cb: (e: { done: number; total: number }) => void): Subscription;

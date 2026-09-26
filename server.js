@@ -52,6 +52,7 @@ import { featuredStyles, filmStyleAnchor } from "./src/lib/styles.js";
 // die Untergrenze, darunter wird aus Regie eine Schnittfolge.
 import { beatsForSeconds } from "./src/lib/beats.js";
 import { SKETCH_SYSTEM, normaliseSketch, sketchUserMessage } from "./src/lib/sketchPrompt.js";
+import { buildSoundPrompts } from "./src/lib/sketchSound.js";
 // Die Beat-Typen des Schnitts. Der Server prüft damit nur die Modellantwort;
 // gewählt und geplant wird im Client (cut.js), weil dort die Analyse liegt.
 import { HOOKS, MIN_SHOT_SECONDS } from "./src/lib/cut.js";
@@ -1271,6 +1272,76 @@ async function sketchGrid({ prompt, refs }) {
   if (!url) throw imageFailure(data);
   console.log(`[DreamRushes] sketch-grid ${model}: ${refs.length} Referenz(en), ≤ $${imagePrice(SKETCH_GRID_MODEL, "low", SKETCH_GRID_SIZE)}`);
   return url;
+}
+
+/* ── Der Ton zum Glimpse (26.09.2026) ─────────────────────────────────────
+ * Zwei Spuren aus TEXT, parallel zu den Bildern: Atmosphäre (MMAudio v2,
+ * $0,001/s) und Musik (ACE-Step, Open Source, $0,0002/s). Die Prompts baut
+ * der SERVER aus Look, Stimmung und Szenen (src/lib/sketchSound.js) — der
+ * Client schickt nur diese Zutaten, nie einen fertigen Prompt. Gemischt
+ * wird hier mit ffmpeg: Musik leiser und ein-/ausgeblendet unter der
+ * Atmosphäre, eine m4a-Spur, die das iPhone unter den Film legt.
+ * Fällt eine Spur aus, kommt die andere allein; fallen beide aus, gibt es
+ * einen Fehler — und die App macht den Film stumm weiter. */
+const SOUND_AMBIENCE_MODEL = "fal-ai/mmaudio-v2/text-to-audio";
+const SOUND_MUSIC_MODEL = "fal-ai/ace-step/prompt-to-audio";
+
+async function falAudio(model, input) {
+  const key = process.env.FAL_KEY;
+  if (!key) throw new Error("NO_FAL_KEY");
+  const res = await fetch(`https://fal.run/${model}`, {
+    method: "POST",
+    signal: AbortSignal.timeout(T.falImage),
+    headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const roh = await res.text().catch(() => "");
+  const data = (() => { try { return JSON.parse(roh); } catch { return null; } })();
+  const url = data?.audio?.url || data?.audio_file?.url || data?.video?.url;
+  if (!res.ok || !url) {
+    console.error(`[DreamRushes] ${model} failed:`, res.status, roh.slice(0, 300));
+    throw new Error("SOUND_FAILED");
+  }
+  const file = await fetch(url, { signal: AbortSignal.timeout(T.mediaCopy) });
+  if (!file.ok) throw new Error("SOUND_FAILED");
+  return new Uint8Array(await file.arrayBuffer());
+}
+
+async function sketchSound({ styleId, mood, beats, seconds }) {
+  const p = buildSoundPrompts({ styleId, mood, beats, seconds });
+  const [amb, mus] = await Promise.allSettled([
+    falAudio(SOUND_AMBIENCE_MODEL, { prompt: p.ambience, negative_prompt: p.negative, duration: p.seconds, num_steps: 25, cfg_strength: 4.5 }),
+    falAudio(SOUND_MUSIC_MODEL, { prompt: p.music, instrumental: true, duration: p.seconds }),
+  ]);
+  if (amb.status === "rejected" && mus.status === "rejected") throw new Error("SOUND_FAILED");
+  const dir = await mkdtemp(join(tmpdir(), "glimpse-sound-"));
+  try {
+    const inputs = [], chains = [];
+    const fadeOut = Math.max(0, p.seconds - 1.7).toFixed(2);
+    if (amb.status === "fulfilled") {
+      await Bun.write(join(dir, "amb"), amb.value);
+      chains.push(`[${inputs.length}:a]afade=t=in:d=1,afade=t=out:st=${fadeOut}:d=1.7[a${inputs.length}]`);
+      inputs.push(join(dir, "amb"));
+    }
+    if (mus.status === "fulfilled") {
+      await Bun.write(join(dir, "mus"), mus.value);
+      const vol = amb.status === "fulfilled" ? 0.55 : 0.9;
+      chains.push(`[${inputs.length}:a]volume=${vol},afade=t=in:d=1.5,afade=t=out:st=${fadeOut}:d=1.7[a${inputs.length}]`);
+      inputs.push(join(dir, "mus"));
+    }
+    const labels = inputs.map((_, i) => `[a${i}]`).join("");
+    const mix = inputs.length > 1 ? `${labels}amix=inputs=${inputs.length}:duration=longest:normalize=0[out]` : `${labels}anull[out]`;
+    const out = join(dir, "sound.m4a");
+    const run = Bun.spawnSync(["ffmpeg", "-y", "-loglevel", "error", ...inputs.flatMap((f) => ["-i", f]),
+      "-filter_complex", [...chains, mix].join(";"), "-map", "[out]", "-t", String(p.seconds), "-ac", "2", "-c:a", "aac", "-b:a", "128k", out]);
+    if (!run.success) throw new Error("ffmpeg: " + new TextDecoder().decode(run.stderr).slice(0, 200));
+    const url = await storeBytes(new Uint8Array(await Bun.file(out).arrayBuffer()), "audio/mp4");
+    if (!url) throw new Error("SOUND_FAILED");
+    console.log(`[DreamRushes] glimpse-sound ${p.seconds}s: ${amb.status === "fulfilled" ? "Atmo" : "—"} + ${mus.status === "fulfilled" ? "Musik" : "—"}, ≈ $${(p.seconds * 0.0012).toFixed(3)}`);
+    return url;
+  } finally {
+    await rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
 }
 
 // ---- dream analysis (the ONE llm call per dream) ----
@@ -2565,6 +2636,28 @@ const serveOptions = {
         if (e.message === "NO_FAL_KEY") return json({ error: "Backend has no fal key." }, 503);
         if (e.message === "GENERATION_FAILED") return json({ error: "Could not paint the sketch.", reason: e.reason || null }, 502);
         console.error("[DreamRushes] /api/sketch-grid failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/sketch-sound" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json();
+        // Nur Zutaten, gewaschen und gedeckelt — den Prompt baut sketchSound.js.
+        const beats = (Array.isArray(body.beats) ? body.beats : [])
+          .map((b) => sanitizePromptText(b).slice(0, 400)).filter(Boolean).slice(0, 12);
+        const styleId = String(body.styleId || "").replace(/[^a-z]/g, "").slice(0, 20);
+        const mood = sanitizePromptText(body.mood).slice(0, 40);
+        const seconds = Math.max(8, Math.min(45, Number(body.seconds) || 16));
+        settleCharge({ kind: "sketch-sound", charge: 0 });
+        return json({ ok: true, url: await sketchSound({ styleId, mood, beats, seconds }) });
+      } catch (e) {
+        if (e.message === "NO_FAL_KEY") return json({ error: "Backend has no fal key." }, 503);
+        if (e.message === "SOUND_FAILED") return json({ error: "Could not make the sound." }, 502);
+        console.error("[DreamRushes] /api/sketch-sound failed:", e);
         return json({ error: "Server error." }, 500);
       }
     }

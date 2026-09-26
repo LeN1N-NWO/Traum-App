@@ -3,6 +3,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { ConsentGate } from "@/components/consent-gate";
 import { DreamSyncLayer } from "@/components/dream-sync-layer";
+import { GlimpseLayer } from "@/components/glimpse-layer";
 import { MascotTapLayer } from "@/components/mascot-tap";
 import { OnboardingGate } from "@/components/onboarding-gate";
 import { PrivacyGate } from "@/components/privacy-gate";
@@ -55,6 +56,8 @@ export default function RootLayout() {
       <ConsentGate />
       {/* Konto-Sicherung der Träume (23.09.), unsichtbar. */}
       <DreamSyncLayer />
+      {/* Glimpses entstehen im Hintergrund (26.09.), unsichtbar. */}
+      <GlimpseLayer />
       {/* Nur im Entwicklungsbau, bei jedem Start (Antons Wunsch 13.09.). */}
       <OnboardingGate />
       <Toasts />
