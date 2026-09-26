@@ -981,7 +981,7 @@ export default {
           name: "Glimpse", hint: "4 to 12 scenes with your faces, music and sound — the film is made on your iPhone",
           badge: "Cheapest",
           model: "GPT Image 2 + your iPhone",
-          info: "The quick, cheap way into your dream: four, eight or twelve scenes are painted in your chosen look — with the faces from your cast — while music and ambient sound are made to match. Your iPhone then measures how deep every scene is and flies a camera through it, with drifting light and dust. No real motion of people, but a moving memory in seconds. Five a month are free.",
+          info: "The quick, cheap way into your dream: four, eight or twelve scenes are painted in your chosen look — with the faces from your cast — while music and ambient sound are made to match. Your iPhone then measures how deep every scene is and flies a camera through it; the sound effects are then made from the finished film. No real motion of people, but a moving memory in seconds. Five a month are free.",
         },
       },
       qualityLabel: "Quality",

@@ -12,6 +12,8 @@ export type GenerateOptions = { morphPrompt?: string; morphWeight?: number; star
 export type RenderPlan = { opening: string[]; scenes: string[]; morphs: string[][]; particles: string; vertigo: number; seed: number; fog?: number;
   /** Sekunden je Szene und je Überblendung (26.09., sketchTiming). */
   hold?: number; fade?: number;
+  /** Partikel, Nebel, Farbstufe — false = nur Bild, Tiefe, Kamera (26.09.). */
+  effects?: boolean;
   /** Adresse der Tonspur (m4a) — wird unter den Film gelegt; ohne = stumm. */
   sound?: string };
 type NativeSketch = {

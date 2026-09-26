@@ -1285,17 +1285,24 @@ async function sketchGrid({ prompt, refs }) {
  * einen Fehler — und die App macht den Film stumm weiter. */
 const SOUND_AMBIENCE_MODEL = "fal-ai/mmaudio-v2/text-to-audio";
 const SOUND_MUSIC_MODEL = "fal-ai/ace-step/prompt-to-audio";
+/* Geräusche aus dem fertigen Film (26.09. spätabends, Antons Ansage): Das
+   Modell sieht die Bilder und legt die Effekte passend darauf. */
+const SOUND_VIDEO_MODEL = "fal-ai/mmaudio-v2";
+const MAX_SOUND_VIDEO = 60 * 1024 * 1024;
+/* Der Film-Weg läuft im Hintergrund (GlimpseLayer) — hier darf ein
+   fal-Kaltstart dauern (gemessen 26.09.: 60 s reichten nicht). */
+const SOUND_VIDEO_TIMEOUT_MS = 180_000;
 /* Warm antworten beide in 4–7 s; kalt hing MMAudio am 26.09. drei Minuten.
    Nach einer Minute gilt eine Spur als ausgefallen — die andere kommt allein,
    und die App legt den Ton auch nachträglich unter den Film. */
 const SOUND_TIMEOUT_MS = 60_000;
 
-async function falAudio(model, input) {
+async function falAudio(model, input, timeoutMs = SOUND_TIMEOUT_MS) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
   const res = await fetch(`https://fal.run/${model}`, {
     method: "POST",
-    signal: AbortSignal.timeout(SOUND_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
     body: JSON.stringify(input),
   });
@@ -1311,13 +1318,33 @@ async function falAudio(model, input) {
   return new Uint8Array(await file.arrayBuffer());
 }
 
-async function sketchSound({ styleId, mood, beats, seconds }) {
+/* Der Film klein gerechnet (360 × 640, ohne Ton) als data:-Adresse — genug,
+   damit MMAudio sieht, was passiert; die Datei bleibt ein paar hundert KB. */
+async function smallVideoUri(bytes, dir) {
+  const src = join(dir, "film.mp4"), small = join(dir, "small.mp4");
+  await Bun.write(src, bytes);
+  const run = Bun.spawnSync(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-vf", "scale=360:-2", "-r", "24", "-an",
+    "-c:v", "libx264", "-crf", "32", "-preset", "veryfast", small]);
+  if (!run.success) throw new Error("ffmpeg: " + new TextDecoder().decode(run.stderr).slice(0, 200));
+  return "data:video/mp4;base64," + Buffer.from(await Bun.file(small).arrayBuffer()).toString("base64");
+}
+
+async function sketchSound({ styleId, mood, beats, seconds, video = null }) {
   const p = buildSoundPrompts({ styleId, mood, beats, seconds });
-  const [amb, mus] = await Promise.allSettled([
-    falAudio(SOUND_AMBIENCE_MODEL, { prompt: p.ambience, negative_prompt: p.negative, duration: p.seconds, num_steps: 25, cfg_strength: 4.5 }),
-    falAudio(SOUND_MUSIC_MODEL, { prompt: p.music, instrumental: true, duration: p.seconds }),
-  ]);
-  for (const [name, r] of [["Atmo", amb], ["Musik", mus]]) {
+  const work = await mkdtemp(join(tmpdir(), "glimpse-film-"));
+  let amb, mus;
+  try {
+    const effects = video
+      ? smallVideoUri(video, work).then((uri) => falAudio(SOUND_VIDEO_MODEL, { video_url: uri, prompt: p.sfx, negative_prompt: p.sfxNegative, duration: p.seconds, num_steps: 25, cfg_strength: 4.5 }, SOUND_VIDEO_TIMEOUT_MS))
+      : falAudio(SOUND_AMBIENCE_MODEL, { prompt: p.ambience, negative_prompt: p.negative, duration: p.seconds, num_steps: 25, cfg_strength: 4.5 });
+    [amb, mus] = await Promise.allSettled([
+      effects,
+      falAudio(SOUND_MUSIC_MODEL, { prompt: p.music, instrumental: true, duration: p.seconds }),
+    ]);
+  } finally {
+    await rm(work, { recursive: true, force: true }).catch(() => {});
+  }
+  for (const [name, r] of [[video ? "Effekte (Film)" : "Atmo", amb], ["Musik", mus]]) {
     if (r.status === "rejected") console.warn(`[DreamRushes] glimpse-sound ${name} ausgefallen:`, r.reason?.name === "TimeoutError" ? "Zeitlimit" : r.reason?.message);
   }
   if (amb.status === "rejected" && mus.status === "rejected") throw new Error("SOUND_FAILED");
@@ -1344,7 +1371,7 @@ async function sketchSound({ styleId, mood, beats, seconds }) {
     if (!run.success) throw new Error("ffmpeg: " + new TextDecoder().decode(run.stderr).slice(0, 200));
     const url = await storeBytes(new Uint8Array(await Bun.file(out).arrayBuffer()), "audio/mp4");
     if (!url) throw new Error("SOUND_FAILED");
-    console.log(`[DreamRushes] glimpse-sound ${p.seconds}s: ${amb.status === "fulfilled" ? "Atmo" : "—"} + ${mus.status === "fulfilled" ? "Musik" : "—"}, ≈ $${(p.seconds * 0.0012).toFixed(3)}`);
+    console.log(`[DreamRushes] glimpse-sound ${p.seconds}s: ${amb.status === "fulfilled" ? (video ? "Effekte aus dem Film" : "Atmo") : "—"} + ${mus.status === "fulfilled" ? "Musik" : "—"}, ≈ $${(p.seconds * 0.0012).toFixed(3)}`);
     return url;
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});
@@ -2649,10 +2676,28 @@ const serveOptions = {
 
     if (url.pathname === "/api/sketch-sound" && req.method === "POST") {
       try {
-        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+        /* Zwei Formen: JSON (nur Zutaten, Text-Atmosphäre) oder — seit
+           26.09. spätabends — multipart mit dem fertigen Film („video")
+           plus denselben Zutaten als Felder; dann kommen die Geräusche aus
+           dem Film. */
+        const multipart = (req.headers.get("content-type") || "").includes("multipart/form-data");
+        if (Number(req.headers.get("content-length") || 0) > (multipart ? MAX_SOUND_VIDEO : MAX_BODY)) {
           return json({ error: "Request too large." }, 413);
         }
-        const body = await req.json();
+        let body, video = null;
+        if (multipart) {
+          const form = await req.formData();
+          const file = form.get("video");
+          if (file && typeof file === "object" && "arrayBuffer" in file) {
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            // Nur echte MP4-Filme (ftyp-Kennung), nichts anderes geht an ffmpeg.
+            if (bytes.length > 12 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) video = bytes;
+          }
+          body = { styleId: form.get("styleId"), mood: form.get("mood"), seconds: form.get("seconds"),
+            beats: (() => { try { return JSON.parse(String(form.get("beats") || "[]")); } catch { return []; } })() };
+        } else {
+          body = await req.json();
+        }
         // Nur Zutaten, gewaschen und gedeckelt — den Prompt baut sketchSound.js.
         const beats = (Array.isArray(body.beats) ? body.beats : [])
           .map((b) => sanitizePromptText(b).slice(0, 400)).filter(Boolean).slice(0, 12);
@@ -2660,7 +2705,7 @@ const serveOptions = {
         const mood = sanitizePromptText(body.mood).slice(0, 40);
         const seconds = Math.max(8, Math.min(45, Number(body.seconds) || 16));
         settleCharge({ kind: "sketch-sound", charge: 0 });
-        return json({ ok: true, url: await sketchSound({ styleId, mood, beats, seconds }) });
+        return json({ ok: true, url: await sketchSound({ styleId, mood, beats, seconds, video }) });
       } catch (e) {
         if (e.message === "NO_FAL_KEY") return json({ error: "Backend has no fal key." }, 503);
         if (e.message === "SOUND_FAILED") return json({ error: "Could not make the sound." }, 502);

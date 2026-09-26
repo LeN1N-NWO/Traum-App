@@ -40,6 +40,10 @@ enum SketchRenderer {
     var particles: SketchParticles.Kind = .dust
     var vertigo = -1         // Szenen-Index mit Dolly-Zoom, -1 = keine
     var seed: UInt64 = 1
+    /// Partikel, Nebel und Farbstufe (Leuchten + Vignette). Seit 26.09.
+    /// (Antons Ansage: „die Partikel und die darüberliegenden Farben weg")
+    /// schaltet der Glimpse sie ab — es bleibt das Bild mit Tiefe und Kamera.
+    var effects = true
   }
 
   private struct Item {
@@ -197,7 +201,7 @@ enum SketchRenderer {
           // Kein Nebel auf dem eigenen Foto: Im Porträt liegt die Person für
           // die Tiefenschätzung im Mittelgrund (Hände/Glas sind näher) und
           // verschwände im Dunst — das echte Gesicht soll klar bleiben.
-          if o.fog > 0, !items[k].opening, let mask = farMasks[k] { shot = fog(fogBase, time: t, mask: mask, w: sw, h: sh, density: o.fog).composited(over: shot) }
+          if plan.effects, o.fog > 0, !items[k].opening, let mask = farMasks[k] { shot = fog(fogBase, time: t, mask: mask, w: sw, h: sh, density: o.fog).composited(over: shot) }
         } else {
           shot = stills[k].transformed(by: CGAffineTransform(scaleX: Double(sw) / stills[k].extent.width, y: Double(sh) / stills[k].extent.height))
         }
@@ -222,7 +226,7 @@ enum SketchRenderer {
       }
 
       // Teilchen: gleiche Kamera, verdeckt von der Szene, die gerade vorherrscht.
-      if let layer = SketchParticles.layer(particles, kind: plan.particles, time: t, width: o.width, height: o.height,
+      if plan.effects, let layer = SketchParticles.layer(particles, kind: plan.particles, time: t, width: o.width, height: o.height,
         shift: { z in
           let dz = z - Double(cam.focus)
           return CGPoint(x: Double(cam.dx) * dz * Double(sw) * win.s, y: -Double(cam.dy) * dz * Double(sw) * win.s)
@@ -236,7 +240,7 @@ enum SketchRenderer {
         }) {
         frame = layer.applyingFilter("CIAdditionCompositing", parameters: [kCIInputBackgroundImageKey: frame]).cropped(to: canvas)
       }
-      frame = dream(frame, canvas: canvas)
+      if plan.effects { frame = dream(frame, canvas: canvas) }
 
       while !input.isReadyForMoreMediaData { Thread.sleep(forTimeInterval: 0.005) }
       guard let pool = adaptor.pixelBufferPool else { throw NSError(domain: "DreamSketch", code: 13) }

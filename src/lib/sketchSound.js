@@ -5,6 +5,10 @@
  *
  *   · Atmosphäre — fal-ai/mmaudio-v2/text-to-audio, $0,001/s:
  *     Geräusche aus den Dingen der Szenen (Sand, Zug, Meer …).
+ *     Seit 26.09. spätabends (Antons Ansage) bevorzugt: Geräusche AUS DEM
+ *     FERTIGEN FILM — fal-ai/mmaudio-v2 (Video → Ton, $0,001/s) sieht die
+ *     Bilder und legt die Effekte passend darauf (`sfx`-Prompt). Die
+ *     Text-Atmosphäre bleibt nur als Rückweg ohne Film.
  *   · Musik — fal-ai/ace-step/prompt-to-audio (Open Source), $0,0002/s:
  *     Stil aus dem gewählten Look, Stimmung aus der Analyse.
  *
@@ -98,6 +102,9 @@ export const SOUND_BPM = 68;
 /* Nie: Stimmen, Gesang, harte Geräusche — der Ton liegt unter einem Traum. */
 export const SOUND_NEGATIVE = "speech, voice, talking, singing, vocals, lyrics, harsh noise, distortion, loud impacts";
 
+/* Für den Film-Weg: Musik und Stimmen gehören NICHT in die Effekt-Spur. */
+export const SFX_NEGATIVE = "music, melody, singing, speech, voice, talking, harsh noise, distortion";
+
 /** Beide Prompts für einen Glimpse. `seconds` = Filmlänge (gedeckelt). */
 export function buildSoundPrompts({ styleId, mood, beats, seconds }) {
   const music = [STYLE_MUSIC[styleId] || DEFAULT_MUSIC, moodWords(mood), `slow, ${SOUND_BPM} bpm`, "instrumental, no vocals", "cinematic, soft dynamics"]
@@ -105,7 +112,8 @@ export function buildSoundPrompts({ styleId, mood, beats, seconds }) {
   const things = ambienceWords(beats);
   const ambience = ["dreamy night ambience", ...(things.length ? things : ["soft wind", "distant hum"]), "calm, spacious, gentle"]
     .join(", ");
-  return { music, ambience, negative: SOUND_NEGATIVE, seconds: soundSeconds(seconds) };
+  const sfx = ["subtle natural sound effects that match the picture", ...things, "soft, spacious, dreamy, no music"].join(", ");
+  return { music, ambience, sfx, negative: SOUND_NEGATIVE, sfxNegative: SFX_NEGATIVE, seconds: soundSeconds(seconds) };
 }
 
 /** Dauer der Tonspur: Filmlänge, auf ganze Sekunden, 8 bis 45. */
