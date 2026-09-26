@@ -59,6 +59,8 @@ export type WizardData = {
   cutOneShot: string; cutAll: string; cutSome: string; cutMoreAt: string; cutTwoParter: string; flowAll: string; flowFast: string; cutAllIn: string; cutRecommend: string;
   loading: string[]; queuedNote: string; step6Title: string; rendering: string; renderingHint: string; failedTitle: string; failedNote: string; failedHome: string;
   presets: WizardPreset[]; models: WizardModel[]; paces: { id: string; name: string; hint: string }[]; sketch: SketchTexts | null;
+  formatLabel?: string; formats?: { id: string; name: string; hint: string }[];
+  aboutModel?: string; fromWord?: string;
 };
 export type JournalMeta = { view: "deck" | "list"; blankKeys: string[]; castCount: number; creatures: number; realDreams: number; moon: MoonData; sleep: Record<string, number>; sleepLevels: { level: number; label: string }[]; labels: Record<string, any> };
 export type PaywallPlan = { id: string; price: string; per: string; name: string; badge: string | null; extraLine?: string | null; sub: string; films: number; filmsLine: string; filmsWord: string; featured: boolean; yearly: boolean };
@@ -104,7 +106,7 @@ export type JournalSnapshot = { language: string; items: DreamItem[]; labels: La
 /* Der Film-Auftrag für den nativen Motor (Brücke `order`, Vorarbeit 13.09.). */
 export type OrderRequest = {
   entryId?: string | null; text: string; originalText?: string; analysis: any | null; title?: string; tagline?: string;
-  styleId: string; pace: string; videoModel: string; quality: string | null; seconds: number; mode?: "film" | "images";
+  styleId: string; pace: string; videoModel: string; quality: string | null; format?: string; seconds: number; mode?: "film" | "images";
   assignmentOverrides?: Record<string, { avatarId?: string; free?: boolean }>;
 };
 export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "syncExport" | "syncImport" | "sketch" | "sketchPrep" | "sketchGrid"; order?: OrderRequest; dreams?: unknown[]; sketch?: SketchRequest; sketchPrep?: SketchPrepRequest; sketchGrid?: { prompt: string; refs: string[] }; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };

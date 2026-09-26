@@ -3,55 +3,78 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-26 — Anton, `session/2026-09-25-anton` (PR #62, stapelt
-auf PR #56; beide **Merge auf Antons Wort**). main mit Hannis PR #63
-(Schritt C Teil 1, VPS, Domains) ist hereingeholt. **Hanni wartet mit der
-Anbindung von Schritt C auf PR #62** (berührt `server.js`,
-`journal-bridge.jsx`, `journal-store.ts`, i18n). **Weg durch die
+**Stand:** 2026-09-26 — Anton, `session/2026-09-26-anton` (PR #65) wird
+auf Antons Wort gemergt; PR #62 (Skizze aus der Cloud, Design-Runde,
+Besetzung Karte für Karte) ist seit heute früh auf main. **Hanni kann
+Schritt C jetzt anbinden** (PR #62 war die Sperre). **Weg durch die
 App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Traum-Skizze — jetzt Cloud-Raster + Film auf dem iPhone (PR #62):**
-EIN Aufruf GPT Image 2 `low`, **Streifen aus vier 9:16-Feldern**
-(2304×1024, je 576×1024, ≈ $0,017), Look-Preset ZUERST im Prompt, Fotos
-der Besetzung nur als Identität (`buildSketchGridPrompt` in
-`src/lib/sketchPrompt.js`, Server `/api/sketch-grid`). Das iPhone schneidet
-(`importGrid`) und rendert den Film: Tiefe (Depth Anything, 50 MB),
-schwebende Kamera, Tiefen-Überblendung, Nebel, Teilchen
-(`mobile/modules/dream-sketch/ios/SketchRenderer.swift`). **3 Skizzen je
-Monat gratis, dann 1 Credit** (`src/lib/sketchQuota.js` — zählt heute das
-Gerät, scharf erst mit Anmeldung). Kein 1-GB-Maler mehr im Ablauf (der
-SD-Code liegt noch im Modul, wird nicht aufgerufen → Preflight B8 grün).
-Plan mit allen Messungen: `docs/plans/2026-09-24-traum-skizze-on-device.md`
-(v3–v5). ✅ Streifen-Weg echt getestet (Server → Schnitt → Film, Mac-Probe);
-Simulator Ende zu Ende mit dem 2×2-Vorgänger.
-- ⚠ Skizzen liegen nur in `Documents/sketches`, NICHT in der Sicherung.
-- ⚠ Der Server im Hauptordner läuft gerade aus diesem Worktree
-  (`bun …/Traum-App-anton/server.js`, Port 8100) — nach dem Merge wieder
-  aus dem Hauptordner auf main starten.
+**Neu mit PR #65 (26.09.):**
+- **Klick-Fehler gefunden:** Verschwand das Textfeld mit offener Tastatur
+  (Tippen → „Traum auswerten"), blieb der Traum-Bildschirm um die
+  Tastaturhöhe verkürzt — die Knöpfe der Vorschau („Diese Fassung
+  verwenden") waren sichtbar, aber nicht zu treffen. Jetzt schließt die
+  Tastatur vor dem Lesen, KeyboardAvoiding nur im Textschritt
+  (`mobile/src/app/dream/index.tsx`). Im Simulator belegt. Andere
+  Bildschirme mit Textfeld + KeyboardAvoidingView auf dasselbe Muster
+  prüfen, falls Anton wieder „kann nicht klicken" meldet.
+- **Modellnamen: Glimpse (Skizze) · Glow (H3 Turbo) · Aurora (Seedance)**
+  — en und de, als Eigennamen.
+- **Modell-Schritt auf EINEM Bildschirm** (Antons Wahl „A",
+  `dream/length.tsx`): drei Karten nach Preis, Qualität/Tempo/Format als
+  native SwiftUI-Menüs (`@expo/ui` Menu), darunter der Beispielfilm des
+  gewählten Modells mit Text (Tipp = Info-Blatt), Regler + Empfehlung,
+  Knopf. Überschrift „Wie lang" weg. Beispielfilme sind noch Stil-Clips.
+- **Vorgabe überall die günstigste Stufe** (H3 `preferred: "sd"`).
+  **Aurora/Seedance hat 1080p** (42 Credits/s, Einkauf $1,164/s).
+- **Filmformat 9:16/16:9/1:1 wählbar** — und es kommt jetzt wirklich an:
+  `api.generate` ließ `format` bis heute still fallen (auch im Web, jeder
+  Film war 9:16). ⚠ 16:9/1:1 noch nie echt gerendert. Glimpse bleibt 9:16.
+- **Besetzung:** Kachel „Bibliothek" weg; die Gesichter der Bibliothek
+  liegen gefächert auf der Karte zum Durchblättern, Tipp wählt (Haken +
+  Figurenname); Entfernen hinter „…". Letzte Karte heißt **„Orte & Dinge"**.
+- **Leuchtrand** (`components/orbit-glow.tsx`), dritte Fassung: EINE
+  goldene Linie mit mitlaufendem Farbverlauf + feine Linie rundum, atmet,
+  drei Funken; Schein = Schatten der Ebene. Nicht wiederholen: Doppelstrich
+  („wie ein Bug"), Band aus Stücken („Schlange"). Anton hat die dritte
+  Fassung am Gerät noch nicht beurteilt.
+- Vorschläge-Seite (Leuchtrand, Layouts, Namen) als Artifact:
+  https://claude.ai/artifact/FYiRnRVnoAe2yzj5DxKTQ7
 
-**Design-Runde 25./26.09. (PR #62):** Vorschau nach dem Einsprechen
-(„Verbessert" oben, leuchtend; eigene Worte aufklappbar) · Traum-Tab nimmt
-NICHT mehr von selbst auf · Nachhören mit Maskottchen + Sprechblase ·
-umlaufender Leuchtrand an jedem Hauptknopf (`components/orbit-glow.tsx`) ·
-„Was soll daraus werden?" als zwei große Filmkacheln mit Glaswelle
-(Platzhalter-Clips) · **Besetzung Karte für Karte** (`dream/cast.tsx`) ·
-Stilwahl mit dominanter Auswahl und Pfeilen · Modellwahl: „Bester Preis",
-„Beste Qualität" orange, „Am günstigsten" + Preis, Gedrückthalten →
-Info-Blatt mit Beispielfilm (Platzhalter) · Menüleiste schrumpft nicht mehr
-(„Menü-Buttons oft nicht klickbar" — auf dem iPhone noch zu bestätigen).
+**Nächste Schritte:**
+- Anton testet am iPhone: Leuchtrand, Modell-Schritt, Besetzung, Klicks.
+- **Maskottchen-Leitfaden (Antons Ansage 26.09.):** mehrere kurze Videos
+  („kleine Stories") für den Ladebildschirm, zufällig ausgewählt — damit
+  die Wartezeit kürzer wirkt und süßer ist. Heute gibt es EINEN Lader
+  (`mobile/src/components/mascot-loader.tsx`).
+- Echte Beispielfilme je Modell (Glimpse/Glow/Aurora) und für die Kacheln.
+- 16:9 und 1:1 einmal echt rendern (H3 übers Keyframe, Seedance
+  aspect_ratio).
+- Seedance-2.5-**Draft** (480p-Entwurf, binnen 7 Tagen auf 1080p
+  fertigstellen) — Preis der Fertigstellung messen.
+- Hannis Fragen (Hosting-Budget, Prüfer-Credits, Store-Länder).
+- Aufräumen, sobald der Cloud-Weg sich bewährt: `/api/sketch-prompts` und
+  der SD-Maler im Modul `dream-sketch`.
 
-**Offen für Anton:** den letzten Build aufs iPhone (liegt fertig in
-`~/.dr-dd-anton`, iPhone war beim Wrap nicht erreichbar); Skizze und
-Design am Gerät prüfen; echte Clips für die Kacheln und Info-Blätter;
-Seedance-2.5-**Draft** (480p-Entwurf, binnen 7 Tagen auf 1080p
-fertigstellen) — Preis der Fertigstellung noch messen; Hannis Fragen
-(Hosting-Budget, Prüfer-Credits, Store-Länder).
+**Glimpse (Traum-Skizze) — Cloud-Raster + Film auf dem iPhone:** EIN
+Aufruf GPT Image 2 `low`, Streifen aus vier 9:16-Feldern (2304×1024,
+≈ $0,017), Look zuerst im Prompt, Fotos nur als Identität
+(`src/lib/sketchPrompt.js`, `/api/sketch-grid`); das iPhone schneidet und
+rendert (Tiefe 50 MB, Kamera, Nebel, Teilchen). 3 je Monat gratis, dann
+1 Credit (`src/lib/sketchQuota.js`, zählt heute das Gerät). Plan:
+`docs/plans/2026-09-24-traum-skizze-on-device.md`.
+⚠ Skizzen liegen nur in `Documents/sketches`, NICHT in der Sicherung.
+
+**Server:** läuft gerade (Port 8100) aus dem Worktree
+`Traum-App-anton` mit der `.env` des Hauptordners — nach dem Merge wieder
+aus dem Hauptordner auf main starten (`cd Traum-App && bun server.js`).
 
 **Nächster App-Bau auf Antons Mac:** `cd mobile && bun install` →
 **EventEmitter-Patch erneut setzen** → `cd ios && pod install` →
 Release-Bau → `devicectl`. ⚠ **KEIN Prebuild auf Antons Mac.**
-`mobile/.env` zeigt auf `192.168.178.97:8100` (Mac-Adresse prüfen, sie
-wechselte am 25.09. kurz auf 192.168.1.152).
+`mobile/.env` zeigt auf `192.168.178.97:8100` (Mac-Adresse prüfen).
+Im Simulator startet die Einführung bei jedem Start neu (rund 20 Tipps
+bis zum Traum-Tab).
 
 **Schritt C, Teil 1 fertig (25.09.): Speicher-Modul `src/lib/media-store.js`**
 — put/get/list/remove/removeAll, lokal (atomar) und S3 über Buns
@@ -187,7 +210,7 @@ sobald Produkte in App Store Connect existieren).
 - Standard = `minimax/h3-max-turbo/image-to-video`, EIN-Bild-Modell:
   die Besetzungs-Fotos wirken übers KEYFRAME (Turbo beginnt pixelgenau
   damit — bezahlt gemessen). Preise: **480p 1 · 768p 2 · 1080p 3 Cr/s**
-  (1080p neu); Kino/Seedance unverändert 8/17, bewusst ohne 1080p.
+  (1080p neu); Aurora/Seedance 8/17/42 (1080p seit 26.09.).
 - Qualitätsknöpfe zeigen **Auflösung + Credits/s** aus der Modelltabelle
   (Web und nativ); Kino trägt das Abzeichen „Beste Qualität"; Tempo
   „Ein Fluss" heißt jetzt **„One-Take"**.

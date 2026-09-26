@@ -899,7 +899,7 @@ export default function Step5Style({ w, patch }) {
               Seit 23.09. steht die AUFLÖSUNG selbst auf dem Knopf (Antons
               Ansage: „einfach 480p, 720p, 1080p statt Verschleierung"),
               und die Stufenliste kommt je Modell aus der Tabelle — H3 hat
-              drei, Seedance zwei (1080p kostete dort 42 Credits/s). */}
+              drei, seit 26.09. auch Seedance (1080p dort 42 Credits/s). */}
           <h2 className="wiz-sub">{t.wizard.step5.qualityLabel}</h2>
           <div className="wiz-formats" role="group" aria-label={t.wizard.step5.qualityLabel}>
             {Object.keys(videoModel(w.videoModel).qualities).map((q) => {

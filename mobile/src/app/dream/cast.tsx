@@ -3,6 +3,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useMemo, useRef, useState } from "react";
+import Animated, { interpolate, type SharedValue, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddSheet, AssignSheet, type CastKind, type Choice, type Entity, type LibItem } from "@/components/cast-text";
@@ -102,8 +103,8 @@ export default function DreamCastScreen() {
   }
 
   /* Karte für Karte (Antons Wahl 26.09., Entwurf „C"): eine Figur je
-     Bildschirm mit vier großen Kacheln, wischen oder „Weiter · Name" zur
-     nächsten. Orte und Dinge kommen gesammelt auf die letzte Karte — die
+     Bildschirm — zwei Kacheln und die Gesichter der Bibliothek —, wischen
+     oder „Weiter · Name" zur nächsten. Orte und Dinge kommen gesammelt auf die letzte Karte — die
      KI erfindet sie, ein Tipp gibt ihnen ein Foto. „Weiter" steht immer
      unten, nie mehr am Ende einer langen Liste. */
   const people = cast?.people ?? [];
@@ -124,42 +125,36 @@ export default function DreamCastScreen() {
   /* Der Satz aus dem Traum, in dem die Figur vorkommt — damit man weiß, wen man besetzt. */
   const lineOf = (name: string) => (w.text.split(/(?<=[.!?])\s+/).find((x) => x.toLowerCase().includes(name.toLowerCase())) ?? "").trim();
 
+  /* Seit 26.09. (Antons Ansage) keine Kachel „Bibliothek“ mehr: Die
+     Gesichter der Bibliothek liegen direkt auf der Karte, zum Durchblättern
+     wie die Träume im Deck — antippen, und das Gesicht spielt diese Figur.
+     Oben bleiben die zwei Wege, die keine Bibliothek brauchen. Entfernen
+     und die volle Auswahl liegen hinter dem „…“ neben der Schrittzahl. */
   const personCard = (row: Entity, i: number) => {
     const c = choice(row);
-    const suggested = c.avatar ?? (row.avatarId ? cast?.library.find((l) => l.id === row.avatarId) ?? null : null);
     const line = lineOf(row.name);
+    const faces = (cast?.library ?? []).filter((l) => (row.kind === "pet" ? l.category === "pet" : l.category !== "pet" && l.category !== "place" && l.category !== "object"));
     return (
       <View key={row.name} style={[styles.page, { width }]}>
-        <Text style={styles.step}>{fill(L.stepOf ?? "{i} / {n}", { i: i + 1, n: pages })}</Text>
+        <View style={styles.stepRow}>
+          <Text style={styles.step}>{fill(L.stepOf ?? "{i} / {n}", { i: i + 1, n: pages })}</Text>
+          <Pressable onPress={() => { Haptics.selectionAsync(); setOpen(row); }} hitSlop={12} accessibilityRole="button" accessibilityLabel={L.change ?? "More"}>
+            <SymbolView name="ellipsis.circle" size={22} tintColor={colors.faint} />
+          </Pressable>
+        </View>
         <Text style={styles.who} numberOfLines={2}>{/^(ich|i|me|mich|mir)$/i.test(row.name.trim()) ? (L.whoYou ?? "How do you appear?") : String(L.whoIs ?? "{name}").replace("{name}", row.name)}</Text>
         {line ? <Text style={styles.quote} numberOfLines={2}>{`„${line}“`}</Text> : null}
-        <View style={styles.tiles}>
-          <View style={styles.tileRow}>
-            {suggested ? (
-              <Tile on={!c.free && c.avatar?.id === suggested.id} label={L.tilePhoto ?? "This photo"} onPress={() => set(row.name, { avatarId: suggested.id, free: false })}>
-                {suggested.img ? <Image source={{ uri: suggested.img }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <Text style={styles.initial}>{suggested.tag.slice(0, 1).toUpperCase()}</Text>}
-              </Tile>
-            ) : null}
-            <Tile on={c.free} label={L.tileAi ?? "AI invents"} onPress={() => set(row.name, { free: true })}>
-              <SymbolView name="sparkles" size={34} tintColor={c.free ? colors.accentSoft : colors.muted} />
-            </Tile>
-            {suggested ? null : (
-              <Tile label={L.tileNew ?? "New photo"} dashed onPress={() => newWithPhoto(row)}>
-                <SymbolView name="camera.fill" size={30} tintColor={colors.muted} />
-              </Tile>
-            )}
-          </View>
-          <View style={styles.tileRow}>
-            {suggested ? (
-              <Tile label={L.tileNew ?? "New photo"} dashed onPress={() => newWithPhoto(row)}>
-                <SymbolView name="camera.fill" size={30} tintColor={colors.muted} />
-              </Tile>
-            ) : null}
-            <Tile on={!!c.avatar && c.avatar.id !== suggested?.id} label={L.tileLibrary ?? "Library"} onPress={() => { Haptics.selectionAsync(); setOpen(row); }}>
-              <SymbolView name="person.2.fill" size={30} tintColor={colors.muted} />
-            </Tile>
-          </View>
+        <View style={styles.tileRow}>
+          <Tile on={c.free} label={L.tileAi ?? "AI invents"} onPress={() => set(row.name, { free: true })}>
+            <SymbolView name="sparkles" size={30} tintColor={c.free ? colors.accentSoft : colors.muted} />
+          </Tile>
+          <Tile label={L.tileNew ?? "New photo"} dashed onPress={() => newWithPhoto(row)}>
+            <SymbolView name="camera.fill" size={28} tintColor={colors.muted} />
+          </Tile>
         </View>
+        <Text style={styles.libLabel}>{L.fromLibrary ?? "From your library"}</Text>
+        <FacePicker items={faces} selected={c.free ? null : c.avatar?.id ?? null} name={row.name} empty={L.libraryEmpty}
+          onPick={(id) => set(row.name, { avatarId: id, free: false })} />
       </View>
     );
   };
@@ -229,14 +224,76 @@ function Tile({ on, dashed, label, onPress, children }: { on?: boolean; dashed?:
   );
 }
 
+/* Die Gesichter zum Durchblättern — gefächert wie Karten in der Hand:
+   die mittlere groß und gerade, die Nachbarn kleiner, leicht gedreht und
+   abgesenkt. Rastet je Karte ein (wie das Deck), ein Tipp wählt. Die
+   gewählte trägt Rand, Haken und den Namen der Figur. */
+function FacePicker({ items, selected, name, empty, onPick }: { items: LibItem[]; selected: string | null; name: string; empty?: string; onPick: (id: string) => void }) {
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  const x = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => { x.value = e.contentOffset.x; });
+  const scroller = useRef<Animated.ScrollView>(null);
+  const shown = useRef(0);
+  const cardW = Math.round(Math.max(0, Math.min(box.w * 0.44, (box.h - 26) / 1.3, 200)));
+  const step = cardW + 14;
+  const start = Math.max(0, items.findIndex((l) => l.id === selected));
+
+  if (!items.length) {
+    return <View style={styles.libEmpty}><Text style={styles.libEmptyText}>{empty ?? ""}</Text></View>;
+  }
+  return (
+    <View style={{ flex: 1, marginHorizontal: -20 }} onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+      {cardW > 40 ? (
+        <Animated.ScrollView ref={scroller} horizontal showsHorizontalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}
+          snapToInterval={step} decelerationRate="fast" disableIntervalMomentum contentOffset={{ x: start * step, y: 0 }}
+          contentContainerStyle={{ paddingHorizontal: (box.w - cardW) / 2, gap: 14, alignItems: "center" }}
+          onMomentumScrollEnd={(e) => { const i = Math.round(e.nativeEvent.contentOffset.x / step); if (i !== shown.current) { shown.current = i; Haptics.selectionAsync(); } }}>
+          {items.map((it, i) => (
+            <FaceCard key={it.id} item={it} i={i} x={x} step={step} w={cardW} on={it.id === selected} name={name}
+              onPress={() => { onPick(it.id); scroller.current?.scrollTo({ x: i * step, animated: true }); }} />
+          ))}
+        </Animated.ScrollView>
+      ) : null}
+    </View>
+  );
+}
+
+function FaceCard({ item, i, x, step, w, on, name, onPress }: { item: LibItem; i: number; x: SharedValue<number>; step: number; w: number; on: boolean; name: string; onPress: () => void }) {
+  const style = useAnimatedStyle(() => {
+    const d = (x.value - i * step) / step;          // 0 = Mitte, ±1 = Nachbar
+    const a = Math.min(1, Math.abs(d));
+    return {
+      opacity: interpolate(a, [0, 1], [1, 0.62]),
+      transform: [{ translateY: a * 16 }, { rotate: `${-d * 5}deg` }, { scale: interpolate(a, [0, 1], [1, 0.86]) }],
+    };
+  });
+  return (
+    <Animated.View style={style}>
+      <Pressable onPress={onPress} style={[styles.face, { width: w, height: Math.round(w * 1.3) }, on && styles.faceOn]}
+        accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`@${item.tag}`}>
+        {item.img ? <Image source={{ uri: item.img }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <Text style={styles.initial}>{item.tag.slice(0, 1).toUpperCase()}</Text>}
+        <View style={styles.faceFoot}><Text style={[styles.faceTag, on && { color: colors.accentSoft }]} numberOfLines={1}>{on ? `✓ ${name}` : `@${item.tag}`}</Text></View>
+        {on ? <View style={styles.check}><SymbolView name="checkmark" size={12} tintColor={colors.bg} weight="bold" /></View> : null}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingBottom: TAB_INSET },
   page: { paddingHorizontal: 20, gap: 8, flex: 1 },
   step: { color: colors.faint, fontSize: 12, letterSpacing: 1.4, fontWeight: "600", textTransform: "uppercase" },
   who: { fontFamily: fonts.serif, fontSize: 32, lineHeight: 36, color: colors.text },
   quote: { color: colors.muted, fontSize: 15, lineHeight: 21, fontStyle: "italic" },
-  tiles: { flex: 1, gap: 12, marginTop: 8, marginBottom: 8 },
-  tileRow: { flex: 1, flexDirection: "row", gap: 12 },
+  stepRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  tileRow: { height: 112, flexDirection: "row", gap: 12, marginTop: 8 },
+  libLabel: { color: colors.faint, fontSize: 11, letterSpacing: 1.8, fontWeight: "600", textTransform: "uppercase", marginTop: 10 },
+  libEmpty: { flex: 1, maxHeight: 160, borderRadius: radius.card, borderWidth: 1, borderStyle: "dashed", borderColor: colors.panelLine, alignItems: "center", justifyContent: "center", padding: 20, marginBottom: 8 },
+  libEmptyText: { color: colors.muted, fontSize: 14, lineHeight: 20, textAlign: "center" },
+  face: { borderRadius: radius.card, overflow: "hidden", backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.panelLine, alignItems: "center", justifyContent: "center" },
+  faceOn: { borderColor: colors.accentSoft, borderWidth: 2.5 },
+  faceFoot: { position: "absolute", left: 0, right: 0, bottom: 0, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: "rgba(5,10,20,0.6)" },
+  faceTag: { color: colors.text, fontSize: 14, fontWeight: "600", textAlign: "center" },
   tile: { flex: 1, borderRadius: radius.card, overflow: "hidden", backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.panelLine },
   tileDashed: { borderStyle: "dashed", backgroundColor: "transparent" },
   tileOn: { borderColor: colors.accentSoft, borderWidth: 2.5, backgroundColor: "rgba(79,156,249,0.12)" },

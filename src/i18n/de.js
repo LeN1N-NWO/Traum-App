@@ -896,9 +896,10 @@ export default {
       tilePhoto: "Dieses Foto",
       tileAi: "KI erfindet",
       tileNew: "Neues Foto",
-      tileLibrary: "Bibliothek",
-      placesTitle: "Und die Orte?",
-      placesHint: "Die KI erfindet sie — oder tipp einen an und gib ihm ein Foto vom echten Ort.",
+      fromLibrary: "Aus deiner Bibliothek",
+      libraryEmpty: "Noch keine Gesichter in deiner Bibliothek — „Neues Foto“ legt eins an.",
+      placesTitle: "Orte & Dinge",
+      placesHint: "Die KI erfindet sie — oder tipp eins an und gib ihm ein echtes Foto, vom Ort oder vom Ding.",
       noPeople: "Niemand Bestimmtes — die KI erfindet alle.",
     },
 
@@ -918,13 +919,13 @@ export default {
       filmModelLabel: "Welches Modell",
       filmModels: {
         standard: {
-          name: "Lebendig", hint: "dein Startbild beginnt sich zu bewegen, mit Ton · bis 15 Sekunden",
+          name: "Glow", hint: "dein Startbild beginnt sich zu bewegen, mit Ton · bis 15 Sekunden",
           badge: "Bester Preis",
           model: "MiniMax H3 Max Turbo",
           info: "Die schnelle Stufe: Sie erweckt dein Startbild überzeugend zum Leben, Ton inklusive, und nimmt bis zu vier Referenzfotos mit, damit die echten Gesichter sie selbst bleiben. Bei 15 Sekunden ist Schluss. Die Qualität wählst du darunter — die Credits je Sekunde stehen am Schalter.",
         },
         premium: {
-          name: "Kino", hint: "bis zu 30 Sekunden in einer Einstellung, mit Ton",
+          name: "Aurora", hint: "bis zu 30 Sekunden in einer Einstellung, mit Ton",
           badge: "Beste Qualität",
           model: "Seedance 2.5",
           info: "Die längste Geschichte: eine ununterbrochene Einstellung von bis zu 30 Sekunden, mit Ton und sekundengenauem Timing — und deine Referenzfotos bleiben den ganzen Film über dabei. Die Qualität wählst du darunter; die scharfe Stufe kostet hier mehr als das Doppelte, die Credits stehen am Schalter.",
@@ -932,7 +933,7 @@ export default {
         /* Die Traum-Skizze (24.09.2026): entsteht auf dem iPhone selbst,
            kostet keine Credits. Nur auf Geräten, die es können. */
         sketch: {
-          name: "Skizze", hint: "4 Szenen mit deinen Gesichtern, der Film entsteht auf deinem iPhone",
+          name: "Glimpse", hint: "4 Szenen mit deinen Gesichtern, der Film entsteht auf deinem iPhone",
           badge: "Am günstigsten",
           model: "GPT Image 2 + dein iPhone",
           info: "Der schnelle, günstige Weg in deinen Traum: Ein Bild mit vier Szenen wird in deinem gewählten Look gemalt — mit den Gesichtern aus deiner Besetzung. Dein iPhone misst dann, wie tief jede Szene ist, und fliegt mit der Kamera hindurch, mit treibendem Licht und Staub. Keine echte Bewegung der Figuren, aber eine bewegte Erinnerung in Sekunden. Drei im Monat sind gratis.",
@@ -993,7 +994,7 @@ export default {
     /* Die Traum-Skizze — dream/sketch.tsx. Platzhalter {i} {n} {done} {total}
        werden nativ ersetzt (die Brücke reicht nur Zeichenketten). */
     sketch: {
-      title: "Traum-Skizze",
+      title: "Glimpse",
       lede: "Vier Szenen aus deinem Traum im Look, den du gewählt hast — mit den Gesichtern aus deiner Besetzung. Dein iPhone macht daraus einen Film mit Tiefe.",
       needsModel: "Einmaliger Download",
       modelInfo: "Beim ersten Mal lädt dein iPhone ein kleines Tiefenmodell (etwa 50 MB).",
@@ -1004,14 +1005,14 @@ export default {
       rendering: "Die Kamera fährt durch deinen Traum …",
       saving: "Kommt ins Journal …",
       stayHint: "Lass die App offen, bis es fertig ist.",
-      failed: "Die Skizze hat nicht geklappt.",
+      failed: "Der Glimpse hat nicht geklappt.",
       retry: "Nochmal",
-      unsupported: "Skizzen gibt es auf diesem Gerät nicht.",
-      create: "Skizze erstellen · Gratis",
-      createCredit: "Skizze erstellen · {n} Credit",
-      freeLeft: "Noch {n} Gratis-Skizzen in diesem Monat",
-      noneLeft: "Deine Gratis-Skizzen für diesen Monat sind aufgebraucht",
-      takeLabel: "Skizze",
+      unsupported: "Glimpse gibt es auf diesem Gerät nicht.",
+      create: "Glimpse erstellen · Gratis",
+      createCredit: "Glimpse erstellen · {n} Credit",
+      freeLeft: "Noch {n} Gratis-Glimpses in diesem Monat",
+      noneLeft: "Deine Gratis-Glimpses für diesen Monat sind aufgebraucht",
+      takeLabel: "Glimpse",
       photoTitle: "Mit den Gesichtern deiner Besetzung",
       photoHint: "{name} — als Vorlage für die Figuren, gemalt in deinem Look.",
       preparing: "Dein Traum wird gelesen …",

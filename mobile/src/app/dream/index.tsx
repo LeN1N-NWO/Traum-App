@@ -2,7 +2,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { DreamRecorder } from "@/components/dream-recorder";
 import { GlassButton, PrimaryButton } from "@/components/glass";
 import { MascotLoader } from "@/components/mascot-loader";
@@ -77,6 +77,12 @@ export default function DreamTextScreen() {
     if (t.length < 8) { setError(W?.tooShort ?? "Tell a little more."); return; }
     if (W && credits < W.readPrice) { router.push({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    /* Die Tastatur ZUERST schließen (26.09., Befund im Simulator): Das
+       Textfeld verschwindet gleich, und verschwand es mit offener Tastatur,
+       blieb der Bildschirm um die Tastaturhöhe verkürzt — die Knöpfe der
+       Vorschau waren zu sehen, aber nicht zu treffen („kann nicht klicken"). */
+    input.current?.blur();
+    Keyboard.dismiss();
     setBusy(true); setError(null);
     const r = await ask({ type: "analyze", text: t });
     setBusy(false);
@@ -94,7 +100,7 @@ export default function DreamTextScreen() {
   const price = W ? (W.readPrice ? `${W.readPrice} ${W.credit}` : W.free) : "";
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined} enabled={stage === "text" && !preview && !busy}>
       <WizardHeader step={1} cancel={W?.cancel} />
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {busy ? (

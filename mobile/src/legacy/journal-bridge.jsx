@@ -286,7 +286,9 @@ function snapshot() {
     cutOneShot: w5.cutOneShot, cutAll: w5.cutAll(1000), cutSome: w5.cutSome(1000, 2000), cutMoreAt: w5.cutMoreAt(1000, 2000),
     cutTwoParter: w5.cutTwoParter, flowAll: w5.flowAll(1000), flowFast: w5.flowFast(1000),
     cutAllIn: w5.cutAllIn(1000, 2000, 3000), cutRecommend: w5.cutRecommend(1000),
-    lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel, holdHint: w5.holdHint, close: t.wizard.cast?.close, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
+    lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel,
+    /* Das Filmformat (26.09.): drei Werte, dieselbe Allowlist wie der Server. */
+    formatLabel: w5.formatLabel, formats: [["9:16", w5.portrait], ["16:9", w5.landscape], ["1:1", w5.square]].map(([id, hint]) => ({ id, name: id, hint })), holdHint: w5.holdHint, aboutModel: w5.aboutModel, fromWord: t.wizard.from, close: t.wizard.cast?.close, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
     readPrice: PRICES.improve, noCredits: t.wizard.noCreditsCta,
     /* Die native Auftragsseite (dream/order.tsx): Sätze fürs Abgeben,
        die Bestätigung und den Fehlerfall — Web-Texte, nichts Neues. */
@@ -743,6 +745,8 @@ async function runOrder(cmd, onResult) {
   const price = quoteFor({ mode: "film", model: modelId, seconds, quality, keyframe: false });
   if (!spend(s0, price)) { onResult({ n: cmd.n, error: "nocredits", price }); return true; }
   const analysis = o.analysis || null;
+  /* Das Format (26.09.): dieselbe Allowlist wie der Server — ein Wert, nie Text. */
+  const format = ["9:16", "16:9", "1:1"].includes(o.format) ? o.format : "9:16";
 
   /* 2. Besetzung — wie seedAssignments in useWizard.js, dann die Vorgaben. */
   const list = Object.values(resolveCast(analysis, o.assignmentOverrides, s0));
@@ -777,7 +781,7 @@ async function runOrder(cmd, onResult) {
   const isNew = !o.entryId || !(s1.journal || []).some((e) => e.id === entryId);
   const entryRefs = list.filter((a) => a.avatar?.tag).map((a) => ({ tag: a.avatar.tag, category: a.kind }));
   const common = {
-    mode: "film", style: o.styleId, format: "9:16", imageCount: 0, analysis, references: entryRefs,
+    mode: "film", style: o.styleId, format, imageCount: 0, analysis, references: entryRefs,
     pending: { kind: "film", n: 1 }, fallback: undefined, failReason: undefined,
   };
   if (isNew) {
@@ -804,8 +808,8 @@ async function runOrder(cmd, onResult) {
   try {
     const { jobId } = await generate({
       dream: o.text, mode: "film", seconds, title: String(o.title || analysis?.title || "").trim(), tagline: String(o.tagline || analysis?.tagline || "").trim(),
-      model: modelId, quality, quoted: price, cast: castForApi, styleId: o.styleId, beats, shots, pace,
-      prompt: buildImagePrompt({ beat: beatsForCount(arc.length ? arc : [o.text], 1)[0] || o.text, styleId: o.styleId, format: "9:16", clauses, index: 1, total: 1 }),
+      model: modelId, quality, format, quoted: price, cast: castForApi, styleId: o.styleId, beats, shots, pace,
+      prompt: buildImagePrompt({ beat: beatsForCount(arc.length ? arc : [o.text], 1)[0] || o.text, styleId: o.styleId, format, clauses, index: 1, total: 1 }),
     });
     const s2 = loadState();
     saveState({
@@ -935,7 +939,7 @@ async function runAsync(cmd, onResult) {
                 addAs: t.wizard.cast.addAs, add: t.wizard.cast.add, removeFromCast: t.wizard.cast.removeFromCast, whoIs: t.wizard.cast.whoIs("{name}"), close: t.wizard.cast.close,
                 kindFor: t.avatarDialog.kindFor,
                 stepOf: t.wizard.cast.stepOf, whoYou: t.wizard.cast.whoYou, nextName: t.wizard.cast.nextName, missing: t.wizard.cast.missing,
-                tilePhoto: t.wizard.cast.tilePhoto, tileAi: t.wizard.cast.tileAi, tileNew: t.wizard.cast.tileNew, tileLibrary: t.wizard.cast.tileLibrary,
+                tilePhoto: t.wizard.cast.tilePhoto, tileAi: t.wizard.cast.tileAi, tileNew: t.wizard.cast.tileNew, fromLibrary: t.wizard.cast.fromLibrary, libraryEmpty: t.wizard.cast.libraryEmpty,
                 placesTitle: t.wizard.cast.placesTitle, placesHint: t.wizard.cast.placesHint, noPeople: t.wizard.cast.noPeople },
     } });
     return true;
