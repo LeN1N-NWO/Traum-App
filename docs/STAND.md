@@ -3,12 +3,35 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-26 abends — Anton, `session/2026-09-26b-anton` (PR #66)
-wird auf Antons Wort gemergt; PR #65 (Modell-Schritt, Klick-Fehler,
-Glimpse/Glow/Aurora) ist auf main. **Hanni kann Schritt C anbinden.**
-**Weg durch die App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
+**Stand:** 2026-09-26 spätabends — Anton, `session/2026-09-26c-anton`
+(PR #67) wird auf Antons Wort gemergt; PR #65 und #66 sind auf main.
+**Hanni kann Schritt C anbinden.** **Weg durch die App-Store-Prüfung:
+`docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Neu mit PR #66 (26.09. abends):**
+**Neu mit PR #67 (26.09. spätabends):**
+- **Absturz behoben (Antons iPhone, Glimpse mit vielen Szenen):** Crash-Log
+  zeigte `__DataStorage.init` in `SketchRenderer.render` — kein
+  Autorelease-Pool je Filmbild. 12 Szenen: 4,9 GB → 0,96 GB (Mac-Messung
+  mit demselben Code). Tiefenkarte zusätzlich gegen NaN/∞ abgesichert.
+  Crash-Logs holen: `xcrun devicectl device info files --device <id>
+  --domain-type systemCrashLogs`, dann `device copy from`.
+- **Protokoll `Documents/glimpse-jobs.json`** (`store/glimpse-store.ts`):
+  jede fertige Stufe (Bilder bezahlt, Szenen, Ton) wird festgehalten; beim
+  Start geht es dort weiter, nach 2 Anläufen/24 h Fehler am Traum;
+  verwaiste „entsteht gerade"-Glimpses bekommen beim Start den Fehler
+  (Brücke `sketchSweep`). ⚠ Fortsetzen nach Absturz und Aufräumen noch
+  nicht an einem echten Fall gesehen.
+- **Mond-Knopf mit echtem Mond:** `mobile/assets/moon/moon-disc.png`, aus
+  der LRO-Farbkarte (NASA SVS CGI Moon Kit, gemeinfrei) orthografisch
+  gerechnet; Phase als Schatten darüber, Mikrofon auf Glasfläche.
+- **Glühwürmchen ohne Zittern:** eigene Plätze mit freien Sinusbahnen,
+  Stimme geglättet (~0,5 s), Eigenzeit statt Phasensprüngen.
+  ⚠ Mit Stimme nur am iPhone prüfbar.
+- **Schneller Ablauf:** Stopp → sofort aufschreiben → sofort KI-Lesen;
+  Anhören- und Textseite entfallen („Text bearbeiten" in der Vorschau).
+- **Besetzung:** ohne Foto ist „KI erfindet" vorgewählt, für alle.
+
+**Mit PR #66 (26.09. abends):**
 - **Glimpse mit Länge:** vorher 1/2/3 Bilder wählen (4/8/12 Szenen,
   ≈ 16/26/31 s; `src/lib/sketchQuota.js` `sketchTiming`), alle Bilder
   PARALLEL (Test 26.09.: parallel hält Gesicht/Kleidung/Look; der
