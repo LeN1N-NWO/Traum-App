@@ -3,13 +3,48 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-26 — Anton, `session/2026-09-26-anton` (PR #65) wird
-auf Antons Wort gemergt; PR #62 (Skizze aus der Cloud, Design-Runde,
-Besetzung Karte für Karte) ist seit heute früh auf main. **Hanni kann
-Schritt C jetzt anbinden** (PR #62 war die Sperre). **Weg durch die
-App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
+**Stand:** 2026-09-26 abends — Anton, `session/2026-09-26b-anton` (PR #66)
+wird auf Antons Wort gemergt; PR #65 (Modell-Schritt, Klick-Fehler,
+Glimpse/Glow/Aurora) ist auf main. **Hanni kann Schritt C anbinden.**
+**Weg durch die App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Neu mit PR #65 (26.09.):**
+**Neu mit PR #66 (26.09. abends):**
+- **Glimpse mit Länge:** vorher 1/2/3 Bilder wählen (4/8/12 Szenen,
+  ≈ 16/26/31 s; `src/lib/sketchQuota.js` `sketchTiming`), alle Bilder
+  PARALLEL (Test 26.09.: parallel hält Gesicht/Kleidung/Look; der
+  „Mittelweg" mit Bild 1 als Anker hielt Gegenstände besser — nicht
+  gebaut, Anton: parallel reicht).
+- **Preis (Antons Ansage):** 5 Glimpses/Monat gratis (erstes Bild + Ton),
+  jedes weitere Bild 1 Credit; danach 2 Credits + 1 je weiteres Bild.
+  Einkauf ≈ 3,7 / 6,5 / 8,8 Cent. Test hält Einkauf ≤ Erlös.
+  ⚠ Zähler liegt weiter auf dem Gerät (scharf erst mit Anmeldung).
+- **Ton:** `/api/sketch-sound` — Atmosphäre (fal MMAudio v2 text-to-audio,
+  $0,001/s) + Musik (ACE-Step, $0,0002/s) parallel, ffmpeg-Mix, m4a.
+  Prompt-Regeln `src/lib/sketchSound.js` (Look → Musik, Szenen →
+  Geräusche, Stimmung, 68 bpm, keine Stimmen). Je Spur 60 s Zeitlimit.
+  Das iPhone legt die Spur unter den Film (`SketchSound` in
+  `SketchRenderer.swift`); kommt sie zu spät, nachträglich (`addSound`).
+  ⚠ fal-Kaltstart gemessen: einmal 115 s, einmal > 3 min (MMAudio).
+  ⚠ **Ungeprüft:** ob die Tonspur auf dem iPhone wirklich im Film landet
+  (im Simulator-Lauf kam der Ton zu spät, das Nachreichen ist ungetestet).
+- **Glimpse im Hintergrund:** Glimpse-Bildschirm legt den Traum sofort
+  „entsteht gerade" an (Brücke `sketchStart`), übergibt nach 7 s wie beim
+  Film („Du kannst dich umschauen …"); `components/glimpse-layer.tsx`
+  (eigene Brücke im Wurzel-Layout) macht ihn fertig, lokale Benachrichtigung
+  „Dein Glimpse ist fertig". Im Simulator Ende zu Ende belegt (2 Bilder,
+  Journal: Rendering → fertig). Grenze: nur solange die App offen ist;
+  Rendern bekommt eine iOS-Hintergrundfrist (~30 s).
+- **Traum-Tab:** Nachthimmel mit Sternschnuppen (`components/night-sky.tsx`,
+  auch hinter dem Profil), der echte Mond der letzten Nacht als
+  Aufnahmeknopf mit Aura (`components/moon-button.tsx`), Glühwürmchen zur
+  Stimme (expo-audio metering). ⚠ Reaktion auf die Stimme nur am iPhone
+  prüfbar (Simulator-Mikro stumm).
+- Vorschläge-Seiten: Leuchtrand/Layouts/Namen
+  https://claude.ai/artifact/FYiRnRVnoAe2yzj5DxKTQ7 · Traum-Tab/Frosch
+  https://claude.ai/artifact/N8yfLtsfn1GgFihdb19NvY (Frosch-Ideen 1–3
+  noch offen, Anton hat keine gewählt).
+
+**Mit PR #65 (26.09.):**
 - **Klick-Fehler gefunden:** Verschwand das Textfeld mit offener Tastatur
   (Tippen → „Traum auswerten"), blieb der Traum-Bildschirm um die
   Tastaturhöhe verkürzt — die Knöpfe der Vorschau („Diese Fassung
@@ -42,7 +77,8 @@ App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
   https://claude.ai/artifact/FYiRnRVnoAe2yzj5DxKTQ7
 
 **Nächste Schritte:**
-- Anton testet am iPhone: Leuchtrand, Modell-Schritt, Besetzung, Klicks.
+- Anton testet am iPhone: Glimpse mit Ton, Hintergrund + Benachrichtigung,
+  Mond-Knopf und Glühwürmchen, Leuchtrand, Klicks.
 - **Maskottchen-Leitfaden (Antons Ansage 26.09.):** mehrere kurze Videos
   („kleine Stories") für den Ladebildschirm, zufällig ausgewählt — damit
   die Wartezeit kürzer wirkt und süßer ist. Heute gibt es EINEN Lader
@@ -65,9 +101,8 @@ rendert (Tiefe 50 MB, Kamera, Nebel, Teilchen). 3 je Monat gratis, dann
 `docs/plans/2026-09-24-traum-skizze-on-device.md`.
 ⚠ Skizzen liegen nur in `Documents/sketches`, NICHT in der Sicherung.
 
-**Server:** läuft gerade (Port 8100) aus dem Worktree
-`Traum-App-anton` mit der `.env` des Hauptordners — nach dem Merge wieder
-aus dem Hauptordner auf main starten (`cd Traum-App && bun server.js`).
+**Server:** läuft (Port 8100) aus dem Hauptordner auf main
+(`cd Traum-App && bun server.js`). Der Ton braucht ffmpeg auf dem Server.
 
 **Nächster App-Bau auf Antons Mac:** `cd mobile && bun install` →
 **EventEmitter-Patch erneut setzen** → `cd ios && pod install` →
