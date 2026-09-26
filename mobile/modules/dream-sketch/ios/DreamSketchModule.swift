@@ -222,6 +222,14 @@ public class DreamSketchModule: Module {
     /// eine Vertigo-Szene. Gibt `{ film: "sketch:<name>", seconds }` zurück.
     AsyncFunction("renderSketch") { (plan: [String: Any], name: String, promise: Promise) in
       self.work.async {
+        /* Glimpse im Hintergrund (26.09.): Verlässt man die App mitten im
+           Rendern, gibt iOS mit dieser Frist noch Zeit, den Film fertig zu
+           rechnen, statt ihn anzuhalten. */
+        var bg = UIBackgroundTaskIdentifier.invalid
+        bg = UIApplication.shared.beginBackgroundTask(withName: "glimpse-render") {
+          UIApplication.shared.endBackgroundTask(bg); bg = .invalid
+        }
+        defer { if bg != .invalid { UIApplication.shared.endBackgroundTask(bg) } }
         do {
           let dir = Self.sketchesDir()
           let file = { (s: String) in dir.appendingPathComponent(s.replacingOccurrences(of: "sketch:", with: "")) }
@@ -234,11 +242,37 @@ public class DreamSketchModule: Module {
           p.seed = UInt64(truncatingIfNeeded: (plan["seed"] as? Int) ?? 1)
           var o = SketchRenderer.Options()
           if let fog = plan["fog"] as? Double { o.fog = max(0, min(fog, 0.6)) }
+          // Mehr Szenen → jede kürzer (26.09., src/lib/sketchQuota.js sketchTiming).
+          if let hold = plan["hold"] as? Double { o.sceneHold = max(0.8, min(hold, 5)) }
+          if let fade = plan["fade"] as? Double { o.plainFade = max(0.4, min(fade, 2.5)) }
           // Tiefe (Parallaxe) wenn möglich; fehlt das Modell, fährt der Film ohne.
-          let seconds = try SketchRenderer.render(p, depthModel: SketchModel.depthModel(), to: dir.appendingPathComponent(name), options: o)
-          promise.resolve(["film": "sketch:" + name, "seconds": seconds])
+          let film = dir.appendingPathComponent(name)
+          let seconds = try SketchRenderer.render(p, depthModel: SketchModel.depthModel(), to: film, options: o)
+          // Der Ton (26.09.) ist Kür: klappt er nicht, bleibt der Film stumm.
+          var sound = false
+          if let s = plan["sound"] as? String, let url = URL(string: s) {
+            do { try SketchSound.add(film: film, sound: url); sound = true }
+            catch { NSLog("[DreamSketch] Ton übersprungen: \(error.localizedDescription)") }
+          }
+          promise.resolve(["film": "sketch:" + name, "seconds": seconds, "sound": sound])
         } catch {
           promise.reject("E_RENDER", error.localizedDescription)
+        }
+      }
+    }
+
+    /// Der Ton kam erst nach dem Film (26.09., fal-Kaltstart): nachträglich
+    /// unter den fertigen Film legen — dieselbe Datei, der Traum im Journal
+    /// bleibt unverändert und spielt ab dann mit Ton.
+    AsyncFunction("addSound") { (film: String, sound: String, promise: Promise) in
+      self.work.async {
+        do {
+          guard let url = URL(string: sound) else { throw URLError(.badURL) }
+          let file = Self.sketchesDir().appendingPathComponent(film.replacingOccurrences(of: "sketch:", with: ""))
+          try SketchSound.add(film: file, sound: url)
+          promise.resolve(true)
+        } catch {
+          promise.reject("E_SOUND", error.localizedDescription)
         }
       }
     }

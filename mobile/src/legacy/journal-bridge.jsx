@@ -19,9 +19,9 @@ import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend, applyAllowanceGrant } from "../../../src/lib/credits.js";
-import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchGrid } from "../../../src/lib/api.js";
+import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchGrid, sketchSound } from "../../../src/lib/api.js";
 import { pickParticles, buildSketchGridPrompt } from "../../../src/lib/sketchPrompt.js";
-import { sketchFreeLeft, sketchCost, countSketch } from "../../../src/lib/sketchQuota.js";
+import { sketchFreeLeft, sketchCost, countSketch, sketchTiming, clampStrips, SKETCH_STRIPS, SCENES_PER_STRIP } from "../../../src/lib/sketchQuota.js";
 import { quoteFor } from "../../../src/lib/quote.js";
 import { buildReferences, buildImagePrompt } from "../../../src/lib/promptBuilder.js";
 import { renderRef, needsSheet, sheetFingerprint } from "../../../src/lib/sheets.js";
@@ -703,12 +703,19 @@ async function runSketchPrep(cmd, onResult) {
     });
   const { references, clauses } = buildReferences(list);
   const refs = list.filter((a) => a.avatar?.img).map((a) => ({ name: a.name, kind: a.kind, img: absolute(a.avatar.img) }));
-  // Look zuerst, Foto nur für die Identität (Antons iPhone-Test 25.09.: Stil kam nicht durch).
-  const prompt = buildSketchGridPrompt({ beats, styleId: p.styleId, clauses });
+  /* Seit 26.09. (Antons Ansage) wählt man 1–3 Bilder à vier Szenen; jedes
+     Bild ist ein eigener Prompt, alle gehen PARALLEL raus. Parallel reicht
+     (Test 26.09.: Gesicht, Kleidung und Look halten über drei Bilder).
+     Look zuerst, Foto nur für die Identität (Antons iPhone-Test 25.09.). */
+  const strips = clampStrips(p.strips);
+  const prompts = Array.from({ length: strips }, (_, k) =>
+    buildSketchGridPrompt({ beats: beats.slice(k * SCENES_PER_STRIP, (k + 1) * SCENES_PER_STRIP), styleId: p.styleId, clauses }));
   onResult({ n: cmd.n, result: {
-    prompt, refs: refs.slice(0, references.length),
+    prompt: prompts[0], prompts, strips, refs: refs.slice(0, references.length),
     particles: pickParticles(beats.join(" ")),
-    freeLeft: sketchFreeLeft(s0), cost: sketchCost(s0), credits: totalCredits(s0),
+    freeLeft: sketchFreeLeft(s0), cost: sketchCost(s0, strips), credits: totalCredits(s0),
+    // Was jede Wahl kostet und wie lang sie wird — für die Auswahl vorher.
+    options: SKETCH_STRIPS.map((n) => ({ ...sketchTiming(n), cost: sketchCost(s0, n) })),
   } });
   return true;
 }
@@ -719,15 +726,31 @@ async function runSketchPrep(cmd, onResult) {
    scheitert er, bleibt alles, wie es war. */
 async function runSketchGrid(cmd, onResult) {
   const g = cmd.sketchGrid || {};
+  const prompts = (Array.isArray(g.prompts) && g.prompts.length ? g.prompts : [g.prompt]).filter(Boolean).slice(0, SKETCH_STRIPS.length);
   const s0 = loadState();
-  const cost = sketchCost(s0);
+  const cost = sketchCost(s0, prompts.length);
   if (cost > 0 && !spend(s0, cost)) { onResult({ n: cmd.n, error: "nocredits", price: cost }); return true; }
+  // Ein Bild darf einmal wiederholt werden, bevor der ganze Glimpse scheitert.
+  const once = (prompt) => sketchGrid({ prompt, refs: g.refs || [] }).catch(() => sketchGrid({ prompt, refs: g.refs || [] }));
   try {
-    const url = await sketchGrid({ prompt: g.prompt, refs: g.refs || [] });
+    const urls = await Promise.all(prompts.map(once));
     const s1 = loadState();
     saveState({ ...s1, ...countSketch(s1), ...(cost > 0 ? spend(s1, cost) || {} : {}) });
     onJournalTick?.();
-    onResult({ n: cmd.n, result: { url, cost } });
+    onResult({ n: cmd.n, result: { url: urls[0], urls, cost } });
+  } catch (e) {
+    onResult({ n: cmd.n, error: String(e?.message || e) });
+  }
+  return true;
+}
+
+/* Der Ton zum Glimpse (26.09.) — kostet nichts extra, er ist im Preis des
+   ersten Bildes (sketchQuota.js). Scheitert er, macht die App stumm weiter. */
+async function runSketchSound(cmd, onResult) {
+  const q = cmd.sketchSound || {};
+  try {
+    const url = await sketchSound({ styleId: q.styleId, mood: q.mood, beats: q.beats || [], seconds: q.seconds });
+    onResult({ n: cmd.n, result: { url: absolute(url) } });
   } catch (e) {
     onResult({ n: cmd.n, error: String(e?.message || e) });
   }
@@ -843,7 +866,10 @@ function runSketch(cmd, onResult) {
   const s1 = loadState();
   const existing = o.entryId ? (s1.journal || []).find((e) => e.id === o.entryId) : null;
   if (existing) {
-    saveState({ ...s1, journal: s1.journal.map((e) => (e.id === existing.id ? { ...e, films: [...filmsOf(e), film], poster: e.poster || stills[0] } : e)) });
+    /* Seit 26.09. legt sketchStart den Traum VORHER an („entsteht gerade");
+       hier wird er fertig: Film dran, Marke weg, Standbilder als Bilder. */
+    const media = (existing.media?.urls || []).length ? existing.media : { type: "image", urls: stills, source: "sketch" };
+    saveState({ ...s1, journal: s1.journal.map((e) => (e.id === existing.id ? { ...e, media, films: [...filmsOf(e), film], poster: e.poster || stills[0], pending: undefined, failReason: undefined } : e)) });
     onJournalTick?.();
     onResult({ n: cmd.n, entryId: existing.id });
     return true;
@@ -864,11 +890,53 @@ function runSketch(cmd, onResult) {
   return true;
 }
 
+/* Glimpse im Hintergrund (26.09.2026, Antons Ansage): Der Traum steht
+   SOFORT im Journal — mit Marke „entsteht gerade" —, der Glimpse wird
+   danach von der GlimpseLayer fertig gemacht (runSketch mit entryId) oder
+   scheitert (sketchFail). Mit `entryId` ist es eine neue Fassung eines
+   bestehenden Traums. */
+function runSketchStart(cmd, onResult) {
+  const o = cmd.sketchStart || {};
+  const s1 = loadState();
+  const existing = o.entryId ? (s1.journal || []).find((e) => e.id === o.entryId) : null;
+  if (existing) {
+    saveState({ ...s1, journal: s1.journal.map((e) => (e.id === existing.id ? { ...e, pending: { kind: "sketch", n: 1 }, failReason: undefined } : e)) });
+    onJournalTick?.();
+    onResult({ n: cmd.n, entryId: existing.id });
+    return true;
+  }
+  const analysis = o.analysis || null;
+  const creature = newCreature(o.text, refreshStreak(s1).streak);
+  const entry = {
+    id: genId("e"), createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
+    title: String(analysis?.title || "").trim() || creature.title, tagline: String(analysis?.tagline || "").trim(),
+    media: { type: "image", urls: [], source: "sketch" }, creatureId: creature.id, moon: moonForNight(),
+    ...(s1.pendingAudioUrl ? { audio: { url: s1.pendingAudioUrl } } : {}),
+    mode: "film", style: o.styleId, format: "9:16", imageCount: 0, analysis, references: [],
+    pending: { kind: "sketch", n: 1 },
+  };
+  saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null });
+  onJournalTick?.();
+  onResult({ n: cmd.n, entryId: entry.id });
+  return true;
+}
+
+function runSketchFail(cmd, onResult) {
+  const s1 = loadState();
+  saveState({ ...s1, journal: (s1.journal || []).map((e) => (e.id === cmd.id ? { ...e, pending: undefined, failReason: String(cmd.value || "sketch").slice(0, 200) } : e)) });
+  onJournalTick?.();
+  onResult({ n: cmd.n, result: { ok: true } });
+  return true;
+}
+
 async function runAsync(cmd, onResult) {
   if (cmd.type === "order") return runOrder(cmd, onResult);
   if (cmd.type === "sketch") return runSketch(cmd, onResult);
+  if (cmd.type === "sketchStart") return runSketchStart(cmd, onResult);
+  if (cmd.type === "sketchFail") return runSketchFail(cmd, onResult);
   if (cmd.type === "sketchPrep") return runSketchPrep(cmd, onResult);
   if (cmd.type === "sketchGrid") return runSketchGrid(cmd, onResult);
+  if (cmd.type === "sketchSound") return runSketchSound(cmd, onResult);
   /* Konto-Sicherung (23.09.2026, mobile/src/lib/dream-sync.ts): Die Brücke
      kennt das Tagebuch, die native Seite das Konto. Hinaus geht die
      Sicherungsform aus journalBackup.js — dieselbe erlaubte Liste wie für

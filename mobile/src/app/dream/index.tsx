@@ -6,6 +6,7 @@ import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleS
 import { DreamRecorder } from "@/components/dream-recorder";
 import { GlassButton, PrimaryButton } from "@/components/glass";
 import { MascotLoader } from "@/components/mascot-loader";
+import { NightSky } from "@/components/night-sky";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
@@ -101,6 +102,8 @@ export default function DreamTextScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined} enabled={stage === "text" && !preview && !busy}>
+      {/* Nachthimmel mit Sternschnuppen (Antons Wahl 26.09.), der Mond ist der Knopf. */}
+      <NightSky />
       <WizardHeader step={1} cancel={W?.cancel} />
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {busy ? (

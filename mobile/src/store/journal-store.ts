@@ -109,12 +109,13 @@ export type OrderRequest = {
   styleId: string; pace: string; videoModel: string; quality: string | null; format?: string; seconds: number; mode?: "film" | "images";
   assignmentOverrides?: Record<string, { avatarId?: string; free?: boolean }>;
 };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "syncExport" | "syncImport" | "sketch" | "sketchPrep" | "sketchGrid"; order?: OrderRequest; dreams?: unknown[]; sketch?: SketchRequest; sketchPrep?: SketchPrepRequest; sketchGrid?: { prompt: string; refs: string[] }; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "syncExport" | "syncImport" | "sketch" | "sketchPrep" | "sketchGrid" | "sketchSound" | "sketchStart" | "sketchFail"; order?: OrderRequest; dreams?: unknown[]; sketch?: SketchRequest; sketchPrep?: SketchPrepRequest; sketchGrid?: { prompt?: string; prompts?: string[]; refs: string[] }; sketchSound?: { styleId: string; mood: string; beats: string[]; seconds: number }; sketchStart?: { entryId: string | null; text: string; originalText: string; analysis: any; styleId: string }; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
 /* Die fertige Traum-Skizze fürs Journal (journal-bridge runSketch). */
 /* Skizze vorbereiten (25.09.): Szenen → SD-Stichworte, Besetzung → eigene Fotos. */
-export type SketchPrepRequest = { beats: string[]; analysis: any; styleId: string; assignmentOverrides: Record<string, { avatarId?: string; free?: boolean }> };
+export type SketchPrepRequest = { beats: string[]; strips?: number; analysis: any; styleId: string; assignmentOverrides: Record<string, { avatarId?: string; free?: boolean }> };
 /* Seit 25.09. abends: Cloud-Raster — der fertige Prompt, die Fotos in Klausel-Reihenfolge, was es kostet. */
-export type SketchPrep = { prompt: string; particles: string; refs: { name: string; kind: string; img: string }[]; freeLeft: number; cost: number; credits: number };
+export type SketchOption = { strips: number; scenes: number; hold: number; fade: number; seconds: number; cost: number };
+export type SketchPrep = { prompt: string; prompts: string[]; strips: number; particles: string; refs: { name: string; kind: string; img: string }[]; freeLeft: number; cost: number; credits: number; options: SketchOption[] };
 export type SketchRequest = { entryId: string | null; text: string; originalText: string; analysis: any; styleId: string; film: string; stills: string[]; seconds: number };
 export type SketchTexts = {
   title: string; lede: string; needsModel: string; modelInfo: string; download: string; downloading: string; cancel: string;
@@ -122,6 +123,8 @@ export type SketchTexts = {
   unsupported: string; create: string; createCredit: string; freeLeft: string; noneLeft: string; takeLabel: string;
   photoTitle: string; photoHint: string; preparing: string; priceFree: string; creditWord: string;
   working: string[]; filming: string[];
+  queuedTitle?: string; queuedBody?: string; toJournal?: string; readyTitle?: string; readyBody?: string;
+  stripsTitle?: string; stripOption?: string; stripFits?: string; soundNote?: string; createCredits?: string; priceShort?: string; freeShort?: string;
   card: { name: string; hint: string; badge: string; info?: string; model?: string } | null;
   price: string;   // was die NÄCHSTE Skizze kostet, fertig formuliert
 };

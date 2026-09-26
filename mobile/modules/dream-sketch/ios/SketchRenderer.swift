@@ -334,3 +334,48 @@ enum SketchRenderer {
     return c * c * (3 - 2 * c)
   }
 }
+
+/// Der Ton zum Glimpse (26.09.): Die Spur entsteht auf dem Server parallel
+/// zu den Bildern (Atmosphäre + Musik, /api/sketch-sound) und wird hier
+/// unter den fertigen, stummen Film gelegt — auf Filmlänge gekürzt, das
+/// Bild wird nicht neu kodiert (Passthrough). Scheitert etwas, wirft die
+/// Funktion; der Aufrufer behält dann den stummen Film.
+enum SketchSound {
+  static func add(film: URL, sound source: URL) throws {
+    let data = try Data(contentsOf: source)
+    let tmp = FileManager.default.temporaryDirectory
+    let soundFile = tmp.appendingPathComponent("glimpse-sound-\(UUID().uuidString).m4a")
+    let out = tmp.appendingPathComponent("glimpse-film-\(UUID().uuidString).mp4")
+    try data.write(to: soundFile)
+    defer { try? FileManager.default.removeItem(at: soundFile); try? FileManager.default.removeItem(at: out) }
+
+    let video = AVURLAsset(url: film), audio = AVURLAsset(url: soundFile)
+    guard let vTrack = video.tracks(withMediaType: .video).first,
+          let aTrack = audio.tracks(withMediaType: .audio).first else {
+      throw NSError(domain: "DreamSketch", code: 41, userInfo: [NSLocalizedDescriptionKey: "Ton oder Bild fehlt"])
+    }
+    let comp = AVMutableComposition()
+    let length = video.duration
+    guard let cv = comp.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid),
+          let ca = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
+      throw NSError(domain: "DreamSketch", code: 42)
+    }
+    try cv.insertTimeRange(CMTimeRange(start: .zero, duration: length), of: vTrack, at: .zero)
+    cv.preferredTransform = vTrack.preferredTransform
+    let soundLength = CMTimeMinimum(audio.duration, length)
+    try ca.insertTimeRange(CMTimeRange(start: .zero, duration: soundLength), of: aTrack, at: .zero)
+
+    guard let export = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetPassthrough) else {
+      throw NSError(domain: "DreamSketch", code: 43)
+    }
+    export.outputURL = out
+    export.outputFileType = .mp4
+    let done = DispatchSemaphore(value: 0)
+    export.exportAsynchronously { done.signal() }
+    done.wait()
+    guard export.status == .completed else {
+      throw export.error ?? NSError(domain: "DreamSketch", code: 44, userInfo: [NSLocalizedDescriptionKey: "Export fehlgeschlagen"])
+    }
+    _ = try FileManager.default.replaceItemAt(film, withItemAt: out)
+  }
+}

@@ -3,6 +3,31 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-26 13:00 — Anton — Branch `session/2026-09-26b-anton` (PR #66) — Glimpse mit Länge, Ton und Hintergrund; Traum-Tab mit Mond und Glühwürmchen
+
+**Was:** (1) Vorschläge-Seite Traum-Tab/Frosch (Artifact); Anton wählte
+Sternschnuppen-Himmel, Mond als Aufnahmeknopf, Glühwürmchen. (2) Test
+„parallel vs. verkettet vs. Mittelweg" für längere Glimpses (9 Bilder,
+≈ $0,17) — Anton: parallel reicht. (3) Ton-Test MMAudio/ACE-Step auf einem
+Glimpse-Film (≈ 2 Cent). (4) Glimpse: 1–3 Bilder wählbar, parallel, Ton
+parallel über `/api/sketch-sound`, 5 gratis/Monat, dann Credits.
+(5) Glimpse im Hintergrund mit Übergabe wie beim Film und Benachrichtigung.
+(6) Traum-Tab und Profil mit Nachthimmel, Mond-Knopf, Glühwürmchen.
+
+**Warum:** Antons Ansagen („Warum keine Länge bei der Skizze?", „Audio im
+Hintergrund parallel", „5 kostenlose, dann Credits", „kalter Start — wie
+bei den Filmen weiterschicken", „Mond in der Mitte, Glühwürmchen drum").
+
+**Belege:** 821 Tests (neu: sketchSound, sketchQuota inkl. Einkauf ≤
+Erlös), tsc, Lint, i18n grün. Server-Ton zweimal echt (7 s warm, einmal
+115 s kalt); Simulator: Traum-Tab angesehen, Glimpse mit 2 Bildern Ende zu
+Ende im Hintergrund (Journal „Rendering…" → fertig). Build auf Antons iPhone.
+
+**Für den Nächsten:** Tonspur im Film am iPhone prüfen (Nachreichen
+ungetestet). fal-Kaltstarts beim Ton sind real — ggf. Aufwärmen oder
+Queue-API. Frosch-Ideen für „Erzähl ihn laut" offen. Im Simulator rendert
+ein Glimpse ~70 s (iPhone ~5 s).
+
 ## 2026-09-26 12:10 — Anton — Branch `session/2026-09-26-anton` (PR #65) — Klick-Fehler, Modell-Schritt auf einem Bildschirm, Glimpse/Glow/Aurora, Besetzung aus der Bibliothek, Format, Aurora 1080p
 
 **Was:** (1) Vorschläge-Seite (Artifact) mit drei Leuchtrand-Varianten,
