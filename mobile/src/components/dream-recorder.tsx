@@ -4,9 +4,10 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import Animated, { FadeIn, useSharedValue, withTiming } from "react-native-reanimated";
 import { GlassButton, PrimaryButton } from "@/components/glass";
 import { MascotLoader } from "@/components/mascot-loader";
+import { MoonButton } from "@/components/moon-button";
 import { holdForRecording } from "@/lib/sound-engine";
 import { setRecording } from "@/store/recording-store";
 import { colors, fonts } from "@/theme";
@@ -42,8 +43,9 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   onType: () => void;
   onPendingAudio: (audioUrl: string) => void;
 }) {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const st = useAudioRecorderState(recorder, 250);
+  // Mit Pegel (26.09.): die Glühwürmchen am Mond-Knopf tanzen zur Stimme.
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
+  const st = useAudioRecorderState(recorder, 100);
   const player = useAudioPlayer(null);
   const ps = useAudioPlayerStatus(player);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -181,6 +183,13 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     player.play();
   }
 
+  /* Der Pegel in dB (−160…0) → 0…1; leise Räume beginnen um −55 dB. */
+  const level = useSharedValue(0);
+  useEffect(() => {
+    const db = typeof st.metering === "number" ? st.metering : -160;
+    level.value = withTiming(phase === "rec" ? Math.max(0, Math.min(1, (db + 55) / 45)) : 0, { duration: 140 });
+  }, [st.metering, phase, level]);
+
   const secs = Math.floor((st.durationMillis || 0) / 1000);
   const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
   const progress = ps.duration > 0 ? Math.min(1, ps.currentTime / ps.duration) : 0;
@@ -230,13 +239,10 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     <View style={styles.center}>
       <Text style={styles.title}>{phase === "rec" ? (W?.recording ?? "Listening…") : (W?.record ?? "Tell it out loud")}</Text>
       <Text style={styles.hint}>{phase === "rec" ? clock(secs) : (W?.recordHint ?? "")}</Text>
+      {/* Der Mond ist der Knopf (Antons Wahl 26.09.). */}
       <View style={styles.stage}>
-        <Ring on={phase === "rec"} />
-        <Pressable onPress={phase === "rec" ? stop : start} disabled={allowed === false} accessibilityRole="button" accessibilityLabel={phase === "rec" ? (W?.recordStop ?? "Done") : (W?.record ?? "Record")}>
-          <View style={[styles.mic, phase === "rec" && styles.micOn, allowed === false && { opacity: 0.4 }]}>
-            <SymbolView name={phase === "rec" ? "stop.fill" : "mic.fill"} size={40} tintColor={colors.bg} />
-          </View>
-        </Pressable>
+        <MoonButton size={150} recording={phase === "rec"} level={level} onPress={phase === "rec" ? stop : start} disabled={allowed === false}
+          label={phase === "rec" ? (W?.recordStop ?? "Done") : (W?.record ?? "Record")} />
       </View>
       {phase === "rec" ? <Text style={styles.stopHint}>{W?.recordStop ?? "Done"}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -250,28 +256,11 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   );
 }
 
-/* Zwei Ringe, die nach außen atmen, solange aufgenommen wird. */
-function Ring({ on }: { on: boolean }) {
-  const a = useSharedValue(0);
-  useEffect(() => { a.value = on ? withRepeat(withTiming(1, { duration: 1800, easing: Easing.out(Easing.quad) }), -1, false) : withTiming(0, { duration: 300 }); }, [on, a]);
-  const s1 = useAnimatedStyle(() => ({ transform: [{ scale: 1 + a.value * 0.9 }], opacity: (1 - a.value) * 0.5 }));
-  const s2 = useAnimatedStyle(() => ({ transform: [{ scale: 1 + ((a.value + 0.5) % 1) * 0.9 }], opacity: (1 - ((a.value + 0.5) % 1)) * 0.5 }));
-  return (
-    <>
-      <Animated.View pointerEvents="none" style={[styles.ring, s1]} />
-      <Animated.View pointerEvents="none" style={[styles.ring, s2]} />
-    </>
-  );
-}
-
 const styles = StyleSheet.create({
   center: { alignItems: "center", justifyContent: "center", gap: 12, paddingVertical: 24 },
   title: { fontFamily: fonts.serif, fontSize: 30, color: colors.text, textAlign: "center" },
   hint: { color: colors.muted, fontSize: 16, textAlign: "center", fontVariant: ["tabular-nums"], lineHeight: 22 },
-  stage: { width: 240, height: 240, alignItems: "center", justifyContent: "center", marginVertical: 12 },
-  ring: { position: "absolute", width: 120, height: 120, borderRadius: 60, borderWidth: 2, borderColor: colors.warm },
-  mic: { width: 120, height: 120, borderRadius: 60, backgroundColor: colors.warm, alignItems: "center", justifyContent: "center", shadowColor: colors.warm, shadowOpacity: 0.5, shadowRadius: 24, shadowOffset: { width: 0, height: 0 } },
-  micOn: { backgroundColor: colors.gold },
+  stage: { width: 345, height: 345, alignItems: "center", justifyContent: "center", marginVertical: -40 },
   stopHint: { color: colors.faint, fontSize: 13 },
   error: { color: colors.warm, fontSize: 14, textAlign: "center" },
   row: { flexDirection: "row", gap: 10, alignSelf: "stretch", marginTop: 6 },
