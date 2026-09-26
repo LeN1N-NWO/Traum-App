@@ -366,7 +366,7 @@ function snapshot() {
     recordTranscribing: t.dream.recordTranscribing, recordTooShort: t.dream.recordTooShort, recordFailed: t.dream.recordFailed, recordDiscard: t.dream.recordDiscard,
     recordAgain: t.dream.recordAgain, yourRecording: t.dream.yourRecording,
     reviewTitle: t.dream.reviewTitle, reviewHint: t.dream.reviewHint, mascotReview: t.dream.mascotReview || [], recordListen: t.dream.recordListen, recordPause: t.dream.recordPause, recordTranscribe: t.dream.recordTranscribe, recordRetake: t.dream.recordRetake,
-    typeInstead: t.dream.typeInstead, textTitle: t.dream.textTitle, textLede: t.dream.textLede, tellMore: t.dream.tellMore, rewriteAll: t.dream.rewriteAll, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
+    typeInstead: t.dream.typeInstead, textTitle: t.dream.textTitle, textLede: t.dream.textLede, tellMore: t.dream.tellMore, rewriteAll: t.dream.rewriteAll, editText: t.dream.editText, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
     placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
   /* Das Kaufblatt (Paywall.jsx), vorgerechnet: Texte sind im Web zum Teil
      Funktionen, über die Brücke gehen nur Strings. NUR Filme — Bilder sind
@@ -921,6 +921,24 @@ function runSketchStart(cmd, onResult) {
   return true;
 }
 
+/* Aufräumen beim Start (26.09. abends, nach Antons Absturz): Ein Glimpse,
+   der „entsteht gerade" zeigt, aber keinen offenen Auftrag im Protokoll
+   hat (store/glimpse-store.ts), wird nie mehr fertig — er bekommt den
+   Fehler, statt für immer „Rendering" zu zeigen. `keep` = offene Aufträge. */
+function runSketchSweep(cmd, onResult) {
+  const keep = new Set(Array.isArray(cmd.keep) ? cmd.keep : []);
+  const s1 = loadState();
+  let n = 0;
+  const journal = (s1.journal || []).map((e) => {
+    if (e.pending?.kind !== "sketch" || keep.has(e.id)) return e;
+    n += 1;
+    return { ...e, pending: undefined, failReason: "interrupted" };
+  });
+  if (n) { saveState({ ...s1, journal }); onJournalTick?.(); }
+  onResult({ n: cmd.n, result: { swept: n } });
+  return true;
+}
+
 function runSketchFail(cmd, onResult) {
   const s1 = loadState();
   saveState({ ...s1, journal: (s1.journal || []).map((e) => (e.id === cmd.id ? { ...e, pending: undefined, failReason: String(cmd.value || "sketch").slice(0, 200) } : e)) });
@@ -934,6 +952,7 @@ async function runAsync(cmd, onResult) {
   if (cmd.type === "sketch") return runSketch(cmd, onResult);
   if (cmd.type === "sketchStart") return runSketchStart(cmd, onResult);
   if (cmd.type === "sketchFail") return runSketchFail(cmd, onResult);
+  if (cmd.type === "sketchSweep") return runSketchSweep(cmd, onResult);
   if (cmd.type === "sketchPrep") return runSketchPrep(cmd, onResult);
   if (cmd.type === "sketchGrid") return runSketchGrid(cmd, onResult);
   if (cmd.type === "sketchSound") return runSketchSound(cmd, onResult);

@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import JournalBridge from "@/legacy/journal-bridge";
-import { finishGlimpse, takeGlimpse, useGlimpseQueue, type GlimpseJob } from "@/store/glimpse-store";
+import { closeGlimpse, finishGlimpse, noteGlimpse, openGlimpseEntries, restoreGlimpses, takeGlimpse, useGlimpseQueue, type GlimpseJob } from "@/store/glimpse-store";
 import { setJournal, type BridgeCommand, type BridgeResult, type JournalSnapshot } from "@/store/journal-store";
 import { showToast } from "@/store/toast-store";
 import { DreamSketch, resolveSketchesDeep } from "../../modules/dream-sketch";
@@ -17,6 +17,12 @@ import { DreamSketch, resolveSketchesDeep } from "../../modules/dream-sketch";
  *
  *   Ton (parallel) · alle Bilder (parallel) · schneiden · Film mit Ton ·
  *   ins Journal · Benachrichtigung „Dein Glimpse ist fertig".
+ *
+ * Absturz oder Beenden mittendrin (26.09. abends, Antons Befund): Das
+ * Protokoll (store/glimpse-store.ts) hält jede fertige Stufe fest; beim
+ * nächsten Start geht es dort weiter — schon bezahlte Bilder werden nicht
+ * neu bestellt. Ein Traum, der „entsteht gerade" zeigt, aber keinen
+ * offenen Auftrag hat, bekommt den Fehler (Brücke sketchSweep).
  *
  * ⚠ Grenze: Das gilt, solange die App im Vordergrund ist. Geht sie in den
  * Hintergrund, rechnet das iPhone den laufenden Film noch fertig (native
@@ -51,6 +57,18 @@ export function GlimpseLayer() {
     return () => sub.remove();
   }, []);
 
+  // Beim Start: Protokoll lesen, Aufgegebenes melden, Verwaistes aufräumen.
+  useEffect(() => {
+    const { given } = restoreGlimpses();
+    (async () => {
+      for (const job of given) {
+        await ask({ type: "sketchFail", id: job.entryId, value: "interrupted" });
+        closeGlimpse(job.id);
+      }
+      await ask({ type: "sketchSweep", keep: openGlimpseEntries() });
+    })();
+  }, [ask]);
+
   useEffect(() => {
     const job = takeGlimpse();
     if (!job) return;
@@ -68,17 +86,31 @@ async function run(job: GlimpseJob, ask: (cmd: Omit<BridgeCommand, "n">) => Prom
   const p = job.prep;
   try {
     if (!DreamSketch) throw new Error("unsupported");
-    // Der Ton startet sofort und läuft neben den Bildern her.
-    const sound = ask({ type: "sketchSound", sketchSound: { styleId: job.styleId, mood: job.mood, beats: job.beats, seconds: job.seconds } })
-      .then((r) => (typeof r.result?.url === "string" ? (r.result.url as string) : null)).catch(() => null);
-    // Die Fotos als data:-URIs, in der Reihenfolge der Klauseln im Prompt.
-    const refs = await Promise.all(p.refs.map((r) => DreamSketch!.referenceData(r.img)));
-    // Alle Bilder gleichzeitig (Antons Ansage 26.09.: parallel reicht).
-    const g = await ask({ type: "sketchGrid", sketchGrid: { prompts: p.prompts?.length ? p.prompts : [p.prompt], refs } });
-    const urls: string[] = Array.isArray(g.result?.urls) ? g.result.urls : g.result?.url ? [g.result.url] : [];
-    if (g.error || !urls.length) throw new Error(g.error || "grid");
-    // Je Bild vier 576×1024-Kacheln, genau das Filmformat.
-    const scenes = (await Promise.all(urls.map((u, k) => DreamSketch!.importGrid(u, `${job.id}-${k}`, 4, 1)))).flat();
+    // Der Ton startet sofort und läuft neben den Bildern her (außer er ist schon da).
+    const sound: Promise<string | null> = job.sound
+      ? Promise.resolve(job.sound)
+      : ask({ type: "sketchSound", sketchSound: { styleId: job.styleId, mood: job.mood, beats: job.beats, seconds: job.seconds } })
+        .then((r) => {
+          const u = typeof r.result?.url === "string" ? (r.result.url as string) : null;
+          if (u) noteGlimpse(job.id, { sound: u });
+          return u;
+        }).catch(() => null);
+    let scenes = job.scenes ?? [];
+    if (!scenes.length) {
+      let urls = job.urls ?? [];
+      if (!urls.length) {
+        // Die Fotos als data:-URIs, in der Reihenfolge der Klauseln im Prompt.
+        const refs = await Promise.all(p.refs.map((r) => DreamSketch!.referenceData(r.img)));
+        // Alle Bilder gleichzeitig (Antons Ansage 26.09.: parallel reicht).
+        const g = await ask({ type: "sketchGrid", sketchGrid: { prompts: p.prompts?.length ? p.prompts : [p.prompt], refs } });
+        urls = Array.isArray(g.result?.urls) ? g.result.urls : g.result?.url ? [g.result.url] : [];
+        if (g.error || !urls.length) throw new Error(g.error || "grid");
+        noteGlimpse(job.id, { urls });                 // bezahlt — beim Neustart nicht noch einmal
+      }
+      // Je Bild vier 576×1024-Kacheln, genau das Filmformat.
+      scenes = (await Promise.all(urls.map((u, k) => DreamSketch!.importGrid(u, `${job.id}-${k}`, 4, 1)))).flat();
+      noteGlimpse(job.id, { scenes });
+    }
     // Der Film — mit Ton, wenn er bis dahin (plus Gnadenfrist) da ist.
     const soundUrl = await Promise.race([sound, new Promise<null>((r) => setTimeout(() => r(null), SOUND_GRACE_MS))]);
     const film = await DreamSketch.renderSketch(
@@ -91,6 +123,7 @@ async function run(job: GlimpseJob, ask: (cmd: Omit<BridgeCommand, "n">) => Prom
       styleId: job.styleId, film: film.film, stills: scenes, seconds: Math.round(film.seconds * 10) / 10,
     } });
     if (r.error) throw new Error(r.error);
+    closeGlimpse(job.id);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await Notifications.scheduleNotificationAsync({
       content: { title: job.texts.readyTitle, body: job.texts.readyBody.replace("{title}", job.dream.title || ""), data: { glimpse: `/journal/${job.entryId}` } },
@@ -107,6 +140,7 @@ async function run(job: GlimpseJob, ask: (cmd: Omit<BridgeCommand, "n">) => Prom
   } catch (e: any) {
     console.warn("[glimpse]", e?.message || e);
     await ask({ type: "sketchFail", id: job.entryId, value: String(e?.message || e) }).catch(() => null);
+    closeGlimpse(job.id);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     showToast(`⚠ ${job.texts.failed}`);
   }
