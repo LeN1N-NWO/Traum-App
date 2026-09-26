@@ -3,6 +3,40 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-26 12:10 — Anton — Branch `session/2026-09-26-anton` (PR #65) — Klick-Fehler, Modell-Schritt auf einem Bildschirm, Glimpse/Glow/Aurora, Besetzung aus der Bibliothek, Format, Aurora 1080p
+
+**Was:** (1) Vorschläge-Seite (Artifact) mit drei Leuchtrand-Varianten,
+drei Layouts für den Modell-Schritt und drei Namensleitern; Anton wählte
+Nordlicht, Layout A (+ Beispielfilm des gewählten Modells) und
+Glimpse/Glow/Aurora. (2) Modell-Schritt neu: Karten nach Preis, native
+Menüs für Qualität/Tempo/Format, Film + Text, Regler, Knopf — alles ohne
+Scrollen. (3) Besetzung: Bibliothek-Kachel durch gefächerte Gesichter
+ersetzt; „Orte & Dinge". (4) Seedance 1080p (42 Cr/s); Vorgabe überall
+die günstigste Stufe. (5) Filmformat wählbar — `api.generate` verwarf
+`format`, Web und App schickten es ins Leere. (6) Leuchtrand in drei
+Anläufen: Nordlicht aus Segmenten war Anton am Gerät zu „Schlange", jetzt
+eine Linie mit mitlaufendem Verlauf. (7) **Fehler gefunden:** nach dem
+Tippen blieb der Traum-Bildschirm um die Tastaturhöhe verkürzt, die
+Vorschau-Knöpfe waren nicht treffbar.
+
+**Warum:** Antons Liste nach dem iPhone-Test („Leuchtrand billig",
+„Bibliothek-Feld weg", „Orte sind keine Orte", „1080p fehlt bei Kino",
+„alles auf einen Screen", „Aspect-Ratio fehlt") und sein „kann nicht
+klicken" vom Vortag.
+
+**Belege:** Simulator Ende zu Ende: Einführung → Tippen → Auswerten →
+„Diese Fassung verwenden" (vorher tot, jetzt weiter) → Filmkacheln →
+Besetzung (Gesicht wählen, Orte & Dinge) → Stil → Modell-Schritt (Menüs
+öffnen, Aurora zeigt 480p/720p/1080p, Preis 121 Credits für 15 s). Fehler
+eingegrenzt über Tipps oberhalb/unterhalb der Tastaturkante. Leuchtrand
+als Bildfolge im Simulator. 813 Tests, tsc, Lint, i18n grün. Build läuft
+auf Antons iPhone.
+
+**Für den Nächsten:** Server 8100 läuft aus dem Worktree (braucht die
+neue Qualitätstabelle). Nächstes für den Maskottchen-Leitfaden: mehrere
+zufällige Lade-Videos als kleine Stories (Antons Ansage). Beispielfilme
+sind Platzhalter. 16:9/1:1 ungerendert.
+
 ## 2026-09-26 01:30 — Anton — Branch `session/2026-09-25-anton` (PR #62) — Traum-Skizze aus der Cloud (Hochkant-Streifen), Design-Runde, Besetzung Karte für Karte
 
 **Was:** Die Traum-Skizze ist in drei Stufen gewachsen und am Ende umgebaut:
