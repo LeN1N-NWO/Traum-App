@@ -50,7 +50,7 @@ export type SettingsData = {
   legal: { close: string; updated: string; draftNote: string; terms: LegalDoc; privacy: LegalDoc };
 };
 export type WizardPreset = { id: string; styleId: string; pace: string | null; wide: boolean; emoji: string; label: string; clip: string | null; featured: boolean };
-export type WizardModel = { id: string; name: string; hint: string; badge: string | null; min: number; max: number; step: number; preset: number; preferred: string; qualities: { id: string; name: string; perSec: string }[] };
+export type WizardModel = { id: string; name: string; hint: string; badge: string | null; info: string; modelName: string; min: number; max: number; step: number; preset: number; preferred: string; qualities: { id: string; name: string; perSec: string }[] };
 export type WizardData = {
   title: string; next: string; read: string; reading: string; tooShort: string; previewTitle: string; previewLede: string;
   yours: string; improved: string; keepMine: string; useImproved: string; styleTitle: string; styleLabel: string; useStyle: string; moreStyles: string;
@@ -58,7 +58,7 @@ export type WizardData = {
   record: string; recordHint: string; recording: string; recordStop: string; recordDiscard: string; recordTranscribing: string; recordTooShort: string; recordFailed: string; recordAgain: string; yourRecording: string; transcribeUrl: string; panelUrl: string;
   cutOneShot: string; cutAll: string; cutSome: string; cutMoreAt: string; cutTwoParter: string; flowAll: string; flowFast: string; cutAllIn: string; cutRecommend: string;
   loading: string[]; queuedNote: string; step6Title: string; rendering: string; renderingHint: string; failedTitle: string; failedNote: string; failedHome: string;
-  presets: WizardPreset[]; models: WizardModel[]; paces: { id: string; name: string; hint: string }[];
+  presets: WizardPreset[]; models: WizardModel[]; paces: { id: string; name: string; hint: string }[]; sketch: SketchTexts | null;
 };
 export type JournalMeta = { view: "deck" | "list"; blankKeys: string[]; castCount: number; creatures: number; realDreams: number; moon: MoonData; sleep: Record<string, number>; sleepLevels: { level: number; label: string }[]; labels: Record<string, any> };
 export type PaywallPlan = { id: string; price: string; per: string; name: string; badge: string | null; extraLine?: string | null; sub: string; films: number; filmsLine: string; filmsWord: string; featured: boolean; yearly: boolean };
@@ -107,8 +107,23 @@ export type OrderRequest = {
   styleId: string; pace: string; videoModel: string; quality: string | null; seconds: number; mode?: "film" | "images";
   assignmentOverrides?: Record<string, { avatarId?: string; free?: boolean }>;
 };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "syncExport" | "syncImport"; order?: OrderRequest; dreams?: unknown[]; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
-export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "syncExport" | "syncImport" | "sketch" | "sketchPrep" | "sketchGrid"; order?: OrderRequest; dreams?: unknown[]; sketch?: SketchRequest; sketchPrep?: SketchPrepRequest; sketchGrid?: { prompt: string; refs: string[] }; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
+/* Die fertige Traum-Skizze fürs Journal (journal-bridge runSketch). */
+/* Skizze vorbereiten (25.09.): Szenen → SD-Stichworte, Besetzung → eigene Fotos. */
+export type SketchPrepRequest = { beats: string[]; analysis: any; styleId: string; assignmentOverrides: Record<string, { avatarId?: string; free?: boolean }> };
+/* Seit 25.09. abends: Cloud-Raster — der fertige Prompt, die Fotos in Klausel-Reihenfolge, was es kostet. */
+export type SketchPrep = { prompt: string; particles: string; refs: { name: string; kind: string; img: string }[]; freeLeft: number; cost: number; credits: number };
+export type SketchRequest = { entryId: string | null; text: string; originalText: string; analysis: any; styleId: string; film: string; stills: string[]; seconds: number };
+export type SketchTexts = {
+  title: string; lede: string; needsModel: string; modelInfo: string; download: string; downloading: string; cancel: string;
+  creating: string; rendering: string; saving: string; stayHint: string; failed: string; retry: string;
+  unsupported: string; create: string; createCredit: string; freeLeft: string; noneLeft: string; takeLabel: string;
+  photoTitle: string; photoHint: string; preparing: string; priceFree: string; creditWord: string;
+  working: string[]; filming: string[];
+  card: { name: string; hint: string; badge: string; info?: string; model?: string } | null;
+  price: string;   // was die NÄCHSTE Skizze kostet, fertig formuliert
+};
+export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null; entryId?: string };
 
 let snapshot: JournalSnapshot | null = null;
 let raw: JournalSnapshot | null = null;

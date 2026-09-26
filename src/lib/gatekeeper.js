@@ -65,7 +65,7 @@ export function classOf(pathname) {
   if (!pathname.startsWith("/api/")) return null;
   if (UNLIMITED.has(pathname)) return null;
   if (pathname === "/api/analyze" || pathname === "/api/refine"
-      || pathname === "/api/reflect") return "text";
+      || pathname === "/api/reflect" || pathname === "/api/sketch-prompts") return "text";
   if (pathname === "/api/transcribe" || pathname === "/api/panel"
       || pathname === "/api/voice-sample") return "cheap";
   /* Anmelden und Sitzung erneuern: eigene, strengere Klasse gegen das Raten

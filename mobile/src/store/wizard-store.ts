@@ -13,12 +13,15 @@ export type WizardState = {
   secondsTouched: boolean;   // der Mensch hat den Regler bewegt — die Empfehlung setzt ihn dann nicht mehr
   audioUrl: string | null;   // die eigene Aufnahme (ADR-0007), am Traum gespeichert
   mode: "images" | "film";
+  /* Die Traum-Skizze statt eines bezahlten Films (24.09.): läuft auf dem
+     iPhone (dream/sketch.tsx), ohne Server-Auftrag und ohne Credits. */
+  sketch: boolean;
   /* Zählt bei jedem resetWizard hoch. Der Erzähl-Bildschirm bleibt im Tab
      gemountet (NativeTabs) und hält Rekorder und Text lokal — an dieser
      Zahl merkt er, dass ein Auftrag durch ist und er von vorn beginnt. */
   resets: number;
 };
-const EMPTY: WizardState = { text: "", originalText: "", analysis: null, styleId: "ultrareal", pace: "calm", videoModel: "standard", quality: null, seconds: 6, orderId: null, assignmentOverrides: {}, pendingRead: false, entryId: null, secondsTouched: false, audioUrl: null, mode: "film", resets: 0 };
+const EMPTY: WizardState = { text: "", originalText: "", analysis: null, styleId: "ultrareal", pace: "calm", videoModel: "standard", quality: null, seconds: 6, orderId: null, assignmentOverrides: {}, pendingRead: false, entryId: null, secondsTouched: false, audioUrl: null, mode: "film", sketch: false, resets: 0 };
 let state: WizardState = EMPTY;
 const listeners = new Set<() => void>();
 export function patchWizard(p: Partial<WizardState>) { state = { ...state, ...p }; listeners.forEach((l) => l()); }

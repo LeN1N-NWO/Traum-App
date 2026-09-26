@@ -2,9 +2,10 @@ import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
-import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { AddSheet, AssignSheet, MarkedText, type CastKind, type Choice, type Entity, type LibItem } from "@/components/cast-text";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AddSheet, AssignSheet, type CastKind, type Choice, type Entity, type LibItem } from "@/components/cast-text";
 import { PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
@@ -29,6 +30,8 @@ export default function DreamCastScreen() {
   const [cast, setCast] = useState<CastData | null>(null);
   const [open, setOpen] = useState<Entity | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   /* Bei jedem Fokus (und nach jeder Änderung der Analyse) neu fragen — nach
      „Neu anlegen" steht das Foto in der Bibliothek; passt sein @tag zum
@@ -88,46 +91,8 @@ export default function DreamCastScreen() {
   }
 
   const L = cast?.labels ?? {};
-  const section = (title: string, lede: string, empty: string, rows: Entity[]) => (
-    <View style={styles.section}>
-      <Text style={styles.h}>{title}</Text>
-      <Text style={styles.lede}>{lede}</Text>
-      {rows.length === 0 ? <Text style={styles.empty}>{empty}</Text> : rows.map((row) => {
-        const c = choice(row);
-        const options = (cast?.library ?? []).filter((l) => row.kind === "place" ? l.category === "place" : row.kind === "object" ? l.category === "object" : l.category === "person" || l.category === "pet");
-        return (
-          <View key={row.name} style={styles.card}>
-            <View style={styles.row}>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={styles.name} numberOfLines={1}>{row.name}</Text>
-                <Text style={styles.sub} numberOfLines={1}>{c.avatar ? `@${c.avatar.tag}` : c.free ? L.free : L.undecided}</Text>
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip} style={{ flexShrink: 1 }}>
-                <Pressable onPress={() => set(row.name, c.free ? {} : { free: true })} accessibilityLabel={L.free} style={styles.pick}>
-                  <View style={[styles.dot, c.free && styles.dotOn]}>
-                    <SymbolView name="sparkles" size={18} tintColor={c.free ? colors.bg : colors.accentSoft} />
-                  </View>
-                  <Text style={[styles.pickLabel, c.free && styles.pickLabelOn]} numberOfLines={1}>{L.freeShort ?? "KI"}</Text>
-                </Pressable>
-                {options.map((l) => (
-                  <Pressable key={l.id} onPress={() => set(row.name, c.avatar?.id === l.id ? {} : { avatarId: l.id, free: false })} accessibilityLabel={`@${l.tag}`} style={styles.pick}>
-                    <View style={[styles.dot, c.avatar?.id === l.id && styles.dotOn]}>
-                      {l.img ? <Image source={{ uri: l.img }} style={styles.dotImg} contentFit="cover" /> : <Text style={styles.dotInitial}>{l.tag.slice(0, 1).toUpperCase()}</Text>}
-                    </View>
-                    <Text style={[styles.pickLabel, c.avatar?.id === l.id && styles.pickLabelOn]} numberOfLines={1}>{l.tag}</Text>
-                  </Pressable>
-                ))}
-                <Pressable onPress={() => newWithPhoto(row)} accessibilityLabel={L.createNew} style={styles.pick}>
-                  <View style={[styles.dot, styles.dotNew]}><SymbolView name="camera.fill" size={17} tintColor={colors.accentSoft} /></View>
-                  <Text style={styles.pickLabel} numberOfLines={1}>{L.newShort ?? "Foto"}</Text>
-                </Pressable>
-              </ScrollView>
-            </View>
-          </View>
-        );
-      })}
-    </View>
-  );
+  const fill = (tpl: string | undefined, v: Record<string, string | number>) =>
+    Object.entries(v).reduce((acc, [k, x]) => acc.replace(`{${k}}`, String(x)), tpl || "");
 
   function newWithPhoto(row: Entity) {
     Haptics.selectionAsync();
@@ -136,20 +101,112 @@ export default function DreamCastScreen() {
     router.push({ pathname: "/dream/avatar", params: { category, tag: row.name } });
   }
 
+  /* Karte für Karte (Antons Wahl 26.09., Entwurf „C"): eine Figur je
+     Bildschirm mit vier großen Kacheln, wischen oder „Weiter · Name" zur
+     nächsten. Orte und Dinge kommen gesammelt auf die letzte Karte — die
+     KI erfindet sie, ein Tipp gibt ihnen ein Foto. „Weiter" steht immer
+     unten, nie mehr am Ende einer langen Liste. */
+  const people = cast?.people ?? [];
+  const others = [...(cast?.places ?? []), ...(cast?.objects ?? [])];
+  const pages = Math.max(1, people.length + (others.length ? 1 : 0));
+  const [rawPage, setPage] = useState(0);
+  const page = Math.min(rawPage, pages - 1);   // nach dem Entfernen einer Figur nicht ins Leere zeigen
+  const pager = useRef<ScrollView>(null);
+  const last = page >= pages - 1;
+  const nextLabel = last ? (W?.next ?? "Continue")
+    : fill(L.nextName ?? "Next · {name}", { name: page + 1 < people.length ? people[page + 1].name : (L.placesTitle ?? "…") });
+  function next() {
+    if (last) { router.push("/dream/style"); return; }
+    Haptics.selectionAsync();
+    pager.current?.scrollTo({ x: (page + 1) * width, animated: true });
+    setPage(page + 1);
+  }
+  /* Der Satz aus dem Traum, in dem die Figur vorkommt — damit man weiß, wen man besetzt. */
+  const lineOf = (name: string) => (w.text.split(/(?<=[.!?])\s+/).find((x) => x.toLowerCase().includes(name.toLowerCase())) ?? "").trim();
+
+  const personCard = (row: Entity, i: number) => {
+    const c = choice(row);
+    const suggested = c.avatar ?? (row.avatarId ? cast?.library.find((l) => l.id === row.avatarId) ?? null : null);
+    const line = lineOf(row.name);
+    return (
+      <View key={row.name} style={[styles.page, { width }]}>
+        <Text style={styles.step}>{fill(L.stepOf ?? "{i} / {n}", { i: i + 1, n: pages })}</Text>
+        <Text style={styles.who} numberOfLines={2}>{/^(ich|i|me|mich|mir)$/i.test(row.name.trim()) ? (L.whoYou ?? "How do you appear?") : String(L.whoIs ?? "{name}").replace("{name}", row.name)}</Text>
+        {line ? <Text style={styles.quote} numberOfLines={2}>{`„${line}“`}</Text> : null}
+        <View style={styles.tiles}>
+          <View style={styles.tileRow}>
+            {suggested ? (
+              <Tile on={!c.free && c.avatar?.id === suggested.id} label={L.tilePhoto ?? "This photo"} onPress={() => set(row.name, { avatarId: suggested.id, free: false })}>
+                {suggested.img ? <Image source={{ uri: suggested.img }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <Text style={styles.initial}>{suggested.tag.slice(0, 1).toUpperCase()}</Text>}
+              </Tile>
+            ) : null}
+            <Tile on={c.free} label={L.tileAi ?? "AI invents"} onPress={() => set(row.name, { free: true })}>
+              <SymbolView name="sparkles" size={34} tintColor={c.free ? colors.accentSoft : colors.muted} />
+            </Tile>
+            {suggested ? null : (
+              <Tile label={L.tileNew ?? "New photo"} dashed onPress={() => newWithPhoto(row)}>
+                <SymbolView name="camera.fill" size={30} tintColor={colors.muted} />
+              </Tile>
+            )}
+          </View>
+          <View style={styles.tileRow}>
+            {suggested ? (
+              <Tile label={L.tileNew ?? "New photo"} dashed onPress={() => newWithPhoto(row)}>
+                <SymbolView name="camera.fill" size={30} tintColor={colors.muted} />
+              </Tile>
+            ) : null}
+            <Tile on={!!c.avatar && c.avatar.id !== suggested?.id} label={L.tileLibrary ?? "Library"} onPress={() => { Haptics.selectionAsync(); setOpen(row); }}>
+              <SymbolView name="person.2.fill" size={30} tintColor={colors.muted} />
+            </Tile>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const placesCard = (
+    <View key="__places" style={[styles.page, { width }]}>
+      <Text style={styles.step}>{fill(L.stepOf ?? "{i} / {n}", { i: pages, n: pages })}</Text>
+      <Text style={styles.who}>{L.placesTitle ?? "And the places?"}</Text>
+      <Text style={styles.quote}>{L.placesHint}</Text>
+      <View style={styles.chips}>
+        {others.map((row) => {
+          const c = choice(row);
+          return (
+            <Pressable key={row.name} onPress={() => { Haptics.selectionAsync(); setOpen(row); }} style={[styles.chip, !!c.avatar && styles.chipOn]}>
+              {c.avatar?.img ? <Image source={{ uri: c.avatar.img }} style={styles.chipImg} contentFit="cover" /> : <SymbolView name={c.free ? "sparkles" : "questionmark"} size={13} tintColor={c.avatar ? colors.accentSoft : colors.muted} />}
+              <Text style={styles.chipText} numberOfLines={1}>{row.name}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+
   return (
     <>
       <WizardHeader step={3} cancel={W?.cancel} />
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
+      <View style={[styles.screen, { paddingTop: insets.top + 52 }]}>
         {cast ? (
-          <>
-            {w.text ? <MarkedText text={w.text} entities={entities} choiceOf={choice} onEntity={setOpen} onWord={(word) => { Haptics.selectionAsync(); setAdding(word); }} L={L} /> : null}
-            {section(L.people, L.peopleLede, L.peopleEmpty, cast.people)}
-            {section(L.places, L.placesLede, L.placesEmpty, cast.places)}
-            {section(L.objects, L.objectsLede, L.objectsEmpty, cast.objects ?? [])}
-          </>
-        ) : null}
-        <PrimaryButton label={W?.next ?? "Continue"} onPress={() => router.push("/dream/style")} style={{ flex: 0, marginTop: 6 }} />
-      </ScrollView>
+          <ScrollView ref={pager} horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ flex: 1 }}
+            onMomentumScrollEnd={(e) => { const i = Math.round(e.nativeEvent.contentOffset.x / width); if (i !== page) { Haptics.selectionAsync(); setPage(i); } }}>
+            {people.map(personCard)}
+            {others.length ? placesCard : null}
+            {!people.length && !others.length ? (
+              <View style={[styles.page, { width, justifyContent: "center" }]}><Text style={styles.quote}>{L.noPeople}</Text></View>
+            ) : null}
+          </ScrollView>
+        ) : <View style={{ flex: 1 }} />}
+        <View style={styles.footer}>
+          {pages > 1 ? (
+            <View style={styles.dots}>{Array.from({ length: pages }, (_, i) => <View key={i} style={[styles.dot, i === page && styles.dotOn]} />)}</View>
+          ) : null}
+          <PrimaryButton label={nextLabel} onPress={next} style={{ flex: 0 }} />
+          <Pressable onPress={() => { Haptics.selectionAsync(); setAdding(""); }} hitSlop={10}>
+            <Text style={styles.missing}>{L.missing ?? "Someone missing?"}</Text>
+          </Pressable>
+        </View>
+      </View>
       <AssignSheet
         entity={open} choice={open ? choice(open) : null} library={cast?.library ?? []} L={{ ...L, cancel: W?.cancel }}
         onPick={(v) => open && set(open.name, v)} onNew={() => open && newWithPhoto(open)} onRemove={() => open && removeEntity(open)} onClose={() => setOpen(null)}
@@ -160,24 +217,43 @@ export default function DreamCastScreen() {
   );
 }
 
+/* Eine große Kachel: Bild oder Zeichen, Beschriftung unten, gewählt = Rand + Haken. */
+function Tile({ on, dashed, label, onPress, children }: { on?: boolean; dashed?: boolean; label: string; onPress: () => void; children: React.ReactNode }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.tile, dashed && styles.tileDashed, on && styles.tileOn, pressed && { transform: [{ scale: 0.97 }] }]}
+      accessibilityRole="button" accessibilityState={{ selected: !!on }} accessibilityLabel={label}>
+      <View style={styles.tileArt}>{children}</View>
+      <View style={styles.tileFoot}><Text style={[styles.tileLabel, on && { color: colors.accentSoft }]} numberOfLines={1}>{label}</Text></View>
+      {on ? <View style={styles.check}><SymbolView name="checkmark" size={12} tintColor={colors.bg} weight="bold" /></View> : null}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: TAB_INSET, gap: 18 },
-  section: { gap: 10 },
-  h: { fontFamily: fonts.serif, fontSize: 28, color: colors.text, marginTop: 4 },
-  lede: { color: colors.muted, fontSize: 14, lineHeight: 20 },
-  empty: { color: colors.faint, fontSize: 14, paddingVertical: 8 },
-  card: { borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, overflow: "hidden" },
-  row: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12 },
-  name: { fontFamily: fonts.serif, fontSize: 18, color: colors.text },
-  sub: { color: colors.muted, fontSize: 13 },
-  strip: { flexDirection: "row", alignItems: "flex-start", gap: 10, paddingLeft: 10 },
-  pick: { alignItems: "center", gap: 4, width: 52 },
-  pickLabel: { color: colors.faint, fontSize: 10, textAlign: "center" },
-  pickLabelOn: { color: colors.accentSoft, fontWeight: "600" },
-  dot: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(140,192,255,0.10)", borderWidth: 1.5, borderColor: "transparent", overflow: "hidden" },
-  dotOn: { backgroundColor: colors.accentSoft, borderColor: colors.accentSoft },
-  dotNew: { borderColor: colors.panelLine, borderStyle: "dashed", backgroundColor: "transparent" },
-  dotImg: { width: 40, height: 40 },
-  dotInitial: { color: colors.accentSoft, fontFamily: fonts.serif, fontSize: 18 },
+  screen: { flex: 1, paddingBottom: TAB_INSET },
+  page: { paddingHorizontal: 20, gap: 8, flex: 1 },
+  step: { color: colors.faint, fontSize: 12, letterSpacing: 1.4, fontWeight: "600", textTransform: "uppercase" },
+  who: { fontFamily: fonts.serif, fontSize: 32, lineHeight: 36, color: colors.text },
+  quote: { color: colors.muted, fontSize: 15, lineHeight: 21, fontStyle: "italic" },
+  tiles: { flex: 1, gap: 12, marginTop: 8, marginBottom: 8 },
+  tileRow: { flex: 1, flexDirection: "row", gap: 12 },
+  tile: { flex: 1, borderRadius: radius.card, overflow: "hidden", backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.panelLine },
+  tileDashed: { borderStyle: "dashed", backgroundColor: "transparent" },
+  tileOn: { borderColor: colors.accentSoft, borderWidth: 2.5, backgroundColor: "rgba(79,156,249,0.12)" },
+  tileArt: { flex: 1, alignItems: "center", justifyContent: "center" },
+  tileFoot: { paddingVertical: 10, paddingHorizontal: 12, backgroundColor: "rgba(5,10,20,0.55)" },
+  tileLabel: { color: colors.text, fontSize: 15, fontWeight: "600", textAlign: "center" },
+  initial: { color: colors.accentSoft, fontFamily: fonts.serif, fontSize: 44 },
+  check: { position: "absolute", top: 10, right: 10, width: 24, height: 24, borderRadius: 12, backgroundColor: colors.accentSoft, alignItems: "center", justifyContent: "center" },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 7, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.panelLine, maxWidth: "100%" },
+  chipOn: { borderColor: colors.accentSoft },
+  chipImg: { width: 22, height: 22, borderRadius: 11 },
+  chipText: { color: colors.text, fontSize: 14, flexShrink: 1 },
+  footer: { paddingHorizontal: 20, gap: 10, paddingTop: 4, alignItems: "stretch" },
+  dots: { flexDirection: "row", justifyContent: "center", gap: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.panelLine },
+  dotOn: { width: 18, backgroundColor: colors.accentSoft },
+  missing: { color: colors.accentSoft, fontSize: 14, textAlign: "center" },
   bridge: { height: 0, overflow: "hidden" },
 });

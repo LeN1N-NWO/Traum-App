@@ -822,12 +822,14 @@ export default {
     tooShort: "⚠ Write a little more first.",
     caught: (name) => `✦ ${name} joined your menagerie`,
     /* Der Rekorder (ADR-0007): einsprechen, fertig — keine Rückfragen. */
-    record: "Tell it out loud", recordHint: "Just talk. I'll write it down.",
+    record: "Tell it out loud", recordHint: "Tap the mic and just talk. I'll write along.",
     recording: "Listening…", recordStop: "Done", recordDiscard: "Discard", recordTranscribing: "Writing it down…",
     recordTooShort: "That was too short — try again.", recordFailed: "Couldn't write that down. Try again.",
     recordAgain: "Record again", yourRecording: "Your recording",
     /* Recorder first (Anton, 13.09.): record → listen back → write it down → add to it. */
     reviewTitle: "Listen back", reviewHint: "Sounds right? Then I'll write it down.",
+    /* Die Sprechblase des Maskottchens nach der Aufnahme (26.09.) — wechselt alle paar Sekunden. */
+    mascotReview: ["That was quite a night! Want to hear it again?", "Tap play — I'll listen along.", "Sounds right? Then I'll write it down for you."],
     recordListen: "Play", recordPause: "Pause", recordTranscribe: "Write it down", recordRetake: "Record again",
     typeInstead: "Type instead", textTitle: "Your dream", textLede: "From your recording. Read it through and add what's missing.",
     tellMore: "Keep telling", rewriteAll: "Start over",
@@ -881,6 +883,8 @@ export default {
     step2: {
       title: "What should become of it?",
       saveOnly: "Just save it",
+      saveCta: "Save it",
+      filmCta: "Make the film",
       saveOnlyHint: "Into your journal, nothing generated",
       images: "A photo story",
       imagesHint: "Stills of your dream, in order",
@@ -929,6 +933,18 @@ export default {
       removeLabel: (name) => `Remove ${name}`,
       pickTitle: (name) => `Who is “${name}”?`,
       libraryEmpty: "Your library is still empty.",
+      /* Karte für Karte (26.09., Antons Wahl „C"): eine Figur je Bildschirm. */
+      stepOf: "{i} of {n}",
+      whoYou: "How do you appear?",
+      nextName: "Next · {name}",
+      missing: "Someone missing?",
+      tilePhoto: "This photo",
+      tileAi: "AI invents",
+      tileNew: "New photo",
+      tileLibrary: "Library",
+      placesTitle: "And the places?",
+      placesHint: "The AI invents them — or tap one to give it a photo of the real place.",
+      noPeople: "Nobody in particular — the AI invents everyone.",
     },
 
     step5: {
@@ -948,6 +964,7 @@ export default {
       filmModels: {
         standard: {
           name: "Alive", hint: "your opening image starts to move, with sound · up to 15 seconds",
+          badge: "Best price",
           model: "MiniMax H3 Max Turbo",
           info: "The quick tier: it brings your opening image convincingly to life, sound included, and carries up to four reference photos so the real faces stay themselves. Films top out at 15 seconds. Pick the quality below — the credits per second are shown on the switch.",
         },
@@ -957,8 +974,17 @@ export default {
           model: "Seedance 2.5",
           info: "The longest story: one unbroken take of up to 30 seconds, with sound and second-precise timing — and your reference photos stay in the film the whole way. Pick the quality below; the sharp tier costs more than double here, the credits are on the switch.",
         },
+        /* Die Traum-Skizze (24.09.2026): entsteht auf dem iPhone selbst,
+           kostet keine Credits. Nur auf Geräten, die es können. */
+        sketch: {
+          name: "Sketch", hint: "4 scenes with your faces, the film is made on your iPhone",
+          badge: "Cheapest",
+          model: "GPT Image 2 + your iPhone",
+          info: "The quick, cheap way into your dream: one image with four scenes is painted in your chosen look — with the faces from your cast. Your iPhone then measures how deep every scene is and flies a camera through it, with drifting light and dust. No real motion of people, but a moving memory in seconds. Three a month are free.",
+        },
       },
       qualityLabel: "Quality",
+      holdHint: "Press and hold a model to learn more",
       aboutModel: "About this model",
       aboutStyle: "About this style",
       moreStyles: (n) => `More styles (${n})`,
@@ -1017,6 +1043,49 @@ export default {
       failedTitle: "That didn't work",
       failedNote: "Nothing was charged — your credits are untouched.",
       failedHome: "Back to start",
+    },
+
+    /* Die Traum-Skizze — dream/sketch.tsx. Platzhalter {i} {n} {done} {total}
+       werden nativ ersetzt (die Brücke reicht nur Zeichenketten). */
+    sketch: {
+      title: "Dream sketch",
+      lede: "Four scenes from your dream in the look you picked — with the faces from your cast. Your iPhone turns them into a film with depth.",
+      needsModel: "One-time download",
+      modelInfo: "The first time, your iPhone loads a small depth model (about 50 MB).",
+      download: "Download · {mb} MB",
+      downloading: "{done} of {total} MB",
+      cancel: "Cancel",
+      creating: "Painting four scenes…",
+      rendering: "Moving the camera through your dream…",
+      saving: "Putting it in your journal…",
+      stayHint: "Keep the app open until it's done.",
+      failed: "The sketch didn't work out.",
+      retry: "Try again",
+      unsupported: "Sketches aren't available on this device.",
+      create: "Create sketch · Free",
+      createCredit: "Create sketch · {n} credit",
+      freeLeft: "{n} free sketches left this month",
+      noneLeft: "Your free sketches for this month are used up",
+      takeLabel: "Sketch",
+      photoTitle: "With the faces from your cast",
+      photoHint: "{name} — as the model for the characters, painted in your look.",
+      preparing: "Reading your dream…",
+      priceFree: "Free · {n} left this month",
+      creditWord: "credit",
+      working: [
+        "Reading your dream…",
+        "Finding the right light for your look…",
+        "Placing everyone in the scene…",
+        "Painting four moments of your night…",
+        "Checking the faces…",
+        "Almost there — the last brushstrokes…",
+      ],
+      filming: [
+        "Measuring how deep every scene goes…",
+        "Setting up the camera…",
+        "Letting the dust drift…",
+        "Rolling the film…",
+      ],
     },
 
     step6: {

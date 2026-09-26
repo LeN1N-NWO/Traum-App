@@ -19,7 +19,9 @@ import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend, applyAllowanceGrant } from "../../../src/lib/credits.js";
-import { analyze, reflect, refine, characterSheet, generate, photoCheck } from "../../../src/lib/api.js";
+import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchGrid } from "../../../src/lib/api.js";
+import { pickParticles, buildSketchGridPrompt } from "../../../src/lib/sketchPrompt.js";
+import { sketchFreeLeft, sketchCost, countSketch } from "../../../src/lib/sketchQuota.js";
 import { quoteFor } from "../../../src/lib/quote.js";
 import { buildReferences, buildImagePrompt } from "../../../src/lib/promptBuilder.js";
 import { renderRef, needsSheet, sheetFingerprint } from "../../../src/lib/sheets.js";
@@ -78,6 +80,7 @@ function sleepOn(checkins, key) {
 }
 
 function takeLabel(f) {
+  if (f.kind === "sketch") return (t.wizard.sketch?.takeLabel || "Sketch") + (f.seconds ? ` · ${f.seconds}s` : "");
   const pace = f.pace ? t.wizard.step5.paceNames?.[f.pace] || f.pace : t.journal.takeUnknown;
   return pace + (f.seconds ? ` · ${f.seconds}s` : "");
 }
@@ -283,7 +286,7 @@ function snapshot() {
     cutOneShot: w5.cutOneShot, cutAll: w5.cutAll(1000), cutSome: w5.cutSome(1000, 2000), cutMoreAt: w5.cutMoreAt(1000, 2000),
     cutTwoParter: w5.cutTwoParter, flowAll: w5.flowAll(1000), flowFast: w5.flowFast(1000),
     cutAllIn: w5.cutAllIn(1000, 2000, 3000), cutRecommend: w5.cutRecommend(1000),
-    lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
+    lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel, holdHint: w5.holdHint, close: t.wizard.cast?.close, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
     readPrice: PRICES.improve, noCredits: t.wizard.noCreditsCta,
     /* Die native Auftragsseite (dream/order.tsx): Sätze fürs Abgeben,
        die Bestätigung und den Fehlerfall — Web-Texte, nichts Neues. */
@@ -301,6 +304,8 @@ function snapshot() {
       /* Kleines Abzeichen am Modell („Beste Qualität" am Kino — Antons
          Ansage 23.09.); Text aus der Sprachdatei, nie hart. */
       badge: w5.filmModels[m.id]?.badge || null,
+      /* Für das Info-Blatt beim Gedrückthalten (26.09.). */
+      info: w5.filmModels[m.id]?.info || "", modelName: w5.filmModels[m.id]?.model || "",
       min: m.min, max: m.max, step: m.step, preset: m.preset, preferred: m.preferred,
       /* Klartext statt Marketing-Namen (Antons Ansage 23.09.: „einfach
          480p, 768p, 1080p schreiben"): Name = Auflösung, dazu die Credits
@@ -313,6 +318,15 @@ function snapshot() {
       })),
     })),
     paces: PACE_IDS.map((id) => ({ id, name: w5.paceNames?.[id] || id, hint: w5.paceHints?.[id] || "" })),
+    /* Die Traum-Skizze (24.09.): kein Modell der Tabelle — sie läuft auf
+       dem iPhone, ohne Server und ohne Preis. Karte + Bildschirmtexte. */
+    /* Seit 25.09. abends Cloud-Raster: 3 je Monat gratis, dann 1 Credit —
+       die Karte zeigt, was die NÄCHSTE Skizze kostet (Antons Ansage: der
+       Preis steht oben an der Karte). */
+    sketch: t.wizard.sketch ? {
+      ...t.wizard.sketch, card: w5.filmModels?.sketch || null,
+      price: sketchCost(s) > 0 ? `${sketchCost(s)} ${t.wizard.sketch.creditWord}` : t.wizard.sketch.priceFree.replace("{n}", String(sketchFreeLeft(s))),
+    } : null,
   };
   const realDreams = items.filter((e) => !String(e.id).startsWith("e_seed")).length;
   const journal = {
@@ -341,7 +355,7 @@ function snapshot() {
       months: t.journal.months, calMonths: t.journal.calMonths, calWeekdays: t.journal.calWeekdays,
     },
   };
-  const step2 = { outputTitle: t.wizard.step2.title, saveOnly: t.wizard.step2.saveOnly, saveOnlyHint: t.wizard.step2.saveOnlyHint,
+  const step2 = { outputTitle: t.wizard.step2.title, saveOnly: t.wizard.step2.saveOnly, saveOnlyHint: t.wizard.step2.saveOnlyHint, saveCta: t.wizard.step2.saveCta, filmCta: t.wizard.step2.filmCta,
     images: t.wizard.step2.images, imagesHint: t.wizard.step2.imagesHint, film: t.wizard.step2.film, filmHint: t.wizard.step2.filmHint,
     saved: t.wizard.step2.saved, from: t.wizard.from, cancel: t.wizard.cancel, back: t.wizard.back,
     imagesFrom: priceForImages(Math.min(...IMAGE_COUNTS)), filmFrom: priceForFilm("standard", 5), steps: 6 };
@@ -349,7 +363,7 @@ function snapshot() {
     record: t.dream.record, recordHint: t.dream.recordHint, recording: t.dream.recording, recordStop: t.dream.recordStop,
     recordTranscribing: t.dream.recordTranscribing, recordTooShort: t.dream.recordTooShort, recordFailed: t.dream.recordFailed, recordDiscard: t.dream.recordDiscard,
     recordAgain: t.dream.recordAgain, yourRecording: t.dream.yourRecording,
-    reviewTitle: t.dream.reviewTitle, reviewHint: t.dream.reviewHint, recordListen: t.dream.recordListen, recordPause: t.dream.recordPause, recordTranscribe: t.dream.recordTranscribe, recordRetake: t.dream.recordRetake,
+    reviewTitle: t.dream.reviewTitle, reviewHint: t.dream.reviewHint, mascotReview: t.dream.mascotReview || [], recordListen: t.dream.recordListen, recordPause: t.dream.recordPause, recordTranscribe: t.dream.recordTranscribe, recordRetake: t.dream.recordRetake,
     typeInstead: t.dream.typeInstead, textTitle: t.dream.textTitle, textLede: t.dream.textLede, tellMore: t.dream.tellMore, rewriteAll: t.dream.rewriteAll, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
     placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
   /* Das Kaufblatt (Paywall.jsx), vorgerechnet: Texte sind im Web zum Teil
@@ -640,6 +654,84 @@ async function runAvatar(cmd, onResult) {
  * ⚠ Noch NICHT der Weg der App: dream/order.tsx nutzt weiter den
  * Web-Motor, bis dieser Befehl an einem echten Auftrag belegt ist
  * (NATIVE_ORDER dort). Bilder-Aufträge kennt er nicht — es gibt nur Film. */
+/* Die Besetzung eines Traums: Namen der Analyse, Auto-Treffer (autoMatch),
+   dann die Vorgaben aus dem nativen Besetzungs-Schritt. Für den Film-Auftrag
+   (runOrder) und seit 25.09. für die Skizze (eigene Fotos als Startbild). */
+function resolveCast(analysis, overrides, s0) {
+  const build = (items, fallbackKind) => (items || []).reduce((acc, item) => {
+    const name = typeof item === "string" ? item : item?.name;
+    if (!name) return acc;
+    const kind = typeof item === "object" && item?.kind === "pet" ? "pet" : fallbackKind;
+    const wardrobe = (typeof item === "object" && item?.wearing) || "";
+    const avatar = autoMatch(name, s0.cast, s0.me);
+    acc[name] = { name, kind, ...(wardrobe ? { wardrobe } : {}), ...(avatar ? { avatar } : {}), ...(startsFree(kind, avatar) ? { free: true } : {}) };
+    return acc;
+  }, {});
+  const assignments = { ...build(analysis?.people, "person"), ...build(analysis?.places, "place"), ...build(analysis?.objects, "object") };
+  const byId = (id) => (id === "me" ? (s0.me ? { ...s0.me, id: "me", category: "person" } : null) : (s0.cast || []).find((c) => c.id === id) || null);
+  for (const [name, ov] of Object.entries(overrides || {})) {
+    if (!assignments[name] || !ov) continue;
+    if (ov.free) assignments[name] = { ...assignments[name], avatar: undefined, free: true };
+    else if (ov.avatarId) { const av = byId(ov.avatarId); if (av) assignments[name] = { ...assignments[name], avatar: av, free: false }; }
+  }
+  return assignments;
+}
+
+/* Traum-Skizze vorbereiten (25.09., Cloud-Raster): der Prompt für EIN
+   2×2-Raster (Look-Preset + Referenzklauseln, buildGridPrompt mit
+   quadratischen Kacheln), die Fotos der Besetzung in GENAU der Reihenfolge
+   der Klauseln, die Teilchen-Art und was die Skizze kostet.
+   ⚠ Höchstens drei Fotos: Wer darüber liegt, wird zur „frei erfundenen"
+   Figur — sonst zeigten die Klauseln auf Bilder, die nie mitgeschickt werden. */
+const SKETCH_MAX_REFS = 3;
+async function runSketchPrep(cmd, onResult) {
+  const p = cmd.sketchPrep || {};
+  const analysis = p.analysis || {};
+  const beats = (p.beats || []).filter((b) => typeof b === "string" && b.trim());
+  const s0 = loadState();
+  const rank = { person: 0, pet: 1, place: 2, object: 3 };
+  const isMe = (a) => !!a.avatar && (a.avatar.id === "me" || (!!s0.me && a.avatar.img === s0.me.img));
+  let kept = 0;
+  const list = Object.values(resolveCast(analysis, p.assignmentOverrides, s0))
+    .sort((a, b) => (rank[a.kind] - rank[b.kind]) || (Number(isMe(b)) - Number(isMe(a))))
+    .map((a) => {
+      if (!a.avatar?.img) return a;
+      kept += 1;
+      return kept <= SKETCH_MAX_REFS ? a : { ...a, avatar: undefined, free: true };
+    });
+  const { references, clauses } = buildReferences(list);
+  const refs = list.filter((a) => a.avatar?.img).map((a) => ({ name: a.name, kind: a.kind, img: absolute(a.avatar.img) }));
+  // Look zuerst, Foto nur für die Identität (Antons iPhone-Test 25.09.: Stil kam nicht durch).
+  const prompt = buildSketchGridPrompt({ beats, styleId: p.styleId, clauses });
+  onResult({ n: cmd.n, result: {
+    prompt, refs: refs.slice(0, references.length),
+    particles: pickParticles(beats.join(" ")),
+    freeLeft: sketchFreeLeft(s0), cost: sketchCost(s0), credits: totalCredits(s0),
+  } });
+  return true;
+}
+
+/* Das Raster bestellen — nach der Kassenprüfung: im Gratis-Kontingent
+   kostet es nichts, danach SKETCH_PRICE Credits. Gezählt und abgebucht
+   wird erst NACH dem gelungenen Aufruf (dann ist unser Geld ausgegeben);
+   scheitert er, bleibt alles, wie es war. */
+async function runSketchGrid(cmd, onResult) {
+  const g = cmd.sketchGrid || {};
+  const s0 = loadState();
+  const cost = sketchCost(s0);
+  if (cost > 0 && !spend(s0, cost)) { onResult({ n: cmd.n, error: "nocredits", price: cost }); return true; }
+  try {
+    const url = await sketchGrid({ prompt: g.prompt, refs: g.refs || [] });
+    const s1 = loadState();
+    saveState({ ...s1, ...countSketch(s1), ...(cost > 0 ? spend(s1, cost) || {} : {}) });
+    onJournalTick?.();
+    onResult({ n: cmd.n, result: { url, cost } });
+  } catch (e) {
+    onResult({ n: cmd.n, error: String(e?.message || e) });
+  }
+  return true;
+}
+
 async function runOrder(cmd, onResult) {
   const o = cmd.order || {};
   const s0 = loadState();
@@ -653,23 +745,7 @@ async function runOrder(cmd, onResult) {
   const analysis = o.analysis || null;
 
   /* 2. Besetzung — wie seedAssignments in useWizard.js, dann die Vorgaben. */
-  const build = (items, fallbackKind) => (items || []).reduce((acc, item) => {
-    const name = typeof item === "string" ? item : item?.name;
-    if (!name) return acc;
-    const kind = typeof item === "object" && item?.kind === "pet" ? "pet" : fallbackKind;
-    const wardrobe = (typeof item === "object" && item?.wearing) || "";
-    const avatar = autoMatch(name, s0.cast, s0.me);
-    acc[name] = { name, kind, ...(wardrobe ? { wardrobe } : {}), ...(avatar ? { avatar } : {}), ...(startsFree(kind, avatar) ? { free: true } : {}) };
-    return acc;
-  }, {});
-  const assignments = { ...build(analysis?.people, "person"), ...build(analysis?.places, "place"), ...build(analysis?.objects, "object") };
-  const byId = (id) => (id === "me" ? (s0.me ? { ...s0.me, id: "me", category: "person" } : null) : (s0.cast || []).find((c) => c.id === id) || null);
-  for (const [name, ov] of Object.entries(o.assignmentOverrides || {})) {
-    if (!assignments[name] || !ov) continue;
-    if (ov.free) assignments[name] = { ...assignments[name], avatar: undefined, free: true };
-    else if (ov.avatarId) { const av = byId(ov.avatarId); if (av) assignments[name] = { ...assignments[name], avatar: av, free: false }; }
-  }
-  const list = Object.values(assignments);
+  const list = Object.values(resolveCast(analysis, o.assignmentOverrides, s0));
   const { clauses } = buildReferences(list);
 
   /* 3. Bogen-Pflicht — Arbeitskopien, über den TAG festgeschrieben (25.08.). */
@@ -748,8 +824,47 @@ async function runOrder(cmd, onResult) {
 }
 let onJournalTick = null;
 
+/* Die Traum-Skizze ins Journal (24.09.2026). Der Film ist schon fertig —
+   auf dem iPhone gerendert (modules/dream-sketch) —, deshalb kein Preis,
+   kein Auftrag, kein Abholer: Der Traum entsteht MIT seinem Film. Adressen
+   bleiben `sketch:<datei>`; aufgelöst wird erst nativ zur Anzeige, weil der
+   Container-Pfad der App bei jedem Update wechselt. Mit `entryId` wird die
+   Skizze eine weitere Fassung eines bestehenden Traums. */
+function runSketch(cmd, onResult) {
+  const o = cmd.sketch || {};
+  const isSketch = (u) => typeof u === "string" && u.startsWith("sketch:");
+  if (!isSketch(o.film)) { onResult({ n: cmd.n, error: "invalid" }); return true; }
+  const stills = (Array.isArray(o.stills) ? o.stills : []).filter(isSketch);
+  const film = { url: o.film, at: new Date().toISOString(), kind: "sketch", ...(Number(o.seconds) > 0 ? { seconds: Math.round(Number(o.seconds)) } : {}) };
+  const s1 = loadState();
+  const existing = o.entryId ? (s1.journal || []).find((e) => e.id === o.entryId) : null;
+  if (existing) {
+    saveState({ ...s1, journal: s1.journal.map((e) => (e.id === existing.id ? { ...e, films: [...filmsOf(e), film], poster: e.poster || stills[0] } : e)) });
+    onJournalTick?.();
+    onResult({ n: cmd.n, entryId: existing.id });
+    return true;
+  }
+  const analysis = o.analysis || null;
+  const creature = newCreature(o.text, refreshStreak(s1).streak);
+  const entry = {
+    id: genId("e"), createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
+    title: String(analysis?.title || "").trim() || creature.title, tagline: String(analysis?.tagline || "").trim(),
+    media: { type: "image", urls: stills, source: "sketch" }, creatureId: creature.id, moon: moonForNight(),
+    ...(s1.pendingAudioUrl ? { audio: { url: s1.pendingAudioUrl } } : {}),
+    mode: "film", style: o.styleId, format: "9:16", imageCount: 0, analysis, references: [],
+    films: [film], ...(stills[0] ? { poster: stills[0] } : {}),
+  };
+  saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null });
+  onJournalTick?.();
+  onResult({ n: cmd.n, entryId: entry.id });
+  return true;
+}
+
 async function runAsync(cmd, onResult) {
   if (cmd.type === "order") return runOrder(cmd, onResult);
+  if (cmd.type === "sketch") return runSketch(cmd, onResult);
+  if (cmd.type === "sketchPrep") return runSketchPrep(cmd, onResult);
+  if (cmd.type === "sketchGrid") return runSketchGrid(cmd, onResult);
   /* Konto-Sicherung (23.09.2026, mobile/src/lib/dream-sync.ts): Die Brücke
      kennt das Tagebuch, die native Seite das Konto. Hinaus geht die
      Sicherungsform aus journalBackup.js — dieselbe erlaubte Liste wie für
@@ -818,7 +933,10 @@ async function runAsync(cmd, onResult) {
                 objects: t.wizard.cast.objectsTitle, objectsLede: t.wizard.cast.objectsLede, objectsEmpty: t.wizard.cast.objectsEmpty,
                 textTitle: t.wizard.cast.textTitle, markHint: t.wizard.cast.markHint, addTitle: t.wizard.cast.addTitle, addName: t.wizard.cast.addName,
                 addAs: t.wizard.cast.addAs, add: t.wizard.cast.add, removeFromCast: t.wizard.cast.removeFromCast, whoIs: t.wizard.cast.whoIs("{name}"), close: t.wizard.cast.close,
-                kindFor: t.avatarDialog.kindFor },
+                kindFor: t.avatarDialog.kindFor,
+                stepOf: t.wizard.cast.stepOf, whoYou: t.wizard.cast.whoYou, nextName: t.wizard.cast.nextName, missing: t.wizard.cast.missing,
+                tilePhoto: t.wizard.cast.tilePhoto, tileAi: t.wizard.cast.tileAi, tileNew: t.wizard.cast.tileNew, tileLibrary: t.wizard.cast.tileLibrary,
+                placesTitle: t.wizard.cast.placesTitle, placesHint: t.wizard.cast.placesHint, noPeople: t.wizard.cast.noPeople },
     } });
     return true;
   }

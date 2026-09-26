@@ -3,11 +3,55 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-25 — Hanni, `session/2026-09-25-hanni` (PR #63, fertig,
-**Merge durch Hanni**). Anton parallel auf `session/2026-09-25-anton`
-(PR #62, Traum-Skizze on-device — ändert `server.js`, `journal-bridge.jsx`,
-`journal-store.ts`, i18n; deshalb wartet die Anbindung von Schritt C darauf).
-**Weg durch die App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
+**Stand:** 2026-09-26 — Anton, `session/2026-09-25-anton` (PR #62, stapelt
+auf PR #56; beide **Merge auf Antons Wort**). main mit Hannis PR #63
+(Schritt C Teil 1, VPS, Domains) ist hereingeholt. **Hanni wartet mit der
+Anbindung von Schritt C auf PR #62** (berührt `server.js`,
+`journal-bridge.jsx`, `journal-store.ts`, i18n). **Weg durch die
+App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Traum-Skizze — jetzt Cloud-Raster + Film auf dem iPhone (PR #62):**
+EIN Aufruf GPT Image 2 `low`, **Streifen aus vier 9:16-Feldern**
+(2304×1024, je 576×1024, ≈ $0,017), Look-Preset ZUERST im Prompt, Fotos
+der Besetzung nur als Identität (`buildSketchGridPrompt` in
+`src/lib/sketchPrompt.js`, Server `/api/sketch-grid`). Das iPhone schneidet
+(`importGrid`) und rendert den Film: Tiefe (Depth Anything, 50 MB),
+schwebende Kamera, Tiefen-Überblendung, Nebel, Teilchen
+(`mobile/modules/dream-sketch/ios/SketchRenderer.swift`). **3 Skizzen je
+Monat gratis, dann 1 Credit** (`src/lib/sketchQuota.js` — zählt heute das
+Gerät, scharf erst mit Anmeldung). Kein 1-GB-Maler mehr im Ablauf (der
+SD-Code liegt noch im Modul, wird nicht aufgerufen → Preflight B8 grün).
+Plan mit allen Messungen: `docs/plans/2026-09-24-traum-skizze-on-device.md`
+(v3–v5). ✅ Streifen-Weg echt getestet (Server → Schnitt → Film, Mac-Probe);
+Simulator Ende zu Ende mit dem 2×2-Vorgänger.
+- ⚠ Skizzen liegen nur in `Documents/sketches`, NICHT in der Sicherung.
+- ⚠ Der Server im Hauptordner läuft gerade aus diesem Worktree
+  (`bun …/Traum-App-anton/server.js`, Port 8100) — nach dem Merge wieder
+  aus dem Hauptordner auf main starten.
+
+**Design-Runde 25./26.09. (PR #62):** Vorschau nach dem Einsprechen
+(„Verbessert" oben, leuchtend; eigene Worte aufklappbar) · Traum-Tab nimmt
+NICHT mehr von selbst auf · Nachhören mit Maskottchen + Sprechblase ·
+umlaufender Leuchtrand an jedem Hauptknopf (`components/orbit-glow.tsx`) ·
+„Was soll daraus werden?" als zwei große Filmkacheln mit Glaswelle
+(Platzhalter-Clips) · **Besetzung Karte für Karte** (`dream/cast.tsx`) ·
+Stilwahl mit dominanter Auswahl und Pfeilen · Modellwahl: „Bester Preis",
+„Beste Qualität" orange, „Am günstigsten" + Preis, Gedrückthalten →
+Info-Blatt mit Beispielfilm (Platzhalter) · Menüleiste schrumpft nicht mehr
+(„Menü-Buttons oft nicht klickbar" — auf dem iPhone noch zu bestätigen).
+
+**Offen für Anton:** den letzten Build aufs iPhone (liegt fertig in
+`~/.dr-dd-anton`, iPhone war beim Wrap nicht erreichbar); Skizze und
+Design am Gerät prüfen; echte Clips für die Kacheln und Info-Blätter;
+Seedance-2.5-**Draft** (480p-Entwurf, binnen 7 Tagen auf 1080p
+fertigstellen) — Preis der Fertigstellung noch messen; Hannis Fragen
+(Hosting-Budget, Prüfer-Credits, Store-Länder).
+
+**Nächster App-Bau auf Antons Mac:** `cd mobile && bun install` →
+**EventEmitter-Patch erneut setzen** → `cd ios && pod install` →
+Release-Bau → `devicectl`. ⚠ **KEIN Prebuild auf Antons Mac.**
+`mobile/.env` zeigt auf `192.168.178.97:8100` (Mac-Adresse prüfen, sie
+wechselte am 25.09. kurz auf 192.168.1.152).
 
 **Schritt C, Teil 1 fertig (25.09.): Speicher-Modul `src/lib/media-store.js`**
 — put/get/list/remove/removeAll, lokal (atomar) und S3 über Buns
