@@ -7,7 +7,7 @@ import JournalBridge from "@/legacy/journal-bridge";
 import { closeGlimpse, finishGlimpse, noteGlimpse, openGlimpseEntries, restoreGlimpses, takeGlimpse, useGlimpseQueue, type GlimpseJob } from "@/store/glimpse-store";
 import { setJournal, type BridgeCommand, type BridgeResult, type JournalSnapshot } from "@/store/journal-store";
 import { showToast } from "@/store/toast-store";
-import { DreamSketch, resolveSketchesDeep } from "../../modules/dream-sketch";
+import { DreamSketch, resolveSketchesDeep, resolveSketchUrl } from "../../modules/dream-sketch";
 
 /* Der Glimpse im Hintergrund (26.09.2026, Antons Ansage): Der Glimpse-
  * Bildschirm legt nur den Auftrag ab (store/glimpse-store.ts) und schickt
@@ -15,8 +15,13 @@ import { DreamSketch, resolveSketchesDeep } from "../../modules/dream-sketch";
  * Wurzel-Layout — mit EIGENER Brücke, wie die Konto-Sicherung — macht ihn
  * fertig, egal welcher Tab offen ist:
  *
- *   Ton (parallel) · alle Bilder (parallel) · schneiden · Film mit Ton ·
- *   ins Journal · Benachrichtigung „Dein Glimpse ist fertig".
+ *   alle Bilder (parallel) · schneiden · Film (ohne Partikel, Nebel,
+ *   Farbstufe) · Film in die Cloud: Geräusche AUS DEM FILM + Musik
+ *   (/api/sketch-sound, multipart) · Ton unterlegen · ins Journal ·
+ *   Benachrichtigung „Dein Glimpse ist fertig".
+ *
+ * Seit 26.09. spätabends (Antons Ansage) entsteht der Ton erst NACH dem
+ * Film: Das Modell sieht die Bilder und legt die Effekte passend darauf.
  *
  * Absturz oder Beenden mittendrin (26.09. abends, Antons Befund): Das
  * Protokoll (store/glimpse-store.ts) hält jede fertige Stufe fest; beim
@@ -30,9 +35,24 @@ import { DreamSketch, resolveSketchesDeep } from "../../modules/dream-sketch";
  * iOS nach wenigen Sekunden an; sie laufen weiter, sobald die App wieder
  * offen ist. Scheitert etwas, bekommt der Traum im Journal den Fehler
  * statt ewig „entsteht gerade". */
-const SOUND_GRACE_MS = 15000;
-/* Kommt der Ton später (fal-Kaltstart), wird er bis dahin noch nachgereicht. */
-const SOUND_LATE_MS = 180000;
+/* Bis zum Journal wartet der Glimpse so lange auf den Ton (fal-Kaltstart
+   gemessen: bis ~100 s); kommt er später, wird er noch nachgereicht. */
+const SOUND_WAIT_MS = 240000;
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "http://localhost:8100";
+
+/** Den fertigen Film hochladen; zurück kommt die gemischte Tonspur (m4a). */
+async function soundFromFilm(job: GlimpseJob, filmUri: string): Promise<string | null> {
+  const fd = new FormData();
+  fd.append("video", { uri: filmUri, name: "film.mp4", type: "video/mp4" } as any);
+  fd.append("styleId", job.styleId);
+  fd.append("mood", job.mood);
+  fd.append("seconds", String(job.seconds));
+  fd.append("beats", JSON.stringify(job.beats));
+  const res = await fetch(`${API_BASE}/api/sketch-sound`, { method: "POST", body: fd });
+  const out = await res.json().catch(() => null);
+  if (!res.ok || typeof out?.url !== "string") return null;
+  return out.url.startsWith("/") ? API_BASE + out.url : out.url;
+}
 
 export function GlimpseLayer() {
   const busy = useGlimpseQueue();
@@ -86,15 +106,6 @@ async function run(job: GlimpseJob, ask: (cmd: Omit<BridgeCommand, "n">) => Prom
   const p = job.prep;
   try {
     if (!DreamSketch) throw new Error("unsupported");
-    // Der Ton startet sofort und läuft neben den Bildern her (außer er ist schon da).
-    const sound: Promise<string | null> = job.sound
-      ? Promise.resolve(job.sound)
-      : ask({ type: "sketchSound", sketchSound: { styleId: job.styleId, mood: job.mood, beats: job.beats, seconds: job.seconds } })
-        .then((r) => {
-          const u = typeof r.result?.url === "string" ? (r.result.url as string) : null;
-          if (u) noteGlimpse(job.id, { sound: u });
-          return u;
-        }).catch(() => null);
     let scenes = job.scenes ?? [];
     if (!scenes.length) {
       let urls = job.urls ?? [];
@@ -111,13 +122,22 @@ async function run(job: GlimpseJob, ask: (cmd: Omit<BridgeCommand, "n">) => Prom
       scenes = (await Promise.all(urls.map((u, k) => DreamSketch!.importGrid(u, `${job.id}-${k}`, 4, 1)))).flat();
       noteGlimpse(job.id, { scenes });
     }
-    // Der Film — mit Ton, wenn er bis dahin (plus Gnadenfrist) da ist.
-    const soundUrl = await Promise.race([sound, new Promise<null>((r) => setTimeout(() => r(null), SOUND_GRACE_MS))]);
+    // Der Film — nur Bild, Tiefe und Kamera (keine Partikel, kein Nebel, keine Farbstufe).
     const film = await DreamSketch.renderSketch(
-      { opening: [], scenes, morphs: [], particles: p.particles || "dust", vertigo: job.vertigo, seed: job.seed, fog: 0.12,
-        hold: job.hold, fade: job.fade, ...(soundUrl ? { sound: soundUrl } : {}) },
+      { opening: [], scenes, morphs: [], particles: p.particles || "dust", vertigo: job.vertigo, seed: job.seed, fog: 0,
+        hold: job.hold, fade: job.fade, effects: false },
       `${job.id}.mp4`,
     );
+    // Der Film geht in die Cloud; zurück kommt der Ton, der zu ihm passt.
+    const filmUri = resolveSketchUrl(film.film) ?? "";
+    const sound: Promise<string | null> = job.sound
+      ? Promise.resolve(job.sound)
+      : soundFromFilm(job, filmUri).then((u) => { if (u) noteGlimpse(job.id, { sound: u }); return u; }).catch(() => null);
+    const soundUrl = await Promise.race([sound, new Promise<null>((r) => setTimeout(() => r(null), SOUND_WAIT_MS))]);
+    let withSound = false;
+    if (soundUrl) {
+      withSound = await DreamSketch.addSound(film.film, soundUrl).then(() => true).catch((e) => { console.warn("[glimpse] Ton", e?.message || e); return false; });
+    }
     const r = await ask({ type: "sketch", sketch: {
       entryId: job.entryId, text: job.dream.text, originalText: job.dream.originalText, analysis: job.dream.analysis,
       styleId: job.styleId, film: film.film, stills: scenes, seconds: Math.round(film.seconds * 10) / 10,
@@ -130,11 +150,10 @@ async function run(job: GlimpseJob, ask: (cmd: Omit<BridgeCommand, "n">) => Prom
       trigger: null,
     }).catch(() => {});
     // Der Film ist da; kam der Ton zu spät, wird er jetzt noch daruntergelegt.
-    // Nebenher, damit der nächste Glimpse nicht darauf wartet.
-    if (!film.sound) {
+    // Kam der Ton nicht rechtzeitig, wird er nebenher nachgereicht.
+    if (!withSound && !soundUrl) {
       const sketch = DreamSketch;
-      void Promise.race([sound, new Promise<null>((r) => setTimeout(() => r(null), SOUND_LATE_MS))])
-        .then((late) => (late ? sketch.addSound(film.film, late) : null))
+      void sound.then((late) => (late ? sketch.addSound(film.film, late) : null))
         .catch((e) => console.warn("[glimpse] Ton nachträglich", e?.message || e));
     }
   } catch (e: any) {

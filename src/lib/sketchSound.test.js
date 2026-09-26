@@ -26,6 +26,9 @@ test("die Prompts: Look, Tempo, keine Stimmen; Atmosphäre ohne Treffer hat eine
   expect(p.music).toContain("no vocals");
   expect(p.ambience).toContain("soft rain");
   expect(p.negative).toContain("vocals");
+  expect(p.sfx).toContain("soft rain");
+  expect(p.sfx).toContain("no music");
+  expect(p.sfxNegative).toContain("music");
   expect(p.seconds).toBe(26);
   expect(buildSoundPrompts({ styleId: "unbekannt", beats: [] }).ambience).toContain("soft wind");
 });

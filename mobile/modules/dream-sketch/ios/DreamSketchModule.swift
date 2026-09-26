@@ -240,6 +240,7 @@ public class DreamSketchModule: Module {
           p.particles = SketchParticles.Kind(rawValue: (plan["particles"] as? String) ?? "dust") ?? .dust
           p.vertigo = (plan["vertigo"] as? Int) ?? -1
           p.seed = UInt64(truncatingIfNeeded: (plan["seed"] as? Int) ?? 1)
+          p.effects = (plan["effects"] as? Bool) ?? true
           var o = SketchRenderer.Options()
           if let fog = plan["fog"] as? Double { o.fog = max(0, min(fog, 0.6)) }
           // Mehr Szenen → jede kürzer (26.09., src/lib/sketchQuota.js sketchTiming).

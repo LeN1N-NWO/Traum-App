@@ -936,7 +936,7 @@ export default {
           name: "Glimpse", hint: "4 bis 12 Szenen mit deinen Gesichtern, Musik und Klang — der Film entsteht auf deinem iPhone",
           badge: "Am günstigsten",
           model: "GPT Image 2 + dein iPhone",
-          info: "Der schnelle, günstige Weg in deinen Traum: Vier, acht oder zwölf Szenen werden in deinem gewählten Look gemalt — mit den Gesichtern aus deiner Besetzung —, und passend dazu entstehen Musik und Klang. Dein iPhone misst dann, wie tief jede Szene ist, und fliegt mit der Kamera hindurch, mit treibendem Licht und Staub. Keine echte Bewegung der Figuren, aber eine bewegte Erinnerung in Sekunden. Fünf im Monat sind gratis.",
+          info: "Der schnelle, günstige Weg in deinen Traum: Vier, acht oder zwölf Szenen werden in deinem gewählten Look gemalt — mit den Gesichtern aus deiner Besetzung —, und passend dazu entstehen Musik und Klang. Dein iPhone misst dann, wie tief jede Szene ist, und fliegt mit der Kamera hindurch; die Geräusche entstehen danach aus dem fertigen Film. Keine echte Bewegung der Figuren, aber eine bewegte Erinnerung in Sekunden. Fünf im Monat sind gratis.",
         },
       },
       qualityLabel: "Qualität",
