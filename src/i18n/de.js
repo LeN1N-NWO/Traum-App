@@ -784,7 +784,7 @@ export default {
     mascotReview: ["Das war eine Nacht! Willst du sie nochmal hören?", "Tipp auf Anhören — ich höre mit.", "Passt alles? Dann schreibe ich es für dich auf."],
     recordListen: "Anhören", recordPause: "Pause", recordTranscribe: "Aufschreiben", recordRetake: "Neu aufnehmen",
     typeInstead: "Lieber schreiben", textTitle: "Dein Traum", textLede: "Aus deiner Aufnahme. Lies drüber und ergänze, was fehlt.",
-    tellMore: "Weiter erzählen", rewriteAll: "Neu schreiben",
+    tellMore: "Weiter erzählen", rewriteAll: "Neu schreiben", editText: "Text bearbeiten",
     interview: "Laut erzählen",
     interviewHint: "Ich frage, du erzählst — Augen zu, wenn du magst",
     reading: "Dein Traum wird ausgewertet…",

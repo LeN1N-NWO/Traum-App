@@ -43,11 +43,22 @@ enum SketchDepth {
     // ⚠ Zeilenreihenfolge: Bild (SketchParallax.rgba) und Tiefe werden über
     // DIESELBE Schnittstelle gelesen (render toBitmap) — dann liegen sie
     // garantiert deckungsgleich, egal wie Core Image intern zählt.
+    /* ⚠ Absturz am 26.09. (Antons iPhone, Glimpse mit vielen Szenen): Gibt
+       das Modell für ein fast einfarbiges Bild NaN/∞ zurück, wurde die
+       ganze Karte NaN (max/min reichen NaN durch), und die Umrechnung in
+       Bytes bzw. Pixelkoordinaten (UInt8(NaN), Int(NaN)) bricht Swift hart
+       ab. Deshalb: Ungültiges → 0, und eine Karte ohne Spanne wird flach
+       (0,5) statt geteilt. */
+    for i in out.indices where !out[i].isFinite { out[i] = 0 }
     // Relative Tiefe → 0…1 (robust: 2. und 98. Perzentil statt min/max).
     let sorted = out.sorted()
     let lo = sorted[Int(Double(sorted.count) * 0.02)], hi = sorted[Int(Double(sorted.count) * 0.98)]
-    let span = max(hi - lo, 1e-4)
-    return out.map { min(max(($0 - lo) / span, 0), 1) }
+    guard hi - lo > 1e-4 else { return [Float](repeating: 0.5, count: out.count) }
+    let span = hi - lo
+    return out.map { v in
+      let x = (v - lo) / span
+      return x.isFinite ? min(max(x, 0), 1) : 0.5
+    }
   }
 }
 

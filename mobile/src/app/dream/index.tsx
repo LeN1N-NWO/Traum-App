@@ -61,11 +61,16 @@ export default function DreamTextScreen() {
     setText(""); setPreview(null); setError(null); setFromVoice(false); setStage("voice");
   }, [w.resets]);
 
+  /* Aufgeschrieben → sofort lesen lassen (Antons Ansage 26.09. abends: die
+     Seite „Dein Traum" fällt nach dem Einsprechen weg). Wer den Text ändern
+     will, kommt aus der Vorschau mit „Text bearbeiten" dorthin. */
   function onText(t: string, audioUrl: string | null) {
-    setText((prev) => (prev.trim() ? `${prev.trim()}\n\n${t}` : t));
+    const full = text.trim() ? `${text.trim()}\n\n${t}` : t;
+    setText(full);
     if (audioUrl) patchWizard({ audioUrl });
     setFromVoice(true);
     setStage("text");
+    read(full.trim());
   }
 
   function onType() {
@@ -135,6 +140,9 @@ export default function DreamTextScreen() {
               <GlassButton label={W?.keepMine ?? "Keep my words"} onPress={() => go(false)} />
               <PrimaryButton label={W?.useImproved ?? "Use this version"} onPress={() => go(true)} />
             </View>
+            <Pressable onPress={() => { Haptics.selectionAsync(); setPreview(null); setStage("text"); }} hitSlop={10} accessibilityRole="button">
+              <Text style={styles.editLink}>{W?.editText ?? "Edit the text"}</Text>
+            </Pressable>
           </>
         ) : stage === "voice" ? (
           <DreamRecorder
@@ -199,5 +207,6 @@ const styles = StyleSheet.create({
   body: { color: colors.text, fontSize: 16, lineHeight: 25 },
   poster: { color: colors.muted, fontSize: 14 },
   actions: { flexDirection: "row", gap: 10, alignItems: "stretch" },
+  editLink: { color: colors.accentSoft, fontSize: 14, textAlign: "center", marginTop: 2 },
   bridge: { height: 0, overflow: "hidden" },
 });

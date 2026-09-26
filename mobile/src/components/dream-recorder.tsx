@@ -1,10 +1,9 @@
-import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, useAudioRecorder, useAudioRecorderState } from "expo-audio";
+import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from "expo-audio";
 import { File } from "expo-file-system";
 import * as Haptics from "expo-haptics";
-import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn, useSharedValue, withTiming } from "react-native-reanimated";
+import { StyleSheet, Text, View } from "react-native";
+import { useSharedValue, withTiming } from "react-native-reanimated";
 import { GlassButton, PrimaryButton } from "@/components/glass";
 import { MascotLoader } from "@/components/mascot-loader";
 import { MoonButton } from "@/components/moon-button";
@@ -31,7 +30,7 @@ import { colors, fonts } from "@/theme";
  * vorher stumm (recording-store, expo-video stiehlt sonst die Session), der
  * Blob braucht ausdrücklich audio/mp4, die Dauer kommt aus dem Rekorder
  * selbst statt aus dem gepollten Zustand. */
-type Phase = "idle" | "rec" | "review" | "busy" | "error";
+type Phase = "idle" | "rec" | "busy" | "error";
 type Labels = Record<string, any>;
 
 export function DreamRecorder({ W, language, autoStartKey, active, onText, onType, onPendingAudio }: {
@@ -46,18 +45,9 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   // Mit Pegel (26.09.): die Glühwürmchen am Mond-Knopf tanzen zur Stimme.
   const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
   const st = useAudioRecorderState(recorder, 100);
-  const player = useAudioPlayer(null);
-  const ps = useAudioPlayerStatus(player);
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [allowed, setAllowed] = useState<boolean | null>(null);
-  const [say, setSay] = useState(0);
-  // Die Sprechblase wechselt alle paar Sekunden, solange nachgehört wird.
-  useEffect(() => {
-    if (phase !== "review") return;
-    const t = setInterval(() => setSay((n) => n + 1), 4200);
-    return () => clearInterval(t);
-  }, [phase]);
   const uri = useRef<string | null>(null);
   const audioUrl = useRef<string | null>(null);
   const lastKey = useRef(0);
@@ -95,7 +85,6 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     cancelled.current = false;
     setError(null);
-    try { player.pause(); } catch {}
     try {
       setRecording(true); holdForRecording(true);
       await new Promise((r) => setTimeout(r, 250));
@@ -123,9 +112,12 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     audioUrl.current = null;
     // Wiedergabe über den Lautsprecher: mit allowsRecording spielt iOS leise übers Ohr.
     await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => {});
-    player.replace({ uri: u });
-    setPhase("review");
     upload(u);
+    /* Seit 26.09. abends (Antons Ansage: „Stopp heißt: gleich weiter, die
+       nächste Seite fällt weg"): kein Anhören-Zwischenschritt mehr — nach
+       dem Stopp wird sofort aufgeschrieben, und der Traum-Bildschirm lässt
+       ihn danach direkt von der KI lesen. Die Aufnahme hängt am Traum. */
+    transcribe();
   }
 
   async function upload(u: string) {
@@ -141,7 +133,6 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   async function transcribe() {
     if (!uri.current) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try { player.pause(); } catch {}
     cancelled.current = false;
     setPhase("busy");
     try {
@@ -166,7 +157,6 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   async function discard() {
     cancelled.current = true;
     try { if (recorder.getStatus().isRecording) await recorder.stop(); } catch {}
-    try { player.pause(); } catch {}
     setRecording(false); holdForRecording(false);
     reset();
   }
@@ -176,12 +166,6 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     onType();
   }
 
-  function togglePlay() {
-    Haptics.selectionAsync();
-    if (ps.playing) { player.pause(); return; }
-    if (ps.didJustFinish || (ps.duration > 0 && ps.currentTime >= ps.duration - 0.05)) player.seekTo(0);
-    player.play();
-  }
 
   /* Der Pegel in dB (−160…0) → 0…1; leise Räume beginnen um −55 dB. */
   const level = useSharedValue(0);
@@ -192,45 +176,13 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
 
   const secs = Math.floor((st.durationMillis || 0) / 1000);
   const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-  const progress = ps.duration > 0 ? Math.min(1, ps.currentTime / ps.duration) : 0;
 
   if (phase === "busy") {
     return (
       <View style={styles.center}>
         <MascotLoader />
         <Text style={styles.title}>{W?.recordTranscribing ?? "Writing it down…"}</Text>
-        <GlassButton label={W?.cancel ?? "Cancel"} onPress={() => { cancelled.current = true; setPhase("review"); }} style={{ flex: 0, marginTop: 16 }} />
-      </View>
-    );
-  }
-
-  if (phase === "review") {
-    /* Antons Ansage 26.09.: oben das Maskottchen mit Sprechblase, darunter
-       ein klarer „Anhören"-Knopf, dann „Aufschreiben" mit Leuchtrand. */
-    const lines = W?.mascotReview?.length ? W.mascotReview : [W?.reviewHint ?? ""];
-    return (
-      <View style={styles.center}>
-        <View style={styles.mascotRow}>
-          <MascotLoader size={120} />
-          <Animated.View key={say % lines.length} entering={FadeIn.duration(400)} style={styles.bubble}>
-            <Text style={styles.bubbleText}>{lines[say % lines.length]}</Text>
-            <View style={styles.bubbleTail} />
-          </Animated.View>
-        </View>
-        <Pressable onPress={togglePlay} style={({ pressed }) => [styles.listen, pressed && { transform: [{ scale: 0.98 }] }]}
-          accessibilityRole="button" accessibilityLabel={ps.playing ? (W?.recordPause ?? "Pause") : (W?.recordListen ?? "Listen back")}>
-          <View style={styles.play}><SymbolView name={ps.playing ? "pause.fill" : "play.fill"} size={24} tintColor={colors.bg} /></View>
-          <View style={{ flex: 1, gap: 8 }}>
-            <Text style={styles.listenLabel}>{ps.playing ? (W?.recordPause ?? "Pause") : (W?.recordListen ?? "Listen back")}</Text>
-            <View style={styles.track}><View style={[styles.trackFill, { width: `${progress * 100}%` }]} /></View>
-          </View>
-          <Text style={styles.time}>{clock(ps.currentTime || 0)} / {clock(ps.duration || 0)}</Text>
-        </Pressable>
-        <PrimaryButton label={`✎ ${W?.recordTranscribe ?? "Write it down"}`} heavy onPress={transcribe} style={{ flex: 0, alignSelf: "stretch", marginTop: 8 }} />
-        <View style={styles.row}>
-          <GlassButton label={W?.recordRetake ?? W?.recordAgain ?? "Record again"} onPress={async () => { await discard(); start(); }} />
-          <GlassButton label={W?.typeInstead ?? "Type instead"} onPress={typeInstead} />
-        </View>
+        <GlassButton label={W?.cancel ?? "Cancel"} onPress={discard} style={{ flex: 0, marginTop: 16 }} />
       </View>
     );
   }
@@ -264,15 +216,4 @@ const styles = StyleSheet.create({
   stopHint: { color: colors.faint, fontSize: 13 },
   error: { color: colors.warm, fontSize: 14, textAlign: "center" },
   row: { flexDirection: "row", gap: 10, alignSelf: "stretch", marginTop: 6 },
-  mascotRow: { flexDirection: "row", alignItems: "center", alignSelf: "stretch", gap: 4 },
-  bubble: { flex: 1, padding: 14, borderRadius: 18, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
-  bubbleText: { color: colors.text, fontSize: 15, lineHeight: 21 },
-  bubbleTail: { position: "absolute", left: -6, top: 22, width: 12, height: 12, backgroundColor: colors.panel, transform: [{ rotate: "45deg" }], borderLeftWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
-  listen: { flexDirection: "row", alignItems: "center", gap: 14, alignSelf: "stretch", padding: 14, borderRadius: 22, backgroundColor: "rgba(242,167,101,0.10)", borderWidth: 1, borderColor: "rgba(242,167,101,0.45)", marginTop: 6 },
-  listenLabel: { color: colors.text, fontSize: 17, fontWeight: "700" },
-  playerCard: { flexDirection: "row", alignItems: "center", gap: 14, alignSelf: "stretch", padding: 16, borderRadius: 22, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, marginTop: 14 },
-  play: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.warm, alignItems: "center", justifyContent: "center" },
-  track: { height: 4, borderRadius: 2, backgroundColor: colors.panelLine, overflow: "hidden" },
-  trackFill: { height: 4, backgroundColor: colors.warm },
-  time: { color: colors.muted, fontSize: 13, fontVariant: ["tabular-nums"] },
 });

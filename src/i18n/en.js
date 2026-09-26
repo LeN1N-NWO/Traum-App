@@ -832,7 +832,7 @@ export default {
     mascotReview: ["That was quite a night! Want to hear it again?", "Tap play — I'll listen along.", "Sounds right? Then I'll write it down for you."],
     recordListen: "Play", recordPause: "Pause", recordTranscribe: "Write it down", recordRetake: "Record again",
     typeInstead: "Type instead", textTitle: "Your dream", textLede: "From your recording. Read it through and add what's missing.",
-    tellMore: "Keep telling", rewriteAll: "Start over",
+    tellMore: "Keep telling", rewriteAll: "Start over", editText: "Edit the text",
     interview: "Tell it out loud",
     interviewHint: "I'll ask, you talk — eyes closed if you like",
     reading: "Working out your dream…",

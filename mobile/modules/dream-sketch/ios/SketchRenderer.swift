@@ -94,10 +94,10 @@ enum SketchRenderer {
     let aspect = stills.first.map { $0.extent.width / max(1, $0.extent.height) } ?? 1
     let portrait = aspect < 0.8
     let sw = portrait ? o.width : o.source, sh = portrait ? o.height : o.source
-    let pixels = stills.map { SketchParallax.rgba($0, w: sw, h: sh, context: context) }
+    let pixels = stills.map { still in autoreleasepool { SketchParallax.rgba(still, w: sw, h: sh, context: context) } }
     let depths: [[Float]?] = stills.map { still in
       guard let m = depthModel else { return nil }
-      return try? SketchDepth.estimate(still, model: m, w: sw, h: sh, context: context)
+      return autoreleasepool { try? SketchDepth.estimate(still, model: m, w: sw, h: sh, context: context) }
     }
     let farMasks: [CIImage?] = depths.map { d in d.map { farMask($0, w: sw, h: sh) } }
     let nearMaps: [CIImage?] = depths.map { d in d.map { nearMap($0, w: sw, h: sh) } }
@@ -170,7 +170,12 @@ enum SketchRenderer {
     let frames = Int((total * Double(o.fps)).rounded())
     let canvas = CGRect(x: 0, y: 0, width: o.width, height: o.height)
 
-    for f in 0..<frames {
+    /* ⚠ Absturz am 26.09. (Antons iPhone, Glimpse mit 8–12 Szenen): Ohne
+       eigenen Autorelease-Pool je Bild wurden die Puffer JEDES Filmbilds
+       (je Szene ~2,4 MB RGBA + Core-Image-Zwischenstufen) erst nach dem
+       ganzen Film freigegeben — 390 Bilder gingen noch, 750 ließen den
+       Speicher volllaufen (Crash in Data/__DataStorage.init). */
+    for f in 0..<frames { try autoreleasepool {
       let t = Double(f) / Double(o.fps)
       let cam = camera(t)
       let win = window(t)
@@ -240,7 +245,7 @@ enum SketchRenderer {
       guard let pb = buffer else { throw NSError(domain: "DreamSketch", code: 14) }
       context.render(frame, to: pb)
       adaptor.append(pb, withPresentationTime: CMTime(value: CMTimeValue(f), timescale: o.fps))
-    }
+    } }
 
     input.markAsFinished()
     let done = DispatchSemaphore(value: 0)
@@ -252,7 +257,8 @@ enum SketchRenderer {
 
   /// Die Tiefe als Graubild (nah = hell) — Maske der Tiefen-Überblendung.
   static func nearMap(_ depth: [Float], w: Int, h: Int) -> CIImage {
-    let bytes = depth.map { (d: Float) -> UInt8 in UInt8(min(max(d, 0), 1) * 255) }
+    // d.isFinite: siehe SketchDepth.estimate — UInt8(NaN) bricht hart ab.
+    let bytes = depth.map { (d: Float) -> UInt8 in d.isFinite ? UInt8(min(max(d, 0), 1) * 255) : 128 }
     return CIImage(bitmapData: Data(bytes), bytesPerRow: w, size: CGSize(width: w, height: h),
                    format: .L8, colorSpace: nil)
   }
@@ -261,7 +267,8 @@ enum SketchRenderer {
   /// ab da ist alles frei — eine weiche Kurve über die ganze Tiefe legte
   /// am 25.09. Nebel auch auf Figuren und Vordergrund.
   static func farMask(_ depth: [Float], w: Int, h: Int) -> CIImage {
-    let bytes = depth.map { (d: Float) -> UInt8 in
+    let bytes = depth.map { (raw: Float) -> UInt8 in
+      let d: Float = raw.isFinite ? raw : 0.5
       let m: Float = min(max((0.45 - d) / 0.35, 0), 1)
       let s: Float = m * m * (3 - 2 * m)
       return UInt8(s * 255)

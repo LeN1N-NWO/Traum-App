@@ -3,6 +3,31 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-26 15:00 — Anton — Branch `session/2026-09-26c-anton` (PR #67) — Glimpse-Absturz, Protokoll, echter Mond, ruhige Glühwürmchen, schneller Ablauf
+
+**Was:** (1) Absturzbericht vom iPhone geholt und ausgewertet: Speicher
+lief beim Rendern voll (kein Autorelease-Pool je Filmbild) → Pools
+eingebaut, Mac-Messung 4,9 → 0,96 GB bei 12 Szenen; Tiefe NaN-fest.
+(2) Protokoll für Glimpse-Aufträge mit Wiederaufnahme und Aufräumen
+verwaister „Rendering"-Einträge. (3) Echter Mond aus der NASA-LRO-Karte
+als Aufnahmeknopf. (4) Glühwürmchen mit freien, geglätteten Bahnen.
+(5) Stopp → sofort aufschreiben → sofort KI-Lesen. (6) „KI erfindet" als
+Vorgabe ohne Foto.
+
+**Warum:** Antons iPhone-Test: App abgestürzt, danach Endlosschleife
+„Rendering"; „ich will den echten Mond"; „die Glühwürmchen zittern";
+„alles beschleunigen"; „KI erfindet vorauswählen".
+
+**Belege:** Crash-Log (EXC_BREAKPOINT in __DataStorage.init, Thread
+dreamrushes.sketch); Mac-Probe alt/neu mit 12 Szenen (/usr/bin/time -l);
+Simulator: Traum-Tab mit echtem Mond und verteilten Glühwürmchen
+angesehen. 821 Tests, tsc, Lint, i18n grün. Build auf Antons iPhone.
+
+**Für den Nächsten:** Wiederaufnahme/Aufräumen nach echtem Absturz noch
+nicht beobachtet. Glühwürmchen mit Stimme und der neue Sofort-Ablauf nur
+am Gerät prüfbar. Der „Das Känguru gewinnt"-Traum wird beim ersten Start
+als gescheitert markiert (vor dem Protokoll entstanden).
+
 ## 2026-09-26 13:00 — Anton — Branch `session/2026-09-26b-anton` (PR #66) — Glimpse mit Länge, Ton und Hintergrund; Traum-Tab mit Mond und Glühwürmchen
 
 **Was:** (1) Vorschläge-Seite Traum-Tab/Frosch (Artifact); Anton wählte

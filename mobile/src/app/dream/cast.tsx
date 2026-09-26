@@ -58,8 +58,9 @@ export default function DreamCastScreen() {
     const o = w.assignmentOverrides[row.name];
     if (o?.free) return { free: true, avatar: null };
     const id = o?.avatarId ?? row.avatarId;
-    // Orte und Dinge ohne Treffer starten auf „KI erfindet" (startsFree im Web).
-    if (!id && !o && (row.kind === "place" || row.kind === "object")) return { free: true, avatar: null };
+    /* Ohne Foto in der Bibliothek ist „KI erfindet" vorgewählt — für alle,
+       auch Menschen und Tiere (Antons Ansage 26.09.). */
+    if (!id && !o) return { free: true, avatar: null };
     return { free: false, avatar: cast?.library.find((l) => l.id === id) ?? null };
   };
   function set(name: string, value: { avatarId?: string; free?: boolean }) {
