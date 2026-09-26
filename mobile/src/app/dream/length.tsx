@@ -1,5 +1,5 @@
 import { Button, Host, HStack, Image as SFImage, Menu, Slider, Spacer, Text as SText, VStack } from "@expo/ui/swift-ui";
-import { font, foregroundStyle, frame, kerning, padding } from "@expo/ui/swift-ui/modifiers";
+import { font, foregroundStyle, frame, kerning, lineLimit, minimumScaleFactor, padding } from "@expo/ui/swift-ui/modifiers";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -132,8 +132,10 @@ export default function DreamLengthScreen() {
               onPress={() => { Haptics.selectionAsync(); c.pick(); }} onLongPress={() => explain({ title: c.name, model: c.model, info: c.info, clip: c.clip })}
               accessibilityRole="button" accessibilityState={{ selected: c.on }} accessibilityLabel={`${c.name}, ${c.price}`}>
               {c.badge ? (
-                <View style={[styles.badge, c.id === "premium" && styles.badgeBest, c.free && styles.badgeFree]} pointerEvents="none">
-                  <Text style={styles.badgeText} numberOfLines={1}>{c.badge}</Text>
+                <View style={styles.badgeRow} pointerEvents="none">
+                  <View style={[styles.badge, c.id === "premium" && styles.badgeBest, c.free && styles.badgeFree]}>
+                    <Text style={styles.badgeText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{c.badge}</Text>
+                  </View>
                 </View>
               ) : null}
               <Text style={[styles.cardName, c.on && styles.on]} numberOfLines={1} adjustsFontSizeToFit>{c.name}</Text>
@@ -224,7 +226,7 @@ function Chip({ label, value, selected, options, onPick }: { label: string; valu
           <VStack alignment="leading" spacing={2} modifiers={[frame({ maxWidth: 1000, maxHeight: 1000, alignment: "leading" }), padding({ horizontal: 12 })]}>
             <SText modifiers={[font({ size: 10, weight: "semibold" }), kerning(1.2), foregroundStyle(colors.faint)]}>{label.toUpperCase()}</SText>
             <HStack spacing={4}>
-              <SText modifiers={[font({ size: 15, weight: "semibold" }), foregroundStyle(colors.text)]}>{value}</SText>
+              <SText modifiers={[font({ size: 15, weight: "semibold" }), foregroundStyle(colors.text), lineLimit(1), minimumScaleFactor(0.6)]}>{value}</SText>
               <Spacer />
               <SFImage systemName="chevron.up.chevron.down" size={11} color={colors.faint} />
             </HStack>
@@ -248,10 +250,11 @@ const styles = StyleSheet.create({
   cardName: { fontFamily: fonts.serif, fontSize: 20, color: colors.text },
   cardPrice: { color: colors.muted, fontSize: 12, fontWeight: "700", fontVariant: ["tabular-nums"] },
   on: { color: colors.accentSoft },
-  badge: { position: "absolute", top: -9, right: 8, maxWidth: "92%", backgroundColor: colors.accentSoft, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 7, zIndex: 1 },
+  badgeRow: { position: "absolute", top: -9, left: 3, right: 3, alignItems: "center", zIndex: 1 },
+  badge: { maxWidth: "100%", backgroundColor: colors.accentSoft, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 6 },
   badgeFree: { backgroundColor: colors.ok },
   badgeBest: { backgroundColor: colors.warm },
-  badgeText: { color: colors.bg, fontSize: 9, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" },
+  badgeText: { color: colors.bg, fontSize: 8.5, fontWeight: "700", letterSpacing: 0.3, textTransform: "uppercase" },
   chips: { flexDirection: "row", gap: 8 },
   chip: { flex: 1, height: 54, borderRadius: 16, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.panelLine, overflow: "hidden" },
   show: { flex: 1, minHeight: 150, borderRadius: radius.lg, overflow: "hidden", backgroundColor: colors.bg2, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.14)" },
