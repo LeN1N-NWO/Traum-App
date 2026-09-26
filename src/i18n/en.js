@@ -964,13 +964,13 @@ export default {
       filmModelLabel: "Which model",
       filmModels: {
         standard: {
-          name: "Alive", hint: "your opening image starts to move, with sound · up to 15 seconds",
+          name: "Glow", hint: "your opening image starts to move, with sound · up to 15 seconds",
           badge: "Best price",
           model: "MiniMax H3 Max Turbo",
           info: "The quick tier: it brings your opening image convincingly to life, sound included, and carries up to four reference photos so the real faces stay themselves. Films top out at 15 seconds. Pick the quality below — the credits per second are shown on the switch.",
         },
         premium: {
-          name: "Cinema", hint: "up to 30 seconds in one take, with sound",
+          name: "Aurora", hint: "up to 30 seconds in one take, with sound",
           badge: "Best quality",
           model: "Seedance 2.5",
           info: "The longest story: one unbroken take of up to 30 seconds, with sound and second-precise timing — and your reference photos stay in the film the whole way. Pick the quality below; the sharp tier costs more than double here, the credits are on the switch.",
@@ -978,7 +978,7 @@ export default {
         /* Die Traum-Skizze (24.09.2026): entsteht auf dem iPhone selbst,
            kostet keine Credits. Nur auf Geräten, die es können. */
         sketch: {
-          name: "Sketch", hint: "4 scenes with your faces, the film is made on your iPhone",
+          name: "Glimpse", hint: "4 scenes with your faces, the film is made on your iPhone",
           badge: "Cheapest",
           model: "GPT Image 2 + your iPhone",
           info: "The quick, cheap way into your dream: one image with four scenes is painted in your chosen look — with the faces from your cast. Your iPhone then measures how deep every scene is and flies a camera through it, with drifting light and dust. No real motion of people, but a moving memory in seconds. Three a month are free.",
@@ -1049,7 +1049,7 @@ export default {
     /* Die Traum-Skizze — dream/sketch.tsx. Platzhalter {i} {n} {done} {total}
        werden nativ ersetzt (die Brücke reicht nur Zeichenketten). */
     sketch: {
-      title: "Dream sketch",
+      title: "Glimpse",
       lede: "Four scenes from your dream in the look you picked — with the faces from your cast. Your iPhone turns them into a film with depth.",
       needsModel: "One-time download",
       modelInfo: "The first time, your iPhone loads a small depth model (about 50 MB).",
@@ -1060,14 +1060,14 @@ export default {
       rendering: "Moving the camera through your dream…",
       saving: "Putting it in your journal…",
       stayHint: "Keep the app open until it's done.",
-      failed: "The sketch didn't work out.",
+      failed: "The Glimpse didn't work out.",
       retry: "Try again",
-      unsupported: "Sketches aren't available on this device.",
-      create: "Create sketch · Free",
-      createCredit: "Create sketch · {n} credit",
-      freeLeft: "{n} free sketches left this month",
-      noneLeft: "Your free sketches for this month are used up",
-      takeLabel: "Sketch",
+      unsupported: "Glimpse isn't available on this device.",
+      create: "Create Glimpse · Free",
+      createCredit: "Create Glimpse · {n} credit",
+      freeLeft: "{n} free Glimpses left this month",
+      noneLeft: "Your free Glimpses for this month are used up",
+      takeLabel: "Glimpse",
       photoTitle: "With the faces from your cast",
       photoHint: "{name} — as the model for the characters, painted in your look.",
       preparing: "Reading your dream…",

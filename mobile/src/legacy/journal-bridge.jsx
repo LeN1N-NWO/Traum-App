@@ -288,7 +288,7 @@ function snapshot() {
     cutAllIn: w5.cutAllIn(1000, 2000, 3000), cutRecommend: w5.cutRecommend(1000),
     lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel,
     /* Das Filmformat (26.09.): drei Werte, dieselbe Allowlist wie der Server. */
-    formatLabel: w5.formatLabel, formats: [["9:16", w5.portrait], ["16:9", w5.landscape], ["1:1", w5.square]].map(([id, hint]) => ({ id, name: id, hint })), holdHint: w5.holdHint, close: t.wizard.cast?.close, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
+    formatLabel: w5.formatLabel, formats: [["9:16", w5.portrait], ["16:9", w5.landscape], ["1:1", w5.square]].map(([id, hint]) => ({ id, name: id, hint })), holdHint: w5.holdHint, aboutModel: w5.aboutModel, fromWord: t.wizard.from, close: t.wizard.cast?.close, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
     readPrice: PRICES.improve, noCredits: t.wizard.noCreditsCta,
     /* Die native Auftragsseite (dream/order.tsx): Sätze fürs Abgeben,
        die Bestätigung und den Fehlerfall — Web-Texte, nichts Neues. */
