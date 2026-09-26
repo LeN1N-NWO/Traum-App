@@ -38,7 +38,7 @@ export function useJournal() {
     // Test-Guthaben, solange kein Konto dahinter ist (Antons Ansage 12.09.;
     // seit 18.09. auch im Release-Bau mit 500 — er testet auf dem iPhone).
     // ⚠ Vor der Veröffentlichung zurück auf `__DEV__ ? 100 : 0`.
-    <JournalBridge onJournal={onJournal} onResult={onResult} refreshTick={tick} command={command} devCredits={500} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+    <JournalBridge onJournal={onJournal} onResult={onResult} refreshTick={tick} command={command} devCredits={500} streakChores dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
   );
   return { data, bridge, send, ask };
 }

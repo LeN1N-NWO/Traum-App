@@ -12,7 +12,7 @@
 import "./vite-env.js";                       // ⚠ zuerst, API_BASE
 import { useEffect } from "react";
 import { loadState, saveState } from "../../../src/lib/storage.js";
-import { refreshStreak, streakAtRisk, bumpStreak, STREAK_CAP } from "../../../src/lib/streak.js";
+import { refreshStreak, streakAtRisk, bumpStreak, snoozeCheck, STREAK_CAP } from "../../../src/lib/streak.js";
 import { hasPendingJobs, collectTick } from "../../../src/lib/collector.js";
 import { failureTextKey } from "../../../src/lib/falError.js";
 import { jobStatus } from "../../../src/lib/api.js";
@@ -47,7 +47,7 @@ import { MASCOTS, DEFAULT_MASCOT } from "../../../src/lib/mascots.js";
 import { zodiacOf } from "../../../src/lib/zodiac.js";
 import { SYMBOLS, SYMBOL_CATEGORIES, symbolOccurrences } from "../../../src/lib/symbols.js";
 import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
-import { MILESTONES, nextMilestone, giftAt } from "../../../src/lib/streakBoard.js";
+import { MILESTONES, nextMilestone, giftAt, giftFor } from "../../../src/lib/streakBoard.js";
 import { nextSnoozeIn } from "../../../src/lib/streak.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
 import { genId } from "../../../src/lib/storage.js";
@@ -816,9 +816,11 @@ async function runOrder(cmd, onResult) {
       ...(s1.pendingAudioUrl ? { audio: { url: s1.pendingAudioUrl } } : {}),
       ...common,
     };
-    saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null });
+    /* Die Serie wächst auch mit einem Film (26.09., im Web schon immer:
+       Step5Style bumpStreak) — nativ zählte bis heute nur „Speichern". */
+    saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null, ...bumpStreak(s1) });
   } else {
-    saveState({ ...s1, journal: (s1.journal || []).map((e) => (e.id === entryId ? { ...e, ...common } : e)) });
+    saveState({ ...s1, journal: (s1.journal || []).map((e) => (e.id === entryId ? { ...e, ...common } : e)), ...bumpStreak(s1) });
   }
   onJournalTick?.();
 
@@ -900,7 +902,7 @@ function runSketchStart(cmd, onResult) {
   const s1 = loadState();
   const existing = o.entryId ? (s1.journal || []).find((e) => e.id === o.entryId) : null;
   if (existing) {
-    saveState({ ...s1, journal: s1.journal.map((e) => (e.id === existing.id ? { ...e, pending: { kind: "sketch", n: 1 }, failReason: undefined } : e)) });
+    saveState({ ...s1, journal: s1.journal.map((e) => (e.id === existing.id ? { ...e, pending: { kind: "sketch", n: 1 }, failReason: undefined } : e)), ...bumpStreak(s1) });
     onJournalTick?.();
     onResult({ n: cmd.n, entryId: existing.id });
     return true;
@@ -915,7 +917,7 @@ function runSketchStart(cmd, onResult) {
     mode: "film", style: o.styleId, format: "9:16", imageCount: 0, analysis, references: [],
     pending: { kind: "sketch", n: 1 },
   };
-  saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null });
+  saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null, ...bumpStreak(s1) });
   onJournalTick?.();
   onResult({ n: cmd.n, entryId: entry.id });
   return true;
@@ -1183,6 +1185,40 @@ async function collectOnce(onJournal, onResult) {
   }
 }
 
+/* Serien-Pflichten (26.09., Antons Frage „wieso sind die Geschenke raus?"):
+   Die Mini-Geschenke (7 Nächte → 1 Credit, 30 → 3, Deckel 4 —
+   streakBoard.js giftFor) und die Schlummernacht (streak.js snoozeCheck)
+   liefen nur im WEB-Zustand (AppState.jsx). Beim Umzug auf die native App
+   kamen sie nicht mit: Die Leiter zeigte „+1 Credit" und die
+   Schlummernächte, gegeben oder eingelöst wurde nichts. Jetzt hier, an EINER
+   Stelle, bei jedem Lesen und nach jedem Befehl. Beides ist idempotent
+   (vergebene Schwellen stehen im Zustand, die Lücke ist danach zu); die
+   Pacht verhindert, dass zwei Tab-Brücken im selben Moment vergeben. Nur
+   Brücken mit `streakChores` (die Tabs, die Meldungen zeigen) tun es. */
+const CHORES = "dr_streak_lease";
+function holdChores() {
+  try {
+    const raw = localStorage.getItem(CHORES); const [owner, at] = raw ? raw.split(":") : [null, 0];
+    if (owner && owner !== me && Date.now() - Number(at) < 4000) return false;
+    localStorage.setItem(CHORES, `${me}:${Date.now()}`); return true;
+  } catch { return true; }
+}
+function streakChores(onResult) {
+  if (!holdChores()) return;
+  const s0 = loadState();
+  const saved = snoozeCheck(s0);
+  if (saved) {
+    saveState({ ...s0, ...saved.patch });
+    onResult?.({ n: -1, toast: t.streakBoard.snoozeUsed(saved.used) });
+  }
+  const s1 = loadState();
+  const gift = giftFor(s1);
+  if (gift) {
+    saveState({ ...s1, ...gift.patch });
+    onResult?.({ n: -1, toast: t.streakBoard.gift(gift.nights, gift.credits), haptic: "success" });
+  }
+}
+
 /* Test-Guthaben (Antons Ansage 12.09.: „so tun, als hätten wir immer 100
    Credits, solange kein Konto und kein Supabase dahinter ist"): Die Brücke
    füllt das Kauf-Töpfchen bei jedem Lesen auf mindestens `devCredits` auf —
@@ -1213,13 +1249,13 @@ function syncLanguage() {
   setLanguage(want);
 }
 
-export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, dom }) {
+export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, streakChores: chores = false, dom }) {
   useEffect(() => {
-    const push = () => { try { syncLanguage(); devTopUp(devCredits); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
+    const push = () => { try { syncLanguage(); devTopUp(devCredits); if (chores) streakChores(onResult); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
     push();
     window.addEventListener("storage", push);
     return () => window.removeEventListener("storage", push);
-  }, [onJournal, refreshTick, devCredits]);
+  }, [onJournal, refreshTick, devCredits, chores]);
   useEffect(() => {
     let busy = false;
     const id = setInterval(async () => {
@@ -1235,8 +1271,8 @@ export default function JournalBridge({ onJournal, onResult, refreshTick = 0, co
     onJournalTick = () => onJournal(snapshot());
     (async () => {
       try {
-        if (await runAsync(command, onResult || (() => {}))) { onJournal(snapshot()); return; }
-        run(command); onJournal(snapshot());
+        if (await runAsync(command, onResult || (() => {}))) { if (chores) streakChores(onResult); onJournal(snapshot()); return; }
+        run(command); if (chores) streakChores(onResult); onJournal(snapshot());
       } catch (e) { console.warn("[bridge] command", e); }
     })();
   }, [command?.n]);
