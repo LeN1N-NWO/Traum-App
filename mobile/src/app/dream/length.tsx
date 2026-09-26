@@ -10,7 +10,7 @@ import { PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { startTap } from "@/store/tap-store";
-import { patchWizard, useWizardStore } from "@/store/wizard-store";
+import { type FilmFormat, patchWizard, useWizardStore } from "@/store/wizard-store";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 // Dieselbe Preisrechnung wie Wizard und Server (src/lib/quote.js, reine Logik).
 import { quoteFor } from "../../../../src/lib/quote.js";
@@ -102,9 +102,21 @@ export default function DreamLengthScreen() {
     <>
       <WizardHeader step={5} cancel={W?.cancel} />
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
-        <Text style={styles.title}>{W?.lengthLabel ?? "How long"}</Text>
-
         <Text style={styles.label}>{W?.modelLabel ?? "Model"}</Text>
+        {/* Reihenfolge nach Preis (Antons Ansage 26.09.): Skizze, Lebendig, Kino. */}
+        {canSketch && S?.card ? (
+          <Pressable style={[styles.choice, styles.sketchCard, sketching && styles.choiceOn]} delayLongPress={380}
+            onLongPress={() => explain({ title: S.card!.name, model: S.card!.model, info: S.card!.info, clip: EXAMPLE.sketch })} onPress={() => { Haptics.selectionAsync(); patchWizard({ sketch: true }); }}>
+            <View style={[styles.badge, styles.badgeFree]} pointerEvents="none">
+              <Text style={styles.badgeText}>{S.card.badge}</Text>
+            </View>
+            <View style={styles.sketchHead}>
+              <Text style={[styles.choiceTitle, sketching && styles.on]}>{S.card.name}</Text>
+              <Text style={styles.sketchPrice}>{S.price}</Text>
+            </View>
+            <Text style={styles.choiceHint} numberOfLines={2}>{S.card.hint}</Text>
+          </Pressable>
+        ) : null}
         <View style={styles.row}>
           {(W?.models ?? []).map((m) => {
             const on = !sketching && m.id === w.videoModel;
@@ -122,19 +134,6 @@ export default function DreamLengthScreen() {
             );
           })}
         </View>
-        {canSketch && S?.card ? (
-          <Pressable style={[styles.choice, styles.sketchCard, sketching && styles.choiceOn]} delayLongPress={380}
-            onLongPress={() => explain({ title: S.card!.name, model: S.card!.model, info: S.card!.info, clip: EXAMPLE.sketch })} onPress={() => { Haptics.selectionAsync(); patchWizard({ sketch: true }); }}>
-            <View style={[styles.badge, styles.badgeFree]} pointerEvents="none">
-              <Text style={styles.badgeText}>{S.card.badge}</Text>
-            </View>
-            <View style={styles.sketchHead}>
-              <Text style={[styles.choiceTitle, sketching && styles.on]}>{S.card.name}</Text>
-              <Text style={styles.sketchPrice}>{S.price}</Text>
-            </View>
-            <Text style={styles.choiceHint} numberOfLines={2}>{S.card.hint}</Text>
-          </Pressable>
-        ) : null}
         {W?.holdHint ? <Text style={styles.holdHint}>{W.holdHint}</Text> : null}
 
         {model && !sketching ? (
@@ -174,6 +173,18 @@ export default function DreamLengthScreen() {
 
         {model && !sketching ? (
           <>
+            <Text style={styles.label}>{W?.formatLabel ?? "Format"}</Text>
+            <View style={styles.row}>
+              {(W?.formats ?? []).map((f) => {
+                const on = w.format === f.id;
+                return (
+                  <Pressable key={f.id} style={[styles.pill, on && styles.choiceOn]} onPress={() => { Haptics.selectionAsync(); patchWizard({ format: f.id as FilmFormat }); }}>
+                    <Text style={[styles.pillText, on && styles.on]}>{f.name}</Text>
+                    <Text style={styles.pillSub}>{f.hint}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             <View style={styles.secondsRow}><Text style={styles.label}>{W?.lengthLabel}</Text><Text style={styles.seconds}>{seconds} s</Text></View>
             <Host style={{ width: "100%", height: 44 }}>
               <Slider value={seconds} min={model.min} max={model.max} step={model.step} onValueChange={(v) => patchWizard({ seconds: clampSeconds(model.id, v), secondsTouched: true })} />
@@ -239,7 +250,7 @@ const styles = StyleSheet.create({
   aboutModel: { color: colors.accentSoft, fontSize: 12, letterSpacing: 1.4, fontWeight: "700", textTransform: "uppercase" },
   aboutInfo: { color: colors.muted, fontSize: 15, lineHeight: 22 },
   holdHint: { color: colors.faint, fontSize: 12, textAlign: "center", marginTop: -4 },
-  sketchCard: { flex: 0, marginTop: 2 },
+  sketchCard: { flex: 0, marginTop: 6, marginBottom: 4 },
   sketchHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10 },
   sketchPrice: { color: colors.ok, fontSize: 13, fontWeight: "700", fontVariant: ["tabular-nums"] },
   badgeText: { color: colors.bg, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textTransform: "uppercase" },

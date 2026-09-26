@@ -941,9 +941,10 @@ export default {
       tilePhoto: "This photo",
       tileAi: "AI invents",
       tileNew: "New photo",
-      tileLibrary: "Library",
-      placesTitle: "And the places?",
-      placesHint: "The AI invents them — or tap one to give it a photo of the real place.",
+      fromLibrary: "From your library",
+      libraryEmpty: "No faces in your library yet — “New photo” adds one.",
+      placesTitle: "Places & things",
+      placesHint: "The AI invents them — or tap one to give it a real photo, of the place or the thing.",
       noPeople: "Nobody in particular — the AI invents everyone.",
     },
 

@@ -6,7 +6,9 @@ import { useSyncExternalStore } from "react";
 export type WizardState = {
   text: string; originalText: string; analysis: any | null;
   styleId: string; pace: "calm" | "fast" | "flow"; videoModel: "standard" | "premium";
-  quality: "sd" | "hd" | null; seconds: number; orderId: string | null;
+  quality: "sd" | "hd" | "fhd" | null; seconds: number; orderId: string | null;
+  /** Filmformat (26.09., Antons Ansage: „das Aspect-Ratio kann ich gar nicht auswählen"). */
+  format: FilmFormat;
   assignmentOverrides: Record<string, { avatarId?: string; free?: boolean }>;
   pendingRead: boolean;
   entryId: string | null;    // „Nochmal, anders": neue Fassung fuer einen bestehenden Traum (Step5 haengt sie an)
@@ -21,7 +23,10 @@ export type WizardState = {
      Zahl merkt er, dass ein Auftrag durch ist und er von vorn beginnt. */
   resets: number;
 };
-const EMPTY: WizardState = { text: "", originalText: "", analysis: null, styleId: "ultrareal", pace: "calm", videoModel: "standard", quality: null, seconds: 6, orderId: null, assignmentOverrides: {}, pendingRead: false, entryId: null, secondsTouched: false, audioUrl: null, mode: "film", sketch: false, resets: 0 };
+export type FilmFormat = "9:16" | "16:9" | "1:1";
+export const FILM_FORMATS: FilmFormat[] = ["9:16", "16:9", "1:1"];
+
+const EMPTY: WizardState = { text: "", originalText: "", analysis: null, styleId: "ultrareal", pace: "calm", videoModel: "standard", quality: null, format: "9:16", seconds: 6, orderId: null, assignmentOverrides: {}, pendingRead: false, entryId: null, secondsTouched: false, audioUrl: null, mode: "film", sketch: false, resets: 0 };
 let state: WizardState = EMPTY;
 const listeners = new Set<() => void>();
 export function patchWizard(p: Partial<WizardState>) { state = { ...state, ...p }; listeners.forEach((l) => l()); }

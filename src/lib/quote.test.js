@@ -79,11 +79,11 @@ describe("priceTable", () => {
     const t = priceTable();
     expect(t.films.map((f) => f.id)).toEqual(["standard", "premium"]);
     /* Seit 23.09. je Modell die EIGENE Stufenliste: H3 hat 1080p dazu-
-       bekommen, Seedance bewusst nicht (dort hieße es 42 Credits/s). */
+       bekommen; seit 26.09. auch Seedance (Antons Ansage, 42 Credits/s). */
     const std = t.films.find((f) => f.id === "standard");
     const prem = t.films.find((f) => f.id === "premium");
     expect(Object.keys(std.qualities).sort()).toEqual(["fhd", "hd", "sd"]);
-    expect(Object.keys(prem.qualities).sort()).toEqual(["hd", "sd"]);
+    expect(Object.keys(prem.qualities).sort()).toEqual(["fhd", "hd", "sd"]);
     expect(t.prices.keyframe).toBe(PRICES.keyframe);
   });
 });

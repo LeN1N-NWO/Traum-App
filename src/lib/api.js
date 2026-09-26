@@ -243,10 +243,13 @@ export async function transcribe(audio) {
    ⚠ Der Kommentar steht ÜBER dem Aufruf: imageModel.test.js liest den
    post()-Aufruf mit einem Muster, das zwischen Pfad und Objekt nichts
    erlaubt. */
-export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback, quoted, count, preview }) {
+/* `format` (9:16/16:9/1:1) ist das Filmformat — bis 26.09. fehlte es in
+   dieser Liste: Web und App schickten es, hier fiel es still heraus, und
+   jeder Film kam als 9:16 (server.js: filmFormat, Allowlist). */
+export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, format, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback, quoted, count, preview }) {
   const data = await post(
     "/api/generate",
-    { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback, quoted, count, preview },
+    { dream, mode, cast, prompt, seconds, aspectRatio, format, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback, quoted, count, preview },
     // Nur der Film wartet auf den Regisseur — Bilder gehen sofort in die
     // Warteschlange und brauchen die lange Uhr nicht.
     mode === "film" ? { timeout: TIMEOUTS.film } : undefined,

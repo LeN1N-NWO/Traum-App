@@ -896,9 +896,10 @@ export default {
       tilePhoto: "Dieses Foto",
       tileAi: "KI erfindet",
       tileNew: "Neues Foto",
-      tileLibrary: "Bibliothek",
-      placesTitle: "Und die Orte?",
-      placesHint: "Die KI erfindet sie — oder tipp einen an und gib ihm ein Foto vom echten Ort.",
+      fromLibrary: "Aus deiner Bibliothek",
+      libraryEmpty: "Noch keine Gesichter in deiner Bibliothek — „Neues Foto“ legt eins an.",
+      placesTitle: "Orte & Dinge",
+      placesHint: "Die KI erfindet sie — oder tipp eins an und gib ihm ein echtes Foto, vom Ort oder vom Ding.",
       noPeople: "Niemand Bestimmtes — die KI erfindet alle.",
     },
 
