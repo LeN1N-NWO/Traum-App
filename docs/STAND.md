@@ -3,12 +3,28 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-26 spätabends — Anton, `session/2026-09-26c-anton`
-(PR #67) wird auf Antons Wort gemergt; PR #65 und #66 sind auf main.
-**Hanni kann Schritt C anbinden.** **Weg durch die App-Store-Prüfung:
+**Stand:** 2026-09-26 nachts — Anton, `session/2026-09-26d-anton` (PR #68)
+wird auf Antons Wort gemergt; PR #65–#67 sind auf main. **Hanni kann
+Schritt C anbinden.** **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Neu mit PR #67 (26.09. spätabends):**
+**Neu mit PR #68 (26.09. nachts):**
+- **Glimpse ohne Effekte:** `Plan.effects` in `SketchRenderer.swift` —
+  der Glimpse rendert ohne Partikel, Nebel und Farbstufe (Leuchten +
+  Vignette), nur Bild, Tiefe, Kamera (Antons Ansage). Mac-Probe vorher/
+  nachher angesehen.
+- **Ton aus dem fertigen Film:** Die GlimpseLayer lädt den gerenderten
+  Film hoch (`/api/sketch-sound`, multipart „video" + Look/Stimmung/
+  Szenen/Länge). Der Server rechnet ihn auf 360 px klein, MMAudio v2
+  (Video → Ton, $0,001/s) macht die Geräusche aus den Bildern, ACE-Step
+  die Musik, ffmpeg mischt; die App legt die Spur unter (`addSound`) und
+  legt ERST DANN den Traum ins Journal (bis 4 min, sonst stumm +
+  nachgereicht). Film-Geräusche dürfen 3 min dauern (fal-Kaltstart
+  gemessen: 60 s zu wenig, einmal 104 s). Der alte Text-Weg
+  (JSON, Atmosphäre aus Text) bleibt als Rückweg im Endpunkt.
+  ⚠ Ganzer Glimpse mit Film-Ton auf dem iPhone noch nicht durchlaufen.
+
+**Mit PR #67 (26.09. spätabends):**
 - **Absturz behoben (Antons iPhone, Glimpse mit vielen Szenen):** Crash-Log
   zeigte `__DataStorage.init` in `SketchRenderer.render` — kein
   Autorelease-Pool je Filmbild. 12 Szenen: 4,9 GB → 0,96 GB (Mac-Messung

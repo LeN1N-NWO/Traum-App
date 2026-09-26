@@ -3,6 +3,27 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-26 15:30 — Anton — Branch `session/2026-09-26d-anton` (PR #68) — Glimpse ohne Effekte, Geräusche aus dem fertigen Film
+
+**Was:** Renderer-Schalter `effects` (Partikel, Nebel, Farbstufe aus für
+Glimpse). Ton-Endpunkt nimmt jetzt den fertigen Film (multipart); MMAudio
+v2 macht die Geräusche aus dem Film, ACE-Step die Musik, Mix zurück; die
+GlimpseLayer rendert stumm → lädt hoch → legt den Ton unter → erst dann
+Journal + Benachrichtigung.
+
+**Warum:** Antons Ansage: „Partikel und die darüberliegenden Farben
+entfernen" und „Video ohne Ambience erstellen, in die Cloud hochladen,
+dort Audiospuren und SFX passend zum Bild einarbeiten".
+
+**Belege:** Mac-Probe mit/ohne Effekte (Standbild-Vergleich); Server-Test
+mit echtem Glimpse-Film: 1. Versuch Film-Geräusche im 60-s-Zeitlimit
+(Kaltstart), 2. Versuch 104 s, beide Spuren, Pegel −18 dB/−4,8 dB.
+821 Tests, tsc, Lint, i18n grün. Build auf Antons iPhone.
+
+**Für den Nächsten:** Ganzer Glimpse mit Film-Ton am iPhone steht aus.
+fal-Kaltstarts bleiben das Zeitproblem beim Ton (evtl. Queue-API oder
+Aufwärmen). Die Brücken-Befehl `sketchSound` (Text-Weg) ist ungenutzt.
+
 ## 2026-09-26 15:00 — Anton — Branch `session/2026-09-26c-anton` (PR #67) — Glimpse-Absturz, Protokoll, echter Mond, ruhige Glühwürmchen, schneller Ablauf
 
 **Was:** (1) Absturzbericht vom iPhone geholt und ausgewertet: Speicher
