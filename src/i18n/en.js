@@ -822,7 +822,7 @@ export default {
     tooShort: "⚠ Write a little more first.",
     caught: (name) => `✦ ${name} joined your menagerie`,
     /* Der Rekorder (ADR-0007): einsprechen, fertig — keine Rückfragen. */
-    record: "Tell it out loud", recordHint: "Tap the mic and just talk. I'll write along.",
+    record: "Tell it out loud", recordHint: "Tap the moon and just talk. I'll write along.",
     recording: "Listening…", recordStop: "Done", recordDiscard: "Discard", recordTranscribing: "Writing it down…",
     recordTooShort: "That was too short — try again.", recordFailed: "Couldn't write that down. Try again.",
     recordAgain: "Record again", yourRecording: "Your recording",
@@ -1057,7 +1057,7 @@ export default {
       readyTitle: "Your Glimpse is ready ✨",
       readyBody: "“{title}” — tap to watch it.",
       stripsTitle: "How many pictures?",
-      stripOption: "{scenes} scenes · {seconds} s",
+      stripOption: "{scenes} scenes\n{seconds} seconds",
       stripFits: "Fits your dream",
       soundNote: "With music and ambient sound, made for this dream",
       createCredits: "Create Glimpse · {n} credits",

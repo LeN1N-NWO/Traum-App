@@ -32,6 +32,8 @@ type NativeSketch = {
   importGrid(source: string, prefix: string, cols: number, rows: number): Promise<string[]>;
   canPaint(): boolean;
   renderSketch(plan: RenderPlan, name: string): Promise<{ film: string; seconds: number; sound?: boolean }>;
+  /** Ton nachträglich unter einen fertigen Film legen (26.09.). */
+  addSound(film: string, sound: string): Promise<boolean>;
   unload(): void;
   removeModel(): void;
   addListener(event: "onDownloadProgress", cb: (e: { done: number; total: number }) => void): Subscription;

@@ -261,6 +261,22 @@ public class DreamSketchModule: Module {
       }
     }
 
+    /// Der Ton kam erst nach dem Film (26.09., fal-Kaltstart): nachträglich
+    /// unter den fertigen Film legen — dieselbe Datei, der Traum im Journal
+    /// bleibt unverändert und spielt ab dann mit Ton.
+    AsyncFunction("addSound") { (film: String, sound: String, promise: Promise) in
+      self.work.async {
+        do {
+          guard let url = URL(string: sound) else { throw URLError(.badURL) }
+          let file = Self.sketchesDir().appendingPathComponent(film.replacingOccurrences(of: "sketch:", with: ""))
+          try SketchSound.add(film: file, sound: url)
+          promise.resolve(true)
+        } catch {
+          promise.reject("E_SOUND", error.localizedDescription)
+        }
+      }
+    }
+
     /// Gibt die rund 1 GB Arbeitsspeicher der geladenen Modelle frei —
     /// nach der Skizze, damit der Rest der App nicht darunter leidet.
     Function("unload") {

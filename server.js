@@ -1285,13 +1285,17 @@ async function sketchGrid({ prompt, refs }) {
  * einen Fehler — und die App macht den Film stumm weiter. */
 const SOUND_AMBIENCE_MODEL = "fal-ai/mmaudio-v2/text-to-audio";
 const SOUND_MUSIC_MODEL = "fal-ai/ace-step/prompt-to-audio";
+/* Warm antworten beide in 4–7 s; kalt hing MMAudio am 26.09. drei Minuten.
+   Nach einer Minute gilt eine Spur als ausgefallen — die andere kommt allein,
+   und die App legt den Ton auch nachträglich unter den Film. */
+const SOUND_TIMEOUT_MS = 60_000;
 
 async function falAudio(model, input) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
   const res = await fetch(`https://fal.run/${model}`, {
     method: "POST",
-    signal: AbortSignal.timeout(T.falImage),
+    signal: AbortSignal.timeout(SOUND_TIMEOUT_MS),
     headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
     body: JSON.stringify(input),
   });
@@ -1313,6 +1317,9 @@ async function sketchSound({ styleId, mood, beats, seconds }) {
     falAudio(SOUND_AMBIENCE_MODEL, { prompt: p.ambience, negative_prompt: p.negative, duration: p.seconds, num_steps: 25, cfg_strength: 4.5 }),
     falAudio(SOUND_MUSIC_MODEL, { prompt: p.music, instrumental: true, duration: p.seconds }),
   ]);
+  for (const [name, r] of [["Atmo", amb], ["Musik", mus]]) {
+    if (r.status === "rejected") console.warn(`[DreamRushes] glimpse-sound ${name} ausgefallen:`, r.reason?.name === "TimeoutError" ? "Zeitlimit" : r.reason?.message);
+  }
   if (amb.status === "rejected" && mus.status === "rejected") throw new Error("SOUND_FAILED");
   const dir = await mkdtemp(join(tmpdir(), "glimpse-sound-"));
   try {

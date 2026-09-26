@@ -213,11 +213,11 @@ export default function DreamSketchScreen() {
                   <Pressable key={o.strips} onPress={() => { Haptics.selectionAsync(); setStrips(o.strips); }}
                     style={({ pressed }) => [styles.option, on && styles.optionOn, pressed && { transform: [{ scale: 0.97 }] }]}
                     accessibilityRole="button" accessibilityState={{ selected: on }}>
-                    {o.strips === fits ? <View style={styles.fitsBadge}><Text style={styles.fitsText} numberOfLines={1}>{S?.stripFits ?? "Fits"}</Text></View> : null}
+                    {o.strips === fits ? <View style={styles.fitsBadge}><Text style={styles.fitsText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{S?.stripFits ?? "Fits"}</Text></View> : null}
                     <View style={styles.stack}>
                       {Array.from({ length: o.strips * SCENES_PER_STRIP }, (_, k) => <View key={k} style={[styles.stackTile, on && styles.stackTileOn]} />)}
                     </View>
-                    <Text style={[styles.optionText, on && { color: colors.accentSoft }]} numberOfLines={1}>{fill(S?.stripOption, { scenes: o.scenes, seconds: Math.round(o.seconds) })}</Text>
+                    <Text style={[styles.optionText, on && { color: colors.accentSoft }]} numberOfLines={2}>{fill(S?.stripOption, { scenes: o.scenes, seconds: Math.round(o.seconds) })}</Text>
                     <Text style={[styles.optionPrice, !o.cost && { color: colors.ok }]}>{o.cost ? fill(S?.priceShort, { n: o.cost }) : (S?.freeShort ?? "Free")}</Text>
                   </Pressable>
                 );
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   options: { flexDirection: "row", gap: 8, marginTop: -4 },
   option: { flex: 1, paddingTop: 16, paddingBottom: 10, paddingHorizontal: 8, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.panelLine, alignItems: "center", gap: 6 },
   optionOn: { borderColor: colors.accentSoft, backgroundColor: "rgba(79,156,249,0.14)" },
-  optionText: { color: colors.text, fontSize: 12, fontWeight: "600", fontVariant: ["tabular-nums"] },
+  optionText: { color: colors.text, fontSize: 12, lineHeight: 16, fontWeight: "600", fontVariant: ["tabular-nums"], textAlign: "center" },
   optionPrice: { color: colors.muted, fontSize: 12, fontWeight: "700", fontVariant: ["tabular-nums"] },
   stack: { flexDirection: "row", flexWrap: "wrap", width: 44, gap: 2, justifyContent: "center", minHeight: 38, alignContent: "center" },
   stackTile: { width: 9, height: 12, borderRadius: 2, backgroundColor: colors.panelLine },

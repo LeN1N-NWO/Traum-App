@@ -25,6 +25,8 @@ import { DreamSketch, resolveSketchesDeep } from "../../modules/dream-sketch";
  * offen ist. Scheitert etwas, bekommt der Traum im Journal den Fehler
  * statt ewig „entsteht gerade". */
 const SOUND_GRACE_MS = 15000;
+/* Kommt der Ton später (fal-Kaltstart), wird er bis dahin noch nachgereicht. */
+const SOUND_LATE_MS = 180000;
 
 export function GlimpseLayer() {
   const busy = useGlimpseQueue();
@@ -94,6 +96,14 @@ async function run(job: GlimpseJob, ask: (cmd: Omit<BridgeCommand, "n">) => Prom
       content: { title: job.texts.readyTitle, body: job.texts.readyBody.replace("{title}", job.dream.title || ""), data: { glimpse: `/journal/${job.entryId}` } },
       trigger: null,
     }).catch(() => {});
+    // Der Film ist da; kam der Ton zu spät, wird er jetzt noch daruntergelegt.
+    // Nebenher, damit der nächste Glimpse nicht darauf wartet.
+    if (!film.sound) {
+      const sketch = DreamSketch;
+      void Promise.race([sound, new Promise<null>((r) => setTimeout(() => r(null), SOUND_LATE_MS))])
+        .then((late) => (late ? sketch.addSound(film.film, late) : null))
+        .catch((e) => console.warn("[glimpse] Ton nachträglich", e?.message || e));
+    }
   } catch (e: any) {
     console.warn("[glimpse]", e?.message || e);
     await ask({ type: "sketchFail", id: job.entryId, value: String(e?.message || e) }).catch(() => null);
