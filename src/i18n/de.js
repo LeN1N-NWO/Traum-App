@@ -40,7 +40,7 @@ export default {
     },
     title: "Was hast du geträumt?",
     lede: "Erzähl es, solange es noch warm ist — halb wach klappt am besten.",
-    cta: "Aufnehmen",
+    cta: "Traum aufnehmen",
     streak: (n) => `${n} Tag${n === 1 ? "" : "e"}`,
     streakPerk: (n, max) => `Nacht ${n} von ${max} — deine Wesen kommen seltener.`,
     streakRisk: "Letzte Nacht hast du geschrieben. Heute hält die Serie — keine Eile, sie zählt bis du schläfst.",
@@ -53,10 +53,24 @@ export default {
     blankCta: "Nichts hängengeblieben",
     blankHint: "Hält deine Serie — ohne einen Traum zu erfinden",
     blankDone: "🌙 Notiert. Die Nacht zählt.",
+
+    nightsTitle: "Deine Nächte",
+    nightsEmpty: "Hier erscheint dein erster Traum — als Film.",
+    patternHeading: "Kommt immer wieder",
+    patternLine: (label, n, of) => `${label} — in ${n} deiner letzten ${of} Träume`,
+    intentionHeading: "Gestern wolltest du träumen von",
+  },
+  intention: {
+    title: "Wovon willst du heute träumen?",
+    lede: "Halte ein Bild im Kopf, während du einschläfst. Morgens fragen wir, ob es aufgetaucht ist.",
+    placeholder: "das Haus am Meer, fliegen, Omas Küche …",
+    save: "Für heute Nacht merken",
+    saved: "Dein Vorsatz für heute Nacht",
+    clear: "Ändern",
   },
 
   checkin: {
-    question: "Wie hast du geschlafen?",
+    question: "Wie hast du heute geschlafen?",
     levels: { 1: "schwer", 2: "okay", 3: "gut" },
     emoji: { 1: "🌑", 2: "🌗", 3: "🌕" },
     thanks: "Notiert — Schlaf und Träume treffen sich in deinem Atlas.",
@@ -1283,6 +1297,10 @@ export default {
     sleepDream: (y) => `Etwa ${y} Jahre davon träumst du. Lass sie nicht einfach vorbeiziehen — hol sie dir zurück, sieh sie an, mach sie zu einem Teil von dir.`,
     sleepNote: "Aus deiner Antwort und einem Leben von 80 Jahren gerechnet.",
     sleepLegend: { life: "80 Jahre Leben", sleep: "Schlaf", dream: "Träume" },
+    sleepScale: { hours: "{n} Std.", decimal: ",", hint: "Schieb den Mond", short: "kurze Nächte", long: "lange Nächte",
+      perNight: "Schlaf pro Nacht", dreaming: "davon Traum", yearsAsleep: "deines Lebens im Schlaf", yearsDreaming: "davon im Traum" },
+    goalWords: { remember: "Mehr behalten", understand: "Sie verstehen", create: "Filme meiner Nächte", "sleep-better": "Besser schlafen", nightmares: "Weniger Albträume" },
+    goalHint: "Tipp alles an, was stimmt.",
     /* Die Kacheln tragen nur noch ihr Etikett (Moonly-Vorbild, Antons
        Befund 13.09.: „aufgeräumter"); die Sätze stehen als Untertitel. */
     featuresLede: "Erzähl deinen Traum im Halbschlaf, sieh ihn als Film, behalte jede Nacht.",

@@ -29,7 +29,7 @@ import { selectBeats, shotPlan } from "../../../src/lib/cut.js";
 import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PACE } from "../../../src/lib/video.js";
 import { startsFree } from "../../../src/wizard/useWizard.js";
 import { beatsForCount } from "../../../src/lib/beats.js";
-import { reflectionContext } from "../../../src/lib/atlas.js";
+import { reflectionContext, realDreams as realDreamsOf, symbolCounts } from "../../../src/lib/atlas.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
 import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
@@ -45,7 +45,7 @@ import { backupPayload, mergeShared } from "../../../src/lib/journalBackup.js";
 import { FORM_FIELDS, profileFromAnswers } from "../../../src/lib/onboardingForm.js";
 import { MASCOTS, DEFAULT_MASCOT } from "../../../src/lib/mascots.js";
 import { zodiacOf } from "../../../src/lib/zodiac.js";
-import { SYMBOLS, SYMBOL_CATEGORIES, symbolOccurrences } from "../../../src/lib/symbols.js";
+import { SYMBOLS, SYMBOL_CATEGORIES, symbolById, symbolOccurrences } from "../../../src/lib/symbols.js";
 import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
 import { MILESTONES, nextMilestone, giftAt, giftFor } from "../../../src/lib/streakBoard.js";
 import { nextSnoozeIn } from "../../../src/lib/streak.js";
@@ -131,6 +131,11 @@ function snapshot() {
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   /* Die Startseite: Serie, offene Aufträge, heutige Nacht, Check-in,
      letzter Traum — dieselben Regeln wie HomeScreen.jsx, nur als Daten. */
+  /* Der Traum-Vorsatz (27.09., Antons Ansage: „What would you like to
+     dream about?" gehört in den Schlaf-Tab): abends notiert, gilt bis zum
+     nächsten Mittag — dann erinnert die Startseite daran. */
+  const intentionAt = s.intention?.at ? new Date(s.intention.at).getTime() : 0;
+  const intention = intentionAt && Date.now() - intentionAt < 18 * 3600 * 1000 ? String(s.intention.text || "") : "";
   const streak = refreshStreak(s).streak || 0;
   const last = items[0] || null;
   const today = checkinOn(s.checkins);
@@ -144,6 +149,18 @@ function snapshot() {
     streakLine: streak > 0 ? t.home.streak(streak) : "",
     streakNote: streak > 0 ? (streakAtRisk(s) ? t.home.streakRisk : t.home.streakPerk(Math.min(streak, STREAK_CAP), STREAK_CAP)) : "",
     checkinLevels: SLEEP_LEVELS.map((l) => ({ level: l, label: t.checkin.levels[l], emoji: t.checkin.emoji[l] })),
+    /* Die Startseite „Deine Nächte" (27.09., Antons Wahl C3): die letzten
+       Träume als Plakate, dazu EIN Motiv, das wiederkehrt — aus den letzten
+       zehn echten Träumen, erst ab zweimal. */
+    recentIds: items.filter((e) => e.media || e.pending).slice(0, 8).map((e) => e.id),
+    pattern: (() => {
+      const recent = realDreamsOf(s.journal).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 10);
+      const top = symbolCounts(recent)[0];
+      if (!top || top.count < 2) return null;
+      const sym = symbolById(top.id);
+      return { id: top.id, emoji: sym?.emoji || "✦", line: t.home.patternLine(t.symbols.byId[top.id]?.label || sym?.label || top.id, top.count, recent.length) };
+    })(),
+    intention,
     /* Die Meilenstein-Leiter hinter der Serien-Pille (StreakBoard.jsx). */
     board: (() => {
       const nxt = nextMilestone(streak);
@@ -167,7 +184,8 @@ function snapshot() {
     tabHome: t.tabs.home, tabJournal: t.tabs.journal, tabDream: t.tabs.dream, tabSleep: t.tabs.sleep, tabProfile: t.tabs.profile,
     greetingNight: t.home.greeting.night, greetingMorning: t.home.greeting.morning,
     greetingAfternoon: t.home.greeting.afternoon, greetingEvening: t.home.greeting.evening,
-    homeTitle: t.home.title, homeLede: t.home.lede, homeCta: t.home.cta, renderingLine: t.home.renderingLine, quickRecord: t.home.quickRecord,
+    homeTitle: t.home.title, homeLede: t.home.lede, homeCta: t.home.cta,
+    homeNights: t.home.nightsTitle, homeNightsEmpty: t.home.nightsEmpty, patternHeading: t.home.patternHeading, intentionHeading: t.home.intentionHeading, renderingLine: t.home.renderingLine, quickRecord: t.home.quickRecord,
     lastHeading: t.home.lastHeading, blankCta: t.home.blankCta, blankHint: t.home.blankHint, blankDone: t.home.blankDone,
     soundsShortcut: t.home.soundsShortcut, checkinQuestion: t.checkin.question, checkinThanks: t.checkin.thanks,
     untitled: t.journal.untitled, takes: t.journal.takesLabel, reflectTitle: t.journal.reflectTitle,
@@ -187,6 +205,7 @@ function snapshot() {
   };
   const sleep = {
     title: t.sleep.title, subtitle: t.sleep.subtitle, free: t.sleep.free,
+    intention: { text: intention, ...t.intention },
     tiles: ["breathe", "checklist", "sounds", "guide", "knowledge", "symbols"].map((id) => ({ id, title: t.sleep.tiles[id].title, text: t.sleep.tiles[id].text })),
     breathe: t.breathe,
     /* Das Wissen (13.09.2026): Karten aus src/i18n, neueste zuerst. */
@@ -452,6 +471,7 @@ function snapshot() {
       "accountTitle", "accountText", "accountEmail", "accountPassword", "accountCta", "accountLater", "accountSignedIn", "accountSignedInNoEmail",
       "accountWrong", "accountBusy", "accountUnavailable", "accountOffline", "accountApple"].map((k) => [k, onb[k]])),
     features: onb.features, showcase: onb.showcase, featuresLede: onb.featuresLede, proof: onb.proof, sleepLegend: onb.sleepLegend,
+    sleepScale: onb.sleepScale, goalWords: onb.goalWords, goalHint: onb.goalHint,
     mascotTitle: onb.mascotTitle, mascotText: onb.mascotText, mascotSoon: onb.mascotSoon,
     meTitle: onb.meTitle, meText: onb.meText, mePick: onb.mePick, meCamera: onb.meCamera, meChange: onb.meChange, meLater: onb.meLater, meDone: onb.meDone, meConsent: onb.meConsent,
     /* Die drei Maskottchen (mascots.js) — zwei noch Platzhalter. Das Video
@@ -1106,6 +1126,7 @@ function run(cmd) {
   let patch = null;
   if (cmd.type === "blankNight") patch = { journal: [...(s.journal || []), blankNight()], ...bumpStreak(s) };
   else if (cmd.type === "checkin") patch = { checkins: setCheckin(s.checkins, cmd.level) };
+  else if (cmd.type === "intention") patch = { intention: String(cmd.text || "").trim() ? { text: String(cmd.text).trim().slice(0, 140), at: new Date().toISOString() } : null };
   else if (cmd.type === "refreshStreak") { const f = refreshStreak(s); if (f.streak !== s.streak) patch = f; }
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };

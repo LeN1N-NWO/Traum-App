@@ -19,6 +19,7 @@ export type HomeData = {
   streak: number; atRisk: boolean; rendering: boolean; nightMarked: boolean; checkin: number | null;
   lastId: string | null; streakLine: string; streakNote: string;
   checkinLevels: { level: number; label: string; emoji: string }[];
+  recentIds: string[]; pattern: { id: string; emoji: string; line: string } | null; intention: string;
   board: { title: string; nights: string; lede: string; rungs: { nights: number; title: string; reward: string; gift: string | null; state: "done" | "next" | "far" }[]; shieldTitle: string; shieldText: string };
 };
 export type SoundMix = { volumes: Record<string, number>; timer: number; autoStart: boolean };
@@ -31,7 +32,8 @@ export type LucidData = {
   reminderAsk: string; reminderPerDay: string; reminderWhy: string; reminderSoon: string; reminderActive: Record<number, string>; maxPerDay: number;
   reminder: { on: boolean; perDay: number };
 };
-export type SleepData = { title: string; subtitle: string; free: string; tiles: { id: string; title: string; text: string }[]; breathe: Record<string, string>; knowledge: import("@/components/knowledge").KnowledgeData; sounds: SoundsData; checklist: ChecklistData; lucid: LucidData };
+export type IntentionData = { text: string; title: string; lede: string; placeholder: string; save: string; saved: string; clear: string };
+export type SleepData = { title: string; subtitle: string; free: string; intention: IntentionData; tiles: { id: string; title: string; text: string }[]; breathe: Record<string, string>; knowledge: import("@/components/knowledge").KnowledgeData; sounds: SoundsData; checklist: ChecklistData; lucid: LucidData };
 export type ProfileData = {
   title: string; name: string; img: string | null; hint: string; credits: number; creditsWord: string;
   dreams: number; streak: number; statDreams: string; statStreak: string; settings: string;
@@ -80,6 +82,8 @@ export type OnboardData = {
   introKicker: string; introText: string; introCta: string; featuresTitle: string;
   features: { title: string; text: string }[]; featuresLede: string; proof: { big: string; small: string }[];
   sleepLegend: { life: string; sleep: string; dream: string };
+  sleepScale: { hours: string; decimal: string; hint: string; short: string; long: string; perNight: string; dreaming: string; yearsAsleep: string; yearsDreaming: string };
+  goalWords?: Record<string, string>; goalHint: string;
   showcase: { title: string; text: string }[];
   clips: string[]; reel: string[]; peopleClip: string;
   mascotTitle: string; mascotText: string; mascotSoon: string;
@@ -109,7 +113,7 @@ export type OrderRequest = {
   styleId: string; pace: string; videoModel: string; quality: string | null; format?: string; seconds: number; mode?: "film" | "images";
   assignmentOverrides?: Record<string, { avatarId?: string; free?: boolean }>;
 };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "syncExport" | "syncImport" | "sketch" | "sketchPrep" | "sketchGrid" | "sketchSound" | "sketchStart" | "sketchFail" | "sketchSweep" | "sketchSwap"; order?: OrderRequest; keep?: string[]; dreams?: unknown[]; sketch?: SketchRequest; sketchPrep?: SketchPrepRequest; sketchGrid?: { prompt?: string; prompts?: string[]; refs: string[] }; sketchSound?: { styleId: string; mood: string; beats: string[]; seconds: number }; sketchStart?: { entryId: string | null; text: string; originalText: string; analysis: any; styleId: string }; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "syncExport" | "syncImport" | "sketch" | "sketchPrep" | "sketchGrid" | "sketchSound" | "sketchStart" | "sketchFail" | "sketchSweep" | "sketchSwap" | "intention"; order?: OrderRequest; keep?: string[]; dreams?: unknown[]; sketch?: SketchRequest; sketchPrep?: SketchPrepRequest; sketchGrid?: { prompt?: string; prompts?: string[]; refs: string[] }; sketchSound?: { styleId: string; mood: string; beats: string[]; seconds: number }; sketchStart?: { entryId: string | null; text: string; originalText: string; analysis: any; styleId: string }; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
 /* Die fertige Traum-Skizze fürs Journal (journal-bridge runSketch). */
 /* Skizze vorbereiten (25.09.): Szenen → SD-Stichworte, Besetzung → eigene Fotos. */
 export type SketchPrepRequest = { beats: string[]; strips?: number; analysis: any; styleId: string; assignmentOverrides: Record<string, { avatarId?: string; free?: boolean }> };

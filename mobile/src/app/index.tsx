@@ -4,28 +4,29 @@ import { PrimaryButton } from "@/components/glass";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { useState, useEffect } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
+import { MascotLoader } from "@/components/mascot-loader";
+import { Moon } from "@/components/moon-strip";
 import { NightSky } from "@/components/night-sky";
 import { useQuickActions } from "@/lib/use-quick-actions";
 import { useReminders } from "@/lib/use-reminders";
 import { applyMix, isActive } from "@/lib/sound-engine";
+import type { DreamItem } from "@/store/journal-store";
+import { useRecording } from "@/store/recording-store";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
-/* Die Startseite, nativ (12.09.2026). Als Plakat: eine gerahmte Karte,
-   Titel und der eine Knopf auf ihrer Unterkante. Darunter, auf ruhigem
-   Dunkel: die Schlaf-Frage, „Nichts hängengeblieben", die Serie, der
-   letzte Traum. Zwei Momente wie im Web: morgens erzählen, abends
-   einschlafen.
-   Das Faultier-Video ist raus (Antons Ansage 27.09.: „komplett sinnlos"),
-   im Plakat steht jetzt der Nachthimmel mit dem echten Mond — derselbe wie
-   auf dem Aufnahmeknopf. Übergang, bis die neue Startseite entschieden ist. */
-const MOON = require("../../assets/moon/moon-disc.png");
-
-/* Schlafqualität 1–3 als SF Symbols: eine Regennacht, ein halber Mond, Mond
-   mit Sternen. Die Web-Seite nimmt Emoji; nativ sitzt das Symbol im System. */
-const SLEEP_SYMBOL: Record<number, import("expo-symbols").SFSymbol> = { 1: "cloud.moon.rain", 2: "moon", 3: "moon.stars.fill" };
+/* Die Startseite „Deine Nächte" (Antons Wahl 27.09., Variantenbuch C3):
+   oben die Serie (antippbar → Meilenstein-Leiter) und der schlafende
+   Frosch, dann der eine Knopf „Traum aufnehmen", darunter die eigenen
+   Träume als Plakate — man sieht sich selbst, das macht Lust —, die
+   Schlaf-Frage mit echten Monden und ein Motiv, das wiederkehrt.
+   Das Faultier-Video ist raus (Antons Ansage 27.09.: „komplett sinnlos").
+   „Wovon willst du heute träumen?" steht im Schlaf-Tab; morgens erinnert
+   die Startseite an den Vorsatz der letzten Nacht. */
+const SLEEP_MOON: Record<number, number> = { 1: 0.12, 2: 0.5, 3: 1 };
 
 function greetingKey(hour: number) {
   if (hour < 5) return "Night";
@@ -57,15 +58,16 @@ export default function HomeScreen() {
   }, [data, autoDone]);
   const key = greetingKey(new Date().getHours());
   const evening = key === "Evening" || key === "Night";
-  const last = home?.lastId ? data?.items.find((e) => e.id === home.lastId) ?? null : null;
+  const recent = (home?.recentIds ?? []).map((id) => data?.items.find((e) => e.id === id)).filter(Boolean) as DreamItem[];
   const nightOpen = !evening && home && !home.nightMarked;
   const [board, setBoard] = useState(false);
 
   return (
     <>
       {/* Der Schein am oberen Rand (HeroGlow im Web): Himmel, der ins Dunkel ausläuft. */}
-      <LinearGradient colors={[colors.sky, colors.bg]} style={styles.glow} pointerEvents="none" />
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic">
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]} pointerEvents="none"><NightSky density={0.6} /></View>
+      <LinearGradient colors={[colors.sky, "rgba(5,10,20,0)"]} style={styles.glow} pointerEvents="none" />
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic">
         <View style={styles.top}>
           <Text style={styles.greeting}>{L["greeting" + key] ?? ""}</Text>
           {home && home.streak > 0 ? (
@@ -75,16 +77,23 @@ export default function HomeScreen() {
           ) : null}
         </View>
 
-        <View style={styles.poster}>
-          <NightSky density={0.8} />
-          <Image source={MOON} style={styles.moon} contentFit="contain" />
-          <LinearGradient colors={["rgba(5,10,20,0)", "rgba(5,10,20,0.25)", "rgba(5,10,20,0.92)"]} locations={[0.3, 0.6, 1]} style={StyleSheet.absoluteFill} />
-          <View style={styles.posterBody}>
-            <Text style={styles.title}>{L.homeTitle ?? "What did you dream?"}</Text>
-            <Text style={styles.lede}>{L.homeLede ?? ""}</Text>
-            <PrimaryButton label={L.homeCta ?? "Record it"} onPress={() => router.push("/dream")} style={styles.cta} />
+        {/* Der Frosch schläft oben (Antons Wunsch 27.09.) — Platzhalter, bis
+            sein eigener Loop für die Startseite da ist. */}
+        <View style={styles.mascot}><MascotLoader size={150} /></View>
+
+        {!evening && home?.intention ? (
+          <View style={styles.intention}>
+            <Text style={styles.label}>{L.intentionHeading}</Text>
+            <Text style={styles.intentionText}>„{home.intention}“</Text>
           </View>
-        </View>
+        ) : null}
+
+        <PrimaryButton label={L.homeCta ?? "Record your dream"} heavy onPress={() => router.push("/dream")} style={{ flex: 0 }} />
+        {nightOpen ? (
+          <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); send({ type: "blankNight" }); }} hitSlop={8} style={{ alignSelf: "center" }}>
+            <Text style={styles.blankText}>{L.blankCta}</Text>
+          </Pressable>
+        ) : null}
 
         {askReminder && R ? (
           <View style={styles.card}>
@@ -108,11 +117,26 @@ export default function HomeScreen() {
           </Pressable>
         ) : null}
 
+        {/* Deine Nächte: die letzten Träume als Plakate, nur das erste läuft. */}
+        <View style={{ gap: 10 }}>
+          <Text style={styles.sectionTitle}>{L.homeNights}</Text>
+          {recent.length ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }} style={{ marginHorizontal: -16 }}>
+              {recent.map((e, i) => <NightPoster key={e.id} item={e} live={i === 0} labels={L} onPress={() => router.push({ pathname: "/journal/[id]", params: { id: e.id } })} />)}
+            </ScrollView>
+          ) : (
+            <View style={[styles.card, { flexDirection: "row", alignItems: "center", gap: 14 }]}>
+              <Moon illum={0.08} waxing size={40} />
+              <Text style={[styles.rowText, { flex: 1, color: colors.muted }]}>{L.homeNightsEmpty}</Text>
+            </View>
+          )}
+        </View>
+
         {!evening && home ? (
           <View style={styles.card}>
             {home.checkin ? (
               <Pressable style={styles.row} onPress={() => router.push("/journal/atlas")}>
-                <SymbolView name={SLEEP_SYMBOL[home.checkin] ?? "moon"} size={22} tintColor={colors.accentSoft} />
+                <Moon illum={SLEEP_MOON[home.checkin] ?? 0.5} waxing size={24} />
                 <Text style={[styles.rowText, { flex: 1 }]}>{L.checkinThanks}</Text><Text style={styles.chev}>›</Text>
               </Pressable>
             ) : (
@@ -121,7 +145,7 @@ export default function HomeScreen() {
                 <View style={styles.levels}>
                   {home.checkinLevels.map((l) => (
                     <Pressable key={l.level} style={styles.level} onPress={() => { Haptics.selectionAsync(); send({ type: "checkin", level: l.level }); }}>
-                      <SymbolView name={SLEEP_SYMBOL[l.level] ?? "moon"} size={24} tintColor={colors.accentSoft} />
+                      <Moon illum={SLEEP_MOON[l.level] ?? 0.5} waxing size={26} />
                       <Text style={styles.levelText}>{l.label}</Text>
                     </Pressable>
                   ))}
@@ -131,29 +155,20 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
-        {nightOpen ? (
-          <Pressable style={styles.blank} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); send({ type: "blankNight" }); }}>
-            <Text style={styles.blankText}>{L.blankCta}</Text>
-            <Text style={styles.blankHint}>{L.blankHint}</Text>
+        {home?.pattern ? (
+          <Pressable style={styles.card} onPress={() => { Haptics.selectionAsync(); router.push("/journal/atlas"); }}>
+            <Text style={styles.label}>{L.patternHeading}</Text>
+            <View style={[styles.row, { marginTop: -4 }]}>
+              <Text style={{ fontSize: 22 }}>{home.pattern.emoji}</Text>
+              <Text style={[styles.patternText, { flex: 1 }]}>{home.pattern.line}</Text>
+              <Text style={styles.chev}>›</Text>
+            </View>
           </Pressable>
         ) : null}
 
         {evening ? (
           <Pressable style={styles.line} onPress={() => router.push("/sleep")}>
             <SymbolView name="water.waves" size={20} tintColor={colors.accentSoft} /><Text style={[styles.lineText, { flex: 1 }]}>{L.soundsShortcut}</Text><Text style={styles.chev}>›</Text>
-          </Pressable>
-        ) : null}
-
-        {home && home.streak > 0 ? <Text style={styles.note}>{home.streakNote}</Text> : null}
-
-        {last ? (
-          <Pressable style={styles.last} onPress={() => router.push({ pathname: "/journal/[id]", params: { id: last.id } })}>
-            {last.media ? <Image source={{ uri: last.media.url }} style={styles.lastImg} contentFit="cover" transition={200} /> : <View style={[styles.lastImg, { backgroundColor: colors.sky }]} />}
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.label}>{L.lastHeading}</Text>
-              <Text style={styles.lastTitle} numberOfLines={1}>{last.title || L.untitled}</Text>
-              <Text style={styles.lastText} numberOfLines={2}>{last.tagline || last.text}</Text>
-            </View>
           </Pressable>
         ) : null}
       </ScrollView>
@@ -186,6 +201,28 @@ export default function HomeScreen() {
   );
 }
 
+/* Ein Traum als Plakat. Nur das erste läuft als Film (stumm, Schleife) —
+   mehrere Player gleichzeitig bremsen den Renderer; die anderen zeigen ihr
+   Standbild. Während einer Aufnahme steht der Film (recording-store.ts). */
+function NightPoster({ item, live, labels, onPress }: { item: DreamItem; live: boolean; labels: Record<string, string>; onPress: () => void }) {
+  const film = live ? item.films[item.films.length - 1]?.url ?? null : null;
+  const still = item.poster ?? item.images[0] ?? (item.media?.kind === "image" ? item.media.url : null);
+  return (
+    <Pressable onPress={() => { Haptics.selectionAsync(); onPress(); }} style={({ pressed }) => [styles.nposter, { transform: [{ scale: pressed ? 0.97 : 1 }] }]}>
+      {film ? <PosterFilm url={film} /> : still ? <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
+      <LinearGradient colors={["rgba(5,10,20,0)", "rgba(5,10,20,0.85)"]} locations={[0.45, 1]} style={StyleSheet.absoluteFill} />
+      {item.pending ? <View style={styles.npending}><View style={styles.dot} /></View> : null}
+      <Text style={styles.ntitle} numberOfLines={2}>{item.title || labels.untitled}</Text>
+    </Pressable>
+  );
+}
+function PosterFilm({ url }: { url: string }) {
+  const player = useVideoPlayer(url, (p) => { p.loop = true; p.muted = true; p.play(); });
+  const rec = useRecording();
+  useEffect(() => { player.loop = true; player.muted = true; if (rec) player.pause(); else player.play(); }, [player, rec]);
+  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: TAB_INSET, gap: 14 },
@@ -194,7 +231,14 @@ const styles = StyleSheet.create({
   pill: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   pillRisk: { borderColor: colors.warm },
   pillText: { color: colors.gold, fontSize: 13, fontWeight: "600" },
-  moon: { position: "absolute", width: 230, height: 230, right: -50, top: 36, opacity: 0.92 },
+  mascot: { alignItems: "center", marginTop: -6, marginBottom: -8 },
+  intention: { alignItems: "center", gap: 4, paddingHorizontal: 12 },
+  intentionText: { fontFamily: fonts.serif, fontStyle: "italic", fontSize: 18, color: colors.text, textAlign: "center" },
+  sectionTitle: { fontFamily: fonts.serif, fontSize: 24, color: colors.text, paddingHorizontal: 2, marginTop: 6 },
+  nposter: { width: 132, height: 196, borderRadius: 18, overflow: "hidden", backgroundColor: colors.bg2, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  ntitle: { position: "absolute", left: 10, right: 10, bottom: 10, fontFamily: fonts.serif, fontSize: 15, lineHeight: 18, color: colors.text },
+  npending: { position: "absolute", top: 10, right: 10 },
+  patternText: { color: colors.text, fontSize: 15, lineHeight: 20 },
   poster: { aspectRatio: 4 / 5, borderRadius: radius.lg, overflow: "hidden", backgroundColor: colors.bg2, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   posterBody: { position: "absolute", left: 20, right: 20, bottom: 20, gap: 8 },
   title: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 38, color: colors.text, letterSpacing: -0.3 },
@@ -219,7 +263,7 @@ const styles = StyleSheet.create({
   levelText: { color: colors.muted, fontSize: 13 },
   emoji: { fontSize: 20 },
   blank: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, gap: 2 },
-  blankText: { color: colors.text, fontSize: 15 },
+  blankText: { color: colors.faint, fontSize: 14, paddingVertical: 4 },
   blankHint: { color: colors.faint, fontSize: 12.5 },
   note: { color: colors.faint, fontSize: 13, lineHeight: 19, paddingHorizontal: 4 },
   last: { flexDirection: "row", alignItems: "center", gap: 14, padding: 12, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
