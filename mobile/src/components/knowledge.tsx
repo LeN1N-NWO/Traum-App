@@ -28,10 +28,15 @@ const CAT_ICON: Record<string, SFSymbol> = {
   klartraum: "eye", gedaechtnis: "brain", gehirn: "waveform.path.ecg", albtraum: "cloud.bolt", kreativitaet: "lightbulb", schlaf: "moon.zzz", gesellschaft: "person.3",
 };
 
-export function Knowledge({ K }: { K: KnowledgeData }) {
+export function Knowledge({ K, initialOpen }: { K: KnowledgeData; initialOpen?: string }) {
   const [cat, setCat] = useState<string | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
-  const cards = useMemo(() => [...K.cards].sort((a, b) => b.year - a.year).filter((c) => !cat || c.category === cat), [K.cards, cat]);
+  const [open, setOpen] = useState<string | null>(initialOpen ?? null);
+  /* Kommt man vom „Artikel des Tages" (Startseite), steht er oben und offen. */
+  const cards = useMemo(() => {
+    const list = [...K.cards].sort((a, b) => b.year - a.year).filter((c) => !cat || c.category === cat);
+    const i = initialOpen ? list.findIndex((c) => c.id === initialOpen) : -1;
+    return i > 0 ? [list[i], ...list.slice(0, i), ...list.slice(i + 1)] : list;
+  }, [K.cards, cat, initialOpen]);
   const cats = useMemo(() => Object.keys(K.categories).filter((k) => K.cards.some((c) => c.category === k)), [K]);
 
   return (

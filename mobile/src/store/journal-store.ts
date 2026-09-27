@@ -19,7 +19,10 @@ export type HomeData = {
   streak: number; atRisk: boolean; rendering: boolean; nightMarked: boolean; checkin: number | null;
   lastId: string | null; streakLine: string; streakNote: string;
   checkinLevels: { level: number; label: string; emoji: string }[];
-  recentIds: string[]; pattern: { id: string; emoji: string; line: string } | null; intention: string;
+  moon: { illum: number; waxing: boolean; label: string };
+  article: { id: string; title: string; meta: string } | null;
+  week: { weekday: number; done: boolean; today: boolean }[];
+  intention: string;
   board: { title: string; nights: string; lede: string; rungs: { nights: number; title: string; reward: string; gift: string | null; state: "done" | "next" | "far" }[]; shieldTitle: string; shieldText: string };
 };
 export type SoundMix = { volumes: Record<string, number>; timer: number; autoStart: boolean };

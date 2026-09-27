@@ -54,10 +54,10 @@ export default {
     blankHint: "Hält deine Serie — ohne einen Traum zu erfinden",
     blankDone: "🌙 Notiert. Die Nacht zählt.",
 
-    nightsTitle: "Deine Nächte",
-    nightsEmpty: "Hier erscheint dein erster Traum — als Film.",
-    patternHeading: "Kommt immer wieder",
-    patternLine: (label, n, of) => `${label} — in ${n} deiner letzten ${of} Träume`,
+    moonLabel: (phase) => `Letzte Nacht · ${phase}`,
+    articleHeading: "Aus der Forschung",
+    articleMore: "Lesen",
+    streakZero: "Starte deine Serie",
     intentionHeading: "Gestern wolltest du träumen von",
   },
   intention: {

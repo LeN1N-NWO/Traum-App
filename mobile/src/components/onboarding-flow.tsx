@@ -137,7 +137,9 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
      Die Begleiter-Wahl ist raus (Antons Ansage 27.09.): In der ersten
      Fassung gibt es nur den Frosch (DEFAULT_MASCOT); die Wahl kommt später
      wieder, der Bildschirm „mascot" unten bleibt dafür stehen. */
-  screens.push({ kind: "themes" }, { kind: "account" }, { kind: "done" });
+  /* „Anything that keeps coming back?" ist raus (Antons Ansage 27.09.) —
+     die Themen erkennt der Atlas später von selbst aus den Träumen. */
+  screens.push({ kind: "account" }, { kind: "done" });
   /* Nur die Fragen (Profil → „Umfrage", seit 13.09. nativ statt der
      Web-Umfrage): Name, die drei Fragen samt Jahre-Kreis, Themen, Schluss —
      ohne Intro, Berechtigungen, Zwischenbilder, Foto, Begleiter, Anmeldung. */
@@ -392,14 +394,29 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
     return <Account O={O} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
   }
 
-  // ── Schluss
+  /* ── Schluss: ein Film über die ganze Fläche (Antons Ansage 27.09.).
+     ⚠ PLATZHALTER — bis Antons eigenes Hintergrundvideo da ist, läuft hier
+     der erste Stil-Clip. Tauscht er es, ändert sich nur `DONE_CLIP`. */
+  const DONE_CLIP = O.clips[0] ?? null;
   return (
-    <Shell insets={insets} step={step} total={total} title={O.doneTitle} lede={O.doneText} onBack={back}>
-      <View style={{ alignItems: "center", paddingVertical: 20 }}>
-        <SymbolView name="moon.stars.fill" size={72} tintColor={colors.gold} />
+    <View style={styles.screen}>
+      {DONE_CLIP ? <Clip url={DONE_CLIP} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
+      <LinearGradient colors={["rgba(5,10,20,0.55)", "rgba(5,10,20,0.1)", "rgba(5,10,20,0.95)"]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+      <View style={[styles.top, { paddingTop: insets.top + 10 }]}>
+        <View style={styles.skipRow}>
+          <Pressable onPress={back} hitSlop={12} accessibilityLabel="Back">
+            <SymbolView name="chevron.left" size={17} tintColor={colors.text} weight="semibold" />
+          </Pressable>
+        </View>
       </View>
-      <PrimaryButton label={O.doneCta} heavy onPress={finish} style={{ flex: 0 }} />
-    </Shell>
+      <View style={[styles.showBody, { paddingBottom: insets.bottom + 26 }]}>
+        <Animated.View entering={FadeInDown.duration(420)} style={{ gap: 8, alignItems: "center" }}>
+          <Text style={[styles.showTitle, { textAlign: "center" }]}>{O.doneTitle}</Text>
+          <Text style={[styles.showText, { textAlign: "center" }]}>{O.doneText}</Text>
+        </Animated.View>
+        <PrimaryButton label={O.doneCta} heavy onPress={finish} style={{ flex: 0 }} />
+      </View>
+    </View>
   );
 }
 

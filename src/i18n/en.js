@@ -59,10 +59,11 @@ export default {
     blankHint: "Keeps your streak — no dream invented",
     blankDone: "🌙 Noted. The night counts.",
     /* Die Startseite „Deine Nächte" (27.09.). */
-    nightsTitle: "Your nights",
-    nightsEmpty: "Your first dream will appear here — as a film.",
-    patternHeading: "Keeps coming back",
-    patternLine: (label, n, of) => `${label} — in ${n} of your last ${of} dreams`,
+    /* Die Startseite „Der Mond von heute Nacht" (27.09.). */
+    moonLabel: (phase) => `Last night · ${phase}`,
+    articleHeading: "From the research",
+    articleMore: "Read",
+    streakZero: "Start your streak",
     intentionHeading: "Last night you wanted to dream about",
   },
   /* Der Traum-Vorsatz im Schlaf-Tab (27.09.). */

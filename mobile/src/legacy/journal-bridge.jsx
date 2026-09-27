@@ -29,7 +29,7 @@ import { selectBeats, shotPlan } from "../../../src/lib/cut.js";
 import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PACE } from "../../../src/lib/video.js";
 import { startsFree } from "../../../src/wizard/useWizard.js";
 import { beatsForCount } from "../../../src/lib/beats.js";
-import { reflectionContext, realDreams as realDreamsOf, symbolCounts } from "../../../src/lib/atlas.js";
+import { reflectionContext } from "../../../src/lib/atlas.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
 import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
@@ -45,7 +45,7 @@ import { backupPayload, mergeShared } from "../../../src/lib/journalBackup.js";
 import { FORM_FIELDS, profileFromAnswers } from "../../../src/lib/onboardingForm.js";
 import { MASCOTS, DEFAULT_MASCOT } from "../../../src/lib/mascots.js";
 import { zodiacOf } from "../../../src/lib/zodiac.js";
-import { SYMBOLS, SYMBOL_CATEGORIES, symbolById, symbolOccurrences } from "../../../src/lib/symbols.js";
+import { SYMBOLS, SYMBOL_CATEGORIES, symbolOccurrences } from "../../../src/lib/symbols.js";
 import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
 import { MILESTONES, nextMilestone, giftAt, giftFor } from "../../../src/lib/streakBoard.js";
 import { nextSnoozeIn } from "../../../src/lib/streak.js";
@@ -156,19 +156,32 @@ function snapshot() {
     nightMarked: nightMarked(s.journal),
     checkin: today ? today.sleep : null,
     lastId: last ? last.id : null,
-    streakLine: streak > 0 ? t.home.streak(streak) : "",
+    streakLine: streak > 0 ? t.home.streak(streak) : t.home.streakZero,
     streakNote: streak > 0 ? (streakAtRisk(s) ? t.home.streakRisk : t.home.streakPerk(Math.min(streak, STREAK_CAP), STREAK_CAP)) : "",
     checkinLevels: SLEEP_LEVELS.map((l) => ({ level: l, label: t.checkin.levels[l], emoji: t.checkin.emoji[l] })),
     /* Die Startseite „Deine Nächte" (27.09., Antons Wahl C3): die letzten
        Träume als Plakate, dazu EIN Motiv, das wiederkehrt — aus den letzten
        zehn echten Träumen, erst ab zweimal. */
-    recentIds: items.filter((e) => e.media || e.pending).slice(0, 8).map((e) => e.id),
-    pattern: (() => {
-      const recent = realDreamsOf(s.journal).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 10);
-      const top = symbolCounts(recent)[0];
-      if (!top || top.count < 2) return null;
-      const sym = symbolById(top.id);
-      return { id: top.id, emoji: sym?.emoji || "✦", line: t.home.patternLine(t.symbols.byId[top.id]?.label || sym?.label || top.id, top.count, recent.length) };
+    /* Die Startseite „Der Mond von heute Nacht" (Antons Wahl 27.09., C1):
+       der echte Mond der letzten Nacht, ein Artikel aus dem Wissen — jeden
+       Tag ein anderer —, und für die Serien-Seite die letzten sieben Nächte. */
+    moon: (() => {
+      const m = moonForNight(new Date(Date.now() - 12 * 3600 * 1000));
+      return { illum: m.illum, waxing: m.waxing, label: t.home.moonLabel(t.moon.phases[m.phase] || m.phase) };
+    })(),
+    article: (() => {
+      const cards = [...(t.knowledge?.cards || [])].sort((a, b) => b.year - a.year);
+      if (!cards.length) return null;
+      const c = cards[Math.floor(Date.now() / 864e5) % cards.length];
+      return { id: c.id, title: c.title, meta: `${t.knowledge.categories?.[c.category] || c.category} · ${c.year}` };
+    })(),
+    week: (() => {
+      const key = (d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+      const nights = new Set((s.journal || []).map((e) => key(new Date(e.createdAt))));
+      return Array.from({ length: 7 }, (_, k) => {
+        const d = new Date(Date.now() - (6 - k) * 864e5);
+        return { weekday: d.getDay(), done: nights.has(key(d)), today: k === 6 };
+      });
     })(),
     intention,
     /* Die Meilenstein-Leiter hinter der Serien-Pille (StreakBoard.jsx). */
@@ -195,7 +208,7 @@ function snapshot() {
     greetingNight: t.home.greeting.night, greetingMorning: t.home.greeting.morning,
     greetingAfternoon: t.home.greeting.afternoon, greetingEvening: t.home.greeting.evening,
     homeTitle: t.home.title, homeLede: t.home.lede, homeCta: t.home.cta,
-    homeNights: t.home.nightsTitle, homeNightsEmpty: t.home.nightsEmpty, patternHeading: t.home.patternHeading, intentionHeading: t.home.intentionHeading, renderingLine: t.home.renderingLine, quickRecord: t.home.quickRecord,
+    intentionHeading: t.home.intentionHeading, articleHeading: t.home.articleHeading, articleMore: t.home.articleMore, renderingLine: t.home.renderingLine, quickRecord: t.home.quickRecord,
     lastHeading: t.home.lastHeading, blankCta: t.home.blankCta, blankHint: t.home.blankHint, blankDone: t.home.blankDone,
     soundsShortcut: t.home.soundsShortcut, checkinQuestion: t.checkin.question, checkinThanks: t.checkin.thanks,
     untitled: t.journal.untitled, takes: t.journal.takesLabel, reflectTitle: t.journal.reflectTitle,
@@ -1255,6 +1268,13 @@ function holdChores() {
   } catch { return true; }
 }
 function streakChores(onResult) {
+  /* ⚠ Erst nachsehen, OB etwas fällig ist — nur dann die Pacht schreiben
+     (27.09.): Jede Schreibung in localStorage weckt alle anderen Brücken,
+     die daraufhin ihren ganzen Schnappschuss schicken. Die Pacht bei JEDEM
+     Lesen zu schreiben, hielt die Brücken im Dauerfeuer — bis der Speicher
+     der App überlief. */
+  const peek = loadState();
+  if (!snoozeCheck(peek) && !giftFor(peek)) return;
   if (!holdChores()) return;
   const s0 = loadState();
   const saved = snoozeCheck(s0);
@@ -1303,9 +1323,13 @@ function syncLanguage() {
 export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, streakChores: chores = false, dom }) {
   useEffect(() => {
     const push = () => { try { syncLanguage(); devTopUp(devCredits); if (chores) streakChores(onResult); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
+    /* Nur Änderungen am Zustand wecken die Brücke — nicht die Pachten
+       (Abholer alle 3 s, Serie). Sonst schickte bei jedem Pachtschreiben
+       jede Brücke ihren ganzen Schnappschuss (Speicherüberlauf 27.09.). */
+    const onStorage = (e) => { if (e?.key === LEASE || e?.key === CHORES) return; push(); };
     push();
-    window.addEventListener("storage", push);
-    return () => window.removeEventListener("storage", push);
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, [onJournal, refreshTick, devCredits, chores]);
   useEffect(() => {
     let busy = false;
