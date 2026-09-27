@@ -2,9 +2,9 @@ import { Stack, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { DreamCalendar } from "@/components/dream-calendar";
-import { DreamTile } from "@/components/dream-tile";
+import { DreamCarousel } from "@/components/dream-carousel";
 import { DreamRow } from "@/components/dream-row";
 import { MoonStrip } from "@/components/moon-strip";
 import { useJournal } from "@/components/journal-data";
@@ -12,8 +12,8 @@ import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Das Journal, nativ — der Aufbau ist der des Web (JournalScreen.jsx),
    nur das Material ist neu: Kopf mit Titel und Zahl, Suche und Ansicht-
-   Umschalter, dann das RASTER kleiner Plakate (Antons Wahl 27.09., vorher
-   das große Deck; die kleine Ansicht hatte er auf der Startseite gesehen)
+   Umschalter, dann das KARUSSELL (Antons Wahl 27.09.: wischen, die Mitte
+   im Fokus, die Nachbarn verschwimmen — components/dream-carousel.tsx)
    oder die Liste, darunter die Nebenräume als zwei halbe Kacheln je Zeile (Besetzung,
    Atlas ab dem 2. Traum, Menagerie mit Wesen), darunter der Kalender. */
 export default function JournalScreen() {
@@ -23,8 +23,6 @@ export default function JournalScreen() {
   const L = J?.labels ?? {};
   const [query, setQuery] = useState("");
   const deck = (J?.view ?? "deck") !== "list";
-  const { width } = useWindowDimensions();
-  const tileW = Math.floor((width - 32 - 2 * 10) / 3);
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
     const all = data?.items ?? [];
@@ -48,9 +46,7 @@ export default function JournalScreen() {
         {items.length === 0 ? (
           <Text style={styles.empty}>{query ? L.emptySearch : L.empty}</Text>
         ) : deck ? (
-          <View style={styles.grid}>
-            {items.map((e, i) => <DreamTile key={e.id} item={e} live={i === 0} untitled={L.untitled} width={tileW} onPress={() => open(e.id)} />)}
-          </View>
+          <DreamCarousel items={items} untitled={L.untitled} locale={data?.language === "de" ? "de-DE" : "en-GB"} onOpen={open} />
         ) : (
           <View style={styles.list}>{items.map((e) => <DreamRow key={e.id} item={e} months={L.months} onPress={open} rendering={L.rendering} untitled={L.untitled} />)}</View>
         )}
@@ -72,7 +68,7 @@ export default function JournalScreen() {
       <Stack.Screen.Title large style={{ color: colors.text, fontFamily: fonts.serif }} largeStyle={{ color: colors.text, fontFamily: fonts.serif, fontSize: 36 }}>{L.title ?? "Journal"}</Stack.Screen.Title>
       <Stack.SearchBar placeholder={L.search ?? "Search"} onChangeText={(e) => setQuery(e.nativeEvent.text)} hideWhenScrolling />
       <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button icon={deck ? "list.bullet" : "square.grid.3x2"} onPress={() => { Haptics.selectionAsync(); send({ type: "journalView", value: deck ? "list" : "deck" }); }} />
+        <Stack.Toolbar.Button icon={deck ? "list.bullet" : "rectangle.stack"} onPress={() => { Haptics.selectionAsync(); send({ type: "journalView", value: deck ? "list" : "deck" }); }} />
       </Stack.Toolbar>
       <View style={styles.bridge}>{bridge}</View>
     </>
@@ -96,7 +92,6 @@ const styles = StyleSheet.create({
   sub: { color: colors.faint, fontSize: 13, marginLeft: 2, marginBottom: 4 },
   empty: { color: colors.muted, textAlign: "center", marginVertical: 40, fontSize: 15 },
   list: { marginTop: 4 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 6 },
   shortcuts: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 18 },
   room: { flexGrow: 1, flexBasis: "45%", flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   roomTitle: { color: colors.text, fontSize: 15, fontWeight: "600" },

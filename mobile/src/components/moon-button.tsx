@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { Easing, type SharedValue, useAnimatedProps, useAnimatedStyle, useFrameCallback, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { Image } from "expo-image";
 import Svg, { Circle, Path } from "react-native-svg";
+import { useScreenActive } from "@/lib/use-screen-active";
 import { colors } from "@/theme";
 import { moonIllumination, moonWaxing } from "../../../src/lib/moon.js";
 
@@ -46,11 +47,14 @@ export function MoonButton({ size = 150, recording, level, onPress, disabled, la
   /* Geglättete Stimme und Eigenzeit — siehe Fly. */
   const sl = useSharedValue(0);
   const tau = useSharedValue(0);
-  useFrameCallback((f) => {
+  const clock = useFrameCallback((f) => {
     const dt = Math.min(0.05, (f.timeSincePreviousFrame ?? 16) / 1000);
     sl.value += (level.value - sl.value) * Math.min(1, dt * 2.2);
     tau.value += dt * (1 + 0.9 * sl.value);
-  });
+  }, false);
+  // Nur rechnen, solange der Traum-Tab zu sehen ist (27.09., Dauerlast).
+  const active = useScreenActive();
+  useEffect(() => { clock.setActive(active); }, [active, clock]);
 
   // Die Aura atmet (6 s), beim Aufnehmen heller und mit der Stimme größer.
   const breath = useSharedValue(0);
