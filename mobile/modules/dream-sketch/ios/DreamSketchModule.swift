@@ -262,9 +262,10 @@ public class DreamSketchModule: Module {
       }
     }
 
-    /// Der Ton kam erst nach dem Film (26.09., fal-Kaltstart): nachträglich
-    /// unter den fertigen Film legen — dieselbe Datei, der Traum im Journal
-    /// bleibt unverändert und spielt ab dann mit Ton.
+    /// Den Ton unter einen fertigen Film legen — schreibt die Datei um.
+    /// ⚠ Nie auf eine Datei, die schon abgespielt wird (27.09., der Loop
+    /// blieb stehen): Für nachgereichten Ton kopiert die GlimpseLayer den
+    /// Film erst und ruft addSound auf der Kopie auf.
     AsyncFunction("addSound") { (film: String, sound: String, promise: Promise) in
       self.work.async {
         do {

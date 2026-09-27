@@ -941,6 +941,25 @@ function runSketchSweep(cmd, onResult) {
   return true;
 }
 
+/* Nachgereichter Ton (27.09.): Der Film mit Ton liegt in einer neuen Datei;
+   der Traum zeigt ab jetzt auf sie (value = alt, text = neu). */
+function runSketchSwap(cmd, onResult) {
+  const from = String(cmd.value || ""), to = String(cmd.text || "");
+  if (!from.startsWith("sketch:") || !to.startsWith("sketch:")) { onResult({ n: cmd.n, error: "invalid" }); return true; }
+  const s1 = loadState();
+  let hit = false;
+  const journal = (s1.journal || []).map((e) => {
+    if (e.id !== cmd.id) return e;
+    const films = filmsOf(e).map((f) => (f.url === from ? (hit = true, { ...f, url: to }) : f));
+    return hit ? { ...e, films } : e;
+  });
+  if (!hit) { onResult({ n: cmd.n, error: "missing" }); return true; }
+  saveState({ ...s1, journal });
+  onJournalTick?.();
+  onResult({ n: cmd.n, result: { ok: true } });
+  return true;
+}
+
 function runSketchFail(cmd, onResult) {
   const s1 = loadState();
   saveState({ ...s1, journal: (s1.journal || []).map((e) => (e.id === cmd.id ? { ...e, pending: undefined, failReason: String(cmd.value || "sketch").slice(0, 200) } : e)) });
@@ -955,6 +974,7 @@ async function runAsync(cmd, onResult) {
   if (cmd.type === "sketchStart") return runSketchStart(cmd, onResult);
   if (cmd.type === "sketchFail") return runSketchFail(cmd, onResult);
   if (cmd.type === "sketchSweep") return runSketchSweep(cmd, onResult);
+  if (cmd.type === "sketchSwap") return runSketchSwap(cmd, onResult);
   if (cmd.type === "sketchPrep") return runSketchPrep(cmd, onResult);
   if (cmd.type === "sketchGrid") return runSketchGrid(cmd, onResult);
   if (cmd.type === "sketchSound") return runSketchSound(cmd, onResult);

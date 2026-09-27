@@ -1,3 +1,4 @@
+import { File } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
@@ -149,11 +150,9 @@ async function run(job: GlimpseJob, ask: (cmd: Omit<BridgeCommand, "n">) => Prom
       content: { title: job.texts.readyTitle, body: job.texts.readyBody.replace("{title}", job.dream.title || ""), data: { glimpse: `/journal/${job.entryId}` } },
       trigger: null,
     }).catch(() => {});
-    // Der Film ist da; kam der Ton zu spät, wird er jetzt noch daruntergelegt.
     // Kam der Ton nicht rechtzeitig, wird er nebenher nachgereicht.
     if (!withSound && !soundUrl) {
-      const sketch = DreamSketch;
-      void sound.then((late) => (late ? sketch.addSound(film.film, late) : null))
+      void sound.then((late) => (late ? lateSound(job, film.film, late, ask) : null))
         .catch((e) => console.warn("[glimpse] Ton nachträglich", e?.message || e));
     }
   } catch (e: any) {
@@ -163,6 +162,26 @@ async function run(job: GlimpseJob, ask: (cmd: Omit<BridgeCommand, "n">) => Prom
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     showToast(`⚠ ${job.texts.failed}`);
   }
+}
+
+/* Der nachgereichte Ton kommt in eine NEUE Datei (27.09., Hannis Befund:
+   „der Loop lief einmal durch und blieb stehen"). Vorher schrieb addSound
+   die Filmdatei an Ort und Stelle um — während das Journal sie schon
+   abspielte. Der Player spielte den ersten Durchgang aus dem Puffer, der
+   Sprung an den Anfang traf dann eine andere Datei, und er blieb stehen.
+   Jetzt: Kopie mit Ton, der Traum zeigt auf die Kopie (Brücke sketchSwap),
+   die alte Datei geht erst, wenn kein Player sie mehr hält. */
+async function lateSound(job: GlimpseJob, film: string, sound: string, ask: (cmd: Omit<BridgeCommand, "n">) => Promise<BridgeResult>) {
+  const src = resolveSketchUrl(film);
+  if (!DreamSketch || !src) return;
+  const name = `${job.id}-s.mp4`;
+  const copy = new File(resolveSketchUrl(`sketch:${name}`)!);
+  if (copy.exists) copy.delete();
+  new File(src).copySync(copy);
+  await DreamSketch.addSound(`sketch:${name}`, sound);
+  const r = await ask({ type: "sketchSwap", id: job.entryId, value: film, text: `sketch:${name}` });
+  if (r.error) { try { copy.delete(); } catch {} return; }
+  setTimeout(() => { try { new File(src).delete(); } catch {} }, 60000);
 }
 
 const styles = StyleSheet.create({

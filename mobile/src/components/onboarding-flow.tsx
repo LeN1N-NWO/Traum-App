@@ -102,9 +102,10 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
       body: raster(O.values.goal.order, O.values.goal.labels, (v) => a.goals.includes(v), toggleGoal, true),
     },
     frage("recall", O.formRecall, O.values.recall.order, O.values.recall.labels),
-    frage("lucid", O.formLucid, O.values.lucid.order, O.values.lucid.labels),
+    /* Klarträume und Zeitbudget sind raus (Antons Ansage 27.09.: „sinnlos",
+       das Onboarding war zu lang). Die Profilfelder bleiben — wer sie früher
+       beantwortet hat, behält sie; die Umfrage im Profil fragt sie nicht mehr. */
     frage("sleepHours", O.formSleep, O.values.sleepHours.order, O.values.sleepHours.labels),
-    frage("timeBudget", O.formTime, O.values.timeBudget.order, O.values.timeBudget.labels),
   ];
   /* Die Reihenfolge der Bildschirme — als LISTE, nicht als Rechnung mit
      Indizes: Nach jeder Frage kommt ein Zwischenbild mit Film (Antons
@@ -119,20 +120,22 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
     screens.push({ kind: "question", at: i });
     if (f.key === "sleepHours") screens.push({ kind: "sleepYears" });
     else {
-      const at = i > 3 ? i - 1 : i;
-      screens.push({ kind: "showcase", at });
+      screens.push({ kind: "showcase", at: i });
       /* Nach dem Zwischenbild „Die Menschen darin sind deine" (at 1) das
          eigene Foto (Antons Platzwahl 13.09.): erst sehen, dass man
          mitspielt, dann das Gesicht geben. */
-      if (at === 1) screens.push({ kind: "me" });
+      if (i === 1) screens.push({ kind: "me" });
     }
   });
   /* Die Anmeldung GANZ AM ENDE (Antons Platzwahl 13.09.): Wer bis hierher
      geantwortet hat, sichert das Ergebnis — nicht umgekehrt. Am Anfang
-     schreckt sie ab, beim Kauf ist sie zu spät. */
-  screens.push({ kind: "mascot" }, { kind: "themes" }, { kind: "account" }, { kind: "done" });
+     schreckt sie ab, beim Kauf ist sie zu spät.
+     Die Begleiter-Wahl ist raus (Antons Ansage 27.09.): In der ersten
+     Fassung gibt es nur den Frosch (DEFAULT_MASCOT); die Wahl kommt später
+     wieder, der Bildschirm „mascot" unten bleibt dafür stehen. */
+  screens.push({ kind: "themes" }, { kind: "account" }, { kind: "done" });
   /* Nur die Fragen (Profil → „Umfrage", seit 13.09. nativ statt der
-     Web-Umfrage): Name, die fünf Fragen samt Jahre-Kreis, Themen, Schluss —
+     Web-Umfrage): Name, die drei Fragen samt Jahre-Kreis, Themen, Schluss —
      ohne Intro, Berechtigungen, Zwischenbilder, Foto, Begleiter, Anmeldung. */
   const shown = questionsOnly ? screens.filter((x) => ["name", "question", "sleepYears", "themes", "done"].includes(x.kind)) : screens;
   const total = shown.length;

@@ -1,39 +1,42 @@
 import { useId, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, { type SharedValue, useAnimatedProps, useFrameCallback, useSharedValue } from "react-native-reanimated";
-import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Circle, Defs, G, LinearGradient, Mask, RadialGradient, Rect, Stop } from "react-native-svg";
 
-/* Der Leuchtrand (Antons Ansage 26.09., dritte Fassung): „eine goldene
-   Linie am Rand, die leicht pulsiert und sich bewegt, mit Glow" — wie die
-   Vorschau im Browser, die er hübsch fand.
+/* Der Leuchtrand, vierte Fassung (Antons Ansage 27.09.): „eine golden
+ * schimmernde Hairline, poliert, die sich drum herum bewegt".
  *
  * Was NICHT wiederkommen soll:
  *   · zwei harte Striche übereinander (erste Fassung: „wie ein Bug"),
- *   · ein Band aus vielen kurzen Strichen mit runden Kappen (zweite
- *     Fassung: „eine Schlange aus kleinen Teilen").
+ *   · ein Band aus vielen kurzen Strichen (zweite: „eine Schlange"),
+ *   · ein Band, dessen Farbverlauf mitwandern sollte (dritte: „kaputt").
+ *     Ein Verlauf in <Defs>, dessen Koordinaten Reanimated jedes Bild neu
+ *     setzt, aktualisiert react-native-svg auf dem Gerät nicht zuverlässig —
+ *     das Band lief durch einen stehenden Verlauf und riss ab.
  *
- * Deshalb ist das Band jetzt EIN einziger Strich mit einem echten
- * Farbverlauf: Der Verlauf wird in Bildkoordinaten vom Schwanz zum Kopf des
- * Bandes gespannt und läuft mit — an beiden Enden durchsichtig, in der
- * Mitte Gold. Auf einem Knopf liegt das Band fast immer auf einer geraden
- * Kante, dort ist der lineare Verlauf exakt; um die Rundungen herum bleibt
- * er weich. Der Schein ist der iOS-Schatten der Ebene (folgt der Form).
- * Alles hängt an einer durchlaufenden Uhr (useFrameCallback), nichts
- * springt. Die Ebene liegt ÜBER dem Knopf und fängt keine Tipps. */
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
+ * Jetzt bewegt sich KEIN Verlauf mehr, nur Kreise (wie die Glühwürmchen am
+ * Mond, das läuft sauber):
+ *   · die Hairline selbst: 1 pt, gebürstetes Gold — ein fester Verlauf
+ *     diagonal über den Knopf, hell und dunkel im Wechsel wie poliertes
+ *     Metall; sie atmet leise;
+ *   · der Schimmer: ein weicher Lichtfleck mit kurzem Schweif gleitet mit
+ *     gleichmäßiger Geschwindigkeit den Rand entlang. Er ist durch eine
+ *     Maske aus genau dieser Hairline zu sehen — er färbt nur die Linie,
+ *     nie den Knopf;
+ *   · der Schein: der iOS-Schatten der Ebene, golden — er folgt dem, was
+ *     leuchtet, also vor allem dem Schimmer.
+ * Die Ebene liegt ÜBER dem Knopf und fängt keine Tipps. */
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
-const GOLD = "#ffd58f";
-const WARM = "#f2a765";
-const BAND = 0.32;         // Anteil des Umfangs, den das Band einnimmt
-const BREATH = 5200;       // ein Atemzug in ms
-const SPARKS = 3;
+const BREATH = 6000;       // ein Atemzug der Linie in ms
+const TAIL = [0, 0.028, 0.056, 0.084];   // Schweif des Schimmers (Anteil des Umfangs)
 
 type Geo = { x: number; y: number; w: number; h: number; r: number; per: number };
 
 /* Punkt auf dem Rand des abgerundeten Rechtecks, u in [0,1) — im
-   Uhrzeigersinn ab oben links, genau wie der Strich des SVG-Rechtecks. */
+   Uhrzeigersinn ab oben links. Gleichmäßig in der Bogenlänge, damit der
+   Schimmer auf langen Kanten nicht kriecht und an den Enden nicht rast. */
 function pointAt(u: number, g: Geo): [number, number] {
   "worklet";
   const { x, y, w, h, r, per } = g;
@@ -49,42 +52,22 @@ function pointAt(u: number, g: Geo): [number, number] {
   d -= sh; const a = Math.PI + d / r; return [x + r + r * Math.cos(a), y + r + r * Math.sin(a)];
 }
 
-export function OrbitGlow({ radius, lap = 12000 }: { radius?: number; color?: string; lap?: number }) {
+export function OrbitGlow({ radius, lap = 9000 }: { radius?: number; color?: string; lap?: number }) {
   const id = useId().replace(/[^a-zA-Z0-9]/g, "");
   const [box, setBox] = useState({ w: 0, h: 0 });
   const t = useSharedValue(0);
   useFrameCallback((f) => { t.value = f.timeSinceFirstFrame; });
 
-  const inset = 1.5;
+  const inset = 0.75;
   const w = Math.max(0, box.w - inset * 2), h = Math.max(0, box.h - inset * 2);
   const r = Math.min(radius ?? h / 2, h / 2, w / 2);
-  // Umfang eines abgerundeten Rechtecks: gerade Stücke + ein ganzer Kreis.
   const per = 2 * (w - 2 * r) + 2 * (h - 2 * r) + 2 * Math.PI * r;
   const geo: Geo = { x: inset, y: inset, w, h, r, per };
-  const band = BAND * per;
+  const spot = Math.max(16, Math.min(30, h * 0.55));
 
-  // Der Verlauf spannt sich vom Schwanz zum Kopf des Bandes.
-  const grad = useAnimatedProps(() => {
-    const head = t.value / lap;
-    const [x1, y1] = pointAt(head - BAND, geo);
-    const [x2, y2] = pointAt(head, geo);
-    return { x1, y1, x2, y2 };
-  });
-  // Das Band selbst: die Lücke im Strichmuster wandert, der Rand atmet.
-  const line = useAnimatedProps(() => {
-    const start = (((t.value / lap - BAND) % 1) + 1) % 1;
-    const breath = 0.5 + 0.5 * Math.sin((t.value / BREATH) * Math.PI * 2);
-    return { strokeDashoffset: -start * per, strokeOpacity: 0.75 + 0.25 * breath };
-  });
-  const body = useAnimatedProps(() => {
-    const start = (((t.value / lap - BAND) % 1) + 1) % 1;
-    const breath = 0.5 + 0.5 * Math.sin((t.value / BREATH) * Math.PI * 2);
-    return { strokeDashoffset: -start * per, strokeOpacity: 0.22 + 0.16 * breath };
-  });
-  // Die feine Linie rundum: immer da, atmet leise mit.
   const rim = useAnimatedProps(() => {
     const breath = 0.5 + 0.5 * Math.sin((t.value / BREATH) * Math.PI * 2);
-    return { strokeOpacity: 0.16 + 0.12 * breath };
+    return { strokeOpacity: 0.42 + 0.2 * breath };
   });
 
   return (
@@ -92,41 +75,56 @@ export function OrbitGlow({ radius, lap = 12000 }: { radius?: number; color?: st
       {per > 0 ? (
         <Svg width={box.w} height={box.h}>
           <Defs>
-            <AnimatedGradient id={`band${id}`} gradientUnits="userSpaceOnUse" animatedProps={grad}>
-              <Stop offset="0" stopColor={WARM} stopOpacity={0} />
-              <Stop offset="0.3" stopColor={WARM} stopOpacity={0.85} />
-              <Stop offset="0.62" stopColor={GOLD} stopOpacity={1} />
-              <Stop offset="1" stopColor="#fff6e4" stopOpacity={0} />
-            </AnimatedGradient>
+            {/* Gebürstetes Gold: Licht und Schatten im Wechsel, diagonal. */}
+            <LinearGradient id={`metal${id}`} x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0" stopColor="#9a7432" />
+              <Stop offset="0.22" stopColor="#f7dea2" />
+              <Stop offset="0.45" stopColor="#b88d3e" />
+              <Stop offset="0.7" stopColor="#fff0c8" />
+              <Stop offset="1" stopColor="#a57d37" />
+            </LinearGradient>
+            <RadialGradient id={`spot${id}`} cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor="#fffaf0" stopOpacity={1} />
+              <Stop offset="0.35" stopColor="#ffe3a6" stopOpacity={0.9} />
+              <Stop offset="1" stopColor="#f2b35e" stopOpacity={0} />
+            </RadialGradient>
+            <Mask id={`line${id}`} maskUnits="userSpaceOnUse" x={0} y={0} width={box.w} height={box.h}>
+              <Rect x={inset} y={inset} width={w} height={h} rx={r} ry={r} fill="none" stroke="#fff" strokeWidth={1.25} />
+            </Mask>
           </Defs>
           <AnimatedRect x={inset} y={inset} width={w} height={h} rx={r} ry={r} fill="none"
-            stroke={GOLD} strokeWidth={0.8} animatedProps={rim} />
-          <AnimatedRect x={inset} y={inset} width={w} height={h} rx={r} ry={r} fill="none"
-            stroke={`url(#band${id})`} strokeWidth={7} strokeLinecap="round"
-            strokeDasharray={[band, Math.max(0, per - band)]} animatedProps={body} />
-          <AnimatedRect x={inset} y={inset} width={w} height={h} rx={r} ry={r} fill="none"
-            stroke={`url(#band${id})`} strokeWidth={2} strokeLinecap="round"
-            strokeDasharray={[band, Math.max(0, per - band)]} animatedProps={line} />
-          {Array.from({ length: SPARKS }, (_, j) => <Spark key={j} j={j} t={t} geo={geo} lap={lap} />)}
+            stroke={`url(#metal${id})`} strokeWidth={1} animatedProps={rim} />
+          <G mask={`url(#line${id})`}>
+            {TAIL.map((lag, k) => <Spot key={k} t={t} geo={geo} lap={lap} lag={lag} size={spot * (1 - k * 0.14)} alpha={1 - k * 0.24} fill={`url(#spot${id})`} />)}
+            {/* Ein leiser Widerschein gegenüber — das Metall fängt das Licht zweimal. */}
+            <Spot t={t} geo={geo} lap={lap} lag={-0.5} size={spot * 0.8} alpha={0.28} fill={`url(#spot${id})`} />
+          </G>
+          <Sparkle t={t} geo={geo} lap={lap} />
         </Svg>
       ) : null}
     </View>
   );
 }
 
-/* Ein Funke im hellen Teil des Bandes: gleitet sanft und funkelt — beides Sinus. */
-function Spark({ j, t, geo, lap }: { j: number; t: SharedValue<number>; geo: Geo; lap: number }) {
-  const core = useAnimatedProps(() => {
-    const u = t.value / lap - BAND * (0.12 + j * 0.09) + 0.01 * Math.sin(t.value / (1400 + j * 260) + j * 2.1);
-    const [px, py] = pointAt(u, geo);
-    // Ein Hauch neben der Linie, damit die Funken nicht auf einer Schnur sitzen.
-    const off = 2.4 * Math.sin(t.value / (1900 + j * 330) + j);
-    const tw = 0.5 + 0.5 * Math.sin(t.value / (600 + j * 170) + j * 1.7);
-    return { cx: px + off, cy: py - off * 0.6, opacity: tw * tw * 0.9, r: 0.8 + 0.7 * tw };
+function Spot({ t, geo, lap, lag, size, alpha, fill }: { t: SharedValue<number>; geo: Geo; lap: number; lag: number; size: number; alpha: number; fill: string }) {
+  const props = useAnimatedProps(() => {
+    const [cx, cy] = pointAt(t.value / lap - lag, geo);
+    return { cx, cy, opacity: alpha };
   });
-  return <AnimatedCircle fill="#fff6e4" animatedProps={core} />;
+  return <AnimatedCircle r={size} fill={fill} animatedProps={props} />;
+}
+
+/* Ein einzelnes Funkeln genau an der Spitze des Schimmers: glimmt auf und
+   vergeht, ein paar Mal pro Runde — der „Glanz" auf dem Metall. */
+function Sparkle({ t, geo, lap }: { t: SharedValue<number>; geo: Geo; lap: number }) {
+  const props = useAnimatedProps(() => {
+    const [cx, cy] = pointAt(t.value / lap + 0.004, geo);
+    const tw = Math.max(0, Math.sin(t.value / 700));
+    return { cx, cy, opacity: tw * tw * 0.95, r: 0.6 + 0.9 * tw };
+  });
+  return <AnimatedCircle fill="#fffaf0" animatedProps={props} />;
 }
 
 const styles = StyleSheet.create({
-  glow: { shadowColor: "#f4b46a", shadowOpacity: 0.85, shadowRadius: 9, shadowOffset: { width: 0, height: 0 } },
+  glow: { shadowColor: "#f4c27a", shadowOpacity: 0.9, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
 });

@@ -4,22 +4,24 @@ import { PrimaryButton } from "@/components/glass";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
-import { useVideoPlayer, VideoView } from "expo-video";
 import { useState, useEffect } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
+import { NightSky } from "@/components/night-sky";
 import { useQuickActions } from "@/lib/use-quick-actions";
 import { useReminders } from "@/lib/use-reminders";
 import { applyMix, isActive } from "@/lib/sound-engine";
-import { useRecording } from "@/store/recording-store";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
-/* Die Startseite, nativ (12.09.2026). Als Plakat, wie im Web entschieden
-   (09.08.): das Faultier-Video in einer gerahmten Karte, Titel und der eine
-   warme Knopf auf ihrer Unterkante. Darunter, auf ruhigem Dunkel: die
-   Schlaf-Frage, „Nichts hängengeblieben", die Serie, der letzte Traum.
-   Zwei Momente wie im Web: morgens erzählen, abends einschlafen. */
-const heroVideo = require("../../../src/assets/home-faultier.mp4");
+/* Die Startseite, nativ (12.09.2026). Als Plakat: eine gerahmte Karte,
+   Titel und der eine Knopf auf ihrer Unterkante. Darunter, auf ruhigem
+   Dunkel: die Schlaf-Frage, „Nichts hängengeblieben", die Serie, der
+   letzte Traum. Zwei Momente wie im Web: morgens erzählen, abends
+   einschlafen.
+   Das Faultier-Video ist raus (Antons Ansage 27.09.: „komplett sinnlos"),
+   im Plakat steht jetzt der Nachthimmel mit dem echten Mond — derselbe wie
+   auf dem Aufnahmeknopf. Übergang, bis die neue Startseite entschieden ist. */
+const MOON = require("../../assets/moon/moon-disc.png");
 
 /* Schlafqualität 1–3 als SF Symbols: eine Regennacht, ein halber Mond, Mond
    mit Sternen. Die Web-Seite nimmt Emoji; nativ sitzt das Symbol im System. */
@@ -74,7 +76,8 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.poster}>
-          <HeroVideo />
+          <NightSky density={0.8} />
+          <Image source={MOON} style={styles.moon} contentFit="contain" />
           <LinearGradient colors={["rgba(5,10,20,0)", "rgba(5,10,20,0.25)", "rgba(5,10,20,0.92)"]} locations={[0.3, 0.6, 1]} style={StyleSheet.absoluteFill} />
           <View style={styles.posterBody}>
             <Text style={styles.title}>{L.homeTitle ?? "What did you dream?"}</Text>
@@ -183,15 +186,6 @@ export default function HomeScreen() {
   );
 }
 
-function HeroVideo() {
-  const player = useVideoPlayer(heroVideo, (p) => { p.loop = true; p.muted = true; p.play(); });
-  const rec = useRecording();
-  // Manche Simulatoren/Builds starten den Player erst, wenn die Ansicht steht (Antons Befund 12.09.: Faultier stand still).
-  // Während einer Aufnahme steht das Video: jedes Player-Ereignis würde die Audio-Session kippen (recording-store.ts).
-  useEffect(() => { player.loop = true; player.muted = true; if (rec) player.pause(); else player.play(); }, [player, rec]);
-  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: TAB_INSET, gap: 14 },
@@ -200,7 +194,8 @@ const styles = StyleSheet.create({
   pill: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   pillRisk: { borderColor: colors.warm },
   pillText: { color: colors.gold, fontSize: 13, fontWeight: "600" },
-  poster: { aspectRatio: 3 / 4, borderRadius: radius.lg, overflow: "hidden", backgroundColor: colors.bg2, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  moon: { position: "absolute", width: 230, height: 230, right: -50, top: 36, opacity: 0.92 },
+  poster: { aspectRatio: 4 / 5, borderRadius: radius.lg, overflow: "hidden", backgroundColor: colors.bg2, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   posterBody: { position: "absolute", left: 20, right: 20, bottom: 20, gap: 8 },
   title: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 38, color: colors.text, letterSpacing: -0.3 },
   lede: { color: colors.muted, fontSize: 15, lineHeight: 21 },
