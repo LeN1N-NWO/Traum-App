@@ -106,7 +106,7 @@ export type RemindersData = {
   texts: { morningTitle: string; morningBody: string; eveningTitle: string; eveningBody: string; realityTitle: string; realityBodies: string[] };
 };
 export type ConsentData = { needed: boolean; title: string; intro: string; termsPre: string; termsLink: string; termsMid: string; privacyLink: string; termsPost: string; processing: string; adult: string; more: string; details: string[]; facts: { id: string; title: string; text: string }[]; cta: string };
-export type JournalSnapshot = { language: string; items: DreamItem[]; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData; symbols: SymbolsData; library: LibraryData; menagerie: MenagerieData; consent: ConsentData; reminders: RemindersData; onboard: Omit<OnboardData, "sleepYears" | "sleepDream"> & { sleepYearsTpl: string; sleepDreamTpl: string } };
+export type JournalSnapshot = { language: string; items: DreamItem[]; castImages?: Record<string, string>; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData; symbols: SymbolsData; library: LibraryData; menagerie: MenagerieData; consent: ConsentData; reminders: RemindersData; onboard: Omit<OnboardData, "sleepYears" | "sleepDream"> & { sleepYearsTpl: string; sleepDreamTpl: string } };
 /* Der Film-Auftrag für den nativen Motor (Brücke `order`, Vorarbeit 13.09.). */
 export type OrderRequest = {
   entryId?: string | null; text: string; originalText?: string; analysis: any | null; title?: string; tagline?: string;
@@ -156,7 +156,16 @@ function withLocalMedia(s: JournalSnapshot): JournalSnapshot {
 }
 onMediaReady(() => { if (raw) setJournal(raw); });
 
+/* Die Besetzungs-Fotos kommen einmal als castImages; in den Träumen steht
+   nur `cast:<tag>` (journal-bridge.jsx, 27.09. — sonst Speicherüberlauf). */
+function withCastImages(next: JournalSnapshot): JournalSnapshot {
+  const imgs = next.castImages;
+  if (!imgs || !Object.keys(imgs).length) return next;
+  const fix = (img: string | null) => (img && img.startsWith("cast:") ? imgs[img.slice(5)] ?? null : img);
+  return { ...next, items: next.items.map((e) => (e.cast.some((c) => c.img?.startsWith("cast:")) ? { ...e, cast: e.cast.map((c) => ({ ...c, img: fix(c.img) })) } : e)) };
+}
 export function setJournal(next: JournalSnapshot) {
+  next = withCastImages(next);
   raw = next;
   snapshot = withLocalMedia(next);
   listeners.forEach((l) => l());

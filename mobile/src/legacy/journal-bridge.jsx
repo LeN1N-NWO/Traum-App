@@ -86,6 +86,7 @@ function takeLabel(f) {
 }
 
 function snapshot() {
+  const castImages = {};
   const s = loadState();
   const items = (s.journal || [])
     .filter((e) => !isBlank(e))
@@ -122,9 +123,18 @@ function snapshot() {
         originalText: e.originalText && e.originalText !== e.text ? e.originalText : null,
         /* Die Besetzung dieses Traums (CastChips): Fotos der Personen, die
            per @tag im Traum standen — aus Bibliothek und „me". */
+        /* ⚠ Fotos als Verweis `cast:<tag>`, nicht als Bilddaten (27.09.,
+           Absturz auf Antons iPhone): Das eigene Foto ist eine Data-URL von
+           einigen hundert KB und stand in JEDEM Traum, in dem man vorkommt —
+           mal acht Brücken, bei jeder Übergabe. Mit wachsendem Journal lief
+           der Speicher der App über (WebKit-IPC, out of memory). Die Bilder
+           gehen jetzt EINMAL mit (castImages), die native Seite setzt sie
+           ein (journal-store setJournal). */
         cast: (e.references || []).map((r) => {
           const c = r.tag === "me" ? (s.me?.img ? { tag: "me", img: s.me.img } : null) : (s.cast || []).find((x) => x.tag === r.tag);
-          return c ? { tag: c.tag, img: c.img || null } : { tag: r.tag, img: null };
+          if (!c) return { tag: r.tag, img: null };
+          if (typeof c.img === "string" && c.img.startsWith("data:")) { castImages[c.tag] = c.img; return { tag: c.tag, img: `cast:${c.tag}` }; }
+          return { tag: c.tag, img: c.img || null };
         }),
       };
     })
@@ -518,7 +528,7 @@ function snapshot() {
     },
     texts: { morningTitle: rm.morningTitle, morningBody: rm.morningBody, eveningTitle: rm.eveningTitle, eveningBody: rm.eveningBody, realityTitle: rm.realityTitle, realityBodies: rm.realityBodies },
   };
-  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent, onboard, reminders };
+  return { language: s.language || "en", items, castImages, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent, onboard, reminders };
 }
 
 /* Befehle nativ → Web: Die Hülle kann den Web-Speicher nicht schreiben, also
