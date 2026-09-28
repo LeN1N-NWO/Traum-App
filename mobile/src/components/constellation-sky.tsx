@@ -4,11 +4,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, type SharedValue, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from "react-native-reanimated";
 import Svg, { Circle, Line } from "react-native-svg";
 import { colors, fonts } from "@/theme";
-import { EDGES, STAGES, STARS, edgeStage, skyState } from "../../../src/lib/constellation.js";
+import { EDGES, STAGES, STARS, skyState } from "../../../src/lib/constellation.js";
 
 /* Dein Sternbild auf der Startseite (Antons Wahl 28.09., statt des Mondes):
- * Jede notierte Nacht zündet einen Stern; ist eine Stufe voll, ziehen sich
- * die Linien, und das ganze Bild leuchtet einmal auf. Die Sterne der
+ * Jede Traum-Nacht zündet einen Stern, und mit ihm zieht sich die Linie zu
+ * seinem Vorgänger; ist eine Stufe voll, leuchtet das ganze Bild einmal auf. Die Sterne der
  * laufenden Stufe, die noch fehlen, stehen blass als Ring da — man sieht,
  * wohin es geht.
  *
@@ -27,25 +27,33 @@ const GOLD = "#ffe7b0";
 export function ConstellationSky({ nights, name, count, line, introSeen, onIntroSeen, width }: {
   nights: number; name: string; count: string; line: string; introSeen: boolean; onIntroSeen: () => void; width: number;
 }) {
-  const H = Math.round(width * 0.62);
+  const H = Math.round(width * 0.72);
   const st = useMemo(() => skyState(nights), [nights]);
   // In der Vorschau zeigt das Bild die nächste Stufe schon ganz.
   const target = st.next ?? st.lit;
   const shownCount = Math.max(st.shown, 5);
+  /* Den Platz nutzen (Antons Befund 28.09.: „alles so klein"): Das Bild
+     zoomt auf die Sterne der laufenden Stufe — die ersten fünf füllen die
+     ganze Breite, mit jeder Stufe zoomt es ein Stück heraus. */
+  const place = useMemo(() => {
+    const pts = STARS.slice(0, Math.max(shownCount, target)).map(([x, y]) => [x, y * 0.625]);
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    const pad = 28;
+    const k = Math.min((width - 2 * pad) / Math.max(0.01, maxX - minX), (H - 2 * pad) / Math.max(0.01, maxY - minY));
+    const ox = (width - (maxX - minX) * k) / 2 - minX * k, oy = (H - (maxY - minY) * k) / 2 - minY * k;
+    return (p: number[]) => [ox + p[0] * k, oy + p[1] * 0.625 * k];
+  }, [shownCount, target, width, H]);
   const lit = useSharedValue(0);       // wie viele Sterne leuchten (fließend)
-  const linked = useSharedValue(0);    // wie viele Stufen verbunden sind (fließend)
   const flash = useSharedValue(0);     // das kurze Aufleuchten
   const played = useRef(false);
 
   const settle = (delay: number) => {
-    lit.value = withDelay(delay, withTiming(st.lit, { duration: 700 + st.lit * 60, easing: Easing.out(Easing.cubic) }));
-    linked.value = withDelay(delay + 500, withTiming(st.done, { duration: 900, easing: Easing.inOut(Easing.cubic) }));
+    lit.value = withDelay(delay, withTiming(st.lit, { duration: 700 + st.lit * 90, easing: Easing.out(Easing.cubic) }));
   };
   const preview = () => {
     Haptics.selectionAsync();
     lit.value = withSequence(withTiming(target, { duration: 900, easing: Easing.out(Easing.cubic) }), withDelay(2600, withTiming(st.lit, { duration: 900 })));
-    const stages = st.next ? st.done + 1 : st.done;
-    linked.value = withSequence(withDelay(700, withTiming(stages, { duration: 900, easing: Easing.inOut(Easing.cubic) })), withDelay(1400, withTiming(st.done, { duration: 900 })));
     flash.value = withSequence(withDelay(1500, withTiming(1, { duration: 450 })), withTiming(0, { duration: 1400 }));
     setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), 1550);
   };
@@ -71,13 +79,13 @@ export function ConstellationSky({ nights, name, count, line, introSeen, onIntro
         <Animated.View style={[styles.glow, { width, height: H }, glow]}>
           <Svg width={width} height={H}>
             {EDGES.map((e, k) => {
-              const s = edgeStage(e);
-              if (s < 0 || Math.max(e[0], e[1]) >= Math.max(shownCount, target)) return null;
-              return <Edge key={k} a={STARS[e[0]]} b={STARS[e[1]]} stage={s} linked={linked} flash={flash} W={width} H={H} />;
+              if (Math.max(e[0], e[1]) >= Math.max(shownCount, target)) return null;
+              return <Edge key={k} a={place(STARS[e[0]])} b={place(STARS[e[1]])} after={Math.max(e[0], e[1])} lit={lit} flash={flash} />;
             })}
-            {STARS.slice(0, Math.max(shownCount, target)).map((p, i) => (
-              <Star key={i} i={i} x={p[0] * width} y={p[1] * H} lit={lit} flash={flash} ghost={i >= shownCount} />
-            ))}
+            {STARS.slice(0, Math.max(shownCount, target)).map((p, i) => {
+              const [x, y] = place(p);
+              return <Star key={i} i={i} x={x} y={y} lit={lit} flash={flash} ghost={i >= shownCount} />;
+            })}
           </Svg>
         </Animated.View>
       </Pressable>
@@ -90,7 +98,7 @@ export function ConstellationSky({ nights, name, count, line, introSeen, onIntro
 
 function Star({ i, x, y, lit, flash, ghost }: { i: number; x: number; y: number; lit: SharedValue<number>; flash: SharedValue<number>; ghost: boolean }) {
   // Kleine Unterschiede in Größe, damit das Bild nicht wie ein Raster wirkt.
-  const size = 2.2 + ((i * 37) % 10) / 10;
+  const size = 3 + ((i * 37) % 10) / 8;
   const core = useAnimatedProps(() => {
     const on = Math.max(0, Math.min(1, lit.value - i));
     return { opacity: on, r: size + 0.8 * flash.value };
@@ -109,15 +117,17 @@ function Star({ i, x, y, lit, flash, ghost }: { i: number; x: number; y: number;
   );
 }
 
-function Edge({ a, b, stage, linked, flash, W, H }: { a: number[]; b: number[]; stage: number; linked: SharedValue<number>; flash: SharedValue<number>; W: number; H: number }) {
-  const x1 = a[0] * W, y1 = a[1] * H, x2 = b[0] * W, y2 = b[1] * H;
+/* Eine Linie zieht sich, sobald ihr zweiter Stern leuchtet (Antons Wunsch
+   28.09.: „bei zwei Sternen schon die erste Linie") — vom früheren zum
+   späteren Stern, im selben Fluss wie das Aufleuchten. */
+function Edge({ a, b, after, lit, flash }: { a: number[]; b: number[]; after: number; lit: SharedValue<number>; flash: SharedValue<number> }) {
+  const [x1, y1] = a, [x2, y2] = b;
   const len = Math.hypot(x2 - x1, y2 - y1);
-  // Die Linie zieht sich vom ersten zum zweiten Stern, dann bleibt sie leise stehen.
   const props = useAnimatedProps(() => {
-    const p = Math.max(0, Math.min(1, linked.value - stage));
-    return { strokeDashoffset: len * (1 - p), strokeOpacity: 0.45 * p + 0.45 * flash.value * p };
+    const p = Math.max(0, Math.min(1, lit.value - after));
+    return { strokeDashoffset: len * (1 - p), strokeOpacity: 0.5 * p + 0.4 * flash.value * p };
   });
-  return <AnimatedLine x1={x1} y1={y1} x2={x2} y2={y2} stroke={GOLD} strokeWidth={1} strokeLinecap="round" strokeDasharray={[len, len]} animatedProps={props} />;
+  return <AnimatedLine x1={x1} y1={y1} x2={x2} y2={y2} stroke={GOLD} strokeWidth={1.2} strokeLinecap="round" strokeDasharray={[len, len]} animatedProps={props} />;
 }
 
 const styles = StyleSheet.create({
