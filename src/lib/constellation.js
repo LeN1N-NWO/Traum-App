@@ -5,9 +5,10 @@
  * des Motivs, das in den eigenen Träumen am häufigsten wiederkehrt
  * („Der Schwimmer" bei Wasser).
  *
- * Gezählt werden NÄCHTE mit einem Eintrag (auch „Nichts hängengeblieben"),
- * nicht die Serie: Ein gerissener Faden löscht keine Sterne — das Bild
- * belohnt Dranbleiben, ohne zu bestrafen. Für die Serie gibt es die Leiter.
+ * Gezählt werden TRAUM-TAGE (seit 28.09. aus nights.js dreamNightCount —
+ * „Nichts hängengeblieben" zählt nicht), nicht die Serie: Ein gerissener
+ * Faden löscht keine Sterne — das Bild belohnt Dranbleiben, ohne zu
+ * bestrafen. Für die Serie gibt es die Leiter.
  *
  * Reine Daten und Funktionen, damit Web, native App und Tests dieselbe
  * Rechnung sehen. Koordinaten 0…1 in einer Fläche von 16:10. */
@@ -68,7 +69,8 @@ export function edgeStage(edge) {
   return STAGES.findIndex((s) => k < s);
 }
 
-/** Die Nächte: verschiedene Kalendertage mit einem Eintrag. */
+/** Kalendertage mit IRGENDEINEM Eintrag. ⚠ Nicht für die Sterne — die
+ *  zählen nur Traum-Tage (nights.js dreamNightCount, Antons Ansage 28.09.). */
 export function notedNights(journal) {
   const days = new Set();
   for (const e of journal || []) {
