@@ -67,6 +67,21 @@ export default {
     intentionHeading: "Last night you wanted to dream about",
   },
   /* Der Traum-Vorsatz im Schlaf-Tab (27.09.). */
+  /* Dein Sternbild auf der Startseite (28.09.). */
+  sky: {
+    unnamed: "Your constellation",
+    progress: (lit, of) => `${lit} of ${of} nights`,
+    firstGoal: (left) => left === 5 ? "Fill your first five nights — then your stars connect." : `${left} more ${left === 1 ? "night" : "nights"} — then your stars connect.`,
+    nextGoal: (left) => `${left} more ${left === 1 ? "night" : "nights"} and your constellation grows.`,
+    complete: "Your constellation is complete. Every star is a night you kept.",
+    hint: "Every night you note lights a star.",
+    names: {
+      water: "The Swimmer", flying: "The Flyer", falling: "The Falling One", chase: "The Hunted", home: "The House",
+      city: "The City", forest: "The Forest", sky: "The Stargazer", lost: "The Wanderer", missing: "The Latecomer",
+      exposed: "The Unveiled", teeth: "The Smile", animal: "The Beast", monster: "The Dragon", family: "The Family",
+      stranger: "The Stranger", partner: "The Lovers", fear: "The Watcher", joy: "The Dancer", grief: "The Mourner",
+    },
+  },
   intention: {
     title: "What would you like to dream about?",
     lede: "Hold one picture in mind as you fall asleep. In the morning we'll ask whether it showed up.",

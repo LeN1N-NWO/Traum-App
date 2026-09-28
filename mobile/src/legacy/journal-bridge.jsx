@@ -29,7 +29,8 @@ import { selectBeats, shotPlan } from "../../../src/lib/cut.js";
 import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PACE } from "../../../src/lib/video.js";
 import { startsFree } from "../../../src/wizard/useWizard.js";
 import { beatsForCount } from "../../../src/lib/beats.js";
-import { reflectionContext } from "../../../src/lib/atlas.js";
+import { reflectionContext, realDreams as realDreamsOf, symbolCounts } from "../../../src/lib/atlas.js";
+import { notedNights, skyState } from "../../../src/lib/constellation.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
 import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
@@ -174,6 +175,21 @@ function snapshot() {
       if (!cards.length) return null;
       const c = cards[Math.floor(Date.now() / 864e5) % cards.length];
       return { id: c.id, title: c.title, meta: `${t.knowledge.categories?.[c.category] || c.category} · ${c.year}` };
+    })(),
+    /* Dein Sternbild (28.09., Antons Wahl): Nächte zählen, Name nach dem
+       häufigsten Motiv — erst, wenn die erste Stufe voll ist. */
+    sky: (() => {
+      const nights = notedNights(s.journal);
+      const st = skyState(nights);
+      const top = st.done ? symbolCounts(realDreamsOf(s.journal))[0] : null;
+      const S = t.sky;
+      return {
+        nights, introSeen: !!s.skyIntroSeen,
+        name: st.done ? (top && S.names[top.id]) || S.unnamed : S.unnamed,
+        line: st.complete ? S.complete : st.done ? S.nextGoal(st.left) : S.firstGoal(st.left),
+        count: st.next ? S.progress(st.lit, st.next) : S.progress(st.lit, st.lit),
+        hint: S.hint,
+      };
     })(),
     week: (() => {
       const key = (d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
@@ -1149,6 +1165,7 @@ function run(cmd) {
   let patch = null;
   if (cmd.type === "blankNight") patch = { journal: [...(s.journal || []), blankNight()], ...bumpStreak(s) };
   else if (cmd.type === "checkin") patch = { checkins: setCheckin(s.checkins, cmd.level) };
+  else if (cmd.type === "skyIntro") patch = { skyIntroSeen: true };
   else if (cmd.type === "intention") patch = { intention: String(cmd.text || "").trim() ? { text: String(cmd.text).trim().slice(0, 140), at: new Date().toISOString() } : null };
   else if (cmd.type === "refreshStreak") { const f = refreshStreak(s); if (f.streak !== s.streak) patch = f; }
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };

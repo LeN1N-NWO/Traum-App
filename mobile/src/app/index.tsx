@@ -4,8 +4,8 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useState, useEffect } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { ConstellationSky } from "@/components/constellation-sky";
 import { useJournal } from "@/components/journal-data";
 import { Moon } from "@/components/moon-strip";
 import { NightSky } from "@/components/night-sky";
@@ -15,16 +15,16 @@ import { useReminders } from "@/lib/use-reminders";
 import { applyMix, isActive } from "@/lib/sound-engine";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
-/* Die Startseite „Der Mond von heute Nacht" (Antons Wahl 27.09.,
-   Variantenbuch C1 — nach einem Nachmittag mit C3, das ihm zu voll war):
-   oben die Serie (immer antippbar → Serien-Seite), in der Mitte der echte
-   Mond der letzten Nacht, darunter die eine Frage und der eine Knopf. Dann
+/* Die Startseite (Antons Wahl 27.09., Variantenbuch C1 — nach einem
+   Nachmittag mit C3, das ihm zu voll war): oben die Serie (immer
+   antippbar → Serien-Seite), in der Mitte seit 28.09. DEIN STERNBILD statt
+   des Mondes — jede notierte Nacht ein Stern (components/constellation-
+   sky.tsx) —, darunter die eine Frage und der eine Knopf. Dann
    die Schlaf-Frage und ein Artikel aus dem Wissen — jeden Tag ein anderer.
    Die Träume selbst stehen im Journal, nicht hier.
    „Wovon willst du heute träumen?" steht im Schlaf-Tab; morgens erinnert
    eine Zeile hier an den Vorsatz der letzten Nacht. */
 const SLEEP_MOON: Record<number, number> = { 1: 0.12, 2: 0.5, 3: 1 };
-const MOON_SIZE = 168;
 
 function greetingKey(hour: number) {
   if (hour < 5) return "Night";
@@ -35,6 +35,7 @@ function greetingKey(hour: number) {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const { data, bridge, send } = useJournal();
   useReminders(data, send);
   useQuickActions(data ? { record: data.labels.quickRecord, breathe: data.sleep?.tiles.find((t) => t.id === "breathe")?.title } : null);
@@ -73,10 +74,12 @@ export default function HomeScreen() {
           ) : null}
         </View>
 
-        {home ? <HeroMoon illum={home.moon.illum} waxing={home.moon.waxing} /> : <View style={{ height: MOON_SIZE + 40 }} />}
+        {home ? (
+          <ConstellationSky width={width - 32} nights={home.sky.nights} name={home.sky.name} count={home.sky.count} line={home.sky.line}
+            introSeen={home.sky.introSeen} onIntroSeen={() => send({ type: "skyIntro" })} />
+        ) : <View style={{ height: (width - 32) * 0.62 + 90 }} />}
 
-        <View style={{ alignItems: "center", gap: 6 }}>
-          {home ? <Text style={styles.label}>{home.moon.label}</Text> : null}
+        <View style={{ alignItems: "center", gap: 6, marginTop: 6 }}>
           <Text style={styles.title}>{L.homeTitle ?? "What did you dream?"}</Text>
           {!evening && home?.intention ? (
             <Text style={styles.intention}>{L.intentionHeading}: „{home.intention}“</Text>
@@ -158,20 +161,6 @@ export default function HomeScreen() {
   );
 }
 
-/* Der Mond der letzten Nacht, groß — derselbe echte Mond wie im Journal
-   und auf dem Aufnahmeknopf. Ein warmer Schein atmet langsam um ihn. */
-function HeroMoon({ illum, waxing }: { illum: number; waxing: boolean }) {
-  const k = useSharedValue(0);
-  useEffect(() => { k.value = withRepeat(withTiming(1, { duration: 4200, easing: Easing.inOut(Easing.sin) }), -1, true); }, [k]);
-  const halo = useAnimatedStyle(() => ({ opacity: 0.35 + 0.3 * k.value, transform: [{ scale: 1.02 + 0.06 * k.value }] }));
-  return (
-    <View style={styles.hero}>
-      <Animated.View style={[styles.halo, halo]} pointerEvents="none" />
-      <Moon illum={illum} waxing={waxing} size={MOON_SIZE} />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: TAB_INSET, gap: 16 },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 2 },
@@ -179,8 +168,6 @@ const styles = StyleSheet.create({
   pill: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(246,198,91,0.35)" },
   pillRisk: { borderColor: colors.warm },
   pillText: { color: colors.gold, fontSize: 13, fontWeight: "600" },
-  hero: { alignItems: "center", justifyContent: "center", height: MOON_SIZE + 40, marginTop: 4 },
-  halo: { position: "absolute", width: MOON_SIZE * 1.2, height: MOON_SIZE * 1.2, borderRadius: MOON_SIZE, backgroundColor: "rgba(255,213,143,0.08)", shadowColor: "#ffd58f", shadowOpacity: 0.8, shadowRadius: 36, shadowOffset: { width: 0, height: 0 } },
   label: { color: colors.faint, fontSize: 11, letterSpacing: 1.6, fontWeight: "600", textTransform: "uppercase" },
   title: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 39, color: colors.text, textAlign: "center" },
   intention: { fontFamily: fonts.serif, fontStyle: "italic", fontSize: 15, color: colors.muted, textAlign: "center", paddingHorizontal: 16 },

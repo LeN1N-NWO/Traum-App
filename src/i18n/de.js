@@ -60,6 +60,20 @@ export default {
     streakZero: "Starte deine Serie",
     intentionHeading: "Gestern wolltest du träumen von",
   },
+  sky: {
+    unnamed: "Dein Sternbild",
+    progress: (lit, of) => `${lit} von ${of} Nächten`,
+    firstGoal: (left) => left === 5 ? "Mach deine ersten fünf Nächte voll — dann verbinden sich deine Sterne." : `Noch ${left} ${left === 1 ? "Nacht" : "Nächte"} — dann verbinden sich deine Sterne.`,
+    nextGoal: (left) => `Noch ${left} ${left === 1 ? "Nacht" : "Nächte"}, dann wächst dein Sternbild.`,
+    complete: "Dein Sternbild ist vollständig. Jeder Stern ist eine Nacht, die du behalten hast.",
+    hint: "Jede notierte Nacht zündet einen Stern.",
+    names: {
+      water: "Der Schwimmer", flying: "Der Flieger", falling: "Der Fallende", chase: "Der Gejagte", home: "Das Haus",
+      city: "Die Stadt", forest: "Der Wald", sky: "Der Sternengucker", lost: "Der Wanderer", missing: "Der Nachzügler",
+      exposed: "Der Entblößte", teeth: "Das Lächeln", animal: "Das Tier", monster: "Der Drache", family: "Die Familie",
+      stranger: "Der Fremde", partner: "Die Liebenden", fear: "Der Wächter", joy: "Die Tänzerin", grief: "Der Trauernde",
+    },
+  },
   intention: {
     title: "Wovon willst du heute träumen?",
     lede: "Halte ein Bild im Kopf, während du einschläfst. Morgens fragen wir, ob es aufgetaucht ist.",
