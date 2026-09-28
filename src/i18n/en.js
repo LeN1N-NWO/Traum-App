@@ -69,10 +69,14 @@ export default {
   /* Der Traum-Vorsatz im Schlaf-Tab (27.09.). */
   /* Dein Sternbild auf der Startseite (28.09.). */
   sky: {
-    unnamed: "Your constellation",
+    unnamed: "The ???",
+    named: "Your constellation",
     progress: (lit, of) => `${lit} of ${of} nights`,
-    firstGoal: (left) => left === 5 ? "Fill your first five nights — then your stars connect." : `${left} more ${left === 1 ? "night" : "nights"} — then your stars connect.`,
-    nextGoal: (left) => `${left} more ${left === 1 ? "night" : "nights"} and your constellation grows.`,
+    /* Was am Ziel der Stufe wartet — kurz fürs Schild, lang für die Zeile. */
+    chip: (r) => `+${r.credits} ✦`,
+    reward: (r) => [`+${r.credits} ${r.credits === 1 ? "credit" : "credits"}`, r.name ? "its name" : null, r.snooze ? "a snooze night" : null].filter(Boolean).join(" · "),
+    until: (left, reward) => `${left} more ${left === 1 ? "night" : "nights"} to: ${reward}` + ".",
+    gift: (stage, credits, snooze) => `✦ ${stage} nights — ${credits} ${credits === 1 ? "credit" : "credits"}${snooze ? " and a snooze night" : ""} from us`,
     complete: "Your constellation is complete. Every star is a night you kept.",
     hint: "Every night you note lights a star.",
     names: {

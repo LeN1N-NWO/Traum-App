@@ -61,10 +61,13 @@ export default {
     intentionHeading: "Gestern wolltest du träumen von",
   },
   sky: {
-    unnamed: "Dein Sternbild",
+    unnamed: "Der ???",
+    named: "Dein Sternbild",
     progress: (lit, of) => `${lit} von ${of} Nächten`,
-    firstGoal: (left) => left === 5 ? "Mach deine ersten fünf Nächte voll — dann verbinden sich deine Sterne." : `Noch ${left} ${left === 1 ? "Nacht" : "Nächte"} — dann verbinden sich deine Sterne.`,
-    nextGoal: (left) => `Noch ${left} ${left === 1 ? "Nacht" : "Nächte"}, dann wächst dein Sternbild.`,
+    chip: (r) => `+${r.credits} ✦`,
+    reward: (r) => [`+${r.credits} ${r.credits === 1 ? "Credit" : "Credits"}`, r.name ? "sein Name" : null, r.snooze ? "eine Schlummernacht" : null].filter(Boolean).join(" · "),
+    until: (left, reward) => `Noch ${left} ${left === 1 ? "Nacht" : "Nächte"} bis: ${reward}` + ".",
+    gift: (stage, credits, snooze) => `✦ ${stage} Nächte — ${credits} ${credits === 1 ? "Credit" : "Credits"}${snooze ? " und eine Schlummernacht" : ""} von uns`,
     complete: "Dein Sternbild ist vollständig. Jeder Stern ist eine Nacht, die du behalten hast.",
     hint: "Jede notierte Nacht zündet einen Stern.",
     names: {

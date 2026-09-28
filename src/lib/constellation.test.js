@@ -33,3 +33,19 @@ test("Nächte: Kalendertage, Beispielträume zählen nicht", () => {
     { id: "e_seed_1", createdAt: at("2026-09-22T07:00:00") },
   ])).toBe(2);
 });
+
+import { SKY_REWARDS, skyGift } from "./constellation.js";
+
+test("jede Stufe bringt mindestens einen Credit", () => {
+  for (const s of STAGES) expect(SKY_REWARDS[s].credits).toBeGreaterThanOrEqual(1);
+});
+
+test("Stufen-Belohnung: einmal je Stufe, der Reihe nach, mit Schlummernacht bei 8", () => {
+  expect(skyGift({ credits: 0 }, 4)).toBeNull();
+  const a = skyGift({ credits: 10 }, 5);
+  expect(a).toMatchObject({ stage: 5, credits: 1, patch: { credits: 11, skyGifts: [5] } });
+  expect(skyGift({ credits: 11, skyGifts: [5] }, 5)).toBeNull();
+  const b = skyGift({ credits: 11, skyGifts: [5], snoozes: 0 }, 9);
+  expect(b).toMatchObject({ stage: 8, snooze: true, patch: { credits: 12, skyGifts: [5, 8], snoozes: 1 } });
+  expect(skyGift({ credits: 0 }, 12).stage).toBe(5);   // Nachholen beginnt bei der kleinsten
+});

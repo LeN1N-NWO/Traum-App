@@ -31,7 +31,7 @@ import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PA
 import { startsFree } from "../../../src/wizard/useWizard.js";
 import { beatsForCount } from "../../../src/lib/beats.js";
 import { reflectionContext, realDreams as realDreamsOf, symbolCounts } from "../../../src/lib/atlas.js";
-import { skyState } from "../../../src/lib/constellation.js";
+import { SKY_REWARDS, skyGift, skyState } from "../../../src/lib/constellation.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
 import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
@@ -192,11 +192,13 @@ function snapshot() {
       const st = skyState(nights);
       const top = st.done ? symbolCounts(realDreamsOf(s.journal))[0] : null;
       const S = t.sky;
+      const r = st.next ? SKY_REWARDS[st.next] : null;
       return {
         nights, introSeen: !!s.skyIntroSeen,
-        name: st.done ? (top && S.names[top.id]) || S.unnamed : S.unnamed,
-        line: st.complete ? S.complete : st.done ? S.nextGoal(st.left) : S.firstGoal(st.left),
+        name: st.done ? (top && S.names[top.id]) || S.named : S.unnamed,
+        line: st.complete ? S.complete : S.until(st.left, S.reward(r), st.done === 0),
         count: st.next ? S.progress(st.lit, st.next) : S.progress(st.lit, st.lit),
+        chip: r ? S.chip(r) : "",
         hint: S.hint,
       };
     })(),
@@ -1301,7 +1303,7 @@ function streakChores(onResult) {
      der App überlief. */
   const due = (st) => {
     const streak = streakOf(st).streak;
-    return snoozeBridge(st) || snoozeEarn(st, streak) || giftFor({ ...st, streak });
+    return snoozeBridge(st) || snoozeEarn(st, streak) || giftFor({ ...st, streak }) || skyGift(st, dreamNightCount(st.journal));
   };
   if (!due(loadState())) return;
   if (!holdChores()) return;
@@ -1320,6 +1322,14 @@ function streakChores(onResult) {
   if (gift) {
     saveState({ ...s2, ...gift.patch });
     onResult?.({ n: -1, toast: t.streakBoard.gift(gift.nights, gift.credits), haptic: "success" });
+  }
+  // Die Stufen des Sternbilds (28.09.): je Meilenstein mindestens ein Credit.
+  for (let k = 0; k < 6; k++) {
+    const s3 = loadState();
+    const sky = skyGift(s3, dreamNightCount(s3.journal));
+    if (!sky) break;
+    saveState({ ...s3, ...sky.patch });
+    onResult?.({ n: -1, toast: t.sky.gift(sky.stage, sky.credits, sky.snooze), haptic: "success" });
   }
 }
 

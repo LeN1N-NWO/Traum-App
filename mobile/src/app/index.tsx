@@ -75,7 +75,7 @@ export default function HomeScreen() {
         </View>
 
         {home ? (
-          <ConstellationSky width={width - 32} nights={home.sky.nights} name={home.sky.name} count={home.sky.count} line={home.sky.line}
+          <ConstellationSky width={width - 32} nights={home.sky.nights} name={home.sky.name} count={home.sky.count} line={home.sky.line} chip={home.sky.chip}
             introSeen={home.sky.introSeen} onIntroSeen={() => send({ type: "skyIntro" })} />
         ) : <View style={{ height: (width - 32) * 0.62 + 90 }} />}
 

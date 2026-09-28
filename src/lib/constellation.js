@@ -80,3 +80,31 @@ export function notedNights(journal) {
   }
   return days.size;
 }
+
+/* ── Was am Ziel jeder Stufe wartet (Antons Ansage 28.09.: „bei jedem
+ * Meilenstein mindestens einen Credit, später mehr"). Zusätzlich bei 5 der
+ * Name des Sternbilds und bei 8 eine Schlummernacht. Die Credits kosten uns
+ * je Credit etwa 2,8 Cent (bis 33 Nächte zusammen 14 Credits ≈ 40 Cent). */
+export const SKY_REWARDS = {
+  5: { credits: 1, name: true },
+  8: { credits: 1, snooze: true },
+  12: { credits: 2 },
+  18: { credits: 2 },
+  25: { credits: 3 },
+  33: { credits: 5 },
+};
+
+/** Ist eine Stufen-Belohnung fällig? {stage, credits, snooze, patch} oder
+ *  null. Idempotent: vergebene Stufen stehen in state.skyGifts. Immer nur
+ *  EINE je Aufruf (die kleinste offene) — der Aufrufer ruft erneut. */
+export function skyGift(state, nights, snoozeMax = 2) {
+  const given = Array.isArray(state?.skyGifts) ? state.skyGifts : [];
+  const stage = STAGES.find((s) => nights >= s && !given.includes(s));
+  if (!stage) return null;
+  const r = SKY_REWARDS[stage] || { credits: 1 };
+  const snooze = !!r.snooze && (state?.snoozes || 0) < snoozeMax;
+  return {
+    stage, credits: r.credits, snooze,
+    patch: { credits: (state?.credits || 0) + r.credits, skyGifts: [...given, stage], ...(snooze ? { snoozes: (state?.snoozes || 0) + 1 } : {}) },
+  };
+}
