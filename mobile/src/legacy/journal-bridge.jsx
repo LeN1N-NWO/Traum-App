@@ -12,7 +12,8 @@
 import "./vite-env.js";                       // ⚠ zuerst, API_BASE
 import { useEffect } from "react";
 import { loadState, saveState } from "../../../src/lib/storage.js";
-import { refreshStreak, streakAtRisk, bumpStreak, snoozeCheck, STREAK_CAP } from "../../../src/lib/streak.js";
+import { STREAK_CAP } from "../../../src/lib/streak.js";
+import { dreamNightCount, snoozeBridge, snoozeEarn, streakInfo } from "../../../src/lib/nights.js";
 import { hasPendingJobs, collectTick } from "../../../src/lib/collector.js";
 import { failureTextKey } from "../../../src/lib/falError.js";
 import { jobStatus } from "../../../src/lib/api.js";
@@ -30,7 +31,7 @@ import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PA
 import { startsFree } from "../../../src/wizard/useWizard.js";
 import { beatsForCount } from "../../../src/lib/beats.js";
 import { reflectionContext, realDreams as realDreamsOf, symbolCounts } from "../../../src/lib/atlas.js";
-import { notedNights, skyState } from "../../../src/lib/constellation.js";
+import { skyState } from "../../../src/lib/constellation.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
 import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
@@ -84,6 +85,13 @@ function takeLabel(f) {
   if (f.kind === "sketch") return (t.wizard.sketch?.takeLabel || "Sketch") + (f.seconds ? ` · ${f.seconds}s` : "");
   const pace = f.pace ? t.wizard.step5.paceNames?.[f.pace] || f.pace : t.journal.takeUnknown;
   return pace + (f.seconds ? ` · ${f.seconds}s` : "");
+}
+
+/* Die Serie — seit 28.09. aus dem Journal gerechnet (src/lib/nights.js),
+   nicht mehr aus mitgeführten Zählern. Sterne, Serie und Geschenke sehen
+   damit dieselben Tage. */
+function streakOf(st) {
+  return streakInfo(st.journal, { bridged: st.snoozeDays || [] });
 }
 
 function snapshot() {
@@ -147,18 +155,19 @@ function snapshot() {
      nächsten Mittag — dann erinnert die Startseite daran. */
   const intentionAt = s.intention?.at ? new Date(s.intention.at).getTime() : 0;
   const intention = intentionAt && Date.now() - intentionAt < 18 * 3600 * 1000 ? String(s.intention.text || "") : "";
-  const streak = refreshStreak(s).streak || 0;
+  const run = streakOf(s);
+  const streak = run.streak;
   const last = items[0] || null;
   const today = checkinOn(s.checkins);
   const home = {
     streak,
-    atRisk: streakAtRisk(s),
+    atRisk: run.atRisk,
     rendering: hasPendingJobs(s.journal),
     nightMarked: nightMarked(s.journal),
     checkin: today ? today.sleep : null,
     lastId: last ? last.id : null,
     streakLine: streak > 0 ? t.home.streak(streak) : t.home.streakZero,
-    streakNote: streak > 0 ? (streakAtRisk(s) ? t.home.streakRisk : t.home.streakPerk(Math.min(streak, STREAK_CAP), STREAK_CAP)) : "",
+    streakNote: streak > 0 ? (run.atRisk ? t.home.streakRisk : t.home.streakPerk(Math.min(streak, STREAK_CAP), STREAK_CAP)) : "",
     checkinLevels: SLEEP_LEVELS.map((l) => ({ level: l, label: t.checkin.levels[l], emoji: t.checkin.emoji[l] })),
     /* Die Startseite „Deine Nächte" (27.09., Antons Wahl C3): die letzten
        Träume als Plakate, dazu EIN Motiv, das wiederkehrt — aus den letzten
@@ -179,7 +188,7 @@ function snapshot() {
     /* Dein Sternbild (28.09., Antons Wahl): Nächte zählen, Name nach dem
        häufigsten Motiv — erst, wenn die erste Stufe voll ist. */
     sky: (() => {
-      const nights = notedNights(s.journal);
+      const nights = dreamNightCount(s.journal);
       const st = skyState(nights);
       const top = st.done ? symbolCounts(realDreamsOf(s.journal))[0] : null;
       const S = t.sky;
@@ -203,7 +212,7 @@ function snapshot() {
     /* Die Meilenstein-Leiter hinter der Serien-Pille (StreakBoard.jsx). */
     board: (() => {
       const nxt = nextMilestone(streak);
-      const snoozes = s.snoozes || 0, nextIn = nextSnoozeIn(s);
+      const snoozes = s.snoozes || 0, nextIn = nextSnoozeIn({ snoozes, streak });
       return {
         title: t.streakBoard.title, nights: t.streakBoard.nights(streak),
         lede: nxt ? t.streakBoard.next(nxt.nights - streak) : t.streakBoard.done,
@@ -867,7 +876,7 @@ async function runOrder(cmd, onResult) {
     pending: { kind: "film", n: 1 }, fallback: undefined, failReason: undefined,
   };
   if (isNew) {
-    const creature = newCreature(o.text, refreshStreak(s1).streak);
+    const creature = newCreature(o.text, streakOf(s1).streak);
     const entry = {
       id: entryId, createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
       title: String(o.title || analysis?.title || "").trim() || creature.title, tagline: String(o.tagline || analysis?.tagline || "").trim(),
@@ -875,11 +884,11 @@ async function runOrder(cmd, onResult) {
       ...(s1.pendingAudioUrl ? { audio: { url: s1.pendingAudioUrl } } : {}),
       ...common,
     };
-    /* Die Serie wächst auch mit einem Film (26.09., im Web schon immer:
-       Step5Style bumpStreak) — nativ zählte bis heute nur „Speichern". */
-    saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null, ...bumpStreak(s1) });
+    /* Die Serie zählt seit 28.09. aus dem Journal (nights.js) — ein Film
+       ist ein Traum wie jeder andere, dafür braucht es keinen Zähler mehr. */
+    saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null });
   } else {
-    saveState({ ...s1, journal: (s1.journal || []).map((e) => (e.id === entryId ? { ...e, ...common } : e)), ...bumpStreak(s1) });
+    saveState({ ...s1, journal: (s1.journal || []).map((e) => (e.id === entryId ? { ...e, ...common } : e)) });
   }
   onJournalTick?.();
 
@@ -936,7 +945,7 @@ function runSketch(cmd, onResult) {
     return true;
   }
   const analysis = o.analysis || null;
-  const creature = newCreature(o.text, refreshStreak(s1).streak);
+  const creature = newCreature(o.text, streakOf(s1).streak);
   const entry = {
     id: genId("e"), createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
     title: String(analysis?.title || "").trim() || creature.title, tagline: String(analysis?.tagline || "").trim(),
@@ -961,13 +970,13 @@ function runSketchStart(cmd, onResult) {
   const s1 = loadState();
   const existing = o.entryId ? (s1.journal || []).find((e) => e.id === o.entryId) : null;
   if (existing) {
-    saveState({ ...s1, journal: s1.journal.map((e) => (e.id === existing.id ? { ...e, pending: { kind: "sketch", n: 1 }, failReason: undefined } : e)), ...bumpStreak(s1) });
+    saveState({ ...s1, journal: s1.journal.map((e) => (e.id === existing.id ? { ...e, pending: { kind: "sketch", n: 1 }, failReason: undefined } : e)) });
     onJournalTick?.();
     onResult({ n: cmd.n, entryId: existing.id });
     return true;
   }
   const analysis = o.analysis || null;
-  const creature = newCreature(o.text, refreshStreak(s1).streak);
+  const creature = newCreature(o.text, streakOf(s1).streak);
   const entry = {
     id: genId("e"), createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
     title: String(analysis?.title || "").trim() || creature.title, tagline: String(analysis?.tagline || "").trim(),
@@ -976,7 +985,7 @@ function runSketchStart(cmd, onResult) {
     mode: "film", style: o.styleId, format: "9:16", imageCount: 0, analysis, references: [],
     pending: { kind: "sketch", n: 1 },
   };
-  saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null, ...bumpStreak(s1) });
+  saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null });
   onJournalTick?.();
   onResult({ n: cmd.n, entryId: entry.id });
   return true;
@@ -1163,11 +1172,11 @@ async function runAsync(cmd, onResult) {
 function run(cmd) {
   const s = loadState();
   let patch = null;
-  if (cmd.type === "blankNight") patch = { journal: [...(s.journal || []), blankNight()], ...bumpStreak(s) };
+  if (cmd.type === "blankNight") patch = { journal: [...(s.journal || []), blankNight()] };
   else if (cmd.type === "checkin") patch = { checkins: setCheckin(s.checkins, cmd.level) };
   else if (cmd.type === "skyIntro") patch = { skyIntroSeen: true };
   else if (cmd.type === "intention") patch = { intention: String(cmd.text || "").trim() ? { text: String(cmd.text).trim().slice(0, 140), at: new Date().toISOString() } : null };
-  else if (cmd.type === "refreshStreak") { const f = refreshStreak(s); if (f.streak !== s.streak) patch = f; }
+  else if (cmd.type === "refreshStreak") { /* seit 28.09. aus dem Journal gerechnet — nichts zu speichern */ }
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };
   else if (cmd.type === "sleepCheck") patch = { sleepCheck: { date: cmd.date, done: cmd.done || [] } };
@@ -1219,7 +1228,7 @@ function run(cmd) {
   else if (cmd.type === "saveDream") {
     /* Nur speichern (Step2Output.saveOnly): kein Render, keine Kosten, mit
        Wesen und Serie — dieselbe Reihenfolge wie im Web. */
-    const creature = newCreature(cmd.text, refreshStreak(s).streak);
+    const creature = newCreature(cmd.text, streakOf(s).streak);
     const entry = {
       id: genId("e"), createdAt: new Date().toISOString(), text: cmd.text, originalText: cmd.originalText || cmd.text,
       title: (cmd.title || "").trim() || creature.title, tagline: (cmd.tagline || "").trim(), mode: "save",
@@ -1227,7 +1236,7 @@ function run(cmd) {
       ...((cmd.audioUrl || s.pendingAudioUrl) ? { audio: { url: cmd.audioUrl || s.pendingAudioUrl } } : {}),
       moon: moonForNight(),          // die Mondphase dieser Nacht (moon.js)
     };
-    patch = { journal: [...(s.journal || []), entry], creatures: [...(s.creatures || []), creature], ...bumpStreak(s), pendingAudioUrl: null };
+    patch = { journal: [...(s.journal || []), entry], creatures: [...(s.creatures || []), creature], pendingAudioUrl: null };
   }
   else if (cmd.type === "pendingAudio") patch = { pendingAudioUrl: cmd.audioUrl || null };
   if (patch) saveState({ ...s, ...patch });
@@ -1268,7 +1277,7 @@ async function collectOnce(onJournal, onResult) {
 
 /* Serien-Pflichten (26.09., Antons Frage „wieso sind die Geschenke raus?"):
    Die Mini-Geschenke (7 Nächte → 1 Credit, 30 → 3, Deckel 4 —
-   streakBoard.js giftFor) und die Schlummernacht (streak.js snoozeCheck)
+   streakBoard.js giftFor) und die Schlummernacht (seit 28.09. nights.js)
    liefen nur im WEB-Zustand (AppState.jsx). Beim Umzug auf die native App
    kamen sie nicht mit: Die Leiter zeigte „+1 Credit" und die
    Schlummernächte, gegeben oder eingelöst wurde nichts. Jetzt hier, an EINER
@@ -1290,19 +1299,26 @@ function streakChores(onResult) {
      die daraufhin ihren ganzen Schnappschuss schicken. Die Pacht bei JEDEM
      Lesen zu schreiben, hielt die Brücken im Dauerfeuer — bis der Speicher
      der App überlief. */
-  const peek = loadState();
-  if (!snoozeCheck(peek) && !giftFor(peek)) return;
+  const due = (st) => {
+    const streak = streakOf(st).streak;
+    return snoozeBridge(st) || snoozeEarn(st, streak) || giftFor({ ...st, streak });
+  };
+  if (!due(loadState())) return;
   if (!holdChores()) return;
+  // Erst eine Lücke schließen (sonst zählt die Serie falsch), dann verdienen, dann schenken.
   const s0 = loadState();
-  const saved = snoozeCheck(s0);
+  const saved = snoozeBridge(s0);
   if (saved) {
     saveState({ ...s0, ...saved.patch });
     onResult?.({ n: -1, toast: t.streakBoard.snoozeUsed(saved.used) });
   }
   const s1 = loadState();
-  const gift = giftFor(s1);
+  const earned = snoozeEarn(s1, streakOf(s1).streak);
+  if (earned) saveState({ ...s1, ...earned.patch });
+  const s2 = loadState();
+  const gift = giftFor({ ...s2, streak: streakOf(s2).streak });
   if (gift) {
-    saveState({ ...s1, ...gift.patch });
+    saveState({ ...s2, ...gift.patch });
     onResult?.({ n: -1, toast: t.streakBoard.gift(gift.nights, gift.credits), haptic: "success" });
   }
 }
