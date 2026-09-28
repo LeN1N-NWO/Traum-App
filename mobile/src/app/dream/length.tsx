@@ -184,7 +184,7 @@ export default function DreamLengthScreen() {
         ) : null}
 
         <View ref={button} collapsable={false}>
-          <PrimaryButton label={label} onPress={order} heavy style={[{ flex: 0 }, !affordable && !sketching && { opacity: 0.6 }]} />
+          <PrimaryButton label={label} onPress={order} heavy spend={!sketching} style={[{ flex: 0 }, !affordable && !sketching && { opacity: 0.6 }]} />
         </View>
         {!affordable && !sketching ? (
           <Pressable onPress={() => router.push({ pathname: "/dream/paywall", params: { reason: "spent" } })} hitSlop={8}>

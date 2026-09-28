@@ -247,7 +247,7 @@ export default function DreamSketchScreen() {
               </Glass>
             ) : null}
 
-            <PrimaryButton label={label} onPress={start} heavy style={{ flex: 0 }} />
+            <PrimaryButton label={label} onPress={start} heavy spend={!!prep && prep.cost > 0} style={{ flex: 0 }} />
             <Text style={styles.hint}>
               {!prep ? S?.preparing : prep.freeLeft > 0 ? fill(S?.freeLeft, { n: prep.freeLeft }) : S?.noneLeft}
             </Text>

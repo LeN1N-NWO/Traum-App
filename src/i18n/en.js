@@ -42,7 +42,7 @@ export default {
     },
     title: "What did you dream?",
     lede: "Tell it while it's still warm — half-asleep works best.",
-    cta: "Record it",
+    cta: "Record your dream",
     streak: (n) => `${n} day${n === 1 ? "" : "s"}`,
     streakPerk: (n, max) => `Night ${n} of ${max} — the creatures are coming rarer.`,
     streakRisk: "You wrote last night. Tonight keeps the run going — no rush, it holds until you sleep.",
@@ -58,12 +58,47 @@ export default {
     blankCta: "Nothing stayed with me",
     blankHint: "Keeps your streak — no dream invented",
     blankDone: "🌙 Noted. The night counts.",
+    /* Die Startseite „Deine Nächte" (27.09.). */
+    /* Die Startseite „Der Mond von heute Nacht" (27.09.). */
+    moonLabel: (phase) => `Last night · ${phase}`,
+    articleHeading: "From the research",
+    articleMore: "Read",
+    streakZero: "Start your streak",
+    intentionHeading: "Last night you wanted to dream about",
+  },
+  /* Der Traum-Vorsatz im Schlaf-Tab (27.09.). */
+  /* Dein Sternbild auf der Startseite (28.09.). */
+  sky: {
+    unnamed: "The ???",
+    named: "Your constellation",
+    progress: (lit, of) => `${lit} of ${of} nights`,
+    /* Was am Ziel der Stufe wartet — kurz fürs Schild, lang für die Zeile. */
+    chip: (r) => `+${r.credits} ✦`,
+    reward: (r) => [`+${r.credits} ${r.credits === 1 ? "credit" : "credits"}`, r.name ? "its name" : null, r.snooze ? "a snooze night" : null].filter(Boolean).join(" · "),
+    until: (left, reward) => `${left} more ${left === 1 ? "night" : "nights"} to: ${reward}` + ".",
+    gift: (stage, credits, snooze) => `✦ ${stage} nights — ${credits} ${credits === 1 ? "credit" : "credits"}${snooze ? " and a snooze night" : ""} from us`,
+    complete: "Your constellation is complete. Every star is a night you kept.",
+    hint: "Every night you note lights a star.",
+    names: {
+      water: "The Swimmer", flying: "The Flyer", falling: "The Falling One", chase: "The Hunted", home: "The House",
+      city: "The City", forest: "The Forest", sky: "The Stargazer", lost: "The Wanderer", missing: "The Latecomer",
+      exposed: "The Unveiled", teeth: "The Smile", animal: "The Beast", monster: "The Dragon", family: "The Family",
+      stranger: "The Stranger", partner: "The Lovers", fear: "The Watcher", joy: "The Dancer", grief: "The Mourner",
+    },
+  },
+  intention: {
+    title: "What would you like to dream about?",
+    lede: "Hold one picture in mind as you fall asleep. In the morning we'll ask whether it showed up.",
+    placeholder: "the sea house, flying, grandma's kitchen …",
+    save: "Keep it for tonight",
+    saved: "Tonight's intention",
+    clear: "Change",
   },
 
   /* Der Morgen-Check-in (Mehrwert P2a): eine Frage, drei grobe Stufen —
      beantwortbar, bevor man wach ist. */
   checkin: {
-    question: "How did you sleep?",
+    question: "How did you sleep today?",
     levels: { 1: "rough", 2: "okay", 3: "well" },
     emoji: { 1: "🌑", 2: "🌗", 3: "🌕" },
     thanks: "Noted — sleep and dreams meet in your atlas.",
@@ -1365,6 +1400,12 @@ export default {
     sleepDream: (y) => `Around ${y} of those years you spend dreaming. Don’t let them slip past — take them back, watch them, make them part of you.`,
     sleepNote: "Based on your answer and an average lifespan of 80 years.",
     sleepLegend: { life: "80 years of life", sleep: "Sleep", dream: "Dreams" },
+    /* Die Nachtskala (27.09.): der Mond als Regler, die Zahlen rechnen live. */
+    sleepScale: { hours: "{n} h", decimal: ".", hint: "Slide the moon", short: "short nights", long: "long nights",
+      perNight: "asleep each night", dreaming: "of it dreaming", yearsAsleep: "of your life asleep", yearsDreaming: "of it dreaming" },
+    /* Die Ziele als große Worte (27.09.) — kurz, weil sie groß stehen. */
+    goalWords: { remember: "Remembering more", understand: "Understanding them", create: "Films of my nights", "sleep-better": "Sleeping better", nightmares: "Fewer bad dreams" },
+    goalHint: "Tap everything that's true.",
     /* Tiles carry only their label now (Moonly reference); the sentences
        become the subtitle. */
     featuresLede: "Tell your dream half-asleep, watch it as a film, keep every night.",

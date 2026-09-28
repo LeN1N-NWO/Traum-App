@@ -4,7 +4,7 @@ import { SymbolView } from "expo-symbols";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { DreamCalendar } from "@/components/dream-calendar";
-import { DreamDeck } from "@/components/dream-deck";
+import { DreamCarousel } from "@/components/dream-carousel";
 import { DreamRow } from "@/components/dream-row";
 import { MoonStrip } from "@/components/moon-strip";
 import { useJournal } from "@/components/journal-data";
@@ -12,8 +12,9 @@ import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Das Journal, nativ — der Aufbau ist der des Web (JournalScreen.jsx),
    nur das Material ist neu: Kopf mit Titel und Zahl, Suche und Ansicht-
-   Umschalter, dann das DECK (Karten seitlich wischen, Antons Wahl) oder die
-   Liste, darunter die Nebenräume als zwei halbe Kacheln je Zeile (Besetzung,
+   Umschalter, dann das KARUSSELL (Antons Wahl 27.09.: wischen, die Mitte
+   im Fokus, die Nachbarn verschwimmen — components/dream-carousel.tsx)
+   oder die Liste, darunter die Nebenräume als zwei halbe Kacheln je Zeile (Besetzung,
    Atlas ab dem 2. Traum, Menagerie mit Wesen), darunter der Kalender. */
 export default function JournalScreen() {
   const router = useRouter();
@@ -21,7 +22,6 @@ export default function JournalScreen() {
   const J = data?.journal;
   const L = J?.labels ?? {};
   const [query, setQuery] = useState("");
-  const locale = data?.language === "de" ? "de-DE" : "en-GB";
   const deck = (J?.view ?? "deck") !== "list";
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -46,7 +46,7 @@ export default function JournalScreen() {
         {items.length === 0 ? (
           <Text style={styles.empty}>{query ? L.emptySearch : L.empty}</Text>
         ) : deck ? (
-          <DreamDeck items={items} locale={locale} onOpen={open} />
+          <DreamCarousel items={items} untitled={L.untitled} locale={data?.language === "de" ? "de-DE" : "en-GB"} onOpen={open} />
         ) : (
           <View style={styles.list}>{items.map((e) => <DreamRow key={e.id} item={e} months={L.months} onPress={open} rendering={L.rendering} untitled={L.untitled} />)}</View>
         )}

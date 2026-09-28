@@ -86,9 +86,11 @@ function BreatheRoom() {
 function KnowledgeRoom() {
   const { data } = useJournal();
   const K = data?.sleep?.knowledge;
+  // Von der Startseite (Artikel des Tages): diese Karte zuerst und offen.
+  const { open } = useLocalSearchParams<{ open?: string }>();
   return (
     <Room id="knowledge" sf="books.vertical" tint={colors.gold} glow="rgba(246,198,91,0.26)">
-      {K ? <Knowledge K={K} /> : null}
+      {K ? <Knowledge K={K} initialOpen={open} /> : null}
     </Room>
   );
 }

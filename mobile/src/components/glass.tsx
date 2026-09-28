@@ -70,10 +70,11 @@ export function SheenSurface({ style, children }: { style?: StyleProp<ViewStyle>
 }
 /* Seit 26.09. trägt jeder Hauptknopf den umlaufenden Leuchtrand (OrbitGlow):
    Er ist per Definition das, was man als Nächstes drückt. `glow={false}`
-   schaltet ihn ab (z. B. zwei Hauptknöpfe nebeneinander); ausgegraut nie. */
-export function PrimaryButton({ label, onPress, style, disabled, heavy, glow = true }: { label: string; onPress: () => void; style?: StyleProp<ViewStyle>; disabled?: boolean; heavy?: boolean; glow?: boolean }) {
+   schaltet ihn ab (z. B. zwei Hauptknöpfe nebeneinander); ausgegraut nie.
+   `spend` (27.09.): Der Knopf gibt Credits aus — dazu atmet der Rand golden. */
+export function PrimaryButton({ label, onPress, style, disabled, heavy, glow = true, spend = false }: { label: string; onPress: () => void; style?: StyleProp<ViewStyle>; disabled?: boolean; heavy?: boolean; glow?: boolean; spend?: boolean }) {
   const press = () => { Haptics.impactAsync(heavy ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Light); onPress(); };
-  const ring = glow && !disabled ? <OrbitGlow /> : null;
+  const ring = glow && !disabled ? <OrbitGlow spend={spend} /> : null;
   if (glass) {
     return (
       <Pressable onPress={press} disabled={disabled} style={({ pressed }) => [{ flex: 1, opacity: disabled ? 0.5 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }, style]}>
