@@ -3,6 +3,57 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-28 10:00 — Anton — Branch `session/2026-09-26e-anton` (PR #70) — Serie aus dem Journal, Sternbild, neue Startseite, Karussell, Abstürze und Dauerlast
+
+**Commits:** 41617c3, 2a94bd6, e494971, ce4b94f, 212724d, c0fbe9c, e0b6dd9, 7520b46, 0682eed, 0b47ea9, 4c1e80f, b27610a (+ Wrap).
+
+**Was:**
+- **Serie:** Mini-Geschenke und Schlummernacht nativ nachgezogen (waren nur
+  im Web). Danach ganz neu: EINE Zählung aus dem Journal (`src/lib/nights.js`)
+  — Traum-Tage = Kalendertage in Ortszeit, „Nichts hängengeblieben" zählt
+  nicht mit, hält die Serie aber offen; Schlummernächte als `snoozeDays`.
+  Die alten Zähler (`state.streak`/`lastDream`, `bumpStreak`) schreibt die
+  App nicht mehr fort.
+- **Startseite:** Faultier raus → C3 (Plakate) → C1 → jetzt **Dein Sternbild**
+  (`src/lib/constellation.js`, `components/constellation-sky.tsx`): 33 Sterne
+  in 6 Stufen (5/8/12/18/25/33), Linien ab dem zweiten Stern, Weg der
+  laufenden Stufe gestrichelt, Meilenstein als atmender Goldstern mit
+  Schild, übernächste Stufe als Nebel, Vorschau beim ersten Anschauen und
+  bei jedem Tipp, Name nach dem häufigsten Motiv („Der ???" bis Stufe 1).
+  **Belohnung je Stufe** (Antons Ansage: mindestens 1 Credit): 5 → +1 &
+  Name, 8 → +1 & Schlummernacht, 12 → +2, 18 → +2, 25 → +3, 33 → +5.
+  Serien-Seite (`components/streak-sheet.tsx`) animiert, Pille immer da.
+  Artikel des Tages aus dem Wissen.
+- **Onboarding:** Klarträume, Zeitbudget, Begleiter-Wahl, „Anything that
+  keeps coming back" raus; große Worte (Ziele), Mondphasen mit echtem Mond
+  (Erinnerung), Mond-Regler mit Live-Jahren (Schlafdauer); „That's it" mit
+  Hintergrundfilm (Platzhalter).
+- **Knöpfe:** Lichtstrahl (Border Beam) auf Hauptknöpfen, atmender Goldrand
+  bei Credit-Knöpfen (`spend`).
+- **Journal:** Karussell mit Fokus, 3D-Neigung und Blur (`dream-carousel.tsx`).
+- **Film-Schleife** (Hannis Befund): nachgereichter Ton schrieb die
+  laufende Datei um → Kopie + `sketchSwap`, Sicherheitsnetz im Player.
+- **Abstürze:** Speicherüberlauf beim Start — Fotos steckten als Data-URL in
+  jedem Traum (jetzt `castImages`, 30,6 → 1,1 MB je Übergabe); Pachten
+  weckten per `storage`-Ereignis alle Brücken (Dauerfeuer). Dauerlast
+  (cpu_resource 56–63 %): Schatten über bewegten Ebenen, Masken, SVG-
+  Neuzeichnen je Bild → ersetzt; Animationen ruhen auf unsichtbaren Tabs.
+
+**Warum:** Antons Rückmeldungen 27./28.09. und zwei Variantenbücher
+(https://claude.ai/artifact/FQJ8Lvxkr9KfAAVa4odDWt,
+https://claude.ai/artifact/JsPbeLxJoueorTwGHnb3UX).
+
+**Belege:** 833 Tests grün, tsc sauber, Brücken-Schnappschuss unter Bun
+mit Testdaten geprüft (Zählung, Sternbild, Belohnungen). Jeder Stand als
+Release auf Antons iPhone; nach den Fixes keine neuen Abstürze.
+
+**Für den Nächsten:** Im Simulator kamen Tipps in der App zuletzt nicht an
+(auch mit älterem Stand) — UI deshalb nur am iPhone geprüft; Sternbild-
+Animationen, Karussell und Onboarding-Regler am Gerät noch nicht von mir
+gesehen. Ob die Dauerlast-Warnungen ganz weg sind, zeigt erst der Alltag
+(`systemCrashLogs` nach `cpu_resource` sehen). Streak-Geschenke (7/30)
+laufen zusätzlich zu den Sternbild-Stufen.
+
 ## 2026-09-26 15:30 — Anton — Branch `session/2026-09-26d-anton` (PR #68) — Glimpse ohne Effekte, Geräusche aus dem fertigen Film
 
 **Was:** Renderer-Schalter `effects` (Partikel, Nebel, Farbstufe aus für

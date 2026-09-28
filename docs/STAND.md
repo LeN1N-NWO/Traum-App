@@ -3,12 +3,51 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-26 nachts — Anton, `session/2026-09-26d-anton` (PR #68)
-wird auf Antons Wort gemergt; PR #65–#67 sind auf main. **Hanni kann
+**Stand:** 2026-09-28 vormittags — Anton, `session/2026-09-26e-anton`
+(PR #70) auf Antons Wort gemergt; PR #65–#68 sind auf main. **Hanni kann
 Schritt C anbinden.** **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Neu mit PR #68 (26.09. nachts):**
+**Neu mit PR #70 (27./28.09.):**
+- **EINE Zählung der Nächte:** `src/lib/nights.js` — Traum-Tage sind
+  Kalendertage in ORTSZEIT mit mindestens einem echten Traum; die Serie
+  zählt sie in Folge bis heute (sonst bis gestern, „auf der Kippe").
+  „Nichts hängengeblieben" zählt nirgends, hält die Serie aber offen.
+  Schlummernächte: `snoozeDays` (überbrückt), verdient je 7 Tage.
+  Sterne, Pille, Leiter, Geschenke, Wesen lesen alle daraus. `state.streak`
+  /`lastDream`/`bumpStreak` werden nativ nicht mehr geschrieben.
+- **Startseite = Dein Sternbild** (`src/lib/constellation.js`,
+  `components/constellation-sky.tsx`): 33 Sterne, Stufen 5/8/12/18/25/33,
+  gezoomt auf laufende + übernächste Stufe, Weg gestrichelt, Meilenstein
+  mit Schild, Nebel, Vorschau (erstes Anschauen + Tipp, `skyIntroSeen`).
+  Belohnungen `SKY_REWARDS` (je Stufe ≥ 1 Credit; 5 +1 & Name, 8 +1 &
+  Schlummernacht, 12 +2, 18 +2, 25 +3, 33 +5 — zusammen 14 Credits ≈ 40 ct),
+  vergeben in den Serien-Pflichten der Brücke (`skyGifts`). Darunter
+  „Was hast du geträumt?", Knopf, Schlaf-Frage (echte Monde), Artikel des
+  Tages (öffnet ihn im Wissen oben). Serien-Seite `components/streak-sheet.tsx`.
+- **Onboarding** kürzer: nur noch Ziele (große Worte), Erinnerung
+  (Mondphasen), Schlafdauer (Mond-Regler mit Live-Rechnung), Foto,
+  Anmeldung; „That's it" mit Hintergrundfilm — ⚠ Platzhalter (erster
+  Stil-Clip), Antons Video fehlt.
+- **Knöpfe:** `OrbitGlow` = Lichtstrahl aus fünf Strichstücken (nur
+  `strokeDashoffset` bewegt), `spend` = atmender Goldrand für Credit-Knöpfe.
+- **Journal:** Karussell `components/dream-carousel.tsx` (Mitte scharf mit
+  Goldrand, Nachbarn gekippt + BlurView), Liste weiter per Knopf.
+- **Film-Schleife:** nachgereichter Glimpse-Ton geht in eine Kopie
+  (`sketchSwap`), der Player lädt sich neu, falls er steht.
+- **Stabilität:** Fotos einmal als `castImages` statt je Traum; Pachten
+  wecken keine Brücken mehr; keine Schatten über bewegten Ebenen;
+  `useScreenActive` hält Leuchtrand/Glühwürmchen auf unsichtbaren Tabs an.
+- Variantenbücher: https://claude.ai/artifact/FQJ8Lvxkr9KfAAVa4odDWt
+  (Kacheln/Knöpfe/Start) · https://claude.ai/artifact/JsPbeLxJoueorTwGHnb3UX
+  (Sternbild).
+- ⚠ **Offen/ungeprüft:** Sternbild-Animation, Karussell und Mond-Regler
+  am Gerät noch nicht gesehen (Simulator nahm zuletzt keine Tipps an);
+  Dauerlast-Warnungen beobachten; Frosch-Loop für die Startseite und das
+  Hintergrundvideo für „That's it" liefert Anton; die Streak-Geschenke
+  (7/30) laufen parallel zu den Sternbild-Stufen — ggf. zusammenlegen.
+
+**Mit PR #68 (26.09. nachts):**
 - **Glimpse ohne Effekte:** `Plan.effects` in `SketchRenderer.swift` —
   der Glimpse rendert ohne Partikel, Nebel und Farbstufe (Leuchten +
   Vignette), nur Bild, Tiefe, Kamera (Antons Ansage). Mac-Probe vorher/
@@ -1008,6 +1047,27 @@ Zweiteiler-Frage bleibt beim Preisentscheid.
   · **Antons Berechtigungsliste nicht selbst erweitern.**
 
 ## Fallen, die man nur einmal sieht
+
+### Native App: Speicher und Dauerlast (27./28.09.)
+
+- **⚠⚠ Jede Schreibung in localStorage weckt ALLE Brücken** (`storage`-
+  Ereignis) — jede schickt dann ihren ganzen Schnappschuss. Pachten oder
+  Zeitstempel bei jedem Lesen zu schreiben, heißt Dauerfeuer bis zum
+  Speicherüberlauf. Brücken hören nur noch auf den Zustand, nicht auf Pachten.
+- **⚠⚠ Keine Data-URL in Listen des Schnappschusses.** Das eigene Foto
+  stand in jedem Traum → 30 MB je Übergabe → Absturz in WebKit-IPC.
+- **⚠ iOS-Schatten über einer Ebene, deren Inhalt sich bewegt** (SVG,
+  Film), rechnet Core Animation jedes Bild neu → `cpu_resource`-Warnung.
+  Schein als SVG-Linie oder als stille Fläche dahinter.
+- **⚠ SVG-Masken und Verlaufs-Koordinaten nicht je Bild animieren**
+  (Masken teuer, Verläufe aktualisiert react-native-svg nicht zuverlässig).
+  Dauerbewegung als native Ebene (Transform/Deckkraft).
+- **⚠ Ein lokaler Name verdeckt einen Import** (`const realDreams` im
+  Schnappschuss) → TDZ-Fehler → leere App ohne Absturzbericht. Brücke nach
+  Änderungen unter Bun durchlaufen lassen (Schnappschuss-Probe).
+- **⚠ Gesten in einem RN-Modal** brauchen eine eigene
+  `GestureHandlerRootView`.
+- **⚠ Tage in Ortszeit rechnen**, nie `toISOString().slice(0,10)`.
 
 ### Die stummen Geldfehler
 
