@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import Animated, { Easing, type SharedValue, useAnimatedProps, useAnimatedStyle, useFrameCallback, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import Animated, { Easing, type SharedValue, useAnimatedProps, useFrameCallback, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { useScreenActive } from "@/lib/use-screen-active";
 
@@ -33,8 +33,10 @@ const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const LAP = 5200;                         // eine Runde des Strahls in ms
 const BEAM = 0.13;                        // Länge des Strahls (Anteil des Umfangs)
 const BREATH = 5000;                      // ein Atemzug des Credit-Rands in ms
+const PAD = 4;
 /* Die Schichten vom Schweif zum Kopf: Anteil der Strahllänge, Farbe, Deckkraft, Breite. */
 const LAYERS: [number, string, number, number][] = [
+  [0.6, "#ffd58f", 0.12, 6],                 // der Schein um den Kopf (statt Schatten)
   [1.0, "#f2a765", 0.28, 1.3],
   [0.7, "#f6b86e", 0.32, 1.3],
   [0.45, "#ffd58f", 0.4, 1.4],
@@ -53,19 +55,22 @@ export function OrbitGlow({ radius, lap = LAP, spend = false }: { radius?: numbe
     if (spend) breath.value = withRepeat(withTiming(1, { duration: BREATH, easing: Easing.inOut(Easing.sin) }), -1, true);
   }, [spend, breath]);
 
-  const inset = 0.75;
+  // Die Ebene ragt PAD über den Knopf hinaus, damit der breite Schein nicht abgeschnitten wird.
+  const inset = PAD + 0.75;
   const w = Math.max(0, box.w - inset * 2), h = Math.max(0, box.h - inset * 2);
   const r = Math.min(radius ?? h / 2, h / 2, w / 2);
   const per = 2 * (w - 2 * r) + 2 * (h - 2 * r) + 2 * Math.PI * r;
 
-  const halo = useAnimatedStyle(() => (spend
-    ? { shadowOpacity: 0.35 + 0.6 * breath.value, shadowRadius: 5 + 9 * breath.value }
-    : { shadowOpacity: 0.8, shadowRadius: 4 }));
+  /* ⚠ Kein iOS-Schatten mehr (28.09.): Ein Schatten über einer Ebene, deren
+     Inhalt sich jedes Bild ändert, rechnet Core Animation jedes Bild neu —
+     das war die Dauerlast (cpu_resource 63 %). Der Schein ist jetzt eine
+     breite, blasse Linie im selben SVG. */
   const rim = useAnimatedProps(() => ({ strokeOpacity: spend ? 0.55 + 0.4 * breath.value : 1 }));
+  const aura = useAnimatedProps(() => ({ strokeOpacity: 0.1 + 0.22 * breath.value }));
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none" onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
-      <Animated.View style={[StyleSheet.absoluteFill, styles.glow, halo]} pointerEvents="none">
+    <View style={styles.over} pointerEvents="none" onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
         {per > 0 ? (
           <Svg width={box.w} height={box.h}>
             <Defs>
@@ -79,6 +84,9 @@ export function OrbitGlow({ radius, lap = LAP, spend = false }: { radius?: numbe
               </LinearGradient>
             </Defs>
             {spend ? (
+              <AnimatedRect x={inset} y={inset} width={w} height={h} rx={r} ry={r} fill="none" stroke="#f6c65b" strokeWidth={6} animatedProps={aura} />
+            ) : null}
+            {spend ? (
               <AnimatedRect x={inset} y={inset} width={w} height={h} rx={r} ry={r} fill="none" stroke="url(#metal)" strokeWidth={1} animatedProps={rim} />
             ) : (
               <Rect x={inset} y={inset} width={w} height={h} rx={r} ry={r} fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth={1} />
@@ -89,7 +97,7 @@ export function OrbitGlow({ radius, lap = LAP, spend = false }: { radius?: numbe
             ))}
           </Svg>
         ) : null}
-      </Animated.View>
+      </View>
     </View>
   );
 }
@@ -105,5 +113,5 @@ function Beam({ t, lap, per, len, color, alpha, width, x, y, w, h, r }: { t: Sha
 }
 
 const styles = StyleSheet.create({
-  glow: { shadowColor: "#f4c27a", shadowOffset: { width: 0, height: 0 } },
+  over: { position: "absolute", top: -PAD, left: -PAD, right: -PAD, bottom: -PAD },
 });

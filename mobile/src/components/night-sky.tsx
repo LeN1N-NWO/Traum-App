@@ -2,7 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
-import Svg, { Circle, G } from "react-native-svg";
+import Svg, { Circle } from "react-native-svg";
 
 /* Der Nachthimmel hinter Traum-Tab und Profil (Antons Wahl 26.09.: „der
    Hintergrund mit den Kometen"): Sterne in drei Gruppen, die langsam
@@ -11,7 +11,6 @@ import Svg, { Circle, G } from "react-native-svg";
    Die Sterne stehen fest (ein fester Seed), damit der Himmel beim nächsten
    Öffnen derselbe ist; bewegt werden nur drei Gruppen-Deckkräfte und die
    Schnuppe, alles auf dem UI-Thread. */
-const AnimatedG = Animated.createAnimatedComponent(G);
 
 function rand(seed: number) {
   let s = seed >>> 0;
@@ -37,22 +36,25 @@ export function NightSky({ density = 1 }: { density?: number }) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const g0 = useAnimatedProps(() => ({ opacity: tw[0].value }));
-  const g1 = useAnimatedProps(() => ({ opacity: tw[1].value }));
-  const g2 = useAnimatedProps(() => ({ opacity: tw[2].value }));
+  /* Das Funkeln als Deckkraft einer EBENE, nicht als SVG-Eigenschaft
+     (28.09., Dauerlast): So blendet die Grafikkarte drei fertige Bilder
+     ineinander, statt das SVG jedes Bild neu zu zeichnen. */
+  const g0 = useAnimatedStyle(() => ({ opacity: tw[0].value }));
+  const g1 = useAnimatedStyle(() => ({ opacity: tw[1].value }));
+  const g2 = useAnimatedStyle(() => ({ opacity: tw[2].value }));
   const groups = [g0, g1, g2];
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none" onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
       <LinearGradient colors={["#0b1834", "#070e1d", "#050a14"]} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
       {box.w > 0 ? (
-        <Svg width={box.w} height={box.h} style={StyleSheet.absoluteFill}>
-          {stars.map((list, g) => (
-            <AnimatedG key={g} animatedProps={groups[g]}>
+        stars.map((list, g) => (
+          <Animated.View key={g} style={[StyleSheet.absoluteFill, groups[g]]} shouldRasterizeIOS>
+            <Svg width={box.w} height={box.h}>
               {list.map((s, k) => <Circle key={k} cx={s.x * box.w} cy={s.y * box.h} r={s.r} fill="#eaf0fb" />)}
-            </AnimatedG>
-          ))}
-        </Svg>
+            </Svg>
+          </Animated.View>
+        ))
       ) : null}
       {box.w > 0 ? <ShootingStar w={box.w} h={box.h} /> : null}
     </View>

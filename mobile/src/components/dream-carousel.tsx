@@ -83,10 +83,17 @@ function Card({ index, x, step, gap, width, children }: { index: number; x: Shar
       ],
     };
   });
-  // Der goldene Schein der Mitte — wächst, je näher die Kachel der Mitte kommt.
+  /* Der goldene Schein der Mitte — als eigene, stille Fläche HINTER der
+     Kachel (ihr Schatten wird einmal gerechnet und nur ein-/ausgeblendet).
+     Ein Schatten direkt um die Kachel müsste mit jedem Filmbild neu
+     gerechnet werden (28.09., Dauerlast). */
   const glow = useAnimatedStyle(() => {
     const a = Math.abs(interpolate(x.value, range, [-1, 0, 1], Extrapolation.CLAMP));
-    return { shadowOpacity: 0.55 * (1 - a), borderColor: `rgba(246,198,91,${0.7 * (1 - a)})` };
+    return { borderColor: `rgba(246,198,91,${0.7 * (1 - a)})` };
+  });
+  const aura = useAnimatedStyle(() => {
+    const a = Math.abs(interpolate(x.value, range, [-1, 0, 1], Extrapolation.CLAMP));
+    return { opacity: 1 - a };
   });
   const blur = useAnimatedProps(() => {
     const a = Math.abs(interpolate(x.value, range, [-1, 0, 1], Extrapolation.CLAMP));
@@ -94,6 +101,7 @@ function Card({ index, x, step, gap, width, children }: { index: number; x: Shar
   });
   return (
     <Animated.View style={[{ width, marginRight: gap }, card]}>
+      <Animated.View style={[styles.aura, aura]} pointerEvents="none" />
       <Animated.View style={[styles.frame, glow]}>
         <View style={styles.clip}>
           {children}
@@ -105,7 +113,8 @@ function Card({ index, x, step, gap, width, children }: { index: number; x: Shar
 }
 
 const styles = StyleSheet.create({
-  frame: { borderRadius: 17, borderWidth: 1, overflow: "visible", shadowColor: "#f4c27a", shadowRadius: 18, shadowOffset: { width: 0, height: 6 } },
+  frame: { borderRadius: 17, borderWidth: 1 },
+  aura: { position: "absolute", top: 4, left: 4, right: 4, bottom: 4, borderRadius: 17, backgroundColor: colors.bg2, shadowColor: "#f4c27a", shadowOpacity: 0.55, shadowRadius: 18, shadowOffset: { width: 0, height: 6 } },
   clip: { borderRadius: 16, overflow: "hidden" },
   caption: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingHorizontal: 20, marginTop: -2 },
   date: { color: colors.faint, fontSize: 11, letterSpacing: 1.6, fontWeight: "600" },
