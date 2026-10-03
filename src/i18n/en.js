@@ -507,6 +507,9 @@ export default {
     accountSignedInNoEmail: "Signed in",
     signIn: "Sign in",
     signOut: "Sign out",
+    // Rückfrage vor dem Abmelden — ein versehentlicher Tipp passiert zu leicht (03.10.2026).
+    signOutConfirmTitle: "Sign out?",
+    signOutConfirmText: "Your dreams stay on this phone. To create new ones, you'll need to sign in again.",
     done: "Done",
     credits: "credits",
     creditsSoon: "Top-up coming soon",
@@ -1611,6 +1614,8 @@ export default {
     storageFull: "⚠ Storage full — delete old entries or reference photos.",
     unexpected: "Unexpected response from the server.",
     serverStatus: (s) => `Server responded with ${s}.`,
+    // Ein Gast hat etwas Bezahltes versucht (S1) — das Anmelde-Blatt geht dazu auf.
+    signIn: "Sign in to create dreams — it only takes a moment.",
     /* Für den Abbruch nach Zeit (AbortSignal in api.js): sagt, WAS man tun
        kann, nicht nur dass etwas schiefging. */
     timeout: "The service didn't answer. Check your connection and try again in a moment.",

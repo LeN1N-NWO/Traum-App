@@ -6,6 +6,7 @@
  * Step5Style startet genau einmal (autoRender + orderId). Danach zeigt
  * Schritt 6 das Warten und legt den Traum ins Journal — unverändert. */
 import "./vite-env.js";                       // ⚠ zuerst, siehe dort
+import { setTokenSource } from "../../../src/lib/api.js";   // S1: Token von der nativen Seite
 import "../../../src/styles/tokens.css";
 import "../../../src/styles/base.css";
 import "../../../src/styles/sheets.css";
@@ -14,7 +15,8 @@ import "./legacy.css";
 import { useRef } from "react";
 import App from "../../../src/App.jsx";
 
-export default function LegacyOrder({ order, safeTop = 0, safeBottom = 0, dom }) {
+export default function LegacyOrder({ order, safeTop = 0, safeBottom = 0, getToken, dom }) {
+  setTokenSource(getToken);   // S1 — fällt mit dem Umzug auf nativ weg (ADR-0006)
   if (typeof globalThis.__setSafeArea === "function") globalThis.__setSafeArea(safeTop, safeBottom);
   const started = useRef(false);
   if (!started.current) {

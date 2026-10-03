@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { guard, checkLimit, classOf, tokenMatches, resetLimits, senderOf, LIMITS } from "./gatekeeper.js";
+import { guard, checkLimit, classOf, tokenMatches, resetLimits, senderOf, needsAccount, LIMITS } from "./gatekeeper.js";
 
 beforeEach(resetLimits);
 
@@ -159,5 +159,41 @@ describe("senderOf", () => {
     expect(senderOf("127.0.0.1", xff("198.51.100.1:443"), true)).toBe("127.0.0.1");
     expect(senderOf("127.0.0.1", undefined, true)).toBe("127.0.0.1");
     expect(senderOf(undefined, xff("198.51.100.1"), true)).toBe("unknown");
+  });
+});
+
+/* S1: Was Geld kostet, nur mit Konto. Die Liste der freien Routen ist kurz
+   und begründet; alles andere — auch jede künftige Route — braucht eins. */
+describe("needsAccount", () => {
+  test("everything that costs money needs an account", () => {
+    for (const p of ["/api/generate", "/api/character", "/api/sketch-grid", "/api/sketch-sound",
+      "/api/analyze", "/api/refine", "/api/reflect", "/api/sketch-prompts", "/api/transcribe",
+      "/api/voice", "/api/photo-check", "/api/panel", "/api/film-outro", "/api/job"]) {
+      expect([p, needsAccount(p)]).toEqual([p, true]);
+    }
+  });
+
+  test("a brand-new API endpoint needs an account by default", () => {
+    expect(needsAccount("/api/etwas-das-es-noch-nicht-gibt")).toBe(true);
+  });
+
+  test("looking around stays open: sign-in, prices, voice samples", () => {
+    for (const p of ["/api/auth/login", "/api/auth/apple", "/api/auth/refresh", "/api/auth/logout",
+      "/api/prices", "/api/voice-sample"]) {
+      expect([p, needsAccount(p)]).toEqual([p, false]);
+    }
+  });
+
+  test("account and dreams are left to their own sign-in check", () => {
+    expect(needsAccount("/api/account")).toBe(false);
+    expect(needsAccount("/api/dreams")).toBe(false);
+    expect(needsAccount("/api/dreams/sync")).toBe(false);
+    // Nur der echte Pfad, kein Namensvetter.
+    expect(needsAccount("/api/dreamsXYZ")).toBe(true);
+  });
+
+  test("paths outside the API are untouched", () => {
+    expect(needsAccount("/")).toBe(false);
+    expect(needsAccount("/media/abc.mp4")).toBe(false);
   });
 });

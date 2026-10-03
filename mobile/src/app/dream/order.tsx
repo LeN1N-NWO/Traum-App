@@ -9,6 +9,7 @@ import { showToast } from "@/store/toast-store";
 import { currentTap } from "@/store/tap-store";
 import { resetWizard, useWizardStore } from "@/store/wizard-store";
 import { colors } from "@/theme";
+import { getAccessToken } from "@/lib/auth";
 
 
 /* Der Auftrag: Der Web-Motor (Step5Style.run) läuft UNSICHTBAR — er
@@ -123,7 +124,7 @@ export default function DreamOrderScreen() {
         </View>
       ) : null}
       <View style={showWeb ? styles.web : styles.hidden}>
-        {NATIVE_ORDER ? null : <LegacyOrder safeTop={insets.top} safeBottom={insets.bottom} order={{ entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, format: w.format, seconds: w.seconds, orderId: w.orderId, assignmentOverrides: w.assignmentOverrides, mode: w.mode }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
+        {NATIVE_ORDER ? null : <LegacyOrder getToken={getAccessToken} safeTop={insets.top} safeBottom={insets.bottom} order={{ entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, format: w.format, seconds: w.seconds, orderId: w.orderId, assignmentOverrides: w.assignmentOverrides, mode: w.mode }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
       </View>
       <View style={styles.bridge}>{bridge}</View>
     </>

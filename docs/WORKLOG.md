@@ -3,6 +3,84 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-03 19:00 — Hanni — Branch `session/2026-10-03-hanni` (PR #72) — Architektur-Schaubild aktualisiert
+
+**Was:** Das Artifact „Dream Rushes Architektur" (Fassung vom 11.09.) auf
+den Stand von heute gebracht: https://claude.ai/artifact/Sp24vijXRFJA5LbKZdcgLi
+— neues Schaubild (Expo statt Capacitor, Schlüsselbund und Gerätespeicher,
+Caddy, `server.js` auf dem VPS, Supabase, Apple, geplanter Object Storage),
+Befundtabelle mit Status (S1/S4 erledigt, S5 teilweise, S6 bereit, S2/S3/
+S7/S8 offen), nächste Schritte mit Zuständigkeit. Der Ziel-Teil der alten
+Fassung entfällt; Geplantes steht gestrichelt im Bild. Kein Code geändert.
+
+**Für den Nächsten:** Maßgeblich bleibt `docs/ARCHITEKTUR.md`; das Schaubild
+ist die Übersicht dazu. Ungeprüft übernommen: dass Filme heute über
+Auftragsnummern laufen (aus den Kommentaren in `src/lib/api.js`).
+
+## 2026-10-03 18:45 — Hanni — Branch `session/2026-10-03-hanni` (PR #72) — S1: Bezahltes nur mit Konto
+
+**Commits:** a449a3d (Server), 44afc79 (App schickt Token), 079c145 (DEV-Knopf),
+413b15d (Anmelde-Blatt), 467b1e4 (scharf im Deploy), 960ea7a + 7ad7716 (Befunde
+der Durchsicht und des Lint) (+ Wrap).
+
+**Was:** Hannis Regel — umschauen ohne Konto ja, alles was Geld kostet nur
+mit Konto. In vier Schritten:
+1. **Server:** `needsAccount()` in `src/lib/gatekeeper.js` — strenge
+   Voreinstellung wie beim Rate-Limit; frei nur Anmeldung, Preise, Hörprobe
+   (höchstens ~6 ct einmalig), Konto/Träume (prüfen selbst), die zwei lokalen
+   Sicherungs-Routen. `/api/job` braucht ein Konto. `server.js` prüft nach dem
+   Rate-Limit, nur mit `REQUIRE_AUTH=1`; Antwort 401 `reason: "signin"`.
+2. **App schickt das Token:** `getAccessToken`/`fetchWithSession`
+   (`mobile/src/lib/auth.ts`); Token-Quelle in `src/lib/api.js`; `getToken` an
+   die vier Web-Ansichten (9 Einbindungen) — diese Brücke fällt mit dem Umzug
+   auf nativ weg; Sprachinterview als WebSocket-Subprotokoll (`parseWsBearer`).
+   Läuft das Token gleich ab, wird vorher erneuert (`src/lib/jwtExpiry.js`).
+3. **Gast-Erlebnis:** Anmelde-Blatt (`sign-in-sheet.tsx`, derselbe
+   `Account`-Schritt wie im Onboarding), öffnet bei 401 signin ohne Sitzung
+   und aus Einstellungen → „Account"; schließt nach Anmeldung von selbst.
+   Text „Sign in to create dreams" (en/de). Abmelden fragt jetzt nach.
+4. **Scharf im Deploy:** `REQUIRE_AUTH=1` in `dreamrushes.service`;
+   `check-env.mjs` verbietet `API_TOKEN` (sperrte die App aus), verlangt
+   Supabase; `deploy.sh` stoppt den Dienst, wenn Bezahltes ohne Anmeldung
+   durchginge.
+Dazu „Skip to sign-in (dev)" unter jedem Onboarding-Continue (nur `__DEV__`).
+
+**Warum:** S1 war der letzte große Befund vor einem öffentlichen Server
+(~9 $/Minute offen). Das alte `API_TOKEN` sperrte die App komplett aus.
+
+**Belege:** Tests 79 grün (neu: api, jwtExpiry, needsAccount, parseWsBearer,
+check-env), je mit Gegenprobe (eingebaute Fehler gefunden), `tsc` sauber,
+jede geänderte `server.js`-Zeile zugeordnet, Prompt-Kette unberührt. Im
+Simulator mit Testserver ohne bezahlte Schlüssel + Mitleser: Gast →
+`analyze 401 Token: nein` → Blatt → Anmeldung → `analyze 503 Token: JA`
+(durchgelassen, nur DeepSeek-Schlüssel fehlte). Rückfrage beim Abmelden,
+Blatt schließt nach Anmeldung (Hanni getestet). Prüfungen aus `deploy.sh`
+gegen echten `server.js` (scharf: zu; ohne Schalter: schlägt an).
+Durchsicht am Ende fand und behob: DevSkip-Absturz in der Profil-Umfrage
+(nur dev), Blatt bei bloßem Netzaussetzer, abgelaufenes Token beim
+Sprachinterview; per `expo lint` außerdem eine Zuweisung beim Rendern, die
+den React Compiler die ganze OnboardingFlow unoptimiert ließ (jetzt im
+Effekt), und einen doppelten Import. Lint: 0 Fehler, in den berührten
+Dateien dieselben Warnungen wie auf main. Ganze Suite 844 grün, 3 rot —
+dieselben 3 wie ohne Änderung (fehlende Pakete `react`/`@capacitor/core`
+im Worktree).
+
+**Für den Nächsten:**
+- `deploy.sh` als Ganzes lief noch nie (kein SSH). Beim ersten Lauf: in der
+  Server-`.env` KEIN `API_TOKEN`, dafür `SUPABASE_URL`/`SUPABASE_ANON_KEY`;
+  danach S5-Prüfbefehl aus `deploy/README.md`.
+- Eine App für den VPS braucht einen neuen Bau ab PR #72 mit
+  `EXPO_PUBLIC_API_BASE=https://api.dreamrushes.app`.
+- Supabase war am 03.10. pausiert (Adresse nicht im DNS). Ein laufender
+  Server merkt sich das — nach dem Hochfahren neu starten.
+- Notiz an Anton: `docs/uebergabe/2026-10-03-anton-s1-anmeldung.md`
+  („Read my dream · Free" für Gäste, doppelter React-key im Schlaf-Regler,
+  Foto-Check ohne Wirkung, Sprachinterview als Gast, Guthaben-Prüfung).
+- Im Simulator öffnet ein Mac-Tastenkürzel (Cmd+I) den Element Inspector,
+  wenn der Simulator den Tastaturfokus hat — wirkt wie ein Absturz.
+- Lokaler Sicherungs-Branch `backup/rebase-2026-10-03` (Hauptcheckout) kann
+  weg.
+
 ## 2026-10-03 16:45 — Hanni — Branch `session/2026-09-25-hanni-2` (PR #64) — Einrichtungs-/Deploy-Skript für den VPS, Rate-Limit hinter Caddy (S5)
 
 **Commits:** 02bcf90, a6809d7, 08234dc, 307335c (25.09., Deploy), c38afb4

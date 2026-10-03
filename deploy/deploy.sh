@@ -19,6 +19,7 @@ APP_USER="dreamrushes"
 APP_DIR="/opt/dreamrushes/app"
 ENV_FILE="/etc/dreamrushes/dreamrushes.env"
 HEALTH_URL="http://127.0.0.1:8100/api/prices"
+LOCK_URL="http://127.0.0.1:8100/api/generate"
 
 say() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 die() { printf '\033[31mXX %s\033[0m\n' "$*" >&2; exit 1; }
@@ -54,17 +55,25 @@ check_env() {
   as_service deploy/check-env.mjs
 }
 
-# Mit Token, wie die App fragen muss: Ist API_TOKEN gesetzt, sperrt der
-# Türsteher (src/lib/gatekeeper.js) JEDE /api/-Route ohne ihn — ein 401 hieße
-# nur „Server lebt", nicht „Server bedient".
+# /api/prices ist ohne Konto offen (needsAccount() in src/lib/gatekeeper.js)
+# und kostet nichts — ein 200 heißt „Server bedient".
 answers() {
   as_service -e '
-    const r = await fetch(process.argv[1], {
-      headers: { "x-api-token": process.env.API_TOKEN ?? "" },
-      signal: AbortSignal.timeout(2000),
-    }).catch(() => null);
+    const r = await fetch(process.argv[1], { signal: AbortSignal.timeout(2000) }).catch(() => null);
     process.exit(r?.ok ? 0 : 1);
   ' "$HEALTH_URL"
+}
+
+# S1: Ist die Tür wirklich zu? Ein Aufruf, der Geld kosten würde, ohne
+# Anmeldung — er muss mit 401 und reason "signin" abgewiesen werden, BEVOR
+# der Server ihn liest (ohne Tür käme nur „Dream too short", auch kostenlos).
+# Greift das nicht (REQUIRE_AUTH fehlt), stünde der Server offen im Netz.
+locked() {
+  as_service -e '
+    const r = await fetch(process.argv[1], { method: "POST", headers: { "content-type": "application/json" }, body: "{}", signal: AbortSignal.timeout(5000) }).catch(() => null);
+    const body = r ? await r.json().catch(() => null) : null;
+    process.exit(r?.status === 401 && body?.reason === "signin" ? 0 : 1);
+  ' "$LOCK_URL"
 }
 
 healthy() {
@@ -91,6 +100,12 @@ say "Neustart"
 systemctl restart dreamrushes
 
 if healthy; then
+  if ! locked; then
+    # Lieber zu als offen: Ein Server, der Bezahltes ohne Konto annimmt,
+    # bleibt nicht am Netz — auch nicht der vorige Stand, der es genauso täte.
+    systemctl stop dreamrushes
+    die "Bezahltes ging OHNE Anmeldung durch ($LOCK_URL) — Dienst gestoppt. REQUIRE_AUTH=1 in /etc/systemd/system/dreamrushes.service? (S1)"
+  fi
   say "Läuft: $(git rev-parse --short HEAD)"
   [[ "$PREV" == "$NEW" ]] || echo "vorher: ${PREV:0:7} — zurück mit: sudo bash $0 ${PREV:0:7}"
   exit 0
@@ -103,6 +118,10 @@ install -m 644 deploy/dreamrushes.service /etc/systemd/system/dreamrushes.servic
 systemctl daemon-reload
 systemctl restart dreamrushes
 if healthy; then
+  if ! locked; then
+    systemctl stop dreamrushes
+    die "Neuer Stand ${NEW:0:7} startet nicht, und der vorige ${PREV:0:7} nimmt Bezahltes ohne Anmeldung an — Dienst gestoppt. (S1)"
+  fi
   die "Neuer Stand ${NEW:0:7} startet nicht. Der vorige Stand ${PREV:0:7} läuft wieder."
 fi
 die "Auch der vorige Stand ${PREV:0:7} antwortet nicht. Log: journalctl -u dreamrushes -n 100"

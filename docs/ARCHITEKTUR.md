@@ -80,7 +80,7 @@ heutigen Prototyp auf einem Laptop sind mehrere davon bewusst vertretbar.
 
 | ID | Befund | Wirkung | Schwere |
 |---|---|---|---|
-| **S1** | `tokenMatches()` gibt `true` zurück, wenn kein `API_TOKEN` gesetzt ist. Der Zugangsschutz ist standardmäßig aus. | Wer den Port findet, generiert auf unsere Rechnung: 20 `generate` je Minute × bis $0,47 ≈ **$9 pro Minute**, unbemerkt. | **kritisch**, sobald öffentlich |
+| **S1** | ~~`tokenMatches()` gibt `true` zurück, wenn kein `API_TOKEN` gesetzt ist. Der Zugangsschutz ist standardmäßig aus.~~ **Gelöst am 03.10.2026:** Für alles, was Geld kostet, verlangt der Server eine gültige Anmeldung (`needsAccount()` in `gatekeeper.js`); auf dem VPS scharf über `REQUIRE_AUTH=1` in `dreamrushes.service`, `deploy.sh` prüft nach jedem Start, dass die Tür zu ist. Die App schickt das Token und zeigt Gästen das Anmelde-Blatt — siehe unten. Offen: „genug Guthaben" (`settleCharge()`, S7). | Wer den Port findet, generiert auf unsere Rechnung: 20 `generate` je Minute × bis $0,47 ≈ **$9 pro Minute**, unbemerkt. | ✅ erledigt |
 | **S2** | `/media/*` hat keinerlei Zugangsprüfung — `classOf()` gibt für alles außerhalb von `/api/` `null` zurück. | Gesichter realer Menschen, teils Dritter, dauerhaft per URL abrufbar. DSGVO Art. 9. | **hoch** |
 | **S3** | `Bun.hash` ist Wyhash: 64 Bit, nicht kryptografisch, ohne Streuwert. Gleicher Inhalt → gleicher Name. | Existenz-Orakel: Wer ein Bild hat, kann prüfen, ob es bei uns liegt. Kollisionen überschreiben. | mittel |
 | **S4** | ~~14 ausgehende `fetch`, null Abbruchsignale.~~ **Behoben am 11.09.2026.** | Ein hängender Anbieter hielt eine Verbindung bis 255 s; genug davon, und der Prozess nahm nichts mehr an. ⚠ **Nicht** der Fix für die verwaisten Filme — siehe „Zuverlässigkeit". | ✅ erledigt |
@@ -104,6 +104,55 @@ Kopfzeilen senden kann und ihn in die Adresse nehmen müsste.
 Entschieden wurde stattdessen, S1 mit dem echten Backend zu lösen — ein Token
 im Bundle ist ein Token, den jeder hat, und richtige Benutzerauthentifizierung
 kommt ohnehin mit den Konten.
+
+**Der Weg seit 03.10.2026 (Hanni):** Umschauen ohne Konto ja, alles was Geld
+kostet nur mit Konto (und Guthaben — das prüft `settleCharge()`, Antons Teil).
+In drei Schritten, jeder für sich prüfbar:
+
+1. ✅ **Server:** `needsAccount()` in `src/lib/gatekeeper.js` — strenge
+   Voreinstellung wie beim Rate-Limit; frei sind nur Anmeldung, Preise,
+   Hörprobe, Konto/Träume (prüfen selbst) und die zwei rein lokalen
+   Sicherungs-Routen. `server.js` prüft nach dem Rate-Limit und nur mit
+   `REQUIRE_AUTH=1`; die Antwort trägt `reason: "signin"`.
+   `deploy/check-env.mjs` startet nicht mit `REQUIRE_AUTH=1` ohne Supabase.
+2. ✅ **App schickt das Token (03.10.2026, im Simulator belegt):** `src/lib/api.js` bekommt eine Token-Quelle; die
+   vier Web-Ansichten (`mobile/src/legacy/*`) bekommen `getToken` von der
+   nativen Seite; `glimpse-layer.tsx` und `dream-recorder.tsx` ebenso; das
+   Sprachinterview (WebSocket, `voiceSession.js`) trägt es als Subprotokoll
+   (`dreamrushes, bearer.<token>`, der Server bestätigt `dreamrushes`).
+   Ohne Sitzung geht jeder Aufruf ohne Token raus — lokal bleibt alles offen.
+   Beleg: `POST /api/analyze` aus der Web-Ansicht kam mit Token an und wurde
+   durchgelassen (dahinter 503 nur wegen absichtlich fehlendem Schlüssel).
+3. ✅ **Gast-Erlebnis (03.10.2026, im Simulator belegt):** Bei
+   `reason: "signin"` öffnet sich das Anmelde-Blatt (`sign-in-sheet.tsx`,
+   derselbe `Account`-Schritt wie im Onboarding) und schließt nach der
+   Anmeldung von selbst; die Meldung kommt aus `en.js`/`de.js`. Auch über
+   die Zeile „Account" in den Einstellungen. Abmelden fragt jetzt nach.
+   Foto-Check nach der Anmeldung: zurückgestellt — das Ergebnis liest heute
+   keine Stelle (Notiz `docs/uebergabe/2026-10-03-anton-s1-anmeldung.md`).
+
+**Scharf seit 03.10.2026:** `REQUIRE_AUTH=1` steht in
+`deploy/dreamrushes.service`; `check-env.mjs` verbietet das alte `API_TOKEN`
+und verlangt Supabase; `deploy.sh` stoppt den Dienst, wenn Bezahltes ohne
+Anmeldung durchginge. Unkritisch für alte App-Bauten, weil die alle auf den
+Mac im WLAN zeigen — eine App für den VPS ist ohnehin ein neuer Bau.
+
+> **Notiz:** Die Token-Stellen aus Schritt 2 in den Web-Ansichten gibt es nur
+> wegen des Umzugs auf nativ (ADR-0006): Der Geldweg läuft heute noch durch
+> die alte Web-Oberfläche (`legacy-order`, `NATIVE_ORDER = false`). Ist der
+> Umzug fertig, verschwinden sie von selbst — dann bleibt nur `authFetch` in
+> `mobile/src/lib/auth.ts`.
+
+⚠ **Grenze:** Mit Konto prüft `/api/job` nicht, ob der Auftrag *diesem*
+Nutzer gehört — wer eine fremde Auftragsnummer kennt, holt den Film ab.
+Dafür bräuchte der Server die Zuordnung Auftrag → Nutzer; gehört zu S2.
+Zwei Schwächen der Auftragsnummer selbst (`genJobId()` in `server.js`), mit
+zu erledigen: Sie besteht aus Uhrzeit + 6 Zeichen aus `Math.random()` —
+nicht kryptografisch; später durch `crypto.randomUUID()` o. ä. ersetzen. Und
+`/api/job` ist vom Rate-Limit ausgenommen (`UNLIMITED` in `gatekeeper.js`),
+Raten kostet also nur Zeit. Praktisch heute schwer (~2 Mrd. Möglichkeiten je
+Zeitpunkt), aber nicht sauber. Solange `/media/` offen ist (S2), brächte
+eine Besitzprüfung nur an `/api/job` allein wenig.
 
 ## 5. Qualitätsmerkmale
 
