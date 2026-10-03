@@ -3,6 +3,45 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-03 21:20 — Hanni — Branch `session/2026-10-03-hanni-4` (PR #75) — Einladungen: Server-Teil
+
+**Commits:** b791cbe (Server-Teil), 003caa5 (501 statt 500 ohne Migration),
+0677a01 (`mutual`), 7152e73 (Migration eingespielt) (+ Wrap).
+
+**Was:** Der Server-Teil zu Antons Einladungs-Seite (PR #71), nach dem
+Vertrag in `docs/uebergabe/2026-09-14-hanni-codes-einladungen.md`:
+- `GET /api/invite` (eigener Code, beim ersten Aufruf erzeugt; Freunde mit
+  Anzeigenamen) und `POST /api/invite/connect` (ok / unknown / own /
+  mutual / already), Logik in `src/lib/invitesServer.js`, Regeln aus
+  Antons `src/lib/invites.js` importiert.
+- Migration `20261003120000_invites.sql`: `invite_codes`,
+  `invite_redemptions` (Kauf-/Prämien-Spalten schon da), RLS ohne Regeln,
+  drei `security definer`-Funktionen nur für `dreamrushes_server`.
+  **Eingespielt** (Hanni, SQL-Editor).
+- Ohne Migration antwortet der Server 501 → die App bleibt in ihrer
+  Vorschau (erkannt am Postgres-Code 42883 in `errno`).
+- Aus der Durchsicht: gegenseitiges Einladen abgefangen (`mutual`) — dafür
+  je eine Zeile in Antons `invites.ts`, `journal-store.ts`, `en.js`/`de.js`.
+
+**Warum:** Antons App-Seite stand, der Server fehlte (Vertrag 14.09./03.10.).
+
+**Belege:** 13 Tests fürs Modul, 2 für den Gatekeeper; Migration in PGlite
+(echtes Postgres, nur im Scratchpad) 30/30 inkl. Verbote mit 42501,
+Löschrecht und Modul Ende zu Ende; Gegenproben mit eingebauten Fehlern;
+nach dem Einspielen 8/8 an der echten Datenbank (nur lesend); im Simulator
+mit zwei echten Konten: Code, Verbinden, „joined". `server.js`: 22+ Zeilen
+nur im Konto-Block, alle zugeordnet, Prompt-Kette unberührt. Sicherheits-
+check ohne neue rote Stelle.
+
+**Für den Nächsten:**
+- Anton: `INVITE_PREVIEW = false` geht jetzt; Freund ohne Namen erscheint
+  als „?" (Vorschlag „A friend").
+- Prämie (`bought`/`rewarded`) braucht B1 — dort nur der **erste Kauf
+  überhaupt, nach dem Verbinden** zählt. DeviceCheck, Universal Links,
+  Landingpage offen.
+- Ein Bun-Postgres-Client gegen PGlite per Netzwerk (`pglite-socket`) hing
+  beim Verbindungsaufbau — für SQL-Tests PGlite direkt nutzen.
+
 ## 2026-10-03 20:00 — Hanni — Branch `session/2026-10-03-hanni-3` (PR #74) — ADR-0008: Medien bleiben auf dem Server als Sicherung
 
 **Commits:** 38b0b85 (Vorschlag „nur auf dem Gerät"), 2a016e0 (ADR-0008 angenommen), (+ Ergänzung und Wrap).

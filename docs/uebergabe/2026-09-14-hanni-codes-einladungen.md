@@ -240,9 +240,14 @@ mit drei eingebauten Fehlern.
   `security definer`-Funktionen, nur `dreamrushes_server` darf sie
   ausführen, niemand hat direkte Tabellenrechte, Übersicht kommt in der
   richtigen Form, direktes Lesen und Aufruf ohne Nutzer → `42501`.
-  **Offen:** einmal mit echtem Konto in der App prüfen (Code erscheint,
-  zweites Konto verbindet sich) — erst dann `INVITE_PREVIEW = false`
-  (Antons Datei). Ohne eingespielte Migration hätte der Server 501
+  ✅ **Mit echten Konten in der App getestet** (03.10. abends, Simulator,
+  Hanni): Konto A bekommt einen echten Code, Konto B verbindet sich
+  („Connected"), A sieht B als „joined". **Anton: `INVITE_PREVIEW` kann auf
+  `false`.**
+  Hinweis zur Oberfläche: Hat der Freund keinen Anzeigenamen (Namensschritt
+  im Onboarding leer gelassen), liefert der Server `name: null`, und die
+  Seite zeigt „?" und „—" (`invite.tsx:117/120`). Freundlicher wäre z. B.
+  „A friend" — deine Entscheidung. Ohne eingespielte Migration hätte der Server 501
   geantwortet und die App ihre Vorschau gezeigt.
 - `bought`/`rewarded` und die Prämie: brauchen die Prüfung echter
   App-Store-Käufe (B1) und den Bucket `gift` auf dem Server. ⚠ Für B1:

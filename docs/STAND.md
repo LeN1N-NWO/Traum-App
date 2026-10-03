@@ -3,7 +3,10 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-03 abends — Hanni, `session/2026-10-03-hanni-3` (PR #74):
+**Stand:** 2026-10-03 spätabends — Hanni, `session/2026-10-03-hanni-4` (PR #75):
+**Einladungen — Server-Teil fertig und mit echten Konten getestet**
+(`GET /api/invite`, `POST /api/invite/connect`, Migration eingespielt);
+Anton kann `INVITE_PREVIEW = false` setzen. Davor PR #74:
 **ADR-0008 angenommen — Medien bleiben auf dem Server als Sicherung**, das
 Gerät holt sie einmal ab; kein Object Storage, Schritt C entfällt. Daraus
 folgt: **S2 ist Pflicht** (Zuordnung Datei → Nutzer an der Abholung, Antons
@@ -41,14 +44,15 @@ Bezahltes nur mit Konto**). **Weg durch die App-Store-Prüfung:
   `components/gift-sheet.tsx` — ⚠ als Ebenen, **keine Modals** (iOS zeigt
   Geschwister-Modals unzuverlässig; ein unsichtbares Modal blockierte die
   Pille).
-- **Einladungen — App-Seite** (Server baut Hanni): Regeln `src/lib/invites.js`
+- **Einladungen — App-Seite** (Server ✅ seit PR #75, `src/lib/invitesServer.js`,
+  Migration `20261003120000_invites.sql` eingespielt): Regeln `src/lib/invites.js`
   (7-Zeichen-Code, Link `dreamrushes.app/i/CODE`, Prämie in Träumen S/Monat 1,
   M 2, L 3, XL 5, Jahr 6, 14 Tage, Deckel 5), Seite
   `mobile/src/app/profile/invite.tsx`, Karte im Profil, Deep Link
   `dreamrushes://invite/CODE` (`mobile/src/app/+native-intent.tsx`).
   Client `mobile/src/lib/invites.ts` ruft `GET /api/invite` und
-  `POST /api/invite/connect` — ⚠ bis dahin markierte Vorschau
-  (`INVITE_PREVIEW = true`, vor Veröffentlichung aus). Jeder Kauf trägt
+  `POST /api/invite/connect` (neu: Fehler `mutual`) — `INVITE_PREVIEW`
+  kann jetzt auf `false` (Anton). Prämie wartet auf B1. Jeder Kauf trägt
   `appAccountToken` = Konto-UUID (`mobile/src/lib/iap.ts`). Vertrag:
   `docs/uebergabe/2026-09-14-hanni-codes-einladungen.md` (Nachtrag 03.10.).
 - **Flux 3** geprüft, nicht eingebaut: fürs Glimpse-Raster 4–5× teurer als
@@ -453,10 +457,11 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
 6. Android: Apples Blatt fehlt dort — Apple-Konto dort nicht löschbar.
 
 **Nächste Schritte:**
-1. **Hanni:** PR #74 mergen. Mit Anton klären, wer S2 baut (Zuordnung Datei →
+1. **Hanni:** PR #75 mergen. Mit Anton klären, wer S2 baut (Zuordnung Datei →
    Nutzer an der Abholung, `/media/*` nur für den Besitzer, B8). Anfrage an
    den Anwalt abschicken. Ersten `/security-check` in neuer Sitzung.
-2. **Anton:** „Automatically delete head branches" einschalten, ggf. die
+2. **Anton:** `INVITE_PREVIEW = false` (Einladungen laufen, siehe Nachtrag
+   in `2026-09-14-hanni-codes-einladungen.md`). „Automatically delete head branches" einschalten, ggf. die
    eigenen 36 gemergten Branches aufräumen lassen
    (`docs/uebergabe/2026-10-03-anton-branches-aufraeumen.md`). ADR-0008-Folgen
    (`docs/uebergabe/2026-10-03-anton-medien-sicherung.md`): S2-Zuordnung,
