@@ -1,6 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { useSyncExternalStore } from "react";
 import { requestSignIn } from "@/lib/signin-prompt";
+import { expiresSoon } from "../../../src/lib/jwtExpiry.js";
 
 /* Die Anmeldung, nativ — gegen Hannis Backend (Übergabe 12.09.2026,
  * `docs/uebergabe/2026-09-12-anton-login-ui.md`; Endpunkte in server.js,
@@ -216,13 +217,23 @@ export async function authFetch(path: string, init: RequestInit = {}): Promise<R
    Geldweg noch durch die alte Web-Oberfläche läuft (ADR-0006) — nach dem
    Umzug auf nativ fallen sie weg.
 
+   Läuft das gespeicherte Token gleich ab (eine Stunde), wird vorher erneuert
+   — sonst kostete jeder erste Aufruf danach einen 401-Umweg, und das
+   Sprachinterview (WebSocket) könnte den gar nicht gehen.
+
    `fresh` heißt: der Server hat gerade „bitte anmelden" gesagt (api.js
-   fragt nur dann). Lässt sich dann keine Sitzung erneuern, ist das ein Gast
-   oder eine verlorene Sitzung — das Anmelde-Blatt geht auf (Schritt 3). */
+   fragt nur dann). Lässt sich dann keine Sitzung erneuern UND ist niemand
+   mehr angemeldet (Gast oder verlorene Sitzung), geht das Anmelde-Blatt auf
+   (Schritt 3). Scheitert die Erneuerung nur am Netz, bleibt die Sitzung —
+   dann kein Blatt. */
 export async function getAccessToken(fresh = false): Promise<string | null> {
-  if (!fresh) return SecureStore.getItemAsync(KEY_ACCESS);
+  if (!fresh) {
+    const stored = await SecureStore.getItemAsync(KEY_ACCESS);
+    if (stored && expiresSoon(stored)) return (await refresh()) ?? stored;
+    return stored;
+  }
   const token = await refresh();
-  if (!token) requestSignIn();
+  if (!token && !account) requestSignIn();
   return token;
 }
 
@@ -244,7 +255,10 @@ export async function fetchWithSession(url: string, init: RequestInit = {}): Pro
   const first = await go(access);
   if (!(await wantsSignIn(first))) return first;
   const fresh = access ? await refresh() : null;
-  if (!fresh) { requestSignIn(); return first; }
+  if (!fresh) {
+    if (!account) requestSignIn();     // Netzaussetzer bei Angemeldeten: kein Blatt
+    return first;
+  }
   return go(fresh);
 }
 

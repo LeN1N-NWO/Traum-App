@@ -2572,8 +2572,8 @@ const serveOptions = {
 
     /* S1: Was Geld kostet, nur mit Konto — needsAccount() in gatekeeper.js
      * (strenge Voreinstellung, freie Routen mit Grund). Nur mit
-     * REQUIRE_AUTH=1 (deploy/dreamrushes.service): lokal und bis die App das
-     * Token überall mitschickt, bleibt alles wie bisher. Nach dem Rate-Limit,
+     * REQUIRE_AUTH=1 (deploy/dreamrushes.service, auf dem VPS); lokal
+     * bleibt alles offen, Entwickeln geht ohne Konto. Nach dem Rate-Limit,
      * damit es auch die Rückfragen bei Supabase bremst. `reason` lässt die
      * App „bitte anmelden" zeigen statt eines Fehlers. */
     if (process.env.REQUIRE_AUTH === "1" && needsAccount(url.pathname)) {

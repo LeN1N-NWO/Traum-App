@@ -147,7 +147,12 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
   const total = shown.length;
   const jetzt = shown[Math.min(step, total - 1)];
   // Nur Entwicklung: DevSkip (unten) springt von hier zum Anmelde-Schritt.
-  if (__DEV__) (globalThis as any).__onbSkipToAccount = () => setStep(shown.findIndex((x) => x.kind === "account"));
+  // Die Profil-Umfrage (questionsOnly) hat keinen — dort kein Sprung und
+  // kein Knopf; setStep(-1) ließe `jetzt` undefined werden.
+  if (__DEV__) {
+    const at = shown.findIndex((x) => x.kind === "account");
+    (globalThis as any).__onbSkipToAccount = at >= 0 ? () => setStep(at) : undefined;
+  }
 
   // Am ersten Bildschirm führt Zurück hinaus, wenn es ein Draußen gibt (Umfrage im Profil).
   function back() { Haptics.selectionAsync(); if (step === 0 && onExit) { onExit(); return; } setStep((s: number) => Math.max(0, s - 1)); }
@@ -602,7 +607,7 @@ function FeatureTile({ i, title, clip, tall, labelBottom }: { i: number; title: 
    Anmelde-Schritt springen, statt jedes Mal das ganze Onboarding
    durchzutippen (Hanni, 03.10.2026). Im Release-Bau gibt es ihn nicht. */
 function DevSkip() {
-  if (!__DEV__) return null;
+  if (!__DEV__ || !(globalThis as any).__onbSkipToAccount) return null;
   return (
     <Pressable onPress={() => (globalThis as any).__onbSkipToAccount?.()} hitSlop={8} style={{ alignSelf: "center", paddingVertical: 8 }}>
       <Text style={{ color: colors.faint, fontSize: 13 }}>Skip to sign-in (dev)</Text>
