@@ -3,6 +3,53 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-03 16:45 — Hanni — Branch `session/2026-09-25-hanni-2` (PR #64) — Einrichtungs-/Deploy-Skript für den VPS, Rate-Limit hinter Caddy (S5)
+
+**Commits:** 02bcf90, a6809d7, 08234dc, 307335c (25.09., Deploy), c38afb4
+(main eingemergt, 03.10.), 32a0e78 (S5) (+ Wrap).
+
+**Was:**
+- **`deploy/`** (25.09.): `setup.sh` richtet den Hetzner-VPS einmal ein
+  (Sicherheits-Updates, ffmpeg, Caddy mit HTTPS, Bun 1.4.0 mit Prüfsumme,
+  Systemnutzer `dreamrushes` ohne Login, systemd-Dienst, Firewall 22/80/443;
+  sshd wird nicht angefasst, nur gewarnt). `deploy.sh` bringt jeden neuen
+  Stand mit einem Befehl hoch und geht von selbst zurück, wenn der
+  Gesundheitscheck scheitert. `check-env.mjs` hält den Start an, wenn
+  `API_TOKEN` oder `DREAMRUSHES_MEDIA` fehlen/falsch sind. Medien unter
+  `/var/lib/dreamrushes`, `.env` unter `/etc/dreamrushes/dreamrushes.env`.
+  Anleitung `deploy/README.md`, Übergabe
+  `docs/uebergabe/2026-09-25-anton-vps-einrichtung.md`.
+- **S5 gelöst (03.10.):** Hinter Caddy kam jede Verbindung von 127.0.0.1 —
+  alle Nutzer teilten sich einen Rate-Limit-Zähler. `senderOf()` in
+  `src/lib/gatekeeper.js` nimmt jetzt den letzten Eintrag aus
+  `X-Forwarded-For`, aber nur mit `TRUST_PROXY=1` (steht in
+  `deploy/dreamrushes.service`, nicht in der `.env`) und nur für
+  Verbindungen von Loopback. `server.js`: nur Import, Kommentar und die
+  Absender-Zeile im `guard(`-Aufruf (13 Zeilen, alle zugeordnet) —
+  Prompt-Kette unberührt. `LOOPBACK` aus `localOnly.js` exportiert.
+
+**Warum:** Ohne Skript im Repo keine nachvollziehbare Einrichtung
+(Bedingung aus `docs/plans/2026-09-24-hosting.md`); ohne S5 könnte auf dem
+VPS ein einzelner Nutzer alle anderen aus der Anmeldung aussperren.
+
+**Belege:** 28 neue Tests (`gatekeeper.test.js`, `check-env.test.js`), alle
+grün; Gegenprobe: fünf eingebaute Fehler in `senderOf` und das Entfernen
+des Schalters aus der Dienstdatei — alle gefunden. Live mit `server.js`:
+mit Schalter ist Nutzer 1 nach 10 Anmeldungen gesperrt und Nutzer 2 kommt
+durch; ohne Schalter ist Nutzer 2 mitgesperrt (= der alte Fehler). Ganze
+Suite: 823 grün, 3 rot — dieselben 3 auch ohne die Änderung (in diesem
+Worktree fehlen `react` und `@capacitor/core` in `node_modules`).
+
+**Für den Nächsten:** Die Skripte sind noch **nie auf dem VPS gelaufen** —
+es fehlt SSH-Zugang (Anton). Beim ersten Lauf den S5-Prüfbefehl aus
+`deploy/README.md` ausführen (gefälschte `X-Forwarded-For` von außen →
+elfte Anmeldung muss 429 sein; ein zweites Gerät muss durchkommen). IPv6:
+gezählt wird die einzelne Adresse, nicht das /64-Netz (Hinweis bei S5 in
+`docs/ARCHITEKTUR.md`). **Als Nächstes S1** auf neuem Branch: teure Routen
+nur mit gültiger Anmeldung — vorher prüfen, ob die App das Token bei
+diesen Anfragen schon mitschickt. Credits-Prüfung/Abbuchung bleibt bei
+Anton (`docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`).
+
 ## 2026-09-28 10:00 — Anton — Branch `session/2026-09-26e-anton` (PR #70) — Serie aus dem Journal, Sternbild, neue Startseite, Karussell, Abstürze und Dauerlast
 
 **Commits:** 41617c3, 2a94bd6, e494971, ce4b94f, 212724d, c0fbe9c, e0b6dd9, 7520b46, 0682eed, 0b47ea9, 4c1e80f, b27610a (+ Wrap).
