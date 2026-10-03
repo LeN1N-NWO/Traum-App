@@ -43,7 +43,7 @@ export default {
     title: "What did you dream?",
     lede: "Tell it while it's still warm — half-asleep works best.",
     cta: "Record your dream",
-    streak: (n) => `${n} day${n === 1 ? "" : "s"}`,
+    streak: (n) => `${n} ${n === 1 ? "dream" : "dreams"}`,   // seit 03.10.: die Zahl der Träume, keine Serie
     streakPerk: (n, max) => `Night ${n} of ${max} — the creatures are coming rarer.`,
     streakRisk: "You wrote last night. Tonight keeps the run going — no rush, it holds until you sleep.",
     lastHeading: "Last night",
@@ -63,28 +63,33 @@ export default {
     moonLabel: (phase) => `Last night · ${phase}`,
     articleHeading: "From the research",
     articleMore: "Read",
-    streakZero: "Start your streak",
+    streakZero: "Your first dream",
     intentionHeading: "Last night you wanted to dream about",
   },
   /* Der Traum-Vorsatz im Schlaf-Tab (27.09.). */
   /* Dein Sternbild auf der Startseite (28.09.). */
-  sky: {
-    unnamed: "The ???",
-    named: "Your constellation",
-    progress: (lit, of) => `${lit} of ${of} nights`,
-    /* Was am Ziel der Stufe wartet — kurz fürs Schild, lang für die Zeile. */
-    chip: (r) => `+${r.credits} ✦`,
-    reward: (r) => [`+${r.credits} ${r.credits === 1 ? "credit" : "credits"}`, r.name ? "its name" : null, r.snooze ? "a snooze night" : null].filter(Boolean).join(" · "),
-    until: (left, reward) => `${left} more ${left === 1 ? "night" : "nights"} to: ${reward}` + ".",
-    gift: (stage, credits, snooze) => `✦ ${stage} nights — ${credits} ${credits === 1 ? "credit" : "credits"}${snooze ? " and a snooze night" : ""} from us`,
-    complete: "Your constellation is complete. Every star is a night you kept.",
-    hint: "Every night you note lights a star.",
-    names: {
-      water: "The Swimmer", flying: "The Flyer", falling: "The Falling One", chase: "The Hunted", home: "The House",
-      city: "The City", forest: "The Forest", sky: "The Stargazer", lost: "The Wanderer", missing: "The Latecomer",
-      exposed: "The Unveiled", teeth: "The Smile", animal: "The Beast", monster: "The Dragon", family: "The Family",
-      stranger: "The Stranger", partner: "The Lovers", fear: "The Watcher", joy: "The Dancer", grief: "The Mourner",
+  /* Der Mondring auf der Startseite (03.10.). */
+  /* Der Ring auf der Startseite (03.10.): Nächte von Vollmond zu Vollmond,
+     in der Mitte der Frosch, oben die Belohnung für den vollen Ring. */
+  cycle: {
+    chip: "Full ring: your month as a film",
+    count: (n) => n === 0 ? "No dreams in this ring yet" : `${n} ${n === 1 ? "dream" : "dreams"} in this ring`,
+    left: (n) => `${n} more ${n === 1 ? "night" : "nights"} — then your month becomes a film.`,
+    fullTonight: "Last night of the ring — tomorrow your month becomes a film.",
+    thread: (label, n) => `Strongest thread: ${label} (${n}×)`,
+    milestoneSay: (left, gift) => `${left <= 1 ? "One more dream" : `${left} more dreams`} until 🎁 ${gift}`,
+    /* Das große Geschenk oben im Ring (Antons Befund 03.10.: „da kommt
+       nichts, wobei das doch das stärkste Geschenk ist"). */
+    month: {
+      title: "Your month as a film",
+      sub: "At full moon, every dream picture in this ring becomes one film — free.",
+      when: (n) => (n <= 0 ? "Full moon tonight" : n === 1 ? "Full moon tomorrow" : `Full moon in ${n} days`),
+      have: (n, min) => (n >= min ? `${n} dreams inside` : `${n} of ${min} dreams — from ${min} it becomes a film`),
     },
+    asleep: "Zzz … tell me a dream and I'll wake up.",
+    filmTitle: (month, motif) => motif ? `Your ${month} in dreams · ${motif}` : `Your ${month} in dreams`,
+    readyTitle: "Your month as a film is here",
+    readyBody: (n) => `${n} dreams from the last ring, as one film.`,
   },
   intention: {
     title: "What would you like to dream about?",
@@ -107,13 +112,85 @@ export default {
 
   /* Die Meilenstein-Leiter hinter der Streak-Pille. Ehrlich: nur, was
      existiert — die Wesen-Rarität steigt wirklich mit der Serie. */
+  /* Freunde einladen (03.10.2026, src/lib/invites.js). Platzhalter in {…}
+     füllt die native Seite — Funktionen gehen nicht über die Brücke. */
+  invite: {
+    title: "Invite friends",
+    cardTitle: "Invite friends",
+    cardHint: "When a friend buys, a dream is on us.",
+    hero: "Share your dreams. Dream for free.",
+    lede: "When someone you invited buys credits or a subscription for the first time, we give you dreams. One dream is a whole film.",
+    codeLabel: "Your code",
+    share: "Share invitation",
+    shareMessage: "I keep my dreams as films with Dream Rushes. Come along: {link}",
+    rewardsTitle: "What you get",
+    friendBuys: "Your friend buys",
+    films: { one: "1 dream", many: "{n} dreams" },
+    products: { "pack-s": "Pack S", monthly: "Monthly", "pack-m": "Pack M", "pack-l": "Pack L", "pack-xl": "Pack XL", yearly: "Yearly" },
+    friendsTitle: "Your invitations",
+    empty: "No one yet. Share your code with someone who dreams too.",
+    status: { joined: "joined", bought: "bought — your gift arrives on {date}", rewarded: "🎁 {films} for you", rejected: "doesn't count (refunded)" },
+    cap: "{n} of {cap} gifts this month",
+    rules: [
+      "Only your friend's first real purchase counts — no free codes.",
+      "Your gift arrives 14 days after the purchase, if it wasn't refunded.",
+      "At most 5 gifts a month. Gifted credits are valid for 30 days.",
+      "Your friend gets nothing extra from the code — it only connects your accounts.",
+    ],
+    haveCode: "Got an invitation code?",
+    codePlaceholder: "Paste code or link",
+    connect: "Connect",
+    connected: "Connected — glad you're here.",
+    errors: {
+      invalid: "That isn't a valid code.",
+      unknown: "This code doesn't exist.",
+      own: "That's your own code.",
+      already: "You're already connected to an invitation.",
+      device: "An invitation was already connected on this device.",
+      signin: "Sign in to connect the code.",
+      offline: "Can't reach us right now. Try again in a moment.",
+    },
+    signin: "Sign in to get your code.",
+    preview: "Preview — real codes arrive with the account server.",
+  },
+
   streakBoard: {
-    title: "Your streak",
+    title: "Your dreams",
     /* Die Mini-Geschenke (Antons Ja 22.08.). Der Ton ist bewusst nüchtern:
        ein Credit ist ein Bild, keine Konfetti-Kanone. */
-    gift: (nights, credits) =>
-      `✦ ${nights} nights — ${credits} ${credits === 1 ? "credit" : "credits"} from us`,
+    /* Seit 03.10. (Antons Ansage „ein Credit klingt nach gar nichts"):
+       Geschenke heißen nach dem, was man damit macht. */
+    gift: (n, label) => `🎁 Dream no. ${n} — your gift: ${label}`,
     giftBadge: (credits) => `+${credits} ${credits === 1 ? "credit" : "credits"}`,
+    giftKinds: {
+      glimpse: () => "A free Glimpse",
+      film: () => "Your first dream film",
+      credits: (n) => `${n} credits`,
+      month: (n) => `${n} credits — a whole month`,
+    },
+    giftShort: { glimpse: "Glimpse", film: "Film", credits: (n) => `+${n}`, month: (n) => `+${n}` },
+    giftWorth: (n) => `worth ${n} ${n === 1 ? "credit" : "credits"}`,
+    /* Kurz und auf einen Blick (Antons Befund 03.10.: „ein bisschen
+       kompliziert … muss kompakter und schneller verständlich sein"):
+       Titel, ein Satz, Fortschritt — mehr nicht. */
+    giftSheet: {
+      left: (n) => (n <= 1 ? "With your next dream" : `${n} more dreams`),
+      progress: (have, need) => `${have} / ${need}`,
+      subs: {
+        glimpse: "Your next dream as a Glimpse — free.",
+        film: "One dream as a whole film — on us.",
+        credits: "For Glimpses or films, your choice.",
+        month: "As much as a whole month of subscription.",
+      },
+      rule: "Every dream with a Glimpse or film counts.",
+      valid: "Valid 30 days.",
+      tapToOpen: "Tap to open",
+      openTitle: (n) => `Dream no. ${n}!`,
+      expires: (date) => `Valid until ${date}.`,
+      redeem: { glimpse: "Make a Glimpse", film: "Make your film", credits: "Use it now", month: "Use it now" },
+      later: "Later",
+      close: "Close",
+    },
     /* Die Schlummernacht — der Ton ist bewusst entlastend, nicht mahnend:
        Sie ist eingesprungen, es ist nichts passiert, weiter geht's. */
     snoozeUsed: (n) => (n === 1
@@ -124,19 +201,19 @@ export default {
       ? "One more night earns another one."
       : `${n} more nights earn another one.`),
     snoozeFull: "Your shelf is full — a missed night costs you nothing.",
-    nights: (n) => (n === 1 ? "night" : "nights"),
-    next: (n) => (n === 1 ? "1 more night to the next milestone." : `${n} more nights to the next milestone.`),
+    nights: (n) => (n === 1 ? "dream" : "dreams"),
+    next: (n) => (n === 1 ? "1 more dream to your next gift." : `${n} more dreams to your next gift.`),
     done: "Every milestone reached. You are the calendar now.",
-    rung: (n) => `${n} nights`,
+    rung: (n) => `${n} dreams`,
     rewards: {
       warm: "Rarer creatures begin to stir in your menagerie.",
       epic: "Epic creatures come within reach.",
-      steady: "Peak odds — from here every creature rolls with your full streak bonus.",
-      legendary: "Legendary territory: a month of nights, told.",
-      keeper: "Keeper of dreams — two months, few ever get here.",
-      hundred: "One hundred nights. Your journal is a book now.",
+      steady: "Peak odds — from here every creature rolls with your full bonus.",
+      legendary: "Legendary territory: thirty dreams, told.",
+      keeper: "Keeper of dreams — few ever get here.",
+      hundred: "One hundred dreams. Your journal is a book now.",
     },
-    note: "The streak counts nights with a written dream — never the amount. A hundred dreams in one day is still one night.",
+    note: "Every dream with a Glimpse or a film counts — whatever the day. A dream in words only doesn't.",
   },
 
   /* Die Mondphasen (moon.js). Ortsunabhängig — die Phase ist überall
@@ -519,7 +596,7 @@ export default {
     addPhoto: "Add your photo",
     changePhoto: "Change your photo",
     statDreams: "dreams",
-    statStreak: "day streak",
+    statStreak: "filmed",
     people: "People",
     pets: "Pets",
     places: "Places",

@@ -41,7 +41,7 @@ export default {
     title: "Was hast du geträumt?",
     lede: "Erzähl es, solange es noch warm ist — halb wach klappt am besten.",
     cta: "Traum aufnehmen",
-    streak: (n) => `${n} Tag${n === 1 ? "" : "e"}`,
+    streak: (n) => `${n} ${n === 1 ? "Traum" : "Träume"}`,   // seit 03.10.: die Zahl der Träume, keine Serie
     streakPerk: (n, max) => `Nacht ${n} von ${max} — deine Wesen kommen seltener.`,
     streakRisk: "Letzte Nacht hast du geschrieben. Heute hält die Serie — keine Eile, sie zählt bis du schläfst.",
     lastHeading: "Letzte Nacht",
@@ -57,25 +57,28 @@ export default {
     moonLabel: (phase) => `Letzte Nacht · ${phase}`,
     articleHeading: "Aus der Forschung",
     articleMore: "Lesen",
-    streakZero: "Starte deine Serie",
+    streakZero: "Dein erster Traum",
     intentionHeading: "Gestern wolltest du träumen von",
   },
-  sky: {
-    unnamed: "Der ???",
-    named: "Dein Sternbild",
-    progress: (lit, of) => `${lit} von ${of} Nächten`,
-    chip: (r) => `+${r.credits} ✦`,
-    reward: (r) => [`+${r.credits} ${r.credits === 1 ? "Credit" : "Credits"}`, r.name ? "sein Name" : null, r.snooze ? "eine Schlummernacht" : null].filter(Boolean).join(" · "),
-    until: (left, reward) => `Noch ${left} ${left === 1 ? "Nacht" : "Nächte"} bis: ${reward}` + ".",
-    gift: (stage, credits, snooze) => `✦ ${stage} Nächte — ${credits} ${credits === 1 ? "Credit" : "Credits"}${snooze ? " und eine Schlummernacht" : ""} von uns`,
-    complete: "Dein Sternbild ist vollständig. Jeder Stern ist eine Nacht, die du behalten hast.",
-    hint: "Jede notierte Nacht zündet einen Stern.",
-    names: {
-      water: "Der Schwimmer", flying: "Der Flieger", falling: "Der Fallende", chase: "Der Gejagte", home: "Das Haus",
-      city: "Die Stadt", forest: "Der Wald", sky: "Der Sternengucker", lost: "Der Wanderer", missing: "Der Nachzügler",
-      exposed: "Der Entblößte", teeth: "Das Lächeln", animal: "Das Tier", monster: "Der Drache", family: "Die Familie",
-      stranger: "Der Fremde", partner: "Die Liebenden", fear: "Der Wächter", joy: "Die Tänzerin", grief: "Der Trauernde",
+  cycle: {
+    chip: "Ring voll: dein Monat als Film",
+    count: (n) => n === 0 ? "Noch kein Traum in diesem Ring" : `${n} ${n === 1 ? "Traum" : "Träume"} in diesem Ring`,
+    left: (n) => `Noch ${n} ${n === 1 ? "Nacht" : "Nächte"} — dann wird dein Monat zum Film.`,
+    fullTonight: "Letzte Nacht des Rings — morgen wird dein Monat zum Film.",
+    thread: (label, n) => `Der stärkste Faden: ${label} (${n}×)`,
+    milestoneSay: (left, gift) => `${left <= 1 ? "Noch 1 Traum" : `Noch ${left} Träume`} bis 🎁 ${gift}`,
+    /* Das große Geschenk oben im Ring (Antons Befund 03.10.: „da kommt
+       nichts, wobei das doch das stärkste Geschenk ist"). */
+    month: {
+      title: "Dein Monat als Film",
+      sub: "Am Vollmond wird aus allen Traumbildern dieses Rings ein Film — gratis.",
+      when: (n) => (n <= 0 ? "Heute Nacht ist Vollmond" : n === 1 ? "Morgen ist Vollmond" : `Vollmond in ${n} Tagen`),
+      have: (n, min) => (n >= min ? `${n} Träume drin` : `${n} von ${min} Träumen — ab ${min} wird es ein Film`),
     },
+    asleep: "Zzz … erzähl mir einen Traum, dann wach ich auf.",
+    filmTitle: (month, motif) => motif ? `Dein ${month} in Träumen · ${motif}` : `Dein ${month} in Träumen`,
+    readyTitle: "Dein Monat als Film ist da",
+    readyBody: (n) => `${n} Träume aus dem letzten Ring, als ein Film.`,
   },
   intention: {
     title: "Wovon willst du heute träumen?",
@@ -94,11 +97,81 @@ export default {
   },
 
 
+  /* Freunde einladen (03.10.2026, src/lib/invites.js). Platzhalter in {…}
+     füllt die native Seite — Funktionen gehen nicht über die Brücke. */
+  invite: {
+    title: "Freunde einladen",
+    cardTitle: "Freunde einladen",
+    cardHint: "Kauft ein Freund, schenken wir dir einen Traum.",
+    hero: "Teile deine Träume. Träum umsonst.",
+    lede: "Kauft jemand, den du eingeladen hast, zum ersten Mal Credits oder ein Abo, schenken wir dir Träume. Ein Traum ist ein ganzer Film.",
+    codeLabel: "Dein Code",
+    share: "Einladung teilen",
+    shareMessage: "Ich halte meine Träume als Filme fest — mit Dream Rushes. Komm mit: {link}",
+    rewardsTitle: "Was du bekommst",
+    friendBuys: "Dein Freund kauft",
+    films: { one: "1 Traum", many: "{n} Träume" },
+    products: { "pack-s": "Paket S", monthly: "Monatsabo", "pack-m": "Paket M", "pack-l": "Paket L", "pack-xl": "Paket XL", yearly: "Jahresabo" },
+    friendsTitle: "Deine Einladungen",
+    empty: "Noch niemand. Teil deinen Code mit jemandem, der auch träumt.",
+    status: { joined: "ist dabei", bought: "hat gekauft — dein Geschenk kommt am {date}", rewarded: "🎁 {films} für dich", rejected: "zählt nicht (erstattet)" },
+    cap: "{n} von {cap} Geschenken diesen Monat",
+    rules: [
+      "Es zählt nur der erste echte Kauf deines Freundes — keine Gratis-Codes.",
+      "Dein Geschenk kommt 14 Tage nach dem Kauf, wenn er nicht erstattet wurde.",
+      "Höchstens 5 Geschenke im Monat. Geschenkte Credits gelten 30 Tage.",
+      "Dein Freund bekommt durch den Code nichts extra — er verbindet nur eure Konten.",
+    ],
+    haveCode: "Hast du einen Einladungscode?",
+    codePlaceholder: "Code oder Link einfügen",
+    connect: "Verbinden",
+    connected: "Verbunden — schön, dass du da bist.",
+    errors: {
+      invalid: "Das ist kein gültiger Code.",
+      unknown: "Diesen Code gibt es nicht.",
+      own: "Das ist dein eigener Code.",
+      already: "Du bist schon mit einer Einladung verbunden.",
+      device: "Auf diesem Gerät wurde schon eine Einladung verbunden.",
+      signin: "Melde dich an, um den Code zu verbinden.",
+      offline: "Gerade nicht erreichbar. Versuch es gleich noch mal.",
+    },
+    signin: "Melde dich an, dann bekommst du deinen Code.",
+    preview: "Vorschau — echte Codes kommen mit dem Konto-Server.",
+  },
+
   streakBoard: {
-    title: "Deine Serie",
-    gift: (nights, credits) =>
-      `✦ ${nights} Nächte — ${credits} ${credits === 1 ? "Credit" : "Credits"} von uns`,
+    title: "Deine Träume",
+    gift: (n, label) => `🎁 Dein ${n}. Traum — dein Geschenk: ${label}`,
     giftBadge: (credits) => `+${credits} ${credits === 1 ? "Credit" : "Credits"}`,
+    giftKinds: {
+      glimpse: () => "Ein Glimpse geschenkt",
+      film: () => "Dein erster Traumfilm",
+      credits: (n) => `${n} Credits`,
+      month: (n) => `${n} Credits — ein ganzer Monat`,
+    },
+    giftShort: { glimpse: "Glimpse", film: "Film", credits: (n) => `+${n}`, month: (n) => `+${n}` },
+    giftWorth: (n) => `im Wert von ${n} ${n === 1 ? "Credit" : "Credits"}`,
+    /* Kurz und auf einen Blick (Antons Befund 03.10.: „ein bisschen
+       kompliziert … muss kompakter und schneller verständlich sein"):
+       Titel, ein Satz, Fortschritt — mehr nicht. */
+    giftSheet: {
+      left: (n) => (n <= 1 ? "Mit deinem nächsten Traum" : `Noch ${n} Träume`),
+      progress: (have, need) => `${have} / ${need}`,
+      subs: {
+        glimpse: "Dein nächster Traum als Glimpse — gratis.",
+        film: "Ein Traum als ganzer Film — geschenkt.",
+        credits: "Für Glimpses oder Filme, wie du willst.",
+        month: "So viel wie ein ganzer Monat Abo.",
+      },
+      rule: "Es zählt jeder Traum mit Glimpse oder Film.",
+      valid: "30 Tage gültig.",
+      tapToOpen: "Tippen zum Öffnen",
+      openTitle: (n) => `Dein ${n}. Traum!`,
+      expires: (date) => `Gültig bis ${date}.`,
+      redeem: { glimpse: "Glimpse machen", film: "Film machen", credits: "Jetzt einlösen", month: "Jetzt einlösen" },
+      later: "Später",
+      close: "Schließen",
+    },
     snoozeUsed: (n) => (n === 1
       ? "🌙 Eine Schlummernacht ist eingesprungen — deine Serie steht."
       : `🌙 ${n} Schlummernächte sind eingesprungen — deine Serie steht.`),
@@ -107,19 +180,19 @@ export default {
       ? "Noch eine Nacht, dann kommt die nächste dazu."
       : `Noch ${n} Nächte, dann kommt die nächste dazu.`),
     snoozeFull: "Dein Vorrat ist voll — eine verpasste Nacht kostet dich nichts.",
-    nights: (n) => (n === 1 ? "Nacht" : "Nächte"),
-    next: (n) => (n === 1 ? "Noch 1 Nacht bis zum nächsten Meilenstein." : `Noch ${n} Nächte bis zum nächsten Meilenstein.`),
+    nights: (n) => (n === 1 ? "Traum" : "Träume"),
+    next: (n) => (n === 1 ? "Noch 1 Traum bis zum nächsten Geschenk." : `Noch ${n} Träume bis zum nächsten Geschenk.`),
     done: "Alle Meilensteine erreicht. Du bist jetzt der Kalender.",
-    rung: (n) => `${n} Nächte`,
+    rung: (n) => `${n} Träume`,
     rewards: {
       warm: "Seltenere Wesen beginnen sich in deiner Menagerie zu zeigen.",
       epic: "Epische Wesen kommen in Reichweite.",
-      steady: "Volle Gewichte — ab hier würfelt jedes Wesen mit deinem ganzen Serien-Bonus.",
-      legendary: "Legendäres Gebiet: ein Monat Nächte, erzählt.",
-      keeper: "Hüter der Träume — zwei Monate, kaum jemand kommt hierher.",
-      hundred: "Hundert Nächte. Dein Journal ist jetzt ein Buch.",
+      steady: "Volle Gewichte — ab hier würfelt jedes Wesen mit deinem ganzen Bonus.",
+      legendary: "Legendäres Gebiet: dreißig Träume, erzählt.",
+      keeper: "Hüter der Träume — kaum jemand kommt hierher.",
+      hundred: "Hundert Träume. Dein Journal ist jetzt ein Buch.",
     },
-    note: "Die Serie zählt Nächte mit einem aufgeschriebenen Traum — nie die Menge. Hundert Träume an einem Tag bleiben eine Nacht.",
+    note: "Es zählt jeder Traum mit Glimpse oder Film — egal an welchem Tag. Ein Traum nur als Text zählt nicht.",
   },
 
   moon: {
@@ -468,7 +541,7 @@ export default {
     addPhoto: "Dein Foto hinzufügen",
     changePhoto: "Dein Foto ändern",
     statDreams: "Träume",
-    statStreak: "Tage in Folge",
+    statStreak: "verfilmt",
     people: "Personen",
     pets: "Tiere",
     places: "Orte",

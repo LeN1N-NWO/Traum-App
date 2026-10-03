@@ -144,3 +144,62 @@ lohnt Betrug kaum; App Attest erst vor dem öffentlichen Launch.
 
 ## Was Anton noch entscheidet
 - Menge des Starter-Codes (Vorschlag 22 Credits).
+
+> **Nachtrag 03.10. (Anton + Claude):** Die Prämie ist jetzt in **Träumen**
+> (1 Traum = 16 Credits): S → 1, Monatsabo → 1, M → 2, L → 3, XL → 5,
+> Jahresabo → 6. Gebucht in einen dritten Bucket **`gift`** mit Ablauf nach
+> 30 Tagen (lokal schon gebaut: `src/lib/credits.js` `giftCredits`), nicht
+> mehr in `purchased`. Und: beim Kauf **`appAccountToken` = User-UUID**
+> setzen, dann kennen die Server Notifications das Konto selbst.
+> Tabelle und Begründung: `docs/plans/2026-09-14-codes-einladungen-plan.md`,
+> Nachtrag 03.10.
+
+## Nachtrag 03.10. (Anton + Claude): Die App-Seite steht — das erwartet sie vom Server
+
+Anton baut nur die Oberfläche; Server und Datenbank bleiben bei dir. Gebaut
+(Entwurfs-PR #71): Einladungs-Seite `mobile/src/app/profile/invite.tsx`,
+Karte im Profil, Code-Feld, Teilen über das iOS-Blatt, Deep Link
+`dreamrushes://invite/CODE` (`mobile/src/app/+native-intent.tsx`), gemeinsame
+Regeln `src/lib/invites.js` (Code-Format, Link, Prämie in Träumen — bitte
+für den Server dieselbe Datei importieren statt nachzubauen).
+
+**Endpunkte, die die App ruft** (`mobile/src/lib/invites.ts`, beide mit
+`authFetch`, also Bearer-Token):
+
+    GET  /api/invite
+      200 { code: "DRM4KX7",            // 7 Zeichen aus CODE_ALPHABET
+            connected: false,            // ist DIESES Konto schon eingeladen worden?
+            rewardsThisMonth: 1,         // Prämien des laufenden Monats (Deckel 5)
+            referrals: [{ id, name,      // Anzeigename des Freundes oder null
+                          status: "joined" | "bought" | "rewarded" | "rejected",
+                          product: "pack-s" | … | null,   // plan.id aus plans.js
+                          films: 2,                      // Prämie in Träumen
+                          rewardAt: ISO | null }] }      // wann „bought" auszahlt
+
+    POST /api/invite/connect   { code }
+      200 { ok: true }
+      4xx { error: "unknown" | "own" | "already" | "device" }
+
+Solange die Endpunkte 404/501 antworten, zeigt die App eine markierte
+**Vorschau** mit Beispieldaten (`INVITE_PREVIEW` in `invites.ts`, vor der
+Veröffentlichung auf `false`).
+
+**Kauf:** `buyPlan()` (`mobile/src/lib/iap.ts`) setzt jetzt
+`appAccountToken` = Supabase-User-ID (nur wenn angemeldet und eine UUID).
+Die kommt in der signierten Transaktion und in den Server Notifications V2
+zurück — Kauf und `REFUND` lassen sich damit ohne die App dem Konto zuordnen.
+
+**Gutschrift:** Prämie = `referralReward(planId).credits` (1 Traum = 16
+Credits) in einen Bucket `gift` mit Ablauf 30 Tage — dieselbe Logik wie
+lokal in `src/lib/credits.js` (`giftCredits`, Ausgabe Abo → Geschenk →
+gekauft). Die Serien-Geschenke (`streakBoard.js`) gehören in denselben
+Bucket, sobald Credits auf dem Server liegen.
+
+**Noch offen bei dir:**
+- Universal Links: `ios.associatedDomains: ["applinks:dreamrushes.app"]` in
+  `app.json` + AASA-Datei auf der Domain + Capability im Apple-Konto. Die
+  App leitet `/i/CODE` dann schon richtig weiter (`+native-intent.tsx`).
+- Landingpage `dreamrushes.app/i/CODE` (Code zeigen, „Kopieren & App laden").
+- DeviceCheck-Bit („hier wurde schon eine Einladung verbunden").
+- `expo-clipboard` für Apples Einfügeknopf ist NICHT eingebaut (neues
+  natives Modul); heute fügt man per Langdruck ins Feld ein.

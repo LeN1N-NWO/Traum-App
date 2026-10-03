@@ -2,16 +2,21 @@ import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
-import { Moon } from "@/components/moon-strip";
 import type { HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
-/* Die Serien-Seite (Antons Befund 27.09.: „die Streak-Page aus dem Entwurf
+/* ⚠ Seit 03.10. abends KEINE Serie mehr (Antons Ansage: „Mir geht es
+   einfach nur um die Anzahl der Träume"): Die Seite zählt die Träume mit
+   Glimpse oder Film und zeigt die Geschenke auf dem Weg — ohne Wochen-Monde,
+   ohne Schlummernächte. Der Name der Datei bleibt, der Inhalt nicht.
+
+   Die Serien-Seite (Antons Befund 27.09.: „die Streak-Page aus dem Entwurf
    sehe ich in der App nicht"). Vorher gab es sie nur als schlichte Liste,
    und die Pille, die sie öffnet, erschien erst ab der ersten Nacht — jetzt
    ist die Pille immer da und die Seite erzählt:
      · die Zahl der Nächte zählt hoch,
-     · die letzten sieben Nächte als Monde (voll = Traum notiert),
+     · die letzten sieben Nächte als Monde (voll = Film-Nacht, halb = nur
+       Text oder leer — hält, zählt nicht; seit 03.10.),
      · der Weg zum nächsten Meilenstein als Balken, mit dem Geschenk daran,
      · die ganze Leiter, Stufe für Stufe eingeblendet,
      · die Schlummernächte, die eine verpasste Nacht auffangen.
@@ -48,23 +53,11 @@ export function StreakSheet({ visible, onClose, home, weekdays }: { visible: boo
           <Text style={styles.countWord}>{B.nights}</Text>
         </View>
 
-        {/* Die letzten sieben Nächte */}
-        <View style={styles.week}>
-          {home.week.map((d, i) => (
-            <Animated.View key={i} entering={visible ? FadeInDown.delay(120 + i * 70).duration(380) : undefined} style={styles.day}>
-              <View style={[styles.dayMoon, d.today && styles.dayToday]}>
-                <Moon illum={d.done ? 1 : 0.04} waxing size={30} />
-              </View>
-              <Text style={[styles.dayName, d.today && { color: colors.gold }]}>{weekdays[d.weekday] ?? ""}</Text>
-            </Animated.View>
-          ))}
-        </View>
-
         {/* Der Weg zum nächsten Meilenstein */}
         <View style={styles.progressCard}>
           <View style={styles.progressHead}>
             <Text style={styles.progressTitle}>{next ? next.title : B.lede}</Text>
-            {next?.gift ? <Text style={styles.gift}>{next.gift}</Text> : null}
+            {next?.gift ? <Text style={styles.gift}>🎁 {next.gift}</Text> : null}
           </View>
           <View style={styles.track}><Animated.View style={[styles.fill, barStyle]} /></View>
           <Text style={styles.lede}>{B.lede}</Text>
@@ -75,12 +68,12 @@ export function StreakSheet({ visible, onClose, home, weekdays }: { visible: boo
             style={[styles.rung, r.state === "next" && styles.rungNext, r.state === "far" && { opacity: 0.55 }]}>
             <View style={[styles.check, r.state === "done" && styles.checkDone]}><Text style={[styles.checkText, r.state === "done" && { color: colors.bg }]}>{r.state === "done" ? "✓" : r.nights}</Text></View>
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.rungTitle}>{r.title}{r.gift ? <Text style={styles.giftInline}>  {r.gift}</Text> : null}</Text>
+              <Text style={styles.rungTitle}>{r.title}{r.gift ? <Text style={styles.giftInline}>  🎁 {r.gift}</Text> : null}</Text>
               <Text style={styles.rungReward}>{r.reward}</Text>
             </View>
           </Animated.View>
         ))}
-        <View style={styles.shield}><Text style={styles.rungTitle}>🌙 {B.shieldTitle}</Text><Text style={styles.rungReward}>{B.shieldText}</Text></View>
+        {B.note ? <Text style={styles.rungReward}>{B.note}</Text> : null}
         <Pressable style={styles.close} onPress={onClose}><Text style={styles.closeText}>OK</Text></Pressable>
       </ScrollView>
     </Modal>
