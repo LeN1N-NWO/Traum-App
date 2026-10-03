@@ -3,6 +3,30 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-03 19:20 — Hanni — Branch `session/2026-10-03-hanni-2` (PR #73) — Gemergte Branches aufräumen
+
+**Commits:** 009cb0e (Reservierung), 3a80f6c (Ablauf + Übergabe) (+ Wrap).
+
+**Was:**
+- Lokal aufgeräumt: Worktrees `Traum-App-hanni` (PR #72) und
+  `Traum-App-hanni-3` (PR #60) entfernt, alle gemergten lokalen
+  Session-Branches gelöscht; Hauptordner steht auf `main`.
+- Auf GitHub Hannis 15 gemergte Branches gelöscht (09.09.–03.10.), je
+  geprüft: Commits in `main`, kein offener PR.
+- `.claude/commands/wrap.md` Schritt 7 + `AGENTS.md`: nach dem Merge
+  Worktree UND Branch aufräumen, lokal und auf GitHub, mit Prüfung vorher.
+- Übergabe an Anton: `docs/uebergabe/2026-10-03-anton-branches-aufraeumen.md`
+  (Repo-Einstellung „Automatically delete head branches"). Beide Übergaben
+  vom 03.10. jetzt für „Anton, LeN1N-NWO".
+
+**Warum:** Nach jedem Merge blieb der Branch auf GitHub liegen (Einstellung
+aus, Ablauf schwieg dazu) — 15 bei Hanni, 36 bei Anton.
+
+**Für den Nächsten:** Bis Anton die Einstellung anschaltet, den Branch nach
+dem Merge von Hand löschen (`/wrap` Schritt 7). Antons 36 gemergte Branches
+nicht ohne seine Zustimmung löschen. Unversioniert im Hauptordner:
+`data/traeume/2026-09-23-e_muekqjl3jrayp7.json` (Hanni entscheidet).
+
 ## 2026-10-03 19:00 — Hanni — Branch `session/2026-10-03-hanni` (PR #72) — Architektur-Schaubild aktualisiert
 
 **Was:** Das Artifact „Dream Rushes Architektur" (Fassung vom 11.09.) auf

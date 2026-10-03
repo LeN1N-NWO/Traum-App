@@ -3,9 +3,11 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-03 abends — Hanni, `session/2026-10-03-hanni` (PR #72):
-**S1 gelöst — Bezahltes nur mit Konto**, App und Server, scharf im Deploy.
-PR #64 (VPS-Skripte, S5) ist auf main. **Weg durch die App-Store-Prüfung:
+**Stand:** 2026-10-03 abends — Hanni, `session/2026-10-03-hanni-2` (PR #73):
+Aufräumen nach dem Merge ist jetzt Teil von `/wrap` (Worktree UND Branch,
+lokal und auf GitHub); Übergabe an Anton für die Repo-Einstellung
+„Automatically delete head branches". Davor PR #72 auf main:
+**S1 gelöst — Bezahltes nur mit Konto**, App und Server, scharf im Deploy. **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
 **Neu mit PR #72 (03.10.):**
@@ -411,9 +413,11 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
 6. Android: Apples Blatt fehlt dort — Apple-Konto dort nicht löschbar.
 
 **Nächste Schritte:**
-1. **Hanni:** PR #72 mergen. Anfrage an den Anwalt abschicken. Ersten
+1. **Hanni:** PR #73 mergen. Anfrage an den Anwalt abschicken. Ersten
    `/security-check` in neuer Sitzung.
-2. **Anton:** SSH-Zugang für Hanni (eigener Nutzer mit sudo), Hetzner-
+2. **Anton:** „Automatically delete head branches" einschalten, ggf. die
+   eigenen 36 gemergten Branches aufräumen lassen
+   (`docs/uebergabe/2026-10-03-anton-branches-aufraeumen.md`). SSH-Zugang für Hanni (eigener Nutzer mit sudo), Hetzner-
    Firewall/Snapshots/AV-Vertrag, `ip -6 addr show scope global` (AAAA),
    Object-Storage-Bucket (Anleitung `.env.example`) — alles in
    `docs/uebergabe/2026-09-25-anton-vps-einrichtung.md`. Credits-Prüfung
