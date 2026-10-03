@@ -27,10 +27,11 @@
  * Not wired into server.js yet: that waits for Anton's PR #62, which touches
  * the same routes.
  *
- * ⚠ 03.10.2026: Probably not needed at all — ADR-0008 (proposed) drops the
- * server-side backup; dreams stay on the device only. Do not wire this in
- * before Anton has decided. If ADR-0008 is accepted, delete this file, its
- * test, the MEDIA_S3_* section in .env.example and its .gitignore entry.
+ * ⚠ 03.10.2026, ADR-0008: Step C as described above is dropped — media stay
+ * on the server's own disk as the backup, the device fetches them once. This
+ * module is KEPT for the day that disk runs short: then the server's media
+ * move into Hetzner Object Storage behind these same five verbs (no device
+ * upload, no device-side sealing — that part of the comment above is void).
  */
 
 import { mkdir, readdir, rename, rm, unlink } from "node:fs/promises";

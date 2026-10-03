@@ -4,12 +4,12 @@
 > Plans (Supabase Storage mit befristeten Adressen, Commit `506bbc8`).
 > **Antons Prompt-Kette, Modelle, Regie bleiben unberührt.**
 
-> ⚠ **03.10.2026 — Vorschlag, die Sicherung ganz wegzulassen:**
-> `docs/decisions/ADR-0008-traeume-nur-auf-dem-geraet.md` (Hanni, Status
-> „vorgeschlagen", wartet auf Antons Zustimmung). Wird es angenommen,
-> entfallen Schritt C (Object Storage) und Schritt B (verschlüsselte
-> Texte in Supabase) — in der dort festgelegten Reihenfolge. Bis dahin gilt
-> dieser Plan; Schritt C wird nicht weitergebaut.
+> ⚠ **03.10.2026 — Schritt C ersetzt:**
+> `docs/decisions/ADR-0008-server-als-sicherung-kein-object-storage.md`
+> (Hanni + Anton, angenommen). Medien bleiben dort, wo sie entstehen, auf
+> dem Server als Sicherung; das Gerät holt sie einmal ab. Kein Upload, kein
+> Object Storage, kein Löschen nach dem Abholen. Schritt A und B gelten
+> weiter.
 
 ## Entscheidungen (Hanni + Anton, 24.09.)
 
