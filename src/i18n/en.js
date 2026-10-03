@@ -145,6 +145,8 @@ export default {
       invalid: "That isn't a valid code.",
       unknown: "This code doesn't exist.",
       own: "That's your own code.",
+      // Wer dich eingeladen hat, kannst du nicht zurück einladen (03.10.2026).
+      mutual: "You invited this friend — they can't invite you back.",
       already: "You're already connected to an invitation.",
       device: "An invitation was already connected on this device.",
       signin: "Sign in to connect the code.",

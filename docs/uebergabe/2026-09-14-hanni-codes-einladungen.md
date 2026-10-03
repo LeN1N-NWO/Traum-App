@@ -203,3 +203,59 @@ Bucket, sobald Credits auf dem Server liegen.
 - DeviceCheck-Bit („hier wurde schon eine Einladung verbunden").
 - `expo-clipboard` für Apples Einfügeknopf ist NICHT eingebaut (neues
   natives Modul); heute fügt man per Langdruck ins Feld ein.
+
+## Nachtrag 03.10. abends (Hanni + Claude): Der Server-Teil steht — ohne Prämie
+
+Gebaut, genau nach dem Vertrag oben:
+
+- **`GET /api/invite`** → `{ code, connected, rewardsThisMonth, referrals }`
+  in der Form von `mobile/src/lib/invites.ts`. Jedes Konto bekommt beim
+  ersten Aufruf seinen Code (Alphabet und Länge aus `src/lib/invites.js`,
+  kryptografischer Zufall, bei Kollision neu). Vom Freund kommt nur der
+  Anzeigename.
+- **`POST /api/invite/connect { code }`** → `200 { ok: true }`, sonst
+  `404 unknown`, `409 own`, `409 mutual`, `409 already`. **Neu: `mutual`** —
+  wen ich eingeladen habe, der kann nicht mich einladen (sonst belohnten
+  sich zwei gegenseitig für je einen Kauf). Dafür sind `invites.ts`,
+  `journal-store.ts` und der Text in `en.js`/`de.js` um je eine Zeile
+  ergänzt; die Einladungs-Seite zeigt ihn ohne Änderung. Der Code wird mit
+  `normalizeCode()` gelesen (Link, Kleinbuchstaben, Bindestriche gehen).
+  Gebremst wie Anmelden (10/Minute), damit niemand Codes durchprobiert.
+- **Datenbank:** `supabase/migrations/20261003120000_invites.sql` —
+  `invite_codes`, `invite_redemptions` (Spalten für Kauf und Prämie stehen
+  schon da), drei `security definer`-Funktionen nur für `dreamrushes_server`.
+  Auf die Tabellen darf niemand direkt. Konto löschen löscht Code und
+  Einladungen mit.
+- Code: `src/lib/invitesServer.js` (+ Test), zwei Routen in `server.js` im
+  Konto-Block.
+
+Geprüft: 15 Tests für das Modul; die Migration in einem echten Postgres
+(PGlite) mit 29 Prüfungen, darunter die Verbote mit Fehlercode `42501`,
+Löschrecht und das Modul Ende zu Ende gegen die SQL-Funktionen; Gegenprobe
+mit drei eingebauten Fehlern.
+
+**Noch nicht:**
+- ✅ **Migration eingespielt** (03.10., Hanni, SQL-Editor). Danach nur
+  lesend an der echten Datenbank geprüft, 8/8: beide Tabellen mit RLS, drei
+  `security definer`-Funktionen, nur `dreamrushes_server` darf sie
+  ausführen, niemand hat direkte Tabellenrechte, Übersicht kommt in der
+  richtigen Form, direktes Lesen und Aufruf ohne Nutzer → `42501`.
+  ✅ **Mit echten Konten in der App getestet** (03.10. abends, Simulator,
+  Hanni): Konto A bekommt einen echten Code, Konto B verbindet sich
+  („Connected"), A sieht B als „joined". **Anton: `INVITE_PREVIEW` kann auf
+  `false`.**
+  Hinweis zur Oberfläche: Hat der Freund keinen Anzeigenamen (Namensschritt
+  im Onboarding leer gelassen), liefert der Server `name: null`, und die
+  Seite zeigt „?" und „—" (`invite.tsx:117/120`). Freundlicher wäre z. B.
+  „A friend" — deine Entscheidung. Ohne eingespielte Migration hätte der Server 501
+  geantwortet und die App ihre Vorschau gezeigt.
+- `bought`/`rewarded` und die Prämie: brauchen die Prüfung echter
+  App-Store-Käufe (B1) und den Bucket `gift` auf dem Server. ⚠ Für B1:
+  Prämie nur für den **ersten Kauf überhaupt**, und der muss **nach dem
+  Verbinden** liegen (`invite_redemptions.created_at`) — sonst lässt sich
+  ein Bestandskunde nachträglich verbinden und sein nächster Kauf zahlt aus.
+- Ein gesperrter Code (`disabled_at`) wird seinem Besitzer weiter angezeigt,
+  Freunde bekommen „unknown". Heute sperrt niemand Codes; wer das einführt,
+  gibt dem Besitzer dabei einen neuen.
+- `device` (DeviceCheck), Universal Links/AASA, Landingpage
+  `dreamrushes.app/i/CODE`.

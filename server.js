@@ -74,6 +74,7 @@ import { failureReason } from "./src/lib/falError.js";
 import { appGrid, GRID_SLOTS } from "./src/lib/gridLayout.js";
 // Accounts, ledger, journal (ADR-0005). Optional — see the head of db.js.
 import { openDatabase, withUser, fromJsonb } from "./src/lib/db.js";
+import { loadOverview, connect as connectInvite, notSetUp as inviteNotSetUp } from "./src/lib/invitesServer.js";
 // Wer fragt: die fehlende Hälfte zu db.js. withUser() kann für eine Person
 // handeln, auth.js sagt, WER sie ist (eigene Datei, ohne Netz prüfbar).
 import { parseBearer, parseWsBearer, WS_PROTOCOL, authConfig, passwordLogin, appleLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
@@ -3489,7 +3490,8 @@ const serveOptions = {
       return json({ ok: true });
     }
 
-    if (url.pathname === "/api/account" || url.pathname.startsWith("/api/dreams")) {
+    if (url.pathname === "/api/account" || url.pathname.startsWith("/api/dreams")
+        || url.pathname === "/api/invite" || url.pathname === "/api/invite/connect") {
       /* Erst wer, dann was. Ein 401 kostet so keine Datenbankabfrage — und
          wichtiger: unterhalb dieser Zeile gibt es keinen Pfad, der ohne
          geprüfte Nutzerkennung an die Daten käme. */
@@ -3505,6 +3507,32 @@ const serveOptions = {
            daraus „nur dessen Zeilen". Ein vergessenes WHERE findet deshalb
            nichts Fremdes, sondern gar nichts. Die Kennung kommt aus der
            geprüften Sitzung, nie aus dem Anfragekörper. */
+
+        /* Freunde einladen (03.10.2026) — src/lib/invitesServer.js, Vertrag
+           in docs/uebergabe/2026-09-14-hanni-codes-einladungen.md. Ein Code
+           gehört immer einem anderen Konto; deshalb laufen beide Wege über
+           security-definer-Funktionen (Migration 20261003120000_invites.sql),
+           nicht über die Tabellen. */
+        if (url.pathname === "/api/invite" || url.pathname === "/api/invite/connect") {
+          try {
+            if (url.pathname === "/api/invite" && req.method === "GET") {
+              return json(await withUser(database, person.userId, (tx) => loadOverview(tx)));
+            }
+            if (url.pathname === "/api/invite/connect" && req.method === "POST") {
+              if (Number(req.headers.get("content-length") || 0) > 1024) {
+                return json({ error: "Request too large." }, 413);
+              }
+              const body = await req.json().catch(() => null);
+              const r = await withUser(database, person.userId, (tx) => connectInvite(tx, body));
+              return json(r.body, r.status);
+            }
+          } catch (e) {
+            // Migration noch nicht eingespielt → 501, die App bleibt in der Vorschau.
+            if (inviteNotSetUp(e)) return json({ error: "Invites are not set up yet." }, 501);
+            throw e;
+          }
+        }
+
         if (url.pathname === "/api/account" && req.method === "GET") {
           const konto = await withUser(database, person.userId, async (tx) => {
             const [profil] = await tx`select * from public.profiles where id = ${person.userId}`;

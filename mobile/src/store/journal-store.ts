@@ -26,7 +26,7 @@ export type InviteTexts = {
   rewardsTitle: string; friendBuys: string; rewards: { id: string; label: string; films: number; filmsText: string }[];
   friendsTitle: string; empty: string; status: { joined: string; bought: string; rewarded: string; rejected: string }; cap: string;
   rules: string[]; haveCode: string; codePlaceholder: string; connect: string; connected: string;
-  errors: Record<"invalid" | "unknown" | "own" | "already" | "device" | "signin" | "offline", string>;
+  errors: Record<"invalid" | "unknown" | "own" | "mutual" | "already" | "device" | "signin" | "offline", string>;
   signin: string; preview: string; films: { one: string; many: string }; holdDays: number; monthlyCap: number;
 };
 
