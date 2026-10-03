@@ -24,7 +24,7 @@
  * startet scripts/dev.mjs Vite ohne --host (nur localhost).
  */
 
-const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
+export const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 const FORWARD_HEADERS = ["x-forwarded-for", "forwarded", "x-real-ip"];
 
 /**

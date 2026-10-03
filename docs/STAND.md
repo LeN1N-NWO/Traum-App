@@ -3,10 +3,28 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-09-28 vormittags — Anton, `session/2026-09-26e-anton`
-(PR #70) auf Antons Wort gemergt; PR #65–#68 sind auf main. **Hanni kann
-Schritt C anbinden.** **Weg durch die App-Store-Prüfung:
-`docs/plans/2026-09-23-app-store-pruefung.md`.**
+**Stand:** 2026-10-03 nachmittags — Hanni, `session/2026-09-25-hanni-2`
+(PR #64): Einrichtungs- und Deploy-Skript für den VPS (`deploy/`) und S5
+(Rate-Limit hinter Caddy) fertig; PR #69 und #70 sind auf main. **Als
+Nächstes S1** (teure Routen nur mit Anmeldung) auf neuem Branch. **Weg
+durch die App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Neu mit PR #64 (25.09. + 03.10.):**
+- **VPS-Einrichtung `deploy/`:** `setup.sh` (einmal: Updates, ffmpeg,
+  Caddy/HTTPS, Bun 1.4.0 mit Prüfsumme, Systemnutzer `dreamrushes`,
+  systemd, Firewall 22/80/443), `deploy.sh` (jeder neue Stand, geht bei
+  scheiterndem Gesundheitscheck zurück), `check-env.mjs` (kein Start ohne
+  `API_TOKEN`/`DREAMRUSHES_MEDIA`). Anleitung `deploy/README.md`.
+  ⚠ **Noch nie auf dem Server gelaufen** — SSH-Zugang fehlt (Anton,
+  `docs/uebergabe/2026-09-25-anton-vps-einrichtung.md`).
+- **S5 gelöst:** `senderOf()` (`src/lib/gatekeeper.js`) zählt hinter Caddy
+  nach der echten Adresse aus `X-Forwarded-For` — nur mit `TRUST_PROXY=1`
+  (in `deploy/dreamrushes.service`) und nur von Loopback. Lokal ändert sich
+  nichts. ⚠ Auf dem VPS mit dem Prüfbefehl aus `deploy/README.md`
+  bestätigen. ⚠ IPv6 zählt je Adresse, nicht je /64-Netz.
+- ⚠ **Server ist bis S1 nicht für die App:** `check-env.mjs` verlangt
+  `API_TOKEN`, und damit sperrt der Türsteher jede `/api/`-Route ohne
+  `x-api-token` — die App schickt keinen.
 
 **Neu mit PR #70 (27./28.09.):**
 - **EINE Zählung der Nächte:** `src/lib/nights.js` — Traum-Tage sind
@@ -221,7 +239,8 @@ Sitzung; der erste echte Lauf steht aus.
   nicht mit `--host` läuft — der Check wird dann rot.
 - ❌ Offen und bekannt: 8 bezahlte Routen ohne Anmeldung (S1, `API_TOKEN`
   nicht gesetzt), `settleCharge()` bucht nicht ab (S7, `server.js:2125`),
-  CORS erlaubt `"null"`, 0/5 Sicherheits-Kopfzeilen, Abhängigkeiten mit je
+  CORS erlaubt `"null"`, 0/5 Sicherheits-Kopfzeilen (auf dem VPS setzt
+  Caddy 4 davon, `deploy/Caddyfile`), Abhängigkeiten mit je
   2 hohen Meldungen (`bun audit`), eine Antwort reicht `e.message` durch
   (`/api/photo-check`, Agent soll bewerten).
 - Der wiederverwendbare Security-Tester für andere Projekte entsteht
@@ -374,20 +393,20 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
 6. Android: Apples Blatt fehlt dort — Apple-Konto dort nicht löschbar.
 
 **Nächste Schritte:**
-1. **Hanni:** PR #63 mergen. DNS bei Strato: A `api` → `188.245.92.121`
-   (AAAA erst nach Antons Bestätigung). Anfrage an den Anwalt abschicken.
-   Ersten `/security-check` in neuer Sitzung.
-2. **Anton:** `ip -6 addr show scope global` auf dem VPS (IPv6-Adresse);
-   klären, wer SSH-Zugang hat; Object-Storage-Bucket im eigenen
-   Hetzner-Projekt (Anleitung `.env.example`), Zugangsdaten in die Server-
-   `.env` — dann Live-Test `bun --env-file=… test src/lib/media-store.test.js`.
-   Notiz `2026-09-24-anton-medienablage-ausrollen.md` (Reihenfolge
-   Migration → Server → App).
-3. **Nächste Claude-Sitzung:** Einrichtungsskript für den VPS (Bun, ffmpeg,
-   Caddy/HTTPS für `api.dreamrushes.app`, eigener Systemnutzer, systemd,
-   Updates, Firewall 22/80/443, Deploy mit einem Befehl) — neue Dateien,
-   keine Überschneidung mit PR #62.
-4. **Nach PR #62:** Schritt C anbinden (Server-Endpunkte, App-Seite).
+1. **Hanni + Claude:** S1 auf neuem Branch — teure Routen nur mit gültiger
+   Anmeldung (`verifyAccessToken`, `server.js` vor `guard(`); erst prüfen,
+   ob die App das Token dort schon mitschickt. Danach kann `API_TOKEN` aus
+   `check-env.mjs` raus. Anfrage an den Anwalt abschicken. Ersten
+   `/security-check` in neuer Sitzung.
+2. **Anton:** SSH-Zugang für Hanni (eigener Nutzer mit sudo), Hetzner-
+   Firewall/Snapshots/AV-Vertrag, `ip -6 addr show scope global` (AAAA),
+   Object-Storage-Bucket (Anleitung `.env.example`) — alles in
+   `docs/uebergabe/2026-09-25-anton-vps-einrichtung.md`. Credits-Prüfung
+   und Abbuchung (`settleCharge()`, Punkte 2–6 in
+   `2026-09-11-anton-credits-abbuchung.md`) — die Anmeldung steht jetzt.
+3. **Erster Lauf auf dem VPS (Hanni + Anton zusammen):** `setup.sh`, `.env`
+   von Hand, `deploy.sh`, dann S5-Prüfbefehl aus `deploy/README.md`.
+4. **Schritt C anbinden** (Server-Endpunkte, App-Seite) — PR #62 ist auf main.
 5. **Mit Anton:** Prüfer-Credits (N10), Store-Länder, Budget, `media/jobs`.
 6. **Anton:** Face ID am iPhone (N11), erster echter Turbo-Film mit Foto.
 7. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API. Hanni in
