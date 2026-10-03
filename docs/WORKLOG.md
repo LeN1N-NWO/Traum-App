@@ -152,6 +152,66 @@ nur mit gültiger Anmeldung — vorher prüfen, ob die App das Token bei
 diesen Anfragen schon mitschickt. Credits-Prüfung/Abbuchung bleibt bei
 Anton (`docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`).
 
+## 2026-10-03 20:10 — Anton — Branch `session/2026-10-03-anton` (PR #71) — Ring mit Fäden, Frosch, Geschenke nach Zahl der Träume, Einladungen (App-Seite)
+
+**Commits:** c8eb9cf, 60dce6d, f3d2a6f, d12af85, b8ea7bc, 0188247, e0bd4d7, f3abaca, 85a4136 (+ Merge main, Wrap).
+
+**Was:**
+- **Startseite „Der Ring mit Fäden"** (ersetzt das Sternbild): die Nächte
+  von Vollmond zu Vollmond im Kreis, Traumbilder darauf, Fäden zwischen
+  gleichen Motiven (`src/lib/moonCycle.js`, `components/moon-ring.tsx`).
+  Am Morgen nach dem Vollmond macht das iPhone gratis den **Monatsfilm**
+  („Dein September in Träumen · Wasser", `glimpse-layer.tsx`, ab 3 Bildern).
+- **Frosch in der Ring-Mitte** (Variante A, Video-Zustände,
+  `components/frog-stage.tsx`): schläft, bis heute ein Traum da ist;
+  Antippen = Hüpfer + Sprechblase. Clips fehlen noch → Liste und
+  Umwandlung in `docs/plans/2026-10-03-frosch-loops.md`.
+- **Maskottchen-Strich** rechts/unten weg: HEVC füllt 500 px auf 512 auf,
+  iOS zeigte den Füllrand — Frosch auf 512×512 gepolstert; Regel „Kanten
+  durch 16 teilbar" im Rezept.
+- **Geschenke neu (Antons Ansagen):** keine Serie mehr — es zählt die
+  **Zahl der Träume mit Glimpse oder Film** (`nights.js dreamCount`), Text
+  allein zählt nicht. Leiter `streakBoard.js`: 3 → ein Glimpse, 7 → ein
+  ganzer Film (16 Credits), 14 → 20, 30 → 50, 60 → 100, 100 → 160. Neuer
+  **Geschenk-Topf** `giftCredits` (`credits.js`), verfällt nach 30 Tagen,
+  Ausgabe Abo → Geschenk → gekauft. Im Ring goldene Geschenk-Punkte auf
+  der frühesten erreichbaren Nacht, darunter „Noch 2 Träume bis 🎁 …",
+  oben „Ring voll: dein Monat als Film" antippbar. Kurze Karten
+  (`gift-sheet.tsx`): Titel, ein Satz, Balken; erreichtes Geschenk öffnet
+  sich mit Deckel, Funken, Hochzählen und „Film machen".
+- **Einladungen, nur App-Seite** (Server = Hanni): `src/lib/invites.js`
+  (Code-Format, Link, Prämie in Träumen: S/Monat 1, M 2, L 3, XL 5,
+  Jahr 6), Profil-Karte + `profile/invite.tsx`, Deep Link
+  `dreamrushes://invite/CODE` (`+native-intent.tsx`), `appAccountToken`
+  = Konto-UUID bei jedem Kauf (`iap.ts`). Vertrag für die Endpunkte in
+  `docs/uebergabe/2026-09-14-hanni-codes-einladungen.md` (Nachtrag 03.10.).
+- **Flux 3 geprüft** (nur Recherche): für das Glimpse-Raster 4–5× teurer
+  als GPT Image 2 `low`, kein 9:4-Format; Rahmen je Szene interessant.
+  Nicht gerendert, kein Geld ausgegeben.
+
+**Warum:** Antons Rückmeldungen vom 03.10. — Mond zu oft, Frosch in die
+Mitte, „ein Credit klingt nach gar nichts", Text-Träume dürfen keine
+Geschenke bringen, „kein Streak, nur die Anzahl der Träume",
+Freunde-Einladung mit Traum als Prämie.
+
+**Belege:** 872 Tests grün (nach Merge von main), tsc sauber,
+Brücken-Schnappschuss unter Bun mit Probe-Verläufen geprüft (Zählung,
+Geschenke, Ring-Plätze, Einladungs-Texte). Jeder Stand als Release auf
+Antons iPhone gestartet; Einladungs-Deep-Link am Gerät ohne Absturz.
+
+**Für den Nächsten:**
+- ⚠ **Keine Geschwister-Modals auf der Startseite**: Das Geschenk-Modal
+  wurde von iOS nie gezeigt, blieb aber „offen" und blockierte die
+  Serien-Seite. Geschenk-Karten sind deshalb Ebenen (`gift-sheet.tsx`).
+- Die UI am Gerät habe ich nicht selbst gesehen (kein Bildschirmfoto vom
+  iPhone möglich) — Anton prüft. Seine gespeicherten Daten lassen sich per
+  `devicectl … copy from --domain-type appDataContainer` lesen (localStorage
+  liegt unter `Library/WebKit/WebsiteData/Default/…/localstorage.sqlite3`).
+- `INVITE_PREVIEW = true` (`mobile/src/lib/invites.ts`) zeigt
+  Beispieldaten, bis Hannis Endpunkte da sind — vor Veröffentlichung aus.
+- Serie/Schlummernächte (`streakInfo`, `snoozeBridge`) sind im Code noch
+  da, werden aber nicht mehr gerufen.
+
 ## 2026-09-28 10:00 — Anton — Branch `session/2026-09-26e-anton` (PR #70) — Serie aus dem Journal, Sternbild, neue Startseite, Karussell, Abstürze und Dauerlast
 
 **Commits:** 41617c3, 2a94bd6, e494971, ce4b94f, 212724d, c0fbe9c, e0b6dd9, 7520b46, 0682eed, 0b47ea9, 4c1e80f, b27610a (+ Wrap).

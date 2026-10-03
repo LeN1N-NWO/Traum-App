@@ -3,12 +3,52 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-03 abends — Hanni, `session/2026-10-03-hanni-2` (PR #73):
-Aufräumen nach dem Merge ist jetzt Teil von `/wrap` (Worktree UND Branch,
-lokal und auf GitHub); Übergabe an Anton für die Repo-Einstellung
-„Automatically delete head branches". Davor PR #72 auf main:
-**S1 gelöst — Bezahltes nur mit Konto**, App und Server, scharf im Deploy. **Weg durch die App-Store-Prüfung:
+**Stand:** 2026-10-03 abends — Anton, `session/2026-10-03-anton` (PR #71):
+Startseite „Der Ring mit Fäden" mit Frosch, Geschenke nach der **Zahl der
+Träume** (keine Serie mehr), Einladungen (App-Seite). Davor am selben Tag
+Hanni: PR #73 (Aufräumen in `/wrap`) und PR #72 (**S1 gelöst — Bezahltes
+nur mit Konto**). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Neu mit PR #71 (03.10., Anton):**
+- **Startseite = Der Ring mit Fäden** (`mobile/src/components/moon-ring.tsx`,
+  Rechnung `src/lib/moonCycle.js`): Nächte von Vollmond zu Vollmond, Traum-
+  bilder darauf, Fäden zwischen gleichen Motiven. Oben „Ring voll: dein
+  Monat als Film" (antippbar). Der Monatsfilm entsteht am Morgen nach dem
+  Vollmond gratis auf dem iPhone (`glimpse-layer.tsx`, ab 3 Bildern), steht
+  im Journal als `kind: "moonfilm"` und zählt nirgends mit.
+- **Frosch in der Mitte** (`components/frog-stage.tsx`): Grund-Loop +
+  einmalige Clips darüber. ⚠ Nur der Schlaf-Loop existiert; die übrigen
+  Clips (idle, tap, dream, milestone, cheer) liefert Anton — Liste und
+  Umwandlung `docs/plans/2026-10-03-frosch-loops.md`. Kanten durch 16
+  teilbar (sonst Strich am Rand).
+- **Zählung:** Es zählt die Zahl der Träume mit Glimpse oder Film
+  (`src/lib/nights.js` `dreamCount`, `isFilmNight`), egal an welchem Tag;
+  Text allein und „Nichts hängengeblieben" zählen nicht. Keine Serie, keine
+  Schlummernächte mehr in der App (Code in `nights.js` ungenutzt).
+  Pille oben „✦ 8 Träume" → Seite „Deine Träume" (`streak-sheet.tsx`).
+- **Geschenke** (`src/lib/streakBoard.js`): 3 → ein Glimpse (2 Cr),
+  7 → ein ganzer 15-s-Film (`FILM_GIFT` = 16 Cr), 14 → 20, 30 → 50,
+  60 → 100, 100 → 160; je Installation einmal (`streakGifts`). Gutschrift
+  in den **Geschenk-Topf** `giftCredits` (`src/lib/credits.js`), 30 Tage
+  gültig, Ausgabe Abo → Geschenk → gekauft. Bis zum 30. Traum höchstens
+  ≈ $2,50 Einkauf. Im Ring goldene Punkte auf der frühesten erreichbaren
+  Nacht, darunter „Noch 2 Träume bis 🎁 …". Karten und Öffnen:
+  `components/gift-sheet.tsx` — ⚠ als Ebenen, **keine Modals** (iOS zeigt
+  Geschwister-Modals unzuverlässig; ein unsichtbares Modal blockierte die
+  Pille).
+- **Einladungen — App-Seite** (Server baut Hanni): Regeln `src/lib/invites.js`
+  (7-Zeichen-Code, Link `dreamrushes.app/i/CODE`, Prämie in Träumen S/Monat 1,
+  M 2, L 3, XL 5, Jahr 6, 14 Tage, Deckel 5), Seite
+  `mobile/src/app/profile/invite.tsx`, Karte im Profil, Deep Link
+  `dreamrushes://invite/CODE` (`mobile/src/app/+native-intent.tsx`).
+  Client `mobile/src/lib/invites.ts` ruft `GET /api/invite` und
+  `POST /api/invite/connect` — ⚠ bis dahin markierte Vorschau
+  (`INVITE_PREVIEW = true`, vor Veröffentlichung aus). Jeder Kauf trägt
+  `appAccountToken` = Konto-UUID (`mobile/src/lib/iap.ts`). Vertrag:
+  `docs/uebergabe/2026-09-14-hanni-codes-einladungen.md` (Nachtrag 03.10.).
+- **Flux 3** geprüft, nicht eingebaut: fürs Glimpse-Raster 4–5× teurer als
+  GPT Image 2 `low`, kein 9:4-Format. Test nur auf Antons Ja.
 
 **Neu mit PR #72 (03.10.):**
 - **Server:** `needsAccount()` (`src/lib/gatekeeper.js`) — alles unter
@@ -45,23 +85,8 @@ lokal und auf GitHub); Übergabe an Anton für die Repo-Einstellung
   nichts. ⚠ Auf dem VPS mit dem Prüfbefehl aus `deploy/README.md`
   bestätigen. ⚠ IPv6 zählt je Adresse, nicht je /64-Netz.
 
-**Neu mit PR #70 (27./28.09.):**
-- **EINE Zählung der Nächte:** `src/lib/nights.js` — Traum-Tage sind
-  Kalendertage in ORTSZEIT mit mindestens einem echten Traum; die Serie
-  zählt sie in Folge bis heute (sonst bis gestern, „auf der Kippe").
-  „Nichts hängengeblieben" zählt nirgends, hält die Serie aber offen.
-  Schlummernächte: `snoozeDays` (überbrückt), verdient je 7 Tage.
-  Sterne, Pille, Leiter, Geschenke, Wesen lesen alle daraus. `state.streak`
-  /`lastDream`/`bumpStreak` werden nativ nicht mehr geschrieben.
-- **Startseite = Dein Sternbild** (`src/lib/constellation.js`,
-  `components/constellation-sky.tsx`): 33 Sterne, Stufen 5/8/12/18/25/33,
-  gezoomt auf laufende + übernächste Stufe, Weg gestrichelt, Meilenstein
-  mit Schild, Nebel, Vorschau (erstes Anschauen + Tipp, `skyIntroSeen`).
-  Belohnungen `SKY_REWARDS` (je Stufe ≥ 1 Credit; 5 +1 & Name, 8 +1 &
-  Schlummernacht, 12 +2, 18 +2, 25 +3, 33 +5 — zusammen 14 Credits ≈ 40 ct),
-  vergeben in den Serien-Pflichten der Brücke (`skyGifts`). Darunter
-  „Was hast du geträumt?", Knopf, Schlaf-Frage (echte Monde), Artikel des
-  Tages (öffnet ihn im Wissen oben). Serien-Seite `components/streak-sheet.tsx`.
+**Mit PR #70 (27./28.09.)** — Zählung und Startseite sind mit PR #71
+ersetzt (siehe oben; das Sternbild `constellation.js` ist gelöscht):
 - **Onboarding** kürzer: nur noch Ziele (große Worte), Erinnerung
   (Mondphasen), Schlafdauer (Mond-Regler mit Live-Rechnung), Foto,
   Anmeldung; „That's it" mit Hintergrundfilm — ⚠ Platzhalter (erster
@@ -192,6 +217,17 @@ lokal und auf GitHub); Übergabe an Anton für die Repo-Einstellung
   https://claude.ai/artifact/FYiRnRVnoAe2yzj5DxKTQ7
 
 **Nächste Schritte:**
+- **Anton prüft am iPhone (PR #71):** wartendes Geschenk (7. Traum) öffnet
+  sich, Pille → „Deine Träume", Geschenk-Punkte im Ring, „Ring voll"-Karte,
+  Einladungs-Seite (Vorschau), erster Monatsfilm.
+- **Frosch-Clips** von Anton (`docs/plans/2026-10-03-frosch-loops.md`) →
+  umwandeln, in `FROG_CLIPS` eintragen.
+- **Hanni:** Einladungs-Endpunkte, Bucket `gift` mit Ablauf, Universal Link
+  + Landingpage, DeviceCheck (Übergabe Nachtrag 03.10.).
+- Lücke bewusst offen: Über den Monatswechsel sind 7 Gratis-Glimpses in
+  Folge möglich → Film-Geschenk ohne Kauf (einmal je Installation, ≈ $0,40).
+- Abo-Rechnung prüfen: `plans.js` rechnet mit 31 Credits je Film, heute 16
+  — die Bezahlseite zeigt deshalb 10 statt 5 Filme für 160 Credits.
 - Anton testet am iPhone: Glimpse mit Ton, Hintergrund + Benachrichtigung,
   Mond-Knopf und Glühwürmchen, Leuchtrand, Klicks.
 - **Maskottchen-Leitfaden (Antons Ansage 26.09.):** mehrere kurze Videos
