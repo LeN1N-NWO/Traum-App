@@ -44,7 +44,7 @@ export default function DreamOrderScreen() {
   useEffect(() => {
     if (!NATIVE_ORDER || nativeStarted.current || !data) return;
     nativeStarted.current = true;
-    ask({ type: "order", order: { entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, seconds: w.seconds, mode: w.mode, assignmentOverrides: w.assignmentOverrides } })
+    ask({ type: "order", order: { entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, format: w.format, seconds: w.seconds, mode: w.mode, assignmentOverrides: w.assignmentOverrides } })
       .then((r) => {
         if (r.error === "nocredits") { router.replace({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
         if (r.error) { showToast(`⚠ ${r.error}`); router.back(); }
@@ -123,7 +123,7 @@ export default function DreamOrderScreen() {
         </View>
       ) : null}
       <View style={showWeb ? styles.web : styles.hidden}>
-        {NATIVE_ORDER ? null : <LegacyOrder safeTop={insets.top} safeBottom={insets.bottom} order={{ entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, seconds: w.seconds, orderId: w.orderId, assignmentOverrides: w.assignmentOverrides, mode: w.mode }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
+        {NATIVE_ORDER ? null : <LegacyOrder safeTop={insets.top} safeBottom={insets.bottom} order={{ entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, format: w.format, seconds: w.seconds, orderId: w.orderId, assignmentOverrides: w.assignmentOverrides, mode: w.mode }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
       </View>
       <View style={styles.bridge}>{bridge}</View>
     </>

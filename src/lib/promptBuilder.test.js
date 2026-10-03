@@ -272,3 +272,11 @@ test("ohne Garderobe bleibt die Klausel wie sie war", () => {
   expect(clauses[0]).not.toContain("THIS dream");
   expect(clauses[0]).not.toContain("overrides");
 });
+
+test("buildGridPrompt: quadratische Kacheln für die Traum-Skizze (1:1)", () => {
+  const p = buildGridPrompt({ beats: ["a", "b", "c", "d"], styleId: "surreal", cols: 2, rows: 2, tile: "1:1" });
+  expect(p).toContain("a SQUARE 1:1 frame");
+  expect(p).not.toContain("9:16");
+  // Hochkant bleibt die Vorgabe
+  expect(buildGridPrompt({ beats: ["a", "b", "c", "d"], styleId: "surreal", cols: 2, rows: 2 })).toContain("VERTICAL 9:16");
+});

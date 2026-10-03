@@ -51,6 +51,8 @@ import { featuredStyles, filmStyleAnchor } from "./src/lib/styles.js";
 // Wie viele Szenen in eine Filmlänge passen — drei Sekunden je Szene ist
 // die Untergrenze, darunter wird aus Regie eine Schnittfolge.
 import { beatsForSeconds } from "./src/lib/beats.js";
+import { SKETCH_SYSTEM, normaliseSketch, sketchUserMessage } from "./src/lib/sketchPrompt.js";
+import { buildSoundPrompts } from "./src/lib/sketchSound.js";
 // Die Beat-Typen des Schnitts. Der Server prüft damit nur die Modellantwort;
 // gewählt und geplant wird im Client (cut.js), weil dort die Analyse liegt.
 import { HOOKS, MIN_SHOT_SECONDS } from "./src/lib/cut.js";
@@ -1202,6 +1204,179 @@ async function refineDream(dream, mode) {
   return cleaned;
 }
 
+
+/* Traum-Skizze (25.09.): die ausgewählten Beats als SD-1.5-Stichworte, mit
+   festen Figurenbeschreibungen statt Namen — src/lib/sketchPrompt.js erklärt
+   warum. Gratis für den Menschen wie alle Textarbeit; die App hat einen
+   Ersatzweg, falls das hier scheitert. */
+async function sketchPrompts({ beats, people, mood }) {
+  const key = process.env.DEEPSEEK_KEY;
+  if (!key) throw new Error("NO_DEEPSEEK_KEY");
+  const res = await fetch(DEEPSEEK_API_URL, {
+    method: "POST",
+    signal: AbortSignal.timeout(T.deepseek),
+    headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      messages: [
+        { role: "system", content: SKETCH_SYSTEM },
+        { role: "user", content: sketchUserMessage({ beats, people, mood }) },
+      ],
+      response_format: { type: "json_object" },
+      stream: false,
+    }),
+  });
+  if (!res.ok) {
+    console.error("[DreamRushes] sketch-prompts request failed:", res.status, await res.text().catch(() => ""));
+    throw new Error("SKETCH_FAILED");
+  }
+  const data = await res.json().catch(() => null);
+  const raw = data?.choices?.[0]?.message?.content;
+  if (typeof raw !== "string") throw new Error("SKETCH_FAILED");
+  return normaliseSketch(raw, beats.length);
+}
+
+/* Traum-Skizze aus der Cloud (25.09., Antons Entscheidung): EIN Rasterbild
+   bei GPT Image 2 „low" — vier Kacheln, die das iPhone schneidet
+   und zum Film macht (Tiefe, Kamera, Teilchen). Der Look kommt über das
+   Stil-Preset im Prompt (buildGridPrompt), das Gesicht über die Fotos.
+   Einkauf je Aufruf höchstens $0,015 (Edit-Tabelle, 1024² low); ohne Foto
+   läuft Text-zu-Bild und ist billiger. Das Gratis-Kontingent (3 je Monat,
+   src/lib/sketchQuota.js) zählt heute das Gerät — settleCharge loggt. */
+const SKETCH_GRID_MODEL = "gpt-image-2";
+/* 26.09.: vier Hochkant-Felder nebeneinander (SKETCH_STRIP in sketchPrompt.js)
+   — 2304×1024, je Feld 576×1024. GPT: Vielfache von 16, Seiten bis 3:1. */
+const SKETCH_GRID_SIZE = { width: 2304, height: 1024 };
+async function sketchGrid({ prompt, refs }) {
+  const key = process.env.FAL_KEY;
+  if (!key) throw new Error("NO_FAL_KEY");
+  const { model, input } = imageSubmitBody(SKETCH_GRID_MODEL, {
+    // GPT kennt `resolution` nicht und lässt es weg (imageSubmitBody) —
+    // mitgeschickt wird es trotzdem, siehe Verdrahtungstest in imageModel.test.js.
+    prompt, imageUrls: refs, size: SKETCH_GRID_SIZE, quality: "low", resolution: null,
+  });
+  input.output_format = "png";
+  const res = await fetch(`https://fal.run/${model}`, {
+    method: "POST",
+    signal: AbortSignal.timeout(T.falImage),
+    headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const roh = await res.text().catch(() => "");
+  const data = (() => { try { return JSON.parse(roh); } catch { return null; } })();
+  if (!res.ok) {
+    console.error("[DreamRushes] sketch-grid request failed:", res.status, roh.slice(0, 400));
+    throw imageFailure(data);
+  }
+  const url = data?.images?.[0]?.url;
+  if (!url) throw imageFailure(data);
+  console.log(`[DreamRushes] sketch-grid ${model}: ${refs.length} Referenz(en), ≤ $${imagePrice(SKETCH_GRID_MODEL, "low", SKETCH_GRID_SIZE)}`);
+  return url;
+}
+
+/* ── Der Ton zum Glimpse (26.09.2026) ─────────────────────────────────────
+ * Zwei Spuren aus TEXT, parallel zu den Bildern: Atmosphäre (MMAudio v2,
+ * $0,001/s) und Musik (ACE-Step, Open Source, $0,0002/s). Die Prompts baut
+ * der SERVER aus Look, Stimmung und Szenen (src/lib/sketchSound.js) — der
+ * Client schickt nur diese Zutaten, nie einen fertigen Prompt. Gemischt
+ * wird hier mit ffmpeg: Musik leiser und ein-/ausgeblendet unter der
+ * Atmosphäre, eine m4a-Spur, die das iPhone unter den Film legt.
+ * Fällt eine Spur aus, kommt die andere allein; fallen beide aus, gibt es
+ * einen Fehler — und die App macht den Film stumm weiter. */
+const SOUND_AMBIENCE_MODEL = "fal-ai/mmaudio-v2/text-to-audio";
+const SOUND_MUSIC_MODEL = "fal-ai/ace-step/prompt-to-audio";
+/* Geräusche aus dem fertigen Film (26.09. spätabends, Antons Ansage): Das
+   Modell sieht die Bilder und legt die Effekte passend darauf. */
+const SOUND_VIDEO_MODEL = "fal-ai/mmaudio-v2";
+const MAX_SOUND_VIDEO = 60 * 1024 * 1024;
+/* Der Film-Weg läuft im Hintergrund (GlimpseLayer) — hier darf ein
+   fal-Kaltstart dauern (gemessen 26.09.: 60 s reichten nicht). */
+const SOUND_VIDEO_TIMEOUT_MS = 180_000;
+/* Warm antworten beide in 4–7 s; kalt hing MMAudio am 26.09. drei Minuten.
+   Nach einer Minute gilt eine Spur als ausgefallen — die andere kommt allein,
+   und die App legt den Ton auch nachträglich unter den Film. */
+const SOUND_TIMEOUT_MS = 60_000;
+
+async function falAudio(model, input, timeoutMs = SOUND_TIMEOUT_MS) {
+  const key = process.env.FAL_KEY;
+  if (!key) throw new Error("NO_FAL_KEY");
+  const res = await fetch(`https://fal.run/${model}`, {
+    method: "POST",
+    signal: AbortSignal.timeout(timeoutMs),
+    headers: { Authorization: `Key ${key}`, "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const roh = await res.text().catch(() => "");
+  const data = (() => { try { return JSON.parse(roh); } catch { return null; } })();
+  const url = data?.audio?.url || data?.audio_file?.url || data?.video?.url;
+  if (!res.ok || !url) {
+    console.error(`[DreamRushes] ${model} failed:`, res.status, roh.slice(0, 300));
+    throw new Error("SOUND_FAILED");
+  }
+  const file = await fetch(url, { signal: AbortSignal.timeout(T.mediaCopy) });
+  if (!file.ok) throw new Error("SOUND_FAILED");
+  return new Uint8Array(await file.arrayBuffer());
+}
+
+/* Der Film klein gerechnet (360 × 640, ohne Ton) als data:-Adresse — genug,
+   damit MMAudio sieht, was passiert; die Datei bleibt ein paar hundert KB. */
+async function smallVideoUri(bytes, dir) {
+  const src = join(dir, "film.mp4"), small = join(dir, "small.mp4");
+  await Bun.write(src, bytes);
+  const run = Bun.spawnSync(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-vf", "scale=360:-2", "-r", "24", "-an",
+    "-c:v", "libx264", "-crf", "32", "-preset", "veryfast", small]);
+  if (!run.success) throw new Error("ffmpeg: " + new TextDecoder().decode(run.stderr).slice(0, 200));
+  return "data:video/mp4;base64," + Buffer.from(await Bun.file(small).arrayBuffer()).toString("base64");
+}
+
+async function sketchSound({ styleId, mood, beats, seconds, video = null }) {
+  const p = buildSoundPrompts({ styleId, mood, beats, seconds });
+  const work = await mkdtemp(join(tmpdir(), "glimpse-film-"));
+  let amb, mus;
+  try {
+    const effects = video
+      ? smallVideoUri(video, work).then((uri) => falAudio(SOUND_VIDEO_MODEL, { video_url: uri, prompt: p.sfx, negative_prompt: p.sfxNegative, duration: p.seconds, num_steps: 25, cfg_strength: 4.5 }, SOUND_VIDEO_TIMEOUT_MS))
+      : falAudio(SOUND_AMBIENCE_MODEL, { prompt: p.ambience, negative_prompt: p.negative, duration: p.seconds, num_steps: 25, cfg_strength: 4.5 });
+    [amb, mus] = await Promise.allSettled([
+      effects,
+      falAudio(SOUND_MUSIC_MODEL, { prompt: p.music, instrumental: true, duration: p.seconds }),
+    ]);
+  } finally {
+    await rm(work, { recursive: true, force: true }).catch(() => {});
+  }
+  for (const [name, r] of [[video ? "Effekte (Film)" : "Atmo", amb], ["Musik", mus]]) {
+    if (r.status === "rejected") console.warn(`[DreamRushes] glimpse-sound ${name} ausgefallen:`, r.reason?.name === "TimeoutError" ? "Zeitlimit" : r.reason?.message);
+  }
+  if (amb.status === "rejected" && mus.status === "rejected") throw new Error("SOUND_FAILED");
+  const dir = await mkdtemp(join(tmpdir(), "glimpse-sound-"));
+  try {
+    const inputs = [], chains = [];
+    const fadeOut = Math.max(0, p.seconds - 1.7).toFixed(2);
+    if (amb.status === "fulfilled") {
+      await Bun.write(join(dir, "amb"), amb.value);
+      chains.push(`[${inputs.length}:a]afade=t=in:d=1,afade=t=out:st=${fadeOut}:d=1.7[a${inputs.length}]`);
+      inputs.push(join(dir, "amb"));
+    }
+    if (mus.status === "fulfilled") {
+      await Bun.write(join(dir, "mus"), mus.value);
+      const vol = amb.status === "fulfilled" ? 0.55 : 0.9;
+      chains.push(`[${inputs.length}:a]volume=${vol},afade=t=in:d=1.5,afade=t=out:st=${fadeOut}:d=1.7[a${inputs.length}]`);
+      inputs.push(join(dir, "mus"));
+    }
+    const labels = inputs.map((_, i) => `[a${i}]`).join("");
+    const mix = inputs.length > 1 ? `${labels}amix=inputs=${inputs.length}:duration=longest:normalize=0[out]` : `${labels}anull[out]`;
+    const out = join(dir, "sound.m4a");
+    const run = Bun.spawnSync(["ffmpeg", "-y", "-loglevel", "error", ...inputs.flatMap((f) => ["-i", f]),
+      "-filter_complex", [...chains, mix].join(";"), "-map", "[out]", "-t", String(p.seconds), "-ac", "2", "-c:a", "aac", "-b:a", "128k", out]);
+    if (!run.success) throw new Error("ffmpeg: " + new TextDecoder().decode(run.stderr).slice(0, 200));
+    const url = await storeBytes(new Uint8Array(await Bun.file(out).arrayBuffer()), "audio/mp4");
+    if (!url) throw new Error("SOUND_FAILED");
+    console.log(`[DreamRushes] glimpse-sound ${p.seconds}s: ${amb.status === "fulfilled" ? (video ? "Effekte aus dem Film" : "Atmo") : "—"} + ${mus.status === "fulfilled" ? "Musik" : "—"}, ≈ $${(p.seconds * 0.0012).toFixed(3)}`);
+    return url;
+  } finally {
+    await rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}
 
 // ---- dream analysis (the ONE llm call per dream) ----
 //
@@ -2472,6 +2647,99 @@ const serveOptions = {
         const hit = map[e.message];
         if (hit) return json({ error: hit[1] }, hit[0]);
         console.error("[DreamRushes] /api/refine failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/sketch-grid" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json();
+        const prompt = sanitizePromptText(body.prompt).slice(0, MAX_CRAFTED_PROMPT);
+        if (prompt.length < 20) return json({ error: "Prompt missing." }, 400);
+        /* Nur echte Bilddaten, höchstens drei — das geht wörtlich an fal.
+           Keine fremden Adressen: fal soll nichts laden, was wir nicht sehen. */
+        const refs = (Array.isArray(body.refs) ? body.refs : [])
+          .filter((r) => typeof r === "string" && /^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(r) && r.length < 3_000_000)
+          .slice(0, 3);
+        settleCharge({ kind: "sketch-grid", charge: 0 });
+        return json({ ok: true, url: await sketchGrid({ prompt, refs }) });
+      } catch (e) {
+        if (e.message === "NO_FAL_KEY") return json({ error: "Backend has no fal key." }, 503);
+        if (e.message === "GENERATION_FAILED") return json({ error: "Could not paint the sketch.", reason: e.reason || null }, 502);
+        console.error("[DreamRushes] /api/sketch-grid failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/sketch-sound" && req.method === "POST") {
+      try {
+        /* Zwei Formen: JSON (nur Zutaten, Text-Atmosphäre) oder — seit
+           26.09. spätabends — multipart mit dem fertigen Film („video")
+           plus denselben Zutaten als Felder; dann kommen die Geräusche aus
+           dem Film. */
+        const multipart = (req.headers.get("content-type") || "").includes("multipart/form-data");
+        if (Number(req.headers.get("content-length") || 0) > (multipart ? MAX_SOUND_VIDEO : MAX_BODY)) {
+          return json({ error: "Request too large." }, 413);
+        }
+        let body, video = null;
+        if (multipart) {
+          const form = await req.formData();
+          const file = form.get("video");
+          if (file && typeof file === "object" && "arrayBuffer" in file) {
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            // Nur echte MP4-Filme (ftyp-Kennung), nichts anderes geht an ffmpeg.
+            if (bytes.length > 12 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) video = bytes;
+          }
+          body = { styleId: form.get("styleId"), mood: form.get("mood"), seconds: form.get("seconds"),
+            beats: (() => { try { return JSON.parse(String(form.get("beats") || "[]")); } catch { return []; } })() };
+        } else {
+          body = await req.json();
+        }
+        // Nur Zutaten, gewaschen und gedeckelt — den Prompt baut sketchSound.js.
+        const beats = (Array.isArray(body.beats) ? body.beats : [])
+          .map((b) => sanitizePromptText(b).slice(0, 400)).filter(Boolean).slice(0, 12);
+        const styleId = String(body.styleId || "").replace(/[^a-z]/g, "").slice(0, 20);
+        const mood = sanitizePromptText(body.mood).slice(0, 40);
+        const seconds = Math.max(8, Math.min(45, Number(body.seconds) || 16));
+        settleCharge({ kind: "sketch-sound", charge: 0 });
+        return json({ ok: true, url: await sketchSound({ styleId, mood, beats, seconds, video }) });
+      } catch (e) {
+        if (e.message === "NO_FAL_KEY") return json({ error: "Backend has no fal key." }, 503);
+        if (e.message === "SOUND_FAILED") return json({ error: "Could not make the sound." }, 502);
+        console.error("[DreamRushes] /api/sketch-sound failed:", e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/sketch-prompts" && req.method === "POST") {
+      try {
+        if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+          return json({ error: "Request too large." }, 413);
+        }
+        const body = await req.json();
+        // Alles, was hier ankommt, wird Prompt-Material: gewaschen und gedeckelt.
+        const beats = (Array.isArray(body.beats) ? body.beats : [])
+          .map((b) => sanitizePromptText(b).slice(0, 400)).filter(Boolean).slice(0, 8);
+        if (!beats.length) return json({ error: "No scenes." }, 400);
+        const people = (Array.isArray(body.people) ? body.people : []).slice(0, 12).map((p) => ({
+          name: sanitizePromptText(p?.name).slice(0, 60),
+          kind: p?.kind === "pet" ? "pet" : "person",
+          desc: sanitizePromptText(p?.desc).slice(0, 160),
+          wearing: sanitizePromptText(p?.wearing).slice(0, 120),
+        })).filter((p) => p.name);
+        const mood = sanitizePromptText(body.mood).slice(0, 40);
+        return json({ ok: true, ...(await sketchPrompts({ beats, people, mood })) });
+      } catch (e) {
+        const map = {
+          NO_DEEPSEEK_KEY: [503, "Backend has no DeepSeek key. Set DEEPSEEK_KEY and restart."],
+          SKETCH_FAILED: [502, "Could not prepare the sketch scenes."],
+        };
+        const hit = map[e.message];
+        if (hit) return json({ error: hit[1] }, hit[0]);
+        console.error("[DreamRushes] /api/sketch-prompts failed:", e);
         return json({ error: "Server error." }, 500);
       }
     }

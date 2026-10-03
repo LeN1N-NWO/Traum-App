@@ -1,0 +1,10 @@
+ea2805dc1945be20561c77e5f6d1d9a5a637cda2 Fri Sep 11 16:04:51 2026 +0000
+Quelle: https://github.com/apple/ml-stable-diffusion (MIT, siehe LICENSE-ml-stable-diffusion.md)
+Übernommen: swift/StableDiffusion/{pipeline,tokenizer} OHNE die SD3/T5-Dateien
+(StableDiffusion3Pipeline*, TextEncoderT5, T5Tokenizer, MultiModalDiffusionTransformer),
+weil nur diese die externe Abhängigkeit swift-transformers brauchen.
+
+EINZIGE Änderung (25.09.2026, Traum-Morph): `morphPrompt`/`morphWeight` in
+StableDiffusionPipeline.Configuration.swift und der Mischblock nach `textEncoder.encode`
+in StableDiffusionPipeline.swift (markiert mit „Dream Rushes:“). Bei einem Update dieselbe
+Auswahl erneut kopieren und diese zwei Stellen wieder einsetzen.

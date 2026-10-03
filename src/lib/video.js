@@ -106,7 +106,7 @@ import { PRICES } from "./pricing.js";
  * Auflösung bei Seedance mehr als den PREIS VERDOPPELT. Am 31.08. auf den
  * fal-Modellseiten nachgelesen, nicht aus dem Gedächtnis:
  *   H3            480P $0,05/s  · 768P $0,06/s   (erste 5 Referenzbilder gratis)
- *   Seedance 2.5  480p $0,2205/s · 720p $0,473/s (1080p $1,164 — nicht angeboten)
+ *   Seedance 2.5  480p $0,2205/s · 720p $0,473/s · 1080p $1,164/s (seit 26.09. angeboten)
  * `creditsPerSecond` je Qualität = ceil(usd / creditCostUsd()); video.test.js
  * rechnet jede der vier Zahlen nach.
  *
@@ -148,7 +148,7 @@ import { PRICES } from "./pricing.js";
  * in Commit 0155f6c).
  * Einkauf lt. fal-Modellseite 23.09.: 480P $0,025 · 768P $0,04 ·
  * 1080P $0,08 (Antons Ansage: Auflösungen im Klartext, drei Stufen;
- * Seedance bietet 1080p weiter nicht an — dort hieße es 42 Credits/s).
+ * seit 26.09. auch bei Seedance, dort 42 Credits/s).
  * ⚠ Der Endpunkt VERLANGT prompt_expansion_mode (Pflichtfeld); "disabled",
  * denn die Umformulierung würde unseren Regisseur überschreiben. Ein
  * aspect_ratio kennt i2v nicht: DAS KEYFRAME führt das Format — die
@@ -163,7 +163,10 @@ const MODELLE = [
       hd: { resolution: "768P", usdPerSecond: 0.04, creditsPerSecond: 2 },
       fhd: { resolution: "1080P", usdPerSecond: 0.08, creditsPerSecond: 3 },
     },
-    preferred: "hd",
+    /* Seit 26.09. (Antons Ansage: „automatisch ist immer die schlechteste
+     * Qualität ausgewählt") steht auch H3 auf der günstigsten Stufe; wer
+     * schärfer will, wählt es bewusst. */
+    preferred: "sd",
     min: 5, max: 15, step: 1, preset: 6,
     audio: true,          // H3 Max Turbo rendert nativen, synchronen Ton — ohne Parameter
     expansionMode: "disabled",
@@ -177,6 +180,10 @@ const MODELLE = [
     qualities: {
       sd: { resolution: "480p", usdPerSecond: 0.2205, creditsPerSecond: 8 },
       hd: { resolution: "720p", usdPerSecond: 0.473,  creditsPerSecond: 17 },
+      /* 1080p seit 26.09. (Antons Ansage: „bei Kino fehlt die 1080p-
+       * Qualität"). Einkauf lt. fal-Modellseite $1,164/s — die teuerste
+       * Stufe der App, 15 s = 630 Credits. */
+      fhd: { resolution: "1080p", usdPerSecond: 1.164, creditsPerSecond: 42 },
     },
     preferred: "sd",
     min: 5, max: 30, step: 5, preset: 15,
@@ -197,7 +204,7 @@ const MODELLE = [
 
 /* Alle Stufen-IDs, die es IRGENDWO gibt — die Allowlist des Servers.
  * Welche ein Modell wirklich anbietet, sagt seine qualities-Tabelle
- * (Seedance kennt kein fhd; Unbekanntes fällt in filmQuality auf die
+ * (Unbekanntes fällt in filmQuality auf die
  * Vorgabe zurück, in Preis UND Bestellung gleichermaßen). */
 export const QUALITIES = ["sd", "hd", "fhd"];
 

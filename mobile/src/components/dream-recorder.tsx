@@ -1,12 +1,12 @@
-import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, useAudioRecorder, useAudioRecorderState } from "expo-audio";
+import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from "expo-audio";
 import { File } from "expo-file-system";
 import * as Haptics from "expo-haptics";
-import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import { StyleSheet, Text, View } from "react-native";
+import { useSharedValue, withTiming } from "react-native-reanimated";
 import { GlassButton, PrimaryButton } from "@/components/glass";
 import { MascotLoader } from "@/components/mascot-loader";
+import { MoonButton } from "@/components/moon-button";
 import { holdForRecording } from "@/lib/sound-engine";
 import { setRecording } from "@/store/recording-store";
 import { colors, fonts } from "@/theme";
@@ -17,7 +17,8 @@ import { colors, fonts } from "@/theme";
  *   recorden können. Nachdem wir recorded haben, können wir unser Recording
  *   anhören. Erst dann Transkribieren … so wenige Klicks wie möglich."
  *
- * Also: öffnen = Aufnahme läuft (autoStartKey), ein Tipp = fertig, dann
+ * Seit 26.09.: öffnen zeigt das Mikrofon, erst ein Tipp nimmt auf (autoStartKey
+ * nur noch für „Weiter erzählen"); ein Tipp = fertig, dann
  * die Aufnahme zum Anhören, EIN Knopf „Aufschreiben". Wer lieber tippt,
  * kommt von jeder Phase aus mit „Lieber schreiben" ins Textfeld.
  *
@@ -29,7 +30,7 @@ import { colors, fonts } from "@/theme";
  * vorher stumm (recording-store, expo-video stiehlt sonst die Session), der
  * Blob braucht ausdrücklich audio/mp4, die Dauer kommt aus dem Rekorder
  * selbst statt aus dem gepollten Zustand. */
-type Phase = "idle" | "rec" | "review" | "busy" | "error";
+type Phase = "idle" | "rec" | "busy" | "error";
 type Labels = Record<string, any>;
 
 export function DreamRecorder({ W, language, autoStartKey, active, onText, onType, onPendingAudio }: {
@@ -41,10 +42,9 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   onType: () => void;
   onPendingAudio: (audioUrl: string) => void;
 }) {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const st = useAudioRecorderState(recorder, 250);
-  const player = useAudioPlayer(null);
-  const ps = useAudioPlayerStatus(player);
+  // Mit Pegel (26.09.): die Glühwürmchen am Mond-Knopf tanzen zur Stimme.
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
+  const st = useAudioRecorderState(recorder, 100);
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [allowed, setAllowed] = useState<boolean | null>(null);
@@ -85,7 +85,6 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     cancelled.current = false;
     setError(null);
-    try { player.pause(); } catch {}
     try {
       setRecording(true); holdForRecording(true);
       await new Promise((r) => setTimeout(r, 250));
@@ -113,9 +112,12 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     audioUrl.current = null;
     // Wiedergabe über den Lautsprecher: mit allowsRecording spielt iOS leise übers Ohr.
     await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => {});
-    player.replace({ uri: u });
-    setPhase("review");
     upload(u);
+    /* Seit 26.09. abends (Antons Ansage: „Stopp heißt: gleich weiter, die
+       nächste Seite fällt weg"): kein Anhören-Zwischenschritt mehr — nach
+       dem Stopp wird sofort aufgeschrieben, und der Traum-Bildschirm lässt
+       ihn danach direkt von der KI lesen. Die Aufnahme hängt am Traum. */
+    transcribe();
   }
 
   async function upload(u: string) {
@@ -131,7 +133,6 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   async function transcribe() {
     if (!uri.current) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try { player.pause(); } catch {}
     cancelled.current = false;
     setPhase("busy");
     try {
@@ -156,7 +157,6 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   async function discard() {
     cancelled.current = true;
     try { if (recorder.getStatus().isRecording) await recorder.stop(); } catch {}
-    try { player.pause(); } catch {}
     setRecording(false); holdForRecording(false);
     reset();
   }
@@ -166,46 +166,23 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     onType();
   }
 
-  function togglePlay() {
-    Haptics.selectionAsync();
-    if (ps.playing) { player.pause(); return; }
-    if (ps.didJustFinish || (ps.duration > 0 && ps.currentTime >= ps.duration - 0.05)) player.seekTo(0);
-    player.play();
-  }
+
+  /* Der Pegel in dB (−160…0) → 0…1; leise Räume beginnen um −55 dB. */
+  const level = useSharedValue(0);
+  useEffect(() => {
+    const db = typeof st.metering === "number" ? st.metering : -160;
+    level.value = withTiming(phase === "rec" ? Math.max(0, Math.min(1, (db + 55) / 45)) : 0, { duration: 140 });
+  }, [st.metering, phase, level]);
 
   const secs = Math.floor((st.durationMillis || 0) / 1000);
   const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-  const progress = ps.duration > 0 ? Math.min(1, ps.currentTime / ps.duration) : 0;
 
   if (phase === "busy") {
     return (
       <View style={styles.center}>
         <MascotLoader />
         <Text style={styles.title}>{W?.recordTranscribing ?? "Writing it down…"}</Text>
-        <GlassButton label={W?.cancel ?? "Cancel"} onPress={() => { cancelled.current = true; setPhase("review"); }} style={{ flex: 0, marginTop: 16 }} />
-      </View>
-    );
-  }
-
-  if (phase === "review") {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.title}>{W?.reviewTitle ?? "Listen back"}</Text>
-        <Text style={styles.hint}>{W?.reviewHint ?? ""}</Text>
-        <View style={styles.playerCard}>
-          <Pressable onPress={togglePlay} accessibilityRole="button" accessibilityLabel={ps.playing ? (W?.recordPause ?? "Pause") : (W?.recordListen ?? "Play")} hitSlop={8}>
-            <View style={styles.play}><SymbolView name={ps.playing ? "pause.fill" : "play.fill"} size={24} tintColor={colors.bg} /></View>
-          </Pressable>
-          <View style={{ flex: 1, gap: 8 }}>
-            <View style={styles.track}><View style={[styles.trackFill, { width: `${progress * 100}%` }]} /></View>
-            <Text style={styles.time}>{clock(ps.currentTime || 0)} / {clock(ps.duration || 0)}</Text>
-          </View>
-        </View>
-        <PrimaryButton label={`✎ ${W?.recordTranscribe ?? "Write it down"}`} heavy onPress={transcribe} style={{ flex: 0, alignSelf: "stretch", marginTop: 8 }} />
-        <View style={styles.row}>
-          <GlassButton label={W?.recordRetake ?? W?.recordAgain ?? "Record again"} onPress={async () => { await discard(); start(); }} />
-          <GlassButton label={W?.typeInstead ?? "Type instead"} onPress={typeInstead} />
-        </View>
+        <GlassButton label={W?.cancel ?? "Cancel"} onPress={discard} style={{ flex: 0, marginTop: 16 }} />
       </View>
     );
   }
@@ -214,13 +191,10 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     <View style={styles.center}>
       <Text style={styles.title}>{phase === "rec" ? (W?.recording ?? "Listening…") : (W?.record ?? "Tell it out loud")}</Text>
       <Text style={styles.hint}>{phase === "rec" ? clock(secs) : (W?.recordHint ?? "")}</Text>
+      {/* Der Mond ist der Knopf (Antons Wahl 26.09.). */}
       <View style={styles.stage}>
-        <Ring on={phase === "rec"} />
-        <Pressable onPress={phase === "rec" ? stop : start} disabled={allowed === false} accessibilityRole="button" accessibilityLabel={phase === "rec" ? (W?.recordStop ?? "Done") : (W?.record ?? "Record")}>
-          <View style={[styles.mic, phase === "rec" && styles.micOn, allowed === false && { opacity: 0.4 }]}>
-            <SymbolView name={phase === "rec" ? "stop.fill" : "mic.fill"} size={40} tintColor={colors.bg} />
-          </View>
-        </Pressable>
+        <MoonButton size={150} recording={phase === "rec"} level={level} onPress={phase === "rec" ? stop : start} disabled={allowed === false}
+          label={phase === "rec" ? (W?.recordStop ?? "Done") : (W?.record ?? "Record")} />
       </View>
       {phase === "rec" ? <Text style={styles.stopHint}>{W?.recordStop ?? "Done"}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -234,34 +208,12 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   );
 }
 
-/* Zwei Ringe, die nach außen atmen, solange aufgenommen wird. */
-function Ring({ on }: { on: boolean }) {
-  const a = useSharedValue(0);
-  useEffect(() => { a.value = on ? withRepeat(withTiming(1, { duration: 1800, easing: Easing.out(Easing.quad) }), -1, false) : withTiming(0, { duration: 300 }); }, [on, a]);
-  const s1 = useAnimatedStyle(() => ({ transform: [{ scale: 1 + a.value * 0.9 }], opacity: (1 - a.value) * 0.5 }));
-  const s2 = useAnimatedStyle(() => ({ transform: [{ scale: 1 + ((a.value + 0.5) % 1) * 0.9 }], opacity: (1 - ((a.value + 0.5) % 1)) * 0.5 }));
-  return (
-    <>
-      <Animated.View pointerEvents="none" style={[styles.ring, s1]} />
-      <Animated.View pointerEvents="none" style={[styles.ring, s2]} />
-    </>
-  );
-}
-
 const styles = StyleSheet.create({
   center: { alignItems: "center", justifyContent: "center", gap: 12, paddingVertical: 24 },
   title: { fontFamily: fonts.serif, fontSize: 30, color: colors.text, textAlign: "center" },
   hint: { color: colors.muted, fontSize: 16, textAlign: "center", fontVariant: ["tabular-nums"], lineHeight: 22 },
-  stage: { width: 240, height: 240, alignItems: "center", justifyContent: "center", marginVertical: 12 },
-  ring: { position: "absolute", width: 120, height: 120, borderRadius: 60, borderWidth: 2, borderColor: colors.warm },
-  mic: { width: 120, height: 120, borderRadius: 60, backgroundColor: colors.warm, alignItems: "center", justifyContent: "center", shadowColor: colors.warm, shadowOpacity: 0.5, shadowRadius: 24, shadowOffset: { width: 0, height: 0 } },
-  micOn: { backgroundColor: colors.gold },
+  stage: { width: 345, height: 345, alignItems: "center", justifyContent: "center", marginVertical: -40 },
   stopHint: { color: colors.faint, fontSize: 13 },
   error: { color: colors.warm, fontSize: 14, textAlign: "center" },
   row: { flexDirection: "row", gap: 10, alignSelf: "stretch", marginTop: 6 },
-  playerCard: { flexDirection: "row", alignItems: "center", gap: 14, alignSelf: "stretch", padding: 16, borderRadius: 22, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, marginTop: 14 },
-  play: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.warm, alignItems: "center", justifyContent: "center" },
-  track: { height: 4, borderRadius: 2, backgroundColor: colors.panelLine, overflow: "hidden" },
-  trackFill: { height: 4, backgroundColor: colors.warm },
-  time: { color: colors.muted, fontSize: 13, fontVariant: ["tabular-nums"] },
 });

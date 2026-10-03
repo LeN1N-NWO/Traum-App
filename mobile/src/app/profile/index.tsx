@@ -4,6 +4,7 @@ import * as Haptics from "expo-haptics";
 import { SymbolView, type SFSymbol } from "expo-symbols";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
+import { NightSky } from "@/components/night-sky";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 const GROUP_ICON: Record<string, SFSymbol> = { person: "person.fill", pet: "pawprint.fill", place: "house.fill", object: "cube.fill" };
@@ -21,6 +22,8 @@ export default function ProfileScreen() {
   const open = (page: string) => { Haptics.selectionAsync(); router.push({ pathname: "/profile/page", params: { page } }); };
   return (
     <>
+      {/* Derselbe Nachthimmel wie im Traum-Tab (Antons Wahl 26.09.). */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]}><NightSky /></View>
       <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         {p ? (
           <>
@@ -106,7 +109,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: "transparent" },
   content: { paddingHorizontal: 16, paddingBottom: TAB_INSET, gap: 14 },
   hero: { alignItems: "center", gap: 6, paddingVertical: 12 },
   faceRing: { padding: 4, borderRadius: 999, borderWidth: 1, borderColor: colors.panelLine, marginBottom: 8 },

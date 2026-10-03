@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, StyleSheet, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import JournalBridge from "@/legacy/journal-bridge";
 import { OnboardingFlow } from "@/components/onboarding-flow";
 import { pushProfile, restoreSession } from "@/lib/auth";
-import { onboardingSeen, setOnboardingSeen } from "@/store/dev-store";
+import { onboardingSeen, setOnboardingGone, setOnboardingSeen } from "@/store/dev-store";
 import { setJournal, useJournalStore, type BridgeCommand, type JournalSnapshot, type OnboardData } from "@/store/journal-store";
 import { colors } from "@/theme";
 
@@ -24,6 +25,8 @@ import { colors } from "@/theme";
 export function OnboardingGate() {
   const data = useJournalStore();
   const [open, setOpen] = useState(() => !onboardingSeen());
+  // Schon gesehen (Modal erscheint gar nicht): das Einwilligungs-Tor gleich freigeben.
+  useEffect(() => { if (!open) setOnboardingGone(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // ⚠ Pruefhilfe: mit `__ONB_STEP__` (global, nur __DEV__) startet der Fluss
   // bei einem bestimmten Schritt — so lassen sich alle Bildschirme ohne
   // Tippen fotografieren (Redirect-Trick fuer Bildschirme ohne Route).
@@ -43,8 +46,10 @@ export function OnboardingGate() {
   } : null;
 
   return (
-    <Modal visible={open} animationType="fade" presentationStyle="fullScreen" onRequestClose={() => {}}>
-      <View style={styles.screen}>
+    <Modal visible={open} animationType="fade" presentationStyle="fullScreen" onRequestClose={() => {}} onDismiss={setOnboardingGone}>
+      {/* Eigene Gesten-Wurzel: Ein Modal liegt außerhalb der des Layouts —
+          ohne sie zieht sich der Mond-Regler (SleepScale) nicht. */}
+      <GestureHandlerRootView style={styles.screen}>
         {O ? (
           <OnboardingFlow
             O={O}
@@ -64,7 +69,7 @@ export function OnboardingGate() {
         <View style={styles.bridge}>
           <JournalBridge onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
         </View>
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }

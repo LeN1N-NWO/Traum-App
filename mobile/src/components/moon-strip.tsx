@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { SLEEP_COLORS } from "@/components/dream-calendar";
 import { Glass } from "@/components/glass";
 import type { MoonData } from "@/store/journal-store";
@@ -37,11 +37,17 @@ export function MoonStrip({ M }: { M: MoonData }) {
   );
 }
 
-/* Der Mond ohne Bilddatei und ohne SVG (react-native-svg ist nicht
-   installiert und wäre ein Rebuild): eine helle Scheibe, über die ein
-   dunkler Kreis geschoben wird; der Behälter beschneidet auf die Mondform.
-   `waxing` entscheidet die Seite — auf der Nordhalbkugel leuchtet der
-   zunehmende Mond rechts. */
+/* Der ECHTE Mond (Antons Ansage 23.09., nach den gezeichneten Flecken:
+   „Ich würde gerne hier einen echten Mond haben"): `assets/moon-full.png`
+   ist die erdzugewandte Seite, orthografisch aus der NASA-LRO-Mondkarte
+   projiziert (svs.gsfc.nasa.gov, LROC „CGI Moon Kit" — gemeinfrei,
+   NASA-Daten; Projektionsrezept im WORKLOG 23.09.). Darüber liegt wie
+   bisher der Phasen-Schatten: ein dunkler Kreis, den `illum` zur Seite
+   schiebt; der Behälter beschneidet auf die Mondform. `waxing`
+   entscheidet die Seite — auf der Nordhalbkugel leuchtet der zunehmende
+   Mond rechts. Kein SVG nötig (react-native-svg wäre ein Rebuild). */
+const MOON_TEXTURE = require("../../assets/moon-full.png");
+
 export function Moon({ illum, waxing, size }: { illum: number; waxing: boolean; size: number }) {
   const k = Math.max(0, Math.min(1, illum));
   /* Der Schatten deckt bei Neumond die ganze Scheibe (Versatz 0) und liegt
@@ -50,8 +56,11 @@ export function Moon({ illum, waxing, size }: { illum: number; waxing: boolean; 
   const shift = (waxing ? -1 : 1) * k * size;
   return (
     <View style={[styles.disc, { width: size, height: size, borderRadius: size / 2 }]}>
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: "#e8eefc", borderRadius: size / 2 }]} />
-      <View style={{ position: "absolute", top: 0, left: shift, width: size, height: size, borderRadius: size / 2, backgroundColor: colors.bg }} />
+      <Image source={MOON_TEXTURE} style={{ width: size, height: size }} />
+      {/* rgba statt colors.bg mit Restdurchlässigkeit: Die Nachtseite des
+          echten Mondes ist nicht Loch-schwarz — man ahnt sie, wie am
+          Himmel bei Erdschein. */}
+      <View style={{ position: "absolute", top: 0, left: shift, width: size, height: size, borderRadius: size / 2, backgroundColor: "rgba(7,10,18,0.93)" }} />
     </View>
   );
 }

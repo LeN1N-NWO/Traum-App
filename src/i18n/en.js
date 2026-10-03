@@ -42,7 +42,7 @@ export default {
     },
     title: "What did you dream?",
     lede: "Tell it while it's still warm — half-asleep works best.",
-    cta: "Record it",
+    cta: "Record your dream",
     streak: (n) => `${n} day${n === 1 ? "" : "s"}`,
     streakPerk: (n, max) => `Night ${n} of ${max} — the creatures are coming rarer.`,
     streakRisk: "You wrote last night. Tonight keeps the run going — no rush, it holds until you sleep.",
@@ -58,12 +58,47 @@ export default {
     blankCta: "Nothing stayed with me",
     blankHint: "Keeps your streak — no dream invented",
     blankDone: "🌙 Noted. The night counts.",
+    /* Die Startseite „Deine Nächte" (27.09.). */
+    /* Die Startseite „Der Mond von heute Nacht" (27.09.). */
+    moonLabel: (phase) => `Last night · ${phase}`,
+    articleHeading: "From the research",
+    articleMore: "Read",
+    streakZero: "Start your streak",
+    intentionHeading: "Last night you wanted to dream about",
+  },
+  /* Der Traum-Vorsatz im Schlaf-Tab (27.09.). */
+  /* Dein Sternbild auf der Startseite (28.09.). */
+  sky: {
+    unnamed: "The ???",
+    named: "Your constellation",
+    progress: (lit, of) => `${lit} of ${of} nights`,
+    /* Was am Ziel der Stufe wartet — kurz fürs Schild, lang für die Zeile. */
+    chip: (r) => `+${r.credits} ✦`,
+    reward: (r) => [`+${r.credits} ${r.credits === 1 ? "credit" : "credits"}`, r.name ? "its name" : null, r.snooze ? "a snooze night" : null].filter(Boolean).join(" · "),
+    until: (left, reward) => `${left} more ${left === 1 ? "night" : "nights"} to: ${reward}` + ".",
+    gift: (stage, credits, snooze) => `✦ ${stage} nights — ${credits} ${credits === 1 ? "credit" : "credits"}${snooze ? " and a snooze night" : ""} from us`,
+    complete: "Your constellation is complete. Every star is a night you kept.",
+    hint: "Every night you note lights a star.",
+    names: {
+      water: "The Swimmer", flying: "The Flyer", falling: "The Falling One", chase: "The Hunted", home: "The House",
+      city: "The City", forest: "The Forest", sky: "The Stargazer", lost: "The Wanderer", missing: "The Latecomer",
+      exposed: "The Unveiled", teeth: "The Smile", animal: "The Beast", monster: "The Dragon", family: "The Family",
+      stranger: "The Stranger", partner: "The Lovers", fear: "The Watcher", joy: "The Dancer", grief: "The Mourner",
+    },
+  },
+  intention: {
+    title: "What would you like to dream about?",
+    lede: "Hold one picture in mind as you fall asleep. In the morning we'll ask whether it showed up.",
+    placeholder: "the sea house, flying, grandma's kitchen …",
+    save: "Keep it for tonight",
+    saved: "Tonight's intention",
+    clear: "Change",
   },
 
   /* Der Morgen-Check-in (Mehrwert P2a): eine Frage, drei grobe Stufen —
      beantwortbar, bevor man wach ist. */
   checkin: {
-    question: "How did you sleep?",
+    question: "How did you sleep today?",
     levels: { 1: "rough", 2: "okay", 3: "well" },
     emoji: { 1: "🌑", 2: "🌗", 3: "🌕" },
     thanks: "Noted — sleep and dreams meet in your atlas.",
@@ -822,15 +857,17 @@ export default {
     tooShort: "⚠ Write a little more first.",
     caught: (name) => `✦ ${name} joined your menagerie`,
     /* Der Rekorder (ADR-0007): einsprechen, fertig — keine Rückfragen. */
-    record: "Tell it out loud", recordHint: "Just talk. I'll write it down.",
+    record: "Tell it out loud", recordHint: "Tap the moon and just talk. I'll write along.",
     recording: "Listening…", recordStop: "Done", recordDiscard: "Discard", recordTranscribing: "Writing it down…",
     recordTooShort: "That was too short — try again.", recordFailed: "Couldn't write that down. Try again.",
     recordAgain: "Record again", yourRecording: "Your recording",
     /* Recorder first (Anton, 13.09.): record → listen back → write it down → add to it. */
     reviewTitle: "Listen back", reviewHint: "Sounds right? Then I'll write it down.",
+    /* Die Sprechblase des Maskottchens nach der Aufnahme (26.09.) — wechselt alle paar Sekunden. */
+    mascotReview: ["That was quite a night! Want to hear it again?", "Tap play — I'll listen along.", "Sounds right? Then I'll write it down for you."],
     recordListen: "Play", recordPause: "Pause", recordTranscribe: "Write it down", recordRetake: "Record again",
     typeInstead: "Type instead", textTitle: "Your dream", textLede: "From your recording. Read it through and add what's missing.",
-    tellMore: "Keep telling", rewriteAll: "Start over",
+    tellMore: "Keep telling", rewriteAll: "Start over", editText: "Edit the text",
     interview: "Tell it out loud",
     interviewHint: "I'll ask, you talk — eyes closed if you like",
     reading: "Working out your dream…",
@@ -881,6 +918,8 @@ export default {
     step2: {
       title: "What should become of it?",
       saveOnly: "Just save it",
+      saveCta: "Save it",
+      filmCta: "Make the film",
       saveOnlyHint: "Into your journal, nothing generated",
       images: "A photo story",
       imagesHint: "Stills of your dream, in order",
@@ -929,6 +968,19 @@ export default {
       removeLabel: (name) => `Remove ${name}`,
       pickTitle: (name) => `Who is “${name}”?`,
       libraryEmpty: "Your library is still empty.",
+      /* Karte für Karte (26.09., Antons Wahl „C"): eine Figur je Bildschirm. */
+      stepOf: "{i} of {n}",
+      whoYou: "How do you appear?",
+      nextName: "Next · {name}",
+      missing: "Someone missing?",
+      tilePhoto: "This photo",
+      tileAi: "AI invents",
+      tileNew: "New photo",
+      fromLibrary: "From your library",
+      libraryEmpty: "No faces in your library yet — “New photo” adds one.",
+      placesTitle: "Places & things",
+      placesHint: "The AI invents them — or tap one to give it a real photo, of the place or the thing.",
+      noPeople: "Nobody in particular — the AI invents everyone.",
     },
 
     step5: {
@@ -947,18 +999,28 @@ export default {
       filmModelLabel: "Which model",
       filmModels: {
         standard: {
-          name: "Alive", hint: "your opening image starts to move, with sound · up to 15 seconds",
+          name: "Glow", hint: "your opening image starts to move, with sound · up to 15 seconds",
+          badge: "Best price",
           model: "MiniMax H3 Max Turbo",
           info: "The quick tier: it brings your opening image convincingly to life, sound included, and carries up to four reference photos so the real faces stay themselves. Films top out at 15 seconds. Pick the quality below — the credits per second are shown on the switch.",
         },
         premium: {
-          name: "Cinema", hint: "up to 30 seconds in one take, with sound",
+          name: "Aurora", hint: "up to 30 seconds in one take, with sound",
           badge: "Best quality",
           model: "Seedance 2.5",
           info: "The longest story: one unbroken take of up to 30 seconds, with sound and second-precise timing — and your reference photos stay in the film the whole way. Pick the quality below; the sharp tier costs more than double here, the credits are on the switch.",
         },
+        /* Die Traum-Skizze (24.09.2026): entsteht auf dem iPhone selbst,
+           kostet keine Credits. Nur auf Geräten, die es können. */
+        sketch: {
+          name: "Glimpse", hint: "4 to 12 scenes with your faces, music and sound — the film is made on your iPhone",
+          badge: "Cheapest",
+          model: "GPT Image 2 + your iPhone",
+          info: "The quick, cheap way into your dream: four, eight or twelve scenes are painted in your chosen look — with the faces from your cast — while music and ambient sound are made to match. Your iPhone then measures how deep every scene is and flies a camera through it; the sound effects are then made from the finished film. No real motion of people, but a moving memory in seconds. Five a month are free.",
+        },
       },
       qualityLabel: "Quality",
+      holdHint: "Press and hold a model to learn more",
       aboutModel: "About this model",
       aboutStyle: "About this style",
       moreStyles: (n) => `More styles (${n})`,
@@ -1017,6 +1079,62 @@ export default {
       failedTitle: "That didn't work",
       failedNote: "Nothing was charged — your credits are untouched.",
       failedHome: "Back to start",
+    },
+
+    /* Die Traum-Skizze — dream/sketch.tsx. Platzhalter {i} {n} {done} {total}
+       werden nativ ersetzt (die Brücke reicht nur Zeichenketten). */
+    sketch: {
+      title: "Glimpse",
+      lede: "Scenes from your dream in the look you picked — with the faces from your cast, music and sound. Your iPhone turns them into a film with depth.",
+      queuedTitle: "Your Glimpse is on its way",
+      queuedBody: "Feel free to look around the app. It will appear in your journal, and you'll get a notification as soon as it's ready.",
+      toJournal: "Go to journal",
+      readyTitle: "Your Glimpse is ready ✨",
+      readyBody: "“{title}” — tap to watch it.",
+      stripsTitle: "How many pictures?",
+      stripOption: "{scenes} scenes\n{seconds} seconds",
+      stripFits: "Fits your dream",
+      soundNote: "With music and ambient sound, made for this dream",
+      createCredits: "Create Glimpse · {n} credits",
+      priceShort: "{n} cr",
+      freeShort: "Free",
+      needsModel: "One-time download",
+      modelInfo: "The first time, your iPhone loads a small depth model (about 50 MB).",
+      download: "Download · {mb} MB",
+      downloading: "{done} of {total} MB",
+      cancel: "Cancel",
+      creating: "Painting your scenes…",
+      rendering: "Moving the camera through your dream…",
+      saving: "Putting it in your journal…",
+      stayHint: "Keep the app open until it's done.",
+      failed: "The Glimpse didn't work out.",
+      retry: "Try again",
+      unsupported: "Glimpse isn't available on this device.",
+      create: "Create Glimpse · Free",
+      createCredit: "Create Glimpse · {n} credit",
+      freeLeft: "{n} free Glimpses left this month",
+      noneLeft: "Your free Glimpses for this month are used up",
+      takeLabel: "Glimpse",
+      photoTitle: "With the faces from your cast",
+      photoHint: "{name} — as the model for the characters, painted in your look.",
+      preparing: "Reading your dream…",
+      priceFree: "Free · {n} left this month",
+      creditWord: "credit",
+      working: [
+        "Reading your dream…",
+        "Finding the right light for your look…",
+        "Placing everyone in the scene…",
+        "Painting the moments of your night…",
+        "Composing the music for your dream…",
+        "Checking the faces…",
+        "Almost there — the last brushstrokes…",
+      ],
+      filming: [
+        "Measuring how deep every scene goes…",
+        "Setting up the camera…",
+        "Letting the dust drift…",
+        "Rolling the film…",
+      ],
     },
 
     step6: {
@@ -1282,6 +1400,12 @@ export default {
     sleepDream: (y) => `Around ${y} of those years you spend dreaming. Don’t let them slip past — take them back, watch them, make them part of you.`,
     sleepNote: "Based on your answer and an average lifespan of 80 years.",
     sleepLegend: { life: "80 years of life", sleep: "Sleep", dream: "Dreams" },
+    /* Die Nachtskala (27.09.): der Mond als Regler, die Zahlen rechnen live. */
+    sleepScale: { hours: "{n} h", decimal: ".", hint: "Slide the moon", short: "short nights", long: "long nights",
+      perNight: "asleep each night", dreaming: "of it dreaming", yearsAsleep: "of your life asleep", yearsDreaming: "of it dreaming" },
+    /* Die Ziele als große Worte (27.09.) — kurz, weil sie groß stehen. */
+    goalWords: { remember: "Remembering more", understand: "Understanding them", create: "Films of my nights", "sleep-better": "Sleeping better", nightmares: "Fewer bad dreams" },
+    goalHint: "Tap everything that's true.",
     /* Tiles carry only their label now (Moonly reference); the sentences
        become the subtitle. */
     featuresLede: "Tell your dream half-asleep, watch it as a film, keep every night.",

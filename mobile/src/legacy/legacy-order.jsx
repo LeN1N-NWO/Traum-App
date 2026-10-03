@@ -26,7 +26,7 @@ export default function LegacyOrder({ order, safeTop = 0, safeBottom = 0, dom })
       entryId: order.entryId || undefined,
       text: order.text, originalText: order.originalText || order.text, analysis: order.analysis,
       title: order.analysis?.title || "", tagline: order.analysis?.tagline || "", mode: order.mode || "film", urls: [],
-      prefill: { styleId: order.styleId, pace: order.pace, videoModel: order.videoModel, quality: order.quality, seconds: order.seconds, step: 5 },
+      prefill: { styleId: order.styleId, pace: order.pace, videoModel: order.videoModel, quality: order.quality, format: order.format || "9:16", seconds: order.seconds, step: 5 },
       /* Film: sofort rendern (Preis stand nativ auf dem Knopf). Bilder: die
          Web-Seite von Schritt 5 zeigt Anzahl und Preis, der Mensch drückt. */
       autoRender: (order.mode || "film") === "film", orderId: order.orderId, assignmentOverrides: order.assignmentOverrides || {},

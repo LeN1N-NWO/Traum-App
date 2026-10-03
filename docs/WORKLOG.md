@@ -3,6 +3,245 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-09-28 10:00 — Anton — Branch `session/2026-09-26e-anton` (PR #70) — Serie aus dem Journal, Sternbild, neue Startseite, Karussell, Abstürze und Dauerlast
+
+**Commits:** 41617c3, 2a94bd6, e494971, ce4b94f, 212724d, c0fbe9c, e0b6dd9, 7520b46, 0682eed, 0b47ea9, 4c1e80f, b27610a (+ Wrap).
+
+**Was:**
+- **Serie:** Mini-Geschenke und Schlummernacht nativ nachgezogen (waren nur
+  im Web). Danach ganz neu: EINE Zählung aus dem Journal (`src/lib/nights.js`)
+  — Traum-Tage = Kalendertage in Ortszeit, „Nichts hängengeblieben" zählt
+  nicht mit, hält die Serie aber offen; Schlummernächte als `snoozeDays`.
+  Die alten Zähler (`state.streak`/`lastDream`, `bumpStreak`) schreibt die
+  App nicht mehr fort.
+- **Startseite:** Faultier raus → C3 (Plakate) → C1 → jetzt **Dein Sternbild**
+  (`src/lib/constellation.js`, `components/constellation-sky.tsx`): 33 Sterne
+  in 6 Stufen (5/8/12/18/25/33), Linien ab dem zweiten Stern, Weg der
+  laufenden Stufe gestrichelt, Meilenstein als atmender Goldstern mit
+  Schild, übernächste Stufe als Nebel, Vorschau beim ersten Anschauen und
+  bei jedem Tipp, Name nach dem häufigsten Motiv („Der ???" bis Stufe 1).
+  **Belohnung je Stufe** (Antons Ansage: mindestens 1 Credit): 5 → +1 &
+  Name, 8 → +1 & Schlummernacht, 12 → +2, 18 → +2, 25 → +3, 33 → +5.
+  Serien-Seite (`components/streak-sheet.tsx`) animiert, Pille immer da.
+  Artikel des Tages aus dem Wissen.
+- **Onboarding:** Klarträume, Zeitbudget, Begleiter-Wahl, „Anything that
+  keeps coming back" raus; große Worte (Ziele), Mondphasen mit echtem Mond
+  (Erinnerung), Mond-Regler mit Live-Jahren (Schlafdauer); „That's it" mit
+  Hintergrundfilm (Platzhalter).
+- **Knöpfe:** Lichtstrahl (Border Beam) auf Hauptknöpfen, atmender Goldrand
+  bei Credit-Knöpfen (`spend`).
+- **Journal:** Karussell mit Fokus, 3D-Neigung und Blur (`dream-carousel.tsx`).
+- **Film-Schleife** (Hannis Befund): nachgereichter Ton schrieb die
+  laufende Datei um → Kopie + `sketchSwap`, Sicherheitsnetz im Player.
+- **Abstürze:** Speicherüberlauf beim Start — Fotos steckten als Data-URL in
+  jedem Traum (jetzt `castImages`, 30,6 → 1,1 MB je Übergabe); Pachten
+  weckten per `storage`-Ereignis alle Brücken (Dauerfeuer). Dauerlast
+  (cpu_resource 56–63 %): Schatten über bewegten Ebenen, Masken, SVG-
+  Neuzeichnen je Bild → ersetzt; Animationen ruhen auf unsichtbaren Tabs.
+
+**Warum:** Antons Rückmeldungen 27./28.09. und zwei Variantenbücher
+(https://claude.ai/artifact/FQJ8Lvxkr9KfAAVa4odDWt,
+https://claude.ai/artifact/JsPbeLxJoueorTwGHnb3UX).
+
+**Belege:** 833 Tests grün, tsc sauber, Brücken-Schnappschuss unter Bun
+mit Testdaten geprüft (Zählung, Sternbild, Belohnungen). Jeder Stand als
+Release auf Antons iPhone; nach den Fixes keine neuen Abstürze.
+
+**Für den Nächsten:** Im Simulator kamen Tipps in der App zuletzt nicht an
+(auch mit älterem Stand) — UI deshalb nur am iPhone geprüft; Sternbild-
+Animationen, Karussell und Onboarding-Regler am Gerät noch nicht von mir
+gesehen. Ob die Dauerlast-Warnungen ganz weg sind, zeigt erst der Alltag
+(`systemCrashLogs` nach `cpu_resource` sehen). Streak-Geschenke (7/30)
+laufen zusätzlich zu den Sternbild-Stufen.
+
+## 2026-09-26 15:30 — Anton — Branch `session/2026-09-26d-anton` (PR #68) — Glimpse ohne Effekte, Geräusche aus dem fertigen Film
+
+**Was:** Renderer-Schalter `effects` (Partikel, Nebel, Farbstufe aus für
+Glimpse). Ton-Endpunkt nimmt jetzt den fertigen Film (multipart); MMAudio
+v2 macht die Geräusche aus dem Film, ACE-Step die Musik, Mix zurück; die
+GlimpseLayer rendert stumm → lädt hoch → legt den Ton unter → erst dann
+Journal + Benachrichtigung.
+
+**Warum:** Antons Ansage: „Partikel und die darüberliegenden Farben
+entfernen" und „Video ohne Ambience erstellen, in die Cloud hochladen,
+dort Audiospuren und SFX passend zum Bild einarbeiten".
+
+**Belege:** Mac-Probe mit/ohne Effekte (Standbild-Vergleich); Server-Test
+mit echtem Glimpse-Film: 1. Versuch Film-Geräusche im 60-s-Zeitlimit
+(Kaltstart), 2. Versuch 104 s, beide Spuren, Pegel −18 dB/−4,8 dB.
+821 Tests, tsc, Lint, i18n grün. Build auf Antons iPhone.
+
+**Für den Nächsten:** Ganzer Glimpse mit Film-Ton am iPhone steht aus.
+fal-Kaltstarts bleiben das Zeitproblem beim Ton (evtl. Queue-API oder
+Aufwärmen). Die Brücken-Befehl `sketchSound` (Text-Weg) ist ungenutzt.
+
+## 2026-09-26 15:00 — Anton — Branch `session/2026-09-26c-anton` (PR #67) — Glimpse-Absturz, Protokoll, echter Mond, ruhige Glühwürmchen, schneller Ablauf
+
+**Was:** (1) Absturzbericht vom iPhone geholt und ausgewertet: Speicher
+lief beim Rendern voll (kein Autorelease-Pool je Filmbild) → Pools
+eingebaut, Mac-Messung 4,9 → 0,96 GB bei 12 Szenen; Tiefe NaN-fest.
+(2) Protokoll für Glimpse-Aufträge mit Wiederaufnahme und Aufräumen
+verwaister „Rendering"-Einträge. (3) Echter Mond aus der NASA-LRO-Karte
+als Aufnahmeknopf. (4) Glühwürmchen mit freien, geglätteten Bahnen.
+(5) Stopp → sofort aufschreiben → sofort KI-Lesen. (6) „KI erfindet" als
+Vorgabe ohne Foto.
+
+**Warum:** Antons iPhone-Test: App abgestürzt, danach Endlosschleife
+„Rendering"; „ich will den echten Mond"; „die Glühwürmchen zittern";
+„alles beschleunigen"; „KI erfindet vorauswählen".
+
+**Belege:** Crash-Log (EXC_BREAKPOINT in __DataStorage.init, Thread
+dreamrushes.sketch); Mac-Probe alt/neu mit 12 Szenen (/usr/bin/time -l);
+Simulator: Traum-Tab mit echtem Mond und verteilten Glühwürmchen
+angesehen. 821 Tests, tsc, Lint, i18n grün. Build auf Antons iPhone.
+
+**Für den Nächsten:** Wiederaufnahme/Aufräumen nach echtem Absturz noch
+nicht beobachtet. Glühwürmchen mit Stimme und der neue Sofort-Ablauf nur
+am Gerät prüfbar. Der „Das Känguru gewinnt"-Traum wird beim ersten Start
+als gescheitert markiert (vor dem Protokoll entstanden).
+
+## 2026-09-26 13:00 — Anton — Branch `session/2026-09-26b-anton` (PR #66) — Glimpse mit Länge, Ton und Hintergrund; Traum-Tab mit Mond und Glühwürmchen
+
+**Was:** (1) Vorschläge-Seite Traum-Tab/Frosch (Artifact); Anton wählte
+Sternschnuppen-Himmel, Mond als Aufnahmeknopf, Glühwürmchen. (2) Test
+„parallel vs. verkettet vs. Mittelweg" für längere Glimpses (9 Bilder,
+≈ $0,17) — Anton: parallel reicht. (3) Ton-Test MMAudio/ACE-Step auf einem
+Glimpse-Film (≈ 2 Cent). (4) Glimpse: 1–3 Bilder wählbar, parallel, Ton
+parallel über `/api/sketch-sound`, 5 gratis/Monat, dann Credits.
+(5) Glimpse im Hintergrund mit Übergabe wie beim Film und Benachrichtigung.
+(6) Traum-Tab und Profil mit Nachthimmel, Mond-Knopf, Glühwürmchen.
+
+**Warum:** Antons Ansagen („Warum keine Länge bei der Skizze?", „Audio im
+Hintergrund parallel", „5 kostenlose, dann Credits", „kalter Start — wie
+bei den Filmen weiterschicken", „Mond in der Mitte, Glühwürmchen drum").
+
+**Belege:** 821 Tests (neu: sketchSound, sketchQuota inkl. Einkauf ≤
+Erlös), tsc, Lint, i18n grün. Server-Ton zweimal echt (7 s warm, einmal
+115 s kalt); Simulator: Traum-Tab angesehen, Glimpse mit 2 Bildern Ende zu
+Ende im Hintergrund (Journal „Rendering…" → fertig). Build auf Antons iPhone.
+
+**Für den Nächsten:** Tonspur im Film am iPhone prüfen (Nachreichen
+ungetestet). fal-Kaltstarts beim Ton sind real — ggf. Aufwärmen oder
+Queue-API. Frosch-Ideen für „Erzähl ihn laut" offen. Im Simulator rendert
+ein Glimpse ~70 s (iPhone ~5 s).
+
+## 2026-09-26 12:10 — Anton — Branch `session/2026-09-26-anton` (PR #65) — Klick-Fehler, Modell-Schritt auf einem Bildschirm, Glimpse/Glow/Aurora, Besetzung aus der Bibliothek, Format, Aurora 1080p
+
+**Was:** (1) Vorschläge-Seite (Artifact) mit drei Leuchtrand-Varianten,
+drei Layouts für den Modell-Schritt und drei Namensleitern; Anton wählte
+Nordlicht, Layout A (+ Beispielfilm des gewählten Modells) und
+Glimpse/Glow/Aurora. (2) Modell-Schritt neu: Karten nach Preis, native
+Menüs für Qualität/Tempo/Format, Film + Text, Regler, Knopf — alles ohne
+Scrollen. (3) Besetzung: Bibliothek-Kachel durch gefächerte Gesichter
+ersetzt; „Orte & Dinge". (4) Seedance 1080p (42 Cr/s); Vorgabe überall
+die günstigste Stufe. (5) Filmformat wählbar — `api.generate` verwarf
+`format`, Web und App schickten es ins Leere. (6) Leuchtrand in drei
+Anläufen: Nordlicht aus Segmenten war Anton am Gerät zu „Schlange", jetzt
+eine Linie mit mitlaufendem Verlauf. (7) **Fehler gefunden:** nach dem
+Tippen blieb der Traum-Bildschirm um die Tastaturhöhe verkürzt, die
+Vorschau-Knöpfe waren nicht treffbar.
+
+**Warum:** Antons Liste nach dem iPhone-Test („Leuchtrand billig",
+„Bibliothek-Feld weg", „Orte sind keine Orte", „1080p fehlt bei Kino",
+„alles auf einen Screen", „Aspect-Ratio fehlt") und sein „kann nicht
+klicken" vom Vortag.
+
+**Belege:** Simulator Ende zu Ende: Einführung → Tippen → Auswerten →
+„Diese Fassung verwenden" (vorher tot, jetzt weiter) → Filmkacheln →
+Besetzung (Gesicht wählen, Orte & Dinge) → Stil → Modell-Schritt (Menüs
+öffnen, Aurora zeigt 480p/720p/1080p, Preis 121 Credits für 15 s). Fehler
+eingegrenzt über Tipps oberhalb/unterhalb der Tastaturkante. Leuchtrand
+als Bildfolge im Simulator. 813 Tests, tsc, Lint, i18n grün. Build läuft
+auf Antons iPhone.
+
+**Für den Nächsten:** Server 8100 läuft aus dem Worktree (braucht die
+neue Qualitätstabelle). Nächstes für den Maskottchen-Leitfaden: mehrere
+zufällige Lade-Videos als kleine Stories (Antons Ansage). Beispielfilme
+sind Platzhalter. 16:9/1:1 ungerendert.
+
+## 2026-09-26 01:30 — Anton — Branch `session/2026-09-25-anton` (PR #62) — Traum-Skizze aus der Cloud (Hochkant-Streifen), Design-Runde, Besetzung Karte für Karte
+
+**Was:** Die Traum-Skizze ist in drei Stufen gewachsen und am Ende umgebaut:
+(1) v3 auf dem Gerät — Szenen-Prompts per DeepSeek (`/api/sketch-prompts`),
+Foto-Eröffnung per Bild-zu-Bild, Morph über gemischte Prompt-Einbettung
+(einzige Änderung am Apple-Code, UPSTREAM.txt), neuer Renderer (schwebende
+Kamera, Vertigo, Nebel, Teilchen), zweiter Maler DreamShaper 8. (2) Nach
+Antons Kostenrechnung und Raster-Test (GPT low / FLUX.2 klein / Kontext
+dev): **Cloud-Raster statt Gerätemaler** — `/api/sketch-grid`,
+`sketchQuota.js` (3 gratis/Monat, dann 1 Credit), iPhone nur noch Tiefe
++ Film. (3) Nach Antons iPhone-Test: Look ZUERST im Prompt, Foto nur als
+Identität (`buildSketchGridPrompt`), keine Foto-Eröffnung; dann auf Antons
+Befund „9:16 wird gecroppt" **vier Hochkant-Felder nebeneinander**
+(2304×1024), Renderer/Tiefe/Schnitt für freie Formate.
+Dazu die Design-Runden: Vorschau „Verbessert" oben, Stilwahl mit Haken und
+Pfeilen, Abzeichen und Preis an den Modellen, Info-Blatt beim
+Gedrückthalten, umlaufender Leuchtrand (`orbit-glow.tsx`), Filmkacheln mit
+Glaswelle auf „Was soll daraus werden?", Nachhören mit Maskottchen, Traum-Tab
+ohne Auto-Aufnahme, **Besetzung Karte für Karte** (Antons Wahl „C"),
+Menüleiste ohne Schrumpfen.
+
+**Warum:** Antons Befunde am Gerät („Kontext komisch", „Stil kam nicht
+durch", „eigenes Foto als Ausgang", „9:16 gecroppt", „Menü-Buttons oft nicht
+klickbar", „Aufnahme soll nicht von selbst starten") und seine
+Designwünsche.
+
+**Belege:** Raster-/Stil-/Streifen-Tests über den echten Server (fal ≈ $0,35
+gesamt); Nebel-Fehler per CIAreaAverage gefunden (Alpha im Zufallsgenerator,
+Dichte 0,68 statt 0,1); Mac-Probe Neural Engine 12 s/Bild; Streifen-Film in
+4,9 s. Simulator Ende zu Ende (2×2-Stand) und Besetzung/Kacheln/Leuchtrand
+angesehen. 786 Tests, tsc, Lint, i18n grün. Preflight B8 grün.
+
+**Für den Nächsten:** Letzter Build liegt in `~/.dr-dd-anton`, war beim
+Wrap nicht aufs iPhone zu bringen (Gerät „unavailable"). Server 8100 läuft
+aus diesem Worktree. Kontext-Endpunkt `/api/sketch-prompts` und der
+SD-Gerätemaler sind im Code, aber seit dem Cloud-Umbau ungenutzt —
+aufräumen, wenn der Cloud-Weg sich am Gerät bewährt. Seedance 2.5 hat
+einen Draft-Modus (480p → 1080p binnen 7 Tagen), Preis der Fertigstellung
+ungemessen. Commits: 6abe476 … 69c0bae (+ Merge).
+
+## 2026-09-25 08:25 — Anton — Branch `session/2026-09-23-anton` (PR #56) — Traum-Skizze (gratis, auf dem iPhone) mit Tiefe, echter Mond, Begleiter-Plan
+
+**Commits:** `edcd6b6` Begleiter-Plan + Warte-Frosch transparent · `bb9200a`
+/ `98d5fa1` Mond (Mare, dann echter NASA-Mond) · `60c3a25` Notiz Bundle-ID
+an Hanni · `36ee025` Recherche Traum-Skizze · `cd36b74` Hook-Fix Node 26 ·
+`75155f5` Traum-Skizze v1 · `883fdb2` Tiefe · `f2c084a` Merge main (Hannis
+Medienablage + Sicherheitscheck) · Doku-Commit dieses Eintrags.
+
+**Traum-Skizze (Antons Vision 24.09.: „ohne Credits, durch die eigene
+Rechenleistung auf dem Telefon, keine Templates"):**
+- Recherche (`docs/plans/2026-09-24-traum-skizze-on-device.md`): echtes
+  Text-zu-Video on-device ist Forschung (On-device Sora 10½ min für 256²),
+  Bilder sind gelöst; Apples ImageCreator fällt mit iOS 27 weg.
+- Gebaut: dritte Modellkarte „Skizze · GRATIS" (nur ≥ 8 GB RAM). Lokales
+  Expo-Modul `mobile/modules/dream-sketch` (autolinked, nur `pod install`):
+  Apples ml-stable-diffusion (MIT, ohne SD3/T5) malt je Szene ein Bild auf
+  der Neural Engine, Depth Anything V2 schätzt die Tiefe, eine 2.5D-Kamera
+  (Parallaxe + Dolly) fährt hindurch, Film 576×1024 · ~12 s → Journal über
+  Brücken-Befehl `sketch`. Modelle ~940 MB, einmal nachgeladen, aus dem
+  iCloud-Backup ausgenommen.
+- Belegt: Simulator Ende zu Ende (zweimal, einmal mit Tiefe inkl. On-Device-
+  Kompilierung); Mac-Probe mit denselben Swift-Dateien (ganzer Film 1,5 s).
+  ⚠ Auf Antons iPhone noch NICHT gelaufen: v1 installiert, Tiefe gebaut aber
+  nicht installiert (Gerät war „unavailable").
+
+**Sonst:** Warte-Frosch nativ ohne schwarzen Kasten (HEVC-Alpha);
+Mond-Streifen zeigt die echte Mondoberfläche (NASA LRO, orthografisch
+projiziert); Begleiter-Plan (4 Animationen fehlen: Faultier/Eule je Idle
++ Tipp); Hanni-Punkte gemerkt, Bundle-ID-Umstellung probiert — Apple lehnt
+sie für Antons Gratis-Team ab (Notiz an Hanni); SessionStart-Hook und
+Checkpoints liefen unter Node 26 nicht (`scripts/package.json` commonjs).
+
+**Was der Nächste wissen muss:**
+- ⚠ Der Merge mit Hannis Medienablage braucht auf Antons Mac: `bun install`
+  in `mobile` (neuer expo-secure-store-Patch) → **EventEmitter-Patch neu**
+  (bun install löscht ihn) → `pod install` → neuer Bau. **KEIN Prebuild**
+  auf Antons Mac (Gratis-Team, Push-Entitlement) — Hannis Notiz sagt
+  „Prebuild", das gilt nur für ihren Mac.
+- Skizzen liegen nur auf dem Gerät (`Documents/sketches`) und sind NICHT in
+  Hannis verschlüsselter Sicherung — nach Neuinstallation fehlt der Film
+  (Traumtext kommt zurück). Vor Mehrgeräte-Nutzung klären.
+- Preflight: 5 Blocker (die 4 Testphasen-Schalter + neu B8: Skizze ohne
+  Inhaltsprüfung).
 ## 2026-09-25 — Hanni — Branch `session/2026-09-25-hanni` (PR #63) — Speicher-Modul für Schritt C, VPS und Domains
 
 **Commits:** `2305857` media-store.js + Tests · `1c72a70`, `3244ba7`,

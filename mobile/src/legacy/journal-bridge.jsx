@@ -12,14 +12,17 @@
 import "./vite-env.js";                       // ⚠ zuerst, API_BASE
 import { useEffect } from "react";
 import { loadState, saveState } from "../../../src/lib/storage.js";
-import { refreshStreak, streakAtRisk, bumpStreak, STREAK_CAP } from "../../../src/lib/streak.js";
+import { STREAK_CAP } from "../../../src/lib/streak.js";
+import { dreamNightCount, snoozeBridge, snoozeEarn, streakInfo } from "../../../src/lib/nights.js";
 import { hasPendingJobs, collectTick } from "../../../src/lib/collector.js";
 import { failureTextKey } from "../../../src/lib/falError.js";
 import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend, applyAllowanceGrant } from "../../../src/lib/credits.js";
-import { analyze, reflect, refine, characterSheet, generate, photoCheck } from "../../../src/lib/api.js";
+import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchGrid, sketchSound } from "../../../src/lib/api.js";
+import { pickParticles, buildSketchGridPrompt } from "../../../src/lib/sketchPrompt.js";
+import { sketchFreeLeft, sketchCost, countSketch, sketchTiming, clampStrips, SKETCH_STRIPS, SCENES_PER_STRIP } from "../../../src/lib/sketchQuota.js";
 import { quoteFor } from "../../../src/lib/quote.js";
 import { buildReferences, buildImagePrompt } from "../../../src/lib/promptBuilder.js";
 import { renderRef, needsSheet, sheetFingerprint } from "../../../src/lib/sheets.js";
@@ -27,7 +30,8 @@ import { selectBeats, shotPlan } from "../../../src/lib/cut.js";
 import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PACE } from "../../../src/lib/video.js";
 import { startsFree } from "../../../src/wizard/useWizard.js";
 import { beatsForCount } from "../../../src/lib/beats.js";
-import { reflectionContext } from "../../../src/lib/atlas.js";
+import { reflectionContext, realDreams as realDreamsOf, symbolCounts } from "../../../src/lib/atlas.js";
+import { SKY_REWARDS, skyGift, skyState } from "../../../src/lib/constellation.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
 import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
@@ -45,7 +49,7 @@ import { MASCOTS, DEFAULT_MASCOT } from "../../../src/lib/mascots.js";
 import { zodiacOf } from "../../../src/lib/zodiac.js";
 import { SYMBOLS, SYMBOL_CATEGORIES, symbolOccurrences } from "../../../src/lib/symbols.js";
 import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
-import { MILESTONES, nextMilestone, giftAt } from "../../../src/lib/streakBoard.js";
+import { MILESTONES, nextMilestone, giftAt, giftFor } from "../../../src/lib/streakBoard.js";
 import { nextSnoozeIn } from "../../../src/lib/streak.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
 import { genId } from "../../../src/lib/storage.js";
@@ -78,11 +82,20 @@ function sleepOn(checkins, key) {
 }
 
 function takeLabel(f) {
+  if (f.kind === "sketch") return (t.wizard.sketch?.takeLabel || "Sketch") + (f.seconds ? ` · ${f.seconds}s` : "");
   const pace = f.pace ? t.wizard.step5.paceNames?.[f.pace] || f.pace : t.journal.takeUnknown;
   return pace + (f.seconds ? ` · ${f.seconds}s` : "");
 }
 
+/* Die Serie — seit 28.09. aus dem Journal gerechnet (src/lib/nights.js),
+   nicht mehr aus mitgeführten Zählern. Sterne, Serie und Geschenke sehen
+   damit dieselben Tage. */
+function streakOf(st) {
+  return streakInfo(st.journal, { bridged: st.snoozeDays || [] });
+}
+
 function snapshot() {
+  const castImages = {};
   const s = loadState();
   const items = (s.journal || [])
     .filter((e) => !isBlank(e))
@@ -119,32 +132,89 @@ function snapshot() {
         originalText: e.originalText && e.originalText !== e.text ? e.originalText : null,
         /* Die Besetzung dieses Traums (CastChips): Fotos der Personen, die
            per @tag im Traum standen — aus Bibliothek und „me". */
+        /* ⚠ Fotos als Verweis `cast:<tag>`, nicht als Bilddaten (27.09.,
+           Absturz auf Antons iPhone): Das eigene Foto ist eine Data-URL von
+           einigen hundert KB und stand in JEDEM Traum, in dem man vorkommt —
+           mal acht Brücken, bei jeder Übergabe. Mit wachsendem Journal lief
+           der Speicher der App über (WebKit-IPC, out of memory). Die Bilder
+           gehen jetzt EINMAL mit (castImages), die native Seite setzt sie
+           ein (journal-store setJournal). */
         cast: (e.references || []).map((r) => {
           const c = r.tag === "me" ? (s.me?.img ? { tag: "me", img: s.me.img } : null) : (s.cast || []).find((x) => x.tag === r.tag);
-          return c ? { tag: c.tag, img: c.img || null } : { tag: r.tag, img: null };
+          if (!c) return { tag: r.tag, img: null };
+          if (typeof c.img === "string" && c.img.startsWith("data:")) { castImages[c.tag] = c.img; return { tag: c.tag, img: `cast:${c.tag}` }; }
+          return { tag: c.tag, img: c.img || null };
         }),
       };
     })
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   /* Die Startseite: Serie, offene Aufträge, heutige Nacht, Check-in,
      letzter Traum — dieselben Regeln wie HomeScreen.jsx, nur als Daten. */
-  const streak = refreshStreak(s).streak || 0;
+  /* Der Traum-Vorsatz (27.09., Antons Ansage: „What would you like to
+     dream about?" gehört in den Schlaf-Tab): abends notiert, gilt bis zum
+     nächsten Mittag — dann erinnert die Startseite daran. */
+  const intentionAt = s.intention?.at ? new Date(s.intention.at).getTime() : 0;
+  const intention = intentionAt && Date.now() - intentionAt < 18 * 3600 * 1000 ? String(s.intention.text || "") : "";
+  const run = streakOf(s);
+  const streak = run.streak;
   const last = items[0] || null;
   const today = checkinOn(s.checkins);
   const home = {
     streak,
-    atRisk: streakAtRisk(s),
+    atRisk: run.atRisk,
     rendering: hasPendingJobs(s.journal),
     nightMarked: nightMarked(s.journal),
     checkin: today ? today.sleep : null,
     lastId: last ? last.id : null,
-    streakLine: streak > 0 ? t.home.streak(streak) : "",
-    streakNote: streak > 0 ? (streakAtRisk(s) ? t.home.streakRisk : t.home.streakPerk(Math.min(streak, STREAK_CAP), STREAK_CAP)) : "",
+    streakLine: streak > 0 ? t.home.streak(streak) : t.home.streakZero,
+    streakNote: streak > 0 ? (run.atRisk ? t.home.streakRisk : t.home.streakPerk(Math.min(streak, STREAK_CAP), STREAK_CAP)) : "",
     checkinLevels: SLEEP_LEVELS.map((l) => ({ level: l, label: t.checkin.levels[l], emoji: t.checkin.emoji[l] })),
+    /* Die Startseite „Deine Nächte" (27.09., Antons Wahl C3): die letzten
+       Träume als Plakate, dazu EIN Motiv, das wiederkehrt — aus den letzten
+       zehn echten Träumen, erst ab zweimal. */
+    /* Die Startseite „Der Mond von heute Nacht" (Antons Wahl 27.09., C1):
+       der echte Mond der letzten Nacht, ein Artikel aus dem Wissen — jeden
+       Tag ein anderer —, und für die Serien-Seite die letzten sieben Nächte. */
+    moon: (() => {
+      const m = moonForNight(new Date(Date.now() - 12 * 3600 * 1000));
+      return { illum: m.illum, waxing: m.waxing, label: t.home.moonLabel(t.moon.phases[m.phase] || m.phase) };
+    })(),
+    article: (() => {
+      const cards = [...(t.knowledge?.cards || [])].sort((a, b) => b.year - a.year);
+      if (!cards.length) return null;
+      const c = cards[Math.floor(Date.now() / 864e5) % cards.length];
+      return { id: c.id, title: c.title, meta: `${t.knowledge.categories?.[c.category] || c.category} · ${c.year}` };
+    })(),
+    /* Dein Sternbild (28.09., Antons Wahl): Nächte zählen, Name nach dem
+       häufigsten Motiv — erst, wenn die erste Stufe voll ist. */
+    sky: (() => {
+      const nights = dreamNightCount(s.journal);
+      const st = skyState(nights);
+      const top = st.done ? symbolCounts(realDreamsOf(s.journal))[0] : null;
+      const S = t.sky;
+      const r = st.next ? SKY_REWARDS[st.next] : null;
+      return {
+        nights, introSeen: !!s.skyIntroSeen,
+        name: st.done ? (top && S.names[top.id]) || S.named : S.unnamed,
+        line: st.complete ? S.complete : S.until(st.left, S.reward(r), st.done === 0),
+        count: st.next ? S.progress(st.lit, st.next) : S.progress(st.lit, st.lit),
+        chip: r ? S.chip(r) : "",
+        hint: S.hint,
+      };
+    })(),
+    week: (() => {
+      const key = (d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+      const nights = new Set((s.journal || []).map((e) => key(new Date(e.createdAt))));
+      return Array.from({ length: 7 }, (_, k) => {
+        const d = new Date(Date.now() - (6 - k) * 864e5);
+        return { weekday: d.getDay(), done: nights.has(key(d)), today: k === 6 };
+      });
+    })(),
+    intention,
     /* Die Meilenstein-Leiter hinter der Serien-Pille (StreakBoard.jsx). */
     board: (() => {
       const nxt = nextMilestone(streak);
-      const snoozes = s.snoozes || 0, nextIn = nextSnoozeIn(s);
+      const snoozes = s.snoozes || 0, nextIn = nextSnoozeIn({ snoozes, streak });
       return {
         title: t.streakBoard.title, nights: t.streakBoard.nights(streak),
         lede: nxt ? t.streakBoard.next(nxt.nights - streak) : t.streakBoard.done,
@@ -164,7 +234,8 @@ function snapshot() {
     tabHome: t.tabs.home, tabJournal: t.tabs.journal, tabDream: t.tabs.dream, tabSleep: t.tabs.sleep, tabProfile: t.tabs.profile,
     greetingNight: t.home.greeting.night, greetingMorning: t.home.greeting.morning,
     greetingAfternoon: t.home.greeting.afternoon, greetingEvening: t.home.greeting.evening,
-    homeTitle: t.home.title, homeLede: t.home.lede, homeCta: t.home.cta, renderingLine: t.home.renderingLine, quickRecord: t.home.quickRecord,
+    homeTitle: t.home.title, homeLede: t.home.lede, homeCta: t.home.cta,
+    intentionHeading: t.home.intentionHeading, articleHeading: t.home.articleHeading, articleMore: t.home.articleMore, renderingLine: t.home.renderingLine, quickRecord: t.home.quickRecord,
     lastHeading: t.home.lastHeading, blankCta: t.home.blankCta, blankHint: t.home.blankHint, blankDone: t.home.blankDone,
     soundsShortcut: t.home.soundsShortcut, checkinQuestion: t.checkin.question, checkinThanks: t.checkin.thanks,
     untitled: t.journal.untitled, takes: t.journal.takesLabel, reflectTitle: t.journal.reflectTitle,
@@ -184,6 +255,7 @@ function snapshot() {
   };
   const sleep = {
     title: t.sleep.title, subtitle: t.sleep.subtitle, free: t.sleep.free,
+    intention: { text: intention, ...t.intention },
     tiles: ["breathe", "checklist", "sounds", "guide", "knowledge", "symbols"].map((id) => ({ id, title: t.sleep.tiles[id].title, text: t.sleep.tiles[id].text })),
     breathe: t.breathe,
     /* Das Wissen (13.09.2026): Karten aus src/i18n, neueste zuerst. */
@@ -283,7 +355,9 @@ function snapshot() {
     cutOneShot: w5.cutOneShot, cutAll: w5.cutAll(1000), cutSome: w5.cutSome(1000, 2000), cutMoreAt: w5.cutMoreAt(1000, 2000),
     cutTwoParter: w5.cutTwoParter, flowAll: w5.flowAll(1000), flowFast: w5.flowFast(1000),
     cutAllIn: w5.cutAllIn(1000, 2000, 3000), cutRecommend: w5.cutRecommend(1000),
-    lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
+    lengthLabel: w5.lengthLabel, qualityLabel: w5.qualityLabel,
+    /* Das Filmformat (26.09.): drei Werte, dieselbe Allowlist wie der Server. */
+    formatLabel: w5.formatLabel, formats: [["9:16", w5.portrait], ["16:9", w5.landscape], ["1:1", w5.square]].map(([id, hint]) => ({ id, name: id, hint })), holdHint: w5.holdHint, aboutModel: w5.aboutModel, fromWord: t.wizard.from, close: t.wizard.cast?.close, modelLabel: w5.filmModelLabel || "Model", paceLabel: w5.paceLabel || "Pace", generate: w5.generate, credit1: t.wizard.creditsN(1), creditN: t.wizard.creditsN(2),
     readPrice: PRICES.improve, noCredits: t.wizard.noCreditsCta,
     /* Die native Auftragsseite (dream/order.tsx): Sätze fürs Abgeben,
        die Bestätigung und den Fehlerfall — Web-Texte, nichts Neues. */
@@ -301,6 +375,8 @@ function snapshot() {
       /* Kleines Abzeichen am Modell („Beste Qualität" am Kino — Antons
          Ansage 23.09.); Text aus der Sprachdatei, nie hart. */
       badge: w5.filmModels[m.id]?.badge || null,
+      /* Für das Info-Blatt beim Gedrückthalten (26.09.). */
+      info: w5.filmModels[m.id]?.info || "", modelName: w5.filmModels[m.id]?.model || "",
       min: m.min, max: m.max, step: m.step, preset: m.preset, preferred: m.preferred,
       /* Klartext statt Marketing-Namen (Antons Ansage 23.09.: „einfach
          480p, 768p, 1080p schreiben"): Name = Auflösung, dazu die Credits
@@ -313,6 +389,15 @@ function snapshot() {
       })),
     })),
     paces: PACE_IDS.map((id) => ({ id, name: w5.paceNames?.[id] || id, hint: w5.paceHints?.[id] || "" })),
+    /* Die Traum-Skizze (24.09.): kein Modell der Tabelle — sie läuft auf
+       dem iPhone, ohne Server und ohne Preis. Karte + Bildschirmtexte. */
+    /* Seit 25.09. abends Cloud-Raster: 3 je Monat gratis, dann 1 Credit —
+       die Karte zeigt, was die NÄCHSTE Skizze kostet (Antons Ansage: der
+       Preis steht oben an der Karte). */
+    sketch: t.wizard.sketch ? {
+      ...t.wizard.sketch, card: w5.filmModels?.sketch || null,
+      price: sketchCost(s) > 0 ? `${sketchCost(s)} ${t.wizard.sketch.creditWord}` : t.wizard.sketch.priceFree.replace("{n}", String(sketchFreeLeft(s))),
+    } : null,
   };
   const realDreams = items.filter((e) => !String(e.id).startsWith("e_seed")).length;
   const journal = {
@@ -341,7 +426,7 @@ function snapshot() {
       months: t.journal.months, calMonths: t.journal.calMonths, calWeekdays: t.journal.calWeekdays,
     },
   };
-  const step2 = { outputTitle: t.wizard.step2.title, saveOnly: t.wizard.step2.saveOnly, saveOnlyHint: t.wizard.step2.saveOnlyHint,
+  const step2 = { outputTitle: t.wizard.step2.title, saveOnly: t.wizard.step2.saveOnly, saveOnlyHint: t.wizard.step2.saveOnlyHint, saveCta: t.wizard.step2.saveCta, filmCta: t.wizard.step2.filmCta,
     images: t.wizard.step2.images, imagesHint: t.wizard.step2.imagesHint, film: t.wizard.step2.film, filmHint: t.wizard.step2.filmHint,
     saved: t.wizard.step2.saved, from: t.wizard.from, cancel: t.wizard.cancel, back: t.wizard.back,
     imagesFrom: priceForImages(Math.min(...IMAGE_COUNTS)), filmFrom: priceForFilm("standard", 5), steps: 6 };
@@ -349,8 +434,8 @@ function snapshot() {
     record: t.dream.record, recordHint: t.dream.recordHint, recording: t.dream.recording, recordStop: t.dream.recordStop,
     recordTranscribing: t.dream.recordTranscribing, recordTooShort: t.dream.recordTooShort, recordFailed: t.dream.recordFailed, recordDiscard: t.dream.recordDiscard,
     recordAgain: t.dream.recordAgain, yourRecording: t.dream.yourRecording,
-    reviewTitle: t.dream.reviewTitle, reviewHint: t.dream.reviewHint, recordListen: t.dream.recordListen, recordPause: t.dream.recordPause, recordTranscribe: t.dream.recordTranscribe, recordRetake: t.dream.recordRetake,
-    typeInstead: t.dream.typeInstead, textTitle: t.dream.textTitle, textLede: t.dream.textLede, tellMore: t.dream.tellMore, rewriteAll: t.dream.rewriteAll, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
+    reviewTitle: t.dream.reviewTitle, reviewHint: t.dream.reviewHint, mascotReview: t.dream.mascotReview || [], recordListen: t.dream.recordListen, recordPause: t.dream.recordPause, recordTranscribe: t.dream.recordTranscribe, recordRetake: t.dream.recordRetake,
+    typeInstead: t.dream.typeInstead, textTitle: t.dream.textTitle, textLede: t.dream.textLede, tellMore: t.dream.tellMore, rewriteAll: t.dream.rewriteAll, editText: t.dream.editText, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
     placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
   /* Das Kaufblatt (Paywall.jsx), vorgerechnet: Texte sind im Web zum Teil
      Funktionen, über die Brücke gehen nur Strings. NUR Filme — Bilder sind
@@ -436,6 +521,7 @@ function snapshot() {
       "accountTitle", "accountText", "accountEmail", "accountPassword", "accountCta", "accountLater", "accountSignedIn", "accountSignedInNoEmail",
       "accountWrong", "accountBusy", "accountUnavailable", "accountOffline", "accountApple"].map((k) => [k, onb[k]])),
     features: onb.features, showcase: onb.showcase, featuresLede: onb.featuresLede, proof: onb.proof, sleepLegend: onb.sleepLegend,
+    sleepScale: onb.sleepScale, goalWords: onb.goalWords, goalHint: onb.goalHint,
     mascotTitle: onb.mascotTitle, mascotText: onb.mascotText, mascotSoon: onb.mascotSoon,
     meTitle: onb.meTitle, meText: onb.meText, mePick: onb.mePick, meCamera: onb.meCamera, meChange: onb.meChange, meLater: onb.meLater, meDone: onb.meDone, meConsent: onb.meConsent,
     /* Die drei Maskottchen (mascots.js) — zwei noch Platzhalter. Das Video
@@ -482,7 +568,7 @@ function snapshot() {
     },
     texts: { morningTitle: rm.morningTitle, morningBody: rm.morningBody, eveningTitle: rm.eveningTitle, eveningBody: rm.eveningBody, realityTitle: rm.realityTitle, realityBodies: rm.realityBodies },
   };
-  return { language: s.language || "en", items, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent, onboard, reminders };
+  return { language: s.language || "en", items, castImages, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent, onboard, reminders };
 }
 
 /* Befehle nativ → Web: Die Hülle kann den Web-Speicher nicht schreiben, also
@@ -640,19 +726,10 @@ async function runAvatar(cmd, onResult) {
  * ⚠ Noch NICHT der Weg der App: dream/order.tsx nutzt weiter den
  * Web-Motor, bis dieser Befehl an einem echten Auftrag belegt ist
  * (NATIVE_ORDER dort). Bilder-Aufträge kennt er nicht — es gibt nur Film. */
-async function runOrder(cmd, onResult) {
-  const o = cmd.order || {};
-  const s0 = loadState();
-  if ((o.mode || "film") !== "film") { onResult({ n: cmd.n, error: "unsupported" }); return true; }
-  const modelId = o.videoModel || "standard";
-  const seconds = clampSeconds(modelId, o.seconds);
-  const quality = filmQuality(modelId, o.quality).id;
-  const pace = o.pace || DEFAULT_PACE;
-  const price = quoteFor({ mode: "film", model: modelId, seconds, quality, keyframe: false });
-  if (!spend(s0, price)) { onResult({ n: cmd.n, error: "nocredits", price }); return true; }
-  const analysis = o.analysis || null;
-
-  /* 2. Besetzung — wie seedAssignments in useWizard.js, dann die Vorgaben. */
+/* Die Besetzung eines Traums: Namen der Analyse, Auto-Treffer (autoMatch),
+   dann die Vorgaben aus dem nativen Besetzungs-Schritt. Für den Film-Auftrag
+   (runOrder) und seit 25.09. für die Skizze (eigene Fotos als Startbild). */
+function resolveCast(analysis, overrides, s0) {
   const build = (items, fallbackKind) => (items || []).reduce((acc, item) => {
     const name = typeof item === "string" ? item : item?.name;
     if (!name) return acc;
@@ -664,12 +741,108 @@ async function runOrder(cmd, onResult) {
   }, {});
   const assignments = { ...build(analysis?.people, "person"), ...build(analysis?.places, "place"), ...build(analysis?.objects, "object") };
   const byId = (id) => (id === "me" ? (s0.me ? { ...s0.me, id: "me", category: "person" } : null) : (s0.cast || []).find((c) => c.id === id) || null);
-  for (const [name, ov] of Object.entries(o.assignmentOverrides || {})) {
+  for (const [name, ov] of Object.entries(overrides || {})) {
     if (!assignments[name] || !ov) continue;
     if (ov.free) assignments[name] = { ...assignments[name], avatar: undefined, free: true };
     else if (ov.avatarId) { const av = byId(ov.avatarId); if (av) assignments[name] = { ...assignments[name], avatar: av, free: false }; }
   }
-  const list = Object.values(assignments);
+  return assignments;
+}
+
+/* Traum-Skizze vorbereiten (25.09., Cloud-Raster): der Prompt für EIN
+   2×2-Raster (Look-Preset + Referenzklauseln, buildGridPrompt mit
+   quadratischen Kacheln), die Fotos der Besetzung in GENAU der Reihenfolge
+   der Klauseln, die Teilchen-Art und was die Skizze kostet.
+   ⚠ Höchstens drei Fotos: Wer darüber liegt, wird zur „frei erfundenen"
+   Figur — sonst zeigten die Klauseln auf Bilder, die nie mitgeschickt werden. */
+const SKETCH_MAX_REFS = 3;
+async function runSketchPrep(cmd, onResult) {
+  const p = cmd.sketchPrep || {};
+  const analysis = p.analysis || {};
+  const beats = (p.beats || []).filter((b) => typeof b === "string" && b.trim());
+  const s0 = loadState();
+  const rank = { person: 0, pet: 1, place: 2, object: 3 };
+  const isMe = (a) => !!a.avatar && (a.avatar.id === "me" || (!!s0.me && a.avatar.img === s0.me.img));
+  let kept = 0;
+  const list = Object.values(resolveCast(analysis, p.assignmentOverrides, s0))
+    .sort((a, b) => (rank[a.kind] - rank[b.kind]) || (Number(isMe(b)) - Number(isMe(a))))
+    .map((a) => {
+      if (!a.avatar?.img) return a;
+      kept += 1;
+      return kept <= SKETCH_MAX_REFS ? a : { ...a, avatar: undefined, free: true };
+    });
+  const { references, clauses } = buildReferences(list);
+  const refs = list.filter((a) => a.avatar?.img).map((a) => ({ name: a.name, kind: a.kind, img: absolute(a.avatar.img) }));
+  /* Seit 26.09. (Antons Ansage) wählt man 1–3 Bilder à vier Szenen; jedes
+     Bild ist ein eigener Prompt, alle gehen PARALLEL raus. Parallel reicht
+     (Test 26.09.: Gesicht, Kleidung und Look halten über drei Bilder).
+     Look zuerst, Foto nur für die Identität (Antons iPhone-Test 25.09.). */
+  const strips = clampStrips(p.strips);
+  const prompts = Array.from({ length: strips }, (_, k) =>
+    buildSketchGridPrompt({ beats: beats.slice(k * SCENES_PER_STRIP, (k + 1) * SCENES_PER_STRIP), styleId: p.styleId, clauses }));
+  onResult({ n: cmd.n, result: {
+    prompt: prompts[0], prompts, strips, refs: refs.slice(0, references.length),
+    particles: pickParticles(beats.join(" ")),
+    freeLeft: sketchFreeLeft(s0), cost: sketchCost(s0, strips), credits: totalCredits(s0),
+    // Was jede Wahl kostet und wie lang sie wird — für die Auswahl vorher.
+    options: SKETCH_STRIPS.map((n) => ({ ...sketchTiming(n), cost: sketchCost(s0, n) })),
+  } });
+  return true;
+}
+
+/* Das Raster bestellen — nach der Kassenprüfung: im Gratis-Kontingent
+   kostet es nichts, danach SKETCH_PRICE Credits. Gezählt und abgebucht
+   wird erst NACH dem gelungenen Aufruf (dann ist unser Geld ausgegeben);
+   scheitert er, bleibt alles, wie es war. */
+async function runSketchGrid(cmd, onResult) {
+  const g = cmd.sketchGrid || {};
+  const prompts = (Array.isArray(g.prompts) && g.prompts.length ? g.prompts : [g.prompt]).filter(Boolean).slice(0, SKETCH_STRIPS.length);
+  const s0 = loadState();
+  const cost = sketchCost(s0, prompts.length);
+  if (cost > 0 && !spend(s0, cost)) { onResult({ n: cmd.n, error: "nocredits", price: cost }); return true; }
+  // Ein Bild darf einmal wiederholt werden, bevor der ganze Glimpse scheitert.
+  const once = (prompt) => sketchGrid({ prompt, refs: g.refs || [] }).catch(() => sketchGrid({ prompt, refs: g.refs || [] }));
+  try {
+    const urls = await Promise.all(prompts.map(once));
+    const s1 = loadState();
+    saveState({ ...s1, ...countSketch(s1), ...(cost > 0 ? spend(s1, cost) || {} : {}) });
+    onJournalTick?.();
+    onResult({ n: cmd.n, result: { url: urls[0], urls, cost } });
+  } catch (e) {
+    onResult({ n: cmd.n, error: String(e?.message || e) });
+  }
+  return true;
+}
+
+/* Der Ton zum Glimpse (26.09.) — kostet nichts extra, er ist im Preis des
+   ersten Bildes (sketchQuota.js). Scheitert er, macht die App stumm weiter. */
+async function runSketchSound(cmd, onResult) {
+  const q = cmd.sketchSound || {};
+  try {
+    const url = await sketchSound({ styleId: q.styleId, mood: q.mood, beats: q.beats || [], seconds: q.seconds });
+    onResult({ n: cmd.n, result: { url: absolute(url) } });
+  } catch (e) {
+    onResult({ n: cmd.n, error: String(e?.message || e) });
+  }
+  return true;
+}
+
+async function runOrder(cmd, onResult) {
+  const o = cmd.order || {};
+  const s0 = loadState();
+  if ((o.mode || "film") !== "film") { onResult({ n: cmd.n, error: "unsupported" }); return true; }
+  const modelId = o.videoModel || "standard";
+  const seconds = clampSeconds(modelId, o.seconds);
+  const quality = filmQuality(modelId, o.quality).id;
+  const pace = o.pace || DEFAULT_PACE;
+  const price = quoteFor({ mode: "film", model: modelId, seconds, quality, keyframe: false });
+  if (!spend(s0, price)) { onResult({ n: cmd.n, error: "nocredits", price }); return true; }
+  const analysis = o.analysis || null;
+  /* Das Format (26.09.): dieselbe Allowlist wie der Server — ein Wert, nie Text. */
+  const format = ["9:16", "16:9", "1:1"].includes(o.format) ? o.format : "9:16";
+
+  /* 2. Besetzung — wie seedAssignments in useWizard.js, dann die Vorgaben. */
+  const list = Object.values(resolveCast(analysis, o.assignmentOverrides, s0));
   const { clauses } = buildReferences(list);
 
   /* 3. Bogen-Pflicht — Arbeitskopien, über den TAG festgeschrieben (25.08.). */
@@ -701,11 +874,11 @@ async function runOrder(cmd, onResult) {
   const isNew = !o.entryId || !(s1.journal || []).some((e) => e.id === entryId);
   const entryRefs = list.filter((a) => a.avatar?.tag).map((a) => ({ tag: a.avatar.tag, category: a.kind }));
   const common = {
-    mode: "film", style: o.styleId, format: "9:16", imageCount: 0, analysis, references: entryRefs,
+    mode: "film", style: o.styleId, format, imageCount: 0, analysis, references: entryRefs,
     pending: { kind: "film", n: 1 }, fallback: undefined, failReason: undefined,
   };
   if (isNew) {
-    const creature = newCreature(o.text, refreshStreak(s1).streak);
+    const creature = newCreature(o.text, streakOf(s1).streak);
     const entry = {
       id: entryId, createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
       title: String(o.title || analysis?.title || "").trim() || creature.title, tagline: String(o.tagline || analysis?.tagline || "").trim(),
@@ -713,6 +886,8 @@ async function runOrder(cmd, onResult) {
       ...(s1.pendingAudioUrl ? { audio: { url: s1.pendingAudioUrl } } : {}),
       ...common,
     };
+    /* Die Serie zählt seit 28.09. aus dem Journal (nights.js) — ein Film
+       ist ein Traum wie jeder andere, dafür braucht es keinen Zähler mehr. */
     saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null });
   } else {
     saveState({ ...s1, journal: (s1.journal || []).map((e) => (e.id === entryId ? { ...e, ...common } : e)) });
@@ -728,8 +903,8 @@ async function runOrder(cmd, onResult) {
   try {
     const { jobId } = await generate({
       dream: o.text, mode: "film", seconds, title: String(o.title || analysis?.title || "").trim(), tagline: String(o.tagline || analysis?.tagline || "").trim(),
-      model: modelId, quality, quoted: price, cast: castForApi, styleId: o.styleId, beats, shots, pace,
-      prompt: buildImagePrompt({ beat: beatsForCount(arc.length ? arc : [o.text], 1)[0] || o.text, styleId: o.styleId, format: "9:16", clauses, index: 1, total: 1 }),
+      model: modelId, quality, format, quoted: price, cast: castForApi, styleId: o.styleId, beats, shots, pace,
+      prompt: buildImagePrompt({ beat: beatsForCount(arc.length ? arc : [o.text], 1)[0] || o.text, styleId: o.styleId, format, clauses, index: 1, total: 1 }),
     });
     const s2 = loadState();
     saveState({
@@ -748,8 +923,131 @@ async function runOrder(cmd, onResult) {
 }
 let onJournalTick = null;
 
+/* Die Traum-Skizze ins Journal (24.09.2026). Der Film ist schon fertig —
+   auf dem iPhone gerendert (modules/dream-sketch) —, deshalb kein Preis,
+   kein Auftrag, kein Abholer: Der Traum entsteht MIT seinem Film. Adressen
+   bleiben `sketch:<datei>`; aufgelöst wird erst nativ zur Anzeige, weil der
+   Container-Pfad der App bei jedem Update wechselt. Mit `entryId` wird die
+   Skizze eine weitere Fassung eines bestehenden Traums. */
+function runSketch(cmd, onResult) {
+  const o = cmd.sketch || {};
+  const isSketch = (u) => typeof u === "string" && u.startsWith("sketch:");
+  if (!isSketch(o.film)) { onResult({ n: cmd.n, error: "invalid" }); return true; }
+  const stills = (Array.isArray(o.stills) ? o.stills : []).filter(isSketch);
+  const film = { url: o.film, at: new Date().toISOString(), kind: "sketch", ...(Number(o.seconds) > 0 ? { seconds: Math.round(Number(o.seconds)) } : {}) };
+  const s1 = loadState();
+  const existing = o.entryId ? (s1.journal || []).find((e) => e.id === o.entryId) : null;
+  if (existing) {
+    /* Seit 26.09. legt sketchStart den Traum VORHER an („entsteht gerade");
+       hier wird er fertig: Film dran, Marke weg, Standbilder als Bilder. */
+    const media = (existing.media?.urls || []).length ? existing.media : { type: "image", urls: stills, source: "sketch" };
+    saveState({ ...s1, journal: s1.journal.map((e) => (e.id === existing.id ? { ...e, media, films: [...filmsOf(e), film], poster: e.poster || stills[0], pending: undefined, failReason: undefined } : e)) });
+    onJournalTick?.();
+    onResult({ n: cmd.n, entryId: existing.id });
+    return true;
+  }
+  const analysis = o.analysis || null;
+  const creature = newCreature(o.text, streakOf(s1).streak);
+  const entry = {
+    id: genId("e"), createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
+    title: String(analysis?.title || "").trim() || creature.title, tagline: String(analysis?.tagline || "").trim(),
+    media: { type: "image", urls: stills, source: "sketch" }, creatureId: creature.id, moon: moonForNight(),
+    ...(s1.pendingAudioUrl ? { audio: { url: s1.pendingAudioUrl } } : {}),
+    mode: "film", style: o.styleId, format: "9:16", imageCount: 0, analysis, references: [],
+    films: [film], ...(stills[0] ? { poster: stills[0] } : {}),
+  };
+  saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null });
+  onJournalTick?.();
+  onResult({ n: cmd.n, entryId: entry.id });
+  return true;
+}
+
+/* Glimpse im Hintergrund (26.09.2026, Antons Ansage): Der Traum steht
+   SOFORT im Journal — mit Marke „entsteht gerade" —, der Glimpse wird
+   danach von der GlimpseLayer fertig gemacht (runSketch mit entryId) oder
+   scheitert (sketchFail). Mit `entryId` ist es eine neue Fassung eines
+   bestehenden Traums. */
+function runSketchStart(cmd, onResult) {
+  const o = cmd.sketchStart || {};
+  const s1 = loadState();
+  const existing = o.entryId ? (s1.journal || []).find((e) => e.id === o.entryId) : null;
+  if (existing) {
+    saveState({ ...s1, journal: s1.journal.map((e) => (e.id === existing.id ? { ...e, pending: { kind: "sketch", n: 1 }, failReason: undefined } : e)) });
+    onJournalTick?.();
+    onResult({ n: cmd.n, entryId: existing.id });
+    return true;
+  }
+  const analysis = o.analysis || null;
+  const creature = newCreature(o.text, streakOf(s1).streak);
+  const entry = {
+    id: genId("e"), createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
+    title: String(analysis?.title || "").trim() || creature.title, tagline: String(analysis?.tagline || "").trim(),
+    media: { type: "image", urls: [], source: "sketch" }, creatureId: creature.id, moon: moonForNight(),
+    ...(s1.pendingAudioUrl ? { audio: { url: s1.pendingAudioUrl } } : {}),
+    mode: "film", style: o.styleId, format: "9:16", imageCount: 0, analysis, references: [],
+    pending: { kind: "sketch", n: 1 },
+  };
+  saveState({ ...s1, journal: [...(s1.journal || []), entry], pendingAudioUrl: null });
+  onJournalTick?.();
+  onResult({ n: cmd.n, entryId: entry.id });
+  return true;
+}
+
+/* Aufräumen beim Start (26.09. abends, nach Antons Absturz): Ein Glimpse,
+   der „entsteht gerade" zeigt, aber keinen offenen Auftrag im Protokoll
+   hat (store/glimpse-store.ts), wird nie mehr fertig — er bekommt den
+   Fehler, statt für immer „Rendering" zu zeigen. `keep` = offene Aufträge. */
+function runSketchSweep(cmd, onResult) {
+  const keep = new Set(Array.isArray(cmd.keep) ? cmd.keep : []);
+  const s1 = loadState();
+  let n = 0;
+  const journal = (s1.journal || []).map((e) => {
+    if (e.pending?.kind !== "sketch" || keep.has(e.id)) return e;
+    n += 1;
+    return { ...e, pending: undefined, failReason: "interrupted" };
+  });
+  if (n) { saveState({ ...s1, journal }); onJournalTick?.(); }
+  onResult({ n: cmd.n, result: { swept: n } });
+  return true;
+}
+
+/* Nachgereichter Ton (27.09.): Der Film mit Ton liegt in einer neuen Datei;
+   der Traum zeigt ab jetzt auf sie (value = alt, text = neu). */
+function runSketchSwap(cmd, onResult) {
+  const from = String(cmd.value || ""), to = String(cmd.text || "");
+  if (!from.startsWith("sketch:") || !to.startsWith("sketch:")) { onResult({ n: cmd.n, error: "invalid" }); return true; }
+  const s1 = loadState();
+  let hit = false;
+  const journal = (s1.journal || []).map((e) => {
+    if (e.id !== cmd.id) return e;
+    const films = filmsOf(e).map((f) => (f.url === from ? (hit = true, { ...f, url: to }) : f));
+    return hit ? { ...e, films } : e;
+  });
+  if (!hit) { onResult({ n: cmd.n, error: "missing" }); return true; }
+  saveState({ ...s1, journal });
+  onJournalTick?.();
+  onResult({ n: cmd.n, result: { ok: true } });
+  return true;
+}
+
+function runSketchFail(cmd, onResult) {
+  const s1 = loadState();
+  saveState({ ...s1, journal: (s1.journal || []).map((e) => (e.id === cmd.id ? { ...e, pending: undefined, failReason: String(cmd.value || "sketch").slice(0, 200) } : e)) });
+  onJournalTick?.();
+  onResult({ n: cmd.n, result: { ok: true } });
+  return true;
+}
+
 async function runAsync(cmd, onResult) {
   if (cmd.type === "order") return runOrder(cmd, onResult);
+  if (cmd.type === "sketch") return runSketch(cmd, onResult);
+  if (cmd.type === "sketchStart") return runSketchStart(cmd, onResult);
+  if (cmd.type === "sketchFail") return runSketchFail(cmd, onResult);
+  if (cmd.type === "sketchSweep") return runSketchSweep(cmd, onResult);
+  if (cmd.type === "sketchSwap") return runSketchSwap(cmd, onResult);
+  if (cmd.type === "sketchPrep") return runSketchPrep(cmd, onResult);
+  if (cmd.type === "sketchGrid") return runSketchGrid(cmd, onResult);
+  if (cmd.type === "sketchSound") return runSketchSound(cmd, onResult);
   /* Konto-Sicherung (23.09.2026, mobile/src/lib/dream-sync.ts): Die Brücke
      kennt das Tagebuch, die native Seite das Konto. Hinaus geht die
      Sicherungsform aus journalBackup.js — dieselbe erlaubte Liste wie für
@@ -818,7 +1116,10 @@ async function runAsync(cmd, onResult) {
                 objects: t.wizard.cast.objectsTitle, objectsLede: t.wizard.cast.objectsLede, objectsEmpty: t.wizard.cast.objectsEmpty,
                 textTitle: t.wizard.cast.textTitle, markHint: t.wizard.cast.markHint, addTitle: t.wizard.cast.addTitle, addName: t.wizard.cast.addName,
                 addAs: t.wizard.cast.addAs, add: t.wizard.cast.add, removeFromCast: t.wizard.cast.removeFromCast, whoIs: t.wizard.cast.whoIs("{name}"), close: t.wizard.cast.close,
-                kindFor: t.avatarDialog.kindFor },
+                kindFor: t.avatarDialog.kindFor,
+                stepOf: t.wizard.cast.stepOf, whoYou: t.wizard.cast.whoYou, nextName: t.wizard.cast.nextName, missing: t.wizard.cast.missing,
+                tilePhoto: t.wizard.cast.tilePhoto, tileAi: t.wizard.cast.tileAi, tileNew: t.wizard.cast.tileNew, fromLibrary: t.wizard.cast.fromLibrary, libraryEmpty: t.wizard.cast.libraryEmpty,
+                placesTitle: t.wizard.cast.placesTitle, placesHint: t.wizard.cast.placesHint, noPeople: t.wizard.cast.noPeople },
     } });
     return true;
   }
@@ -873,9 +1174,11 @@ async function runAsync(cmd, onResult) {
 function run(cmd) {
   const s = loadState();
   let patch = null;
-  if (cmd.type === "blankNight") patch = { journal: [...(s.journal || []), blankNight()], ...bumpStreak(s) };
+  if (cmd.type === "blankNight") patch = { journal: [...(s.journal || []), blankNight()] };
   else if (cmd.type === "checkin") patch = { checkins: setCheckin(s.checkins, cmd.level) };
-  else if (cmd.type === "refreshStreak") { const f = refreshStreak(s); if (f.streak !== s.streak) patch = f; }
+  else if (cmd.type === "skyIntro") patch = { skyIntroSeen: true };
+  else if (cmd.type === "intention") patch = { intention: String(cmd.text || "").trim() ? { text: String(cmd.text).trim().slice(0, 140), at: new Date().toISOString() } : null };
+  else if (cmd.type === "refreshStreak") { /* seit 28.09. aus dem Journal gerechnet — nichts zu speichern */ }
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };
   else if (cmd.type === "sleepCheck") patch = { sleepCheck: { date: cmd.date, done: cmd.done || [] } };
@@ -927,7 +1230,7 @@ function run(cmd) {
   else if (cmd.type === "saveDream") {
     /* Nur speichern (Step2Output.saveOnly): kein Render, keine Kosten, mit
        Wesen und Serie — dieselbe Reihenfolge wie im Web. */
-    const creature = newCreature(cmd.text, refreshStreak(s).streak);
+    const creature = newCreature(cmd.text, streakOf(s).streak);
     const entry = {
       id: genId("e"), createdAt: new Date().toISOString(), text: cmd.text, originalText: cmd.originalText || cmd.text,
       title: (cmd.title || "").trim() || creature.title, tagline: (cmd.tagline || "").trim(), mode: "save",
@@ -935,7 +1238,7 @@ function run(cmd) {
       ...((cmd.audioUrl || s.pendingAudioUrl) ? { audio: { url: cmd.audioUrl || s.pendingAudioUrl } } : {}),
       moon: moonForNight(),          // die Mondphase dieser Nacht (moon.js)
     };
-    patch = { journal: [...(s.journal || []), entry], creatures: [...(s.creatures || []), creature], ...bumpStreak(s), pendingAudioUrl: null };
+    patch = { journal: [...(s.journal || []), entry], creatures: [...(s.creatures || []), creature], pendingAudioUrl: null };
   }
   else if (cmd.type === "pendingAudio") patch = { pendingAudioUrl: cmd.audioUrl || null };
   if (patch) saveState({ ...s, ...patch });
@@ -974,6 +1277,62 @@ async function collectOnce(onJournal, onResult) {
   }
 }
 
+/* Serien-Pflichten (26.09., Antons Frage „wieso sind die Geschenke raus?"):
+   Die Mini-Geschenke (7 Nächte → 1 Credit, 30 → 3, Deckel 4 —
+   streakBoard.js giftFor) und die Schlummernacht (seit 28.09. nights.js)
+   liefen nur im WEB-Zustand (AppState.jsx). Beim Umzug auf die native App
+   kamen sie nicht mit: Die Leiter zeigte „+1 Credit" und die
+   Schlummernächte, gegeben oder eingelöst wurde nichts. Jetzt hier, an EINER
+   Stelle, bei jedem Lesen und nach jedem Befehl. Beides ist idempotent
+   (vergebene Schwellen stehen im Zustand, die Lücke ist danach zu); die
+   Pacht verhindert, dass zwei Tab-Brücken im selben Moment vergeben. Nur
+   Brücken mit `streakChores` (die Tabs, die Meldungen zeigen) tun es. */
+const CHORES = "dr_streak_lease";
+function holdChores() {
+  try {
+    const raw = localStorage.getItem(CHORES); const [owner, at] = raw ? raw.split(":") : [null, 0];
+    if (owner && owner !== me && Date.now() - Number(at) < 4000) return false;
+    localStorage.setItem(CHORES, `${me}:${Date.now()}`); return true;
+  } catch { return true; }
+}
+function streakChores(onResult) {
+  /* ⚠ Erst nachsehen, OB etwas fällig ist — nur dann die Pacht schreiben
+     (27.09.): Jede Schreibung in localStorage weckt alle anderen Brücken,
+     die daraufhin ihren ganzen Schnappschuss schicken. Die Pacht bei JEDEM
+     Lesen zu schreiben, hielt die Brücken im Dauerfeuer — bis der Speicher
+     der App überlief. */
+  const due = (st) => {
+    const streak = streakOf(st).streak;
+    return snoozeBridge(st) || snoozeEarn(st, streak) || giftFor({ ...st, streak }) || skyGift(st, dreamNightCount(st.journal));
+  };
+  if (!due(loadState())) return;
+  if (!holdChores()) return;
+  // Erst eine Lücke schließen (sonst zählt die Serie falsch), dann verdienen, dann schenken.
+  const s0 = loadState();
+  const saved = snoozeBridge(s0);
+  if (saved) {
+    saveState({ ...s0, ...saved.patch });
+    onResult?.({ n: -1, toast: t.streakBoard.snoozeUsed(saved.used) });
+  }
+  const s1 = loadState();
+  const earned = snoozeEarn(s1, streakOf(s1).streak);
+  if (earned) saveState({ ...s1, ...earned.patch });
+  const s2 = loadState();
+  const gift = giftFor({ ...s2, streak: streakOf(s2).streak });
+  if (gift) {
+    saveState({ ...s2, ...gift.patch });
+    onResult?.({ n: -1, toast: t.streakBoard.gift(gift.nights, gift.credits), haptic: "success" });
+  }
+  // Die Stufen des Sternbilds (28.09.): je Meilenstein mindestens ein Credit.
+  for (let k = 0; k < 6; k++) {
+    const s3 = loadState();
+    const sky = skyGift(s3, dreamNightCount(s3.journal));
+    if (!sky) break;
+    saveState({ ...s3, ...sky.patch });
+    onResult?.({ n: -1, toast: t.sky.gift(sky.stage, sky.credits, sky.snooze), haptic: "success" });
+  }
+}
+
 /* Test-Guthaben (Antons Ansage 12.09.: „so tun, als hätten wir immer 100
    Credits, solange kein Konto und kein Supabase dahinter ist"): Die Brücke
    füllt das Kauf-Töpfchen bei jedem Lesen auf mindestens `devCredits` auf —
@@ -1004,13 +1363,17 @@ function syncLanguage() {
   setLanguage(want);
 }
 
-export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, dom }) {
+export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, streakChores: chores = false, dom }) {
   useEffect(() => {
-    const push = () => { try { syncLanguage(); devTopUp(devCredits); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
+    const push = () => { try { syncLanguage(); devTopUp(devCredits); if (chores) streakChores(onResult); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
+    /* Nur Änderungen am Zustand wecken die Brücke — nicht die Pachten
+       (Abholer alle 3 s, Serie). Sonst schickte bei jedem Pachtschreiben
+       jede Brücke ihren ganzen Schnappschuss (Speicherüberlauf 27.09.). */
+    const onStorage = (e) => { if (e?.key === LEASE || e?.key === CHORES) return; push(); };
     push();
-    window.addEventListener("storage", push);
-    return () => window.removeEventListener("storage", push);
-  }, [onJournal, refreshTick, devCredits]);
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [onJournal, refreshTick, devCredits, chores]);
   useEffect(() => {
     let busy = false;
     const id = setInterval(async () => {
@@ -1026,8 +1389,8 @@ export default function JournalBridge({ onJournal, onResult, refreshTick = 0, co
     onJournalTick = () => onJournal(snapshot());
     (async () => {
       try {
-        if (await runAsync(command, onResult || (() => {}))) { onJournal(snapshot()); return; }
-        run(command); onJournal(snapshot());
+        if (await runAsync(command, onResult || (() => {}))) { if (chores) streakChores(onResult); onJournal(snapshot()); return; }
+        run(command); if (chores) streakChores(onResult); onJournal(snapshot());
       } catch (e) { console.warn("[bridge] command", e); }
     })();
   }, [command?.n]);

@@ -42,9 +42,10 @@ test("each model orders at its own address with its own resolution", () => {
   expect(std.body.image_url).toBe("img");
   expect("reference_image_urls" in std.body).toBe(false);
   expect("image_urls" in std.body).toBe(false);
-  /* "768P" ist Geld, nicht Geschmack: die Schema-Vorgabe wäre teurer
-     (beim alten H3 "2K" für $0,13/s — Filmplan §10b). */
-  expect(std.body.resolution).toBe("768P");
+  /* Die Auflösung MUSS gesetzt sein, das ist Geld, nicht Geschmack: die
+     Schema-Vorgabe wäre teurer (beim alten H3 "2K" für $0,13/s —
+     Filmplan §10b). Vorgabe seit 26.09. die günstigste Stufe. */
+  expect(std.body.resolution).toBe("480P");
 
   const prem = videoSubmitBody("premium", { imageUrl: "img", prompt: "p", seconds: 30 });
   expect(prem.slug).toBe("bytedance/seedance-2.5/reference-to-video");
@@ -220,8 +221,11 @@ test("credits per second are derived from the purchase price, for every quality"
 test("the quality switch moves resolution and price together", () => {
   const sd = videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 15, quality: "sd" });
   const hd = videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 15, quality: "hd" });
+  const fhd = videoSubmitBody("premium", { imageUrl: "x", prompt: "p", seconds: 15, quality: "fhd" });
   expect(sd.body.resolution).toBe("480p");
   expect(hd.body.resolution).toBe("720p");
+  expect(fhd.body.resolution).toBe("1080p");
+  expect(priceForFilm("premium", 15, { ownKeyframe: true, quality: "fhd" })).toBe(15 * 42);
   expect(priceForFilm("premium", 15, { ownKeyframe: true, quality: "sd" })).toBe(15 * 8);
   expect(priceForFilm("premium", 15, { ownKeyframe: true, quality: "hd" })).toBe(15 * 17);
   expect(videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6, quality: "sd" }).body.resolution).toBe("480P");
@@ -229,8 +233,8 @@ test("the quality switch moves resolution and price together", () => {
 
 test("an unknown quality falls back to the model's preferred one, never to a crash", () => {
   expect(filmQuality("premium", "4k").id).toBe("sd");
-  expect(filmQuality("standard", undefined).id).toBe("hd");
-  expect(videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6, quality: "nonsense" }).body.resolution).toBe("768P");
+  expect(filmQuality("standard", undefined).id).toBe("sd");
+  expect(videoSubmitBody("standard", { imageUrl: "x", prompt: "p", seconds: 6, quality: "nonsense" }).body.resolution).toBe("480P");
 });
 
 /* Die Modellebene ist aus `preferred` abgeleitet — wer die Vorgabe umstellt,

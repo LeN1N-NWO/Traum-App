@@ -180,6 +180,33 @@ export async function refine(dream, mode) {
   return data.text;
 }
 
+/** Traum-Skizze (25.09.): die Szenen als kurze SD-1.5-Stichworte, mit
+ *  festen Figurenbeschreibungen statt Namen (src/lib/sketchPrompt.js).
+ *  Gratis; die App fällt bei Fehler auf sketchFallback zurück. */
+export async function sketchPrompts({ beats, people, mood }) {
+  const data = await post("/api/sketch-prompts", { beats, people, mood });
+  if (!Array.isArray(data?.scenes)) throw new Error(t.errors.unexpected);
+  return { scenes: data.scenes, particles: data.particles };
+}
+
+/** Traum-Skizze aus der Cloud (25.09.): EIN 2×2-Raster bei GPT Image 2
+ *  „low". `refs` sind data:-URIs der Besetzungsfotos, in der Reihenfolge
+ *  der Referenzklauseln im Prompt. Antwort: die Adresse des Rasterbilds. */
+export async function sketchGrid({ prompt, refs }) {
+  const data = await post("/api/sketch-grid", { prompt, refs }, { timeout: TIMEOUTS.film });
+  if (typeof data?.url !== "string") throw new Error(t.errors.unexpected);
+  return data.url;
+}
+
+/** Der Ton zum Glimpse (26.09.): nur die Zutaten — Look, Stimmung, Szenen,
+ *  Filmlänge; den Prompt baut der Server (src/lib/sketchSound.js). Gibt die
+ *  Adresse der gemischten m4a-Spur zurück. */
+export async function sketchSound({ styleId, mood, beats, seconds }) {
+  const data = await post("/api/sketch-sound", { styleId, mood, beats, seconds }, { timeout: TIMEOUTS.film });
+  if (typeof data?.url !== "string") throw new Error(t.errors.unexpected);
+  return data.url;
+}
+
 /** Die Reflection zu einem Traum — Spiegel, nicht Orakel. `context` sind
  *  die Musterzeilen aus atlas.js (reflectionContext), gratis wie alle
  *  Textarbeit. `lang` ist die App-Sprache (state.language): Ohne sie rät
@@ -225,10 +252,13 @@ export async function transcribe(audio) {
    ⚠ Der Kommentar steht ÜBER dem Aufruf: imageModel.test.js liest den
    post()-Aufruf mit einem Muster, das zwischen Pfad und Objekt nichts
    erlaubt. */
-export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback, quoted, count, preview }) {
+/* `format` (9:16/16:9/1:1) ist das Filmformat — bis 26.09. fehlte es in
+   dieser Liste: Web und App schickten es, hier fiel es still heraus, und
+   jeder Film kam als 9:16 (server.js: filmFormat, Allowlist). */
+export async function generate({ dream, mode, cast, prompt, seconds, aspectRatio, format, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback, quoted, count, preview }) {
   const data = await post(
     "/api/generate",
-    { dream, mode, cast, prompt, seconds, aspectRatio, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback, quoted, count, preview },
+    { dream, mode, cast, prompt, seconds, aspectRatio, format, keyframe, model, quality, pace, styleId, beats, shots, sequenceRef, grid, fallback, quoted, count, preview },
     // Nur der Film wartet auf den Regisseur — Bilder gehen sofort in die
     // Warteschlange und brauchen die lange Uhr nicht.
     mode === "film" ? { timeout: TIMEOUTS.film } : undefined,

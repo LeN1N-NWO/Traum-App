@@ -46,6 +46,19 @@ check("B3b", "App-Serveradresse ist HTTPS (kein LAN-HTTP eingebacken)",
   /EXPO_PUBLIC_API_BASE\s*=\s*https:\/\//.test(env) ? "ok" : "fail",
   /http:\/\//.test(env) ? `mobile/.env zeigt auf ${env.match(/EXPO_PUBLIC_API_BASE=(\S+)/)?.[1] ?? "?"}` : "mobile/.env fehlt oder ohne https-Adresse.");
 
+// ── B8: Traum-Skizze — Inhaltsprüfung der Bilder (1.2) ─────────────────
+/* 24.09.: Stable Diffusion malte auf dem iPhone OHNE Prüfung (disableSafety).
+   Seit 25.09. abends malt die Cloud (GPT Image 2, mit der Inhaltsprüfung
+   des Anbieters); das iPhone macht nur noch den Film. Blocker ist es also
+   nur, solange die App den Gerätemaler (generateImage) wirklich aufruft. */
+const sketchScreen = read("mobile/src/app/dream/sketch.tsx");
+if (sketchScreen) {
+  const paintsOnDevice = /\.generateImage\(/.test(sketchScreen);
+  check("B8", "Traum-Skizze: keine ungeprüften Bilder vom Gerätemaler",
+    paintsOnDevice ? "fail" : "ok",
+    paintsOnDevice ? "sketch.tsx ruft DreamSketch.generateImage — der malt mit disableSafety = true. Prüfung einbauen oder Cloud-Raster nutzen." : null);
+}
+
 // ── B4: Testphasen-Schalter ────────────────────────────────────────────────
 const journalData = read("mobile/src/components/journal-data.tsx") ?? "";
 const testCredits = /devCredits=\{(?!__DEV__)[^}]*\}/.test(journalData) && !/devCredits=\{__DEV__/.test(journalData);

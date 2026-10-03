@@ -2,10 +2,11 @@ import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { DreamRecorder } from "@/components/dream-recorder";
 import { GlassButton, PrimaryButton } from "@/components/glass";
 import { MascotLoader } from "@/components/mascot-loader";
+import { NightSky } from "@/components/night-sky";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
@@ -38,17 +39,19 @@ export default function DreamTextScreen() {
   const [error, setError] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
   const [autoKey, setAutoKey] = useState(0);
+  const [mineOpen, setMineOpen] = useState(false);
   const input = useRef<TextInput>(null);
   const credits = data?.profile.credits ?? 0;
   const clean = text.trim();
 
-  /* Öffnen = aufnehmen: jeder Fokus auf der Rekorder-Stufe stößt die
-     Aufnahme an (der Rekorder ignoriert es, wenn schon etwas läuft). */
+  /* Seit 26.09. (Antons Befund: „Wenn man auf Traum klickt, sollte es nicht
+     automatisch angehen — die Aufnahme müsste man bestätigen"): Öffnen
+     zeigt das Mikrofon, aufgenommen wird erst auf Tipp. Nur „Weiter
+     erzählen" startet direkt — das ist selbst schon ein bewusster Tipp. */
   useFocusEffect(useCallback(() => {
     setFocused(true);
-    if (stage === "voice") setAutoKey((k) => k + 1);
     return () => setFocused(false);
-  }, [stage]));
+  }, []));
 
   // Ein Auftrag ist durch (resetWizard): von vorn, mit Aufnahme.
   const seenResets = useRef(w.resets);
@@ -58,11 +61,16 @@ export default function DreamTextScreen() {
     setText(""); setPreview(null); setError(null); setFromVoice(false); setStage("voice");
   }, [w.resets]);
 
+  /* Aufgeschrieben → sofort lesen lassen (Antons Ansage 26.09. abends: die
+     Seite „Dein Traum" fällt nach dem Einsprechen weg). Wer den Text ändern
+     will, kommt aus der Vorschau mit „Text bearbeiten" dorthin. */
   function onText(t: string, audioUrl: string | null) {
-    setText((prev) => (prev.trim() ? `${prev.trim()}\n\n${t}` : t));
+    const full = text.trim() ? `${text.trim()}\n\n${t}` : t;
+    setText(full);
     if (audioUrl) patchWizard({ audioUrl });
     setFromVoice(true);
     setStage("text");
+    read(full.trim());
   }
 
   function onType() {
@@ -75,10 +83,17 @@ export default function DreamTextScreen() {
     if (t.length < 8) { setError(W?.tooShort ?? "Tell a little more."); return; }
     if (W && credits < W.readPrice) { router.push({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    /* Die Tastatur ZUERST schließen (26.09., Befund im Simulator): Das
+       Textfeld verschwindet gleich, und verschwand es mit offener Tastatur,
+       blieb der Bildschirm um die Tastaturhöhe verkürzt — die Knöpfe der
+       Vorschau waren zu sehen, aber nicht zu treffen („kann nicht klicken"). */
+    input.current?.blur();
+    Keyboard.dismiss();
     setBusy(true); setError(null);
     const r = await ask({ type: "analyze", text: t });
     setBusy(false);
     if (r.error) { setError(r.error === "nocredits" ? (W?.noCredits ?? "No credits") : r.error); return; }
+    setMineOpen(false);
     setPreview(r.result);
   }
   function go(useImproved: boolean) {
@@ -91,7 +106,9 @@ export default function DreamTextScreen() {
   const price = W ? (W.readPrice ? `${W.readPrice} ${W.credit}` : W.free) : "";
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined} enabled={stage === "text" && !preview && !busy}>
+      {/* Nachthimmel mit Sternschnuppen (Antons Wahl 26.09.), der Mond ist der Knopf. */}
+      <NightSky />
       <WizardHeader step={1} cancel={W?.cancel} />
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {busy ? (
@@ -100,13 +117,32 @@ export default function DreamTextScreen() {
           <>
             <Text style={styles.h}>{W?.previewTitle}</Text>
             <Text style={styles.lede}>{W?.previewLede}</Text>
-            <View style={styles.card}><Text style={styles.cardLabel}>{W?.yours}</Text><Text style={styles.body}>{clean}</Text></View>
-            <View style={[styles.card, styles.cardNew]}><Text style={styles.cardLabel}>{W?.improved}</Text><Text style={styles.body}>{preview.text}</Text></View>
+            {/* Antons Ansage 25.09.: „Verbessert" oben und leuchtend, die eigenen
+                Worte klein darunter — die ersten Zeilen, ein Tipp klappt auf. */}
+            <View style={styles.glow}>
+              <View style={[styles.card, styles.cardNew]}>
+                <View style={styles.newHead}>
+                  <SymbolView name="sparkles" size={13} tintColor={colors.accentSoft} />
+                  <Text style={[styles.cardLabel, { color: colors.accentSoft }]}>{W?.improved}</Text>
+                </View>
+                <Text style={styles.body}>{preview.text}</Text>
+              </View>
+            </View>
+            <Pressable onPress={() => { Haptics.selectionAsync(); setMineOpen((o) => !o); }} style={[styles.card, styles.cardMine]} accessibilityRole="button">
+              <View style={styles.newHead}>
+                <Text style={[styles.cardLabel, { flex: 1 }]}>{W?.yours}</Text>
+                <SymbolView name={mineOpen ? "chevron.up" : "chevron.down"} size={12} tintColor={colors.faint} />
+              </View>
+              <Text style={styles.bodySmall} numberOfLines={mineOpen ? undefined : 2}>{clean}</Text>
+            </Pressable>
             {preview.title ? <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><SymbolView name="film" size={14} tintColor={colors.muted} /><Text style={styles.poster}><Text style={{ fontWeight: "700" }}>{preview.title}</Text>{preview.tagline ? ` — ${preview.tagline}` : ""}</Text></View> : null}
             <View style={styles.actions}>
               <GlassButton label={W?.keepMine ?? "Keep my words"} onPress={() => go(false)} />
               <PrimaryButton label={W?.useImproved ?? "Use this version"} onPress={() => go(true)} />
             </View>
+            <Pressable onPress={() => { Haptics.selectionAsync(); setPreview(null); setStage("text"); }} hitSlop={10} accessibilityRole="button">
+              <Text style={styles.editLink}>{W?.editText ?? "Edit the text"}</Text>
+            </Pressable>
           </>
         ) : stage === "voice" ? (
           <DreamRecorder
@@ -124,7 +160,7 @@ export default function DreamTextScreen() {
               placeholder={W?.placeholder ?? "…"} placeholderTextColor={colors.faint} textAlignVertical="top" keyboardAppearance="dark"
             />
             <View style={styles.tools}>
-              <Pressable style={styles.tool} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); input.current?.blur(); setStage("voice"); /* der Fokus-Effekt startet die Aufnahme */ }} accessibilityRole="button">
+              <Pressable style={styles.tool} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); input.current?.blur(); setStage("voice"); setAutoKey((k) => k + 1); /* bewusster Tipp: gleich aufnehmen */ }} accessibilityRole="button">
                 <SymbolView name="mic.fill" size={15} tintColor={colors.warm} />
                 <Text style={styles.toolText}>{W?.tellMore ?? "Keep telling"}</Text>
               </Pressable>
@@ -136,7 +172,7 @@ export default function DreamTextScreen() {
               ) : null}
             </View>
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            <PrimaryButton label={`✦ ${W?.read ?? "Read my dream"} · ${price}`} heavy onPress={() => read()} disabled={clean.length < 8} style={{ flex: 0 }} />
+            <PrimaryButton label={`✦ ${W?.read ?? "Read my dream"} · ${price}`} heavy spend={!!W?.readPrice} onPress={() => read()} disabled={clean.length < 8} style={{ flex: 0 }} />
             <Text style={styles.hint}>{W?.why}</Text>
           </>
         )}
@@ -161,10 +197,16 @@ const styles = StyleSheet.create({
   h: { fontFamily: fonts.serif, fontSize: 26, color: colors.text },
   lede: { color: colors.muted, fontSize: 14, lineHeight: 20 },
   card: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, gap: 6 },
-  cardNew: { borderColor: colors.accent },
+  cardNew: { borderColor: colors.accentSoft, borderWidth: 1.5, backgroundColor: "rgba(79,156,249,0.10)" },
+  /* Das Leuchten: ein weicher farbiger Schatten um die Karte (iOS). */
+  glow: { borderRadius: radius.card, shadowColor: colors.accentSoft, shadowOpacity: 0.55, shadowRadius: 18, shadowOffset: { width: 0, height: 0 } },
+  newHead: { flexDirection: "row", alignItems: "center", gap: 6 },
+  cardMine: { paddingVertical: 12, opacity: 0.85 },
+  bodySmall: { color: colors.muted, fontSize: 14, lineHeight: 21 },
   cardLabel: { color: colors.faint, fontSize: 11, letterSpacing: 1.8, fontWeight: "600", textTransform: "uppercase" },
   body: { color: colors.text, fontSize: 16, lineHeight: 25 },
   poster: { color: colors.muted, fontSize: 14 },
   actions: { flexDirection: "row", gap: 10, alignItems: "stretch" },
+  editLink: { color: colors.accentSoft, fontSize: 14, textAlign: "center", marginTop: 2 },
   bridge: { height: 0, overflow: "hidden" },
 });

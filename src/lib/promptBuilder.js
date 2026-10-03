@@ -209,7 +209,9 @@ export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1, 
        genau diese Zeile der Unterschied zwischen einem Schnitt, der passt,
        und sechs Kacheln im falschen Format. */
     `running the full width and height between them. Every tile is ` +
-    `${tile === "16:9" ? "a HORIZONTAL 16:9 landscape frame" : "a VERTICAL 9:16 portrait frame"} ` +
+    /* 1:1 seit 25.09. für die Traum-Skizze: Deren Maler (SD 1.5) arbeitet
+       quadratisch, ein 2×2 aus 1024² liefert genau seine 512²-Kacheln. */
+    `${tile === "16:9" ? "a HORIZONTAL 16:9 landscape frame" : tile === "1:1" ? "a SQUARE 1:1 frame" : "a VERTICAL 9:16 portrait frame"} ` +
     `and is completely filled edge to edge — no letterboxing inside a tile, no black bars, no outer ` +
     `frame or margin around the grid. Each tile is a self-contained ${stillNoun(photoreal)} ` +
     `with no bleed, no shared elements and no continuing scenery across the divider lines.` +

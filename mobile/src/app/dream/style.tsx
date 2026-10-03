@@ -45,7 +45,7 @@ export default function DreamStyleScreen() {
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         <Text style={styles.title}>{W?.styleTitle ?? "How should it look?"}</Text>
         <View style={[styles.grid, { gap }]}>
-          {presets.map((p) => <PresetTile key={p.id} preset={p} size={size} active={p.id === activeId} onPress={(id) => { Haptics.selectionAsync(); setOpen(id); }} />)}
+          {presets.map((p) => <PresetTile key={p.id} preset={p} size={size} active={p.id === activeId} dim onPress={(id) => { Haptics.selectionAsync(); setOpen(id); }} />)}
         </View>
         <PrimaryButton label={W?.next ?? "Continue"} onPress={() => router.push("/dream/length")} style={{ flex: 0, marginTop: 10 }} />
       </ScrollView>
@@ -81,6 +81,17 @@ export default function DreamStyleScreen() {
                   </View>
                 ))}
               </ScrollView>
+              {/* Kleine Pfeile links und rechts: Hier kann man weiterwischen (Anton 25.09.). */}
+              {presets.findIndex((p) => p.id === shown.id) > 0 ? (
+                <View style={[styles.arrow, { left: 4, top: height / 2 - 14 }]} pointerEvents="none">
+                  <SymbolView name="chevron.left" size={16} tintColor="rgba(255,255,255,0.75)" weight="semibold" />
+                </View>
+              ) : null}
+              {presets.findIndex((p) => p.id === shown.id) < presets.length - 1 ? (
+                <View style={[styles.arrow, { right: 4, top: height / 2 - 14 }]} pointerEvents="none">
+                  <SymbolView name="chevron.right" size={16} tintColor="rgba(255,255,255,0.75)" weight="semibold" />
+                </View>
+              ) : null}
               <View style={styles.dots} pointerEvents="none">
                 {presets.map((p) => <View key={p.id} style={[styles.pageDot, p.id === shown.id && styles.pageDotOn]} />)}
               </View>
@@ -102,6 +113,7 @@ const styles = StyleSheet.create({
   closeWrap: { position: "absolute", top: 14, right: 14 },
   close: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   useWrap: { position: "absolute", left: 16, right: 16, bottom: 16 },
+  arrow: { position: "absolute", width: 20, height: 28, alignItems: "center", justifyContent: "center" },
   dots: { position: "absolute", left: 0, right: 0, bottom: 56, flexDirection: "row", justifyContent: "center", gap: 6 },
   pageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.3)" },
   pageDotOn: { backgroundColor: colors.text, width: 18 },

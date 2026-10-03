@@ -1,0 +1,4 @@
+{
+  "//": "session-start.js und checkpoint.js sind CommonJS (require). Das Wurzel-package.json setzt \"type\": \"module\" — ohne diese Datei bricht Node >= 26 beide mit 'require is not defined' ab. .mjs-Skripte hier bleiben ESM.",
+  "type": "commonjs"
+}
