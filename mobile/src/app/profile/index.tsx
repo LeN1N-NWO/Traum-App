@@ -38,6 +38,17 @@ export default function ProfileScreen() {
               <View style={styles.stat}><Text style={styles.statN}>{p.dreams}</Text><Text style={styles.statL}>{p.statDreams}</Text></View>
               <View style={styles.stat}><Text style={styles.statN}>{p.streak}</Text><Text style={styles.statL}>{p.statStreak}</Text></View>
             </View>
+            {/* Freunde einladen (03.10.): kauft ein Freund, gibt es Träume. */}
+            {data?.invite ? (
+              <Pressable style={[styles.card, styles.invite]} onPress={() => { Haptics.selectionAsync(); router.push("/profile/invite"); }} accessibilityRole="button">
+                <View style={styles.inviteIcon}><SymbolView name="gift.fill" size={18} tintColor="#1a1206" /></View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={styles.cardTitle}>{data.invite.cardTitle}</Text>
+                  <Text style={[styles.cardHint, { color: colors.gold }]}>{data.invite.cardHint}</Text>
+                </View>
+                <SymbolView name="chevron.right" size={14} tintColor={colors.faint} />
+              </Pressable>
+            ) : null}
             {lib ? (
               <Pressable style={styles.world} onPress={() => { Haptics.selectionAsync(); router.push("/profile/cast"); }} accessibilityRole="button">
                 <View style={styles.worldHead}>
@@ -124,6 +135,8 @@ const styles = StyleSheet.create({
   card: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   cardTitle: { color: colors.text, fontSize: 16, fontWeight: "600" },
   cardHint: { color: colors.accentSoft, fontSize: 13 },
+  invite: { borderColor: "rgba(246,198,91,0.35)" },
+  inviteIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: colors.gold },
   bridge: { height: 0, overflow: "hidden" },
   world: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(140,192,255,0.28)", gap: 8 },
   worldHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },

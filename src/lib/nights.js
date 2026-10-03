@@ -13,13 +13,21 @@
  *     dem Knopf: „hält deine Serie").
  *   · Die Serie = Traum-Tage in Folge bis heute; ist heute noch nichts
  *     notiert, zählt sie bis gestern und steht „auf der Kippe".
+ *   · Seit 03.10. zählen nur Träume mit Glimpse/Film (isFilmNight unten);
+ *     ein reiner Text-Traum hält die Serie nur offen.
  *
  * ⚠ Ortszeit, nicht UTC: Das alte todayStr() nahm toISOString() — ein
  * Traum um 1 Uhr nachts in Berlin landete damit auf dem Vortag. */
 import { isBlank } from "./blankNight.js";
 
-const DAY = 864e5;
 const isSeed = (e) => String(e?.id || "").startsWith("e_seed");
+
+/** Der Mondfilm (03.10., moonCycle.js) steht im Journal, ist aber KEIN
+ *  Traum: Er zählt weder für Serie noch Ring. */
+export const MOON_FILM_KIND = "moonfilm";
+export function isMoonFilm(entry) {
+  return entry?.kind === MOON_FILM_KIND;
+}
 
 /** Kalendertag in Ortszeit, „2026-09-28". */
 export function dayKey(d) {
@@ -36,11 +44,53 @@ function shift(d, days) {
 export function dreamDays(journal) {
   const out = new Set();
   for (const e of journal || []) {
-    if (!e || isSeed(e) || isBlank(e)) continue;
+    if (!e || isSeed(e) || isBlank(e) || isMoonFilm(e)) continue;
     const t = new Date(e.createdAt);
     if (!isNaN(t)) out.add(dayKey(t));
   }
   return out;
+}
+
+/* ── Was die Serie ZÄHLT (Antons Ansage 03.10.2026) ─────────────────────
+ * „Es kann nicht sein, dass einfach nur ein Eintrag von einem Traum als
+ * Text gewertet wird … eigentlich muss es sich um diese Videos handeln."
+ *
+ * Die Geschenke an den Meilensteinen sind echtes Guthaben. Zählte jeder
+ * Text-Traum, bekäme jemand, der 30 Tage nur schreibt, Credits und einen
+ * Film geschenkt, ohne je etwas zu kaufen. Deshalb zählt eine Nacht nur,
+ * wenn der Traum ein BILD bekommen hat: ein Glimpse oder ein Film
+ * (oder, aus der Bilderzeit, gerenderte Bilder). Glimpses sind 5 je Monat
+ * gratis (sketchQuota.js) — die 3 ist gratis erreichbar, ab der 7 hat
+ * jemand mindestens zweimal bezahlt.
+ *
+ * Ein Traum nur als Text HÄLT die Serie (wie „Nichts hängengeblieben"),
+ * zählt aber nicht: Wer schreibt, verliert nichts — das Schreiben ist die
+ * Gewohnheit, aus der später die Käufe kommen. */
+export function isFilmNight(entry) {
+  if (!entry || isSeed(entry) || isBlank(entry) || isMoonFilm(entry)) return false;
+  if ((entry.films || []).some((f) => f && f.url)) return true;
+  return (entry.media?.urls || []).length > 0;
+}
+
+/** Tage mit mindestens einem Traum MIT Bild — das, was die Serie zählt. */
+export function filmDays(journal) {
+  const out = new Set();
+  for (const e of journal || []) {
+    if (!isFilmNight(e)) continue;
+    const t = new Date(e.createdAt);
+    if (!isNaN(t)) out.add(dayKey(t));
+  }
+  return out;
+}
+
+/** Wie viele Träume zählen — die Zahl hinter den Geschenken (Antons
+ *  Ansage 03.10., abends: „Mir geht es einfach nur um die Anzahl der
+ *  Träume, kein Streak. Wenn ich heute nicht geträumt hab, im Urlaub war …
+ *  zählt das meiner Meinung nach nicht.") Jeder Traum mit Glimpse oder
+ *  Film zählt einmal, egal an welchem Tag; Text allein zählt nicht. Die
+ *  Serie (streakInfo) zeigt die App nicht mehr. */
+export function dreamCount(journal) {
+  return (journal || []).filter(isFilmNight).length;
 }
 
 /** Tage mit „Nichts hängengeblieben". */
@@ -62,8 +112,9 @@ export function dreamNightCount(journal) {
  * @returns {{streak: number, atRisk: boolean, today: boolean}}
  */
 export function streakInfo(journal, { bridged = [], now = new Date() } = {}) {
-  const dreams = dreamDays(journal), blanks = blankDays(journal), bridge = new Set(bridged);
-  const held = (k) => blanks.has(k) || bridge.has(k);
+  // Zählt: Nächte mit Glimpse/Film. Hält: Text-Träume, leere Nächte, Schlummernächte.
+  const dreams = filmDays(journal), texts = dreamDays(journal), blanks = blankDays(journal), bridge = new Set(bridged);
+  const held = (k) => texts.has(k) || blanks.has(k) || bridge.has(k);
   const todayKey = dayKey(now);
   const todayDone = dreams.has(todayKey) || held(todayKey);
   let cursor = todayDone ? now : shift(now, -1);

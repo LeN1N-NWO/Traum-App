@@ -25,7 +25,8 @@ export function realDreams(journal) {
      Anwesenheitsvermerk. Diese eine Zeile hält Atlas, Monatsrückblick,
      Symbolzählung, Stimmungen, Wiederkehr und die Schlaf-Korrelation
      sauber; sie ist der einzige Ort, an dem das entschieden wird. */
-  return (journal || []).filter((e) => e && !isSeed(e) && !isBlank(e));
+  // Der Mondfilm (03.10.) ist ein Rückblick, kein Traum.
+  return (journal || []).filter((e) => e && !isSeed(e) && !isBlank(e) && e.kind !== "moonfilm");
 }
 
 function detectableText(e) {

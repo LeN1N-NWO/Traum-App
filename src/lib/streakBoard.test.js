@@ -1,8 +1,10 @@
 import { test, expect } from "bun:test";
 import {
   MILESTONES, nextMilestone, milestoneProgress,
-  giftFor, giftAt, GIFTS, GIFT_CAP,
+  giftFor, giftAt, giftInfo, GIFTS, GIFT_CAP, FILM_GIFT,
 } from "./streakBoard.js";
+import { FILM_UNIT } from "./plans.js";
+import { priceForFilm } from "./video.js";
 
 test("the ladder is sorted and starts reachable", () => {
   const nights = MILESTONES.map((m) => m.nights);
@@ -28,54 +30,56 @@ test("progress moves between the previous and the next rung", () => {
    dass aus der Leiter eine Geldpresse wird. */
 
 test("nothing is given below the first threshold", () => {
-  expect(giftFor({ streak: 6, credits: 0 })).toBeNull();
+  expect(giftFor({ count: 2, credits: 0 })).toBeNull();
   expect(giftFor({})).toBeNull();
   expect(giftFor(null)).toBeNull();
 });
 
-test("seven nights hand over exactly one credit — once", () => {
-  const first = giftFor({ streak: 7, credits: 2 });
-  expect(first.credits).toBe(1);
-  expect(first.patch.credits).toBe(3);
-  expect(first.patch.streakGifts).toEqual([7]);
-  // Derselbe Zustand ein zweites Mal: nichts mehr.
-  expect(giftFor({ streak: 7, credits: 3, streakGifts: [7] })).toBeNull();
+const NOW = new Date("2026-10-03T10:00:00");
+
+test("three nights give one Glimpse, seven a whole film — once each, into the gift pot", () => {
+  const three = giftFor({ count: 3, credits: 2 }, NOW);
+  expect(three).toMatchObject({ nights: 3, kind: "glimpse", credits: 2 });
+  expect(three.patch.credits).toBeUndefined();              // gekauftes Guthaben bleibt unberührt
+  expect(three.patch.giftCredits.amount).toBe(2);
+  expect(three.patch.giftUnseen).toMatchObject({ nights: 3, credits: 2 });
+  const seven = giftFor({ count: 7, ...three.patch }, NOW);
+  expect(seven).toMatchObject({ nights: 7, kind: "film", credits: FILM_GIFT });
+  expect(seven.patch.giftCredits.amount).toBe(2 + FILM_GIFT);
+  expect(seven.patch.streakGifts).toEqual([3, 7]);
+  expect(giftFor({ count: 7, ...seven.patch }, NOW)).toBeNull();
 });
 
-/* ⚠ Der Fall, der ohne Liste zum Dauerlauf würde: Serie reißt, wächst
-   wieder über 7 — und der Credit flösse erneut. */
-test("a streak that breaks and regrows does not pay twice", () => {
-  const after = { streak: 9, credits: 3, streakGifts: [7] };
-  expect(giftFor(after)).toBeNull();
+test("the film gift is exactly one 15-second film", () => {
+  expect(FILM_GIFT).toBe(priceForFilm(FILM_UNIT.model, FILM_UNIT.seconds, { quality: FILM_UNIT.quality }));
+  expect(giftInfo(7).kind).toBe("film");
 });
 
-test("thirty nights are the second and last payout", () => {
-  const g = giftFor({ streak: 30, credits: 0, streakGifts: [7] });
-  expect(g.credits).toBe(3);
-  expect(g.patch.streakGifts).toEqual([7, 30]);
-  expect(giftFor(g.patch)).toBeNull();        // danach ist die Leiter durch
+/* ⚠ Der Fall, der ohne Liste zum Dauerlauf würde: Träume löschen, neue
+   machen, wieder über 7 — und das Geschenk flösse erneut. */
+test("deleting dreams and making new ones does not pay twice", () => {
+  expect(giftFor({ count: 9, streakGifts: [3, 7] })).toBeNull();
 });
 
-/* Der Deckel muss die Tabelle decken, nicht umgekehrt: Wer eine dritte
-   Schwelle einträgt, ohne GIFT_CAP anzuheben, verschenkt sie ins Leere. */
 test("the table never promises more than the cap allows", () => {
   const total = GIFTS.reduce((s, g) => s + g.credits, 0);
   expect(total).toBeLessThanOrEqual(GIFT_CAP);
-  expect(giftAt(7)).toBe(1);
+  expect(giftAt(14)).toBe(20);
   expect(giftAt(999)).toBe(0);
 });
 
 /* Ein Zustand, der aus dem Nichts eine hohe Serie mitbringt (Import, alter
    Stand), bekommt die Schwellen nacheinander — nie mehr als den Deckel. */
-test("a jump past both thresholds pays them one after the other, capped", () => {
-  let s = { streak: 100, credits: 0 };
+test("a jump past every threshold pays them one after the other, capped", () => {
+  let s = { count: 100, credits: 0 };
   let total = 0;
-  for (let i = 0; i < 5; i++) {
-    const g = giftFor(s);
+  for (let i = 0; i < 10; i++) {
+    const g = giftFor(s, NOW);
     if (!g) break;
     total += g.credits;
     s = { ...s, ...g.patch };
   }
   expect(total).toBe(GIFT_CAP);
-  expect(s.credits).toBe(GIFT_CAP);
+  expect(s.giftCredits.amount).toBe(GIFT_CAP);
+  expect(s.credits).toBe(0);
 });
