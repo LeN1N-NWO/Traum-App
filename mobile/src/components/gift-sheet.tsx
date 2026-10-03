@@ -6,17 +6,16 @@ import Animated, {
   withDelay, withRepeat, withSequence, withSpring, withTiming,
 } from "react-native-reanimated";
 import { PrimaryButton } from "@/components/glass";
-import type { CycleMilestone, GiftReveal, HomeData } from "@/store/journal-store";
+import type { GiftCard, GiftReveal } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
 /* Die Geschenke der Serie (Antons Ansage 03.10.: „noch so ein Icon, wie so
  * ein Geschenk … sodass es mehr Wert diesem Credit bietet").
  *
- *   · GiftPreview — Tipp auf ein Geschenk im Ring: die geschlossene
- *     Schachtel wackelt, darunter steht, was drin ist, in Dingen statt in
- *     Zahlen („Dein erster Traumfilm"), wie weit es noch ist und was zählt.
- *     Die Überraschung bleibt ein Versprechen — eine ungewisse Belohnung
- *     zieht stärker als eine feste.
+ *   · GiftPreview — Tipp auf ein Geschenk (das nächste unter dem Ring oder
+ *     das große oben, „dein Monat als Film"): die geschlossene Schachtel
+ *     wackelt, darunter NUR Titel, ein Satz und der Fortschritt (Antons
+ *     Befund 03.10.: „muss kompakter und schneller verständlich sein").
  *   · GiftOpen — das frisch erreichte Geschenk (home.giftReveal): antippen,
  *     der Deckel fliegt, Funken, das Guthaben zählt hoch, und gleich
  *     darunter „Einlösen" — ein Geschenk, das man erst suchen muss, ist
@@ -94,24 +93,25 @@ function Spark({ i, go }: { i: number; go: boolean }) {
   return <Animated.View style={[styles.spark, i % 3 === 0 && styles.sparkBig, st]} />;
 }
 
-/** Tipp auf ein Geschenk im Ring. */
-export function GiftPreview({ m, sheet, onClose }: { m: CycleMilestone | null; sheet: HomeData["cycle"]["sheet"]; onClose: () => void }) {
+/** Tipp auf ein Geschenk: Titel, ein Satz, Fortschritt. */
+export function GiftPreview({ card, onClose }: { card: GiftCard | null; onClose: () => void }) {
   return (
-    <Modal visible={!!m} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={!!card} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        {m ? (
+        {card ? (
           <Pressable style={styles.card} onPress={() => {}}>
-            <Text style={styles.eyebrow}>{m.soon}</Text>
+            <Text style={styles.eyebrow}>{card.eyebrow}</Text>
             <GiftBox open={false} wobble />
-            <Text style={styles.label}>{sheet.inside}</Text>
-            <Text style={styles.title}>{m.gift ?? m.reward}</Text>
-            {m.worth ? <Text style={styles.worth}>{m.worth}</Text> : null}
-            {m.gift ? <Text style={styles.surprise}>{sheet.surprise}</Text> : null}
-            <View style={styles.rule}>
-              <Text style={styles.small}>{sheet.rule}</Text>
-              {m.gift ? <Text style={styles.small}>{sheet.valid}</Text> : null}
+            <Text style={styles.title}>{card.title}</Text>
+            <Text style={styles.surprise}>{card.sub}</Text>
+            {/* Kurze Zahl („5 / 7") neben dem Balken, ein Satz darunter. */}
+            <View style={styles.progressRow}>
+              <View style={styles.track}><View style={[styles.fill, { width: `${Math.round(card.progress * 100)}%` }]} /></View>
+              {card.progressText.length <= 9 ? <Text style={styles.progressText}>{card.progressText}</Text> : null}
             </View>
-            <Pressable onPress={onClose} hitSlop={10} style={styles.later}><Text style={styles.laterText}>{sheet.close}</Text></Pressable>
+            {card.progressText.length > 9 ? <Text style={[styles.progressText, { textAlign: "center" }]}>{card.progressText}</Text> : null}
+            {card.foot ? <Text style={styles.small}>{card.foot}</Text> : null}
+            <Pressable onPress={onClose} hitSlop={10} style={styles.later}><Text style={styles.laterText}>{card.close}</Text></Pressable>
           </Pressable>
         ) : null}
       </Pressable>
@@ -157,8 +157,7 @@ export function GiftOpen({ g, onRedeem, onLater }: { g: GiftReveal | null; onRed
             ) : (
               <Animated.View entering={FadeInDown.delay(700).duration(420)} style={{ alignItems: "center", gap: 6, alignSelf: "stretch" }}>
                 <Text style={styles.title}>{g.label}</Text>
-                {g.worth ? <Text style={styles.worth}>{g.worth}</Text> : null}
-                {g.reward ? <Text style={styles.surprise}>✦ {g.reward}</Text> : null}
+                {g.sub ? <Text style={styles.surprise}>{g.sub}</Text> : null}
                 {g.expires ? <Text style={styles.small}>{g.expires}</Text> : null}
                 <PrimaryButton label={g.redeem} heavy onPress={onRedeem} style={{ alignSelf: "stretch", marginTop: 10, flex: 0 }} />
                 <Pressable onPress={onLater} hitSlop={10} style={styles.later}><Text style={styles.laterText}>{g.later}</Text></Pressable>
@@ -191,6 +190,10 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.serif, fontSize: 26, lineHeight: 32, color: colors.text, textAlign: "center" },
   worth: { color: GOLD, fontSize: 14, fontWeight: "600" },
   surprise: { color: colors.muted, fontSize: 14, lineHeight: 20, textAlign: "center" },
+  progressRow: { flexDirection: "row", alignItems: "center", gap: 10, alignSelf: "stretch", marginTop: 6 },
+  track: { flex: 1, height: 6, borderRadius: 3, backgroundColor: "rgba(234,240,251,0.12)", overflow: "hidden" },
+  fill: { height: "100%", borderRadius: 3, backgroundColor: GOLD },
+  progressText: { color: GOLD, fontSize: 14, fontWeight: "700", fontVariant: ["tabular-nums"] },
   rule: { marginTop: 8, gap: 4, alignSelf: "stretch", paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(234,240,251,0.15)" },
   small: { color: colors.faint, fontSize: 12.5, lineHeight: 18, textAlign: "center" },
   tap: { color: colors.muted, fontSize: 14, marginTop: 4 },

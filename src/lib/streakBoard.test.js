@@ -30,7 +30,7 @@ test("progress moves between the previous and the next rung", () => {
    dass aus der Leiter eine Geldpresse wird. */
 
 test("nothing is given below the first threshold", () => {
-  expect(giftFor({ streak: 2, credits: 0 })).toBeNull();
+  expect(giftFor({ count: 2, credits: 0 })).toBeNull();
   expect(giftFor({})).toBeNull();
   expect(giftFor(null)).toBeNull();
 });
@@ -38,16 +38,16 @@ test("nothing is given below the first threshold", () => {
 const NOW = new Date("2026-10-03T10:00:00");
 
 test("three nights give one Glimpse, seven a whole film — once each, into the gift pot", () => {
-  const three = giftFor({ streak: 3, credits: 2 }, NOW);
+  const three = giftFor({ count: 3, credits: 2 }, NOW);
   expect(three).toMatchObject({ nights: 3, kind: "glimpse", credits: 2 });
   expect(three.patch.credits).toBeUndefined();              // gekauftes Guthaben bleibt unberührt
   expect(three.patch.giftCredits.amount).toBe(2);
   expect(three.patch.giftUnseen).toMatchObject({ nights: 3, credits: 2 });
-  const seven = giftFor({ streak: 7, ...three.patch }, NOW);
+  const seven = giftFor({ count: 7, ...three.patch }, NOW);
   expect(seven).toMatchObject({ nights: 7, kind: "film", credits: FILM_GIFT });
   expect(seven.patch.giftCredits.amount).toBe(2 + FILM_GIFT);
   expect(seven.patch.streakGifts).toEqual([3, 7]);
-  expect(giftFor({ streak: 7, ...seven.patch }, NOW)).toBeNull();
+  expect(giftFor({ count: 7, ...seven.patch }, NOW)).toBeNull();
 });
 
 test("the film gift is exactly one 15-second film", () => {
@@ -55,10 +55,10 @@ test("the film gift is exactly one 15-second film", () => {
   expect(giftInfo(7).kind).toBe("film");
 });
 
-/* ⚠ Der Fall, der ohne Liste zum Dauerlauf würde: Serie reißt, wächst
-   wieder über 7 — und das Geschenk flösse erneut. */
-test("a streak that breaks and regrows does not pay twice", () => {
-  expect(giftFor({ streak: 9, streakGifts: [3, 7] })).toBeNull();
+/* ⚠ Der Fall, der ohne Liste zum Dauerlauf würde: Träume löschen, neue
+   machen, wieder über 7 — und das Geschenk flösse erneut. */
+test("deleting dreams and making new ones does not pay twice", () => {
+  expect(giftFor({ count: 9, streakGifts: [3, 7] })).toBeNull();
 });
 
 test("the table never promises more than the cap allows", () => {
@@ -71,7 +71,7 @@ test("the table never promises more than the cap allows", () => {
 /* Ein Zustand, der aus dem Nichts eine hohe Serie mitbringt (Import, alter
    Stand), bekommt die Schwellen nacheinander — nie mehr als den Deckel. */
 test("a jump past every threshold pays them one after the other, capped", () => {
-  let s = { streak: 100, credits: 0 };
+  let s = { count: 100, credits: 0 };
   let total = 0;
   for (let i = 0; i < 10; i++) {
     const g = giftFor(s, NOW);

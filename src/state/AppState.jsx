@@ -4,7 +4,7 @@ import { buildSeedJournal } from "../lib/seedJournal.js";
 import { collectTick, pendingFingerprint } from "../lib/collector.js";
 import { failureTextKey } from "../lib/falError.js";
 import { giftFor, giftLabel } from "../lib/streakBoard.js";
-import { streakInfo } from "../lib/nights.js";
+import { dreamCount } from "../lib/nights.js";
 import { snoozeCheck } from "../lib/streak.js";
 import { jobStatus, backupJournal, sharedDreams, backupCast, sharedCast,
          generate, uploadPanel, mediaUrl } from "../lib/api.js";
@@ -388,10 +388,10 @@ export function AppStateProvider({ children }) {
      also kann dieser Effekt gefahrlos bei jeder Serienänderung laufen —
      nach dem Patch findet er nichts mehr. */
   useEffect(() => {
-    // Seit 03.10. zählt die Serie aus dem Journal (nur Film-Nächte, nights.js) —
-    // nicht der alte Zähler, der jeden Text-Traum mitzählte.
+    // Seit 03.10.: die Zahl der Träume mit Glimpse/Film (nights.js dreamCount) —
+    // keine Serie, kein Text-Traum.
     const s = stateRef.current;
-    const gift = giftFor({ ...s, streak: streakInfo(s.journal, { bridged: s.snoozeDays || [] }).streak });
+    const gift = giftFor({ ...s, count: dreamCount(s.journal) });
     if (!gift) return;
     update(gift.patch);
     toast(t.streakBoard.gift(gift.nights, giftLabel(t, gift)));

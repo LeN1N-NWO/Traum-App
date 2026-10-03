@@ -43,7 +43,7 @@ export default {
     title: "What did you dream?",
     lede: "Tell it while it's still warm — half-asleep works best.",
     cta: "Record your dream",
-    streak: (n) => `${n} day${n === 1 ? "" : "s"}`,
+    streak: (n) => `${n} ${n === 1 ? "dream" : "dreams"}`,   // seit 03.10.: die Zahl der Träume, keine Serie
     streakPerk: (n, max) => `Night ${n} of ${max} — the creatures are coming rarer.`,
     streakRisk: "You wrote last night. Tonight keeps the run going — no rush, it holds until you sleep.",
     lastHeading: "Last night",
@@ -63,7 +63,7 @@ export default {
     moonLabel: (phase) => `Last night · ${phase}`,
     articleHeading: "From the research",
     articleMore: "Read",
-    streakZero: "Start your streak",
+    streakZero: "Your first dream",
     intentionHeading: "Last night you wanted to dream about",
   },
   /* Der Traum-Vorsatz im Schlaf-Tab (27.09.). */
@@ -77,7 +77,15 @@ export default {
     left: (n) => `${n} more ${n === 1 ? "night" : "nights"} — then your month becomes a film.`,
     fullTonight: "Last night of the ring — tomorrow your month becomes a film.",
     thread: (label, n) => `Strongest thread: ${label} (${n}×)`,
-    milestoneSay: (nights, inDays, reward, gift) => `${inDays <= 0 ? "Tonight" : inDays === 1 ? "Tomorrow" : `In ${inDays} nights`}: ${nights} in a row${gift ? ` — 🎁 ${gift}` : ` — ${reward}`}`,
+    milestoneSay: (left, gift) => `${left <= 1 ? "One more dream" : `${left} more dreams`} until 🎁 ${gift}`,
+    /* Das große Geschenk oben im Ring (Antons Befund 03.10.: „da kommt
+       nichts, wobei das doch das stärkste Geschenk ist"). */
+    month: {
+      title: "Your month as a film",
+      sub: "At full moon, every dream picture in this ring becomes one film — free.",
+      when: (n) => (n <= 0 ? "Full moon tonight" : n === 1 ? "Full moon tomorrow" : `Full moon in ${n} days`),
+      have: (n, min) => (n >= min ? `${n} dreams inside` : `${n} of ${min} dreams — from ${min} it becomes a film`),
+    },
     asleep: "Zzz … tell me a dream and I'll wake up.",
     filmTitle: (month, motif) => motif ? `Your ${month} in dreams · ${motif}` : `Your ${month} in dreams`,
     readyTitle: "Your month as a film is here",
@@ -147,12 +155,12 @@ export default {
   },
 
   streakBoard: {
-    title: "Your streak",
+    title: "Your dreams",
     /* Die Mini-Geschenke (Antons Ja 22.08.). Der Ton ist bewusst nüchtern:
        ein Credit ist ein Bild, keine Konfetti-Kanone. */
     /* Seit 03.10. (Antons Ansage „ein Credit klingt nach gar nichts"):
        Geschenke heißen nach dem, was man damit macht. */
-    gift: (nights, label) => `🎁 ${nights} nights in a row — your gift: ${label}`,
+    gift: (n, label) => `🎁 Dream no. ${n} — your gift: ${label}`,
     giftBadge: (credits) => `+${credits} ${credits === 1 ? "credit" : "credits"}`,
     giftKinds: {
       glimpse: () => "A free Glimpse",
@@ -162,15 +170,23 @@ export default {
     },
     giftShort: { glimpse: "Glimpse", film: "Film", credits: (n) => `+${n}`, month: (n) => `+${n}` },
     giftWorth: (n) => `worth ${n} ${n === 1 ? "credit" : "credits"}`,
+    /* Kurz und auf einen Blick (Antons Befund 03.10.: „ein bisschen
+       kompliziert … muss kompakter und schneller verständlich sein"):
+       Titel, ein Satz, Fortschritt — mehr nicht. */
     giftSheet: {
-      soon: (n) => (n <= 0 ? "Within reach tonight" : n === 1 ? "1 more film night" : `${n} more film nights`),
-      inside: "Inside",
-      surprise: "+ a surprise for your menagerie",
-      rule: "Film nights count: a dream with a Glimpse or a film. A dream in words only keeps your streak alive, but doesn't count.",
-      valid: (days) => `Valid for ${days} days once it's yours.`,
+      left: (n) => (n <= 1 ? "With your next dream" : `${n} more dreams`),
+      progress: (have, need) => `${have} / ${need}`,
+      subs: {
+        glimpse: "Your next dream as a Glimpse — free.",
+        film: "One dream as a whole film — on us.",
+        credits: "For Glimpses or films, your choice.",
+        month: "As much as a whole month of subscription.",
+      },
+      rule: "Every dream with a Glimpse or film counts.",
+      valid: "Valid 30 days.",
       tapToOpen: "Tap to open",
-      openTitle: (nights) => `${nights} film nights in a row!`,
-      expires: (date) => `Yours until ${date}.`,
+      openTitle: (n) => `Dream no. ${n}!`,
+      expires: (date) => `Valid until ${date}.`,
       redeem: { glimpse: "Make a Glimpse", film: "Make your film", credits: "Use it now", month: "Use it now" },
       later: "Later",
       close: "Close",
@@ -185,19 +201,19 @@ export default {
       ? "One more night earns another one."
       : `${n} more nights earn another one.`),
     snoozeFull: "Your shelf is full — a missed night costs you nothing.",
-    nights: (n) => (n === 1 ? "night" : "nights"),
-    next: (n) => (n === 1 ? "1 more night to the next milestone." : `${n} more nights to the next milestone.`),
+    nights: (n) => (n === 1 ? "dream" : "dreams"),
+    next: (n) => (n === 1 ? "1 more dream to your next gift." : `${n} more dreams to your next gift.`),
     done: "Every milestone reached. You are the calendar now.",
-    rung: (n) => `${n} nights`,
+    rung: (n) => `${n} dreams`,
     rewards: {
       warm: "Rarer creatures begin to stir in your menagerie.",
       epic: "Epic creatures come within reach.",
-      steady: "Peak odds — from here every creature rolls with your full streak bonus.",
-      legendary: "Legendary territory: a month of nights, told.",
-      keeper: "Keeper of dreams — two months, few ever get here.",
-      hundred: "One hundred nights. Your journal is a book now.",
+      steady: "Peak odds — from here every creature rolls with your full bonus.",
+      legendary: "Legendary territory: thirty dreams, told.",
+      keeper: "Keeper of dreams — few ever get here.",
+      hundred: "One hundred dreams. Your journal is a book now.",
     },
-    note: "The streak counts film nights: nights with a dream as a Glimpse or a film — never the amount. A dream in words only keeps the streak alive, but doesn't count.",
+    note: "Every dream with a Glimpse or a film counts — whatever the day. A dream in words only doesn't.",
   },
 
   /* Die Mondphasen (moon.js). Ortsunabhängig — die Phase ist überall
@@ -577,7 +593,7 @@ export default {
     addPhoto: "Add your photo",
     changePhoto: "Change your photo",
     statDreams: "dreams",
-    statStreak: "day streak",
+    statStreak: "filmed",
     people: "People",
     pets: "Pets",
     places: "Places",

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { dayKey, dreamNightCount, isFilmNight, missedNights, snoozeBridge, snoozeEarn, streakInfo } from "./nights.js";
+import { dayKey, dreamCount, dreamNightCount, isFilmNight, missedNights, snoozeBridge, snoozeEarn, streakInfo } from "./nights.js";
 
 // Ein Tag in Ortszeit, als Datum mit Uhrzeit.
 const at = (day, time = "08:00") => new Date(`${day}T${time}:00`);
@@ -62,4 +62,10 @@ test("nur Träume mit Glimpse/Film zählen; ein Text-Traum hält die Serie, zäh
   expect(streakInfo(mix, { now: NOW })).toEqual({ streak: 2, atRisk: false, today: true });
   // Heute nur Text: der Tag ist gehalten, nicht auf der Kippe.
   expect(streakInfo([dream("2026-09-27"), textOnly("2026-09-28")], { now: NOW })).toEqual({ streak: 1, atRisk: false, today: true });
+});
+
+test("die Zahl der Träume zählt jeden Traum mit Bild einmal — Lücken und Text egal", () => {
+  const j = [dream("2026-09-01"), dream("2026-09-15", "07:00"), dream("2026-09-15", "08:00"), textOnly("2026-09-20"), blank("2026-09-21")];
+  expect(dreamCount(j)).toBe(3);
+  expect(dreamCount([])).toBe(0);
 });

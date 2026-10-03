@@ -41,7 +41,7 @@ export default {
     title: "Was hast du geträumt?",
     lede: "Erzähl es, solange es noch warm ist — halb wach klappt am besten.",
     cta: "Traum aufnehmen",
-    streak: (n) => `${n} Tag${n === 1 ? "" : "e"}`,
+    streak: (n) => `${n} ${n === 1 ? "Traum" : "Träume"}`,   // seit 03.10.: die Zahl der Träume, keine Serie
     streakPerk: (n, max) => `Nacht ${n} von ${max} — deine Wesen kommen seltener.`,
     streakRisk: "Letzte Nacht hast du geschrieben. Heute hält die Serie — keine Eile, sie zählt bis du schläfst.",
     lastHeading: "Letzte Nacht",
@@ -57,7 +57,7 @@ export default {
     moonLabel: (phase) => `Letzte Nacht · ${phase}`,
     articleHeading: "Aus der Forschung",
     articleMore: "Lesen",
-    streakZero: "Starte deine Serie",
+    streakZero: "Dein erster Traum",
     intentionHeading: "Gestern wolltest du träumen von",
   },
   cycle: {
@@ -66,7 +66,15 @@ export default {
     left: (n) => `Noch ${n} ${n === 1 ? "Nacht" : "Nächte"} — dann wird dein Monat zum Film.`,
     fullTonight: "Letzte Nacht des Rings — morgen wird dein Monat zum Film.",
     thread: (label, n) => `Der stärkste Faden: ${label} (${n}×)`,
-    milestoneSay: (nights, inDays, reward, gift) => `${inDays <= 0 ? "Heute Nacht" : inDays === 1 ? "Morgen" : `In ${inDays} Nächten`}: ${nights} in Folge${gift ? ` — 🎁 ${gift}` : ` — ${reward}`}`,
+    milestoneSay: (left, gift) => `${left <= 1 ? "Noch 1 Traum" : `Noch ${left} Träume`} bis 🎁 ${gift}`,
+    /* Das große Geschenk oben im Ring (Antons Befund 03.10.: „da kommt
+       nichts, wobei das doch das stärkste Geschenk ist"). */
+    month: {
+      title: "Dein Monat als Film",
+      sub: "Am Vollmond wird aus allen Traumbildern dieses Rings ein Film — gratis.",
+      when: (n) => (n <= 0 ? "Heute Nacht ist Vollmond" : n === 1 ? "Morgen ist Vollmond" : `Vollmond in ${n} Tagen`),
+      have: (n, min) => (n >= min ? `${n} Träume drin` : `${n} von ${min} Träumen — ab ${min} wird es ein Film`),
+    },
     asleep: "Zzz … erzähl mir einen Traum, dann wach ich auf.",
     filmTitle: (month, motif) => motif ? `Dein ${month} in Träumen · ${motif}` : `Dein ${month} in Träumen`,
     readyTitle: "Dein Monat als Film ist da",
@@ -132,8 +140,8 @@ export default {
   },
 
   streakBoard: {
-    title: "Deine Serie",
-    gift: (nights, label) => `🎁 ${nights} Nächte in Folge — dein Geschenk: ${label}`,
+    title: "Deine Träume",
+    gift: (n, label) => `🎁 Dein ${n}. Traum — dein Geschenk: ${label}`,
     giftBadge: (credits) => `+${credits} ${credits === 1 ? "Credit" : "Credits"}`,
     giftKinds: {
       glimpse: () => "Ein Glimpse geschenkt",
@@ -143,15 +151,23 @@ export default {
     },
     giftShort: { glimpse: "Glimpse", film: "Film", credits: (n) => `+${n}`, month: (n) => `+${n}` },
     giftWorth: (n) => `im Wert von ${n} ${n === 1 ? "Credit" : "Credits"}`,
+    /* Kurz und auf einen Blick (Antons Befund 03.10.: „ein bisschen
+       kompliziert … muss kompakter und schneller verständlich sein"):
+       Titel, ein Satz, Fortschritt — mehr nicht. */
     giftSheet: {
-      soon: (n) => (n <= 0 ? "Heute Nacht erreichbar" : n === 1 ? "Noch 1 Film-Nacht" : `Noch ${n} Film-Nächte`),
-      inside: "Darin",
-      surprise: "+ eine Überraschung für deine Menagerie",
-      rule: "Es zählen Film-Nächte: ein Traum mit Glimpse oder Film. Ein Traum nur als Text hält deine Serie, zählt aber nicht.",
-      valid: (days) => `Nach Erhalt ${days} Tage gültig.`,
+      left: (n) => (n <= 1 ? "Mit deinem nächsten Traum" : `Noch ${n} Träume`),
+      progress: (have, need) => `${have} / ${need}`,
+      subs: {
+        glimpse: "Dein nächster Traum als Glimpse — gratis.",
+        film: "Ein Traum als ganzer Film — geschenkt.",
+        credits: "Für Glimpses oder Filme, wie du willst.",
+        month: "So viel wie ein ganzer Monat Abo.",
+      },
+      rule: "Es zählt jeder Traum mit Glimpse oder Film.",
+      valid: "30 Tage gültig.",
       tapToOpen: "Tippen zum Öffnen",
-      openTitle: (nights) => `${nights} Film-Nächte in Folge!`,
-      expires: (date) => `Gehört dir bis ${date}.`,
+      openTitle: (n) => `Dein ${n}. Traum!`,
+      expires: (date) => `Gültig bis ${date}.`,
       redeem: { glimpse: "Glimpse machen", film: "Film machen", credits: "Jetzt einlösen", month: "Jetzt einlösen" },
       later: "Später",
       close: "Schließen",
@@ -164,19 +180,19 @@ export default {
       ? "Noch eine Nacht, dann kommt die nächste dazu."
       : `Noch ${n} Nächte, dann kommt die nächste dazu.`),
     snoozeFull: "Dein Vorrat ist voll — eine verpasste Nacht kostet dich nichts.",
-    nights: (n) => (n === 1 ? "Nacht" : "Nächte"),
-    next: (n) => (n === 1 ? "Noch 1 Nacht bis zum nächsten Meilenstein." : `Noch ${n} Nächte bis zum nächsten Meilenstein.`),
+    nights: (n) => (n === 1 ? "Traum" : "Träume"),
+    next: (n) => (n === 1 ? "Noch 1 Traum bis zum nächsten Geschenk." : `Noch ${n} Träume bis zum nächsten Geschenk.`),
     done: "Alle Meilensteine erreicht. Du bist jetzt der Kalender.",
-    rung: (n) => `${n} Nächte`,
+    rung: (n) => `${n} Träume`,
     rewards: {
       warm: "Seltenere Wesen beginnen sich in deiner Menagerie zu zeigen.",
       epic: "Epische Wesen kommen in Reichweite.",
-      steady: "Volle Gewichte — ab hier würfelt jedes Wesen mit deinem ganzen Serien-Bonus.",
-      legendary: "Legendäres Gebiet: ein Monat Nächte, erzählt.",
-      keeper: "Hüter der Träume — zwei Monate, kaum jemand kommt hierher.",
-      hundred: "Hundert Nächte. Dein Journal ist jetzt ein Buch.",
+      steady: "Volle Gewichte — ab hier würfelt jedes Wesen mit deinem ganzen Bonus.",
+      legendary: "Legendäres Gebiet: dreißig Träume, erzählt.",
+      keeper: "Hüter der Träume — kaum jemand kommt hierher.",
+      hundred: "Hundert Träume. Dein Journal ist jetzt ein Buch.",
     },
-    note: "Die Serie zählt Film-Nächte: Nächte mit einem Traum als Glimpse oder Film — nie die Menge. Ein Traum nur als Text hält die Serie, zählt aber nicht.",
+    note: "Es zählt jeder Traum mit Glimpse oder Film — egal an welchem Tag. Ein Traum nur als Text zählt nicht.",
   },
 
   moon: {
@@ -523,7 +539,7 @@ export default {
     addPhoto: "Dein Foto hinzufügen",
     changePhoto: "Dein Foto ändern",
     statDreams: "Träume",
-    statStreak: "Tage in Folge",
+    statStreak: "verfilmt",
     people: "Personen",
     pets: "Tiere",
     places: "Orte",

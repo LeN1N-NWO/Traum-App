@@ -12,14 +12,13 @@
 import "./vite-env.js";                       // ⚠ zuerst, API_BASE
 import { useEffect } from "react";
 import { loadState, saveState } from "../../../src/lib/storage.js";
-import { STREAK_CAP } from "../../../src/lib/streak.js";
-import { dayKey, isFilmNight, isMoonFilm, MOON_FILM_KIND, snoozeBridge, snoozeEarn, streakInfo } from "../../../src/lib/nights.js";
+import { dayKey, dreamCount, dreamDays, isFilmNight, isMoonFilm, MOON_FILM_KIND } from "../../../src/lib/nights.js";
 import { hasPendingJobs, collectTick } from "../../../src/lib/collector.js";
 import { failureTextKey } from "../../../src/lib/falError.js";
 import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
-import { totalCredits, spend, applyAllowanceGrant, giftLeft, GIFT_DAYS } from "../../../src/lib/credits.js";
+import { totalCredits, spend, applyAllowanceGrant, giftLeft } from "../../../src/lib/credits.js";
 import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchGrid, sketchSound } from "../../../src/lib/api.js";
 import { pickParticles, buildSketchGridPrompt } from "../../../src/lib/sketchPrompt.js";
 import { sketchFreeLeft, sketchCost, countSketch, sketchTiming, clampStrips, SKETCH_STRIPS, SCENES_PER_STRIP } from "../../../src/lib/sketchQuota.js";
@@ -51,7 +50,6 @@ import { SYMBOLS, SYMBOL_CATEGORIES, detectSymbols, symbolOccurrences } from "..
 import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
 import { MILESTONES, nextMilestone, giftFor, giftInfo, giftLabel } from "../../../src/lib/streakBoard.js";
 import { REFERRAL_FILMS, REFERRAL_HOLD_DAYS, REFERRAL_MONTHLY_CAP } from "../../../src/lib/invites.js";
-import { nextSnoozeIn } from "../../../src/lib/streak.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
 import { genId } from "../../../src/lib/storage.js";
 import { newCreature } from "../../../src/lib/creatures.js";
@@ -91,8 +89,15 @@ function takeLabel(f) {
 /* Die Serie — seit 28.09. aus dem Journal gerechnet (src/lib/nights.js),
    nicht mehr aus mitgeführten Zählern. Sterne, Serie und Geschenke sehen
    damit dieselben Tage. */
-function streakOf(st) {
-  return streakInfo(st.journal, { bridged: st.snoozeDays || [] });
+/* Seit 03.10. abends (Antons Ansage: „Mir geht es einfach nur um die
+   Anzahl der Träume, kein Streak"): keine Serie mehr, nur die Zahl der
+   Träume mit Glimpse oder Film (nights.js dreamCount). `today` = heute
+   steht schon ein Traum (auch Text) — dann ist der Frosch wach. */
+function countOf(st) {
+  return dreamCount(st.journal);
+}
+function dreamtToday(st) {
+  return dreamDays(st.journal).has(dayKey(new Date()));
 }
 
 function snapshot() {
@@ -166,8 +171,18 @@ function snapshot() {
      nächsten Mittag — dann erinnert die Startseite daran. */
   const intentionAt = s.intention?.at ? new Date(s.intention.at).getTime() : 0;
   const intention = intentionAt && Date.now() - intentionAt < 18 * 3600 * 1000 ? String(s.intention.text || "") : "";
-  const run = streakOf(s);
-  const streak = run.streak;
+  const count = countOf(s);
+  const todayDone = dreamtToday(s);
+  /* Ein Geschenk als kurze Karte (gift-sheet.tsx): Titel, ein Satz,
+     Fortschritt — mehr nicht (Antons Befund 03.10.). */
+  const giftCard = (g, have) => {
+    const G = t.streakBoard.giftSheet;
+    return {
+      kind: g.kind, title: giftLabel(t, g), sub: G.subs[g.kind] || "",
+      eyebrow: G.left(g.nights - have), progress: Math.max(0, Math.min(1, have / g.nights)),
+      progressText: G.progress(have, g.nights), foot: `${G.rule} ${G.valid}`, close: G.close,
+    };
+  };
   const last = items[0] || null;
   const today = checkinOn(s.checkins);
   /* Ein frisch erreichtes Geschenk, bis die Startseite es geöffnet hat
@@ -182,9 +197,7 @@ function snapshot() {
       ? new Date(s.giftCredits.until).toLocaleDateString(s.language === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long" }) : null;
     return {
       nights: u.nights, kind: u.kind, credits: u.credits,
-      title: G.openTitle(u.nights), label: giftLabel(t, u),
-      worth: u.kind !== "credits" ? t.streakBoard.giftWorth(u.credits) : null,
-      reward: (() => { const m = MILESTONES.find((x) => x.nights === u.nights); return m ? t.streakBoard.rewards[m.reward] : null; })(),
+      title: G.openTitle(u.nights), label: giftLabel(t, u), sub: G.subs[u.kind] || "",
       expires: until ? G.expires(until) : null,
       tapToOpen: G.tapToOpen, redeem: G.redeem[u.kind] || G.redeem.credits, later: G.later,
       target: u.kind === "glimpse" || !latest ? "dream" : "journal", dreamId: latest ? latest.id : null,
@@ -192,14 +205,14 @@ function snapshot() {
   })();
   const home = {
     giftReveal,
-    streak,
-    atRisk: run.atRisk,
+    streak: count,
+    atRisk: false,
     rendering: hasPendingJobs(s.journal),
     nightMarked: nightMarked((s.journal || []).filter((e) => !isMoonFilm(e))),
     checkin: today ? today.sleep : null,
     lastId: last ? last.id : null,
-    streakLine: streak > 0 ? t.home.streak(streak) : t.home.streakZero,
-    streakNote: streak > 0 ? (run.atRisk ? t.home.streakRisk : t.home.streakPerk(Math.min(streak, STREAK_CAP), STREAK_CAP)) : "",
+    streakLine: count > 0 ? t.home.streak(count) : t.home.streakZero,
+    streakNote: "",
     checkinLevels: SLEEP_LEVELS.map((l) => ({ level: l, label: t.checkin.levels[l], emoji: t.checkin.emoji[l] })),
     /* Die Startseite „Deine Nächte" (27.09., Antons Wahl C3): die letzten
        Träume als Plakate, dazu EIN Motiv, das wiederkehrt — aus den letzten
@@ -224,51 +237,30 @@ function snapshot() {
       const C = t.cycle;
       const ring = cycleRing(cycleDreams, new Date());
       const label = (id) => (id ? t.symbols.byId[id]?.label || id : null);
-      /* Die Meilensteine der Serie als Platzhalter auf den kommenden
-         Nächten (Antons Idee 03.10.): Wer jede Nacht träumt, erreicht
-         Meilenstein m an genau diesem Tag. Heute zählt mit, solange heute
-         noch kein Traum steht. */
-      const ti = ring.days.findIndex((d) => d.today);
-      const first = ti < 0 ? 0 : run.today ? ti + 1 : ti;          // die nächste Nacht, die die Serie verlängert
-      const base = run.streak;
-      const milestones = [];
-      for (const ms of MILESTONES) {
-        if (ms.nights <= base) continue;
-        const idx = first + (ms.nights - base - 1);
-        if (idx >= ring.days.length) break;
-        const g = giftInfo(ms.nights);
-        const label = g ? giftLabel(t, g) : null;
-        const inDays = idx - (ti < 0 ? 0 : ti);
-        const short = g ? t.streakBoard.giftShort?.[g.kind] : null;
-        milestones.push({
-          index: idx, nights: ms.nights, gift: label,
-          kind: g ? g.kind : null, credits: g ? g.credits : 0,
-          short: typeof short === "function" ? short(g.credits) : short || null,
-          worth: g && g.kind !== "credits" ? t.streakBoard.giftWorth(g.credits) : null,
-          soon: t.streakBoard.giftSheet.soon(inDays),
-          reward: t.streakBoard.rewards[ms.reward],
-          say: C.milestoneSay(ms.nights, inDays, t.streakBoard.rewards[ms.reward], label),
-        });
-      }
-      const nextMs = milestones[0];
+      /* Das nächste Geschenk (seit 03.10. abends nach der ZAHL der Träume,
+         nicht mehr als Platz im Ring — eine Zahl hat kein Datum) und das
+         große Geschenk oben: der Monat als Film am Vollmond. */
+      const nxt = nextMilestone(count);
+      const g = nxt ? giftInfo(nxt.nights) : null;
+      const next = g ? { ...giftCard(g, count), nights: g.nights, say: C.milestoneSay(g.nights - count, giftLabel(t, g)) } : null;
+      const imgs = ring.days.filter((d) => d.dreamId && d.img).length;
+      const daysLeft = ring.days.filter((d) => d.future).length;
+      const month = {
+        kind: "monthFilm", title: C.month.title, sub: C.month.sub,
+        eyebrow: C.month.when(daysLeft), progress: ring.days.length ? (ring.days.length - daysLeft) / ring.days.length : 0,   // der Weg bis Vollmond
+        progressText: C.month.have(imgs, 3), foot: "", close: t.streakBoard.giftSheet.close,
+      };
       return {
         days: ring.days.map((d) => ({ key: d.key, today: d.today, future: d.future, dreamId: d.dreamId, img: d.img })),
         threads: ring.threads.map(([a, b]) => [a, b]),
-        left: ring.left, count: ring.count, streak: base, todayDone: run.today,
-        milestones,
-        /* Das Geschenk-Blatt (03.10.): was in der Schachtel liegt und wie
-           man die Serie verlängert. */
-        sheet: {
-          inside: t.streakBoard.giftSheet.inside, surprise: t.streakBoard.giftSheet.surprise,
-          rule: t.streakBoard.giftSheet.rule, valid: t.streakBoard.giftSheet.valid(GIFT_DAYS),
-          close: t.streakBoard.giftSheet.close,
-        },
+        left: ring.left, count: ring.count, streak: count, todayDone,
+        next, month,
         chip: C.chip,
         countLine: C.count(ring.count),
         line: ring.left > 0 ? C.left(ring.left) : C.fullTonight,
         thread: ring.top && ring.top.n > 1 ? C.thread(label(ring.top.motif), ring.top.n) : "",
         /* Was der Frosch beim Antippen sagt: das nächste Ziel. */
-        say: nextMs ? nextMs.say : ring.left > 0 ? C.left(ring.left) : C.fullTonight,
+        say: next ? next.say : ring.left > 0 ? C.left(ring.left) : C.fullTonight,
         sayAsleep: C.asleep,
       };
     })(),
@@ -299,19 +291,16 @@ function snapshot() {
     intention,
     /* Die Meilenstein-Leiter hinter der Serien-Pille (StreakBoard.jsx). */
     board: (() => {
-      const nxt = nextMilestone(streak);
-      const snoozes = s.snoozes || 0, nextIn = nextSnoozeIn({ snoozes, streak });
+      const nxt = nextMilestone(count);
       return {
-        title: t.streakBoard.title, nights: t.streakBoard.nights(streak),
-        lede: nxt ? t.streakBoard.next(nxt.nights - streak) : t.streakBoard.done,
+        title: t.streakBoard.title, nights: t.streakBoard.nights(count),
+        lede: nxt ? t.streakBoard.next(nxt.nights - count) : t.streakBoard.done,
         rungs: MILESTONES.map((m) => ({
           nights: m.nights, title: t.streakBoard.rung(m.nights), reward: t.streakBoard.rewards[m.reward],
           gift: giftInfo(m.nights) ? giftLabel(t, giftInfo(m.nights)) : null,
-          state: streak >= m.nights ? "done" : nxt && m.nights === nxt.nights ? "next" : "far",
+          state: count >= m.nights ? "done" : nxt && m.nights === nxt.nights ? "next" : "far",
         })),
         note: t.streakBoard.note,
-        shieldTitle: t.streakBoard.snoozeTitle(snoozes),
-        shieldText: nextIn == null ? t.streakBoard.snoozeFull : t.streakBoard.snoozeNext(nextIn),
       };
     })(),
   };
@@ -385,7 +374,7 @@ function snapshot() {
     title: t.profile.title, name: s.me?.tag || t.profile.you, img: s.me?.img || null,
     hint: s.me?.img ? t.profile.meSet : t.profile.meEmpty,
     credits: totalCredits(s), creditsWord: t.profile.credits,
-    dreams: (s.journal || []).length, streak, statDreams: t.profile.statDreams, statStreak: t.profile.statStreak,
+    dreams: (s.journal || []).length, streak: count, statDreams: t.profile.statDreams, statStreak: t.profile.statStreak,
     settings: t.profile.settings, surveyDone: !!s.surveyDone, paywallSeen: !!s.paywallSeen,
     surveyTitle: t.onboarding.profileCard, surveyHint: t.onboarding.profileCardHint,
     /* Einstellungen (Settings.jsx) und Stimmwahl (VoicePicker.jsx), nativ:
@@ -979,7 +968,7 @@ async function runOrder(cmd, onResult) {
     pending: { kind: "film", n: 1 }, fallback: undefined, failReason: undefined,
   };
   if (isNew) {
-    const creature = newCreature(o.text, streakOf(s1).streak);
+    const creature = newCreature(o.text, countOf(s1));
     const entry = {
       id: entryId, createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
       title: String(o.title || analysis?.title || "").trim() || creature.title, tagline: String(o.tagline || analysis?.tagline || "").trim(),
@@ -1048,7 +1037,7 @@ function runSketch(cmd, onResult) {
     return true;
   }
   const analysis = o.analysis || null;
-  const creature = newCreature(o.text, streakOf(s1).streak);
+  const creature = newCreature(o.text, countOf(s1));
   const entry = {
     id: genId("e"), createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
     title: String(analysis?.title || "").trim() || creature.title, tagline: String(analysis?.tagline || "").trim(),
@@ -1079,7 +1068,7 @@ function runSketchStart(cmd, onResult) {
     return true;
   }
   const analysis = o.analysis || null;
-  const creature = newCreature(o.text, streakOf(s1).streak);
+  const creature = newCreature(o.text, countOf(s1));
   const entry = {
     id: genId("e"), createdAt: new Date().toISOString(), text: o.text, originalText: o.originalText || o.text,
     title: String(analysis?.title || "").trim() || creature.title, tagline: String(analysis?.tagline || "").trim(),
@@ -1354,7 +1343,7 @@ function run(cmd) {
   else if (cmd.type === "saveDream") {
     /* Nur speichern (Step2Output.saveOnly): kein Render, keine Kosten, mit
        Wesen und Serie — dieselbe Reihenfolge wie im Web. */
-    const creature = newCreature(cmd.text, streakOf(s).streak);
+    const creature = newCreature(cmd.text, countOf(s));
     const entry = {
       id: genId("e"), createdAt: new Date().toISOString(), text: cmd.text, originalText: cmd.originalText || cmd.text,
       title: (cmd.title || "").trim() || creature.title, tagline: (cmd.tagline || "").trim(), mode: "save",
@@ -1424,25 +1413,13 @@ function streakChores(onResult) {
      (27.09.): Jede Schreibung in localStorage weckt alle anderen Brücken,
      die daraufhin ihren ganzen Schnappschuss schicken. Die Pacht bei JEDEM
      Lesen zu schreiben, hielt die Brücken im Dauerfeuer — bis der Speicher
-     der App überlief. */
-  const due = (st) => {
-    const streak = streakOf(st).streak;
-    return snoozeBridge(st) || snoozeEarn(st, streak) || giftFor({ ...st, streak });
-  };
-  if (!due(loadState())) return;
+     der App überlief.
+     Seit 03.10. abends nur noch Geschenke nach der Zahl der Träume — keine
+     Serie, also auch keine Schlummernächte mehr. */
+  if (!giftFor({ ...loadState(), count: countOf(loadState()) })) return;
   if (!holdChores()) return;
-  // Erst eine Lücke schließen (sonst zählt die Serie falsch), dann verdienen, dann schenken.
-  const s0 = loadState();
-  const saved = snoozeBridge(s0);
-  if (saved) {
-    saveState({ ...s0, ...saved.patch });
-    onResult?.({ n: -1, toast: t.streakBoard.snoozeUsed(saved.used) });
-  }
-  const s1 = loadState();
-  const earned = snoozeEarn(s1, streakOf(s1).streak);
-  if (earned) saveState({ ...s1, ...earned.patch });
   const s2 = loadState();
-  const gift = giftFor({ ...s2, streak: streakOf(s2).streak });
+  const gift = giftFor({ ...s2, count: countOf(s2) });
   if (gift) {
     saveState({ ...s2, ...gift.patch });
     onResult?.({ n: -1, toast: t.streakBoard.gift(gift.nights, giftLabel(t, gift)), haptic: "success" });

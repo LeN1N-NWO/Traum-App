@@ -7,7 +7,7 @@ import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useSha
 import Svg, { Circle, Path } from "react-native-svg";
 import { FrogStage, type FrogEvent } from "@/components/frog-stage";
 import { GiftPreview } from "@/components/gift-sheet";
-import type { CycleMilestone, HomeData } from "@/store/journal-store";
+import type { GiftCard, HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
 /* Der Ring mit Fäden (Antons Wahl 03.10.):
@@ -16,13 +16,14 @@ import { colors, fonts } from "@/theme";
  *     wartet die Belohnung für den vollen Ring („dein Monat als Film"),
  *   · jede Nacht mit Traum zeigt ihr Bild (antippen öffnet ihn); leere
  *     Nächte sind kleine Punkte, kommende ganz blass, heute pulsiert,
- *   · die Meilensteine der Serie liegen als Geschenke auf den Nächten, an
- *     denen man sie erreicht, wenn man jede Nacht träumt — verbunden mit
- *     der Serien-Liste; antippen öffnet die Schachtel (gift-sheet.tsx),
- *     die zeigt, was drin ist („Dein erster Traumfilm"),
+ *   · oben das große Geschenk (antippen: was es ist, wann Vollmond ist),
+ *     unter dem Ring das nächste Geschenk nach der ZAHL der Träume — seit
+ *     03.10. abends keine Serie mehr („Mir geht es einfach nur um die
+ *     Anzahl der Träume"), deshalb auch kein Platz im Ring: eine Zahl hat
+ *     kein Datum. Antippen öffnet die Schachtel (gift-sheet.tsx),
  *   · Fäden quer durch den Ring zwischen Nächten mit demselben Motiv,
  *   · in der Mitte der Frosch (statt des Mondes — „den haben wir schon zu
- *     viel"): schläft bei Serie 0, ist sonst wach, reagiert auf Antippen,
+ *     viel"): schläft, bis heute ein Traum da ist, reagiert auf Antippen,
  *     neue Träume, Meilensteine und den vollen Ring (frog-stage.tsx). Beim
  *     Antippen sagt er das nächste Ziel.
  * Am Morgen nach dem Ring macht das iPhone den Film (glimpse-layer.tsx).
@@ -32,7 +33,6 @@ import { colors, fonts } from "@/theme";
  * Geschenke sind native Ansichten darüber; dauernd bewegen sich nur der
  * Heute-Punkt und der Frosch-Loop (pausiert, wenn der Tab nicht sichtbar ist). */
 const THUMB = 28;
-const GIFT = 24;
 
 export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: number; onOpen: (id: string) => void }) {
   const W = width, H = width;
@@ -45,17 +45,17 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
   };
   const frogSize = Math.round(W * 0.46);
   const todayIndex = C.days.findIndex((d) => d.today);
-  const msAt = new Map(C.milestones.map((m) => [m.index, m]));
 
   /* Die Ereignisse des Froschs: Antippen, ein neuer Traum, ein erreichter
      Meilenstein, der volle Ring. */
   const [event, setEvent] = useState<{ kind: FrogEvent; at: number } | null>(null);
-  const seen = useRef({ count: C.count, streak: C.streak });
+  const seen = useRef({ count: C.count, total: C.streak });
   useEffect(() => {
     const prev = seen.current;
-    if (C.count > prev.count) setEvent({ kind: C.left === 0 && C.todayDone ? "cheer" : C.milestones.length && [3, 7, 14, 30, 60, 100].includes(C.streak) && C.streak > prev.streak ? "milestone" : "dream", at: Date.now() });
-    seen.current = { count: C.count, streak: C.streak };
-  }, [C.count, C.streak, C.left, C.todayDone, C.milestones.length]);
+    // `streak` trägt seit 03.10. die Zahl aller Träume mit Bild.
+    if (C.count > prev.count || C.streak > prev.total) setEvent({ kind: C.left === 0 && C.todayDone ? "cheer" : [3, 7, 14, 30, 60, 100].includes(C.streak) && C.streak > prev.total ? "milestone" : "dream", at: Date.now() });
+    seen.current = { count: C.count, total: C.streak };
+  }, [C.count, C.streak, C.left, C.todayDone]);
 
   const [bubble, setBubble] = useState<string | null>(null);
   const bubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -65,8 +65,8 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
     bubbleTimer.current = setTimeout(() => setBubble(null), 4200);
   };
   useEffect(() => () => { if (bubbleTimer.current) clearTimeout(bubbleTimer.current); }, []);
-  const asleep = C.streak === 0 && !C.todayDone;
-  const [peek, setPeek] = useState<CycleMilestone | null>(null);
+  const asleep = !C.todayDone;
+  const [peek, setPeek] = useState<GiftCard | null>(null);
 
   return (
     <View style={{ alignItems: "center", gap: 6 }}>
@@ -75,7 +75,7 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
         <Svg width={W} height={H} style={StyleSheet.absoluteFill}>
           <Circle cx={cx} cy={cy} r={R} fill="none" stroke="rgba(234,240,251,0.08)" strokeWidth={1} />
           {C.days.map((d, i) => {
-            if ((d.dreamId && d.img) || msAt.has(i) || d.today) return null;
+            if ((d.dreamId && d.img) || d.today) return null;
             const [x, y] = at(i);
             if (d.dreamId) return <Circle key={d.key} cx={x} cy={y} r={4} fill="#fffaf0" opacity={0.85} />;   // Traum ohne Bild: ein Lichtpunkt
             return <Circle key={d.key} cx={x} cy={y} r={d.future ? 1.6 : 2.2} fill={d.future ? "rgba(234,240,251,0.2)" : "rgba(234,240,251,0.38)"} />;
@@ -102,23 +102,12 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
           <FrogStage base={asleep ? "sleep" : "idle"} event={event} size={frogSize} />
         </Pressable>
 
-        {/* Oben: die Belohnung für den vollen Ring */}
-        <View pointerEvents="none" style={[styles.top, { left: cx - 90, top: cy - R - 15 }]}>
+        {/* Oben: das große Geschenk, der Monat als Film — antippen erklärt es */}
+        <Pressable hitSlop={8} onPress={() => { Haptics.selectionAsync(); setPeek(C.month); }} accessibilityRole="button" accessibilityLabel={C.chip}
+          style={[styles.top, { left: cx - 90, top: cy - R - 15 }]}>
           <View style={styles.topGift}><SymbolView name="gift.fill" size={15} tintColor="#1a1206" /></View>
           <Text style={styles.topText} numberOfLines={2}>{C.chip}</Text>
-        </View>
-
-        {/* Die Meilensteine als Geschenke auf ihren Nächten */}
-        {C.milestones.map((m) => {
-          const [x, y] = at(m.index);
-          return (
-            <Pressable key={m.nights} hitSlop={8} onPress={() => { Haptics.selectionAsync(); setEvent({ kind: "tap", at: Date.now() }); setPeek(m); }}
-              style={[styles.ms, m.gift && styles.msGift, { left: x - GIFT / 2, top: y - GIFT / 2 }]} accessibilityLabel={m.say}>
-              <SymbolView name="gift.fill" size={12} tintColor={m.gift ? "#1a1206" : colors.gold} />
-              <Text style={styles.msN}>{m.nights}</Text>
-            </Pressable>
-          );
-        })}
+        </Pressable>
 
         {/* Die Traumbilder */}
         {C.days.map((d, i) => {
@@ -132,7 +121,7 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
             </Animated.View>
           );
         })}
-        {todayIndex >= 0 && !C.days[todayIndex].dreamId && !msAt.has(todayIndex) ? <TodayMark x={at(todayIndex)[0]} y={at(todayIndex)[1]} /> : null}
+        {todayIndex >= 0 && !C.days[todayIndex].dreamId ? <TodayMark x={at(todayIndex)[0]} y={at(todayIndex)[1]} /> : null}
 
         {/* Die Sprechblase des Froschs */}
         {bubble ? (
@@ -142,8 +131,16 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
           </Animated.View>
         ) : null}
       </View>
+      {/* Das nächste Geschenk nach der Zahl der Träume */}
+      {C.next ? (
+        <Pressable onPress={() => { Haptics.selectionAsync(); setEvent({ kind: "tap", at: Date.now() }); setPeek(C.next); }} style={styles.next} accessibilityRole="button">
+          <View style={styles.nextIcon}><SymbolView name="gift.fill" size={13} tintColor="#1a1206" /></View>
+          <Text style={styles.nextText} numberOfLines={1}>{C.next.say}</Text>
+          <SymbolView name="chevron.right" size={11} tintColor={colors.faint} />
+        </Pressable>
+      ) : null}
       {/* Tipp auf ein Geschenk: was drin ist (gift-sheet.tsx) */}
-      <GiftPreview m={peek} sheet={C.sheet} onClose={() => setPeek(null)} />
+      <GiftPreview card={peek} onClose={() => setPeek(null)} />
       <Text style={styles.count}>{C.countLine.toUpperCase()}</Text>
       <Text style={styles.line}>{C.line}</Text>
       {C.thread ? <Text style={styles.thread}>{C.thread}</Text> : null}
@@ -168,9 +165,9 @@ const styles = StyleSheet.create({
   top: { position: "absolute", width: 180, alignItems: "center", gap: 4 },
   topGift: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: colors.gold, shadowColor: colors.gold, shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
   topText: { color: colors.gold, fontSize: 11.5, fontWeight: "600", textAlign: "center" },
-  ms: { position: "absolute", width: GIFT, height: GIFT, borderRadius: GIFT / 2, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(12,20,35,0.92)", borderWidth: 1, borderColor: "rgba(246,198,91,0.75)" },
-  msGift: { backgroundColor: colors.gold, borderColor: "#ffe7b0" },
-  msN: { position: "absolute", bottom: -13, color: colors.gold, fontSize: 9.5, fontWeight: "700" },
+  next: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7, paddingLeft: 7, paddingRight: 12, borderRadius: 999, backgroundColor: "rgba(246,198,91,0.1)", borderWidth: 1, borderColor: "rgba(246,198,91,0.4)", maxWidth: "92%" },
+  nextIcon: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: colors.gold },
+  nextText: { color: colors.gold, fontSize: 13.5, fontWeight: "600", flexShrink: 1 },
   thumbWrap: { position: "absolute", width: THUMB, height: THUMB, borderRadius: THUMB / 2, borderWidth: 1.2, borderColor: "rgba(255,231,176,0.8)", overflow: "hidden", backgroundColor: colors.bg2 },
   thumb: { width: "100%", height: "100%" },
   today: { position: "absolute", width: 20, height: 20, borderRadius: 10, borderWidth: 1.4, borderColor: colors.gold, alignItems: "center", justifyContent: "center" },

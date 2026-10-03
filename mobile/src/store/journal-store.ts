@@ -16,8 +16,9 @@ export type MoonInfo = { phase: string; illum: number; waxing: boolean; label: s
 export type MoonStripDay = { key: string; day: number; weekday: number; today: boolean; phase: string; illum: number; waxing: boolean; label: string; sleep: number | null };
 export type MoonData = { title: string; tonight: string; weekdays: string[]; strip: MoonStripDay[] };
 export type GiftKind = "glimpse" | "film" | "credits" | "month";
-export type CycleMilestone = { index: number; nights: number; gift: string | null; kind: GiftKind | null; credits: number; short: string | null; worth: string | null; soon: string; reward: string; say: string };
-export type GiftReveal = { nights: number; kind: GiftKind; credits: number; title: string; label: string; worth: string | null; reward: string | null; expires: string | null; tapToOpen: string; redeem: string; later: string; target: "dream" | "journal"; dreamId: string | null };
+/* Ein Geschenk als kurze Karte (gift-sheet.tsx): Titel, ein Satz, Fortschritt. */
+export type GiftCard = { kind: GiftKind | "monthFilm"; title: string; sub: string; eyebrow: string; progress: number; progressText: string; foot: string; close: string };
+export type GiftReveal = { nights: number; kind: GiftKind; credits: number; title: string; label: string; sub: string; expires: string | null; tapToOpen: string; redeem: string; later: string; target: "dream" | "journal"; dreamId: string | null };
 
 /* Freunde einladen (03.10.) — Texte aus en.js/de.js, Platzhalter {…}. */
 export type InviteTexts = {
@@ -36,12 +37,12 @@ export type HomeData = {
   moon: { illum: number; waxing: boolean; label: string };
   article: { id: string; title: string; meta: string } | null;
   week: { weekday: number; done: boolean; held?: boolean; today: boolean }[];
-  cycle: { days: { key: string; today: boolean; future: boolean; dreamId: string | null; img: string | null }[]; threads: [number, number][]; left: number; count: number; streak: number; todayDone: boolean; milestones: CycleMilestone[]; sheet: { inside: string; surprise: string; rule: string; valid: string; close: string }; chip: string; countLine: string; line: string; thread: string; say: string; sayAsleep: string };
+  cycle: { days: { key: string; today: boolean; future: boolean; dreamId: string | null; img: string | null }[]; threads: [number, number][]; left: number; count: number; streak: number; todayDone: boolean; next: (GiftCard & { nights: number; say: string }) | null; month: GiftCard; chip: string; countLine: string; line: string; thread: string; say: string; sayAsleep: string };
   /* Ein frisch erreichtes Meilenstein-Geschenk, bis es geöffnet ist (03.10.). */
   giftReveal: GiftReveal | null;
   moonFilm: { key: string; title: string; dreams: { id: string; img: string }[]; readyTitle: string; readyBody: string } | null;
   intention: string;
-  board: { title: string; nights: string; lede: string; rungs: { nights: number; title: string; reward: string; gift: string | null; state: "done" | "next" | "far" }[]; note: string; shieldTitle: string; shieldText: string };
+  board: { title: string; nights: string; lede: string; rungs: { nights: number; title: string; reward: string; gift: string | null; state: "done" | "next" | "far" }[]; note: string };
 };
 export type SoundMix = { volumes: Record<string, number>; timer: number; autoStart: boolean };
 export type SoundsData = { lede: string; names: Record<string, string>; descs: Record<string, string>; timer: string; timerOff: string; timerMin: Record<number, string>; autoStart: string; background: string; mix: SoundMix | null };

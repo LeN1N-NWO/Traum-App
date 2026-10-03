@@ -83,6 +83,16 @@ export function filmDays(journal) {
   return out;
 }
 
+/** Wie viele Träume zählen — die Zahl hinter den Geschenken (Antons
+ *  Ansage 03.10., abends: „Mir geht es einfach nur um die Anzahl der
+ *  Träume, kein Streak. Wenn ich heute nicht geträumt hab, im Urlaub war …
+ *  zählt das meiner Meinung nach nicht.") Jeder Traum mit Glimpse oder
+ *  Film zählt einmal, egal an welchem Tag; Text allein zählt nicht. Die
+ *  Serie (streakInfo) zeigt die App nicht mehr. */
+export function dreamCount(journal) {
+  return (journal || []).filter(isFilmNight).length;
+}
+
 /** Tage mit „Nichts hängengeblieben". */
 export function blankDays(journal) {
   const out = new Set();

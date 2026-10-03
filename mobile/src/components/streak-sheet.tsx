@@ -2,11 +2,15 @@ import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
-import { Moon } from "@/components/moon-strip";
 import type { HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
-/* Die Serien-Seite (Antons Befund 27.09.: „die Streak-Page aus dem Entwurf
+/* ⚠ Seit 03.10. abends KEINE Serie mehr (Antons Ansage: „Mir geht es
+   einfach nur um die Anzahl der Träume"): Die Seite zählt die Träume mit
+   Glimpse oder Film und zeigt die Geschenke auf dem Weg — ohne Wochen-Monde,
+   ohne Schlummernächte. Der Name der Datei bleibt, der Inhalt nicht.
+
+   Die Serien-Seite (Antons Befund 27.09.: „die Streak-Page aus dem Entwurf
    sehe ich in der App nicht"). Vorher gab es sie nur als schlichte Liste,
    und die Pille, die sie öffnet, erschien erst ab der ersten Nacht — jetzt
    ist die Pille immer da und die Seite erzählt:
@@ -49,18 +53,6 @@ export function StreakSheet({ visible, onClose, home, weekdays }: { visible: boo
           <Text style={styles.countWord}>{B.nights}</Text>
         </View>
 
-        {/* Die letzten sieben Nächte */}
-        <View style={styles.week}>
-          {home.week.map((d, i) => (
-            <Animated.View key={i} entering={visible ? FadeInDown.delay(120 + i * 70).duration(380) : undefined} style={styles.day}>
-              <View style={[styles.dayMoon, d.today && styles.dayToday]}>
-                <Moon illum={d.done ? 1 : d.held ? 0.45 : 0.04} waxing size={30} />
-              </View>
-              <Text style={[styles.dayName, d.today && { color: colors.gold }]}>{weekdays[d.weekday] ?? ""}</Text>
-            </Animated.View>
-          ))}
-        </View>
-
         {/* Der Weg zum nächsten Meilenstein */}
         <View style={styles.progressCard}>
           <View style={styles.progressHead}>
@@ -81,7 +73,6 @@ export function StreakSheet({ visible, onClose, home, weekdays }: { visible: boo
             </View>
           </Animated.View>
         ))}
-        <View style={styles.shield}><Text style={styles.rungTitle}>🌙 {B.shieldTitle}</Text><Text style={styles.rungReward}>{B.shieldText}</Text></View>
         {B.note ? <Text style={styles.rungReward}>{B.note}</Text> : null}
         <Pressable style={styles.close} onPress={onClose}><Text style={styles.closeText}>OK</Text></Pressable>
       </ScrollView>
