@@ -3,11 +3,15 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-03 abends — Anton, `session/2026-10-03-anton` (PR #71):
-Startseite „Der Ring mit Fäden" mit Frosch, Geschenke nach der **Zahl der
-Träume** (keine Serie mehr), Einladungen (App-Seite). Davor am selben Tag
-Hanni: PR #73 (Aufräumen in `/wrap`) und PR #72 (**S1 gelöst — Bezahltes
-nur mit Konto**). **Weg durch die App-Store-Prüfung:
+**Stand:** 2026-10-03 abends — Hanni, `session/2026-10-03-hanni-3` (PR #74):
+**ADR-0008 angenommen — Medien bleiben auf dem Server als Sicherung**, das
+Gerät holt sie einmal ab; kein Object Storage, Schritt C entfällt. Daraus
+folgt: **S2 ist Pflicht** (Zuordnung Datei → Nutzer an der Abholung, Antons
+Pipeline — Übergabe `2026-10-03-anton-medien-sicherung.md`). Am selben Tag
+Anton, PR #71: Startseite „Der Ring mit Fäden" mit Frosch, Geschenke nach
+der **Zahl der Träume**, Einladungen (App-Seite; **Server baut Hanni**).
+Davor Hanni: PR #73 (Aufräumen in `/wrap`) und PR #72 (**S1 gelöst —
+Bezahltes nur mit Konto**). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
 **Neu mit PR #71 (03.10., Anton):**
@@ -449,13 +453,17 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
 6. Android: Apples Blatt fehlt dort — Apple-Konto dort nicht löschbar.
 
 **Nächste Schritte:**
-1. **Hanni:** PR #73 mergen. Anfrage an den Anwalt abschicken. Ersten
-   `/security-check` in neuer Sitzung.
+1. **Hanni:** PR #74 mergen. Mit Anton klären, wer S2 baut (Zuordnung Datei →
+   Nutzer an der Abholung, `/media/*` nur für den Besitzer, B8). Anfrage an
+   den Anwalt abschicken. Ersten `/security-check` in neuer Sitzung.
 2. **Anton:** „Automatically delete head branches" einschalten, ggf. die
    eigenen 36 gemergten Branches aufräumen lassen
-   (`docs/uebergabe/2026-10-03-anton-branches-aufraeumen.md`). SSH-Zugang für Hanni (eigener Nutzer mit sudo), Hetzner-
-   Firewall/Snapshots/AV-Vertrag, `ip -6 addr show scope global` (AAAA),
-   Object-Storage-Bucket (Anleitung `.env.example`) — alles in
+   (`docs/uebergabe/2026-10-03-anton-branches-aufraeumen.md`). ADR-0008-Folgen
+   (`docs/uebergabe/2026-10-03-anton-medien-sicherung.md`): S2-Zuordnung,
+   fal-Adresse statt eigener Kopie bei gescheitertem Download, VPS-Backups.
+   SSH-Zugang für Hanni (eigener Nutzer mit sudo), Hetzner-
+   Firewall/Snapshots/AV-Vertrag, `ip -6 addr show scope global` (AAAA) —
+   kein Object-Storage-Bucket mehr nötig (ADR-0008) — alles in
    `docs/uebergabe/2026-09-25-anton-vps-einrichtung.md`. Credits-Prüfung
    und Abbuchung (`settleCharge()`, Punkte 2–6 in
    `2026-09-11-anton-credits-abbuchung.md`) — die Anmeldung steht jetzt.
@@ -463,7 +471,9 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
    von Hand (KEIN `API_TOKEN`, dafür Supabase), `deploy.sh` (prüft S1 selbst),
    dann S5-Prüfbefehl aus `deploy/README.md`. Danach App-Bau mit
    `EXPO_PUBLIC_API_BASE=https://api.dreamrushes.app`.
-4. **Schritt C anbinden** (Server-Endpunkte, App-Seite) — PR #62 ist auf main.
+4. **S2 bauen** statt Schritt C (ADR-0008): Zuordnung Datei → Nutzer an der
+   Abholung, `/media/*` nur für den Besitzer, Konto löschen löscht Medien
+   (B8), fal-Adresse nie als Dauerlösung.
 5. **Mit Anton:** Prüfer-Credits (N10), Store-Länder, Budget, `media/jobs`.
 6. **Anton:** Face ID am iPhone (N11), erster echter Turbo-Film mit Foto.
 7. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API. Hanni in

@@ -28,7 +28,7 @@ Medien liegen unter `/var/lib/dreamrushes`, nicht im Checkout (die Lehre vom
    dann trage ich es in `docs/plans/2026-09-24-hosting.md` ein.
 2. **Hetzner Console:** Firewall eingehend nur 22, 80, 443 (TCP) und 443
    (UDP); Snapshots/Backups an; AV-Vertrag im Kundenkonto (Bedingung 4).
-3. **Object Storage für Schritt C:** Der Bucket hängt am Cloud-Projekt,
+3. *(Nachtrag 03.10., Hanni: vorerst hinfällig — ADR-0008: Medien bleiben auf der VPS-Platte, kein Bucket nötig, bis sie knapp wird. Snapshots/Backups (Punkt 2) dafür umso wichtiger.)* **Object Storage für Schritt C:** Der Bucket hängt am Cloud-Projekt,
    nicht am VPS. Entweder mich als Projektmitglied eintragen, oder du legst
    Bucket + Zugangsschlüssel an und gibst mir die `MEDIA_S3_*`-Werte über
    einen sicheren Weg — nicht im Klartext im Chat, nie ins Repo.
