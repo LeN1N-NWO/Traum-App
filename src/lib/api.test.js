@@ -1,5 +1,6 @@
 import { test, expect, beforeEach, afterEach } from "bun:test";
 import { setTokenSource, accessToken, jobStatus, photoCheck } from "./api.js";
+import { t } from "../i18n/index.js";
 
 /* S1 Schritt 2: Die bezahlten Routen tragen das Zugangstoken, sobald die
    native Seite eine Quelle hereinreicht — und gehen ohne Quelle unverändert
@@ -54,8 +55,23 @@ test("a 401 is retried exactly once with a fresh token", async () => {
 test("no endless loop: a second 401 is handed back as an error", async () => {
   setTokenSource(async (fresh) => (fresh ? "tok-new" : "tok-old"));
   serve([401, { error: "Please sign in to continue.", reason: "signin" }]);
-  await expect(jobStatus("abc")).rejects.toThrow("Please sign in");
+  await expect(jobStatus("abc")).rejects.toThrow(t.errors.signIn);
   expect(calls).toHaveLength(2);
+});
+
+test("a 401 without reason 'signin' is not a sign-in matter — no retry, no fresh token", async () => {
+  const asked = [];
+  setTokenSource(async (fresh) => { asked.push(fresh); return "tok"; });
+  serve([401, { error: "Not authorised." }]);
+  await expect(jobStatus("abc")).rejects.toThrow("Not authorised.");
+  expect(calls).toHaveLength(1);
+  expect(asked).toEqual([false]);
+});
+
+test("a guest hitting a paid route reads the sign-in text from the language file, not the server's English", async () => {
+  setTokenSource(async () => null);                 // Gast: keine Sitzung
+  serve([401, { error: "Please sign in to continue.", reason: "signin" }]);
+  await expect(photoCheck({ image: "data:x", category: "person" })).rejects.toThrow(t.errors.signIn);
 });
 
 test("a source that throws counts as signed out, never as a crash", async () => {

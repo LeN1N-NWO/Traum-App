@@ -1,5 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 import { useSyncExternalStore } from "react";
+import { requestSignIn } from "@/lib/signin-prompt";
 
 /* Die Anmeldung, nativ — gegen Hannis Backend (Übergabe 12.09.2026,
  * `docs/uebergabe/2026-09-12-anton-login-ui.md`; Endpunkte in server.js,
@@ -209,26 +210,42 @@ export async function authFetch(path: string, init: RequestInit = {}): Promise<R
    Anders als authFetch: ohne Sitzung kommt null, und der Aufruf geht
    trotzdem raus; ob er ein Konto braucht, entscheidet der Server
    (REQUIRE_AUTH). So bleibt das lokale Entwickeln ohne Konto möglich.
-   `fresh` erneuert vorher — für die eine Wiederholung nach einem 401.
 
    Geht als Funktions-Prop `getToken` an die Web-Ansichten (mobile/src/legacy),
    die den Schlüsselbund nicht erreichen. Diese Stellen gibt es nur, weil der
    Geldweg noch durch die alte Web-Oberfläche läuft (ADR-0006) — nach dem
-   Umzug auf nativ fallen sie weg. */
+   Umzug auf nativ fallen sie weg.
+
+   `fresh` heißt: der Server hat gerade „bitte anmelden" gesagt (api.js
+   fragt nur dann). Lässt sich dann keine Sitzung erneuern, ist das ein Gast
+   oder eine verlorene Sitzung — das Anmelde-Blatt geht auf (Schritt 3). */
 export async function getAccessToken(fresh = false): Promise<string | null> {
-  if (fresh) return refresh();
-  return SecureStore.getItemAsync(KEY_ACCESS);
+  if (!fresh) return SecureStore.getItemAsync(KEY_ACCESS);
+  const token = await refresh();
+  if (!token) requestSignIn();
+  return token;
 }
 
-/* fetch auf eine volle Adresse, mit Token, wenn eines da ist. Bei 401 mit
-   Token einmal erneuern und wiederholen. Ohne Token: ein ganz normaler fetch. */
+/* Hat der Server mit „bitte anmelden" abgewiesen (needsAccount, S1)? Nur
+   dann wird erneuert bzw. das Blatt geöffnet — ein anderer 401 bleibt, was
+   er ist. Liest eine Kopie, die Antwort bleibt für den Aufrufer lesbar. */
+async function wantsSignIn(res: Response): Promise<boolean> {
+  if (res.status !== 401) return false;
+  const body = await res.clone().json().catch(() => null);
+  return body?.reason === "signin";
+}
+
+/* fetch auf eine volle Adresse, mit Token, wenn eines da ist. Verlangt der
+   Server eine Anmeldung: mit Token einmal erneuern und wiederholen; ohne
+   Token (Gast) oder ohne erneuerbare Sitzung das Anmelde-Blatt öffnen. */
 export async function fetchWithSession(url: string, init: RequestInit = {}): Promise<Response> {
   const go = (token: string | null) => fetch(url, token ? { ...init, headers: { ...(init.headers || {}), authorization: `Bearer ${token}` } } : init);
   const access = await getAccessToken();
   const first = await go(access);
-  if (first.status !== 401 || !access) return first;
-  const fresh = await refresh();
-  return fresh ? go(fresh) : first;
+  if (!(await wantsSignIn(first))) return first;
+  const fresh = access ? await refresh() : null;
+  if (!fresh) { requestSignIn(); return first; }
+  return go(fresh);
 }
 
 /* Das Profil ins Konto schreiben (PATCH /api/account, Hannis Erlaubnisliste:

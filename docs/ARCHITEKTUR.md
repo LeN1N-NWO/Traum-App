@@ -123,8 +123,13 @@ In drei Schritten, jeder für sich prüfbar:
    Ohne Sitzung geht jeder Aufruf ohne Token raus — lokal bleibt alles offen.
    Beleg: `POST /api/analyze` aus der Web-Ansicht kam mit Token an und wurde
    durchgelassen (dahinter 503 nur wegen absichtlich fehlendem Schlüssel).
-3. **Gast-Erlebnis:** Bei `reason: "signin"` „bitte anmelden" statt Fehler;
-   Foto-Check nach der Anmeldung nachholen.
+3. ✅ **Gast-Erlebnis (03.10.2026, im Simulator belegt):** Bei
+   `reason: "signin"` öffnet sich das Anmelde-Blatt (`sign-in-sheet.tsx`,
+   derselbe `Account`-Schritt wie im Onboarding) und schließt nach der
+   Anmeldung von selbst; die Meldung kommt aus `en.js`/`de.js`. Auch über
+   die Zeile „Account" in den Einstellungen. Abmelden fragt jetzt nach.
+   Foto-Check nach der Anmeldung: zurückgestellt — das Ergebnis liest heute
+   keine Stelle (Notiz `docs/uebergabe/2026-10-03-anton-s1-anmeldung.md`).
 
 `REQUIRE_AUTH=1` kommt erst in `deploy/dreamrushes.service`, wenn Schritt 2
 in einem App-Bau steckt — sonst sperrt der VPS die App aus wie am 11.09.

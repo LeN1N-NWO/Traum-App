@@ -147,10 +147,7 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
   const total = shown.length;
   const jetzt = shown[Math.min(step, total - 1)];
   // Nur Entwicklung: DevSkip (unten) springt von hier zum Anmelde-Schritt.
-  if (__DEV__) {
-    (globalThis as any).__onbSkipToAccount = () => setStep(shown.findIndex((x) => x.kind === "account"));
-    (globalThis as any).__onbAtAccount = jetzt.kind === "account" || jetzt.kind === "done";
-  }
+  if (__DEV__) (globalThis as any).__onbSkipToAccount = () => setStep(shown.findIndex((x) => x.kind === "account"));
 
   // Am ersten Bildschirm führt Zurück hinaus, wenn es ein Draußen gibt (Umfrage im Profil).
   function back() { Haptics.selectionAsync(); if (step === 0 && onExit) { onExit(); return; } setStep((s: number) => Math.max(0, s - 1)); }
@@ -431,7 +428,7 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
    geht es mit „Später" weiter — das Tagebuch lebt auf dem Gerät, das
    Konto ist die Sicherung, nicht die Bedingung.
    Die Token gehen in den Schlüsselbund (lib/auth.ts), nie in den Zustand. */
-function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
+export function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
   const account = useAccount();
   const [mail, setMail] = useState("");
   const [pw, setPw] = useState("");
@@ -488,7 +485,7 @@ function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; i
   const reason: Record<LoginFailure, string> = { wrong: O.accountWrong, busy: O.accountBusy, unavailable: O.accountUnavailable, offline: O.accountOffline };
 
   return (
-    <Shell insets={insets} step={step} total={total} title={O.accountTitle} lede={O.accountText} onBack={onBack}>
+    <Shell insets={insets} step={step} total={total} title={O.accountTitle} lede={O.accountText} onBack={onBack} devSkip={false}>
       {account ? (
         <Animated.View entering={FadeIn.duration(260)} style={{ width: "100%", gap: 14 }}>
           <Glass style={styles.signedIn}>
@@ -605,7 +602,7 @@ function FeatureTile({ i, title, clip, tall, labelBottom }: { i: number; title: 
    Anmelde-Schritt springen, statt jedes Mal das ganze Onboarding
    durchzutippen (Hanni, 03.10.2026). Im Release-Bau gibt es ihn nicht. */
 function DevSkip() {
-  if (!__DEV__ || (globalThis as any).__onbAtAccount) return null;
+  if (!__DEV__) return null;
   return (
     <Pressable onPress={() => (globalThis as any).__onbSkipToAccount?.()} hitSlop={8} style={{ alignSelf: "center", paddingVertical: 8 }}>
       <Text style={{ color: colors.faint, fontSize: 13 }}>Skip to sign-in (dev)</Text>
@@ -613,7 +610,7 @@ function DevSkip() {
   );
 }
 
-function Shell({ insets, step, total, title, lede, children, onBack }: { insets: { top: number; bottom: number }; step: number; total: number; title: string; lede?: string; children: React.ReactNode; onBack?: () => void }) {
+function Shell({ insets, step, total, title, lede, children, onBack, devSkip = true }: { insets: { top: number; bottom: number }; step: number; total: number; title: string; lede?: string; children: React.ReactNode; onBack?: () => void; devSkip?: boolean }) {
   return (
     <View style={styles.screen}>
       <LinearGradient colors={["rgba(42,98,208,0.28)", "rgba(5,10,20,0)"]} style={styles.glow} pointerEvents="none" />
@@ -636,7 +633,7 @@ function Shell({ insets, step, total, title, lede, children, onBack }: { insets:
           <Text style={styles.title}>{title}</Text>
           {lede ? <Text style={styles.lede}>{lede}</Text> : null}
         </Animated.View>
-        <View style={styles.content}>{children}<DevSkip /></View>
+        <View style={styles.content}>{children}{devSkip ? <DevSkip /> : null}</View>
       </ScrollView>
     </View>
   );

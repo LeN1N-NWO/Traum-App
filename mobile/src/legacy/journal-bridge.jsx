@@ -309,6 +309,7 @@ function snapshot() {
       voiceSetting: t.profile.voiceSetting, voiceSettingHint: t.profile.voiceSettingHint,
       withdrawConsent: t.profile.withdrawConsent, withdrawConsentHint: t.profile.withdrawConsentHint, done: t.profile.done,
       account: t.profile.account, accountNone: t.profile.accountNone, accountSignedIn: t.profile.accountSignedIn, accountSignedInNoEmail: t.profile.accountSignedInNoEmail, signIn: t.profile.signIn, signOut: t.profile.signOut,
+      signOutConfirmTitle: t.profile.signOutConfirmTitle, signOutConfirmText: t.profile.signOutConfirmText,
       voice: isVoice(s.voice) ? s.voice : DEFAULT_VOICE,
       voices: VOICES.map((v) => ({ id: v.id, trait: t.voice.traits[v.trait] || v.trait })),
       /* Face-ID-Schalter und Sprachwahl (22.09.2026). Die Sprachnamen

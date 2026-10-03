@@ -41,9 +41,26 @@ export async function accessToken(fresh = false) {
 async function sendWithSession(url, init) {
   const go = (token) => fetch(url, token ? { ...init, headers: { ...(init.headers || {}), authorization: `Bearer ${token}` } } : init);
   const first = await go(await accessToken());
-  if (first.status !== 401 || !tokenSource) return first;
+  if (!tokenSource || !(await wantsSignIn(first))) return first;
+  // `true` heißt für die native Seite: der Server will eine Anmeldung —
+  // ohne erneuerbare Sitzung öffnet sie das Anmelde-Blatt (Schritt 3).
   const fresh = await accessToken(true);
   return fresh ? go(fresh) : first;
+}
+
+/* Was der Mensch liest. „Bitte anmelden" kommt aus den Sprachdateien statt
+ * als englischer Server-Text — der Gast sieht dazu das Anmelde-Blatt. */
+function serverMessage(data, status) {
+  if (data?.reason === "signin") return t.errors.signIn;
+  return data?.error || t.errors.serverStatus(status);
+}
+
+/* Nur ein 401 mit reason "signin" (needsAccount, S1) heißt „Anmeldung
+   fehlt" — ein anderer 401 wird nicht wiederholt. Liest eine Kopie. */
+async function wantsSignIn(res) {
+  if (res.status !== 401) return false;
+  const body = await res.clone().json().catch(() => null);
+  return body?.reason === "signin";
 }
 
 /* Where a stored media path actually lives.
@@ -134,7 +151,7 @@ async function post(path, body, { timeout = TIMEOUTS.default } = {}) {
        `new Error(text)` hätte ihn hier verloren, und die App wäre wieder
        bei „versuch es noch mal" gelandet — genau dem Rat, der bei einem
        Policy-Verstoß nicht funktioniert. */
-    const err = new Error(data?.error || t.errors.serverStatus(res.status));
+    const err = new Error(serverMessage(data, res.status));
     if (data?.reason) err.reason = data.reason;
     /* Der Preis hat sich geändert (HTTP 409, 11.09.2026): Der Server rechnet
        teurer als der Client angezeigt hat und rendert NICHT. Beide Zahlen
@@ -403,7 +420,7 @@ export async function uploadPanel(blob) {
     throw friendly(err);
   }
   const data = await res.json().catch(() => null);
-  if (!res.ok || typeof data?.url !== "string") throw new Error(data?.error || t.errors.serverStatus(res.status));
+  if (!res.ok || typeof data?.url !== "string") throw new Error(serverMessage(data, res.status));
   return data.url;
 }
 
@@ -427,6 +444,6 @@ export async function jobStatus(id) {
     throw friendly(err);
   }
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.error || t.errors.serverStatus(res.status));
+  if (!res.ok) throw new Error(serverMessage(data, res.status));
   return data;
 }
