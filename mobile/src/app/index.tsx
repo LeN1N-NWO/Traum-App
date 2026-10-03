@@ -5,7 +5,7 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useState, useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { ConstellationSky } from "@/components/constellation-sky";
+import { MoonRing } from "@/components/moon-ring";
 import { useJournal } from "@/components/journal-data";
 import { Moon } from "@/components/moon-strip";
 import { NightSky } from "@/components/night-sky";
@@ -17,9 +17,10 @@ import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Die Startseite (Antons Wahl 27.09., Variantenbuch C1 — nach einem
    Nachmittag mit C3, das ihm zu voll war): oben die Serie (immer
-   antippbar → Serien-Seite), in der Mitte seit 28.09. DEIN STERNBILD statt
-   des Mondes — jede notierte Nacht ein Stern (components/constellation-
-   sky.tsx) —, darunter die eine Frage und der eine Knopf. Dann
+   antippbar → Serien-Seite), in der Mitte seit 03.10. DER RING MIT FÄDEN:
+   die Nächte dieses Mondes mit ihren Traumbildern, Fäden zwischen gleichen
+   Motiven, am Vollmond der Mondfilm (components/moon-ring.tsx) —, darunter
+   die eine Frage und der eine Knopf. Dann
    die Schlaf-Frage und ein Artikel aus dem Wissen — jeden Tag ein anderer.
    Die Träume selbst stehen im Journal, nicht hier.
    „Wovon willst du heute träumen?" steht im Schlaf-Tab; morgens erinnert
@@ -75,9 +76,8 @@ export default function HomeScreen() {
         </View>
 
         {home ? (
-          <ConstellationSky width={width - 32} nights={home.sky.nights} name={home.sky.name} count={home.sky.count} line={home.sky.line} chip={home.sky.chip}
-            introSeen={home.sky.introSeen} onIntroSeen={() => send({ type: "skyIntro" })} />
-        ) : <View style={{ height: (width - 32) * 0.62 + 90 }} />}
+          <MoonRing C={home.cycle} width={width - 32} onOpen={(id) => router.push({ pathname: "/journal/[id]", params: { id } })} />
+        ) : <View style={{ height: width - 32 + 70 }} />}
 
         <View style={{ alignItems: "center", gap: 6, marginTop: 6 }}>
           <Text style={styles.title}>{L.homeTitle ?? "What did you dream?"}</Text>

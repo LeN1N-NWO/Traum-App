@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import JournalBridge from "@/legacy/journal-bridge";
 import { closeGlimpse, finishGlimpse, noteGlimpse, openGlimpseEntries, restoreGlimpses, takeGlimpse, useGlimpseQueue, type GlimpseJob } from "@/store/glimpse-store";
-import { setJournal, type BridgeCommand, type BridgeResult, type JournalSnapshot } from "@/store/journal-store";
+import { setJournal, useJournalStore, type BridgeCommand, type BridgeResult, type HomeData, type JournalSnapshot } from "@/store/journal-store";
 import { showToast } from "@/store/toast-store";
 import { DreamSketch, resolveSketchesDeep, resolveSketchUrl } from "../../modules/dream-sketch";
 
@@ -96,6 +96,18 @@ export function GlimpseLayer() {
     run(job, ask).finally(finishGlimpse);
   }, [busy, ask]);
 
+  /* Der Mondfilm (03.10.): Ist einer fällig (Brücke home.moonFilm) und
+     läuft gerade kein Glimpse, macht ihn diese Schicht — einmal je Sitzung
+     und Zyklus versucht, damit ein Fehler nicht in Schleife läuft. */
+  const pendingFilm = useJournalStore()?.home?.moonFilm ?? null;
+  const filmBusy = useRef(false);
+  useEffect(() => {
+    if (!pendingFilm || !DreamSketch || filmBusy.current || triedFilms.has(pendingFilm.key) || busy !== "|0") return;
+    filmBusy.current = true;
+    triedFilms.add(pendingFilm.key);
+    makeMoonFilm(pendingFilm, ask).finally(() => { filmBusy.current = false; });
+  }, [pendingFilm, busy, ask]);
+
   return (
     <View style={styles.hidden} pointerEvents="none">
       <JournalBridge onJournal={onJournal} onResult={onResult} refreshTick={0} command={command} devCredits={500} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
@@ -182,6 +194,39 @@ async function lateSound(job: GlimpseJob, film: string, sound: string, ask: (cmd
   const r = await ask({ type: "sketchSwap", id: job.entryId, value: film, text: `sketch:${name}` });
   if (r.error) { try { copy.delete(); } catch {} return; }
   setTimeout(() => { try { new File(src).delete(); } catch {} }, 60000);
+}
+
+/* Der Mondfilm aus den Traumbildern eines Mondzyklus — wie ein Glimpse
+   ganz auf dem iPhone gerendert (keine Kosten): jedes Bild wird quadratisch
+   übernommen (importReference), der Renderer fährt langsam darüber und
+   blendet über. Ohne Partikel, Nebel, Ton. Höchstens 20 Bilder (≈ 1 min). */
+const triedFilms = new Set<string>();
+async function makeMoonFilm(f: NonNullable<HomeData["moonFilm"]>, ask: (cmd: Omit<BridgeCommand, "n">) => Promise<BridgeResult>) {
+  try {
+    const sketch = DreamSketch!;
+    const all = f.dreams.filter((d) => !!d.img);
+    const step = Math.max(1, all.length / 20);
+    const picks = Array.from({ length: Math.min(20, all.length) }, (_, i) => all[Math.floor(i * step)]);
+    const scenes: string[] = [];
+    for (let i = 0; i < picks.length; i++) {
+      const src = resolveSketchUrl(picks[i].img) ?? picks[i].img;
+      try { scenes.push(await sketch.importReference(src, `moon-${f.key}-${i}.png`)); } catch (e: any) { console.warn("[moonfilm] Bild", e?.message || e); }
+    }
+    if (scenes.length < 3) return;
+    const film = await sketch.renderSketch(
+      { opening: [], scenes, morphs: [], particles: "dust", vertigo: -1, seed: scenes.length * 7919, fog: 0, hold: 2.2, fade: 1.0, effects: false },
+      `moon-${f.key}.mp4`,
+    );
+    const r = await ask({ type: "moonFilm", moonFilm: { key: f.key, title: f.title, text: "", film: film.film, stills: scenes, seconds: film.seconds } });
+    if (r.error) throw new Error(r.error);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await Notifications.scheduleNotificationAsync({
+      content: { title: f.readyTitle, body: f.readyBody, data: { glimpse: "/journal" } },
+      trigger: null,
+    }).catch(() => {});
+  } catch (e: any) {
+    console.warn("[moonfilm]", e?.message || e);
+  }
 }
 
 const styles = StyleSheet.create({

@@ -18,8 +18,14 @@
  * Traum um 1 Uhr nachts in Berlin landete damit auf dem Vortag. */
 import { isBlank } from "./blankNight.js";
 
-const DAY = 864e5;
 const isSeed = (e) => String(e?.id || "").startsWith("e_seed");
+
+/** Der Mondfilm (03.10., moonCycle.js) steht im Journal, ist aber KEIN
+ *  Traum: Er zählt weder für Serie noch Ring. */
+export const MOON_FILM_KIND = "moonfilm";
+export function isMoonFilm(entry) {
+  return entry?.kind === MOON_FILM_KIND;
+}
 
 /** Kalendertag in Ortszeit, „2026-09-28". */
 export function dayKey(d) {
@@ -36,7 +42,7 @@ function shift(d, days) {
 export function dreamDays(journal) {
   const out = new Set();
   for (const e of journal || []) {
-    if (!e || isSeed(e) || isBlank(e)) continue;
+    if (!e || isSeed(e) || isBlank(e) || isMoonFilm(e)) continue;
     const t = new Date(e.createdAt);
     if (!isNaN(t)) out.add(dayKey(t));
   }

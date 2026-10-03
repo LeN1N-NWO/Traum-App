@@ -68,23 +68,16 @@ export default {
   },
   /* Der Traum-Vorsatz im Schlaf-Tab (27.09.). */
   /* Dein Sternbild auf der Startseite (28.09.). */
-  sky: {
-    unnamed: "The ???",
-    named: "Your constellation",
-    progress: (lit, of) => `${lit} of ${of} nights`,
-    /* Was am Ziel der Stufe wartet — kurz fürs Schild, lang für die Zeile. */
-    chip: (r) => `+${r.credits} ✦`,
-    reward: (r) => [`+${r.credits} ${r.credits === 1 ? "credit" : "credits"}`, r.name ? "its name" : null, r.snooze ? "a snooze night" : null].filter(Boolean).join(" · "),
-    until: (left, reward) => `${left} more ${left === 1 ? "night" : "nights"} to: ${reward}` + ".",
-    gift: (stage, credits, snooze) => `✦ ${stage} nights — ${credits} ${credits === 1 ? "credit" : "credits"}${snooze ? " and a snooze night" : ""} from us`,
-    complete: "Your constellation is complete. Every star is a night you kept.",
-    hint: "Every night you note lights a star.",
-    names: {
-      water: "The Swimmer", flying: "The Flyer", falling: "The Falling One", chase: "The Hunted", home: "The House",
-      city: "The City", forest: "The Forest", sky: "The Stargazer", lost: "The Wanderer", missing: "The Latecomer",
-      exposed: "The Unveiled", teeth: "The Smile", animal: "The Beast", monster: "The Dragon", family: "The Family",
-      stranger: "The Stranger", partner: "The Lovers", fear: "The Watcher", joy: "The Dancer", grief: "The Mourner",
-    },
+  /* Der Mondring auf der Startseite (03.10.). */
+  cycle: {
+    chip: "Moon film",
+    count: (n) => n === 0 ? "No dreams in this moon yet" : `${n} ${n === 1 ? "dream" : "dreams"} in this moon`,
+    left: (n) => `${n} more ${n === 1 ? "night" : "nights"} until the full moon — then your moon film arrives.`,
+    fullTonight: "Full moon tonight — your moon film arrives tomorrow morning.",
+    thread: (label, n) => `Strongest thread: ${label} (${n}×)`,
+    filmTitle: (month, motif) => motif ? `${month} moon · ${motif}` : `${month} moon`,
+    readyTitle: "Your moon film is here",
+    readyBody: (n) => `${n} dreams from the last moon, as one film.`,
   },
   intention: {
     title: "What would you like to dream about?",
