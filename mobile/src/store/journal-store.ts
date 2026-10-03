@@ -49,6 +49,7 @@ export type LegalDoc = { title: string; sections: { h: string; p: string }[] };
 export type SettingsData = {
   voiceSetting: string; voiceSettingHint: string; withdrawConsent: string; withdrawConsentHint: string; done: string;
   account: string; accountNone: string; accountSignedIn: string; accountSignedInNoEmail: string; signIn: string; signOut: string;
+  signOutConfirmTitle: string; signOutConfirmText: string;
   voice: string; voices: { id: string; trait: string }[]; pickTitle: string; pickHint: string; pickGo: string; cancel: string; sampleBase: string;
   privacy: { title: string; hint: string; noBio: string; unlock: string; locked: string };
   deleteAccount: { title: string; hint: string; confirmTitle: string; confirmText: string; go: string; done: string; failed: string };

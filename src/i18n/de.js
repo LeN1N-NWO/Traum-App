@@ -457,6 +457,8 @@ export default {
     accountSignedInNoEmail: "Angemeldet",
     signIn: "Anmelden",
     signOut: "Abmelden",
+    signOutConfirmTitle: "Abmelden?",
+    signOutConfirmText: "Deine Träume bleiben auf diesem Gerät. Um neue zu erstellen, musst du dich wieder anmelden.",
     done: "Fertig",
     credits: "Credits",
     creditsSoon: "Aufladen kommt bald",
@@ -1504,6 +1506,7 @@ export default {
     storageFull: "⚠ Speicher voll — alte Einträge oder Referenzfotos löschen.",
     unexpected: "Unerwartete Antwort vom Server.",
     serverStatus: (s) => `Server antwortete mit ${s}.`,
+    signIn: "Melde dich an, um Träume zu erstellen — das dauert nur einen Moment.",
     timeout: "Der Dienst hat nicht geantwortet. Prüf deine Verbindung und versuch es gleich noch mal.",
     renderFailed: "Die Generierung hat diesmal nicht geklappt. Versuch es noch mal.",
     policyPrompt: "Unser Bildmodell hat diesen Traum abgelehnt — fast immer "

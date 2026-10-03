@@ -9,6 +9,7 @@ import { showToast } from "@/store/toast-store";
 import { setJournal, useJournalStore, type BridgeCommand, type JournalSnapshot, type OnboardData } from "@/store/journal-store";
 import { colors } from "@/theme";
 import { AvatarEditor } from "@/components/avatar-editor";
+import { getAccessToken } from "@/lib/auth";
 
 /* Die Blätter des Profils: `avatar` (eigenes Porträt) und `survey` sind
    seit 13.09. nativ; `settings` und `paywall` laufen hier noch als
@@ -31,7 +32,7 @@ export default function ProfilePageScreen() {
            dasselbe Profil. Die Web-Umfrage (Sprache/Formular) wird nicht
            mehr geladen. */
         ? <SurveyRoom onClose={() => router.back()} />
-        : <LegacyPage page={p} safeTop={insets.top} safeBottom={insets.bottom} category={category ? String(category) : undefined} tag={tag ? String(tag) : undefined} onClose={async () => { router.back(); }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
+        : <LegacyPage getToken={getAccessToken} page={p} safeTop={insets.top} safeBottom={insets.bottom} category={category ? String(category) : undefined} tag={tag ? String(tag) : undefined} onClose={async () => { router.back(); }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
     </>
   );
 }
@@ -73,7 +74,7 @@ function SurveyRoom({ onClose }: { onClose: () => void }) {
         />
       ) : null}
       <View style={{ height: 0, overflow: "hidden" }}>
-        <JournalBridge onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+        <JournalBridge getToken={getAccessToken} onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
       </View>
     </View>
   );

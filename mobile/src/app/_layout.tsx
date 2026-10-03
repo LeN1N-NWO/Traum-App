@@ -7,6 +7,7 @@ import { GlimpseLayer } from "@/components/glimpse-layer";
 import { MascotTapLayer } from "@/components/mascot-tap";
 import { OnboardingGate } from "@/components/onboarding-gate";
 import { PrivacyGate } from "@/components/privacy-gate";
+import { SignInSheet } from "@/components/sign-in-sheet";
 import { Toasts } from "@/components/toasts";
 import { useJournalStore } from "@/store/journal-store";
 
@@ -60,6 +61,8 @@ export default function RootLayout() {
       <GlimpseLayer />
       {/* Nur im Entwicklungsbau, bei jedem Start (Antons Wunsch 13.09.). */}
       <OnboardingGate />
+      {/* Anmeldung, wenn ein Gast etwas Bezahltes versucht (S1, 03.10.). */}
+      <SignInSheet />
       <Toasts />
       {/* Der Face-ID-Schutz, ganz zuletzt: deckt alles darunter ab (22.09.). */}
       <PrivacyGate />

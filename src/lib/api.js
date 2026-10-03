@@ -8,6 +8,61 @@ import { t } from "../i18n/index.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
+/* Das Zugangstoken für die bezahlten Routen (S1, needsAccount() in
+ * src/lib/gatekeeper.js). Die Web-Ansichten der nativen App erreichen den
+ * Schlüsselbund nicht; die native Seite reicht deshalb eine Funktion herein
+ * (`getToken` → setTokenSource in mobile/src/legacy/*). Diese Brücke gibt es
+ * nur, weil der Geldweg noch durch die alte Web-Oberfläche läuft (ADR-0006) —
+ * nach dem Umzug auf nativ fällt sie weg.
+ *
+ * Ohne Quelle (Web-Entwicklungsbau) oder ohne Sitzung geht der Aufruf ohne
+ * Token raus; ob er eins braucht, entscheidet der Server (REQUIRE_AUTH). */
+let tokenSource = null;
+export function setTokenSource(fn) {
+  tokenSource = typeof fn === "function" ? fn : null;
+}
+const TOKEN_WAIT_MS = 5_000;   // hängt die Brücke, lieber ohne Token weiter
+export async function accessToken(fresh = false) {
+  if (!tokenSource) return null;
+  let timer;
+  const giveUp = new Promise((r) => { timer = setTimeout(() => r(null), TOKEN_WAIT_MS); });
+  try {
+    return (await Promise.race([Promise.resolve(tokenSource(fresh)), giveUp])) || null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* fetch mit Token, wenn eines da ist. Bei 401 einmal mit frischem Token
+ * wiederholen — ein Zugangstoken läuft nach einer Stunde ab, und ein Film
+ * wird minutenlang abgeholt. */
+async function sendWithSession(url, init) {
+  const go = (token) => fetch(url, token ? { ...init, headers: { ...(init.headers || {}), authorization: `Bearer ${token}` } } : init);
+  const first = await go(await accessToken());
+  if (!tokenSource || !(await wantsSignIn(first))) return first;
+  // `true` heißt für die native Seite: der Server will eine Anmeldung —
+  // ohne erneuerbare Sitzung öffnet sie das Anmelde-Blatt (Schritt 3).
+  const fresh = await accessToken(true);
+  return fresh ? go(fresh) : first;
+}
+
+/* Was der Mensch liest. „Bitte anmelden" kommt aus den Sprachdateien statt
+ * als englischer Server-Text — der Gast sieht dazu das Anmelde-Blatt. */
+function serverMessage(data, status) {
+  if (data?.reason === "signin") return t.errors.signIn;
+  return data?.error || t.errors.serverStatus(status);
+}
+
+/* Nur ein 401 mit reason "signin" (needsAccount, S1) heißt „Anmeldung
+   fehlt" — ein anderer 401 wird nicht wiederholt. Liest eine Kopie. */
+async function wantsSignIn(res) {
+  if (res.status !== 401) return false;
+  const body = await res.clone().json().catch(() => null);
+  return body?.reason === "signin";
+}
+
 /* Where a stored media path actually lives.
  *
  * Generated files are kept by the server and referenced as "/media/<name>",
@@ -80,7 +135,7 @@ function friendly(err) {
 async function post(path, body, { timeout = TIMEOUTS.default } = {}) {
   let res;
   try {
-    res = await fetch(`${API_BASE}${path}`, {
+    res = await sendWithSession(`${API_BASE}${path}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
@@ -96,7 +151,7 @@ async function post(path, body, { timeout = TIMEOUTS.default } = {}) {
        `new Error(text)` hätte ihn hier verloren, und die App wäre wieder
        bei „versuch es noch mal" gelandet — genau dem Rat, der bei einem
        Policy-Verstoß nicht funktioniert. */
-    const err = new Error(data?.error || t.errors.serverStatus(res.status));
+    const err = new Error(serverMessage(data, res.status));
     if (data?.reason) err.reason = data.reason;
     /* Der Preis hat sich geändert (HTTP 409, 11.09.2026): Der Server rechnet
        teurer als der Client angezeigt hat und rendert NICHT. Beide Zahlen
@@ -355,7 +410,7 @@ export async function photoCheck({ image, category }) {
 export async function uploadPanel(blob) {
   let res;
   try {
-    res = await fetch(`${API_BASE}/api/panel`, {
+    res = await sendWithSession(`${API_BASE}/api/panel`, {
       method: "POST",
       headers: { "content-type": blob.type || "image/png" },
       body: blob,
@@ -365,7 +420,7 @@ export async function uploadPanel(blob) {
     throw friendly(err);
   }
   const data = await res.json().catch(() => null);
-  if (!res.ok || typeof data?.url !== "string") throw new Error(data?.error || t.errors.serverStatus(res.status));
+  if (!res.ok || typeof data?.url !== "string") throw new Error(serverMessage(data, res.status));
   return data.url;
 }
 
@@ -382,13 +437,13 @@ export async function filmWithOutro(film, card) {
 export async function jobStatus(id) {
   let res;
   try {
-    res = await fetch(`${API_BASE}/api/job?id=${encodeURIComponent(id)}`, {
+    res = await sendWithSession(`${API_BASE}/api/job?id=${encodeURIComponent(id)}`, {
       signal: AbortSignal.timeout(20_000),
     });
   } catch (err) {
     throw friendly(err);
   }
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.error || t.errors.serverStatus(res.status));
+  if (!res.ok) throw new Error(serverMessage(data, res.status));
   return data;
 }

@@ -2,6 +2,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LegacyApp from "@/legacy/legacy-app";
+import { getAccessToken } from "@/lib/auth";
 
 /* Ein nativer Bildschirm, in dem ein Bildschirm der alten Oberfläche läuft.
    Bei jedem Fokus zählt `tick` hoch; der Webview liest daraufhin seinen
@@ -13,6 +14,7 @@ export function LegacyTab({ screen, view }: { screen: "home" | "journal" | "drea
   useFocusEffect(useCallback(() => { setTick((t) => t + 1); }, []));
   return (
     <LegacyApp
+      getToken={getAccessToken}
       screen={screen}
       view={view}
       focusTick={tick}

@@ -16,7 +16,7 @@ import { STREAK_CAP } from "../../../src/lib/streak.js";
 import { dreamNightCount, snoozeBridge, snoozeEarn, streakInfo } from "../../../src/lib/nights.js";
 import { hasPendingJobs, collectTick } from "../../../src/lib/collector.js";
 import { failureTextKey } from "../../../src/lib/falError.js";
-import { jobStatus } from "../../../src/lib/api.js";
+import { jobStatus, setTokenSource } from "../../../src/lib/api.js";   // setTokenSource: S1, Token von der nativen Seite
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend, applyAllowanceGrant } from "../../../src/lib/credits.js";
@@ -308,6 +308,7 @@ function snapshot() {
       voiceSetting: t.profile.voiceSetting, voiceSettingHint: t.profile.voiceSettingHint,
       withdrawConsent: t.profile.withdrawConsent, withdrawConsentHint: t.profile.withdrawConsentHint, done: t.profile.done,
       account: t.profile.account, accountNone: t.profile.accountNone, accountSignedIn: t.profile.accountSignedIn, accountSignedInNoEmail: t.profile.accountSignedInNoEmail, signIn: t.profile.signIn, signOut: t.profile.signOut,
+      signOutConfirmTitle: t.profile.signOutConfirmTitle, signOutConfirmText: t.profile.signOutConfirmText,
       voice: isVoice(s.voice) ? s.voice : DEFAULT_VOICE,
       voices: VOICES.map((v) => ({ id: v.id, trait: t.voice.traits[v.trait] || v.trait })),
       /* Face-ID-Schalter und Sprachwahl (22.09.2026). Die Sprachnamen
@@ -1363,7 +1364,8 @@ function syncLanguage() {
   setLanguage(want);
 }
 
-export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, streakChores: chores = false, dom }) {
+export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, streakChores: chores = false, getToken, dom }) {
+  setTokenSource(getToken);   // S1 — fällt mit dem Umzug auf nativ weg (ADR-0006)
   useEffect(() => {
     const push = () => { try { syncLanguage(); devTopUp(devCredits); if (chores) streakChores(onResult); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
     /* Nur Änderungen am Zustand wecken die Brücke — nicht die Pachten

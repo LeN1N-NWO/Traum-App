@@ -7,6 +7,7 @@ import { Glass } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { appleReauthCode } from "@/lib/apple-reauth";
 import { deleteAccount, logout, restoreSession, useAccount } from "@/lib/auth";
+import { requestSignIn } from "@/lib/signin-prompt";
 import { canLock, isLockEnabled, setLockEnabled, unlock } from "@/lib/privacy-lock";
 import { colors, TAB_INSET } from "@/theme";
 
@@ -53,6 +54,17 @@ export default function SettingsScreen() {
      Erst wenn der Server gelöscht hat, verschwindet die Sitzung
      (deleteAccount in lib/auth.ts). */
   const [deleting, setDeleting] = useState(false);
+  /* Abmelden mit Rückfrage (Hanni, 03.10.2026): ein versehentlicher Tipp
+     auf die Zeile meldete sofort ab. Abmelden ist nicht schlimm, aber
+     danach geht nichts Bezahltes mehr, bis man sich wieder anmeldet. */
+  const askSignOut = () => {
+    if (!S) return;
+    Haptics.selectionAsync();
+    Alert.alert(S.signOutConfirmTitle, S.signOutConfirmText, [
+      { text: S.cancel, style: "cancel" },
+      { text: S.signOut, style: "destructive", onPress: () => { logout().catch(() => {}); } },
+    ]);
+  };
   const askDelete = () => {
     const D = S?.deleteAccount;
     if (!D) return;
@@ -99,8 +111,8 @@ export default function SettingsScreen() {
         {S ? (
           <>
             {account
-              ? row(S.account, account.email ? `${S.accountSignedIn} ${account.email}` : S.accountSignedInNoEmail, S.signOut, () => { logout().catch(() => {}); })
-              : row(S.account, S.accountNone, null, () => {})}
+              ? row(S.account, account.email ? `${S.accountSignedIn} ${account.email}` : S.accountSignedInNoEmail, S.signOut, askSignOut)
+              : row(S.account, S.accountNone, null, requestSignIn)}
             {/* Konto löschen — nur mit Konto sichtbar; Apple 5.1.1(v). */}
             {account ? (
               <Pressable onPress={askDelete} disabled={deleting}>

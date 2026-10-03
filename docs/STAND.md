@@ -3,18 +3,36 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-03 nachmittags — Hanni, `session/2026-09-25-hanni-2`
-(PR #64): Einrichtungs- und Deploy-Skript für den VPS (`deploy/`) und S5
-(Rate-Limit hinter Caddy) fertig; PR #69 und #70 sind auf main. **Als
-Nächstes S1** (teure Routen nur mit Anmeldung) auf neuem Branch. **Weg
-durch die App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
+**Stand:** 2026-10-03 abends — Hanni, `session/2026-10-03-hanni` (PR #72):
+**S1 gelöst — Bezahltes nur mit Konto**, App und Server, scharf im Deploy.
+PR #64 (VPS-Skripte, S5) ist auf main. **Weg durch die App-Store-Prüfung:
+`docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Neu mit PR #64 (25.09. + 03.10.):**
+**Neu mit PR #72 (03.10.):**
+- **Server:** `needsAccount()` (`src/lib/gatekeeper.js`) — alles unter
+  `/api/` braucht ein Konto außer Anmeldung, Preise, Hörprobe, Konto/Träume,
+  lokale Sicherungs-Routen. Nur mit `REQUIRE_AUTH=1` (steht in
+  `deploy/dreamrushes.service`); **lokal bleibt alles offen.**
+- **App:** schickt das Token (`mobile/src/lib/auth.ts`, `src/lib/api.js`,
+  `getToken` an die vier Web-Ansichten — fällt mit dem Umzug auf nativ weg;
+  Sprachinterview als WebSocket-Subprotokoll). Gast + Bezahltes → Anmelde-
+  Blatt (`components/sign-in-sheet.tsx`); auch über Einstellungen →
+  „Account". Abmelden fragt nach.
+- **Deploy:** `check-env.mjs` verbietet `API_TOKEN`, verlangt Supabase;
+  `deploy.sh` stoppt den Dienst, wenn Bezahltes ohne Anmeldung durchginge.
+- **Entwicklung:** „Skip to sign-in (dev)" unter jedem Onboarding-Continue.
+- ⚠ Eine App für den VPS braucht einen Bau ab PR #72.
+- ⚠ Offen bei S1: „genug Guthaben" (`settleCharge()`, Antons Teil, S7);
+  `/api/job` prüft nicht, ob der Auftrag dem Nutzer gehört (S2, dazu
+  `genJobId()` nicht kryptografisch) — `docs/ARCHITEKTUR.md`.
+- Notiz an Anton: `docs/uebergabe/2026-10-03-anton-s1-anmeldung.md`.
+
+**Mit PR #64 (25.09. + 03.10.):**
 - **VPS-Einrichtung `deploy/`:** `setup.sh` (einmal: Updates, ffmpeg,
   Caddy/HTTPS, Bun 1.4.0 mit Prüfsumme, Systemnutzer `dreamrushes`,
   systemd, Firewall 22/80/443), `deploy.sh` (jeder neue Stand, geht bei
   scheiterndem Gesundheitscheck zurück), `check-env.mjs` (kein Start ohne
-  `API_TOKEN`/`DREAMRUSHES_MEDIA`). Anleitung `deploy/README.md`.
+  Supabase/`DREAMRUSHES_MEDIA`). Anleitung `deploy/README.md`.
   ⚠ **Noch nie auf dem Server gelaufen** — SSH-Zugang fehlt (Anton,
   `docs/uebergabe/2026-09-25-anton-vps-einrichtung.md`).
 - **S5 gelöst:** `senderOf()` (`src/lib/gatekeeper.js`) zählt hinter Caddy
@@ -22,9 +40,6 @@ durch die App-Store-Prüfung: `docs/plans/2026-09-23-app-store-pruefung.md`.**
   (in `deploy/dreamrushes.service`) und nur von Loopback. Lokal ändert sich
   nichts. ⚠ Auf dem VPS mit dem Prüfbefehl aus `deploy/README.md`
   bestätigen. ⚠ IPv6 zählt je Adresse, nicht je /64-Netz.
-- ⚠ **Server ist bis S1 nicht für die App:** `check-env.mjs` verlangt
-  `API_TOKEN`, und damit sperrt der Türsteher jede `/api/`-Route ohne
-  `x-api-token` — die App schickt keinen.
 
 **Neu mit PR #70 (27./28.09.):**
 - **EINE Zählung der Nächte:** `src/lib/nights.js` — Traum-Tage sind
@@ -237,8 +252,8 @@ Sitzung; der erste echte Lauf steht aus.
   jedem Gerät im WLAN → jetzt nur noch diesem Rechner (`src/lib/localOnly.js`,
   Sperre in `server.js` vor den Sicherungs-Routen). ⚠ Hält nur, solange Vite
   nicht mit `--host` läuft — der Check wird dann rot.
-- ❌ Offen und bekannt: 8 bezahlte Routen ohne Anmeldung (S1, `API_TOKEN`
-  nicht gesetzt), `settleCharge()` bucht nicht ab (S7, `server.js:2125`),
+- ✅ S1 (bezahlte Routen ohne Anmeldung) gelöst mit PR #72.
+- ❌ Offen und bekannt: `settleCharge()` bucht nicht ab (S7, `server.js:2125`),
   CORS erlaubt `"null"`, 0/5 Sicherheits-Kopfzeilen (auf dem VPS setzt
   Caddy 4 davon, `deploy/Caddyfile`), Abhängigkeiten mit je
   2 hohen Meldungen (`bun audit`), eine Antwort reicht `e.message` durch
@@ -361,7 +376,8 @@ Teil 2c Geld/Abrechnung — Apple ist Merchant of Record, Small Business
 Program 15 %), Prüfwerkzeug **`bun run preflight`** (Exit 1 bei Blockern).
 Preflight meldet noch **4 Blocker — alle bewusste Testphasen-Schalter**,
 vor der Einreichung zurückdrehen:
-- B3a: `"null"` in `NATIVE_ORIGINS` (server.js) raus oder API_TOKEN
+- B3a: `"null"` in `NATIVE_ORIGINS` (server.js) raus (API_TOKEN ist seit
+  S1 keine Option mehr — es sperrte die App aus)
 - B3b: HTTPS-Deployment statt `http://192.168…` (= Baustelle S6)
 - B4a: `devTopUp` 500 Credits → zurück auf `__DEV__ ? 100 : 0`
   (journal-bridge.jsx)
@@ -393,10 +409,7 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
 6. Android: Apples Blatt fehlt dort — Apple-Konto dort nicht löschbar.
 
 **Nächste Schritte:**
-1. **Hanni + Claude:** S1 auf neuem Branch — teure Routen nur mit gültiger
-   Anmeldung (`verifyAccessToken`, `server.js` vor `guard(`); erst prüfen,
-   ob die App das Token dort schon mitschickt. Danach kann `API_TOKEN` aus
-   `check-env.mjs` raus. Anfrage an den Anwalt abschicken. Ersten
+1. **Hanni:** PR #72 mergen. Anfrage an den Anwalt abschicken. Ersten
    `/security-check` in neuer Sitzung.
 2. **Anton:** SSH-Zugang für Hanni (eigener Nutzer mit sudo), Hetzner-
    Firewall/Snapshots/AV-Vertrag, `ip -6 addr show scope global` (AAAA),
@@ -405,7 +418,9 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
    und Abbuchung (`settleCharge()`, Punkte 2–6 in
    `2026-09-11-anton-credits-abbuchung.md`) — die Anmeldung steht jetzt.
 3. **Erster Lauf auf dem VPS (Hanni + Anton zusammen):** `setup.sh`, `.env`
-   von Hand, `deploy.sh`, dann S5-Prüfbefehl aus `deploy/README.md`.
+   von Hand (KEIN `API_TOKEN`, dafür Supabase), `deploy.sh` (prüft S1 selbst),
+   dann S5-Prüfbefehl aus `deploy/README.md`. Danach App-Bau mit
+   `EXPO_PUBLIC_API_BASE=https://api.dreamrushes.app`.
 4. **Schritt C anbinden** (Server-Endpunkte, App-Seite) — PR #62 ist auf main.
 5. **Mit Anton:** Prüfer-Credits (N10), Store-Länder, Budget, `media/jobs`.
 6. **Anton:** Face ID am iPhone (N11), erster echter Turbo-Film mit Foto.

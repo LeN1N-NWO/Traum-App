@@ -10,6 +10,7 @@ import { MoonButton } from "@/components/moon-button";
 import { holdForRecording } from "@/lib/sound-engine";
 import { setRecording } from "@/store/recording-store";
 import { colors, fonts } from "@/theme";
+import { fetchWithSession } from "@/lib/auth";
 
 /* Der Rekorder als ERSTE Ansicht des Traum-Tabs (Antons Ansage 13.09.2026):
  *
@@ -124,7 +125,7 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     try {
       const raw = await (await fetch(u)).blob();
       const blob = new Blob([raw], { type: "audio/mp4" });
-      const up = await fetch(W!.panelUrl, { method: "POST", headers: { "content-type": "audio/mp4" }, body: blob });
+      const up = await fetchWithSession(W!.panelUrl, { method: "POST", headers: { "content-type": "audio/mp4" }, body: blob });
       const out = await up.json().catch(() => null);
       if (up.ok && typeof out?.url === "string" && uri.current === u) { audioUrl.current = out.url; onPendingAudio(out.url); }
     } catch (e) { console.warn("[recorder] upload", e); }
@@ -137,7 +138,7 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     setPhase("busy");
     try {
       const b64 = await new File(uri.current).base64();
-      const res = await fetch(W!.transcribeUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ audio: `data:audio/mp4;base64,${b64}`, language }) });
+      const res = await fetchWithSession(W!.transcribeUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ audio: `data:audio/mp4;base64,${b64}`, language }) });
       const out = await res.json().catch(() => null);
       if (cancelled.current) return;
       const text = String(out?.text || "").trim();

@@ -17,10 +17,6 @@
 
 import { isAbsolute, relative, resolve } from "node:path";
 
-/** Unter dieser Länge ist ein API_TOKEN ein Platzhalter, kein Geheimnis.
- *  `openssl rand -hex 32` liefert 64 Zeichen. */
-export const MIN_TOKEN_LENGTH = 32;
-
 /** Caddy leitet fest auf diesen Port weiter (deploy/Caddyfile), und der
  *  Gesundheitscheck in deploy.sh fragt dort. */
 export const EXPECTED_PORT = "8100";
@@ -42,14 +38,19 @@ export function checkEnv(env, appDir) {
   const errors = [];
   const warnings = [];
 
-  /* Ohne API_TOKEN sind die bezahlten Routen für jeden im Internet offen
-     (Befund S1) — nur das Rate-Limit stünde noch davor. */
-  const token = env.API_TOKEN || "";
-  if (!token) {
-    errors.push("API_TOKEN fehlt — die bezahlten Routen wären für jeden offen (S1).");
-  } else if (token.length < MIN_TOKEN_LENGTH) {
-    // Fängt auch den Platzhalter aus .env.example (27 Zeichen).
-    errors.push(`API_TOKEN ist kürzer als ${MIN_TOKEN_LENGTH} Zeichen — erzeugen mit: openssl rand -hex 32`);
+  /* S1 (03.10.2026): Die bezahlten Routen schützt die Anmeldung —
+     REQUIRE_AUTH=1 in dreamrushes.service, geprüft gegen Supabase. Ohne
+     SUPABASE_URL/SUPABASE_ANON_KEY gelänge die Prüfung nie: Der Server liefe,
+     aber niemand käme je an einen Traum. */
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    errors.push("SUPABASE_URL/SUPABASE_ANON_KEY fehlen — ohne sie kann sich niemand anmelden, und Bezahltes geht nur mit Konto (S1).");
+  }
+
+  /* Das alte gemeinsame Geheimnis. Gesetzt verlangt der Türsteher den Kopf
+     x-api-token auf JEDER /api/-Route — die App schickt ihn nicht, sie wäre
+     komplett ausgesperrt. Seit S1 ersetzt es die Anmeldung. */
+  if (env.API_TOKEN) {
+    errors.push("API_TOKEN ist gesetzt — das sperrt die App aus. Seit S1 schützt die Anmeldung (REQUIRE_AUTH); die Zeile aus der .env löschen.");
   }
 
   /* Ohne DREAMRUSHES_MEDIA legt mediaRootFrom() den Ordner in den Checkout.
