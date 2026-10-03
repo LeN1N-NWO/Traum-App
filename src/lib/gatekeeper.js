@@ -81,7 +81,10 @@ export function classOf(pathname) {
      Server nicht beschäftigt. Ohne diese Zeile fielen sie unter „generate"
      (20/Minute) — zu knapp für ein Tagebuch, das beim Öffnen synchronisiert. */
   if (pathname === "/api/account" || pathname.startsWith("/api/dreams")
-      || pathname === "/api/auth/logout") return "cheap";
+      || pathname === "/api/auth/logout" || pathname === "/api/invite") return "cheap";
+  /* Einen Einladungscode verbinden: so streng wie Anmelden — wer Codes
+     durchprobiert, soll es aussichtslos langsam tun. */
+  if (pathname === "/api/invite/connect") return "auth";
   return "generate";   // /api/generate, /api/character und alles Künftige
 }
 
@@ -109,6 +112,7 @@ export function needsAccount(pathname) {
   if (!pathname.startsWith("/api/")) return false;
   if (OPEN_WITHOUT_ACCOUNT.has(pathname)) return false;
   if (pathname === "/api/dreams" || pathname.startsWith("/api/dreams/")) return false; // prüfen selbst
+  if (pathname === "/api/invite" || pathname === "/api/invite/connect") return false;  // prüfen selbst
   return true;
 }
 

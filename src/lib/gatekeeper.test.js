@@ -188,6 +188,8 @@ describe("needsAccount", () => {
     expect(needsAccount("/api/account")).toBe(false);
     expect(needsAccount("/api/dreams")).toBe(false);
     expect(needsAccount("/api/dreams/sync")).toBe(false);
+    expect(needsAccount("/api/invite")).toBe(false);
+    expect(needsAccount("/api/invite/connect")).toBe(false);
     // Nur der echte Pfad, kein Namensvetter.
     expect(needsAccount("/api/dreamsXYZ")).toBe(true);
   });
@@ -196,4 +198,11 @@ describe("needsAccount", () => {
     expect(needsAccount("/")).toBe(false);
     expect(needsAccount("/media/abc.mp4")).toBe(false);
   });
+});
+
+/* Einladungen: die Übersicht ist billig, das Verbinden so streng wie
+   Anmelden — sonst ließen sich 7-Zeichen-Codes durchprobieren. */
+test("connecting an invite code is braked like signing in", () => {
+  expect(classOf("/api/invite")).toBe("cheap");
+  expect(classOf("/api/invite/connect")).toBe("auth");
 });

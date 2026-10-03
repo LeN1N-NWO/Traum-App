@@ -203,3 +203,39 @@ Bucket, sobald Credits auf dem Server liegen.
 - DeviceCheck-Bit („hier wurde schon eine Einladung verbunden").
 - `expo-clipboard` für Apples Einfügeknopf ist NICHT eingebaut (neues
   natives Modul); heute fügt man per Langdruck ins Feld ein.
+
+## Nachtrag 03.10. abends (Hanni + Claude): Der Server-Teil steht — ohne Prämie
+
+Gebaut, genau nach dem Vertrag oben:
+
+- **`GET /api/invite`** → `{ code, connected, rewardsThisMonth, referrals }`
+  in der Form von `mobile/src/lib/invites.ts`. Jedes Konto bekommt beim
+  ersten Aufruf seinen Code (Alphabet und Länge aus `src/lib/invites.js`,
+  kryptografischer Zufall, bei Kollision neu). Vom Freund kommt nur der
+  Anzeigename.
+- **`POST /api/invite/connect { code }`** → `200 { ok: true }`, sonst
+  `404 unknown`, `409 own`, `409 already`. Der Code wird mit
+  `normalizeCode()` gelesen (Link, Kleinbuchstaben, Bindestriche gehen).
+  Gebremst wie Anmelden (10/Minute), damit niemand Codes durchprobiert.
+- **Datenbank:** `supabase/migrations/20261003120000_invites.sql` —
+  `invite_codes`, `invite_redemptions` (Spalten für Kauf und Prämie stehen
+  schon da), drei `security definer`-Funktionen nur für `dreamrushes_server`.
+  Auf die Tabellen darf niemand direkt. Konto löschen löscht Code und
+  Einladungen mit.
+- Code: `src/lib/invitesServer.js` (+ Test), zwei Routen in `server.js` im
+  Konto-Block.
+
+Geprüft: 15 Tests für das Modul; die Migration in einem echten Postgres
+(PGlite) mit 29 Prüfungen, darunter die Verbote mit Fehlercode `42501`,
+Löschrecht und das Modul Ende zu Ende gegen die SQL-Funktionen; Gegenprobe
+mit drei eingebauten Fehlern.
+
+**Noch nicht:**
+- ⚠ **Die Migration ist nicht eingespielt.** Bis jemand sie im SQL-Editor
+  von Supabase ausführt, antworten die Routen mit 500 — die App zeigt dann
+  „offline", nicht die Vorschau. Danach einmal mit echtem Konto prüfen und
+  erst dann `INVITE_PREVIEW = false` (Antons Datei).
+- `bought`/`rewarded` und die Prämie: brauchen die Prüfung echter
+  App-Store-Käufe (B1) und den Bucket `gift` auf dem Server.
+- `device` (DeviceCheck), Universal Links/AASA, Landingpage
+  `dreamrushes.app/i/CODE`.
