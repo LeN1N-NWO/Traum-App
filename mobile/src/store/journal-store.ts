@@ -15,7 +15,7 @@ export type Labels = Record<string, string>;
 export type MoonInfo = { phase: string; illum: number; waxing: boolean; label: string; lit: string };
 export type MoonStripDay = { key: string; day: number; weekday: number; today: boolean; phase: string; illum: number; waxing: boolean; label: string; sleep: number | null };
 export type MoonData = { title: string; tonight: string; weekdays: string[]; strip: MoonStripDay[] };
-export type GiftKind = "glimpse" | "film" | "credits" | "month";
+export type GiftKind = "glimpse" | "film" | "credits" | "month" | "ring";
 /* Ein Geschenk als kurze Karte (gift-sheet.tsx): Titel, ein Satz, Fortschritt. */
 export type GiftCard = { kind: GiftKind | "monthFilm"; title: string; sub: string; eyebrow: string; progress: number; progressText: string; foot: string; close: string };
 export type GiftReveal = { nights: number; kind: GiftKind; credits: number; title: string; label: string; sub: string; expires: string | null; tapToOpen: string; redeem: string; later: string; target: "dream" | "journal"; dreamId: string | null };
@@ -37,7 +37,15 @@ export type HomeData = {
   moon: { illum: number; waxing: boolean; label: string };
   article: { id: string; title: string; meta: string } | null;
   week: { weekday: number; done: boolean; held?: boolean; today: boolean }[];
-  cycle: { days: { key: string; today: boolean; future: boolean; dreamId: string | null; img: string | null }[]; threads: [number, number][]; left: number; count: number; streak: number; todayDone: boolean; next: (GiftCard & { nights: number; say: string }) | null; month: GiftCard; gifts: (GiftCard & { index: number; nights: number })[]; chip: string; countLine: string; line: string; thread: string; say: string; sayAsleep: string };
+  /* Der Traum-Ring (03.10. spätabends, src/lib/dreamRing.js): 12 Plätze wie
+     eine Uhr, Nummern laufen weiter; Geschenke auf den Vierteln. */
+  cycle: {
+    ringNo: number; next: number; count: number; todayDone: boolean; streak: number;
+    slots: { num: number; pos: number; dreamId: string | null; img: string | null; gift: GiftCard | null }[];
+    threads: [number, number][];
+    nextGift: (GiftCard & { num: number; say: string }) | null;
+    countLine: string; line: string; thread: string; say: string; sayAsleep: string;
+  };
   /* Ein frisch erreichtes Meilenstein-Geschenk, bis es geöffnet ist (03.10.). */
   giftReveal: GiftReveal | null;
   moonFilm: { key: string; title: string; dreams: { id: string; img: string }[]; readyTitle: string; readyBody: string } | null;

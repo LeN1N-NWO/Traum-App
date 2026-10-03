@@ -78,6 +78,12 @@ export default {
     fullTonight: "Last night of the ring — tomorrow your month becomes a film.",
     thread: (label, n) => `Strongest thread: ${label} (${n}×)`,
     milestoneSay: (left, gift) => `${left <= 1 ? "One more dream" : `${left} more dreams`} until 🎁 ${gift}`,
+    /* Der Traum-Ring (03.10. spätabends, dreamRing.js): Plätze wie eine Uhr. */
+    ringCount: (n, ring) => `${n} ${n === 1 ? "dream" : "dreams"} · ring ${ring}`,
+    nextSlot: (num) => `Your next dream fills spot ${num}`,
+    ringFilmTitle: (ring, from, to, motif) => `Ring ${ring} · dreams ${from}–${to}${motif ? ` · ${motif}` : ""}`,
+    ringReadyTitle: "Your ring is full — here's your film",
+    ringReadyBody: (n) => `Your ${n} dreams as one film.`,
     /* Das große Geschenk oben im Ring (Antons Befund 03.10.: „da kommt
        nichts, wobei das doch das stärkste Geschenk ist"). */
     month: {
@@ -169,6 +175,7 @@ export default {
       film: () => "Your first dream film",
       credits: (n) => `${n} credits`,
       month: (n) => `${n} credits — a whole month`,
+      ring: () => "A film of your 12 dreams",
     },
     giftShort: { glimpse: "Glimpse", film: "Film", credits: (n) => `+${n}`, month: (n) => `+${n}` },
     giftWorth: (n) => `worth ${n} ${n === 1 ? "credit" : "credits"}`,
@@ -183,6 +190,7 @@ export default {
         film: "One dream as a whole film — on us.",
         credits: "For Glimpses or films, your choice.",
         month: "As much as a whole month of subscription.",
+        ring: "When the ring is full, its 12 dreams become one film — free.",
       },
       rule: "Every dream with a Glimpse or film counts.",
       valid: "Valid 30 days.",

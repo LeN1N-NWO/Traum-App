@@ -47,6 +47,7 @@ export const MILESTONES = [
  * idempotent bleibt, auch wenn Träume gelöscht und neue gemacht werden:
  * Wer einmal die 7 hatte, bekommt sie kein zweites Mal. */
 import { addGift } from "./credits.js";
+import { giftAtNum, nextGiftNum, QUARTER } from "./dreamRing.js";
 import { FILM_UNIT } from "./plans.js";
 import { SKETCH_BASE } from "./sketchQuota.js";
 import { priceForFilm } from "./video.js";
@@ -78,39 +79,33 @@ export function giftInfo(nights) {
 
 /** Das fällige Geschenk, oder null.
  *
- *  Rein: gibt den Patch zurück, der Aufrufer speichert ihn. Genau ein
- *  Geschenk je Aufruf — wer mit einer hohen Serie aus dem Nichts
- *  auftaucht (Import, alter Stand), bekommt beim nächsten Durchlauf das
- *  nächste.
+ *  ⚠ Seit 03.10. spätabends (Traum-Ring, dreamRing.js): Geschenke liegen
+ *  auf den Vierteln jedes 12er-Rings — 3, 6, 9 je ein Glimpse, 12 der
+ *  Film aus dem Ring (den macht das iPhone, hier gibt es dafür nichts).
+ *  Die Leiter GIFTS oben bleibt nur für die alte Web-Ansicht stehen.
  *
- *  `giftUnseen` merkt sich das Geschenk, bis die Startseite es feierlich
- *  geöffnet hat (Befehl `giftSeen`).
+ *  `giftedUpTo` merkt sich den letzten bezahlten Platz; Nummern laufen nur
+ *  vorwärts, also zahlt nichts doppelt. Alte Stände ohne das Feld nehmen
+ *  das höchste Viertel aus `streakGifts`. Genau ein Geschenk je Aufruf.
+ *  `giftUnseen` hält es, bis die Startseite es geöffnet hat (`giftSeen`).
  *
  *  @returns {{nights:number, credits:number, kind:string, patch:object}|null} */
 export function giftFor(state, now = Date.now()) {
-  /* Seit 03.10. abends: die ZAHL der Träume (nights.js dreamCount), keine
-     Serie mehr. `nights` heißt in GIFTS/MILESTONES weiter so, meint aber
-     „der wievielte Traum". */
   const count = state?.count || 0;
   const given = Array.isArray(state?.streakGifts) ? state.streakGifts : [];
-  const due = GIFTS.find((g) => count >= g.nights && !given.includes(g.nights));
-  if (!due) return null;
-
-  const already = given.reduce((sum, n) => sum + giftAt(n), 0);
-  const room = GIFT_CAP - already;
-  if (room <= 0) return null;
-
-  const credits = Math.min(due.credits, room);
+  const upTo = Number.isFinite(state?.giftedUpTo) ? state.giftedUpTo : Math.max(0, ...given.filter((n) => n % QUARTER === 0));
+  let num = nextGiftNum(upTo);
+  while (num <= count && giftAtNum(num)?.kind !== "glimpse") num = nextGiftNum(num);
+  if (num > count) return null;
+  const g = giftAtNum(num);
   return {
-    nights: due.nights,
-    credits,
-    kind: due.kind,
-    /* Die Schwelle wird auch dann vermerkt, wenn der Deckel den Betrag
-       kürzt — sonst stünde sie beim nächsten Start wieder an. */
+    nights: num,
+    credits: g.credits,
+    kind: g.kind,
     patch: {
-      ...addGift(state, credits, now),
-      streakGifts: [...given, due.nights],
-      giftUnseen: { nights: due.nights, credits, kind: due.kind, at: new Date(now).toISOString() },
+      ...addGift(state, g.credits, now),
+      giftedUpTo: num,
+      giftUnseen: { nights: num, credits: g.credits, kind: g.kind, at: new Date(now).toISOString() },
     },
   };
 }
