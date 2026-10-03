@@ -42,7 +42,8 @@ Ohne Namen keine Änderung.
 
 1. `docs/WORKLOG.md`: neuen Eintrag OBEN anhängen. Alte Einträge nie ändern.
 2. `docs/STAND.md`: komplett überschreiben — zeigt immer nur die Gegenwart.
-3. Committen (Conventional Commits), pushen, PR freigeben wenn fertig, Worktree aufräumen.
+3. Committen (Conventional Commits), pushen, PR freigeben wenn fertig — nach dem
+   Merge Worktree und Branch aufräumen, lokal und auf GitHub (Ablauf in `.claude/commands/wrap.md`, Schritt 7).
 
 ## Rollback
 

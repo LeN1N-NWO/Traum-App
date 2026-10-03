@@ -1,4 +1,4 @@
-für: Anton
+für: Anton, LeN1N-NWO
 
 # Notiz an Anton — S1: Bezahltes nur mit Konto (03.10.2026, Hanni)
 
