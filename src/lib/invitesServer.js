@@ -71,6 +71,15 @@ export async function loadOverview(tx) {
   return shapeOverview(code, o);
 }
 
+/** Ist die Migration noch nicht eingespielt? Postgres meldet eine fehlende
+ *  Funktion als 42883 (undefined_function); Bun legt den SQL-Code in
+ *  `errno` ab, `code` ist dort nur der allgemeine Bun-Code. Dann antwortet
+ *  der Server 501 — und die App zeigt weiter ihre markierte Vorschau, statt
+ *  „offline" (mobile/src/lib/invites.ts behandelt 404/501 so). */
+export function notSetUp(e) {
+  return e?.errno === "42883";
+}
+
 /* Was die App aus dem Fehler macht: invites.ts liest `error` aus jeder
    4xx-Antwort und kennt genau diese Wörter. */
 const CONNECT_STATUS = { ok: 200, unknown: 404, own: 409, already: 409 };

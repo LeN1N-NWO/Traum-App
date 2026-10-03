@@ -232,8 +232,9 @@ mit drei eingebauten Fehlern.
 
 **Noch nicht:**
 - ⚠ **Die Migration ist nicht eingespielt.** Bis jemand sie im SQL-Editor
-  von Supabase ausführt, antworten die Routen mit 500 — die App zeigt dann
-  „offline", nicht die Vorschau. Danach einmal mit echtem Konto prüfen und
+  von Supabase ausführt, antworten die Routen mit 501 — die App bleibt in
+  ihrer markierten Vorschau (erkannt am echten Postgres-Code 42883, gegen
+  die echte Datenbank geprüft). Danach einmal mit echtem Konto prüfen und
   erst dann `INVITE_PREVIEW = false` (Antons Datei).
 - `bought`/`rewarded` und die Prämie: brauchen die Prüfung echter
   App-Store-Käufe (B1) und den Bucket `gift` auf dem Server.

@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { newCode, ensureCode, shapeOverview, connect } from "./invitesServer.js";
+import { newCode, ensureCode, shapeOverview, connect, notSetUp } from "./invitesServer.js";
 import { CODE_ALPHABET, CODE_LENGTH, isInviteCode } from "./invites.js";
 
 /* Ein `tx`, der aufschreibt, welche Funktion mit welchem Wert gerufen wurde,
@@ -110,4 +110,14 @@ describe("shapeOverview", () => {
     ] });
     expect(out.referrals.map((r) => r.films)).toEqual([0, 0]);
   });
+});
+
+/* Solange die Migration fehlt, soll die App ihre Vorschau zeigen (501), nicht
+   „offline" (500). Erkannt wird das am SQL-Code, nicht am Text. */
+test("a missing database function counts as 'not set up', anything else does not", () => {
+  expect(notSetUp({ errno: "42883", code: "ERR_POSTGRES_SERVER_ERROR" })).toBe(true);
+  expect(notSetUp({ errno: "42501" })).toBe(false);          // keine Berechtigung ist ein echter Fehler
+  expect(notSetUp({ code: "42883" })).toBe(false);           // Bun trägt den SQL-Code in errno
+  expect(notSetUp(new Error("boom"))).toBe(false);
+  expect(notSetUp(null)).toBe(false);
 });
