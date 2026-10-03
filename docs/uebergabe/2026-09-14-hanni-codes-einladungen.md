@@ -235,11 +235,15 @@ Löschrecht und das Modul Ende zu Ende gegen die SQL-Funktionen; Gegenprobe
 mit drei eingebauten Fehlern.
 
 **Noch nicht:**
-- ⚠ **Die Migration ist nicht eingespielt.** Bis jemand sie im SQL-Editor
-  von Supabase ausführt, antworten die Routen mit 501 — die App bleibt in
-  ihrer markierten Vorschau (erkannt am echten Postgres-Code 42883, gegen
-  die echte Datenbank geprüft). Danach einmal mit echtem Konto prüfen und
-  erst dann `INVITE_PREVIEW = false` (Antons Datei).
+- ✅ **Migration eingespielt** (03.10., Hanni, SQL-Editor). Danach nur
+  lesend an der echten Datenbank geprüft, 8/8: beide Tabellen mit RLS, drei
+  `security definer`-Funktionen, nur `dreamrushes_server` darf sie
+  ausführen, niemand hat direkte Tabellenrechte, Übersicht kommt in der
+  richtigen Form, direktes Lesen und Aufruf ohne Nutzer → `42501`.
+  **Offen:** einmal mit echtem Konto in der App prüfen (Code erscheint,
+  zweites Konto verbindet sich) — erst dann `INVITE_PREVIEW = false`
+  (Antons Datei). Ohne eingespielte Migration hätte der Server 501
+  geantwortet und die App ihre Vorschau gezeigt.
 - `bought`/`rewarded` und die Prämie: brauchen die Prüfung echter
   App-Store-Käufe (B1) und den Bucket `gift` auf dem Server. ⚠ Für B1:
   Prämie nur für den **ersten Kauf überhaupt**, und der muss **nach dem
