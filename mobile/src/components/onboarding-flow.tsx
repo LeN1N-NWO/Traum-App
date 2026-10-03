@@ -11,8 +11,9 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming, type SharedValue } from "react-native-reanimated";
-import Svg, { Circle, G } from "react-native-svg";
+import Animated, { Easing, FadeIn, FadeInDown, FadeOut, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSpring, withTiming } from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Moon } from "@/components/moon-strip";
 import { Clip } from "@/components/preset-tile";
 import { clipSource } from "@/lib/style-clips";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
@@ -41,13 +42,10 @@ const EMPTY: Answers = { name: "", mascot: "", goals: [], recall: "", lucid: "",
    Leben von 80 Jahren; ein Viertel der Schlafzeit ist REM (Traumschlaf). */
 const SLEEP_HOURS: Record<string, number> = { "under-6": 5.5, "6-7": 6.5, "7-8": 7.5, "8-9": 8.5, "over-9": 9.5 };
 const LIFE_YEARS = 80;
-function sleepYears(key: string) {
-  const h = SLEEP_HOURS[key] ?? 7.5;
-  return Math.round((h / 24) * LIFE_YEARS);
-}
-function dreamYears(key: string) {
-  return Math.max(1, Math.round(sleepYears(key) * 0.25));
-}
+
+/* Die Erinnerungs-Antworten als Mondphasen: fast nie = Neumond-Sichel,
+   jede Nacht = Vollmond. */
+const RECALL_MOON: Record<string, number> = { nightly: 1, weekly: 0.62, rarely: 0.3, "almost-never": 0.07 };
 
 const ICONS: Record<number, SFSymbol> = { 0: "waveform.and.mic", 1: "film", 2: "moon.stars", 3: "lock" };
 
@@ -66,45 +64,53 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
   // Mehrfachwahl beim Ziel (Antons Wunsch 13.09.): „selten hat man genau einen Grund".
   const toggleGoal = (v: string) => { Haptics.selectionAsync(); set("goals", a.goals.includes(v) ? a.goals.filter((x) => x !== v) : [...a.goals, v]); };
 
-  /* Die Antworten als RASTER gleich großer Kacheln (Antons Vorbild: das
-     Apple-Watch-Raster) — die alten Pillen hatten jede eine andere Breite
-     und blieben beim Umbrechen „zwischen den Kacheln stecken". Zwei
-     Spalten, gleiche Höhe, Text mittig; die gewählte trägt Glas und Haken. */
-  const raster = (values: string[], labels: Record<string, string>, gewaehlt: (v: string) => boolean, tap: (v: string) => void, multi: boolean) => (
-    <View style={styles.grid}>
-      {values.map((v) => {
-        const on = gewaehlt(v);
-        return (
-          <Pressable key={v} onPress={() => tap(v)} style={styles.gridCell}>
-            <Glass style={[styles.tile, on && styles.tileOn]} tint={on ? "rgba(140,192,255,0.3)" : undefined} interactive>
-              {multi ? (
-                <SymbolView name={on ? "checkmark.circle.fill" : "circle"} size={17} tintColor={on ? colors.accentSoft : colors.faint} />
-              ) : null}
-              <Text style={[styles.tileText, on && styles.tileTextOn]}>{labels[v] ?? v}</Text>
-            </Glass>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-
-  const frage = (key: "recall" | "lucid" | "sleepHours" | "timeBudget", title: string, values: string[], labels: Record<string, string>) => ({
-    key, title, answered: !!a[key],
-    body: raster(values, labels, (v) => a[key] === v, (v) => pick(key, v), false),
-  });
-
-  /* Die Bildschirme in der Reihenfolge, in der sie kommen. Intro und
-     Feature-Kacheln tragen ihren eigenen Knopf, die Fragen den gemeinsamen
-     „Weiter" unten. */
+  /* Die Fragen, seit 27.09. je mit eigener Form (Antons Wahl aus dem
+     Variantenbuch; vorher ein Raster gleicher Glas-Kacheln für alles):
+       · Warum hier — „Große Worte": die Antworten als Serifen-Zeilen, blass
+         bis man sie antippt, ein goldener Punkt markiert die Wahl;
+       · Erinnerung — „Mondphasen": eine Zeile je Antwort, vorn der echte
+         Mond (derselbe wie im Mond-Streifen), der mit der Antwort zunimmt;
+       · Schlafdauer — „Nachtskala": eigener Bildschirm, siehe SleepScale.
+     Klarträume, Zeitbudget und die Begleiter-Wahl sind raus (Antons Ansage
+     27.09.: „sinnlos", das Onboarding war zu lang). Die Profilfelder
+     bleiben — wer sie früher beantwortet hat, behält sie. */
   const fragen = [
     {
       key: "goals" as const, title: O.formGoal, answered: a.goals.length > 0,
-      body: raster(O.values.goal.order, O.values.goal.labels, (v) => a.goals.includes(v), toggleGoal, true),
+      body: (
+        <View style={styles.words}>
+          {O.values.goal.order.map((v) => {
+            const on = a.goals.includes(v);
+            return (
+              <Pressable key={v} onPress={() => toggleGoal(v)} accessibilityRole="checkbox" accessibilityState={{ checked: on }} style={styles.wordRow}>
+                <View style={[styles.wordDot, on && styles.wordDotOn]} />
+                <Text style={[styles.word, on && styles.wordOn]}>{O.goalWords?.[v] ?? O.values.goal.labels[v] ?? v}</Text>
+              </Pressable>
+            );
+          })}
+          <Text style={styles.wordHint}>{O.goalHint}</Text>
+        </View>
+      ),
     },
-    frage("recall", O.formRecall, O.values.recall.order, O.values.recall.labels),
-    frage("lucid", O.formLucid, O.values.lucid.order, O.values.lucid.labels),
-    frage("sleepHours", O.formSleep, O.values.sleepHours.order, O.values.sleepHours.labels),
-    frage("timeBudget", O.formTime, O.values.timeBudget.order, O.values.timeBudget.labels),
+    {
+      key: "recall" as const, title: O.formRecall, answered: !!a.recall,
+      body: (
+        <View style={{ gap: 10 }}>
+          {O.values.recall.order.map((v) => {
+            const on = a.recall === v;
+            return (
+              <Pressable key={v} onPress={() => pick("recall", v)} accessibilityRole="radio" accessibilityState={{ selected: on }}>
+                <View style={[styles.phaseRow, on && styles.phaseRowOn]}>
+                  <View style={{ opacity: on ? 1 : 0.6 }}><Moon illum={RECALL_MOON[v] ?? 0.5} waxing size={30} /></View>
+                  <Text style={[styles.phaseText, on && { color: colors.text }]}>{O.values.recall.labels[v] ?? v}</Text>
+                  {on ? <SymbolView name="checkmark" size={15} tintColor={colors.gold} weight="semibold" /> : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ),
+    },
   ];
   /* Die Reihenfolge der Bildschirme — als LISTE, nicht als Rechnung mit
      Indizes: Nach jeder Frage kommt ein Zwischenbild mit Film (Antons
@@ -115,24 +121,27 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
     | { kind: "question"; at: number } | { kind: "showcase"; at: number }
     | { kind: "sleepYears" } | { kind: "mascot" } | { kind: "themes" } | { kind: "account" } | { kind: "me" } | { kind: "done" };
   const screens: Screen[] = [{ kind: "intro" }, { kind: "features" }, { kind: "permits" }, { kind: "name" }];
-  fragen.forEach((f, i) => {
-    screens.push({ kind: "question", at: i });
-    if (f.key === "sleepHours") screens.push({ kind: "sleepYears" });
-    else {
-      const at = i > 3 ? i - 1 : i;
-      screens.push({ kind: "showcase", at });
-      /* Nach dem Zwischenbild „Die Menschen darin sind deine" (at 1) das
-         eigene Foto (Antons Platzwahl 13.09.): erst sehen, dass man
-         mitspielt, dann das Gesicht geben. */
-      if (at === 1) screens.push({ kind: "me" });
-    }
+  fragen.forEach((_, i) => {
+    screens.push({ kind: "question", at: i }, { kind: "showcase", at: i });
+    /* Nach dem Zwischenbild „Die Menschen darin sind deine" (at 1) das
+       eigene Foto (Antons Platzwahl 13.09.): erst sehen, dass man
+       mitspielt, dann das Gesicht geben. */
+    if (i === 1) screens.push({ kind: "me" });
   });
+  /* Schlafdauer und Jahre-Rechnung auf EINEM Bildschirm (Antons Wunsch
+     27.09.): Der Mond ist ein Regler, die Zahlen darunter rechnen live mit. */
+  screens.push({ kind: "sleepYears" });
   /* Die Anmeldung GANZ AM ENDE (Antons Platzwahl 13.09.): Wer bis hierher
      geantwortet hat, sichert das Ergebnis — nicht umgekehrt. Am Anfang
-     schreckt sie ab, beim Kauf ist sie zu spät. */
-  screens.push({ kind: "mascot" }, { kind: "themes" }, { kind: "account" }, { kind: "done" });
+     schreckt sie ab, beim Kauf ist sie zu spät.
+     Die Begleiter-Wahl ist raus (Antons Ansage 27.09.): In der ersten
+     Fassung gibt es nur den Frosch (DEFAULT_MASCOT); die Wahl kommt später
+     wieder, der Bildschirm „mascot" unten bleibt dafür stehen. */
+  /* „Anything that keeps coming back?" ist raus (Antons Ansage 27.09.) —
+     die Themen erkennt der Atlas später von selbst aus den Träumen. */
+  screens.push({ kind: "account" }, { kind: "done" });
   /* Nur die Fragen (Profil → „Umfrage", seit 13.09. nativ statt der
-     Web-Umfrage): Name, die fünf Fragen samt Jahre-Kreis, Themen, Schluss —
+     Web-Umfrage): Name, die drei Fragen samt Jahre-Kreis, Themen, Schluss —
      ohne Intro, Berechtigungen, Zwischenbilder, Foto, Begleiter, Anmeldung. */
   const shown = questionsOnly ? screens.filter((x) => ["name", "question", "sleepYears", "themes", "done"].includes(x.kind)) : screens;
   const total = shown.length;
@@ -286,9 +295,9 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
     return <Showcase O={O} title={sc?.title ?? ""} text={sc?.text ?? ""} clip={clip} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
   }
 
-  // ── Die Jahre im Schlaf (Antons Opal-Vorbild) — direkt nach der Schlaf-Frage
+  // ── Schlafdauer als Mond-Regler, darunter die Jahre live (27.09.)
   if (jetzt.kind === "sleepYears") {
-    return <SleepYears O={O} answer={a.sleepHours} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
+    return <SleepScale O={O} answer={a.sleepHours} onAnswer={(k) => set("sleepHours", k)} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
   }
 
   // ── Wer bist du? Das eigene Foto (nach dem Zwischenbild „du kommst drin vor")
@@ -385,14 +394,29 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
     return <Account O={O} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
   }
 
-  // ── Schluss
+  /* ── Schluss: ein Film über die ganze Fläche (Antons Ansage 27.09.).
+     ⚠ PLATZHALTER — bis Antons eigenes Hintergrundvideo da ist, läuft hier
+     der erste Stil-Clip. Tauscht er es, ändert sich nur `DONE_CLIP`. */
+  const DONE_CLIP = O.clips[0] ?? null;
   return (
-    <Shell insets={insets} step={step} total={total} title={O.doneTitle} lede={O.doneText} onBack={back}>
-      <View style={{ alignItems: "center", paddingVertical: 20 }}>
-        <SymbolView name="moon.stars.fill" size={72} tintColor={colors.gold} />
+    <View style={styles.screen}>
+      {DONE_CLIP ? <Clip url={DONE_CLIP} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
+      <LinearGradient colors={["rgba(5,10,20,0.55)", "rgba(5,10,20,0.1)", "rgba(5,10,20,0.95)"]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+      <View style={[styles.top, { paddingTop: insets.top + 10 }]}>
+        <View style={styles.skipRow}>
+          <Pressable onPress={back} hitSlop={12} accessibilityLabel="Back">
+            <SymbolView name="chevron.left" size={17} tintColor={colors.text} weight="semibold" />
+          </Pressable>
+        </View>
       </View>
-      <PrimaryButton label={O.doneCta} heavy onPress={finish} style={{ flex: 0 }} />
-    </Shell>
+      <View style={[styles.showBody, { paddingBottom: insets.bottom + 26 }]}>
+        <Animated.View entering={FadeInDown.duration(420)} style={{ gap: 8, alignItems: "center" }}>
+          <Text style={[styles.showTitle, { textAlign: "center" }]}>{O.doneTitle}</Text>
+          <Text style={[styles.showText, { textAlign: "center" }]}>{O.doneText}</Text>
+        </Animated.View>
+        <PrimaryButton label={O.doneCta} heavy onPress={finish} style={{ flex: 0 }} />
+      </View>
+    </View>
   );
 }
 
@@ -698,71 +722,88 @@ function StyleReel({ urls }: { urls: string[] }) {
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 
-/* Die Jahre im Schlaf als Kreis (Antons Wunsch 13.09.): erst zeichnet
-   sich der Ring des ganzen Lebens (80 Jahre), dann läuft der warme Bogen
-   des Schlafs hinein, dann darin der goldene der Träume — die Zahl in
-   der Mitte zählt mit dem Bogen hoch. Der Satz darunter sagt, wofür das
-   alles ist: die Jahre nicht vorbeiziehen lassen.
-   ⚠ Bögen mit react-native-svg (seit 13.09. installiert, Pods + Rebuild):
-   strokeDashoffset über Reanimated — kein setState je Frame. */
-const RING = 220;
-const STROKE = 18;
-const R = (RING - STROKE) / 2;
-const UMFANG = 2 * Math.PI * R;
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-function Bogen({ anteil, k, farbe }: { anteil: number; k: SharedValue<number>; farbe: string }) {
-  const props = useAnimatedProps(() => ({ strokeDashoffset: UMFANG * (1 - anteil * k.value) }));
-  return <AnimatedCircle cx={RING / 2} cy={RING / 2} r={R} stroke={farbe} strokeWidth={STROKE} strokeLinecap="round" fill="none" strokeDasharray={`${UMFANG} ${UMFANG}`} animatedProps={props} />;
+/* Schlafdauer als Nachtskala (Antons Wahl 27.09., Variantenbuch A3): Der
+   echte Mond ist der Regler — man schiebt ihn in halben Stunden von 4½ bis
+   10½, er nimmt dabei zu. Darunter rechnen vier Zahlen LIVE mit: Stunden
+   Schlaf und Traum je Nacht, Jahre Schlaf und Traum in 80 Lebensjahren
+   (ein Viertel der Schlafzeit ist REM). Ersetzt die eigene Seite mit dem
+   Jahre-Kreis danach. Gespeichert wird wie bisher der Bereich
+   (sleepHours: "7-8" …), damit der Traumbogen im Profil nichts merkt. */
+const H_MIN = 4.5, H_MAX = 10.5, H_STEP = 0.5;
+const STEPS = Math.round((H_MAX - H_MIN) / H_STEP);
+const KNOB = 58;
+function bucket(h: number) {
+  return h < 6 ? "under-6" : h < 7 ? "6-7" : h < 8 ? "7-8" : h < 9 ? "8-9" : "over-9";
 }
-function SleepYears({ O, answer, insets, step, total, onNext, onBack }: { O: OnboardData; answer: string; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
-  const schlaf = sleepYears(answer);
-  const traum = dreamYears(answer);
-  const leben = useSharedValue(0), s = useSharedValue(0), d = useSharedValue(0);
-  const [n, setN] = useState(0);
-  const [zeigTraum, setZeigTraum] = useState(false);
-  useEffect(() => {
-    leben.value = withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) });
-    s.value = withDelay(900, withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.cubic) }));
-    d.value = withDelay(2100, withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) }));
-    // Die Zahl läuft mit dem Schlaf-Bogen (900 ms Start, 1100 ms Dauer).
-    const start = Date.now() + 900;
-    const t = setInterval(() => {
-      const p = Math.min(1, Math.max(0, (Date.now() - start) / 1100));
-      const e = 1 - Math.pow(1 - p, 3);
-      setN(Math.round(schlaf * e));
-      if (p >= 1) { clearInterval(t); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }
-    }, 40);
-    const t2 = setTimeout(() => { setZeigTraum(true); Haptics.selectionAsync(); }, 2300);
-    return () => { clearInterval(t); clearTimeout(t2); };
-  }, [schlaf, leben, s, d]);
+function SleepScale({ O, answer, onAnswer, insets, step, total, onNext, onBack }: { O: OnboardData; answer: string; onAnswer: (key: string) => void; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
+  const S = O.sleepScale;
+  const [idx, setIdx] = useState(() => Math.round(((SLEEP_HOURS[answer] ?? 7.5) - H_MIN) / H_STEP));
+  const [trackW, setTrackW] = useState(0);
+  const span = Math.max(1, trackW - KNOB);
+  const x = useSharedValue(0);
+  const from = useSharedValue(0);
+  const h = H_MIN + idx * H_STEP;
+  useEffect(() => { onAnswer(bucket(h)); }, [h]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (trackW) x.value = (idx / STEPS) * span; }, [trackW]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const choose = (i: number) => { setIdx((cur) => { if (cur !== i) Haptics.selectionAsync(); return i; }); };
+  const pan = Gesture.Pan()
+    .activeOffsetX([-6, 6]).failOffsetY([-14, 14])
+    .onBegin(() => { from.value = x.value; })
+    .onUpdate((e) => {
+      x.value = Math.max(0, Math.min(span, from.value + e.translationX));
+      runOnJS(choose)(Math.round((x.value / span) * STEPS));
+    })
+    .onFinalize(() => {
+      const i = Math.round((x.value / span) * STEPS);
+      x.value = withSpring((i / STEPS) * span, { damping: 18, stiffness: 180 });
+    });
+  const tap = Gesture.Tap().onEnd((e) => {
+    const i = Math.max(0, Math.min(STEPS, Math.round(((e.x - KNOB / 2) / span) * STEPS)));
+    x.value = withSpring((i / STEPS) * span, { damping: 18, stiffness: 180 });
+    runOnJS(choose)(i);
+  });
+  const knob = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
+  const fill = useAnimatedStyle(() => ({ width: x.value + KNOB / 2 }));
+
+  const years = Math.round((h / 24) * LIFE_YEARS);
+  const dreamY = Math.max(1, Math.round(years * 0.25));
+  const num = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace(".", S.decimal));
+  const stats: [string, string][] = [
+    [S.hours.replace("{n}", num(h)), S.perNight],
+    [S.hours.replace("{n}", num(Math.round(h * 0.25 * 10) / 10)), S.dreaming],
+    [O.sleepYears(years), S.yearsAsleep],
+    [O.sleepYears(dreamY), S.yearsDreaming],
+  ];
   return (
-    <Shell insets={insets} step={step} total={total} title={O.sleepTitle} onBack={onBack}>
-      <View style={{ alignItems: "center", gap: 16, paddingTop: 6 }}>
-        <View style={{ width: RING, height: RING, alignItems: "center", justifyContent: "center" }}>
-          <Svg width={RING} height={RING} style={StyleSheet.absoluteFill}>
-            <G rotation={-90} origin={`${RING / 2}, ${RING / 2}`}>
-              <Bogen anteil={1} k={leben} farbe="rgba(255,255,255,0.10)" />
-              <Bogen anteil={schlaf / LIFE_YEARS} k={s} farbe={colors.warm} />
-              {/* Träume GRÜN, nicht gold: gold lag zu nah am warmen Schlaf-Bogen
-                  (Antons Befund 13.09.). */}
-              <Bogen anteil={traum / LIFE_YEARS} k={d} farbe={colors.ok} />
-            </G>
-          </Svg>
-          <Text style={styles.ringYears}>{O.sleepYears(n)}</Text>
-          <Text style={styles.ringLabel}>{O.sleepAsleep}</Text>
-          {/* Die Träume IM Kreis, unter dem Schlaf (Antons Wunsch 13.09.
-              abends) — grün wie ihr Bogen, sobald der Bogen steht. */}
-          <View style={[styles.ringRule, { opacity: zeigTraum ? 1 : 0 }]} />
-          {zeigTraum
-            ? <Animated.View entering={FadeInDown.duration(420)} style={{ alignItems: "center" }}><Text style={styles.ringDream}>{O.sleepYears(traum)}</Text><Text style={[styles.ringLabel, { color: colors.ok }]}>{O.sleepLegend.dream}</Text></Animated.View>
-            : <View style={{ alignItems: "center", opacity: 0 }}><Text style={styles.ringDream}>{O.sleepYears(traum)}</Text><Text style={styles.ringLabel}>{O.sleepLegend.dream}</Text></View>}
+    <Shell insets={insets} step={step} total={total} title={O.formSleep} onBack={onBack}>
+      <View style={{ gap: 26 }}>
+        <View style={{ alignItems: "center", gap: 4 }}>
+          <Text style={styles.scaleBig}>{S.hours.replace("{n}", num(h))}</Text>
+          <Text style={styles.sleepNote}>{S.hint}</Text>
         </View>
-        <View style={styles.legend}>
-          {[["rgba(255,255,255,0.18)", O.sleepLegend.life], [colors.warm, O.sleepLegend.sleep], [colors.ok, O.sleepLegend.dream]].map(([c, l]) => (
-            <View key={l} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: c }]} /><Text style={styles.legendText}>{l}</Text></View>
+        <GestureDetector gesture={Gesture.Simultaneous(pan, tap)}>
+          <View style={styles.track} onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}>
+            <View style={styles.rail} />
+            <Animated.View style={[styles.railFill, fill]} />
+            {Array.from({ length: STEPS + 1 }, (_, i) => (
+              <View key={i} style={[styles.tick, { left: KNOB / 2 + (i / STEPS) * span - 0.5, height: i % 2 === 1 ? 10 : 5, opacity: i <= idx ? 0.8 : 0.3 }]} />
+            ))}
+            <Animated.View style={[styles.knob, knob]}>
+              <Moon illum={0.15 + 0.85 * (idx / STEPS)} waxing size={KNOB} />
+            </Animated.View>
+          </View>
+        </GestureDetector>
+        <View style={styles.scaleEnds}><Text style={styles.sleepNote}>{S.short}</Text><Text style={styles.sleepNote}>{S.long}</Text></View>
+        <View style={styles.stats}>
+          {stats.map(([big, label], i) => (
+            <View key={label} style={[styles.stat, i === 3 && { borderColor: "rgba(61,220,151,0.35)" }]}>
+              <Text style={[styles.statBig, i % 2 === 1 && { color: colors.ok }]}>{big}</Text>
+              <Text style={styles.statLabel}>{label}</Text>
+            </View>
           ))}
         </View>
-        {zeigTraum ? <Animated.Text entering={FadeInDown.duration(420)} style={styles.sleepDream}>{O.sleepDream(traum)}</Animated.Text> : <Text style={[styles.sleepDream, { opacity: 0 }]}>{O.sleepDream(traum)}</Text>}
+        <Text style={styles.sleepDream}>{O.sleepDream(dreamY)}</Text>
         <Text style={styles.sleepNote}>{O.sleepNote}</Text>
       </View>
       <PrimaryButton label={O.next} onPress={onNext} style={{ flex: 0 }} />
@@ -836,14 +877,27 @@ const styles = StyleSheet.create({
   showBody: { flex: 1, justifyContent: "flex-end", paddingHorizontal: 24, gap: 22 },
   showTitle: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 36, color: colors.text },
   showText: { color: colors.muted, fontSize: 15.5, lineHeight: 22 },
-  ringYears: { fontFamily: fonts.serif, fontSize: 36, lineHeight: 40, color: colors.text, fontVariant: ["tabular-nums"] },
-  ringRule: { width: 44, height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.25)", marginVertical: 9 },
-  ringDream: { fontFamily: fonts.serif, fontSize: 26, lineHeight: 30, color: colors.ok, fontVariant: ["tabular-nums"] },
-  ringLabel: { color: colors.muted, fontSize: 13, letterSpacing: 2, textTransform: "uppercase", marginTop: 2 },
-  legend: { flexDirection: "row", gap: 16, flexWrap: "wrap", justifyContent: "center" },
-  legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
-  legendDot: { width: 9, height: 9, borderRadius: 5 },
-  legendText: { color: colors.muted, fontSize: 12.5 },
+  words: { gap: 4, paddingTop: 4 },
+  wordRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 6 },
+  word: { flex: 1, fontFamily: fonts.serif, fontSize: 27, lineHeight: 33, color: "rgba(234,240,251,0.3)" },
+  wordOn: { color: colors.text },
+  wordDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.gold, opacity: 0, transform: [{ scale: 0.3 }] },
+  wordDotOn: { opacity: 1, transform: [{ scale: 1 }], shadowColor: colors.gold, shadowOpacity: 1, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
+  wordHint: { color: colors.faint, fontSize: 13, marginTop: 10 },
+  phaseRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 13, paddingHorizontal: 16, borderRadius: 20, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  phaseRowOn: { borderWidth: 1, borderColor: "rgba(246,198,91,0.75)", backgroundColor: "rgba(246,198,91,0.07)", shadowColor: colors.gold, shadowOpacity: 0.45, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
+  phaseText: { flex: 1, color: colors.muted, fontSize: 16.5 },
+  scaleBig: { fontFamily: fonts.serif, fontSize: 40, lineHeight: 46, color: colors.text, fontVariant: ["tabular-nums"] },
+  track: { height: KNOB + 24, justifyContent: "center" },
+  rail: { position: "absolute", left: KNOB / 2, right: KNOB / 2, height: 2, borderRadius: 1, backgroundColor: "rgba(255,255,255,0.1)" },
+  railFill: { position: "absolute", left: 0, height: 2, borderRadius: 1, backgroundColor: "rgba(246,198,91,0.7)" },
+  tick: { position: "absolute", bottom: 0, width: 1, backgroundColor: colors.muted },
+  knob: { position: "absolute", left: 0, width: KNOB, height: KNOB, borderRadius: KNOB / 2, shadowColor: "#ffd58f", shadowOpacity: 0.6, shadowRadius: 18, shadowOffset: { width: 0, height: 0 } },
+  scaleEnds: { flexDirection: "row", justifyContent: "space-between", marginTop: -18 },
+  stats: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  stat: { width: "48%", flexGrow: 1, paddingVertical: 14, paddingHorizontal: 14, borderRadius: 18, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, gap: 2 },
+  statBig: { fontFamily: fonts.serif, fontSize: 26, lineHeight: 31, color: colors.text, fontVariant: ["tabular-nums"] },
+  statLabel: { color: colors.muted, fontSize: 12.5 },
   sleepDream: { color: colors.text, fontSize: 16, lineHeight: 24, textAlign: "center", paddingHorizontal: 4 },
   sleepNote: { color: colors.faint, fontSize: 12.5, textAlign: "center" },
 });

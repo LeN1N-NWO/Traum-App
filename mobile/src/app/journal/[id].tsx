@@ -5,6 +5,7 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { Directory, File, Paths } from "expo-file-system";
+import { useEventListener } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useState, useEffect } from "react";
 import { ActionSheetIOS, Alert, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
@@ -258,6 +259,18 @@ function FilmHero({ url, sound }: { url: string; sound: boolean }) {
   /* Ton an/aus ohne Vollbild: laut heisst „nicht mischen", sonst kippt der
      Klangmischer die Session. */
   useEffect(() => { player.muted = !sound; player.audioMixingMode = sound ? "doNotMix" : "mixWithOthers"; }, [player, sound]);
+  /* Sicherheitsnetz für die Schleife (27.09., Hannis Befund: „lief einmal
+     durch und blieb stehen"): Steht der Player kurz nach dem Ende noch,
+     ist der Sprung an den Anfang gescheitert (Datei darunter geändert,
+     Decoder weg, während der Glimpse rechnete) — dann die Quelle frisch
+     laden. Dasselbe bei einem Fehlerstatus. */
+  const revive = () => {
+    try { player.replaceAsync(url).then(() => { player.loop = true; player.play(); }).catch(() => {}); } catch {}
+  };
+  useEventListener(player, "playToEnd", () => {
+    setTimeout(() => { try { if (!player.playing) revive(); } catch {} }, 1200);
+  });
+  useEventListener(player, "statusChange", ({ status }) => { if (status === "error") revive(); });
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 

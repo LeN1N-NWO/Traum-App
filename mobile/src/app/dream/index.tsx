@@ -172,7 +172,7 @@ export default function DreamTextScreen() {
               ) : null}
             </View>
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            <PrimaryButton label={`✦ ${W?.read ?? "Read my dream"} · ${price}`} heavy onPress={() => read()} disabled={clean.length < 8} style={{ flex: 0 }} />
+            <PrimaryButton label={`✦ ${W?.read ?? "Read my dream"} · ${price}`} heavy spend={!!W?.readPrice} onPress={() => read()} disabled={clean.length < 8} style={{ flex: 0 }} />
             <Text style={styles.hint}>{W?.why}</Text>
           </>
         )}

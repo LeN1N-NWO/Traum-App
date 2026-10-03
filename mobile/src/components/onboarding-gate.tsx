@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, StyleSheet, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import JournalBridge from "@/legacy/journal-bridge";
 import { OnboardingFlow } from "@/components/onboarding-flow";
 import { pushProfile, restoreSession } from "@/lib/auth";
@@ -46,7 +47,9 @@ export function OnboardingGate() {
 
   return (
     <Modal visible={open} animationType="fade" presentationStyle="fullScreen" onRequestClose={() => {}} onDismiss={setOnboardingGone}>
-      <View style={styles.screen}>
+      {/* Eigene Gesten-Wurzel: Ein Modal liegt außerhalb der des Layouts —
+          ohne sie zieht sich der Mond-Regler (SleepScale) nicht. */}
+      <GestureHandlerRootView style={styles.screen}>
         {O ? (
           <OnboardingFlow
             O={O}
@@ -66,7 +69,7 @@ export function OnboardingGate() {
         <View style={styles.bridge}>
           <JournalBridge onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
         </View>
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
