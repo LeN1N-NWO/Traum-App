@@ -147,12 +147,15 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
   const total = shown.length;
   const jetzt = shown[Math.min(step, total - 1)];
   // Nur Entwicklung: DevSkip (unten) springt von hier zum Anmelde-Schritt.
-  // Die Profil-Umfrage (questionsOnly) hat keinen — dort kein Sprung und
-  // kein Knopf; setStep(-1) ließe `jetzt` undefined werden.
-  if (__DEV__) {
-    const at = shown.findIndex((x) => x.kind === "account");
-    (globalThis as any).__onbSkipToAccount = at >= 0 ? () => setStep(at) : undefined;
-  }
+  // Im Effekt, nicht beim Rendern — sonst ließe der React Compiler die ganze
+  // Komponente unoptimiert, auch im Release-Bau. Die Profil-Umfrage
+  // (questionsOnly) hat keinen Anmelde-Schritt: dort weder Sprung noch Knopf.
+  const accountAt = shown.findIndex((x) => x.kind === "account");
+  useEffect(() => {
+    if (!__DEV__ || accountAt < 0) return;
+    (globalThis as any).__onbSkipToAccount = () => setStep(accountAt);
+    return () => { delete (globalThis as any).__onbSkipToAccount; };
+  }, [accountAt]);
 
   // Am ersten Bildschirm führt Zurück hinaus, wenn es ein Draußen gibt (Umfrage im Profil).
   function back() { Haptics.selectionAsync(); if (step === 0 && onExit) { onExit(); return; } setStep((s: number) => Math.max(0, s - 1)); }
@@ -269,7 +272,7 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
   // ── Der Name
   if (jetzt.kind === "name") {
     return (
-      <Shell insets={insets} step={step} total={total} title={O.formName} onBack={step > 0 || onExit ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.formName} onBack={step > 0 || onExit ? back : undefined} devSkip={!questionsOnly}>
         <TextInput
           style={styles.input} value={a.name} onChangeText={(v) => set("name", v.slice(0, 40))}
           placeholder={O.formNamePlaceholder} placeholderTextColor={colors.faint}
@@ -284,7 +287,7 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
   if (jetzt.kind === "question") {
     const f = fragen[jetzt.at];
     return (
-      <Shell key={f.key} insets={insets} step={step} total={total} title={f.title} onBack={step > 0 || onExit ? back : undefined}>
+      <Shell key={f.key} insets={insets} step={step} total={total} title={f.title} onBack={step > 0 || onExit ? back : undefined} devSkip={!questionsOnly}>
         {f.body}
         {/* Ohne Antwort kein Weiter (Antons Befund 13.09.) — wer nicht
             antworten will, nimmt „Überspringen" oben rechts. */}
@@ -304,7 +307,7 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
 
   // ── Schlafdauer als Mond-Regler, darunter die Jahre live (27.09.)
   if (jetzt.kind === "sleepYears") {
-    return <SleepScale O={O} answer={a.sleepHours} onAnswer={(k) => set("sleepHours", k)} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
+    return <SleepScale O={O} answer={a.sleepHours} onAnswer={(k) => set("sleepHours", k)} insets={insets} step={step} total={total} onNext={next} onBack={back} devSkip={!questionsOnly} />;
   }
 
   // ── Wer bist du? Das eigene Foto (nach dem Zwischenbild „du kommst drin vor")
@@ -371,7 +374,7 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
       setThemeDraft("");
     };
     return (
-      <Shell insets={insets} step={step} total={total} title={O.formThemes} onBack={step > 0 || onExit ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.formThemes} onBack={step > 0 || onExit ? back : undefined} devSkip={!questionsOnly}>
         <View style={{ width: "100%", gap: 10 }}>
           <View style={styles.themeRow}>
             <TextInput
@@ -607,7 +610,7 @@ function FeatureTile({ i, title, clip, tall, labelBottom }: { i: number; title: 
    Anmelde-Schritt springen, statt jedes Mal das ganze Onboarding
    durchzutippen (Hanni, 03.10.2026). Im Release-Bau gibt es ihn nicht. */
 function DevSkip() {
-  if (!__DEV__ || !(globalThis as any).__onbSkipToAccount) return null;
+  if (!__DEV__) return null;
   return (
     <Pressable onPress={() => (globalThis as any).__onbSkipToAccount?.()} hitSlop={8} style={{ alignSelf: "center", paddingVertical: 8 }}>
       <Text style={{ color: colors.faint, fontSize: 13 }}>Skip to sign-in (dev)</Text>
@@ -756,7 +759,7 @@ const KNOB = 58;
 function bucket(h: number) {
   return h < 6 ? "under-6" : h < 7 ? "6-7" : h < 8 ? "7-8" : h < 9 ? "8-9" : "over-9";
 }
-function SleepScale({ O, answer, onAnswer, insets, step, total, onNext, onBack }: { O: OnboardData; answer: string; onAnswer: (key: string) => void; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
+function SleepScale({ O, answer, onAnswer, insets, step, total, onNext, onBack, devSkip = true }: { O: OnboardData; answer: string; onAnswer: (key: string) => void; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void; devSkip?: boolean }) {
   const S = O.sleepScale;
   const [idx, setIdx] = useState(() => Math.round(((SLEEP_HOURS[answer] ?? 7.5) - H_MIN) / H_STEP));
   const [trackW, setTrackW] = useState(0);
@@ -828,7 +831,7 @@ function SleepScale({ O, answer, onAnswer, insets, step, total, onNext, onBack }
         <Text style={styles.sleepNote}>{O.sleepNote}</Text>
       </View>
       <PrimaryButton label={O.next} onPress={onNext} style={{ flex: 0 }} />
-      <DevSkip />
+      {devSkip ? <DevSkip /> : null}
     </Shell>
   );
 }

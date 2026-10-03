@@ -10,14 +10,13 @@
  * Die Leser (filmsOf, imagesOf, isBlank, mediaUrl) und die Texte (`t`) sind
  * die der Web-App — eine Wahrheit über Form und Sprache, nicht zwei. */
 import "./vite-env.js";                       // ⚠ zuerst, API_BASE
-import { setTokenSource } from "../../../src/lib/api.js";   // S1: Token von der nativen Seite
 import { useEffect } from "react";
 import { loadState, saveState } from "../../../src/lib/storage.js";
 import { STREAK_CAP } from "../../../src/lib/streak.js";
 import { dreamNightCount, snoozeBridge, snoozeEarn, streakInfo } from "../../../src/lib/nights.js";
 import { hasPendingJobs, collectTick } from "../../../src/lib/collector.js";
 import { failureTextKey } from "../../../src/lib/falError.js";
-import { jobStatus } from "../../../src/lib/api.js";
+import { jobStatus, setTokenSource } from "../../../src/lib/api.js";   // setTokenSource: S1, Token von der nativen Seite
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend, applyAllowanceGrant } from "../../../src/lib/credits.js";
