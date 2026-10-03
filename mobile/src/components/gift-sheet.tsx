@@ -1,8 +1,8 @@
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
-  Easing, FadeIn, FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue,
+  Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue,
   withDelay, withRepeat, withSequence, withSpring, withTiming,
 } from "react-native-reanimated";
 import { PrimaryButton } from "@/components/glass";
@@ -21,7 +21,14 @@ import { colors, fonts } from "@/theme";
  *     darunter „Einlösen" — ein Geschenk, das man erst suchen muss, ist
  *     halb verschenkt.
  *
- * Leistung: nur transform/opacity, keine Schatten über bewegten Ebenen. */
+ * Leistung: nur transform/opacity, keine Schatten über bewegten Ebenen.
+ *
+ * ⚠ KEIN <Modal> (Antons Befund 03.10.: die Serien-Pille ließ sich nicht
+ * mehr antippen, das Geschenk ging nie auf): iOS präsentiert Geschwister-
+ * Modals unzuverlässig (siehe privacy-gate.tsx) — das Geschenk-Modal blieb
+ * „offen", ohne sichtbar zu sein, und blockierte jedes weitere Blatt.
+ * Beide Karten sind Ebenen, die die Startseite als LETZTE Kinder über sich
+ * legt (app/index.tsx). */
 
 const BOX = 96;
 
@@ -96,7 +103,7 @@ function Spark({ i, go }: { i: number; go: boolean }) {
 /** Tipp auf ein Geschenk: Titel, ein Satz, Fortschritt. */
 export function GiftPreview({ card, onClose }: { card: GiftCard | null; onClose: () => void }) {
   return (
-    <Modal visible={!!card} transparent animationType="fade" onRequestClose={onClose}>
+    !card ? null : <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(160)} style={styles.layer}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         {card ? (
           <Pressable style={styles.card} onPress={() => {}}>
@@ -115,7 +122,7 @@ export function GiftPreview({ card, onClose }: { card: GiftCard | null; onClose:
           </Pressable>
         ) : null}
       </Pressable>
-    </Modal>
+    </Animated.View>
   );
 }
 
@@ -138,7 +145,7 @@ export function GiftOpen({ g, onRedeem, onLater }: { g: GiftReveal | null; onRed
   }, [open, g]);
 
   return (
-    <Modal visible={!!g} transparent animationType="fade" onRequestClose={onLater}>
+    !g ? null : <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(180)} style={styles.layer}>
       <View style={styles.backdrop}>
         {g ? (
           <View style={styles.card}>
@@ -166,12 +173,13 @@ export function GiftOpen({ g, onRedeem, onLater }: { g: GiftReveal | null; onRed
           </View>
         ) : null}
       </View>
-    </Modal>
+    </Animated.View>
   );
 }
 
 const GOLD = colors.gold;
 const styles = StyleSheet.create({
+  layer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 },
   backdrop: { flex: 1, backgroundColor: "rgba(3,6,14,0.86)", alignItems: "center", justifyContent: "center", padding: 24 },
   card: { width: "100%", maxWidth: 380, alignItems: "center", gap: 8, paddingVertical: 26, paddingHorizontal: 22, borderRadius: 26, backgroundColor: "rgba(12,20,35,0.98)", borderWidth: 1, borderColor: "rgba(246,198,91,0.35)" },
   eyebrow: { color: GOLD, fontSize: 12, letterSpacing: 1.6, fontWeight: "700", textTransform: "uppercase", textAlign: "center" },

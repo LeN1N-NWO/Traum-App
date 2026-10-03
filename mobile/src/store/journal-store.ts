@@ -37,7 +37,7 @@ export type HomeData = {
   moon: { illum: number; waxing: boolean; label: string };
   article: { id: string; title: string; meta: string } | null;
   week: { weekday: number; done: boolean; held?: boolean; today: boolean }[];
-  cycle: { days: { key: string; today: boolean; future: boolean; dreamId: string | null; img: string | null }[]; threads: [number, number][]; left: number; count: number; streak: number; todayDone: boolean; next: (GiftCard & { nights: number; say: string }) | null; month: GiftCard; chip: string; countLine: string; line: string; thread: string; say: string; sayAsleep: string };
+  cycle: { days: { key: string; today: boolean; future: boolean; dreamId: string | null; img: string | null }[]; threads: [number, number][]; left: number; count: number; streak: number; todayDone: boolean; next: (GiftCard & { nights: number; say: string }) | null; month: GiftCard; gifts: (GiftCard & { index: number; nights: number })[]; chip: string; countLine: string; line: string; thread: string; say: string; sayAsleep: string };
   /* Ein frisch erreichtes Meilenstein-Geschenk, bis es geöffnet ist (03.10.). */
   giftReveal: GiftReveal | null;
   moonFilm: { key: string; title: string; dreams: { id: string; img: string }[]; readyTitle: string; readyBody: string } | null;

@@ -10,7 +10,8 @@ import { useJournal } from "@/components/journal-data";
 import { Moon } from "@/components/moon-strip";
 import { NightSky } from "@/components/night-sky";
 import { StreakSheet } from "@/components/streak-sheet";
-import { GiftOpen } from "@/components/gift-sheet";
+import { GiftOpen, GiftPreview } from "@/components/gift-sheet";
+import type { GiftCard } from "@/store/journal-store";
 import { useQuickActions } from "@/lib/use-quick-actions";
 import { useReminders } from "@/lib/use-reminders";
 import { applyMix, isActive } from "@/lib/sound-engine";
@@ -65,6 +66,7 @@ export default function HomeScreen() {
      `giftSeen` räumt es danach weg, auch bei „Später". */
   const gift = home?.giftReveal ?? null;
   const [giftGone, setGiftGone] = useState<number | null>(null);
+  const [peek, setPeek] = useState<GiftCard | null>(null);   // Tipp auf ein Geschenk im/am Ring
   const showGift = gift && giftGone !== gift.nights ? gift : null;
   const closeGift = (redeem: boolean) => {
     if (!gift) return;
@@ -89,9 +91,8 @@ export default function HomeScreen() {
           ) : null}
         </View>
 
-        <GiftOpen g={showGift} onRedeem={() => closeGift(true)} onLater={() => closeGift(false)} />
         {home ? (
-          <MoonRing C={home.cycle} width={width - 32} onOpen={(id) => router.push({ pathname: "/journal/[id]", params: { id } })} />
+          <MoonRing C={home.cycle} width={width - 32} onOpen={(id) => router.push({ pathname: "/journal/[id]", params: { id } })} onGift={setPeek} />
         ) : <View style={{ height: width - 32 + 70 }} />}
 
         <View style={{ alignItems: "center", gap: 6, marginTop: 6 }}>
@@ -171,6 +172,9 @@ export default function HomeScreen() {
         ) : null}
       </ScrollView>
       <View style={styles.bridge}>{bridge}</View>
+      {/* Die Geschenk-Karten als Ebenen über allem — bewusst keine Modals (gift-sheet.tsx). */}
+      <GiftPreview card={peek} onClose={() => setPeek(null)} />
+      <GiftOpen g={showGift} onRedeem={() => closeGift(true)} onLater={() => closeGift(false)} />
       {home ? <StreakSheet visible={board} onClose={() => setBoard(false)} home={home} weekdays={data?.journal?.moon?.weekdays ?? []} /> : null}
     </>
   );

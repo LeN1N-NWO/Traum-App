@@ -6,7 +6,6 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import Svg, { Circle, Path } from "react-native-svg";
 import { FrogStage, type FrogEvent } from "@/components/frog-stage";
-import { GiftPreview } from "@/components/gift-sheet";
 import type { GiftCard, HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
@@ -17,10 +16,11 @@ import { colors, fonts } from "@/theme";
  *   · jede Nacht mit Traum zeigt ihr Bild (antippen öffnet ihn); leere
  *     Nächte sind kleine Punkte, kommende ganz blass, heute pulsiert,
  *   · oben das große Geschenk (antippen: was es ist, wann Vollmond ist),
- *     unter dem Ring das nächste Geschenk nach der ZAHL der Träume — seit
- *     03.10. abends keine Serie mehr („Mir geht es einfach nur um die
- *     Anzahl der Träume"), deshalb auch kein Platz im Ring: eine Zahl hat
- *     kein Datum. Antippen öffnet die Schachtel (gift-sheet.tsx),
+ *     im Ring die Geschenke nach der ZAHL der Träume (seit 03.10. abends
+ *     keine Serie mehr: „Mir geht es einfach nur um die Anzahl der
+ *     Träume") — jedes auf der frühesten Nacht, an der man es erreichen
+ *     kann; wer aussetzt, verliert nichts, es rückt nur weiter. Unter dem
+ *     Ring dasselbe als Satz. Antippen öffnet die Schachtel (gift-sheet.tsx),
  *   · Fäden quer durch den Ring zwischen Nächten mit demselben Motiv,
  *   · in der Mitte der Frosch (statt des Mondes — „den haben wir schon zu
  *     viel"): schläft, bis heute ein Traum da ist, reagiert auf Antippen,
@@ -33,8 +33,9 @@ import { colors, fonts } from "@/theme";
  * Geschenke sind native Ansichten darüber; dauernd bewegen sich nur der
  * Heute-Punkt und der Frosch-Loop (pausiert, wenn der Tab nicht sichtbar ist). */
 const THUMB = 28;
+const GIFT = 24;
 
-export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: number; onOpen: (id: string) => void }) {
+export function MoonRing({ C, width, onOpen, onGift }: { C: HomeData["cycle"]; width: number; onOpen: (id: string) => void; onGift: (card: GiftCard) => void }) {
   const W = width, H = width;
   const cx = W / 2, cy = H / 2;
   const R = W * 0.41;
@@ -66,7 +67,8 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
   };
   useEffect(() => () => { if (bubbleTimer.current) clearTimeout(bubbleTimer.current); }, []);
   const asleep = !C.todayDone;
-  const [peek, setPeek] = useState<GiftCard | null>(null);
+  const giftAt = new Map(C.gifts.map((g) => [g.index, g]));
+  const setPeek = onGift;
 
   return (
     <View style={{ alignItems: "center", gap: 6 }}>
@@ -75,7 +77,7 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
         <Svg width={W} height={H} style={StyleSheet.absoluteFill}>
           <Circle cx={cx} cy={cy} r={R} fill="none" stroke="rgba(234,240,251,0.08)" strokeWidth={1} />
           {C.days.map((d, i) => {
-            if ((d.dreamId && d.img) || d.today) return null;
+            if ((d.dreamId && d.img) || d.today || giftAt.has(i)) return null;
             const [x, y] = at(i);
             if (d.dreamId) return <Circle key={d.key} cx={x} cy={y} r={4} fill="#fffaf0" opacity={0.85} />;   // Traum ohne Bild: ein Lichtpunkt
             return <Circle key={d.key} cx={x} cy={y} r={d.future ? 1.6 : 2.2} fill={d.future ? "rgba(234,240,251,0.2)" : "rgba(234,240,251,0.38)"} />;
@@ -109,6 +111,18 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
           <Text style={styles.topText} numberOfLines={2}>{C.chip}</Text>
         </Pressable>
 
+        {/* Die Geschenke auf der frühesten Nacht, an der man sie erreicht */}
+        {C.gifts.map((g) => {
+          const [x, y] = at(g.index);
+          return (
+            <Pressable key={g.nights} hitSlop={8} onPress={() => { Haptics.selectionAsync(); setEvent({ kind: "tap", at: Date.now() }); setPeek(g); }}
+              style={[styles.ms, { left: x - GIFT / 2, top: y - GIFT / 2 }]} accessibilityRole="button" accessibilityLabel={g.title}>
+              <SymbolView name="gift.fill" size={12} tintColor="#1a1206" />
+              <Text style={styles.msN}>{g.nights}</Text>
+            </Pressable>
+          );
+        })}
+
         {/* Die Traumbilder */}
         {C.days.map((d, i) => {
           if (!d.dreamId || !d.img) return null;
@@ -121,7 +135,7 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
             </Animated.View>
           );
         })}
-        {todayIndex >= 0 && !C.days[todayIndex].dreamId ? <TodayMark x={at(todayIndex)[0]} y={at(todayIndex)[1]} /> : null}
+        {todayIndex >= 0 && !C.days[todayIndex].dreamId && !giftAt.has(todayIndex) ? <TodayMark x={at(todayIndex)[0]} y={at(todayIndex)[1]} /> : null}
 
         {/* Die Sprechblase des Froschs */}
         {bubble ? (
@@ -133,14 +147,12 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
       </View>
       {/* Das nächste Geschenk nach der Zahl der Träume */}
       {C.next ? (
-        <Pressable onPress={() => { Haptics.selectionAsync(); setEvent({ kind: "tap", at: Date.now() }); setPeek(C.next); }} style={styles.next} accessibilityRole="button">
+        <Pressable onPress={() => { Haptics.selectionAsync(); setEvent({ kind: "tap", at: Date.now() }); if (C.next) setPeek(C.next); }} style={styles.next} accessibilityRole="button">
           <View style={styles.nextIcon}><SymbolView name="gift.fill" size={13} tintColor="#1a1206" /></View>
           <Text style={styles.nextText} numberOfLines={1}>{C.next.say}</Text>
           <SymbolView name="chevron.right" size={11} tintColor={colors.faint} />
         </Pressable>
       ) : null}
-      {/* Tipp auf ein Geschenk: was drin ist (gift-sheet.tsx) */}
-      <GiftPreview card={peek} onClose={() => setPeek(null)} />
       <Text style={styles.count}>{C.countLine.toUpperCase()}</Text>
       <Text style={styles.line}>{C.line}</Text>
       {C.thread ? <Text style={styles.thread}>{C.thread}</Text> : null}
@@ -165,6 +177,8 @@ const styles = StyleSheet.create({
   top: { position: "absolute", width: 180, alignItems: "center", gap: 4 },
   topGift: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: colors.gold, shadowColor: colors.gold, shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
   topText: { color: colors.gold, fontSize: 11.5, fontWeight: "600", textAlign: "center" },
+  ms: { position: "absolute", width: GIFT, height: GIFT, borderRadius: GIFT / 2, alignItems: "center", justifyContent: "center", backgroundColor: colors.gold, borderWidth: 1, borderColor: "#ffe7b0" },
+  msN: { position: "absolute", bottom: -13, color: colors.gold, fontSize: 9.5, fontWeight: "700" },
   next: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7, paddingLeft: 7, paddingRight: 12, borderRadius: 999, backgroundColor: "rgba(246,198,91,0.1)", borderWidth: 1, borderColor: "rgba(246,198,91,0.4)", maxWidth: "92%" },
   nextIcon: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: colors.gold },
   nextText: { color: colors.gold, fontSize: 13.5, fontWeight: "600", flexShrink: 1 },

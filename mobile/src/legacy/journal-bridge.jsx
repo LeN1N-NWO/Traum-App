@@ -243,6 +243,23 @@ function snapshot() {
       const nxt = nextMilestone(count);
       const g = nxt ? giftInfo(nxt.nights) : null;
       const next = g ? { ...giftCard(g, count), nights: g.nights, say: C.milestoneSay(g.nights - count, giftLabel(t, g)) } : null;
+      /* Die Geschenke als Platzhalter IM Ring (Antons Wunsch, 03.10. abends:
+         „die Meilensteine als Punkte in dem Kreis sind verschwunden"): auf
+         der FRÜHESTEN Nacht, an der man sie erreichen kann — ein Traum je
+         Nacht. Das ist keine Serie: Wer eine Nacht auslässt, verliert
+         nichts, das Geschenk rückt nur eine Nacht weiter. */
+      const tKey = dayKey(new Date());
+      const todayFilm = (s.journal || []).some((e) => isFilmNight(e) && dayKey(e.createdAt) === tKey);
+      const ti = ring.days.findIndex((d) => d.today);
+      const first = ti < 0 ? 0 : todayFilm ? ti + 1 : ti;
+      const gifts = [];
+      for (const ms of MILESTONES) {
+        if (ms.nights <= count) continue;
+        const idx = first + (ms.nights - count - 1);
+        if (idx >= ring.days.length) break;
+        const gi = giftInfo(ms.nights);
+        if (gi) gifts.push({ index: idx, nights: ms.nights, ...giftCard(gi, count) });
+      }
       const imgs = ring.days.filter((d) => d.dreamId && d.img).length;
       const daysLeft = ring.days.filter((d) => d.future).length;
       const month = {
@@ -254,7 +271,7 @@ function snapshot() {
         days: ring.days.map((d) => ({ key: d.key, today: d.today, future: d.future, dreamId: d.dreamId, img: d.img })),
         threads: ring.threads.map(([a, b]) => [a, b]),
         left: ring.left, count: ring.count, streak: count, todayDone,
-        next, month,
+        next, month, gifts,
         chip: C.chip,
         countLine: C.count(ring.count),
         line: ring.left > 0 ? C.left(ring.left) : C.fullTonight,
