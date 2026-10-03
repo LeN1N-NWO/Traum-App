@@ -1,0 +1,129 @@
+# deploy/ — Dream Rushes auf dem Hetzner-VPS
+
+Einrichtung und Deploy der API auf Antons VPS (`ubuntu-4gb-fsn1-2`,
+Falkenstein). Grundlage: `docs/plans/2026-09-24-hosting.md`, Bedingung 5
+in `docs/plans/2026-09-24-medienablage.md`.
+
+| Datei | Zweck |
+|---|---|
+| `setup.sh` | Einmal: Pakete, Updates, Bun, Systemnutzer, Ordner, Caddy, systemd, Firewall |
+| `deploy.sh` | Jedes Mal: Stand holen, `.env` prüfen, Neustart, Gesundheitscheck, bei Fehler zurück |
+| `check-env.mjs` | Hält den Start an, wenn Supabase oder `DREAMRUSHES_MEDIA` fehlen/falsch sind oder ein altes `API_TOKEN` gesetzt ist |
+| `dreamrushes.service` | systemd-Dienst, abgeschottet, schreibt nur unter `/var/lib/dreamrushes` |
+| `Caddyfile` | HTTPS, Sicherheits-Kopfzeilen, sperrt die Entwicklungs-Routen zusätzlich |
+
+## Aufbau auf dem Server
+
+```
+/opt/dreamrushes/app          Checkout (gehört root, Dienst liest nur)
+/var/lib/dreamrushes/media    Medien, Aufträge (gehört dem Dienst)
+/var/lib/dreamrushes/data     Träume-Sicherung (legt server.js selbst an)
+/etc/dreamrushes/dreamrushes.env   Geheimnisse (root schreibt, Dienst liest)
+```
+
+Der Dienst läuft als Systemnutzer `dreamrushes` ohne Login. Von außen offen:
+22, 80, 443. Port 8100 nur über Caddy.
+
+## Vorher (Hetzner Console / Strato)
+
+1. ✅ DNS bei Strato: A-Eintrag `api.dreamrushes.app` → `188.245.92.121`
+   (gesetzt, geprüft 25.09.). AAAA erst, wenn die IPv6-Adresse des Servers
+   belegt ist.
+2. Hetzner Console → Firewall: eingehend nur 22, 80, 443 (TCP) und 443 (UDP).
+3. Hetzner Console → Snapshots/Backups einschalten.
+
+## Einrichten
+
+Auf dem Server, als Nutzer mit `sudo`:
+
+```bash
+sudo git clone https://github.com/LeN1N-NWO/Traum-App.git /opt/dreamrushes/app
+sudo bash /opt/dreamrushes/app/deploy/setup.sh api.dreamrushes.app
+```
+
+Das Skript darf mehrmals laufen. Fehlt die `.env`, richtet es alles andere
+ein und sagt am Ende, was noch zu tun ist.
+
+## Die `.env` des Servers
+
+Legt ein Mensch von Hand an — Schlüssel gehören nicht ins Repo, nicht in ein
+Skript und nicht in den Chat. Vorlage: `.env.example`.
+
+```bash
+sudo install -m 640 -o root -g dreamrushes /dev/null /etc/dreamrushes/dreamrushes.env
+sudo nano /etc/dreamrushes/dreamrushes.env
+```
+
+Pflicht auf dem Server (sonst startet der Dienst nicht):
+
+```
+SUPABASE_URL="…"                    # Anmeldung — Bezahltes nur mit Konto (S1)
+SUPABASE_ANON_KEY="…"
+DREAMRUSHES_MEDIA=/var/lib/dreamrushes/media
+```
+
+**Kein `API_TOKEN`** — das alte gemeinsame Geheimnis sperrt die App aus;
+`check-env.mjs` hält den Start an, wenn es gesetzt ist.
+
+Dazu die Dienst-Schlüssel wie lokal (`FAL_KEY`, `DEEPSEEK_KEY`, `GEMINI_KEY`,
+`DATABASE_URL`, Supabase, Apple). `PORT` weglassen oder `8100`.
+Den Apple-Schlüssel wie in `.env.example`: in doppelten Anführungszeichen,
+Zeilenumbrüche als `\n` — Bun liest die Datei selbst (`--env-file`).
+
+Prüfen, ohne zu starten:
+
+```bash
+cd /opt/dreamrushes/app && sudo -u dreamrushes bun --no-install --env-file=/etc/dreamrushes/dreamrushes.env deploy/check-env.mjs
+```
+
+## Deployen
+
+```bash
+sudo bash /opt/dreamrushes/app/deploy/deploy.sh             # origin/main
+sudo bash /opt/dreamrushes/app/deploy/deploy.sh 1a2b3c4     # bestimmter Stand
+```
+
+Antwortet der Server nach dem Neustart nicht nach rund 30 Versuchen (je eine Sekunde Abstand) auf
+`/api/prices` (offen, ohne Konto), geht der Deploy von selbst auf den vorigen
+Stand zurück. Liegen im Checkout Handänderungen, bricht er ab, statt sie zu
+überschreiben.
+
+Danach prüft er die Tür (S1): `POST /api/generate` ohne Anmeldung muss mit
+`401` und `reason: "signin"` abgewiesen werden. Geht es durch, **stoppt er
+den Dienst** — lieber zu als offen.
+
+Nachsehen:
+
+```bash
+systemctl status dreamrushes
+journalctl -u dreamrushes -f
+```
+
+## ⚠ Bevor die App diesen Server benutzt
+
+1. **Bezahltes nur mit Konto (S1) — scharf seit 03.10.2026.**
+   `Environment=REQUIRE_AUTH=1` steht in `dreamrushes.service`: Alles, was
+   Geld kostet, verlangt eine gültige Anmeldung; Anmeldung, Preise und
+   Hörprobe bleiben offen (`needsAccount()` in `src/lib/gatekeeper.js`).
+   Das alte `API_TOKEN` ist abgelöst — es sperrte die App aus.
+   **Die App muss einen Bau ab PR #72 haben**, sonst schickt sie das Token
+   nicht. Unkritisch, solange alle Bauten auf den Mac im WLAN zeigen: Eine
+   App, die diesen Server nutzt, braucht ohnehin einen neuen Bau mit
+   `EXPO_PUBLIC_API_BASE=https://api.dreamrushes.app`.
+2. **Rate-Limit hinter Caddy (S5) — gelöst am 03.10.2026, auf dem Server
+   noch nachzuprüfen.** Hinter Caddy kommt jede Verbindung von `127.0.0.1`;
+   ohne Abhilfe teilten sich alle Nutzer einen Zähler. Jetzt nimmt
+   `senderOf()` (`src/lib/gatekeeper.js`) die Adresse aus `X-Forwarded-For`
+   — nur wenn `TRUST_PROXY=1` gesetzt ist (steht in `dreamrushes.service`)
+   und die Verbindung von Loopback kommt. Das ist sicher, weil Caddy (ab 2.5,
+   ohne `trusted_proxies`) eine mitgeschickte Kopfzeile verwirft und durch
+   die echte Adresse ersetzt. **Beim ersten Lauf prüfen:** elf Anmeldungen
+   mit gefälschter Kopfzeile von außen —
+
+   ```bash
+   for i in $(seq 11); do curl -s -o /dev/null -w '%{http_code} ' -X POST -H "x-forwarded-for: 1.2.3.$i" https://api.dreamrushes.app/api/auth/login; done
+   ```
+
+   Die elfte muss `429` sein, obwohl jede Anfrage eine andere Adresse
+   behaupten könnte — und ein zweites Gerät (anderes Netz) muss danach
+   trotzdem durchkommen.

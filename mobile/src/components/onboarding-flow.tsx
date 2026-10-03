@@ -146,6 +146,16 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
   const shown = questionsOnly ? screens.filter((x) => ["name", "question", "sleepYears", "themes", "done"].includes(x.kind)) : screens;
   const total = shown.length;
   const jetzt = shown[Math.min(step, total - 1)];
+  // Nur Entwicklung: DevSkip (unten) springt von hier zum Anmelde-Schritt.
+  // Im Effekt, nicht beim Rendern — sonst ließe der React Compiler die ganze
+  // Komponente unoptimiert, auch im Release-Bau. Die Profil-Umfrage
+  // (questionsOnly) hat keinen Anmelde-Schritt: dort weder Sprung noch Knopf.
+  const accountAt = shown.findIndex((x) => x.kind === "account");
+  useEffect(() => {
+    if (!__DEV__ || accountAt < 0) return;
+    (globalThis as any).__onbSkipToAccount = () => setStep(accountAt);
+    return () => { delete (globalThis as any).__onbSkipToAccount; };
+  }, [accountAt]);
 
   // Am ersten Bildschirm führt Zurück hinaus, wenn es ein Draußen gibt (Umfrage im Profil).
   function back() { Haptics.selectionAsync(); if (step === 0 && onExit) { onExit(); return; } setStep((s: number) => Math.max(0, s - 1)); }
@@ -262,7 +272,7 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
   // ── Der Name
   if (jetzt.kind === "name") {
     return (
-      <Shell insets={insets} step={step} total={total} title={O.formName} onBack={step > 0 || onExit ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.formName} onBack={step > 0 || onExit ? back : undefined} devSkip={!questionsOnly}>
         <TextInput
           style={styles.input} value={a.name} onChangeText={(v) => set("name", v.slice(0, 40))}
           placeholder={O.formNamePlaceholder} placeholderTextColor={colors.faint}
@@ -277,7 +287,7 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
   if (jetzt.kind === "question") {
     const f = fragen[jetzt.at];
     return (
-      <Shell key={f.key} insets={insets} step={step} total={total} title={f.title} onBack={step > 0 || onExit ? back : undefined}>
+      <Shell key={f.key} insets={insets} step={step} total={total} title={f.title} onBack={step > 0 || onExit ? back : undefined} devSkip={!questionsOnly}>
         {f.body}
         {/* Ohne Antwort kein Weiter (Antons Befund 13.09.) — wer nicht
             antworten will, nimmt „Überspringen" oben rechts. */}
@@ -297,7 +307,7 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
 
   // ── Schlafdauer als Mond-Regler, darunter die Jahre live (27.09.)
   if (jetzt.kind === "sleepYears") {
-    return <SleepScale O={O} answer={a.sleepHours} onAnswer={(k) => set("sleepHours", k)} insets={insets} step={step} total={total} onNext={next} onBack={back} />;
+    return <SleepScale O={O} answer={a.sleepHours} onAnswer={(k) => set("sleepHours", k)} insets={insets} step={step} total={total} onNext={next} onBack={back} devSkip={!questionsOnly} />;
   }
 
   // ── Wer bist du? Das eigene Foto (nach dem Zwischenbild „du kommst drin vor")
@@ -364,7 +374,7 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
       setThemeDraft("");
     };
     return (
-      <Shell insets={insets} step={step} total={total} title={O.formThemes} onBack={step > 0 || onExit ? back : undefined}>
+      <Shell insets={insets} step={step} total={total} title={O.formThemes} onBack={step > 0 || onExit ? back : undefined} devSkip={!questionsOnly}>
         <View style={{ width: "100%", gap: 10 }}>
           <View style={styles.themeRow}>
             <TextInput
@@ -426,7 +436,7 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
    geht es mit „Später" weiter — das Tagebuch lebt auf dem Gerät, das
    Konto ist die Sicherung, nicht die Bedingung.
    Die Token gehen in den Schlüsselbund (lib/auth.ts), nie in den Zustand. */
-function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
+export function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
   const account = useAccount();
   const [mail, setMail] = useState("");
   const [pw, setPw] = useState("");
@@ -483,7 +493,7 @@ function Account({ O, insets, step, total, onNext, onBack }: { O: OnboardData; i
   const reason: Record<LoginFailure, string> = { wrong: O.accountWrong, busy: O.accountBusy, unavailable: O.accountUnavailable, offline: O.accountOffline };
 
   return (
-    <Shell insets={insets} step={step} total={total} title={O.accountTitle} lede={O.accountText} onBack={onBack}>
+    <Shell insets={insets} step={step} total={total} title={O.accountTitle} lede={O.accountText} onBack={onBack} devSkip={false}>
       {account ? (
         <Animated.View entering={FadeIn.duration(260)} style={{ width: "100%", gap: 14 }}>
           <Glass style={styles.signedIn}>
@@ -596,7 +606,19 @@ function FeatureTile({ i, title, clip, tall, labelBottom }: { i: number; title: 
 
 /* Der Rahmen jeder Frage: Fortschritt oben, Überspringen rechts, Titel in
    der Serife, darunter der Inhalt, unten der Knopf. */
-function Shell({ insets, step, total, title, lede, children, onBack }: { insets: { top: number; bottom: number }; step: number; total: number; title: string; lede?: string; children: React.ReactNode; onBack?: () => void }) {
+/* Nur in der Entwicklung (__DEV__): direkt unter „Continue" zum
+   Anmelde-Schritt springen, statt jedes Mal das ganze Onboarding
+   durchzutippen (Hanni, 03.10.2026). Im Release-Bau gibt es ihn nicht. */
+function DevSkip() {
+  if (!__DEV__) return null;
+  return (
+    <Pressable onPress={() => (globalThis as any).__onbSkipToAccount?.()} hitSlop={8} style={{ alignSelf: "center", paddingVertical: 8 }}>
+      <Text style={{ color: colors.faint, fontSize: 13 }}>Skip to sign-in (dev)</Text>
+    </Pressable>
+  );
+}
+
+function Shell({ insets, step, total, title, lede, children, onBack, devSkip = true }: { insets: { top: number; bottom: number }; step: number; total: number; title: string; lede?: string; children: React.ReactNode; onBack?: () => void; devSkip?: boolean }) {
   return (
     <View style={styles.screen}>
       <LinearGradient colors={["rgba(42,98,208,0.28)", "rgba(5,10,20,0)"]} style={styles.glow} pointerEvents="none" />
@@ -619,7 +641,7 @@ function Shell({ insets, step, total, title, lede, children, onBack }: { insets:
           <Text style={styles.title}>{title}</Text>
           {lede ? <Text style={styles.lede}>{lede}</Text> : null}
         </Animated.View>
-        <View style={styles.content}>{children}</View>
+        <View style={styles.content}>{children}{devSkip ? <DevSkip /> : null}</View>
       </ScrollView>
     </View>
   );
@@ -647,6 +669,7 @@ function Intro({ O, onNext }: { O: OnboardData; onNext: () => void }) {
           <Text style={styles.introText}>{O.introText}</Text>
           <View style={{ width: "100%", marginTop: 14 }}>
             <PrimaryButton label={O.introCta} heavy onPress={onNext} style={{ flex: 0 }} />
+            <DevSkip />
           </View>
         </Animated.View>
       </View>
@@ -699,6 +722,7 @@ function Showcase({ O, title, text, clip, insets, step, total, onNext, onBack }:
           <Text style={styles.showText}>{text}</Text>
         </Animated.View>
         <PrimaryButton label={O.next} heavy onPress={onNext} style={{ flex: 0 }} />
+        <DevSkip />
       </View>
     </View>
   );
@@ -735,7 +759,7 @@ const KNOB = 58;
 function bucket(h: number) {
   return h < 6 ? "under-6" : h < 7 ? "6-7" : h < 8 ? "7-8" : h < 9 ? "8-9" : "over-9";
 }
-function SleepScale({ O, answer, onAnswer, insets, step, total, onNext, onBack }: { O: OnboardData; answer: string; onAnswer: (key: string) => void; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void }) {
+function SleepScale({ O, answer, onAnswer, insets, step, total, onNext, onBack, devSkip = true }: { O: OnboardData; answer: string; onAnswer: (key: string) => void; insets: { top: number; bottom: number }; step: number; total: number; onNext: () => void; onBack: () => void; devSkip?: boolean }) {
   const S = O.sleepScale;
   const [idx, setIdx] = useState(() => Math.round(((SLEEP_HOURS[answer] ?? 7.5) - H_MIN) / H_STEP));
   const [trackW, setTrackW] = useState(0);
@@ -807,6 +831,7 @@ function SleepScale({ O, answer, onAnswer, insets, step, total, onNext, onBack }
         <Text style={styles.sleepNote}>{O.sleepNote}</Text>
       </View>
       <PrimaryButton label={O.next} onPress={onNext} style={{ flex: 0 }} />
+      {devSkip ? <DevSkip /> : null}
     </Shell>
   );
 }

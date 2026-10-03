@@ -9,6 +9,7 @@ import { closeGlimpse, finishGlimpse, noteGlimpse, openGlimpseEntries, restoreGl
 import { setJournal, useJournalStore, type BridgeCommand, type BridgeResult, type HomeData, type JournalSnapshot } from "@/store/journal-store";
 import { showToast } from "@/store/toast-store";
 import { DreamSketch, resolveSketchesDeep, resolveSketchUrl } from "../../modules/dream-sketch";
+import { fetchWithSession, getAccessToken } from "@/lib/auth";
 
 /* Der Glimpse im Hintergrund (26.09.2026, Antons Ansage): Der Glimpse-
  * Bildschirm legt nur den Auftrag ab (store/glimpse-store.ts) und schickt
@@ -49,7 +50,7 @@ async function soundFromFilm(job: GlimpseJob, filmUri: string): Promise<string |
   fd.append("mood", job.mood);
   fd.append("seconds", String(job.seconds));
   fd.append("beats", JSON.stringify(job.beats));
-  const res = await fetch(`${API_BASE}/api/sketch-sound`, { method: "POST", body: fd });
+  const res = await fetchWithSession(`${API_BASE}/api/sketch-sound`, { method: "POST", body: fd });
   const out = await res.json().catch(() => null);
   if (!res.ok || typeof out?.url !== "string") return null;
   return out.url.startsWith("/") ? API_BASE + out.url : out.url;
@@ -110,7 +111,7 @@ export function GlimpseLayer() {
 
   return (
     <View style={styles.hidden} pointerEvents="none">
-      <JournalBridge onJournal={onJournal} onResult={onResult} refreshTick={0} command={command} devCredits={500} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+      <JournalBridge getToken={getAccessToken} onJournal={onJournal} onResult={onResult} refreshTick={0} command={command} devCredits={500} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
     </View>
   );
 }

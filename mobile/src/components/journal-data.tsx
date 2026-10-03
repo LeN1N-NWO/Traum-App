@@ -5,6 +5,7 @@ import { showToast } from "@/store/toast-store";
 import JournalBridge from "@/legacy/journal-bridge";
 import { resolveSketchesDeep } from "../../modules/dream-sketch";
 import { setJournal, useJournalStore, type BridgeCommand, type BridgeResult, type JournalSnapshot } from "@/store/journal-store";
+import { getAccessToken } from "@/lib/auth";
 
 /* Bindet die Web-Brücke (journal-bridge.jsx) an den nativen Speicher. Der
    Brücken-Webview ist unsichtbar (matchContents, leerer Inhalt); bei jedem
@@ -38,7 +39,7 @@ export function useJournal() {
     // Test-Guthaben, solange kein Konto dahinter ist (Antons Ansage 12.09.;
     // seit 18.09. auch im Release-Bau mit 500 — er testet auf dem iPhone).
     // ⚠ Vor der Veröffentlichung zurück auf `__DEV__ ? 100 : 0`.
-    <JournalBridge onJournal={onJournal} onResult={onResult} refreshTick={tick} command={command} devCredits={500} streakChores dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+    <JournalBridge getToken={getAccessToken} onJournal={onJournal} onResult={onResult} refreshTick={tick} command={command} devCredits={500} streakChores dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
   );
   return { data, bridge, send, ask };
 }

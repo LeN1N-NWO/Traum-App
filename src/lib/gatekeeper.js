@@ -24,6 +24,9 @@
  * für ein Problem, das wir nicht haben.
  */
 
+import { isIP } from "node:net";
+import { LOOPBACK } from "./localOnly.js";
+
 /** Fenstergröße und Obergrenze je Endpunkt-Klasse. Die Zahlen kommen aus dem,
  *  was ein Mensch tatsächlich tut: Ein Traum sind bis zu zehn Bilder in einer
  *  Minute, also darf `generate` das auch — aber keine hundert. */
@@ -82,6 +85,33 @@ export function classOf(pathname) {
   return "generate";   // /api/generate, /api/character und alles Künftige
 }
 
+/* Endpunkte, die OHNE Konto erreichbar sind (S1). Dieselbe Regel wie beim
+   Rate-Limit: alles, was hier nicht steht, verlangt eine Anmeldung — auch
+   jede künftige Route. Wer hier etwas einträgt, schreibt den Grund dazu.
+   Hannis Regel (03.10.2026): umschauen ohne Konto ja, alles was Geld kostet
+   nur mit Konto (und Guthaben — das prüft settleCharge(), Antons Teil). */
+const OPEN_WITHOUT_ACCOUNT = new Set([
+  "/api/auth/login",      // ohne Konto muss man sich anmelden können
+  "/api/auth/apple",
+  "/api/auth/refresh",    // abgelaufenes Token → neues; prüft selbst
+  "/api/auth/logout",     // Abmelden geht immer
+  "/api/prices",          // Preistabelle, kostet nichts
+  "/api/voice-sample",    // Hörprobe: einmal je Stimme×Sprache bei Gemini,
+                          // dann nur noch Ablage — höchstens ~6 ct, einmalig
+  "/api/account",         // prüfen die Anmeldung selbst (verifyAccessToken)
+  "/api/cast-backup",     // nur von diesem Rechner (localOnly.js), Caddy
+  "/api/journal-backup",  // sperrt sie zusätzlich
+]);
+
+/** Braucht dieser Pfad ein angemeldetes Konto? Alles außerhalb von /api/
+ *  (Oberfläche, /media) bleibt unberührt — /media ist Befund S2. */
+export function needsAccount(pathname) {
+  if (!pathname.startsWith("/api/")) return false;
+  if (OPEN_WITHOUT_ACCOUNT.has(pathname)) return false;
+  if (pathname === "/api/dreams" || pathname.startsWith("/api/dreams/")) return false; // prüfen selbst
+  return true;
+}
+
 /* Zähler je (Absender, Klasse). Ein einfaches festes Fenster, kein gleitendes:
    an der Fenstergrenze sind kurzzeitig bis zu 2× max möglich — bei diesen
    Grenzen bedeutet das 40 Bilder statt 20 in einem ungünstigen Moment, und
@@ -129,6 +159,42 @@ export function checkLimit(sender, kind, now = Date.now()) {
 /** Nur für Tests: den Zählerstand vergessen. */
 export function resetLimits() {
   buckets.clear();
+}
+
+/**
+ * Wer ist der Absender — die Kennung, nach der checkLimit zählt.
+ *
+ * Ohne Proxy ist das die Adresse der Verbindung, und nur die: X-Forwarded-For
+ * kann jeder selbst setzen, und ein Rate-Limit, dessen Zähler sich der
+ * Begrenzte aussucht, ist keins.
+ *
+ * Hinter Caddy (VPS) kommt aber JEDE Verbindung von 127.0.0.1 — alle Nutzer
+ * teilten sich einen Eimer, einer könnte alle aussperren (Befund S5). Dort
+ * ist die Kopfzeile die einzige Quelle für die echte Adresse, und sie ist
+ * vertrauenswürdig, weil Caddy (ab 2.5, ohne `trusted_proxies`) eine
+ * mitgeschickte X-Forwarded-For verwirft und durch die echte Adresse ersetzt.
+ *
+ * Deshalb gilt die Kopfzeile nur, wenn BEIDES stimmt:
+ *   1. trustProxy — der Betreiber sagt, dass ein Proxy davor steht
+ *      (TRUST_PROXY=1, gesetzt in deploy/dreamrushes.service). Lokal fehlt
+ *      der Schalter, und eine gefälschte Kopfzeile ändert nichts.
+ *   2. Die Verbindung kommt von Loopback, also vom Proxy selbst. Wer den Port
+ *      direkt erreicht (Firewall falsch, WLAN-Test), wird nach seiner echten
+ *      Adresse gezählt, egal was er in die Kopfzeile schreibt.
+ * Gezählt wird der LETZTE Eintrag: den hat der Proxy angehängt, alles davor
+ * stammt vom Absender. Ist er keine gültige IP, bleibt es bei der Verbindung.
+ *
+ * @param {string | undefined} address  server.requestIP(req)?.address
+ * @param {Headers} headers             req.headers
+ * @param {boolean} trustProxy
+ * @returns {string}
+ */
+export function senderOf(address, headers, trustProxy) {
+  const direct = address || "unknown";
+  if (!trustProxy || !LOOPBACK.has(direct)) return direct;
+  const forwarded = typeof headers?.get === "function" ? headers.get("x-forwarded-for") : null;
+  const last = String(forwarded || "").split(",").pop().trim();
+  return isIP(last) ? last : direct;
 }
 
 /* Der Token-Vergleich läuft in konstanter Zeit. Bei einem Geheimnis, das über

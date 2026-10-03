@@ -5,8 +5,10 @@ import { LayoutAnimation, Modal, Pressable, ScrollView, StyleSheet, Text, View }
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import JournalBridge from "@/legacy/journal-bridge";
+import { useOnboardingGone } from "@/store/dev-store";
 import { setJournal, useJournalStore, type BridgeCommand, type JournalSnapshot, type LegalDoc } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
+import { getAccessToken } from "@/lib/auth";
 
 /* Symbol je Klartext-Kachel — die Worte liegen in en.js/de.js, das Bild
    gehört zur Oberfläche. Unbekannte id fällt auf info.circle zurück. */
@@ -36,7 +38,9 @@ export function ConsentGate() {
   const onJournal = useCallback(async (snap: JournalSnapshot) => { setJournal(snap); }, []);
   const C = data?.consent;
   const L = data?.profile?.settingsPage?.legal;
-  const open = !!C?.needed;
+  // Erst nach dem Onboarding-Modal — zwei Modals zugleich legen die App still (dev-store.ts).
+  const onboardingGone = useOnboardingGone();
+  const open = !!C?.needed && onboardingGone;
   const all = terms && processing && adult;
 
   return (
@@ -81,7 +85,7 @@ export function ConsentGate() {
           ) : null}
         </ScrollView>
         <View style={styles.bridge}>
-          <JournalBridge onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+          <JournalBridge getToken={getAccessToken} onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
         </View>
 
         {/* Die Rechtstexte, lesbar hinter den Links — wie LegalPage.jsx. */}

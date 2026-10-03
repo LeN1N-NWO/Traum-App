@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { parseBearer, authConfig, passwordLogin, appleLogin, refreshSession, verifyAccessToken, logout } from "./auth.js";
+import { parseBearer, parseWsBearer, authConfig, passwordLogin, appleLogin, refreshSession, verifyAccessToken, logout } from "./auth.js";
 
 const config = { url: "https://projekt.supabase.co", anonKey: "anon-key" };
 const UID = "3ecbfe28-21c1-4475-b931-1082d2b56ba7";
@@ -27,6 +27,21 @@ const SESSION = {
   expires_in: 3600, expires_at: 1789000000,
   user: { id: UID, email: "test@example.com" },
 };
+
+/* ── parseWsBearer (S1, Sprachinterview) ──────────────────────────────── */
+
+test("the voice socket's token comes out of the subprotocol list", () => {
+  expect(parseWsBearer("dreamrushes, bearer.abc.def-ghi_j")).toBe("abc.def-ghi_j");
+  expect(parseWsBearer("bearer.abc.def, dreamrushes")).toBe("abc.def");
+});
+
+test("no token without our own protocol, and never an empty one", () => {
+  expect(parseWsBearer("bearer.abc")).toBe(null);          // fremdes Protokoll-Set
+  expect(parseWsBearer("dreamrushes")).toBe(null);
+  expect(parseWsBearer("dreamrushes, bearer.")).toBe(null);
+  expect(parseWsBearer("")).toBe(null);
+  expect(parseWsBearer(null)).toBe(null);
+});
 
 /* ── parseBearer ───────────────────────────────────────────────────────── */
 

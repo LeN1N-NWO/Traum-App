@@ -1,5 +1,5 @@
-import { test, expect, beforeEach } from "bun:test";
-import { guard, checkLimit, classOf, tokenMatches, resetLimits, LIMITS } from "./gatekeeper.js";
+import { describe, test, expect, beforeEach } from "bun:test";
+import { guard, checkLimit, classOf, tokenMatches, resetLimits, senderOf, needsAccount, LIMITS } from "./gatekeeper.js";
 
 beforeEach(resetLimits);
 
@@ -117,4 +117,83 @@ test("a refused token costs no rate-limit budget", () => {
   // Nutzer leerlaufen lassen — eine Dienstblockade durch bloßes Klopfen.
   for (let i = 0; i < 100; i++) guard("/api/generate", "1.2.3.4", "falsch", "geheim");
   expect(guard("/api/generate", "1.2.3.4", "geheim", "geheim").ok).toBe(true);
+});
+
+/* S5: Hinter Caddy kommt jede Verbindung von 127.0.0.1. Ohne senderOf teilten
+   sich alle Nutzer einen Eimer — das ist der Fehler, den diese Tests halten. */
+describe("senderOf", () => {
+  const xff = (v) => new Headers(v === undefined ? {} : { "x-forwarded-for": v });
+
+  test("behind the proxy, two users get two buckets", () => {
+    expect(senderOf("127.0.0.1", xff("198.51.100.1"), true)).toBe("198.51.100.1");
+    expect(senderOf("::1", xff("2001:db8::7"), true)).toBe("2001:db8::7");
+    expect(senderOf("::ffff:127.0.0.1", xff("198.51.100.2"), true)).toBe("198.51.100.2");
+
+    // Ende zu Ende: einer schöpft das Login-Limit aus, der andere kommt rein.
+    for (let i = 0; i < LIMITS.auth.max; i++) {
+      guard("/api/auth/login", senderOf("127.0.0.1", xff("198.51.100.1"), true), null, undefined, 0);
+    }
+    expect(guard("/api/auth/login", senderOf("127.0.0.1", xff("198.51.100.1"), true), null, undefined, 0).ok).toBe(false);
+    expect(guard("/api/auth/login", senderOf("127.0.0.1", xff("198.51.100.2"), true), null, undefined, 0).ok).toBe(true);
+  });
+
+  test("without the switch the header is ignored — locally nobody can pick their bucket", () => {
+    expect(senderOf("127.0.0.1", xff("198.51.100.1"), false)).toBe("127.0.0.1");
+    expect(senderOf("192.168.178.20", xff("198.51.100.1"), false)).toBe("192.168.178.20");
+  });
+
+  test("a direct connection is counted by its own address, even with the switch on", () => {
+    // Firewall falsch oder Port direkt erreichbar: die Kopfzeile ist dann gefälscht.
+    expect(senderOf("203.0.113.9", xff("198.51.100.1"), true)).toBe("203.0.113.9");
+  });
+
+  test("only the entry the proxy appended counts, not what the sender put before it", () => {
+    expect(senderOf("127.0.0.1", xff("1.2.3.4, 198.51.100.1"), true)).toBe("198.51.100.1");
+    expect(senderOf("127.0.0.1", xff("1.2.3.4,198.51.100.1 "), true)).toBe("198.51.100.1");
+  });
+
+  test("a missing or broken header falls back to the connection, never to the header text", () => {
+    expect(senderOf("127.0.0.1", xff(undefined), true)).toBe("127.0.0.1");
+    expect(senderOf("127.0.0.1", xff(""), true)).toBe("127.0.0.1");
+    expect(senderOf("127.0.0.1", xff("198.51.100.1, irgendwas"), true)).toBe("127.0.0.1");
+    expect(senderOf("127.0.0.1", xff("198.51.100.1:443"), true)).toBe("127.0.0.1");
+    expect(senderOf("127.0.0.1", undefined, true)).toBe("127.0.0.1");
+    expect(senderOf(undefined, xff("198.51.100.1"), true)).toBe("unknown");
+  });
+});
+
+/* S1: Was Geld kostet, nur mit Konto. Die Liste der freien Routen ist kurz
+   und begründet; alles andere — auch jede künftige Route — braucht eins. */
+describe("needsAccount", () => {
+  test("everything that costs money needs an account", () => {
+    for (const p of ["/api/generate", "/api/character", "/api/sketch-grid", "/api/sketch-sound",
+      "/api/analyze", "/api/refine", "/api/reflect", "/api/sketch-prompts", "/api/transcribe",
+      "/api/voice", "/api/photo-check", "/api/panel", "/api/film-outro", "/api/job"]) {
+      expect([p, needsAccount(p)]).toEqual([p, true]);
+    }
+  });
+
+  test("a brand-new API endpoint needs an account by default", () => {
+    expect(needsAccount("/api/etwas-das-es-noch-nicht-gibt")).toBe(true);
+  });
+
+  test("looking around stays open: sign-in, prices, voice samples", () => {
+    for (const p of ["/api/auth/login", "/api/auth/apple", "/api/auth/refresh", "/api/auth/logout",
+      "/api/prices", "/api/voice-sample"]) {
+      expect([p, needsAccount(p)]).toEqual([p, false]);
+    }
+  });
+
+  test("account and dreams are left to their own sign-in check", () => {
+    expect(needsAccount("/api/account")).toBe(false);
+    expect(needsAccount("/api/dreams")).toBe(false);
+    expect(needsAccount("/api/dreams/sync")).toBe(false);
+    // Nur der echte Pfad, kein Namensvetter.
+    expect(needsAccount("/api/dreamsXYZ")).toBe(true);
+  });
+
+  test("paths outside the API are untouched", () => {
+    expect(needsAccount("/")).toBe(false);
+    expect(needsAccount("/media/abc.mp4")).toBe(false);
+  });
 });

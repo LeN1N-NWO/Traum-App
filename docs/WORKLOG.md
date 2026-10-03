@@ -3,6 +3,155 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-03 19:20 — Hanni — Branch `session/2026-10-03-hanni-2` (PR #73) — Gemergte Branches aufräumen
+
+**Commits:** 009cb0e (Reservierung), 3a80f6c (Ablauf + Übergabe) (+ Wrap).
+
+**Was:**
+- Lokal aufgeräumt: Worktrees `Traum-App-hanni` (PR #72) und
+  `Traum-App-hanni-3` (PR #60) entfernt, alle gemergten lokalen
+  Session-Branches gelöscht; Hauptordner steht auf `main`.
+- Auf GitHub Hannis 15 gemergte Branches gelöscht (09.09.–03.10.), je
+  geprüft: Commits in `main`, kein offener PR.
+- `.claude/commands/wrap.md` Schritt 7 + `AGENTS.md`: nach dem Merge
+  Worktree UND Branch aufräumen, lokal und auf GitHub, mit Prüfung vorher.
+- Übergabe an Anton: `docs/uebergabe/2026-10-03-anton-branches-aufraeumen.md`
+  (Repo-Einstellung „Automatically delete head branches"). Beide Übergaben
+  vom 03.10. jetzt für „Anton, LeN1N-NWO".
+
+**Warum:** Nach jedem Merge blieb der Branch auf GitHub liegen (Einstellung
+aus, Ablauf schwieg dazu) — 15 bei Hanni, 36 bei Anton.
+
+**Für den Nächsten:** Bis Anton die Einstellung anschaltet, den Branch nach
+dem Merge von Hand löschen (`/wrap` Schritt 7). Antons 36 gemergte Branches
+nicht ohne seine Zustimmung löschen. Unversioniert im Hauptordner:
+`data/traeume/2026-09-23-e_muekqjl3jrayp7.json` (Hanni entscheidet).
+
+## 2026-10-03 19:00 — Hanni — Branch `session/2026-10-03-hanni` (PR #72) — Architektur-Schaubild aktualisiert
+
+**Was:** Das Artifact „Dream Rushes Architektur" (Fassung vom 11.09.) auf
+den Stand von heute gebracht: https://claude.ai/artifact/Sp24vijXRFJA5LbKZdcgLi
+— neues Schaubild (Expo statt Capacitor, Schlüsselbund und Gerätespeicher,
+Caddy, `server.js` auf dem VPS, Supabase, Apple, geplanter Object Storage),
+Befundtabelle mit Status (S1/S4 erledigt, S5 teilweise, S6 bereit, S2/S3/
+S7/S8 offen), nächste Schritte mit Zuständigkeit. Der Ziel-Teil der alten
+Fassung entfällt; Geplantes steht gestrichelt im Bild. Kein Code geändert.
+
+**Für den Nächsten:** Maßgeblich bleibt `docs/ARCHITEKTUR.md`; das Schaubild
+ist die Übersicht dazu. Ungeprüft übernommen: dass Filme heute über
+Auftragsnummern laufen (aus den Kommentaren in `src/lib/api.js`).
+
+## 2026-10-03 18:45 — Hanni — Branch `session/2026-10-03-hanni` (PR #72) — S1: Bezahltes nur mit Konto
+
+**Commits:** a449a3d (Server), 44afc79 (App schickt Token), 079c145 (DEV-Knopf),
+413b15d (Anmelde-Blatt), 467b1e4 (scharf im Deploy), 960ea7a + 7ad7716 (Befunde
+der Durchsicht und des Lint) (+ Wrap).
+
+**Was:** Hannis Regel — umschauen ohne Konto ja, alles was Geld kostet nur
+mit Konto. In vier Schritten:
+1. **Server:** `needsAccount()` in `src/lib/gatekeeper.js` — strenge
+   Voreinstellung wie beim Rate-Limit; frei nur Anmeldung, Preise, Hörprobe
+   (höchstens ~6 ct einmalig), Konto/Träume (prüfen selbst), die zwei lokalen
+   Sicherungs-Routen. `/api/job` braucht ein Konto. `server.js` prüft nach dem
+   Rate-Limit, nur mit `REQUIRE_AUTH=1`; Antwort 401 `reason: "signin"`.
+2. **App schickt das Token:** `getAccessToken`/`fetchWithSession`
+   (`mobile/src/lib/auth.ts`); Token-Quelle in `src/lib/api.js`; `getToken` an
+   die vier Web-Ansichten (9 Einbindungen) — diese Brücke fällt mit dem Umzug
+   auf nativ weg; Sprachinterview als WebSocket-Subprotokoll (`parseWsBearer`).
+   Läuft das Token gleich ab, wird vorher erneuert (`src/lib/jwtExpiry.js`).
+3. **Gast-Erlebnis:** Anmelde-Blatt (`sign-in-sheet.tsx`, derselbe
+   `Account`-Schritt wie im Onboarding), öffnet bei 401 signin ohne Sitzung
+   und aus Einstellungen → „Account"; schließt nach Anmeldung von selbst.
+   Text „Sign in to create dreams" (en/de). Abmelden fragt jetzt nach.
+4. **Scharf im Deploy:** `REQUIRE_AUTH=1` in `dreamrushes.service`;
+   `check-env.mjs` verbietet `API_TOKEN` (sperrte die App aus), verlangt
+   Supabase; `deploy.sh` stoppt den Dienst, wenn Bezahltes ohne Anmeldung
+   durchginge.
+Dazu „Skip to sign-in (dev)" unter jedem Onboarding-Continue (nur `__DEV__`).
+
+**Warum:** S1 war der letzte große Befund vor einem öffentlichen Server
+(~9 $/Minute offen). Das alte `API_TOKEN` sperrte die App komplett aus.
+
+**Belege:** Tests 79 grün (neu: api, jwtExpiry, needsAccount, parseWsBearer,
+check-env), je mit Gegenprobe (eingebaute Fehler gefunden), `tsc` sauber,
+jede geänderte `server.js`-Zeile zugeordnet, Prompt-Kette unberührt. Im
+Simulator mit Testserver ohne bezahlte Schlüssel + Mitleser: Gast →
+`analyze 401 Token: nein` → Blatt → Anmeldung → `analyze 503 Token: JA`
+(durchgelassen, nur DeepSeek-Schlüssel fehlte). Rückfrage beim Abmelden,
+Blatt schließt nach Anmeldung (Hanni getestet). Prüfungen aus `deploy.sh`
+gegen echten `server.js` (scharf: zu; ohne Schalter: schlägt an).
+Durchsicht am Ende fand und behob: DevSkip-Absturz in der Profil-Umfrage
+(nur dev), Blatt bei bloßem Netzaussetzer, abgelaufenes Token beim
+Sprachinterview; per `expo lint` außerdem eine Zuweisung beim Rendern, die
+den React Compiler die ganze OnboardingFlow unoptimiert ließ (jetzt im
+Effekt), und einen doppelten Import. Lint: 0 Fehler, in den berührten
+Dateien dieselben Warnungen wie auf main. Ganze Suite 844 grün, 3 rot —
+dieselben 3 wie ohne Änderung (fehlende Pakete `react`/`@capacitor/core`
+im Worktree).
+
+**Für den Nächsten:**
+- `deploy.sh` als Ganzes lief noch nie (kein SSH). Beim ersten Lauf: in der
+  Server-`.env` KEIN `API_TOKEN`, dafür `SUPABASE_URL`/`SUPABASE_ANON_KEY`;
+  danach S5-Prüfbefehl aus `deploy/README.md`.
+- Eine App für den VPS braucht einen neuen Bau ab PR #72 mit
+  `EXPO_PUBLIC_API_BASE=https://api.dreamrushes.app`.
+- Supabase war am 03.10. pausiert (Adresse nicht im DNS). Ein laufender
+  Server merkt sich das — nach dem Hochfahren neu starten.
+- Notiz an Anton: `docs/uebergabe/2026-10-03-anton-s1-anmeldung.md`
+  („Read my dream · Free" für Gäste, doppelter React-key im Schlaf-Regler,
+  Foto-Check ohne Wirkung, Sprachinterview als Gast, Guthaben-Prüfung).
+- Im Simulator öffnet ein Mac-Tastenkürzel (Cmd+I) den Element Inspector,
+  wenn der Simulator den Tastaturfokus hat — wirkt wie ein Absturz.
+- Lokaler Sicherungs-Branch `backup/rebase-2026-10-03` (Hauptcheckout) kann
+  weg.
+
+## 2026-10-03 16:45 — Hanni — Branch `session/2026-09-25-hanni-2` (PR #64) — Einrichtungs-/Deploy-Skript für den VPS, Rate-Limit hinter Caddy (S5)
+
+**Commits:** 02bcf90, a6809d7, 08234dc, 307335c (25.09., Deploy), c38afb4
+(main eingemergt, 03.10.), 32a0e78 (S5) (+ Wrap).
+
+**Was:**
+- **`deploy/`** (25.09.): `setup.sh` richtet den Hetzner-VPS einmal ein
+  (Sicherheits-Updates, ffmpeg, Caddy mit HTTPS, Bun 1.4.0 mit Prüfsumme,
+  Systemnutzer `dreamrushes` ohne Login, systemd-Dienst, Firewall 22/80/443;
+  sshd wird nicht angefasst, nur gewarnt). `deploy.sh` bringt jeden neuen
+  Stand mit einem Befehl hoch und geht von selbst zurück, wenn der
+  Gesundheitscheck scheitert. `check-env.mjs` hält den Start an, wenn
+  `API_TOKEN` oder `DREAMRUSHES_MEDIA` fehlen/falsch sind. Medien unter
+  `/var/lib/dreamrushes`, `.env` unter `/etc/dreamrushes/dreamrushes.env`.
+  Anleitung `deploy/README.md`, Übergabe
+  `docs/uebergabe/2026-09-25-anton-vps-einrichtung.md`.
+- **S5 gelöst (03.10.):** Hinter Caddy kam jede Verbindung von 127.0.0.1 —
+  alle Nutzer teilten sich einen Rate-Limit-Zähler. `senderOf()` in
+  `src/lib/gatekeeper.js` nimmt jetzt den letzten Eintrag aus
+  `X-Forwarded-For`, aber nur mit `TRUST_PROXY=1` (steht in
+  `deploy/dreamrushes.service`, nicht in der `.env`) und nur für
+  Verbindungen von Loopback. `server.js`: nur Import, Kommentar und die
+  Absender-Zeile im `guard(`-Aufruf (13 Zeilen, alle zugeordnet) —
+  Prompt-Kette unberührt. `LOOPBACK` aus `localOnly.js` exportiert.
+
+**Warum:** Ohne Skript im Repo keine nachvollziehbare Einrichtung
+(Bedingung aus `docs/plans/2026-09-24-hosting.md`); ohne S5 könnte auf dem
+VPS ein einzelner Nutzer alle anderen aus der Anmeldung aussperren.
+
+**Belege:** 28 neue Tests (`gatekeeper.test.js`, `check-env.test.js`), alle
+grün; Gegenprobe: fünf eingebaute Fehler in `senderOf` und das Entfernen
+des Schalters aus der Dienstdatei — alle gefunden. Live mit `server.js`:
+mit Schalter ist Nutzer 1 nach 10 Anmeldungen gesperrt und Nutzer 2 kommt
+durch; ohne Schalter ist Nutzer 2 mitgesperrt (= der alte Fehler). Ganze
+Suite: 823 grün, 3 rot — dieselben 3 auch ohne die Änderung (in diesem
+Worktree fehlen `react` und `@capacitor/core` in `node_modules`).
+
+**Für den Nächsten:** Die Skripte sind noch **nie auf dem VPS gelaufen** —
+es fehlt SSH-Zugang (Anton). Beim ersten Lauf den S5-Prüfbefehl aus
+`deploy/README.md` ausführen (gefälschte `X-Forwarded-For` von außen →
+elfte Anmeldung muss 429 sein; ein zweites Gerät muss durchkommen). IPv6:
+gezählt wird die einzelne Adresse, nicht das /64-Netz (Hinweis bei S5 in
+`docs/ARCHITEKTUR.md`). **Als Nächstes S1** auf neuem Branch: teure Routen
+nur mit gültiger Anmeldung — vorher prüfen, ob die App das Token bei
+diesen Anfragen schon mitschickt. Credits-Prüfung/Abbuchung bleibt bei
+Anton (`docs/uebergabe/2026-09-11-anton-credits-abbuchung.md`).
+
 ## 2026-09-28 10:00 — Anton — Branch `session/2026-09-26e-anton` (PR #70) — Serie aus dem Journal, Sternbild, neue Startseite, Karussell, Abstürze und Dauerlast
 
 **Commits:** 41617c3, 2a94bd6, e494971, ce4b94f, 212724d, c0fbe9c, e0b6dd9, 7520b46, 0682eed, 0b47ea9, 4c1e80f, b27610a (+ Wrap).

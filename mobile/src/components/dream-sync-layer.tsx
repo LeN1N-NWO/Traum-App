@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import JournalBridge from "@/legacy/journal-bridge";
-import { restoreSession, useAccount } from "@/lib/auth";
+import { restoreSession, useAccount, getAccessToken } from "@/lib/auth";
 import { resetDreamSync, syncDreams } from "@/lib/dream-sync";
 import { setJournal, useJournalStore, type BridgeCommand, type BridgeResult, type JournalSnapshot } from "@/store/journal-store";
 
@@ -66,7 +66,7 @@ export function DreamSyncLayer() {
      des Einwilligungs-Tors sitzt in einem Modal und hat das Problem nicht. */
   return (
     <View style={styles.hidden} pointerEvents="none">
-      <JournalBridge onJournal={onJournal} onResult={onResult} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+      <JournalBridge getToken={getAccessToken} onJournal={onJournal} onResult={onResult} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
     </View>
   );
 }

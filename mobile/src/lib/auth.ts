@@ -1,5 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { useSyncExternalStore } from "react";
+import { requestSignIn } from "@/lib/signin-prompt";
+import { expiresSoon } from "../../../src/lib/jwtExpiry.js";
 
 /* Die Anmeldung, nativ — gegen Hannis Backend (Übergabe 12.09.2026,
  * `docs/uebergabe/2026-09-12-anton-login-ui.md`; Endpunkte in server.js,
@@ -208,6 +210,62 @@ export async function authFetch(path: string, init: RequestInit = {}): Promise<R
   if (first.status !== 401) return first;
   const fresh = await refresh();
   if (!fresh) return first;
+  return go(fresh);
+}
+
+/* Das Zugangstoken für Aufrufe, die NICHT zwingend ein Konto brauchen —
+   die bezahlten Routen (S1, needsAccount() in src/lib/gatekeeper.js).
+   Anders als authFetch: ohne Sitzung kommt null, und der Aufruf geht
+   trotzdem raus; ob er ein Konto braucht, entscheidet der Server
+   (REQUIRE_AUTH). So bleibt das lokale Entwickeln ohne Konto möglich.
+
+   Geht als Funktions-Prop `getToken` an die Web-Ansichten (mobile/src/legacy),
+   die den Schlüsselbund nicht erreichen. Diese Stellen gibt es nur, weil der
+   Geldweg noch durch die alte Web-Oberfläche läuft (ADR-0006) — nach dem
+   Umzug auf nativ fallen sie weg.
+
+   Läuft das gespeicherte Token gleich ab (eine Stunde), wird vorher erneuert
+   — sonst kostete jeder erste Aufruf danach einen 401-Umweg, und das
+   Sprachinterview (WebSocket) könnte den gar nicht gehen.
+
+   `fresh` heißt: der Server hat gerade „bitte anmelden" gesagt (api.js
+   fragt nur dann). Lässt sich dann keine Sitzung erneuern UND ist niemand
+   mehr angemeldet (Gast oder verlorene Sitzung), geht das Anmelde-Blatt auf
+   (Schritt 3). Scheitert die Erneuerung nur am Netz, bleibt die Sitzung —
+   dann kein Blatt. */
+export async function getAccessToken(fresh = false): Promise<string | null> {
+  if (!fresh) {
+    const stored = await SecureStore.getItemAsync(KEY_ACCESS);
+    if (stored && expiresSoon(stored)) return (await refresh()) ?? stored;
+    return stored;
+  }
+  const token = await refresh();
+  if (!token && !account) requestSignIn();
+  return token;
+}
+
+/* Hat der Server mit „bitte anmelden" abgewiesen (needsAccount, S1)? Nur
+   dann wird erneuert bzw. das Blatt geöffnet — ein anderer 401 bleibt, was
+   er ist. Liest eine Kopie, die Antwort bleibt für den Aufrufer lesbar. */
+async function wantsSignIn(res: Response): Promise<boolean> {
+  if (res.status !== 401) return false;
+  const body = await res.clone().json().catch(() => null);
+  return body?.reason === "signin";
+}
+
+/* fetch auf eine volle Adresse, mit Token, wenn eines da ist. Verlangt der
+   Server eine Anmeldung: mit Token einmal erneuern und wiederholen; ohne
+   Token (Gast) oder ohne erneuerbare Sitzung das Anmelde-Blatt öffnen. */
+export async function fetchWithSession(url: string, init: RequestInit = {}): Promise<Response> {
+  const go = (token: string | null) => fetch(url, token ? { ...init, headers: { ...(init.headers || {}), authorization: `Bearer ${token}` } } : init);
+  const access = await getAccessToken();
+  const first = await go(access);
+  if (!(await wantsSignIn(first))) return first;
+  const fresh = access ? await refresh() : null;
+  if (!fresh) {
+    if (!account) requestSignIn();     // Netzaussetzer bei Angemeldeten: kein Blatt
+    return first;
+  }
   return go(fresh);
 }
 
