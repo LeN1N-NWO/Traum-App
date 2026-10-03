@@ -146,6 +146,11 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
   const shown = questionsOnly ? screens.filter((x) => ["name", "question", "sleepYears", "themes", "done"].includes(x.kind)) : screens;
   const total = shown.length;
   const jetzt = shown[Math.min(step, total - 1)];
+  // Nur Entwicklung: DevSkip (unten) springt von hier zum Anmelde-Schritt.
+  if (__DEV__) {
+    (globalThis as any).__onbSkipToAccount = () => setStep(shown.findIndex((x) => x.kind === "account"));
+    (globalThis as any).__onbAtAccount = jetzt.kind === "account" || jetzt.kind === "done";
+  }
 
   // Am ersten Bildschirm führt Zurück hinaus, wenn es ein Draußen gibt (Umfrage im Profil).
   function back() { Haptics.selectionAsync(); if (step === 0 && onExit) { onExit(); return; } setStep((s: number) => Math.max(0, s - 1)); }
@@ -596,6 +601,18 @@ function FeatureTile({ i, title, clip, tall, labelBottom }: { i: number; title: 
 
 /* Der Rahmen jeder Frage: Fortschritt oben, Überspringen rechts, Titel in
    der Serife, darunter der Inhalt, unten der Knopf. */
+/* Nur in der Entwicklung (__DEV__): direkt unter „Continue" zum
+   Anmelde-Schritt springen, statt jedes Mal das ganze Onboarding
+   durchzutippen (Hanni, 03.10.2026). Im Release-Bau gibt es ihn nicht. */
+function DevSkip() {
+  if (!__DEV__ || (globalThis as any).__onbAtAccount) return null;
+  return (
+    <Pressable onPress={() => (globalThis as any).__onbSkipToAccount?.()} hitSlop={8} style={{ alignSelf: "center", paddingVertical: 8 }}>
+      <Text style={{ color: colors.faint, fontSize: 13 }}>Skip to sign-in (dev)</Text>
+    </Pressable>
+  );
+}
+
 function Shell({ insets, step, total, title, lede, children, onBack }: { insets: { top: number; bottom: number }; step: number; total: number; title: string; lede?: string; children: React.ReactNode; onBack?: () => void }) {
   return (
     <View style={styles.screen}>
@@ -619,7 +636,7 @@ function Shell({ insets, step, total, title, lede, children, onBack }: { insets:
           <Text style={styles.title}>{title}</Text>
           {lede ? <Text style={styles.lede}>{lede}</Text> : null}
         </Animated.View>
-        <View style={styles.content}>{children}</View>
+        <View style={styles.content}>{children}<DevSkip /></View>
       </ScrollView>
     </View>
   );
@@ -647,6 +664,7 @@ function Intro({ O, onNext }: { O: OnboardData; onNext: () => void }) {
           <Text style={styles.introText}>{O.introText}</Text>
           <View style={{ width: "100%", marginTop: 14 }}>
             <PrimaryButton label={O.introCta} heavy onPress={onNext} style={{ flex: 0 }} />
+            <DevSkip />
           </View>
         </Animated.View>
       </View>
@@ -699,6 +717,7 @@ function Showcase({ O, title, text, clip, insets, step, total, onNext, onBack }:
           <Text style={styles.showText}>{text}</Text>
         </Animated.View>
         <PrimaryButton label={O.next} heavy onPress={onNext} style={{ flex: 0 }} />
+        <DevSkip />
       </View>
     </View>
   );
@@ -807,6 +826,7 @@ function SleepScale({ O, answer, onAnswer, insets, step, total, onNext, onBack }
         <Text style={styles.sleepNote}>{O.sleepNote}</Text>
       </View>
       <PrimaryButton label={O.next} onPress={onNext} style={{ flex: 0 }} />
+      <DevSkip />
     </Shell>
   );
 }
