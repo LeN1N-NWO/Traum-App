@@ -69,15 +69,19 @@ export default {
   /* Der Traum-Vorsatz im Schlaf-Tab (27.09.). */
   /* Dein Sternbild auf der Startseite (28.09.). */
   /* Der Mondring auf der Startseite (03.10.). */
+  /* Der Ring auf der Startseite (03.10.): Nächte von Vollmond zu Vollmond,
+     in der Mitte der Frosch, oben die Belohnung für den vollen Ring. */
   cycle: {
-    chip: "Moon film",
-    count: (n) => n === 0 ? "No dreams in this moon yet" : `${n} ${n === 1 ? "dream" : "dreams"} in this moon`,
-    left: (n) => `${n} more ${n === 1 ? "night" : "nights"} until the full moon — then your moon film arrives.`,
-    fullTonight: "Full moon tonight — your moon film arrives tomorrow morning.",
+    chip: "Full ring: your month as a film",
+    count: (n) => n === 0 ? "No dreams in this ring yet" : `${n} ${n === 1 ? "dream" : "dreams"} in this ring`,
+    left: (n) => `${n} more ${n === 1 ? "night" : "nights"} — then your month becomes a film.`,
+    fullTonight: "Last night of the ring — tomorrow your month becomes a film.",
     thread: (label, n) => `Strongest thread: ${label} (${n}×)`,
-    filmTitle: (month, motif) => motif ? `${month} moon · ${motif}` : `${month} moon`,
-    readyTitle: "Your moon film is here",
-    readyBody: (n) => `${n} dreams from the last moon, as one film.`,
+    milestoneSay: (nights, inDays, reward, gift) => `${inDays <= 0 ? "Today" : inDays === 1 ? "Tomorrow" : `In ${inDays} nights`}: ${nights} in a row — ${reward}${gift ? ` ${gift}` : ""}`,
+    asleep: "Zzz … tell me a dream and I'll wake up.",
+    filmTitle: (month, motif) => motif ? `Your ${month} in dreams · ${motif}` : `Your ${month} in dreams`,
+    readyTitle: "Your month as a film is here",
+    readyBody: (n) => `${n} dreams from the last ring, as one film.`,
   },
   intention: {
     title: "What would you like to dream about?",

@@ -22,7 +22,7 @@ export type HomeData = {
   moon: { illum: number; waxing: boolean; label: string };
   article: { id: string; title: string; meta: string } | null;
   week: { weekday: number; done: boolean; today: boolean }[];
-  cycle: { days: { key: string; today: boolean; future: boolean; dreamId: string | null; img: string | null }[]; threads: [number, number][]; left: number; count: number; moon: { illum: number; waxing: boolean }; chip: string; countLine: string; line: string; thread: string };
+  cycle: { days: { key: string; today: boolean; future: boolean; dreamId: string | null; img: string | null }[]; threads: [number, number][]; left: number; count: number; streak: number; todayDone: boolean; milestones: { index: number; nights: number; gift: string | null; say: string }[]; chip: string; countLine: string; line: string; thread: string; say: string; sayAsleep: string };
   moonFilm: { key: string; title: string; dreams: { id: string; img: string }[]; readyTitle: string; readyBody: string } | null;
   intention: string;
   board: { title: string; nights: string; lede: string; rungs: { nights: number; title: string; reward: string; gift: string | null; state: "done" | "next" | "far" }[]; shieldTitle: string; shieldText: string };

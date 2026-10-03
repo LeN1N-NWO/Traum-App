@@ -1,62 +1,80 @@
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
-import { useEffect } from "react";
+import { SymbolView } from "expo-symbols";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
-import Svg, { Circle, Defs, Path, RadialGradient, Stop } from "react-native-svg";
-import { Moon } from "@/components/moon-strip";
+import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import Svg, { Circle, Path } from "react-native-svg";
+import { FrogStage, type FrogEvent } from "@/components/frog-stage";
 import type { HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
-/* Der Ring mit Fäden (Antons Wahl 03.10., statt des W-Sternbilds):
+/* Der Ring mit Fäden (Antons Wahl 03.10.):
  *
- *   · die Nächte dieses Mondes im Kreis, von Vollmond zu Vollmond — oben
- *     wartet der nächste Vollmond mit dem Schild „Mondfilm",
- *   · jede Nacht mit Traum zeigt ihr Bild; leere Nächte sind kleine
- *     Punkte, kommende ganz blass, heute pulsiert golden,
- *   · quer durch den Ring spannen sich Fäden zwischen Nächten mit
- *     demselben Motiv — über den Monat ein eigenes Fadenbild,
- *   · in der Mitte der echte Mond von heute Nacht; sein Schein wird
- *     stärker, je näher der Vollmond rückt.
- * Am Morgen nach dem Vollmond macht das iPhone aus den Bildern den
- * Mondfilm (glimpse-layer.tsx). Rechnung: src/lib/moonCycle.js.
+ *   · die Nächte dieses Mondes im Kreis, von Vollmond zu Vollmond; oben
+ *     wartet die Belohnung für den vollen Ring („dein Monat als Film"),
+ *   · jede Nacht mit Traum zeigt ihr Bild (antippen öffnet ihn); leere
+ *     Nächte sind kleine Punkte, kommende ganz blass, heute pulsiert,
+ *   · die Meilensteine der Serie liegen als Geschenke auf den Nächten, an
+ *     denen man sie erreicht, wenn man jede Nacht träumt — verbunden mit
+ *     der Serien-Liste,
+ *   · Fäden quer durch den Ring zwischen Nächten mit demselben Motiv,
+ *   · in der Mitte der Frosch (statt des Mondes — „den haben wir schon zu
+ *     viel"): schläft bei Serie 0, ist sonst wach, reagiert auf Antippen,
+ *     neue Träume, Meilensteine und den vollen Ring (frog-stage.tsx). Beim
+ *     Antippen sagt er das nächste Ziel.
+ * Am Morgen nach dem Ring macht das iPhone den Film (glimpse-layer.tsx).
+ * Rechnung: src/lib/moonCycle.js, Meilensteine in der Brücke.
  *
- * Leistung: Ring, Punkte und Fäden sind EIN stilles SVG; die Bilder sind
- * expo-image-Ansichten darüber; dauernd bewegt sich nur der Heute-Punkt
- * (native Ebene). */
+ * Leistung: Ring, Punkte und Fäden sind ein stilles SVG; Bilder und
+ * Geschenke sind native Ansichten darüber; dauernd bewegen sich nur der
+ * Heute-Punkt und der Frosch-Loop (pausiert, wenn der Tab nicht sichtbar ist). */
 const THUMB = 28;
+const GIFT = 24;
 
 export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: number; onOpen: (id: string) => void }) {
   const W = width, H = width;
   const cx = W / 2, cy = H / 2;
-  const R = W * 0.4;
+  const R = W * 0.41;
   const N = C.days.length;
   const at = (i: number, r = R) => {
     const a = -Math.PI / 2 + ((i + 0.5) / N) * Math.PI * 2;
     return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
   };
-  const moonSize = Math.round(W * 0.3);
-  const near = Math.max(0, 1 - C.left / 12);              // 0 … 1, je näher der Vollmond
+  const frogSize = Math.round(W * 0.46);
   const todayIndex = C.days.findIndex((d) => d.today);
+  const msAt = new Map(C.milestones.map((m) => [m.index, m]));
+
+  /* Die Ereignisse des Froschs: Antippen, ein neuer Traum, ein erreichter
+     Meilenstein, der volle Ring. */
+  const [event, setEvent] = useState<{ kind: FrogEvent; at: number } | null>(null);
+  const seen = useRef({ count: C.count, streak: C.streak });
+  useEffect(() => {
+    const prev = seen.current;
+    if (C.count > prev.count) setEvent({ kind: C.left === 0 && C.todayDone ? "cheer" : C.milestones.length && [3, 7, 14, 30, 60, 100].includes(C.streak) && C.streak > prev.streak ? "milestone" : "dream", at: Date.now() });
+    seen.current = { count: C.count, streak: C.streak };
+  }, [C.count, C.streak, C.left, C.todayDone, C.milestones.length]);
+
+  const [bubble, setBubble] = useState<string | null>(null);
+  const bubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const say = (text: string) => {
+    if (bubbleTimer.current) clearTimeout(bubbleTimer.current);
+    setBubble(text);
+    bubbleTimer.current = setTimeout(() => setBubble(null), 4200);
+  };
+  useEffect(() => () => { if (bubbleTimer.current) clearTimeout(bubbleTimer.current); }, []);
+  const asleep = C.streak === 0 && !C.todayDone;
 
   return (
     <View style={{ alignItems: "center", gap: 6 }}>
       <View style={{ width: W, height: H }}>
-        {/* Das stille Bild: Schein, Bahn, Punkte */}
+        {/* Das stille Bild: Bahn und Punkte */}
         <Svg width={W} height={H} style={StyleSheet.absoluteFill}>
-          <Defs>
-            <RadialGradient id="glow" cx="50%" cy="50%" r="50%">
-              <Stop offset="0.55" stopColor="#ffd58f" stopOpacity={0.18 + 0.3 * near} />
-              <Stop offset="1" stopColor="#ffd58f" stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <Circle cx={cx} cy={cy} r={moonSize * 0.9} fill="url(#glow)" />
           <Circle cx={cx} cy={cy} r={R} fill="none" stroke="rgba(234,240,251,0.08)" strokeWidth={1} />
           {C.days.map((d, i) => {
-            if (d.dreamId && d.img) return null;
+            if ((d.dreamId && d.img) || msAt.has(i) || d.today) return null;
             const [x, y] = at(i);
             if (d.dreamId) return <Circle key={d.key} cx={x} cy={y} r={4} fill="#fffaf0" opacity={0.85} />;   // Traum ohne Bild: ein Lichtpunkt
-            if (d.today) return null;
             return <Circle key={d.key} cx={x} cy={y} r={d.future ? 1.6 : 2.2} fill={d.future ? "rgba(234,240,251,0.2)" : "rgba(234,240,251,0.38)"} />;
           })}
         </Svg>
@@ -72,13 +90,33 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
             })}
           </Svg>
         </Animated.View>
-        {/* Der Mond von heute Nacht */}
-        <View style={[styles.center, { left: cx - moonSize / 2, top: cy - moonSize / 2 }]} pointerEvents="none">
-          <Moon illum={C.moon.illum} waxing={C.moon.waxing} size={moonSize} />
+
+        {/* Der Frosch in der Mitte — antippen: er sagt das nächste Ziel */}
+        <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setEvent({ kind: "tap", at: Date.now() }); say(asleep ? C.sayAsleep : C.say); }}
+          style={[styles.center, { left: cx - frogSize / 2, top: cy - frogSize / 2, width: frogSize, height: frogSize }]}
+          accessibilityRole="button" accessibilityLabel={C.say}>
+          <FrogStage base={asleep ? "sleep" : "idle"} event={event} size={frogSize} />
+        </Pressable>
+
+        {/* Oben: die Belohnung für den vollen Ring */}
+        <View pointerEvents="none" style={[styles.top, { left: cx - 90, top: cy - R - 15 }]}>
+          <View style={styles.topGift}><SymbolView name="gift.fill" size={15} tintColor="#1a1206" /></View>
+          <Text style={styles.topText} numberOfLines={2}>{C.chip}</Text>
         </View>
-        {/* Der nächste Vollmond: das Ziel */}
-        <View pointerEvents="none" style={[styles.full, { left: cx - 9, top: cy - R - 9 }]} />
-        <View pointerEvents="none" style={[styles.chip, { left: cx - 40, top: cy - R + 13 }]}><Text style={styles.chipText}>{C.chip}</Text></View>
+
+        {/* Die Meilensteine als Geschenke auf ihren Nächten */}
+        {C.milestones.map((m) => {
+          const [x, y] = at(m.index);
+          return (
+            <Pressable key={m.nights} hitSlop={8} onPress={() => { Haptics.selectionAsync(); setEvent({ kind: "tap", at: Date.now() }); say(m.say); }}
+              style={[styles.ms, { left: x - GIFT / 2, top: y - GIFT / 2 }]} accessibilityLabel={m.say}>
+              <SymbolView name="gift.fill" size={12} tintColor={colors.gold} />
+              <Text style={styles.msN}>{m.nights}</Text>
+            </Pressable>
+          );
+        })}
+
         {/* Die Traumbilder */}
         {C.days.map((d, i) => {
           if (!d.dreamId || !d.img) return null;
@@ -91,7 +129,15 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
             </Animated.View>
           );
         })}
-        {todayIndex >= 0 && !C.days[todayIndex].dreamId ? <TodayMark x={at(todayIndex)[0]} y={at(todayIndex)[1]} /> : null}
+        {todayIndex >= 0 && !C.days[todayIndex].dreamId && !msAt.has(todayIndex) ? <TodayMark x={at(todayIndex)[0]} y={at(todayIndex)[1]} /> : null}
+
+        {/* Die Sprechblase des Froschs */}
+        {bubble ? (
+          <Animated.View entering={FadeInDown.duration(220)} exiting={FadeOut.duration(200)} pointerEvents="none"
+            style={[styles.bubble, { left: 24, right: 24, top: cy - frogSize / 2 - 46 }]}>
+            <Text style={styles.bubbleText}>{bubble}</Text>
+          </Animated.View>
+        ) : null}
       </View>
       <Text style={styles.count}>{C.countLine.toUpperCase()}</Text>
       <Text style={styles.line}>{C.line}</Text>
@@ -113,14 +159,18 @@ function TodayMark({ x, y }: { x: number; y: number }) {
 }
 
 const styles = StyleSheet.create({
-  center: { position: "absolute" },
-  full: { position: "absolute", width: 18, height: 18, borderRadius: 9, backgroundColor: "#fff0c8", shadowColor: "#f6c65b", shadowOpacity: 0.9, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
-  chip: { position: "absolute", width: 80, alignItems: "center", paddingVertical: 3, borderRadius: 10, backgroundColor: colors.gold },
-  chipText: { color: "#1a1206", fontSize: 11, fontWeight: "700" },
+  center: { position: "absolute", alignItems: "center", justifyContent: "center" },
+  top: { position: "absolute", width: 180, alignItems: "center", gap: 4 },
+  topGift: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: colors.gold, shadowColor: colors.gold, shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
+  topText: { color: colors.gold, fontSize: 11.5, fontWeight: "600", textAlign: "center" },
+  ms: { position: "absolute", width: GIFT, height: GIFT, borderRadius: GIFT / 2, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(12,20,35,0.92)", borderWidth: 1, borderColor: "rgba(246,198,91,0.75)" },
+  msN: { position: "absolute", bottom: -13, color: colors.gold, fontSize: 9.5, fontWeight: "700" },
   thumbWrap: { position: "absolute", width: THUMB, height: THUMB, borderRadius: THUMB / 2, borderWidth: 1.2, borderColor: "rgba(255,231,176,0.8)", overflow: "hidden", backgroundColor: colors.bg2 },
   thumb: { width: "100%", height: "100%" },
   today: { position: "absolute", width: 20, height: 20, borderRadius: 10, borderWidth: 1.4, borderColor: colors.gold, alignItems: "center", justifyContent: "center" },
   todayDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.gold },
+  bubble: { position: "absolute", paddingVertical: 9, paddingHorizontal: 14, borderRadius: 16, backgroundColor: "rgba(12,20,35,0.95)", borderWidth: 1, borderColor: "rgba(246,198,91,0.45)" },
+  bubbleText: { color: colors.text, fontSize: 13.5, lineHeight: 19, textAlign: "center" },
   count: { color: colors.gold, fontSize: 11, letterSpacing: 1.6, fontWeight: "600" },
   line: { color: colors.muted, fontSize: 14, lineHeight: 20, textAlign: "center", paddingHorizontal: 20 },
   thread: { fontFamily: fonts.serif, fontStyle: "italic", fontSize: 14, color: colors.gold, textAlign: "center" },

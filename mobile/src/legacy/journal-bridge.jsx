@@ -202,16 +202,34 @@ function snapshot() {
       const C = t.cycle;
       const ring = cycleRing(cycleDreams, new Date());
       const label = (id) => (id ? t.symbols.byId[id]?.label || id : null);
-      const m = moonForNight(new Date());
+      /* Die Meilensteine der Serie als Platzhalter auf den kommenden
+         Nächten (Antons Idee 03.10.): Wer jede Nacht träumt, erreicht
+         Meilenstein m an genau diesem Tag. Heute zählt mit, solange heute
+         noch kein Traum steht. */
+      const ti = ring.days.findIndex((d) => d.today);
+      const first = ti < 0 ? 0 : run.today ? ti + 1 : ti;          // die nächste Nacht, die die Serie verlängert
+      const base = run.streak;
+      const milestones = [];
+      for (const ms of MILESTONES) {
+        if (ms.nights <= base) continue;
+        const idx = first + (ms.nights - base - 1);
+        if (idx >= ring.days.length) break;
+        const g = giftAt(ms.nights);
+        milestones.push({ index: idx, nights: ms.nights, gift: g > 0 ? t.streakBoard.giftBadge(g) : null, say: C.milestoneSay(ms.nights, idx - (ti < 0 ? 0 : ti), t.streakBoard.rewards[ms.reward], g > 0 ? t.streakBoard.giftBadge(g) : null) });
+      }
+      const nextMs = milestones[0];
       return {
         days: ring.days.map((d) => ({ key: d.key, today: d.today, future: d.future, dreamId: d.dreamId, img: d.img })),
         threads: ring.threads.map(([a, b]) => [a, b]),
-        left: ring.left, count: ring.count,
-        moon: { illum: m.illum, waxing: m.waxing },
+        left: ring.left, count: ring.count, streak: base, todayDone: run.today,
+        milestones,
         chip: C.chip,
         countLine: C.count(ring.count),
         line: ring.left > 0 ? C.left(ring.left) : C.fullTonight,
         thread: ring.top && ring.top.n > 1 ? C.thread(label(ring.top.motif), ring.top.n) : "",
+        /* Was der Frosch beim Antippen sagt: das nächste Ziel. */
+        say: nextMs ? nextMs.say : ring.left > 0 ? C.left(ring.left) : C.fullTonight,
+        sayAsleep: C.asleep,
       };
     })(),
     /* Ein fälliger Mondfilm — die Wurzel-Schicht (glimpse-layer.tsx) macht
@@ -219,6 +237,7 @@ function snapshot() {
     moonFilm: (() => {
       const f = pendingMoonFilm(cycleDreams, s.moonFilms || [], new Date());
       if (!f) return null;
+      // Benannt nach dem Monat, in dem der Ring voll wurde.
       const month = f.full.toLocaleDateString(s.language === "de" ? "de-DE" : "en-GB", { month: "long" });
       const motif = f.motif ? t.symbols.byId[f.motif]?.label || f.motif : null;
       return {
