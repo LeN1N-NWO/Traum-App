@@ -11,7 +11,8 @@ import { colors, fonts } from "@/theme";
    und die Pille, die sie öffnet, erschien erst ab der ersten Nacht — jetzt
    ist die Pille immer da und die Seite erzählt:
      · die Zahl der Nächte zählt hoch,
-     · die letzten sieben Nächte als Monde (voll = Traum notiert),
+     · die letzten sieben Nächte als Monde (voll = Film-Nacht, halb = nur
+       Text oder leer — hält, zählt nicht; seit 03.10.),
      · der Weg zum nächsten Meilenstein als Balken, mit dem Geschenk daran,
      · die ganze Leiter, Stufe für Stufe eingeblendet,
      · die Schlummernächte, die eine verpasste Nacht auffangen.
@@ -53,7 +54,7 @@ export function StreakSheet({ visible, onClose, home, weekdays }: { visible: boo
           {home.week.map((d, i) => (
             <Animated.View key={i} entering={visible ? FadeInDown.delay(120 + i * 70).duration(380) : undefined} style={styles.day}>
               <View style={[styles.dayMoon, d.today && styles.dayToday]}>
-                <Moon illum={d.done ? 1 : 0.04} waxing size={30} />
+                <Moon illum={d.done ? 1 : d.held ? 0.45 : 0.04} waxing size={30} />
               </View>
               <Text style={[styles.dayName, d.today && { color: colors.gold }]}>{weekdays[d.weekday] ?? ""}</Text>
             </Animated.View>
@@ -64,7 +65,7 @@ export function StreakSheet({ visible, onClose, home, weekdays }: { visible: boo
         <View style={styles.progressCard}>
           <View style={styles.progressHead}>
             <Text style={styles.progressTitle}>{next ? next.title : B.lede}</Text>
-            {next?.gift ? <Text style={styles.gift}>{next.gift}</Text> : null}
+            {next?.gift ? <Text style={styles.gift}>🎁 {next.gift}</Text> : null}
           </View>
           <View style={styles.track}><Animated.View style={[styles.fill, barStyle]} /></View>
           <Text style={styles.lede}>{B.lede}</Text>
@@ -75,12 +76,13 @@ export function StreakSheet({ visible, onClose, home, weekdays }: { visible: boo
             style={[styles.rung, r.state === "next" && styles.rungNext, r.state === "far" && { opacity: 0.55 }]}>
             <View style={[styles.check, r.state === "done" && styles.checkDone]}><Text style={[styles.checkText, r.state === "done" && { color: colors.bg }]}>{r.state === "done" ? "✓" : r.nights}</Text></View>
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.rungTitle}>{r.title}{r.gift ? <Text style={styles.giftInline}>  {r.gift}</Text> : null}</Text>
+              <Text style={styles.rungTitle}>{r.title}{r.gift ? <Text style={styles.giftInline}>  🎁 {r.gift}</Text> : null}</Text>
               <Text style={styles.rungReward}>{r.reward}</Text>
             </View>
           </Animated.View>
         ))}
         <View style={styles.shield}><Text style={styles.rungTitle}>🌙 {B.shieldTitle}</Text><Text style={styles.rungReward}>{B.shieldText}</Text></View>
+        {B.note ? <Text style={styles.rungReward}>{B.note}</Text> : null}
         <Pressable style={styles.close} onPress={onClose}><Text style={styles.closeText}>OK</Text></Pressable>
       </ScrollView>
     </Modal>

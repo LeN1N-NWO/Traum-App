@@ -68,23 +68,20 @@ export default {
   },
   /* Der Traum-Vorsatz im Schlaf-Tab (27.09.). */
   /* Dein Sternbild auf der Startseite (28.09.). */
-  sky: {
-    unnamed: "The ???",
-    named: "Your constellation",
-    progress: (lit, of) => `${lit} of ${of} nights`,
-    /* Was am Ziel der Stufe wartet — kurz fürs Schild, lang für die Zeile. */
-    chip: (r) => `+${r.credits} ✦`,
-    reward: (r) => [`+${r.credits} ${r.credits === 1 ? "credit" : "credits"}`, r.name ? "its name" : null, r.snooze ? "a snooze night" : null].filter(Boolean).join(" · "),
-    until: (left, reward) => `${left} more ${left === 1 ? "night" : "nights"} to: ${reward}` + ".",
-    gift: (stage, credits, snooze) => `✦ ${stage} nights — ${credits} ${credits === 1 ? "credit" : "credits"}${snooze ? " and a snooze night" : ""} from us`,
-    complete: "Your constellation is complete. Every star is a night you kept.",
-    hint: "Every night you note lights a star.",
-    names: {
-      water: "The Swimmer", flying: "The Flyer", falling: "The Falling One", chase: "The Hunted", home: "The House",
-      city: "The City", forest: "The Forest", sky: "The Stargazer", lost: "The Wanderer", missing: "The Latecomer",
-      exposed: "The Unveiled", teeth: "The Smile", animal: "The Beast", monster: "The Dragon", family: "The Family",
-      stranger: "The Stranger", partner: "The Lovers", fear: "The Watcher", joy: "The Dancer", grief: "The Mourner",
-    },
+  /* Der Mondring auf der Startseite (03.10.). */
+  /* Der Ring auf der Startseite (03.10.): Nächte von Vollmond zu Vollmond,
+     in der Mitte der Frosch, oben die Belohnung für den vollen Ring. */
+  cycle: {
+    chip: "Full ring: your month as a film",
+    count: (n) => n === 0 ? "No dreams in this ring yet" : `${n} ${n === 1 ? "dream" : "dreams"} in this ring`,
+    left: (n) => `${n} more ${n === 1 ? "night" : "nights"} — then your month becomes a film.`,
+    fullTonight: "Last night of the ring — tomorrow your month becomes a film.",
+    thread: (label, n) => `Strongest thread: ${label} (${n}×)`,
+    milestoneSay: (nights, inDays, reward, gift) => `${inDays <= 0 ? "Tonight" : inDays === 1 ? "Tomorrow" : `In ${inDays} nights`}: ${nights} in a row${gift ? ` — 🎁 ${gift}` : ` — ${reward}`}`,
+    asleep: "Zzz … tell me a dream and I'll wake up.",
+    filmTitle: (month, motif) => motif ? `Your ${month} in dreams · ${motif}` : `Your ${month} in dreams`,
+    readyTitle: "Your month as a film is here",
+    readyBody: (n) => `${n} dreams from the last ring, as one film.`,
   },
   intention: {
     title: "What would you like to dream about?",
@@ -111,9 +108,31 @@ export default {
     title: "Your streak",
     /* Die Mini-Geschenke (Antons Ja 22.08.). Der Ton ist bewusst nüchtern:
        ein Credit ist ein Bild, keine Konfetti-Kanone. */
-    gift: (nights, credits) =>
-      `✦ ${nights} nights — ${credits} ${credits === 1 ? "credit" : "credits"} from us`,
+    /* Seit 03.10. (Antons Ansage „ein Credit klingt nach gar nichts"):
+       Geschenke heißen nach dem, was man damit macht. */
+    gift: (nights, label) => `🎁 ${nights} nights in a row — your gift: ${label}`,
     giftBadge: (credits) => `+${credits} ${credits === 1 ? "credit" : "credits"}`,
+    giftKinds: {
+      glimpse: () => "A free Glimpse",
+      film: () => "Your first dream film",
+      credits: (n) => `${n} credits`,
+      month: (n) => `${n} credits — a whole month`,
+    },
+    giftShort: { glimpse: "Glimpse", film: "Film", credits: (n) => `+${n}`, month: (n) => `+${n}` },
+    giftWorth: (n) => `worth ${n} ${n === 1 ? "credit" : "credits"}`,
+    giftSheet: {
+      soon: (n) => (n <= 0 ? "Within reach tonight" : n === 1 ? "1 more film night" : `${n} more film nights`),
+      inside: "Inside",
+      surprise: "+ a surprise for your menagerie",
+      rule: "Film nights count: a dream with a Glimpse or a film. A dream in words only keeps your streak alive, but doesn't count.",
+      valid: (days) => `Valid for ${days} days once it's yours.`,
+      tapToOpen: "Tap to open",
+      openTitle: (nights) => `${nights} film nights in a row!`,
+      expires: (date) => `Yours until ${date}.`,
+      redeem: { glimpse: "Make a Glimpse", film: "Make your film", credits: "Use it now", month: "Use it now" },
+      later: "Later",
+      close: "Close",
+    },
     /* Die Schlummernacht — der Ton ist bewusst entlastend, nicht mahnend:
        Sie ist eingesprungen, es ist nichts passiert, weiter geht's. */
     snoozeUsed: (n) => (n === 1
@@ -136,7 +155,7 @@ export default {
       keeper: "Keeper of dreams — two months, few ever get here.",
       hundred: "One hundred nights. Your journal is a book now.",
     },
-    note: "The streak counts nights with a written dream — never the amount. A hundred dreams in one day is still one night.",
+    note: "The streak counts film nights: nights with a dream as a Glimpse or a film — never the amount. A dream in words only keeps the streak alive, but doesn't count.",
   },
 
   /* Die Mondphasen (moon.js). Ortsunabhängig — die Phase ist überall

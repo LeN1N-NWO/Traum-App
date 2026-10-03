@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { canAfford, spend, totalCredits, refillAllowance, applyAllowanceGrant } from "./credits.js";
+import { canAfford, spend, totalCredits, refillAllowance, applyAllowanceGrant, addGift, giftLeft, GIFT_DAYS } from "./credits.js";
 import { SUBSCRIPTIONS, allowanceGrant } from "./plans.js";
 import { priceForImages, IMAGE_COUNTS, PRICES, PREVIEW_COUNT } from "./pricing.js";
 
@@ -93,4 +93,21 @@ test("a new subscription year starts fresh — last year's rest expires, bought 
 test("the monthly subscription still sets, never adds", () => {
   const month = SUBSCRIPTIONS.find((p) => p.period === "month");
   expect(applyAllowanceGrant({ credits: 7, allowance: 30 }, allowanceGrant(month, 5))).toEqual({ allowance: 160, credits: 7 });
+});
+
+/* Der Geschenk-Topf (03.10.): zählt mit, geht nach dem Abo und vor dem
+   Gekauften weg, und verfällt nach GIFT_DAYS. */
+test("gift credits count, are spent before bought ones, and expire", () => {
+  const now = new Date("2026-10-03T10:00:00");
+  const s = { credits: 5, allowance: 2, ...addGift({}, 31, now) };
+  expect(totalCredits(s, now)).toBe(38);
+  const p = spend(s, 10, now);
+  expect(p).toEqual({ allowance: 0, credits: 5, giftCredits: { amount: 23, until: s.giftCredits.until } });
+  const later = new Date(now.getTime() + (GIFT_DAYS + 1) * 864e5);
+  expect(giftLeft(s, later)).toBe(0);
+  expect(totalCredits(s, later)).toBe(7);
+  expect(spend(s, 7, later)).toEqual({ allowance: 0, credits: 0 });
+  // Ein zweites Geschenk legt dazu und verlängert.
+  const more = addGift({ ...s, ...p }, 20, now);
+  expect(more.giftCredits.amount).toBe(43);
 });

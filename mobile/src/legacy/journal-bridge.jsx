@@ -13,13 +13,13 @@ import "./vite-env.js";                       // ⚠ zuerst, API_BASE
 import { useEffect } from "react";
 import { loadState, saveState } from "../../../src/lib/storage.js";
 import { STREAK_CAP } from "../../../src/lib/streak.js";
-import { dreamNightCount, snoozeBridge, snoozeEarn, streakInfo } from "../../../src/lib/nights.js";
+import { dayKey, isFilmNight, isMoonFilm, MOON_FILM_KIND, snoozeBridge, snoozeEarn, streakInfo } from "../../../src/lib/nights.js";
 import { hasPendingJobs, collectTick } from "../../../src/lib/collector.js";
 import { failureTextKey } from "../../../src/lib/falError.js";
 import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
-import { totalCredits, spend, applyAllowanceGrant } from "../../../src/lib/credits.js";
+import { totalCredits, spend, applyAllowanceGrant, giftLeft, GIFT_DAYS } from "../../../src/lib/credits.js";
 import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchGrid, sketchSound } from "../../../src/lib/api.js";
 import { pickParticles, buildSketchGridPrompt } from "../../../src/lib/sketchPrompt.js";
 import { sketchFreeLeft, sketchCost, countSketch, sketchTiming, clampStrips, SKETCH_STRIPS, SCENES_PER_STRIP } from "../../../src/lib/sketchQuota.js";
@@ -30,8 +30,8 @@ import { selectBeats, shotPlan } from "../../../src/lib/cut.js";
 import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PACE } from "../../../src/lib/video.js";
 import { startsFree } from "../../../src/wizard/useWizard.js";
 import { beatsForCount } from "../../../src/lib/beats.js";
-import { reflectionContext, realDreams as realDreamsOf, symbolCounts } from "../../../src/lib/atlas.js";
-import { SKY_REWARDS, skyGift, skyState } from "../../../src/lib/constellation.js";
+import { reflectionContext } from "../../../src/lib/atlas.js";
+import { cycleRing, pendingMoonFilm } from "../../../src/lib/moonCycle.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
 import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
@@ -47,9 +47,9 @@ import { backupPayload, mergeShared } from "../../../src/lib/journalBackup.js";
 import { FORM_FIELDS, profileFromAnswers } from "../../../src/lib/onboardingForm.js";
 import { MASCOTS, DEFAULT_MASCOT } from "../../../src/lib/mascots.js";
 import { zodiacOf } from "../../../src/lib/zodiac.js";
-import { SYMBOLS, SYMBOL_CATEGORIES, symbolOccurrences } from "../../../src/lib/symbols.js";
+import { SYMBOLS, SYMBOL_CATEGORIES, detectSymbols, symbolOccurrences } from "../../../src/lib/symbols.js";
 import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
-import { MILESTONES, nextMilestone, giftAt, giftFor } from "../../../src/lib/streakBoard.js";
+import { MILESTONES, nextMilestone, giftFor, giftInfo, giftLabel } from "../../../src/lib/streakBoard.js";
 import { nextSnoozeIn } from "../../../src/lib/streak.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
 import { genId } from "../../../src/lib/storage.js";
@@ -148,6 +148,16 @@ function snapshot() {
       };
     })
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  /* Die echten Träume für den Mondring: Tag, Motiv, Bild (Mondfilme und
+     „Nichts hängengeblieben" zählen nicht). */
+  const itemById = new Map(items.map((e) => [e.id, e]));
+  const cycleDreams = (s.journal || [])
+    .filter((e) => e && !isBlank(e) && !isMoonFilm(e) && !String(e.id || "").startsWith("e_seed"))
+    .map((e) => {
+      const it = itemById.get(e.id);
+      const img = it ? it.poster || it.images[0] || (it.media?.kind === "image" ? it.media.url : null) : null;
+      return { id: e.id, day: dayKey(e.createdAt), motif: detectSymbols([e.text || "", ...(e.analysis?.beats || [])].join(" "))[0] || null, img };
+    });
   /* Die Startseite: Serie, offene Aufträge, heutige Nacht, Check-in,
      letzter Traum — dieselben Regeln wie HomeScreen.jsx, nur als Daten. */
   /* Der Traum-Vorsatz (27.09., Antons Ansage: „What would you like to
@@ -159,11 +169,32 @@ function snapshot() {
   const streak = run.streak;
   const last = items[0] || null;
   const today = checkinOn(s.checkins);
+  /* Ein frisch erreichtes Geschenk, bis die Startseite es geöffnet hat
+     (streakBoard.js giftFor → giftUnseen; Befehl `giftSeen`). Eingelöst
+     wird am jüngsten Traum mit Bild — dort steht „Film machen". */
+  const giftReveal = (() => {
+    const u = s.giftUnseen;
+    if (!u || !u.kind) return null;
+    const G = t.streakBoard.giftSheet;
+    const latest = [...(s.journal || [])].filter(isFilmNight).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    const until = s.giftCredits?.until && giftLeft(s) > 0
+      ? new Date(s.giftCredits.until).toLocaleDateString(s.language === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long" }) : null;
+    return {
+      nights: u.nights, kind: u.kind, credits: u.credits,
+      title: G.openTitle(u.nights), label: giftLabel(t, u),
+      worth: u.kind !== "credits" ? t.streakBoard.giftWorth(u.credits) : null,
+      reward: (() => { const m = MILESTONES.find((x) => x.nights === u.nights); return m ? t.streakBoard.rewards[m.reward] : null; })(),
+      expires: until ? G.expires(until) : null,
+      tapToOpen: G.tapToOpen, redeem: G.redeem[u.kind] || G.redeem.credits, later: G.later,
+      target: u.kind === "glimpse" || !latest ? "dream" : "journal", dreamId: latest ? latest.id : null,
+    };
+  })();
   const home = {
+    giftReveal,
     streak,
     atRisk: run.atRisk,
     rendering: hasPendingJobs(s.journal),
-    nightMarked: nightMarked(s.journal),
+    nightMarked: nightMarked((s.journal || []).filter((e) => !isMoonFilm(e))),
     checkin: today ? today.sleep : null,
     lastId: last ? last.id : null,
     streakLine: streak > 0 ? t.home.streak(streak) : t.home.streakZero,
@@ -185,29 +216,83 @@ function snapshot() {
       const c = cards[Math.floor(Date.now() / 864e5) % cards.length];
       return { id: c.id, title: c.title, meta: `${t.knowledge.categories?.[c.category] || c.category} · ${c.year}` };
     })(),
-    /* Dein Sternbild (28.09., Antons Wahl): Nächte zählen, Name nach dem
-       häufigsten Motiv — erst, wenn die erste Stufe voll ist. */
-    sky: (() => {
-      const nights = dreamNightCount(s.journal);
-      const st = skyState(nights);
-      const top = st.done ? symbolCounts(realDreamsOf(s.journal))[0] : null;
-      const S = t.sky;
-      const r = st.next ? SKY_REWARDS[st.next] : null;
+    /* Der Ring mit Fäden (03.10., Antons Wahl): die Nächte von Vollmond zu
+       Vollmond, jede mit ihrem Traumbild, Fäden zwischen gleichen Motiven;
+       am Morgen nach dem Vollmond der Mondfilm (src/lib/moonCycle.js). */
+    cycle: (() => {
+      const C = t.cycle;
+      const ring = cycleRing(cycleDreams, new Date());
+      const label = (id) => (id ? t.symbols.byId[id]?.label || id : null);
+      /* Die Meilensteine der Serie als Platzhalter auf den kommenden
+         Nächten (Antons Idee 03.10.): Wer jede Nacht träumt, erreicht
+         Meilenstein m an genau diesem Tag. Heute zählt mit, solange heute
+         noch kein Traum steht. */
+      const ti = ring.days.findIndex((d) => d.today);
+      const first = ti < 0 ? 0 : run.today ? ti + 1 : ti;          // die nächste Nacht, die die Serie verlängert
+      const base = run.streak;
+      const milestones = [];
+      for (const ms of MILESTONES) {
+        if (ms.nights <= base) continue;
+        const idx = first + (ms.nights - base - 1);
+        if (idx >= ring.days.length) break;
+        const g = giftInfo(ms.nights);
+        const label = g ? giftLabel(t, g) : null;
+        const inDays = idx - (ti < 0 ? 0 : ti);
+        const short = g ? t.streakBoard.giftShort?.[g.kind] : null;
+        milestones.push({
+          index: idx, nights: ms.nights, gift: label,
+          kind: g ? g.kind : null, credits: g ? g.credits : 0,
+          short: typeof short === "function" ? short(g.credits) : short || null,
+          worth: g && g.kind !== "credits" ? t.streakBoard.giftWorth(g.credits) : null,
+          soon: t.streakBoard.giftSheet.soon(inDays),
+          reward: t.streakBoard.rewards[ms.reward],
+          say: C.milestoneSay(ms.nights, inDays, t.streakBoard.rewards[ms.reward], label),
+        });
+      }
+      const nextMs = milestones[0];
       return {
-        nights, introSeen: !!s.skyIntroSeen,
-        name: st.done ? (top && S.names[top.id]) || S.named : S.unnamed,
-        line: st.complete ? S.complete : S.until(st.left, S.reward(r), st.done === 0),
-        count: st.next ? S.progress(st.lit, st.next) : S.progress(st.lit, st.lit),
-        chip: r ? S.chip(r) : "",
-        hint: S.hint,
+        days: ring.days.map((d) => ({ key: d.key, today: d.today, future: d.future, dreamId: d.dreamId, img: d.img })),
+        threads: ring.threads.map(([a, b]) => [a, b]),
+        left: ring.left, count: ring.count, streak: base, todayDone: run.today,
+        milestones,
+        /* Das Geschenk-Blatt (03.10.): was in der Schachtel liegt und wie
+           man die Serie verlängert. */
+        sheet: {
+          inside: t.streakBoard.giftSheet.inside, surprise: t.streakBoard.giftSheet.surprise,
+          rule: t.streakBoard.giftSheet.rule, valid: t.streakBoard.giftSheet.valid(GIFT_DAYS),
+          close: t.streakBoard.giftSheet.close,
+        },
+        chip: C.chip,
+        countLine: C.count(ring.count),
+        line: ring.left > 0 ? C.left(ring.left) : C.fullTonight,
+        thread: ring.top && ring.top.n > 1 ? C.thread(label(ring.top.motif), ring.top.n) : "",
+        /* Was der Frosch beim Antippen sagt: das nächste Ziel. */
+        say: nextMs ? nextMs.say : ring.left > 0 ? C.left(ring.left) : C.fullTonight,
+        sayAsleep: C.asleep,
+      };
+    })(),
+    /* Ein fälliger Mondfilm — die Wurzel-Schicht (glimpse-layer.tsx) macht
+       ihn auf dem iPhone und meldet ihn mit `moonFilm` zurück. */
+    moonFilm: (() => {
+      const f = pendingMoonFilm(cycleDreams, s.moonFilms || [], new Date());
+      if (!f) return null;
+      // Benannt nach dem Monat, in dem der Ring voll wurde.
+      const month = f.full.toLocaleDateString(s.language === "de" ? "de-DE" : "en-GB", { month: "long" });
+      const motif = f.motif ? t.symbols.byId[f.motif]?.label || f.motif : null;
+      return {
+        key: f.key, title: t.cycle.filmTitle(month, motif),
+        dreams: f.dreams.map((d) => ({ id: d.id, img: d.img })),
+        readyTitle: t.cycle.readyTitle, readyBody: t.cycle.readyBody(f.dreams.length),
       };
     })(),
     week: (() => {
       const key = (d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-      const nights = new Set((s.journal || []).map((e) => key(new Date(e.createdAt))));
+      // Voll = Film-Nacht (zählt), halb = Text-Traum oder leere Nacht (hält) — seit 03.10.
+      const films = new Set((s.journal || []).filter(isFilmNight).map((e) => key(new Date(e.createdAt))));
+      const nights = new Set((s.journal || []).filter((e) => !isMoonFilm(e)).map((e) => key(new Date(e.createdAt))));
       return Array.from({ length: 7 }, (_, k) => {
         const d = new Date(Date.now() - (6 - k) * 864e5);
-        return { weekday: d.getDay(), done: nights.has(key(d)), today: k === 6 };
+        return { weekday: d.getDay(), done: films.has(key(d)), held: !films.has(key(d)) && nights.has(key(d)), today: k === 6 };
       });
     })(),
     intention,
@@ -220,9 +305,10 @@ function snapshot() {
         lede: nxt ? t.streakBoard.next(nxt.nights - streak) : t.streakBoard.done,
         rungs: MILESTONES.map((m) => ({
           nights: m.nights, title: t.streakBoard.rung(m.nights), reward: t.streakBoard.rewards[m.reward],
-          gift: giftAt(m.nights) > 0 ? t.streakBoard.giftBadge(giftAt(m.nights)) : null,
+          gift: giftInfo(m.nights) ? giftLabel(t, giftInfo(m.nights)) : null,
           state: streak >= m.nights ? "done" : nxt && m.nights === nxt.nights ? "next" : "far",
         })),
+        note: t.streakBoard.note,
         shieldTitle: t.streakBoard.snoozeTitle(snoozes),
         shieldText: nextIn == null ? t.streakBoard.snoozeFull : t.streakBoard.snoozeNext(nextIn),
       };
@@ -1038,6 +1124,28 @@ function runSketchFail(cmd, onResult) {
   return true;
 }
 
+/* Der Mondfilm (03.10.): als eigener Eintrag ins Journal — kein Traum,
+   zählt weder für Serie noch Ring (nights.js isMoonFilm). */
+function runMoonFilm(cmd, onResult) {
+  const s = loadState();
+  const o = cmd.moonFilm || {};
+  const done = s.moonFilms || [];
+  if (!o.key || typeof o.film !== "string" || !o.film.startsWith("sketch:")) { onResult({ n: cmd.n, error: "invalid" }); return true; }
+  if (done.includes(o.key)) { onResult({ n: cmd.n, result: { ok: true, already: true } }); return true; }
+  const stills = (o.stills || []).filter((u) => typeof u === "string" && u.startsWith("sketch:"));
+  const entry = {
+    id: genId("e"), kind: MOON_FILM_KIND, createdAt: new Date().toISOString(), moonKey: o.key,
+    title: String(o.title || "").slice(0, 80), tagline: "", text: String(o.text || ""), originalText: "",
+    media: { type: "image", urls: stills, source: "sketch" }, poster: stills[0],
+    films: [{ url: o.film, at: new Date().toISOString(), kind: "sketch", ...(o.seconds ? { seconds: Math.round(o.seconds) } : {}) }],
+    mode: "film", format: "9:16", imageCount: 0, references: [], moon: moonForNight(),
+  };
+  saveState({ ...s, journal: [...(s.journal || []), entry], moonFilms: [...done, o.key] });
+  onJournalTick?.();
+  onResult({ n: cmd.n, entryId: entry.id });
+  return true;
+}
+
 async function runAsync(cmd, onResult) {
   if (cmd.type === "order") return runOrder(cmd, onResult);
   if (cmd.type === "sketch") return runSketch(cmd, onResult);
@@ -1045,6 +1153,7 @@ async function runAsync(cmd, onResult) {
   if (cmd.type === "sketchFail") return runSketchFail(cmd, onResult);
   if (cmd.type === "sketchSweep") return runSketchSweep(cmd, onResult);
   if (cmd.type === "sketchSwap") return runSketchSwap(cmd, onResult);
+  if (cmd.type === "moonFilm") return runMoonFilm(cmd, onResult);
   if (cmd.type === "sketchPrep") return runSketchPrep(cmd, onResult);
   if (cmd.type === "sketchGrid") return runSketchGrid(cmd, onResult);
   if (cmd.type === "sketchSound") return runSketchSound(cmd, onResult);
@@ -1176,8 +1285,8 @@ function run(cmd) {
   let patch = null;
   if (cmd.type === "blankNight") patch = { journal: [...(s.journal || []), blankNight()] };
   else if (cmd.type === "checkin") patch = { checkins: setCheckin(s.checkins, cmd.level) };
-  else if (cmd.type === "skyIntro") patch = { skyIntroSeen: true };
   else if (cmd.type === "intention") patch = { intention: String(cmd.text || "").trim() ? { text: String(cmd.text).trim().slice(0, 140), at: new Date().toISOString() } : null };
+  else if (cmd.type === "giftSeen") patch = { giftUnseen: null };
   else if (cmd.type === "refreshStreak") { /* seit 28.09. aus dem Journal gerechnet — nichts zu speichern */ }
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };
@@ -1303,7 +1412,7 @@ function streakChores(onResult) {
      der App überlief. */
   const due = (st) => {
     const streak = streakOf(st).streak;
-    return snoozeBridge(st) || snoozeEarn(st, streak) || giftFor({ ...st, streak }) || skyGift(st, dreamNightCount(st.journal));
+    return snoozeBridge(st) || snoozeEarn(st, streak) || giftFor({ ...st, streak });
   };
   if (!due(loadState())) return;
   if (!holdChores()) return;
@@ -1321,15 +1430,7 @@ function streakChores(onResult) {
   const gift = giftFor({ ...s2, streak: streakOf(s2).streak });
   if (gift) {
     saveState({ ...s2, ...gift.patch });
-    onResult?.({ n: -1, toast: t.streakBoard.gift(gift.nights, gift.credits), haptic: "success" });
-  }
-  // Die Stufen des Sternbilds (28.09.): je Meilenstein mindestens ein Credit.
-  for (let k = 0; k < 6; k++) {
-    const s3 = loadState();
-    const sky = skyGift(s3, dreamNightCount(s3.journal));
-    if (!sky) break;
-    saveState({ ...s3, ...sky.patch });
-    onResult?.({ n: -1, toast: t.sky.gift(sky.stage, sky.credits, sky.snooze), haptic: "success" });
+    onResult?.({ n: -1, toast: t.streakBoard.gift(gift.nights, giftLabel(t, gift)), haptic: "success" });
   }
 }
 

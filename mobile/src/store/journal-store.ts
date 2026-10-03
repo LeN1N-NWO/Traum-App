@@ -15,16 +15,23 @@ export type Labels = Record<string, string>;
 export type MoonInfo = { phase: string; illum: number; waxing: boolean; label: string; lit: string };
 export type MoonStripDay = { key: string; day: number; weekday: number; today: boolean; phase: string; illum: number; waxing: boolean; label: string; sleep: number | null };
 export type MoonData = { title: string; tonight: string; weekdays: string[]; strip: MoonStripDay[] };
+export type GiftKind = "glimpse" | "film" | "credits" | "month";
+export type CycleMilestone = { index: number; nights: number; gift: string | null; kind: GiftKind | null; credits: number; short: string | null; worth: string | null; soon: string; reward: string; say: string };
+export type GiftReveal = { nights: number; kind: GiftKind; credits: number; title: string; label: string; worth: string | null; reward: string | null; expires: string | null; tapToOpen: string; redeem: string; later: string; target: "dream" | "journal"; dreamId: string | null };
+
 export type HomeData = {
   streak: number; atRisk: boolean; rendering: boolean; nightMarked: boolean; checkin: number | null;
   lastId: string | null; streakLine: string; streakNote: string;
   checkinLevels: { level: number; label: string; emoji: string }[];
   moon: { illum: number; waxing: boolean; label: string };
   article: { id: string; title: string; meta: string } | null;
-  week: { weekday: number; done: boolean; today: boolean }[];
-  sky: { nights: number; introSeen: boolean; name: string; line: string; count: string; chip: string; hint: string };
+  week: { weekday: number; done: boolean; held?: boolean; today: boolean }[];
+  cycle: { days: { key: string; today: boolean; future: boolean; dreamId: string | null; img: string | null }[]; threads: [number, number][]; left: number; count: number; streak: number; todayDone: boolean; milestones: CycleMilestone[]; sheet: { inside: string; surprise: string; rule: string; valid: string; close: string }; chip: string; countLine: string; line: string; thread: string; say: string; sayAsleep: string };
+  /* Ein frisch erreichtes Meilenstein-Geschenk, bis es geöffnet ist (03.10.). */
+  giftReveal: GiftReveal | null;
+  moonFilm: { key: string; title: string; dreams: { id: string; img: string }[]; readyTitle: string; readyBody: string } | null;
   intention: string;
-  board: { title: string; nights: string; lede: string; rungs: { nights: number; title: string; reward: string; gift: string | null; state: "done" | "next" | "far" }[]; shieldTitle: string; shieldText: string };
+  board: { title: string; nights: string; lede: string; rungs: { nights: number; title: string; reward: string; gift: string | null; state: "done" | "next" | "far" }[]; note: string; shieldTitle: string; shieldText: string };
 };
 export type SoundMix = { volumes: Record<string, number>; timer: number; autoStart: boolean };
 export type SoundsData = { lede: string; names: Record<string, string>; descs: Record<string, string>; timer: string; timerOff: string; timerMin: Record<number, string>; autoStart: string; background: string; mix: SoundMix | null };
@@ -117,7 +124,7 @@ export type OrderRequest = {
   styleId: string; pace: string; videoModel: string; quality: string | null; format?: string; seconds: number; mode?: "film" | "images";
   assignmentOverrides?: Record<string, { avatarId?: string; free?: boolean }>;
 };
-export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "syncExport" | "syncImport" | "sketch" | "sketchPrep" | "sketchGrid" | "sketchSound" | "sketchStart" | "sketchFail" | "sketchSweep" | "sketchSwap" | "intention" | "skyIntro"; order?: OrderRequest; keep?: string[]; dreams?: unknown[]; sketch?: SketchRequest; sketchPrep?: SketchPrepRequest; sketchGrid?: { prompt?: string; prompts?: string[]; refs: string[] }; sketchSound?: { styleId: string; mood: string; beats: string[]; seconds: number }; sketchStart?: { entryId: string | null; text: string; originalText: string; analysis: any; styleId: string }; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
+export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refreshStreak" | "analyze" | "cast" | "journalView" | "saveDream" | "soundMix" | "sleepCheck" | "reminders" | "voice" | "withdraw" | "deleteDream" | "paywallSeen" | "consent" | "attachAudio" | "pendingAudio" | "reflect" | "onboarded" | "mePhoto" | "avatarLoad" | "avatarSave" | "avatarDelete" | "avatarDraw" | "refine" | "dreamText" | "order" | "reminderSet" | "reminderAnswered" | "autoOpened" | "avatarCheck" | "language" | "purchase" | "syncExport" | "syncImport" | "sketch" | "sketchPrep" | "sketchGrid" | "sketchSound" | "sketchStart" | "sketchFail" | "sketchSweep" | "sketchSwap" | "intention" | "moonFilm" | "giftSeen"; moonFilm?: { key: string; title: string; text: string; film: string; stills: string[]; seconds: number }; order?: OrderRequest; keep?: string[]; dreams?: unknown[]; sketch?: SketchRequest; sketchPrep?: SketchPrepRequest; sketchGrid?: { prompt?: string; prompts?: string[]; refs: string[] }; sketchSound?: { styleId: string; mood: string; beats: string[]; seconds: number }; sketchStart?: { entryId: string | null; text: string; originalText: string; analysis: any; styleId: string }; id?: string; photo?: string; mode?: "me" | "edit" | "new"; tag?: string; category?: string; avatar?: { tag: string; desc: string; img: string; img2: string; category: string | null; consent?: boolean; check?: string }; audioUrl?: string; answers?: Record<string, unknown>; mix?: SoundMix; date?: string; done?: string[]; wants?: boolean; perDay?: number; level?: number; text?: string; originalText?: string; title?: string; tagline?: string; analysis?: any; value?: string };
 /* Die fertige Traum-Skizze fürs Journal (journal-bridge runSketch). */
 /* Skizze vorbereiten (25.09.): Szenen → SD-Stichworte, Besetzung → eigene Fotos. */
 export type SketchPrepRequest = { beats: string[]; strips?: number; analysis: any; styleId: string; assignmentOverrides: Record<string, { avatarId?: string; free?: boolean }> };

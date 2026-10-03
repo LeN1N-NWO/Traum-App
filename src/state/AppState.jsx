@@ -3,7 +3,8 @@ import { loadState, saveState, DB_KEY } from "../lib/storage.js";
 import { buildSeedJournal } from "../lib/seedJournal.js";
 import { collectTick, pendingFingerprint } from "../lib/collector.js";
 import { failureTextKey } from "../lib/falError.js";
-import { giftFor } from "../lib/streakBoard.js";
+import { giftFor, giftLabel } from "../lib/streakBoard.js";
+import { streakInfo } from "../lib/nights.js";
 import { snoozeCheck } from "../lib/streak.js";
 import { jobStatus, backupJournal, sharedDreams, backupCast, sharedCast,
          generate, uploadPanel, mediaUrl } from "../lib/api.js";
@@ -387,11 +388,14 @@ export function AppStateProvider({ children }) {
      also kann dieser Effekt gefahrlos bei jeder Serienänderung laufen —
      nach dem Patch findet er nichts mehr. */
   useEffect(() => {
-    const gift = giftFor(stateRef.current);
+    // Seit 03.10. zählt die Serie aus dem Journal (nur Film-Nächte, nights.js) —
+    // nicht der alte Zähler, der jeden Text-Traum mitzählte.
+    const s = stateRef.current;
+    const gift = giftFor({ ...s, streak: streakInfo(s.journal, { bridged: s.snoozeDays || [] }).streak });
     if (!gift) return;
     update(gift.patch);
-    toast(t.streakBoard.gift(gift.nights, gift.credits));
-  }, [state.streak, state.streakGifts, update, toast]);
+    toast(t.streakBoard.gift(gift.nights, giftLabel(t, gift)));
+  }, [state.streak, state.journal, state.streakGifts, update, toast]);
 
   /* Die Schlummernacht springt beim Start ein (Antons Ja 22.08., Plan §6) —
      hier und nirgends sonst: Es ist der einzige Moment, in dem die App

@@ -14,9 +14,16 @@ import { StyleSheet, View } from "react-native";
    Web-Datei — die weiße Zeichnung liegt direkt auf dem Seitenhintergrund:
 
      ffmpeg -i src/assets/mascot-frog-idle.mp4 \
-       -filter_complex "[0:v]format=gray[a];[0:v][a]alphamerge,format=bgra" \
+       -filter_complex "[0:v]pad=512:512:6:6:black,split[c][g];[g]format=gray,lut=y='if(lt(val,6),0,val)'[a];[c][a]alphamerge,format=bgra" \
        -c:v hevc_videotoolbox -alpha_quality 0.6 -q:v 35 -allow_sw 1 \
        -tag:v hvc1 mobile/assets/mascots/frog-idle.mov
+
+   ⚠ Kantenlänge = Vielfaches von 16 (Antons Befund 03.10.: feine Linie
+   rechts und unten). Die Quelle ist 500×500; HEVC rechnet in 16er-Blöcken
+   und füllt intern auf 512 auf. iOS zeigte diesen Füllrand des
+   Alphakanals als Strich am rechten und unteren Rand. Deshalb wird
+   schwarz auf 512×512 gepolstert, und fast schwarze Reste (< 6) werden
+   ganz durchsichtig.
 
    Der Alphakanal kommt aus der LUMINANZ (weiß auf Reinschwarz → Helligkeit
    ist die Maske) — das geht nur, solange die Idle-Regel „helle Zeichnung

@@ -5,11 +5,12 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useState, useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { ConstellationSky } from "@/components/constellation-sky";
+import { MoonRing } from "@/components/moon-ring";
 import { useJournal } from "@/components/journal-data";
 import { Moon } from "@/components/moon-strip";
 import { NightSky } from "@/components/night-sky";
 import { StreakSheet } from "@/components/streak-sheet";
+import { GiftOpen } from "@/components/gift-sheet";
 import { useQuickActions } from "@/lib/use-quick-actions";
 import { useReminders } from "@/lib/use-reminders";
 import { applyMix, isActive } from "@/lib/sound-engine";
@@ -17,9 +18,10 @@ import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Die Startseite (Antons Wahl 27.09., Variantenbuch C1 — nach einem
    Nachmittag mit C3, das ihm zu voll war): oben die Serie (immer
-   antippbar → Serien-Seite), in der Mitte seit 28.09. DEIN STERNBILD statt
-   des Mondes — jede notierte Nacht ein Stern (components/constellation-
-   sky.tsx) —, darunter die eine Frage und der eine Knopf. Dann
+   antippbar → Serien-Seite), in der Mitte seit 03.10. DER RING MIT FÄDEN:
+   die Nächte dieses Mondes mit ihren Traumbildern, Fäden zwischen gleichen
+   Motiven, am Vollmond der Mondfilm (components/moon-ring.tsx) —, darunter
+   die eine Frage und der eine Knopf. Dann
    die Schlaf-Frage und ein Artikel aus dem Wissen — jeden Tag ein anderer.
    Die Träume selbst stehen im Journal, nicht hier.
    „Wovon willst du heute träumen?" steht im Schlaf-Tab; morgens erinnert
@@ -59,6 +61,19 @@ export default function HomeScreen() {
   const evening = key === "Evening" || key === "Night";
   const nightOpen = !evening && home && !home.nightMarked;
   const [board, setBoard] = useState(false);
+  /* Ein frisch erreichtes Geschenk öffnet sich hier (03.10.) — einmal;
+     `giftSeen` räumt es danach weg, auch bei „Später". */
+  const gift = home?.giftReveal ?? null;
+  const [giftGone, setGiftGone] = useState<number | null>(null);
+  const showGift = gift && giftGone !== gift.nights ? gift : null;
+  const closeGift = (redeem: boolean) => {
+    if (!gift) return;
+    setGiftGone(gift.nights);
+    send({ type: "giftSeen" });
+    if (!redeem) return;
+    if (gift.target === "journal" && gift.dreamId) router.push({ pathname: "/journal/[id]", params: { id: gift.dreamId } });
+    else router.push("/dream");
+  };
 
   return (
     <>
@@ -74,10 +89,10 @@ export default function HomeScreen() {
           ) : null}
         </View>
 
+        <GiftOpen g={showGift} onRedeem={() => closeGift(true)} onLater={() => closeGift(false)} />
         {home ? (
-          <ConstellationSky width={width - 32} nights={home.sky.nights} name={home.sky.name} count={home.sky.count} line={home.sky.line} chip={home.sky.chip}
-            introSeen={home.sky.introSeen} onIntroSeen={() => send({ type: "skyIntro" })} />
-        ) : <View style={{ height: (width - 32) * 0.62 + 90 }} />}
+          <MoonRing C={home.cycle} width={width - 32} onOpen={(id) => router.push({ pathname: "/journal/[id]", params: { id } })} />
+        ) : <View style={{ height: width - 32 + 70 }} />}
 
         <View style={{ alignItems: "center", gap: 6, marginTop: 6 }}>
           <Text style={styles.title}>{L.homeTitle ?? "What did you dream?"}</Text>

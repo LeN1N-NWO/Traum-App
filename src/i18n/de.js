@@ -60,22 +60,17 @@ export default {
     streakZero: "Starte deine Serie",
     intentionHeading: "Gestern wolltest du träumen von",
   },
-  sky: {
-    unnamed: "Der ???",
-    named: "Dein Sternbild",
-    progress: (lit, of) => `${lit} von ${of} Nächten`,
-    chip: (r) => `+${r.credits} ✦`,
-    reward: (r) => [`+${r.credits} ${r.credits === 1 ? "Credit" : "Credits"}`, r.name ? "sein Name" : null, r.snooze ? "eine Schlummernacht" : null].filter(Boolean).join(" · "),
-    until: (left, reward) => `Noch ${left} ${left === 1 ? "Nacht" : "Nächte"} bis: ${reward}` + ".",
-    gift: (stage, credits, snooze) => `✦ ${stage} Nächte — ${credits} ${credits === 1 ? "Credit" : "Credits"}${snooze ? " und eine Schlummernacht" : ""} von uns`,
-    complete: "Dein Sternbild ist vollständig. Jeder Stern ist eine Nacht, die du behalten hast.",
-    hint: "Jede notierte Nacht zündet einen Stern.",
-    names: {
-      water: "Der Schwimmer", flying: "Der Flieger", falling: "Der Fallende", chase: "Der Gejagte", home: "Das Haus",
-      city: "Die Stadt", forest: "Der Wald", sky: "Der Sternengucker", lost: "Der Wanderer", missing: "Der Nachzügler",
-      exposed: "Der Entblößte", teeth: "Das Lächeln", animal: "Das Tier", monster: "Der Drache", family: "Die Familie",
-      stranger: "Der Fremde", partner: "Die Liebenden", fear: "Der Wächter", joy: "Die Tänzerin", grief: "Der Trauernde",
-    },
+  cycle: {
+    chip: "Ring voll: dein Monat als Film",
+    count: (n) => n === 0 ? "Noch kein Traum in diesem Ring" : `${n} ${n === 1 ? "Traum" : "Träume"} in diesem Ring`,
+    left: (n) => `Noch ${n} ${n === 1 ? "Nacht" : "Nächte"} — dann wird dein Monat zum Film.`,
+    fullTonight: "Letzte Nacht des Rings — morgen wird dein Monat zum Film.",
+    thread: (label, n) => `Der stärkste Faden: ${label} (${n}×)`,
+    milestoneSay: (nights, inDays, reward, gift) => `${inDays <= 0 ? "Heute Nacht" : inDays === 1 ? "Morgen" : `In ${inDays} Nächten`}: ${nights} in Folge${gift ? ` — 🎁 ${gift}` : ` — ${reward}`}`,
+    asleep: "Zzz … erzähl mir einen Traum, dann wach ich auf.",
+    filmTitle: (month, motif) => motif ? `Dein ${month} in Träumen · ${motif}` : `Dein ${month} in Träumen`,
+    readyTitle: "Dein Monat als Film ist da",
+    readyBody: (n) => `${n} Träume aus dem letzten Ring, als ein Film.`,
   },
   intention: {
     title: "Wovon willst du heute träumen?",
@@ -96,9 +91,29 @@ export default {
 
   streakBoard: {
     title: "Deine Serie",
-    gift: (nights, credits) =>
-      `✦ ${nights} Nächte — ${credits} ${credits === 1 ? "Credit" : "Credits"} von uns`,
+    gift: (nights, label) => `🎁 ${nights} Nächte in Folge — dein Geschenk: ${label}`,
     giftBadge: (credits) => `+${credits} ${credits === 1 ? "Credit" : "Credits"}`,
+    giftKinds: {
+      glimpse: () => "Ein Glimpse geschenkt",
+      film: () => "Dein erster Traumfilm",
+      credits: (n) => `${n} Credits`,
+      month: (n) => `${n} Credits — ein ganzer Monat`,
+    },
+    giftShort: { glimpse: "Glimpse", film: "Film", credits: (n) => `+${n}`, month: (n) => `+${n}` },
+    giftWorth: (n) => `im Wert von ${n} ${n === 1 ? "Credit" : "Credits"}`,
+    giftSheet: {
+      soon: (n) => (n <= 0 ? "Heute Nacht erreichbar" : n === 1 ? "Noch 1 Film-Nacht" : `Noch ${n} Film-Nächte`),
+      inside: "Darin",
+      surprise: "+ eine Überraschung für deine Menagerie",
+      rule: "Es zählen Film-Nächte: ein Traum mit Glimpse oder Film. Ein Traum nur als Text hält deine Serie, zählt aber nicht.",
+      valid: (days) => `Nach Erhalt ${days} Tage gültig.`,
+      tapToOpen: "Tippen zum Öffnen",
+      openTitle: (nights) => `${nights} Film-Nächte in Folge!`,
+      expires: (date) => `Gehört dir bis ${date}.`,
+      redeem: { glimpse: "Glimpse machen", film: "Film machen", credits: "Jetzt einlösen", month: "Jetzt einlösen" },
+      later: "Später",
+      close: "Schließen",
+    },
     snoozeUsed: (n) => (n === 1
       ? "🌙 Eine Schlummernacht ist eingesprungen — deine Serie steht."
       : `🌙 ${n} Schlummernächte sind eingesprungen — deine Serie steht.`),
@@ -119,7 +134,7 @@ export default {
       keeper: "Hüter der Träume — zwei Monate, kaum jemand kommt hierher.",
       hundred: "Hundert Nächte. Dein Journal ist jetzt ein Buch.",
     },
-    note: "Die Serie zählt Nächte mit einem aufgeschriebenen Traum — nie die Menge. Hundert Träume an einem Tag bleiben eine Nacht.",
+    note: "Die Serie zählt Film-Nächte: Nächte mit einem Traum als Glimpse oder Film — nie die Menge. Ein Traum nur als Text hält die Serie, zählt aber nicht.",
   },
 
   moon: {
