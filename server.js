@@ -42,7 +42,7 @@ import { mediaRootFrom } from "./src/lib/mediaRoot.js";
 import { dedupePeople } from "./src/lib/people.js";
 // Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
-import { guard, senderOf } from "./src/lib/gatekeeper.js";
+import { guard, senderOf, needsAccount } from "./src/lib/gatekeeper.js";
 import { checkResult } from "./src/lib/photoCheck.js";
 import { buildCharacterPrompt, buildSheetFromPhotoPrompt, stripReferenceClauses } from "./src/lib/promptBuilder.js";
 // Stiltexte sind Konstanten aus dem Repo — der Client schickt nur eine ID,
@@ -2568,6 +2568,17 @@ const serveOptions = {
     if (!verdict.ok) {
       return json({ error: verdict.error }, verdict.status,
         verdict.retryAfter ? { "retry-after": String(verdict.retryAfter) } : undefined);
+    }
+
+    /* S1: Was Geld kostet, nur mit Konto — needsAccount() in gatekeeper.js
+     * (strenge Voreinstellung, freie Routen mit Grund). Nur mit
+     * REQUIRE_AUTH=1 (deploy/dreamrushes.service): lokal und bis die App das
+     * Token überall mitschickt, bleibt alles wie bisher. Nach dem Rate-Limit,
+     * damit es auch die Rückfragen bei Supabase bremst. `reason` lässt die
+     * App „bitte anmelden" zeigen statt eines Fehlers. */
+    if (process.env.REQUIRE_AUTH === "1" && needsAccount(url.pathname)) {
+      const person = await verifyAccessToken(parseBearer(req.headers.get("authorization")), { config: AUTH });
+      if (!person) return json({ error: "Please sign in to continue.", reason: "signin" }, 401);
     }
 
     if (url.pathname === "/api/voice") {

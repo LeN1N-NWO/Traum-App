@@ -85,6 +85,33 @@ export function classOf(pathname) {
   return "generate";   // /api/generate, /api/character und alles Künftige
 }
 
+/* Endpunkte, die OHNE Konto erreichbar sind (S1). Dieselbe Regel wie beim
+   Rate-Limit: alles, was hier nicht steht, verlangt eine Anmeldung — auch
+   jede künftige Route. Wer hier etwas einträgt, schreibt den Grund dazu.
+   Hannis Regel (03.10.2026): umschauen ohne Konto ja, alles was Geld kostet
+   nur mit Konto (und Guthaben — das prüft settleCharge(), Antons Teil). */
+const OPEN_WITHOUT_ACCOUNT = new Set([
+  "/api/auth/login",      // ohne Konto muss man sich anmelden können
+  "/api/auth/apple",
+  "/api/auth/refresh",    // abgelaufenes Token → neues; prüft selbst
+  "/api/auth/logout",     // Abmelden geht immer
+  "/api/prices",          // Preistabelle, kostet nichts
+  "/api/voice-sample",    // Hörprobe: einmal je Stimme×Sprache bei Gemini,
+                          // dann nur noch Ablage — höchstens ~6 ct, einmalig
+  "/api/account",         // prüfen die Anmeldung selbst (verifyAccessToken)
+  "/api/cast-backup",     // nur von diesem Rechner (localOnly.js), Caddy
+  "/api/journal-backup",  // sperrt sie zusätzlich
+]);
+
+/** Braucht dieser Pfad ein angemeldetes Konto? Alles außerhalb von /api/
+ *  (Oberfläche, /media) bleibt unberührt — /media ist Befund S2. */
+export function needsAccount(pathname) {
+  if (!pathname.startsWith("/api/")) return false;
+  if (OPEN_WITHOUT_ACCOUNT.has(pathname)) return false;
+  if (pathname === "/api/dreams" || pathname.startsWith("/api/dreams/")) return false; // prüfen selbst
+  return true;
+}
+
 /* Zähler je (Absender, Klasse). Ein einfaches festes Fenster, kein gleitendes:
    an der Fenstergrenze sind kurzzeitig bis zu 2× max möglich — bei diesen
    Grenzen bedeutet das 40 Bilder statt 20 in einem ungünstigen Moment, und

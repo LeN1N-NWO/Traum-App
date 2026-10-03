@@ -66,6 +66,13 @@ export function checkEnv(env, appDir) {
     }
   }
 
+  /* REQUIRE_AUTH=1 (S1) prüft jede bezahlte Anfrage gegen Supabase. Ohne
+     SUPABASE_URL/SUPABASE_ANON_KEY gelingt die Prüfung nie — der Server
+     liefe, aber niemand käme je an einen Traum. Lieber gar nicht starten. */
+  if (env.REQUIRE_AUTH === "1" && (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY)) {
+    errors.push("REQUIRE_AUTH=1, aber SUPABASE_URL/SUPABASE_ANON_KEY fehlen — niemand könnte sich anmelden (S1).");
+  }
+
   if (env.PORT && env.PORT !== EXPECTED_PORT) {
     errors.push(`PORT ist ${env.PORT}, Caddy leitet aber auf ${EXPECTED_PORT} weiter.`);
   }

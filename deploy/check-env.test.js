@@ -42,6 +42,13 @@ describe("checkEnv", () => {
     expect(errorsOf({ PORT: "3000" })[0]).toContain("8100");
   });
 
+  test("REQUIRE_AUTH ohne Supabase hält an — sonst käme niemand je durch (S1)", () => {
+    expect(errorsOf({ REQUIRE_AUTH: "1" })[0]).toContain("SUPABASE");
+    expect(errorsOf({ REQUIRE_AUTH: "1", SUPABASE_URL: "https://x.supabase.co" })).toHaveLength(1);
+    expect(errorsOf({ REQUIRE_AUTH: "1", SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "k" })).toEqual([]);
+    expect(errorsOf({ REQUIRE_AUTH: undefined })).toEqual([]);
+  });
+
   test("fehlende Dienst-Schlüssel warnen nur", () => {
     const r = checkEnv({ ...GOOD, FAL_KEY: undefined, DATABASE_URL: "" }, APP);
     expect(r.errors).toEqual([]);

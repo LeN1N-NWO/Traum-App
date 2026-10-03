@@ -99,6 +99,14 @@ journalctl -u dreamrushes -f
    (`.env.example`, Befund S1). Ohne Token wären die bezahlten Routen für
    jeden im Internet offen. `check-env.mjs` verlangt das Token deshalb: Der
    Server ist lieber zu als offen, bis S1 gelöst ist.
+
+   **Der Ersatz ist gebaut, aber noch aus (03.10.2026):** Mit
+   `REQUIRE_AUTH=1` verlangt der Server für alles, was Geld kostet, eine
+   gültige Anmeldung statt eines gemeinsamen Tokens; Anmeldung, Preise und
+   Hörprobe bleiben offen (`needsAccount()` in `src/lib/gatekeeper.js`).
+   Erst wenn die App das Token überall mitschickt (S1 Schritt 2, Plan in
+   `docs/ARCHITEKTUR.md`), kommt `Environment=REQUIRE_AUTH=1` in
+   `dreamrushes.service` und `API_TOKEN` fällt weg.
 2. **Rate-Limit hinter Caddy (S5) — gelöst am 03.10.2026, auf dem Server
    noch nachzuprüfen.** Hinter Caddy kommt jede Verbindung von `127.0.0.1`;
    ohne Abhilfe teilten sich alle Nutzer einen Zähler. Jetzt nimmt
