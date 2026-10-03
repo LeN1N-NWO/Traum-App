@@ -28,6 +28,10 @@ Environment=BUN_RUNTIME_TRANSPILER_CACHE_PATH=0
 # (nur für Verbindungen von 127.0.0.1, senderOf in src/lib/gatekeeper.js, S5).
 # Hier statt in der .env, weil er zum Aufbau gehört, nicht zu den Geheimnissen.
 Environment=TRUST_PROXY=1
+# S1: Was Geld kostet, nur mit Konto (needsAccount() in src/lib/gatekeeper.js).
+# Ersetzt das alte API_TOKEN, das die App aussperrte. Hier statt in der .env,
+# damit es niemand vergisst — deploy.sh prüft nach jedem Start, dass es greift.
+Environment=REQUIRE_AUTH=1
 
 # Bun liest die Datei selbst, nicht systemd — sonst käme der Apple-Schlüssel
 # (Zeilenumbrüche als \n) anders an als beim lokalen Start.

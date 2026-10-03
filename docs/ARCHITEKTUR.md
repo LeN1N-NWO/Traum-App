@@ -80,7 +80,7 @@ heutigen Prototyp auf einem Laptop sind mehrere davon bewusst vertretbar.
 
 | ID | Befund | Wirkung | Schwere |
 |---|---|---|---|
-| **S1** | ~~`tokenMatches()` gibt `true` zurück, wenn kein `API_TOKEN` gesetzt ist. Der Zugangsschutz ist standardmäßig aus.~~ **In Arbeit seit 03.10.2026 (Schritt 1 von 3 fertig):** Mit `REQUIRE_AUTH=1` verlangt der Server für alles, was Geld kostet, eine gültige Anmeldung (`needsAccount()` in `gatekeeper.js`). Scharf erst, wenn die App das Token überall mitschickt — siehe unten. | Wer den Port findet, generiert auf unsere Rechnung: 20 `generate` je Minute × bis $0,47 ≈ **$9 pro Minute**, unbemerkt. | **kritisch**, sobald öffentlich |
+| **S1** | ~~`tokenMatches()` gibt `true` zurück, wenn kein `API_TOKEN` gesetzt ist. Der Zugangsschutz ist standardmäßig aus.~~ **Gelöst am 03.10.2026:** Für alles, was Geld kostet, verlangt der Server eine gültige Anmeldung (`needsAccount()` in `gatekeeper.js`); auf dem VPS scharf über `REQUIRE_AUTH=1` in `dreamrushes.service`, `deploy.sh` prüft nach jedem Start, dass die Tür zu ist. Die App schickt das Token und zeigt Gästen das Anmelde-Blatt — siehe unten. Offen: „genug Guthaben" (`settleCharge()`, S7). | Wer den Port findet, generiert auf unsere Rechnung: 20 `generate` je Minute × bis $0,47 ≈ **$9 pro Minute**, unbemerkt. | ✅ erledigt |
 | **S2** | `/media/*` hat keinerlei Zugangsprüfung — `classOf()` gibt für alles außerhalb von `/api/` `null` zurück. | Gesichter realer Menschen, teils Dritter, dauerhaft per URL abrufbar. DSGVO Art. 9. | **hoch** |
 | **S3** | `Bun.hash` ist Wyhash: 64 Bit, nicht kryptografisch, ohne Streuwert. Gleicher Inhalt → gleicher Name. | Existenz-Orakel: Wer ein Bild hat, kann prüfen, ob es bei uns liegt. Kollisionen überschreiben. | mittel |
 | **S4** | ~~14 ausgehende `fetch`, null Abbruchsignale.~~ **Behoben am 11.09.2026.** | Ein hängender Anbieter hielt eine Verbindung bis 255 s; genug davon, und der Prozess nahm nichts mehr an. ⚠ **Nicht** der Fix für die verwaisten Filme — siehe „Zuverlässigkeit". | ✅ erledigt |
@@ -131,8 +131,11 @@ In drei Schritten, jeder für sich prüfbar:
    Foto-Check nach der Anmeldung: zurückgestellt — das Ergebnis liest heute
    keine Stelle (Notiz `docs/uebergabe/2026-10-03-anton-s1-anmeldung.md`).
 
-`REQUIRE_AUTH=1` kommt erst in `deploy/dreamrushes.service`, wenn Schritt 2
-in einem App-Bau steckt — sonst sperrt der VPS die App aus wie am 11.09.
+**Scharf seit 03.10.2026:** `REQUIRE_AUTH=1` steht in
+`deploy/dreamrushes.service`; `check-env.mjs` verbietet das alte `API_TOKEN`
+und verlangt Supabase; `deploy.sh` stoppt den Dienst, wenn Bezahltes ohne
+Anmeldung durchginge. Unkritisch für alte App-Bauten, weil die alle auf den
+Mac im WLAN zeigen — eine App für den VPS ist ohnehin ein neuer Bau.
 
 > **Notiz:** Die Token-Stellen aus Schritt 2 in den Web-Ansichten gibt es nur
 > wegen des Umzugs auf nativ (ADR-0006): Der Geldweg läuft heute noch durch

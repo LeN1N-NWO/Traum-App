@@ -8,7 +8,7 @@ in `docs/plans/2026-09-24-medienablage.md`.
 |---|---|
 | `setup.sh` | Einmal: Pakete, Updates, Bun, Systemnutzer, Ordner, Caddy, systemd, Firewall |
 | `deploy.sh` | Jedes Mal: Stand holen, `.env` prüfen, Neustart, Gesundheitscheck, bei Fehler zurück |
-| `check-env.mjs` | Hält den Start an, wenn `API_TOKEN` oder `DREAMRUSHES_MEDIA` fehlen/falsch sind |
+| `check-env.mjs` | Hält den Start an, wenn Supabase oder `DREAMRUSHES_MEDIA` fehlen/falsch sind oder ein altes `API_TOKEN` gesetzt ist |
 | `dreamrushes.service` | systemd-Dienst, abgeschottet, schreibt nur unter `/var/lib/dreamrushes` |
 | `Caddyfile` | HTTPS, Sicherheits-Kopfzeilen, sperrt die Entwicklungs-Routen zusätzlich |
 
@@ -57,9 +57,13 @@ sudo nano /etc/dreamrushes/dreamrushes.env
 Pflicht auf dem Server (sonst startet der Dienst nicht):
 
 ```
-API_TOKEN="…"                       # openssl rand -hex 32
+SUPABASE_URL="…"                    # Anmeldung — Bezahltes nur mit Konto (S1)
+SUPABASE_ANON_KEY="…"
 DREAMRUSHES_MEDIA=/var/lib/dreamrushes/media
 ```
+
+**Kein `API_TOKEN`** — das alte gemeinsame Geheimnis sperrt die App aus;
+`check-env.mjs` hält den Start an, wenn es gesetzt ist.
 
 Dazu die Dienst-Schlüssel wie lokal (`FAL_KEY`, `DEEPSEEK_KEY`, `GEMINI_KEY`,
 `DATABASE_URL`, Supabase, Apple). `PORT` weglassen oder `8100`.
@@ -80,9 +84,13 @@ sudo bash /opt/dreamrushes/app/deploy/deploy.sh 1a2b3c4     # bestimmter Stand
 ```
 
 Antwortet der Server nach dem Neustart nicht nach rund 30 Versuchen (je eine Sekunde Abstand) auf
-`/api/prices` (mit Token), geht der Deploy von selbst auf den vorigen Stand
-zurück. Liegen im Checkout Handänderungen, bricht er ab, statt sie zu
+`/api/prices` (offen, ohne Konto), geht der Deploy von selbst auf den vorigen
+Stand zurück. Liegen im Checkout Handänderungen, bricht er ab, statt sie zu
 überschreiben.
+
+Danach prüft er die Tür (S1): `POST /api/generate` ohne Anmeldung muss mit
+`401` und `reason: "signin"` abgewiesen werden. Geht es durch, **stoppt er
+den Dienst** — lieber zu als offen.
 
 Nachsehen:
 
@@ -93,20 +101,15 @@ journalctl -u dreamrushes -f
 
 ## ⚠ Bevor die App diesen Server benutzt
 
-1. **`API_TOKEN` sperrt heute die App aus.** Mit gesetztem Token verlangt
-   der Türsteher (`src/lib/gatekeeper.js`) den Kopf `x-api-token` auf JEDER
-   `/api/`-Route, auch Anmeldung und Träume — und die App schickt ihn nicht
-   (`.env.example`, Befund S1). Ohne Token wären die bezahlten Routen für
-   jeden im Internet offen. `check-env.mjs` verlangt das Token deshalb: Der
-   Server ist lieber zu als offen, bis S1 gelöst ist.
-
-   **Der Ersatz ist gebaut, aber noch aus (03.10.2026):** Mit
-   `REQUIRE_AUTH=1` verlangt der Server für alles, was Geld kostet, eine
-   gültige Anmeldung statt eines gemeinsamen Tokens; Anmeldung, Preise und
+1. **Bezahltes nur mit Konto (S1) — scharf seit 03.10.2026.**
+   `Environment=REQUIRE_AUTH=1` steht in `dreamrushes.service`: Alles, was
+   Geld kostet, verlangt eine gültige Anmeldung; Anmeldung, Preise und
    Hörprobe bleiben offen (`needsAccount()` in `src/lib/gatekeeper.js`).
-   Erst wenn die App das Token überall mitschickt (S1 Schritt 2, Plan in
-   `docs/ARCHITEKTUR.md`), kommt `Environment=REQUIRE_AUTH=1` in
-   `dreamrushes.service` und `API_TOKEN` fällt weg.
+   Das alte `API_TOKEN` ist abgelöst — es sperrte die App aus.
+   **Die App muss einen Bau ab PR #72 haben**, sonst schickt sie das Token
+   nicht. Unkritisch, solange alle Bauten auf den Mac im WLAN zeigen: Eine
+   App, die diesen Server nutzt, braucht ohnehin einen neuen Bau mit
+   `EXPO_PUBLIC_API_BASE=https://api.dreamrushes.app`.
 2. **Rate-Limit hinter Caddy (S5) — gelöst am 03.10.2026, auf dem Server
    noch nachzuprüfen.** Hinter Caddy kommt jede Verbindung von `127.0.0.1`;
    ohne Abhilfe teilten sich alle Nutzer einen Zähler. Jetzt nimmt

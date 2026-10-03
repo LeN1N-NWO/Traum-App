@@ -3,7 +3,7 @@ import { checkEnv } from "./check-env.mjs";
 
 const APP = "/opt/dreamrushes/app";
 const GOOD = {
-  API_TOKEN: "a".repeat(64),
+  SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "k",
   DREAMRUSHES_MEDIA: "/var/lib/dreamrushes/media",
   FAL_KEY: "x", DEEPSEEK_KEY: "x", GEMINI_KEY: "x", DATABASE_URL: "x",
 };
@@ -15,16 +15,19 @@ describe("checkEnv", () => {
     expect(checkEnv(GOOD, APP)).toEqual({ errors: [], warnings: [] });
   });
 
-  test("ohne API_TOKEN kein Start", () => {
-    expect(errorsOf({ API_TOKEN: undefined })).toHaveLength(1);
-    expect(errorsOf({ API_TOKEN: "" })[0]).toContain("API_TOKEN fehlt");
+  /* S1: Bezahltes nur mit Konto — ohne Supabase könnte sich niemand
+     anmelden, der Server liefe also, aber niemand käme an einen Traum. */
+  test("ohne Supabase kein Start", () => {
+    expect(errorsOf({ SUPABASE_URL: undefined })[0]).toContain("SUPABASE");
+    expect(errorsOf({ SUPABASE_ANON_KEY: "" })[0]).toContain("SUPABASE");
+    expect(errorsOf({ SUPABASE_URL: undefined, SUPABASE_ANON_KEY: undefined })).toHaveLength(1);
   });
 
-  test("kurzes Token und der Platzhalter aus .env.example halten an", () => {
-    expect(errorsOf({ API_TOKEN: "geheim" })[0]).toContain("kürzer");
-    // Der Platzhalter ist 27 Zeichen — er scheitert schon an der Länge.
-    expect(errorsOf({ API_TOKEN: "ein-langes-zufaelliges-wort" })).toHaveLength(1);
-    expect(errorsOf({ API_TOKEN: "b".repeat(32) })).toEqual([]);
+  /* Das alte gemeinsame Geheimnis sperrt die App komplett aus (sie schickt
+     x-api-token nicht). Seit S1 ist es auf dem Server ein Fehler. */
+  test("ein gesetztes API_TOKEN hält an — es würde die App aussperren", () => {
+    expect(errorsOf({ API_TOKEN: "a".repeat(64) })[0]).toContain("API_TOKEN");
+    expect(errorsOf({ API_TOKEN: "" })).toEqual([]);
   });
 
   test("Medienordner: Pflicht, absolut, außerhalb des Checkouts", () => {
@@ -42,13 +45,6 @@ describe("checkEnv", () => {
     expect(errorsOf({ PORT: "3000" })[0]).toContain("8100");
   });
 
-  test("REQUIRE_AUTH ohne Supabase hält an — sonst käme niemand je durch (S1)", () => {
-    expect(errorsOf({ REQUIRE_AUTH: "1" })[0]).toContain("SUPABASE");
-    expect(errorsOf({ REQUIRE_AUTH: "1", SUPABASE_URL: "https://x.supabase.co" })).toHaveLength(1);
-    expect(errorsOf({ REQUIRE_AUTH: "1", SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "k" })).toEqual([]);
-    expect(errorsOf({ REQUIRE_AUTH: undefined })).toEqual([]);
-  });
-
   test("fehlende Dienst-Schlüssel warnen nur", () => {
     const r = checkEnv({ ...GOOD, FAL_KEY: undefined, DATABASE_URL: "" }, APP);
     expect(r.errors).toEqual([]);
@@ -63,4 +59,13 @@ test("die Dienstdatei schaltet TRUST_PROXY ein", async () => {
   const unit = await Bun.file(new URL("./dreamrushes.service", import.meta.url)).text();
   const lines = unit.split("\n").map((l) => l.trim());
   expect(lines).toContain("Environment=TRUST_PROXY=1");
+});
+
+/* Dasselbe für S1: Ohne REQUIRE_AUTH=1 startet der Server auch — und alles,
+   was Geld kostet, steht jedem im Internet offen. deploy.sh prüft es nach
+   dem Start zusätzlich am laufenden Dienst. */
+test("die Dienstdatei schaltet REQUIRE_AUTH ein", async () => {
+  const unit = await Bun.file(new URL("./dreamrushes.service", import.meta.url)).text();
+  const lines = unit.split("\n").map((l) => l.trim());
+  expect(lines).toContain("Environment=REQUIRE_AUTH=1");
 });
