@@ -40,9 +40,13 @@ Aus der Lieferung wird eine HEVC-Datei mit Alphakanal (wie
 `mobile/assets/mascots/frog-idle.mov`):
 
     ffmpeg -i frog-idle.mp4 \
-      -filter_complex "[0:v]format=gray[a];[0:v][a]alphamerge,format=bgra" \
+      -filter_complex "[0:v]split[c][g];[g]format=gray,lut=y='if(lt(val,6),0,val)'[a];[c][a]alphamerge,format=bgra" \
       -c:v hevc_videotoolbox -alpha_quality 0.6 -q:v 35 -allow_sw 1 \
       -tag:v hvc1 mobile/assets/mascots/frog-idle.mov
+
+⚠ Breite und Höhe müssen Vielfache von 16 sein (720 passt). Sonst füllt
+HEVC intern auf, und iOS zeigt rechts und unten einen feinen Strich —
+so geschehen beim 500×500-Schlaf-Loop (03.10., auf 512 gepolstert).
 
 Danach eine Zeile in `FROG_CLIPS` eintragen. ⚠ Android kann HEVC-Alpha
 nicht (dort bräuchte es WebM/VP9) — für jetzt nur iOS.
