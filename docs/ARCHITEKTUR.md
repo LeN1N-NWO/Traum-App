@@ -81,7 +81,7 @@ heutigen Prototyp auf einem Laptop sind mehrere davon bewusst vertretbar.
 | ID | Befund | Wirkung | Schwere |
 |---|---|---|---|
 | **S1** | ~~`tokenMatches()` gibt `true` zurück, wenn kein `API_TOKEN` gesetzt ist. Der Zugangsschutz ist standardmäßig aus.~~ **Gelöst am 03.10.2026:** Für alles, was Geld kostet, verlangt der Server eine gültige Anmeldung (`needsAccount()` in `gatekeeper.js`); auf dem VPS scharf über `REQUIRE_AUTH=1` in `dreamrushes.service`, `deploy.sh` prüft nach jedem Start, dass die Tür zu ist. Die App schickt das Token und zeigt Gästen das Anmelde-Blatt — siehe unten. Offen: „genug Guthaben" (`settleCharge()`, S7). | Wer den Port findet, generiert auf unsere Rechnung: 20 `generate` je Minute × bis $0,47 ≈ **$9 pro Minute**, unbemerkt. | ✅ erledigt |
-| **S2** | `/media/*` hat keinerlei Zugangsprüfung — `classOf()` gibt für alles außerhalb von `/api/` `null` zurück. | Gesichter realer Menschen, teils Dritter, dauerhaft per URL abrufbar. DSGVO Art. 9. | **hoch** |
+| **S2** | `/media/*` hat keinerlei Zugangsprüfung — `classOf()` gibt für alles außerhalb von `/api/` `null` zurück. **Weg seit 03.10.2026 (ADR-0008, vorgeschlagen):** keine Sicherung mehr auf dem Server; er löscht Filme, sobald das Gerät sie abgeholt hat — dann liegt unter `/media/*` nur noch, was gerade unterwegs ist. Wann gelöscht werden darf, entscheidet Anton (Keyframes, Abspann). | Gesichter realer Menschen, teils Dritter, dauerhaft per URL abrufbar. DSGVO Art. 9. | **hoch** |
 | **S3** | `Bun.hash` ist Wyhash: 64 Bit, nicht kryptografisch, ohne Streuwert. Gleicher Inhalt → gleicher Name. | Existenz-Orakel: Wer ein Bild hat, kann prüfen, ob es bei uns liegt. Kollisionen überschreiben. | mittel |
 | **S4** | ~~14 ausgehende `fetch`, null Abbruchsignale.~~ **Behoben am 11.09.2026.** | Ein hängender Anbieter hielt eine Verbindung bis 255 s; genug davon, und der Prozess nahm nichts mehr an. ⚠ **Nicht** der Fix für die verwaisten Filme — siehe „Zuverlässigkeit". | ✅ erledigt |
 | **S5** | Mengenbremse zählt nach IP, im Arbeitsspeicher. ~~Hinter einem Proxy teilen sich alle einen Eimer.~~ **Proxy-Teil behoben am 03.10.2026:** `senderOf()` in `gatekeeper.js` nimmt `X-Forwarded-For`, aber nur mit `TRUST_PROXY=1` und nur von Loopback. | Neustart setzt alles zurück — bleibt, bewusst. ⚠ IPv6: gezählt wird die einzelne Adresse, nicht das /64-Netz; wer ein ganzes Netz hat, kann wechseln. | niedrig |
@@ -230,8 +230,10 @@ Nach Wirkung je Aufwand, nicht nach Schwere.
    `server_spend()` aufruft — ein Schema, das niemand fragt, schützt nichts.
    Das braucht zuerst die Anmeldung.
 3. **TLS davor (S6, S5)** — Caddy holt das Zertifikat selbst.
-4. **Medien nach Supabase Storage mit signierten Adressen (S2, S3)** — löst
-   zugleich das Löschrecht: eine Datei, ein Besitzer, ein Löschbefehl.
+4. **Medien nur so lange auf dem Server, bis das Gerät sie hat (S2, S3)** —
+   überholt seit 24.09. (Medienablage) und 03.10. (ADR-0008, vorgeschlagen):
+   Träume liegen nur auf dem Gerät, der Server löscht nach dem Abholen. Löst
+   zugleich das Löschrecht — es gibt nichts mehr zu löschen.
 5. **Warteschlange für Film, ffmpeg und Analyse (S8, Performanz)** — der größte
    Umbau, aber er löst Baustelle 1 aus `STAND.md`.
 6. **`server.js` nach Themen teilen** — kein Sicherheitsbefund, aber der Posten,

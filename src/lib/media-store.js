@@ -26,6 +26,11 @@
  *
  * Not wired into server.js yet: that waits for Anton's PR #62, which touches
  * the same routes.
+ *
+ * ⚠ 03.10.2026: Probably not needed at all — ADR-0008 (proposed) drops the
+ * server-side backup; dreams stay on the device only. Do not wire this in
+ * before Anton has decided. If ADR-0008 is accepted, delete this file, its
+ * test, the MEDIA_S3_* section in .env.example and its .gitignore entry.
  */
 
 import { mkdir, readdir, rename, rm, unlink } from "node:fs/promises";

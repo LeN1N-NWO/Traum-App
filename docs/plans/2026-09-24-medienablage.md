@@ -4,6 +4,13 @@
 > Plans (Supabase Storage mit befristeten Adressen, Commit `506bbc8`).
 > **Antons Prompt-Kette, Modelle, Regie bleiben unberührt.**
 
+> ⚠ **03.10.2026 — Vorschlag, die Sicherung ganz wegzulassen:**
+> `docs/decisions/ADR-0008-traeume-nur-auf-dem-geraet.md` (Hanni, Status
+> „vorgeschlagen", wartet auf Antons Zustimmung). Wird es angenommen,
+> entfallen Schritt C (Object Storage) und Schritt B (verschlüsselte
+> Texte in Supabase) — in der dort festgelegten Reihenfolge. Bis dahin gilt
+> dieser Plan; Schritt C wird nicht weitergebaut.
+
 ## Entscheidungen (Hanni + Anton, 24.09.)
 
 1. **Träume liegen auf dem Gerät** — Text UND Filme, Bilder, Aufnahmen
