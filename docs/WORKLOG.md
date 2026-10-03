@@ -3,6 +3,20 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-03 19:00 — Hanni — Branch `session/2026-10-03-hanni` (PR #72) — Architektur-Schaubild aktualisiert
+
+**Was:** Das Artifact „Dream Rushes Architektur" (Fassung vom 11.09.) auf
+den Stand von heute gebracht: https://claude.ai/artifact/Sp24vijXRFJA5LbKZdcgLi
+— neues Schaubild (Expo statt Capacitor, Schlüsselbund und Gerätespeicher,
+Caddy, `server.js` auf dem VPS, Supabase, Apple, geplanter Object Storage),
+Befundtabelle mit Status (S1/S4 erledigt, S5 teilweise, S6 bereit, S2/S3/
+S7/S8 offen), nächste Schritte mit Zuständigkeit. Der Ziel-Teil der alten
+Fassung entfällt; Geplantes steht gestrichelt im Bild. Kein Code geändert.
+
+**Für den Nächsten:** Maßgeblich bleibt `docs/ARCHITEKTUR.md`; das Schaubild
+ist die Übersicht dazu. Ungeprüft übernommen: dass Filme heute über
+Auftragsnummern laufen (aus den Kommentaren in `src/lib/api.js`).
+
 ## 2026-10-03 18:45 — Hanni — Branch `session/2026-10-03-hanni` (PR #72) — S1: Bezahltes nur mit Konto
 
 **Commits:** a449a3d (Server), 44afc79 (App schickt Token), 079c145 (DEV-Knopf),

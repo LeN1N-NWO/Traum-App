@@ -26,6 +26,8 @@ PR #64 (VPS-Skripte, S5) ist auf main. **Weg durch die App-Store-Prüfung:
   `/api/job` prüft nicht, ob der Auftrag dem Nutzer gehört (S2, dazu
   `genJobId()` nicht kryptografisch) — `docs/ARCHITEKTUR.md`.
 - Notiz an Anton: `docs/uebergabe/2026-10-03-anton-s1-anmeldung.md`.
+- Architektur-Schaubild (Stand 03.10.):
+  https://claude.ai/artifact/Sp24vijXRFJA5LbKZdcgLi
 
 **Mit PR #64 (25.09. + 03.10.):**
 - **VPS-Einrichtung `deploy/`:** `setup.sh` (einmal: Updates, ffmpeg,
