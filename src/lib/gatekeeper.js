@@ -24,6 +24,9 @@
  * für ein Problem, das wir nicht haben.
  */
 
+import { isIP } from "node:net";
+import { LOOPBACK } from "./localOnly.js";
+
 /** Fenstergröße und Obergrenze je Endpunkt-Klasse. Die Zahlen kommen aus dem,
  *  was ein Mensch tatsächlich tut: Ein Traum sind bis zu zehn Bilder in einer
  *  Minute, also darf `generate` das auch — aber keine hundert. */
@@ -129,6 +132,42 @@ export function checkLimit(sender, kind, now = Date.now()) {
 /** Nur für Tests: den Zählerstand vergessen. */
 export function resetLimits() {
   buckets.clear();
+}
+
+/**
+ * Wer ist der Absender — die Kennung, nach der checkLimit zählt.
+ *
+ * Ohne Proxy ist das die Adresse der Verbindung, und nur die: X-Forwarded-For
+ * kann jeder selbst setzen, und ein Rate-Limit, dessen Zähler sich der
+ * Begrenzte aussucht, ist keins.
+ *
+ * Hinter Caddy (VPS) kommt aber JEDE Verbindung von 127.0.0.1 — alle Nutzer
+ * teilten sich einen Eimer, einer könnte alle aussperren (Befund S5). Dort
+ * ist die Kopfzeile die einzige Quelle für die echte Adresse, und sie ist
+ * vertrauenswürdig, weil Caddy (ab 2.5, ohne `trusted_proxies`) eine
+ * mitgeschickte X-Forwarded-For verwirft und durch die echte Adresse ersetzt.
+ *
+ * Deshalb gilt die Kopfzeile nur, wenn BEIDES stimmt:
+ *   1. trustProxy — der Betreiber sagt, dass ein Proxy davor steht
+ *      (TRUST_PROXY=1, gesetzt in deploy/dreamrushes.service). Lokal fehlt
+ *      der Schalter, und eine gefälschte Kopfzeile ändert nichts.
+ *   2. Die Verbindung kommt von Loopback, also vom Proxy selbst. Wer den Port
+ *      direkt erreicht (Firewall falsch, WLAN-Test), wird nach seiner echten
+ *      Adresse gezählt, egal was er in die Kopfzeile schreibt.
+ * Gezählt wird der LETZTE Eintrag: den hat der Proxy angehängt, alles davor
+ * stammt vom Absender. Ist er keine gültige IP, bleibt es bei der Verbindung.
+ *
+ * @param {string | undefined} address  server.requestIP(req)?.address
+ * @param {Headers} headers             req.headers
+ * @param {boolean} trustProxy
+ * @returns {string}
+ */
+export function senderOf(address, headers, trustProxy) {
+  const direct = address || "unknown";
+  if (!trustProxy || !LOOPBACK.has(direct)) return direct;
+  const forwarded = typeof headers?.get === "function" ? headers.get("x-forwarded-for") : null;
+  const last = String(forwarded || "").split(",").pop().trim();
+  return isIP(last) ? last : direct;
 }
 
 /* Der Token-Vergleich läuft in konstanter Zeit. Bei einem Geheimnis, das über

@@ -99,13 +99,20 @@ journalctl -u dreamrushes -f
    (`.env.example`, Befund S1). Ohne Token wären die bezahlten Routen für
    jeden im Internet offen. `check-env.mjs` verlangt das Token deshalb: Der
    Server ist lieber zu als offen, bis S1 gelöst ist.
-2. **Das Rate-Limit zählt hinter Caddy alle zusammen.** `server.js` nimmt die
-   Absender-IP von Bun (`server.requestIP`), und hinter Caddy ist das für
-   jede Anfrage `127.0.0.1`. Alle Nutzer teilten sich dann 10 Anmeldungen
-   und 20 Bilder pro Minute; einer könnte alle aussperren. Befund S5 in
-   `docs/ARCHITEKTUR.md`; der Kommentar über `guard(` in `server.js` sagt
-   es ebenfalls voraus. Lösung: hinter dem
-   Proxy `X-Forwarded-For` lesen — Caddy (ab 2.5, ohne `trusted_proxies`)
-   ersetzt eine mitgeschickte Kopfzeile durch die echte Adresse, man kann
-   sie also nicht fälschen. Vor dem Umbau auf dem Server nachprüfen. Änderung in
-   `server.js`, nach Antons PR #62.
+2. **Rate-Limit hinter Caddy (S5) — gelöst am 03.10.2026, auf dem Server
+   noch nachzuprüfen.** Hinter Caddy kommt jede Verbindung von `127.0.0.1`;
+   ohne Abhilfe teilten sich alle Nutzer einen Zähler. Jetzt nimmt
+   `senderOf()` (`src/lib/gatekeeper.js`) die Adresse aus `X-Forwarded-For`
+   — nur wenn `TRUST_PROXY=1` gesetzt ist (steht in `dreamrushes.service`)
+   und die Verbindung von Loopback kommt. Das ist sicher, weil Caddy (ab 2.5,
+   ohne `trusted_proxies`) eine mitgeschickte Kopfzeile verwirft und durch
+   die echte Adresse ersetzt. **Beim ersten Lauf prüfen:** elf Anmeldungen
+   mit gefälschter Kopfzeile von außen —
+
+   ```bash
+   for i in $(seq 11); do curl -s -o /dev/null -w '%{http_code} ' -X POST -H "x-forwarded-for: 1.2.3.$i" https://api.dreamrushes.app/api/auth/login; done
+   ```
+
+   Die elfte muss `429` sein, obwohl jede Anfrage eine andere Adresse
+   behaupten könnte — und ein zweites Gerät (anderes Netz) muss danach
+   trotzdem durchkommen.

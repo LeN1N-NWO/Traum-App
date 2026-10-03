@@ -24,6 +24,10 @@ WorkingDirectory=/opt/dreamrushes/app
 Environment=TZ=Europe/Berlin
 # Bun würde sonst einen Übersetzungs-Cache ins (schreibgeschützte) Home legen.
 Environment=BUN_RUNTIME_TRANSPILER_CACHE_PATH=0
+# Caddy steht davor: die echte Absender-IP fürs Rate-Limit aus X-Forwarded-For
+# (nur für Verbindungen von 127.0.0.1, senderOf in src/lib/gatekeeper.js, S5).
+# Hier statt in der .env, weil er zum Aufbau gehört, nicht zu den Geheimnissen.
+Environment=TRUST_PROXY=1
 
 # Bun liest die Datei selbst, nicht systemd — sonst käme der Apple-Schlüssel
 # (Zeilenumbrüche als \n) anders an als beim lokalen Start.

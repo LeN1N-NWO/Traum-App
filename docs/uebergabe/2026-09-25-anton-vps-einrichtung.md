@@ -49,7 +49,10 @@ entschieden ist, S1 mit den echten Konten zu lösen. Das heißt jetzt konkret: D
 Anmeldung. Bis dahin ist der Server zum Einrichten und Testen da, nicht für
 die App.
 
-**2. S5 — Rate-Limit hinter Caddy.** `guard()` bekommt die Adresse von
+**2. S5 — Rate-Limit hinter Caddy.** *(Nachtrag 03.10., Hanni: so gebaut —
+`senderOf()` in `src/lib/gatekeeper.js`, Schalter `TRUST_PROXY=1` in
+`deploy/dreamrushes.service`. Nichts mehr zu entscheiden; Prüfbefehl für den
+ersten Lauf in `deploy/README.md`.)* `guard()` bekommt die Adresse von
 `server.requestIP()`. Hinter Caddy ist das für jede Anfrage `127.0.0.1`: alle
 Nutzer teilen sich 10 Anmeldungen und 20 Bilder pro Minute, einer kann alle
 aussperren. Der Kommentar über `guard(` sagt das voraus (Befund S5). Vorschlag: Nur wenn

@@ -48,3 +48,12 @@ describe("checkEnv", () => {
     expect(r.warnings).toHaveLength(2);
   });
 });
+
+/* TRUST_PROXY steht in der Dienstdatei, nicht in der .env (S5). Fehlt er,
+   startet der Server trotzdem — und alle Nutzer teilen sich einen Eimer.
+   Das fällt niemandem auf, also hält es dieser Test fest. */
+test("die Dienstdatei schaltet TRUST_PROXY ein", async () => {
+  const unit = await Bun.file(new URL("./dreamrushes.service", import.meta.url)).text();
+  const lines = unit.split("\n").map((l) => l.trim());
+  expect(lines).toContain("Environment=TRUST_PROXY=1");
+});

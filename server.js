@@ -42,7 +42,7 @@ import { mediaRootFrom } from "./src/lib/mediaRoot.js";
 import { dedupePeople } from "./src/lib/people.js";
 // Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
-import { guard } from "./src/lib/gatekeeper.js";
+import { guard, senderOf } from "./src/lib/gatekeeper.js";
 import { checkResult } from "./src/lib/photoCheck.js";
 import { buildCharacterPrompt, buildSheetFromPhotoPrompt, stripReferenceClauses } from "./src/lib/promptBuilder.js";
 // Stiltexte sind Konstanten aus dem Repo — der Client schickt nur eine ID,
@@ -2554,15 +2554,14 @@ const serveOptions = {
      * gatekeeper.js entscheidet, was überhaupt betroffen ist, und alles
      * Unbekannte (Oberfläche, /media, /api/job) läuft ungebremst durch.
      *
-     * Die Absenderkennung kommt von Bun selbst, nicht aus einem Kopfzeile
+     * Die Absenderkennung kommt von Bun selbst, nicht aus einer Kopfzeile
      * wie X-Forwarded-For: die kann jeder setzen, und ein Rate-Limit, das
-     * sich der Begrenzte selbst aussucht, ist keins. Hinter einem Proxy
-     * sähe der Server dann dessen Adresse — das ist beim heutigen Aufbau
-     * (localhost) richtig und muss beim Umzug hinter einen Proxy bewusst
-     * geändert werden. */
+     * sich der Begrenzte selbst aussucht, ist keins. Einzige Ausnahme: hinter
+     * Caddy (TRUST_PROXY=1, deploy/dreamrushes.service) und nur für
+     * Verbindungen vom Proxy selbst — senderOf() in gatekeeper.js (S5). */
     const verdict = guard(
       url.pathname,
-      server.requestIP(req)?.address || "unknown",
+      senderOf(server.requestIP(req)?.address, req.headers, process.env.TRUST_PROXY === "1"),
       req.headers.get("x-api-token"),
       process.env.API_TOKEN,
     );
