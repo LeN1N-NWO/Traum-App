@@ -144,3 +144,12 @@ lohnt Betrug kaum; App Attest erst vor dem öffentlichen Launch.
 
 ## Was Anton noch entscheidet
 - Menge des Starter-Codes (Vorschlag 22 Credits).
+
+> **Nachtrag 03.10. (Anton + Claude):** Die Prämie ist jetzt in **Träumen**
+> (1 Traum = 16 Credits): S → 1, Monatsabo → 1, M → 2, L → 3, XL → 5,
+> Jahresabo → 6. Gebucht in einen dritten Bucket **`gift`** mit Ablauf nach
+> 30 Tagen (lokal schon gebaut: `src/lib/credits.js` `giftCredits`), nicht
+> mehr in `purchased`. Und: beim Kauf **`appAccountToken` = User-UUID**
+> setzen, dann kennen die Server Notifications das Konto selbst.
+> Tabelle und Begründung: `docs/plans/2026-09-14-codes-einladungen-plan.md`,
+> Nachtrag 03.10.

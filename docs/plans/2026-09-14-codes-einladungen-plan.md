@@ -153,3 +153,43 @@ wie viele Installationen ein Post gebracht hat — nur als Summe, ohne Tracking.
 
 ## Noch zur Entscheidung (Anton)
 1. Starter-Code: 22 Credits?
+
+## Nachtrag 03.10.2026 — Prämie in Träumen statt in Credits
+
+Antons Ansage: „Wenn der Freund Credits kauft für 5 €, dann kriegst du
+einen Traum geschenkt." Passt zur neuen Serien-Leiter (`streakBoard.js`):
+Geschenke heißen nach dem, was man damit macht. Ein Traum = ein ganzer
+15-s-Film = **16 Credits** (`FILM_GIFT`, aus dem Filmpreis gerechnet).
+
+**Ersetzt die Tabelle vom 14.09.** (Grundlage wie dort: Apple 15 %, 19 % MwSt,
+der Freund verbraucht alles, $0,028 Einkauf je Credit):
+
+| Freund kauft | Prämie für dich | Credits | kostet uns höchstens | Anteil an unserem Gewinn aus dem Kauf |
+|---|---|---|---|---|
+| Paket S $4,99 | 1 Traum | 16 | $0,45 | 21 % |
+| Monatsabo $9,99 | 1 Traum | 16 | $0,45 | 17 % des 1. Monats |
+| Paket M $12,99 | 2 Träume | 32 | $0,90 | 18 % |
+| Paket L $24,99 | 3 Träume | 48 | $1,36 | 15 % |
+| Paket XL $49,99 | 5 Träume | 80 | $2,26 | 13 % |
+| Jahresabo $99,99 | 6 Träume | 96 | $2,71 | 16 % |
+
+Bleibt wie entschieden: nur beim **ersten echten Kauf** des Freundes, nach
+**14 Tagen ohne `REFUND`**, höchstens **5 Prämien im Monat**, Gratis-Codes und
+TestFlight-Käufe zahlen nie. Der Freund selbst bekommt nichts extra (Apple).
+
+**Neu:**
+1. **Geschenk-Topf mit Verfall.** Lokal gibt es ihn seit heute
+   (`credits.js` `giftCredits`, 30 Tage, Ausgabe Abo → Geschenk → gekauft).
+   Auf dem Server braucht `credits_balance` dafür einen dritten Bucket
+   `gift` mit Ablaufdatum; Serien-Geschenke und Einladungsprämien landen
+   beide dort. ⚠ Verfall geschenkter Credits vor dem Launch juristisch
+   prüfen lassen (gekaufte verfallen nie, Apple 3.1.1).
+2. **`appAccountToken` bei jedem Kauf** = die Supabase-User-ID (UUID).
+   StoreKit gibt ihn in jeder signierten Transaktion und in den App Store
+   Server Notifications V2 zurück. Damit weiß der Server bei Kauf UND
+   Erstattung, wem sie gehören, auch wenn die App nie wieder geöffnet wird.
+   Das schließt die offene Frage aus der Übergabe vom 14.09. („ob die
+   Notification allein das Konto kennt").
+3. **Reihenfolge unverändert:** Apple-Konto auf die UG umziehen → Anmeldung →
+   echte Käufe mit Server-Prüfung → Einladungen. Ohne Konto und echte Käufe
+   gibt es nichts zuzuordnen.
