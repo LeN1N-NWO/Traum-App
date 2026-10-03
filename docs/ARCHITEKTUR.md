@@ -115,10 +115,14 @@ In drei Schritten, jeder für sich prüfbar:
    Sicherungs-Routen. `server.js` prüft nach dem Rate-Limit und nur mit
    `REQUIRE_AUTH=1`; die Antwort trägt `reason: "signin"`.
    `deploy/check-env.mjs` startet nicht mit `REQUIRE_AUTH=1` ohne Supabase.
-2. **App schickt das Token:** `src/lib/api.js` bekommt eine Token-Quelle; die
+2. ✅ **App schickt das Token (03.10.2026, im Simulator belegt):** `src/lib/api.js` bekommt eine Token-Quelle; die
    vier Web-Ansichten (`mobile/src/legacy/*`) bekommen `getToken` von der
    nativen Seite; `glimpse-layer.tsx` und `dream-recorder.tsx` ebenso; das
-   Sprachinterview (WebSocket, `voiceSession.js`) trägt es als Subprotokoll.
+   Sprachinterview (WebSocket, `voiceSession.js`) trägt es als Subprotokoll
+   (`dreamrushes, bearer.<token>`, der Server bestätigt `dreamrushes`).
+   Ohne Sitzung geht jeder Aufruf ohne Token raus — lokal bleibt alles offen.
+   Beleg: `POST /api/analyze` aus der Web-Ansicht kam mit Token an und wurde
+   durchgelassen (dahinter 503 nur wegen absichtlich fehlendem Schlüssel).
 3. **Gast-Erlebnis:** Bei `reason: "signin"` „bitte anmelden" statt Fehler;
    Foto-Check nach der Anmeldung nachholen.
 
@@ -134,6 +138,13 @@ in einem App-Bau steckt — sonst sperrt der VPS die App aus wie am 11.09.
 ⚠ **Grenze:** Mit Konto prüft `/api/job` nicht, ob der Auftrag *diesem*
 Nutzer gehört — wer eine fremde Auftragsnummer kennt, holt den Film ab.
 Dafür bräuchte der Server die Zuordnung Auftrag → Nutzer; gehört zu S2.
+Zwei Schwächen der Auftragsnummer selbst (`genJobId()` in `server.js`), mit
+zu erledigen: Sie besteht aus Uhrzeit + 6 Zeichen aus `Math.random()` —
+nicht kryptografisch; später durch `crypto.randomUUID()` o. ä. ersetzen. Und
+`/api/job` ist vom Rate-Limit ausgenommen (`UNLIMITED` in `gatekeeper.js`),
+Raten kostet also nur Zeit. Praktisch heute schwer (~2 Mrd. Möglichkeiten je
+Zeitpunkt), aber nicht sauber. Solange `/media/` offen ist (S2), brächte
+eine Besitzprüfung nur an `/api/job` allein wenig.
 
 ## 5. Qualitätsmerkmale
 

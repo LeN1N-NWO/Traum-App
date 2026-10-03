@@ -8,6 +8,44 @@ import { t } from "../i18n/index.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
+/* Das Zugangstoken für die bezahlten Routen (S1, needsAccount() in
+ * src/lib/gatekeeper.js). Die Web-Ansichten der nativen App erreichen den
+ * Schlüsselbund nicht; die native Seite reicht deshalb eine Funktion herein
+ * (`getToken` → setTokenSource in mobile/src/legacy/*). Diese Brücke gibt es
+ * nur, weil der Geldweg noch durch die alte Web-Oberfläche läuft (ADR-0006) —
+ * nach dem Umzug auf nativ fällt sie weg.
+ *
+ * Ohne Quelle (Web-Entwicklungsbau) oder ohne Sitzung geht der Aufruf ohne
+ * Token raus; ob er eins braucht, entscheidet der Server (REQUIRE_AUTH). */
+let tokenSource = null;
+export function setTokenSource(fn) {
+  tokenSource = typeof fn === "function" ? fn : null;
+}
+const TOKEN_WAIT_MS = 5_000;   // hängt die Brücke, lieber ohne Token weiter
+export async function accessToken(fresh = false) {
+  if (!tokenSource) return null;
+  let timer;
+  const giveUp = new Promise((r) => { timer = setTimeout(() => r(null), TOKEN_WAIT_MS); });
+  try {
+    return (await Promise.race([Promise.resolve(tokenSource(fresh)), giveUp])) || null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* fetch mit Token, wenn eines da ist. Bei 401 einmal mit frischem Token
+ * wiederholen — ein Zugangstoken läuft nach einer Stunde ab, und ein Film
+ * wird minutenlang abgeholt. */
+async function sendWithSession(url, init) {
+  const go = (token) => fetch(url, token ? { ...init, headers: { ...(init.headers || {}), authorization: `Bearer ${token}` } } : init);
+  const first = await go(await accessToken());
+  if (first.status !== 401 || !tokenSource) return first;
+  const fresh = await accessToken(true);
+  return fresh ? go(fresh) : first;
+}
+
 /* Where a stored media path actually lives.
  *
  * Generated files are kept by the server and referenced as "/media/<name>",
@@ -80,7 +118,7 @@ function friendly(err) {
 async function post(path, body, { timeout = TIMEOUTS.default } = {}) {
   let res;
   try {
-    res = await fetch(`${API_BASE}${path}`, {
+    res = await sendWithSession(`${API_BASE}${path}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
@@ -355,7 +393,7 @@ export async function photoCheck({ image, category }) {
 export async function uploadPanel(blob) {
   let res;
   try {
-    res = await fetch(`${API_BASE}/api/panel`, {
+    res = await sendWithSession(`${API_BASE}/api/panel`, {
       method: "POST",
       headers: { "content-type": blob.type || "image/png" },
       body: blob,
@@ -382,7 +420,7 @@ export async function filmWithOutro(film, card) {
 export async function jobStatus(id) {
   let res;
   try {
-    res = await fetch(`${API_BASE}/api/job?id=${encodeURIComponent(id)}`, {
+    res = await sendWithSession(`${API_BASE}/api/job?id=${encodeURIComponent(id)}`, {
       signal: AbortSignal.timeout(20_000),
     });
   } catch (err) {

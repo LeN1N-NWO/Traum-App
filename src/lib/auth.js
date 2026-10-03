@@ -65,6 +65,25 @@ export function parseBearer(header) {
 }
 
 /**
+ * The token out of a WebSocket's `Sec-WebSocket-Protocol` header. Pure.
+ *
+ * A browser WebSocket cannot set an Authorization header, so the voice
+ * interview (src/lib/voiceSession.js) offers its token as a subprotocol:
+ * `dreamrushes, bearer.<token>`. S1, needsAccount() in gatekeeper.js.
+ * @param {string|null|undefined} header
+ * @returns {string|null}
+ */
+export const WS_PROTOCOL = "dreamrushes";
+export function parseWsBearer(header) {
+  if (typeof header !== "string") return null;
+  const parts = header.split(",").map((p) => p.trim());
+  if (!parts.includes(WS_PROTOCOL)) return null;
+  const entry = parts.find((p) => p.startsWith("bearer."));
+  const token = entry ? entry.slice("bearer.".length) : "";
+  return token ? token : null;
+}
+
+/**
  * Where Supabase Auth lives, from the environment. Pure.
  *
  * Both halves are needed or neither is: a URL without the key cannot call

@@ -76,7 +76,7 @@ import { appGrid, GRID_SLOTS } from "./src/lib/gridLayout.js";
 import { openDatabase, withUser, fromJsonb } from "./src/lib/db.js";
 // Wer fragt: die fehlende Hälfte zu db.js. withUser() kann für eine Person
 // handeln, auth.js sagt, WER sie ist (eigene Datei, ohne Netz prüfbar).
-import { parseBearer, authConfig, passwordLogin, appleLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
+import { parseBearer, parseWsBearer, WS_PROTOCOL, authConfig, passwordLogin, appleLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
 import { appleRevokeConfig, revokeAppleForDeletion } from "./src/lib/apple-revoke.js";
 // Die Entwicklungs-Routen mit Fotos und Traumtexten nur für diesen Rechner
 // (eigene Datei mit Test, src/lib/localOnly.test.js).
@@ -2577,12 +2577,21 @@ const serveOptions = {
      * damit es auch die Rückfragen bei Supabase bremst. `reason` lässt die
      * App „bitte anmelden" zeigen statt eines Fehlers. */
     if (process.env.REQUIRE_AUTH === "1" && needsAccount(url.pathname)) {
-      const person = await verifyAccessToken(parseBearer(req.headers.get("authorization")), { config: AUTH });
+      // Das Sprachinterview (WebSocket) kann keine Kopfzeile setzen und
+      // schickt das Token als Subprotokoll (parseWsBearer in auth.js).
+      const token = parseBearer(req.headers.get("authorization"))
+        ?? parseWsBearer(req.headers.get("sec-websocket-protocol"));
+      const person = await verifyAccessToken(token, { config: AUTH });
       if (!person) return json({ error: "Please sign in to continue.", reason: "signin" }, 401);
     }
 
     if (url.pathname === "/api/voice") {
-      if (server.upgrade(req, { data: { upstream: null } })) return undefined;
+      /* Bietet der Client Subprotokolle an, MUSS die Antwort eines davon
+         bestätigen, sonst bricht der Browser die Verbindung ab (S1). */
+      const offersOurs = (req.headers.get("sec-websocket-protocol") || "")
+        .split(",").some((p) => p.trim() === WS_PROTOCOL);
+      const upgradeHeaders = offersOurs ? { "sec-websocket-protocol": WS_PROTOCOL } : undefined;
+      if (server.upgrade(req, { data: { upstream: null }, headers: upgradeHeaders })) return undefined;
       return new Response("Expected a WebSocket upgrade.", { status: 426 });
     }
 

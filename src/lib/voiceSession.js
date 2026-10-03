@@ -6,6 +6,8 @@
  * hands you, so both directions are converted by hand below. Getting this
  * wrong produces no error, just noise, which is why the numbers are named.
  */
+import { accessToken } from "./api.js";
+
 const IN_RATE = 16000;
 const OUT_RATE = 24000;
 const CHUNK = 2048;
@@ -61,7 +63,12 @@ export function startVoiceSession(h = {}, who = {}) {
     ? base.replace(/^http/, "ws") + "/api/voice"
     : `${scheme}://${location.hostname}:${__API_PORT__}/api/voice`;
 
-  const ws = new WebSocket(url);
+  /* S1: Das Token reist als Subprotokoll mit — ein Browser-WebSocket kann
+   * keine Kopfzeilen setzen. Es zu holen ist asynchron (Brücke zur nativen
+   * Seite), die Sitzung hier aber nicht: Bis es da ist, steht ein Platzhalter
+   * an der Stelle des Sockets; die Handler unten landen erst auf ihm und
+   * ziehen dann auf den echten Socket um (openWithToken, ganz unten). */
+  let ws = { readyState: 0, send() {}, close() {} };
   ws.binaryType = "arraybuffer";
 
   let ctx, mic, node, stream;
@@ -238,6 +245,14 @@ export function startVoiceSession(h = {}, who = {}) {
     try { ctx?.close(); playCtx?.close(); } catch {}
     try { ws.close(); } catch {}
   }
+
+  (async function openWithToken() {
+    const token = await accessToken();
+    if (closed) return;
+    const real = new WebSocket(url, token ? ["dreamrushes", `bearer.${token}`] : undefined);
+    for (const k of ["binaryType", "onopen", "onmessage", "onerror", "onclose"]) real[k] = ws[k];
+    ws = real;
+  })();
 
   return { say, stop, drain, stopListening };
 }

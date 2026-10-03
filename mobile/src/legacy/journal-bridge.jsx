@@ -10,6 +10,7 @@
  * Die Leser (filmsOf, imagesOf, isBlank, mediaUrl) und die Texte (`t`) sind
  * die der Web-App — eine Wahrheit über Form und Sprache, nicht zwei. */
 import "./vite-env.js";                       // ⚠ zuerst, API_BASE
+import { setTokenSource } from "../../../src/lib/api.js";   // S1: Token von der nativen Seite
 import { useEffect } from "react";
 import { loadState, saveState } from "../../../src/lib/storage.js";
 import { STREAK_CAP } from "../../../src/lib/streak.js";
@@ -1363,7 +1364,8 @@ function syncLanguage() {
   setLanguage(want);
 }
 
-export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, streakChores: chores = false, dom }) {
+export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, streakChores: chores = false, getToken, dom }) {
+  setTokenSource(getToken);   // S1 — fällt mit dem Umzug auf nativ weg (ADR-0006)
   useEffect(() => {
     const push = () => { try { syncLanguage(); devTopUp(devCredits); if (chores) streakChores(onResult); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
     /* Nur Änderungen am Zustand wecken die Brücke — nicht die Pachten

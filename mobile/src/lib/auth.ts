@@ -204,6 +204,33 @@ export async function authFetch(path: string, init: RequestInit = {}): Promise<R
   return go(fresh);
 }
 
+/* Das Zugangstoken für Aufrufe, die NICHT zwingend ein Konto brauchen —
+   die bezahlten Routen (S1, needsAccount() in src/lib/gatekeeper.js).
+   Anders als authFetch: ohne Sitzung kommt null, und der Aufruf geht
+   trotzdem raus; ob er ein Konto braucht, entscheidet der Server
+   (REQUIRE_AUTH). So bleibt das lokale Entwickeln ohne Konto möglich.
+   `fresh` erneuert vorher — für die eine Wiederholung nach einem 401.
+
+   Geht als Funktions-Prop `getToken` an die Web-Ansichten (mobile/src/legacy),
+   die den Schlüsselbund nicht erreichen. Diese Stellen gibt es nur, weil der
+   Geldweg noch durch die alte Web-Oberfläche läuft (ADR-0006) — nach dem
+   Umzug auf nativ fallen sie weg. */
+export async function getAccessToken(fresh = false): Promise<string | null> {
+  if (fresh) return refresh();
+  return SecureStore.getItemAsync(KEY_ACCESS);
+}
+
+/* fetch auf eine volle Adresse, mit Token, wenn eines da ist. Bei 401 mit
+   Token einmal erneuern und wiederholen. Ohne Token: ein ganz normaler fetch. */
+export async function fetchWithSession(url: string, init: RequestInit = {}): Promise<Response> {
+  const go = (token: string | null) => fetch(url, token ? { ...init, headers: { ...(init.headers || {}), authorization: `Bearer ${token}` } } : init);
+  const access = await getAccessToken();
+  const first = await go(access);
+  if (first.status !== 401 || !access) return first;
+  const fresh = await refresh();
+  return fresh ? go(fresh) : first;
+}
+
 /* Das Profil ins Konto schreiben (PATCH /api/account, Hannis Erlaubnisliste:
    display_name, language, voice, onboarded, survey_done, survey). Nach dem
    Onboarding, wenn eine Sitzung da ist — sonst passiert nichts. Fehler

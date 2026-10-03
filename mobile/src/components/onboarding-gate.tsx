@@ -3,7 +3,7 @@ import { Modal, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import JournalBridge from "@/legacy/journal-bridge";
 import { OnboardingFlow } from "@/components/onboarding-flow";
-import { pushProfile, restoreSession } from "@/lib/auth";
+import { pushProfile, restoreSession, getAccessToken } from "@/lib/auth";
 import { onboardingSeen, setOnboardingGone, setOnboardingSeen } from "@/store/dev-store";
 import { setJournal, useJournalStore, type BridgeCommand, type JournalSnapshot, type OnboardData } from "@/store/journal-store";
 import { colors } from "@/theme";
@@ -67,7 +67,7 @@ export function OnboardingGate() {
           />
         ) : null}
         <View style={styles.bridge}>
-          <JournalBridge onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+          <JournalBridge getToken={getAccessToken} onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
         </View>
       </GestureHandlerRootView>
     </Modal>
