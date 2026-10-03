@@ -3,6 +3,39 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-03 20:00 — Hanni — Branch `session/2026-10-03-hanni-3` (PR #74) — ADR-0008: Medien bleiben auf dem Server als Sicherung
+
+**Commits:** 38b0b85 (Vorschlag „nur auf dem Gerät"), 2a016e0 (ADR-0008 angenommen), (+ Ergänzung und Wrap).
+
+**Was:** Vorhaben war Schritt C (Medien verschlüsselt in Object Storage).
+Vor dem Bauen umentschieden, mit Anton abgestimmt: **Ein Film entsteht auf
+dem Server und bleibt dort als Sicherung; das Gerät holt ihn einmal ab und
+spielt ihn lokal.** Kein Upload, kein Object Storage, kein Löschen nach dem
+Abholen — Keyframes und Abspann behalten ihre Quellen. Traumtexte bleiben
+verschlüsselt in Supabase (Schritt B). Festgehalten in
+`docs/decisions/ADR-0008-server-als-sicherung-kein-object-storage.md`; der
+Zwischenvorschlag „alles nur auf dem Gerät" steht dort als verworfene Option.
+Plan `2026-09-24-medienablage.md`, `ARCHITEKTUR.md` (S2, nächste Schritte),
+`src/lib/media-store.js` (bleibt für später), VPS-Übergabe und das
+Architektur-Schaubild angepasst. Kein Code geändert.
+
+**Warum:** Jede Datei entsteht ohnehin auf dem Server — sie vom Gerät
+verschlüsselt wieder hochzuladen hieße, dieselben Bytes zweimal zu schicken.
+Und die Film-Pipeline braucht die Dateien unter `/media/` weiter.
+
+**Für den Nächsten:**
+- **S2 ist jetzt Pflicht:** Medien liegen dauerhaft unverschlüsselt auf dem
+  Server → `/media/*` nur für den Besitzer. Die Zuordnung Datei → Nutzer
+  gehört an die Abholung (`/api/job` → `storeAll`, trägt seit S1 das Token).
+  Wer sie baut, klärt die Übergabe
+  `docs/uebergabe/2026-10-03-anton-medien-sicherung.md` (Antons Pipeline).
+- **Lücke:** Scheitert der Download von fal, behält `storeAll` die
+  fal-Adresse — der Film liegt dann nicht bei uns. Und abgeholt wird nur,
+  solange eine App fragt (verwaiste Filme).
+- B8 (Konto löschen löscht Medien) hängt an derselben Zuordnung; VPS-Backups
+  einschalten; Platz reicht für den Start, danach Umzug hinter
+  `media-store.js`.
+
 ## 2026-10-03 19:20 — Hanni — Branch `session/2026-10-03-hanni-2` (PR #73) — Gemergte Branches aufräumen
 
 **Commits:** 009cb0e (Reservierung), 3a80f6c (Ablauf + Übergabe) (+ Wrap).

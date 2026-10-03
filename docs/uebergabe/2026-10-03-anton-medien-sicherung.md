@@ -15,17 +15,27 @@ Quellen weiter unter `/media/`. Traumtexte bleiben verschlüsselt in Supabase.
    Medien jetzt dauerhaft auf dem Server liegen, darf `/media/*` nur noch an
    den Besitzer gehen. Dafür muss der Server beim Ablegen festhalten, wem
    die Datei gehört — also an der Stelle, wo Bilder und Filme von fal.ai
-   zurückkommen und gespeichert werden (`storeBytes`, die Film-Abholung über
-   `/api/job`). Die Nutzerkennung gibt es seit S1 an jeder bezahlten
-   Anfrage. **Frage:** Baust du das, oder darf ich es bauen — nur die
+   zurückkommen und gespeichert werden. Bei Filmen ist das die Abholung:
+   Die App fragt `/api/job`, der Server fragt fal, und wenn der Film fertig
+   ist, lädt `storeAll` → `storeMedia` ihn herunter und legt ihn unter
+   `/media/` ab. Genau diese Anfrage trägt seit S1 das geprüfte Token — dort
+   ist bekannt, wem der Film gehört. **Frage:** Baust du das, oder darf ich es bauen — nur die
    Zuordnung beim Speichern, ohne Prompts, Modelle oder Anfragekörper
    anzufassen?
-2. **Konto löschen löscht die Medien (B8)** — hängt an derselben Zuordnung;
+2. **Lücke in der Sicherung — deine Pipeline:** Scheitert das
+   Herunterladen von fal, gibt `storeAll` die **fal-Adresse** weiter
+   (`(await storeMedia(u)) || u`). Dann liegt der Film nur bei fal, nicht
+   bei uns, und fal-Adressen gelten nicht ewig. Vorschlag: später erneut
+   herunterladen, statt die fal-Adresse zu behalten. Und: Abgeholt wird nur,
+   solange eine App `/api/job` fragt — sonst bleibt ein fertiger Film bei
+   fal liegen (die verwaisten Filme). Für die Sicherung sollte der Server
+   fertige Aufträge selbst abholen.
+3. **Konto löschen löscht die Medien (B8)** — hängt an derselben Zuordnung;
    das baue ich mit, sobald Punkt 1 steht.
-3. **Snapshots/Backups des VPS bei Hetzner einschalten** — die Sicherung
+4. **Snapshots/Backups des VPS bei Hetzner einschalten** — die Sicherung
    braucht selbst eine Sicherung (stand schon in der Übergabe vom 25.09.,
    ist jetzt wichtiger).
-4. **Platz im Blick behalten:** 5–10 MB je Film. Die Rechnung vom 24.09.:
+5. **Platz im Blick behalten:** 5–10 MB je Film. Die Rechnung vom 24.09.:
    bei 1.000 Nutzern wäre eine VPS-Platte nach rund einem Monat voll. Dann
    ziehen die Medien in Object Storage um — `src/lib/media-store.js` liegt
    dafür bereit.

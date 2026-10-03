@@ -67,8 +67,12 @@ nach Neuinstallation geht von selbst, solange das Konto besteht.
    (`/media/*` ohne Zugangsprüfung, jeder mit der Adresse kann abrufen) zur
    Voraussetzung für den Betrieb, nicht zur Nebensache:
    - Der Server muss wissen, **welche Datei wem gehört** — heute weiß er es
-     nicht (keine Zuordnung in `server.js`). Beim Erzeugen die geprüfte
-     Nutzerkennung zur Datei festhalten (S1 liefert sie seit 03.10.).
+     nicht (keine Zuordnung in `server.js`). Die Stelle dafür: Filme holt
+     der Server erst ab, wenn die App `/api/job` fragt (`jobStatus` →
+     `storeAll` → `storeMedia` lädt die Datei von fal herunter und legt sie
+     unter `/media/` ab). Diese Anfrage trägt seit S1 das geprüfte Token —
+     dort ist bekannt, wem der Film gehört, ohne Prompts oder Modelle
+     anzufassen. Bilder entsprechend an ihrer Ablage.
    - `/media/*` liefert nur an den Besitzer aus (Anmeldung wie bei S1).
    - **S3** (Dateiname aus 64-Bit-Hash, ratbar) verliert an Gewicht, sobald
      nur noch der Besitzer abrufen darf.
@@ -83,7 +87,17 @@ nach Neuinstallation geht von selbst, solange das Konto besteht.
    dann ein neues ADR.
 4. **Die Sicherung braucht selbst eine Sicherung:** Snapshots/Backups des
    VPS bei Hetzner einschalten (steht schon in der Übergabe vom 25.09.).
-5. **Die App-Texte** (Schritt D sprach von einer verschlüsselten Medien-
+5. **Der Film muss wirklich bei uns liegen.** Scheitert das Herunterladen
+   von fal (z. B. Zeitüberschreitung), gibt `storeAll` heute statt der
+   eigenen die **fal-Adresse** weiter (`(await storeMedia(u)) || u`, Stand
+   `c6b3690`). Dann liegt der Film nur bei fal, dessen Adressen nicht
+   dauerhaft gelten — die Sicherung hätte eine Lücke. Der Server muss das
+   Herunterladen später erneut versuchen, statt die fal-Adresse zu behalten.
+6. **Abgeholt wird nur, solange eine App fragt.** Fragt kein Gerät mehr
+   `/api/job`, bleibt ein fertiger Film bei fal liegen (die bekannten
+   „verwaisten Filme"). Für eine verlässliche Sicherung sollte der Server
+   fertige Aufträge selbst abholen, nicht erst auf Nachfrage.
+7. **Die App-Texte** (Schritt D sprach von einer verschlüsselten Medien-
    Sicherung) müssen sagen, was gilt: Texte verschlüsselt, Filme und Bilder
    auf unserem Server in Deutschland, nur für dich abrufbar, gelöscht mit
    deinem Konto.
