@@ -50,6 +50,7 @@ import { zodiacOf } from "../../../src/lib/zodiac.js";
 import { SYMBOLS, SYMBOL_CATEGORIES, detectSymbols, symbolOccurrences } from "../../../src/lib/symbols.js";
 import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
 import { MILESTONES, nextMilestone, giftFor, giftInfo, giftLabel } from "../../../src/lib/streakBoard.js";
+import { REFERRAL_FILMS, REFERRAL_HOLD_DAYS, REFERRAL_MONTHLY_CAP } from "../../../src/lib/invites.js";
 import { nextSnoozeIn } from "../../../src/lib/streak.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
 import { genId } from "../../../src/lib/storage.js";
@@ -654,7 +655,21 @@ function snapshot() {
     },
     texts: { morningTitle: rm.morningTitle, morningBody: rm.morningBody, eveningTitle: rm.eveningTitle, eveningBody: rm.eveningBody, realityTitle: rm.realityTitle, realityBodies: rm.realityBodies },
   };
-  return { language: s.language || "en", items, castImages, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent, onboard, reminders };
+  /* Freunde einladen (03.10., src/lib/invites.js): nur Texte und die
+     Prämientabelle — Code, Freunde und Status kommen vom Server (Hanni),
+     die native Seite holt sie selbst (mobile/src/lib/invites.ts). */
+  const invite = (() => {
+    const I = t.invite;
+    return {
+      ...I,
+      rewards: Object.entries(REFERRAL_FILMS).map(([id, films]) => ({
+        id, label: I.products[id] || id, films,
+        filmsText: films === 1 ? I.films.one : I.films.many.replace("{n}", String(films)),
+      })),
+      holdDays: REFERRAL_HOLD_DAYS, monthlyCap: REFERRAL_MONTHLY_CAP,
+    };
+  })();
+  return { language: s.language || "en", items, castImages, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent, onboard, reminders, invite };
 }
 
 /* Befehle nativ → Web: Die Hülle kann den Web-Speicher nicht schreiben, also

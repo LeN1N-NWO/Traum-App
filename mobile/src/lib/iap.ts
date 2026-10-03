@@ -1,4 +1,5 @@
 import { fetchProducts, finishTransaction, initConnection, requestPurchase } from "expo-iap";
+import { accountId } from "@/lib/auth";
 
 /* StoreKit-Anbindung (App-Store-Blocker B1, 23.09.2026, Antons Go).
  *
@@ -51,10 +52,18 @@ export async function buyPlan(planId: string): Promise<"done" | "cancelled" | "u
   if (!product) return "unavailable";
   try {
     await connect();
+    /* Das Konto am Kauf (Einladungen, 03.10.): Apple gibt `appAccountToken`
+       in der signierten Transaktion und in jeder Server-Meldung zurück — so
+       kennt der Server bei Kauf UND Erstattung das Konto, auch wenn die App
+       nie wieder aufgeht. Apple verlangt eine UUID; ohne Anmeldung bleibt
+       das Feld weg. */
+    const id = accountId();
+    const token = id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id.toLowerCase() : undefined;
+    const apple = { sku: product.sku, ...(token ? { appAccountToken: token } : {}) };
     const result = await requestPurchase(
       product.type === "subs"
-        ? { request: { apple: { sku: product.sku } }, type: "subs" }
-        : { request: { apple: { sku: product.sku } }, type: "in-app" },
+        ? { request: { apple }, type: "subs" }
+        : { request: { apple }, type: "in-app" },
     );
     const purchase = Array.isArray(result) ? result[0] : result;
     if (!purchase) return "cancelled";

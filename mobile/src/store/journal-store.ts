@@ -19,6 +19,16 @@ export type GiftKind = "glimpse" | "film" | "credits" | "month";
 export type CycleMilestone = { index: number; nights: number; gift: string | null; kind: GiftKind | null; credits: number; short: string | null; worth: string | null; soon: string; reward: string; say: string };
 export type GiftReveal = { nights: number; kind: GiftKind; credits: number; title: string; label: string; worth: string | null; reward: string | null; expires: string | null; tapToOpen: string; redeem: string; later: string; target: "dream" | "journal"; dreamId: string | null };
 
+/* Freunde einladen (03.10.) — Texte aus en.js/de.js, Platzhalter {…}. */
+export type InviteTexts = {
+  title: string; cardTitle: string; cardHint: string; hero: string; lede: string; codeLabel: string; share: string; shareMessage: string;
+  rewardsTitle: string; friendBuys: string; rewards: { id: string; label: string; films: number; filmsText: string }[];
+  friendsTitle: string; empty: string; status: { joined: string; bought: string; rewarded: string; rejected: string }; cap: string;
+  rules: string[]; haveCode: string; codePlaceholder: string; connect: string; connected: string;
+  errors: Record<"invalid" | "unknown" | "own" | "already" | "device" | "signin" | "offline", string>;
+  signin: string; preview: string; films: { one: string; many: string }; holdDays: number; monthlyCap: number;
+};
+
 export type HomeData = {
   streak: number; atRisk: boolean; rendering: boolean; nightMarked: boolean; checkin: number | null;
   lastId: string | null; streakLine: string; streakNote: string;
@@ -117,7 +127,7 @@ export type RemindersData = {
   texts: { morningTitle: string; morningBody: string; eveningTitle: string; eveningBody: string; realityTitle: string; realityBodies: string[] };
 };
 export type ConsentData = { needed: boolean; title: string; intro: string; termsPre: string; termsLink: string; termsMid: string; privacyLink: string; termsPost: string; processing: string; adult: string; more: string; details: string[]; facts: { id: string; title: string; text: string }[]; cta: string };
-export type JournalSnapshot = { language: string; items: DreamItem[]; castImages?: Record<string, string>; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData; symbols: SymbolsData; library: LibraryData; menagerie: MenagerieData; consent: ConsentData; reminders: RemindersData; onboard: Omit<OnboardData, "sleepYears" | "sleepDream"> & { sleepYearsTpl: string; sleepDreamTpl: string } };
+export type JournalSnapshot = { language: string; items: DreamItem[]; castImages?: Record<string, string>; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData; symbols: SymbolsData; library: LibraryData; menagerie: MenagerieData; consent: ConsentData; reminders: RemindersData; invite?: InviteTexts; onboard: Omit<OnboardData, "sleepYears" | "sleepDream"> & { sleepYearsTpl: string; sleepDreamTpl: string } };
 /* Der Film-Auftrag für den nativen Motor (Brücke `order`, Vorarbeit 13.09.). */
 export type OrderRequest = {
   entryId?: string | null; text: string; originalText?: string; analysis: any | null; title?: string; tagline?: string;

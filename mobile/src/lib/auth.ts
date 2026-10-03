@@ -43,6 +43,13 @@ export function useAccount() {
   return useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; }, () => account, () => account);
 }
 
+/** Die Konto-ID (Supabase-UUID) — oder null ohne Anmeldung. Für den Kauf:
+ *  StoreKit trägt sie als `appAccountToken` in jede Transaktion, damit der
+ *  Server Kauf und Erstattung dem Konto zuordnet (Einladungen, 03.10.). */
+export function accountId(): string | null {
+  return account?.id || null;
+}
+
 export async function restoreSession() {
   if (restored) return account;
   restored = true;

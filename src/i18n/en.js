@@ -104,6 +104,48 @@ export default {
 
   /* Die Meilenstein-Leiter hinter der Streak-Pille. Ehrlich: nur, was
      existiert — die Wesen-Rarität steigt wirklich mit der Serie. */
+  /* Freunde einladen (03.10.2026, src/lib/invites.js). Platzhalter in {…}
+     füllt die native Seite — Funktionen gehen nicht über die Brücke. */
+  invite: {
+    title: "Invite friends",
+    cardTitle: "Invite friends",
+    cardHint: "When a friend buys, a dream is on us.",
+    hero: "Share your dreams. Dream for free.",
+    lede: "When someone you invited buys credits or a subscription for the first time, we give you dreams. One dream is a whole film.",
+    codeLabel: "Your code",
+    share: "Share invitation",
+    shareMessage: "I keep my dreams as films with Dream Rushes. Come along: {link}",
+    rewardsTitle: "What you get",
+    friendBuys: "Your friend buys",
+    films: { one: "1 dream", many: "{n} dreams" },
+    products: { "pack-s": "Pack S", monthly: "Monthly", "pack-m": "Pack M", "pack-l": "Pack L", "pack-xl": "Pack XL", yearly: "Yearly" },
+    friendsTitle: "Your invitations",
+    empty: "No one yet. Share your code with someone who dreams too.",
+    status: { joined: "joined", bought: "bought — your gift arrives on {date}", rewarded: "🎁 {films} for you", rejected: "doesn't count (refunded)" },
+    cap: "{n} of {cap} gifts this month",
+    rules: [
+      "Only your friend's first real purchase counts — no free codes.",
+      "Your gift arrives 14 days after the purchase, if it wasn't refunded.",
+      "At most 5 gifts a month. Gifted credits are valid for 30 days.",
+      "Your friend gets nothing extra from the code — it only connects your accounts.",
+    ],
+    haveCode: "Got an invitation code?",
+    codePlaceholder: "Paste code or link",
+    connect: "Connect",
+    connected: "Connected — glad you're here.",
+    errors: {
+      invalid: "That isn't a valid code.",
+      unknown: "This code doesn't exist.",
+      own: "That's your own code.",
+      already: "You're already connected to an invitation.",
+      device: "An invitation was already connected on this device.",
+      signin: "Sign in to connect the code.",
+      offline: "Can't reach us right now. Try again in a moment.",
+    },
+    signin: "Sign in to get your code.",
+    preview: "Preview — real codes arrive with the account server.",
+  },
+
   streakBoard: {
     title: "Your streak",
     /* Die Mini-Geschenke (Antons Ja 22.08.). Der Ton ist bewusst nüchtern:

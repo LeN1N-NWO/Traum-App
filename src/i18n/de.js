@@ -89,6 +89,48 @@ export default {
   },
 
 
+  /* Freunde einladen (03.10.2026, src/lib/invites.js). Platzhalter in {…}
+     füllt die native Seite — Funktionen gehen nicht über die Brücke. */
+  invite: {
+    title: "Freunde einladen",
+    cardTitle: "Freunde einladen",
+    cardHint: "Kauft ein Freund, schenken wir dir einen Traum.",
+    hero: "Teile deine Träume. Träum umsonst.",
+    lede: "Kauft jemand, den du eingeladen hast, zum ersten Mal Credits oder ein Abo, schenken wir dir Träume. Ein Traum ist ein ganzer Film.",
+    codeLabel: "Dein Code",
+    share: "Einladung teilen",
+    shareMessage: "Ich halte meine Träume als Filme fest — mit Dream Rushes. Komm mit: {link}",
+    rewardsTitle: "Was du bekommst",
+    friendBuys: "Dein Freund kauft",
+    films: { one: "1 Traum", many: "{n} Träume" },
+    products: { "pack-s": "Paket S", monthly: "Monatsabo", "pack-m": "Paket M", "pack-l": "Paket L", "pack-xl": "Paket XL", yearly: "Jahresabo" },
+    friendsTitle: "Deine Einladungen",
+    empty: "Noch niemand. Teil deinen Code mit jemandem, der auch träumt.",
+    status: { joined: "ist dabei", bought: "hat gekauft — dein Geschenk kommt am {date}", rewarded: "🎁 {films} für dich", rejected: "zählt nicht (erstattet)" },
+    cap: "{n} von {cap} Geschenken diesen Monat",
+    rules: [
+      "Es zählt nur der erste echte Kauf deines Freundes — keine Gratis-Codes.",
+      "Dein Geschenk kommt 14 Tage nach dem Kauf, wenn er nicht erstattet wurde.",
+      "Höchstens 5 Geschenke im Monat. Geschenkte Credits gelten 30 Tage.",
+      "Dein Freund bekommt durch den Code nichts extra — er verbindet nur eure Konten.",
+    ],
+    haveCode: "Hast du einen Einladungscode?",
+    codePlaceholder: "Code oder Link einfügen",
+    connect: "Verbinden",
+    connected: "Verbunden — schön, dass du da bist.",
+    errors: {
+      invalid: "Das ist kein gültiger Code.",
+      unknown: "Diesen Code gibt es nicht.",
+      own: "Das ist dein eigener Code.",
+      already: "Du bist schon mit einer Einladung verbunden.",
+      device: "Auf diesem Gerät wurde schon eine Einladung verbunden.",
+      signin: "Melde dich an, um den Code zu verbinden.",
+      offline: "Gerade nicht erreichbar. Versuch es gleich noch mal.",
+    },
+    signin: "Melde dich an, dann bekommst du deinen Code.",
+    preview: "Vorschau — echte Codes kommen mit dem Konto-Server.",
+  },
+
   streakBoard: {
     title: "Deine Serie",
     gift: (nights, label) => `🎁 ${nights} Nächte in Folge — dein Geschenk: ${label}`,
