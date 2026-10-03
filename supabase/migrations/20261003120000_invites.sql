@@ -86,7 +86,7 @@ $$;
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- Den handelnden Nutzer mit dem Konto hinter p_code verbinden.
--- Antwort: 'ok' | 'unknown' | 'own' | 'already'. Der Code schaltet beim
+-- Antwort: 'ok' | 'unknown' | 'own' | 'mutual' | 'already'. Der Code schaltet beim
 -- Eingeladenen nichts frei (Apple 3.1.1) — es entsteht nur diese Zeile.
 create or replace function public.server_invite_connect(p_code text)
 returns text
@@ -110,6 +110,12 @@ begin
   end if;
   if v_referrer = v_user then
     return 'own';
+  end if;
+  -- Wen ich eingeladen habe, der kann nicht mich einladen — sonst belohnten
+  -- sich zwei gegenseitig für je einen Kauf (Rabatt-Kreislauf).
+  if exists (select 1 from public.invite_redemptions
+              where referrer_id = v_user and invitee_id = v_referrer) then
+    return 'mutual';
   end if;
   insert into public.invite_redemptions (referrer_id, invitee_id)
     values (v_referrer, v_user)

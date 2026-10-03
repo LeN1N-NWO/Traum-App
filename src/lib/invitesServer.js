@@ -82,7 +82,7 @@ export function notSetUp(e) {
 
 /* Was die App aus dem Fehler macht: invites.ts liest `error` aus jeder
    4xx-Antwort und kennt genau diese Wörter. */
-const CONNECT_STATUS = { ok: 200, unknown: 404, own: 409, already: 409 };
+const CONNECT_STATUS = { ok: 200, unknown: 404, own: 409, mutual: 409, already: 409 };
 
 /** POST /api/invite/connect: Eingabe prüfen, verbinden, Antwort als {status, body}. */
 export async function connect(tx, body) {

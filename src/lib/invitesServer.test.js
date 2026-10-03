@@ -65,7 +65,7 @@ describe("connect", () => {
   });
 
   test("each database answer becomes the word the app knows", async () => {
-    for (const [result, status] of [["unknown", 404], ["own", 409], ["already", 409]]) {
+    for (const [result, status] of [["unknown", 404], ["own", 409], ["mutual", 409], ["already", 409]]) {
       const { tx } = fakeTx([{ result }]);
       expect(await connect(tx, { code: "DRM4KX7" })).toEqual({ status, body: { error: result } });
     }

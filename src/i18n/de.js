@@ -130,6 +130,7 @@ export default {
       invalid: "Das ist kein gültiger Code.",
       unknown: "Diesen Code gibt es nicht.",
       own: "Das ist dein eigener Code.",
+      mutual: "Diese Person hast du eingeladen — sie kann dich nicht zurück einladen.",
       already: "Du bist schon mit einer Einladung verbunden.",
       device: "Auf diesem Gerät wurde schon eine Einladung verbunden.",
       signin: "Melde dich an, um den Code zu verbinden.",

@@ -214,7 +214,11 @@ Gebaut, genau nach dem Vertrag oben:
   kryptografischer Zufall, bei Kollision neu). Vom Freund kommt nur der
   Anzeigename.
 - **`POST /api/invite/connect { code }`** → `200 { ok: true }`, sonst
-  `404 unknown`, `409 own`, `409 already`. Der Code wird mit
+  `404 unknown`, `409 own`, `409 mutual`, `409 already`. **Neu: `mutual`** —
+  wen ich eingeladen habe, der kann nicht mich einladen (sonst belohnten
+  sich zwei gegenseitig für je einen Kauf). Dafür sind `invites.ts`,
+  `journal-store.ts` und der Text in `en.js`/`de.js` um je eine Zeile
+  ergänzt; die Einladungs-Seite zeigt ihn ohne Änderung. Der Code wird mit
   `normalizeCode()` gelesen (Link, Kleinbuchstaben, Bindestriche gehen).
   Gebremst wie Anmelden (10/Minute), damit niemand Codes durchprobiert.
 - **Datenbank:** `supabase/migrations/20261003120000_invites.sql` —
@@ -237,6 +241,12 @@ mit drei eingebauten Fehlern.
   die echte Datenbank geprüft). Danach einmal mit echtem Konto prüfen und
   erst dann `INVITE_PREVIEW = false` (Antons Datei).
 - `bought`/`rewarded` und die Prämie: brauchen die Prüfung echter
-  App-Store-Käufe (B1) und den Bucket `gift` auf dem Server.
+  App-Store-Käufe (B1) und den Bucket `gift` auf dem Server. ⚠ Für B1:
+  Prämie nur für den **ersten Kauf überhaupt**, und der muss **nach dem
+  Verbinden** liegen (`invite_redemptions.created_at`) — sonst lässt sich
+  ein Bestandskunde nachträglich verbinden und sein nächster Kauf zahlt aus.
+- Ein gesperrter Code (`disabled_at`) wird seinem Besitzer weiter angezeigt,
+  Freunde bekommen „unknown". Heute sperrt niemand Codes; wer das einführt,
+  gibt dem Besitzer dabei einen neuen.
 - `device` (DeviceCheck), Universal Links/AASA, Landingpage
   `dreamrushes.app/i/CODE`.

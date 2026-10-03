@@ -10,7 +10,7 @@ import { normalizeCode } from "../../../src/lib/invites.js";
  *   GET  /api/invite          → { code, connected, rewardsThisMonth,
  *                                 referrals: [{ id, name, status, product, films, rewardAt }] }
  *   POST /api/invite/connect  { code } → { ok: true }
- *                                 | 4xx { error: "unknown"|"own"|"already"|"device" }
+ *                                 | 4xx { error: "unknown"|"own"|"mutual"|"already"|"device" }
  *
  * ⚠ VORSCHAU: Solange der Server die Endpunkte nicht kennt (404/501), zeigt
  * die Seite Beispieldaten mit dem Hinweis „Vorschau" — damit Anton die
@@ -26,7 +26,7 @@ export type InviteState =
   | { kind: "preview"; data: InviteData; signedIn: boolean }
   | { kind: "signin" }
   | { kind: "offline" };
-export type ConnectError = "invalid" | "unknown" | "own" | "already" | "device" | "signin" | "offline";
+export type ConnectError = "invalid" | "unknown" | "own" | "mutual" | "already" | "device" | "signin" | "offline";
 
 const SAMPLE: InviteData = {
   code: "DRM4KX7", connected: false, rewardsThisMonth: 1,
@@ -59,7 +59,7 @@ export async function connectInvite(input: string): Promise<{ ok: true } | { ok:
   if (res.status === 401) return { ok: false, why: "signin" };
   const d = await res.json().catch(() => null);
   const why = d?.error;
-  return { ok: false, why: why === "unknown" || why === "own" || why === "already" || why === "device" ? why : "offline" };
+  return { ok: false, why: why === "unknown" || why === "own" || why === "mutual" || why === "already" || why === "device" ? why : "offline" };
 }
 
 /* Ein Code aus einem Link, bevor es ein Konto gibt: bleibt im Schlüsselbund,
