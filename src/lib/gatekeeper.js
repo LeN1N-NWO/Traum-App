@@ -75,7 +75,8 @@ export function classOf(pathname) {
      von Passwörtern. Abmelden gehört NICHT dazu — wer abmelden will, soll das
      immer können, auch nach zehn Fehlversuchen. */
   if (pathname === "/api/auth/login" || pathname === "/api/auth/apple"
-      || pathname === "/api/auth/signup" || pathname === "/api/auth/refresh") return "auth";
+      || pathname === "/api/auth/signup" || pathname === "/api/auth/recover"
+      || pathname === "/api/auth/reset" || pathname === "/api/auth/refresh") return "auth";
   /* Konto und Träume gehen an unsere eigene Datenbank, nicht an fal: keine
      Kosten je Aufruf, aber gedeckelt, damit eine Schleife im Client den
      Server nicht beschäftigt. Ohne diese Zeile fielen sie unter „generate"
@@ -97,6 +98,8 @@ const OPEN_WITHOUT_ACCOUNT = new Set([
   "/api/auth/login",      // ohne Konto muss man sich anmelden können
   "/api/auth/apple",
   "/api/auth/signup",     // ein Konto anlegen geht nur ohne Konto
+  "/api/auth/recover",    // Passwort vergessen: wer es vergessen hat,
+  "/api/auth/reset",      // ist nicht angemeldet
   "/api/auth/refresh",    // abgelaufenes Token → neues; prüft selbst
   "/api/auth/logout",     // Abmelden geht immer
   "/api/prices",          // Preistabelle, kostet nichts

@@ -272,6 +272,98 @@ export async function passwordSignup({ email, password } = {}, { config, fetchIm
   return { ok: true, confirm: true };
 }
 
+/* Supabase's own minimum (measured 03.10.2026: "Password should be at least
+   6 characters"). Checked here BEFORE a reset code is spent — see below. */
+const MIN_PASSWORD = 6;
+/* Recovery codes are 6 digits by default; projects can raise it to 10. */
+const CODE_RE = /^\d{6,10}$/;
+
+/**
+ * Forgot password, step 1: mail a recovery code (03.10.2026).
+ *
+ * Code, not link: the link would land on a web page we do not have, or
+ * need a deep link back into the app; a code is typed into the app wherever
+ * the mail was opened. ⚠ The Supabase "Reset Password" template must show
+ * `{{ .Token }}` — the default one only carries the link.
+ *
+ * Supabase answers an unknown address exactly like a known one, and so do
+ * we: "is there an account for this address" is not a question for strangers.
+ *
+ * @returns {Promise<{ok: true} | {ok: false, status: number, error: string, cause?: string}>}
+ */
+export async function requestPasswordReset({ email } = {}, { config, fetchImpl } = {}) {
+  if (!config) return { ok: false, status: 503, error: "Sign-in is not configured." };
+  if (typeof email !== "string" || !email.trim() || email.length > MAX_EMAIL) {
+    return { ok: false, status: 400, error: "An e-mail address is required." };
+  }
+  const r = await authCall("/auth/v1/recover", { body: { email: email.trim() }, config, fetchImpl });
+  if (!r.ok) {
+    if (/email_address_invalid|validation_failed/.test(r.code || "")) {
+      return { ok: false, status: 400, error: "That doesn't look like an e-mail address.", reason: "invalid", cause: r.cause };
+    }
+    return r;
+  }
+  return { ok: true };
+}
+
+/**
+ * Forgot password, step 2: code + new password → new password, signed in.
+ *
+ * Two calls: the code buys a short session (verify, type "recovery"), and
+ * that session sets the password (PUT /user).
+ *
+ * ⚠ A code works ONCE. So everything that can be checked is checked before
+ *   it is spent — a password Supabase would refuse as too short would
+ *   otherwise burn the code and send the person back to step 1.
+ *
+ * @returns {Promise<{ok: true, session: object} | {ok: false, status: number, error: string, reason?: string, cause?: string}>}
+ *   `reason`: code (wrong or expired), weak, invalid.
+ */
+export async function resetPassword({ email, code, password } = {}, { config, fetchImpl } = {}) {
+  if (!config) return { ok: false, status: 503, error: "Sign-in is not configured." };
+  if (typeof email !== "string" || typeof code !== "string" || typeof password !== "string"
+      || !email.trim() || email.length > MAX_EMAIL || !password || password.length > MAX_PASSWORD) {
+    return { ok: false, status: 400, error: "E-mail, code and password are required." };
+  }
+  if (!CODE_RE.test(code.trim())) {
+    return { ok: false, status: 400, error: "That code is wrong or has expired.", reason: "code" };
+  }
+  if (password.length < MIN_PASSWORD) {
+    return { ok: false, status: 422, error: "That password is too weak.", reason: "weak" };
+  }
+
+  const v = await authCall("/auth/v1/verify", {
+    body: { type: "recovery", email: email.trim(), token: code.trim() },
+    config,
+    fetchImpl,
+  });
+  if (!v.ok) {
+    /* authCall() calls a refused code "wrong credentials" — here it is the code. */
+    if (v.status === 401 || v.status === 403 || /otp_expired|otp_invalid/.test(v.code || "")) {
+      return { ok: false, status: 401, error: "That code is wrong or has expired.", reason: "code", cause: v.cause };
+    }
+    return v;
+  }
+  if (!v.data.access_token) return { ok: false, status: 503, error: "Sign-in is unavailable right now." };
+
+  const u = await authCall("/auth/v1/user", {
+    method: "PUT",
+    body: { password },
+    token: v.data.access_token,
+    config,
+    fetchImpl,
+  });
+  /* The new password equals the old one: nothing to change, and the person
+     knows their password — that is a success, not an error. */
+  if (!u.ok && !/same_password/.test(u.code || "")) {
+    if (/weak_password/.test(u.code || "")) {
+      return { ok: false, status: 422, error: "That password is too weak.", reason: "weak", cause: u.cause };
+    }
+    return u;
+  }
+  return { ok: true, session: publicSession(v.data) };
+}
+
 /**
  * Sign in with Apple — the second way in, and the first one that creates an
  * account by itself (Übergabe 2026-09-14: "Konten ohne dich").

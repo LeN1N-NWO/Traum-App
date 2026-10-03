@@ -119,7 +119,8 @@ export type OnboardData = {
   accountTitle: string; accountText: string; accountEmail: string; accountPassword: string; accountCta: string; accountLater: string; accountSignedIn: string; accountSignedInNoEmail: string;
   accountWrong: string; accountBusy: string; accountUnavailable: string; accountOffline: string; accountApple: string;
   accountCreateCta: string; accountToSignup: string; accountToSignin: string; accountCheckMail: string; accountCheckMailText: string;
-  accountWeak: string; accountInvalid: string; accountExists: string;
+  accountWeak: string; accountInvalid: string; accountExists: string; accountForgot: string; accountBackToSignin: string;
+  accountSendCode: string; accountCodeSent: string; accountCode: string; accountNewPassword: string; accountSetPassword: string; accountBadCode: string;
   formName: string; formNamePlaceholder: string; formGoal: string; formRecall: string; formLucid: string; formSleep: string; formTime: string;
   formThemes: string; formThemesPlaceholder: string;
   values: { goal: OnboardValues; recall: OnboardValues; lucid: OnboardValues; sleepHours: OnboardValues; timeBudget: OnboardValues };

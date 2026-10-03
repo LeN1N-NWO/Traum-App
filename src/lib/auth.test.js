@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { parseBearer, parseWsBearer, authConfig, passwordLogin, passwordSignup, appleLogin, refreshSession, verifyAccessToken, logout } from "./auth.js";
+import { parseBearer, parseWsBearer, authConfig, passwordLogin, passwordSignup, requestPasswordReset, resetPassword, appleLogin, refreshSession, verifyAccessToken, logout } from "./auth.js";
 
 const config = { url: "https://projekt.supabase.co", anonKey: "anon-key" };
 const UID = "3ecbfe28-21c1-4475-b931-1082d2b56ba7";
@@ -228,6 +228,75 @@ test("sign-up refuses nonsense before the network, and without configuration", a
     expect([r.ok, r.status, f.calls.length]).toEqual([false, 400, 0]);
   }
   expect((await passwordSignup({ email: "a@b.co", password: "pw" }, { config: null })).status).toBe(503);
+});
+
+/* ── requestPasswordReset / resetPassword ──────────────────────────────── */
+
+test("asking for a reset code goes to /recover and says only 'sent'", async () => {
+  const f = fakeFetch({ status: 200, body: {} });
+  const r = await requestPasswordReset({ email: " a@b.co " }, { config, fetchImpl: f });
+  expect(r).toEqual({ ok: true });
+  expect(f.calls[0].url).toBe("https://projekt.supabase.co/auth/v1/recover");
+  expect(f.calls[0].body).toEqual({ email: "a@b.co" });
+});
+
+test("a reset request keeps 'wait' and 'bad address' apart", async () => {
+  const busy = await requestPasswordReset({ email: "a@b.co" },
+    { config, fetchImpl: fakeFetch({ status: 429, body: { error_code: "over_email_send_rate_limit" } }) });
+  expect(busy.status).toBe(429);
+  const bad = await requestPasswordReset({ email: "nope" },
+    { config, fetchImpl: fakeFetch({ status: 400, body: { error_code: "validation_failed" } }) });
+  expect([bad.status, bad.reason]).toEqual([400, "invalid"]);
+  const f = fakeFetch({ status: 200, body: {} });
+  expect((await requestPasswordReset({ email: "" }, { config, fetchImpl: f })).status).toBe(400);
+  expect(f.calls.length).toBe(0);
+});
+
+test("code + new password: verify, then set the password with THAT session", async () => {
+  const f = fakeFetch((url) => (url.endsWith("/verify")
+    ? { status: 200, body: { ...SESSION, access_token: "recovery-at" } }
+    : { status: 200, body: { id: UID } }));
+  const r = await resetPassword({ email: "a@b.co", code: " 123456 ", password: "neues-pw" }, { config, fetchImpl: f });
+  expect(r.ok).toBe(true);
+  expect(r.session.access_token).toBe("recovery-at");
+  expect(f.calls[0].url).toBe("https://projekt.supabase.co/auth/v1/verify");
+  expect(f.calls[0].body).toEqual({ type: "recovery", email: "a@b.co", token: "123456" });
+  expect(f.calls[1].url).toBe("https://projekt.supabase.co/auth/v1/user");
+  expect(f.calls[1].init.method).toBe("PUT");
+  expect(f.calls[1].init.headers.authorization).toBe("Bearer recovery-at");
+  expect(f.calls[1].body).toEqual({ password: "neues-pw" });
+});
+
+/* A code works once. What can be checked beforehand must not cost it. */
+test("a too-short password or a malformed code never spends the code", async () => {
+  for (const [input, reason] of [
+    [{ email: "a@b.co", code: "123456", password: "kurz" }, "weak"],
+    [{ email: "a@b.co", code: "12ab56", password: "lang-genug" }, "code"],
+    [{ email: "a@b.co", code: "123", password: "lang-genug" }, "code"],
+  ]) {
+    const f = fakeFetch({ status: 200, body: SESSION });
+    const r = await resetPassword(input, { config, fetchImpl: f });
+    expect([input.code, r.ok, r.reason, f.calls.length]).toEqual([input.code, false, reason, 0]);
+  }
+});
+
+test("a wrong or expired code says so, and no password is set", async () => {
+  for (const reply of [
+    { status: 403, body: { error_code: "otp_expired", msg: "Token has expired or is invalid" } },
+    { status: 400, body: { error_code: "otp_invalid" } },
+  ]) {
+    const f = fakeFetch(reply);
+    const r = await resetPassword({ email: "a@b.co", code: "123456", password: "lang-genug" }, { config, fetchImpl: f });
+    expect([reply.body.error_code, r.status, r.reason, f.calls.length]).toEqual([reply.body.error_code, 401, "code", 1]);
+  }
+});
+
+test("the old password typed again is still a success", async () => {
+  const f = fakeFetch((url) => (url.endsWith("/verify")
+    ? { status: 200, body: SESSION }
+    : { status: 422, body: { error_code: "same_password" } }));
+  const r = await resetPassword({ email: "a@b.co", code: "123456", password: "das-alte" }, { config, fetchImpl: f });
+  expect(r.ok).toBe(true);
 });
 
 /* ── appleLogin ────────────────────────────────────────────────────────── */

@@ -137,6 +137,40 @@ export async function register(mail: string, password: string): Promise<SignupRe
   return completeLogin(res, mail.trim());
 }
 
+/* Forgot password (03.10.2026): a code by mail, then code + new password.
+   Step 1 answers the same for every address — whether it has an account is
+   not the app's to know. Step 2 ends signed in, like a login. */
+export type ResetFailure = SignupFailure | "code";
+export type ResetResult = { ok: true; user: AuthUser } | { ok: false; why: ResetFailure };
+
+async function authPost(path: string, body: object): Promise<Response | null> {
+  try {
+    return await fetch(`${API_BASE}${path}`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+    });
+  } catch {
+    return null;
+  }
+}
+async function failureOf(res: Response): Promise<ResetFailure> {
+  const reason = ((await res.json().catch(() => null)) as { reason?: string } | null)?.reason;
+  if (reason === "weak" || reason === "invalid" || reason === "code") return reason;
+  return res.status === 429 ? "busy" : "unavailable";
+}
+
+export async function requestReset(mail: string): Promise<{ ok: true } | { ok: false; why: ResetFailure }> {
+  const res = await authPost("/api/auth/recover", { email: mail.trim() });
+  if (!res) return { ok: false, why: "offline" };
+  return res.ok ? { ok: true } : { ok: false, why: await failureOf(res) };
+}
+
+export async function resetPassword(mail: string, code: string, password: string): Promise<ResetResult> {
+  const res = await authPost("/api/auth/reset", { email: mail.trim(), code: code.trim(), password });
+  if (!res) return { ok: false, why: "offline" };
+  if (!res.ok) return { ok: false, why: await failureOf(res) };
+  return completeLogin(res, mail.trim());
+}
+
 /* Sign in with Apple (15.09.2026). Unlike the password way, this creates an
    account if there is none — Apple has already vouched for the person.
  *

@@ -77,7 +77,7 @@ import { openDatabase, withUser, fromJsonb } from "./src/lib/db.js";
 import { loadOverview, connect as connectInvite, notSetUp as inviteNotSetUp } from "./src/lib/invitesServer.js";
 // Wer fragt: die fehlende Hälfte zu db.js. withUser() kann für eine Person
 // handeln, auth.js sagt, WER sie ist (eigene Datei, ohne Netz prüfbar).
-import { parseBearer, parseWsBearer, WS_PROTOCOL, authConfig, passwordLogin, passwordSignup, appleLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
+import { parseBearer, parseWsBearer, WS_PROTOCOL, authConfig, passwordLogin, passwordSignup, requestPasswordReset, resetPassword, appleLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
 import { appleRevokeConfig, revokeAppleForDeletion } from "./src/lib/apple-revoke.js";
 // Die Entwicklungs-Routen mit Fotos und Traumtexten nur für diesen Rechner
 // (eigene Datei mit Test, src/lib/localOnly.test.js).
@@ -3467,6 +3467,26 @@ const serveOptions = {
       }
       if (r.confirm) return json({ ok: true, confirm: true });
       return json({ ok: true, ...r.session });
+    }
+
+    /* Passwort vergessen (03.10.2026): erst ein Code per Mail, dann Code +
+       neues Passwort → angemeldet. Ob es die Adresse gibt, verrät keiner der
+       beiden Schritte. Beide unter der Anmelde-Bremse (gatekeeper.js) — ein
+       sechsstelliger Code darf nicht schnell durchprobiert werden. */
+    if ((url.pathname === "/api/auth/recover" || url.pathname === "/api/auth/reset") && req.method === "POST") {
+      if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+        return json({ error: "Request too large." }, 413);
+      }
+      const body = await req.json().catch(() => null);
+      const recover = url.pathname === "/api/auth/recover";
+      const r = recover
+        ? await requestPasswordReset(body || {}, { config: AUTH })
+        : await resetPassword(body || {}, { config: AUTH });
+      if (!r.ok) {
+        console.warn(`[DreamRushes] ${recover ? "Rücksetz-Code" : "Passwort-Rücksetzung"} abgelehnt (${r.status}): ${r.cause || r.error}`);
+        return json({ error: r.error, ...(r.reason ? { reason: r.reason } : {}) }, r.status);
+      }
+      return json(recover ? { ok: true } : { ok: true, ...r.session });
     }
 
     /* The second way in. Unlike the password sign-IN, this creates an

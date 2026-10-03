@@ -46,6 +46,8 @@ test("signing in is the most tightly limited thing there is", () => {
 test("Sign in with Apple is braked like every other sign-in", () => {
   expect(classOf("/api/auth/apple")).toBe("auth");
   expect(classOf("/api/auth/signup")).toBe("auth");
+  expect(classOf("/api/auth/recover")).toBe("auth");
+  expect(classOf("/api/auth/reset")).toBe("auth");   // Codes durchprobieren: langsam
 });
 
 /* Abmelden darf nie an der Bremse hängen bleiben: wer nach zehn
@@ -179,7 +181,7 @@ describe("needsAccount", () => {
   });
 
   test("looking around stays open: sign-in, prices, voice samples", () => {
-    for (const p of ["/api/auth/login", "/api/auth/apple", "/api/auth/signup", "/api/auth/refresh", "/api/auth/logout",
+    for (const p of ["/api/auth/login", "/api/auth/apple", "/api/auth/signup", "/api/auth/recover", "/api/auth/reset", "/api/auth/refresh", "/api/auth/logout",
       "/api/prices", "/api/voice-sample"]) {
       expect([p, needsAccount(p)]).toEqual([p, false]);
     }

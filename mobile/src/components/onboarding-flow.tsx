@@ -17,7 +17,7 @@ import { Moon } from "@/components/moon-strip";
 import { Clip } from "@/components/preset-tile";
 import { clipSource } from "@/lib/style-clips";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
-import { login, loginWithApple, register, useAccount, type LoginResult, type SignupFailure, type SignupResult } from "@/lib/auth";
+import { login, loginWithApple, register, requestReset, resetPassword, useAccount, type LoginResult, type ResetFailure, type ResetResult, type SignupResult } from "@/lib/auth";
 import type { OnboardData } from "@/store/journal-store";
 import { colors, fonts, radius } from "@/theme";
 
@@ -434,7 +434,8 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
    anlegen" (03.10.2026). Nach dem Anlegen kommt eine Bestätigungsmail von
    Supabase; erst nach dem Klick darauf geht die Anmeldung, deshalb springt
    das Formular dann zurück auf „Anmelden" und zeigt „Schau in dein
-   Postfach". Kein Passwort-Vergessen (noch nicht). Ohne Konto
+   Postfach". „Passwort vergessen?" schickt einen Code per Mail; Code und
+   neues Passwort melden dann direkt an (forgot → reset). Ohne Konto
    geht es mit „Später" weiter — das Tagebuch lebt auf dem Gerät, das
    Konto ist die Sicherung, nicht die Bedingung.
    Die Token gehen in den Schlüsselbund (lib/auth.ts), nie in den Zustand. */
@@ -443,20 +444,24 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
   const [mail, setMail] = useState("");
   const [pw, setPw] = useState("");
   const [busy, setBusy] = useState(false);
-  const [fail, setFail] = useState<SignupFailure | null>(null);
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [sent, setSent] = useState<string | null>(null);   // address a confirmation link went to
+  const [code, setCode] = useState("");
+  const [fail, setFail] = useState<ResetFailure | null>(null);
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "reset">("signin");
+  /* The card above the fields: which mail went where (confirmation link or reset code). */
+  const [sent, setSent] = useState<{ to: string; text: string } | null>(null);
   /* No button on Android or the web: Apple's sheet is missing there, and a
      button that cannot open anything is worse than none. Starts true on iOS
      (available from iOS 13 on) so the layout does not jump when the check lands. */
   const [appleReady, setAppleReady] = useState(Platform.OS === "ios");
   useEffect(() => { AppleAuthentication.isAvailableAsync().then(setAppleReady).catch(() => setAppleReady(false)); }, []);
   const pwRef = useRef<TextInput>(null);
-  const ready = /\S+@\S+\.\S+/.test(mail.trim()) && pw.length >= 6 && !busy;
+  const mailOk = /\S+@\S+\.\S+/.test(mail.trim());
+  const ready = !busy && mailOk && (mode === "forgot"
+    || (pw.length >= 6 && (mode !== "reset" || /^\d{6,10}$/.test(code.trim()))));
 
   /* Both ways in end here. `busy` is released in `finally`, so no throw can
      leave the form spinning for good. `null` means the person cancelled. */
-  async function signIn(attempt: () => Promise<LoginResult | SignupResult | null>) {
+  async function signIn(attempt: () => Promise<LoginResult | SignupResult | ResetResult | { ok: true } | null>) {
     setBusy(true); setFail(null);
     try {
       const r = await attempt();
@@ -464,8 +469,12 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
       if (r.ok && "confirm" in r) {
         /* Account made, not usable yet: the link in the mail comes first. */
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setSent(mail.trim()); setMode("signin"); setPw("");
-      } else if (r.ok) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setPw(""); }
+        setSent({ to: mail.trim(), text: O.accountCheckMailText }); setMode("signin"); setPw("");
+      } else if (r.ok && !("user" in r)) {
+        /* Reset code is on its way: now code + new password. */
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setSent({ to: mail.trim(), text: O.accountCodeSent }); setMode("reset"); setPw(""); setCode("");
+      } else if (r.ok) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setPw(""); setCode(""); }
       else { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); setFail(r.why); }
     } catch {
       setFail("unavailable");
@@ -474,8 +483,16 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
     }
   }
 
-  const go = () => { if (ready) signIn(() => (mode === "signup" ? register(mail, pw) : login(mail, pw))); };
-  const flip = () => { setMode(mode === "signup" ? "signin" : "signup"); setFail(null); setSent(null); };
+  const go = () => {
+    if (!ready) return;
+    signIn(() => (mode === "signup" ? register(mail, pw)
+      : mode === "forgot" ? requestReset(mail)
+      : mode === "reset" ? resetPassword(mail, code, pw)
+      : login(mail, pw)));
+  };
+  const switchTo = (next: typeof mode) => { setMode(next); setFail(null); setSent(null); setPw(""); setCode(""); };
+  const cta = mode === "signup" ? O.accountCreateCta : mode === "forgot" ? O.accountSendCode
+    : mode === "reset" ? O.accountSetPassword : O.accountCta;
 
   /* Sign in with Apple needs no account beforehand — Apple has vouched for the
      person, Supabase creates them if they are new.
@@ -499,9 +516,9 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
       throw e;
     }
   });
-  const reason: Record<SignupFailure, string> = {
+  const reason: Record<ResetFailure, string> = {
     wrong: O.accountWrong, busy: O.accountBusy, unavailable: O.accountUnavailable, offline: O.accountOffline,
-    weak: O.accountWeak, invalid: O.accountInvalid, exists: O.accountExists,
+    weak: O.accountWeak, invalid: O.accountInvalid, exists: O.accountExists, code: O.accountBadCode,
   };
 
   return (
@@ -525,8 +542,8 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
                 <SymbolView name="envelope.badge" size={26} tintColor={colors.ok} />
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={styles.cardTitle}>{O.accountCheckMail}</Text>
-                  <Text style={styles.cardText}>{O.accountCheckMailText}</Text>
-                  <Text style={styles.cardText} numberOfLines={1}>{sent}</Text>
+                  <Text style={styles.cardText}>{sent.text}</Text>
+                  <Text style={styles.cardText} numberOfLines={1}>{sent.to}</Text>
                 </View>
               </Glass>
             </Animated.View>
@@ -539,34 +556,57 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
               style={styles.fieldInput} value={mail} onChangeText={(v) => { setMail(v); setFail(null); }}
               placeholder={O.accountEmail} placeholderTextColor={colors.faint}
               autoCapitalize="none" autoCorrect={false} keyboardType="email-address" textContentType="username" autoComplete="email"
-              keyboardAppearance="dark" returnKeyType="next" onSubmitEditing={() => pwRef.current?.focus()} editable={!busy}
+              keyboardAppearance="dark" returnKeyType={mode === "forgot" ? "go" : "next"}
+              onSubmitEditing={() => (mode === "forgot" ? go() : pwRef.current?.focus())} editable={!busy}
             />
           </Glass>
-          <Glass style={styles.field} interactive>
-            <SymbolView name="key" size={17} tintColor={colors.faint} />
-            <TextInput
-              ref={pwRef} style={styles.fieldInput} value={pw} onChangeText={(v) => { setPw(v); setFail(null); }}
-              placeholder={O.accountPassword} placeholderTextColor={colors.faint}
-              secureTextEntry
-              textContentType={mode === "signup" ? "newPassword" : "password"}
-              autoComplete={mode === "signup" ? "new-password" : "password"}
-              keyboardAppearance="dark" returnKeyType="go" onSubmitEditing={go} editable={!busy}
-            />
-          </Glass>
+          {mode === "reset" ? (
+            <Glass style={styles.field} interactive>
+              <SymbolView name="number" size={17} tintColor={colors.faint} />
+              <TextInput
+                style={styles.fieldInput} value={code} onChangeText={(v) => { setCode(v.replace(/\D/g, "")); setFail(null); }}
+                placeholder={O.accountCode} placeholderTextColor={colors.faint}
+                keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="one-time-code" maxLength={10}
+                keyboardAppearance="dark" editable={!busy}
+              />
+            </Glass>
+          ) : null}
+          {mode !== "forgot" ? (
+            <Glass style={styles.field} interactive>
+              <SymbolView name="key" size={17} tintColor={colors.faint} />
+              <TextInput
+                ref={pwRef} style={styles.fieldInput} value={pw} onChangeText={(v) => { setPw(v); setFail(null); }}
+                placeholder={mode === "reset" ? O.accountNewPassword : O.accountPassword} placeholderTextColor={colors.faint}
+                secureTextEntry
+                textContentType={mode === "signin" ? "password" : "newPassword"}
+                autoComplete={mode === "signin" ? "password" : "new-password"}
+                keyboardAppearance="dark" returnKeyType="go" onSubmitEditing={go} editable={!busy}
+              />
+            </Glass>
+          ) : null}
           {fail ? <Animated.Text entering={FadeIn.duration(200)} style={styles.fail}>{reason[fail]}</Animated.Text> : null}
           <View style={{ marginTop: 6 }}>
             {busy ? (
               <Glass style={styles.busy}><ActivityIndicator color={colors.text} /></Glass>
             ) : (
-              <PrimaryButton label={mode === "signup" ? O.accountCreateCta : O.accountCta} heavy onPress={go} disabled={!ready} style={{ flex: 0 }} />
+              <PrimaryButton label={cta} heavy onPress={go} disabled={!ready} style={{ flex: 0 }} />
             )}
           </View>
-          <Pressable onPress={() => { Haptics.selectionAsync(); flip(); }} hitSlop={10} disabled={busy} style={{ alignSelf: "center", paddingVertical: 6 }}>
-            <Text style={styles.later}>{mode === "signup" ? O.accountToSignin : O.accountToSignup}</Text>
+          {mode === "signin" ? (
+            <Pressable onPress={() => { Haptics.selectionAsync(); switchTo("forgot"); }} hitSlop={10} disabled={busy} style={{ alignSelf: "center", paddingVertical: 6 }}>
+              <Text style={styles.later}>{O.accountForgot}</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            onPress={() => { Haptics.selectionAsync(); switchTo(mode === "signin" ? "signup" : "signin"); }}
+            hitSlop={10} disabled={busy} style={{ alignSelf: "center", paddingVertical: 6 }}
+          >
+            <Text style={styles.later}>{mode === "signin" ? O.accountToSignup : mode === "signup" ? O.accountToSignin : O.accountBackToSignin}</Text>
           </Pressable>
           {/* The second way in (since 15.09.2026): Apple's own sheet. Creates
-              the account itself if there is none — no mail to confirm. */}
-          {appleReady ? (
+              the account itself if there is none — no mail to confirm. Not
+              while a password is being reset: one task per screen. */}
+          {appleReady && (mode === "signin" || mode === "signup") ? (
             <Pressable
               style={({ pressed }) => [styles.apple, { opacity: busy ? 0.45 : pressed ? 0.7 : 1 }]}
               onPress={() => { Haptics.selectionAsync(); goApple(); }}
