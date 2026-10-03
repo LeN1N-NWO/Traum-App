@@ -10,6 +10,7 @@ import { useJournal } from "@/components/journal-data";
 import { Moon } from "@/components/moon-strip";
 import { NightSky } from "@/components/night-sky";
 import { StreakSheet } from "@/components/streak-sheet";
+import { GiftOpen } from "@/components/gift-sheet";
 import { useQuickActions } from "@/lib/use-quick-actions";
 import { useReminders } from "@/lib/use-reminders";
 import { applyMix, isActive } from "@/lib/sound-engine";
@@ -60,6 +61,19 @@ export default function HomeScreen() {
   const evening = key === "Evening" || key === "Night";
   const nightOpen = !evening && home && !home.nightMarked;
   const [board, setBoard] = useState(false);
+  /* Ein frisch erreichtes Geschenk öffnet sich hier (03.10.) — einmal;
+     `giftSeen` räumt es danach weg, auch bei „Später". */
+  const gift = home?.giftReveal ?? null;
+  const [giftGone, setGiftGone] = useState<number | null>(null);
+  const showGift = gift && giftGone !== gift.nights ? gift : null;
+  const closeGift = (redeem: boolean) => {
+    if (!gift) return;
+    setGiftGone(gift.nights);
+    send({ type: "giftSeen" });
+    if (!redeem) return;
+    if (gift.target === "journal" && gift.dreamId) router.push({ pathname: "/journal/[id]", params: { id: gift.dreamId } });
+    else router.push("/dream");
+  };
 
   return (
     <>
@@ -75,6 +89,7 @@ export default function HomeScreen() {
           ) : null}
         </View>
 
+        <GiftOpen g={showGift} onRedeem={() => closeGift(true)} onLater={() => closeGift(false)} />
         {home ? (
           <MoonRing C={home.cycle} width={width - 32} onOpen={(id) => router.push({ pathname: "/journal/[id]", params: { id } })} />
         ) : <View style={{ height: width - 32 + 70 }} />}

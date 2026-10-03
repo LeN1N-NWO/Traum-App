@@ -47,10 +47,35 @@
  * Server gibt, der es durchsetzt.
  */
 
+/* ── Der dritte Topf: Geschenke (03.10.2026, Antons Meilenstein-Geschenke) ─
+ *
+ *   `giftCredits` = { amount, until } — was die Serie verschenkt
+ *              (streakBoard.js). Verfällt 30 Tage nach dem letzten
+ *              Geschenk: Ein Geschenk soll eingelöst werden, nicht als
+ *              offene Schuld ewig im Gerät liegen. Ein neues Geschenk legt
+ *              dazu und verlängert die Frist.
+ *
+ * Reihenfolge beim Ausgeben: Abo → Geschenk → gekauft. Was verfällt, geht
+ * zuerst; gekaufte Credits bleiben am längsten. */
+export const GIFT_DAYS = 30;
+
+/** Was vom Geschenk noch gilt — 0, wenn es abgelaufen ist. */
+export function giftLeft(state, now = Date.now()) {
+  const g = state?.giftCredits;
+  if (!g || !(g.amount > 0)) return 0;
+  return new Date(g.until).getTime() > new Date(now).getTime() ? g.amount : 0;
+}
+
+/** Ein Geschenk dazulegen: Patch für den Zustand. */
+export function addGift(state, amount, now = Date.now()) {
+  const until = new Date(new Date(now).getTime() + GIFT_DAYS * 864e5).toISOString();
+  return { giftCredits: { amount: giftLeft(state, now) + amount, until } };
+}
+
 /** Was zusammen zur Verfügung steht. Die einzige Zahl, die jemand sieht —
  *  die Trennung ist Buchhaltung, keine Aufgabe für den Menschen. */
-export function totalCredits(state) {
-  return (state?.credits ?? 0) + (state?.allowance ?? 0);
+export function totalCredits(state, now = Date.now()) {
+  return (state?.credits ?? 0) + (state?.allowance ?? 0) + giftLeft(state, now);
 }
 
 export function canAfford(state, cost) {
@@ -58,13 +83,16 @@ export function canAfford(state, cost) {
 }
 
 /** @returns a patch for update(), or null when the balance is too low. */
-export function spend(state, cost) {
+export function spend(state, cost, now = Date.now()) {
   if (!canAfford(state, cost)) return null;
   const allowance = state.allowance ?? 0;
   const fromAllowance = Math.min(allowance, cost);
+  const gift = giftLeft(state, now);
+  const fromGift = Math.min(gift, cost - fromAllowance);
   return {
     allowance: allowance - fromAllowance,
-    credits: (state.credits ?? 0) - (cost - fromAllowance),
+    credits: (state.credits ?? 0) - (cost - fromAllowance - fromGift),
+    ...(fromGift > 0 ? { giftCredits: { ...state.giftCredits, amount: gift - fromGift } } : {}),
   };
 }
 

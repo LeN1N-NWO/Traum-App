@@ -13,13 +13,13 @@ import "./vite-env.js";                       // ⚠ zuerst, API_BASE
 import { useEffect } from "react";
 import { loadState, saveState } from "../../../src/lib/storage.js";
 import { STREAK_CAP } from "../../../src/lib/streak.js";
-import { dayKey, isMoonFilm, MOON_FILM_KIND, snoozeBridge, snoozeEarn, streakInfo } from "../../../src/lib/nights.js";
+import { dayKey, isFilmNight, isMoonFilm, MOON_FILM_KIND, snoozeBridge, snoozeEarn, streakInfo } from "../../../src/lib/nights.js";
 import { hasPendingJobs, collectTick } from "../../../src/lib/collector.js";
 import { failureTextKey } from "../../../src/lib/falError.js";
 import { jobStatus } from "../../../src/lib/api.js";
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
-import { totalCredits, spend, applyAllowanceGrant } from "../../../src/lib/credits.js";
+import { totalCredits, spend, applyAllowanceGrant, giftLeft, GIFT_DAYS } from "../../../src/lib/credits.js";
 import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchGrid, sketchSound } from "../../../src/lib/api.js";
 import { pickParticles, buildSketchGridPrompt } from "../../../src/lib/sketchPrompt.js";
 import { sketchFreeLeft, sketchCost, countSketch, sketchTiming, clampStrips, SKETCH_STRIPS, SCENES_PER_STRIP } from "../../../src/lib/sketchQuota.js";
@@ -49,7 +49,7 @@ import { MASCOTS, DEFAULT_MASCOT } from "../../../src/lib/mascots.js";
 import { zodiacOf } from "../../../src/lib/zodiac.js";
 import { SYMBOLS, SYMBOL_CATEGORIES, detectSymbols, symbolOccurrences } from "../../../src/lib/symbols.js";
 import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
-import { MILESTONES, nextMilestone, giftAt, giftFor } from "../../../src/lib/streakBoard.js";
+import { MILESTONES, nextMilestone, giftFor, giftInfo, giftLabel } from "../../../src/lib/streakBoard.js";
 import { nextSnoozeIn } from "../../../src/lib/streak.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
 import { genId } from "../../../src/lib/storage.js";
@@ -169,7 +169,28 @@ function snapshot() {
   const streak = run.streak;
   const last = items[0] || null;
   const today = checkinOn(s.checkins);
+  /* Ein frisch erreichtes Geschenk, bis die Startseite es geöffnet hat
+     (streakBoard.js giftFor → giftUnseen; Befehl `giftSeen`). Eingelöst
+     wird am jüngsten Traum mit Bild — dort steht „Film machen". */
+  const giftReveal = (() => {
+    const u = s.giftUnseen;
+    if (!u || !u.kind) return null;
+    const G = t.streakBoard.giftSheet;
+    const latest = [...(s.journal || [])].filter(isFilmNight).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    const until = s.giftCredits?.until && giftLeft(s) > 0
+      ? new Date(s.giftCredits.until).toLocaleDateString(s.language === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long" }) : null;
+    return {
+      nights: u.nights, kind: u.kind, credits: u.credits,
+      title: G.openTitle(u.nights), label: giftLabel(t, u),
+      worth: u.kind !== "credits" ? t.streakBoard.giftWorth(u.credits) : null,
+      reward: (() => { const m = MILESTONES.find((x) => x.nights === u.nights); return m ? t.streakBoard.rewards[m.reward] : null; })(),
+      expires: until ? G.expires(until) : null,
+      tapToOpen: G.tapToOpen, redeem: G.redeem[u.kind] || G.redeem.credits, later: G.later,
+      target: u.kind === "glimpse" || !latest ? "dream" : "journal", dreamId: latest ? latest.id : null,
+    };
+  })();
   const home = {
+    giftReveal,
     streak,
     atRisk: run.atRisk,
     rendering: hasPendingJobs(s.journal),
@@ -214,8 +235,19 @@ function snapshot() {
         if (ms.nights <= base) continue;
         const idx = first + (ms.nights - base - 1);
         if (idx >= ring.days.length) break;
-        const g = giftAt(ms.nights);
-        milestones.push({ index: idx, nights: ms.nights, gift: g > 0 ? t.streakBoard.giftBadge(g) : null, say: C.milestoneSay(ms.nights, idx - (ti < 0 ? 0 : ti), t.streakBoard.rewards[ms.reward], g > 0 ? t.streakBoard.giftBadge(g) : null) });
+        const g = giftInfo(ms.nights);
+        const label = g ? giftLabel(t, g) : null;
+        const inDays = idx - (ti < 0 ? 0 : ti);
+        const short = g ? t.streakBoard.giftShort?.[g.kind] : null;
+        milestones.push({
+          index: idx, nights: ms.nights, gift: label,
+          kind: g ? g.kind : null, credits: g ? g.credits : 0,
+          short: typeof short === "function" ? short(g.credits) : short || null,
+          worth: g && g.kind !== "credits" ? t.streakBoard.giftWorth(g.credits) : null,
+          soon: t.streakBoard.giftSheet.soon(inDays),
+          reward: t.streakBoard.rewards[ms.reward],
+          say: C.milestoneSay(ms.nights, inDays, t.streakBoard.rewards[ms.reward], label),
+        });
       }
       const nextMs = milestones[0];
       return {
@@ -223,6 +255,13 @@ function snapshot() {
         threads: ring.threads.map(([a, b]) => [a, b]),
         left: ring.left, count: ring.count, streak: base, todayDone: run.today,
         milestones,
+        /* Das Geschenk-Blatt (03.10.): was in der Schachtel liegt und wie
+           man die Serie verlängert. */
+        sheet: {
+          inside: t.streakBoard.giftSheet.inside, surprise: t.streakBoard.giftSheet.surprise,
+          rule: t.streakBoard.giftSheet.rule, valid: t.streakBoard.giftSheet.valid(GIFT_DAYS),
+          close: t.streakBoard.giftSheet.close,
+        },
         chip: C.chip,
         countLine: C.count(ring.count),
         line: ring.left > 0 ? C.left(ring.left) : C.fullTonight,
@@ -248,10 +287,12 @@ function snapshot() {
     })(),
     week: (() => {
       const key = (d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-      const nights = new Set((s.journal || []).map((e) => key(new Date(e.createdAt))));
+      // Voll = Film-Nacht (zählt), halb = Text-Traum oder leere Nacht (hält) — seit 03.10.
+      const films = new Set((s.journal || []).filter(isFilmNight).map((e) => key(new Date(e.createdAt))));
+      const nights = new Set((s.journal || []).filter((e) => !isMoonFilm(e)).map((e) => key(new Date(e.createdAt))));
       return Array.from({ length: 7 }, (_, k) => {
         const d = new Date(Date.now() - (6 - k) * 864e5);
-        return { weekday: d.getDay(), done: nights.has(key(d)), today: k === 6 };
+        return { weekday: d.getDay(), done: films.has(key(d)), held: !films.has(key(d)) && nights.has(key(d)), today: k === 6 };
       });
     })(),
     intention,
@@ -264,9 +305,10 @@ function snapshot() {
         lede: nxt ? t.streakBoard.next(nxt.nights - streak) : t.streakBoard.done,
         rungs: MILESTONES.map((m) => ({
           nights: m.nights, title: t.streakBoard.rung(m.nights), reward: t.streakBoard.rewards[m.reward],
-          gift: giftAt(m.nights) > 0 ? t.streakBoard.giftBadge(giftAt(m.nights)) : null,
+          gift: giftInfo(m.nights) ? giftLabel(t, giftInfo(m.nights)) : null,
           state: streak >= m.nights ? "done" : nxt && m.nights === nxt.nights ? "next" : "far",
         })),
+        note: t.streakBoard.note,
         shieldTitle: t.streakBoard.snoozeTitle(snoozes),
         shieldText: nextIn == null ? t.streakBoard.snoozeFull : t.streakBoard.snoozeNext(nextIn),
       };
@@ -1244,6 +1286,7 @@ function run(cmd) {
   if (cmd.type === "blankNight") patch = { journal: [...(s.journal || []), blankNight()] };
   else if (cmd.type === "checkin") patch = { checkins: setCheckin(s.checkins, cmd.level) };
   else if (cmd.type === "intention") patch = { intention: String(cmd.text || "").trim() ? { text: String(cmd.text).trim().slice(0, 140), at: new Date().toISOString() } : null };
+  else if (cmd.type === "giftSeen") patch = { giftUnseen: null };
   else if (cmd.type === "refreshStreak") { /* seit 28.09. aus dem Journal gerechnet — nichts zu speichern */ }
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };
@@ -1387,7 +1430,7 @@ function streakChores(onResult) {
   const gift = giftFor({ ...s2, streak: streakOf(s2).streak });
   if (gift) {
     saveState({ ...s2, ...gift.patch });
-    onResult?.({ n: -1, toast: t.streakBoard.gift(gift.nights, gift.credits), haptic: "success" });
+    onResult?.({ n: -1, toast: t.streakBoard.gift(gift.nights, giftLabel(t, gift)), haptic: "success" });
   }
 }
 

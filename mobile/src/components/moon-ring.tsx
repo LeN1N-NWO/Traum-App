@@ -6,7 +6,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import Svg, { Circle, Path } from "react-native-svg";
 import { FrogStage, type FrogEvent } from "@/components/frog-stage";
-import type { HomeData } from "@/store/journal-store";
+import { GiftPreview } from "@/components/gift-sheet";
+import type { CycleMilestone, HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
 /* Der Ring mit Fäden (Antons Wahl 03.10.):
@@ -17,7 +18,8 @@ import { colors, fonts } from "@/theme";
  *     Nächte sind kleine Punkte, kommende ganz blass, heute pulsiert,
  *   · die Meilensteine der Serie liegen als Geschenke auf den Nächten, an
  *     denen man sie erreicht, wenn man jede Nacht träumt — verbunden mit
- *     der Serien-Liste,
+ *     der Serien-Liste; antippen öffnet die Schachtel (gift-sheet.tsx),
+ *     die zeigt, was drin ist („Dein erster Traumfilm"),
  *   · Fäden quer durch den Ring zwischen Nächten mit demselben Motiv,
  *   · in der Mitte der Frosch (statt des Mondes — „den haben wir schon zu
  *     viel"): schläft bei Serie 0, ist sonst wach, reagiert auf Antippen,
@@ -64,6 +66,7 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
   };
   useEffect(() => () => { if (bubbleTimer.current) clearTimeout(bubbleTimer.current); }, []);
   const asleep = C.streak === 0 && !C.todayDone;
+  const [peek, setPeek] = useState<CycleMilestone | null>(null);
 
   return (
     <View style={{ alignItems: "center", gap: 6 }}>
@@ -109,9 +112,9 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
         {C.milestones.map((m) => {
           const [x, y] = at(m.index);
           return (
-            <Pressable key={m.nights} hitSlop={8} onPress={() => { Haptics.selectionAsync(); setEvent({ kind: "tap", at: Date.now() }); say(m.say); }}
-              style={[styles.ms, { left: x - GIFT / 2, top: y - GIFT / 2 }]} accessibilityLabel={m.say}>
-              <SymbolView name="gift.fill" size={12} tintColor={colors.gold} />
+            <Pressable key={m.nights} hitSlop={8} onPress={() => { Haptics.selectionAsync(); setEvent({ kind: "tap", at: Date.now() }); setPeek(m); }}
+              style={[styles.ms, m.gift && styles.msGift, { left: x - GIFT / 2, top: y - GIFT / 2 }]} accessibilityLabel={m.say}>
+              <SymbolView name="gift.fill" size={12} tintColor={m.gift ? "#1a1206" : colors.gold} />
               <Text style={styles.msN}>{m.nights}</Text>
             </Pressable>
           );
@@ -139,6 +142,8 @@ export function MoonRing({ C, width, onOpen }: { C: HomeData["cycle"]; width: nu
           </Animated.View>
         ) : null}
       </View>
+      {/* Tipp auf ein Geschenk: was drin ist (gift-sheet.tsx) */}
+      <GiftPreview m={peek} sheet={C.sheet} onClose={() => setPeek(null)} />
       <Text style={styles.count}>{C.countLine.toUpperCase()}</Text>
       <Text style={styles.line}>{C.line}</Text>
       {C.thread ? <Text style={styles.thread}>{C.thread}</Text> : null}
@@ -164,6 +169,7 @@ const styles = StyleSheet.create({
   topGift: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: colors.gold, shadowColor: colors.gold, shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
   topText: { color: colors.gold, fontSize: 11.5, fontWeight: "600", textAlign: "center" },
   ms: { position: "absolute", width: GIFT, height: GIFT, borderRadius: GIFT / 2, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(12,20,35,0.92)", borderWidth: 1, borderColor: "rgba(246,198,91,0.75)" },
+  msGift: { backgroundColor: colors.gold, borderColor: "#ffe7b0" },
   msN: { position: "absolute", bottom: -13, color: colors.gold, fontSize: 9.5, fontWeight: "700" },
   thumbWrap: { position: "absolute", width: THUMB, height: THUMB, borderRadius: THUMB / 2, borderWidth: 1.2, borderColor: "rgba(255,231,176,0.8)", overflow: "hidden", backgroundColor: colors.bg2 },
   thumb: { width: "100%", height: "100%" },
