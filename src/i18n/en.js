@@ -1498,8 +1498,8 @@ export default {
     doneText: "Your nights have a place now.",
     doneCta: "Start tonight",
     /* Sign-in at the end of onboarding (Anton's placement, 13.09.2026):
-       answer first, then keep it. Accounts exist only once Hanni created
-       one — sign-up arrives with "Sign in with Apple". */
+       answer first, then keep it. New accounts come from "Sign in with
+       Apple" or from e-mail sign-up (03.10.2026, confirmed by a mailed link). */
     accountTitle: "Keep your nights",
     accountText: "With an account, your dreams, films and profile survive a new phone.",
     accountEmail: "Email",
@@ -1513,6 +1513,14 @@ export default {
     accountUnavailable: "Sign-in isn’t reachable right now. You can do it later in Settings.",
     accountOffline: "No connection to the server.",
     accountApple: "Sign in with Apple",
+    accountCreateCta: "Create account",
+    accountToSignup: "New here? Create an account",
+    accountToSignin: "Already have an account? Sign in",
+    accountCheckMail: "Check your inbox",
+    accountCheckMailText: "We sent a link to this address. Tap it, then sign in here.",
+    accountWeak: "That password is too weak — try a longer one.",
+    accountInvalid: "That doesn’t look like an email address.",
+    accountExists: "There’s already an account for this email — sign in instead.",
   },
   onboarding: {
     tagline: "Every night you make films. Start keeping them.",

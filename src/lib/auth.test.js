@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { parseBearer, parseWsBearer, authConfig, passwordLogin, appleLogin, refreshSession, verifyAccessToken, logout } from "./auth.js";
+import { parseBearer, parseWsBearer, authConfig, passwordLogin, passwordSignup, appleLogin, refreshSession, verifyAccessToken, logout } from "./auth.js";
 
 const config = { url: "https://projekt.supabase.co", anonKey: "anon-key" };
 const UID = "3ecbfe28-21c1-4475-b931-1082d2b56ba7";
@@ -166,6 +166,68 @@ test("without configuration sign-in refuses instead of pretending", async () => 
   const r = await passwordLogin({ email: "a@b.co", password: "pw" }, { config: null });
   expect(r.ok).toBe(false);
   expect(r.status).toBe(503);
+});
+
+/* ── passwordSignup ────────────────────────────────────────────────────── */
+
+/* Confirmation on: Supabase answers with a bare user record (for a taken
+   address an invented one). Nothing of it may reach the client. */
+test("sign-up with confirmation on says 'check your mail' and nothing more", async () => {
+  const f = fakeFetch({ status: 200, body: { id: UID, email: "a@b.co", confirmation_sent_at: "2026-10-03T22:00:00Z" } });
+  const r = await passwordSignup({ email: " a@b.co ", password: "geheim123" }, { config, fetchImpl: f });
+  expect(r).toEqual({ ok: true, confirm: true });
+  expect(f.calls[0].url).toBe("https://projekt.supabase.co/auth/v1/signup");
+  expect(f.calls[0].init.method).toBe("POST");
+  expect(f.calls[0].body).toEqual({ email: "a@b.co", password: "geheim123" });
+});
+
+test("sign-up with confirmation off signs in straight away", async () => {
+  const r = await passwordSignup({ email: "a@b.co", password: "geheim123" },
+    { config, fetchImpl: fakeFetch({ status: 200, body: SESSION }) });
+  expect(r.ok).toBe(true);
+  expect(r.session.access_token).toBe("at-1");
+  expect(r.session.user).toEqual({ id: UID, email: "test@example.com" });
+});
+
+/* authCall() turns a 400 into "wrong credentials". For sign-up that would be
+   a lie — the app must say WHAT to fix. */
+test("sign-up rejections keep their reason", async () => {
+  const cases = [
+    [{ status: 422, body: { error_code: "weak_password", msg: "Password should be at least 6 characters." } }, 422, "weak"],
+    [{ status: 400, body: { error_code: "validation_failed", msg: "Unable to validate email address: invalid format" } }, 400, "invalid"],
+    [{ status: 400, body: { error_code: "email_address_invalid" } }, 400, "invalid"],
+    [{ status: 422, body: { error_code: "user_already_exists" } }, 409, "exists"],
+  ];
+  for (const [reply, status, reason] of cases) {
+    const r = await passwordSignup({ email: "a@b.co", password: "pw1234" }, { config, fetchImpl: fakeFetch(reply) });
+    expect([reply.body.error_code, r.ok, r.status, r.reason]).toEqual([reply.body.error_code, false, status, reason]);
+  }
+});
+
+test("switched-off sign-up is our configuration fault, not the person's", async () => {
+  for (const code of ["signup_disabled", "email_provider_disabled"]) {
+    const r = await passwordSignup({ email: "a@b.co", password: "pw1234" },
+      { config, fetchImpl: fakeFetch({ status: 422, body: { error_code: code } }) });
+    expect([code, r.status]).toEqual([code, 503]);
+  }
+});
+
+test("too many sign-up mails is 'wait', and a dead Supabase is 'later'", async () => {
+  const busy = await passwordSignup({ email: "a@b.co", password: "pw1234" },
+    { config, fetchImpl: fakeFetch({ status: 429, body: { error_code: "over_email_send_rate_limit" } }) });
+  expect(busy.status).toBe(429);
+  const down = await passwordSignup({ email: "a@b.co", password: "pw1234" },
+    { config, fetchImpl: fakeFetch(new Error("network down")) });
+  expect(down.status).toBe(503);
+});
+
+test("sign-up refuses nonsense before the network, and without configuration", async () => {
+  for (const input of [{}, { email: "a@b.co" }, { email: "", password: "pw" }, { email: "a@b.co", password: "x".repeat(1025) }]) {
+    const f = fakeFetch({ status: 200, body: SESSION });
+    const r = await passwordSignup(input, { config, fetchImpl: f });
+    expect([r.ok, r.status, f.calls.length]).toEqual([false, 400, 0]);
+  }
+  expect((await passwordSignup({ email: "a@b.co", password: "pw" }, { config: null })).status).toBe(503);
 });
 
 /* ── appleLogin ────────────────────────────────────────────────────────── */

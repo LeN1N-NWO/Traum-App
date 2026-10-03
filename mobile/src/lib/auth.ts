@@ -109,6 +109,34 @@ export async function login(mail: string, password: string): Promise<LoginResult
   return completeLogin(res, mail.trim());
 }
 
+/* Create an account with e-mail and password (03.10.2026). With "Confirm
+   email" on in Supabase there is no session yet: `confirm` means "a link is in
+   the inbox — tap it, then sign in". Supabase answers a taken address the
+   same way, on purpose. With confirmation off it signs in directly. */
+export type SignupFailure = LoginFailure | "weak" | "invalid" | "exists";
+export type SignupResult = { ok: true; user: AuthUser } | { ok: true; confirm: true } | { ok: false; why: SignupFailure };
+
+export async function register(mail: string, password: string): Promise<SignupResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/auth/signup`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: mail.trim(), password }),
+    });
+  } catch {
+    return { ok: false, why: "offline" };
+  }
+  if (!res.ok) {
+    const reason = ((await res.json().catch(() => null)) as { reason?: string } | null)?.reason;
+    if (reason === "weak" || reason === "invalid" || reason === "exists") return { ok: false, why: reason };
+    return { ok: false, why: res.status === 429 ? "busy" : "unavailable" };
+  }
+  /* A clone, because completeLogin() reads the body itself. */
+  const body = (await res.clone().json().catch(() => null)) as { confirm?: boolean } | null;
+  if (body?.confirm) return { ok: true, confirm: true };
+  return completeLogin(res, mail.trim());
+}
+
 /* Sign in with Apple (15.09.2026). Unlike the password way, this creates an
    account if there is none — Apple has already vouched for the person.
  *

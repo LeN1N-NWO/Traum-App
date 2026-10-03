@@ -178,7 +178,9 @@ async function authCall(path, { method = "POST", body, token, config, fetchImpl 
     if (/provider_disabled/.test(code) || /unsupported provider/i.test(detail || "")) {
       return { ok: false, status: 503, error: "This sign-in method is not switched on for this project.", cause };
     }
-    return { ok: false, status, error, cause };
+    /* `code` rides along for callers that must tell rejections apart —
+       sign-up does (weak password vs. bad address); sign-in deliberately not. */
+    return { ok: false, status, error, cause, code };
   }
   return { ok: true, data: data || {} };
 }
@@ -208,6 +210,66 @@ export async function passwordLogin({ email, password } = {}, { config, fetchImp
   });
   if (!r.ok) return r;
   return { ok: true, session: publicSession(r.data) };
+}
+
+/**
+ * Create an account with e-mail and password (03.10.2026).
+ *
+ * With "Confirm email" switched on in Supabase (it is, measured 03.10.2026:
+ * `mailer_autoconfirm: false`) there is no session yet — Supabase mails a
+ * link, and only after that click does passwordLogin() work. The answer is
+ * then `{ ok: true, confirm: true }` and nothing else: Supabase returns a
+ * user record here, and for an address that ALREADY has an account it
+ * returns an invented one, so that sign-up does not reveal who is a member.
+ * Passing on its id would hand the client a fake. With confirmation off,
+ * Supabase answers with a session, and so do we — same shape as sign-in.
+ *
+ * ⚠ The built-in Supabase mailer only delivers to members of the Supabase
+ *   team, a few per hour. Real people need custom SMTP in the dashboard.
+ *
+ * Same password discipline as passwordLogin(): one request body, never
+ * logged, never kept.
+ *
+ * @returns {Promise<{ok: true, session: object} | {ok: true, confirm: true}
+ *   | {ok: false, status: number, error: string, reason?: string, cause?: string}>}
+ *   `reason` (weak | invalid | exists) lets the app say what to fix.
+ */
+export async function passwordSignup({ email, password } = {}, { config, fetchImpl } = {}) {
+  if (!config) return { ok: false, status: 503, error: "Sign-in is not configured." };
+  if (typeof email !== "string" || typeof password !== "string"
+      || !email.trim() || !password
+      || email.length > MAX_EMAIL || password.length > MAX_PASSWORD) {
+    return { ok: false, status: 400, error: "E-mail and password are required." };
+  }
+
+  const r = await authCall("/auth/v1/signup", {
+    body: { email: email.trim(), password },
+    config,
+    fetchImpl,
+  });
+  if (!r.ok) {
+    /* authCall() reads every 400 as "wrong credentials" — right for sign-in,
+       wrong here, where nothing was compared. Sorted by Supabase's code. */
+    const code = r.code || "";
+    if (/weak_password/.test(code)) {
+      return { ok: false, status: 422, error: "That password is too weak.", reason: "weak", cause: r.cause };
+    }
+    if (/email_address_invalid|validation_failed/.test(code)) {
+      return { ok: false, status: 400, error: "That doesn't look like an e-mail address.", reason: "invalid", cause: r.cause };
+    }
+    /* Only reachable with confirmation OFF — with it on, Supabase hides an
+       existing address behind the invented user above. The anon key is
+       public, so hiding it here would protect nothing Supabase itself shows. */
+    if (/user_already_exists|email_exists/.test(code)) {
+      return { ok: false, status: 409, error: "There is already an account for this e-mail.", reason: "exists", cause: r.cause };
+    }
+    if (/signup_disabled/.test(code)) {
+      return { ok: false, status: 503, error: "This sign-in method is not switched on for this project.", cause: r.cause };
+    }
+    return r;
+  }
+  if (r.data.access_token) return { ok: true, session: publicSession(r.data) };
+  return { ok: true, confirm: true };
 }
 
 /**

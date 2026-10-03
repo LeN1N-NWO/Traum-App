@@ -77,7 +77,7 @@ import { openDatabase, withUser, fromJsonb } from "./src/lib/db.js";
 import { loadOverview, connect as connectInvite, notSetUp as inviteNotSetUp } from "./src/lib/invitesServer.js";
 // Wer fragt: die fehlende Hälfte zu db.js. withUser() kann für eine Person
 // handeln, auth.js sagt, WER sie ist (eigene Datei, ohne Netz prüfbar).
-import { parseBearer, parseWsBearer, WS_PROTOCOL, authConfig, passwordLogin, appleLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
+import { parseBearer, parseWsBearer, WS_PROTOCOL, authConfig, passwordLogin, passwordSignup, appleLogin, refreshSession, verifyAccessToken, logout } from "./src/lib/auth.js";
 import { appleRevokeConfig, revokeAppleForDeletion } from "./src/lib/apple-revoke.js";
 // Die Entwicklungs-Routen mit Fotos und Traumtexten nur für diesen Rechner
 // (eigene Datei mit Test, src/lib/localOnly.test.js).
@@ -3427,11 +3427,9 @@ const serveOptions = {
      * verifyAccessToken() geprüft, dem der Anmeldeweg egal ist. Ein
      * Unternehmens-Zugang käme später genauso dazu.
      *
-     * ⚠ Es gibt bewusst KEIN /api/auth/signup: über E-Mail und Passwort
-     *   entsteht hier kein Konto: wer sich so anmeldet, muss in Supabase
-     *   schon stehen. Über Apple entsteht eins — dort hat Apple die Person
-     *   bereits geprüft, und ohne Selbstanmeldung gäbe es niemanden, dem
-     *   eine Einladungsprämie gehören könnte (Übergabe 2026-09-14).
+     * Konten entstehen auf zwei Wegen: über Apple (/api/auth/apple) und seit
+     * 03.10.2026 über E-Mail und Passwort (/api/auth/signup) — mit Bestätigungs-
+     * mail von Supabase; erst nach dem Klick darauf geht /api/auth/login.
      *
      * ⚠⚠ Solange Befund S6 offen ist (docs/ARCHITEKTUR.md: der Server spricht
      *    http://, nicht https://), reisen Passwort und Token auf der Strecke
@@ -3453,8 +3451,26 @@ const serveOptions = {
       return json({ ok: true, ...r.session });
     }
 
-    /* The second way in that the comment above set aside. Unlike the
-       password, this creates an account if there is none — Apple has already
+    /* Registrieren (03.10.2026). Mit „Confirm email" in Supabase kommt keine
+       Sitzung zurück, sondern { ok, confirm: true } — die App sagt dann „schau
+       in dein Postfach". Auch für eine schon vergebene Adresse: Supabase
+       antwortet darauf gleich, und wir auch. Die Adresse kommt nicht ins Log. */
+    if (url.pathname === "/api/auth/signup" && req.method === "POST") {
+      if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+        return json({ error: "Request too large." }, 413);
+      }
+      const body = await req.json().catch(() => null);
+      const r = await passwordSignup(body || {}, { config: AUTH });
+      if (!r.ok) {
+        console.warn(`[DreamRushes] Registrierung abgelehnt (${r.status}): ${r.cause || r.error}`);
+        return json({ error: r.error, ...(r.reason ? { reason: r.reason } : {}) }, r.status);
+      }
+      if (r.confirm) return json({ ok: true, confirm: true });
+      return json({ ok: true, ...r.session });
+    }
+
+    /* The second way in. Unlike the password sign-IN, this creates an
+       account if there is none — Apple has already
        vouched for the person, and without self sign-up nobody could own an
        invitation reward (handover 2026-09-14). The on_auth_user_created
        trigger adds profile and balance rows without this code knowing. */

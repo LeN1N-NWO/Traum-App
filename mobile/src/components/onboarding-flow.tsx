@@ -17,7 +17,7 @@ import { Moon } from "@/components/moon-strip";
 import { Clip } from "@/components/preset-tile";
 import { clipSource } from "@/lib/style-clips";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
-import { login, loginWithApple, useAccount, type LoginFailure, type LoginResult } from "@/lib/auth";
+import { login, loginWithApple, register, useAccount, type LoginResult, type SignupFailure, type SignupResult } from "@/lib/auth";
 import type { OnboardData } from "@/store/journal-store";
 import { colors, fonts, radius } from "@/theme";
 
@@ -430,9 +430,11 @@ export function OnboardingFlow({ O, onDone, onPhoto, questionsOnly = false, onEx
   );
 }
 
-/* Die Anmeldung: E-Mail, Passwort, „Anmelden" — mehr nicht (Hannis
-   Übergabe: kein Registrieren, kein Passwort-Vergessen; beides kommt mit
-   „Mit Apple anmelden", für das unten schon der Platz steht). Ohne Konto
+/* Die Anmeldung: E-Mail, Passwort, „Anmelden" — oder, umgeschaltet, „Konto
+   anlegen" (03.10.2026). Nach dem Anlegen kommt eine Bestätigungsmail von
+   Supabase; erst nach dem Klick darauf geht die Anmeldung, deshalb springt
+   das Formular dann zurück auf „Anmelden" und zeigt „Schau in dein
+   Postfach". Kein Passwort-Vergessen (noch nicht). Ohne Konto
    geht es mit „Später" weiter — das Tagebuch lebt auf dem Gerät, das
    Konto ist die Sicherung, nicht die Bedingung.
    Die Token gehen in den Schlüsselbund (lib/auth.ts), nie in den Zustand. */
@@ -441,7 +443,9 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
   const [mail, setMail] = useState("");
   const [pw, setPw] = useState("");
   const [busy, setBusy] = useState(false);
-  const [fail, setFail] = useState<LoginFailure | null>(null);
+  const [fail, setFail] = useState<SignupFailure | null>(null);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [sent, setSent] = useState<string | null>(null);   // address a confirmation link went to
   /* No button on Android or the web: Apple's sheet is missing there, and a
      button that cannot open anything is worse than none. Starts true on iOS
      (available from iOS 13 on) so the layout does not jump when the check lands. */
@@ -452,12 +456,16 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
 
   /* Both ways in end here. `busy` is released in `finally`, so no throw can
      leave the form spinning for good. `null` means the person cancelled. */
-  async function signIn(attempt: () => Promise<LoginResult | null>) {
+  async function signIn(attempt: () => Promise<LoginResult | SignupResult | null>) {
     setBusy(true); setFail(null);
     try {
       const r = await attempt();
       if (!r) return;
-      if (r.ok) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setPw(""); }
+      if (r.ok && "confirm" in r) {
+        /* Account made, not usable yet: the link in the mail comes first. */
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setSent(mail.trim()); setMode("signin"); setPw("");
+      } else if (r.ok) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setPw(""); }
       else { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); setFail(r.why); }
     } catch {
       setFail("unavailable");
@@ -466,7 +474,8 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
     }
   }
 
-  const go = () => { if (ready) signIn(() => login(mail, pw)); };
+  const go = () => { if (ready) signIn(() => (mode === "signup" ? register(mail, pw) : login(mail, pw))); };
+  const flip = () => { setMode(mode === "signup" ? "signin" : "signup"); setFail(null); setSent(null); };
 
   /* Sign in with Apple needs no account beforehand — Apple has vouched for the
      person, Supabase creates them if they are new.
@@ -490,7 +499,10 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
       throw e;
     }
   });
-  const reason: Record<LoginFailure, string> = { wrong: O.accountWrong, busy: O.accountBusy, unavailable: O.accountUnavailable, offline: O.accountOffline };
+  const reason: Record<SignupFailure, string> = {
+    wrong: O.accountWrong, busy: O.accountBusy, unavailable: O.accountUnavailable, offline: O.accountOffline,
+    weak: O.accountWeak, invalid: O.accountInvalid, exists: O.accountExists,
+  };
 
   return (
     <Shell insets={insets} step={step} total={total} title={O.accountTitle} lede={O.accountText} onBack={onBack} devSkip={false}>
@@ -507,6 +519,18 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
         </Animated.View>
       ) : (
         <View style={{ width: "100%", gap: 10 }}>
+          {sent ? (
+            <Animated.View entering={FadeIn.duration(260)}>
+              <Glass style={styles.signedIn}>
+                <SymbolView name="envelope.badge" size={26} tintColor={colors.ok} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={styles.cardTitle}>{O.accountCheckMail}</Text>
+                  <Text style={styles.cardText}>{O.accountCheckMailText}</Text>
+                  <Text style={styles.cardText} numberOfLines={1}>{sent}</Text>
+                </View>
+              </Glass>
+            </Animated.View>
+          ) : null}
           {/* Die Felder im Glas, wie die Antwort-Kacheln — ein Bildschirm,
               ein Material. Fehler stehen UNTER den Feldern, in Worten. */}
           <Glass style={styles.field} interactive>
@@ -523,7 +547,9 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
             <TextInput
               ref={pwRef} style={styles.fieldInput} value={pw} onChangeText={(v) => { setPw(v); setFail(null); }}
               placeholder={O.accountPassword} placeholderTextColor={colors.faint}
-              secureTextEntry textContentType="password" autoComplete="password"
+              secureTextEntry
+              textContentType={mode === "signup" ? "newPassword" : "password"}
+              autoComplete={mode === "signup" ? "new-password" : "password"}
               keyboardAppearance="dark" returnKeyType="go" onSubmitEditing={go} editable={!busy}
             />
           </Glass>
@@ -532,12 +558,14 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
             {busy ? (
               <Glass style={styles.busy}><ActivityIndicator color={colors.text} /></Glass>
             ) : (
-              <PrimaryButton label={O.accountCta} heavy onPress={go} disabled={!ready} style={{ flex: 0 }} />
+              <PrimaryButton label={mode === "signup" ? O.accountCreateCta : O.accountCta} heavy onPress={go} disabled={!ready} style={{ flex: 0 }} />
             )}
           </View>
-          {/* The second way in (since 15.09.2026): Apple's own sheet. The only
-              way an account COMES INTO BEING — without it, nobody could own an
-              invitation reward. */}
+          <Pressable onPress={() => { Haptics.selectionAsync(); flip(); }} hitSlop={10} disabled={busy} style={{ alignSelf: "center", paddingVertical: 6 }}>
+            <Text style={styles.later}>{mode === "signup" ? O.accountToSignin : O.accountToSignup}</Text>
+          </Pressable>
+          {/* The second way in (since 15.09.2026): Apple's own sheet. Creates
+              the account itself if there is none — no mail to confirm. */}
           {appleReady ? (
             <Pressable
               style={({ pressed }) => [styles.apple, { opacity: busy ? 0.45 : pressed ? 0.7 : 1 }]}
