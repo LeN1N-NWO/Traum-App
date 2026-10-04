@@ -27,17 +27,22 @@ export default function ProfileScreen() {
       <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         {p ? (
           <>
-            <Pressable style={styles.hero} onPress={() => open("avatar")}>
+            {/* Porträt klein neben dem Namen (Antons Wunsch 04.10.: das große
+                Bild schob alles nach unten), die zwei Zahlen gleich darunter. */}
+            <Pressable style={styles.hero} onPress={() => open("avatar")} accessibilityRole="button">
               <View style={styles.faceRing}>
-                {p.img ? <Image source={{ uri: p.img }} style={styles.face} contentFit="cover" /> : <View style={[styles.face, styles.faceEmpty]}><SymbolView name="plus" size={28} tintColor={colors.accentSoft} /></View>}
+                {p.img ? <Image source={{ uri: p.img }} style={styles.face} contentFit="cover" /> : <View style={[styles.face, styles.faceEmpty]}><SymbolView name="plus" size={22} tintColor={colors.accentSoft} /></View>}
               </View>
-              <Text style={styles.name}>{p.name}</Text>
-              <Text style={styles.hint}>{p.hint}</Text>
+              <View style={styles.who}>
+                <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
+                <Text style={styles.hint} numberOfLines={2}>{p.hint}</Text>
+                <View style={styles.stats}>
+                  <Text style={styles.statL}><Text style={styles.statN}>{p.dreams}</Text>  {p.statDreams}</Text>
+                  <Text style={styles.statL}><Text style={styles.statN}>{p.streak}</Text>  {p.statStreak}</Text>
+                </View>
+              </View>
+              <SymbolView name="chevron.right" size={14} tintColor={colors.faint} />
             </Pressable>
-            <View style={styles.stats}>
-              <View style={styles.stat}><Text style={styles.statN}>{p.dreams}</Text><Text style={styles.statL}>{p.statDreams}</Text></View>
-              <View style={styles.stat}><Text style={styles.statN}>{p.streak}</Text><Text style={styles.statL}>{p.statStreak}</Text></View>
-            </View>
             {/* Freunde einladen (03.10.): kauft ein Freund, gibt es Träume. */}
             {data?.invite ? (
               <Pressable style={[styles.card, styles.invite]} onPress={() => { Haptics.selectionAsync(); router.push("/profile/invite"); }} accessibilityRole="button">
@@ -122,16 +127,16 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "transparent" },
   content: { paddingHorizontal: 16, paddingBottom: TAB_INSET, gap: 14 },
-  hero: { alignItems: "center", gap: 6, paddingVertical: 12 },
-  faceRing: { padding: 4, borderRadius: 999, borderWidth: 1, borderColor: colors.panelLine, marginBottom: 8 },
-  face: { width: 168, height: 168, borderRadius: 84, backgroundColor: colors.bg2 },
+  hero: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 8 },
+  faceRing: { padding: 3, borderRadius: 999, borderWidth: 1, borderColor: colors.panelLine },
+  face: { width: 76, height: 76, borderRadius: 38, backgroundColor: colors.bg2 },
   faceEmpty: { alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.accentSoft },
-  name: { fontFamily: fonts.serif, fontSize: 32, color: colors.text },
-  hint: { color: colors.muted, fontSize: 14, textAlign: "center" },
-  stats: { flexDirection: "row", justifyContent: "center", gap: 48, paddingVertical: 6 },
-  stat: { alignItems: "center", gap: 2 },
-  statN: { color: colors.text, fontSize: 28, fontWeight: "600", fontVariant: ["tabular-nums"] },
-  statL: { color: colors.faint, fontSize: 11, letterSpacing: 1.6, textTransform: "uppercase" },
+  who: { flex: 1, gap: 3 },
+  name: { fontFamily: fonts.serif, fontSize: 28, lineHeight: 33, color: colors.text },
+  hint: { color: colors.muted, fontSize: 13, lineHeight: 17 },
+  stats: { flexDirection: "row", gap: 18, marginTop: 4 },
+  statN: { color: colors.text, fontSize: 17, fontWeight: "600", letterSpacing: 0, fontVariant: ["tabular-nums"] },
+  statL: { color: colors.faint, fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase" },
   card: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   cardTitle: { color: colors.text, fontSize: 16, fontWeight: "600" },
   cardHint: { color: colors.accentSoft, fontSize: 13 },

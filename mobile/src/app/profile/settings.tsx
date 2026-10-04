@@ -2,7 +2,7 @@ import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import { Stack, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Glass } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { appleReauthCode } from "@/lib/apple-reauth";
@@ -125,6 +125,9 @@ export default function SettingsScreen() {
                 </Glass>
               </Pressable>
             ) : null}
+            {/* Abo verwalten (04.10., App-Store-Prüfung 3.1.2): Kündigen geht nur bei
+                Apple — der Weg dorthin gehört in die App, auch ohne Konto. */}
+            {row(S.manageSubs, S.manageSubsHint, null, () => { Linking.openURL("https://apps.apple.com/account/subscriptions").catch(() => {}); })}
             {/* Erinnerungen (13.09.2026) — ganz oben unter dem Konto: der Grund, morgens zu öffnen. */}
             {data?.reminders ? row(data.reminders.labels.title, data.reminders.labels.settingsHint, null, () => router.push("/profile/reminders")) : null}
             {row(S.voiceSetting, S.voiceSettingHint, S.voice, () => router.push("/profile/voice"))}

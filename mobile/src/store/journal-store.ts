@@ -82,6 +82,7 @@ export type SettingsData = {
   voice: string; voices: { id: string; trait: string }[]; pickTitle: string; pickHint: string; pickGo: string; cancel: string; sampleBase: string;
   privacy: { title: string; hint: string; noBio: string; unlock: string; locked: string };
   deleteAccount: { title: string; hint: string; confirmTitle: string; confirmText: string; go: string; done: string; failed: string };
+  manageSubs: string; manageSubsHint: string;
   languageSetting: string; languageSettingHint: string; languages: { id: string; label: string }[];
   legal: { close: string; updated: string; draftNote: string; terms: LegalDoc; privacy: LegalDoc };
 };
@@ -103,7 +104,7 @@ export type PaywallPlan = { id: string; price: string; per: string; name: string
 export type PaywallData = {
   title: string; close: string; brand: string; plus: string;
   headlineFor: Record<string, string>; ledeFor: Record<string, string>;
-  tabSub: string; tabPack: string; packNote: string; yieldYearNote: string; included: string; chips: string[]; freeNote: string; cta: string; notYet: string; purchaseThanks: string; purchaseFailed: string; upTo: string;
+  tabSub: string; tabPack: string; packNote: string; yieldYearNote: string; included: string; chips: string[]; freeNote: string; cta: string; renewNote: string; termsLink: string; privacyLink: string; notYet: string; purchaseThanks: string; purchaseFailed: string; upTo: string;
   balance: string; credits: number; subs: PaywallPlan[]; packs: PaywallPlan[]; films: string[]; filmsBackup: string[];
 };
 export type SymbolEntry = { id: string; label: string; meaning: string; count: number; countLine: string; occurrences: { entryId: string; date: string; title: string }[] };

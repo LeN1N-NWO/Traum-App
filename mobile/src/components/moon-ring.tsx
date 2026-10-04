@@ -36,8 +36,10 @@ import { colors, fonts } from "@/theme";
  *     darunter ihren eigenen Streifen und ragen nicht mehr heraus.
  *   · Der Frosch ist vorerst raus aus der Mitte (Antons Ansage 04.10.).
  *
- * Leistung: Reif, Netz, Federn stille SVGs; bewegt nur native Ebenen
- * (Federn drehen, Netz atmet, Puls über Deckkraft). */
+ * Leistung: Reif, Netz, Federn, Steine stille SVGs; bewegt nur native
+ * Ebenen (Bänder drehen, Netz atmet, Puls über Deckkraft, Steine blitzen
+ * nur kurz auf). Alles hält an, sobald die Startseite nicht zu sehen ist
+ * (`live`, 04.10.: die Tabs bleiben montiert). */
 const SIX = 6;
 const ROUNDS = 5;          // Runden des Netzes; Träume liegen auf 1 und 2
 const SAG = 0.86;          // wie stark jede Runde nach innen gezogen ist
@@ -145,7 +147,7 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
         {/* Die Bänder — hinter allem, im Streifen unter dem Reif */}
         {feathers.map((f, i) => {
           const [ax, ay] = P(key(0, f.knot));
-          return <StrandView key={f.num} f={f} i={i} x={ax} y={ay} done={C.count >= f.num} delay={i * 700} />;
+          return <StrandView key={f.num} f={f} i={i} x={ax} y={ay} done={C.count >= f.num} delay={i * 700} live={live} />;
         })}
 
         {/* Reif und Fasern — still */}
@@ -156,7 +158,7 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
           {web.fibers.map((d, k) => <Path key={k} d={d} stroke="#C9A86A" strokeWidth={0.6} strokeOpacity={0.4} />)}
         </Svg>
 
-        <Breath style={StyleSheet.absoluteFill}>
+        <Breath style={StyleSheet.absoluteFill} live={live}>
           {/* Das Netz; die schon gewebten Wege golden — auf denselben Fäden */}
           <Svg width={W} height={H} style={StyleSheet.absoluteFill} pointerEvents="none">
             <Path d={web.threads} fill="none" stroke="#F3E3C3" strokeWidth={0.9} strokeOpacity={0.42} strokeLinecap="round" />
@@ -169,7 +171,7 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
             })}
             <Circle cx={cx} cy={cy} r={R * HOLE} fill="rgba(5,10,20,0.6)" stroke="#C9A86A" strokeWidth={1} strokeOpacity={0.6} />
           </Svg>
-          {filled < 2 * SIX ? <NextThread d={web.legs[filled]} W={W} H={H} /> : null}
+          {filled < 2 * SIX ? <NextThread d={web.legs[filled]} W={W} H={H} live={live} /> : null}
           {/* Die Traumsteine auf ihren Knoten (Antons Wahl 04.10. abends — die Miniaturbilder waren nicht zu erkennen) */}
           {C.slots.map((s, k) => {
             if (!s.dreamId) return null;
@@ -184,7 +186,7 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
               </Animated.View>
             );
           })}
-          {filled < 2 * SIX ? <NextMark x={ex} y={ey} size={BEAD - 4} /> : null}
+          {filled < 2 * SIX ? <NextMark x={ex} y={ey} size={BEAD - 4} live={live} /> : null}
         </Breath>
 
         {/* Die Mitte: das Ziel — ist das Netz voll, wird es zum Film */}
@@ -240,17 +242,18 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
    — die Geschenkfeder groß und farbig, links und rechts je eine kleine
    blasse. Das Band schwingt als Ganzes um seinen Knoten (nur die Drehung
    der nativen Ebene bewegt sich). Unerreicht ist die große Feder blass. */
-function StrandView({ f, i, x, y, done, delay }: { f: Feather; i: number; x: number; y: number; done: boolean; delay: number }) {
+function StrandView({ f, i, x, y, done, delay, live }: { f: Feather; i: number; x: number; y: number; done: boolean; delay: number; live: boolean }) {
   // etwas größer als im ersten Wurf (Antons Wunsch 04.10.), aber nie bis zu den Texten
   const VW = 64, VH = LEAD + 56, ox = VW / 2;
   const swing = useSharedValue(0);
   useEffect(() => {
+    if (!live) { cancelAnimation(swing); return; }
     const amp = 3 + (delay % 3) * 0.5;
     swing.value = withDelay(delay, withRepeat(withSequence(
       withTiming(amp, { duration: 2300 + delay * 0.4, easing: Easing.inOut(Easing.sin) }),
       withTiming(-amp, { duration: 2300 + delay * 0.4, easing: Easing.inOut(Easing.sin) }),
     ), -1, true));
-  }, [swing, delay]);
+  }, [swing, delay, live]);
   const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${f.tilt + swing.value}deg` }] }));
   return (
     <Animated.View pointerEvents="none" style={[{ position: "absolute", left: x - ox, top: y, width: VW, height: VH, transformOrigin: "50% 0%" }, style]}>
@@ -411,17 +414,23 @@ function HeartStone({ size, breathe, filled, live }: { size: number; breathe: bo
 }
 
 /* Das Netz atmet: eine langsame, kaum sichtbare Skalierung der Ebene. */
-function Breath({ style, children }: { style: any; children: React.ReactNode }) {
+function Breath({ style, live, children }: { style: any; live: boolean; children: React.ReactNode }) {
   const k = useSharedValue(0);
-  useEffect(() => { k.value = withRepeat(withTiming(1, { duration: 3800, easing: Easing.inOut(Easing.sin) }), -1, true); }, [k]);
+  useEffect(() => {
+    if (live) k.value = withRepeat(withTiming(1, { duration: 3800, easing: Easing.inOut(Easing.sin) }), -1, true);
+    else cancelAnimation(k);
+  }, [k, live]);
   const a = useAnimatedStyle(() => ({ transform: [{ scale: 1 + 0.012 * k.value }] }));
   return <Animated.View style={[style, a]} pointerEvents="box-none">{children}</Animated.View>;
 }
 
 /* Das Stück vom letzten Traum zur nächsten Perle — gestrichelt, pulsiert. */
-function NextThread({ d, W, H }: { d: string; W: number; H: number }) {
+function NextThread({ d, W, H, live }: { d: string; W: number; H: number; live: boolean }) {
   const k = useSharedValue(0);
-  useEffect(() => { k.value = withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.sin) }), -1, true); }, [k]);
+  useEffect(() => {
+    if (live) k.value = withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.sin) }), -1, true);
+    else cancelAnimation(k);
+  }, [k, live]);
   const pulse = useAnimatedStyle(() => ({ opacity: 0.3 + 0.7 * k.value }));
   return (
     <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, pulse]}>
@@ -433,9 +442,12 @@ function NextThread({ d, W, H }: { d: string; W: number; H: number }) {
 }
 
 /* Die nächste Perle: ein goldener Ring, der leise pulsiert. */
-function NextMark({ x, y, size }: { x: number; y: number; size: number }) {
+function NextMark({ x, y, size, live }: { x: number; y: number; size: number; live: boolean }) {
   const k = useSharedValue(0);
-  useEffect(() => { k.value = withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.sin) }), -1, true); }, [k]);
+  useEffect(() => {
+    if (live) k.value = withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.sin) }), -1, true);
+    else cancelAnimation(k);
+  }, [k, live]);
   const pulse = useAnimatedStyle(() => ({ opacity: 0.35 + 0.65 * k.value, transform: [{ scale: 0.9 + 0.2 * k.value }] }));
   return <Animated.View pointerEvents="none" style={[styles.nextMark, { width: size, height: size, borderRadius: size / 2, left: x - size / 2, top: y - size / 2 }, pulse]} />;
 }

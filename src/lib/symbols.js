@@ -128,11 +128,15 @@ export function detectSymbols(text){
   return out;
 }
 
-/** Map<symbolId, [{entryId, createdAt, title, text}]> — aus dem Tagebuch abgeleitet. */
+/** Map<symbolId, [{entryId, createdAt, title, text}]> — aus dem Tagebuch abgeleitet.
+ *  Gelesen werden Text UND die englischen Analyse-Beats (wie atlas.js
+ *  `detectableText`): Die Stichworte sind englisch, deutsche Traumtexte
+ *  allein ergaben einen leeren Atlas (Antons Befund 04.10.: zehn Träume,
+ *  keine Symbole). */
 export function symbolOccurrences(journal){
   const out = new Map();
   for(const entry of (journal||[])){
-    for(const id of detectSymbols(entry.text)){
+    for(const id of detectSymbols([entry.text || "", ...(entry.analysis?.beats || [])].join(" "))){
       if(!out.has(id)) out.set(id,[]);
       out.get(id).push({entryId:entry.id, createdAt:entry.createdAt, title:entry.title, text:entry.text});
     }
