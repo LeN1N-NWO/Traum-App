@@ -3,6 +3,43 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-04 14:00 — Anton — Branch `session/2026-10-03b-anton` (PR #77) — Traum-Ring wie eine Uhr, Stil ohne Vorauswahl, Stil-Riegel, Warteschirm, Mitteilung
+
+**Commits:** d39864c, acb11eb, 00eb345, af7ace7, 04aac53, b272bb0 (+ Merge main, Wrap).
+
+**Was:**
+- **Traum-Ring** statt Mondzyklus-Ring (`src/lib/dreamRing.js`,
+  `moon-ring.tsx`): 12 Plätze wie eine Uhr, Träume füllen der Reihe nach,
+  Nummern laufen weiter; Geschenke 3/6/9 = Glimpse, 12 = Film aus dem
+  Ring; Bogen + pulsierendes Stück zum nächsten Platz; Fäden zur Mitte hin
+  ausgeblendet. Gifts per `giftedUpTo` (je Platz einmal).
+- **Stil ohne Vorauswahl**; **Stil-Riegel** für gezeichnete Stile mit
+  Foto (`styleLockClause`); **Warteschirm** schaltet nicht mehr grundlos
+  auf den Motor; **lokale Mitteilung** bei fertigem Film im Hintergrund.
+- Doku: Übergabe Push an Hanni, Werbeideen-Sammlung, Lade-Stories,
+  Entscheidung „Launch nur iPhone".
+
+**Warum:** Antons Befunde 03./04.10. (Geschenke verstreut, „kein Streak",
+Linie zum nächsten Punkt, Nummern nicht neu setzen; Stil vorausgewählt;
+Anime fotografisch; Warteschirm springt; keine Mitteilung).
+
+**Belege:** 904 Tests grün nach Merge von main, tsc sauber; Brücke unter
+Bun mit 8 und 14 Träumen geprüft; am iPhone gestartet, gespeicherte Daten
+vom Gerät gelesen (Geschenk 6 vergeben, `giftedUpTo` 6). Ursachen für
+Anime und Warteschirm per Code-Durchsicht (zwei Explore-Agenten) belegt,
+der echte Auftrag vom 04.10. 12:31 (`media/jobs/mutoldccsi1ctc.json`)
+trägt den Anime-Anker.
+
+**Für den Nächsten:**
+- Stil-Riegel ist ungeprüft am Render — erst ein Anime-Film mit Foto.
+- Der Warteschirm wartet weiter auf die Auftragsnummer, weil der
+  Web-Motor im selben Bildschirm die Bestellung abschickt — früher
+  wegnavigieren bricht den Auftrag ab.
+- Die lokale Mitteilung kommt nur, solange die App läuft; echter Push
+  braucht Hannis Teil.
+- Der lokale Server war aus (App: „couldn't write it down") — neu
+  gestartet aus dem Hauptordner, läuft nur mit dieser Sitzung.
+
 ## 2026-10-04 13:55 — Hanni — Branch `session/2026-10-03-hanni-5` (PR #76) — Registrierung, Passwort vergessen
 
 **Commits:** cb40484 (Notiz Einladungs-Obergrenze), 7dc445c (Registrierung),

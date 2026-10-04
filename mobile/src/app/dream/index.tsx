@@ -99,7 +99,7 @@ export default function DreamTextScreen() {
   function go(useImproved: boolean) {
     const a = preview;
     Haptics.selectionAsync();
-    patchWizard({ text: useImproved ? a.text : clean, originalText: clean, analysis: useImproved ? a : { ...a, text: clean }, styleId: a?.style || "ultrareal", assignmentOverrides: {} });
+    patchWizard({ text: useImproved ? a.text : clean, originalText: clean, analysis: useImproved ? a : { ...a, text: clean }, styleId: "", assignmentOverrides: {} });   // kein Stil vorausgewählt (04.10.)
     setPreview(null);
     router.push("/dream/output");
   }

@@ -25,7 +25,10 @@ export default function DreamStyleScreen() {
   const W = data?.wizard;
   const w = useWizardStore();
   const [open, setOpen] = useState<string | null>(null);
-  const activeId = w.pace === "flow" ? "dreamflow" : (W?.presets.find((p) => p.id !== "dreamflow" && p.styleId === w.styleId)?.id ?? "ultrareal");
+  /* Kein Stil vorausgewählt (Antons Ansage 04.10.) — erst wenn der Mensch
+     einen wählt, ist eine Kachel markiert und „Weiter" führt weiter. */
+  const activeId = w.pace === "flow" ? "dreamflow" : (W?.presets.find((p) => p.id !== "dreamflow" && p.styleId === w.styleId)?.id ?? null);
+  const [nudge, setNudge] = useState(false);
   const presets = W?.presets ?? [];
   const cols = 4;
   const gap = 12;
@@ -45,9 +48,13 @@ export default function DreamStyleScreen() {
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         <Text style={styles.title}>{W?.styleTitle ?? "How should it look?"}</Text>
         <View style={[styles.grid, { gap }]}>
-          {presets.map((p) => <PresetTile key={p.id} preset={p} size={size} active={p.id === activeId} dim onPress={(id) => { Haptics.selectionAsync(); setOpen(id); }} />)}
+          {presets.map((p) => <PresetTile key={p.id} preset={p} size={size} active={p.id === activeId} dim={!!activeId} onPress={(id) => { Haptics.selectionAsync(); setOpen(id); }} />)}
         </View>
-        <PrimaryButton label={W?.next ?? "Continue"} onPress={() => router.push("/dream/length")} style={{ flex: 0, marginTop: 10 }} />
+        {nudge && !activeId ? <Text style={styles.nudge}>{W?.pickStyle ?? "Pick a style first."}</Text> : null}
+        <PrimaryButton label={W?.next ?? "Continue"} onPress={() => {
+          if (!activeId) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); setNudge(true); return; }
+          router.push("/dream/length");
+        }} style={{ flex: 0, marginTop: 10 }} />
       </ScrollView>
       <View style={styles.bridge}>{bridge}</View>
 
@@ -118,4 +125,5 @@ const styles = StyleSheet.create({
   pageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.3)" },
   pageDotOn: { backgroundColor: colors.text, width: 18 },
   bridge: { height: 0, overflow: "hidden" },
+  nudge: { color: colors.gold, fontSize: 14, textAlign: "center" },
 });

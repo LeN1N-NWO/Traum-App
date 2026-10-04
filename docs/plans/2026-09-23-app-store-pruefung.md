@@ -179,3 +179,13 @@ Der größte Umbau. **Braucht Entscheidung 2 und 3.**
 - [Konto-Löschung in der App (Apple)](https://developer.apple.com/support/offering-account-deletion-in-your-app/)
 - Leitfaden `docs/APP-STORE-EINREICHUNG.md` (Werkzeuge, Review-Notes-Vorlage)
 - `docs/ARCHITEKTUR.md` (S2/S3/S6, Zielarchitektur)
+
+## Entscheidung 04.10.2026 (Anton): Launch nur fürs iPhone
+
+Kein iPad zum Launch. Die App bleibt eine reine iPhone-App
+(`TARGETED_DEVICE_FAMILY = 1`, kein `supportsTablet` in `mobile/app.json`).
+⚠ Apple prüft iPhone-Apps trotzdem auch auf dem iPad (hochskaliert) — die
+Seiten müssen dort benutzbar bleiben. iPad-Unterstützung lässt sich nach
+dem Launch als Update nachreichen, aber nie wieder zurücknehmen. Offen:
+ob die App auf Macs mit Apple-Chip angeboten wird (Schalter in App Store
+Connect, Standard: an).

@@ -30,7 +30,7 @@ import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PA
 import { startsFree } from "../../../src/wizard/useWizard.js";
 import { beatsForCount } from "../../../src/lib/beats.js";
 import { reflectionContext } from "../../../src/lib/atlas.js";
-import { cycleRing, pendingMoonFilm } from "../../../src/lib/moonCycle.js";
+import { dreamRing, giftAtNum, nextGiftNum, pendingRingFilm, QUARTER, RING_SIZE } from "../../../src/lib/dreamRing.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
 import { PRESETS, DREAMFLOW } from "../../../src/lib/presets.js";
@@ -48,7 +48,7 @@ import { MASCOTS, DEFAULT_MASCOT } from "../../../src/lib/mascots.js";
 import { zodiacOf } from "../../../src/lib/zodiac.js";
 import { SYMBOLS, SYMBOL_CATEGORIES, detectSymbols, symbolOccurrences } from "../../../src/lib/symbols.js";
 import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
-import { MILESTONES, nextMilestone, giftFor, giftInfo, giftLabel } from "../../../src/lib/streakBoard.js";
+import { giftFor, giftLabel } from "../../../src/lib/streakBoard.js";
 import { REFERRAL_FILMS, REFERRAL_HOLD_DAYS, REFERRAL_MONTHLY_CAP } from "../../../src/lib/invites.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
 import { genId } from "../../../src/lib/storage.js";
@@ -164,6 +164,11 @@ function snapshot() {
       const img = it ? it.poster || it.images[0] || (it.media?.kind === "image" ? it.media.url : null) : null;
       return { id: e.id, day: dayKey(e.createdAt), motif: detectSymbols([e.text || "", ...(e.analysis?.beats || [])].join(" "))[0] || null, img };
     });
+  /* Die Träume mit Bild, älteste zuerst — sie füllen den Traum-Ring. */
+  const cycleById = new Map(cycleDreams.map((d) => [d.id, d]));
+  const filmDreams = (s.journal || []).filter(isFilmNight)
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    .map((e) => cycleById.get(e.id)).filter(Boolean);
   /* Die Startseite: Serie, offene Aufträge, heutige Nacht, Check-in,
      letzter Traum — dieselben Regeln wie HomeScreen.jsx, nur als Daten. */
   /* Der Traum-Vorsatz (27.09., Antons Ansage: „What would you like to
@@ -173,16 +178,6 @@ function snapshot() {
   const intention = intentionAt && Date.now() - intentionAt < 18 * 3600 * 1000 ? String(s.intention.text || "") : "";
   const count = countOf(s);
   const todayDone = dreamtToday(s);
-  /* Ein Geschenk als kurze Karte (gift-sheet.tsx): Titel, ein Satz,
-     Fortschritt — mehr nicht (Antons Befund 03.10.). */
-  const giftCard = (g, have) => {
-    const G = t.streakBoard.giftSheet;
-    return {
-      kind: g.kind, title: giftLabel(t, g), sub: G.subs[g.kind] || "",
-      eyebrow: G.left(g.nights - have), progress: Math.max(0, Math.min(1, have / g.nights)),
-      progressText: G.progress(have, g.nights), foot: `${G.rule} ${G.valid}`, close: G.close,
-    };
-  };
   const last = items[0] || null;
   const today = checkinOn(s.checkins);
   /* Ein frisch erreichtes Geschenk, bis die Startseite es geöffnet hat
@@ -233,66 +228,55 @@ function snapshot() {
     /* Der Ring mit Fäden (03.10., Antons Wahl): die Nächte von Vollmond zu
        Vollmond, jede mit ihrem Traumbild, Fäden zwischen gleichen Motiven;
        am Morgen nach dem Vollmond der Mondfilm (src/lib/moonCycle.js). */
+    /* Der Traum-Ring (Antons Entwurf 03.10. spätabends, src/lib/dreamRing.js):
+       12 Plätze wie eine Uhr, jeder Traum mit Bild füllt den nächsten —
+       ohne Datum, ohne Serie; die Nummern laufen über 12 hinaus weiter.
+       Geschenke auf 3/6/9 (Glimpse) und 12 (Film aus dem Ring). */
     cycle: (() => {
       const C = t.cycle;
-      const ring = cycleRing(cycleDreams, new Date());
+      const G = t.streakBoard.giftSheet;
+      const ring = dreamRing(filmDreams);
       const label = (id) => (id ? t.symbols.byId[id]?.label || id : null);
-      /* Das nächste Geschenk (seit 03.10. abends nach der ZAHL der Träume,
-         nicht mehr als Platz im Ring — eine Zahl hat kein Datum) und das
-         große Geschenk oben: der Monat als Film am Vollmond. */
-      const nxt = nextMilestone(count);
-      const g = nxt ? giftInfo(nxt.nights) : null;
-      const next = g ? { ...giftCard(g, count), nights: g.nights, say: C.milestoneSay(g.nights - count, giftLabel(t, g)) } : null;
-      /* Die Geschenke als Platzhalter IM Ring (Antons Wunsch, 03.10. abends:
-         „die Meilensteine als Punkte in dem Kreis sind verschwunden"): auf
-         der FRÜHESTEN Nacht, an der man sie erreichen kann — ein Traum je
-         Nacht. Das ist keine Serie: Wer eine Nacht auslässt, verliert
-         nichts, das Geschenk rückt nur eine Nacht weiter. */
-      const tKey = dayKey(new Date());
-      const todayFilm = (s.journal || []).some((e) => isFilmNight(e) && dayKey(e.createdAt) === tKey);
-      const ti = ring.days.findIndex((d) => d.today);
-      const first = ti < 0 ? 0 : todayFilm ? ti + 1 : ti;
-      const gifts = [];
-      for (const ms of MILESTONES) {
-        if (ms.nights <= count) continue;
-        const idx = first + (ms.nights - count - 1);
-        if (idx >= ring.days.length) break;
-        const gi = giftInfo(ms.nights);
-        if (gi) gifts.push({ index: idx, nights: ms.nights, ...giftCard(gi, count) });
-      }
-      const imgs = ring.days.filter((d) => d.dreamId && d.img).length;
-      const daysLeft = ring.days.filter((d) => d.future).length;
-      const month = {
-        kind: "monthFilm", title: C.month.title, sub: C.month.sub,
-        eyebrow: C.month.when(daysLeft), progress: ring.days.length ? (ring.days.length - daysLeft) / ring.days.length : 0,   // der Weg bis Vollmond
-        progressText: C.month.have(imgs, 3), foot: "", close: t.streakBoard.giftSheet.close,
+      const ringCard = (num) => {
+        const g = giftAtNum(num);
+        if (!g) return null;
+        const from = num - QUARTER;
+        return {
+          kind: g.kind, title: giftLabel(t, g), sub: G.subs[g.kind] || "",
+          eyebrow: num <= count ? "✓" : G.left(num - count),
+          progress: Math.max(0, Math.min(1, (count - from) / QUARTER)),
+          progressText: G.progress(Math.min(count, num), num),
+          foot: g.kind === "glimpse" ? `${G.rule} ${G.valid}` : G.rule, close: G.close,
+        };
       };
+      const nextNum = nextGiftNum(count);
+      const nextG = giftAtNum(nextNum);
+      const nextGift = nextG ? { ...ringCard(nextNum), num: nextNum, say: C.milestoneSay(nextNum - count, giftLabel(t, nextG)) } : null;
       return {
-        days: ring.days.map((d) => ({ key: d.key, today: d.today, future: d.future, dreamId: d.dreamId, img: d.img })),
+        ringNo: ring.ringNo, next: ring.next, count, todayDone, streak: count,
+        slots: ring.slots.map((sl) => ({ num: sl.num, pos: sl.pos, dreamId: sl.dreamId, img: sl.img, gift: ringCard(sl.num) })),
         threads: ring.threads.map(([a, b]) => [a, b]),
-        left: ring.left, count: ring.count, streak: count, todayDone,
-        next, month, gifts,
-        chip: C.chip,
-        countLine: C.count(ring.count),
-        line: ring.left > 0 ? C.left(ring.left) : C.fullTonight,
+        nextGift,
+        countLine: C.ringCount(count, ring.ringNo),
+        line: nextGift ? nextGift.say : C.nextSlot(ring.next),
         thread: ring.top && ring.top.n > 1 ? C.thread(label(ring.top.motif), ring.top.n) : "",
-        /* Was der Frosch beim Antippen sagt: das nächste Ziel. */
-        say: next ? next.say : ring.left > 0 ? C.left(ring.left) : C.fullTonight,
+        /* Was der Frosch beim Antippen sagt: das nächste Geschenk. */
+        say: nextGift ? nextGift.say : C.nextSlot(ring.next),
         sayAsleep: C.asleep,
       };
     })(),
-    /* Ein fälliger Mondfilm — die Wurzel-Schicht (glimpse-layer.tsx) macht
-       ihn auf dem iPhone und meldet ihn mit `moonFilm` zurück. */
+    /* Ein voller Ring, dessen Film fehlt — die Wurzel-Schicht
+       (glimpse-layer.tsx) macht ihn auf dem iPhone und meldet ihn mit
+       `moonFilm` zurück (Name aus der Mondzeit, Inhalt jetzt der Ring). */
     moonFilm: (() => {
-      const f = pendingMoonFilm(cycleDreams, s.moonFilms || [], new Date());
+      const f = pendingRingFilm(filmDreams, s.moonFilms || []);
       if (!f) return null;
-      // Benannt nach dem Monat, in dem der Ring voll wurde.
-      const month = f.full.toLocaleDateString(s.language === "de" ? "de-DE" : "en-GB", { month: "long" });
       const motif = f.motif ? t.symbols.byId[f.motif]?.label || f.motif : null;
+      const from = (f.ringNo - 1) * RING_SIZE + 1;
       return {
-        key: f.key, title: t.cycle.filmTitle(month, motif),
+        key: f.key, title: t.cycle.ringFilmTitle(f.ringNo, from, from + RING_SIZE - 1, motif),
         dreams: f.dreams.map((d) => ({ id: d.id, img: d.img })),
-        readyTitle: t.cycle.readyTitle, readyBody: t.cycle.readyBody(f.dreams.length),
+        readyTitle: t.cycle.ringReadyTitle, readyBody: t.cycle.ringReadyBody(f.dreams.length),
       };
     })(),
     week: (() => {
@@ -306,17 +290,22 @@ function snapshot() {
       });
     })(),
     intention,
-    /* Die Meilenstein-Leiter hinter der Serien-Pille (StreakBoard.jsx). */
+    /* Die Seite hinter der Pille: die vier Geschenke des laufenden Rings
+       (seit 03.10. spätabends, dreamRing.js) statt der alten Leiter. */
     board: (() => {
-      const nxt = nextMilestone(count);
+      const start = Math.floor(count / RING_SIZE) * RING_SIZE;
+      const nextNum = nextGiftNum(count);
       return {
         title: t.streakBoard.title, nights: t.streakBoard.nights(count),
-        lede: nxt ? t.streakBoard.next(nxt.nights - count) : t.streakBoard.done,
-        rungs: MILESTONES.map((m) => ({
-          nights: m.nights, title: t.streakBoard.rung(m.nights), reward: t.streakBoard.rewards[m.reward],
-          gift: giftInfo(m.nights) ? giftLabel(t, giftInfo(m.nights)) : null,
-          state: count >= m.nights ? "done" : nxt && m.nights === nxt.nights ? "next" : "far",
-        })),
+        lede: t.streakBoard.next(nextNum - count),
+        rungs: [QUARTER, 2 * QUARTER, 3 * QUARTER, RING_SIZE].map((k) => {
+          const num = start + k, g = giftAtNum(num);
+          return {
+            nights: num, title: t.streakBoard.rung(num), reward: t.streakBoard.giftSheet.subs[g.kind] || "",
+            gift: giftLabel(t, g),
+            state: count >= num ? "done" : num === nextNum ? "next" : "far",
+          };
+        }),
         note: t.streakBoard.note,
       };
     })(),
@@ -441,7 +430,7 @@ function snapshot() {
     title: t.wizard.step1.title, next: t.wizard.next, read: t.wizard.step1.improve, reading: t.wizard.step1.reading,
     tooShort: t.wizard.tooShort, previewTitle: t.wizard.step1.previewTitle, previewLede: t.wizard.step1.previewLede,
     yours: t.wizard.step1.yours, improved: t.wizard.step1.improved, keepMine: t.wizard.step1.keepMine, useImproved: t.wizard.step1.useImproved,
-    styleTitle: w5.title, styleLabel: w5.styleLabel, useStyle: w5.useStyle, moreStyles: w5.moreStyles(PRESETS.filter((p) => p.id !== DREAMFLOW && !styleById(p.styleId)?.featured).length),
+    styleTitle: w5.title, styleLabel: w5.styleLabel, useStyle: w5.useStyle, pickStyle: w5.pickStyle, moreStyles: w5.moreStyles(PRESETS.filter((p) => p.id !== DREAMFLOW && !styleById(p.styleId)?.featured).length),
     /* Die Szenen-Empfehlung (Step5Style: recommendation aus cut.js) — im
        Web stand sie unter dem Regler, nativ fehlte sie: Anton bestellte
        10 s H3 fuer sechs Szenen und bekam zwei (12.09.). Vorlagen mit
@@ -1407,7 +1396,11 @@ async function collectOnce(onJournal, onResult) {
     const text = kind === "dreamReady" ? t.journal.dreamReady(extra || "") : kind === "filmArrived" ? t.journal.filmArrived
       : kind === "sceneReady" ? t.journal.sceneReady(extra) : kind === "refunded" ? t.journal.imagesRefunded(extra)
       : kind === "renderFailed" ? `⚠ ${t.errors[failureTextKey(extra)]}` : null;
-    if (text) onResult({ n: -1, toast: text, haptic: kind === "filmArrived" || kind === "dreamReady" ? "success" : kind === "renderFailed" ? "error" : null });
+    /* `notify` (Antons Befund 04.10.: „Man bekommt keine Benachrichtigung,
+       dass ein neuer Traum erschienen ist"): Die native Seite macht daraus
+       eine Mitteilung, wenn die App gerade nicht vorn ist. */
+    const notify = kind === "filmArrived" || kind === "dreamReady" || kind === "renderFailed" ? { title: text } : undefined;
+    if (text) onResult({ n: -1, toast: text, haptic: kind === "filmArrived" || kind === "dreamReady" ? "success" : kind === "renderFailed" ? "error" : null, notify });
   }
 }
 

@@ -10,6 +10,7 @@ import { currentTap } from "@/store/tap-store";
 import { resetWizard, useWizardStore } from "@/store/wizard-store";
 import { colors } from "@/theme";
 import { getAccessToken } from "@/lib/auth";
+import { askPermission, permission } from "@/lib/notifications";
 
 
 /* Der Auftrag: Der Web-Motor (Step5Style.run) läuft UNSICHTBAR — er
@@ -65,6 +66,7 @@ export default function DreamOrderScreen() {
   }, [celebrating, celebrateFrom]);
   const firstDream = useRef<boolean | null>(null);
   const mineId = useRef<string | null>(null);
+  const lost = useRef<ReturnType<typeof setTimeout> | null>(null);   // „pending" weg, Nummer noch nicht da
   const [showWeb, setShowWeb] = useState(false);
   const done = useRef(false);
   const [number, setNumber] = useState<number | null>(null);
@@ -89,7 +91,11 @@ export default function DreamOrderScreen() {
     if (!mineId.current && w.audioUrl) send({ type: "attachAudio", id: mine.id, audioUrl: w.audioUrl });   // die Aufnahme an den Traum (ADR-0007)
     mineId.current = mine.id;
     if (mine.rendering) {
+      if (lost.current) { clearTimeout(lost.current); lost.current = null; }
       done.current = true;
+      /* Einmal um Mitteilungen bitten, wenn der erste Auftrag läuft — sonst
+         kann „Wir sagen dir Bescheid" gar nicht klappen (04.10.). */
+      permission().then((p) => { if (p === "undetermined") askPermission(); }).catch(() => {});
       showToast(W?.queuedNote ?? "");
       /* Seit es kein Willkommensgeschenk mehr gibt (14.09.2026), ist auch der
          erste Film bezahlt. „Der nächste braucht Credits" stimmt dann nur,
@@ -105,11 +111,20 @@ export default function DreamOrderScreen() {
         router.navigate("/journal");
         if (first) setTimeout(() => router.push({ pathname: "/journal/paywall", params: { reason: "first" } }), 900);
       }, Math.max(celebrateFrom + MIN_CELEBRATE_MS - Date.now(), w.audioUrl ? 900 : 50));
-    } else if (mine.failReason || !mine.pending) {
+    } else if (mine.failReason) {
       setShowWeb(true);
+    } else if (!mine.pending && !lost.current) {
+      /* Die Marke „pending" ist weg, aber noch keine Auftragsnummer da
+         (04.10., Antons Befund: der Bildschirm sprang zwischen Text und
+         Frosch). Das passiert auch ohne Fehler: Eine andere Web-Ansicht
+         räumt beim Laden alte Marken auf (clearStalePending), während der
+         Server noch die Regie schreibt. Also erst nach 25 s ohne Nummer
+         zum Motor umschalten — kommt sie vorher, geht es normal weiter. */
+      lost.current = setTimeout(() => setShowWeb(true), 25_000);
     }
   }, [data, W, router, send, w.audioUrl, w.entryId]);
 
+  useEffect(() => () => { if (lost.current) clearTimeout(lost.current); }, []);
   // Rückfall: Meldet sich nach zwei Minuten kein Traum, zeigt der Motor, was los ist.
   useEffect(() => { const id = setTimeout(() => setShowWeb(true), 120_000); return () => clearTimeout(id); }, []);
 

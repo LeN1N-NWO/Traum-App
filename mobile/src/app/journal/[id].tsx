@@ -40,7 +40,7 @@ export default function DreamScreen() {
     if (!item) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     resetWizard();
-    patchWizard({ entryId: item.id, text: item.text, originalText: item.originalText ?? item.text, analysis: item.analysis, styleId: item.styleId ?? item.analysis?.style ?? "ultrareal", mode: "film" });
+    patchWizard({ entryId: item.id, text: item.text, originalText: item.originalText ?? item.text, analysis: item.analysis, styleId: "", mode: "film" });   // „anders": kein Stil vorausgewählt (04.10.)
     router.push("/dream/style");
   }
   async function reflectNow() {

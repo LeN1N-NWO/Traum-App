@@ -280,3 +280,19 @@ test("buildGridPrompt: quadratische Kacheln für die Traum-Skizze (1:1)", () => 
   // Hochkant bleibt die Vorgabe
   expect(buildGridPrompt({ beats: ["a", "b", "c", "d"], styleId: "surreal", cols: 2, rows: 2 })).toContain("VERTICAL 9:16");
 });
+
+/* Antons Befund 04.10.: Anime gewählt, das Bild kam fotografisch — das
+   Besetzungsfoto schlug den Stil. Gezeichnete Stile mit Referenz bekommen
+   als LETZTES den Stil-Riegel; Fotostile und Bilder ohne Referenz nicht. */
+test("drawn styles redraw referenced people in the style; photo styles stay untouched", () => {
+  const { clauses } = buildReferences([anton]);
+  const anime = buildImagePrompt({ beat: "flying over the sea", styleId: "fantasyanime", clauses });
+  expect(anime.trim().endsWith("one consistent medium.")).toBe(true);
+  expect(anime).toContain("STYLE LOCK");
+  expect(anime).not.toContain("ultra-detailed, accurate hands and faces");
+  expect(buildImagePrompt({ beat: "flying", styleId: "fantasyanime", clauses: [] })).not.toContain("STYLE LOCK");
+  const real = buildImagePrompt({ beat: "flying", styleId: "ultrareal", clauses });
+  expect(real).not.toContain("STYLE LOCK");
+  expect(real).toContain("ultra-detailed, accurate hands and faces");
+  expect(buildGridPrompt({ beats: ["a", "b", "c", "d"], styleId: "fantasyanime", clauses, cols: 2, rows: 2 })).toContain("STYLE LOCK");
+});

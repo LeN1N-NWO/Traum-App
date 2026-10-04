@@ -78,6 +78,12 @@ export default {
     fullTonight: "Last night of the ring — tomorrow your month becomes a film.",
     thread: (label, n) => `Strongest thread: ${label} (${n}×)`,
     milestoneSay: (left, gift) => `${left <= 1 ? "One more dream" : `${left} more dreams`} until 🎁 ${gift}`,
+    /* Der Traum-Ring (03.10. spätabends, dreamRing.js): Plätze wie eine Uhr. */
+    ringCount: (n, ring) => `${n} ${n === 1 ? "dream" : "dreams"} · ring ${ring}`,
+    nextSlot: (num) => `Your next dream fills spot ${num}`,
+    ringFilmTitle: (ring, from, to, motif) => `Ring ${ring} · dreams ${from}–${to}${motif ? ` · ${motif}` : ""}`,
+    ringReadyTitle: "Your ring is full — here's your film",
+    ringReadyBody: (n) => `Your ${n} dreams as one film.`,
     /* Das große Geschenk oben im Ring (Antons Befund 03.10.: „da kommt
        nichts, wobei das doch das stärkste Geschenk ist"). */
     month: {
@@ -169,6 +175,7 @@ export default {
       film: () => "Your first dream film",
       credits: (n) => `${n} credits`,
       month: (n) => `${n} credits — a whole month`,
+      ring: () => "A film of your 12 dreams",
     },
     giftShort: { glimpse: "Glimpse", film: "Film", credits: (n) => `+${n}`, month: (n) => `+${n}` },
     giftWorth: (n) => `worth ${n} ${n === 1 ? "credit" : "credits"}`,
@@ -183,6 +190,7 @@ export default {
         film: "One dream as a whole film — on us.",
         credits: "For Glimpses or films, your choice.",
         month: "As much as a whole month of subscription.",
+        ring: "When the ring is full, its 12 dreams become one film — free.",
       },
       rule: "Every dream with a Glimpse or film counts.",
       valid: "Valid 30 days.",
@@ -1107,6 +1115,7 @@ export default {
       aboutStyle: "About this style",
       moreStyles: (n) => `More styles (${n})`,
       useStyle: "Use this style",
+      pickStyle: "Pick a style first.",
       presets: {
         dreamflow: "Dreamflow",
         dreamflowSub: "No cuts — every scene becomes the next",
@@ -1224,7 +1233,7 @@ export default {
       /* The reward after ordering (Anton, 13.09.2026). */
       celebrateFirst: "Wow — your first dream film!",
       celebrateN: (n) => `Dream no. ${n} is on its way`,
-      celebrateText: "It's being made now. No need to wait — the journal shows you when it's ready.",
+      celebrateText: "Handing it in now — then it's off to your journal. You don't have to wait for it to finish.",
       celebrateHint: "We'll let you know as soon as it's there.",
       save: "Save to journal",
       added: "Added to your dream",
