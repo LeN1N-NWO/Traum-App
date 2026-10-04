@@ -3,19 +3,71 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-03 spätabends — Hanni, `session/2026-10-03-hanni-4` (PR #75):
-**Einladungen — Server-Teil fertig und mit echten Konten getestet**
-(`GET /api/invite`, `POST /api/invite/connect`, Migration eingespielt);
-Anton kann `INVITE_PREVIEW = false` setzen. Davor PR #74:
-**ADR-0008 angenommen — Medien bleiben auf dem Server als Sicherung**, das
-Gerät holt sie einmal ab; kein Object Storage, Schritt C entfällt. Daraus
-folgt: **S2 ist Pflicht** (Zuordnung Datei → Nutzer an der Abholung, Antons
-Pipeline — Übergabe `2026-10-03-anton-medien-sicherung.md`). Am selben Tag
-Anton, PR #71: Startseite „Der Ring mit Fäden" mit Frosch, Geschenke nach
-der **Zahl der Träume**, Einladungen (App-Seite; **Server baut Hanni**).
-Davor Hanni: PR #73 (Aufräumen in `/wrap`) und PR #72 (**S1 gelöst —
-Bezahltes nur mit Konto**). **Weg durch die App-Store-Prüfung:
+**Stand:** 2026-10-04 mittags — Hanni, `session/2026-10-03-hanni-5` (PR #76):
+**Registrierung mit E-Mail und Passwort und „Passwort vergessen" sind fertig
+und mit echten Mails getestet.** Supabase verschickt über **Resend** (SMTP,
+Absender-Domain `dreamrushes.app` verifiziert, EU-Region). Davor PR #75:
+**Einladungen — Server-Teil fertig** (Anton kann `INVITE_PREVIEW = false`
+setzen). PR #74: **ADR-0008 — Medien bleiben auf dem Server als Sicherung**,
+daraus folgt **S2 ist Pflicht** (Zuordnung Datei → Nutzer, `/media/*` nur
+für den Besitzer — wer baut, klären Hanni + Anton). Am 03.10. Anton, PR #71:
+Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
+Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Neu mit PR #76 (03./04.10., Hanni):**
+- **Konten entstehen jetzt auf zwei Wegen:** Apple (wie bisher) und
+  **E-Mail + Passwort mit Bestätigungsmail.** `POST /api/auth/signup`
+  (`passwordSignup()` in `src/lib/auth.js`) antwortet `{ ok, confirm: true }`
+  — auch für eine schon vergebene Adresse, wie Supabase selbst (kein
+  Mitglieder-Orakel). Ablehnungen behalten ihren Grund: `weak`, `invalid`,
+  `exists`; nie mehr als „falsches Passwort".
+- **„Passwort vergessen" per Code, nicht per Link:** `POST /api/auth/recover`
+  (Code per Mail, gleiche Antwort für jede Adresse) und `POST /api/auth/reset`
+  (Code + neues Passwort → angemeldet; `resetPassword()`). Codeform und
+  Passwortlänge (≥ 6, Supabases Minimum) werden geprüft, BEVOR der Code
+  verbraucht ist. Danach werden **alle anderen Geräte abgemeldet**
+  (`logout?scope=others`); scheitert das, gilt das Passwort trotzdem, und
+  das Log sagt „andere Geräte NICHT abgemeldet".
+- **Unbestätigte Adresse beim Anmelden:** `email_not_confirmed` → 403
+  `reason: "unconfirmed"` mit eigenem Text statt „E-Mail oder Passwort
+  stimmen nicht" (Supabase meldet es erst nach passendem Passwort).
+- Alle drei neuen Routen unter der Anmelde-Bremse und ohne Konto erreichbar
+  (`src/lib/gatekeeper.js`).
+- **App:** Antons Anmelde-Schritt (`mobile/src/components/onboarding-flow.tsx`
+  `Account`, auch im Anmelde-Blatt) hat vier Modi: signin · signup · forgot ·
+  reset. Links „New here? Create an account", „Forgot password?", „Back to
+  sign in"; Karte „Check your inbox"; im Reset-Schritt ist die E-Mail
+  gesperrt. Client `mobile/src/lib/auth.ts` (`register`, `requestReset`,
+  `resetPassword`). Texte nur en/de (Übersetzungs-Stopp).
+- **Belegt:** im Simulator mit echten Mails — Registrieren → Link → Anmelden,
+  „Passwort vergessen" → Code → neues Passwort. Gegen das echte Supabase:
+  `weak_password`, `validation_failed`, `otp_expired`. 900 Tests grün.
+  ⚠ **Nicht echt belegt:** die Meldung bei unbestätigter Adresse
+  (Fehlercode aus der Doku) und das Abmelden der anderen Geräte (braucht
+  zwei Geräte).
+- **Supabase-Einstellungen (Hanni, 04.10.):** Custom SMTP = Resend
+  (`smtp.resend.com`); DNS bei **Strato**: TXT `resend._domainkey`, CNAME
+  `send` und `rsend` (`…forge.rmta.net`), Strato-DMARC `p=reject` bleibt.
+  Vorlage „Reset Password" enthält `{{ .Token }}`.
+- **Offen, notiert in `docs/APP-STORE-EINREICHUNG.md` (Teil 2, „Nicht
+  vergessen"):** Mail-Vorlagen in unserem Ton; **„Bestätigt"-Seite auf
+  `dreamrushes.app`** — die Site URL steht noch auf `localhost:3000`, nach
+  dem Klick auf den Bestätigungslink kommt eine Fehlerseite (die Bestätigung
+  selbst klappt). Hängt an B3.
+- **Bekannte Grenzen:** Mail-Kontingent in Supabase könnte über viele IPs
+  aufgebraucht werden (Bremse zählt je IP) — im Betrieb beobachten. Reißt
+  die Verbindung zwischen Code-Prüfung und Passwort-Setzen, ist der Code weg.
+- **Notiz an Anton:** Obergrenze, mit wie vielen Leuten man sich per
+  Einladung verbinden kann (heute unbegrenzt, nur die Prämie ist auf 5/Monat
+  gedeckelt; `server_invite_overview()` liefert die ganze Liste) —
+  `docs/uebergabe/2026-10-03-anton-einladungen-obergrenze.md`.
+- **Nativ testen aus dem Worktree, ohne Bash-Server:** `preview_start` liest
+  die `launch.json` des HAUPTordners. Ein vorübergehender Eintrag dort mit
+  `"runtimeArgs": ["--cwd", "<worktree>", "server.js"]` (API) bzw.
+  `["run", "--cwd", "<worktree>/mobile", "start"]` (Metro) startet aus dem
+  Worktree; danach zurücknehmen. Die API braucht die `.env` im Worktree
+  (Kopie, ignoriert, danach löschen), Metro `bun install` in `mobile`.
 
 **Neu mit PR #71 (03.10., Anton):**
 - **Startseite = Der Ring mit Fäden** (`mobile/src/components/moon-ring.tsx`,
@@ -457,7 +509,8 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
 6. Android: Apples Blatt fehlt dort — Apple-Konto dort nicht löschbar.
 
 **Nächste Schritte:**
-1. **Hanni:** PR #75 mergen. Mit Anton klären, wer S2 baut (Zuordnung Datei →
+1. **Hanni:** PR #76 mergen. Mail-Vorlagen in Supabase gestalten (Punkt in
+   `APP-STORE-EINREICHUNG.md`). Mit Anton klären, wer S2 baut (Zuordnung Datei →
    Nutzer an der Abholung, `/media/*` nur für den Besitzer, B8). Anfrage an
    den Anwalt abschicken. Ersten `/security-check` in neuer Sitzung.
 2. **Anton:** `INVITE_PREVIEW = false` (Einladungen laufen, siehe Nachtrag
@@ -720,7 +773,8 @@ Abmelden räumt Server UND Gerät (Konto-Zeile in den Einstellungen). Nach dem
 Onboarding folgt das Profil per `PATCH /api/account` ins Konto, wenn eins da
 ist. Geprüft im Simulator bis zur Meldung „nicht erreichbar" (503, weil in
 Antons `.env` `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`DATABASE_URL` fehlen —
-die hat Hanni). ⚠ Registrieren gibt es nicht (kein Endpunkt, mit Absicht);
+die hat Hanni). ⚠ Registrieren gibt es nicht (kein Endpunkt, mit Absicht)
+**(Überholt am 04.10.: es gibt sie, PR #76 — siehe oben)**;
 ein Konto muss Hanni anlegen, bis „Mit Apple anmelden" kommt — der Platz
 dafür steht schon stumm unter dem Knopf. **(Überholt am 15.09.: der Knopf
 ist echt, siehe oben — Konten entstehen jetzt über Apple.)** Dazu: **Journal-Karten zeigten
@@ -952,7 +1006,8 @@ wiederholbar über `unique (user_id, client_id)`.
   `select public.credits_grant('3ecbfe28-21c1-4475-b931-1082d2b56ba7', 100, 'adjustment', null, 'Testguthaben');`
 - **Abgebucht wird weiterhin nichts.** `/api/account` zeigt das Guthaben
   nur an. Einen Signup-Endpunkt gibt es weiterhin nicht (absichtlich): über
-  E-Mail und Passwort entsteht kein Konto. **Über Apple schon** — dort hat
+  E-Mail und Passwort entsteht kein Konto. **(Überholt am 04.10.:
+  `/api/auth/signup`, PR #76.)** **Über Apple schon** — dort hat
   Apple die Person geprüft, und der Trigger `on_auth_user_created` legt
   Profil und Guthabenzeile an. Das ist der Grund, warum Schritt 1 der
   Codes/Einladungen-Übergabe genau dieser Weg war.
