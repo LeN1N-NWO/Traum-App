@@ -3,7 +3,12 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-04 mittags — Hanni, `session/2026-10-03-hanni-5` (PR #76):
+**Stand:** 2026-10-04 mittags — Anton, `session/2026-10-03b-anton` (PR #77):
+**Startseite = Traum-Ring wie eine Uhr** (12 Plätze, Geschenke auf den
+Vierteln, keine Daten mehr), kein Stil vorausgewählt, Stil-Riegel für
+gezeichnete Stile, ruhiger Warteschirm, Mitteilung bei fertigem Film.
+**Launch nur fürs iPhone** (Entscheidung 04.10.). Davor am selben Tag
+Hanni, `session/2026-10-03-hanni-5` (PR #76):
 **Registrierung mit E-Mail und Passwort und „Passwort vergessen" sind fertig
 und mit echten Mails getestet.** Supabase verschickt über **Resend** (SMTP,
 Absender-Domain `dreamrushes.app` verifiziert, EU-Region). Davor PR #75:
@@ -14,6 +19,34 @@ für den Besitzer — wer baut, klären Hanni + Anton). Am 03.10. Anton, PR #71:
 Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Neu mit PR #77 (03./04.10., Anton):**
+- **Traum-Ring** (`src/lib/dreamRing.js`, `mobile/src/components/moon-ring.tsx`)
+  ersetzt den Mondzyklus-Ring: 12 Plätze wie eine Uhr (12 oben), jeder
+  Traum mit Glimpse/Film füllt den nächsten Platz — ohne Datum, ohne Serie;
+  Nummern laufen weiter (13–24 …). Goldener Bogen über die gefüllten
+  Plätze, das Stück zum nächsten gestrichelt und pulsierend. Fäden zwischen
+  gleichen Motiven, zur Ring-Mitte ausgeblendet (der Frosch ist
+  durchsichtig). `moonCycle.js` ist ungenutzt.
+- **Geschenke auf den Vierteln** (`streakBoard.js` `giftFor`, Merker
+  `giftedUpTo`): 3, 6, 9 je ein Glimpse (2 Credits in den Geschenk-Topf),
+  12 = Film aus genau diesen 12 Träumen, gratis auf dem iPhone
+  (`pendingRingFilm` → `home.moonFilm` → `glimpse-layer.tsx`). Die alte
+  Leiter (7 → Film, 14 → 20 …) gilt nicht mehr; ≈ 17 ct je Ring.
+- **Stil:** startet leer (`wizard-store.ts`, auch „Nochmal, anders");
+  „Weiter" ohne Wahl → Hinweis.
+- **Stil-Riegel** (`promptBuilder.js` `styleLockClause`): gezeichnete
+  Stile mit Besetzungsfoto zeichnen die Person im Stil neu — Ursache für
+  „Anime sieht fotografisch aus" war das Foto im Startbild. ⚠ Am echten
+  Render noch nicht geprüft.
+- **Warteschirm** (`dream/order.tsx`): schaltet erst bei Fehler oder nach
+  25 s ohne Auftragsnummer auf den Web-Motor (vorher sprang er).
+- **Mitteilung bei fertigem Film**, wenn die App im Hintergrund noch läuft
+  (`journal-data.tsx`); echter Push vom Server → Übergabe
+  `docs/uebergabe/2026-10-04-hanni-push-film-fertig.md`.
+- Notizen: Lade-Stories für den Warte-Frosch
+  (`docs/plans/2026-10-03-frosch-loops.md`), Werbeideen
+  (`docs/marketing/werbeideen.md`).
 
 **Neu mit PR #76 (03./04.10., Hanni):**
 - **Konten entstehen jetzt auf zwei Wegen:** Apple (wie bisher) und
@@ -69,7 +102,8 @@ Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
   Worktree; danach zurücknehmen. Die API braucht die `.env` im Worktree
   (Kopie, ignoriert, danach löschen), Metro `bun install` in `mobile`.
 
-**Neu mit PR #71 (03.10., Anton):**
+**Mit PR #71 (03.10., Anton)** — Ring und Geschenk-Leiter sind mit PR #77
+ersetzt (siehe oben); Zählung, Frosch, Geschenk-Topf und Einladungen gelten:
 - **Startseite = Der Ring mit Fäden** (`mobile/src/components/moon-ring.tsx`,
   Rechnung `src/lib/moonCycle.js`): Nächte von Vollmond zu Vollmond, Traum-
   bilder darauf, Fäden zwischen gleichen Motiven. Oben „Ring voll: dein
@@ -277,15 +311,22 @@ ersetzt (siehe oben; das Sternbild `constellation.js` ist gelöscht):
   https://claude.ai/artifact/FYiRnRVnoAe2yzj5DxKTQ7
 
 **Nächste Schritte:**
-- **Anton prüft am iPhone (PR #71):** wartendes Geschenk (7. Traum) öffnet
-  sich, Pille → „Deine Träume", Geschenk-Punkte im Ring, „Ring voll"-Karte,
-  Einladungs-Seite (Vorschau), erster Monatsfilm.
+- **Anton prüft am iPhone (PR #77):** Traum-Ring (Bogen, pulsierendes
+  Stück, Geschenke auf 3/6/9/12), wartendes Geschenk „Dein 6. Traum!",
+  Stil-Schritt ohne Vorauswahl, Warteschirm, Mitteilung im Hintergrund.
+- **Ein Anime-Film mit Besetzungsfoto** bestellen (kostet, Antons Ja) —
+  hält der Stil-Riegel? Sonst: eigener Stil-Charakterbogen statt Foto,
+  und `director.js` (lässt heute „natural colour" und Live-Action-Physik
+  zu).
+- **Einladungen scharf:** `INVITE_PREVIEW = false`
+  (`mobile/src/lib/invites.ts`), Freund ohne Namen „A friend".
+- **Hanni:** Push „Traum fertig" per fal-Webhook + APNs (Übergabe 04.10.).
+- Der lokale Server läuft nur, wenn jemand `bun server.js` im Hauptordner
+  startet — „couldn't write it down" in der App heißt meist: aus.
 - **Frosch-Clips** von Anton (`docs/plans/2026-10-03-frosch-loops.md`) →
   umwandeln, in `FROG_CLIPS` eintragen.
 - **Hanni:** Einladungs-Endpunkte, Bucket `gift` mit Ablauf, Universal Link
   + Landingpage, DeviceCheck (Übergabe Nachtrag 03.10.).
-- Lücke bewusst offen: Über den Monatswechsel sind 7 Gratis-Glimpses in
-  Folge möglich → Film-Geschenk ohne Kauf (einmal je Installation, ≈ $0,40).
 - Abo-Rechnung prüfen: `plans.js` rechnet mit 31 Credits je Film, heute 16
   — die Bezahlseite zeigt deshalb 10 statt 5 Filme für 160 Credits.
 - Anton testet am iPhone: Glimpse mit Ton, Hintergrund + Benachrichtigung,
