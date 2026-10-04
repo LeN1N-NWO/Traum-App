@@ -323,7 +323,8 @@ export async function requestPasswordReset({ email } = {}, { config, fetchImpl }
  *   it is spent — a password Supabase would refuse as too short would
  *   otherwise burn the code and send the person back to step 1.
  *
- * @returns {Promise<{ok: true, session: object} | {ok: false, status: number, error: string, reason?: string, cause?: string}>}
+ * @returns {Promise<{ok: true, session: object, othersSignedOut: boolean, cause?: string}
+ *   | {ok: false, status: number, error: string, reason?: string, cause?: string}>}
  *   `reason`: code (wrong or expired), weak, invalid.
  */
 export async function resetPassword({ email, code, password } = {}, { config, fetchImpl } = {}) {
@@ -368,7 +369,21 @@ export async function resetPassword({ email, code, password } = {}, { config, fe
     }
     return u;
   }
-  return { ok: true, session: publicSession(v.data) };
+
+  /* Every OTHER device is signed out (Hanni, 04.10.2026): whoever resets a
+     password because a phone went missing expects that phone to lose access.
+     scope=others keeps this session and revokes the refresh tokens of the
+     rest; their access tokens run out within the hour. Also after
+     same_password — the reason for resetting may be the lost phone, not a
+     forgotten password. A failure here does not undo the reset: the new
+     password is set, so the person gets in, and the caller logs it. */
+  const out = await authCall("/auth/v1/logout?scope=others", {
+    body: {},
+    token: v.data.access_token,
+    config,
+    fetchImpl,
+  });
+  return { ok: true, session: publicSession(v.data), othersSignedOut: out.ok, ...(out.ok ? {} : { cause: out.cause }) };
 }
 
 /**

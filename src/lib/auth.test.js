@@ -273,6 +273,22 @@ test("code + new password: verify, then set the password with THAT session", asy
   expect(f.calls[1].init.method).toBe("PUT");
   expect(f.calls[1].init.headers.authorization).toBe("Bearer recovery-at");
   expect(f.calls[1].body).toEqual({ password: "neues-pw" });
+  // Then every OTHER device is signed out, with the same session.
+  expect(f.calls[2].url).toBe("https://projekt.supabase.co/auth/v1/logout?scope=others");
+  expect(f.calls[2].init.headers.authorization).toBe("Bearer recovery-at");
+  expect(r.othersSignedOut).toBe(true);
+  expect(f.calls.length).toBe(3);
+});
+
+/* The password is set; a failed sign-out elsewhere must not lock the person
+   out — it is reported, not thrown. */
+test("a failed sign-out of other devices does not undo the reset", async () => {
+  const f = fakeFetch((url) => (url.endsWith("/verify") ? { status: 200, body: SESSION }
+    : url.includes("/logout") ? { status: 500, body: {} }
+    : { status: 200, body: { id: UID } }));
+  const r = await resetPassword({ email: "a@b.co", code: "123456", password: "neues-pw" }, { config, fetchImpl: f });
+  expect([r.ok, r.othersSignedOut]).toEqual([true, false]);
+  expect(r.session.access_token).toBe("at-1");
 });
 
 /* A code works once. What can be checked beforehand must not cost it. */
@@ -300,11 +316,14 @@ test("a wrong or expired code says so, and no password is set", async () => {
 });
 
 test("the old password typed again is still a success", async () => {
-  const f = fakeFetch((url) => (url.endsWith("/verify")
-    ? { status: 200, body: SESSION }
+  const f = fakeFetch((url) => (url.endsWith("/verify") ? { status: 200, body: SESSION }
+    : url.includes("/logout") ? { status: 204, body: null }
     : { status: 422, body: { error_code: "same_password" } }));
   const r = await resetPassword({ email: "a@b.co", code: "123456", password: "das-alte" }, { config, fetchImpl: f });
   expect(r.ok).toBe(true);
+  // The lost phone may be the reason, not the forgotten password: still signed out.
+  expect(r.othersSignedOut).toBe(true);
+  expect(f.calls[2].url).toContain("/logout?scope=others");
 });
 
 /* ── appleLogin ────────────────────────────────────────────────────────── */

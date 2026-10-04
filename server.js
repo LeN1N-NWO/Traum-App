@@ -3486,6 +3486,11 @@ const serveOptions = {
         console.warn(`[DreamRushes] ${recover ? "Rücksetz-Code" : "Passwort-Rücksetzung"} abgelehnt (${r.status}): ${r.cause || r.error}`);
         return json({ error: r.error, ...(r.reason ? { reason: r.reason } : {}) }, r.status);
       }
+      /* Neues Passwort gesetzt, aber die anderen Geräte nicht abgemeldet: kein
+         Fehler für den Menschen hier, aber einer, den wir sehen müssen. */
+      if (!recover && !r.othersSignedOut) {
+        console.warn(`[DreamRushes] Passwort neu gesetzt, andere Geräte NICHT abgemeldet: ${r.cause || "unbekannt"}`);
+      }
       return json(recover ? { ok: true } : { ok: true, ...r.session });
     }
 
