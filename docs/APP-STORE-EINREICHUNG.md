@@ -65,6 +65,15 @@ Erinnerungs-Zustellung real testen (2.1: „Feature tut nichts" fällt auf)
 und die drei offenen Finger-Tests (Teilen-Karte, Schnellaktionen,
 Atem-Raum).
 
+**Mails der Anmeldung gestalten (seit 04.10.2026 offen):** Bestätigung und
+„Passwort vergessen" gehen über Resend (SMTP, Absender-Domain
+`dreamrushes.app`, verifiziert) — aber noch mit Supabases englischer
+Standard-Vorlage. In Supabase → Authentication → Emails Betreff, Text und
+Absendernamen für **„Confirm signup"** und **„Reset Password"** in unserem
+Ton schreiben. ⚠ In „Reset Password" muss `{{ .Token }}` drinbleiben — die
+App fragt nach dem Code, nicht nach einem Link. Danach einmal prüfen, ob
+die Mails bei Gmail/Yahoo im Posteingang landen statt im Spam.
+
 ## Teil 2b — B1 im Detail: StoreKit-Plan und Test-Strategie (23.09.)
 
 **Arbeitsteilung (Vorschlag, von Anton abzusegnen):**
