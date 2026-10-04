@@ -5,7 +5,7 @@ import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, ZoomIn, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
-import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path } from "react-native-svg";
+import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path, Rect } from "react-native-svg";
 import type { GiftCard, HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
@@ -23,9 +23,12 @@ import { colors, fonts } from "@/theme";
  *     Linien darüberzulegen (Antons Befund 04.10.: „sieht komisch aus").
  *     Der Weg zum nächsten Knoten pulsiert gestrichelt.
  *   · Die Mitte ist das Ziel: Ist das Netz voll (12), wird es zum Film.
- *   · Geschenke 3, 6, 9 als farbige Federn an den drei unteren Reif-
- *     knoten (rechts, unten, links), die Zahlen fest am Reif; die Federn
- *     hängen im Hintergrund, alles darunter liegt über ihnen.
+ *   · Geschenke 3, 6, 9 an den drei unteren Reifknoten (rechts, unten,
+ *     links), die Zahlen fest am Reif. Dort hängt je ein kurzes Band mit
+ *     einem Federbüschel (Antons Wahl 04.10. abends, Variante B — die
+ *     langen Federn lagen bei Testpersonen über den Texten darunter).
+ *     Der Fänger sitzt dafür oben in seinem Rahmen; die Bänder haben
+ *     darunter ihren eigenen Streifen und ragen nicht mehr heraus.
  *   · Der Frosch ist vorerst raus aus der Mitte (Antons Ansage 04.10.).
  *
  * Leistung: Reif, Netz, Federn stille SVGs; bewegt nur native Ebenen
@@ -35,15 +38,23 @@ const ROUNDS = 5;          // Runden des Netzes; Träume liegen auf 1 und 2
 const SAG = 0.86;          // wie stark jede Runde nach innen gezogen ist
 const BEAD = 30;
 const HOLE = 0.17;         // Mitte (Ziel), Anteil am Reif-Radius
+const STRIP = 16;          // so viel höher als breit: der Streifen für die Bänder
+const LEAD = 14;           // Band vom Knoten bis zum Federbüschel
+/* die kleinen Federn: blass, damit die Geschenkfeder die Farbe trägt */
+const PALE = [
+  { c1: "#E6DAC2", c2: "#A08C6C", c3: "#FFF6E3" },
+  { c1: "#B7B0D8", c2: "#6C649A", c3: "#ECE8FF" },
+  { c1: "#9DC2CB", c2: "#4C7C88", c3: "#E3F6FA" },
+];
 
-type Feather = { num: number; knot: number; len: number; tilt: number; c1: string; c2: string; c3: string; eye: string };
+type Feather = { num: number; knot: number; tilt: number; c1: string; c2: string; c3: string; eye: string };
 type Pt = [number, number];
 const key = (r: number, i: number) => `${r}:${((i % SIX) + SIX) % SIX}`;
 
 export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeData["cycle"]; width: number; onOpen: (id: string) => void; onGift: (card: GiftCard) => void; onIntroDone?: () => void }) {
-  const W = width, H = width;
-  const cx = W / 2, cy = H / 2;
+  const W = width, H = width + STRIP;
   const R = W * 0.4;
+  const cx = W / 2, cy = R + 12;
   const filled = C.slots.filter((s) => s.dreamId).length;
   const start = (C.slots[0]?.num ?? 1) - 1;
   const dreamNode = (k: number) => key(1 + Math.floor(k / SIX), k % SIX);
@@ -106,11 +117,11 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
   }, [W]);
 
   const P = (n: string) => web.pos.get(n)!;
-  /* Die Federn an den drei unteren Reifknoten: 3 rechts, 6 unten, 9 links. */
+  /* Die Bänder an den drei unteren Reifknoten: 3 rechts, 6 unten, 9 links. */
   const feathers: Feather[] = [
-    { num: start + 3, knot: 2, len: R * 0.62, tilt: -9, c1: "#2F8FA6", c2: "#1B5E73", c3: "#9EE0E8", eye: "#E8B04B" },
-    { num: start + 6, knot: 3, len: R * 0.8, tilt: 0, c1: "#C2622D", c2: "#7E3714", c3: "#F6C08A", eye: "#2B1A10" },
-    { num: start + 9, knot: 4, len: R * 0.62, tilt: 9, c1: "#6E5BD0", c2: "#3E2F8F", c3: "#CFC6FF", eye: "#E8B04B" },
+    { num: start + 3, knot: 2, tilt: -12, c1: "#2F8FA6", c2: "#1B5E73", c3: "#9EE0E8", eye: "#E8B04B" },
+    { num: start + 6, knot: 3, tilt: 0, c1: "#C2622D", c2: "#7E3714", c3: "#F6C08A", eye: "#2B1A10" },
+    { num: start + 9, knot: 4, tilt: 12, c1: "#6E5BD0", c2: "#3E2F8F", c3: "#CFC6FF", eye: "#E8B04B" },
   ];
   const giftOf = (num: number) => C.slots.find((s) => s.num === num)?.gift ?? null;
   const ringGift = giftOf(start + 2 * SIX);
@@ -124,10 +135,10 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
   return (
     <View style={{ alignItems: "center", gap: 8, zIndex: 0 }}>
       <View style={{ width: W, height: H }}>
-        {/* Die Federn — hinter allem, hängen über den Rand hinaus */}
+        {/* Die Bänder — hinter allem, im Streifen unter dem Reif */}
         {feathers.map((f, i) => {
           const [ax, ay] = P(key(0, f.knot));
-          return <FeatherView key={f.num} f={f} x={ax} y={ay} done={C.count >= f.num} delay={i * 700} />;
+          return <StrandView key={f.num} f={f} i={i} x={ax} y={ay} done={C.count >= f.num} delay={i * 700} />;
         })}
 
         {/* Reif und Fasern — still */}
@@ -174,7 +185,7 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
           onPress={() => { if (ringGift) { Haptics.selectionAsync(); onGift(ringGift); } }}
           style={[styles.hole, { left: cx - R * HOLE, top: cy - R * HOLE, width: R * HOLE * 2, height: R * HOLE * 2, borderRadius: R * HOLE }]}
           accessibilityRole="button" accessibilityLabel={ringGift?.title ?? ""}>
-          <Reel size={R * HOLE * 2 - 6} spin={!C.intro?.auto} full={filled >= 2 * SIX} />
+          <FilmFrame size={R * HOLE * 2 - 3} breathe={!C.intro?.auto} full={filled >= 2 * SIX} />
         </Pressable>
 
         {/* Beim ersten Mal, solange der Fänger leer ist: die kleine Einführung */}
@@ -185,7 +196,7 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
         ) : null}
 
         {/* Die Vorschau-Kachel beim langen Druck — über allem im Ring */}
-        {peek ? <PeekTile key={peek.film || peek.img || "p"} {...peek} W={W} /> : null}
+        {peek ? <PeekTile key={peek.film || peek.img || "p"} {...peek} W={W} H={H} /> : null}
 
         {/* Die Zahlen am Reif, wo die Federn angeknotet sind — fest */}
         {feathers.map((f) => {
@@ -214,60 +225,93 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
   );
 }
 
-/* Eine Feder: hängt an ihrem Knoten am Reif und schwingt um ihn (nur die
-   Drehung der nativen Ebene bewegt sich). Unerreicht ist sie blass. */
-function FeatherView({ f, x, y, done, delay }: { f: Feather; x: number; y: number; done: boolean; delay: number }) {
-  const w = 16, top = 30, L = f.len;
-  const VW = w * 2 + 8, VH = top + L + 10;
+/* Ein Band: vom Knoten ein kurzes Band mit zwei Perlen, daran ein Büschel
+   — die Geschenkfeder groß und farbig, links und rechts je eine kleine
+   blasse. Das Band schwingt als Ganzes um seinen Knoten (nur die Drehung
+   der nativen Ebene bewegt sich). Unerreicht ist die große Feder blass. */
+function StrandView({ f, i, x, y, done, delay }: { f: Feather; i: number; x: number; y: number; done: boolean; delay: number }) {
+  const VW = 56, VH = LEAD + 46, ox = VW / 2;
   const swing = useSharedValue(0);
   useEffect(() => {
-    const amp = 3.5 + (delay % 3) * 0.6;
+    const amp = 3 + (delay % 3) * 0.5;
     swing.value = withDelay(delay, withRepeat(withSequence(
       withTiming(amp, { duration: 2300 + delay * 0.4, easing: Easing.inOut(Easing.sin) }),
       withTiming(-amp, { duration: 2300 + delay * 0.4, easing: Easing.inOut(Easing.sin) }),
     ), -1, true));
   }, [swing, delay]);
   const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${f.tilt + swing.value}deg` }] }));
-  const id = `f${f.num}`;
-  const ox = VW / 2;
-  const vane =
-    `M${ox} ${top} C${ox + w * 1.05} ${top + L * 0.12} ${ox + w * 1.1} ${top + L * 0.55} ${ox + w * 0.35} ${top + L * 0.92} ` +
-    `Q${ox + 0.5} ${top + L + 4} ${ox} ${top + L + 2} Q${ox - 0.6} ${top + L + 3} ${ox - w * 0.3} ${top + L * 0.9} ` +
-    `C${ox - w * 0.9} ${top + L * 0.55} ${ox - w * 0.85} ${top + L * 0.14} ${ox} ${top}Z`;
   return (
-    <Animated.View pointerEvents="none" style={[{ position: "absolute", left: x - VW / 2, top: y, width: VW, height: VH, transformOrigin: "50% 0%", opacity: done ? 1 : 0.3 }, style]}>
+    <Animated.View pointerEvents="none" style={[{ position: "absolute", left: x - ox, top: y, width: VW, height: VH, transformOrigin: "50% 0%" }, style]}>
       <Svg width={VW} height={VH}>
-        <Defs><ClipPath id={id}><Path d={vane} /></ClipPath></Defs>
-        <Path d={`M${ox} 0 C${ox + 1.5} 10 ${ox - 1} 18 ${ox} ${top - 8}`} stroke="#9C6B1E" strokeWidth={1} fill="none" />
-        <Circle cx={ox} cy={top - 14} r={2.8} fill={f.c3} />
-        <Circle cx={ox} cy={top - 7} r={3.2} fill={colors.gold} />
-        <Path d={vane} fill={f.c1} />
-        <G clipPath={`url(#${id})`}>
-          <Path d={`M${ox - w} ${top + L * 0.62} Q${ox} ${top + L * 0.5} ${ox + w * 1.2} ${top + L * 0.6} L${ox + w * 1.2} ${top + L + 6} L${ox - w} ${top + L + 6}Z`} fill={f.c2} opacity={0.85} />
-          <Ellipse cx={ox + 0.5} cy={top + L * 0.78} rx={w * 0.42} ry={L * 0.09} fill={f.eye} opacity={0.9} />
-          <Ellipse cx={ox + 0.5} cy={top + L * 0.78} rx={w * 0.18} ry={L * 0.04} fill={f.c2} />
-          <Path d={`M${ox - w} ${top} L${ox + w * 1.2} ${top} L${ox + w * 1.2} ${top + L * 0.22} Q${ox} ${top + L * 0.3} ${ox - w} ${top + L * 0.2}Z`} fill={f.c3} opacity={0.55} />
-          {Array.from({ length: 16 }, (_, k) => {
-            const yy = top + 6 + k * (L / 17);
-            return (
-              <G key={k}>
-                <Path d={`M${ox} ${yy} Q${ox + w * 0.5} ${yy + 2} ${ox + w * 1.2} ${yy + 7}`} stroke={f.c3} strokeWidth={0.55} fill="none" opacity={0.35} />
-                <Path d={`M${ox} ${yy + 1} Q${ox - w * 0.5} ${yy + 3} ${ox - w} ${yy + 8}`} stroke={f.c3} strokeWidth={0.55} fill="none" opacity={0.3} />
-              </G>
-            );
-          })}
-        </G>
-        {/* kleine Risse im Rand — in der Farbe des Himmels */}
-        {[[0.38, 1], [0.6, -1], [0.71, 1]].map(([p, side], k) => (
-          <Path key={k} d={`M${ox + side * w * 1.3} ${top + L * p + 2} L${ox + side * w * 0.55} ${top + L * p + 6} L${ox + side * w * 1.3} ${top + L * p + 9}Z`} fill={colors.bg} />
+        <Path d={`M${ox} 0 L${ox} ${LEAD}`} stroke="#9C6B1E" strokeWidth={0.9} />
+        {[26, -26].map((a, k) => (
+          <G key={a} transform={`rotate(${a} ${ox} ${LEAD})`} opacity={0.7}>
+            <SmallFeather ox={ox} oy={LEAD} p={PALE[(i + k) % PALE.length]} />
+          </G>
         ))}
-        <Path d={`M${ox} ${top - 2} L${ox} ${top + L * 0.9}`} stroke="#fff6e3" strokeWidth={1.1} strokeLinecap="round" opacity={0.85} />
-        {Array.from({ length: 7 }, (_, k) => {
-          const a = -1.2 + k * 0.4;
-          return <Path key={k} d={`M${ox} ${top + 2} q${Math.cos(a) * 7} 4 ${Math.cos(a) * 10} 9`} stroke={f.c3} strokeWidth={0.8} fill="none" opacity={0.7} />;
-        })}
+        <G opacity={done ? 1 : 0.45}>
+          <GiftFeather id={`f${f.num}`} ox={ox} oy={LEAD} f={f} />
+        </G>
+        <Circle cx={ox} cy={LEAD * 0.4} r={2.3} fill={f.c3} />
+        <Circle cx={ox} cy={LEAD - 2} r={2.8} fill={colors.gold} />
       </Svg>
     </Animated.View>
+  );
+}
+
+/* Die Fahne einer Feder: oben am Kiel schmal, unten in einer Spitze. */
+function vanePath(ox: number, top: number, w: number, L: number) {
+  return `M${ox} ${top} C${ox + w * 1.05} ${top + L * 0.12} ${ox + w * 1.1} ${top + L * 0.55} ${ox + w * 0.35} ${top + L * 0.92} ` +
+    `Q${ox + 0.5} ${top + L + 4} ${ox} ${top + L + 2} Q${ox - 0.6} ${top + L + 3} ${ox - w * 0.3} ${top + L * 0.9} ` +
+    `C${ox - w * 0.9} ${top + L * 0.55} ${ox - w * 0.85} ${top + L * 0.14} ${ox} ${top}Z`;
+}
+
+/* Die Geschenkfeder: farbig, mit Auge, Bändern, Ästen und kleinen Rissen. */
+function GiftFeather({ id, ox, oy, f }: { id: string; ox: number; oy: number; f: Feather }) {
+  const w = 10, L = 36, top = oy + 2;
+  const vane = vanePath(ox, top, w, L);
+  return (
+    <G>
+      <Defs><ClipPath id={id}><Path d={vane} /></ClipPath></Defs>
+      <Path d={vane} fill={f.c1} />
+      <G clipPath={`url(#${id})`}>
+        <Path d={`M${ox - w} ${top + L * 0.62} Q${ox} ${top + L * 0.5} ${ox + w * 1.2} ${top + L * 0.6} L${ox + w * 1.2} ${top + L + 6} L${ox - w} ${top + L + 6}Z`} fill={f.c2} opacity={0.85} />
+        <Ellipse cx={ox + 0.5} cy={top + L * 0.78} rx={w * 0.42} ry={L * 0.09} fill={f.eye} opacity={0.9} />
+        <Ellipse cx={ox + 0.5} cy={top + L * 0.78} rx={w * 0.18} ry={L * 0.04} fill={f.c2} />
+        <Path d={`M${ox - w} ${top} L${ox + w * 1.2} ${top} L${ox + w * 1.2} ${top + L * 0.22} Q${ox} ${top + L * 0.3} ${ox - w} ${top + L * 0.2}Z`} fill={f.c3} opacity={0.55} />
+        {Array.from({ length: 11 }, (_, k) => {
+          const yy = top + 3 + k * (L / 12);
+          return (
+            <G key={k}>
+              <Path d={`M${ox} ${yy} Q${ox + w * 0.5} ${yy + 2} ${ox + w * 1.2} ${yy + 4.5}`} stroke={f.c3} strokeWidth={0.5} fill="none" opacity={0.35} />
+              <Path d={`M${ox} ${yy + 1} Q${ox - w * 0.5} ${yy + 3} ${ox - w} ${yy + 6}`} stroke={f.c3} strokeWidth={0.5} fill="none" opacity={0.3} />
+            </G>
+          );
+        })}
+      </G>
+      {/* kleine Risse im Rand — in der Farbe des Himmels */}
+      {[[0.38, 1], [0.6, -1], [0.71, 1]].map(([p, side], k) => (
+        <Path key={k} d={`M${ox + side * w * 1.3} ${top + L * p + 2} L${ox + side * w * 0.55} ${top + L * p + 6} L${ox + side * w * 1.3} ${top + L * p + 9}Z`} fill={colors.bg} />
+      ))}
+      <Path d={`M${ox} ${top - 1} L${ox} ${top + L * 0.9}`} stroke="#fff6e3" strokeWidth={1.1} strokeLinecap="round" opacity={0.85} />
+    </G>
+  );
+}
+
+/* Eine kleine blasse Feder — ohne Zuschnitt (sie wird gedreht), die
+   dunkle Spitze ist eine eigene kleinere Fahne. */
+function SmallFeather({ ox, oy, p }: { ox: number; oy: number; p: { c1: string; c2: string; c3: string } }) {
+  const w = 5.5, L = 22, top = oy + 2;
+  const tip = `M${ox} ${top + L * 0.5} C${ox + w * 0.95} ${top + L * 0.58} ${ox + w * 0.9} ${top + L * 0.8} ${ox + w * 0.35} ${top + L * 0.92} ` +
+    `Q${ox + 0.5} ${top + L + 4} ${ox} ${top + L + 2} Q${ox - 0.6} ${top + L + 3} ${ox - w * 0.3} ${top + L * 0.9} ` +
+    `C${ox - w * 0.8} ${top + L * 0.8} ${ox - w * 0.85} ${top + L * 0.6} ${ox} ${top + L * 0.5}Z`;
+  return (
+    <G>
+      <Path d={`M${ox} ${oy} L${ox} ${top}`} stroke="#9C6B1E" strokeWidth={0.8} />
+      <Path d={vanePath(ox, top, w, L)} fill={p.c1} />
+      <Path d={tip} fill={p.c2} opacity={0.8} />
+      <Path d={`M${ox} ${top - 1} L${ox} ${top + L * 0.9}`} stroke={p.c3} strokeWidth={0.8} strokeLinecap="round" opacity={0.9} />
+    </G>
   );
 }
 
@@ -314,12 +358,12 @@ function Halo({ x, y, size, delay }: { x: number; y: number; size: number; delay
 
 /* Die Vorschau eines Traums: hochkant, der Film läuft stumm in Schleife
    (ohne Film das Bild). Verschwindet, sobald der Finger loslässt. */
-function PeekTile({ film, img, title, W }: { film: string | null; img: string | null; title: string; W: number }) {
+function PeekTile({ film, img, title, W, H }: { film: string | null; img: string | null; title: string; W: number; H: number }) {
   const player = useVideoPlayer(film, (p) => { p.loop = true; p.muted = true; p.play(); });
   const w = W * 0.52, h = w * 16 / 9;
   return (
     <Animated.View entering={ZoomIn.duration(180)} exiting={FadeOut.duration(140)} pointerEvents="none"
-      style={[styles.peek, { width: w, height: h, left: (W - w) / 2, top: (W - h) / 2 }]}>
+      style={[styles.peek, { width: w, height: h, left: (W - w) / 2, top: (H - h) / 2 }]}>
       {img ? <Image source={{ uri: img }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
       {film ? <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} /> : null}
       {title ? <View style={styles.peekBar}><Text style={styles.peekTitle} numberOfLines={2}>{title}</Text></View> : null}
@@ -327,26 +371,37 @@ function PeekTile({ film, img, title, W }: { film: string | null; img: string | 
   );
 }
 
-/* Die Mitte: eine goldene Filmspule statt eines Geschenks (Antons Wunsch
-   04.10.: „nicht wie ein Geschenk, eher ein Film-Icon"). Sie dreht sich
-   langsam — die Träume laufen schon auf die Rolle. */
-function Reel({ size, spin, full }: { size: number; spin: boolean; full: boolean }) {
+/* Die Mitte: ein einzelnes Filmbild mit Perforation und Play (Antons Wahl
+   04.10. abends, ersetzt die Spule — „sieht komisch aus"). Ein goldener
+   Schein atmet darum; ist das Netz voll, wird die Scheibe golden und der
+   Schein schneller — der Film wartet. */
+function FilmFrame({ size, breathe, full }: { size: number; breathe: boolean; full: boolean }) {
   const k = useSharedValue(0);
-  useEffect(() => { if (spin) k.value = withRepeat(withTiming(1, { duration: full ? 2600 : 16000, easing: Easing.linear }), -1, false); }, [k, spin, full]);
-  const a = useAnimatedStyle(() => ({ transform: [{ rotate: `${k.value * 360}deg` }] }));
-  const r = size / 2;
+  useEffect(() => {
+    if (breathe) k.value = withRepeat(withTiming(1, { duration: full ? 1200 : 2400, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, [k, breathe, full]);
+  const glow = useAnimatedStyle(() => ({ opacity: 0.15 + 0.4 * k.value }));
+  const d = size / 2, ink = full ? "#1a1206" : colors.gold;
+  const fw = d * 1.12, fh = d * 1.2, x0 = d - fw / 2, y0 = d - fh / 2, a = d * 0.26;
+  const halo = size + 14;
   return (
-    <Animated.View style={[{ width: size, height: size }, a]} pointerEvents="none">
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }} pointerEvents="none">
+      <Animated.View style={[{ position: "absolute", width: halo, height: halo, borderRadius: halo / 2, borderWidth: 5, borderColor: "rgba(246,198,91,0.35)" }, glow]} />
       <Svg width={size} height={size}>
-        <Circle cx={r} cy={r} r={r - 1} fill={full ? colors.gold : "#1B2457"} stroke={colors.gold} strokeWidth={1.6} />
-        <Circle cx={r} cy={r} r={r * 0.78} fill="none" stroke={full ? "#9C6B1E" : "rgba(246,198,91,0.45)"} strokeWidth={0.8} />
-        {Array.from({ length: 5 }, (_, i) => {
-          const an = (i / 5) * Math.PI * 2 - Math.PI / 2;
-          return <Circle key={i} cx={r + Math.cos(an) * r * 0.52} cy={r + Math.sin(an) * r * 0.52} r={r * 0.18} fill={full ? "#9C6B1E" : "#0b1020"} stroke={colors.gold} strokeWidth={0.8} />;
+        <Circle cx={d} cy={d} r={d - 1} fill={full ? colors.gold : "#0b1220"} stroke={colors.gold} strokeWidth={1.8} />
+        <Rect x={x0} y={y0} width={fw} height={fh} rx={3} fill="none" stroke={ink} strokeWidth={1.6} />
+        {Array.from({ length: 4 }, (_, i) => {
+          const hx = x0 + 3 + i * (fw - 6) / 3 - 1.4;
+          return (
+            <G key={i}>
+              <Rect x={hx} y={y0 + 2} width={2.8} height={2.6} rx={0.6} fill={ink} />
+              <Rect x={hx} y={y0 + fh - 4.6} width={2.8} height={2.6} rx={0.6} fill={ink} />
+            </G>
+          );
         })}
-        <Circle cx={r} cy={r} r={r * 0.14} fill={full ? "#fff6dd" : colors.gold} />
+        <Path d={`M${d - a * 0.6} ${d - a} L${d + a} ${d} L${d - a * 0.6} ${d + a}Z`} fill={ink} stroke={ink} strokeWidth={1.2} strokeLinejoin="round" />
       </Svg>
-    </Animated.View>
+    </View>
   );
 }
 
