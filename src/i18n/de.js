@@ -76,6 +76,7 @@ export default {
     ],
     introCta: "Verstanden",
     ringCount: (n, ring) => `${n} ${n === 1 ? "Traum" : "Träume"} · Ring ${ring}`,
+    stones: { place: "Aquamarin", scenario: "Bernstein", creature: "Smaragd", person: "Rosenquarz", emotion: "Amethyst", none: "Mondstein" },
     nextSlot: (num) => `Dein nächster Traum füllt Platz ${num}`,
     ringFilmTitle: (ring, from, to, motif) => `Ring ${ring} · Träume ${from}–${to}${motif ? ` · ${motif}` : ""}`,
     ringReadyTitle: "Dein Ring ist voll — hier ist dein Film",

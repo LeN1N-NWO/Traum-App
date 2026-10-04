@@ -239,6 +239,7 @@ function snapshot() {
       const G = t.streakBoard.giftSheet;
       const ring = dreamRing(filmDreams);
       const label = (id) => (id ? t.symbols.byId[id]?.label || id : null);
+      const symbolGroup = new Map(SYMBOLS.map((x) => [x.id, x.category]));
       const ringCard = (num) => {
         const g = giftAtNum(num);
         if (!g) return null;
@@ -258,7 +259,10 @@ function snapshot() {
         ringNo: ring.ringNo, next: ring.next, count, todayDone, streak: count,
         slots: ring.slots.map((sl) => {
           const d = sl.dreamId ? cycleById.get(sl.dreamId) : null;
-          return { num: sl.num, pos: sl.pos, dreamId: sl.dreamId, img: sl.img, film: d?.film || null, title: d?.title || "", gift: ringCard(sl.num) };
+          /* Der Traumstein (04.10.): die Steinart kommt aus der Gruppe des Traumsymbols. */
+          const stone = sl.dreamId ? (sl.motif && symbolGroup.get(sl.motif)) || "none" : null;
+          const stoneLine = stone ? [C.stones[stone], label(sl.motif)].filter(Boolean).join(" · ") : "";
+          return { num: sl.num, pos: sl.pos, dreamId: sl.dreamId, img: sl.img, film: d?.film || null, title: d?.title || "", stone, stoneLine, gift: ringCard(sl.num) };
         }),
         threads: ring.threads.map(([a, b]) => [a, b]),
         nextGift,

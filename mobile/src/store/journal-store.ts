@@ -16,6 +16,8 @@ export type MoonInfo = { phase: string; illum: number; waxing: boolean; label: s
 export type MoonStripDay = { key: string; day: number; weekday: number; today: boolean; phase: string; illum: number; waxing: boolean; label: string; sleep: number | null };
 export type MoonData = { title: string; tonight: string; weekdays: string[]; strip: MoonStripDay[] };
 export type GiftKind = "glimpse" | "film" | "credits" | "month" | "ring";
+/** Die Steinart eines Traums im Traumfänger = Gruppe seines Traumsymbols (src/lib/symbols.js). */
+export type StoneKind = "place" | "scenario" | "creature" | "person" | "emotion" | "none";
 /* Ein Geschenk als kurze Karte (gift-sheet.tsx): Titel, ein Satz, Fortschritt. */
 export type GiftCard = { kind: GiftKind | "monthFilm"; title: string; sub: string; eyebrow: string; progress: number; progressText: string; foot: string; close: string };
 export type GiftReveal = { nights: number; kind: GiftKind; credits: number; title: string; label: string; sub: string; expires: string | null; tapToOpen: string; redeem: string; later: string; target: "dream" | "journal"; dreamId: string | null };
@@ -41,7 +43,7 @@ export type HomeData = {
      eine Uhr, Nummern laufen weiter; Geschenke auf den Vierteln. */
   cycle: {
     ringNo: number; next: number; count: number; todayDone: boolean; streak: number;
-    slots: { num: number; pos: number; dreamId: string | null; img: string | null; film: string | null; title: string; gift: GiftCard | null }[];
+    slots: { num: number; pos: number; dreamId: string | null; img: string | null; film: string | null; title: string; stone: StoneKind | null; stoneLine: string; gift: GiftCard | null }[];
     threads: [number, number][];
     nextGift: (GiftCard & { num: number; say: string }) | null;
     intro: { steps: string[]; cta: string; auto: boolean } | null;

@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, ZoomIn, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path, Rect } from "react-native-svg";
+import { DreamStone, GIFT_STONES, STONES } from "@/components/dream-stone";
+import { useScreenActive } from "@/lib/use-screen-active";
 import type { GiftCard, HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
@@ -17,7 +19,9 @@ import { colors, fonts } from "@/theme";
  * einem V nach innen — so entsteht die Sechseck-Spirale bis zur Mitte.
  *
  *   · Jeder Traum mit Glimpse oder Film ist ein KNOTEN im Netz (Runde 1:
- *     Träume 1–6, Runde 2: 7–12), mit seinem Bild als Perle.
+ *     Träume 1–6, Runde 2: 7–12), als Traumstein (components/dream-stone.tsx):
+ *     die Steinart kommt aus der Gruppe seines Traumsymbols. Das Bild
+ *     zeigt der lange Druck als Kachel.
  *   · Die Verbindung von Traum zu Traum läuft NUR über die vorhandenen
  *     Fäden (kürzester Weg im Netz) — sie färbt sie golden, statt eigene
  *     Linien darüberzulegen (Antons Befund 04.10.: „sieht komisch aus").
@@ -128,7 +132,9 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
   /* Die Einführung: von selbst beim leeren Fänger, sonst per langem Druck auf die Mitte. */
   const [replay, setReplay] = useState(false);
   /* Langer Druck auf eine Perle: der Film als Kachel, solange der Finger liegt (Antons Wunsch 04.10.). */
-  const [peek, setPeek] = useState<{ film: string | null; img: string | null; title: string } | null>(null);
+  const [peek, setPeek] = useState<{ film: string | null; img: string | null; title: string; stoneLine: string } | null>(null);
+  /* Die Steine funkeln nur, solange die Startseite zu sehen ist. */
+  const live = useScreenActive();
   const showIntro = !!C.intro && (C.intro.auto || replay);
   const [ex, ey] = filled < 2 * SIX ? P(dreamNode(filled)) : [cx, cy];
 
@@ -163,16 +169,16 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
             <Circle cx={cx} cy={cy} r={R * HOLE} fill="rgba(5,10,20,0.6)" stroke="#C9A86A" strokeWidth={1} strokeOpacity={0.6} />
           </Svg>
           {filled < 2 * SIX ? <NextThread d={web.legs[filled]} W={W} H={H} /> : null}
-          {/* Die Perlen: die Traumbilder auf ihren Knoten */}
+          {/* Die Traumsteine auf ihren Knoten (Antons Wahl 04.10. abends — die Miniaturbilder waren nicht zu erkennen) */}
           {C.slots.map((s, k) => {
             if (!s.dreamId) return null;
             const [x, y] = P(dreamNode(k));
             return (
-              <Animated.View key={s.num} entering={FadeIn.delay(80 + k * 40).duration(380)} style={[styles.bead, s.gift && styles.beadGift, { left: x - BEAD / 2, top: y - BEAD / 2 }]}>
+              <Animated.View key={s.num} entering={FadeIn.delay(80 + k * 40).duration(380)} style={[styles.bead, { left: x - BEAD / 2, top: y - BEAD / 2 }]}>
                 <Pressable onPress={() => { Haptics.selectionAsync(); onOpen(s.dreamId!); }} hitSlop={4} delayLongPress={280}
-                  onLongPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setPeek({ film: s.film, img: s.img, title: s.title }); }}
+                  onLongPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setPeek({ film: s.film, img: s.img, title: s.title, stoneLine: s.stoneLine }); }}
                   onPressOut={() => setPeek(null)}>
-                  {s.img ? <Image source={{ uri: s.img }} style={styles.beadImg} contentFit="cover" transition={150} /> : <View style={[styles.beadImg, styles.noImg]} />}
+                  <DreamStone size={BEAD} pal={STONES[s.stone ?? "none"]} live={live} seed={k + 1} />
                 </Pressable>
               </Animated.View>
             );
@@ -198,15 +204,16 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
         {/* Die Vorschau-Kachel beim langen Druck — über allem im Ring */}
         {peek ? <PeekTile key={peek.film || peek.img || "p"} {...peek} W={W} H={H} /> : null}
 
-        {/* Die Zahlen am Reif, wo die Federn angeknotet sind — fest */}
-        {feathers.map((f) => {
+        {/* Die Geschenksteine am Reif, wo die Bänder angeknotet sind — fest, mit ihrer
+            Zahl: roh, solange nicht erreicht, geschliffen und funkelnd danach */}
+        {feathers.map((f, i) => {
           const [x, y] = P(key(0, f.knot));
           const g = giftOf(f.num);
           const done = C.count >= f.num;
           return (
             <Pressable key={f.num} hitSlop={10} disabled={!g} onPress={() => { if (g) { Haptics.selectionAsync(); onGift(g); } }}
-              style={[styles.knot, done && styles.knotDone, { left: x - 13, top: y - 13 }]} accessibilityRole="button" accessibilityLabel={g?.title ?? String(f.num)}>
-              <Text style={[styles.knotN, done && { color: "#2a1a05" }]}>{f.num}</Text>
+              style={[styles.knot, { left: x - BEAD / 2, top: y - BEAD / 2 }]} accessibilityRole="button" accessibilityLabel={g?.title ?? String(f.num)}>
+              <DreamStone size={BEAD} pal={GIFT_STONES[i]} live={live} num={f.num} rough={!done} seed={20 + i} />
             </Pressable>
           );
         })}
@@ -359,7 +366,7 @@ function Halo({ x, y, size, delay }: { x: number; y: number; size: number; delay
 
 /* Die Vorschau eines Traums: hochkant, der Film läuft stumm in Schleife
    (ohne Film das Bild). Verschwindet, sobald der Finger loslässt. */
-function PeekTile({ film, img, title, W, H }: { film: string | null; img: string | null; title: string; W: number; H: number }) {
+function PeekTile({ film, img, title, stoneLine, W, H }: { film: string | null; img: string | null; title: string; stoneLine: string; W: number; H: number }) {
   const player = useVideoPlayer(film, (p) => { p.loop = true; p.muted = true; p.play(); });
   const w = W * 0.52, h = w * 16 / 9;
   return (
@@ -367,7 +374,13 @@ function PeekTile({ film, img, title, W, H }: { film: string | null; img: string
       style={[styles.peek, { width: w, height: h, left: (W - w) / 2, top: (H - h) / 2 }]}>
       {img ? <Image source={{ uri: img }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
       {film ? <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} /> : null}
-      {title ? <View style={styles.peekBar}><Text style={styles.peekTitle} numberOfLines={2}>{title}</Text></View> : null}
+      {title || stoneLine ? (
+        <View style={styles.peekBar}>
+          {title ? <Text style={styles.peekTitle} numberOfLines={2}>{title}</Text> : null}
+          {/* der Stein und sein Symbol — so lernt man die Farben */}
+          {stoneLine ? <Text style={styles.peekStone} numberOfLines={1}>{stoneLine}</Text> : null}
+        </View>
+      ) : null}
     </Animated.View>
   );
 }
@@ -437,14 +450,9 @@ function NextMark({ x, y, size }: { x: number; y: number; size: number }) {
 }
 
 const styles = StyleSheet.create({
-  bead: { position: "absolute", width: BEAD, height: BEAD, borderRadius: BEAD / 2, borderWidth: 1.4, borderColor: colors.gold, backgroundColor: colors.bg2 },
-  beadGift: { borderWidth: 2.2 },
-  beadImg: { width: "100%", height: "100%", borderRadius: BEAD / 2 },
-  noImg: { backgroundColor: "#8C84E8" },
+  bead: { position: "absolute", width: BEAD, height: BEAD },
   hole: { position: "absolute", alignItems: "center", justifyContent: "center" },
-  knot: { position: "absolute", width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg, borderWidth: 1.6, borderColor: colors.gold },
-  knotDone: { backgroundColor: colors.gold },
-  knotN: { color: colors.gold, fontSize: 10.5, fontWeight: "700", fontVariant: ["tabular-nums"] },
+  knot: { position: "absolute", width: BEAD, height: BEAD },
   nextMark: { position: "absolute", borderWidth: 1.6, borderColor: colors.gold },
   next: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7, paddingLeft: 7, paddingRight: 12, borderRadius: 999, backgroundColor: "rgba(12,20,35,0.88)", borderWidth: 1, borderColor: "rgba(246,198,91,0.45)", maxWidth: "92%" },
   nextIcon: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: colors.gold },
@@ -452,6 +460,7 @@ const styles = StyleSheet.create({
   peek: { position: "absolute", borderRadius: 18, overflow: "hidden", borderWidth: 1.5, borderColor: colors.gold, backgroundColor: colors.bg2, zIndex: 20 },
   peekBar: { position: "absolute", left: 0, right: 0, bottom: 0, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: "rgba(5,10,20,0.72)" },
   peekTitle: { color: colors.text, fontFamily: fonts.serif, fontSize: 15, lineHeight: 19 },
+  peekStone: { color: colors.gold, fontSize: 11, letterSpacing: 1, fontWeight: "600", marginTop: 3, textTransform: "uppercase" },
   ghost: { position: "absolute", width: BEAD, height: BEAD, borderRadius: BEAD / 2, backgroundColor: "#8C84E8", borderWidth: 1.6, borderColor: colors.gold },
   halo: { position: "absolute", borderWidth: 2, borderColor: colors.gold, backgroundColor: "rgba(246,198,91,0.12)" },
   introCard: { position: "absolute", paddingVertical: 12, paddingHorizontal: 16, borderRadius: 18, backgroundColor: "rgba(12,20,35,0.92)", borderWidth: 1, borderColor: "rgba(246,198,91,0.45)" },
