@@ -3,17 +3,23 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-04 spätabends — Hanni, `session/2026-10-04-hanni` (PR #80):
+**Stand:** 2026-10-04 abends — Anton, `session/2026-10-04b-anton` (PR #79):
+**Traumfänger mit Edelsteinen** — jeder Traum ist ein geschliffener
+Traumstein (Steinart aus dem Traumsymbol), die Zahlen 3/6/9 sitzen auf
+Geschenksteinen (roh → geschliffen), in der Mitte der bunte **Herzstein**,
+dessen zwölf Keile mit den Träumen aufleuchten; kurze **Federbänder**
+statt langer Federn; **Geschenke als große Steine** statt Schachtel.
+Gleichzeitig Hanni, `session/2026-10-04-hanni` (PR #80):
 **Profil: Name allein speichern, „Save changes" erst bei Änderung,
 Anzeigename ins Konto, Foto-Haken mit Leuchtrand.** **Ziel: TestFlight
 (intern) am Fr 16.10.** — Arbeitsplan liegt lokal bei Hanni
 (`~/Claude/TestFlight-Plan-2026-10-16.md`, nicht im Repo); größter Hebel:
-SSH-Zugang zum VPS + DNS `api.dreamrushes.app` (Montag 05.10.). Davor am
-selben Abend Anton, `session/2026-10-04-anton` (PR #78):
-**Startseite = Traumfänger** (gewebtes Netz, Träume als Knoten, Federn
-3/6/9, Filmspule in der Mitte), **Rechtstexte nach dem Code, Einwilligung
+SSH-Zugang zum VPS + DNS `api.dreamrushes.app` (Montag 05.10.). Davor
+Anton, `session/2026-10-04-anton` (PR #78):
+**Startseite = Traumfänger** (gewebtes Netz, Träume als Knoten),
+**Rechtstexte nach dem Code, Einwilligung
 v4**, **neues App-Icon** (geschlossenes Auge mit Play), **Traumportal** als
-Aufnahmeknopf, Geschenk-Schachtel mit Knall. Davor PR #77 (Uhr-Ring, Stil
+Aufnahmeknopf. Davor PR #77 (Uhr-Ring, Stil
 ohne Vorauswahl, Stil-Riegel, Mitteilung). **Launch nur fürs iPhone**
 (Entscheidung 04.10.). Davor am selben Tag
 Hanni, `session/2026-10-03-hanni-5` (PR #76):
@@ -27,6 +33,46 @@ für den Besitzer — wer baut, klären Hanni + Anton). Am 03.10. Anton, PR #71:
 Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Neu mit PR #79 (04.10. abends, Anton) — Traumfänger mit Edelsteinen:**
+- **Anlass:** Testpersonen störten die langen Federn über den Texten
+  darunter; die Miniaturbilder im Netz waren nicht zu erkennen; Spule und
+  Filmbild in der Mitte „sehen komisch aus". Alles in Varianten mit Anton
+  abgestimmt (Widgets im Chat), jeder Stand als Release auf seinem iPhone.
+- **Federbänder** (`mobile/src/components/moon-ring.tsx` `StrandView`):
+  an den Knoten 3/6/9 je ein kurzes Band mit zwei Perlen und einem
+  Büschel — Geschenkfeder groß und farbig (46 px), links/rechts je eine
+  kleine blasse. Der Fänger sitzt oben in seinem Rahmen (`cy = R + 12`),
+  die Bänder haben darunter einen eigenen Streifen (`STRIP = 26`) und
+  ragen nicht mehr über Hinweis, Zähler, Titel.
+- **Traumsteine** (neu `mobile/src/components/dream-stone.tsx`
+  `DreamStone`): Brillantschliff mit Fassung, Feuer, Funkeln (zwei
+  Facettengruppen im Wechsel + Lichtstern je Stein im eigenen Takt; nur
+  native Deckkraft/Skalierung, aus, wenn die Startseite nicht zu sehen
+  ist). Steinart = Gruppe des Traumsymbols (`src/lib/symbols.js`):
+  Orte Aquamarin, Erlebnisse Bernstein, Wesen Smaragd, Menschen
+  Rosenquarz, Gefühle Amethyst, ohne Symbol Mondstein. Die Brücke gibt je
+  Platz `stone` und `stoneLine` („Aquamarin · Wasser") mit; der lange
+  Druck nennt sie unter dem Film. Texte `cycle.stones` (en/de).
+- **Geschenksteine** 3/6/9 in den Farben ihrer Federn (Petrol, Feueropal,
+  Violett) mit der Zahl darauf: roh und matt, solange nicht erreicht,
+  geschliffen und funkelnd danach (ersetzen die goldenen Zahlenknöpfe).
+- **Herzstein** in der Mitte (`PrismStone`): zwölf Keile rund um den
+  Farbkreis, auch die Tafel; ein Keil leuchtet, sobald sein Traum im Netz
+  liegt (oben beginnend, im Uhrzeigersinn); voll funkelt er doppelt.
+  Mitte etwas größer (`HOLE = 0.2`). Antippen bei vollem Ring = Ringfilm,
+  langer Druck = Einführung (wie bisher).
+- **Geschenke als große Steine** (`mobile/src/components/gift-sheet.tsx`
+  `GiftArt`): Vorschau zeigt den Geschenkstein (roh/geschliffen) bzw. den
+  Herzstein mit seinen Keilen; Öffnen: roher Stein zittert → Schale
+  springt in Splitter, geschliffener Stein springt funkelnd heraus. Die
+  Karten tragen dafür `num` und `ringFilled` (`GiftCard`). Der Hinweis
+  unter dem Ring zeigt den rohen Stein des nächsten Geschenks; das 🎁 in
+  `milestoneSay` ist raus.
+- ⚠ Am Gerät gestartet, aber von Anton noch nicht abschließend beurteilt:
+  Steine in echter Größe, Menge des Funkelns, Öffnen-Animation (kommt erst
+  beim nächsten erreichten Geschenk). Noch mit 🎁: Blatt „Deine Träume"
+  (`streak-sheet.tsx`) und Einladungen (`profile/`).
 
 **Neu mit PR #80 (04.10., Hanni) — Profil:**
 - **Eigenes Porträt: ein Name genügt** (`mobile/src/components/avatar-editor.tsx`
@@ -49,10 +95,10 @@ Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 - ⚠ Von Hanni im Simulator gesehen: Name/Beschreibung grau ↔ aktiv,
   Leuchtrand. **Nicht belegt:** dass der neue Name im Konto ankommt (braucht
   Anmeldung) und der Haken an einem alten Foto.
-- ⚠ `journal-bridge.jsx` liegt auch in Antons offenem PR #79 — hier nur
-  eine Zeile in `avatarSave`; wer zuletzt mergt, gleicht ab.
+- `journal-bridge.jsx` lag auch in Antons PR #79 — beim Merge sauber
+  zusammengeführt (andere Stellen).
 
-**Neu mit PR #78 (04.10., Anton):**
+**Mit PR #78 (04.10., Anton)** — Federn, Perlenbilder, Spule und Schachtel sind mit PR #79 zu Bändern und Steinen geworden:
 - **Traumfänger** (`mobile/src/components/moon-ring.tsx`, Rechnung weiter
   `src/lib/dreamRing.js`): runder, dezenter Reif; Netz gewebt wie ein
   echter Traumfänger (Sechseck-Spirale, jede Runde sitzt auf den Fäden der
@@ -378,10 +424,13 @@ ersetzt (siehe oben; das Sternbild `constellation.js` ist gelöscht):
   https://claude.ai/artifact/FYiRnRVnoAe2yzj5DxKTQ7
 
 **Nächste Schritte:**
-- **Anton prüft am iPhone (PR #78):** Traumfänger (Netz, Wege, Federn,
-  Filmspule, langer Druck = Vorschau, langer Druck Mitte = Einführung),
-  Geschenk-Schachtel öffnen, Einwilligungs-Tor v4, App-Icon auf dem
-  Homescreen, Traumportal beim Sprechen, nächster Glimpse mit Ton.
+- **Anton prüft am iPhone (PR #79):** Traumsteine in echter Größe und
+  wie viel sie funkeln, Zahlen auf den Geschenksteinen, Herzstein, Bänder
+  (liegt nichts über den Texten?), Geschenk-Vorschau als Stein; das
+  Öffnen beim nächsten erreichten Geschenk. Entscheiden: 🎁 im Blatt
+  „Deine Träume" und bei Einladungen auch zu Steinen?
+- **Anton prüft am iPhone (PR #78):** Einwilligungs-Tor v4, App-Icon auf
+  dem Homescreen, Traumportal beim Sprechen, nächster Glimpse mit Ton.
 - **Offen aus PR #78:** Verantwortlicher in den Rechtstexten; Icon sauber
   nachzeichnen; Anton liefert ggf. Federbilder und Frosch-Clips; die
   Aufnahme-Seite ggf. weiter (Ideen: Frosch fängt Wörter, Traumfänger als
