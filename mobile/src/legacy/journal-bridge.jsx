@@ -616,7 +616,7 @@ function snapshot() {
       "accountWrong", "accountBusy", "accountUnavailable", "accountOffline", "accountApple",
       "accountCreateCta", "accountToSignup", "accountToSignin", "accountCheckMail", "accountCheckMailText",
       "accountWeak", "accountInvalid", "accountExists", "accountForgot", "accountBackToSignin", "accountSendCode",
-      "accountCodeSent", "accountCode", "accountNewPassword", "accountSetPassword", "accountBadCode"].map((k) => [k, onb[k]])),
+      "accountCodeSent", "accountCode", "accountNewPassword", "accountSetPassword", "accountBadCode", "accountUnconfirmed"].map((k) => [k, onb[k]])),
     features: onb.features, showcase: onb.showcase, featuresLede: onb.featuresLede, proof: onb.proof, sleepLegend: onb.sleepLegend,
     sleepScale: onb.sleepScale, goalWords: onb.goalWords, goalHint: onb.goalHint,
     mascotTitle: onb.mascotTitle, mascotText: onb.mascotText, mascotSoon: onb.mascotSoon,

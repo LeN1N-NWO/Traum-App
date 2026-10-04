@@ -1529,6 +1529,7 @@ export default {
     accountNewPassword: "New password",
     accountSetPassword: "Set new password",
     accountBadCode: "That code is wrong or has expired — request a new one.",
+    accountUnconfirmed: "Confirm your email first — tap the link we sent you.",
   },
   onboarding: {
     tagline: "Every night you make films. Start keeping them.",

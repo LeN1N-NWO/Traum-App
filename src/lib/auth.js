@@ -208,6 +208,13 @@ export async function passwordLogin({ email, password } = {}, { config, fetchImp
     config,
     fetchImpl,
   });
+  /* Signed up, link not clicked yet (since 03.10.2026 a normal state).
+     Supabase says so only AFTER the password matched, so naming it reveals
+     nothing to someone guessing — and "wrong password" here would send a
+     person who typed everything right off to doubt their password. */
+  if (!r.ok && /email_not_confirmed/.test(r.code || "")) {
+    return { ok: false, status: 403, error: "Confirm your e-mail first.", reason: "unconfirmed", cause: r.cause };
+  }
   if (!r.ok) return r;
   return { ok: true, session: publicSession(r.data) };
 }

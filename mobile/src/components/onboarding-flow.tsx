@@ -474,7 +474,11 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
         /* Reset code is on its way: now code + new password. */
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setSent({ to: mail.trim(), text: O.accountCodeSent }); setMode("reset"); setPw(""); setCode("");
-      } else if (r.ok) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setPw(""); setCode(""); }
+      } else if (r.ok) {
+        /* Signed in — leave the form as a fresh sign-in, should it show again. */
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setPw(""); setCode(""); setMode("signin"); setSent(null);
+      }
       else { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); setFail(r.why); }
     } catch {
       setFail("unavailable");
@@ -519,6 +523,7 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
   const reason: Record<ResetFailure, string> = {
     wrong: O.accountWrong, busy: O.accountBusy, unavailable: O.accountUnavailable, offline: O.accountOffline,
     weak: O.accountWeak, invalid: O.accountInvalid, exists: O.accountExists, code: O.accountBadCode,
+    unconfirmed: O.accountUnconfirmed,
   };
 
   return (
@@ -557,7 +562,9 @@ export function Account({ O, insets, step, total, onNext, onBack }: { O: Onboard
               placeholder={O.accountEmail} placeholderTextColor={colors.faint}
               autoCapitalize="none" autoCorrect={false} keyboardType="email-address" textContentType="username" autoComplete="email"
               keyboardAppearance="dark" returnKeyType={mode === "forgot" ? "go" : "next"}
-              onSubmitEditing={() => (mode === "forgot" ? go() : pwRef.current?.focus())} editable={!busy}
+              onSubmitEditing={() => (mode === "forgot" ? go() : pwRef.current?.focus())}
+              /* The code belongs to the address it went to — changing it now would only fail. */
+              editable={!busy && mode !== "reset"}
             />
           </Glass>
           {mode === "reset" ? (

@@ -168,6 +168,14 @@ test("without configuration sign-in refuses instead of pretending", async () => 
   expect(r.status).toBe(503);
 });
 
+/* Signed up, link not clicked: the person typed everything right. Calling
+   that "invalid credentials" sent them off to doubt their password. */
+test("an unconfirmed address is named as such, not as a wrong password", async () => {
+  const r = await passwordLogin({ email: "a@b.co", password: "pw" },
+    { config, fetchImpl: fakeFetch({ status: 400, body: { error_code: "email_not_confirmed", msg: "Email not confirmed" } }) });
+  expect([r.ok, r.status, r.reason]).toEqual([false, 403, "unconfirmed"]);
+});
+
 /* ── passwordSignup ────────────────────────────────────────────────────── */
 
 /* Confirmation on: Supabase answers with a bare user record (for a taken

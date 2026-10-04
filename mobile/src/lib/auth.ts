@@ -29,7 +29,7 @@ const KEY_USER = "dreamrushes.user";
 export type AuthUser = { id: string; email: string | null };
 type Session = { access_token: string; refresh_token: string; user?: AuthUser | null };
 
-export type LoginFailure = "wrong" | "busy" | "unavailable" | "offline";
+export type LoginFailure = "wrong" | "busy" | "unavailable" | "offline" | "unconfirmed";
 export type LoginResult = { ok: true; user: AuthUser } | { ok: false; why: LoginFailure };
 
 /* Who is signed in, for the UI — read back from the keychain at start
@@ -85,7 +85,11 @@ function failure(status: number): LoginFailure {
    The server's answer wins; `fallbackEmail` only fills an e-mail the server
    does not carry. */
 async function completeLogin(res: Response, fallbackEmail: string | null): Promise<LoginResult> {
-  if (!res.ok) return { ok: false, why: failure(res.status) };
+  if (!res.ok) {
+    /* Signed up but the mail link not clicked yet — not a wrong password. */
+    const reason = ((await res.json().catch(() => null)) as { reason?: string } | null)?.reason;
+    return { ok: false, why: reason === "unconfirmed" ? "unconfirmed" : failure(res.status) };
+  }
   /* A proxy or captive portal can answer 200 with HTML. Unguarded, that threw
      past the caller and left the sign-in form spinning for good. */
   const s = (await res.json().catch(() => null)) as Session | null;

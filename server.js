@@ -3446,7 +3446,7 @@ const serveOptions = {
          hier ein Konto" ist nichts, was ein Fremder erfragen können soll. */
       if (!r.ok) {
         console.warn(`[DreamRushes] Anmeldung abgelehnt (${r.status}): ${r.cause || r.error}`);
-        return json({ error: r.error }, r.status);
+        return json({ error: r.error, ...(r.reason ? { reason: r.reason } : {}) }, r.status);
       }
       return json({ ok: true, ...r.session });
     }
