@@ -73,7 +73,7 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
   /* The entry as it arrived. "Save changes" stays grey until something
      differs from it (Hanni, 04.10.2026), and only a changed name goes to
      the account (save()). */
-  const [loaded, setLoaded] = useState({ tag: "", desc: "", img: "", img2: "" });
+  const [loaded, setLoaded] = useState({ tag: "", desc: "", img: "", img2: "", consent: false });
   const choosing = mode === "new" && (!category || category === "any");
 
   /* Nie ewig laden (Antons Befund 13.09. abends): Antwortet die Brücke nicht
@@ -92,7 +92,7 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
       const e = r.result.entry;
       setL(r.result.labels); setPrice(r.result.price);
       setTag(e.tag); setDesc(e.desc); setImg(e.img); setImg2(e.img2); setConsent(!!e.photoConsent);
-      setLoaded({ tag: e.tag, desc: e.desc, img: e.img, img2: e.img2 });
+      setLoaded({ tag: e.tag, desc: e.desc, img: e.img, img2: e.img2, consent: !!e.photoConsent });
       if (e.category) setKind(e.category);
     });
     return () => clearTimeout(timer);
@@ -130,10 +130,12 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
   const face = mode === "me" || kind === "person";
   const needsConsent = Boolean((img && !drawn) || img2);
   /* Something to save at all? A new entry always; an existing one only once
-     name, description or a photo differ from what was loaded. The name
-     counts as typed — "Hanni" for "hanni" is a change worth keeping. */
+     name, description, a photo or the photo tick differ from what was
+     loaded. The name counts as typed — "Hanni" for "hanni" is a change worth
+     keeping. The tick counts on its own: a photo from before the per-photo
+     confirmation arrives unticked, and ticking it must be savable. */
   const l = loaded;
-  const dirty = mode === "new" || tag.trim() !== l.tag || desc.trim() !== l.desc.trim() || img !== l.img || img2 !== l.img2;
+  const dirty = mode === "new" || tag.trim() !== l.tag || desc.trim() !== l.desc.trim() || img !== l.img || img2 !== l.img2 || consent !== l.consent;
 
   /* Die Fotoquelle als System-Blatt — Mediathek, Kamera, Entfernen. */
   function photoMenu(slot: 1 | 2) {
