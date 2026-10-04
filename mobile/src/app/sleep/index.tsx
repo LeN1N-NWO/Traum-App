@@ -4,6 +4,7 @@ import * as Haptics from "expo-haptics";
 import { SymbolView, type SFSymbol } from "expo-symbols";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
+import { NightSky } from "@/components/night-sky";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Der Schlaf-Tab, nativ: die Übersicht als vier volle Zeilen (Antons Wahl
@@ -25,6 +26,8 @@ export default function SleepScreen() {
   const sleep = data?.sleep;
   return (
     <>
+      {/* Derselbe Nachthimmel wie Start, Traum und Profil (Antons Befund 04.10.). */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]} pointerEvents="none"><NightSky /></View>
       <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         {sleep ? <Text style={styles.sub}>{sleep.subtitle}</Text> : null}
         {(sleep?.tiles ?? []).map((tile) => {
@@ -55,7 +58,7 @@ export default function SleepScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: "transparent" },
   content: { paddingHorizontal: 16, paddingBottom: TAB_INSET, gap: 12 },
   sub: { color: colors.muted, fontSize: 15, marginBottom: 4, marginLeft: 2 },
   row: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: radius.card, overflow: "hidden", borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },

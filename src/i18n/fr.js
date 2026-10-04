@@ -603,90 +603,10 @@ export default {
     soundsUnmute: "Réactiver les sons d'endormissement",
   },
 
-  consent: {
-    title: "Avant ton premier rêve",
-    intro: "Dream Rushes transforme tes mots et tes photos en images et en films — à l'aide de services d'IA externes. Pour cela, il nous faut ton accord, honnêtement et d'avance :",
-    /* Das erste Häkchen ist ein Satz mit zwei Links darin — deshalb in
-       fünf Teile zerlegt statt als ein String: jede Sprache kann ihre
-       eigene Wortstellung bauen, und die zwei Link-Wörter bleiben
-       einzeln ansteuerbar (ConsentGate.jsx setzt sie als Buttons). */
-    termsPre: "J'accepte les ",
-    termsLink: "Conditions d'utilisation",
-    termsMid: " et j'ai lu la ",
-    privacyLink: "Politique de confidentialité",
-    termsPost: ".",
-    processing: "Mes textes de rêve et les photos que je télécharge peuvent être transmis aux services d'IA nommés ci-dessous (fal.ai, Google, DeepSeek — et pour les films MiniMax ou ByteDance) pour créer mes images et mes films.",
-    adult: "J'ai 18 ans ou plus.",
-    more: "Où vont mes données ?",
-    details: [
-      "Ton texte de rêve va à fal.ai et à DeepSeek (qui aide à rédiger les instructions d'image). Les photos téléchargées ne vont qu'à fal.ai et Google. Ton journal reste sur cet appareil.",
-      "Les films sont rendus par MiniMax (Hailuo) ou ByteDance (Seedance), selon le niveau de qualité que tu choisis — fal.ai leur transmet tes images et tes textes de scène pour ce rendu précis, et pour rien d'autre.",
-      "Les images et films générés sont stockés sur notre serveur pour que l'appli puisse te les montrer.",
-      "Entraînement : l'API payante de Google n'entraîne pas ses modèles sur tes contenus. L'API payante de DeepSeek n'est pas utilisée pour l'entraînement par défaut. fal.ai peut utiliser des données d'usage anonymisées pour améliorer ses services.",
-      "Ne télécharge que des photos que tu as le droit d'utiliser — pour les photos d'autres personnes, demande-leur d'abord.",
-      "Tout ce que tu crées est généré par IA et est signalé comme tel lors du partage.",
-    ],
-    cta: "Commencer à rêver",
-  },
 
   /* Die lesbaren Rechtstexte hinter den zwei Links im Consent-Gate.
    * Verständlichkeit vor Juristendeutsch — redigiert vor dem Store-Launch
    * ein Anwalt (der Hinweis dazu steht sichtbar IM Text). */
-  legal: {
-    close: "Fermer",
-    updated: "Dernière mise à jour : 21 août 2026",
-    draftNote: "Écrit volontairement dans une langue claire. Un avocat relira ces textes avant l'arrivée de l'app dans les magasins d'applications.",
-    terms: {
-      title: "Conditions d'utilisation",
-      sections: [
-        { h: "Ce qu'est Dream Rushes",
-          p: "Dream Rushes est un journal de rêves qui peut transformer tes descriptions de rêves et tes photos de référence en images et films générés par IA. Le journal lui-même fonctionne entièrement sur ton appareil ; le rendu passe par des services d'IA externes." },
-        { h: "Ton contenu reste le tien",
-          p: "Tu conserves tous les droits sur tes textes de rêve, tes photos et les résultats générés. Tu nous accordes, à nous et aux services d'IA nommés dans la Politique de confidentialité, une permission limitée de traiter ton matériel dans un seul but : créer les images et les films que tu as demandés. Nous ne vendons jamais ton contenu, et cette permission prend fin une fois le traitement terminé." },
-        { h: "Ce que tu nous promets",
-          p: "Tu ne télécharges que des photos que tu as le droit d'utiliser — pour les photos d'autres personnes, tu leur demandes d'abord. Tu n'utilises pas l'app pour créer du contenu illégal, trompeur ou abusif, et tu ne présentes pas des scènes générées avec des personnes réelles comme des événements réels." },
-        { h: "Âge",
-          p: "Dream Rushes s'adresse aux adultes. En utilisant l'app, tu confirmes avoir 18 ans ou plus." },
-        { h: "Crédits et achats",
-          p: "Créer des images et des films coûte des crédits ; l'écriture, la voix et tout l'onglet Sommeil sont gratuits. Les prix sont toujours affichés avant que tu paies. Les crédits n'ont pas de valeur monétaire et ne peuvent pas être versés en argent ; les crédits d'abonnement expirent à la fin de chaque période, les packs achetés non." },
-        { h: "Contenu généré par IA",
-          p: "Tout ce que produit le moteur de rendu est synthétique. Le résultat peut être faux, étrange ou différent de ce que tu imaginais — c'est la nature de la technologie, pas un défaut. Les films partagés portent une mention indiquant qu'ils sont créés par IA ; laisse-la en place, dans certains pays la loi l'exige." },
-        { h: "Disponibilité",
-          p: "Le rendu dépend de services externes que nous ne contrôlons pas. Nous travaillons à garder l'app disponible, mais nous ne pouvons pas promettre un service ininterrompu ; si un rendu payant échoue, tes crédits ne sont pas débités." },
-        { h: "Modifications de ces conditions",
-          p: "Nous pouvons adapter ces conditions à mesure que l'app évolue. Si un changement compte, l'app te montrera la nouvelle version et te redemandera ton accord avant de continuer." },
-        { h: "Responsabilité",
-          p: "Nous sommes responsables sans limite en cas de faute intentionnelle, de négligence grave et d'atteinte à la vie, au corps ou à la santé. En cas de négligence simple, nous ne répondons que de la violation d'obligations contractuelles essentielles, dans la limite du dommage prévisible et typique du contrat. Tes droits légaux de consommateur restent intacts." },
-        { h: "Droit applicable",
-          p: "Le droit allemand s'applique, sans préjudice des protections impératives des consommateurs du pays où tu vis." },
-      ],
-    },
-    privacy: {
-      title: "Politique de confidentialité",
-      sections: [
-        { h: "Qui est responsable",
-          p: "Dream Rushes est le responsable du traitement décrit ici. Tu peux retirer ton consentement à tout moment, directement dans l'app sous Profil → Réglages — ensuite, plus rien ne quitte ton appareil jusqu'à ce que tu acceptes de nouveau." },
-        { h: "Ce que nous traitons",
-          p: "Tes textes de rêve, les photos que tu télécharges, ta voix pendant que tu parles à l'assistante, et les images et films créés à partir d'eux. Ton journal, tes réglages et ton solde de crédits restent sur ton appareil — il n'y a ni compte ni copie de ton journal dans le cloud." },
-        { h: "Où vont tes données",
-          p: "Le rendu se fait chez des services d'IA nommés, chacun pour sa seule tâche : DeepSeek aide à écrire et analyser le texte, Google gère la conversation vocale et le rendu des images, fal.ai rend les images et transmet les films à MiniMax (Hailuo) ou ByteDance (Seedance) selon le niveau que tu choisis. Aucun d'eux ne reçoit plus que le matériel nécessaire à ton rendu précis." },
-        { h: "Entraînement",
-          p: "L'API payante de Google n'utilise pas ton contenu pour entraîner des modèles. L'API payante de DeepSeek n'est pas utilisée pour l'entraînement par défaut. fal.ai peut utiliser des données d'usage anonymisées pour améliorer ses services. Nous-mêmes n'entraînons jamais quoi que ce soit avec ton matériel." },
-        { h: "Stockage et suppression",
-          p: "Les images et films rendus sont stockés sur notre serveur pour que l'app puisse te les montrer et les partager. Supprimer un rêve dans ton journal le retire de ton appareil ; la suppression automatique des anciens rendus sur le serveur est en cours de construction et sera en place avant le lancement public." },
-        { h: "Base juridique",
-          p: "Nous traitons ton matériel sur la base de ton consentement (art. 6, §1, a du RGPD), que tu donnes au portail avant ton premier rêve, et du contrat conclu avec toi (art. 6, §1, b du RGPD) pour tout ce qui est nécessaire à la livraison de ce que tu as commandé." },
-        { h: "Transferts hors de l'UE",
-          p: "fal.ai et Google traitent des données aux États-Unis ; le rendu des films par MiniMax ou ByteDance et le traitement du texte par DeepSeek peuvent impliquer des transferts vers d'autres pays tiers, dont la Chine. Ces transferts reposent sur les garanties contractuelles des prestataires (clauses contractuelles types). Si cela ne te convient pas, ne télécharge pas de photos — le journal fonctionne sans." },
-        { h: "Tes droits",
-          p: "Tu peux demander ce que nous détenons sur toi, le faire corriger ou supprimer, retirer ton consentement à tout moment et te plaindre auprès d'une autorité de protection des données. Le retrait arrête les traitements futurs ; il n'annule pas les rendus déjà créés." },
-        { h: "Âge",
-          p: "L'app s'adresse aux adultes (18+). Nous ne traitons pas sciemment les données de mineurs." },
-        { h: "Modifications de cette politique",
-          p: "Si cette politique change en substance, l'app te la montrera de nouveau et te demandera un consentement frais avant ton prochain rêve." },
-      ],
-    },
-  },
   onboarding: {
     tagline: "Chaque nuit, tu tournes des films. Commence à les garder.",
     kicker: "le journal de rêves",

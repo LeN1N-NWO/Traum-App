@@ -162,7 +162,9 @@ function snapshot() {
     .map((e) => {
       const it = itemById.get(e.id);
       const img = it ? it.poster || it.images[0] || (it.media?.kind === "image" ? it.media.url : null) : null;
-      return { id: e.id, day: dayKey(e.createdAt), motif: detectSymbols([e.text || "", ...(e.analysis?.beats || [])].join(" "))[0] || null, img };
+      // Der jüngste Film fürs Vorschau-Kachelchen (langer Druck auf die Perle, 04.10.).
+      const film = it ? (it.films.length ? it.films[it.films.length - 1].url : it.media?.kind === "film" ? it.media.url : null) : null;
+      return { id: e.id, day: dayKey(e.createdAt), motif: detectSymbols([e.text || "", ...(e.analysis?.beats || [])].join(" "))[0] || null, img, film, title: it?.title || "" };
     });
   /* Die Träume mit Bild, älteste zuerst — sie füllen den Traum-Ring. */
   const cycleById = new Map(cycleDreams.map((d) => [d.id, d]));
@@ -254,9 +256,15 @@ function snapshot() {
       const nextGift = nextG ? { ...ringCard(nextNum), num: nextNum, say: C.milestoneSay(nextNum - count, giftLabel(t, nextG)) } : null;
       return {
         ringNo: ring.ringNo, next: ring.next, count, todayDone, streak: count,
-        slots: ring.slots.map((sl) => ({ num: sl.num, pos: sl.pos, dreamId: sl.dreamId, img: sl.img, gift: ringCard(sl.num) })),
+        slots: ring.slots.map((sl) => {
+          const d = sl.dreamId ? cycleById.get(sl.dreamId) : null;
+          return { num: sl.num, pos: sl.pos, dreamId: sl.dreamId, img: sl.img, film: d?.film || null, title: d?.title || "", gift: ringCard(sl.num) };
+        }),
         threads: ring.threads.map(([a, b]) => [a, b]),
         nextGift,
+        /* Die Einführung, solange noch kein Traum im Fänger ist und sie nie
+           bestätigt wurde (Befehl `catcherIntro`). */
+        intro: { steps: C.intro, cta: C.introCta, auto: count === 0 && !s.catcherIntroSeen },
         countLine: C.ringCount(count, ring.ringNo),
         line: nextGift ? nextGift.say : C.nextSlot(ring.next),
         thread: ring.top && ring.top.n > 1 ? C.thread(label(ring.top.motif), ring.top.n) : "",
@@ -1301,6 +1309,7 @@ function run(cmd) {
   else if (cmd.type === "checkin") patch = { checkins: setCheckin(s.checkins, cmd.level) };
   else if (cmd.type === "intention") patch = { intention: String(cmd.text || "").trim() ? { text: String(cmd.text).trim().slice(0, 140), at: new Date().toISOString() } : null };
   else if (cmd.type === "giftSeen") patch = { giftUnseen: null };
+  else if (cmd.type === "catcherIntro") patch = { catcherIntroSeen: true };
   else if (cmd.type === "refreshStreak") { /* seit 28.09. aus dem Journal gerechnet — nichts zu speichern */ }
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };

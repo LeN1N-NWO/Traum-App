@@ -92,7 +92,7 @@ export default function HomeScreen() {
         </View>
 
         {home ? (
-          <MoonRing C={home.cycle} width={width - 32} onOpen={(id) => router.push({ pathname: "/journal/[id]", params: { id } })} onGift={setPeek} />
+          <MoonRing C={home.cycle} width={width - 32} onOpen={(id) => router.push({ pathname: "/journal/[id]", params: { id } })} onGift={setPeek} onIntroDone={() => send({ type: "catcherIntro" })} />
         ) : <View style={{ height: width - 32 + 70 }} />}
 
         <View style={{ alignItems: "center", gap: 6, marginTop: 6 }}>

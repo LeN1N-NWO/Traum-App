@@ -3,6 +3,44 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-04 17:55 — Anton — Branch `session/2026-10-04-anton` (PR #78) — Traumfänger, Rechtstexte v4, App-Icon, Traumportal
+
+**Commits:** 4dcea58, 3640ebb, 0e6d36d, 4567747, 4354e4d, dbf904e, 05f5ff6, b7e1ab1 (+ Wrap).
+
+**Was:**
+- **Rechtstexte** gegen den Code geprüft (Explore-Agent): OpenAI fehlte
+  ganz, „Sprachassistent" veraltet, Einladungen/Geschenke/Erstattung/
+  Konto löschen fehlten. Neu geschrieben (en/de), `CONSENT_VERSION = 4`,
+  veraltete Übersetzungen entfernt (Fallback Englisch).
+- **Traumfänger** statt Uhr-Ring, in mehreren Runden mit Anton: Variante
+  C (Perlen im Netz), farbige Federn statt Gräten, Zahlen fest am Reif,
+  Federn im Hintergrund, Frosch raus, Netz gewebt wie echt mit Wegen nur
+  über vorhandene Fäden, rund und dezent, Filmspule in der Mitte,
+  langer Druck = Film-Vorschau, Einführung bei leerem Fänger.
+- **Geschenk-Schachtel** neu mit Knall-Animation.
+- **Glimpse-Ton:** Server macht ihn (getestet mit dem stummen Film vom
+  28.09.: 90 s, ≈ $0,03); die App gab bei Fehlern auf → jetzt bis zu
+  dreimal nachfragen, sonst nachträglich.
+- **App-Icon:** 6 Entwürfe auf Higgsfield (≈ 9 Credits, Antons Ja),
+  Wahl Nr. 5 (Recraft-Vektor), auf 1,87× vergrößert, als Icon-Composer-
+  Ebene eingebaut (im Bau geprüft: `expo_Assets/dream-eye`).
+- **Traumportal** statt Mond als Aufnahmeknopf, füllt den Bildschirm.
+- Journal und Schlaf-Tab mit Nachthimmel.
+
+**Warum:** Antons Rückmeldungen 04.10. (Rechtliches „sofort", Fänger
+„echt wirken", Icon ohne Frosch, Mond „zu billig").
+
+**Belege:** 904 Tests grün, tsc sauber; jeder Stand als Release auf
+Antons iPhone gestartet; Icon im kompilierten Asset-Katalog gefunden;
+Glimpse-Tonspuren per `devicectl` vom Gerät geprüft (ffprobe).
+
+**Für den Nächsten:**
+- Netz aus der Sandbox heraus ist gesperrt (curl/DNS) — Dateien aus dem
+  Netz über den Browser-Bereich holen (so kam das Icon-SVG).
+- `ios/DreamRushes/expo.icon` ist lokal aus `mobile/assets/expo.icon`
+  gespiegelt (gitignoriert); Hannis Prebuild erzeugt es aus `app.json`.
+- Rechtstexte bleiben Entwurf: Verantwortlicher fehlt, Anwältin prüft.
+
 ## 2026-10-04 14:00 — Anton — Branch `session/2026-10-03b-anton` (PR #77) — Traum-Ring wie eine Uhr, Stil ohne Vorauswahl, Stil-Riegel, Warteschirm, Mitteilung
 
 **Commits:** d39864c, acb11eb, 00eb345, af7ace7, 04aac53, b272bb0 (+ Merge main, Wrap).

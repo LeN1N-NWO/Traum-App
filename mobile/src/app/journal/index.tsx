@@ -7,6 +7,7 @@ import { DreamCalendar } from "@/components/dream-calendar";
 import { DreamCarousel } from "@/components/dream-carousel";
 import { DreamRow } from "@/components/dream-row";
 import { MoonStrip } from "@/components/moon-strip";
+import { NightSky } from "@/components/night-sky";
 import { useJournal } from "@/components/journal-data";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
@@ -41,7 +42,9 @@ export default function JournalScreen() {
 
   return (
     <>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
+      {/* Derselbe Nachthimmel wie Start, Traum und Profil (Antons Befund 04.10.). */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]} pointerEvents="none"><NightSky /></View>
+      <ScrollView style={{ flex: 1, backgroundColor: "transparent" }} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         {J ? <Text style={styles.sub}>{count}</Text> : null}
         {items.length === 0 ? (
           <Text style={styles.empty}>{query ? L.emptySearch : L.empty}</Text>

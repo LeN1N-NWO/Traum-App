@@ -21,7 +21,7 @@
  * JE FOTO, nennen Prominente und Minderjährige und sagen klar, dass ein
  * gestarteter Film seine Credits verbraucht — inhaltliche Änderung, also
  * neu vorlegen. */
-export const CONSENT_VERSION = 3;
+export const CONSENT_VERSION = 4;   // 04.10.2026: Anbieterliste (OpenAI, Ton, Gemini-Diktat), Einladungen, Kauf über Apple
 
 /** Steht das Tor? Auch nach einer Textänderung (Versionssprung) wieder. */
 export function needsConsent(state) {
