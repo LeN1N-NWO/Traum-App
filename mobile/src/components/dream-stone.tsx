@@ -37,6 +37,14 @@ export const GIFT_STONES: Pal[] = [
   ["#1E1250", "#3E2F8F", "#6E5BD0", "#C4B8FF", "#F6F2FF"],
 ];
 
+/** Welcher Stein ein Ring-Geschenk trägt: 3, 6, 9 → Geschenkstein 0, 1, 2; 12 → der Herzstein. */
+export function giftStoneOf(num: number) {
+  const q = (((num - 1) % 12) + 12) % 12 + 1;
+  if (q === 12) return { heart: true, i: 0, pal: STONES.none };
+  const i = Math.max(0, Math.min(2, Math.round(q / 3) - 1));
+  return { heart: false, i, pal: GIFT_STONES[i] };
+}
+
 const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const mix = (a: string, b: string, t: number) => {
   const A = hex(a), B = hex(b);
@@ -181,7 +189,6 @@ const hsl = (h: number, s: number, l: number) => {
   return "#" + [f(0), f(8), f(4)].map((v) => v.toString(16).padStart(2, "0")).join("");
 };
 const huePal = (h: number): Pal => [hsl(h, 0.7, 0.11), hsl(h, 0.65, 0.26), hsl(h, 0.62, 0.52), hsl(h, 0.85, 0.8), hsl(h, 1, 0.96)];
-const CRYSTAL = STONES.none;
 const DIM = "#1B2347";
 
 function prism(c: number, r: number, filled: number) {
@@ -201,11 +208,15 @@ function prism(c: number, r: number, filled: number) {
   }
   for (let k = 0; k < n; k++) facets.push({ d: poly([T(k), S(k + 1), G(k), S(k)]), fill: tone(hue(k), base(rot + st / 2 + st * k) + (k % 2 ? -0.1 : 0.12), on(k)), edge: true });
   for (let k = 0; k < n; k++) facets.push({ d: poly([T(k - 1), S(k), T(k)]), fill: tone(hue(k) - 15, k === 10 ? 0.95 : base(rot + st * k) + (k % 2 ? 0.15 : -0.06), on(k)), edge: true });
-  facets.push({ d: poly(Array.from({ length: n }, (_, k) => T(k))), fill: shade(CRYSTAL, 0.62), edge: true });
-  // in der Tafel spiegeln sich die gegenüberliegenden Farben — umso stärker, je voller der Ring
-  const glow = 0.15 + 0.45 * Math.min(1, filled / n);
-  for (let k = 0; k < n; k++) facets.push({ d: poly([[c, c], T(k), T(k + 1)]), fill: shade(huePal((hue(k) + 180) % 360), k % 2 ? 0.45 : 0.75), o: glow });
-  facets.push({ d: poly(Array.from({ length: n }, (_, k) => P(rot + st * k, r * 0.2))), fill: shade(CRYSTAL, 0.3), o: 0.5 });
+  /* Die Tafel ist keine graue Scheibe (Antons Befund 04.10.: „die Scheibe in
+     der Mitte irritiert"): auch sie ist in zwölf bunte Keile geschliffen,
+     darin spiegeln sich die Farben der Gegenseite wie im Kaleidoskop. */
+  for (let k = 0; k < n; k++) facets.push({ d: poly([[c, c], T(k), T(k + 1)]), fill: tone(hue(k) + 15, k % 2 ? 0.5 : 0.72, on(k)), edge: true });
+  const glow = 0.12 + 0.3 * Math.min(1, filled / n);
+  for (let k = 0; k < n; k++) {
+    const a = rot + st * k;
+    facets.push({ d: poly([[c, c], P(a, r * 0.36), P(a + st, r * 0.36)]), fill: shade(huePal((hue(k) + 180) % 360), k % 2 ? 0.45 : 0.8), o: glow });
+  }
   const shimmerA = [poly([T(2), S(3), G(2), S(2)]), poly([T(6), S(7), G(6), S(6)])].join(" ");
   const shimmerB = [poly([T(-1), S(0), T(0)]), poly([T(8), S(9), T(9)])].join(" ");
   return { facets, shimmerA, shimmerB, glints: [P(225, r * 0.6), P(330, r * 0.72)] as Pt[] };

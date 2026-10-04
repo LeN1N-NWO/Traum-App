@@ -250,6 +250,8 @@ function snapshot() {
           progress: Math.max(0, Math.min(1, (count - from) / QUARTER)),
           progressText: G.progress(Math.min(count, num), num),
           foot: g.kind === "glimpse" ? `${G.rule} ${G.valid}` : G.rule, close: G.close,
+          // welcher Stein die Karte trägt (04.10.): 3/6/9 der Geschenkstein, 12 der Herzstein mit seinen Keilen
+          num, ringFilled: Math.max(0, Math.min(RING_SIZE, count - ring.start)),
         };
       };
       const nextNum = nextGiftNum(count);

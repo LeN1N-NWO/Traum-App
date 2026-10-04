@@ -77,7 +77,7 @@ export default {
     left: (n) => `${n} more ${n === 1 ? "night" : "nights"} — then your month becomes a film.`,
     fullTonight: "Last night of the ring — tomorrow your month becomes a film.",
     thread: (label, n) => `Strongest thread: ${label} (${n}×)`,
-    milestoneSay: (left, gift) => `${left <= 1 ? "One more dream" : `${left} more dreams`} until 🎁 ${gift}`,
+    milestoneSay: (left, gift) => `${left <= 1 ? "One more dream" : `${left} more dreams`} until ${gift}`,
     /* Der Traum-Ring (03.10. spätabends, dreamRing.js): Plätze wie eine Uhr. */
     /* Die Einführung im leeren Traumfänger (Antons Wunsch 04.10.). */
     intro: [

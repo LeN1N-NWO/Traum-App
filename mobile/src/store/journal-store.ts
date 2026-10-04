@@ -19,7 +19,7 @@ export type GiftKind = "glimpse" | "film" | "credits" | "month" | "ring";
 /** Die Steinart eines Traums im Traumfänger = Gruppe seines Traumsymbols (src/lib/symbols.js). */
 export type StoneKind = "place" | "scenario" | "creature" | "person" | "emotion" | "none";
 /* Ein Geschenk als kurze Karte (gift-sheet.tsx): Titel, ein Satz, Fortschritt. */
-export type GiftCard = { kind: GiftKind | "monthFilm"; title: string; sub: string; eyebrow: string; progress: number; progressText: string; foot: string; close: string };
+export type GiftCard = { kind: GiftKind | "monthFilm"; title: string; sub: string; eyebrow: string; progress: number; progressText: string; foot: string; close: string; num?: number; ringFilled?: number };
 export type GiftReveal = { nights: number; kind: GiftKind; credits: number; title: string; label: string; sub: string; expires: string | null; tapToOpen: string; redeem: string; later: string; target: "dream" | "journal"; dreamId: string | null };
 
 /* Freunde einladen (03.10.) — Texte aus en.js/de.js, Platzhalter {…}. */

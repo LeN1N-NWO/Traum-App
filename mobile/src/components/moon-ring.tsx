@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, FadeIn, cancelAnimation, FadeOut, ZoomIn, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path } from "react-native-svg";
-import { DreamStone, GIFT_STONES, PrismStone, STONES } from "@/components/dream-stone";
+import { DreamStone, GIFT_STONES, PrismStone, STONES, giftStoneOf } from "@/components/dream-stone";
 import { useScreenActive } from "@/lib/use-screen-active";
 import type { GiftCard, HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
@@ -222,7 +222,10 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
       {/* Das nächste Geschenk als Satz — liegt über den Federn */}
       {C.nextGift ? (
         <Pressable onPress={() => { Haptics.selectionAsync(); if (C.nextGift) onGift(C.nextGift); }} style={styles.next} accessibilityRole="button">
-          <View style={styles.nextIcon}><SymbolView name="gift.fill" size={13} tintColor="#1a1206" /></View>
+          {/* der Stein des nächsten Geschenks, roh — statt eines Geschenk-Symbols (04.10.) */}
+          {giftStoneOf(C.nextGift.num ?? 12).heart
+            ? <PrismStone size={26} filled={filled} live={false} />
+            : <DreamStone size={26} pal={giftStoneOf(C.nextGift.num ?? 12).pal} rough live={false} />}
           <Text style={styles.nextText} numberOfLines={1}>{C.nextGift.say}</Text>
           <SymbolView name="chevron.right" size={11} tintColor={colors.faint} />
         </Pressable>
@@ -442,8 +445,7 @@ const styles = StyleSheet.create({
   hole: { position: "absolute", alignItems: "center", justifyContent: "center" },
   knot: { position: "absolute", width: BEAD, height: BEAD },
   nextMark: { position: "absolute", borderWidth: 1.6, borderColor: colors.gold },
-  next: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7, paddingLeft: 7, paddingRight: 12, borderRadius: 999, backgroundColor: "rgba(12,20,35,0.88)", borderWidth: 1, borderColor: "rgba(246,198,91,0.45)", maxWidth: "92%" },
-  nextIcon: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: colors.gold },
+  next: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 6, paddingLeft: 6, paddingRight: 12, borderRadius: 999, backgroundColor: "rgba(12,20,35,0.88)", borderWidth: 1, borderColor: "rgba(246,198,91,0.45)", maxWidth: "92%" },
   nextText: { color: colors.gold, fontSize: 13.5, fontWeight: "600", flexShrink: 1 },
   peek: { position: "absolute", borderRadius: 18, overflow: "hidden", borderWidth: 1.5, borderColor: colors.gold, backgroundColor: colors.bg2, zIndex: 20 },
   peekBar: { position: "absolute", left: 0, right: 0, bottom: 0, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: "rgba(5,10,20,0.72)" },
