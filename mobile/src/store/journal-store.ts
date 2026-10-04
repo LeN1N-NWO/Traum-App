@@ -41,7 +41,7 @@ export type HomeData = {
      eine Uhr, Nummern laufen weiter; Geschenke auf den Vierteln. */
   cycle: {
     ringNo: number; next: number; count: number; todayDone: boolean; streak: number;
-    slots: { num: number; pos: number; dreamId: string | null; img: string | null; gift: GiftCard | null }[];
+    slots: { num: number; pos: number; dreamId: string | null; img: string | null; film: string | null; title: string; gift: GiftCard | null }[];
     threads: [number, number][];
     nextGift: (GiftCard & { num: number; say: string }) | null;
     intro: { steps: string[]; cta: string; auto: boolean } | null;

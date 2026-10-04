@@ -1,9 +1,10 @@
 import { Image } from "expo-image";
+import { useVideoPlayer, VideoView } from "expo-video";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, FadeIn, FadeOut, ZoomIn, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path } from "react-native-svg";
 import type { GiftCard, HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
@@ -114,6 +115,8 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
   const ringGift = giftOf(start + 2 * SIX);
   /* Die Einführung: von selbst beim leeren Fänger, sonst per langem Druck auf die Mitte. */
   const [replay, setReplay] = useState(false);
+  /* Langer Druck auf eine Perle: der Film als Kachel, solange der Finger liegt (Antons Wunsch 04.10.). */
+  const [peek, setPeek] = useState<{ film: string | null; img: string | null; title: string } | null>(null);
   const showIntro = !!C.intro && (C.intro.auto || replay);
   const [ex, ey] = filled < 2 * SIX ? P(dreamNode(filled)) : [cx, cy];
 
@@ -153,7 +156,9 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
             const [x, y] = P(dreamNode(k));
             return (
               <Animated.View key={s.num} entering={FadeIn.delay(80 + k * 40).duration(380)} style={[styles.bead, s.gift && styles.beadGift, { left: x - BEAD / 2, top: y - BEAD / 2 }]}>
-                <Pressable onPress={() => { Haptics.selectionAsync(); onOpen(s.dreamId!); }} hitSlop={4}>
+                <Pressable onPress={() => { Haptics.selectionAsync(); onOpen(s.dreamId!); }} hitSlop={4} delayLongPress={280}
+                  onLongPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setPeek({ film: s.film, img: s.img, title: s.title }); }}
+                  onPressOut={() => setPeek(null)}>
                   {s.img ? <Image source={{ uri: s.img }} style={styles.beadImg} contentFit="cover" transition={150} /> : <View style={[styles.beadImg, styles.noImg]} />}
                 </Pressable>
               </Animated.View>
@@ -176,6 +181,9 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
             bead={[P(key(0, 0)), P(dreamNode(0))]} knots={feathers.map((f) => P(key(0, f.knot)))} center={[cx, cy]}
             onDone={() => { Haptics.selectionAsync(); setReplay(false); if (C.intro?.auto) onIntroDone?.(); }} />
         ) : null}
+
+        {/* Die Vorschau-Kachel beim langen Druck — über allem im Ring */}
+        {peek ? <PeekTile key={peek.film || peek.img || "p"} {...peek} W={W} /> : null}
 
         {/* Die Zahlen am Reif, wo die Federn angeknotet sind — fest */}
         {feathers.map((f) => {
@@ -302,6 +310,21 @@ function Halo({ x, y, size, delay }: { x: number; y: number; size: number; delay
   return <Animated.View pointerEvents="none" style={[styles.halo, { width: size, height: size, borderRadius: size / 2, left: x - size / 2, top: y - size / 2 }, a]} />;
 }
 
+/* Die Vorschau eines Traums: hochkant, der Film läuft stumm in Schleife
+   (ohne Film das Bild). Verschwindet, sobald der Finger loslässt. */
+function PeekTile({ film, img, title, W }: { film: string | null; img: string | null; title: string; W: number }) {
+  const player = useVideoPlayer(film, (p) => { p.loop = true; p.muted = true; p.play(); });
+  const w = W * 0.52, h = w * 16 / 9;
+  return (
+    <Animated.View entering={ZoomIn.duration(180)} exiting={FadeOut.duration(140)} pointerEvents="none"
+      style={[styles.peek, { width: w, height: h, left: (W - w) / 2, top: (W - h) / 2 }]}>
+      {img ? <Image source={{ uri: img }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
+      {film ? <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} /> : null}
+      {title ? <View style={styles.peekBar}><Text style={styles.peekTitle} numberOfLines={2}>{title}</Text></View> : null}
+    </Animated.View>
+  );
+}
+
 /* Die Mitte: eine goldene Filmspule statt eines Geschenks (Antons Wunsch
    04.10.: „nicht wie ein Geschenk, eher ein Film-Icon"). Sie dreht sich
    langsam — die Träume laufen schon auf die Rolle. */
@@ -368,6 +391,9 @@ const styles = StyleSheet.create({
   next: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7, paddingLeft: 7, paddingRight: 12, borderRadius: 999, backgroundColor: "rgba(12,20,35,0.88)", borderWidth: 1, borderColor: "rgba(246,198,91,0.45)", maxWidth: "92%" },
   nextIcon: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: colors.gold },
   nextText: { color: colors.gold, fontSize: 13.5, fontWeight: "600", flexShrink: 1 },
+  peek: { position: "absolute", borderRadius: 18, overflow: "hidden", borderWidth: 1.5, borderColor: colors.gold, backgroundColor: colors.bg2, zIndex: 20 },
+  peekBar: { position: "absolute", left: 0, right: 0, bottom: 0, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: "rgba(5,10,20,0.72)" },
+  peekTitle: { color: colors.text, fontFamily: fonts.serif, fontSize: 15, lineHeight: 19 },
   ghost: { position: "absolute", width: BEAD, height: BEAD, borderRadius: BEAD / 2, backgroundColor: "#8C84E8", borderWidth: 1.6, borderColor: colors.gold },
   halo: { position: "absolute", borderWidth: 2, borderColor: colors.gold, backgroundColor: "rgba(246,198,91,0.12)" },
   introCard: { position: "absolute", paddingVertical: 12, paddingHorizontal: 16, borderRadius: 18, backgroundColor: "rgba(12,20,35,0.92)", borderWidth: 1, borderColor: "rgba(246,198,91,0.45)" },
