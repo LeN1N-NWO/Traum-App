@@ -430,7 +430,7 @@ function snapshot() {
     title: t.wizard.step1.title, next: t.wizard.next, read: t.wizard.step1.improve, reading: t.wizard.step1.reading,
     tooShort: t.wizard.tooShort, previewTitle: t.wizard.step1.previewTitle, previewLede: t.wizard.step1.previewLede,
     yours: t.wizard.step1.yours, improved: t.wizard.step1.improved, keepMine: t.wizard.step1.keepMine, useImproved: t.wizard.step1.useImproved,
-    styleTitle: w5.title, styleLabel: w5.styleLabel, useStyle: w5.useStyle, moreStyles: w5.moreStyles(PRESETS.filter((p) => p.id !== DREAMFLOW && !styleById(p.styleId)?.featured).length),
+    styleTitle: w5.title, styleLabel: w5.styleLabel, useStyle: w5.useStyle, pickStyle: w5.pickStyle, moreStyles: w5.moreStyles(PRESETS.filter((p) => p.id !== DREAMFLOW && !styleById(p.styleId)?.featured).length),
     /* Die Szenen-Empfehlung (Step5Style: recommendation aus cut.js) — im
        Web stand sie unter dem Regler, nativ fehlte sie: Anton bestellte
        10 s H3 fuer sechs Szenen und bekam zwei (12.09.). Vorlagen mit
@@ -1393,7 +1393,11 @@ async function collectOnce(onJournal, onResult) {
     const text = kind === "dreamReady" ? t.journal.dreamReady(extra || "") : kind === "filmArrived" ? t.journal.filmArrived
       : kind === "sceneReady" ? t.journal.sceneReady(extra) : kind === "refunded" ? t.journal.imagesRefunded(extra)
       : kind === "renderFailed" ? `⚠ ${t.errors[failureTextKey(extra)]}` : null;
-    if (text) onResult({ n: -1, toast: text, haptic: kind === "filmArrived" || kind === "dreamReady" ? "success" : kind === "renderFailed" ? "error" : null });
+    /* `notify` (Antons Befund 04.10.: „Man bekommt keine Benachrichtigung,
+       dass ein neuer Traum erschienen ist"): Die native Seite macht daraus
+       eine Mitteilung, wenn die App gerade nicht vorn ist. */
+    const notify = kind === "filmArrived" || kind === "dreamReady" || kind === "renderFailed" ? { title: text } : undefined;
+    if (text) onResult({ n: -1, toast: text, haptic: kind === "filmArrived" || kind === "dreamReady" ? "success" : kind === "renderFailed" ? "error" : null, notify });
   }
 }
 

@@ -1,5 +1,7 @@
 import { useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
+import * as Notifications from "expo-notifications";
+import { AppState } from "react-native";
 import { useCallback, useRef, useState } from "react";
 import { showToast } from "@/store/toast-store";
 import JournalBridge from "@/legacy/journal-bridge";
@@ -25,6 +27,13 @@ export function useJournal() {
     // n = -1: kein Befehl, sondern eine Meldung des Abholers (Film da, Erstattung, Fehler).
     if (r.n === -1) {
       if (r.toast) showToast(r.toast);
+      /* Film fertig, App im Hintergrund (z. B. Einschlafklänge halten sie
+         wach): eine echte Mitteilung, Tipp öffnet das Journal. Vorn reicht
+         der Toast. ⚠ Ist die App ganz eingeschlafen, fragt niemand nach —
+         dann braucht es Push vom Server (APNs), siehe STAND. */
+      if (r.notify && AppState.currentState !== "active") {
+        Notifications.scheduleNotificationAsync({ content: { title: r.notify.title, data: { glimpse: "/journal" } }, trigger: null }).catch(() => {});
+      }
       if (r.haptic === "success") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       else if (r.haptic === "error") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;

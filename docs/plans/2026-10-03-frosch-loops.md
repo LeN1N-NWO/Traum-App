@@ -50,3 +50,23 @@ so geschehen beim 500×500-Schlaf-Loop (03.10., auf 512 gepolstert).
 
 Danach eine Zeile in `FROG_CLIPS` eintragen. ⚠ Android kann HEVC-Alpha
 nicht (dort bräuchte es WebM/VP9) — für jetzt nur iOS.
+
+## Lade-Stories für den Warte-Frosch (Antons Notiz 04.10.)
+
+Während ein Auftrag läuft (Glimpse, Film), zeigt der Lader unten
+(`mobile/src/components/mascot-loader.tsx`) heute EINEN Loop. Gewünscht:
+mehrere kurze Clips, zufällig gewählt, die erzählen, dass der Frosch
+gerade **deinen Traum baut** — die Wartezeit wirkt kürzer und süßer.
+
+| Datei (Lieferung) | Was der Frosch tut | Länge |
+|---|---|---|
+| `wait-paint.mp4` | malt mit Pinsel auf eine Leinwand / Filmrolle | 4–8 s, Loop |
+| `wait-wheel.mp4` | schraubt an einem Rad, Zahnrädern, einer kleinen Maschine | 4–8 s, Loop |
+| `wait-reel.mp4` | spult eine Filmrolle auf, hält ein Bild ins Licht | 4–8 s, Loop |
+| `wait-stir.mp4` | rührt in einem Kessel, aus dem Traumbilder aufsteigen | 4–8 s, Loop |
+| `wait-sew.mp4` | näht Wolken/Sterne zusammen | 4–8 s, Loop |
+
+Regeln wie oben: helle Kreide auf reinem Schwarz, ohne Ton, Kanten durch
+16 teilbar (Lader heute 500 px → **512 × 512** liefern), Loop schließt
+sich. Einbau: Liste in `mascot-loader.tsx`, Zufall beim Start jedes
+Wartens, nach jedem Durchlauf weiter zum nächsten.

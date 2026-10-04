@@ -1115,6 +1115,7 @@ export default {
       aboutStyle: "About this style",
       moreStyles: (n) => `More styles (${n})`,
       useStyle: "Use this style",
+      pickStyle: "Pick a style first.",
       presets: {
         dreamflow: "Dreamflow",
         dreamflowSub: "No cuts — every scene becomes the next",
@@ -1232,7 +1233,7 @@ export default {
       /* The reward after ordering (Anton, 13.09.2026). */
       celebrateFirst: "Wow — your first dream film!",
       celebrateN: (n) => `Dream no. ${n} is on its way`,
-      celebrateText: "It's being made now. No need to wait — the journal shows you when it's ready.",
+      celebrateText: "Handing it in now — then it's off to your journal. You don't have to wait for it to finish.",
       celebrateHint: "We'll let you know as soon as it's there.",
       save: "Save to journal",
       added: "Added to your dream",

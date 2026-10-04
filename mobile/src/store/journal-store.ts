@@ -86,7 +86,7 @@ export type WizardPreset = { id: string; styleId: string; pace: string | null; w
 export type WizardModel = { id: string; name: string; hint: string; badge: string | null; info: string; modelName: string; min: number; max: number; step: number; preset: number; preferred: string; qualities: { id: string; name: string; perSec: string }[] };
 export type WizardData = {
   title: string; next: string; read: string; reading: string; tooShort: string; previewTitle: string; previewLede: string;
-  yours: string; improved: string; keepMine: string; useImproved: string; styleTitle: string; styleLabel: string; useStyle: string; moreStyles: string;
+  yours: string; improved: string; keepMine: string; useImproved: string; styleTitle: string; styleLabel: string; useStyle: string; pickStyle: string; moreStyles: string;
   lengthLabel: string; qualityLabel: string; modelLabel: string; paceLabel: string; generate: string; credit1: string; creditN: string; readPrice: number; noCredits: string;
   record: string; recordHint: string; recording: string; recordStop: string; recordDiscard: string; recordTranscribing: string; recordTooShort: string; recordFailed: string; recordAgain: string; yourRecording: string; transcribeUrl: string; panelUrl: string;
   cutOneShot: string; cutAll: string; cutSome: string; cutMoreAt: string; cutTwoParter: string; flowAll: string; flowFast: string; cutAllIn: string; cutRecommend: string;
@@ -163,7 +163,7 @@ export type SketchTexts = {
   card: { name: string; hint: string; badge: string; info?: string; model?: string } | null;
   price: string;   // was die NÄCHSTE Skizze kostet, fertig formuliert
 };
-export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null; entryId?: string };
+export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null; entryId?: string; notify?: { title: string } };
 
 let snapshot: JournalSnapshot | null = null;
 let raw: JournalSnapshot | null = null;

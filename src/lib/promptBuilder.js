@@ -218,9 +218,30 @@ export function buildGridPrompt({ beats, styleId, clauses = [], cols, rows = 1, 
     `\n${plaetze}${leer}` +
     `\nConsistent color grade, lighting and wardrobe across all tiles so they read as one continuous ` +
     `sequence from the same film, in this style: ${style.prompt}` +
-    `\nUltra-detailed, accurate hands and faces. No text, no captions, no numbers, no watermarks.` +
-    `${photorealClause(photoreal)}${refs}`
+    `\n${detailClause(photoreal).replace(/^./, (c) => c.toUpperCase())}. No text, no captions, no numbers, no watermarks.` +
+    `${photorealClause(photoreal)}${refs}${styleLockClause(photoreal, clauses)}`
   );
+}
+
+/* Gezeichnete Stile mit Besetzungsfoto (Antons Befund 04.10.: Anime
+ * gewählt, „sieht überhaupt nicht danach aus"). Das Referenzfoto ist
+ * fotografisch, die Klausel sagt „exact likeness" — und ein Modell glaubt
+ * eher, was es sieht, als was es liest (dieselbe Lehre wie bei der
+ * Garderobe oben). Ohne diesen Satz kam das echte Gesicht als Foto ins
+ * Anime-Bild, und H3 animiert dieses Startbild dann genau so weiter.
+ * Er steht als LETZTES, nach den Referenzen, damit er sie schlägt. */
+export function styleLockClause(photoreal, clauses) {
+  if (photoreal || !clauses.length) return "";
+  return "\nSTYLE LOCK: every person, animal and object from a reference image is REDRAWN completely " +
+    "in the style above — keep only what makes them recognisable (face shape, hair, build, " +
+    "clothing colours), never their photographic surface. No photographic skin, no photo-real " +
+    "faces, no pasted-in photo: the whole frame, people included, is one consistent medium.";
+}
+
+/* Bei gezeichneten Stilen bittet „ultra-detailed, accurate hands and faces"
+ * um Fotodetail — dort heißt es stattdessen: sauber im selben Medium. */
+function detailClause(photoreal) {
+  return photoreal ? "ultra-detailed, accurate hands and faces" : "clean, well-drawn hands and faces in the same medium";
 }
 
 export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 1, total = 1, prevFrame = false, photoreal = photorealFor(styleId) }) {
@@ -259,7 +280,7 @@ export function buildImagePrompt({ beat, styleId, format, clauses = [], index = 
     `A ${stillNoun(photoreal)}: ${beat}` +
     `\n${shotClause(index, total)}` +
     `\n${style.prompt}` +
-    `\n${framing}, ultra-detailed, accurate hands and faces.${photorealClause(photoreal)}${place}${refs}${anchor}`
+    `\n${framing}, ${detailClause(photoreal)}.${photorealClause(photoreal)}${place}${refs}${anchor}${styleLockClause(photoreal, clauses)}`
   );
 }
 

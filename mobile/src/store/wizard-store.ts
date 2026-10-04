@@ -5,6 +5,9 @@ import { useSyncExternalStore } from "react";
    Prompt-Kette bleiben unangetastet. */
 export type WizardState = {
   text: string; originalText: string; analysis: any | null;
+  /** Leer = noch kein Stil gewählt (Antons Ansage 04.10.: „Von Anfang an
+      sollte kein Style ausgewählt sein" — vorher stand der Vorschlag der
+      Analyse oder „ultrareal" schon markiert). */
   styleId: string; pace: "calm" | "fast" | "flow"; videoModel: "standard" | "premium";
   quality: "sd" | "hd" | "fhd" | null; seconds: number; orderId: string | null;
   /** Filmformat (26.09., Antons Ansage: „das Aspect-Ratio kann ich gar nicht auswählen"). */
@@ -26,7 +29,7 @@ export type WizardState = {
 export type FilmFormat = "9:16" | "16:9" | "1:1";
 export const FILM_FORMATS: FilmFormat[] = ["9:16", "16:9", "1:1"];
 
-const EMPTY: WizardState = { text: "", originalText: "", analysis: null, styleId: "ultrareal", pace: "calm", videoModel: "standard", quality: null, format: "9:16", seconds: 6, orderId: null, assignmentOverrides: {}, pendingRead: false, entryId: null, secondsTouched: false, audioUrl: null, mode: "film", sketch: false, resets: 0 };
+const EMPTY: WizardState = { text: "", originalText: "", analysis: null, styleId: "", pace: "calm", videoModel: "standard", quality: null, format: "9:16", seconds: 6, orderId: null, assignmentOverrides: {}, pendingRead: false, entryId: null, secondsTouched: false, audioUrl: null, mode: "film", sketch: false, resets: 0 };
 let state: WizardState = EMPTY;
 const listeners = new Set<() => void>();
 export function patchWizard(p: Partial<WizardState>) { state = { ...state, ...p }; listeners.forEach((l) => l()); }

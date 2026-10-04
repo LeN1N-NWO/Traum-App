@@ -1060,6 +1060,7 @@ export default {
       aboutStyle: "Über diesen Stil",
       moreStyles: (n) => `Mehr Stile (${n})`,
       useStyle: "Diesen Stil verwenden",
+      pickStyle: "Wähl zuerst einen Stil.",
       presets: {
         dreamflow: "Dreamflow",
         dreamflowSub: "Kein Schnitt — jede Szene wird zur nächsten",
@@ -1167,7 +1168,7 @@ export default {
       /* Die Belohnung nach dem Abgeben (Antons Ansage 13.09.2026). */
       celebrateFirst: "Wow — dein erster Traumfilm!",
       celebrateN: (n) => `Traum Nr. ${n} ist unterwegs`,
-      celebrateText: "Er entsteht jetzt. Du musst nicht warten — im Journal siehst du, wann er fertig ist.",
+      celebrateText: "Wir geben ihn gerade ab — gleich geht's ins Journal. Warten, bis er fertig ist, musst du nicht.",
       celebrateHint: "Wir sagen dir Bescheid, sobald er da ist.",
       save: "Ins Journal speichern",
       added: "Zu deinem Traum hinzugefügt",
