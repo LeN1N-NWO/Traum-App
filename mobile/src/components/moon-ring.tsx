@@ -4,7 +4,7 @@ import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Circle, Defs, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { FrogStage, type FrogEvent } from "@/components/frog-stage";
 import type { GiftCard, HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
@@ -85,15 +85,30 @@ export function MoonRing({ C, width, onOpen, onGift }: { C: HomeData["cycle"]; w
         </Svg>
         {/* Das Stück zum nächsten Platz — gestrichelt, pulsiert */}
         <NextArc d={arc(filled, nextPos)} W={W} H={H} />
-        {/* Die Fäden — blenden nach den Bildern ein */}
+        {/* Die Fäden — blenden nach den Bildern ein. ⚠ Der Frosch ist
+            durchsichtig (Alpha aus der Helligkeit, auch sein Inneres): Ohne
+            Aussparung liefen die Fäden sichtbar DURCH ihn, als läge er
+            darunter (Antons Befund 04.10.). Eine stille Maske blendet sie
+            zur Mitte hin weich aus — keine bewegte Maske (Dauerlast-Lehre). */}
         <Animated.View entering={FadeIn.delay(500).duration(900)} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Svg width={W} height={H}>
+            <Defs>
+              <RadialGradient id="frogHole" cx={cx} cy={cy} r={frogSize * 0.56} gradientUnits="userSpaceOnUse">
+                <Stop offset="0" stopColor="#000" />
+                <Stop offset="0.78" stopColor="#000" />
+                <Stop offset="1" stopColor="#fff" />
+              </RadialGradient>
+              <Mask id="threadMask" x={0} y={0} width={W} height={H} maskUnits="userSpaceOnUse">
+                <Rect x={0} y={0} width={W} height={H} fill="#fff" />
+                <Circle cx={cx} cy={cy} r={frogSize * 0.56} fill="url(#frogHole)" />
+              </Mask>
+            </Defs>
             {C.threads.map(([a, b], k) => {
               const [x1, y1] = at(posOf(a) || SLOTS, R - THUMB / 2 - 2), [x2, y2] = at(posOf(b) || SLOTS, R - THUMB / 2 - 2);
               // Der Faden biegt sich zur Mitte — wie gespannt, nicht wie eine Sehne.
               const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
               const qx = cx + (mx - cx) * 0.25, qy = cy + (my - cy) * 0.25;
-              return <Path key={k} d={`M${x1} ${y1} Q${qx} ${qy} ${x2} ${y2}`} fill="none" stroke="#ffe7b0" strokeOpacity={0.45} strokeWidth={1.1} />;
+              return <Path key={k} d={`M${x1} ${y1} Q${qx} ${qy} ${x2} ${y2}`} fill="none" stroke="#ffe7b0" strokeOpacity={0.45} strokeWidth={1.1} mask="url(#threadMask)" />;
             })}
           </Svg>
         </Animated.View>
