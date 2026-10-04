@@ -1345,7 +1345,10 @@ export default {
     termsMid: " and have read the ",
     privacyLink: "Privacy Notice",
     termsPost: ".",
-    processing: "My dream texts and the photos I upload may be sent to the AI services named below (fal.ai, Google, DeepSeek — and for films MiniMax or ByteDance) to create my images and films.",
+    /* Stand 04.10.2026 (CONSENT_VERSION 4): alle Dienste, die die App
+       heute wirklich aufruft — neu OpenAI (GPT Image 2, Standard-Bildmodell)
+       und die Ton-Modelle. */
+    processing: "My dream texts, voice recordings and the photos I upload may be sent to the AI services named below (fal.ai with OpenAI, Google, MiniMax, ByteDance and the sound models; DeepSeek; Google Gemini) to create my images, films and transcripts.",
     adult: "I am 18 or older.",
     /* Klartext-Kacheln über den Häkchen (Antons Ansage 23.09.2026): auf
        einen Blick, was die App tut, ohne die langen Texte zu lesen. Die
@@ -1353,16 +1356,17 @@ export default {
        nur Worte. Nichts behaupten, was die details nicht auch sagen. */
     facts: [
       { id: "ai", title: "AI-made", text: "Films and images come from AI, marked as such." },
-      { id: "send", title: "Sent to create", text: "Dream text and photos go to AI services only to render." },
+      { id: "send", title: "Sent to create", text: "Dream text, voice and photos go to AI services only to render." },
       { id: "device", title: "Stays with you", text: "Your journal lives on this device — with an account, also in an encrypted backup only you can read." },
       { id: "adult", title: "18+", text: "For adults only." },
     ],
     more: "Where does my data go?",
     details: [
-      "Your dream text goes to fal.ai and DeepSeek (which helps write the image instructions). Photos you upload go to fal.ai and Google only. Your journal stays on this device — with an account, your dreams (text, never photos) are also backed up on our server, encrypted on your phone first so that only you can read them.",
-      "Films are rendered by MiniMax (Hailuo) or ByteDance (Seedance), depending on the quality tier you pick — fal.ai passes your images and scene text on to them for exactly that render, nothing else.",
-      "Rendered images and films are stored on our server so the app can show them to you.",
-      "Training: Google's paid API does not train on your content. DeepSeek's paid API is not used for training by default. fal.ai may use anonymized usage data to improve its services.",
+      "Your dream text goes to DeepSeek (analysis and image instructions) and, through fal.ai, to the model that renders it. Voice recordings are transcribed by Google (Gemini), or by Whisper through fal.ai as a fallback.",
+      "Photos you upload go through fal.ai to the image model: OpenAI (GPT Image 2) by default, Google (Nano Banana) as a backup. Before that, an automated safety check at fal.ai looks at each photo.",
+      "Films are rendered by MiniMax (Hailuo) or ByteDance (Seedance); sound comes from the MMAudio and ACE-Step models — all through fal.ai, each only for your render.",
+      "Rendered images and films are stored on our server in Germany so the app can show them to you. With an account, your dreams (text, never photos) are also backed up — encrypted on your phone first, so only you can read them.",
+      "Training: OpenAI's and Google's paid APIs do not train on your content. DeepSeek's paid API is not used for training by default. fal.ai may use anonymized usage data to improve its services.",
       "Only upload photos you are allowed to use — for photos of other people, ask them first.",
       "Everything you create is AI-generated and is marked as such when you share it.",
     ],
@@ -1373,28 +1377,39 @@ export default {
    * Verständlichkeit vor Juristendeutsch: kurze Abschnitte, ehrliche
    * Aussagen — redigiert vor dem Store-Launch ein Anwalt (der Hinweis
    * dazu steht sichtbar IM Text, nicht nur hier im Kommentar). Ändert
-   * sich der Inhalt wesentlich, zählt CONSENT_VERSION hoch. */
+   * sich der Inhalt wesentlich, zählt CONSENT_VERSION hoch.
+   * 04.10.2026: Anbieterliste nach dem Code (OpenAI, Ton, Gemini-Diktat,
+   * Supabase, Resend, Hetzner), Einladungen, Geschenk-Credits, Kauf und
+   * Erstattung über Apple, Konto löschen, Mitteilungen. */
   legal: {
     close: "Close",
-    updated: "Last updated: 13 September 2026",
+    updated: "Last updated: 4 October 2026",
     draftNote: "Written in plain language on purpose. A lawyer will review these texts before the app reaches the app stores.",
     terms: {
       title: "Terms of Use",
       sections: [
         { h: "What Dream Rushes is",
-          p: "Dream Rushes is a dream journal that can turn your dream descriptions and reference photos into AI-generated images and films. The journal itself works entirely on your device; rendering happens through outside AI services." },
+          p: "Dream Rushes is a dream journal that can turn your dream descriptions, voice recordings and reference photos into AI-generated images and films. The journal itself works on your device; rendering happens through outside AI services." },
         { h: "Your content stays yours",
-          p: "You keep all rights to your dream texts, photos and generated results. You grant us and the AI services we name in the Privacy Notice a limited permission to process your material for one purpose only: creating the images and films you asked for. We never sell your content, and this permission ends when the processing is done." },
+          p: "You keep all rights to your dream texts, photos and generated results. You grant us and the AI services we name in the Privacy Notice a limited permission to process your material for one purpose only: creating the images, films and transcripts you asked for. We never sell your content, and this permission ends when the processing is done." },
         { h: "What you promise us",
           p: "You only upload photos you are allowed to use — for photos of other people, you ask them first, and you confirm this in the app for every photo. No public figures, no minors without their parents' permission. You are responsible for what you upload and create; if someone brings a claim against us because you broke these promises, you answer for it. You do not use the app to create unlawful, deceptive or abusive material, and you do not present generated scenes of real people as real events." },
         { h: "Age",
           p: "Dream Rushes is for adults. By using the app you confirm that you are 18 or older." },
         { h: "Credits and purchases",
-          p: "Creating images and films costs credits; writing, voice and everything in the Sleep tab is free. Prices are always shown before you pay. Credits have no cash value and cannot be paid out; credits from the monthly subscription expire at the end of each month. The yearly subscription gives you 480 credits on day one and 131 more every month after that; unused credits stay until the end of the subscription year. Purchased packs never expire. If the app store refunds a subscription, its unused credits are removed. A film that has started uses up its credits — we pay the AI services at that moment too. You only get them back if the rendering fails for technical reasons." },
-        { h: "AI-generated content",
-          p: "Everything the AI produces is synthetic. It can be wrong, strange or unlike what you imagined — that is the nature of the technology, not a defect. Shared films carry a label that says they are AI-made; please leave it in place, in some countries the law requires it." },
+          p: "Creating images and films costs credits; writing, voice and everything in the Sleep tab is free, and a few Glimpses each month are free too. Prices are always shown before you pay. Credits have no cash value and cannot be paid out. Credits from the monthly subscription expire at the end of each month; the yearly subscription gives you 480 credits on day one and 131 more every month, unused credits stay until the end of the subscription year. Purchased packs never expire. A render that has started uses up its credits — we pay the AI services at that moment too. You only get them back if the rendering fails for technical reasons." },
+        { h: "Buying through Apple, and refunds",
+          p: "Subscriptions and credit packs are sold through Apple's App Store; Apple's terms of sale apply, including any statutory right of withdrawal. Credits are available immediately after purchase. Refunds are decided by Apple, not by us — we can only tell Apple how much of a purchase has already been used. If Apple refunds a purchase, the credits it gave are removed, including credits already spent; while your balance is below zero, new paid renders are paused. A refunded purchase never earns an invitation gift." },
+        { h: "Gifts",
+          p: "The app gives small gifts for the dreams you collect (for example a free Glimpse on every quarter of your dream ring). Gifted credits are valid for 30 days, are used before purchased credits, have no cash value and are given at most once per milestone. We may change or end gifts for the future; gifts already given stay valid until they expire." },
+        { h: "Inviting friends",
+          p: "You can share your personal invitation link or code. You share it yourself, through your own apps — we never contact anyone for you; only send it to people who would want it. If a friend you invited makes their first real purchase, you receive a gift in dreams (credits), 14 days after that purchase if it was not refunded, at most five gifts a month. Free codes and test purchases do not count, and your friend gets nothing extra from the code. If we see abuse (for example fake accounts or self-invitations), we may withhold or remove invitation gifts." },
+        { h: "AI-generated content and sharing",
+          p: "Everything the AI produces is synthetic. It can be wrong, strange or unlike what you imagined — that is the nature of the technology, not a defect. When you share a film or image, you decide who sees it and you are responsible for it. Shared films carry a label that says they are AI-made; please leave it in place, in some countries the law requires it." },
         { h: "Availability",
-          p: "Rendering depends on outside services we do not control. We work to keep the app available but cannot promise uninterrupted service; if a paid render fails, your credits are not charged." },
+          p: "Rendering depends on outside services we do not control. We work to keep the app available but cannot promise uninterrupted service; if a paid render fails, your credits are returned." },
+        { h: "Ending your account",
+          p: "You can delete your account at any time in the app under Profile → Settings. Unused credits and gifts end with it; subscriptions must be cancelled in your Apple account settings." },
         { h: "Changes to these terms",
           p: "We may update these terms as the app evolves. If a change matters, the app will show you the new version and ask for your agreement again before you continue." },
         { h: "Liability",
@@ -1409,17 +1424,21 @@ export default {
         { h: "Who is responsible",
           p: "Dream Rushes is the controller for the processing described here. You can withdraw your consent at any time directly in the app under Profile → Settings — after that, nothing leaves your device until you agree again." },
         { h: "What we process",
-          p: "Your dream texts, the photos you upload, your voice while you talk to the assistant, and the images and films made from them. Your journal, your settings and your credit balance stay on your device. The account is optional: if you create one, we store your e-mail address (or your Apple sign-in), your profile and a backup of your dreams so they survive a new phone. The dream backup is encrypted on your phone before it leaves it (end-to-end, key in your iCloud Keychain) — we cannot read it. It never contains your photos." },
+          p: "Your dream texts, your voice recordings when you dictate a dream, the photos you upload, and the images and films made from them. Your journal and settings stay on your device. The account is optional: if you create one, we store your e-mail address (or your Apple sign-in), your profile, your credit balance, your purchase records from Apple (product, date, refund status) and a backup of your dreams so they survive a new phone. The dream backup is encrypted on your phone before it leaves it (end-to-end, key in your iCloud Keychain) — we cannot read it. It never contains your photos." },
+        { h: "Invitations",
+          p: "If you invite friends or accept an invitation, we store which account invited which, when, and whether and what the invited friend bought — only to give invitation gifts and to prevent abuse. Your friend sees your display name; you see theirs." },
         { h: "Where your data goes",
-          p: "Rendering happens at named AI services, each only for its job: DeepSeek helps write and analyse text, Google handles the voice conversation and image rendering, fal.ai renders images and passes films on to MiniMax (Hailuo) or ByteDance (Seedance) depending on the tier you choose. None of them receives more than the material needed for your specific render." },
+          p: "Each service only receives what it needs for its job. DeepSeek analyses your dream text and helps write image instructions. Google (Gemini) transcribes your voice recordings. fal.ai (USA) runs the renders and passes your material to the model that makes them: OpenAI (GPT Image 2, default) or Google (Nano Banana, backup) for images; MiniMax (Hailuo) or ByteDance (Seedance) for films; MMAudio and ACE-Step for sound; Whisper as a fallback for transcription; and an automated safety check for uploaded photos. Our own server runs at Hetzner in Germany and stores rendered images and films. Accounts, the encrypted dream backup, credits and invitations live at Supabase (Frankfurt, EU). Sign-up and password e-mails are sent through Resend (EU). Sign in with Apple and purchases go through Apple." },
         { h: "Training",
-          p: "Google's paid API does not use your content to train models. DeepSeek's paid API is not used for training by default. fal.ai may use anonymized usage data to improve its services. We ourselves never use your material to train anything." },
+          p: "OpenAI's and Google's paid APIs do not use your content to train models. DeepSeek's paid API is not used for training by default. fal.ai may use anonymized usage data to improve its services. We ourselves never use your material to train anything." },
+        { h: "Notifications",
+          p: "Reminders and the notice that your dream is ready are created on your phone. We do not store a push address for your device." },
         { h: "Storage and deletion",
-          p: "Rendered images and films are stored on our server so the app can show and share them. Deleting a dream in your journal removes it from your device; automatic deletion of old renders on the server is being built and will be in place before public launch." },
+          p: "Rendered images and films are stored on our server as a backup, so the app can show and share them and fetch them again. Deleting a dream in your journal removes it from your device. Deleting your account (Profile → Settings) removes your account, profile, dream backup, credits and invitation links; deleting your rendered images and films together with the account is being built and will be in place before public launch." },
         { h: "Legal basis",
-          p: "We process your material based on your consent (Art. 6(1)(a) GDPR), which you give at the gate before your first dream, and on the contract with you (Art. 6(1)(b) GDPR) for everything needed to deliver what you ordered." },
+          p: "We process your material based on your consent (Art. 6(1)(a) GDPR), which you give at the gate before your first dream, and on the contract with you (Art. 6(1)(b) GDPR) for everything needed to deliver what you ordered, including credits, purchases and invitation gifts. Preventing abuse of gifts and invitations rests on our legitimate interest (Art. 6(1)(f) GDPR)." },
         { h: "Transfers outside the EU",
-          p: "fal.ai and Google process data in the United States; film rendering by MiniMax or ByteDance and text processing by DeepSeek can involve transfers to other third countries, including China. These transfers rest on the providers' contractual safeguards (standard contractual clauses). If you are not comfortable with that, do not upload photos — the journal works without them." },
+          p: "fal.ai, OpenAI and Google process data in the United States; film rendering by MiniMax or ByteDance and text processing by DeepSeek can involve transfers to other third countries, including China. These transfers rest on the providers' contractual safeguards (standard contractual clauses). Supabase, Resend and our Hetzner server process data in the EU. If you are not comfortable with transfers, do not upload photos — the journal works without them." },
         { h: "Your rights",
           p: "You can ask what we hold about you, have it corrected or deleted, take back your consent at any time, and complain to a data-protection authority. Withdrawing consent stops future processing; it does not undo renders already made." },
         { h: "Age",
