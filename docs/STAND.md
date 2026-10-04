@@ -3,7 +3,13 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-04 abends — Anton, `session/2026-10-04-anton` (PR #78):
+**Stand:** 2026-10-04 spätabends — Hanni, `session/2026-10-04-hanni` (PR #80):
+**Profil: Name allein speichern, „Save changes" erst bei Änderung,
+Anzeigename ins Konto, Foto-Haken mit Leuchtrand.** **Ziel: TestFlight
+(intern) am Fr 16.10.** — Arbeitsplan liegt lokal bei Hanni
+(`~/Claude/TestFlight-Plan-2026-10-16.md`, nicht im Repo); größter Hebel:
+SSH-Zugang zum VPS + DNS `api.dreamrushes.app` (Montag 05.10.). Davor am
+selben Abend Anton, `session/2026-10-04-anton` (PR #78):
 **Startseite = Traumfänger** (gewebtes Netz, Träume als Knoten, Federn
 3/6/9, Filmspule in der Mitte), **Rechtstexte nach dem Code, Einwilligung
 v4**, **neues App-Icon** (geschlossenes Auge mit Play), **Traumportal** als
@@ -21,6 +27,30 @@ für den Besitzer — wer baut, klären Hanni + Anton). Am 03.10. Anton, PR #71:
 Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Neu mit PR #80 (04.10., Hanni) — Profil:**
+- **Eigenes Porträt: ein Name genügt** (`mobile/src/components/avatar-editor.tsx`
+  `hasSubstance`, Brücke `avatarSave` in `mobile/src/legacy/journal-bridge.jsx`).
+  Vorher waren Foto oder Beschreibung Pflicht — wer keins hatte, konnte sich
+  nicht umbenennen. Filme nutzen das Porträt ohnehin nur mit Foto
+  (`autoMatch` in `src/wizard/useWizard.js`, `src/lib/tags.js`); das
+  Onboarding legt es schon immer nur mit Namen an.
+- **„Save changes" bleibt grau**, bis Name (wie getippt), Beschreibung, ein
+  Foto oder der Foto-Haken vom geladenen Stand abweichen (`dirty`). Der
+  Haken zählt allein, damit ein altes Foto ohne Bestätigung speicherbar bleibt.
+- **Anzeigename ins Konto:** ein geänderter Name geht wie getippt
+  („Jürgen", nicht das Kürzel „jrgen") per `pushProfile({ display_name })`
+  ans Konto — das sehen eingeladene Freunde. Ohne Konto passiert nichts
+  (`authFetch` antwortet lokal 401, kein Anmelde-Blatt). Vorher wurde
+  `display_name` nur einmal am Ende des Onboardings gesetzt.
+- **Foto-Haken „This is me in the photo"** trägt den Leuchtrand der
+  Hauptknöpfe (`OrbitGlow`), solange er fehlt; mit Haken wandert der Strahl
+  zu „Save changes".
+- ⚠ Von Hanni im Simulator gesehen: Name/Beschreibung grau ↔ aktiv,
+  Leuchtrand. **Nicht belegt:** dass der neue Name im Konto ankommt (braucht
+  Anmeldung) und der Haken an einem alten Foto.
+- ⚠ `journal-bridge.jsx` liegt auch in Antons offenem PR #79 — hier nur
+  eine Zeile in `avatarSave`; wer zuletzt mergt, gleicht ab.
 
 **Neu mit PR #78 (04.10., Anton):**
 - **Traumfänger** (`mobile/src/components/moon-ring.tsx`, Rechnung weiter
