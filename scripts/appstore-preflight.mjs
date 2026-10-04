@@ -123,7 +123,11 @@ if (iosDir) {
 // ── Was stimmen muss und stimmt (Anker gegen Rückbau) ──────────────────────
 const en = read("src/i18n/en.js") ?? "";
 check("KI", "Einwilligungs-Tor nennt KI-Anbieter + Klartext-Kacheln (Nov-2025-Pflicht)",
-  en.includes("facts:") && /fal\.ai, Google, DeepSeek/.test(en) ? "ok" : "fail",
+  /* Anbieter genannt, nicht ein bestimmter Wortlaut: Einwilligung v4 (PR #78)
+     schreibt „fal.ai with OpenAI, Google, MiniMax, ByteDance …; DeepSeek;
+     Google Gemini" — genauer als früher „fal.ai, Google, DeepSeek", und der
+     alte Wortlaut-Test hielt das für einen Rückbau. Alle drei in EINER Zeile. */
+  en.includes("facts:") && en.split("\n").some((l) => l.includes("fal.ai") && l.includes("Google") && l.includes("DeepSeek")) ? "ok" : "fail",
   null);
 const appJson = read("mobile/app.json") ?? "";
 const bundleId = appJson.match(/"bundleIdentifier":\s*"([^"]+)"/)?.[1];
