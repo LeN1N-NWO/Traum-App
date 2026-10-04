@@ -29,7 +29,7 @@ import { selectBeats, shotPlan } from "../../../src/lib/cut.js";
 import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PACE } from "../../../src/lib/video.js";
 import { startsFree } from "../../../src/wizard/useWizard.js";
 import { beatsForCount } from "../../../src/lib/beats.js";
-import { reflectionContext } from "../../../src/lib/atlas.js";
+import { realDreams, reflectionContext } from "../../../src/lib/atlas.js";
 import { dreamRing, giftAtNum, nextGiftNum, pendingRingFilm, QUARTER, RING_SIZE } from "../../../src/lib/dreamRing.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
@@ -403,6 +403,7 @@ function snapshot() {
     settingsPage: {
       voiceSetting: t.profile.voiceSetting, voiceSettingHint: t.profile.voiceSettingHint,
       withdrawConsent: t.profile.withdrawConsent, withdrawConsentHint: t.profile.withdrawConsentHint, done: t.profile.done,
+      manageSubs: t.profile.manageSubs, manageSubsHint: t.profile.manageSubsHint,
       account: t.profile.account, accountNone: t.profile.accountNone, accountSignedIn: t.profile.accountSignedIn, accountSignedInNoEmail: t.profile.accountSignedInNoEmail, signIn: t.profile.signIn, signOut: t.profile.signOut,
       signOutConfirmTitle: t.profile.signOutConfirmTitle, signOutConfirmText: t.profile.signOutConfirmText,
       voice: isVoice(s.voice) ? s.voice : DEFAULT_VOICE,
@@ -547,7 +548,7 @@ function snapshot() {
     headlineFor: { browse: pw.headlineFor.browse, spent: pw.headlineFor.spent, first: pw.headlineFor.first },
     ledeFor: { browse: pw.lede, spent: pw.ledeFor.spent, first: pw.ledeFor.first },
     tabSub: pw.tabSub, tabPack: pw.tabPack, packNote: pw.packNote, yieldYearNote: pw.yieldYearNote,
-    included: pw.included, chips: pw.chips, freeNote: pw.freeNote, cta: pw.cta, notYet: pw.notYet, purchaseThanks: pw.purchaseThanks, purchaseFailed: pw.purchaseFailed, upTo: pw.upTo,
+    included: pw.included, chips: pw.chips, freeNote: pw.freeNote, cta: pw.cta, renewNote: pw.renewNote, termsLink: pw.termsLink, privacyLink: pw.privacyLink, notYet: pw.notYet, purchaseThanks: pw.purchaseThanks, purchaseFailed: pw.purchaseFailed, upTo: pw.upTo,
     balance: pw.balance(totalCredits(s)), credits: totalCredits(s),
     subs: SUBSCRIPTIONS.map((p) => {
       const films = dreamsFor(p.credits * (p.period === "year" ? 12 : 1)).films;
@@ -573,7 +574,8 @@ function snapshot() {
      neueste zuerst. Wird bei jedem Stand neu abgeleitet — ein später
      ergänztes Symbol reichert alte Träume rückwirkend an. */
   const symbols = (() => {
-    const occ = symbolOccurrences(s.journal); const ts = t.symbols;
+    // nur echte Träume — keine Beispiele, leeren Nächte, Mondfilme (wie die Atlas-Zählung)
+    const occ = symbolOccurrences(realDreams(s.journal)); const ts = t.symbols;
     const groups = Object.entries(SYMBOL_CATEGORIES).map(([key, cat]) => ({
       key, label: ts.categories[key] || cat.label,
       symbols: SYMBOLS.filter((x) => x.category === key && occ.has(x.id)).map((x) => {
