@@ -17,10 +17,11 @@ import { colors } from "@/theme";
  * Die Uhr läuft nur, solange der Tab zu sehen ist. */
 const ARMS = 5;
 
-export function PortalButton({ size = 150, recording, level, onPress, disabled, label }: {
-  size?: number; recording: boolean; level: SharedValue<number>; onPress: () => void; disabled?: boolean; label: string;
+export function PortalButton({ size = 150, stageSize, recording, level, onPress, disabled, label }: {
+  size?: number; stageSize?: number; recording: boolean; level: SharedValue<number>; onPress: () => void; disabled?: boolean; label: string;
 }) {
-  const stage = size * 2.3;
+  // Das Portal darf größer sein als der Knopf in seiner Mitte (Antons Wunsch 04.10.: den Platz nutzen).
+  const stage = stageSize ?? size * 2.3;
   const c = stage / 2;
   const R = stage * 0.5;
 

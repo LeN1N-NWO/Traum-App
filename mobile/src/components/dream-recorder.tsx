@@ -2,7 +2,7 @@ import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, 
 import { File } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import { GlassButton, PrimaryButton } from "@/components/glass";
 import { MascotLoader } from "@/components/mascot-loader";
@@ -175,6 +175,10 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     level.value = withTiming(phase === "rec" ? Math.max(0, Math.min(1, (db + 55) / 45)) : 0, { duration: 140 });
   }, [st.metering, phase, level]);
 
+  /* Das Portal füllt den Bildschirm (Antons Wunsch 04.10.: „den Space besser
+     ausnutzen") — breiter als der Rand, so hoch, wie Titel und Leiste lassen. */
+  const { width: winW, height: winH } = useWindowDimensions();
+  const portal = Math.round(Math.min(winW * 1.25, winH * 0.66));
   const secs = Math.floor((st.durationMillis || 0) / 1000);
   const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
@@ -192,29 +196,34 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     <View style={styles.center}>
       <Text style={styles.title}>{phase === "rec" ? (W?.recording ?? "Listening…") : (W?.record ?? "Tell it out loud")}</Text>
       <Text style={styles.hint}>{phase === "rec" ? clock(secs) : (W?.recordHint ?? "")}</Text>
-      {/* Der Mond ist der Knopf (Antons Wahl 26.09.). */}
-      <View style={styles.stage}>
-        <PortalButton size={150} recording={phase === "rec"} level={level} onPress={phase === "rec" ? stop : start} disabled={allowed === false}
+      {/* Das Traumportal ist der Knopf (Antons Wahl 04.10., vorher der Mond). */}
+      <View style={[styles.stage, { width: portal, height: portal, marginVertical: -portal * 0.07 }]}>
+        <PortalButton size={150} stageSize={portal} recording={phase === "rec"} level={level} onPress={phase === "rec" ? stop : start} disabled={allowed === false}
           label={phase === "rec" ? (W?.recordStop ?? "Done") : (W?.record ?? "Record")} />
       </View>
       {phase === "rec" ? <Text style={styles.stopHint}>{W?.recordStop ?? "Done"}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {/* Aufschreiben ging schief, die Aufnahme ist noch da: noch einmal versuchen. */}
       {phase === "error" && uri.current ? <PrimaryButton label={`✎ ${W?.recordTranscribe ?? "Write it down"}`} onPress={transcribe} style={{ flex: 0, alignSelf: "stretch" }} /> : null}
+      {/* Klein und ruhig unter dem Portal — das Portal ist der Star. */}
       <View style={styles.row}>
-        {phase === "rec" ? <GlassButton label={W?.recordDiscard ?? "Discard"} onPress={discard} /> : null}
-        <GlassButton label={W?.typeInstead ?? "Type instead"} onPress={typeInstead} />
+        {phase === "rec" ? (
+          <Pressable onPress={discard} hitSlop={10} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{W?.recordDiscard ?? "Discard"}</Text></Pressable>
+        ) : null}
+        <Pressable onPress={typeInstead} hitSlop={10} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>✎ {W?.typeInstead ?? "Type instead"}</Text></Pressable>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { alignItems: "center", justifyContent: "center", gap: 12, paddingVertical: 24 },
+  center: { alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 8 },
   title: { fontFamily: fonts.serif, fontSize: 30, color: colors.text, textAlign: "center" },
   hint: { color: colors.muted, fontSize: 16, textAlign: "center", fontVariant: ["tabular-nums"], lineHeight: 22 },
-  stage: { width: 345, height: 345, alignItems: "center", justifyContent: "center", marginVertical: -40 },
+  stage: { alignItems: "center", justifyContent: "center" },
   stopHint: { color: colors.faint, fontSize: 13 },
   error: { color: colors.warm, fontSize: 14, textAlign: "center" },
-  row: { flexDirection: "row", gap: 10, alignSelf: "stretch", marginTop: 6 },
+  row: { flexDirection: "row", gap: 12, justifyContent: "center", marginTop: 2 },
+  pill: { paddingVertical: 9, paddingHorizontal: 16, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.07)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.18)" },
+  pillText: { color: colors.muted, fontSize: 14, fontWeight: "600" },
 });
