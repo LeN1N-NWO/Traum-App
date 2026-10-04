@@ -2396,9 +2396,20 @@ async function serveStatic(pathname) {
  * App auf dem iPhone einen gesunden Server und sieht trotzdem nur „Check
  * your connection“ — dieselbe Falle wie capacitor:// am 09.09., gefunden
  * 18.09. beim ersten Release-Lauf auf Antons iPhone. ⚠ `null` tragen ALLE
- * file-Seiten, nicht nur unsere — für die Testphase im eigenen Netz
- * vertretbar (S6 verbietet den öffentlichen Betrieb ohnehin); vor einem
- * echten Deployment braucht es API_TOKEN, oder dieser Eintrag fliegt. */
+ * file-Seiten, nicht nur unsere.
+ *
+ * ⚠⚠ Der Eintrag BLEIBT, auch öffentlich (Neubewertung 04.10.2026, vor
+ *    TestFlight): Ohne ihn sieht jeder Release-Bau — also jeder
+ *    TestFlight- und Store-Bau — nur „Check your connection". Tragbar ist
+ *    er seit S1: Mit REQUIRE_AUTH=1 (deploy/dreamrushes.service) verlangt
+ *    der Server für alles Bezahlte ein gültiges Token (needsAccount() unten).
+ *    CORS ist kein Zugangsschutz, nur die Leseerlaubnis für Browser; eine
+ *    fremde file-Seite hat das Token nicht (Schlüsselbund, keine Cookies)
+ *    und kann nur die freien Routen lesen. Der alte Satz „vor einem echten
+ *    Deployment braucht es API_TOKEN, oder dieser Eintrag fliegt" ist damit
+ *    überholt — API_TOKEN ist seit S1 keine Option mehr. Fällt weg, wenn
+ *    die vier DOM-Webviews nativ sind (native Aufrufe schicken keinen
+ *    Origin). Die Preflight-Prüfung B3a hält genau diese Bedingung fest. */
 const NATIVE_ORIGINS = new Set(["capacitor://localhost", "ionic://localhost", "null"]);
 const LOOPBACK_ORIGIN = /^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/;
 

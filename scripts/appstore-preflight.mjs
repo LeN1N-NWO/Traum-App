@@ -37,10 +37,19 @@ check("B2", "Konto-Löschung in der App (5.1.1(v))",
   delServer && delClient ? null : `Server: ${delServer ? "ja" : "FEHLT"}, Client: ${delClient ? "ja" : "FEHLT"}`);
 
 // ── B3: Server-Härtung fürs öffentliche Netz ───────────────────────────────
+/* "null" brauchen die Expo-DOM-Webviews im Release-Bau (Kommentar über
+   NATIVE_ORIGINS in server.js) — er darf also bleiben, aber NUR solange der
+   Server Bezahltes ohne Token abweist (S1): REQUIRE_AUTH=1 im Dienst UND die
+   Sperre mit needsAccount() in server.js. Fehlt eins, ist es ein Blocker. */
 const corsNull = /NATIVE_ORIGINS\s*=\s*new Set\(\[[^\]]*"null"/.test(server);
-check("B3a", "CORS: Testphasen-Eintrag \"null\" wieder entfernt",
-  corsNull ? "fail" : "ok",
-  corsNull ? "server.js NATIVE_ORIGINS erlaubt Origin \"null\" — nur fürs Heimnetz vertretbar." : null);
+const service = read("deploy/dreamrushes.service") ?? "";
+const authOn = /^Environment=REQUIRE_AUTH=1\s*$/m.test(service)
+  && /process\.env\.REQUIRE_AUTH === "1" && needsAccount\(/.test(server);
+check("B3a", "CORS \"null\" nur mit Anmeldepflicht (S1)",
+  !corsNull || authOn ? "ok" : "fail",
+  corsNull && !authOn
+    ? "server.js erlaubt Origin \"null\", aber REQUIRE_AUTH=1 (deploy/dreamrushes.service) oder die needsAccount()-Sperre fehlt."
+    : null);
 const env = read("mobile/.env") ?? "";
 check("B3b", "App-Serveradresse ist HTTPS (kein LAN-HTTP eingebacken)",
   /EXPO_PUBLIC_API_BASE\s*=\s*https:\/\//.test(env) ? "ok" : "fail",
