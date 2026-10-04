@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
-import Animated, { Easing, cancelAnimation, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, cancelAnimation, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from "react-native-reanimated";
 import Svg, { Circle, Path, Text as SvgText } from "react-native-svg";
 import type { StoneKind } from "@/store/journal-store";
 
@@ -14,10 +14,11 @@ import type { StoneKind } from "@/store/journal-store";
  * Die Geschenksteine an 3, 6, 9 tragen ihre Zahl: roh und matt, solange
  * sie nicht erreicht sind, geschliffen und funkelnd danach.
  *
- * Funkeln: zwei Facettengruppen leuchten im Wechsel auf, als drehe sich der
- * Stein im Licht, und ab und zu blitzt ein Lichtstern. Der Stein selbst ist
- * ein stilles SVG; bewegt werden nur native Ebenen (Deckkraft, Skalierung,
- * Drehung) — und nur, solange der Bildschirm zu sehen ist (`live`). */
+ * Funkeln: Jeder Stein blitzt in seinem eigenen Takt kurz auf — Licht
+ * wandert über zwei Facettengruppen, dazu ein Lichtstern. Der Stein selbst
+ * ist ein stilles SVG; bewegt werden nur native Ebenen (Deckkraft,
+ * Skalierung, Drehung), nur während eines Blitzes und nur, solange der
+ * Bildschirm zu sehen ist (`live`). */
 
 /** tief, dunkel, mittel, hell, Glanz */
 type Pal = readonly [string, string, string, string, string];
@@ -98,31 +99,48 @@ function roughCut(c: number, r: number, pal: Pal) {
   return { body: poly(pts), fill: mix(pal[2], "#5A5F70", 0.62), planes };
 }
 
+/* Ein Aufblitzen (04.10., Leistung): Licht wandert über zwei Facetten-
+   gruppen, dazu der Lichtstern — gut anderthalb Sekunden, dann ist der Stein
+   wieder still. Ausgelöst per Zeitgeber; zwischen den Blitzen läuft keine
+   Animation, also auch keine Arbeit je Bild. */
+type SV = { value: number };
+function twinkle(a: SV, b: SV, star: SV) {
+  const ease = Easing.inOut(Easing.sin);
+  a.value = withSequence(withTiming(1, { duration: 600, easing: ease }), withTiming(0, { duration: 800, easing: ease }));
+  b.value = withDelay(350, withSequence(withTiming(1, { duration: 600, easing: ease }), withTiming(0, { duration: 800, easing: ease })));
+  star.value = withDelay(300, withSequence(
+    withTiming(1, { duration: 260, easing: Easing.out(Easing.quad) }),
+    withTiming(0, { duration: 520, easing: Easing.in(Easing.quad) }),
+  ));
+}
+
 export function DreamStone({ size, pal, live, num, rough, seed = 0 }: { size: number; pal: Pal; live: boolean; num?: number; rough?: boolean; seed?: number }) {
   const c = size / 2, r = size / 2 / 1.12;
   const cut = useMemo(() => brilliant(c, r, pal), [c, r, pal]);
   const raw = useMemo(() => roughCut(c, r, pal), [c, r, pal]);
 
   const sh = useSharedValue(0);
+  const sh2 = useSharedValue(0);
   const gl = useSharedValue(0);
   const sparkle = live && !rough;
   useEffect(() => {
     if (!sparkle) {
-      cancelAnimation(sh); cancelAnimation(gl);
-      sh.value = 0; gl.value = 0;
+      cancelAnimation(sh); cancelAnimation(sh2); cancelAnimation(gl);
+      sh.value = 0; sh2.value = 0; gl.value = 0;
       return;
     }
-    sh.value = withDelay((seed * 431) % 2600, withRepeat(withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.sin) }), -1, true));
     // jeder Stein blitzt in seinem eigenen Takt — der Fänger funkelt, statt im Gleichschritt zu blinken
     const every = 4200 + ((seed * 1371) % 4800);
-    gl.value = withDelay((seed * 977) % 3000, withRepeat(withSequence(
-      withTiming(0, { duration: every }),
-      withTiming(1, { duration: 260, easing: Easing.out(Easing.quad) }),
-      withTiming(0, { duration: 520, easing: Easing.in(Easing.quad) }),
-    ), -1, false));
-  }, [sparkle, seed, sh, gl]);
+    let timer: ReturnType<typeof setTimeout>;
+    const fire = () => {
+      twinkle(sh, sh2, gl);
+      timer = setTimeout(fire, every);
+    };
+    timer = setTimeout(fire, 600 + ((seed * 977) % 3000));
+    return () => clearTimeout(timer);
+  }, [sparkle, seed, sh, sh2, gl]);
   const shA = useAnimatedStyle(() => ({ opacity: 0.7 * sh.value }));
-  const shB = useAnimatedStyle(() => ({ opacity: 0.7 * (1 - sh.value) }));
+  const shB = useAnimatedStyle(() => ({ opacity: 0.7 * sh2.value }));
   const glS = useAnimatedStyle(() => ({ opacity: gl.value, transform: [{ scale: 0.2 + 0.8 * gl.value }, { rotate: `${gl.value * 35}deg` }] }));
 
   const L = r * 0.85, w = r * 0.07, GL = L * 2;
@@ -227,29 +245,31 @@ export function PrismStone({ size, filled, live }: { size: number; filled: numbe
   const full = filled >= 12;
   const cut = useMemo(() => prism(c, r, Math.min(12, filled)), [c, r, filled]);
   const sh = useSharedValue(0);
+  const sh2 = useSharedValue(0);
   const g1 = useSharedValue(0);
   const g2 = useSharedValue(0);
   const sparkle = live && filled > 0;
   useEffect(() => {
     if (!sparkle) {
-      cancelAnimation(sh); cancelAnimation(g1); cancelAnimation(g2);
-      sh.value = 0; g1.value = 0; g2.value = 0;
+      cancelAnimation(sh); cancelAnimation(sh2); cancelAnimation(g1); cancelAnimation(g2);
+      sh.value = 0; sh2.value = 0; g1.value = 0; g2.value = 0;
       return;
     }
-    sh.value = withRepeat(withTiming(1, { duration: full ? 1600 : 2600, easing: Easing.inOut(Easing.sin) }), -1, true);
-    const blink = (v: typeof g1, every: number, delay: number) => {
-      v.value = withDelay(delay, withRepeat(withSequence(
-        withTiming(0, { duration: every }),
-        withTiming(1, { duration: 280, easing: Easing.out(Easing.quad) }),
-        withTiming(0, { duration: 560, easing: Easing.in(Easing.quad) }),
-      ), -1, false));
-    };
-    blink(g1, full ? 1800 : 3600, 400);
-    if (full) blink(g2, 2300, 1500);
-    else { cancelAnimation(g2); g2.value = 0; }
-  }, [sparkle, full, sh, g1, g2]);
+    // der Herzstein blitzt öfter als die Traumsteine; voll noch öfter und mit zweitem Stern
+    let t1: ReturnType<typeof setTimeout>, t2: ReturnType<typeof setTimeout> | undefined;
+    const fire = () => { twinkle(sh, sh2, g1); t1 = setTimeout(fire, full ? 2200 : 3800); };
+    t1 = setTimeout(fire, 500);
+    if (full) {
+      const fire2 = () => {
+        g2.value = withSequence(withTiming(1, { duration: 280, easing: Easing.out(Easing.quad) }), withTiming(0, { duration: 560, easing: Easing.in(Easing.quad) }));
+        t2 = setTimeout(fire2, 2900);
+      };
+      t2 = setTimeout(fire2, 1500);
+    }
+    return () => { clearTimeout(t1); if (t2) clearTimeout(t2); };
+  }, [sparkle, full, sh, sh2, g1, g2]);
   const shA = useAnimatedStyle(() => ({ opacity: 0.6 * sh.value }));
-  const shB = useAnimatedStyle(() => ({ opacity: 0.6 * (1 - sh.value) }));
+  const shB = useAnimatedStyle(() => ({ opacity: 0.6 * sh2.value }));
   const gs1 = useAnimatedStyle(() => ({ opacity: g1.value, transform: [{ scale: 0.2 + 0.8 * g1.value }, { rotate: `${g1.value * 35}deg` }] }));
   const gs2 = useAnimatedStyle(() => ({ opacity: g2.value, transform: [{ scale: 0.2 + 0.6 * g2.value }, { rotate: `${-g2.value * 30}deg` }] }));
   const L = r * 0.85, w = r * 0.06, GL = L * 2;
