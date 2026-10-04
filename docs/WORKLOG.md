@@ -3,6 +3,38 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-04 20:45 — Anton — Branch `session/2026-10-04b-anton` (PR #79) — Traumfänger mit Edelsteinen, Federbänder, Geschenke als Steine
+
+**Commits:** 01699ae, e594c0b, 8d64214, 7d006d6, f694709 (+ Merge main mit Hannis PR #80, Wrap).
+
+**Was:**
+- **Federbänder** statt langer Federn: kurzes Band mit Perlen und Büschel
+  (Geschenkfeder groß, zwei kleine blasse) an 3/6/9; der Fänger sitzt oben
+  im Rahmen, die Bänder haben einen eigenen Streifen (26 px) darunter.
+- **Traumsteine** statt Miniaturbilder (`dream-stone.tsx`): Brillantschliff,
+  Fassung, Feuer, Funkeln; Steinart aus der Gruppe des Traumsymbols.
+  Erst an einem einzelnen Aquamarin mit Anton abgestimmt, dann übertragen.
+- **Geschenksteine** mit Zahl an 3/6/9: roh → geschliffen.
+- **Herzstein** in der Mitte: zwölf bunte Keile (auch die Tafel — die
+  graue Scheibe störte), jeder leuchtet mit seinem Traum.
+- **Geschenkkarten** zeigen den großen Stein statt der Schachtel; Öffnen
+  sprengt die rohe Schale. Hinweis unter dem Ring mit Stein statt 🎁.
+
+**Warum:** Testpersonen störten die Federn über den Texten; Bilder bei
+30 px nicht erkennbar; Spule/Filmbild „komisch"; Antons Wahl jeweils aus
+Varianten (B Bänder, Traumsteine, Herzstein, Steine statt Geschenke).
+
+**Belege:** 904 Tests grün, tsc sauber, Lint ohne neue Warnungen; jeder
+Stand als Release auf Antons iPhone installiert und gestartet. Seine
+10 echten Träume per `devicectl` gelesen: 8 mit Symbol (Wasser, Fliegen,
+Himmel, Freude), 2 ohne → Mondstein.
+
+**Für den Nächsten:**
+- Traumsymbole kommen aus englischen Stichworten; es klappt, weil die
+  Analyse-Beats englisch sind. Deutsche Traumtexte allein ergäben oft
+  keinen Stein → Mondstein.
+- Die Öffnen-Animation sieht man erst beim nächsten erreichten Geschenk.
+
 ## 2026-10-04 20:35 — Hanni — Branch `session/2026-10-04-hanni` (PR #80) — Profil: Name, Save changes, Foto-Haken
 
 **Commits:** 2791bbd (Name allein, dirty, Anzeigename ins Konto), ee0e043 +

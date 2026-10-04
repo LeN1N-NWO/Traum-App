@@ -66,7 +66,7 @@ export default {
     left: (n) => `Noch ${n} ${n === 1 ? "Nacht" : "Nächte"} — dann wird dein Monat zum Film.`,
     fullTonight: "Letzte Nacht des Rings — morgen wird dein Monat zum Film.",
     thread: (label, n) => `Der stärkste Faden: ${label} (${n}×)`,
-    milestoneSay: (left, gift) => `${left <= 1 ? "Noch 1 Traum" : `Noch ${left} Träume`} bis 🎁 ${gift}`,
+    milestoneSay: (left, gift) => `${left <= 1 ? "Noch 1 Traum" : `Noch ${left} Träume`} bis ${gift}`,
     /* Der Traum-Ring (03.10. spätabends, dreamRing.js): Plätze wie eine Uhr. */
     /* Die Einführung im leeren Traumfänger (Antons Wunsch 04.10.). */
     intro: [
@@ -76,6 +76,7 @@ export default {
     ],
     introCta: "Verstanden",
     ringCount: (n, ring) => `${n} ${n === 1 ? "Traum" : "Träume"} · Ring ${ring}`,
+    stones: { place: "Aquamarin", scenario: "Bernstein", creature: "Smaragd", person: "Rosenquarz", emotion: "Amethyst", none: "Mondstein" },
     nextSlot: (num) => `Dein nächster Traum füllt Platz ${num}`,
     ringFilmTitle: (ring, from, to, motif) => `Ring ${ring} · Träume ${from}–${to}${motif ? ` · ${motif}` : ""}`,
     ringReadyTitle: "Dein Ring ist voll — hier ist dein Film",
