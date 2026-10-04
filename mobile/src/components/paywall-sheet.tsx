@@ -137,6 +137,14 @@ export function PaywallSheet({ reason = "browse" }: { reason?: string }) {
           <PrimaryButton label={P?.cta ?? "Continue"} heavy onPress={buy} style={{ flex: 0 }} />
           {note ? <Text style={styles.notYet}>{note}</Text> : null}
           <Text style={styles.balance}>{P?.balance}</Text>
+          {/* Pflichtangaben fürs Abo (App-Store-Prüfung 3.1.2): automatische
+              Verlängerung, Kündigung, Links zu AGB und Datenschutz. */}
+          {tab === "sub" && P?.renewNote ? <Text style={styles.renew}>{P.renewNote}</Text> : null}
+          <View style={styles.legalRow}>
+            <Pressable hitSlop={8} onPress={() => router.push({ pathname: "/profile/legal", params: { doc: "terms" } })}><Text style={styles.legalLink}>{P?.termsLink}</Text></Pressable>
+            <Text style={styles.legalDot}>·</Text>
+            <Pressable hitSlop={8} onPress={() => router.push({ pathname: "/profile/legal", params: { doc: "privacy" } })}><Text style={styles.legalLink}>{P?.privacyLink}</Text></Pressable>
+          </View>
         </View>
       </ScrollView>
       <View style={styles.bridge}>{bridge}</View>
@@ -173,6 +181,10 @@ function FilmYield({ urls, backup, count, upTo, word }: { urls: string[]; backup
 }
 
 const styles = StyleSheet.create({
+  renew: { color: colors.faint, fontSize: 11.5, lineHeight: 16, textAlign: "center", marginTop: 4 },
+  legalRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, marginTop: 2 },
+  legalLink: { color: colors.accentSoft, fontSize: 13, textDecorationLine: "underline" },
+  legalDot: { color: colors.faint, fontSize: 13 },
   screen: { flex: 1, backgroundColor: colors.bg },
   hero: { position: "absolute", left: 0, right: 0, top: 0, height: 320, opacity: 0.45 },
   content: { paddingHorizontal: 18, gap: 18 },

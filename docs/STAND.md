@@ -3,7 +3,13 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-04 abends — Anton, `session/2026-10-04b-anton` (PR #79):
+**Stand:** 2026-10-04 spätabends — Anton, `session/2026-10-04c-anton` (PR #82):
+**Traumsymbol-Atlas repariert** (war bei deutschen Träumen leer),
+**Profil kompakt** (Porträt klein neben dem Namen), **Leistung**
+(Animationen nur auf dem sichtbaren Tab, Steine blitzen kurz),
+**App-Store-Pflichten im Kauf** (Abo verwalten, Verlängerungstext,
+AGB/Datenschutz-Links), **Wissen rechtlich durchgesehen**. Davor am
+selben Abend Anton, `session/2026-10-04b-anton` (PR #79):
 **Traumfänger mit Edelsteinen** — jeder Traum ist ein geschliffener
 Traumstein (Steinart aus dem Traumsymbol), die Zahlen 3/6/9 sitzen auf
 Geschenksteinen (roh → geschliffen), in der Mitte der bunte **Herzstein**,
@@ -34,7 +40,42 @@ Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Neu mit PR #79 (04.10. abends, Anton) — Traumfänger mit Edelsteinen:**
+**Neu mit PR #82 (04.10. spätabends, Anton):**
+- **Traumsymbol-Atlas** (Schlaf › Traumsymbole) war leer:
+  `symbolOccurrences` (`src/lib/symbols.js`) las nur den Traumtext, die
+  Stichworte sind englisch. Jetzt Text + englische Analyse-Beats (wie
+  `atlas.js` `detectableText`), in der Brücke nur `realDreams`. Mit
+  Antons Daten: Wasser 4, Fliegen 3, Fallen, Himmel, Freude. Test dazu.
+- ⚠ **Lehre:** Der erste Fix rief in der Brücke `realDreams(…)` auf — im
+  selben Bereich heißt aber eine Zahl so (`journal-bridge.jsx` ~Z. 501).
+  TypeError → kein Stand → App zeigte nur den Hintergrund. Import jetzt
+  als `realDreamsOf`. Lint und Tests sehen die Brücke nicht mit echten
+  Daten; geprüft wurde per Bun-Lauf von `snapshot()` mit Antons
+  localStorage (vom Gerät per `devicectl`). Bei Brücken-Änderungen so
+  gegenprüfen.
+- **Profil** (`mobile/src/app/profile/index.tsx`): Porträt 76 px neben
+  Name und Hinweis, Träume/verfilmt in einer Zeile darunter.
+- **Leistung:** Nachthimmel (`night-sky.tsx`, hinter vier Tabs, die
+  montiert bleiben) und Traumfänger-Animationen (Bänder, Atmen, Puls)
+  liefen auch unsichtbar — jetzt `useScreenActive`. Steine (`dream-
+  stone.tsx`) liefen dauernd (~30 Stil-Updates je Bild); jetzt per
+  Zeitgeber ein kurzer Blitz je Stein (≈ 1,5 s alle 4–9 s), dazwischen
+  nichts. ⚠ Nicht gemessen: Instruments auf dem iPhone brach mit
+  „unknown problem" ab (vermutlich gesperrt); eine Messung direkt nach
+  dem Start ≈ halber Kern (Start inklusive). Auf dem Gerät liegen
+  `cpu_resource`-Berichte vom 04.10. (12:28–17:36, ältere Stände).
+- **Einstellungen/Kauf (App-Store 3.1.2):** „Abo verwalten" → Apple-
+  Abo-Seite (`settings.tsx`); im Kaufblatt Verlängerungstext (nur Abo-
+  Reiter) und Links AGB · Datenschutz (`paywall-sheet.tsx`); Konto-
+  Löschen-Bestätigung nennt das weiterlaufende Apple-Abo.
+- **Wissen** (`knowledge.tsx`, 18 Karten): eigene Zusammenfassungen,
+  DOI-Links, keine fremden Bilder — rechtlich unkritisch (keine
+  Anwaltsprüfung). Hinweis jetzt „keine Diagnose und kein medizinischer
+  Rat", oben statt am Ende; Datenschutz (en/de) nennt die Studien-Links
+  (Verlagsseite, deren Datenschutz). Für Werbung: keine Wirkversprechen;
+  Atemübung „the quickest way to calm" ggf. weicher.
+
+**Mit PR #79 (04.10. abends, Anton) — Traumfänger mit Edelsteinen:**
 - **Anlass:** Testpersonen störten die langen Federn über den Texten
   darunter; die Miniaturbilder im Netz waren nicht zu erkennen; Spule und
   Filmbild in der Mitte „sehen komisch aus". Alles in Varianten mit Anton
@@ -424,6 +465,17 @@ ersetzt (siehe oben; das Sternbild `constellation.js` ist gelöscht):
   https://claude.ai/artifact/FYiRnRVnoAe2yzj5DxKTQ7
 
 **Nächste Schritte:**
+- **Offen für die App-Prüfung (Audit 04.10.):** „Käufe wiederherstellen"
+  fehlt (Pflicht für Abos; braucht die Belegprüfung am Server, B1,
+  Hanni); Konto löschen entfernt die Medien am Server nicht (S2, Hanni);
+  **Support-Adresse fehlt in der App** (Anton/Hanni: welche Adresse?);
+  Verantwortlicher/Anschrift in den Rechtstexten; Hinweis „Anwältin
+  prüft" (`legal.tsx`) vor der Einreichung entfernen; `check-env.mjs`
+  warnt nicht bei fehlenden `APPLE_*` (Apple-Konten ließen sich dann
+  nicht löschen).
+- **Anton prüft am iPhone (PR #82):** Startseite wieder da, Traumsymbole,
+  Profilkopf, ob das kurze Blitzen der Steine gefällt; bei entsperrtem
+  iPhone auf der Startseite die CPU-Messung nachholen.
 - **Anton prüft am iPhone (PR #79):** Traumsteine in echter Größe und
   wie viel sie funkeln, Zahlen auf den Geschenksteinen, Herzstein, Bänder
   (liegt nichts über den Texten?), Geschenk-Vorschau als Stein; das

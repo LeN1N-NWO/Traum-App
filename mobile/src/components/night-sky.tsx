@@ -1,8 +1,9 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, cancelAnimation, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
+import { useScreenActive } from "@/lib/use-screen-active";
 
 /* Der Nachthimmel hinter Traum-Tab und Profil (Antons Wahl 26.09.: „der
    Hintergrund mit den Kometen"): Sterne in drei Gruppen, die langsam
@@ -27,15 +28,20 @@ export function NightSky({ density = 1 }: { density?: number }) {
   }, [density]);
 
   const tw = [useSharedValue(0.5), useSharedValue(0.7), useSharedValue(0.9)];
+  /* Nur funkeln, solange der Tab zu sehen ist (04.10.): Der Himmel liegt
+     inzwischen hinter vier Tabs, die alle montiert bleiben — vorher liefen
+     alle vier Himmel ständig weiter, auch unsichtbar. */
+  const live = useScreenActive();
   useEffect(() => {
     tw.forEach((v, i) => {
+      if (!live) { cancelAnimation(v); return; }
       v.value = withRepeat(withSequence(
         withTiming(0.25 + i * 0.15, { duration: 2300 + i * 900, easing: Easing.inOut(Easing.sin) }),
         withTiming(0.75 + i * 0.08, { duration: 2600 + i * 700, easing: Easing.inOut(Easing.sin) }),
       ), -1, true);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [live]);
   /* Das Funkeln als Deckkraft einer EBENE, nicht als SVG-Eigenschaft
      (28.09., Dauerlast): So blendet die Grafikkarte drei fertige Bilder
      ineinander, statt das SVG jedes Bild neu zu zeichnen. */
@@ -56,7 +62,7 @@ export function NightSky({ density = 1 }: { density?: number }) {
           </Animated.View>
         ))
       ) : null}
-      {box.w > 0 ? <ShootingStar w={box.w} h={box.h} /> : null}
+      {box.w > 0 && live ? <ShootingStar w={box.w} h={box.h} /> : null}
     </View>
   );
 }

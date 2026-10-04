@@ -43,6 +43,8 @@ export function Knowledge({ K, initialOpen }: { K: KnowledgeData; initialOpen?: 
     <View style={styles.wrap}>
       <Text style={styles.mission}>{K.mission}</Text>
       <Text style={styles.lede}>{K.lede}</Text>
+      {/* der Hinweis oben, nicht erst am Ende der Liste (04.10., Rechtsdurchsicht) */}
+      <Text style={styles.disclaimerTop}>{K.disclaimer}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} style={{ marginHorizontal: -16 }}>
         {[null, ...cats].map((k) => {
           const on = cat === k;
@@ -84,13 +86,13 @@ export function Knowledge({ K, initialOpen }: { K: KnowledgeData; initialOpen?: 
           </Pressable>
         );
       })}
-      <Text style={styles.disclaimer}>{K.disclaimer}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { gap: 12 },
+  disclaimerTop: { color: colors.faint, fontSize: 12.5, lineHeight: 17 },
   mission: { fontFamily: fonts.serif, fontSize: 21, lineHeight: 28, color: colors.text },
   lede: { color: colors.muted, fontSize: 14.5, lineHeight: 21 },
   chips: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 4 },
@@ -114,5 +116,4 @@ const styles = StyleSheet.create({
   sourceLabel: { color: colors.faint, fontSize: 11, letterSpacing: 1.4, fontWeight: "700", textTransform: "uppercase" },
   sourceText: { color: colors.muted, fontSize: 12.5, lineHeight: 17 },
   sourceOpen: { color: colors.accentSoft, fontSize: 13, fontWeight: "600", marginTop: 2 },
-  disclaimer: { color: colors.faint, fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 6 },
 });

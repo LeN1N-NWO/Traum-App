@@ -3,6 +3,42 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-04 22:35 — Anton — Branch `session/2026-10-04c-anton` (PR #82) — Symbol-Atlas, Profil kompakt, Leistung, App-Store-Pflichten im Kauf, Wissen rechtlich
+
+**Commits:** b1a4577, cf94b29, 14b2177, 4f3a0a8, 0b3b13d (+ Wrap).
+
+**Was:**
+- Traumsymbol-Atlas leer → `symbolOccurrences` liest jetzt auch die
+  englischen Analyse-Beats; nur echte Träume. Test für deutschen Text.
+- Profil: Porträt klein neben dem Namen.
+- Leistung: Nachthimmel und Traumfänger-Animationen halten auf
+  unsichtbaren Tabs an; Steine blitzen kurz statt dauernd zu laufen.
+- Kauf/Einstellungen: Abo verwalten, Verlängerungstext, AGB/Datenschutz-
+  Links im Kaufblatt, Abo-Hinweis beim Konto-Löschen.
+- Wissen: Hinweis „kein medizinischer Rat" oben; Datenschutz nennt die
+  Studien-Links. Drei Explore-Agenten: Atlas-Ursache, Wissen-Inventar
+  (18 Karten, eigene Texte, DOI-Links), Einstellungs-Audit.
+- **Zwischenfall:** Der Atlas-Fix rief `realDreams()` in der Brücke auf,
+  wo eine Zahl gleichen Namens im Bereich liegt → Brücke warf, App zeigte
+  nur den Hintergrund. Behoben (`realDreamsOf`), mit Antons echten Daten
+  gegengeprüft (alt wirft, neu baut den Stand).
+
+**Warum:** Antons Liste 04.10. spätabends (Symbole leer, Wissen
+rechtlich, Profilbild zu groß, Einstellungen vollständig?, Leistung).
+
+**Belege:** 905 Tests grün, tsc sauber, Lint 0 Fehler; jeder Stand als
+Release auf Antons iPhone; Brücken-`snapshot()` per Bun mit Antons
+localStorage. CPU-Messung per Instruments nur einmal geglückt (direkt
+nach Start ≈ halber Kern), danach „unknown problem".
+
+**Für den Nächsten:**
+- Brücken-Änderungen mit echten Daten durchlaufen lassen: Datei nach
+  `__snap_tmp.jsx` kopieren, `export { snapshot as __snapshot }`
+  anhängen, `localStorage`/`window` in Bun stellen, `snapshot()` rufen
+  (Daten vom Gerät: `devicectl … appDataContainer … localstorage.sqlite3`).
+- Offene App-Store-Punkte stehen in STAND (Wiederherstellen, Medien
+  löschen, Support-Adresse).
+
 ## 2026-10-04 20:45 — Anton — Branch `session/2026-10-04b-anton` (PR #79) — Traumfänger mit Edelsteinen, Federbänder, Geschenke als Steine
 
 **Commits:** 01699ae, e594c0b, 8d64214, 7d006d6, f694709 (+ Merge main mit Hannis PR #80, Wrap).
