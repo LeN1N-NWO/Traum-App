@@ -29,7 +29,7 @@ const KEY_USER = "dreamrushes.user";
 export type AuthUser = { id: string; email: string | null };
 type Session = { access_token: string; refresh_token: string; user?: AuthUser | null };
 
-export type LoginFailure = "wrong" | "busy" | "unavailable" | "offline";
+export type LoginFailure = "wrong" | "busy" | "unavailable" | "offline" | "unconfirmed";
 export type LoginResult = { ok: true; user: AuthUser } | { ok: false; why: LoginFailure };
 
 /* Who is signed in, for the UI — read back from the keychain at start
@@ -85,7 +85,11 @@ function failure(status: number): LoginFailure {
    The server's answer wins; `fallbackEmail` only fills an e-mail the server
    does not carry. */
 async function completeLogin(res: Response, fallbackEmail: string | null): Promise<LoginResult> {
-  if (!res.ok) return { ok: false, why: failure(res.status) };
+  if (!res.ok) {
+    /* Signed up but the mail link not clicked yet — not a wrong password. */
+    const reason = ((await res.json().catch(() => null)) as { reason?: string } | null)?.reason;
+    return { ok: false, why: reason === "unconfirmed" ? "unconfirmed" : failure(res.status) };
+  }
   /* A proxy or captive portal can answer 200 with HTML. Unguarded, that threw
      past the caller and left the sign-in form spinning for good. */
   const s = (await res.json().catch(() => null)) as Session | null;
@@ -106,6 +110,68 @@ export async function login(mail: string, password: string): Promise<LoginResult
   } catch {
     return { ok: false, why: "offline" };
   }
+  return completeLogin(res, mail.trim());
+}
+
+/* Create an account with e-mail and password (03.10.2026). With "Confirm
+   email" on in Supabase there is no session yet: `confirm` means "a link is in
+   the inbox — tap it, then sign in". Supabase answers a taken address the
+   same way, on purpose. With confirmation off it signs in directly. */
+export type SignupFailure = LoginFailure | "weak" | "invalid" | "exists";
+export type SignupResult = { ok: true; user: AuthUser } | { ok: true; confirm: true } | { ok: false; why: SignupFailure };
+
+export async function register(mail: string, password: string): Promise<SignupResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/auth/signup`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: mail.trim(), password }),
+    });
+  } catch {
+    return { ok: false, why: "offline" };
+  }
+  if (!res.ok) {
+    const reason = ((await res.json().catch(() => null)) as { reason?: string } | null)?.reason;
+    if (reason === "weak" || reason === "invalid" || reason === "exists") return { ok: false, why: reason };
+    return { ok: false, why: res.status === 429 ? "busy" : "unavailable" };
+  }
+  /* A clone, because completeLogin() reads the body itself. */
+  const body = (await res.clone().json().catch(() => null)) as { confirm?: boolean } | null;
+  if (body?.confirm) return { ok: true, confirm: true };
+  return completeLogin(res, mail.trim());
+}
+
+/* Forgot password (03.10.2026): a code by mail, then code + new password.
+   Step 1 answers the same for every address — whether it has an account is
+   not the app's to know. Step 2 ends signed in, like a login. */
+export type ResetFailure = SignupFailure | "code";
+export type ResetResult = { ok: true; user: AuthUser } | { ok: false; why: ResetFailure };
+
+async function authPost(path: string, body: object): Promise<Response | null> {
+  try {
+    return await fetch(`${API_BASE}${path}`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+    });
+  } catch {
+    return null;
+  }
+}
+async function failureOf(res: Response): Promise<ResetFailure> {
+  const reason = ((await res.json().catch(() => null)) as { reason?: string } | null)?.reason;
+  if (reason === "weak" || reason === "invalid" || reason === "code") return reason;
+  return res.status === 429 ? "busy" : "unavailable";
+}
+
+export async function requestReset(mail: string): Promise<{ ok: true } | { ok: false; why: ResetFailure }> {
+  const res = await authPost("/api/auth/recover", { email: mail.trim() });
+  if (!res) return { ok: false, why: "offline" };
+  return res.ok ? { ok: true } : { ok: false, why: await failureOf(res) };
+}
+
+export async function resetPassword(mail: string, code: string, password: string): Promise<ResetResult> {
+  const res = await authPost("/api/auth/reset", { email: mail.trim(), code: code.trim(), password });
+  if (!res) return { ok: false, why: "offline" };
+  if (!res.ok) return { ok: false, why: await failureOf(res) };
   return completeLogin(res, mail.trim());
 }
 

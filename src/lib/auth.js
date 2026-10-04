@@ -178,7 +178,9 @@ async function authCall(path, { method = "POST", body, token, config, fetchImpl 
     if (/provider_disabled/.test(code) || /unsupported provider/i.test(detail || "")) {
       return { ok: false, status: 503, error: "This sign-in method is not switched on for this project.", cause };
     }
-    return { ok: false, status, error, cause };
+    /* `code` rides along for callers that must tell rejections apart —
+       sign-up does (weak password vs. bad address); sign-in deliberately not. */
+    return { ok: false, status, error, cause, code };
   }
   return { ok: true, data: data || {} };
 }
@@ -206,8 +208,182 @@ export async function passwordLogin({ email, password } = {}, { config, fetchImp
     config,
     fetchImpl,
   });
+  /* Signed up, link not clicked yet (since 03.10.2026 a normal state).
+     Supabase says so only AFTER the password matched, so naming it reveals
+     nothing to someone guessing — and "wrong password" here would send a
+     person who typed everything right off to doubt their password. */
+  if (!r.ok && /email_not_confirmed/.test(r.code || "")) {
+    return { ok: false, status: 403, error: "Confirm your e-mail first.", reason: "unconfirmed", cause: r.cause };
+  }
   if (!r.ok) return r;
   return { ok: true, session: publicSession(r.data) };
+}
+
+/**
+ * Create an account with e-mail and password (03.10.2026).
+ *
+ * With "Confirm email" switched on in Supabase (it is, measured 03.10.2026:
+ * `mailer_autoconfirm: false`) there is no session yet — Supabase mails a
+ * link, and only after that click does passwordLogin() work. The answer is
+ * then `{ ok: true, confirm: true }` and nothing else: Supabase returns a
+ * user record here, and for an address that ALREADY has an account it
+ * returns an invented one, so that sign-up does not reveal who is a member.
+ * Passing on its id would hand the client a fake. With confirmation off,
+ * Supabase answers with a session, and so do we — same shape as sign-in.
+ *
+ * ⚠ The built-in Supabase mailer only delivers to members of the Supabase
+ *   team, a few per hour. Real people need custom SMTP in the dashboard.
+ *
+ * Same password discipline as passwordLogin(): one request body, never
+ * logged, never kept.
+ *
+ * @returns {Promise<{ok: true, session: object} | {ok: true, confirm: true}
+ *   | {ok: false, status: number, error: string, reason?: string, cause?: string}>}
+ *   `reason` (weak | invalid | exists) lets the app say what to fix.
+ */
+export async function passwordSignup({ email, password } = {}, { config, fetchImpl } = {}) {
+  if (!config) return { ok: false, status: 503, error: "Sign-in is not configured." };
+  if (typeof email !== "string" || typeof password !== "string"
+      || !email.trim() || !password
+      || email.length > MAX_EMAIL || password.length > MAX_PASSWORD) {
+    return { ok: false, status: 400, error: "E-mail and password are required." };
+  }
+
+  const r = await authCall("/auth/v1/signup", {
+    body: { email: email.trim(), password },
+    config,
+    fetchImpl,
+  });
+  if (!r.ok) {
+    /* authCall() reads every 400 as "wrong credentials" — right for sign-in,
+       wrong here, where nothing was compared. Sorted by Supabase's code. */
+    const code = r.code || "";
+    if (/weak_password/.test(code)) {
+      return { ok: false, status: 422, error: "That password is too weak.", reason: "weak", cause: r.cause };
+    }
+    if (/email_address_invalid|validation_failed/.test(code)) {
+      return { ok: false, status: 400, error: "That doesn't look like an e-mail address.", reason: "invalid", cause: r.cause };
+    }
+    /* Only reachable with confirmation OFF — with it on, Supabase hides an
+       existing address behind the invented user above. The anon key is
+       public, so hiding it here would protect nothing Supabase itself shows. */
+    if (/user_already_exists|email_exists/.test(code)) {
+      return { ok: false, status: 409, error: "There is already an account for this e-mail.", reason: "exists", cause: r.cause };
+    }
+    if (/signup_disabled/.test(code)) {
+      return { ok: false, status: 503, error: "This sign-in method is not switched on for this project.", cause: r.cause };
+    }
+    return r;
+  }
+  if (r.data.access_token) return { ok: true, session: publicSession(r.data) };
+  return { ok: true, confirm: true };
+}
+
+/* Supabase's own minimum (measured 03.10.2026: "Password should be at least
+   6 characters"). Checked here BEFORE a reset code is spent — see below. */
+const MIN_PASSWORD = 6;
+/* Recovery codes are 6 digits by default; projects can raise it to 10. */
+const CODE_RE = /^\d{6,10}$/;
+
+/**
+ * Forgot password, step 1: mail a recovery code (03.10.2026).
+ *
+ * Code, not link: the link would land on a web page we do not have, or
+ * need a deep link back into the app; a code is typed into the app wherever
+ * the mail was opened. ⚠ The Supabase "Reset Password" template must show
+ * `{{ .Token }}` — the default one only carries the link.
+ *
+ * Supabase answers an unknown address exactly like a known one, and so do
+ * we: "is there an account for this address" is not a question for strangers.
+ *
+ * @returns {Promise<{ok: true} | {ok: false, status: number, error: string, cause?: string}>}
+ */
+export async function requestPasswordReset({ email } = {}, { config, fetchImpl } = {}) {
+  if (!config) return { ok: false, status: 503, error: "Sign-in is not configured." };
+  if (typeof email !== "string" || !email.trim() || email.length > MAX_EMAIL) {
+    return { ok: false, status: 400, error: "An e-mail address is required." };
+  }
+  const r = await authCall("/auth/v1/recover", { body: { email: email.trim() }, config, fetchImpl });
+  if (!r.ok) {
+    if (/email_address_invalid|validation_failed/.test(r.code || "")) {
+      return { ok: false, status: 400, error: "That doesn't look like an e-mail address.", reason: "invalid", cause: r.cause };
+    }
+    return r;
+  }
+  return { ok: true };
+}
+
+/**
+ * Forgot password, step 2: code + new password → new password, signed in.
+ *
+ * Two calls: the code buys a short session (verify, type "recovery"), and
+ * that session sets the password (PUT /user).
+ *
+ * ⚠ A code works ONCE. So everything that can be checked is checked before
+ *   it is spent — a password Supabase would refuse as too short would
+ *   otherwise burn the code and send the person back to step 1.
+ *
+ * @returns {Promise<{ok: true, session: object, othersSignedOut: boolean, cause?: string}
+ *   | {ok: false, status: number, error: string, reason?: string, cause?: string}>}
+ *   `reason`: code (wrong or expired), weak, invalid.
+ */
+export async function resetPassword({ email, code, password } = {}, { config, fetchImpl } = {}) {
+  if (!config) return { ok: false, status: 503, error: "Sign-in is not configured." };
+  if (typeof email !== "string" || typeof code !== "string" || typeof password !== "string"
+      || !email.trim() || email.length > MAX_EMAIL || !password || password.length > MAX_PASSWORD) {
+    return { ok: false, status: 400, error: "E-mail, code and password are required." };
+  }
+  if (!CODE_RE.test(code.trim())) {
+    return { ok: false, status: 400, error: "That code is wrong or has expired.", reason: "code" };
+  }
+  if (password.length < MIN_PASSWORD) {
+    return { ok: false, status: 422, error: "That password is too weak.", reason: "weak" };
+  }
+
+  const v = await authCall("/auth/v1/verify", {
+    body: { type: "recovery", email: email.trim(), token: code.trim() },
+    config,
+    fetchImpl,
+  });
+  if (!v.ok) {
+    /* authCall() calls a refused code "wrong credentials" — here it is the code. */
+    if (v.status === 401 || v.status === 403 || /otp_expired|otp_invalid/.test(v.code || "")) {
+      return { ok: false, status: 401, error: "That code is wrong or has expired.", reason: "code", cause: v.cause };
+    }
+    return v;
+  }
+  if (!v.data.access_token) return { ok: false, status: 503, error: "Sign-in is unavailable right now." };
+
+  const u = await authCall("/auth/v1/user", {
+    method: "PUT",
+    body: { password },
+    token: v.data.access_token,
+    config,
+    fetchImpl,
+  });
+  /* The new password equals the old one: nothing to change, and the person
+     knows their password — that is a success, not an error. */
+  if (!u.ok && !/same_password/.test(u.code || "")) {
+    if (/weak_password/.test(u.code || "")) {
+      return { ok: false, status: 422, error: "That password is too weak.", reason: "weak", cause: u.cause };
+    }
+    return u;
+  }
+
+  /* Every OTHER device is signed out (Hanni, 04.10.2026): whoever resets a
+     password because a phone went missing expects that phone to lose access.
+     scope=others keeps this session and revokes the refresh tokens of the
+     rest; their access tokens run out within the hour. Also after
+     same_password — the reason for resetting may be the lost phone, not a
+     forgotten password. A failure here does not undo the reset: the new
+     password is set, so the person gets in, and the caller logs it. */
+  const out = await authCall("/auth/v1/logout?scope=others", {
+    body: {},
+    token: v.data.access_token,
+    config,
+    fetchImpl,
+  });
+  return { ok: true, session: publicSession(v.data), othersSignedOut: out.ok, ...(out.ok ? {} : { cause: out.cause }) };
 }
 
 /**

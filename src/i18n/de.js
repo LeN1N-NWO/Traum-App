@@ -1404,8 +1404,8 @@ export default {
     doneText: "Deine Nächte haben jetzt einen Ort.",
     doneCta: "Heute Nacht anfangen",
     /* Die Anmeldung, am Ende des Onboardings (Antons Platzwahl 13.09.2026):
-       erst antworten, dann sichern. Ein Konto gibt es nur, wenn Hanni eins
-       angelegt hat — Registrieren kommt mit „Mit Apple anmelden". */
+       erst antworten, dann sichern. Neue Konten entstehen über „Mit Apple
+       anmelden" oder per E-Mail (03.10.2026, bestätigt über einen Mail-Link). */
     accountTitle: "Sichere deine Nächte",
     accountText: "Mit einem Konto bleiben Träume, Filme und dein Profil erhalten, wenn das Handy wechselt.",
     accountEmail: "E-Mail",
@@ -1419,6 +1419,23 @@ export default {
     accountUnavailable: "Die Anmeldung ist gerade nicht erreichbar. Du kannst sie später in den Einstellungen nachholen.",
     accountOffline: "Keine Verbindung zum Server.",
     accountApple: "Mit Apple anmelden",
+    accountCreateCta: "Konto anlegen",
+    accountToSignup: "Neu hier? Konto anlegen",
+    accountToSignin: "Schon ein Konto? Anmelden",
+    accountCheckMail: "Schau in dein Postfach",
+    accountCheckMailText: "Wir haben dir einen Link an diese Adresse geschickt. Tipp ihn an und melde dich dann hier an.",
+    accountWeak: "Das Passwort ist zu schwach — nimm ein längeres.",
+    accountInvalid: "Das sieht nicht nach einer E-Mail-Adresse aus.",
+    accountExists: "Für diese E-Mail gibt es schon ein Konto — melde dich an.",
+    accountForgot: "Passwort vergessen?",
+    accountBackToSignin: "Zurück zur Anmeldung",
+    accountSendCode: "Code schicken",
+    accountCodeSent: "Wir haben dir einen Code an diese Adresse geschickt. Gib ihn mit einem neuen Passwort ein.",
+    accountCode: "Code aus der E-Mail",
+    accountNewPassword: "Neues Passwort",
+    accountSetPassword: "Neues Passwort setzen",
+    accountBadCode: "Der Code stimmt nicht oder ist abgelaufen — fordere einen neuen an.",
+    accountUnconfirmed: "Bestätige zuerst deine E-Mail — tipp auf den Link, den wir dir geschickt haben.",
   },
   onboarding: {
     tagline: "Jede Nacht drehst du Filme. Fang an, sie zu behalten.",

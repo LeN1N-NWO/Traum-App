@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { parseBearer, parseWsBearer, authConfig, passwordLogin, appleLogin, refreshSession, verifyAccessToken, logout } from "./auth.js";
+import { parseBearer, parseWsBearer, authConfig, passwordLogin, passwordSignup, requestPasswordReset, resetPassword, appleLogin, refreshSession, verifyAccessToken, logout } from "./auth.js";
 
 const config = { url: "https://projekt.supabase.co", anonKey: "anon-key" };
 const UID = "3ecbfe28-21c1-4475-b931-1082d2b56ba7";
@@ -166,6 +166,164 @@ test("without configuration sign-in refuses instead of pretending", async () => 
   const r = await passwordLogin({ email: "a@b.co", password: "pw" }, { config: null });
   expect(r.ok).toBe(false);
   expect(r.status).toBe(503);
+});
+
+/* Signed up, link not clicked: the person typed everything right. Calling
+   that "invalid credentials" sent them off to doubt their password. */
+test("an unconfirmed address is named as such, not as a wrong password", async () => {
+  const r = await passwordLogin({ email: "a@b.co", password: "pw" },
+    { config, fetchImpl: fakeFetch({ status: 400, body: { error_code: "email_not_confirmed", msg: "Email not confirmed" } }) });
+  expect([r.ok, r.status, r.reason]).toEqual([false, 403, "unconfirmed"]);
+});
+
+/* ── passwordSignup ────────────────────────────────────────────────────── */
+
+/* Confirmation on: Supabase answers with a bare user record (for a taken
+   address an invented one). Nothing of it may reach the client. */
+test("sign-up with confirmation on says 'check your mail' and nothing more", async () => {
+  const f = fakeFetch({ status: 200, body: { id: UID, email: "a@b.co", confirmation_sent_at: "2026-10-03T22:00:00Z" } });
+  const r = await passwordSignup({ email: " a@b.co ", password: "geheim123" }, { config, fetchImpl: f });
+  expect(r).toEqual({ ok: true, confirm: true });
+  expect(f.calls[0].url).toBe("https://projekt.supabase.co/auth/v1/signup");
+  expect(f.calls[0].init.method).toBe("POST");
+  expect(f.calls[0].body).toEqual({ email: "a@b.co", password: "geheim123" });
+});
+
+test("sign-up with confirmation off signs in straight away", async () => {
+  const r = await passwordSignup({ email: "a@b.co", password: "geheim123" },
+    { config, fetchImpl: fakeFetch({ status: 200, body: SESSION }) });
+  expect(r.ok).toBe(true);
+  expect(r.session.access_token).toBe("at-1");
+  expect(r.session.user).toEqual({ id: UID, email: "test@example.com" });
+});
+
+/* authCall() turns a 400 into "wrong credentials". For sign-up that would be
+   a lie — the app must say WHAT to fix. */
+test("sign-up rejections keep their reason", async () => {
+  const cases = [
+    [{ status: 422, body: { error_code: "weak_password", msg: "Password should be at least 6 characters." } }, 422, "weak"],
+    [{ status: 400, body: { error_code: "validation_failed", msg: "Unable to validate email address: invalid format" } }, 400, "invalid"],
+    [{ status: 400, body: { error_code: "email_address_invalid" } }, 400, "invalid"],
+    [{ status: 422, body: { error_code: "user_already_exists" } }, 409, "exists"],
+  ];
+  for (const [reply, status, reason] of cases) {
+    const r = await passwordSignup({ email: "a@b.co", password: "pw1234" }, { config, fetchImpl: fakeFetch(reply) });
+    expect([reply.body.error_code, r.ok, r.status, r.reason]).toEqual([reply.body.error_code, false, status, reason]);
+  }
+});
+
+test("switched-off sign-up is our configuration fault, not the person's", async () => {
+  for (const code of ["signup_disabled", "email_provider_disabled"]) {
+    const r = await passwordSignup({ email: "a@b.co", password: "pw1234" },
+      { config, fetchImpl: fakeFetch({ status: 422, body: { error_code: code } }) });
+    expect([code, r.status]).toEqual([code, 503]);
+  }
+});
+
+test("too many sign-up mails is 'wait', and a dead Supabase is 'later'", async () => {
+  const busy = await passwordSignup({ email: "a@b.co", password: "pw1234" },
+    { config, fetchImpl: fakeFetch({ status: 429, body: { error_code: "over_email_send_rate_limit" } }) });
+  expect(busy.status).toBe(429);
+  const down = await passwordSignup({ email: "a@b.co", password: "pw1234" },
+    { config, fetchImpl: fakeFetch(new Error("network down")) });
+  expect(down.status).toBe(503);
+});
+
+test("sign-up refuses nonsense before the network, and without configuration", async () => {
+  for (const input of [{}, { email: "a@b.co" }, { email: "", password: "pw" }, { email: "a@b.co", password: "x".repeat(1025) }]) {
+    const f = fakeFetch({ status: 200, body: SESSION });
+    const r = await passwordSignup(input, { config, fetchImpl: f });
+    expect([r.ok, r.status, f.calls.length]).toEqual([false, 400, 0]);
+  }
+  expect((await passwordSignup({ email: "a@b.co", password: "pw" }, { config: null })).status).toBe(503);
+});
+
+/* ── requestPasswordReset / resetPassword ──────────────────────────────── */
+
+test("asking for a reset code goes to /recover and says only 'sent'", async () => {
+  const f = fakeFetch({ status: 200, body: {} });
+  const r = await requestPasswordReset({ email: " a@b.co " }, { config, fetchImpl: f });
+  expect(r).toEqual({ ok: true });
+  expect(f.calls[0].url).toBe("https://projekt.supabase.co/auth/v1/recover");
+  expect(f.calls[0].body).toEqual({ email: "a@b.co" });
+});
+
+test("a reset request keeps 'wait' and 'bad address' apart", async () => {
+  const busy = await requestPasswordReset({ email: "a@b.co" },
+    { config, fetchImpl: fakeFetch({ status: 429, body: { error_code: "over_email_send_rate_limit" } }) });
+  expect(busy.status).toBe(429);
+  const bad = await requestPasswordReset({ email: "nope" },
+    { config, fetchImpl: fakeFetch({ status: 400, body: { error_code: "validation_failed" } }) });
+  expect([bad.status, bad.reason]).toEqual([400, "invalid"]);
+  const f = fakeFetch({ status: 200, body: {} });
+  expect((await requestPasswordReset({ email: "" }, { config, fetchImpl: f })).status).toBe(400);
+  expect(f.calls.length).toBe(0);
+});
+
+test("code + new password: verify, then set the password with THAT session", async () => {
+  const f = fakeFetch((url) => (url.endsWith("/verify")
+    ? { status: 200, body: { ...SESSION, access_token: "recovery-at" } }
+    : { status: 200, body: { id: UID } }));
+  const r = await resetPassword({ email: "a@b.co", code: " 123456 ", password: "neues-pw" }, { config, fetchImpl: f });
+  expect(r.ok).toBe(true);
+  expect(r.session.access_token).toBe("recovery-at");
+  expect(f.calls[0].url).toBe("https://projekt.supabase.co/auth/v1/verify");
+  expect(f.calls[0].body).toEqual({ type: "recovery", email: "a@b.co", token: "123456" });
+  expect(f.calls[1].url).toBe("https://projekt.supabase.co/auth/v1/user");
+  expect(f.calls[1].init.method).toBe("PUT");
+  expect(f.calls[1].init.headers.authorization).toBe("Bearer recovery-at");
+  expect(f.calls[1].body).toEqual({ password: "neues-pw" });
+  // Then every OTHER device is signed out, with the same session.
+  expect(f.calls[2].url).toBe("https://projekt.supabase.co/auth/v1/logout?scope=others");
+  expect(f.calls[2].init.headers.authorization).toBe("Bearer recovery-at");
+  expect(r.othersSignedOut).toBe(true);
+  expect(f.calls.length).toBe(3);
+});
+
+/* The password is set; a failed sign-out elsewhere must not lock the person
+   out — it is reported, not thrown. */
+test("a failed sign-out of other devices does not undo the reset", async () => {
+  const f = fakeFetch((url) => (url.endsWith("/verify") ? { status: 200, body: SESSION }
+    : url.includes("/logout") ? { status: 500, body: {} }
+    : { status: 200, body: { id: UID } }));
+  const r = await resetPassword({ email: "a@b.co", code: "123456", password: "neues-pw" }, { config, fetchImpl: f });
+  expect([r.ok, r.othersSignedOut]).toEqual([true, false]);
+  expect(r.session.access_token).toBe("at-1");
+});
+
+/* A code works once. What can be checked beforehand must not cost it. */
+test("a too-short password or a malformed code never spends the code", async () => {
+  for (const [input, reason] of [
+    [{ email: "a@b.co", code: "123456", password: "kurz" }, "weak"],
+    [{ email: "a@b.co", code: "12ab56", password: "lang-genug" }, "code"],
+    [{ email: "a@b.co", code: "123", password: "lang-genug" }, "code"],
+  ]) {
+    const f = fakeFetch({ status: 200, body: SESSION });
+    const r = await resetPassword(input, { config, fetchImpl: f });
+    expect([input.code, r.ok, r.reason, f.calls.length]).toEqual([input.code, false, reason, 0]);
+  }
+});
+
+test("a wrong or expired code says so, and no password is set", async () => {
+  for (const reply of [
+    { status: 403, body: { error_code: "otp_expired", msg: "Token has expired or is invalid" } },
+    { status: 400, body: { error_code: "otp_invalid" } },
+  ]) {
+    const f = fakeFetch(reply);
+    const r = await resetPassword({ email: "a@b.co", code: "123456", password: "lang-genug" }, { config, fetchImpl: f });
+    expect([reply.body.error_code, r.status, r.reason, f.calls.length]).toEqual([reply.body.error_code, 401, "code", 1]);
+  }
+});
+
+test("the old password typed again is still a success", async () => {
+  const f = fakeFetch((url) => (url.endsWith("/verify") ? { status: 200, body: SESSION }
+    : url.includes("/logout") ? { status: 204, body: null }
+    : { status: 422, body: { error_code: "same_password" } }));
+  const r = await resetPassword({ email: "a@b.co", code: "123456", password: "das-alte" }, { config, fetchImpl: f });
+  expect(r.ok).toBe(true);
+  // The lost phone may be the reason, not the forgotten password: still signed out.
+  expect(r.othersSignedOut).toBe(true);
+  expect(f.calls[2].url).toContain("/logout?scope=others");
 });
 
 /* ── appleLogin ────────────────────────────────────────────────────────── */

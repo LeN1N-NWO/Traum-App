@@ -3,6 +3,51 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-04 13:55 — Hanni — Branch `session/2026-10-03-hanni-5` (PR #76) — Registrierung, Passwort vergessen
+
+**Commits:** cb40484 (Notiz Einladungs-Obergrenze), 7dc445c (Registrierung),
+d22c9f2 (Passwort vergessen), 6d2d876 + 589bf04 (offene Punkte im
+App-Store-Guide), 62e91ed (unbestätigte Adresse), 946907a (andere Geräte
+abmelden) (+ Wrap).
+
+**Was:**
+- `POST /api/auth/signup` — Konto mit E-Mail + Passwort, Bestätigung per
+  Mail-Link; Antwort `{ confirm: true }` auch für vergebene Adressen.
+- `POST /api/auth/recover` + `POST /api/auth/reset` — „Passwort vergessen"
+  per Code; danach `logout?scope=others`.
+- Login: `email_not_confirmed` → eigene Meldung statt „falsches Passwort".
+- App: Anmelde-Schritt mit vier Modi (signin/signup/forgot/reset), Texte en/de.
+- Supabase: Custom SMTP über Resend, DNS-Einträge bei Strato (DKIM-TXT,
+  zwei CNAMEs), Domain in Resend verifiziert; Vorlage „Reset Password" mit
+  `{{ .Token }}`.
+- Notiz an Anton: Obergrenze fürs Verbinden per Einladung.
+
+**Warum:** Bisher entstanden Konten nur über Apple — kein Weg für Android,
+keiner für Leute ohne Apple-Anmeldung, und ein E-Mail-Konto ohne „Passwort
+vergessen" ist eine Falle. Code statt Link, weil es keine Webseite gibt
+und kein Deep Link nötig sein soll.
+
+**Belege:** Simulator mit echten Mails: Registrieren → Link → Anmelden;
+„Passwort vergessen" → Code → neues Passwort. Gegen das echte Supabase
+ohne Konto anzulegen: `weak_password`, `validation_failed`, `otp_expired`
+richtig zugeordnet. 900 Tests grün (u. a. Code wird bei zu kurzem Passwort
+nicht verbraucht), `tsc` mit Gegenprobe. `server.js`: nur Import und
+Anmeldeteil, jede Zeile zugeordnet, Prompt-Kette unberührt.
+
+**Für den Nächsten:**
+- Erste Fehlversuche lagen an der noch nicht verifizierten Resend-Domain:
+  Log `unexpected_failure: Error sending recovery email`. Bei Mail-Fehlern
+  zuerst Resend → Logs ansehen.
+- Nach dem Bestätigungslink landet man auf `localhost:3000` (Site URL) —
+  Fehlerseite, Bestätigung trotzdem gültig. „Bestätigt"-Seite auf
+  `dreamrushes.app` kommt mit B3 (Punkt im App-Store-Guide).
+- Nicht echt belegt: Meldung bei unbestätigter Adresse; Abmelden anderer
+  Geräte.
+- Anton: sein `onboarding-flow.tsx` (`Account`) hat neue Modi — bei eigenen
+  Änderungen dort bitte mitnehmen.
+- `preview_start` startet immer aus dem Hauptordner; Weg aus dem Worktree
+  steht in STAND.
+
 ## 2026-10-03 21:20 — Hanni — Branch `session/2026-10-03-hanni-4` (PR #75) — Einladungen: Server-Teil
 
 **Commits:** b791cbe (Server-Teil), 003caa5 (501 statt 500 ohne Migration),
