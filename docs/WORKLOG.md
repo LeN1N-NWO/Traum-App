@@ -3,6 +3,43 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-04 23:50 — Hanni — Branch `session/2026-10-04-hanni-2` (PR #81) — TestFlight-Vorbereitung: CORS, Preflight, Prebuild, Release-Probe
+
+**Commits:** a4ebbbb (CORS-Kommentar + Preflight B3a), b7cbefe (Preflight
+KI erkennt Einwilligung v4) (+ Merges main, Wrap).
+
+**Was:**
+- Entscheidung **TestFlight intern am 16.10.**; Arbeitsplan lokal bei
+  Hanni (`~/Claude/TestFlight-Plan-2026-10-16.md`), inkl. Abschnitten
+  „Zusätzlich für extern" (S2, S7, Datenschutzseite, B4a), „Bezahlsystem",
+  „UG gründen" und „Onboarding nur einmal" (B4b) im kritischen Pfad.
+- CORS-`"null"` bleibt (Release-Webviews), Preflight B3a prüft die
+  Bedingung S1; Preflight KI auf Anbieternamen statt Wortlaut.
+- Prebuild + `pod install` auf Hannis Mac → B5/B7 grün.
+- Release-Generalprobe auf Hannis iPhone bestanden (siehe STAND).
+- DNS `api.dreamrushes.app` geprüft; App Store Connect angelegt.
+- Untersucht ohne Änderung: Journal-Suche — „Cancel" setzt den Filter
+  zurück (im Simulator belegt, Vermutung widerlegt).
+
+**Warum:** Der 16.10. hängt an Dingen, die man früh sehen muss (Release-
+Bau, CORS im Release, Preflight-Signale) — lieber heute als am Upload-Tag.
+
+**Belege:** Preflight im Hauptordner nach Prebuild: B5/B7 ✅; B3a/KI ✅ im
+Worktree, je mit Gegenprobe rot. `server.js`: 17 geänderte Zeilen, alle
+Kommentar. Release auf iPhone: zwei Filme durchgelaufen, Server-Log zeigt
+Regie + Auftrag; Absturzbericht von devicectl ausgewertet (Debugger, kein
+App-Absturz).
+
+**Für den Nächsten:**
+- Anton: SSH-Zugang (eigener Nutzer mit sudo) ist jetzt der Engpass für
+  den 16.10. Und „Onboarding nur einmal" (B4b) mit Hanni abstimmen —
+  sein Testphasen-Wunsch, seine Datei.
+- Anton: Dein Xcode-Projekt nach diesem Stand einmal neu prebuilden
+  (B5/B7 kommen aus `app.json`).
+- Verwaiste Filme: einmal gesehen (erster Versuch, „didn't answer" +
+  Auftrag bei fal).
+- Erster Tipp im Simulator wird oft verschluckt — zweimal tippen.
+
 ## 2026-10-04 22:35 — Anton — Branch `session/2026-10-04c-anton` (PR #82) — Symbol-Atlas, Profil kompakt, Leistung, App-Store-Pflichten im Kauf, Wissen rechtlich
 
 **Commits:** b1a4577, cf94b29, 14b2177, 4f3a0a8, 0b3b13d (+ Wrap).

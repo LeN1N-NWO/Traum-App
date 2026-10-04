@@ -3,7 +3,12 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-04 spätabends — Anton, `session/2026-10-04c-anton` (PR #82):
+**Stand:** 2026-10-04 nachts — Hanni, `session/2026-10-04-hanni-2` (PR #81):
+**TestFlight-Generalprobe bestanden** — Release-Bau auf Hannis Mac und iPhone,
+Webviews erreichen den Server, Filme laufen Ende zu Ende. **TestFlight intern
+am Fr 16.10. ist entschieden** (Plan lokal bei Hanni,
+`~/Claude/TestFlight-Plan-2026-10-16.md`); nächster Hebel: SSH-Zugang zum VPS
+(Anton), dann `setup.sh`. Davor am selben Abend Anton, `session/2026-10-04c-anton` (PR #82):
 **Traumsymbol-Atlas repariert** (war bei deutschen Träumen leer),
 **Profil kompakt** (Porträt klein neben dem Namen), **Leistung**
 (Animationen nur auf dem sichtbaren Tab, Steine blitzen kurz),
@@ -39,6 +44,40 @@ für den Besitzer — wer baut, klären Hanni + Anton). Am 03.10. Anton, PR #71:
 Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Neu mit PR #81 (04.10. nachts, Hanni) — TestFlight-Vorbereitung:**
+- **CORS-`"null"` BLEIBT** (Neubewertung): Die vier Expo-DOM-Webviews
+  schicken im Release-Bau `Origin: null` — ohne den Eintrag sähe jede
+  TestFlight-App nur „Check your connection". Tragbar seit S1
+  (`REQUIRE_AUTH=1`: Bezahltes nur mit Token; CORS ist kein Zugangsschutz).
+  Kommentar über `NATIVE_ORIGINS` in `server.js` (nur Kommentar);
+  **Preflight B3a** ist nur noch rot, wenn `"null"` OHNE Anmeldepflicht
+  erlaubt ist (Gegenprobe `REQUIRE_AUTH=0` → rot). Fällt weg, wenn die
+  Webviews nativ sind.
+- **Preflight [KI]** war seit Einwilligung v4 (PR #78) rot — der Test suchte
+  den alten Wortlaut „fal.ai, Google, DeepSeek". Jetzt: alle drei Namen in
+  einer Zeile (Gegenprobe ohne DeepSeek → rot).
+- **Prebuild auf Hannis Mac** (`mobile/ios` neu, nicht im Git): B5
+  (`de.lproj/InfoPlist.strings`) und B7 (`ITSAppUsesNonExemptEncryption`)
+  jetzt grün; `pod install` mit der alten `Podfile.lock` (unverändert);
+  Sicherung des alten Projekts in `~/Claude/ios-backup-2026-10-04`.
+- **Release-Generalprobe bestanden:** baut auf Xcode 26.6, startet auf
+  Hannis iPhone (iOS 26.6.1) **ohne** Antons Release-Absturz vom 18.09. —
+  sein Quelltext-Rezept ist hier nicht nötig. Webviews erreichen den Server
+  (iPhone 192.168.2.60), zwei Filme (5 s, 9 s, H3 Turbo) Ende zu Ende.
+  Xcodes „Could not attach … no such process" war nur der Debugger
+  (Absturzbericht: `0x8BADF00D`, App-CPU 0 s) → für Release-Läufe im Scheme
+  „Debug executable" ausschalten.
+- ⚠ **Verdacht verwaister Film:** erster Versuch zeigte „The service didn't
+  answer", der Server bestellte trotzdem einen 5-s-Film bei fal — passt zu
+  „Zuverlässigkeit" in `docs/ARCHITEKTUR.md` (`/api/generate` antwortet erst
+  nach der Regie). Strukturfix: Warteschlange. Beim Durchlauf 15.10. beobachten.
+- **DNS `api.dreamrushes.app` → `188.245.92.121`** steht (Strato; AAAA
+  fehlt, IPv6-Adresse von Anton). VPS: Port 22 offen, 80/443 zu (Caddy kommt
+  mit `setup.sh`).
+- **App Store Connect:** App angelegt, `com.dreamrushes.app`, SKU
+  `dreamrushes-ios`. Händlerstatus (DSA) erst mit der UG.
+- `mobile/.env` bei Hanni: `http://192.168.2.111:8100` (WLAN-Adresse geändert).
 
 **Neu mit PR #82 (04.10. spätabends, Anton):**
 - **Traumsymbol-Atlas** (Schlaf › Traumsymbole) war leer:
@@ -688,10 +727,9 @@ sobald Produkte in App Store Connect existieren).
 (Weg in 10 Schritten, Blocker B1–B8, Teil 2b StoreKit-Teststrategie,
 Teil 2c Geld/Abrechnung — Apple ist Merchant of Record, Small Business
 Program 15 %), Prüfwerkzeug **`bun run preflight`** (Exit 1 bei Blockern).
-Preflight meldet noch **4 Blocker — alle bewusste Testphasen-Schalter**,
-vor der Einreichung zurückdrehen:
-- B3a: `"null"` in `NATIVE_ORIGINS` (server.js) raus (API_TOKEN ist seit
-  S1 keine Option mehr — es sperrte die App aus)
+Preflight meldet noch **3 Blocker** (seit PR #81; B3a grün, solange
+`REQUIRE_AUTH=1` gilt — `"null"` bleibt, siehe oben), vor der Einreichung
+zurückdrehen:
 - B3b: HTTPS-Deployment statt `http://192.168…` (= Baustelle S6)
 - B4a: `devTopUp` 500 Credits → zurück auf `__DEV__ ? 100 : 0`
   (journal-bridge.jsx)
