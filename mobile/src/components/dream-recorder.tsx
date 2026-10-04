@@ -6,7 +6,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import { GlassButton, PrimaryButton } from "@/components/glass";
 import { MascotLoader } from "@/components/mascot-loader";
-import { MoonButton } from "@/components/moon-button";
+import { PortalButton } from "@/components/portal-button";
 import { holdForRecording } from "@/lib/sound-engine";
 import { setRecording } from "@/store/recording-store";
 import { colors, fonts } from "@/theme";
@@ -194,7 +194,7 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
       <Text style={styles.hint}>{phase === "rec" ? clock(secs) : (W?.recordHint ?? "")}</Text>
       {/* Der Mond ist der Knopf (Antons Wahl 26.09.). */}
       <View style={styles.stage}>
-        <MoonButton size={150} recording={phase === "rec"} level={level} onPress={phase === "rec" ? stop : start} disabled={allowed === false}
+        <PortalButton size={150} recording={phase === "rec"} level={level} onPress={phase === "rec" ? stop : start} disabled={allowed === false}
           label={phase === "rec" ? (W?.recordStop ?? "Done") : (W?.record ?? "Record")} />
       </View>
       {phase === "rec" ? <Text style={styles.stopHint}>{W?.recordStop ?? "Done"}</Text> : null}
