@@ -4,9 +4,9 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { Easing, FadeIn, FadeOut, ZoomIn, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
-import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path, Rect } from "react-native-svg";
-import { DreamStone, GIFT_STONES, STONES } from "@/components/dream-stone";
+import Animated, { Easing, FadeIn, cancelAnimation, FadeOut, ZoomIn, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path } from "react-native-svg";
+import { DreamStone, GIFT_STONES, PrismStone, STONES } from "@/components/dream-stone";
 import { useScreenActive } from "@/lib/use-screen-active";
 import type { GiftCard, HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
@@ -26,7 +26,8 @@ import { colors, fonts } from "@/theme";
  *     Fäden (kürzester Weg im Netz) — sie färbt sie golden, statt eigene
  *     Linien darüberzulegen (Antons Befund 04.10.: „sieht komisch aus").
  *     Der Weg zum nächsten Knoten pulsiert gestrichelt.
- *   · Die Mitte ist das Ziel: Ist das Netz voll (12), wird es zum Film.
+ *   · Die Mitte ist das Ziel, der Herzstein: Jeder Traum lässt einen seiner
+ *     zwölf bunten Keile leuchten; ist das Netz voll (12), wird es zum Film.
  *   · Geschenke 3, 6, 9 an den drei unteren Reifknoten (rechts, unten,
  *     links), die Zahlen fest am Reif. Dort hängt je ein kurzes Band mit
  *     einem Federbüschel (Antons Wahl 04.10. abends, Variante B — die
@@ -41,7 +42,7 @@ const SIX = 6;
 const ROUNDS = 5;          // Runden des Netzes; Träume liegen auf 1 und 2
 const SAG = 0.86;          // wie stark jede Runde nach innen gezogen ist
 const BEAD = 30;
-const HOLE = 0.17;         // Mitte (Ziel), Anteil am Reif-Radius
+const HOLE = 0.2;          // Mitte (Herzstein), Anteil am Reif-Radius
 const STRIP = 26;          // so viel höher als breit: der Streifen für die Bänder
 const LEAD = 16;           // Band vom Knoten bis zum Federbüschel
 /* die kleinen Federn: blass, damit die Geschenkfeder die Farbe trägt */
@@ -191,7 +192,7 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
           onPress={() => { if (ringGift) { Haptics.selectionAsync(); onGift(ringGift); } }}
           style={[styles.hole, { left: cx - R * HOLE, top: cy - R * HOLE, width: R * HOLE * 2, height: R * HOLE * 2, borderRadius: R * HOLE }]}
           accessibilityRole="button" accessibilityLabel={ringGift?.title ?? ""}>
-          <FilmFrame size={R * HOLE * 2 - 3} breathe={!C.intro?.auto} full={filled >= 2 * SIX} />
+          <HeartStone size={R * HOLE * 2 - 2} breathe={!C.intro?.auto} filled={filled} live={live} />
         </Pressable>
 
         {/* Beim ersten Mal, solange der Fänger leer ist: die kleine Einführung */}
@@ -385,36 +386,23 @@ function PeekTile({ film, img, title, stoneLine, W, H }: { film: string | null; 
   );
 }
 
-/* Die Mitte: ein einzelnes Filmbild mit Perforation und Play (Antons Wahl
-   04.10. abends, ersetzt die Spule — „sieht komisch aus"). Ein goldener
-   Schein atmet darum; ist das Netz voll, wird die Scheibe golden und der
-   Schein schneller — der Film wartet. */
-function FilmFrame({ size, breathe, full }: { size: number; breathe: boolean; full: boolean }) {
+/* Die Mitte: der Herzstein (Antons Wunsch 04.10. abends, ersetzt das
+   Filmbild) — zwölf Keile, jeder in einer anderen Farbe; jeder leuchtet,
+   sobald sein Traum im Netz liegt (components/dream-stone.tsx). Ein
+   goldener Schein atmet darum; ist das Netz voll, schneller — der Film wartet. */
+function HeartStone({ size, breathe, filled, live }: { size: number; breathe: boolean; filled: number; live: boolean }) {
   const k = useSharedValue(0);
+  const full = filled >= 2 * SIX;
   useEffect(() => {
-    if (breathe) k.value = withRepeat(withTiming(1, { duration: full ? 1200 : 2400, easing: Easing.inOut(Easing.sin) }), -1, true);
-  }, [k, breathe, full]);
+    if (breathe && live) k.value = withRepeat(withTiming(1, { duration: full ? 1200 : 2400, easing: Easing.inOut(Easing.sin) }), -1, true);
+    else { cancelAnimation(k); k.value = 0; }
+  }, [k, breathe, live, full]);
   const glow = useAnimatedStyle(() => ({ opacity: 0.15 + 0.4 * k.value }));
-  const d = size / 2, ink = full ? "#1a1206" : colors.gold;
-  const fw = d * 1.12, fh = d * 1.2, x0 = d - fw / 2, y0 = d - fh / 2, a = d * 0.26;
   const halo = size + 14;
   return (
     <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }} pointerEvents="none">
       <Animated.View style={[{ position: "absolute", width: halo, height: halo, borderRadius: halo / 2, borderWidth: 5, borderColor: "rgba(246,198,91,0.35)" }, glow]} />
-      <Svg width={size} height={size}>
-        <Circle cx={d} cy={d} r={d - 1} fill={full ? colors.gold : "#0b1220"} stroke={colors.gold} strokeWidth={1.8} />
-        <Rect x={x0} y={y0} width={fw} height={fh} rx={3} fill="none" stroke={ink} strokeWidth={1.6} />
-        {Array.from({ length: 4 }, (_, i) => {
-          const hx = x0 + 3 + i * (fw - 6) / 3 - 1.4;
-          return (
-            <G key={i}>
-              <Rect x={hx} y={y0 + 2} width={2.8} height={2.6} rx={0.6} fill={ink} />
-              <Rect x={hx} y={y0 + fh - 4.6} width={2.8} height={2.6} rx={0.6} fill={ink} />
-            </G>
-          );
-        })}
-        <Path d={`M${d - a * 0.6} ${d - a} L${d + a} ${d} L${d - a * 0.6} ${d + a}Z`} fill={ink} stroke={ink} strokeWidth={1.2} strokeLinejoin="round" />
-      </Svg>
+      <PrismStone size={size} filled={filled} live={live && breathe} />
     </View>
   );
 }

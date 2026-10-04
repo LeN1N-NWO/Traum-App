@@ -42,6 +42,13 @@ const mix = (a: string, b: string, t: number) => {
   const A = hex(a), B = hex(b);
   return "#" + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, "0")).join("");
 };
+/* Helligkeit 0…1 auf die fünf Töne eines Steins. */
+const STOPS = [0, 0.3, 0.55, 0.8, 1];
+function shade(pal: Pal, b: number) {
+  b = Math.max(0, Math.min(1, b));
+  for (let i = 0; i < 4; i++) if (b <= STOPS[i + 1]) return mix(pal[i], pal[i + 1], (b - STOPS[i]) / (STOPS[i + 1] - STOPS[i]));
+  return pal[4];
+}
 type Pt = [number, number];
 const poly = (pts: Pt[]) => "M" + pts.map((p) => `${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join("L") + "Z";
 
@@ -50,12 +57,7 @@ function brilliant(c: number, r: number, pal: Pal) {
   const P = (a: number, d: number): Pt => [c + Math.cos(a * Math.PI / 180) * d, c + Math.sin(a * Math.PI / 180) * d];
   const T = (k: number) => P(22.5 + 45 * k, r * 0.52), S = (k: number) => P(45 * k, r * 0.8);
   const G = (k: number) => P(22.5 + 45 * k, r), M = (k: number) => P(45 * k, r);
-  const stops = [0, 0.3, 0.55, 0.8, 1];
-  const col = (b: number) => {
-    b = Math.max(0, Math.min(1, b));
-    for (let i = 0; i < 4; i++) if (b <= stops[i + 1]) return mix(pal[i], pal[i + 1], (b - stops[i]) / (stops[i + 1] - stops[i]));
-    return pal[4];
-  };
+  const col = (b: number) => shade(pal, b);
   const base = (a: number) => 0.5 + 0.28 * Math.cos((a + 135) * Math.PI / 180);
   const facets: { d: string; fill: string; o?: number; edge?: boolean }[] = [];
   for (let k = 0; k < 8; k++) {
@@ -161,6 +163,111 @@ export function DreamStone({ size, pal, live, num, rough, seed = 0 }: { size: nu
             <Circle cx={L} cy={L} r={w * 2.2} fill="#FFFFFF" />
           </Svg>
         </Animated.View>
+      ) : null}
+    </View>
+  );
+}
+
+/* Der Herzstein in der Mitte (Antons Wunsch 04.10. abends, statt des
+ * Filmbilds): derselbe Brillantschliff, aber zwölfteilig — ein Keil je
+ * Traum im Ring, und jeder Schliff in einer anderen Farbe, einmal rund um
+ * den Farbkreis. Der Film des Rings entsteht aus allen Träumen zusammen;
+ * so auch dieser Stein: Ein Keil leuchtet erst, wenn sein Traum im Netz
+ * liegt (oben beginnend, im Uhrzeigersinn wie das Netz). Voll ist er ganz
+ * bunt und funkelt doppelt. */
+const hsl = (h: number, s: number, l: number) => {
+  const k = (n: number) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
+  const f = (n: number) => Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1))));
+  return "#" + [f(0), f(8), f(4)].map((v) => v.toString(16).padStart(2, "0")).join("");
+};
+const huePal = (h: number): Pal => [hsl(h, 0.7, 0.11), hsl(h, 0.65, 0.26), hsl(h, 0.62, 0.52), hsl(h, 0.85, 0.8), hsl(h, 1, 0.96)];
+const CRYSTAL = STONES.none;
+const DIM = "#1B2347";
+
+function prism(c: number, r: number, filled: number) {
+  const n = 12, st = 360 / n, rot = -90;
+  const P = (a: number, d: number): Pt => [c + Math.cos(a * Math.PI / 180) * d, c + Math.sin(a * Math.PI / 180) * d];
+  const T = (k: number) => P(rot + st / 2 + st * k, r * 0.55), S = (k: number) => P(rot + st * k, r * 0.82);
+  const G = (k: number) => P(rot + st / 2 + st * k, r), M = (k: number) => P(rot + st * k, r);
+  const base = (a: number) => 0.5 + 0.28 * Math.cos((a + 135) * Math.PI / 180);
+  const hue = (w: number) => (190 + w * 30) % 360;
+  const on = (w: number) => ((w % n) + n) % n < filled;
+  const tone = (h: number, b: number, lit: boolean) => (lit ? shade(huePal(((h % 360) + 360) % 360), b) : mix(shade(huePal(((h % 360) + 360) % 360), b), DIM, 0.72));
+  const facets: { d: string; fill: string; o?: number; edge?: boolean }[] = [];
+  for (let k = 0; k < n; k++) {
+    const a = rot + st * k;
+    facets.push({ d: poly([S(k), G(k - 1), M(k)]), fill: tone(hue(k - 1) + 10, base(a - 6) + 0.17, on(k - 1)), edge: true });
+    facets.push({ d: poly([S(k), M(k), G(k)]), fill: tone(hue(k) - 10, base(a + 6) - 0.17, on(k)), edge: true });
+  }
+  for (let k = 0; k < n; k++) facets.push({ d: poly([T(k), S(k + 1), G(k), S(k)]), fill: tone(hue(k), base(rot + st / 2 + st * k) + (k % 2 ? -0.1 : 0.12), on(k)), edge: true });
+  for (let k = 0; k < n; k++) facets.push({ d: poly([T(k - 1), S(k), T(k)]), fill: tone(hue(k) - 15, k === 10 ? 0.95 : base(rot + st * k) + (k % 2 ? 0.15 : -0.06), on(k)), edge: true });
+  facets.push({ d: poly(Array.from({ length: n }, (_, k) => T(k))), fill: shade(CRYSTAL, 0.62), edge: true });
+  // in der Tafel spiegeln sich die gegenüberliegenden Farben — umso stärker, je voller der Ring
+  const glow = 0.15 + 0.45 * Math.min(1, filled / n);
+  for (let k = 0; k < n; k++) facets.push({ d: poly([[c, c], T(k), T(k + 1)]), fill: shade(huePal((hue(k) + 180) % 360), k % 2 ? 0.45 : 0.75), o: glow });
+  facets.push({ d: poly(Array.from({ length: n }, (_, k) => P(rot + st * k, r * 0.2))), fill: shade(CRYSTAL, 0.3), o: 0.5 });
+  const shimmerA = [poly([T(2), S(3), G(2), S(2)]), poly([T(6), S(7), G(6), S(6)])].join(" ");
+  const shimmerB = [poly([T(-1), S(0), T(0)]), poly([T(8), S(9), T(9)])].join(" ");
+  return { facets, shimmerA, shimmerB, glints: [P(225, r * 0.6), P(330, r * 0.72)] as Pt[] };
+}
+
+export function PrismStone({ size, filled, live }: { size: number; filled: number; live: boolean }) {
+  const c = size / 2, r = size / 2 / 1.12;
+  const full = filled >= 12;
+  const cut = useMemo(() => prism(c, r, Math.min(12, filled)), [c, r, filled]);
+  const sh = useSharedValue(0);
+  const g1 = useSharedValue(0);
+  const g2 = useSharedValue(0);
+  const sparkle = live && filled > 0;
+  useEffect(() => {
+    if (!sparkle) {
+      cancelAnimation(sh); cancelAnimation(g1); cancelAnimation(g2);
+      sh.value = 0; g1.value = 0; g2.value = 0;
+      return;
+    }
+    sh.value = withRepeat(withTiming(1, { duration: full ? 1600 : 2600, easing: Easing.inOut(Easing.sin) }), -1, true);
+    const blink = (v: typeof g1, every: number, delay: number) => {
+      v.value = withDelay(delay, withRepeat(withSequence(
+        withTiming(0, { duration: every }),
+        withTiming(1, { duration: 280, easing: Easing.out(Easing.quad) }),
+        withTiming(0, { duration: 560, easing: Easing.in(Easing.quad) }),
+      ), -1, false));
+    };
+    blink(g1, full ? 1800 : 3600, 400);
+    if (full) blink(g2, 2300, 1500);
+    else { cancelAnimation(g2); g2.value = 0; }
+  }, [sparkle, full, sh, g1, g2]);
+  const shA = useAnimatedStyle(() => ({ opacity: 0.6 * sh.value }));
+  const shB = useAnimatedStyle(() => ({ opacity: 0.6 * (1 - sh.value) }));
+  const gs1 = useAnimatedStyle(() => ({ opacity: g1.value, transform: [{ scale: 0.2 + 0.8 * g1.value }, { rotate: `${g1.value * 35}deg` }] }));
+  const gs2 = useAnimatedStyle(() => ({ opacity: g2.value, transform: [{ scale: 0.2 + 0.6 * g2.value }, { rotate: `${-g2.value * 30}deg` }] }));
+  const L = r * 0.85, w = r * 0.06, GL = L * 2;
+  const star = (
+    <Svg width={GL} height={GL}>
+      <Path d={`M${L} 0 L${L + w} ${L} L${L} ${GL} L${L - w} ${L}Z M${L - L * 0.7} ${L} L${L} ${L + w} L${L + L * 0.7} ${L} L${L} ${L - w}Z`} fill="#FFFFFF" />
+      <Circle cx={L} cy={L} r={w * 2.2} fill="#FFFFFF" />
+    </Svg>
+  );
+  return (
+    <View style={{ width: size, height: size }} pointerEvents="none">
+      <Svg width={size} height={size}>
+        <Circle cx={c} cy={c} r={r * 1.12} fill="#8A5A14" />
+        <Circle cx={c - r * 0.025} cy={c - r * 0.025} r={r * 1.075} fill="#E7C267" />
+        <Circle cx={c} cy={c} r={r * 1.02} fill="#5E3C0C" />
+        <Circle cx={c} cy={c} r={r} fill={DIM} />
+        {cut.facets.map((f, k) => (
+          <Path key={k} d={f.d} fill={f.fill} opacity={f.o ?? 1}
+            stroke={f.edge ? "#FFFFFF" : undefined} strokeOpacity={0.16} strokeWidth={Math.max(0.35, r * 0.012)} strokeLinejoin="round" />
+        ))}
+        <Circle cx={c} cy={c} r={r} fill="none" stroke="#0b1020" strokeWidth={r * 0.035} strokeOpacity={0.8} />
+      </Svg>
+      {sparkle ? (
+        <>
+          <Animated.View style={[StyleSheet.absoluteFill, shA]}><Svg width={size} height={size}><Path d={cut.shimmerA} fill="#FFFFFF" /></Svg></Animated.View>
+          <Animated.View style={[StyleSheet.absoluteFill, shB]}><Svg width={size} height={size}><Path d={cut.shimmerB} fill="#FFFFFF" /></Svg></Animated.View>
+          <Animated.View style={[{ position: "absolute", left: cut.glints[0][0] - L, top: cut.glints[0][1] - L, width: GL, height: GL }, gs1]}>{star}</Animated.View>
+          {full ? <Animated.View style={[{ position: "absolute", left: cut.glints[1][0] - L, top: cut.glints[1][1] - L, width: GL, height: GL }, gs2]}>{star}</Animated.View> : null}
+        </>
       ) : null}
     </View>
   );
