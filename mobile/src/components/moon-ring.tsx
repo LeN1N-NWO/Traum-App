@@ -1,200 +1,198 @@
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path } from "react-native-svg";
-import { FrogStage, type FrogEvent } from "@/components/frog-stage";
 import type { GiftCard, HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
-/* Der Traumfänger (Antons Wahl 04.10., Variante C — Rechnung bleibt
- * src/lib/dreamRing.js):
+/* Der Traumfänger (Antons Wahl 04.10., Variante C; Rechnung bleibt
+ * src/lib/dreamRing.js).
  *
- *   · Ein leicht unregelmäßiger, umwickelter Reif mit ein paar Fasern,
- *     darin ein gewebtes Netz aus drei Ringen. Jeder Traum mit Glimpse oder
- *     Film setzt eine Perle (sein Bild) ins Netz, von außen nach innen —
- *     ohne Datum, ohne Serie; Nummern laufen über 12 hinaus weiter.
- *   · Ein goldener Faden verbindet die Perlen in ihrer Reihenfolge; das
- *     Stück zur nächsten Perle ist gestrichelt und pulsiert.
- *   · Geschenke wie eine Uhr: 3 rechts, 6 unten, 9 links (je ein Glimpse)
- *     als farbige Federn, 12 oben (Film aus dem Ring). Die Zahlen sitzen
- *     als Perlen AM REIF, wo die Feder angeknotet ist — sie schwingen
- *     nicht mit (Antons Befund: „die machen die Schaukel nicht mit").
- *   · Die Federn hängen im HINTERGRUND unter dem Reif hinaus: Sie schieben
- *     das Layout nicht, alles darunter (Geschenk-Zeile, Texte, Knopf) liegt
- *     über ihnen. Antippen geht über die Zahl am Reif.
- *   · In der Mitte der Frosch (frog-stage.tsx).
+ * Gewebt wie ein echter Traumfänger: Sechs Knoten am Reif, jede Runde
+ * setzt ihre Knoten in die Mitte der Fäden der vorigen und zieht sie zu
+ * einem V nach innen — so entsteht die Sechseck-Spirale bis zur Mitte.
  *
- * Leistung (Lehren vom 27.09.): Reif, Netz und Federn sind stille SVGs;
- * bewegt werden nur native Ebenen — Federn drehen sich um ihren Knoten,
- * das Netz atmet (Skalierung), die nächste Perle und das gestrichelte
- * Stück pulsieren (Deckkraft). Keine SVG-Neuzeichnung je Bild. */
-const SLOTS = 12;
+ *   · Jeder Traum mit Glimpse oder Film ist ein KNOTEN im Netz (Runde 1:
+ *     Träume 1–6, Runde 2: 7–12), mit seinem Bild als Perle.
+ *   · Die Verbindung von Traum zu Traum läuft NUR über die vorhandenen
+ *     Fäden (kürzester Weg im Netz) — sie färbt sie golden, statt eigene
+ *     Linien darüberzulegen (Antons Befund 04.10.: „sieht komisch aus").
+ *     Der Weg zum nächsten Knoten pulsiert gestrichelt.
+ *   · Die Mitte ist das Ziel: Ist das Netz voll (12), wird es zum Film.
+ *   · Geschenke 3, 6, 9 als farbige Federn an den drei unteren Reif-
+ *     knoten (rechts, unten, links), die Zahlen fest am Reif; die Federn
+ *     hängen im Hintergrund, alles darunter liegt über ihnen.
+ *   · Der Frosch ist vorerst raus aus der Mitte (Antons Ansage 04.10.).
+ *
+ * Leistung: Reif, Netz, Federn stille SVGs; bewegt nur native Ebenen
+ * (Federn drehen, Netz atmet, Puls über Deckkraft). */
+const SIX = 6;
+const ROUNDS = 5;          // Runden des Netzes; Träume liegen auf 1 und 2
+const SAG = 0.86;          // wie stark jede Runde nach innen gezogen ist
 const BEAD = 30;
-const RINGS = [0.82, 0.67, 0.53];   // Netzringe, Anteil am Reif-Radius
-const INNER = 0.4;                   // innerer Kreis (Frosch)
+const HOLE = 0.17;         // Mitte (Ziel), Anteil am Reif-Radius
 
-type Feather = { num: number; ang: number; len: number; tilt: number; c1: string; c2: string; c3: string; eye: string };
+type Feather = { num: number; knot: number; len: number; tilt: number; c1: string; c2: string; c3: string; eye: string };
+type Pt = [number, number];
+const key = (r: number, i: number) => `${r}:${((i % SIX) + SIX) % SIX}`;
 
-export function MoonRing({ C, width, onOpen, onGift }: { C: HomeData["cycle"]; width: number; onOpen: (id: string) => void; onGift: (card: GiftCard) => void }) {
+export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeData["cycle"]; width: number; onOpen: (id: string) => void; onGift: (card: GiftCard) => void; onIntroDone?: () => void }) {
   const W = width, H = width;
   const cx = W / 2, cy = H / 2;
   const R = W * 0.4;
-  const pt = (slot: number, r: number) => {
-    const a = -Math.PI / 2 + (slot / SLOTS) * Math.PI * 2;
-    return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
-  };
-  /* Perle k (0…11): drei Ringe zu je vier Perlen, nach innen gewunden. */
-  const bead = (k: number) => {
-    const ring = Math.floor(k / 4);
-    return pt(k * 3 + (ring + 1) * 0.5, R * RINGS[ring]);
-  };
-  const frogSize = Math.round(R * INNER * 2 * 1.15);
   const filled = C.slots.filter((s) => s.dreamId).length;
-  const start = C.slots[0]?.num - 1 || 0;
+  const start = (C.slots[0]?.num ?? 1) - 1;
+  const dreamNode = (k: number) => key(1 + Math.floor(k / SIX), k % SIX);
 
-  /* Die Ereignisse des Froschs: Antippen, ein neuer Traum, ein Geschenk,
-     der volle Ring. */
-  const [event, setEvent] = useState<{ kind: FrogEvent; at: number } | null>(null);
-  const seen = useRef(C.count);
-  useEffect(() => {
-    if (C.count > seen.current) setEvent({ kind: C.count % SLOTS === 0 ? "cheer" : C.count % 3 === 0 ? "milestone" : "dream", at: Date.now() });
-    seen.current = C.count;
-  }, [C.count]);
-
-  const [bubble, setBubble] = useState<string | null>(null);
-  const bubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const say = (text: string) => {
-    if (bubbleTimer.current) clearTimeout(bubbleTimer.current);
-    setBubble(text);
-    bubbleTimer.current = setTimeout(() => setBubble(null), 4200);
-  };
-  useEffect(() => () => { if (bubbleTimer.current) clearTimeout(bubbleTimer.current); }, []);
-  const asleep = !C.todayDone;
-
-  /* Die Federn wie auf einer Uhr: 3 rechts unten, 6 unten, 9 links unten. */
-  const feathers: Feather[] = [
-    { num: start + 3, ang: Math.PI * 0.3, len: R * 0.62, tilt: -9, c1: "#2F8FA6", c2: "#1B5E73", c3: "#9EE0E8", eye: "#E8B04B" },
-    { num: start + 6, ang: Math.PI * 0.5, len: R * 0.8, tilt: 0, c1: "#C2622D", c2: "#7E3714", c3: "#F6C08A", eye: "#2B1A10" },
-    { num: start + 9, ang: Math.PI * 0.7, len: R * 0.62, tilt: 9, c1: "#6E5BD0", c2: "#3E2F8F", c3: "#CFC6FF", eye: "#E8B04B" },
-  ];
-  const giftOf = (num: number) => C.slots.find((s) => s.num === num)?.gift ?? null;
-
-  /* Reif und Netz — einmal gerechnet, nicht je Bild. */
-  const art = useMemo(() => {
-    const rnd = (i: number) => { const x = Math.sin(i * 127.1) * 43758.5453; return x - Math.floor(x); };
-    let hoop = "";
-    for (let k = 0; k <= 96; k++) {
-      const a = (k / 96) * Math.PI * 2;
-      const r = R + 1.6 * (Math.sin(a * 5 + 1) * 0.6 + Math.sin(a * 11 + 2) * 0.4);
-      hoop += `${k ? "L" : "M"}${(cx + Math.cos(a) * r).toFixed(1)} ${(cy + Math.sin(a) * r).toFixed(1)} `;
+  /* Das Netz: Knoten, Fäden, Reif — einmal gerechnet. */
+  const web = useMemo(() => {
+    const pos = new Map<string, Pt>();
+    const ang = (deg: number) => (deg - 90) * Math.PI / 180;
+    for (let i = 0; i < SIX; i++) pos.set(key(0, i), [cx + Math.cos(ang(i * 60)) * (R - 3), cy + Math.sin(ang(i * 60)) * (R - 3)]);
+    for (let r = 1; r <= ROUNDS; r++) {
+      for (let i = 0; i < SIX; i++) {
+        const [ax, ay] = pos.get(key(r - 1, i))!, [bx, by] = pos.get(key(r - 1, i + 1))!;
+        const mx = (ax + bx) / 2, my = (ay + by) / 2;
+        pos.set(key(r, i), [cx + (mx - cx) * SAG, cy + (my - cy) * SAG]);
+      }
     }
-    const fibers = Array.from({ length: 16 }, (_, k) => {
-      const a = rnd(k + 3) * Math.PI * 2, r = R + 4;
-      const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    // Fäden: jede Runde als V von Knoten zu Knoten der vorigen; die innerste geschlossen.
+    const edges: [string, string][] = [];
+    for (let r = 0; r < ROUNDS; r++) {
+      for (let i = 0; i < SIX; i++) { edges.push([key(r, i), key(r + 1, i)]); edges.push([key(r + 1, i), key(r, i + 1)]); }
+    }
+    for (let i = 0; i < SIX; i++) edges.push([key(ROUNDS, i), key(ROUNDS, i + 1)]);
+    const adj = new Map<string, string[]>();
+    for (const [a, b] of edges) { adj.set(a, [...(adj.get(a) || []), b]); adj.set(b, [...(adj.get(b) || []), a]); }
+    const route = (from: string, to: string): string[] => {
+      const prev = new Map<string, string | null>([[from, null]]);
+      const q = [from];
+      while (q.length) {
+        const n = q.shift()!;
+        if (n === to) break;
+        // innere Knoten zuerst — der Weg windet sich nach innen, nicht zum Reif
+        for (const m of [...(adj.get(n) || [])].sort((a, b) => Number(b.split(":")[0]) - Number(a.split(":")[0]))) {
+          if (!prev.has(m)) { prev.set(m, n); q.push(m); }
+        }
+      }
+      const out: string[] = [];
+      for (let n: string | null | undefined = to; n; n = prev.get(n)) out.unshift(n);
+      return out;
+    };
+    const d = (a: string, b: string) => { const [x1, y1] = pos.get(a)!, [x2, y2] = pos.get(b)!; return `M${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)}`; };
+    const pathOf = (nodes: string[]) => nodes.slice(1).map((n, k) => d(nodes[k], n)).join(" ");
+    // Die Wege: in Traum k hinein — vom Reif oben (Traum 1) bzw. vom vorigen Traum.
+    const legs = Array.from({ length: 2 * SIX }, (_, k) => pathOf(route(k === 0 ? key(0, 0) : dreamNode(k - 1), dreamNode(k))));
+    // Reif: handgemacht, nicht kreisrund — langsame Beulen, eine leichte Unwucht.
+    let hoop = "";
+    for (let k = 0; k <= 120; k++) {
+      const a = (k / 120) * Math.PI * 2;
+      const r = R + 3.2 * Math.sin(a * 2 + 0.7) + 1.8 * Math.sin(a * 3 + 2.1) + 0.9 * Math.sin(a * 9 + 1);
+      hoop += `${k ? "L" : "M"}${(cx + Math.cos(a) * r).toFixed(1)} ${(cy + Math.sin(a) * r * 1.02).toFixed(1)} `;
+    }
+    const rnd = (i: number) => { const x = Math.sin(i * 127.1) * 43758.5453; return x - Math.floor(x); };
+    const fibers = Array.from({ length: 18 }, (_, k) => {
+      const a = rnd(k + 3) * Math.PI * 2, rr = R + 4;
+      const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr;
       return `M${x.toFixed(1)} ${y.toFixed(1)} l${(Math.cos(a) * 6 + (rnd(k) - 0.5) * 3).toFixed(1)} ${(Math.sin(a) * 6).toFixed(1)}`;
     });
-    const rings = RINGS.map((f, ring) => {
-      let d = "";
-      for (let v = 0; v <= SLOTS; v++) {
-        const [x, y] = pt(v + (ring + 1) * 0.5, R * f + Math.sin(v * 2.3 + ring) * 1.4);
-        d += `${v ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)} `;
-      }
-      return d;
-    });
-    const spokes = Array.from({ length: SLOTS }, (_, v) => {
-      const [x0, y0] = pt(v, R), [x1, y1] = pt(v + 1.5, R * INNER);
-      return `M${x0.toFixed(1)} ${y0.toFixed(1)} L${x1.toFixed(1)} ${y1.toFixed(1)}`;
-    });
-    return { hoop, fibers, rings, spokes };
+    return { pos, threads: edges.map(([a, b]) => d(a, b)).join(" "), legs, hoop, fibers };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [W]);
 
-  /* Der gewebte Faden: von der 12 oben durch alle gefüllten Perlen. */
-  const [topX, topY] = pt(0, R);
-  const woven = Array.from({ length: filled }, (_, k) => bead(k)).reduce((d, [x, y]) => `${d} L${x.toFixed(1)} ${y.toFixed(1)}`, `M${topX.toFixed(1)} ${topY.toFixed(1)}`);
-  const [px, py] = filled > 0 ? bead(filled - 1) : [topX, topY];
-  const [nx, ny] = filled < SLOTS ? bead(filled) : [px, py];
+  const P = (n: string) => web.pos.get(n)!;
+  /* Die Federn an den drei unteren Reifknoten: 3 rechts, 6 unten, 9 links. */
+  const feathers: Feather[] = [
+    { num: start + 3, knot: 2, len: R * 0.62, tilt: -9, c1: "#2F8FA6", c2: "#1B5E73", c3: "#9EE0E8", eye: "#E8B04B" },
+    { num: start + 6, knot: 3, len: R * 0.8, tilt: 0, c1: "#C2622D", c2: "#7E3714", c3: "#F6C08A", eye: "#2B1A10" },
+    { num: start + 9, knot: 4, len: R * 0.62, tilt: 9, c1: "#6E5BD0", c2: "#3E2F8F", c3: "#CFC6FF", eye: "#E8B04B" },
+  ];
+  const giftOf = (num: number) => C.slots.find((s) => s.num === num)?.gift ?? null;
+  const ringGift = giftOf(start + 2 * SIX);
+  /* Die Einführung: von selbst beim leeren Fänger, sonst per langem Druck auf die Mitte. */
+  const [replay, setReplay] = useState(false);
+  const showIntro = !!C.intro && (C.intro.auto || replay);
+  const [ex, ey] = filled < 2 * SIX ? P(dreamNode(filled)) : [cx, cy];
 
   return (
     <View style={{ alignItems: "center", gap: 8, zIndex: 0 }}>
       <View style={{ width: W, height: H }}>
         {/* Die Federn — hinter allem, hängen über den Rand hinaus */}
         {feathers.map((f, i) => {
-          const [ax, ay] = pt(f.ang / (Math.PI * 2) * SLOTS + 3, R + 3);
+          const [ax, ay] = P(key(0, f.knot));
           return <FeatherView key={f.num} f={f} x={ax} y={ay} done={C.count >= f.num} delay={i * 700} />;
         })}
 
-        {/* Reif, Fasern, Netz — still; das Netz atmet als Ganzes */}
+        {/* Reif und Fasern — still */}
         <Svg width={W} height={H} style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Path d={art.hoop} fill="none" stroke="#9C6B1E" strokeWidth={7} />
-          <Path d={art.hoop} fill="none" stroke={colors.gold} strokeWidth={2.4} strokeDasharray="3 2.2" />
-          {art.fibers.map((d, k) => <Path key={k} d={d} stroke={colors.gold} strokeWidth={0.8} strokeOpacity={0.7} />)}
+          <Path d={web.hoop} fill="none" stroke="#9C6B1E" strokeWidth={7} />
+          <Path d={web.hoop} fill="none" stroke={colors.gold} strokeWidth={2.4} strokeDasharray="3 2.2" />
+          {web.fibers.map((d, k) => <Path key={k} d={d} stroke={colors.gold} strokeWidth={0.8} strokeOpacity={0.7} />)}
         </Svg>
+
         <Breath style={StyleSheet.absoluteFill}>
+          {/* Das Netz; die schon gewebten Wege golden — auf denselben Fäden */}
           <Svg width={W} height={H} style={StyleSheet.absoluteFill} pointerEvents="none">
-            {art.rings.map((d, k) => <Path key={k} d={d} fill="none" stroke="#F3E3C3" strokeWidth={0.8} strokeOpacity={0.5} />)}
-            {art.spokes.map((d, k) => <Path key={k} d={d} stroke="#F3E3C3" strokeWidth={0.6} strokeOpacity={0.35} />)}
-            <Circle cx={cx} cy={cy} r={R * INNER} fill="none" stroke={colors.gold} strokeWidth={1.2} strokeOpacity={0.7} />
-            {filled > 0 ? <Path d={woven} fill="none" stroke={colors.gold} strokeWidth={1.8} strokeOpacity={0.8} strokeLinejoin="round" /> : null}
+            <Path d={web.threads} fill="none" stroke="#F3E3C3" strokeWidth={0.9} strokeOpacity={0.42} strokeLinecap="round" />
+            {filled > 0 ? <Path d={web.legs.slice(0, filled).join(" ")} fill="none" stroke={colors.gold} strokeWidth={1.8} strokeOpacity={0.9} strokeLinecap="round" /> : null}
+            {/* die Knoten der Träume, die noch kommen */}
             {C.slots.map((s, k) => {
-              if (s.dreamId || s.num === C.next) return null;
-              const [x, y] = bead(k);
-              return <Circle key={s.num} cx={x} cy={y} r={2.6} fill="rgba(234,240,251,0.4)" />;
+              if (s.dreamId || k === filled) return null;
+              const [x, y] = P(dreamNode(k));
+              return <Circle key={s.num} cx={x} cy={y} r={2.4} fill="rgba(243,227,195,0.55)" />;
             })}
+            <Circle cx={cx} cy={cy} r={R * HOLE} fill="rgba(5,10,20,0.6)" stroke={colors.gold} strokeWidth={1.4} strokeOpacity={0.85} />
           </Svg>
-          {filled < SLOTS ? <NextThread d={`M${px.toFixed(1)} ${py.toFixed(1)} L${nx.toFixed(1)} ${ny.toFixed(1)}`} W={W} H={H} /> : null}
-          {/* Die Perlen: die Traumbilder */}
+          {filled < 2 * SIX ? <NextThread d={web.legs[filled]} W={W} H={H} /> : null}
+          {/* Die Perlen: die Traumbilder auf ihren Knoten */}
           {C.slots.map((s, k) => {
             if (!s.dreamId) return null;
-            const [x, y] = bead(k);
+            const [x, y] = P(dreamNode(k));
             return (
-              <Animated.View key={s.num} entering={FadeIn.delay(80 + k * 40).duration(380)} style={[styles.bead, { left: x - BEAD / 2, top: y - BEAD / 2 }]}>
+              <Animated.View key={s.num} entering={FadeIn.delay(80 + k * 40).duration(380)} style={[styles.bead, s.gift && styles.beadGift, { left: x - BEAD / 2, top: y - BEAD / 2 }]}>
                 <Pressable onPress={() => { Haptics.selectionAsync(); onOpen(s.dreamId!); }} hitSlop={4}>
                   {s.img ? <Image source={{ uri: s.img }} style={styles.beadImg} contentFit="cover" transition={150} /> : <View style={[styles.beadImg, styles.noImg]} />}
                 </Pressable>
               </Animated.View>
             );
           })}
-          {filled < SLOTS ? <NextMark x={nx} y={ny} size={BEAD - 4} /> : null}
+          {filled < 2 * SIX ? <NextMark x={ex} y={ey} size={BEAD - 4} /> : null}
         </Breath>
 
-        {/* Der Frosch in der Mitte — antippen: er sagt das nächste Ziel */}
-        <Pressable
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setEvent({ kind: "tap", at: Date.now() }); say(asleep ? C.sayAsleep : C.say); }}
-          style={[styles.center, { left: cx - frogSize / 2, top: cy - frogSize / 2, width: frogSize, height: frogSize }]}
-          accessibilityRole="button" accessibilityLabel={C.say}>
-          <FrogStage base={asleep ? "sleep" : "idle"} event={event} size={frogSize} />
+        {/* Die Mitte: das Ziel — ist das Netz voll, wird es zum Film */}
+        <Pressable hitSlop={8} onLongPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setReplay(true); }}
+          onPress={() => { if (ringGift) { Haptics.selectionAsync(); onGift(ringGift); } }}
+          style={[styles.hole, { left: cx - R * HOLE, top: cy - R * HOLE, width: R * HOLE * 2, height: R * HOLE * 2, borderRadius: R * HOLE }]}
+          accessibilityRole="button" accessibilityLabel={ringGift?.title ?? ""}>
+          <SymbolView name="film.fill" size={15} tintColor={colors.gold} />
         </Pressable>
 
-        {/* Die Zahlen am Reif — fest, wo die Federn angeknotet sind; die 12 oben */}
-        {[...feathers.map((f) => ({ num: f.num, at: pt(f.ang / (Math.PI * 2) * SLOTS + 3, R + 3) })), { num: start + 12, at: pt(0, R + 3) }].map(({ num, at: [x, y] }) => {
-          const g = giftOf(num);
-          const done = C.count >= num;
-          const big = num === start + 12;
-          const size = big ? 30 : 26;
+        {/* Beim ersten Mal, solange der Fänger leer ist: die kleine Einführung */}
+        {showIntro && C.intro ? (
+          <Intro steps={C.intro.steps} cta={C.intro.cta} W={W}
+            bead={[P(key(0, 0)), P(dreamNode(0))]} knots={feathers.map((f) => P(key(0, f.knot)))} center={[cx, cy]}
+            onDone={() => { Haptics.selectionAsync(); setReplay(false); if (C.intro?.auto) onIntroDone?.(); }} />
+        ) : null}
+
+        {/* Die Zahlen am Reif, wo die Federn angeknotet sind — fest */}
+        {feathers.map((f) => {
+          const [x, y] = P(key(0, f.knot));
+          const g = giftOf(f.num);
+          const done = C.count >= f.num;
           return (
-            <Pressable key={num} hitSlop={10} disabled={!g} onPress={() => { if (!g) return; Haptics.selectionAsync(); setEvent({ kind: "tap", at: Date.now() }); onGift(g); }}
-              style={[styles.knot, done && styles.knotDone, { width: size, height: size, borderRadius: size / 2, left: x - size / 2, top: y - size / 2 }]}
-              accessibilityRole="button" accessibilityLabel={g?.title ?? String(num)}>
-              {big && !done ? <SymbolView name="film.fill" size={11} tintColor={colors.gold} /> : <Text style={[styles.knotN, done && { color: "#2a1a05" }]}>{num}</Text>}
+            <Pressable key={f.num} hitSlop={10} disabled={!g} onPress={() => { if (g) { Haptics.selectionAsync(); onGift(g); } }}
+              style={[styles.knot, done && styles.knotDone, { left: x - 13, top: y - 13 }]} accessibilityRole="button" accessibilityLabel={g?.title ?? String(f.num)}>
+              <Text style={[styles.knotN, done && { color: "#2a1a05" }]}>{f.num}</Text>
             </Pressable>
           );
         })}
-
-        {/* Die Sprechblase des Froschs */}
-        {bubble ? (
-          <Animated.View entering={FadeInDown.duration(220)} exiting={FadeOut.duration(200)} pointerEvents="none"
-            style={[styles.bubble, { left: 24, right: 24, top: cy - frogSize / 2 - 46 }]}>
-            <Text style={styles.bubbleText}>{bubble}</Text>
-          </Animated.View>
-        ) : null}
       </View>
       {/* Das nächste Geschenk als Satz — liegt über den Federn */}
       {C.nextGift ? (
-        <Pressable onPress={() => { Haptics.selectionAsync(); setEvent({ kind: "tap", at: Date.now() }); if (C.nextGift) onGift(C.nextGift); }} style={styles.next} accessibilityRole="button">
+        <Pressable onPress={() => { Haptics.selectionAsync(); if (C.nextGift) onGift(C.nextGift); }} style={styles.next} accessibilityRole="button">
           <View style={styles.nextIcon}><SymbolView name="gift.fill" size={13} tintColor="#1a1206" /></View>
           <Text style={styles.nextText} numberOfLines={1}>{C.nextGift.say}</Text>
           <SymbolView name="chevron.right" size={11} tintColor={colors.faint} />
@@ -263,6 +261,47 @@ function FeatherView({ f, x, y, done, delay }: { f: Feather; x: number; y: numbe
   );
 }
 
+/* Die Einführung im leeren Traumfänger (Antons Wunsch 04.10.): drei
+   Schritte, die von selbst weiterlaufen (antippen springt weiter):
+   1 · eine Perle fliegt vom Reif auf ihren ersten Knoten,
+   2 · die drei Federknoten leuchten — dort hängen die Geschenke,
+   3 · die Mitte leuchtet — voll wird der Fänger zum Film.
+   Danach „Verstanden" (Befehl `catcherIntro`). */
+function Intro({ steps, cta, W, bead, knots, center, onDone }: { steps: string[]; cta: string; W: number; bead: [Pt, Pt]; knots: Pt[]; center: Pt; onDone: () => void }) {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    if (step >= steps.length - 1) return;
+    const t = setTimeout(() => setStep((s) => s + 1), 3600);
+    return () => clearTimeout(t);
+  }, [step, steps.length]);
+  const fly = useSharedValue(0);
+  useEffect(() => {
+    if (step === 0) fly.value = withRepeat(withSequence(withTiming(0, { duration: 1 }), withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.cubic) }), withDelay(600, withTiming(1, { duration: 1 }))), -1, false);
+  }, [step, fly]);
+  const [[x0, y0], [x1, y1]] = bead;
+  const flyStyle = useAnimatedStyle(() => ({ transform: [{ translateX: (x1 - x0) * fly.value }, { translateY: (y1 - y0) * fly.value }, { scale: 0.6 + 0.4 * fly.value }], opacity: 0.4 + 0.6 * fly.value }));
+  const spots = step === 1 ? knots : step === 2 ? [center] : [];
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      {step === 0 ? <Animated.View pointerEvents="none" style={[styles.ghost, { left: x0 - BEAD / 2, top: y0 - BEAD / 2 }, flyStyle]} /> : null}
+      {spots.map(([x, y], i) => <Halo key={`${step}-${i}`} x={x} y={y} size={step === 2 ? 64 : 44} delay={i * 180} />)}
+      <Animated.View key={step} entering={FadeIn.duration(300)} style={[styles.introCard, { left: 18, right: 18, top: W * 0.06 }]}>
+        <Pressable onPress={() => (step < steps.length - 1 ? setStep(step + 1) : onDone())} style={{ gap: 10, alignItems: "center" }}>
+          <Text style={styles.introText}>{steps[step]}</Text>
+          <View style={styles.introDots}>{steps.map((_, i) => <View key={i} style={[styles.introDot, i === step && styles.introDotOn]} />)}</View>
+          {step === steps.length - 1 ? <Text style={styles.introCta}>{cta}</Text> : null}
+        </Pressable>
+      </Animated.View>
+    </View>
+  );
+}
+function Halo({ x, y, size, delay }: { x: number; y: number; size: number; delay: number }) {
+  const k = useSharedValue(0);
+  useEffect(() => { k.value = withDelay(delay, withRepeat(withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.sin) }), -1, true)); }, [k, delay]);
+  const a = useAnimatedStyle(() => ({ opacity: 0.25 + 0.6 * k.value, transform: [{ scale: 0.85 + 0.3 * k.value }] }));
+  return <Animated.View pointerEvents="none" style={[styles.halo, { width: size, height: size, borderRadius: size / 2, left: x - size / 2, top: y - size / 2 }, a]} />;
+}
+
 /* Das Netz atmet: eine langsame, kaum sichtbare Skalierung der Ebene. */
 function Breath({ style, children }: { style: any; children: React.ReactNode }) {
   const k = useSharedValue(0);
@@ -294,19 +333,26 @@ function NextMark({ x, y, size }: { x: number; y: number; size: number }) {
 }
 
 const styles = StyleSheet.create({
-  center: { position: "absolute", alignItems: "center", justifyContent: "center" },
   bead: { position: "absolute", width: BEAD, height: BEAD, borderRadius: BEAD / 2, borderWidth: 1.4, borderColor: colors.gold, backgroundColor: colors.bg2 },
+  beadGift: { borderWidth: 2.2 },
   beadImg: { width: "100%", height: "100%", borderRadius: BEAD / 2 },
   noImg: { backgroundColor: "#8C84E8" },
-  knot: { position: "absolute", alignItems: "center", justifyContent: "center", backgroundColor: colors.bg, borderWidth: 1.6, borderColor: colors.gold },
+  hole: { position: "absolute", alignItems: "center", justifyContent: "center" },
+  knot: { position: "absolute", width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg, borderWidth: 1.6, borderColor: colors.gold },
   knotDone: { backgroundColor: colors.gold },
   knotN: { color: colors.gold, fontSize: 10.5, fontWeight: "700", fontVariant: ["tabular-nums"] },
   nextMark: { position: "absolute", borderWidth: 1.6, borderColor: colors.gold },
   next: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7, paddingLeft: 7, paddingRight: 12, borderRadius: 999, backgroundColor: "rgba(12,20,35,0.88)", borderWidth: 1, borderColor: "rgba(246,198,91,0.45)", maxWidth: "92%" },
   nextIcon: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: colors.gold },
   nextText: { color: colors.gold, fontSize: 13.5, fontWeight: "600", flexShrink: 1 },
-  bubble: { position: "absolute", paddingVertical: 9, paddingHorizontal: 14, borderRadius: 16, backgroundColor: "rgba(12,20,35,0.95)", borderWidth: 1, borderColor: "rgba(246,198,91,0.45)" },
-  bubbleText: { color: colors.text, fontSize: 13.5, lineHeight: 19, textAlign: "center" },
+  ghost: { position: "absolute", width: BEAD, height: BEAD, borderRadius: BEAD / 2, backgroundColor: "#8C84E8", borderWidth: 1.6, borderColor: colors.gold },
+  halo: { position: "absolute", borderWidth: 2, borderColor: colors.gold, backgroundColor: "rgba(246,198,91,0.12)" },
+  introCard: { position: "absolute", paddingVertical: 12, paddingHorizontal: 16, borderRadius: 18, backgroundColor: "rgba(12,20,35,0.92)", borderWidth: 1, borderColor: "rgba(246,198,91,0.45)" },
+  introText: { color: colors.text, fontSize: 15, lineHeight: 21, textAlign: "center" },
+  introDots: { flexDirection: "row", gap: 6 },
+  introDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(234,240,251,0.3)" },
+  introDotOn: { backgroundColor: colors.gold, width: 16 },
+  introCta: { color: colors.gold, fontSize: 15, fontWeight: "700" },
   count: { color: colors.gold, fontSize: 11, letterSpacing: 1.6, fontWeight: "600" },
   thread: { fontFamily: fonts.serif, fontStyle: "italic", fontSize: 14, color: colors.gold, textAlign: "center" },
 });

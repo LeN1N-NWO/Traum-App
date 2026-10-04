@@ -144,9 +144,21 @@ async function run(job: GlimpseJob, ask: (cmd: Omit<BridgeCommand, "n">) => Prom
     );
     // Der Film geht in die Cloud; zurück kommt der Ton, der zu ihm passt.
     const filmUri = resolveSketchUrl(film.film) ?? "";
+    /* Der Ton wird bis zu dreimal erfragt (04.10., Antons Befund: der
+       Glimpse vom 28.09. blieb stumm — der Server antwortete damals nicht,
+       und die App fragte nie wieder). Kommt er spät, legt lateSound ihn
+       nachträglich darunter. */
+    const ask3 = async (): Promise<string | null> => {
+      for (let i = 0; i < 3; i++) {
+        const u = await soundFromFilm(job, filmUri).catch(() => null);
+        if (u) return u;
+        await new Promise((r) => setTimeout(r, [20000, 60000, 0][i]));
+      }
+      return null;
+    };
     const sound: Promise<string | null> = job.sound
       ? Promise.resolve(job.sound)
-      : soundFromFilm(job, filmUri).then((u) => { if (u) noteGlimpse(job.id, { sound: u }); return u; }).catch(() => null);
+      : ask3().then((u) => { if (u) noteGlimpse(job.id, { sound: u }); return u; }).catch(() => null);
     const soundUrl = await Promise.race([sound, new Promise<null>((r) => setTimeout(() => r(null), SOUND_WAIT_MS))]);
     let withSound = false;
     if (soundUrl) {
@@ -163,8 +175,8 @@ async function run(job: GlimpseJob, ask: (cmd: Omit<BridgeCommand, "n">) => Prom
       content: { title: job.texts.readyTitle, body: job.texts.readyBody.replace("{title}", job.dream.title || ""), data: { glimpse: `/journal/${job.entryId}` } },
       trigger: null,
     }).catch(() => {});
-    // Kam der Ton nicht rechtzeitig, wird er nebenher nachgereicht.
-    if (!withSound && !soundUrl) {
+    // Kam der Ton nicht rechtzeitig (oder ließ er sich nicht anlegen), wird er nebenher nachgereicht.
+    if (!withSound) {
       void sound.then((late) => (late ? lateSound(job, film.film, late, ask) : null))
         .catch((e) => console.warn("[glimpse] Ton nachträglich", e?.message || e));
     }

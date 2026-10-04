@@ -68,6 +68,13 @@ export default {
     thread: (label, n) => `Der stärkste Faden: ${label} (${n}×)`,
     milestoneSay: (left, gift) => `${left <= 1 ? "Noch 1 Traum" : `Noch ${left} Träume`} bis 🎁 ${gift}`,
     /* Der Traum-Ring (03.10. spätabends, dreamRing.js): Plätze wie eine Uhr. */
+    /* Die Einführung im leeren Traumfänger (Antons Wunsch 04.10.). */
+    intro: [
+      "Jeder Traum wird eine Perle in deinem Traumfänger.",
+      "Bei 3, 6 und 9 hängt an einer Feder ein Geschenk für dich.",
+      "Ist er voll, wird aus deinen 12 Träumen ein Film.",
+    ],
+    introCta: "Verstanden",
     ringCount: (n, ring) => `${n} ${n === 1 ? "Traum" : "Träume"} · Ring ${ring}`,
     nextSlot: (num) => `Dein nächster Traum füllt Platz ${num}`,
     ringFilmTitle: (ring, from, to, motif) => `Ring ${ring} · Träume ${from}–${to}${motif ? ` · ${motif}` : ""}`,
