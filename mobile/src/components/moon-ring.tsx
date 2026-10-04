@@ -38,8 +38,8 @@ const ROUNDS = 5;          // Runden des Netzes; Träume liegen auf 1 und 2
 const SAG = 0.86;          // wie stark jede Runde nach innen gezogen ist
 const BEAD = 30;
 const HOLE = 0.17;         // Mitte (Ziel), Anteil am Reif-Radius
-const STRIP = 16;          // so viel höher als breit: der Streifen für die Bänder
-const LEAD = 14;           // Band vom Knoten bis zum Federbüschel
+const STRIP = 26;          // so viel höher als breit: der Streifen für die Bänder
+const LEAD = 16;           // Band vom Knoten bis zum Federbüschel
 /* die kleinen Federn: blass, damit die Geschenkfeder die Farbe trägt */
 const PALE = [
   { c1: "#E6DAC2", c2: "#A08C6C", c3: "#FFF6E3" },
@@ -230,7 +230,8 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
    blasse. Das Band schwingt als Ganzes um seinen Knoten (nur die Drehung
    der nativen Ebene bewegt sich). Unerreicht ist die große Feder blass. */
 function StrandView({ f, i, x, y, done, delay }: { f: Feather; i: number; x: number; y: number; done: boolean; delay: number }) {
-  const VW = 56, VH = LEAD + 46, ox = VW / 2;
+  // etwas größer als im ersten Wurf (Antons Wunsch 04.10.), aber nie bis zu den Texten
+  const VW = 64, VH = LEAD + 56, ox = VW / 2;
   const swing = useSharedValue(0);
   useEffect(() => {
     const amp = 3 + (delay % 3) * 0.5;
@@ -268,7 +269,7 @@ function vanePath(ox: number, top: number, w: number, L: number) {
 
 /* Die Geschenkfeder: farbig, mit Auge, Bändern, Ästen und kleinen Rissen. */
 function GiftFeather({ id, ox, oy, f }: { id: string; ox: number; oy: number; f: Feather }) {
-  const w = 10, L = 36, top = oy + 2;
+  const w = 12, L = 46, top = oy + 2;
   const vane = vanePath(ox, top, w, L);
   return (
     <G>
@@ -301,7 +302,7 @@ function GiftFeather({ id, ox, oy, f }: { id: string; ox: number; oy: number; f:
 /* Eine kleine blasse Feder — ohne Zuschnitt (sie wird gedreht), die
    dunkle Spitze ist eine eigene kleinere Fahne. */
 function SmallFeather({ ox, oy, p }: { ox: number; oy: number; p: { c1: string; c2: string; c3: string } }) {
-  const w = 5.5, L = 22, top = oy + 2;
+  const w = 6.5, L = 28, top = oy + 2;
   const tip = `M${ox} ${top + L * 0.5} C${ox + w * 0.95} ${top + L * 0.58} ${ox + w * 0.9} ${top + L * 0.8} ${ox + w * 0.35} ${top + L * 0.92} ` +
     `Q${ox + 0.5} ${top + L + 4} ${ox} ${top + L + 2} Q${ox - 0.6} ${top + L + 3} ${ox - w * 0.3} ${top + L * 0.9} ` +
     `C${ox - w * 0.8} ${top + L * 0.8} ${ox - w * 0.85} ${top + L * 0.6} ${ox} ${top + L * 0.5}Z`;
