@@ -74,6 +74,17 @@ Ton schreiben. ⚠ In „Reset Password" muss `{{ .Token }}` drinbleiben — die
 App fragt nach dem Code, nicht nach einem Link. Danach einmal prüfen, ob
 die Mails bei Gmail/Yahoo im Posteingang landen statt im Spam.
 
+**„Bestätigt"-Seite auf `dreamrushes.app` (seit 04.10.2026 offen, hängt an
+B3):** Der Link in der Bestätigungsmail bestätigt die Adresse bei Supabase
+und leitet dann auf die **Site URL** weiter — die steht noch auf
+`localhost:3000`, also sieht man nach dem Klick eine Fehlerseite (die
+Bestätigung selbst hat trotzdem geklappt, getestet 04.10.). Sobald
+`dreamrushes.app` öffentlich mit HTTPS läuft: dort eine kleine Seite „Deine
+Adresse ist bestätigt — zurück zur App und anmelden" bauen und in Supabase
+→ Authentication → URL Configuration als **Site URL** eintragen. ⚠ Die
+Weiterleitung hängt Token an die Adresse (`#access_token=…`) — die Seite
+darf sie nicht speichern, loggen oder weiterschicken.
+
 ## Teil 2b — B1 im Detail: StoreKit-Plan und Test-Strategie (23.09.)
 
 **Arbeitsteilung (Vorschlag, von Anton abzusegnen):**
