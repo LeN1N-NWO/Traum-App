@@ -3,11 +3,13 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-04 mittags — Anton, `session/2026-10-03b-anton` (PR #77):
-**Startseite = Traum-Ring wie eine Uhr** (12 Plätze, Geschenke auf den
-Vierteln, keine Daten mehr), kein Stil vorausgewählt, Stil-Riegel für
-gezeichnete Stile, ruhiger Warteschirm, Mitteilung bei fertigem Film.
-**Launch nur fürs iPhone** (Entscheidung 04.10.). Davor am selben Tag
+**Stand:** 2026-10-04 abends — Anton, `session/2026-10-04-anton` (PR #78):
+**Startseite = Traumfänger** (gewebtes Netz, Träume als Knoten, Federn
+3/6/9, Filmspule in der Mitte), **Rechtstexte nach dem Code, Einwilligung
+v4**, **neues App-Icon** (geschlossenes Auge mit Play), **Traumportal** als
+Aufnahmeknopf, Geschenk-Schachtel mit Knall. Davor PR #77 (Uhr-Ring, Stil
+ohne Vorauswahl, Stil-Riegel, Mitteilung). **Launch nur fürs iPhone**
+(Entscheidung 04.10.). Davor am selben Tag
 Hanni, `session/2026-10-03-hanni-5` (PR #76):
 **Registrierung mit E-Mail und Passwort und „Passwort vergessen" sind fertig
 und mit echten Mails getestet.** Supabase verschickt über **Resend** (SMTP,
@@ -20,7 +22,42 @@ Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Neu mit PR #77 (03./04.10., Anton):**
+**Neu mit PR #78 (04.10., Anton):**
+- **Traumfänger** (`mobile/src/components/moon-ring.tsx`, Rechnung weiter
+  `src/lib/dreamRing.js`): runder, dezenter Reif; Netz gewebt wie ein
+  echter Traumfänger (Sechseck-Spirale, jede Runde sitzt auf den Fäden der
+  vorigen). Träume sind Knoten (Runde 1: 1–6, Runde 2: 7–12) mit ihrem
+  Bild; der Weg von Traum zu Traum läuft NUR über vorhandene Fäden
+  (kürzester Weg im Netz) und färbt sie, der nächste pulsiert. Mitte =
+  goldene Filmspule (dreht; voll → Film). Federn 3/6/9 an den unteren
+  Reifknoten, im Hintergrund (Layout bleibt). Frosch vorerst raus.
+  Langer Druck auf eine Perle = Film-Vorschau als Kachel. Einführung bei
+  leerem Fänger (3 Schritte, Befehl `catcherIntro`), langer Druck auf die
+  Mitte spielt sie erneut.
+- **Geschenk-Schachtel** (`gift-sheet.tsx`): Nachtblau, Filmstreifen als
+  Schleife, Mond und Stern; Öffnen: Aufladen mit Haptik → Blitz, Deckel
+  fliegt, Strahlen, Filmbilder und Sterne.
+- **Rechtstexte** (`src/i18n/en.js`/`de.js` `consent`, `legal`):
+  Anbieterliste nach dem Code (u. a. OpenAI GPT Image 2 — fehlte,
+  Gemini-Diktat, Ton-Modelle, Sicherheitscheck, Supabase, Resend,
+  Hetzner, Apple-Käufe), Einladungen, Geschenk-Credits, Kauf und
+  Erstattung über Apple, Konto löschen, Mitteilungen.
+  `CONSENT_VERSION = 4` → das Tor erscheint bei allen erneut. es/fr/zh/
+  hi/ar zeigen bis zur Sammelübersetzung die englische Fassung.
+  ⚠ Verantwortlicher (Firma, Anschrift, Kontakt) fehlt; Anwältin prüft.
+- **App-Icon** = Recraft-Entwurf Nr. 5, Zeichen 1,87× vergrößert, als
+  Icon-Composer-Ebene in `mobile/assets/expo.icon` (+ `icon.png`).
+  ⚠ Vor dem Launch sauber nachzeichnen lassen (feine Kante in der Mitte
+  des Lids).
+- **Traumportal** statt Mond auf „Tell it out loud"
+  (`mobile/src/components/portal-button.tsx`): Spirale in die Tiefe,
+  Sternfelder, goldener Knopf; reagiert auf die Stimme; füllt den
+  Bildschirm. `moon-button.tsx` ungenutzt.
+- **Glimpse-Ton** fragt bis zu dreimal nach, sonst nachträglich
+  (`glimpse-layer.tsx`) — der Glimpse vom 28.09. war stumm.
+- Journal und Schlaf-Tab mit dem Nachthimmel.
+
+**Mit PR #77 (03./04.10., Anton)** — der Uhr-Ring ist mit PR #78 zum Traumfänger geworden:
 - **Traum-Ring** (`src/lib/dreamRing.js`, `mobile/src/components/moon-ring.tsx`)
   ersetzt den Mondzyklus-Ring: 12 Plätze wie eine Uhr (12 oben), jeder
   Traum mit Glimpse/Film füllt den nächsten Platz — ohne Datum, ohne Serie;
@@ -311,9 +348,14 @@ ersetzt (siehe oben; das Sternbild `constellation.js` ist gelöscht):
   https://claude.ai/artifact/FYiRnRVnoAe2yzj5DxKTQ7
 
 **Nächste Schritte:**
-- **Anton prüft am iPhone (PR #77):** Traum-Ring (Bogen, pulsierendes
-  Stück, Geschenke auf 3/6/9/12), wartendes Geschenk „Dein 6. Traum!",
-  Stil-Schritt ohne Vorauswahl, Warteschirm, Mitteilung im Hintergrund.
+- **Anton prüft am iPhone (PR #78):** Traumfänger (Netz, Wege, Federn,
+  Filmspule, langer Druck = Vorschau, langer Druck Mitte = Einführung),
+  Geschenk-Schachtel öffnen, Einwilligungs-Tor v4, App-Icon auf dem
+  Homescreen, Traumportal beim Sprechen, nächster Glimpse mit Ton.
+- **Offen aus PR #78:** Verantwortlicher in den Rechtstexten; Icon sauber
+  nachzeichnen; Anton liefert ggf. Federbilder und Frosch-Clips; die
+  Aufnahme-Seite ggf. weiter (Ideen: Frosch fängt Wörter, Traumfänger als
+  Knopf).
 - **Ein Anime-Film mit Besetzungsfoto** bestellen (kostet, Antons Ja) —
   hält der Stil-Riegel? Sonst: eigener Stil-Charakterbogen statt Foto,
   und `director.js` (lässt heute „natural colour" und Live-Action-Physik
