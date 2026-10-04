@@ -87,12 +87,13 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
     const pathOf = (nodes: string[]) => nodes.slice(1).map((n, k) => d(nodes[k], n)).join(" ");
     // Die Wege: in Traum k hinein — vom Reif oben (Traum 1) bzw. vom vorigen Traum.
     const legs = Array.from({ length: 2 * SIX }, (_, k) => pathOf(route(k === 0 ? key(0, 0) : dreamNode(k - 1), dreamNode(k))));
-    // Reif: handgemacht, nicht kreisrund — langsame Beulen, eine leichte Unwucht.
+    // Reif: rund wie ein echter Traumfänger (Antons Befund 04.10.: „er ist
+    // wirklich rund an den Seiten") — nur ein Hauch Unruhe der Umwicklung.
     let hoop = "";
     for (let k = 0; k <= 120; k++) {
       const a = (k / 120) * Math.PI * 2;
-      const r = R + 3.2 * Math.sin(a * 2 + 0.7) + 1.8 * Math.sin(a * 3 + 2.1) + 0.9 * Math.sin(a * 9 + 1);
-      hoop += `${k ? "L" : "M"}${(cx + Math.cos(a) * r).toFixed(1)} ${(cy + Math.sin(a) * r * 1.02).toFixed(1)} `;
+      const r = R + 0.5 * Math.sin(a * 9 + 1);
+      hoop += `${k ? "L" : "M"}${(cx + Math.cos(a) * r).toFixed(1)} ${(cy + Math.sin(a) * r).toFixed(1)} `;
     }
     const rnd = (i: number) => { const x = Math.sin(i * 127.1) * 43758.5453; return x - Math.floor(x); };
     const fibers = Array.from({ length: 18 }, (_, k) => {
@@ -131,23 +132,24 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
 
         {/* Reif und Fasern — still */}
         <Svg width={W} height={H} style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Path d={web.hoop} fill="none" stroke="#9C6B1E" strokeWidth={7} />
-          <Path d={web.hoop} fill="none" stroke={colors.gold} strokeWidth={2.4} strokeDasharray="3 2.2" />
-          {web.fibers.map((d, k) => <Path key={k} d={d} stroke={colors.gold} strokeWidth={0.8} strokeOpacity={0.7} />)}
+          {/* zurückhaltend (Antons Befund 04.10.: „die fette Linie an den Seiten ist zu dominant") */}
+          <Path d={web.hoop} fill="none" stroke="#C9A86A" strokeWidth={2.6} strokeOpacity={0.55} />
+          <Path d={web.hoop} fill="none" stroke="#F3E3C3" strokeWidth={1} strokeOpacity={0.45} strokeDasharray="2.4 2.6" />
+          {web.fibers.map((d, k) => <Path key={k} d={d} stroke="#C9A86A" strokeWidth={0.6} strokeOpacity={0.4} />)}
         </Svg>
 
         <Breath style={StyleSheet.absoluteFill}>
           {/* Das Netz; die schon gewebten Wege golden — auf denselben Fäden */}
           <Svg width={W} height={H} style={StyleSheet.absoluteFill} pointerEvents="none">
             <Path d={web.threads} fill="none" stroke="#F3E3C3" strokeWidth={0.9} strokeOpacity={0.42} strokeLinecap="round" />
-            {filled > 0 ? <Path d={web.legs.slice(0, filled).join(" ")} fill="none" stroke={colors.gold} strokeWidth={1.8} strokeOpacity={0.9} strokeLinecap="round" /> : null}
+            {filled > 0 ? <Path d={web.legs.slice(0, filled).join(" ")} fill="none" stroke="#F1D79A" strokeWidth={1.3} strokeOpacity={0.75} strokeLinecap="round" /> : null}
             {/* die Knoten der Träume, die noch kommen */}
             {C.slots.map((s, k) => {
               if (s.dreamId || k === filled) return null;
               const [x, y] = P(dreamNode(k));
               return <Circle key={s.num} cx={x} cy={y} r={2.4} fill="rgba(243,227,195,0.55)" />;
             })}
-            <Circle cx={cx} cy={cy} r={R * HOLE} fill="rgba(5,10,20,0.6)" stroke={colors.gold} strokeWidth={1.4} strokeOpacity={0.85} />
+            <Circle cx={cx} cy={cy} r={R * HOLE} fill="rgba(5,10,20,0.6)" stroke="#C9A86A" strokeWidth={1} strokeOpacity={0.6} />
           </Svg>
           {filled < 2 * SIX ? <NextThread d={web.legs[filled]} W={W} H={H} /> : null}
           {/* Die Perlen: die Traumbilder auf ihren Knoten */}
@@ -364,7 +366,7 @@ function NextThread({ d, W, H }: { d: string; W: number; H: number }) {
   return (
     <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, pulse]}>
       <Svg width={W} height={H}>
-        <Path d={d} fill="none" stroke={colors.gold} strokeWidth={2.2} strokeDasharray="4 5" strokeLinecap="round" />
+        <Path d={d} fill="none" stroke="#F1D79A" strokeWidth={1.6} strokeDasharray="4 5" strokeLinecap="round" />
       </Svg>
     </Animated.View>
   );
