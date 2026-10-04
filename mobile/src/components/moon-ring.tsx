@@ -167,7 +167,7 @@ export function MoonRing({ C, width, onOpen, onGift, onIntroDone }: { C: HomeDat
           onPress={() => { if (ringGift) { Haptics.selectionAsync(); onGift(ringGift); } }}
           style={[styles.hole, { left: cx - R * HOLE, top: cy - R * HOLE, width: R * HOLE * 2, height: R * HOLE * 2, borderRadius: R * HOLE }]}
           accessibilityRole="button" accessibilityLabel={ringGift?.title ?? ""}>
-          <SymbolView name="film.fill" size={15} tintColor={colors.gold} />
+          <Reel size={R * HOLE * 2 - 6} spin={!C.intro?.auto} full={filled >= 2 * SIX} />
         </Pressable>
 
         {/* Beim ersten Mal, solange der Fänger leer ist: die kleine Einführung */}
@@ -300,6 +300,29 @@ function Halo({ x, y, size, delay }: { x: number; y: number; size: number; delay
   useEffect(() => { k.value = withDelay(delay, withRepeat(withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.sin) }), -1, true)); }, [k, delay]);
   const a = useAnimatedStyle(() => ({ opacity: 0.25 + 0.6 * k.value, transform: [{ scale: 0.85 + 0.3 * k.value }] }));
   return <Animated.View pointerEvents="none" style={[styles.halo, { width: size, height: size, borderRadius: size / 2, left: x - size / 2, top: y - size / 2 }, a]} />;
+}
+
+/* Die Mitte: eine goldene Filmspule statt eines Geschenks (Antons Wunsch
+   04.10.: „nicht wie ein Geschenk, eher ein Film-Icon"). Sie dreht sich
+   langsam — die Träume laufen schon auf die Rolle. */
+function Reel({ size, spin, full }: { size: number; spin: boolean; full: boolean }) {
+  const k = useSharedValue(0);
+  useEffect(() => { if (spin) k.value = withRepeat(withTiming(1, { duration: full ? 2600 : 16000, easing: Easing.linear }), -1, false); }, [k, spin, full]);
+  const a = useAnimatedStyle(() => ({ transform: [{ rotate: `${k.value * 360}deg` }] }));
+  const r = size / 2;
+  return (
+    <Animated.View style={[{ width: size, height: size }, a]} pointerEvents="none">
+      <Svg width={size} height={size}>
+        <Circle cx={r} cy={r} r={r - 1} fill={full ? colors.gold : "#1B2457"} stroke={colors.gold} strokeWidth={1.6} />
+        <Circle cx={r} cy={r} r={r * 0.78} fill="none" stroke={full ? "#9C6B1E" : "rgba(246,198,91,0.45)"} strokeWidth={0.8} />
+        {Array.from({ length: 5 }, (_, i) => {
+          const an = (i / 5) * Math.PI * 2 - Math.PI / 2;
+          return <Circle key={i} cx={r + Math.cos(an) * r * 0.52} cy={r + Math.sin(an) * r * 0.52} r={r * 0.18} fill={full ? "#9C6B1E" : "#0b1020"} stroke={colors.gold} strokeWidth={0.8} />;
+        })}
+        <Circle cx={r} cy={r} r={r * 0.14} fill={full ? "#fff6dd" : colors.gold} />
+      </Svg>
+    </Animated.View>
+  );
 }
 
 /* Das Netz atmet: eine langsame, kaum sichtbare Skalierung der Ebene. */
