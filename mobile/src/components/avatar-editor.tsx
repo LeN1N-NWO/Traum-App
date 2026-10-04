@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActionSheetIOS, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
+import { OrbitGlow } from "@/components/orbit-glow";
 import { useJournal } from "@/components/journal-data";
 import { pushProfile } from "@/lib/auth";
 import { useOfflineLabels } from "@/lib/offline-labels";
@@ -292,16 +293,17 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
         {/* Je Foto: „Ich darf das" — ohne Haken kein Speichern. */}
         {needsConsent ? (
           <Pressable onPress={() => { Haptics.selectionAsync(); const next = !consent; setConsent(next); if (next) runCheck(); else { checkRun.current++; setCheck({ status: "idle" }); } }} accessibilityRole="checkbox" accessibilityState={{ checked: consent }}>
-            {/* Not ticked yet: the warm frame says "this is what stands between
-                you and saving" (Hanni, 04.10.2026) — same colour as the
-                missing-description hint above. */}
-            <Glass style={[styles.consent, consent ? styles.consentOn : styles.consentDue]} interactive>
-              <SymbolView name={consent ? "checkmark.square.fill" : "square"} size={24} tintColor={consent ? colors.ok : colors.warm} />
+            <Glass style={[styles.consent, consent && styles.consentOn]} interactive>
+              <SymbolView name={consent ? "checkmark.square.fill" : "square"} size={24} tintColor={consent ? colors.ok : colors.muted} />
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={styles.consentText}>{L.consentFor?.[mode === "me" ? "me" : kind] ?? L.consentFor?.person}</Text>
                 <Text style={styles.consentSmall}>{L.consentSmall}</Text>
               </View>
             </Glass>
+            {/* Not ticked yet: the same beam as every main button — it marks
+                what to press next (Hanni, 04.10.2026). Once ticked it goes,
+                and "Save changes", now enabled, carries its own. */}
+            {!consent ? <OrbitGlow radius={18} /> : null}
           </Pressable>
         ) : null}
         {needsConsent && check.status !== "idle" ? (
@@ -364,7 +366,6 @@ const styles = StyleSheet.create({
   privacy: { color: colors.faint, fontSize: 12, textAlign: "center", marginTop: 4 },
   consent: { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 14, borderRadius: 18 },
   consentOn: { borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(61,220,151,0.4)" },
-  consentDue: { borderWidth: 1.5, borderColor: colors.warm, backgroundColor: "rgba(242,167,101,0.08)" },
   consentText: { color: colors.text, fontSize: 15, lineHeight: 20, fontWeight: "600" },
   consentSmall: { color: colors.faint, fontSize: 11.5, lineHeight: 16 },
   check: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.panel },
