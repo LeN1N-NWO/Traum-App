@@ -29,7 +29,8 @@ import { selectBeats, shotPlan } from "../../../src/lib/cut.js";
 import { beatBudget, filmPace, clampSeconds, filmQuality, videoModel, DEFAULT_PACE } from "../../../src/lib/video.js";
 import { startsFree } from "../../../src/wizard/useWizard.js";
 import { beatsForCount } from "../../../src/lib/beats.js";
-import { realDreams, reflectionContext } from "../../../src/lib/atlas.js";
+// realDreams als realDreamsOf: weiter unten heißt eine Zahl so (04.10.: der Name überdeckte die Funktion, die Brücke warf, die App blieb leer)
+import { realDreams as realDreamsOf, reflectionContext } from "../../../src/lib/atlas.js";
 import { dreamRing, giftAtNum, nextGiftNum, pendingRingFilm, QUARTER, RING_SIZE } from "../../../src/lib/dreamRing.js";
 import { PRICES } from "../../../src/lib/pricing.js";
 import { VIDEO_MODELS, PACE_IDS } from "../../../src/lib/video.js";
@@ -575,7 +576,7 @@ function snapshot() {
      ergänztes Symbol reichert alte Träume rückwirkend an. */
   const symbols = (() => {
     // nur echte Träume — keine Beispiele, leeren Nächte, Mondfilme (wie die Atlas-Zählung)
-    const occ = symbolOccurrences(realDreams(s.journal)); const ts = t.symbols;
+    const occ = symbolOccurrences(realDreamsOf(s.journal)); const ts = t.symbols;
     const groups = Object.entries(SYMBOL_CATEGORIES).map(([key, cat]) => ({
       key, label: ts.categories[key] || cat.label,
       symbols: SYMBOLS.filter((x) => x.category === key && occ.has(x.id)).map((x) => {
