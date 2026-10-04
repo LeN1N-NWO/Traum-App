@@ -7,7 +7,9 @@ import { useEffect, useRef, useState } from "react";
 import { ActionSheetIOS, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
+import { OrbitGlow } from "@/components/orbit-glow";
 import { useJournal } from "@/components/journal-data";
+import { pushProfile } from "@/lib/auth";
 import { useOfflineLabels } from "@/lib/offline-labels";
 import { showToast } from "@/store/toast-store";
 import { colors, fonts, TAB_INSET } from "@/theme";
@@ -68,6 +70,10 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
      nicht nach einem bezahlten Film. Ein neues Foto setzt sie zurück. */
   const [check, setCheck] = useState<{ status: "idle" | "checking" | "ok" | "blocked" | "unavailable"; message?: string | null }>({ status: "idle" });
   const checkRun = useRef(0);
+  /* The entry as it arrived. "Save changes" stays grey until something
+     differs from it (Hanni, 04.10.2026), and only a changed name goes to
+     the account (save()). */
+  const [loaded, setLoaded] = useState({ tag: "", desc: "", img: "", img2: "", consent: false });
   const choosing = mode === "new" && (!category || category === "any");
 
   /* Nie ewig laden (Antons Befund 13.09. abends): Antwortet die Brücke nicht
@@ -86,6 +92,7 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
       const e = r.result.entry;
       setL(r.result.labels); setPrice(r.result.price);
       setTag(e.tag); setDesc(e.desc); setImg(e.img); setImg2(e.img2); setConsent(!!e.photoConsent);
+      setLoaded({ tag: e.tag, desc: e.desc, img: e.img, img2: e.img2, consent: !!e.photoConsent });
       if (e.category) setKind(e.category);
     });
     return () => clearTimeout(timer);
@@ -113,11 +120,22 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
     );
   }
 
-  const hasSubstance = Boolean(img) || Boolean(desc.trim());
+  /* A cast member needs a photo or a description — the AI draws from one of
+     the two. Your OWN portrait may be just a name (Hanni, 04.10.2026): the
+     onboarding creates it that way, and films use it only once it has a
+     photo (autoMatch, tags.js). Otherwise renaming yourself was impossible. */
+  const hasSubstance = mode === "me" || Boolean(img) || Boolean(desc.trim());
   const clean = cleanTag(tag);
   const title = mode === "me" ? L.meTitle : mode === "edit" ? (L.editTitleFor[kind] ?? L.editTitleFor.person) : L.titleFor[kind];
   const face = mode === "me" || kind === "person";
   const needsConsent = Boolean((img && !drawn) || img2);
+  /* Something to save at all? A new entry always; an existing one only once
+     name, description, a photo or the photo tick differ from what was
+     loaded. The name counts as typed — "Hanni" for "hanni" is a change worth
+     keeping. The tick counts on its own: a photo from before the per-photo
+     confirmation arrives unticked, and ticking it must be savable. */
+  const l = loaded;
+  const dirty = mode === "new" || tag.trim() !== l.tag || desc.trim() !== l.desc.trim() || img !== l.img || img2 !== l.img2 || consent !== l.consent;
 
   /* Die Fotoquelle als System-Blatt — Mediathek, Kamera, Entfernen. */
   function photoMenu(slot: 1 | 2) {
@@ -149,13 +167,22 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
   }
 
   async function save() {
-    if (busy || !hasSubstance) return;
+    if (busy || !hasSubstance || !dirty) return;
     if (needsConsent && !consent) { showToast(L!.needConsent ?? "⚠"); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); return; }
     if (check.status === "blocked") { showToast(L!.checkBlockedSave ?? "⚠"); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); return; }
     setBusy("save");
     const r = await ask({ type: "avatarSave", mode, id, avatar: { tag, desc, img, img2, category: kind, consent: !needsConsent || consent, check: check.status === "idle" || check.status === "checking" ? undefined : check.status } });
     setBusy(null);
     if (r.error) { showToast(r.error); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); return; }
+    /* Your name also lives in the account (profiles.display_name — what
+       invited friends see). It goes as TYPED ("Jürgen"), not as the mention
+       tag the device keeps ("jrgen"), and only when it really changed: the
+       field reloads the tag, so an unchanged save would otherwise turn
+       "Hanni" into "hanni". Without a session pushProfile returns at once —
+       no network, no sign-in sheet; a failure is not worth a message, the
+       device stays the truth, as after the onboarding. */
+    const typed = tag.trim().slice(0, 120);
+    if (mode === "me" && typed && typed !== l.tag) pushProfile({ display_name: typed }).catch(() => {});
     if (r.result?.toast) showToast(r.result.toast);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onDone(r.result?.id);
@@ -275,6 +302,10 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
                 <Text style={styles.consentSmall}>{L.consentSmall}</Text>
               </View>
             </Glass>
+            {/* Not ticked yet: the same beam as every main button — it marks
+                what to press next (Hanni, 04.10.2026). Once ticked it goes,
+                and "Save changes", now enabled, carries its own. */}
+            {!consent ? <OrbitGlow radius={18} /> : null}
           </Pressable>
         ) : null}
         {needsConsent && check.status !== "idle" ? (
@@ -291,7 +322,7 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
 
         <View style={styles.actions}>
           <GlassButton label={L.cancel} onPress={() => onDone()} />
-          <PrimaryButton label={busy === "save" ? "…" : mode === "new" ? L.save : L.saveChanges} heavy onPress={save} disabled={!hasSubstance || !clean || !!busy || (needsConsent && !consent) || check.status === "blocked"} />
+          <PrimaryButton label={busy === "save" ? "…" : mode === "new" ? L.save : L.saveChanges} heavy onPress={save} disabled={!dirty || !hasSubstance || !clean || !!busy || (needsConsent && !consent) || check.status === "blocked"} />
         </View>
 
         {mode === "edit" ? (

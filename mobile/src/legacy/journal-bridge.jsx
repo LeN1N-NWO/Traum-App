@@ -745,7 +745,8 @@ async function runAvatar(cmd, onResult) {
     const clean = cleanTag(a.tag);
     const desc = String(a.desc || "").trim().slice(0, 120);
     if (!clean) { onResult({ n: cmd.n, error: t.avatarDialog.needName }); return true; }
-    if (!a.img && !desc) { onResult({ n: cmd.n, error: t.avatarDialog.needPhotoOrDesc }); return true; }
+    // Your own portrait may be just a name — see hasSubstance in avatar-editor.tsx.
+    if (cmd.mode !== "me" && !a.img && !desc) { onResult({ n: cmd.n, error: t.avatarDialog.needPhotoOrDesc }); return true; }
     if ((a.img || a.img2) && a.consent !== true) { onResult({ n: cmd.n, error: t.avatarDialog.needConsent }); return true; }
     const photoConsent = photoConsentFor(a);
     // Das Ergebnis der Foto-Prüfung reist mit, am selben Fingerabdruck wie der Haken.

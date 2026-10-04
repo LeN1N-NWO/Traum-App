@@ -3,6 +3,38 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-04 20:35 — Hanni — Branch `session/2026-10-04-hanni` (PR #80) — Profil: Name, Save changes, Foto-Haken
+
+**Commits:** 2791bbd (Name allein, dirty, Anzeigename ins Konto), ee0e043 +
+5be6c15 (Foto-Haken hervorgehoben → Leuchtrand), c4d8299 (Haken an altem
+Foto zählt) (+ Wrap).
+
+**Was:** Im Profil (eigenes Porträt, `avatar-editor.tsx`) genügt ein Name;
+„Save changes" ist grau, bis sich etwas ändert; ein geänderter Name geht
+als `display_name` ins Konto; der Haken „This is me in the photo" trägt
+den OrbitGlow, solange er fehlt. In der Brücke nur `avatarSave` für `me`.
+
+**Warum:** Hanni wollte ihren Namen ändern — ohne Foto/Beschreibung ging
+das nicht, und der neue Name kam nie im Konto an (Einladungen zeigen
+`profiles.display_name`).
+
+**Belege:** `tsc` sauber; Lint: keine neue Warnung (Bridge 22 vorher/nachher,
+gegen eine `main`-Kopie verglichen). Zwischenstand mit `useRef` beim
+Rendern als React-Compiler-Warnung gefunden und auf State umgestellt.
+Im Simulator von Hanni geprüft: Knopf grau/aktiv bei Name und
+Beschreibung, Leuchtrand am Haken. Nicht belegt: Name im Konto (braucht
+Anmeldung), Haken an altem Foto.
+
+**Für den Nächsten:**
+- `journal-bridge.jsx` auch in Antons PR #79 — eine Zeile, sollte sauber
+  zusammengehen.
+- TestFlight-Ziel 16.10. (intern), Plan lokal bei Hanni. Montag: SSH-Zugang
+  VPS (Anton), DNS `api.dreamrushes.app`, interne TestFlight-Gruppe.
+- Die App-Store-Connect-App ist angelegt: `com.dreamrushes.app`, SKU
+  `dreamrushes-ios`. Händlerstatus (DSA) erst mit der UG.
+- `mobile/.env` bei Hanni zeigt jetzt auf `192.168.2.111` (WLAN-Adresse
+  hatte sich geändert).
+
 ## 2026-10-04 17:55 — Anton — Branch `session/2026-10-04-anton` (PR #78) — Traumfänger, Rechtstexte v4, App-Icon, Traumportal
 
 **Commits:** 4dcea58, 3640ebb, 0e6d36d, 4567747, 4354e4d, dbf904e, 05f5ff6, b7e1ab1 (+ Wrap).
