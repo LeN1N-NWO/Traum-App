@@ -32,13 +32,29 @@ die() { printf '\033[31mXX %s\033[0m\n' "$*" >&2; exit 1; }
 # dann getauscht: ein abgebrochener Lauf hinterlässt nichts, was
 # `git status` als Handänderung sähe. mktemp legt 700 an — der Dienst muss
 # lesen dürfen, deshalb ausdrücklich 755.
+# ⚠ Darf NIE scheitern: Es läuft auch auf dem Rückweg, VOR dem Neustart des
+# vorigen Stands. Ein Fehler hier (set -e) ließe den Dienst gestoppt zurück
+# — für ein paar fehlende Vorschau-Videos. Deshalb eine ausdrückliche
+# &&-Kette in einer if-Bedingung (dort greift set -e nicht, und jeder
+# Schritt läuft nur nach dem vorigen). NICHT als `( set -e; … ) || …`:
+# In einer ||-Liste ignoriert Bash das set -e auch in der Unter-Shell —
+# ein gescheitertes cp liefe weiter und setzte ein leeres dist/ ein
+# (geprüft 05.10.2026).
 sync_static() {
-  local tmp
-  tmp="$(mktemp -d "$(dirname "$APP_DIR")/dist.XXXXXX")"
-  chmod 755 "$tmp"
-  cp -a public/clips "$tmp/clips"
-  rm -rf dist
-  mv "$tmp" dist
+  local tmp="" old=""
+  if tmp="$(mktemp -d "$(dirname "$APP_DIR")/dist.XXXXXX")" \
+     && chmod 755 "$tmp" \
+     && cp -a "$APP_DIR/public/clips" "$tmp/clips" \
+     && old="$tmp.alt" \
+     && { [[ ! -e "$APP_DIR/dist" ]] || mv "$APP_DIR/dist" "$old"; } \
+     && mv "$tmp" "$APP_DIR/dist"; then
+    rm -rf "$old" || true
+  else
+    # Altes dist/ zurücklegen, falls es schon beiseite lag.
+    if [[ ! -e "$APP_DIR/dist" && -n "$old" && -e "$old" ]]; then mv "$old" "$APP_DIR/dist" || true; fi
+    if [[ -n "$tmp" ]]; then rm -rf "$tmp" || true; fi
+    printf '\033[33m!! Clips nicht aktualisiert — dist/ bleibt, wie es war (ohne dist/: leere Stil-Kacheln). Der Deploy läuft weiter.\033[0m\n'
+  fi
 }
 
 [[ $EUID -eq 0 ]] || die "Bitte mit sudo ausführen."
