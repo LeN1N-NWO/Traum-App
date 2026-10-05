@@ -1,8 +1,17 @@
 # deploy/ — Dream Rushes auf dem Hetzner-VPS
 
-Einrichtung und Deploy der API auf Antons VPS (`ubuntu-4gb-fsn1-2`,
-Falkenstein). Grundlage: `docs/plans/2026-09-24-hosting.md`, Bedingung 5
-in `docs/plans/2026-09-24-medienablage.md`.
+Einrichtung und Deploy der API auf Antons VPS **„Dreamrushes“** (Hetzner
+Cloud CX23, x86, #167324557, Falkenstein, Ubuntu 26.04 LTS; IPv4
+`188.245.92.121`, IPv6-Netz `2a01:4f8:c013:ace3::/64`). ⚠ Im selben Projekt
+liegt ein zweiter Server `ubuntu-4gb-fsn1-1` (CAX11, ARM) — nicht der für die
+App. Grundlage: `docs/plans/2026-09-24-hosting.md`, Bedingung 5 in
+`docs/plans/2026-09-24-medienablage.md`.
+
+**Erster Lauf: 05.10.2026 (Hanni), Stand `ef91974` — läuft.** Von außen
+geprüft: HTTPS (Let's Encrypt), HTTP → HTTPS, Sicherheits-Kopfzeilen, S1
+(`/api/generate` ohne Konto → 401), S2 (`/api/media-key` ohne Konto → 401,
+unsignierte Medien → 404), S5 (elfte Anmeldung trotz gefälschter Kopfzeile →
+429), Entwicklungs-Routen 404, Port 8100 von außen zu.
 
 | Datei | Zweck |
 |---|---|
@@ -31,6 +40,52 @@ Der Dienst läuft als Systemnutzer `dreamrushes` ohne Login. Von außen offen:
    belegt ist.
 2. Hetzner Console → Firewall: eingehend nur 22, 80, 443 (TCP) und 443 (UDP).
 3. Hetzner Console → Snapshots/Backups einschalten.
+
+## Zugang (einmalig, wie am 05.10. gemacht)
+
+Ein eigener Login-Nutzer mit `sudo`, nur mit SSH-Schlüssel. Ohne vorhandenen
+Zugang geht es über die **Web-Konsole** der Hetzner Console (Symbol `>_`)
+als `root` (Passwort über *Rescue → Reset root password*, nur mit Antons
+Okay — es gilt nur für diesen Server).
+
+⚠ **Die Web-Konsole tippt Eingefügtes Taste für Taste nach** und verliert
+dabei Shift: `_ : @ " | &` kommen als `- ; 2 ' \ 7` an. Ein Befehl mit
+offenem Anführungszeichen lässt die Shell auf `>` warten — **Strg + C**.
+Deshalb dort nur tippen, nach `loadkeys de` (für das y die Taste Z drücken);
+auf Mac-Tastaturen liegt `>` dann auf **Shift + ^**. Unterstriche nach dem
+Tippen kontrollieren.
+
+Der öffentliche Schlüssel kommt über GitHub (`github.com/<name>.keys`) auf
+den Server, damit niemand 750 Zeichen abtippen muss — vorher den
+Mac-Schlüssel (`~/.ssh/id_rsa.pub`) im GitHub-Konto hinterlegen:
+
+```bash
+useradd -m -s /bin/bash -G sudo hanni
+mkdir -p /home/hanni/.ssh
+curl -fsSL -o /home/hanni/.ssh/authorized_keys https://github.com/H4nn40x.keys
+chown -R hanni:hanni /home/hanni/.ssh
+chmod 700 /home/hanni/.ssh
+chmod 600 /home/hanni/.ssh/authorized_keys
+passwd hanni        # für sudo
+```
+
+Danach alles Weitere im Mac-Terminal per `ssh`, dort funktioniert Einfügen.
+
+**SSH nur mit Schlüssel** — `setup.sh` warnt nur, ändert sshd bewusst nicht.
+Erst prüfen, dass der Schlüssel-Login klappt, dann:
+
+```bash
+sudo tee /etc/ssh/sshd_config.d/10-nur-schluessel.conf >/dev/null <<'EOF'
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+EOF
+sudo sshd -t && sudo systemctl reload ssh
+```
+
+(`10-` vor Ubuntus `50-cloud-init.conf`: bei sshd gilt der erste Wert.)
+Gegenprobe aus einem zweiten Terminal, die laufende Sitzung offen lassen:
+`ssh -o PubkeyAuthentication=no -o PreferredAuthentications=password …` muss
+mit „Permission denied (publickey)“ scheitern.
 
 ## Einrichten
 
@@ -77,6 +132,22 @@ Dazu die Dienst-Schlüssel wie lokal (`FAL_KEY`, `DEEPSEEK_KEY`, `GEMINI_KEY`,
 Den Apple-Schlüssel wie in `.env.example`: in doppelten Anführungszeichen,
 Zeilenumbrüche als `\n` — Bun liest die Datei selbst (`--env-file`).
 
+**So am 05.10. gemacht — die Werte erscheinen nirgends auf dem Bildschirm:**
+Vom Mac aus nur die gebrauchten Zeilen der lokalen `.env` übertragen,
+`MEDIA_SECRET` erst auf dem Server erzeugen:
+
+```bash
+# Mac:
+grep -E '^(SUPABASE_URL|SUPABASE_ANON_KEY|DATABASE_URL|FAL_KEY|DEEPSEEK_KEY|GEMINI_KEY|APPLE_TEAM_ID|APPLE_SIGNIN_KEY_ID|APPLE_SIGNIN_KEY)=' ~/Claude/Traum-App/.env | ssh hanni@188.245.92.121 'umask 077 && cat > ~/dr.env && wc -l < ~/dr.env'
+# Server:
+printf 'DREAMRUSHES_MEDIA=/var/lib/dreamrushes/media\nMEDIA_SECRET="%s"\n' "$(openssl rand -hex 32)" >> ~/dr.env
+sudo install -m 640 -o root -g dreamrushes ~/dr.env /etc/dreamrushes/dreamrushes.env && shred -u ~/dr.env
+sudo grep -oE '^[A-Z_]+=' /etc/dreamrushes/dreamrushes.env   # nur Namen
+```
+
+`DATABASE_URL` ist die eingeschränkte Rolle `dreamrushes_server`, nie
+`postgres`. `TESTUSER`/`TESTPASS` gehören nicht auf den Server.
+
 Prüfen, ohne zu starten:
 
 ```bash
@@ -89,6 +160,11 @@ cd /opt/dreamrushes/app && sudo -u dreamrushes bun --no-install --env-file=/etc/
 sudo bash /opt/dreamrushes/app/deploy/deploy.sh             # origin/main
 sudo bash /opt/dreamrushes/app/deploy/deploy.sh 1a2b3c4     # bestimmter Stand
 ```
+
+Statische Dateien: Es gibt auf dem Server keinen Web-Build. `deploy.sh`
+kopiert bei jedem Lauf (und beim Zurückgehen) `public/clips` nach
+`dist/clips` — die Stil-Kacheln und Vorzeige-Videos der App. Fehlt das,
+sind die Kacheln leer (`/clips/…` → 404, erster Lauf 05.10.2026).
 
 Antwortet der Server nach dem Neustart nicht nach rund 30 Versuchen (je eine Sekunde Abstand) auf
 `/api/prices` (offen, ohne Konto), geht der Deploy von selbst auf den vorigen

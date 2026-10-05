@@ -24,6 +24,39 @@ LOCK_URL="http://127.0.0.1:8100/api/generate"
 say() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 die() { printf '\033[31mXX %s\033[0m\n' "$*" >&2; exit 1; }
 
+# Statische Dateien: server.js liefert sie nur aus dist/ (resolveStatic,
+# erlaubt sind /index.html, /assets/, /clips/), und auf dem Server gibt es
+# keinen Web-Build. Die App braucht davon nur die Clips aus public/clips —
+# Stil-Kacheln und Vorzeige-Videos. Ohne diesen Schritt: 404 und leere
+# Kacheln (erster Lauf 05.10.2026). Gebaut wird außerhalb des Checkouts und
+# dann getauscht: ein abgebrochener Lauf hinterlässt nichts, was
+# `git status` als Handänderung sähe. mktemp legt 700 an — der Dienst muss
+# lesen dürfen, deshalb ausdrücklich 755.
+# ⚠ Darf NIE scheitern: Es läuft auch auf dem Rückweg, VOR dem Neustart des
+# vorigen Stands. Ein Fehler hier (set -e) ließe den Dienst gestoppt zurück
+# — für ein paar fehlende Vorschau-Videos. Deshalb eine ausdrückliche
+# &&-Kette in einer if-Bedingung (dort greift set -e nicht, und jeder
+# Schritt läuft nur nach dem vorigen). NICHT als `( set -e; … ) || …`:
+# In einer ||-Liste ignoriert Bash das set -e auch in der Unter-Shell —
+# ein gescheitertes cp liefe weiter und setzte ein leeres dist/ ein
+# (geprüft 05.10.2026).
+sync_static() {
+  local tmp="" old=""
+  if tmp="$(mktemp -d "$(dirname "$APP_DIR")/dist.XXXXXX")" \
+     && chmod 755 "$tmp" \
+     && cp -a "$APP_DIR/public/clips" "$tmp/clips" \
+     && old="$tmp.alt" \
+     && { [[ ! -e "$APP_DIR/dist" ]] || mv "$APP_DIR/dist" "$old"; } \
+     && mv "$tmp" "$APP_DIR/dist"; then
+    rm -rf "$old" || true
+  else
+    # Altes dist/ zurücklegen, falls es schon beiseite lag.
+    if [[ ! -e "$APP_DIR/dist" && -n "$old" && -e "$old" ]]; then mv "$old" "$APP_DIR/dist" || true; fi
+    if [[ -n "$tmp" ]]; then rm -rf "$tmp" || true; fi
+    printf '\033[33m!! Clips nicht aktualisiert — dist/ bleibt, wie es war (ohne dist/: leere Stil-Kacheln). Der Deploy läuft weiter.\033[0m\n'
+  fi
+}
+
 [[ $EUID -eq 0 ]] || die "Bitte mit sudo ausführen."
 [[ -x /usr/local/bin/bun ]] || die "Bun fehlt — erst deploy/setup.sh laufen lassen."
 [[ -f "$ENV_FILE" ]] || die "$ENV_FILE fehlt — siehe deploy/README.md."
@@ -42,6 +75,7 @@ say "Holen: $REF"
 git fetch --quiet --prune origin
 git checkout --quiet --detach "$REF"
 NEW="$(git rev-parse HEAD)"
+sync_static
 git log -1 --format='%h %s (%an, %ad)' --date=short
 
 # Als Dienstnutzer und mit dessen Umgebung wie in dreamrushes.service —
@@ -87,6 +121,7 @@ healthy() {
 say ".env prüfen"
 if ! check_env; then
   git checkout --quiet --detach "$PREV"
+  sync_static
   die ".env passt nicht zum neuen Stand — zurück auf $(git rev-parse --short HEAD), Dienst unverändert."
 fi
 
@@ -114,6 +149,7 @@ fi
 journalctl -u dreamrushes -n 40 --no-pager || true
 say "Keine Antwort von $HEALTH_URL — zurück auf ${PREV:0:7}"
 git checkout --quiet --detach "$PREV"
+sync_static
 install -m 644 deploy/dreamrushes.service /etc/systemd/system/dreamrushes.service
 systemctl daemon-reload
 systemctl restart dreamrushes

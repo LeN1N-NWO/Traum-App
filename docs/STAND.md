@@ -3,7 +3,16 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-05 nachmittags — Hanni, `session/2026-10-05-hanni-2` (PR #85):
+**Stand:** 2026-10-05 abends — Hanni, `session/2026-10-05-hanni-3` (PR #86):
+**Der Server läuft öffentlich** — `https://api.dreamrushes.app` auf dem
+Hetzner-VPS „Dreamrushes“ (Stand `ef91974`). Von außen und im Mobilfunknetz
+mit echten Konten belegt: HTTPS, S1, S2, S5, B8 (Apple-Konto gelöscht, seine
+Medien und Aufträge weg). ⚠ **TestFlight-Blocker: verwaiste Filme** —
+`/api/generate` antwortet erst nach Regie + Bestellung (58–72 s), im
+Mobilfunk gibt die App auf, der Film wird trotzdem bestellt. Übergabe an
+Anton (Weg B, Warteschlange): `docs/uebergabe/2026-10-05-anton-warteschlange-verwaiste-filme.md`.
+⚠ `GEMINI_KEY` ungültig (lokal + Server, liegt bei Anton). Davor Hanni,
+`session/2026-10-05-hanni-2` (PR #85):
 **S2 und B8 sind fertig** — `/media/*` geht auf dem VPS nur noch gegen eine
 signierte Adresse an den Besitzer, Konto löschen löscht seine Medien. Im
 Simulator belegt. ⚠ Auf dem VPS braucht die `.env` jetzt zusätzlich
@@ -60,7 +69,58 @@ Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Neu mit PR #85 (05.10. nachmittags, Hanni) — S2 Medien nur an den Besitzer, B8:**
+**Neu mit PR #86 (05.10. abends, Hanni) — VPS in Betrieb:**
+- **Server:** Hetzner CX23 „Dreamrushes“ (x86, Ubuntu 26.04, #167324557,
+  188.245.92.121; ⚠ der zweite Server `ubuntu-4gb-fsn1-1` ist nicht der der
+  App). `setup.sh` + `.env` + `deploy.sh` gelaufen, `ef91974` läuft. Zugang:
+  Nutzer `hanni` (sudo mit Passwort, nur SSH-Schlüssel), SSH-Passwortanmeldung
+  aus (`/etc/ssh/sshd_config.d/10-nur-schluessel.conf`). Root-Passwort am
+  05.10. mit Antons Okay neu gesetzt (Hanni hat es). Ablauf, Konsole-Fallen
+  und `.env`-Übertragung ohne Werte auf dem Bildschirm: `deploy/README.md`.
+- **Geprüft:** HTTPS (Let's Encrypt bis 03.01.2027), HTTP → HTTPS,
+  Kopfzeilen, S1 (`/api/generate` ohne Konto → 401), S2 (`/api/media-key`
+  ohne Konto → 401, unsignierte Medien → 404, Besitzvermerke auf dem Server
+  korrekt), S5 (elfte Anmeldung → 429 trotz gefälschter Kopfzeile),
+  Port 8100 zu. App im Mobilfunknetz: Anmeldung, Film bestellt und signiert
+  abgespielt. **B8 am VPS:** Apple-Wegwerfkonto gelöscht → Log „1 Dateien
+  gelöscht, 1 Aufträge gelöscht“, `.m4a` und Auftragsdatei weg, Testkonto
+  unberührt, Apple-Widerruf ohne Fehler.
+- **`deploy.sh` kopiert jetzt `public/clips` nach `dist/clips`** (Stil-Kacheln
+  waren auf dem VPS leer: `/clips/…` → 404, weil der Server statisch nur aus
+  `dist/` liefert und es dort keinen Web-Build gibt). Darf den Deploy nie
+  abbrechen (vier Fälle getestet). ⚠ **Ausrollen: nach dem Merge ZWEIMAL**
+  `sudo bash /opt/dreamrushes/app/deploy/deploy.sh` — der erste Lauf läuft
+  noch mit der alten Skriptfassung.
+- ⚠ **Verwaiste Filme (Blocker TestFlight):** Film 1 kam an (72 s bis zur
+  Antwort), Film 2 nicht (58 s, „Der Dienst hat nicht geantwortet“, Auftrag
+  `muvhjwz9zaoabc` trotzdem bei fal bestellt). Hanni will den sauberen Weg B
+  (sofort antworten, Regie + Bestellung im Hintergrund) — Übergabe an Anton.
+- ⚠ **`GEMINI_KEY` ungültig** (kein `AIza…`-Schlüssel, 401 „Expected OAuth 2
+  access token“, lokal wie am Server): Abschrift, Sprachinterview, Stimmen
+  aus. Liegt bei Anton. Der Ersatzweg Wizper scheiterte ebenfalls — erst nach
+  dem neuen Schlüssel ansehen.
+- **Aufgaben-Chips** (eigene Sitzungen): doppelte „Dein Film ist fertig“-
+  Meldungen (8× für einen Film im Release — Pacht `holdLease` in
+  `journal-bridge.jsx` greift zwischen den Webviews offenbar nicht; Daten
+  korrekt), Warteanimation (OrbitGlow) für Kacheln mit laufendem Film
+  (`dream-tile.tsx:24`), Hinweis vor Apples Blatt beim Konto löschen
+  (`settings.tsx` `askDelete`).
+- **Offene Entscheidung (vor dem öffentlichen Start):** Journal und Credits
+  gehören dem GERÄT, nicht dem Konto. Kontowechsel auf demselben Gerät zeigt
+  die Träume des Geräts; Credits zählt das Gerät (S7). Beim ersten Abgleich
+  eines Kontos ohne Sicherung lädt `dream-sync.ts` das Geräte-Journal in
+  dieses Konto hoch (mit dem iCloud-Schlüssel des Gerätebesitzers) — auf
+  geteilten Geräten mischt das Konten. Hanni + Anton.
+- **Lokal:** `mobile/.env` im Hauptordner zeigt jetzt auf
+  `https://api.dreamrushes.app` (alte WLAN-Zeile als Kommentar darüber) —
+  auch Entwicklungsbauten sprechen damit mit dem VPS. Vor dem
+  TestFlight-Archiv „Clean Build Folder“: im `www.bundle` lagen Reste vom
+  04.10. mit WLAN-Adresse (nicht geladen, aber unnötig).
+- **Hetzner Console, offen:** Backups aus (≈ 1,30 €/Monat, mit Anton), das
+  10-GB-Volume ist ungenutzt (Medien auf der Systemplatte), AAAA-Eintrag
+  optional (IPv6-Netz `2a01:4f8:c013:ace3::/64`).
+
+**Mit PR #85 (05.10. nachmittags, Hanni) — S2 Medien nur an den Besitzer, B8:**
 - **Server** (`src/lib/mediaAccess.js`, `server.js`): Mit `REQUIRE_AUTH=1`
   liefert `serveMedia` nur gegen `?u=<konto>&e=<ablauf>&s=<sig>` und nur,
   wenn die Datei dem Konto gehört — sonst 404. Signatur: HMAC-SHA256 je
@@ -875,10 +935,9 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
    `docs/uebergabe/2026-09-25-anton-vps-einrichtung.md`. Credits-Prüfung
    und Abbuchung (`settleCharge()`, Punkte 2–6 in
    `2026-09-11-anton-credits-abbuchung.md`) — die Anmeldung steht jetzt.
-3. **Erster Lauf auf dem VPS (Hanni + Anton zusammen):** `setup.sh`, `.env`
-   von Hand (KEIN `API_TOKEN`, dafür Supabase und `MEDIA_SECRET`), `deploy.sh` (prüft S1 selbst),
-   dann S5-Prüfbefehl aus `deploy/README.md`. Danach App-Bau mit
-   `EXPO_PUBLIC_API_BASE=https://api.dreamrushes.app`.
+3. ~~**Erster Lauf auf dem VPS**~~ erledigt 05.10. (PR #86), App-Bau mit
+   `https://api.dreamrushes.app` im Mobilfunknetz geprüft. Offen daraus:
+   verwaiste Filme (Anton), `GEMINI_KEY` (Anton), Backups/Volume (Console).
 4. ~~**S2 bauen**~~ erledigt 05.10. (PR #85) samt B8. Offen daraus:
    fal-Adresse nie als Dauerlösung (Antons Teil), am VPS einmal prüfen.
 5. **Mit Anton:** Prüfer-Credits (N10), Store-Länder, Budget, `media/jobs`.

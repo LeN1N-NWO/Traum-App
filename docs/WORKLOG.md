@@ -3,6 +3,44 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-05 19:20 — Hanni — Branch `session/2026-10-05-hanni-3` (PR #86) — VPS in Betrieb, erster Test im Mobilfunknetz
+
+**Commits:** bb07782, 91c6640, 0b720c4, 99f9b98, 0795c27 (+ Wrap).
+
+**Was:** Server „Dreamrushes“ eingerichtet und deployt (`ef91974`): eigener
+Nutzer über die Hetzner-Web-Konsole, SSH nur mit Schlüssel, `setup.sh`,
+`.env` vom Mac übertragen (Werte nie auf dem Bildschirm, `MEDIA_SECRET` auf
+dem Server erzeugt), `deploy.sh`. Von außen geprüft (HTTPS, S1, S2, S5,
+Ports). App-Release mit `https://api.dreamrushes.app` auf dem iPhone im
+Mobilfunknetz: Anmeldung, Film, signiertes Abspielen, B8 mit
+Apple-Wegwerfkonto am echten Server. `deploy.sh` kopiert jetzt die Clips
+nach `dist/` (Stil-Kacheln waren leer), abgesichert gegen Abbruch. Doku in
+`deploy/README.md`, Hosting-Plan. Übergabe an Anton: verwaiste Filme.
+
+**Warum:** TestFlight-Plan Punkt 1 und 2 (Server öffentlich, App gegen HTTPS
+im Mobilfunk).
+
+**Belege:** curl von außen (Codes und Kopfzeilen), Server-Protokoll und
+Besitzvermerke per SSH, Release-Bündel geprüft (nur https eingebacken),
+B8-Logzeile „1 Dateien gelöscht, 1 Aufträge gelöscht“, vier Fälle für
+`sync_static` unter `set -euo pipefail` getestet.
+
+**Fehler unterwegs, die man nur einmal sieht:**
+- Hetzner-Web-Konsole: Einfügen verliert Shift (`_ : @ " | &`), offenes
+  Anführungszeichen → Shell wartet mit `>` (Strg + C). Dort nur tippen,
+  nach `loadkeys de`; `>` auf Mac = Shift + ^.
+- Meine erste Absicherung `( set -e; … ) || warn` war wirkungslos — Bash
+  ignoriert `set -e` in einer `||`-Liste auch in der Unter-Shell. Geprüft,
+  ersetzt durch eine `&&`-Kette in einer if-Bedingung.
+- zsh: ein Muster ohne Treffer (`rm … $T/haste-map-*`) bricht die ganze
+  Zeile ab — der Cache war nach dem ersten Versuch NICHT geleert.
+
+**Für den Nächsten:**
+- Nach dem Merge zweimal `sudo bash /opt/dreamrushes/app/deploy/deploy.sh`.
+- Anton: verwaiste Filme (Weg B) und neuer `GEMINI_KEY` — beides Blocker
+  für einen sinnvollen TestFlight-Test.
+- `mobile/.env` im Hauptordner zeigt auf den VPS (auch Entwicklungsbauten).
+
 ## 2026-10-05 14:20 — Hanni — Branch `session/2026-10-05-hanni-2` (PR #85) — S2 Medien nur an den Besitzer, B8 Konto löschen löscht Medien
 
 **Commits:** cf80876, 962bd74, f83a5c3, e33c4c6, e393b8a (+ Wrap).
