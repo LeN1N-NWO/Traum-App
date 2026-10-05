@@ -161,6 +161,11 @@ sudo bash /opt/dreamrushes/app/deploy/deploy.sh             # origin/main
 sudo bash /opt/dreamrushes/app/deploy/deploy.sh 1a2b3c4     # bestimmter Stand
 ```
 
+Statische Dateien: Es gibt auf dem Server keinen Web-Build. `deploy.sh`
+kopiert bei jedem Lauf (und beim Zurückgehen) `public/clips` nach
+`dist/clips` — die Stil-Kacheln und Vorzeige-Videos der App. Fehlt das,
+sind die Kacheln leer (`/clips/…` → 404, erster Lauf 05.10.2026).
+
 Antwortet der Server nach dem Neustart nicht nach rund 30 Versuchen (je eine Sekunde Abstand) auf
 `/api/prices` (offen, ohne Konto), geht der Deploy von selbst auf den vorigen
 Stand zurück. Liegen im Checkout Handänderungen, bricht er ab, statt sie zu
