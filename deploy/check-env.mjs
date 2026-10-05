@@ -26,7 +26,6 @@ const WANTED = [
   ["FAL_KEY", "keine Bilder und Filme"],
   ["DEEPSEEK_KEY", "keine Traumanalyse"],
   ["GEMINI_KEY", "kein Sprachinterview und keine Stimmen"],
-  ["DATABASE_URL", "keine Konten, keine Träume-Sicherung"],
 ];
 
 /**
@@ -62,6 +61,14 @@ export function checkEnv(env, appDir) {
     errors.push("MEDIA_SECRET fehlt — ohne es liefert der Server keine Medien aus (S2). Erzeugen: openssl rand -hex 32");
   } else if (mediaSecret.length < 32) {
     errors.push(`MEDIA_SECRET ist zu kurz (${mediaSecret.length} Zeichen, mindestens 32). Erzeugen: openssl rand -hex 32`);
+  }
+
+  /* S7 (05.10.2026): Der Server bucht jeden Film im Konto ab, bevor er
+     rendert — ohne Datenbank gibt es keine Kasse, und dann lehnt er jeden
+     Film mit 503 ab (lieber kein Film als ein unbezahlter). Mit der
+     Rolle dreamrushes_server, nie postgres (prüft src/lib/db.js beim Start). */
+  if (!env.DATABASE_URL) {
+    errors.push("DATABASE_URL fehlt — ohne Datenbank kann der Server nicht abbuchen und lehnt jeden Film ab (S7).");
   }
 
   /* Ohne DREAMRUSHES_MEDIA legt mediaRootFrom() den Ordner in den Checkout.

@@ -45,6 +45,8 @@ import { dedupePeople } from "./src/lib/people.js";
 import { guard, senderOf, needsAccount } from "./src/lib/gatekeeper.js";
 // S2: Medien nur an den Besitzer — Besitzvermerke und signierte Adressen.
 import { createOwnership, issueMediaKey, verifyMediaSignature } from "./src/lib/mediaAccess.js";
+// S7: der Server bucht ab und erstattet — Kennungen und Fehlerdeutung.
+import { chargeRef, chargeFailure, refundFailure } from "./src/lib/charges.js";
 import { checkResult } from "./src/lib/photoCheck.js";
 import { buildCharacterPrompt, buildSheetFromPhotoPrompt, stripReferenceClauses } from "./src/lib/promptBuilder.js";
 // Stiltexte sind Konstanten aus dem Repo — der Client schickt nur eine ID,
@@ -154,6 +156,48 @@ async function mayUseMedia(person, path) {
 /** A freshly issued job belongs to whoever ordered it. */
 async function claimJob(person, jobId) {
   if (person) await owners.claimJob(person.userId, jobId);
+}
+
+/* S7 (05.10.2026): Der Server bucht im Konto ab, BEVOR etwas Bezahltes
+ * passiert — server_spend, nur für den per withUser erklärten Menschen
+ * (src/lib/db.js). Scharf wie S1 nur mit REQUIRE_AUTH=1; lokal ohne Konto
+ * bleibt es beim Log, Entwickeln geht weiter. Phase 1: nur der Film.
+ * Wirft "NO_CREDITS" (→ 402) oder "CHARGE_UNAVAILABLE" (→ 503) — in beiden
+ * Fällen wird nichts gerendert. Gibt die Ledger-Kennung zurück (für die
+ * Erstattung) oder null, wenn nichts gebucht wurde. */
+async function chargeAccount(person, amount, kind) {
+  if (process.env.REQUIRE_AUTH !== "1" || !person || !(amount > 0)) {
+    console.log(`[DreamRushes] Abbuchung (nicht scharf): ${kind} = ${amount} Credit(s)`);
+    return null;
+  }
+  if (!database) throw new Error("CHARGE_UNAVAILABLE");   // fail closed: nie ohne Kasse rendern
+  const ref = chargeRef(kind);
+  try {
+    await withUser(database, person.userId, (tx) => tx`select public.server_spend(${amount}, ${ref}, ${kind})`);
+  } catch (e) {
+    const why = chargeFailure(e);
+    if (why === "CHARGE_UNAVAILABLE") console.error("[DreamRushes] ⚠ Abbuchung gescheitert:", e?.errno || "", e?.message || e);
+    throw new Error(why);
+  }
+  console.log(`[DreamRushes] Abgebucht: ${kind} = ${amount} Credit(s) (${ref})`);
+  return ref;
+}
+
+/** Give a charge back (server_refund: each bucket exactly what it lost,
+ *  idempotent per ref). Returns the amount, 0 if there was nothing (left)
+ *  to refund — or null if the attempt itself failed, so the caller keeps
+ *  the ref and can try again later. Never throws. */
+async function refundCharge(person, ref, why) {
+  if (!ref || !person || !database) return null;
+  try {
+    const [row] = await withUser(database, person.userId, (tx) => tx`select public.server_refund(${ref}) as n`);
+    const n = Number(row?.n) || 0;
+    console.log(`[DreamRushes] Erstattet: ${n} Credit(s) (${ref}, ${why})`);
+    return n;
+  } catch (e) {
+    console.error(`[DreamRushes] ⚠ Erstattung gescheitert (${ref}, ${why}):`, refundFailure(e));
+    return null;
+  }
 }
 
 const PORT = process.env.PORT || 8100;
@@ -3068,6 +3112,7 @@ const serveOptions = {
     }
 
     if (url.pathname === "/api/generate" && req.method === "POST") {
+      let filmCharge = null;   // S7: Ledger-Kennung, falls schon abgebucht
       try {
         if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
           return json({ error: "Request too large." }, 413);
@@ -3237,7 +3282,9 @@ const serveOptions = {
             console.warn(`[DreamRushes] Preis abgewiesen: angezeigt ${preis.quoted}, gerechnet ${preis.actual} Credits (${modelId}/${quality || "vorgabe"}/${body.seconds}s)`);
             return json({ error: "The price has changed.", reason: "price", quoted: preis.quoted, actual: preis.actual }, 409);
           }
-          settleCharge({ kind: "film", charge: preis.charge, quoted: preis.quoted });
+          /* S7: hier bucht der Server jetzt wirklich ab (vorher nur Log über
+             settleCharge). Reicht das Guthaben nicht → 402, nichts läuft. */
+          filmCharge = await chargeAccount(person, preis.charge, "film");
 
           /* Materialliste (für den Regisseur) und Bildliste (für fal)
              entstehen aus DERSELBEN Auswahl (`kept`, oben vor der Quote),
@@ -3274,6 +3321,9 @@ const serveOptions = {
             refImages: kept.map((c) => c.img), poster, format: filmFormat,
           });
           await claimJob(person, jobId);   // S2
+          // S7: welche Abbuchung diesen Film bezahlt hat — für die Erstattung,
+          // falls er später scheitert (/api/job). Ab hier nie mehr sofort erstatten.
+          if (filmCharge) { await owners.noteCharge(jobId, filmCharge).catch((e) => console.error("[DreamRushes] ⚠ Abbuchung nicht vermerkt:", jobId, e?.message)); filmCharge = null; }
           return json({ ok: true, jobId });
         }
         /* Der Prompt entsteht noch HIER (der Wizard schickt ihn meist
@@ -3337,6 +3387,10 @@ const serveOptions = {
         await claimJob(person, imageJob);   // S2
         return json({ ok: true, jobId: imageJob });
       } catch (e) {
+        /* S7: Abgebucht, aber vor dem Abschicken gescheitert → sofort zurück. */
+        if (filmCharge) await refundCharge(person, filmCharge, e?.message || "order failed");
+        if (e.message === "NO_CREDITS") return json({ error: "Not enough credits.", reason: "credits" }, 402);
+        if (e.message === "CHARGE_UNAVAILABLE") return json({ error: "Payment check unavailable. Nothing was charged.", reason: "charge" }, 503);
         const map = {
           NO_FAL_KEY: [503, "Backend has no fal.ai key. Set FAL_KEY and restart."],
           GENERATION_FAILED: [502, "Image/video generation did not complete."],
@@ -3382,6 +3436,13 @@ const serveOptions = {
         }
         const result = await jobStatus(jobId);
         if (result.status === "done") await claimMedia(person, result.urls || [], result.poster);
+        /* S7: Ein Film, der nach der Abbuchung scheitert, bekommt sein Geld
+           zurück. Idempotent (je Kennung einmal); der Vermerk fällt erst weg,
+           wenn die Erstattung wirklich gelaufen ist. */
+        if (result.status === "failed") {
+          const ref = await owners.chargeOf(jobId);
+          if (ref && (await refundCharge(person, ref, "render failed")) !== null) await owners.forgetCharge(jobId);
+        }
         return json({ ok: true, ...result });
       } catch (e) {
         console.error("[DreamRushes] /api/job failed:", e);
