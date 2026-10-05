@@ -3,6 +3,40 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-05 22:10 — Anton — Branch `session/2026-10-05b-anton` (PR #90) — Server holt selbst ab, Push-Andockstelle, Übergabe an Hanni
+
+**Commits:** 9aa7f3a (Reservierung), 8be04c9, 70d7dbd (+ Wrap).
+
+**Was:**
+- Antons Fragen beantwortet: Gemini (Diktat zuerst Gemini, Rückfall
+  Wizper; Live-Interview nutzt nur noch das Web, die Einstellung „Assistant
+  voice" wirkt nativ nicht) und wie der Server Filme besorgt.
+- Lokal geprüft: Antons Gemini-Schlüssel und Wizper funktionieren; auf dem
+  Server liegt Hannis ungültiger Schlüssel.
+- Antons Entscheidung (ADR-0010): der Server holt selbst ab. Gebaut:
+  `collectOpenJobs`, `jobInFlight`, `jobSettled` (Andockstelle), App-Seite
+  des Push (`push.ts`, aus).
+- Übergabe an Hanni: sofort antworten (überschneidet sich mit S7/#89 →
+  nacheinander, bei ihr), Push-Versand, Gemini-Schlüssel.
+
+**Warum:** Bezahlte Filme hingen am Handy: ohne App-Anstoß kein Abholen,
+keine Meldung, und ein Abbruch während der 60–70 s Bestellung ließ Filme
+verwaisen (Hannis Befund 05.10.).
+
+**Belege:** Probe-Aufträge in `media/jobs` auf einen fertigen fal-Film,
+Server aus dem Branch auf Port 8111: nach 5 s abgeholt, `/api/job` sofort
+`done`, `jobSettled` genau einmal bei zwei App-Nachfragen; Probe-Aufträge
+gelöscht. 924 Tests grün, tsc sauber; App-Release auf Antons iPhone
+gestartet und lief. Probe-Merge mit Hannis offenen Branches (#88, #89):
+keine Konflikte.
+
+**Für den Nächsten:**
+- Server lokal aus dem Worktree: `PORT=8111 bun --env-file=../Traum-App/.env
+  server.js` — der Medienordner zeigt aufs Hauptrepo (mediaRoot), also
+  dieselben `media/jobs` wie Antons Server auf 8100.
+- Netz geht aus Bun heraus (Bun-`fetch` an Google/fal lief), anders als
+  `curl` in der Sandbox.
+
 ## 2026-10-05 20:10 — Hanni — Branch `session/2026-10-05-hanni-4` (PR #87) — Film-Meldung nur einmal, Warte-Kachel, Apple-Hinweis
 
 **Commits:** 8f13bd2 (Reservierung), 414ed1b, Nachbesserung nach Selbstprüfung (Schlüssel aus Auftrags-Zuständen) (+ Wrap).
