@@ -3,7 +3,13 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-05 spätabends — Hanni, `session/2026-10-05-hanni-4` (PR #87):
+**Stand:** 2026-10-05 nachts — Hanni, `session/2026-10-05-hanni-5` (PR #88):
+**Jedes Konto hat auf dem Gerät seinen eigenen Bereich** (ADR-0009) — ein
+zweites Konto sieht keine Träume und Gesichter des ersten mehr, der erste
+Abgleich mischt keine Tagebücher. **Einwilligungs-Tor ist eine Ebene statt
+eines Modals** (hing nach dem Abmelden). Im Simulator mit zwei echten Konten
+belegt. Übergabe: `docs/uebergabe/2026-10-05-anton-bereich-je-konto.md`.
+Davor Hanni, `session/2026-10-05-hanni-4` (PR #87):
 **„Dein Film ist fertig“ kommt nur noch einmal** (vorher 8×), **Kacheln mit
 laufendem Film tragen den Leuchtrand**, **Hinweis vor Apples Blatt beim Konto
 löschen**. Warte-Kachel am Simulator mit echtem Film belegt; die Mitteilung
@@ -75,7 +81,43 @@ Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Neu mit PR #87 (05.10. spätabends, Hanni) — Meldungen, Warte-Kachel, Apple-Hinweis:**
+**Neu mit PR #88 (05.10. nachts, Hanni) — eigener Bereich je Konto (ADR-0009):**
+- **Speicher** (`src/lib/storage.js`): `loadState`/`saveState` arbeiten auf
+  dem aktiven Eintrag (`selectStateKey`). Verzeichnis `dreamrushes_slots`
+  `{ owners: { konto: schlüssel }, guest }` ordnet zu, kopiert nie
+  (`slotFor`, `releaseSlot`). Ohne Verzeichnis = `dreamrushes_v1` als Gast,
+  Web-App unverändert. Das erste Konto übernimmt den Gast-Bereich (heutiges
+  Geräte-Journal, oder was ein Gast vor dem Anmelden gespeichert hat). Neuer
+  Gast `dreamrushes_v1@guest-<konto>` startet mit Sprache + Onboarding-Marke,
+  ohne Einwilligung. Konto löschen gibt den Bereich als Gast zurück.
+  Tests: `src/lib/storage-slots.test.js` (10, Gegenprobe fällt durch).
+- **Native Seite:** `useBridgeAccount()` (`mobile/src/lib/auth.ts`) gibt
+  jeder `<JournalBridge>` und jeder alten Web-Ansicht (`legacy-page/app/
+  order.jsx`) das Konto; `undefined` = Sitzung noch nicht geladen → die
+  Ansicht tut nichts. ⚠ **Pflicht für jede neue Brücke/Web-Ansicht.**
+  Web-Motor einer Bestellung bleibt in seinem Bereich (kein Neustart =
+  kein zweiter Auftrag). Abholer speichert nicht über einen Kontowechsel.
+- **Einwilligungs-Tor** (`mobile/src/components/consent-gate.tsx`) ist eine
+  Ebene mit `accessibilityViewIsModal`: Als Modal lehnte iOS es nach dem
+  Abmelden ab („not in the window hierarchy“), die App nahm keinen Tipp mehr.
+- **Abmelde-Text** en/de: Träume bleiben auf dem Gerät und kommen mit dem
+  Anmelden zurück.
+- **Belegt im Simulator** (zwei echte Konten): Bestandsjournal bleibt beim
+  angemeldeten Konto, Abmelden zeigt leeren Gast (Profil „You“, 0 Träume,
+  0 Besetzung), zweites Konto leer, erstes Konto bekommt 2 Träume +
+  Besetzung zurück, Tor nach „Withdraw consent“ bedienbar.
+  ⚠ **Nicht belegt:** Konto löschen → Bereich wird Gast (nur Unit-Test).
+- **Bewusst offen:** Credits je Bereich, aber weiter nur Gerät (S7, Anton).
+  Kontowechsel während ein Film läuft — Hanni: ignorieren. Sicherungs-
+  schlüssel gehört dem iCloud des Geräts (zweites Konto auf fremdem iPhone).
+  Sprache beim Start alter Web-Ansichten liest kurz `dreamrushes_v1`.
+- ⚠ **Testreihe:** `scripts/security-report.test.js` („Durchlauf mit
+  Chrome“) scheitert mit 60-s-Zeitüberschreitung — auch auf unverändertem
+  main (3 Fehlschläge). Am 05.10. hingen 42 Headless-Chrome-Reste von
+  Testläufen seit 12:39 (`pkill -f -- '--user-data-dir=/var/folders/.*/dr-security-'`
+  räumt sie). Rest der Reihe grün (933).
+
+**Mit PR #87 (05.10. spätabends, Hanni) — Meldungen, Warte-Kachel, Apple-Hinweis:**
 - **Doppelte Meldungen:** Jeder Bildschirm mit `useJournal()` hat eine eigene
   Brücke (Webview) mit eigenem Abholer — im Simulator laufen 8 gleichzeitig.
   Die Pacht `holdLease` (`mobile/src/legacy/journal-bridge.jsx`) hält sie
@@ -135,12 +177,8 @@ Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
   dem neuen Schlüssel ansehen.
 - Die drei Aufgaben-Chips (doppelte Meldungen, Warte-Kachel, Apple-Hinweis)
   sind mit PR #87 erledigt, siehe oben.
-- **Offene Entscheidung (vor dem öffentlichen Start, nächste Session):** Journal und Credits
-  gehören dem GERÄT, nicht dem Konto. Kontowechsel auf demselben Gerät zeigt
-  die Träume des Geräts; Credits zählt das Gerät (S7). Beim ersten Abgleich
-  eines Kontos ohne Sicherung lädt `dream-sync.ts` das Geräte-Journal in
-  dieses Konto hoch (mit dem iCloud-Schlüssel des Gerätebesitzers) — auf
-  geteilten Geräten mischt das Konten. Hanni + Anton.
+- „Journal gehört dem Gerät“ ist mit PR #88 entschieden und gebaut
+  (eigener Bereich je Konto, ADR-0009), siehe oben.
 - **Lokal:** `mobile/.env` im Hauptordner zeigt jetzt auf
   `https://api.dreamrushes.app` (alte WLAN-Zeile als Kommentar darüber) —
   auch Entwicklungsbauten sprechen damit mit dem VPS. Vor dem

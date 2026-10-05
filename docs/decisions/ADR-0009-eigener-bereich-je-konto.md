@@ -1,6 +1,6 @@
 # ADR-0009: Eigener Bereich je Konto auf dem Gerät
 
-**Status:** vorgeschlagen · **Datum:** 2026-10-05 · **Format:** MADR
+**Status:** angenommen · **Datum:** 2026-10-05 · **Format:** MADR
 **Entschieden von:** Hanni (05.10.2026), Anton zur Kenntnis (Übergabenotiz).
 
 ## Kontext
