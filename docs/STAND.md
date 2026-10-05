@@ -3,7 +3,13 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-05 abends — Hanni, `session/2026-10-05-hanni-3` (PR #86):
+**Stand:** 2026-10-05 spätabends — Hanni, `session/2026-10-05-hanni-4` (PR #87):
+**„Dein Film ist fertig“ kommt nur noch einmal** (vorher 8×), **Kacheln mit
+laufendem Film tragen den Leuchtrand**, **Hinweis vor Apples Blatt beim Konto
+löschen**. Warte-Kachel am Simulator mit echtem Film belegt; die Mitteilung
+im Hintergrund ist noch nicht am Gerät gesehen. Deploy von PR #86 ist
+gelaufen. Nächste Session: Punkt „Journal gehört dem Gerät“ (eigener Branch).
+Davor Hanni, `session/2026-10-05-hanni-3` (PR #86):
 **Der Server läuft öffentlich** — `https://api.dreamrushes.app` auf dem
 Hetzner-VPS „Dreamrushes“ (Stand `ef91974`). Von außen und im Mobilfunknetz
 mit echten Konten belegt: HTTPS, S1, S2, S5, B8 (Apple-Konto gelöscht, seine
@@ -69,7 +75,35 @@ Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Neu mit PR #86 (05.10. abends, Hanni) — VPS in Betrieb:**
+**Neu mit PR #87 (05.10. spätabends, Hanni) — Meldungen, Warte-Kachel, Apple-Hinweis:**
+- **Doppelte Meldungen:** Jeder Bildschirm mit `useJournal()` hat eine eigene
+  Brücke (Webview) mit eigenem Abholer — im Simulator laufen 8 gleichzeitig.
+  Die Pacht `holdLease` (`mobile/src/legacy/journal-bridge.jsx`) hält sie
+  nicht zuverlässig auseinander; ungeklärt warum. Jetzt trägt jede Meldung
+  aus `collectOnce` einen Schlüssel (Art + Aufträge, deren Zustand sich in
+  dieser Runde geändert hat, `jobMarks`/`finishedJobs`), und `mobile/src/components/journal-data.tsx`
+  (`firstShowing`) zeigt jeden Schlüssel nur einmal in 10 min — Toast,
+  Mitteilung, Haptik. Ohne Änderung kein Schlüssel.
+  ⚠ Folge der kaputten Pacht bleibt: Bei offenem Auftrag fragen vermutlich
+  mehrere Brücken alle 3 s `/api/job` ab. ⚠ **Noch nicht belegt:** genau eine
+  Mitteilung bei App im Hintergrund (beim Testfilm war die App vorn).
+- **Warte-Kachel:** `mobile/src/components/dream-tile.tsx` — `OrbitGlow`
+  (Radius 16) solange `pending || rendering`. Am Simulator gesehen.
+- **Apple-Hinweis:** `mobile/src/app/profile/settings.tsx` `askDelete` —
+  vor `appleReauthCode` ein Dialog (Abbrechen = nichts gelöscht). Kommt nur,
+  wenn der Server 409 `reauth:"apple"` sagt, also nur bei Apple-Konten.
+  Texte `deleteAccountApple*` en/de. ⚠ Nicht am Gerät durchgespielt (braucht
+  ein Apple-Wegwerfkonto).
+- Übergabe an Anton: `docs/uebergabe/2026-10-05-anton-meldungen-kachel-apple.md`.
+- **Gemini, Befund:** Die native App nutzt Gemini nur über `/api/transcribe`
+  (Diktat, `dream-recorder.tsx`) und `/api/voice-sample` (nur für Sprachen
+  außer en/de — en/de liegen fertig in `public/voice/`). Das Sprachinterview
+  `/api/voice` (Gemini Live) ruft die App nicht auf. Die Datenschutztexte
+  nennen Gemini fürs Diktat — wer Gemini streicht, muss sie anpassen.
+  `deploy/check-env.mjs:28` begründet `GEMINI_KEY` noch veraltet
+  („Sprachinterview und Stimmen“).
+
+**Mit PR #86 (05.10. abends, Hanni) — VPS in Betrieb:**
 - **Server:** Hetzner CX23 „Dreamrushes“ (x86, Ubuntu 26.04, #167324557,
   188.245.92.121; ⚠ der zweite Server `ubuntu-4gb-fsn1-1` ist nicht der der
   App). `setup.sh` + `.env` + `deploy.sh` gelaufen, `ef91974` läuft. Zugang:
@@ -99,13 +133,9 @@ Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
   access token“, lokal wie am Server): Abschrift, Sprachinterview, Stimmen
   aus. Liegt bei Anton. Der Ersatzweg Wizper scheiterte ebenfalls — erst nach
   dem neuen Schlüssel ansehen.
-- **Aufgaben-Chips** (eigene Sitzungen): doppelte „Dein Film ist fertig“-
-  Meldungen (8× für einen Film im Release — Pacht `holdLease` in
-  `journal-bridge.jsx` greift zwischen den Webviews offenbar nicht; Daten
-  korrekt), Warteanimation (OrbitGlow) für Kacheln mit laufendem Film
-  (`dream-tile.tsx:24`), Hinweis vor Apples Blatt beim Konto löschen
-  (`settings.tsx` `askDelete`).
-- **Offene Entscheidung (vor dem öffentlichen Start):** Journal und Credits
+- Die drei Aufgaben-Chips (doppelte Meldungen, Warte-Kachel, Apple-Hinweis)
+  sind mit PR #87 erledigt, siehe oben.
+- **Offene Entscheidung (vor dem öffentlichen Start, nächste Session):** Journal und Credits
   gehören dem GERÄT, nicht dem Konto. Kontowechsel auf demselben Gerät zeigt
   die Träume des Geräts; Credits zählt das Gerät (S7). Beim ersten Abgleich
   eines Kontos ohne Sicherung lädt `dream-sync.ts` das Geräte-Journal in
@@ -118,7 +148,12 @@ Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
   04.10. mit WLAN-Adresse (nicht geladen, aber unnötig).
 - **Hetzner Console, offen:** Backups aus (≈ 1,30 €/Monat, mit Anton), das
   10-GB-Volume ist ungenutzt (Medien auf der Systemplatte), AAAA-Eintrag
-  optional (IPv6-Netz `2a01:4f8:c013:ace3::/64`).
+  optional (IPv6-Netz `2a01:4f8:c013:ace3::/64`). Nachgesehen 05.10.:
+  Systemplatte 38 GB, 2,9 GB belegt; Volume `HC_Volume_106950269` hängt unter
+  `/mnt/HC_Volume_106950269` (`fstab` mit `nofail`), angelegt 24.09., leer.
+  ⚠ Hetzner-Backups sichern KEIN Volume — Medien darum auf der Systemplatte
+  lassen; Volume löschen oder bewusst als Reserve behalten (Anton fragen,
+  wofür es angelegt wurde).
 
 **Mit PR #85 (05.10. nachmittags, Hanni) — S2 Medien nur an den Besitzer, B8:**
 - **Server** (`src/lib/mediaAccess.js`, `server.js`): Mit `REQUIRE_AUTH=1`
