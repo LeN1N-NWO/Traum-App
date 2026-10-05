@@ -105,3 +105,18 @@ test("mediaUrl signs /media/ paths once a media key is set, and only those", () 
   }
   expect(mediaUrl("/media/abc.png")).toBe("/media/abc.png");
 });
+
+/* S7: Reicht das Guthaben im Konto nicht, antwortet der Server 402 mit
+   reason "credits" — die App zeigt die übersetzte Meldung, nicht den
+   englischen Servertext. */
+test("a 402 for missing credits shows the translated message", async () => {
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: "Not enough credits.", reason: "credits" }), { status: 402 });
+  try {
+    await photoCheck({ image: "data:image/png;base64,AAAA", category: "person" });
+    throw new Error("should have thrown");
+  } catch (e) {
+    expect(e.message).toBe(t.wizard.noCredits);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

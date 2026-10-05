@@ -9,7 +9,24 @@ zweites Konto sieht keine Träume und Gesichter des ersten mehr, der erste
 Abgleich mischt keine Tagebücher. **Einwilligungs-Tor ist eine Ebene statt
 eines Modals** (hing nach dem Abmelden). Im Simulator mit zwei echten Konten
 belegt. Übergabe: `docs/uebergabe/2026-10-05-anton-bereich-je-konto.md`.
-Davor Hanni, `session/2026-10-05-hanni-4` (PR #87):
+Davor Hanni, `session/2026-10-05-hanni-6` (PR #89):
+**S7 Phase 1 läuft am VPS:** Der Server bucht jeden Film vor der Regie im
+Konto ab (`server_spend`; 402 ohne Guthaben, 503 ohne Kasse — nichts wird
+gerendert) und erstattet, wenn er scheitert (`server_refund`, auch ohne
+App über Antons `jobSettled`). Live belegt: `Abgebucht: film = 7 Credit(s)`,
+Ledger-Zeile `-7 spend film-b2803d36…`. Migration
+`20261005200000_credits_refund.sql` eingespielt (Test: 1–6 und 10 ok, 7–9
+im Editor nicht prüfbar), dabei `anon`/`authenticated` die Rechte an allen
+Geld-Funktionen entzogen. Testguthaben je 500 für Hanni und Anton.
+**Gemini-Schlüssel** auf dem VPS ersetzt — Abschrift läuft (1,2 s).
+⚠ Die App ZEIGT weiter das Geräte-Guthaben (Phase 2 — jetzt möglich, PR #88 ist da). Davor
+Anton, `session/2026-10-05b-anton` (PR #90):
+**Der Server holt fertige Filme selbst ab** (Antons Entscheidung, ADR-0010)
+und hat eine Andockstelle „Auftrag fertig" für den Push; die App kann ihr
+Push-Token anmelden (noch aus). **Übergabe an Hanni:** sofort antworten
+(nach S7/#89), Push-Versand, Gemini-Schlüssel auf dem Server
+(`docs/uebergabe/2026-10-05-hanni-server-holt-ab-push.md`). Davor Hanni,
+`session/2026-10-05-hanni-4` (PR #87):
 **„Dein Film ist fertig“ kommt nur noch einmal** (vorher 8×), **Kacheln mit
 laufendem Film tragen den Leuchtrand**, **Hinweis vor Apples Blatt beim Konto
 löschen**. Warte-Kachel am Simulator mit echtem Film belegt; die Mitteilung
@@ -107,8 +124,9 @@ Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
   0 Besetzung), zweites Konto leer, erstes Konto bekommt 2 Träume +
   Besetzung zurück, Tor nach „Withdraw consent“ bedienbar.
   ⚠ **Nicht belegt:** Konto löschen → Bereich wird Gast (nur Unit-Test).
-- **Bewusst offen:** Credits je Bereich, aber weiter nur Gerät (S7, Anton).
-  Kontowechsel während ein Film läuft — Hanni: ignorieren. Sicherungs-
+- **Bewusst offen:** Credits liegen je Bereich, die App zeigt aber weiter das
+  Geräte-Guthaben — S7 Phase 2 (Kontostand vom Server anzeigen, PR #89 bucht
+  schon im Konto ab) ist der nächste Schritt. Kontowechsel während ein Film läuft — Hanni: ignorieren. Sicherungs-
   schlüssel gehört dem iCloud des Geräts (zweites Konto auf fremdem iPhone).
   Sprache beim Start alter Web-Ansichten liest kurz `dreamrushes_v1`.
 - **Testreihe:** 934 grün. ⚠ Scheitert `scripts/security-report.test.js`
@@ -116,6 +134,29 @@ Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
   hängen alte Headless-Chrome-Reste: Am 05.10. waren es 42 seit 12:39.
   `pkill -f -- '--user-data-dir=/var/folders/.*/dr-security-'` räumt sie,
   danach lief der Test grün.
+
+**Neu mit PR #90 (05.10. nachts, Anton) — der Server holt selbst ab:**
+- **Entscheidung** (`docs/decisions/ADR-0010-server-holt-ab.md`): Bisher
+  fragte der Server erst bei fal nach, wenn die App `/api/job` rief — war
+  sie Tage zu, lag der bezahlte Film nur bei fal (ohne Haltbarkeitszusage),
+  und der Server konnte nie von selbst melden. Jetzt ist der Server
+  verantwortlich, die App ist Rückfall.
+- **Abholer** (`server.js` `collectOpenJobs`): 5 s nach dem Start, dann
+  alle 20 s, jeder offene Auftrag in `media/jobs` mit `model`, jünger als
+  drei Tage → `jobStatus()`. `SERVER_COLLECT=off` schaltet ab. Sperre je
+  Auftrag (`jobInFlight`): App und Server holen nie doppelt.
+- **Andockstelle** (`writeJob` → `jobSettled`): genau einmal je Übergang
+  auf `done`/`failed`, Besitzer aus `media/besitz/auftrag/<id>/`; heute nur
+  Protokoll, Push-Versand baut Hanni dort ein.
+- **App** (`mobile/src/lib/push.ts`, `usePushRegistration` im Wurzel-
+  Layout): Geräte-Token → `POST /api/push-token`; aus, bis der Bau
+  `EXPO_PUBLIC_PUSH=1` hat (braucht Hannis APNs-Schlüssel + Signatur).
+- **Diktat geprüft** (lokal, Antons `.env` im Hauptordner
+  `Traum-App/.env`): Gemini 1,4 s und Wizper 8,5 s, beide wortgenau auf
+  Deutsch. Auf dem Server liegt Hannis ungültiger Gemini-Schlüssel.
+- Lokal geprüft mit Probe-Aufträgen auf einen fertigen fal-Film: ohne App
+  nach 5 s abgeholt, `/api/job` danach sofort `done`, `jobSettled` einmal.
+  ⚠ Auf dem VPS erst nach Deploy.
 
 **Mit PR #87 (05.10. spätabends, Hanni) — Meldungen, Warte-Kachel, Apple-Hinweis:**
 - **Doppelte Meldungen:** Jeder Bildschirm mit `useJournal()` hat eine eigene
@@ -736,6 +777,11 @@ ersetzt (siehe oben; das Sternbild `constellation.js` ist gelöscht):
   https://claude.ai/artifact/FYiRnRVnoAe2yzj5DxKTQ7
 
 **Nächste Schritte:**
+- **Hanni (Übergabe 05.10. nachts):** S7 (#89) mergen → sofort antworten
+  → Deploy (bringt den Abholer) → Gemini-Schlüssel tauschen (Anton gibt
+  seinen auf sicherem Weg oder Hanni legt neu an) → Push (APNs-Schlüssel,
+  `/api/push-token`, Senden in `jobSettled`, `aps-environment` über
+  `app.json`, Datenschutz „Mitteilungen" + `CONSENT_VERSION`).
 - **Offen für die App-Prüfung (Audit 04.10.):** „Käufe wiederherstellen"
   fehlt (Pflicht für Abos; braucht die Belegprüfung am Server, B1,
   Hanni); Konto löschen entfernt die Medien am Server nicht (S2, Hanni);

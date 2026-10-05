@@ -30,7 +30,7 @@
 // braucht es zusätzlich API_TOKEN und einen Proxy, der TLS beendet.
 
 import { resolve, sep, join } from "node:path";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { buildPosterPrompt, POSTER_ASPECT, POSTER_SIZE } from "./src/lib/poster.js";
 import { tmpdir } from "node:os";
 import { statSync, readFileSync } from "node:fs";
@@ -45,6 +45,8 @@ import { dedupePeople } from "./src/lib/people.js";
 import { guard, senderOf, needsAccount } from "./src/lib/gatekeeper.js";
 // S2: Medien nur an den Besitzer — Besitzvermerke und signierte Adressen.
 import { createOwnership, issueMediaKey, verifyMediaSignature } from "./src/lib/mediaAccess.js";
+// S7: der Server bucht ab und erstattet — Kennungen und Fehlerdeutung.
+import { chargeRef, chargeFailure, refundFailure } from "./src/lib/charges.js";
 import { checkResult } from "./src/lib/photoCheck.js";
 import { buildCharacterPrompt, buildSheetFromPhotoPrompt, stripReferenceClauses } from "./src/lib/promptBuilder.js";
 // Stiltexte sind Konstanten aus dem Repo — der Client schickt nur eine ID,
@@ -154,6 +156,69 @@ async function mayUseMedia(person, path) {
 /** A freshly issued job belongs to whoever ordered it. */
 async function claimJob(person, jobId) {
   if (person) await owners.claimJob(person.userId, jobId);
+}
+
+/* S7 (05.10.2026): Der Server bucht im Konto ab, BEVOR etwas Bezahltes
+ * passiert — server_spend, nur für den per withUser erklärten Menschen
+ * (src/lib/db.js). Scharf wie S1 nur mit REQUIRE_AUTH=1; lokal ohne Konto
+ * bleibt es beim Log, Entwickeln geht weiter. Phase 1: nur der Film.
+ * Wirft "NO_CREDITS" (→ 402) oder "CHARGE_UNAVAILABLE" (→ 503) — in beiden
+ * Fällen wird nichts gerendert. Gibt die Ledger-Kennung zurück (für die
+ * Erstattung) oder null, wenn nichts gebucht wurde. */
+async function chargeAccount(person, amount, kind) {
+  if (process.env.REQUIRE_AUTH !== "1" || !person) {
+    console.log(`[DreamRushes] Abbuchung (nicht scharf): ${kind} = ${amount} Credit(s)`);
+    return null;
+  }
+  /* Fail closed: Ein Betrag, der keine positive ganze Zahl ist, wäre ein
+     Fehler in der Preisrechnung — dann lieber kein Film als ein Gratisfilm
+     (server_spend nimmt ohnehin nur integer > 0). */
+  if (!Number.isInteger(amount) || amount <= 0) {
+    console.error(`[DreamRushes] ⚠ Abbuchung verweigert: unsinniger Betrag ${amount} für ${kind}`);
+    throw new Error("CHARGE_UNAVAILABLE");
+  }
+  if (!database) throw new Error("CHARGE_UNAVAILABLE");   // fail closed: nie ohne Kasse rendern
+  const ref = chargeRef(kind);
+  try {
+    await withUser(database, person.userId, (tx) => tx`select public.server_spend(${amount}, ${ref}, ${kind})`);
+  } catch (e) {
+    const why = chargeFailure(e);
+    if (why === "CHARGE_UNAVAILABLE") console.error("[DreamRushes] ⚠ Abbuchung gescheitert:", e?.errno || "", e?.message || e);
+    throw new Error(why);
+  }
+  console.log(`[DreamRushes] Abgebucht: ${kind} = ${amount} Credit(s) (${ref})`);
+  return ref;
+}
+
+/** S7: a failed job gets its charge back — for whoever ordered it, also
+ *  when no app is asking (the server collector, ADR-0010). The ref note
+ *  only goes once the refund really ran; a failed attempt is retried by
+ *  the next /api/job of the owner. Never throws. */
+async function refundFailedJob(jobId) {
+  const ref = await owners.chargeOf(jobId).catch(() => null);
+  if (!ref) return;
+  const [uid] = await owners.ownersOfJob(jobId).catch(() => []);
+  if (!uid) return;
+  if ((await refundCharge({ userId: uid }, ref, "render failed")) !== null) {
+    await owners.forgetCharge(jobId).catch(() => {});
+  }
+}
+
+/** Give a charge back (server_refund: each bucket exactly what it lost,
+ *  idempotent per ref). Returns the amount, 0 if there was nothing (left)
+ *  to refund — or null if the attempt itself failed, so the caller keeps
+ *  the ref and can try again later. Never throws. */
+async function refundCharge(person, ref, why) {
+  if (!ref || !person || !database) return null;
+  try {
+    const [row] = await withUser(database, person.userId, (tx) => tx`select public.server_refund(${ref}) as n`);
+    const n = Number(row?.n) || 0;
+    console.log(`[DreamRushes] Erstattet: ${n} Credit(s) (${ref}, ${why})`);
+    return n;
+  } catch (e) {
+    console.error(`[DreamRushes] ⚠ Erstattung gescheitert (${ref}, ${why}):`, refundFailure(e));
+    return null;
+  }
 }
 
 const PORT = process.env.PORT || 8100;
@@ -1769,7 +1834,29 @@ async function readJob(id) {
   const f = Bun.file(resolve(JOBS_DIR, `${id}.json`));
   return (await f.exists()) ? f.json() : null;
 }
-const writeJob = (id, job) => Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.stringify(job));
+/* Schreiben — und merken, wann ein Auftrag FERTIG wird (offen → done/failed):
+   Dann meldet jobSettled() das einmal. Jeder Weg dorthin läuft hier durch
+   (Abholer, App-Nachfrage, Poster fertig, Poster-Zeitüberschreitung). */
+const SETTLED = new Set(["done", "failed"]);
+const writeJob = async (id, job) => {
+  const before = SETTLED.has(job?.status) ? (await readJob(id).catch(() => null))?.status : null;
+  await Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.stringify(job));
+  if (SETTLED.has(job?.status) && !SETTLED.has(before)) jobSettled(id, job).catch((e) => console.error("[DreamRushes] jobSettled:", id, e?.message || e));
+};
+
+/* Ein Auftrag ist fertig oder gescheitert — die Andockstelle für den Push
+   „Dein Film ist fertig" (ADR-0010, Übergabe an Hanni 05.10.): Die
+   Besitzer stehen seit S2 in media/besitz/auftrag/<id>/<konto>. Heute nur
+   das Protokoll; das Senden an deren Geräte baut Hanni hier ein. */
+async function jobSettled(id, job) {
+  const uids = await readdir(resolve(MEDIA_DIR, "besitz", "auftrag", id)).catch(() => []);
+  /* S2 + S7 (Hanni 05.10.): Was der Server selbst abgeholt hat, gehört
+     sofort dem Besteller (auch wenn nie eine App fragt — B8 findet es dann
+     über die Konto-Liste); ein gescheiterter Film bekommt sein Geld zurück. */
+  if (job.status === "done") for (const uid of uids) await claimMedia({ userId: uid }, job.urls || [], job.posterUrl);
+  if (job.status === "failed") await refundFailedJob(id);
+  console.log(`[DreamRushes] Auftrag ${id} → ${job.status} (Besitzer: ${uids.length}) — Push folgt (Übergabe Hanni)`);
+}
 
 /** Hand the work to fal's queue and return our own job id.
  *
@@ -1912,9 +1999,19 @@ function genJobId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+/* Ein Auftrag wird nie zweimal gleichzeitig abgeholt (05.10.): Seit der
+   Server selbst abholt (collectOpenJobs), können er und die App im selben
+   Moment fragen — ohne diese Sperre lüde der fertige Film zweimal herunter
+   und das Poster entstünde doppelt. Beide bekommen dieselbe Antwort. */
+const jobInFlight = new Map();
+function jobStatus(id) {
+  if (!jobInFlight.has(id)) jobInFlight.set(id, jobStatusFetch(id).finally(() => jobInFlight.delete(id)));
+  return jobInFlight.get(id);
+}
+
 /** Where a job stands. Finished media is copied locally before it is handed
  *  over, exactly like the synchronous path — the fal URL is never the record. */
-async function jobStatus(id) {
+async function jobStatusFetch(id) {
   const job = await readJob(id);
   if (!job) return { status: "unknown" };
   if (job.status === "done") return { status: "done", urls: job.urls, poster: job.posterUrl || null };
@@ -1984,6 +2081,44 @@ async function jobStatus(id) {
   }
   await writeJob(id, { ...job, status: "done", urls });
   return { status: "done", urls };
+}
+
+/* ── Der Server holt selbst ab (Antons Wunsch 05.10.2026) ────────────────
+ * Bisher holte nur die App ab: Erst wenn sie nach /api/job fragte, fragte
+ * der Server bei fal nach und lud den Film in den eigenen Speicher. War die
+ * App Tage zu, lag der fertige Film so lange nur bei fal — deren Adressen
+ * haben keine Haltbarkeitszusage (s. „local media copies").
+ * Jetzt fragt der Server selbst: alle 20 s für jeden offenen Auftrag in
+ * media/jobs dieselbe jobStatus()-Runde wie die App. Fertiges liegt danach
+ * bei uns, `done`/`failed` steht in der Auftragsdatei — fragt die App
+ * später, ist alles sofort da. Nach einem Neustart geht es mit den Dateien
+ * einfach weiter. Aufträge älter als drei Tage fasst er nicht mehr an (die
+ * App kann sie weiter selbst anstoßen); ein Aussetzer bleibt „offen".
+ * Aus mit SERVER_COLLECT=off. */
+const COLLECT_EVERY_MS = 20_000;
+const COLLECT_MAX_AGE_MS = 3 * 24 * 3600_000;
+let collectRunning = false;
+async function collectOpenJobs() {
+  if (collectRunning || !process.env.FAL_KEY) return;
+  collectRunning = true;
+  try {
+    const names = await readdir(JOBS_DIR).catch(() => []);
+    for (const name of names) {
+      const id = name.endsWith(".json") ? name.slice(0, -5) : "";
+      if (!JOB_ID.test(id)) continue;
+      const job = await readJob(id).catch(() => null);
+      if (!job || !job.model || job.status === "done" || job.status === "failed") continue;
+      if (!job.createdAt || Date.now() - job.createdAt > COLLECT_MAX_AGE_MS) continue;
+      try {
+        const r = await jobStatus(id);
+        if (r.status === "done" || r.status === "failed") console.log(`[DreamRushes] Server hat abgeholt: ${id} → ${r.status}`);
+      } catch (e) {
+        console.error("[DreamRushes] Abholen (Server) ausgesetzt:", id, e?.message || e);
+      }
+    }
+  } finally {
+    collectRunning = false;
+  }
 }
 
 /* ── Das Poster nach dem Film (Antons Ablauf 12.09.2026) ─────────────────
@@ -3068,6 +3203,7 @@ const serveOptions = {
     }
 
     if (url.pathname === "/api/generate" && req.method === "POST") {
+      let filmCharge = null;   // S7: Ledger-Kennung, falls schon abgebucht
       try {
         if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
           return json({ error: "Request too large." }, 413);
@@ -3237,7 +3373,9 @@ const serveOptions = {
             console.warn(`[DreamRushes] Preis abgewiesen: angezeigt ${preis.quoted}, gerechnet ${preis.actual} Credits (${modelId}/${quality || "vorgabe"}/${body.seconds}s)`);
             return json({ error: "The price has changed.", reason: "price", quoted: preis.quoted, actual: preis.actual }, 409);
           }
-          settleCharge({ kind: "film", charge: preis.charge, quoted: preis.quoted });
+          /* S7: hier bucht der Server jetzt wirklich ab (vorher nur Log über
+             settleCharge). Reicht das Guthaben nicht → 402, nichts läuft. */
+          filmCharge = await chargeAccount(person, preis.charge, "film");
 
           /* Materialliste (für den Regisseur) und Bildliste (für fal)
              entstehen aus DERSELBEN Auswahl (`kept`, oben vor der Quote),
@@ -3274,6 +3412,9 @@ const serveOptions = {
             refImages: kept.map((c) => c.img), poster, format: filmFormat,
           });
           await claimJob(person, jobId);   // S2
+          // S7: welche Abbuchung diesen Film bezahlt hat — für die Erstattung,
+          // falls er später scheitert (/api/job). Ab hier nie mehr sofort erstatten.
+          if (filmCharge) { await owners.noteCharge(jobId, filmCharge).catch((e) => console.error("[DreamRushes] ⚠ Abbuchung nicht vermerkt:", jobId, e?.message)); filmCharge = null; }
           return json({ ok: true, jobId });
         }
         /* Der Prompt entsteht noch HIER (der Wizard schickt ihn meist
@@ -3337,6 +3478,10 @@ const serveOptions = {
         await claimJob(person, imageJob);   // S2
         return json({ ok: true, jobId: imageJob });
       } catch (e) {
+        /* S7: Abgebucht, aber vor dem Abschicken gescheitert → sofort zurück. */
+        if (filmCharge) await refundCharge(person, filmCharge, e?.message || "order failed");
+        if (e.message === "NO_CREDITS") return json({ error: "Not enough credits.", reason: "credits" }, 402);
+        if (e.message === "CHARGE_UNAVAILABLE") return json({ error: "Payment check unavailable. Nothing was charged.", reason: "charge" }, 503);
         const map = {
           NO_FAL_KEY: [503, "Backend has no fal.ai key. Set FAL_KEY and restart."],
           GENERATION_FAILED: [502, "Image/video generation did not complete."],
@@ -3382,6 +3527,10 @@ const serveOptions = {
         }
         const result = await jobStatus(jobId);
         if (result.status === "done") await claimMedia(person, result.urls || [], result.poster);
+        /* S7: Ein Film, der nach der Abbuchung scheitert, bekommt sein Geld
+           zurück. Idempotent (je Kennung einmal); der Vermerk fällt erst weg,
+           wenn die Erstattung wirklich gelaufen ist. */
+        if (result.status === "failed") await refundFailedJob(jobId);
         return json({ ok: true, ...result });
       } catch (e) {
         console.error("[DreamRushes] /api/job failed:", e);
@@ -4014,6 +4163,13 @@ const serveOptions = {
 };
 
 Bun.serve(serveOptions);
+
+/* Der Abholer im Server (collectOpenJobs): kurz nach dem Start einmal —
+   alles, was während eines Neustarts fertig wurde —, dann alle 20 s. */
+if (process.env.SERVER_COLLECT !== "off") {
+  setTimeout(collectOpenJobs, 5_000);
+  setInterval(collectOpenJobs, COLLECT_EVERY_MS);
+}
 
 /* Eine Profilzeile, wie der Client sie bekommt. Eigene Funktion, weil zwei
    Endpunkte sie liefern (lesen und ändern) — und `survey` ist jsonb, kommt

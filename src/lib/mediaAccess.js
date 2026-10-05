@@ -12,6 +12,9 @@
  *                               (Konto löschen löscht seine Medien)
  *      auftrag/<jobId>/<konto>  „dieser Auftrag gehört diesem Konto"
  *      auftraege/<konto>/<jobId> dasselbe rückwärts — für B8
+ *      abbuchung/<jobId>        Inhalt: die Ledger-Kennung der Abbuchung
+ *                               (S7) — damit ein Film, der später
+ *                               scheitert, erstattet werden kann
  *    Leere Dateien statt einer JSON-Liste: Anlegen ist atomar, zwei
  *    gleichzeitige Vermerke können sich nicht gegenseitig überschreiben.
  *    Eine Datei kann mehreren Konten gehören (Namen sind Inhalts-Hashes —
@@ -56,6 +59,8 @@ const ACCOUNT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const NAME = /^[a-z0-9]{1,20}\.(?:png|jpg|webp|mp4|m4a)$/;
 const JOB = /^[a-z0-9]{6,32}$/;
 const SIG = /^[A-Za-z0-9_-]{43}$/;
+// The shape src/lib/charges.js chargeRef() produces.
+const CHARGE_REF = /^[a-z0-9-]{1,20}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MEDIA_PATH = /^\/media\/([a-z0-9]{1,20}\.(?:png|jpg|webp|mp4|m4a))$/;
 
 export const isAccountId = (id) => typeof id === "string" && ACCOUNT.test(id);
@@ -119,6 +124,7 @@ export function createOwnership(root) {
     }
     await rm(file, { force: true });
     await rm(join(root, "auftrag", jobId), { recursive: true, force: true });
+    await rm(join(root, "abbuchung", jobId), { force: true });
     return files;
   };
   const api = {
@@ -139,6 +145,11 @@ export function createOwnership(root) {
       await mark(join(root, "auftraege", uid), jobId);
       return true;
     },
+    /** Who ordered this job (normally exactly one account). */
+    async ownersOfJob(jobId) {
+      if (!JOB.test(jobId || "")) return [];
+      return readdir(join(root, "auftrag", jobId)).then((xs) => xs.filter(isAccountId), () => []);
+    },
     async ownsJob(uid, jobId) {
       if (!isAccountId(uid) || !JOB.test(jobId || "")) return false;
       return exists(join(root, "auftrag", jobId, uid));
@@ -147,6 +158,23 @@ export function createOwnership(root) {
     async filesOf(uid) {
       if (!isAccountId(uid)) return [];
       return readdir(join(root, "konto", uid)).then((xs) => xs.filter((x) => NAME.test(x)), () => []);
+    },
+    /** S7: which ledger booking paid for this job. Written once after the
+     *  order went out; read when the job turns out failed. */
+    async noteCharge(jobId, ref) {
+      if (!JOB.test(jobId || "") || !CHARGE_REF.test(ref || "")) return false;
+      await mkdir(join(root, "abbuchung"), { recursive: true });
+      await writeFile(join(root, "abbuchung", jobId), ref);
+      return true;
+    },
+    async chargeOf(jobId) {
+      if (!JOB.test(jobId || "")) return null;
+      const ref = await readFile(join(root, "abbuchung", jobId), "utf8").then((t) => t.trim(), () => null);
+      return ref && CHARGE_REF.test(ref) ? ref : null;
+    },
+    async forgetCharge(jobId) {
+      if (!JOB.test(jobId || "")) return;
+      await rm(join(root, "abbuchung", jobId), { force: true });
     },
     /** Every job id noted for one account (for B8). */
     async jobsOf(uid) {

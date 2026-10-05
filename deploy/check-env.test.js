@@ -54,9 +54,15 @@ describe("checkEnv", () => {
   });
 
   test("fehlende Dienst-Schlüssel warnen nur", () => {
-    const r = checkEnv({ ...GOOD, FAL_KEY: undefined, DATABASE_URL: "" }, APP);
+    const r = checkEnv({ ...GOOD, FAL_KEY: undefined, GEMINI_KEY: "" }, APP);
     expect(r.errors).toEqual([]);
     expect(r.warnings).toHaveLength(2);
+  });
+
+  /* S7: ohne Datenbank keine Abbuchung — dann lieber kein Start. */
+  test("ohne DATABASE_URL kein Start", () => {
+    expect(errorsOf({ DATABASE_URL: "" })[0]).toContain("DATABASE_URL");
+    expect(errorsOf({ DATABASE_URL: undefined })).toHaveLength(1);
   });
 });
 
