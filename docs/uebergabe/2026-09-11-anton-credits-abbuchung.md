@@ -3,6 +3,10 @@ für: Anton, LeN1N-NWO
 Hallo Anton, hier eine Aufgabe, die bei dir besser aufgehoben ist als bei
 uns — sie liegt direkt an deiner Prompt-Kette, und die fassen wir nicht an.
 
+STAND 05.10.2026 (Hanni + Claude) — Punkte 2–4 für den FILM gebaut (S7 Phase 1,
+  Details: 2026-10-05-anton-s7-abbuchung.md). Offen: Punkt 5 (fal-Fehler als
+  „pending"), Punkt 6 (App zählt noch selbst, nach PR #88), Bilder/Raster.
+
 STAND 11.09.2026 ABEND (Anton + Claude) — Punkt 1 ist erledigt, der Rest wartet
   · src/lib/quote.js: EINE Preisrechnung für Client und Server (quoteFor,
     compareQuote, priceTable). Der Wizard rechnet damit, der Server rechnet

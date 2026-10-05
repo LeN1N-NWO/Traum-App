@@ -76,6 +76,9 @@ test("ownership markers: per file and per account, nothing outside the root", as
     expect(await own.ownsJob(ANNA, "mgabc123xyz")).toBe(false);
     await own.claimJob(ANNA, "mgabc123xyz");
     expect(await own.ownsJob(ANNA, "mgabc123xyz")).toBe(true);
+    expect(await own.ownersOfJob("mgabc123xyz")).toEqual([ANNA]);
+    expect(await own.ownersOfJob("mgunbekannt")).toEqual([]);
+    expect(await own.ownersOfJob("../x")).toEqual([]);
     expect(await own.ownsJob(BEN, "mgabc123xyz")).toBe(false);
     expect(await own.claimJob(ANNA, "../../x")).toBe(false);
   } finally {
@@ -190,6 +193,37 @@ test("forgetAccount and sweepJobs catch the film and poster of a job still in it
     await writeFile(join(jobsDir, "mgbenjob33.json"), JSON.stringify({ urls: ["/media/bens.png"] }));
     expect(await own.sweepJobs(["mgbenjob33", "../x"], { mediaDir, jobsDir })).toBe(0);
     expect(await exists(join(jobsDir, "mgbenjob33.json"))).toBe(true);
+  } finally {
+    await rm(base, { recursive: true, force: true });
+  }
+});
+
+/* S7: Die Abbuchung eines Auftrags wird gemerkt, damit ein später
+   gescheiterter Film erstattet werden kann — und B8 nimmt den Vermerk mit. */
+test("a job's charge ref is noted, read back, and dropped with the job", async () => {
+  const base = await mkdtemp(join(tmpdir(), "dr-s7-"));
+  const { mkdir, writeFile, access } = await import("node:fs/promises");
+  const exists = (p) => access(p).then(() => true, () => false);
+  try {
+    const root = join(base, "besitz"), jobsDir = join(base, "jobs");
+    await mkdir(jobsDir, { recursive: true });
+    const own = createOwnership(root);
+    const ref = "film-0b5e6a3c-1f2d-4e5f-8a9b-0c1d2e3f4a5b";
+    expect(await own.chargeOf("mgjobs7a")).toBe(null);
+    expect(await own.noteCharge("mgjobs7a", ref)).toBe(true);
+    expect(await own.chargeOf("mgjobs7a")).toBe(ref);
+    // Nur Kennungen der richtigen Form, nie ein Pfad.
+    expect(await own.noteCharge("../x", ref)).toBe(false);
+    expect(await own.noteCharge("mgjobs7b", "drop table; --")).toBe(false);
+    await own.forgetCharge("mgjobs7a");
+    expect(await own.chargeOf("mgjobs7a")).toBe(null);
+
+    // Konto löschen nimmt den Vermerk des Auftrags mit.
+    await own.claimJob(ANNA, "mgjobs7c");
+    await own.noteCharge("mgjobs7c", ref);
+    await writeFile(join(jobsDir, "mgjobs7c.json"), "{}");
+    await own.forgetAccount(ANNA, { mediaDir: base, jobsDir });
+    expect(await exists(join(root, "abbuchung", "mgjobs7c"))).toBe(false);
   } finally {
     await rm(base, { recursive: true, force: true });
   }

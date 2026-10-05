@@ -53,6 +53,8 @@ async function sendWithSession(url, init) {
  * als englischer Server-Text — der Gast sieht dazu das Anmelde-Blatt. */
 function serverMessage(data, status) {
   if (data?.reason === "signin") return t.errors.signIn;
+  // S7: Der Server bucht im Konto ab; reicht das Guthaben nicht → 402.
+  if (data?.reason === "credits") return t.wizard.noCredits;
   return data?.error || t.errors.serverStatus(status);
 }
 
