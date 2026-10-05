@@ -37,6 +37,13 @@ VPS: Abschrift 1,2 s, `Abgebucht: film = 7`, Ledger `-7 spend`.
 - Käufe kommen erst mit B1 ins Konto; Bilder/Raster/Charakter buchen noch nicht.
 - Gäste: Sprechen ohne Konto endet in „konnte nicht aufschreiben“ — Chip.
 - Im Worktree liegt ein Link `node_modules` (ignoriert).
+- Durchsicht vor dem Merge: `chargeAccount` verweigert im Server-Modus jeden
+  Betrag, der keine positive ganze Zahl ist (vorher wäre 0/NaN als
+  „nicht scharf" durchgegangen = Gratisfilm; heute liefert `quoteFor` für
+  alle 344 Film-Kombinationen ganze Zahlen > 0 — Schutz für künftige Fehler).
+- Bewusster Restfall: abgebucht, Abschicken scheitert UND die Datenbank ist
+  im selben Moment weg → die Sofort-Erstattung scheitert, steht als ⚠ im
+  Protokoll, wird nicht wiederholt (kein Auftrag, an dem ein Vermerk hinge).
 
 ## 2026-10-05 22:10 — Anton — Branch `session/2026-10-05b-anton` (PR #90) — Server holt selbst ab, Push-Andockstelle, Übergabe an Hanni
 

@@ -166,9 +166,16 @@ async function claimJob(person, jobId) {
  * Fällen wird nichts gerendert. Gibt die Ledger-Kennung zurück (für die
  * Erstattung) oder null, wenn nichts gebucht wurde. */
 async function chargeAccount(person, amount, kind) {
-  if (process.env.REQUIRE_AUTH !== "1" || !person || !(amount > 0)) {
+  if (process.env.REQUIRE_AUTH !== "1" || !person) {
     console.log(`[DreamRushes] Abbuchung (nicht scharf): ${kind} = ${amount} Credit(s)`);
     return null;
+  }
+  /* Fail closed: Ein Betrag, der keine positive ganze Zahl ist, wäre ein
+     Fehler in der Preisrechnung — dann lieber kein Film als ein Gratisfilm
+     (server_spend nimmt ohnehin nur integer > 0). */
+  if (!Number.isInteger(amount) || amount <= 0) {
+    console.error(`[DreamRushes] ⚠ Abbuchung verweigert: unsinniger Betrag ${amount} für ${kind}`);
+    throw new Error("CHARGE_UNAVAILABLE");
   }
   if (!database) throw new Error("CHARGE_UNAVAILABLE");   // fail closed: nie ohne Kasse rendern
   const ref = chargeRef(kind);
