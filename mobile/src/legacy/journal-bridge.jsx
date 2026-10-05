@@ -11,7 +11,7 @@
  * die der Web-App — eine Wahrheit über Form und Sprache, nicht zwei. */
 import "./vite-env.js";                       // ⚠ zuerst, API_BASE
 import { useEffect } from "react";
-import { loadState, saveState } from "../../../src/lib/storage.js";
+import { activeStateKey, loadState, saveState, releaseSlot, selectStateKey, slotFor } from "../../../src/lib/storage.js";
 import { dayKey, dreamCount, dreamDays, isFilmNight, isMoonFilm, MOON_FILM_KIND } from "../../../src/lib/nights.js";
 import { hasPendingJobs, collectTick } from "../../../src/lib/collector.js";
 import { failureTextKey } from "../../../src/lib/falError.js";
@@ -1315,6 +1315,10 @@ async function runAsync(cmd, onResult) {
 }
 
 function run(cmd) {
+  /* Konto gelöscht (ADR-0009): Sein Bereich wird wieder der Gast-Bereich —
+     „Träume auf diesem Gerät bleiben". Die Id kommt im Befehl, denn das
+     Konto ist hier schon abgemeldet. */
+  if (cmd.type === "releaseSlot") { releaseSlot(cmd.id); inSlot(); return; }
   const s = loadState();
   let patch = null;
   if (cmd.type === "blankNight") patch = { journal: [...(s.journal || []), blankNight()] };
@@ -1406,10 +1410,17 @@ function holdLease() {
   } catch { return true; }
 }
 async function collectOnce(onJournal, onResult) {
+  if (!inSlot()) return;
+  const slot = activeStateKey();
   const s = loadState();
   if (!hasPendingJobs(s.journal) || !holdLease()) return;
   const res = await collectTick(s.journal, jobStatus);
   if (!res) return;
+  /* ⚠ Während der Runde das Konto gewechselt (ADR-0009): Dieses Ergebnis
+     gehört dem alten Bereich und darf nicht in den neuen. Nichts speichern,
+     nichts melden — der Server hebt es auf, die nächste Runde im alten
+     Bereich holt es wieder. */
+  if (!inSlot() || activeStateKey() !== slot) return;
   const now = loadState();
   saveState({ ...now, journal: res.journal, ...(res.refund > 0 ? { credits: (now.credits ?? 0) + res.refund } : {}) });
   onJournal(snapshot());
@@ -1515,6 +1526,26 @@ function devTopUp(min) {
    Für en/de füllt setLanguage synchron (i18n/index.js); bei den fünf
    nachgeladenen Sprachen ist der eine Push noch alt — der nächste Takt
    (3 s) trägt dann die Übersetzung. */
+/* Ein Bereich je Konto (ADR-0009, src/lib/storage.js slotFor): Wer am Gerät
+   ist, sagt die native Seite (`account`, lib/auth.ts useBridgeAccount).
+   undefined = Sitzung noch nicht geladen — dann liest und schreibt diese
+   Brücke NICHTS, sonst landete sie im falschen Bereich. Der Bereich wird
+   vor jedem Lesen neu bestimmt: Das Verzeichnis kann eine andere Brücke
+   gerade geschrieben haben. */
+let bridgeAccount;
+function setBridgeAccount(account) { bridgeAccount = account; }
+function inSlot() {
+  if (bridgeAccount === undefined) return false;
+  selectStateKey(slotFor(bridgeAccount));
+  return true;
+}
+/* Ein Befehl, der vor dem Laden der Sitzung kommt, wartet kurz, statt
+   verloren zu gehen (höchstens 5 s — die Sitzung lädt in Millisekunden). */
+async function untilInSlot() {
+  for (let i = 0; i < 50 && !inSlot(); i++) await new Promise((r) => setTimeout(r, 100));
+  return inSlot();
+}
+
 let bridgeLang = null;
 function syncLanguage() {
   const want = loadState().language || "en";
@@ -1523,11 +1554,12 @@ function syncLanguage() {
   setLanguage(want);
 }
 
-export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, streakChores: chores = false, getToken, mediaKey, dom }) {
+export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, streakChores: chores = false, getToken, mediaKey, account, dom }) {
   setTokenSource(getToken);   // S1 — fällt mit dem Umzug auf nativ weg (ADR-0006)
   setMediaKey(mediaKey);       // S2 — signierte Medienadressen (mobile/src/lib/media-key.ts)
+  setBridgeAccount(account);   // ADR-0009 — welcher Bereich gilt
   useEffect(() => {
-    const push = () => { try { syncLanguage(); devTopUp(devCredits); if (chores) streakChores(onResult); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
+    const push = () => { try { if (!inSlot()) return; syncLanguage(); devTopUp(devCredits); if (chores) streakChores(onResult); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
     /* Nur Änderungen am Zustand wecken die Brücke — nicht die Pachten
        (Abholer alle 3 s, Serie). Sonst schickte bei jedem Pachtschreiben
        jede Brücke ihren ganzen Schnappschuss (Speicherüberlauf 27.09.). */
@@ -1535,7 +1567,7 @@ export default function JournalBridge({ onJournal, onResult, refreshTick = 0, co
     push();
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, [onJournal, refreshTick, devCredits, chores]);
+  }, [onJournal, refreshTick, devCredits, chores, account]);
   useEffect(() => {
     let busy = false;
     const id = setInterval(async () => {
@@ -1551,6 +1583,7 @@ export default function JournalBridge({ onJournal, onResult, refreshTick = 0, co
     onJournalTick = () => onJournal(snapshot());
     (async () => {
       try {
+        if (!(await untilInSlot())) { console.warn("[bridge] command ohne Sitzung verworfen", command.type); return; }
         if (await runAsync(command, onResult || (() => {}))) { if (chores) streakChores(onResult); onJournal(snapshot()); return; }
         run(command); if (chores) streakChores(onResult); onJournal(snapshot());
       } catch (e) { console.warn("[bridge] command", e); }

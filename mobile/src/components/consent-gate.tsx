@@ -2,13 +2,14 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useRef, useState } from "react";
 import { LayoutAnimation, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import JournalBridge from "@/legacy/journal-bridge";
 import { useOnboardingGone } from "@/store/dev-store";
 import { setJournal, useJournalStore, type BridgeCommand, type JournalSnapshot, type LegalDoc } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
-import { getAccessToken } from "@/lib/auth";
+import { getAccessToken, useBridgeAccount } from "@/lib/auth";
 import { useMediaKey } from "@/lib/media-key";
 
 /* Symbol je Klartext-Kachel — die Worte liegen in en.js/de.js, das Bild
@@ -28,6 +29,7 @@ const FACT_ICONS: Record<string, import("expo-symbols").SFSymbol> = {
    Eigene Brücke: das Wurzel-Layout hat keinen Bildschirm-Fokus. */
 export function ConsentGate() {
   const mediaKey = useMediaKey();   // S2: signierte Medienadressen in der Web-Ansicht
+  const bridgeAccount = useBridgeAccount();   // ADR-0009: Bereich je Konto
   const data = useJournalStore();
   const insets = useSafeAreaInsets();
   const [terms, setTerms] = useState(false);
@@ -40,13 +42,26 @@ export function ConsentGate() {
   const onJournal = useCallback(async (snap: JournalSnapshot) => { setJournal(snap); }, []);
   const C = data?.consent;
   const L = data?.profile?.settingsPage?.legal;
-  // Erst nach dem Onboarding-Modal — zwei Modals zugleich legen die App still (dev-store.ts).
+  // Erst nach dem Onboarding: Wer es gerade durchläuft, soll nicht schon das Tor dahinter haben.
   const onboardingGone = useOnboardingGone();
   const open = !!C?.needed && onboardingGone;
   const all = terms && processing && adult;
 
+  /* ⚠ Eine EBENE, kein <Modal> (Hanni 05.10.2026, ADR-0009): Seit jedes
+     Konto seinen eigenen Bereich hat, fehlt die Einwilligung auch MITTEN in
+     der Sitzung — nach dem Abmelden (der Abmelde-Dialog schließt gerade)
+     oder beim Anmelden eines neuen Kontos (das Anmelde-Blatt schließt
+     gerade). Ein Modal, das sich dann präsentieren will, lehnt iOS ab
+     („view is not in the window hierarchy", Simulator 05.10. 20:54:16);
+     React hält es trotzdem für offen, und die App nimmt keinen Tipp mehr an
+     — derselbe Fehler wie am 26.09. mit dem Onboarding (dev-store.ts).
+     Als letzte Schicht über den Tabs kann das nicht passieren; Blätter wie
+     die Anmeldung erscheinen weiter darüber. Dieselbe Technik wie das
+     Face-ID-Tor (privacy-gate.tsx). `accessibilityViewIsModal`: VoiceOver
+     bleibt im Tor wie vorher im Modal, statt die Tabs dahinter zu lesen. */
+  if (!open) return null;
   return (
-    <Modal visible={open} animationType="fade" presentationStyle="fullScreen" onRequestClose={() => {}}>
+    <Animated.View entering={FadeIn.duration(250)} exiting={FadeOut.duration(250)} style={StyleSheet.absoluteFill} accessibilityViewIsModal>
       <View style={styles.screen}>
         <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 28 }]}>
           {C ? (
@@ -87,7 +102,7 @@ export function ConsentGate() {
           ) : null}
         </ScrollView>
         <View style={styles.bridge}>
-          <JournalBridge getToken={getAccessToken} mediaKey={mediaKey} onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+          <JournalBridge getToken={getAccessToken} mediaKey={mediaKey} account={bridgeAccount} onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
         </View>
 
         {/* Die Rechtstexte, lesbar hinter den Links — wie LegalPage.jsx. */}
@@ -110,7 +125,7 @@ export function ConsentGate() {
           </ScrollView>
         </Modal>
       </View>
-    </Modal>
+    </Animated.View>
   );
 }
 

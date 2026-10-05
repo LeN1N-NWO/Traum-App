@@ -3,6 +3,50 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-05 22:20 — Hanni — Branch `session/2026-10-05-hanni-5` (PR #88) — eigener Bereich je Konto (ADR-0009), Einwilligungs-Tor als Ebene
+
+**Commits:** 2067233 (Reservierung), bb1eccb, 84c3ba1, a3432b5, Aufräumen nach zweiter Durchsicht (+ Wrap).
+
+**Was:** Jedes Konto bekommt auf dem Gerät seinen eigenen localStorage-
+Eintrag; ein Verzeichnis ordnet zu, kopiert wird nie (`src/lib/storage.js`
+`slotFor`/`releaseSlot`/`selectStateKey`). Erstes Konto übernimmt den
+Gast-Bereich, Abmelden zeigt einen leeren Gast, Konto löschen gibt den
+Bereich zurück. Brücken und alte Web-Ansichten bekommen das Konto von
+`useBridgeAccount()` und warten, bis die Sitzung geladen ist. Einwilligungs-
+Tor als Ebene statt Modal. ADR-0009, Übergabe an Anton.
+
+**Warum:** Offener Punkt vor dem öffentlichen Start — auf geteilten iPhones
+sah ein zweites Konto Träume und Gesichter des ersten, und der erste
+Abgleich lud das fremde Journal in sein Konto. Hanni hat „eigener Bereich je
+Konto“ gewählt; Gast-Texte gehen mit, weil ein Gast sich genau dafür
+anmeldet, sie in Filme zu verwandeln.
+
+**Belege:** 10 neue Unit-Tests, Gegenprobe (fester Eintrag) fällt bei 3
+durch; `tsc` sauber, Lint 0 Fehler; alle geänderten Zeilen in
+`journal-bridge.jsx` kategorisiert (41 = 41), nur `run`, `collectOnce`,
+Bereichs-Block und Komponente berührt. Simulator mit zwei echten Konten
+(Hanni tippte Anmeldungen): Bestand bleibt, Gast leer, zweites Konto leer,
+erstes zurück. Verzeichnis per vorübergehendem Log im Speicher geprüft.
+
+**Fehler unterwegs, die man nur einmal sieht:**
+- Nach dem Abmelden hing die App: iOS lehnte das Einwilligungs-Modal ab,
+  während der Abmelde-Dialog schloss (Protokoll „Attempt to present … not in
+  the window hierarchy“). Hauptthread und JS waren frei (`sample <pid>`) —
+  es war die unsichtbare Modal-Ebene. Wie am 26.09. Lösung: Ebene.
+- Im Simulator wird oft der ERSTE Tipp nach einem Bildschirmfoto
+  verschluckt — zweimal tippen, bevor man „hängt“ diagnostiziert.
+- Bildschirmfoto-Koordinaten ≠ Gerätepunkte: Faktor 402/920 bzw. 874/2000.
+- Metro mit `--clear` und offenem Browser-Tab → SIGABRT (Speicher). Mit
+  `NODE_OPTIONS=--max-old-space-size=8192` und ohne `--clear` lief es.
+- zsh: `kill $pids` mit Zeilenumbrüchen schlägt fehl — `pkill -f` nehmen.
+- `security-report.test.js` scheiterte (auch auf main) an 42 hängenden
+  Headless-Chrome-Resten seit 12:39 — nach `pkill -f -- '--user-data-dir=/var/folders/.*/dr-security-'` grün.
+
+**Für den Nächsten:**
+- Neue `<JournalBridge>` oder alte Web-Ansicht → `account={useBridgeAccount()}`.
+- Nicht `localStorage.getItem("dreamrushes_v1")` direkt lesen —
+  `loadState()`/`activeStateKey()`.
+- Konto löschen → Bereich wird Gast: am Gerät noch nicht belegt.
 ## 2026-10-05 22:45 — Hanni — Branch `session/2026-10-05-hanni-6` (PR #89) — S7 Phase 1: Server bucht den Film ab
 
 **Commits:** cf95dc6, 74a42a6, Merge 8e82827 (main mit PR #90), jobSettled-Anschluss (+ Wrap).

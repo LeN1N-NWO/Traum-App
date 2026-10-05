@@ -4,6 +4,7 @@
  * (ADR-0006, Schritt 4). Mit denselben Brücken wie die App. */
 import "./vite-env.js";                       // ⚠ zuerst, siehe dort
 import { setTokenSource, setMediaKey } from "../../../src/lib/api.js";   // S1: Token von der nativen Seite
+import { selectStateKey, slotFor } from "../../../src/lib/storage.js";   // ADR-0009: Bereich je Konto
 import "../../../src/styles/tokens.css";
 import "../../../src/styles/base.css";
 import "../../../src/styles/sheets.css";
@@ -35,12 +36,18 @@ function Page({ page, category, tag, editId, onClose }) {
 }
 
 export default function LegacyPage(props) {
-  const { page, category, tag, editId, onClose, safeTop = 0, safeBottom = 0, getToken, mediaKey } = props;
+  const { page, category, tag, editId, onClose, safeTop = 0, safeBottom = 0, getToken, mediaKey, account } = props;
   setTokenSource(getToken);   // S1 — fällt mit dem Umzug auf nativ weg (ADR-0006)
   setMediaKey(mediaKey);       // S2 — signierte Medienadressen (mobile/src/lib/media-key.ts)
   if (typeof globalThis.__setSafeArea === "function") globalThis.__setSafeArea(safeTop, safeBottom);
+  /* ADR-0009: erst den Bereich des Kontos wählen, dann liest AppState. Ohne
+     geladene Sitzung (account undefined) nichts zeigen — sonst läse die
+     alte Oberfläche den Bereich eines anderen Kontos. `key`: Kontowechsel =
+     neu aufbauen, denn AppState hält den Zustand im Speicher. */
+  if (account === undefined) return null;
+  selectStateKey(slotFor(account));
   return (
-    <AppStateProvider>
+    <AppStateProvider key={account ?? "guest"}>
       <HashRouter>
         <Page page={page} category={category} tag={tag} editId={editId} onClose={onClose} />
         <ToastBridge />

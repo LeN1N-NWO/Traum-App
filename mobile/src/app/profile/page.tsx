@@ -9,7 +9,7 @@ import { showToast } from "@/store/toast-store";
 import { setJournal, useJournalStore, type BridgeCommand, type JournalSnapshot, type OnboardData } from "@/store/journal-store";
 import { colors } from "@/theme";
 import { AvatarEditor } from "@/components/avatar-editor";
-import { getAccessToken } from "@/lib/auth";
+import { getAccessToken, useBridgeAccount } from "@/lib/auth";
 import { useMediaKey } from "@/lib/media-key";
 
 /* Die Blätter des Profils: `avatar` (eigenes Porträt) und `survey` sind
@@ -18,6 +18,7 @@ import { useMediaKey } from "@/lib/media-key";
    (profile/settings.tsx, profile/paywall.tsx). */
 export default function ProfilePageScreen() {
   const mediaKey = useMediaKey();   // S2: signierte Medienadressen in der Web-Ansicht
+  const bridgeAccount = useBridgeAccount();   // ADR-0009: Bereich je Konto
   const { page, category, tag } = useLocalSearchParams<{ page: string; category?: string; tag?: string }>();
   const router = useRouter();
   const p = String(page);
@@ -36,7 +37,7 @@ export default function ProfilePageScreen() {
         ? <SurveyRoom onClose={() => router.back()} />
         /* S2: `key` lädt neu bei Kontowechsel / erstem Schlüssel —
            Begründung in components/legacy-tab.tsx. */
-        : <LegacyPage key={mediaKey?.uid ?? "ohne"} getToken={getAccessToken} mediaKey={mediaKey} page={p} safeTop={insets.top} safeBottom={insets.bottom} category={category ? String(category) : undefined} tag={tag ? String(tag) : undefined} onClose={async () => { router.back(); }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
+        : <LegacyPage key={mediaKey?.uid ?? "ohne"} getToken={getAccessToken} mediaKey={mediaKey} account={bridgeAccount} page={p} safeTop={insets.top} safeBottom={insets.bottom} category={category ? String(category) : undefined} tag={tag ? String(tag) : undefined} onClose={async () => { router.back(); }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
     </>
   );
 }
@@ -46,6 +47,7 @@ export default function ProfilePageScreen() {
    sich beim Abschluss schließt, deshalb schließt er erst NACH der Antwort. */
 function SurveyRoom({ onClose }: { onClose: () => void }) {
   const mediaKey = useMediaKey();   // S2: signierte Medienadressen in der Web-Ansicht
+  const bridgeAccount = useBridgeAccount();   // ADR-0009: Bereich je Konto
   const data = useJournalStore();
   const [command, setCommand] = useState<BridgeCommand | null>(null);
   const n = useRef(0);
@@ -79,7 +81,7 @@ function SurveyRoom({ onClose }: { onClose: () => void }) {
         />
       ) : null}
       <View style={{ height: 0, overflow: "hidden" }}>
-        <JournalBridge getToken={getAccessToken} mediaKey={mediaKey} onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+        <JournalBridge getToken={getAccessToken} mediaKey={mediaKey} account={bridgeAccount} onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
       </View>
     </View>
   );

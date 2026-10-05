@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
-import { loadState, saveState, DB_KEY } from "../lib/storage.js";
+import { loadState, saveState, activeStateKey } from "../lib/storage.js";
 import { buildSeedJournal } from "../lib/seedJournal.js";
 import { collectTick, pendingFingerprint } from "../lib/collector.js";
 import { failureTextKey } from "../lib/falError.js";
@@ -28,7 +28,8 @@ const Ctx = createContext(null);
 // journal someone actually built or deliberately emptied.
 function loadInitialState() {
   const s = clearStalePending(loadState());
-  const fresh = typeof localStorage !== "undefined" && localStorage.getItem(DB_KEY) === null;
+  // Der aktive Bereich (ADR-0009) — im Web immer dreamrushes_v1.
+  const fresh = typeof localStorage !== "undefined" && localStorage.getItem(activeStateKey()) === null;
   if (!fresh || s.journal.length > 0) return s;
   const seed = buildSeedJournal();
   return { ...s, journal: seed.journal, creatures: [...(s.creatures || []), ...seed.creatures] };

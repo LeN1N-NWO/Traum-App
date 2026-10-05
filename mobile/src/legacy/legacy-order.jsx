@@ -7,6 +7,7 @@
  * Schritt 6 das Warten und legt den Traum ins Journal — unverändert. */
 import "./vite-env.js";                       // ⚠ zuerst, siehe dort
 import { setTokenSource, setMediaKey } from "../../../src/lib/api.js";   // S1: Token von der nativen Seite
+import { selectStateKey, slotFor } from "../../../src/lib/storage.js";   // ADR-0009: Bereich je Konto
 import "../../../src/styles/tokens.css";
 import "../../../src/styles/base.css";
 import "../../../src/styles/sheets.css";
@@ -15,11 +16,12 @@ import "./legacy.css";
 import { useRef } from "react";
 import App from "../../../src/App.jsx";
 
-export default function LegacyOrder({ order, safeTop = 0, safeBottom = 0, getToken, mediaKey, dom }) {
+export default function LegacyOrder({ order, safeTop = 0, safeBottom = 0, getToken, mediaKey, account, dom }) {
   setTokenSource(getToken);   // S1 — fällt mit dem Umzug auf nativ weg (ADR-0006)
   setMediaKey(mediaKey);       // S2 — signierte Medienadressen (mobile/src/lib/media-key.ts)
   if (typeof globalThis.__setSafeArea === "function") globalThis.__setSafeArea(safeTop, safeBottom);
   const started = useRef(false);
+  const slot = useRef(null);
   if (!started.current) {
     started.current = true;
     const resume = {
@@ -36,5 +38,13 @@ export default function LegacyOrder({ order, safeTop = 0, safeBottom = 0, getTok
     };
     window.history.replaceState({ usr: { resume } }, "", "#/dream");
   }
+  /* ADR-0009: erst den Bereich des Kontos wählen, dann liest AppState. Ohne
+     geladene Sitzung (account undefined) nichts zeigen. ⚠ Anders als die
+     anderen alten Ansichten: KEIN Neuaufbau beim Kontowechsel — ein
+     Neustart des Web-Motors gäbe mit `autoRender` einen zweiten, bezahlten
+     Auftrag ab. Die Bestellung bleibt in dem Bereich, in dem sie begann. */
+  if (account === undefined) return null;
+  if (!slot.current) slot.current = slotFor(account);
+  selectStateKey(slot.current);
   return <App embedded />;
 }
