@@ -5,7 +5,7 @@ import { SymbolView, type SFSymbol } from "expo-symbols";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { NightSky } from "@/components/night-sky";
-import { TabHeader, useTabHeaderTop } from "@/components/tab-header";
+import { TabBar, TabTitle, useTabTop } from "@/components/tab-header";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Der Schlaf-Tab, nativ: die Übersicht als vier volle Zeilen (Antons Wahl
@@ -25,14 +25,16 @@ export default function SleepScreen() {
   const router = useRouter();
   const { data, bridge } = useJournal();
   const sleep = data?.sleep;
-  const headerTop = useTabHeaderTop();
+  const headerTop = useTabTop();
   return (
     <>
       {/* Derselbe Nachthimmel wie Start, Traum und Profil (Antons Befund 04.10.). */}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]} pointerEvents="none"><NightSky /></View>
       {/* feste Überschrift statt der großen iOS-Überschrift (Antons Befund 05.10.) */}
       <Stack.Screen options={{ headerShown: false, title: sleep?.title ?? "Sleep" }} />
-      <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="never" contentContainerStyle={[styles.content, { paddingTop: headerTop + 4 }]} scrollIndicatorInsets={{ top: headerTop }}>
+      <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="never" contentContainerStyle={[styles.content, { paddingTop: headerTop }]} scrollIndicatorInsets={{ top: headerTop }}>
+        {/* die Überschrift scrollt mit weg (Antons Wunsch 05.10.) */}
+        <TabTitle title={sleep?.title ?? "Sleep"} />
         {sleep ? <Text style={styles.sub}>{sleep.subtitle}</Text> : null}
         {(sleep?.tiles ?? []).map((tile) => {
           const cfg = TILES[tile.id] ?? TILES.symbols;
@@ -53,7 +55,7 @@ export default function SleepScreen() {
         })}
         {sleep ? <Text style={styles.free}>{sleep.free}</Text> : null}
       </ScrollView>
-      <TabHeader title={sleep?.title ?? "Sleep"} />
+      <TabBar />
       <View style={styles.bridge}>{bridge}</View>
     </>
   );

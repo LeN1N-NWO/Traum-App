@@ -2,14 +2,16 @@ import { Stack, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { DreamCalendar } from "@/components/dream-calendar";
 import { DreamCarousel } from "@/components/dream-carousel";
 import { DreamRow } from "@/components/dream-row";
 import { MoonStrip } from "@/components/moon-strip";
+import { Glass } from "@/components/glass";
 import { NightSky } from "@/components/night-sky";
+import { TabBar, TabTitle, useTabTop } from "@/components/tab-header";
 import { useJournal } from "@/components/journal-data";
-import { colors, fonts, radius, TAB_INSET } from "@/theme";
+import { colors, radius, TAB_INSET } from "@/theme";
 
 /* Das Journal, nativ — der Aufbau ist der des Web (JournalScreen.jsx),
    nur das Material ist neu: Kopf mit Titel und Zahl, Suche und Ansicht-
@@ -23,6 +25,7 @@ export default function JournalScreen() {
   const J = data?.journal;
   const L = J?.labels ?? {};
   const [query, setQuery] = useState("");
+  const headerTop = useTabTop();
   const deck = (J?.view ?? "deck") !== "list";
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -44,7 +47,17 @@ export default function JournalScreen() {
     <>
       {/* Derselbe Nachthimmel wie Start, Traum und Profil (Antons Befund 04.10.). */}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]} pointerEvents="none"><NightSky /></View>
-      <ScrollView style={{ flex: 1, backgroundColor: "transparent" }} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
+      {/* eigener Kopf statt der großen iOS-Überschrift (Antons Befund 05.10.): die
+          Überschrift und die Suche scrollen mit weg, der Ansicht-Knopf bleibt oben */}
+      <Stack.Screen options={{ headerShown: false, title: L.title ?? "Journal" }} />
+      <ScrollView style={{ flex: 1, backgroundColor: "transparent" }} contentInsetAdjustmentBehavior="never" keyboardDismissMode="on-drag"
+        contentContainerStyle={[styles.content, { paddingTop: headerTop }]} scrollIndicatorInsets={{ top: headerTop }}>
+        <TabTitle title={L.title ?? "Journal"} room={60} />
+        <Glass style={styles.search}>
+          <SymbolView name="magnifyingglass" size={15} tintColor={colors.faint} />
+          <TextInput value={query} onChangeText={setQuery} placeholder={L.search ?? "Search"} placeholderTextColor={colors.faint}
+            style={styles.searchInput} returnKeyType="search" clearButtonMode="while-editing" autoCorrect={false} />
+        </Glass>
         {J ? <Text style={styles.sub}>{count}</Text> : null}
         {items.length === 0 ? (
           <Text style={styles.empty}>{query ? L.emptySearch : L.empty}</Text>
@@ -68,11 +81,11 @@ export default function JournalScreen() {
 
         {J && (data?.items.length ?? 0) > 0 ? <DreamCalendar items={data!.items} blankKeys={J.blankKeys} sleep={J.sleep} sleepLevels={J.sleepLevels} labels={L} onOpen={open} /> : null}
       </ScrollView>
-      <Stack.Screen.Title large style={{ color: colors.text, fontFamily: fonts.serif }} largeStyle={{ color: colors.text, fontFamily: fonts.serif, fontSize: 36 }}>{L.title ?? "Journal"}</Stack.Screen.Title>
-      <Stack.SearchBar placeholder={L.search ?? "Search"} onChangeText={(e) => setQuery(e.nativeEvent.text)} hideWhenScrolling />
-      <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button icon={deck ? "list.bullet" : "rectangle.stack"} onPress={() => { Haptics.selectionAsync(); send({ type: "journalView", value: deck ? "list" : "deck" }); }} />
-      </Stack.Toolbar>
+      <TabBar>
+        <Pressable onPress={() => { Haptics.selectionAsync(); send({ type: "journalView", value: deck ? "list" : "deck" }); }} hitSlop={6} accessibilityRole="button">
+          <Glass style={styles.viewBtn} interactive><SymbolView name={deck ? "list.bullet" : "rectangle.stack"} size={17} tintColor={colors.text} /></Glass>
+        </Pressable>
+      </TabBar>
       <View style={styles.bridge}>{bridge}</View>
     </>
   );
@@ -93,6 +106,9 @@ function Room({ title, text, onPress, disabled }: { title: string; text: string;
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingBottom: TAB_INSET },
   sub: { color: colors.faint, fontSize: 13, marginLeft: 2, marginBottom: 4 },
+  search: { flexDirection: "row", alignItems: "center", gap: 8, height: 40, paddingHorizontal: 12, borderRadius: 12 },
+  searchInput: { flex: 1, color: colors.text, fontSize: 16, paddingVertical: 0 },
+  viewBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   empty: { color: colors.muted, textAlign: "center", marginVertical: 40, fontSize: 15 },
   list: { marginTop: 4 },
   shortcuts: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 18 },

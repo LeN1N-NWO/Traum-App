@@ -6,7 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { Glass } from "@/components/glass";
 import { NightSky } from "@/components/night-sky";
-import { TabHeader, useTabHeaderTop } from "@/components/tab-header";
+import { TabBar, TabTitle, useTabTop } from "@/components/tab-header";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 const GROUP_ICON: Record<string, SFSymbol> = { person: "person.fill", pet: "pawprint.fill", place: "house.fill", object: "cube.fill" };
@@ -21,7 +21,7 @@ export default function ProfileScreen() {
   const { data, bridge } = useJournal();
   const p = data?.profile;
   const lib = data?.library;
-  const headerTop = useTabHeaderTop();
+  const headerTop = useTabTop();
   const open = (page: string) => { Haptics.selectionAsync(); router.push({ pathname: "/profile/page", params: { page } }); };
   return (
     <>
@@ -29,7 +29,9 @@ export default function ProfileScreen() {
       <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]}><NightSky /></View>
       {/* feste Überschrift statt der großen iOS-Überschrift (Antons Befund 05.10.) */}
       <Stack.Screen options={{ headerShown: false, title: p?.title ?? "Profile" }} />
-      <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="never" contentContainerStyle={[styles.content, { paddingTop: headerTop + 4 }]} scrollIndicatorInsets={{ top: headerTop }}>
+      <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="never" contentContainerStyle={[styles.content, { paddingTop: headerTop }]} scrollIndicatorInsets={{ top: headerTop }}>
+        {/* die Überschrift scrollt mit weg; Guthaben und Zahnrad bleiben oben (Antons Wunsch 05.10.) */}
+        <TabTitle title={p?.title ?? "Profile"} room={170} />
         {p ? (
           <>
             {/* Porträt klein neben dem Namen (Antons Wunsch 04.10.: das große
@@ -114,7 +116,7 @@ export default function ProfileScreen() {
           </>
         ) : null}
       </ScrollView>
-      <TabHeader title={p?.title ?? "Profile"} right={
+      <TabBar>
         <>
           {/* Guthaben und Zahnrad (Antons Ansage 23.09.2026: die Einstellungen
               oben, ein Tipp entfernt) — jetzt in der festen Überschrift. */}
@@ -127,7 +129,7 @@ export default function ProfileScreen() {
             <Glass style={styles.gear} interactive><SymbolView name="gearshape" size={18} tintColor={colors.text} /></Glass>
           </Pressable>
         </>
-      } />
+      </TabBar>
       <View style={styles.bridge}>{bridge}</View>
     </>
   );
