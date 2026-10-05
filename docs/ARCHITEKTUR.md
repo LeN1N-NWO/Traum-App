@@ -81,8 +81,8 @@ heutigen Prototyp auf einem Laptop sind mehrere davon bewusst vertretbar.
 | ID | Befund | Wirkung | Schwere |
 |---|---|---|---|
 | **S1** | ~~`tokenMatches()` gibt `true` zurück, wenn kein `API_TOKEN` gesetzt ist. Der Zugangsschutz ist standardmäßig aus.~~ **Gelöst am 03.10.2026:** Für alles, was Geld kostet, verlangt der Server eine gültige Anmeldung (`needsAccount()` in `gatekeeper.js`); auf dem VPS scharf über `REQUIRE_AUTH=1` in `dreamrushes.service`, `deploy.sh` prüft nach jedem Start, dass die Tür zu ist. Die App schickt das Token und zeigt Gästen das Anmelde-Blatt — siehe unten. Offen: „genug Guthaben" (`settleCharge()`, S7). | Wer den Port findet, generiert auf unsere Rechnung: 20 `generate` je Minute × bis $0,47 ≈ **$9 pro Minute**, unbemerkt. | ✅ erledigt |
-| **S2** | `/media/*` hat keinerlei Zugangsprüfung — `classOf()` gibt für alles außerhalb von `/api/` `null` zurück. **Seit 03.10.2026 Pflicht (ADR-0008):** Medien bleiben dauerhaft auf dem Server als Sicherung — also muss `/media/*` nur an den Besitzer ausliefern. Dafür fehlt die Zuordnung Datei → Nutzer (heute keine), dieselbe braucht B8 (Konto löschen löscht Medien). | Gesichter realer Menschen, teils Dritter, dauerhaft per URL abrufbar. DSGVO Art. 9. | **hoch** |
-| **S3** | `Bun.hash` ist Wyhash: 64 Bit, nicht kryptografisch, ohne Streuwert. Gleicher Inhalt → gleicher Name. | Existenz-Orakel: Wer ein Bild hat, kann prüfen, ob es bei uns liegt. Kollisionen überschreiben. | mittel |
+| **S2** | ~~`/media/*` hat keinerlei Zugangsprüfung.~~ **Gelöst am 05.10.2026:** Mit `REQUIRE_AUTH=1` liefert `/media/*` nur gegen eine signierte Adresse (`?u=…&e=…&s=…`, HMAC-SHA256, höchstens 20 Minuten gültig, je Datei) und nur, wenn die Datei dem signierenden Konto gehört — sonst 404. Besitzvermerke als Markerdateien unter `media/besitz/` (je Datei, je Konto, je Auftrag), gesetzt, wenn eine Datei an den Besteller geht (`/api/job`, `/api/panel`, `/api/sketch-sound`, `/api/film-outro`). Keyframe, Kettenanker und Abspann nehmen nur eigene Dateien. Die App holt den Medienschlüssel (`GET /api/media-key`) und signiert selbst (`src/lib/mediaSign.js`). Server: `src/lib/mediaAccess.js`; Pflicht `MEDIA_SECRET` (`deploy/check-env.mjs`). Lokal ohne `REQUIRE_AUTH` bleibt alles offen. Offen: B8 (Konto löschen löscht Medien) — die Vermerke je Konto liegen dafür bereit. | Gesichter realer Menschen, teils Dritter, dauerhaft per URL abrufbar. DSGVO Art. 9. | ✅ erledigt |
+| **S3** | `Bun.hash` ist Wyhash: 64 Bit, nicht kryptografisch, ohne Streuwert. Gleicher Inhalt → gleicher Name. | ~~Existenz-Orakel: Wer ein Bild hat, kann prüfen, ob es bei uns liegt.~~ Seit S2 (05.10.) bekommt jeder Fremde dasselbe 404. Bleibt: Kollisionen überschreiben. | niedrig |
 | **S4** | ~~14 ausgehende `fetch`, null Abbruchsignale.~~ **Behoben am 11.09.2026.** | Ein hängender Anbieter hielt eine Verbindung bis 255 s; genug davon, und der Prozess nahm nichts mehr an. ⚠ **Nicht** der Fix für die verwaisten Filme — siehe „Zuverlässigkeit". | ✅ erledigt |
 | **S5** | Mengenbremse zählt nach IP, im Arbeitsspeicher. ~~Hinter einem Proxy teilen sich alle einen Eimer.~~ **Proxy-Teil behoben am 03.10.2026:** `senderOf()` in `gatekeeper.js` nimmt `X-Forwarded-For`, aber nur mit `TRUST_PROXY=1` und nur von Loopback. | Neustart setzt alles zurück — bleibt, bewusst. ⚠ IPv6: gezählt wird die einzelne Adresse, nicht das /64-Netz; wer ein ganzes Netz hat, kann wechseln. | niedrig |
 | **S6** | Transport unverschlüsselt (`http://`, dafür wurde die ATS-Ausnahme gebaut). | Traumtexte und Referenzfotos liegen im WLAN offen. | mittel, im Betrieb hoch |
@@ -143,8 +143,12 @@ Mac im WLAN zeigen — eine App für den VPS ist ohnehin ein neuer Bau.
 > Umzug fertig, verschwinden sie von selbst — dann bleibt nur `authFetch` in
 > `mobile/src/lib/auth.ts`.
 
-⚠ **Grenze:** Mit Konto prüft `/api/job` nicht, ob der Auftrag *diesem*
-Nutzer gehört — wer eine fremde Auftragsnummer kennt, holt den Film ab.
+✅ **Seit S2 (05.10.2026):** `/api/job` antwortet nur dem Besteller; jede
+fremde Nummer ist `unknown`. Der Rest dieses Absatzes ist damit entschärft,
+bleibt als Hinweis für `genJobId()` stehen.
+
+~~⚠ **Grenze:** Mit Konto prüft `/api/job` nicht, ob der Auftrag *diesem*
+Nutzer gehört — wer eine fremde Auftragsnummer kennt, holt den Film ab.~~
 Dafür bräuchte der Server die Zuordnung Auftrag → Nutzer; gehört zu S2.
 Zwei Schwächen der Auftragsnummer selbst (`genJobId()` in `server.js`), mit
 zu erledigen: Sie besteht aus Uhrzeit + 6 Zeichen aus `Math.random()` —
@@ -231,9 +235,10 @@ Nach Wirkung je Aufwand, nicht nach Schwere.
    Das braucht zuerst die Anmeldung.
 3. **TLS davor (S6, S5)** — Caddy holt das Zertifikat selbst.
 4. **Medien nur an den Besitzer (S2, S3, B8)** — ADR-0008 (03.10.): Medien
-   bleiben auf dem Server als Sicherung. Beim Erzeugen die Nutzerkennung zur
-   Datei festhalten; `/media/*` nur für den Besitzer; Konto löschen löscht
-   seine Dateien. Wird die Platte knapp: Umzug in Object Storage hinter
+   bleiben auf dem Server als Sicherung. ✅ S2 erledigt am 05.10. (siehe
+   Befundtabelle). Offen: B8 — Konto löschen löscht seine Dateien
+   (`owners.filesOf()` in `mediaAccess.js`; eine Datei nur löschen, wenn
+   kein anderes Konto sie noch besitzt). Wird die Platte knapp: Umzug in Object Storage hinter
    `src/lib/media-store.js`.
 5. **Warteschlange für Film, ffmpeg und Analyse (S8, Performanz)** — der größte
    Umbau, aber er löst Baustelle 1 aus `STAND.md`.

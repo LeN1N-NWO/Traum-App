@@ -3,18 +3,20 @@ import { useCallback, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LegacyApp from "@/legacy/legacy-app";
 import { getAccessToken } from "@/lib/auth";
+import { useMediaKey } from "@/lib/media-key";
 
 /* Ein nativer Bildschirm, in dem ein Bildschirm der alten Oberfläche läuft.
    Bei jedem Fokus zählt `tick` hoch; der Webview liest daraufhin seinen
    Zustand neu aus dem localStorage (siehe legacy-app.jsx). `view` wählt
    einen Abschnitt darin (Schlaf: checklist/sounds/guide/symbols). */
 export function LegacyTab({ screen, view }: { screen: "home" | "journal" | "dream" | "sleep" | "profile"; view?: string }) {
+  const mediaKey = useMediaKey();   // S2: signierte Medienadressen in der Web-Ansicht
   const [tick, setTick] = useState(0);
   const insets = useSafeAreaInsets();
   useFocusEffect(useCallback(() => { setTick((t) => t + 1); }, []));
   return (
     <LegacyApp
-      getToken={getAccessToken}
+      getToken={getAccessToken} mediaKey={mediaKey}
       screen={screen}
       view={view}
       focusTick={tick}

@@ -1,4 +1,6 @@
 import { Directory, File, Paths } from "expo-file-system";
+import { currentMediaKey, onMediaKey } from "@/lib/media-key";
+import { signMediaPath } from "../../../src/lib/mediaSign.js";
 
 /* Träume liegen auf dem Gerät — auch ihre Filme, Bilder und Aufnahmen
  * (Hanni + Anton 24.09.2026, docs/plans/2026-09-24-medienablage.md, Schritt A).
@@ -35,12 +37,38 @@ function mediaDir() {
 const done = new Map<string, string>();      // Name → file://-Adresse
 const failed = new Set<string>();             // in diesem App-Lauf nicht noch mal versuchen
 const inflight = new Set<string>();
-const queue: { name: string; url: string }[] = [];
+const queue: { name: string; origin: string }[] = [];
 let active = 0;
 let onReady: (() => void) | null = null;
 
 /** Die Oberfläche neu zeichnen lassen, sobald eine Datei angekommen ist. */
 export function onMediaReady(fn: () => void) { onReady = fn; }
+
+/* S2 (05.10.2026): Auf dem VPS gibt der Server eine Datei nur gegen eine
+   signierte Adresse heraus (lib/media-key.ts). Signiert wird hier immer neu
+   mit dem aktuellen Schlüssel — eine Adresse, die schon signiert ankommt,
+   kann längst abgelaufen sein. Ein neuer Schlüssel (Start, Kontowechsel)
+   zeichnet neu und gibt gescheiterte Downloads wieder frei: Ein Gast, der
+   sich anmeldet, soll seine Filme danach sehen. */
+function signed(origin: string, name: string): string {
+  return origin + signMediaPath(`/media/${name}`, currentMediaKey() ?? null);
+}
+/** A server media URL signed for right now — for native code that fetches
+ *  it itself (the glimpse sound). Store the unsigned URL, sign at use. */
+export function signedMedia(url: string): string {
+  const name = nameOf(url);
+  return name ? signed(originOf(url), name) : url;
+}
+onMediaKey(() => {
+  failed.clear();
+  onReady?.();
+});
+
+/** Everything in front of `/media/` — the server the file lives on. */
+function originOf(url: string): string {
+  const at = url.indexOf("/media/");
+  return at > 0 ? url.slice(0, at) : "";
+}
 
 function nameOf(url: string): string | null {
   const m = MEDIA.exec(url);
@@ -60,7 +88,7 @@ function pump() {
       const part = new File(d, `${job.name}.part`);
       try {
         try { if (part.exists) part.delete(); } catch {}
-        await File.downloadFileAsync(job.url, part, { idempotent: true });
+        await File.downloadFileAsync(signed(job.origin, job.name), part, { idempotent: true });
         part.move(final);
         done.set(job.name, final.uri);
         onReady?.();
@@ -78,8 +106,8 @@ function pump() {
 }
 
 /** Die lokale Adresse zu einer Server-Adresse, wenn die Datei schon auf dem
- *  Gerät liegt. Sonst die Server-Adresse unverändert — und die Datei wird im
- *  Hintergrund geholt. Alles, was nicht `/media/…` ist, geht unverändert
+ *  Gerät liegt. Sonst die Server-Adresse, frisch signiert (S2) — und die
+ *  Datei wird im Hintergrund geholt. Alles, was nicht `/media/…` ist, geht unverändert
  *  durch (Vorschau-Clips, file://, fremde Adressen). */
 export function localMedia(url: string): string;
 export function localMedia(url: string | null): string | null;
@@ -91,10 +119,15 @@ export function localMedia(url: string | null): string | null {
   if (hit) return hit;
   const file = new File(mediaDir(), name);
   if (file.exists) { done.set(name, file.uri); return file.uri; }
+  const origin = originOf(url);
+  /* Schlüssel noch unbekannt (Start, Netz): nicht laden — ein Download ohne
+     Signatur scheitert auf dem VPS und gälte dann den ganzen Lauf als
+     gescheitert. onMediaKey zeichnet neu, dann geht es los. */
+  if (currentMediaKey() === undefined) return url;
   if (!inflight.has(name) && !failed.has(name)) {
     inflight.add(name);
-    queue.push({ name, url });
+    queue.push({ name, origin });
     pump();
   }
-  return url;
+  return signed(origin, name);
 }

@@ -10,6 +10,7 @@ import { currentTap } from "@/store/tap-store";
 import { resetWizard, useWizardStore } from "@/store/wizard-store";
 import { colors } from "@/theme";
 import { getAccessToken } from "@/lib/auth";
+import { useMediaKey } from "@/lib/media-key";
 import { askPermission, permission } from "@/lib/notifications";
 
 
@@ -38,6 +39,7 @@ const NATIVE_ORDER = false;
 const MIN_CELEBRATE_MS = 2800;
 
 export default function DreamOrderScreen() {
+  const mediaKey = useMediaKey();   // S2: signierte Medienadressen in der Web-Ansicht
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const w = useWizardStore();
@@ -139,7 +141,7 @@ export default function DreamOrderScreen() {
         </View>
       ) : null}
       <View style={showWeb ? styles.web : styles.hidden}>
-        {NATIVE_ORDER ? null : <LegacyOrder getToken={getAccessToken} safeTop={insets.top} safeBottom={insets.bottom} order={{ entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, format: w.format, seconds: w.seconds, orderId: w.orderId, assignmentOverrides: w.assignmentOverrides, mode: w.mode }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
+        {NATIVE_ORDER ? null : <LegacyOrder getToken={getAccessToken} mediaKey={mediaKey} safeTop={insets.top} safeBottom={insets.bottom} order={{ entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, format: w.format, seconds: w.seconds, orderId: w.orderId, assignmentOverrides: w.assignmentOverrides, mode: w.mode }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
       </View>
       <View style={styles.bridge}>{bridge}</View>
     </>

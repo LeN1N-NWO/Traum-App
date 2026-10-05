@@ -10,6 +10,8 @@ import { setJournal, useJournalStore, type BridgeCommand, type BridgeResult, typ
 import { showToast } from "@/store/toast-store";
 import { DreamSketch, resolveSketchesDeep, resolveSketchUrl } from "../../modules/dream-sketch";
 import { fetchWithSession, getAccessToken } from "@/lib/auth";
+import { useMediaKey } from "@/lib/media-key";
+import { signedMedia } from "@/lib/media-cache";
 
 /* Der Glimpse im Hintergrund (26.09.2026, Antons Ansage): Der Glimpse-
  * Bildschirm legt nur den Auftrag ab (store/glimpse-store.ts) und schickt
@@ -57,6 +59,7 @@ async function soundFromFilm(job: GlimpseJob, filmUri: string): Promise<string |
 }
 
 export function GlimpseLayer() {
+  const mediaKey = useMediaKey();   // S2: signierte Medienadressen in der Web-Ansicht
   const busy = useGlimpseQueue();
   const [command, setCommand] = useState<BridgeCommand | null>(null);
   const n = useRef(0);
@@ -111,7 +114,7 @@ export function GlimpseLayer() {
 
   return (
     <View style={styles.hidden} pointerEvents="none">
-      <JournalBridge getToken={getAccessToken} onJournal={onJournal} onResult={onResult} refreshTick={0} command={command} devCredits={500} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+      <JournalBridge getToken={getAccessToken} mediaKey={mediaKey} onJournal={onJournal} onResult={onResult} refreshTick={0} command={command} devCredits={500} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
     </View>
   );
 }
@@ -162,7 +165,7 @@ async function run(job: GlimpseJob, ask: (cmd: Omit<BridgeCommand, "n">) => Prom
     const soundUrl = await Promise.race([sound, new Promise<null>((r) => setTimeout(() => r(null), SOUND_WAIT_MS))]);
     let withSound = false;
     if (soundUrl) {
-      withSound = await DreamSketch.addSound(film.film, soundUrl).then(() => true).catch((e) => { console.warn("[glimpse] Ton", e?.message || e); return false; });
+      withSound = await DreamSketch.addSound(film.film, signedMedia(soundUrl)).then(() => true).catch((e) => { console.warn("[glimpse] Ton", e?.message || e); return false; });
     }
     const r = await ask({ type: "sketch", sketch: {
       entryId: job.entryId, text: job.dream.text, originalText: job.dream.originalText, analysis: job.dream.analysis,
@@ -203,7 +206,7 @@ async function lateSound(job: GlimpseJob, film: string, sound: string, ask: (cmd
   const copy = new File(resolveSketchUrl(`sketch:${name}`)!);
   if (copy.exists) copy.delete();
   new File(src).copySync(copy);
-  await DreamSketch.addSound(`sketch:${name}`, sound);
+  await DreamSketch.addSound(`sketch:${name}`, signedMedia(sound));   // S2: erst beim Abholen signieren
   const r = await ask({ type: "sketchSwap", id: job.entryId, value: film, text: `sketch:${name}` });
   if (r.error) { try { copy.delete(); } catch {} return; }
   setTimeout(() => { try { new File(src).delete(); } catch {} }, 60000);

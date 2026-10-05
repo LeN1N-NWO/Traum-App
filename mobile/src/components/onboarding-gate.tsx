@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import JournalBridge from "@/legacy/journal-bridge";
 import { OnboardingFlow } from "@/components/onboarding-flow";
 import { pushProfile, restoreSession, getAccessToken } from "@/lib/auth";
+import { useMediaKey } from "@/lib/media-key";
 import { setOnboardingGone, setOnboardingSeen } from "@/store/dev-store";
 import { setJournal, useJournalStore, type BridgeCommand, type JournalSnapshot, type OnboardData } from "@/store/journal-store";
 import { colors } from "@/theme";
@@ -36,6 +37,7 @@ import { colors } from "@/theme";
 const ALWAYS = process.env.EXPO_PUBLIC_ONBOARDING_ALWAYS === "1";
 
 export function OnboardingGate() {
+  const mediaKey = useMediaKey();   // S2: signierte Medienadressen in der Web-Ansicht
   const data = useJournalStore();
   /* checking: erster Stand der Brücke steht aus · open: Onboarding läuft ·
      done: nicht (mehr) nötig. */
@@ -103,7 +105,7 @@ export function OnboardingGate() {
       </Modal>
       {phase !== "done" || saving ? (
         <View style={styles.bridge}>
-          <JournalBridge getToken={getAccessToken} onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+          <JournalBridge getToken={getAccessToken} mediaKey={mediaKey} onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
         </View>
       ) : null}
     </>

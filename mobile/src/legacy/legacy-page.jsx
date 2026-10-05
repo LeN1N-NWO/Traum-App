@@ -3,7 +3,7 @@
  * Einstellungen, der Avatar-Dialog, das Kaufblatt — bis sie nativ sind
  * (ADR-0006, Schritt 4). Mit denselben Brücken wie die App. */
 import "./vite-env.js";                       // ⚠ zuerst, siehe dort
-import { setTokenSource } from "../../../src/lib/api.js";   // S1: Token von der nativen Seite
+import { setTokenSource, setMediaKey } from "../../../src/lib/api.js";   // S1: Token von der nativen Seite
 import "../../../src/styles/tokens.css";
 import "../../../src/styles/base.css";
 import "../../../src/styles/sheets.css";
@@ -35,8 +35,9 @@ function Page({ page, category, tag, editId, onClose }) {
 }
 
 export default function LegacyPage(props) {
-  const { page, category, tag, editId, onClose, safeTop = 0, safeBottom = 0, getToken } = props;
+  const { page, category, tag, editId, onClose, safeTop = 0, safeBottom = 0, getToken, mediaKey } = props;
   setTokenSource(getToken);   // S1 — fällt mit dem Umzug auf nativ weg (ADR-0006)
+  setMediaKey(mediaKey);       // S2 — signierte Medienadressen (mobile/src/lib/media-key.ts)
   if (typeof globalThis.__setSafeArea === "function") globalThis.__setSafeArea(safeTop, safeBottom);
   return (
     <AppStateProvider>

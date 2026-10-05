@@ -9,6 +9,7 @@ import { useOnboardingGone } from "@/store/dev-store";
 import { setJournal, useJournalStore, type BridgeCommand, type JournalSnapshot, type LegalDoc } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 import { getAccessToken } from "@/lib/auth";
+import { useMediaKey } from "@/lib/media-key";
 
 /* Symbol je Klartext-Kachel — die Worte liegen in en.js/de.js, das Bild
    gehört zur Oberfläche. Unbekannte id fällt auf info.circle zurück. */
@@ -26,6 +27,7 @@ const FACT_ICONS: Record<string, import("expo-symbols").SFSymbol> = {
    Tabs, solange `consent.needed` — bis dahin nur lesen, nichts senden.
    Eigene Brücke: das Wurzel-Layout hat keinen Bildschirm-Fokus. */
 export function ConsentGate() {
+  const mediaKey = useMediaKey();   // S2: signierte Medienadressen in der Web-Ansicht
   const data = useJournalStore();
   const insets = useSafeAreaInsets();
   const [terms, setTerms] = useState(false);
@@ -85,7 +87,7 @@ export function ConsentGate() {
           ) : null}
         </ScrollView>
         <View style={styles.bridge}>
-          <JournalBridge getToken={getAccessToken} onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+          <JournalBridge getToken={getAccessToken} mediaKey={mediaKey} onJournal={onJournal} onResult={async () => {}} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
         </View>
 
         {/* Die Rechtstexte, lesbar hinter den Links — wie LegalPage.jsx. */}

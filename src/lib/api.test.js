@@ -1,5 +1,6 @@
 import { test, expect, beforeEach, afterEach } from "bun:test";
-import { setTokenSource, accessToken, jobStatus, photoCheck } from "./api.js";
+import { setTokenSource, accessToken, jobStatus, photoCheck, mediaUrl, setMediaKey } from "./api.js";
+import { mediaSignature } from "./mediaSign.js";
 import { t } from "../i18n/index.js";
 
 /* S1 Schritt 2: Die bezahlten Routen tragen das Zugangstoken, sobald die
@@ -85,3 +86,22 @@ test("a hanging bridge does not hang the app: after the wait, no token", async (
   expect(await accessToken()).toBe(null);
   expect(Date.now() - t0).toBeGreaterThanOrEqual(4_900);
 }, 10_000);
+
+/* S2: Die Web-Ansichten zeigen Medien über mediaUrl() — mit Schlüssel
+   signiert, ohne Schlüssel wie bisher. Ins Tagebuch geht nie die signierte
+   Form (die bliebe nach 20 Minuten tot liegen). */
+test("mediaUrl signs /media/ paths once a media key is set, and only those", () => {
+  const key = { uid: "0b5e6a3c-1f2d-4e5f-8a9b-0c1d2e3f4a5b", exp: Math.floor(Date.now() / 1000) + 600, key: "ab".repeat(32) };
+  try {
+    expect(mediaUrl("/media/abc.png")).toBe("/media/abc.png");
+    setMediaKey(key);
+    expect(mediaUrl("/media/abc.png")).toBe(`/media/abc.png?u=${key.uid}&e=${key.exp}&s=${mediaSignature(key.key, "abc.png")}`);
+    expect(mediaUrl("/clips/style-a.mp4")).toBe("/clips/style-a.mp4");
+    expect(mediaUrl("data:image/png;base64,AAAA")).toBe("data:image/png;base64,AAAA");
+    setMediaKey({ ...key, exp: 1 });   // abgelaufen: lieber unsigniert als falsch signiert
+    expect(mediaUrl("/media/abc.png")).toBe("/media/abc.png");
+  } finally {
+    setMediaKey(null);
+  }
+  expect(mediaUrl("/media/abc.png")).toBe("/media/abc.png");
+});

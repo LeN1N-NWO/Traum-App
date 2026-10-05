@@ -5,6 +5,7 @@
  * the bundle.
  */
 import { t } from "../i18n/index.js";
+import { signMediaPath } from "./mediaSign.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
@@ -73,7 +74,19 @@ async function wantsSignIn(res) {
  * handed back untouched.
  */
 export function mediaUrl(u) {
-  return typeof u === "string" && u.startsWith("/media/") ? `${API_BASE}${u}` : u;
+  return typeof u === "string" && u.startsWith("/media/") ? `${API_BASE}${signMediaPath(u, mediaKey)}` : u;
+}
+
+/* S2 (05.10.2026): Auf dem VPS gibt der Server /media/* nur gegen eine
+ * signierte Adresse heraus. Den Schlüssel holt die native Seite
+ * (mobile/src/lib/media-key.ts) und reicht ihn als Prop `mediaKey` herein —
+ * wie `getToken`. Ohne Schlüssel (lokal, Web-Entwicklungsbau) bleibt die
+ * Adresse unsigniert, und der Server liefert ohne REQUIRE_AUTH trotzdem.
+ * Signiert wird erst hier, beim Anzeigen: Ins Tagebuch gehört immer der
+ * nackte Pfad, denn der geht als Keyframe an den Server zurück. */
+let mediaKey = null;
+export function setMediaKey(k) {
+  mediaKey = k && typeof k.key === "string" ? k : null;
 }
 
 /* Jeder Aufruf hat eine Uhr. Ohne sie wartet fetch unbegrenzt, und ein
