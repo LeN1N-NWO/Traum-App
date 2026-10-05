@@ -5,6 +5,7 @@ import { SymbolView, type SFSymbol } from "expo-symbols";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { NightSky } from "@/components/night-sky";
+import { TabHeader, useTabHeaderTop } from "@/components/tab-header";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 /* Der Schlaf-Tab, nativ: die Übersicht als vier volle Zeilen (Antons Wahl
@@ -24,11 +25,14 @@ export default function SleepScreen() {
   const router = useRouter();
   const { data, bridge } = useJournal();
   const sleep = data?.sleep;
+  const headerTop = useTabHeaderTop();
   return (
     <>
       {/* Derselbe Nachthimmel wie Start, Traum und Profil (Antons Befund 04.10.). */}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]} pointerEvents="none"><NightSky /></View>
-      <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
+      {/* feste Überschrift statt der großen iOS-Überschrift (Antons Befund 05.10.) */}
+      <Stack.Screen options={{ headerShown: false, title: sleep?.title ?? "Sleep" }} />
+      <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="never" contentContainerStyle={[styles.content, { paddingTop: headerTop + 4 }]} scrollIndicatorInsets={{ top: headerTop }}>
         {sleep ? <Text style={styles.sub}>{sleep.subtitle}</Text> : null}
         {(sleep?.tiles ?? []).map((tile) => {
           const cfg = TILES[tile.id] ?? TILES.symbols;
@@ -49,9 +53,7 @@ export default function SleepScreen() {
         })}
         {sleep ? <Text style={styles.free}>{sleep.free}</Text> : null}
       </ScrollView>
-      <Stack.Screen.Title large style={{ color: colors.text, fontFamily: fonts.serif }} largeStyle={{ color: colors.text, fontFamily: fonts.serif, fontSize: 36 }}>
-        {sleep?.title ?? "Sleep"}
-      </Stack.Screen.Title>
+      <TabHeader title={sleep?.title ?? "Sleep"} />
       <View style={styles.bridge}>{bridge}</View>
     </>
   );
