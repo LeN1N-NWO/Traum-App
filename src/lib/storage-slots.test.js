@@ -67,7 +67,7 @@ test("Schreiben trifft nur den aktiven Bereich", () => {
   expect(viewAs("X", b).journal.map((e) => e.id)).toEqual(["a"]);
 });
 
-test("mehrere Brücken fragen zugleich: dieselbe Zuordnung, kein zweiter Bereich", () => {
+test("wiederholtes Fragen: dieselbe Zuordnung, kein zweiter Bereich", () => {
   const b = fakeBackend({ [DB_KEY]: JSON.stringify({ journal: [dream("a")] }) });
   const vorher = b.getItem(SLOTS_KEY);
   const k1 = slotFor("X", b), k2 = slotFor("X", b), k3 = slotFor("X", b);

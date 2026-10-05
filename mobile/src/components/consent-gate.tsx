@@ -57,10 +57,11 @@ export function ConsentGate() {
      — derselbe Fehler wie am 26.09. mit dem Onboarding (dev-store.ts).
      Als letzte Schicht über den Tabs kann das nicht passieren; Blätter wie
      die Anmeldung erscheinen weiter darüber. Dieselbe Technik wie das
-     Face-ID-Tor (privacy-gate.tsx). */
+     Face-ID-Tor (privacy-gate.tsx). `accessibilityViewIsModal`: VoiceOver
+     bleibt im Tor wie vorher im Modal, statt die Tabs dahinter zu lesen. */
   if (!open) return null;
   return (
-    <Animated.View entering={FadeIn.duration(250)} exiting={FadeOut.duration(250)} style={StyleSheet.absoluteFill}>
+    <Animated.View entering={FadeIn.duration(250)} exiting={FadeOut.duration(250)} style={StyleSheet.absoluteFill} accessibilityViewIsModal>
       <View style={styles.screen}>
         <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 28 }]}>
           {C ? (
