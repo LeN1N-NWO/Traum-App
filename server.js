@@ -1769,7 +1769,24 @@ async function readJob(id) {
   const f = Bun.file(resolve(JOBS_DIR, `${id}.json`));
   return (await f.exists()) ? f.json() : null;
 }
-const writeJob = (id, job) => Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.stringify(job));
+/* Schreiben — und merken, wann ein Auftrag FERTIG wird (offen → done/failed):
+   Dann meldet jobSettled() das einmal. Jeder Weg dorthin läuft hier durch
+   (Abholer, App-Nachfrage, Poster fertig, Poster-Zeitüberschreitung). */
+const SETTLED = new Set(["done", "failed"]);
+const writeJob = async (id, job) => {
+  const before = SETTLED.has(job?.status) ? (await readJob(id).catch(() => null))?.status : null;
+  await Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.stringify(job));
+  if (SETTLED.has(job?.status) && !SETTLED.has(before)) jobSettled(id, job).catch((e) => console.error("[DreamRushes] jobSettled:", id, e?.message || e));
+};
+
+/* Ein Auftrag ist fertig oder gescheitert — die Andockstelle für den Push
+   „Dein Film ist fertig" (ADR-0010, Übergabe an Hanni 05.10.): Die
+   Besitzer stehen seit S2 in media/besitz/auftrag/<id>/<konto>. Heute nur
+   das Protokoll; das Senden an deren Geräte baut Hanni hier ein. */
+async function jobSettled(id, job) {
+  const uids = await readdir(resolve(MEDIA_DIR, "besitz", "auftrag", id)).catch(() => []);
+  console.log(`[DreamRushes] Auftrag ${id} → ${job.status} (Besitzer: ${uids.length}) — Push folgt (Übergabe Hanni)`);
+}
 
 /** Hand the work to fal's queue and return our own job id.
  *
