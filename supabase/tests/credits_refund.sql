@@ -1,9 +1,10 @@
 -- Refund checks (S7) — run AFTER 20261005200000_credits_refund.sql.
 --
--- Paste into the SQL editor and run. Every check prints a NOTICE when it
--- holds and raises an EXCEPTION the moment one does not. The last line must
--- be "all 10 refund checks hold" (or, if the editor may not switch roles,
--- "checks 1-6 and 10 hold, 7-9 SKIPPED").
+-- Paste into the SQL editor and run. A failing check stops with
+-- "FAIL n: ...". If all hold, the script stops ON PURPOSE with an error
+-- "RESULT OK - all 10 refund checks hold" (code DR000) -- the editor shows
+-- no NOTICEs, but it always shows an error. "Success. No rows returned"
+-- would mean the script did NOT run to its end.
 --
 -- ⚠ Leaves nothing behind: one transaction, ends in ROLLBACK.
 -- ⚠ A refusal only counts with its REAL error code (42501 =
@@ -154,10 +155,15 @@ begin
   end if;
   raise notice 'ok 10 - anon/authenticated reach no money function, the server role only its wrappers';
 
+  -- The Supabase SQL editor does not show NOTICEs. So the result comes as
+  -- an intentional error with its own code DR000: always visible, and it
+  -- also undoes every test row (on top of the ROLLBACK below).
   if as_role then
-    raise notice '==== all 10 refund checks hold ====';
+    raise exception 'RESULT OK - all 10 refund checks hold (intentional stop, test data removed)'
+      using errcode = 'DR000';
   else
-    raise notice '==== checks 1-6 and 10 hold, 7-9 SKIPPED (see above) ====';
+    raise exception 'RESULT OK - checks 1-6 and 10 hold, 7-9 SKIPPED: editor may not switch to dreamrushes_server (intentional stop, test data removed)'
+      using errcode = 'DR000';
   end if;
 end;
 $$;
