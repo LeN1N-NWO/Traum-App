@@ -5,6 +5,7 @@ const APP = "/opt/dreamrushes/app";
 const GOOD = {
   SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "k",
   DREAMRUSHES_MEDIA: "/var/lib/dreamrushes/media",
+  MEDIA_SECRET: "f".repeat(64),
   FAL_KEY: "x", DEEPSEEK_KEY: "x", GEMINI_KEY: "x", DATABASE_URL: "x",
 };
 
@@ -21,6 +22,13 @@ describe("checkEnv", () => {
     expect(errorsOf({ SUPABASE_URL: undefined })[0]).toContain("SUPABASE");
     expect(errorsOf({ SUPABASE_ANON_KEY: "" })[0]).toContain("SUPABASE");
     expect(errorsOf({ SUPABASE_URL: undefined, SUPABASE_ANON_KEY: undefined })).toHaveLength(1);
+  });
+
+  /* S2: ohne Geheimnis keine Signatur, ohne Signatur keine Medien. */
+  test("MEDIA_SECRET: Pflicht und lang genug", () => {
+    expect(errorsOf({ MEDIA_SECRET: undefined })[0]).toContain("MEDIA_SECRET fehlt");
+    expect(errorsOf({ MEDIA_SECRET: "kurz" })[0]).toContain("zu kurz");
+    expect(errorsOf({ MEDIA_SECRET: "a".repeat(32) })).toEqual([]);
   });
 
   /* Das alte gemeinsame Geheimnis sperrt die App komplett aus (sie schickt

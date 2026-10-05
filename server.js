@@ -43,6 +43,8 @@ import { dedupePeople } from "./src/lib/people.js";
 // Die Schranke vor allem, was Geld kostet — eigene Datei, damit sie ohne
 // laufenden Server prüfbar ist (src/lib/gatekeeper.test.js).
 import { guard, senderOf, needsAccount } from "./src/lib/gatekeeper.js";
+// S2: Medien nur an den Besitzer — Besitzvermerke und signierte Adressen.
+import { createOwnership, issueMediaKey, verifyMediaSignature } from "./src/lib/mediaAccess.js";
 import { checkResult } from "./src/lib/photoCheck.js";
 import { buildCharacterPrompt, buildSheetFromPhotoPrompt, stripReferenceClauses } from "./src/lib/promptBuilder.js";
 // Stiltexte sind Konstanten aus dem Repo — der Client schickt nur eine ID,
@@ -123,6 +125,36 @@ const BACKUP_DIR = resolve(MEDIA_DIR, "..", "data", "traeume");
  * alle Browser hinweg — aber sie wandern nicht in die Git-Historie. Eine
  * Datei kann man loeschen, einen Commit praktisch nicht. */
 const CAST_DIR = resolve(MEDIA_DIR, "besetzung");
+
+/* S2 (05.10.2026): Wem gehört welche Datei, welcher Auftrag — Markerdateien
+ * unter media/besitz/ (src/lib/mediaAccess.js). Scharf nur mit REQUIRE_AUTH=1
+ * wie S1: lokal ohne Konto bleibt /media offen, Entwickeln geht weiter. */
+const MEDIA_ENFORCED = process.env.REQUIRE_AUTH === "1";
+const MEDIA_SECRET = process.env.MEDIA_SECRET || "";
+const owners = createOwnership(resolve(MEDIA_DIR, "besitz"));
+
+/** Note every /media/ path in `paths` as belonging to `person`. Fal URLs
+ *  and other shapes are skipped. Without an account (local) nothing to do. */
+async function claimMedia(person, ...paths) {
+  if (!person) return;
+  for (const p of paths.flat()) {
+    const hit = typeof p === "string" ? resolveMedia(p) : null;
+    if (hit) await owners.claim(person.userId, hit.name);
+  }
+}
+
+/** May `person` hand this /media/ path to the server as an input
+ *  (keyframe, chain anchor, end card)? Always yes when not enforced. */
+async function mayUseMedia(person, path) {
+  if (!MEDIA_ENFORCED) return true;
+  const hit = typeof path === "string" ? resolveMedia(path) : null;
+  return !!(person && hit && await owners.owns(person.userId, hit.name));
+}
+
+/** A freshly issued job belongs to whoever ordered it. */
+async function claimJob(person, jobId) {
+  if (person) await owners.claimJob(person.userId, jobId);
+}
 
 const PORT = process.env.PORT || 8100;
 // Web-Wurzel ist der Build, nicht das Repo. Damit liegen .env, .git/, docs/
@@ -2234,16 +2266,30 @@ export function resolveMedia(pathname) {
   return hit ? { name: hit[1], ext: hit[2] } : null;
 }
 
-async function serveMedia(pathname) {
+async function serveMedia(pathname, params) {
   const hit = resolveMedia(pathname);
   if (!hit) return new Response("Not found", { status: 404 });
+  /* S2: Mit REQUIRE_AUTH=1 nur gegen eine gültige Signatur UND nur, wenn
+     die Datei dem signierenden Konto gehört. Jede Abweisung ist dasselbe
+     404 wie „gibt es nicht" — wer fremd fragt, erfährt nicht, ob es die
+     Datei gibt. Ohne MEDIA_SECRET prüft verifyMediaSignature gar nicht
+     erst: dann geht nichts raus (fail closed). */
+  let uid = null;
+  if (MEDIA_ENFORCED) {
+    uid = verifyMediaSignature(MEDIA_SECRET, hit.name, params);
+    if (!uid || !(await owners.owns(uid, hit.name))) return new Response("Not found", { status: 404 });
+  }
   const file = Bun.file(resolve(MEDIA_DIR, hit.name));
   if (!(await file.exists())) return new Response("Not found", { status: 404 });
   return new Response(file, {
     headers: {
       "content-type": MEDIA_MIME[hit.ext],
-      // Content-addressed names never change meaning, so they cache forever.
-      "cache-control": "public, max-age=31536000, immutable",
+      /* Content-addressed names never change meaning, so locally they cache
+         forever. Signed, they are one person's files: `private` keeps them
+         out of any shared cache, and only until the signature expires. */
+      "cache-control": uid
+        ? `private, max-age=${Math.max(0, Number(params.get("e")) - Math.floor(Date.now() / 1000))}`
+        : "public, max-age=31536000, immutable",
     },
   });
 }
@@ -2588,13 +2634,27 @@ const serveOptions = {
      * bleibt alles offen, Entwickeln geht ohne Konto. Nach dem Rate-Limit,
      * damit es auch die Rückfragen bei Supabase bremst. `reason` lässt die
      * App „bitte anmelden" zeigen statt eines Fehlers. */
+    /* `person` bleibt für die Routen darunter stehen (S2: wem gehört, was
+       gerade entsteht). Lokal ohne REQUIRE_AUTH ist es null. */
+    let person = null;
     if (process.env.REQUIRE_AUTH === "1" && needsAccount(url.pathname)) {
       // Das Sprachinterview (WebSocket) kann keine Kopfzeile setzen und
       // schickt das Token als Subprotokoll (parseWsBearer in auth.js).
       const token = parseBearer(req.headers.get("authorization"))
         ?? parseWsBearer(req.headers.get("sec-websocket-protocol"));
-      const person = await verifyAccessToken(token, { config: AUTH });
+      person = await verifyAccessToken(token, { config: AUTH });
       if (!person) return json({ error: "Please sign in to continue.", reason: "signin" }, 401);
+    }
+
+    /* S2: der Medienschlüssel, aus dem die App ihre Adressen signiert
+       (src/lib/mediaSign.js). Braucht ein Konto (needsAccount); lokal ohne
+       Konto gibt es keinen — dann bleiben die Adressen unsigniert und /media
+       offen. */
+    if (url.pathname === "/api/media-key" && req.method === "GET") {
+      if (!MEDIA_ENFORCED || !person) return json({ ok: true, mediaKey: null });
+      const mediaKey = issueMediaKey(MEDIA_SECRET, person.userId);
+      if (!mediaKey) return json({ error: "Media access is not set up on this server." }, 503);
+      return json({ ok: true, mediaKey }, 200, { "cache-control": "no-store" });
     }
 
     if (url.pathname === "/api/voice") {
@@ -2736,7 +2796,9 @@ const serveOptions = {
         const mood = sanitizePromptText(body.mood).slice(0, 40);
         const seconds = Math.max(8, Math.min(45, Number(body.seconds) || 16));
         settleCharge({ kind: "sketch-sound", charge: 0 });
-        return json({ ok: true, url: await sketchSound({ styleId, mood, beats, seconds, video }) });
+        const soundUrl = await sketchSound({ styleId, mood, beats, seconds, video });
+        await claimMedia(person, soundUrl);   // S2
+        return json({ ok: true, url: soundUrl });
       } catch (e) {
         if (e.message === "NO_FAL_KEY") return json({ error: "Backend has no fal key." }, 503);
         if (e.message === "SOUND_FAILED") return json({ error: "Could not make the sound." }, 502);
@@ -2877,7 +2939,12 @@ const serveOptions = {
         // beim Keyframe: der Client benennt einen Pfad, nie eine URL.
         if (!film || film.ext !== "mp4") return json({ error: "Unknown film." }, 400);
         if (!card || card.ext === "mp4") return json({ error: "Unknown end card." }, 400);
-        return json({ ok: true, url: await appendOutro(film.name, card.name) });
+        // S2: nur aus eigenen Dateien — eine fremde ist so unbekannt wie eine fehlende.
+        if (!(await mayUseMedia(person, body.film))) return json({ error: "Unknown film." }, 400);
+        if (!(await mayUseMedia(person, body.card))) return json({ error: "Unknown end card." }, 400);
+        const outroUrl = await appendOutro(film.name, card.name);
+        await claimMedia(person, outroUrl);
+        return json({ ok: true, url: outroUrl });
       } catch (e) {
         if (e.message === "NO_FFMPEG") {
           return json({ error: "This server cannot add an end card." }, 501);
@@ -2966,6 +3033,7 @@ const serveOptions = {
             namedRefs: fotos.map((img) => ({ img })),
             aspectRatio: "16:9",   // zwei Panels nebeneinander
           });
+          await claimJob(person, jobId);   // S2
           return json({ ok: true, jobId });
         }
 
@@ -2978,6 +3046,7 @@ const serveOptions = {
           prompt: buildCharacterPrompt({ desc, category }),
           aspectRatio: category === "place" ? "16:9" : "9:16",
         });
+        await claimJob(person, jobId);   // S2
         return json({ ok: true, jobId });
       } catch (e) {
         const map = {
@@ -3119,6 +3188,9 @@ const serveOptions = {
           // Only a /media/-shaped name survives; startVideo re-validates it
           // against resolveMedia before touching the filesystem.
           const keyframe = typeof body.keyframe === "string" ? body.keyframe : undefined;
+          /* S2: nur ein eigenes Bild wird Keyframe. Ein fremdes scheitert
+             genau wie ein fehlendes (startVideo) — vor jeder Abbuchung. */
+          if (keyframe && !(await mayUseMedia(person, keyframe))) throw new Error("GENERATION_FAILED");
           /* Allowlist statt Durchreichen, wie bei voice/lang/aspectRatio:
              Der Client schickt eine ID, nie einen Slug. Unbekanntes wird
              absichtlich zu "standard" — der falsche BILLIGE Film ist der
@@ -3201,6 +3273,7 @@ const serveOptions = {
             seconds: body.seconds, keyframe, modelId, quality,
             refImages: kept.map((c) => c.img), poster, format: filmFormat,
           });
+          await claimJob(person, jobId);   // S2
           return json({ ok: true, jobId });
         }
         /* Der Prompt entsteht noch HIER (der Wizard schickt ihn meist
@@ -3236,6 +3309,9 @@ const serveOptions = {
            weiter — ein fehlender Anker ist ein Schönheitsfehler, eine
            geplatzte Szene wäre ein Loch in der Strecke. */
         let seqRef = null;
+        /* S2: ein fremder Anker zählt wie ein fehlender — die Szene rendert
+           ohne ihn weiter, wie es der Block darunter schon vorsieht. */
+        if (!(await mayUseMedia(person, body.sequenceRef))) body.sequenceRef = null;
         if (typeof body.sequenceRef === "string" && body.sequenceRef) {
           const hit = resolveMedia(body.sequenceRef);
           const file = hit && Bun.file(resolve(MEDIA_DIR, hit.name));
@@ -3258,6 +3334,7 @@ const serveOptions = {
           grid: body.grid === true,
           fallback: body.fallback === true,
         });
+        await claimJob(person, imageJob);   // S2
         return json({ ok: true, jobId: imageJob });
       } catch (e) {
         const map = {
@@ -3288,7 +3365,16 @@ const serveOptions = {
 
     if (url.pathname === "/api/job" && req.method === "GET") {
       try {
-        return json({ ok: true, ...(await jobStatus(url.searchParams.get("id") || "")) });
+        const jobId = url.searchParams.get("id") || "";
+        /* S2: Ein fremder Auftrag ist ein unbekannter — damit schadet auch
+           die erratbare Nummer (genJobId) nicht. Was fertig ist, gehört ab
+           jetzt dem Besteller; jobStatus selbst bleibt unberührt. */
+        if (MEDIA_ENFORCED && !(person && await owners.ownsJob(person.userId, jobId))) {
+          return json({ ok: true, status: "unknown" });
+        }
+        const result = await jobStatus(jobId);
+        if (result.status === "done") await claimMedia(person, result.urls || [], result.poster);
+        return json({ ok: true, ...result });
       } catch (e) {
         console.error("[DreamRushes] /api/job failed:", e);
         return json({ error: "Server error." }, 500);
@@ -3853,6 +3939,7 @@ const serveOptions = {
         const bytes = new Uint8Array(await req.arrayBuffer());
         const stored = await storeBytes(bytes, req.headers.get("content-type"));
         if (!stored) return json({ error: "Not a storable image or recording." }, 400);
+        await claimMedia(person, stored);   // S2
         console.log(`[DreamRushes] /api/panel ${req.headers.get("content-type")} ${Math.round(bytes.length / 1024)} KB → ${stored}`);
         return json({ ok: true, url: stored });
       } catch (e) {
@@ -3861,7 +3948,7 @@ const serveOptions = {
       }
     }
 
-    if (url.pathname.startsWith("/media/")) return serveMedia(url.pathname);
+    if (url.pathname.startsWith("/media/")) return serveMedia(url.pathname, url.searchParams);
 
     return serveStatic(url.pathname);
   },

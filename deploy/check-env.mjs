@@ -53,6 +53,17 @@ export function checkEnv(env, appDir) {
     errors.push("API_TOKEN ist gesetzt — das sperrt die App aus. Seit S1 schützt die Anmeldung (REQUIRE_AUTH); die Zeile aus der .env löschen.");
   }
 
+  /* S2 (05.10.2026): /media/* nur gegen eine Signatur, die aus diesem
+     Geheimnis abgeleitet ist (src/lib/mediaAccess.js). Fehlt es, liefert der
+     Server gar keine Medien aus — die App zeigte keinen einzigen Film. Zu
+     kurz, und die Signaturen ließen sich durchprobieren. */
+  const mediaSecret = env.MEDIA_SECRET || "";
+  if (!mediaSecret) {
+    errors.push("MEDIA_SECRET fehlt — ohne es liefert der Server keine Medien aus (S2). Erzeugen: openssl rand -hex 32");
+  } else if (mediaSecret.length < 32) {
+    errors.push(`MEDIA_SECRET ist zu kurz (${mediaSecret.length} Zeichen, mindestens 32). Erzeugen: openssl rand -hex 32`);
+  }
+
   /* Ohne DREAMRUSHES_MEDIA legt mediaRootFrom() den Ordner in den Checkout.
      Der ist austauschbar — die Filme der Nutzer sind es nicht (21.08.2026). */
   const media = env.DREAMRUSHES_MEDIA || "";
