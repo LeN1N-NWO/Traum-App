@@ -1417,9 +1417,11 @@ async function collectOnce(onJournal, onResult) {
      Film): Die Pacht hält mehrere Brücken offenbar nicht zuverlässig
      auseinander — dann holen zwei denselben Auftrag ab und melden beide.
      Die Daten bleiben richtig (beide schreiben dasselbe), nur die Meldung
-     kommt mehrfach. Darum trägt jede Meldung die Aufträge, die in dieser
-     Runde fertig wurden, als Schlüssel; die native Seite (journal-data.tsx)
-     meldet jeden Schlüssel nur einmal, egal aus wie vielen Brücken. */
+     kommt mehrfach. Darum trägt jede Meldung die Aufträge, die sich in dieser
+     Runde bewegt haben, als Schlüssel; die native Seite (journal-data.tsx)
+     meldet jeden Schlüssel nur einmal, egal aus wie vielen Brücken.
+     Nebenwirkung, gewollt: Werden zwei Filme in derselben Runde fertig,
+     kommt der gleichlautende Satz einmal statt zweimal. */
   const finished = finishedJobs(s.journal, res.journal);
   for (const [kind, extra] of res.messages) {
     const text = kind === "dreamReady" ? t.journal.dreamReady(extra || "") : kind === "filmArrived" ? t.journal.filmArrived
@@ -1435,19 +1437,24 @@ async function collectOnce(onJournal, onResult) {
   }
 }
 
-/* Die Auftragsnummern (Film und Bilder), die vorher offen waren und nach der
-   Runde nicht mehr — sortiert, damit jede Brücke denselben Schlüssel bildet. */
-function openJobs(journal) {
-  const ids = [];
+/* Der Zustand jedes Auftrags als Marke (Film, Bild samt Adresse/Fehler/
+   Schnitt, Szene). Was vorher so dastand und nach der Runde nicht mehr, hat
+   sich in dieser Runde bewegt — sortiert, damit jede Brücke denselben
+   Schlüssel bildet. Zustände statt „offen": Eine Bildstrecke meldet „fertig"
+   erst, wenn sie abgeschlossen ist, und dann haben die Bilder ihre Adresse
+   schon aus früheren Runden — nur das Verschwinden der Marken zeigt es. */
+function jobMarks(journal) {
+  const marks = [];
   for (const e of journal || []) {
-    if (e.jobId) ids.push(e.jobId);
-    for (const j of e.imageJobs || []) if (j.id && !j.url && !j.failed) ids.push(j.id);
+    if (e.jobId) marks.push(`f:${e.jobId}`);
+    for (const j of e.imageJobs || []) marks.push(`i:${j.id}:${j.url ? "u" : ""}${j.failed ? "x" : ""}${j.tileUrls ? "t" : ""}`);
+    for (const j of e.sceneJobs || []) marks.push(`s:${j.id}`);
   }
-  return ids;
+  return marks;
 }
 function finishedJobs(before, after) {
-  const still = new Set(openJobs(after));
-  return openJobs(before).filter((id) => !still.has(id)).sort().join(",");
+  const still = new Set(jobMarks(after));
+  return jobMarks(before).filter((m) => !still.has(m)).sort().join(",");
 }
 
 /* Serien-Pflichten (26.09., Antons Frage „wieso sind die Geschenke raus?"):

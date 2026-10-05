@@ -80,10 +80,10 @@ Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
   Brücke (Webview) mit eigenem Abholer — im Simulator laufen 8 gleichzeitig.
   Die Pacht `holdLease` (`mobile/src/legacy/journal-bridge.jsx`) hält sie
   nicht zuverlässig auseinander; ungeklärt warum. Jetzt trägt jede Meldung
-  aus `collectOnce` einen Schlüssel (Art + in dieser Runde fertige
-  Auftragsnummern, `finishedJobs`), und `mobile/src/components/journal-data.tsx`
+  aus `collectOnce` einen Schlüssel (Art + Aufträge, deren Zustand sich in
+  dieser Runde geändert hat, `jobMarks`/`finishedJobs`), und `mobile/src/components/journal-data.tsx`
   (`firstShowing`) zeigt jeden Schlüssel nur einmal in 10 min — Toast,
-  Mitteilung, Haptik. Ohne fertigen Auftrag kein Schlüssel.
+  Mitteilung, Haptik. Ohne Änderung kein Schlüssel.
   ⚠ Folge der kaputten Pacht bleibt: Bei offenem Auftrag fragen vermutlich
   mehrere Brücken alle 3 s `/api/job` ab. ⚠ **Noch nicht belegt:** genau eine
   Mitteilung bei App im Hintergrund (beim Testfilm war die App vorn).

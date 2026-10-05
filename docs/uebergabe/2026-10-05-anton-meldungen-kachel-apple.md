@@ -16,8 +16,11 @@ dasselbe Ergebnis speichern, sieht man es nur an den Meldungen.
 
 **Geändert:**
 - `mobile/src/legacy/journal-bridge.jsx` `collectOnce`: Jede Meldung bekommt
-  einen Schlüssel aus Art + Zusatz + den Auftragsnummern, die in dieser Runde
-  fertig wurden (`finishedJobs`). Ohne fertigen Auftrag kein Schlüssel.
+  einen Schlüssel aus Art + Zusatz + den Aufträgen, deren Zustand sich in
+  dieser Runde geändert hat (`jobMarks`/`finishedJobs`: Film-Nummer, jedes
+  Bild mit Adresse/Fehler/Schnitt, jede Szene). Ohne Änderung kein Schlüssel.
+  Gleichlautende Meldungen derselben Runde (zwei Filme zugleich fertig)
+  kommen einmal.
 - `mobile/src/components/journal-data.tsx`: Die native Seite (für alle
   Brücken EINE) zeigt jeden Schlüssel nur einmal in zehn Minuten — Toast,
   Mitteilung und Haptik.

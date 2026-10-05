@@ -5,7 +5,7 @@
 
 ## 2026-10-05 20:10 — Hanni — Branch `session/2026-10-05-hanni-4` (PR #87) — Film-Meldung nur einmal, Warte-Kachel, Apple-Hinweis
 
-**Commits:** 8f13bd2 (Reservierung), 414ed1b (+ Wrap).
+**Commits:** 8f13bd2 (Reservierung), 414ed1b, Nachbesserung nach Selbstprüfung (Schlüssel aus Auftrags-Zuständen) (+ Wrap).
 
 **Was:** Abholer-Meldungen tragen einen Schlüssel aus Art und fertigen
 Auftragsnummern (`journal-bridge.jsx` `collectOnce`/`finishedJobs`); die
@@ -22,7 +22,12 @@ vom 05.10. abends). „Dein Film ist fertig“ kam im Release 8× für einen Fil
 **Belege:** `tsc` sauber, Lint 0 Fehler (Warnungen alle vorbestehend),
 924 Tests grün, i18n-Form grün. Simulator gegen den VPS mit echtem
 Testfilm (Hanni bestellt): Warte-Kachel sichtbar, Film kam an. Metro zeigte
-8 gestartete Brücken — passt zu den 8 Meldungen.
+8 gestartete Brücken — passt zu den 8 Meldungen. Selbstprüfung fand eine
+Lücke: Bildstrecken melden „fertig“ erst beim Abschluss, die Bilder hatten
+ihre Adresse da schon — die erste Fassung bildete dann keinen Schlüssel,
+ebenso bei Szenenbildern. Jetzt Zustände statt „offen“; Prüfskript mit dem
+echten `collectTick` (7 Fälle grün), Gegenprobe mit der ersten Fassung
+fällt genau an diesen zwei Fällen durch.
 
 **Nicht belegt:** genau EINE Mitteilung bei App im Hintergrund (beim
 Testfilm war die App vorn, das Mitteilungsprotokoll blieb leer — es gab also
