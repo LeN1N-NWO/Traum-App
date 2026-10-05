@@ -3,7 +3,18 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-05 nachts — Anton, `session/2026-10-05b-anton` (PR #90):
+**Stand:** 2026-10-05 nachts — Hanni, `session/2026-10-05-hanni-6` (PR #89):
+**S7 Phase 1 läuft am VPS:** Der Server bucht jeden Film vor der Regie im
+Konto ab (`server_spend`; 402 ohne Guthaben, 503 ohne Kasse — nichts wird
+gerendert) und erstattet, wenn er scheitert (`server_refund`, auch ohne
+App über Antons `jobSettled`). Live belegt: `Abgebucht: film = 7 Credit(s)`,
+Ledger-Zeile `-7 spend film-b2803d36…`. Migration
+`20261005200000_credits_refund.sql` eingespielt (Test: 1–6 und 10 ok, 7–9
+im Editor nicht prüfbar), dabei `anon`/`authenticated` die Rechte an allen
+Geld-Funktionen entzogen. Testguthaben je 500 für Hanni und Anton.
+**Gemini-Schlüssel** auf dem VPS ersetzt — Abschrift läuft (1,2 s).
+⚠ Die App ZEIGT weiter das Geräte-Guthaben (Phase 2 nach PR #88). Davor
+Anton, `session/2026-10-05b-anton` (PR #90):
 **Der Server holt fertige Filme selbst ab** (Antons Entscheidung, ADR-0010)
 und hat eine Andockstelle „Auftrag fertig" für den Push; die App kann ihr
 Push-Token anmelden (noch aus). **Übergabe an Hanni:** sofort antworten

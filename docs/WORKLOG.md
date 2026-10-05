@@ -3,6 +3,41 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-05 22:45 — Hanni — Branch `session/2026-10-05-hanni-6` (PR #89) — S7 Phase 1: Server bucht den Film ab
+
+**Commits:** cf95dc6, 74a42a6, Merge 8e82827 (main mit PR #90), jobSettled-Anschluss (+ Wrap).
+
+**Was:** `/api/generate` (Film) bucht nach der Preisprüfung über
+`server_spend` ab — 402 `reason: "credits"` ohne Guthaben, 503
+`reason: "charge"` ohne Kasse, beides vor Regie und Bestellung. Scheitert
+das Abschicken: sofort `server_refund`; scheitert der Film später: über den
+am Auftrag vermerkten Ledger-Eintrag (`media/besitz/abbuchung/<jobId>`) in
+Antons `jobSettled` (auch ohne App) und als zweiter Versuch in `/api/job`.
+`jobSettled` vermerkt bei `done` die Medien dem Besteller (S2), auch wenn
+nur der Server abgeholt hat. Neu: `src/lib/charges.js`, Migration
+`credits_refund`/`server_refund` + Entzug von `anon`/`authenticated` an
+allen Geld-Funktionen, Test `supabase/tests/credits_refund.sql` (endet mit
+absichtlichem `DR000 RESULT OK`, weil der Editor keine NOTICEs zeigt).
+`check-env` verlangt `DATABASE_URL`. App: 402 → übersetzte Meldung.
+Gemini-Schlüssel am VPS ersetzt.
+
+**Warum:** TestFlight-Plan, vor dem Upload (Hannis Entscheidung 05.10.).
+
+**Belege:** 921 Tests grün; Gegenproben (402-Text, jobSettled-Vermerk);
+`server.js` von außen: ohne Kasse 503 bevor Regie/fal (Gegenprobe: lokal
+startet die Regie); Server-Abholer vermerkt Medien ohne App; S2-Test (25)
+nach Antons Umbau weiter grün; 20 Anton-Funktionen gleich wie `main`.
+VPS: Abschrift 1,2 s, `Abgebucht: film = 7`, Ledger `-7 spend`.
+
+**Für den Nächsten:**
+- **Die Warteschlange („sofort antworten“) liegt jetzt bei Hanni** (Antons
+  Übergabe `2026-10-05-hanni-server-holt-ab-push.md`), ebenso der Push-Versand
+  in `jobSettled`. Heute wieder 71 s bis zur Antwort — Blocker für TestFlight.
+- Phase 2 (App zeigt Konto-Guthaben, sieben `spend()` raus) nach PR #88.
+- Käufe kommen erst mit B1 ins Konto; Bilder/Raster/Charakter buchen noch nicht.
+- Gäste: Sprechen ohne Konto endet in „konnte nicht aufschreiben“ — Chip.
+- Im Worktree liegt ein Link `node_modules` (ignoriert).
+
 ## 2026-10-05 22:10 — Anton — Branch `session/2026-10-05b-anton` (PR #90) — Server holt selbst ab, Push-Andockstelle, Übergabe an Hanni
 
 **Commits:** 9aa7f3a (Reservierung), 8be04c9, 70d7dbd (+ Wrap).

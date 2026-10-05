@@ -32,6 +32,15 @@ Zeile:
 
 Lokal ohne `REQUIRE_AUTH` bucht nichts — nur ein Log wie bisher.
 
+**Nachtrag nach deinem PR #90 (Server holt ab):** In deiner Andockstelle
+`jobSettled(id, job)` (die du für mich vorgesehen hast) stehen jetzt zwei
+Zeilen: bei `done` werden Film/Bilder/Poster dem Besteller vermerkt (S2 —
+auch wenn nur der Server abgeholt hat), bei `failed` wird erstattet
+(`refundFailedJob`, Konto aus den Besitz-Vermerken) — also auch, wenn nie
+wieder eine App fragt. `/api/job` erstattet zusätzlich als zweiter Versuch
+(idempotent). Deine Funktionen `jobStatus`, `jobStatusFetch`,
+`collectOpenJobs` sind unverändert (per Skript mit `main` verglichen).
+
 ## Datenbank
 
 Neue Migration `supabase/migrations/20261005200000_credits_refund.sql`
@@ -43,7 +52,7 @@ die Server-Rolle. Dazu entzieht sie `anon`/`authenticated` die Rechte an
 `public` getan. Prüfung: `supabase/tests/credits_refund.sql` (rollt sich
 selbst zurück).
 
-## ⚠ Wichtig für deine Warteschlange (Weg B, Übergabe von heute)
+## ⚠ Für die Warteschlange (Weg B) — liegt seit deiner Übergabe bei Hanni
 
 Abbuchung und Erstattung hängen jetzt an der Stelle, die du umbaust:
 

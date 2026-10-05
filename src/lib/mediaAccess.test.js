@@ -76,6 +76,9 @@ test("ownership markers: per file and per account, nothing outside the root", as
     expect(await own.ownsJob(ANNA, "mgabc123xyz")).toBe(false);
     await own.claimJob(ANNA, "mgabc123xyz");
     expect(await own.ownsJob(ANNA, "mgabc123xyz")).toBe(true);
+    expect(await own.ownersOfJob("mgabc123xyz")).toEqual([ANNA]);
+    expect(await own.ownersOfJob("mgunbekannt")).toEqual([]);
+    expect(await own.ownersOfJob("../x")).toEqual([]);
     expect(await own.ownsJob(BEN, "mgabc123xyz")).toBe(false);
     expect(await own.claimJob(ANNA, "../../x")).toBe(false);
   } finally {

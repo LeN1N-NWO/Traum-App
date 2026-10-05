@@ -183,6 +183,20 @@ async function chargeAccount(person, amount, kind) {
   return ref;
 }
 
+/** S7: a failed job gets its charge back — for whoever ordered it, also
+ *  when no app is asking (the server collector, ADR-0010). The ref note
+ *  only goes once the refund really ran; a failed attempt is retried by
+ *  the next /api/job of the owner. Never throws. */
+async function refundFailedJob(jobId) {
+  const ref = await owners.chargeOf(jobId).catch(() => null);
+  if (!ref) return;
+  const [uid] = await owners.ownersOfJob(jobId).catch(() => []);
+  if (!uid) return;
+  if ((await refundCharge({ userId: uid }, ref, "render failed")) !== null) {
+    await owners.forgetCharge(jobId).catch(() => {});
+  }
+}
+
 /** Give a charge back (server_refund: each bucket exactly what it lost,
  *  idempotent per ref). Returns the amount, 0 if there was nothing (left)
  *  to refund — or null if the attempt itself failed, so the caller keeps
@@ -1829,6 +1843,11 @@ const writeJob = async (id, job) => {
    das Protokoll; das Senden an deren Geräte baut Hanni hier ein. */
 async function jobSettled(id, job) {
   const uids = await readdir(resolve(MEDIA_DIR, "besitz", "auftrag", id)).catch(() => []);
+  /* S2 + S7 (Hanni 05.10.): Was der Server selbst abgeholt hat, gehört
+     sofort dem Besteller (auch wenn nie eine App fragt — B8 findet es dann
+     über die Konto-Liste); ein gescheiterter Film bekommt sein Geld zurück. */
+  if (job.status === "done") for (const uid of uids) await claimMedia({ userId: uid }, job.urls || [], job.posterUrl);
+  if (job.status === "failed") await refundFailedJob(id);
   console.log(`[DreamRushes] Auftrag ${id} → ${job.status} (Besitzer: ${uids.length}) — Push folgt (Übergabe Hanni)`);
 }
 
@@ -3504,10 +3523,7 @@ const serveOptions = {
         /* S7: Ein Film, der nach der Abbuchung scheitert, bekommt sein Geld
            zurück. Idempotent (je Kennung einmal); der Vermerk fällt erst weg,
            wenn die Erstattung wirklich gelaufen ist. */
-        if (result.status === "failed") {
-          const ref = await owners.chargeOf(jobId);
-          if (ref && (await refundCharge(person, ref, "render failed")) !== null) await owners.forgetCharge(jobId);
-        }
+        if (result.status === "failed") await refundFailedJob(jobId);
         return json({ ok: true, ...result });
       } catch (e) {
         console.error("[DreamRushes] /api/job failed:", e);

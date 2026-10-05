@@ -145,6 +145,11 @@ export function createOwnership(root) {
       await mark(join(root, "auftraege", uid), jobId);
       return true;
     },
+    /** Who ordered this job (normally exactly one account). */
+    async ownersOfJob(jobId) {
+      if (!JOB.test(jobId || "")) return [];
+      return readdir(join(root, "auftrag", jobId)).then((xs) => xs.filter(isAccountId), () => []);
+    },
     async ownsJob(uid, jobId) {
       if (!isAccountId(uid) || !JOB.test(jobId || "")) return false;
       return exists(join(root, "auftrag", jobId, uid));
