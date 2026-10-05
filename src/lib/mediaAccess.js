@@ -34,10 +34,17 @@
  *    Namen sind Inhalts-Hashes, dieselben Bytes können zwei Leuten gehören,
  *    und die Datei des anderen darf nicht mitverschwinden. Aufträge
  *    (media/jobs/<id>.json) tragen den Prompt, also Traumtext — sie gehen
- *    mit.
+ *    mit, und mit ihnen die Dateien, die in ihnen stehen und niemandem
+ *    gehören.
+ *    ⚠ Warum das Letzte: Während das Poster entsteht (finishPoster, bis
+ *    ~5 Minuten), steht der Auftrag auf „posting" — der Film liegt schon
+ *    hier, ist aber noch NICHT vermerkt (/api/job hat „pending" gesagt).
+ *    Und finishPoster schreibt die Auftragsdatei danach neu. Deshalb gibt
+ *    forgetAccount die Auftragsnummern zurück, und sweepJobs() kehrt sie
+ *    später ein zweites Mal (server.js, Lösch-Route, nach 10 Minuten).
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { mkdir, writeFile, access, readdir, rm } from "node:fs/promises";
+import { mkdir, writeFile, access, readdir, rm, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 /** 20 Minuten: die App erneuert alle 10, jede Adresse lebt also noch
@@ -49,6 +56,7 @@ const ACCOUNT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const NAME = /^[a-z0-9]{1,20}\.(?:png|jpg|webp|mp4|m4a)$/;
 const JOB = /^[a-z0-9]{6,32}$/;
 const SIG = /^[A-Za-z0-9_-]{43}$/;
+const MEDIA_PATH = /^\/media\/([a-z0-9]{1,20}\.(?:png|jpg|webp|mp4|m4a))$/;
 
 export const isAccountId = (id) => typeof id === "string" && ACCOUNT.test(id);
 
@@ -93,6 +101,26 @@ export function createOwnership(root) {
   };
   // Owns anyone this (file or job) any more? Only account-shaped entries count.
   const ownerless = async (dir) => (await readdir(dir).catch(() => [])).filter(isAccountId).length === 0;
+
+  /* Ein Auftrag, der niemandem mehr gehört: erst lesen, welche Dateien in
+     ihm stehen (Film, Bilder, Poster), die herrenlosen davon löschen, dann
+     die Auftragsdatei selbst. Gibt zurück, wie viele Dateien weg sind. */
+  const dropJob = async (jobId, mediaDir, jobsDir) => {
+    const file = join(jobsDir, `${jobId}.json`);
+    const job = await readFile(file, "utf8").then((t) => JSON.parse(t), () => null);
+    let files = 0;
+    const paths = [...(Array.isArray(job?.urls) ? job.urls : []), job?.posterUrl];
+    for (const p of paths) {
+      const hit = typeof p === "string" ? MEDIA_PATH.exec(p) : null;
+      if (!hit || !(await ownerless(join(root, "datei", hit[1])))) continue;
+      if (await exists(join(mediaDir, hit[1]))) files++;
+      await rm(join(mediaDir, hit[1]), { force: true });
+      await rm(join(root, "datei", hit[1]), { recursive: true, force: true });
+    }
+    await rm(file, { force: true });
+    await rm(join(root, "auftrag", jobId), { recursive: true, force: true });
+    return files;
+  };
   const api = {
     /** Note that `name` belongs to `uid`. Unknown shapes are ignored. */
     async claim(uid, name) {
@@ -131,7 +159,7 @@ export function createOwnership(root) {
      *  log; the report says how far it got. */
     async forgetAccount(uid, { mediaDir, jobsDir }) {
       if (!isAccountId(uid) || !mediaDir || !jobsDir) return null;
-      const report = { files: 0, shared: 0, jobs: 0, errors: 0 };
+      const report = { files: 0, shared: 0, jobs: 0, errors: 0, jobIds: [] };
       for (const name of await api.filesOf(uid)) {
         try {
           await rm(join(root, "datei", name, uid), { force: true });   // ab hier kein Zugriff mehr
@@ -150,9 +178,9 @@ export function createOwnership(root) {
         try {
           await rm(join(root, "auftrag", jobId, uid), { force: true });
           if (await ownerless(join(root, "auftrag", jobId))) {
-            await rm(join(jobsDir, `${jobId}.json`), { force: true });
-            await rm(join(root, "auftrag", jobId), { recursive: true, force: true });
+            report.files += await dropJob(jobId, mediaDir, jobsDir);
             report.jobs++;
+            report.jobIds.push(jobId);
           }
         } catch {
           report.errors++;
@@ -165,6 +193,19 @@ export function createOwnership(root) {
         await rm(join(root, "auftraege", uid), { recursive: true, force: true });
       }
       return report;
+    },
+    /** B8, zweiter Durchgang: Aufträge, die forgetAccount schon gelöscht hat,
+     *  noch einmal ansehen — finishPoster kann die Datei inzwischen neu
+     *  geschrieben und ein Poster abgelegt haben. Nur Aufträge, die
+     *  niemandem gehören. Gibt die Zahl der gelöschten Dateien zurück. */
+    async sweepJobs(jobIds, { mediaDir, jobsDir }) {
+      if (!Array.isArray(jobIds) || !mediaDir || !jobsDir) return 0;
+      let files = 0;
+      for (const jobId of jobIds) {
+        if (!JOB.test(jobId || "") || !(await ownerless(join(root, "auftrag", jobId)))) continue;
+        if (await exists(join(jobsDir, `${jobId}.json`))) files += await dropJob(jobId, mediaDir, jobsDir);
+      }
+      return files;
     },
   };
   return api;

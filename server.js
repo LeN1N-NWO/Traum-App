@@ -3827,6 +3827,22 @@ const serveOptions = {
             const weg = await owners.forgetAccount(person.userId, { mediaDir: MEDIA_DIR, jobsDir: JOBS_DIR });
             console.log(`[DreamRushes] Konto gelöscht, Medien: ${weg?.files ?? 0} Dateien gelöscht, ${weg?.shared ?? 0} geteilt behalten, ${weg?.jobs ?? 0} Aufträge gelöscht`
               + (weg?.errors ? ` — ⚠ ${weg.errors} Fehler, Reste unter media/besitz/konto/${person.userId}` : ""));
+            /* Zweiter Durchgang nach 10 Minuten: Ein Poster, das gerade
+               entstand (finishPoster, bis ~5 Minuten), oder eine Abholung,
+               die zeitgleich lief, kann nach dem ersten Durchgang noch
+               etwas abgelegt oder vermerkt haben. Geht bei einem Neustart
+               in diesen 10 Minuten verloren — Restfall, ARCHITEKTUR.md. */
+            const uid = person.userId, jobIds = weg?.jobIds || [];
+            setTimeout(async () => {
+              try {
+                const noch = await owners.forgetAccount(uid, { mediaDir: MEDIA_DIR, jobsDir: JOBS_DIR });
+                const nach = await owners.sweepJobs(jobIds, { mediaDir: MEDIA_DIR, jobsDir: JOBS_DIR });
+                const zahl = (noch?.files ?? 0) + nach;
+                if (zahl || noch?.errors) console.log(`[DreamRushes] Konto-Löschung nachgekehrt: ${zahl} Datei(en)` + (noch?.errors ? `, ⚠ ${noch.errors} Fehler` : ""));
+              } catch (e) {
+                console.error("[DreamRushes] ⚠ Nachkehren nach Konto-Löschung gescheitert:", e?.message || e);
+              }
+            }, 10 * 60 * 1000);
           } catch (e) {
             console.error("[DreamRushes] ⚠ Medien des gelöschten Kontos nicht vollständig entfernt:", e?.message || e);
           }

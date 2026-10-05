@@ -104,7 +104,7 @@ test("forgetAccount removes the account's files and jobs, keeps shared and forei
     expect(await own.jobsOf(ANNA)).toEqual(["mgannajob1"]);
 
     const report = await own.forgetAccount(ANNA, { mediaDir, jobsDir });
-    expect(report).toEqual({ files: 1, shared: 1, jobs: 1, errors: 0 });
+    expect(report).toEqual({ files: 1, shared: 1, jobs: 1, errors: 0, jobIds: ["mgannajob1"] });
 
     // Annas eigene Datei und ihr Auftrag (mit Traumtext) sind weg …
     expect(await exists(join(mediaDir, "allein.png"))).toBe(false);
@@ -122,7 +122,7 @@ test("forgetAccount removes the account's files and jobs, keeps shared and forei
     expect(await own.ownsJob(BEN, "mgbenjob22")).toBe(true);
 
     // Zweimal löschen schadet nicht; ungültige Konten tun gar nichts.
-    expect(await own.forgetAccount(ANNA, { mediaDir, jobsDir })).toEqual({ files: 0, shared: 0, jobs: 0, errors: 0 });
+    expect(await own.forgetAccount(ANNA, { mediaDir, jobsDir })).toEqual({ files: 0, shared: 0, jobs: 0, errors: 0, jobIds: [] });
     expect(await own.forgetAccount("../x", { mediaDir, jobsDir })).toBe(null);
     expect(await own.forgetAccount(BEN, { mediaDir })).toBe(null);   // ohne jobsDir: nichts anfassen
   } finally {
@@ -142,8 +142,54 @@ test("forgetAccount only deletes names it recognises, never paths", async () => 
     await writeFile(join(root, "konto", ANNA, "server.js"), "");
     await writeFile(join(base, "server.js"), "wichtig");
     const report = await createOwnership(root).forgetAccount(ANNA, { mediaDir: base, jobsDir: join(base, "jobs") });
-    expect(report).toEqual({ files: 0, shared: 0, jobs: 0, errors: 0 });
+    expect(report).toEqual({ files: 0, shared: 0, jobs: 0, errors: 0, jobIds: [] });
     expect(await exists(join(base, "server.js"))).toBe(true);
+  } finally {
+    await rm(base, { recursive: true, force: true });
+  }
+});
+
+/* B8, Poster-Phase: Der Film liegt schon auf dem Server, ist aber noch
+   niemandem vermerkt (/api/job sagte „pending"), und finishPoster schreibt
+   die Auftragsdatei nach dem Löschen neu — mit einem Poster, das ein
+   Gesicht zeigen kann. Erster Durchgang: Film weg. Zweiter: Poster weg. */
+test("forgetAccount and sweepJobs catch the film and poster of a job still in its poster phase", async () => {
+  const base = await mkdtemp(join(tmpdir(), "dr-b8c-"));
+  const root = join(base, "besitz"), mediaDir = base, jobsDir = join(base, "jobs");
+  const { mkdir, writeFile, access } = await import("node:fs/promises");
+  const exists = (p) => access(p).then(() => true, () => false);
+  try {
+    await mkdir(jobsDir, { recursive: true });
+    const own = createOwnership(root);
+    await own.claimJob(ANNA, "mgposting01");
+    // Film abgeholt, noch nicht vermerkt; Bens geteilte Datei steht zufällig mit drin.
+    await writeFile(join(mediaDir, "filmohne.mp4"), "film");
+    await writeFile(join(mediaDir, "bens.png"), "ben");
+    await own.claim(BEN, "bens.png");
+    await writeFile(join(jobsDir, "mgposting01.json"), JSON.stringify({
+      status: "posting", prompt: "Traumtext", urls: ["/media/filmohne.mp4", "/media/bens.png", "https://fal.media/x.mp4", "/media/../server.js"],
+    }));
+    await writeFile(join(base, "server.js"), "wichtig");
+
+    const first = await own.forgetAccount(ANNA, { mediaDir, jobsDir });
+    expect(first).toEqual({ files: 1, shared: 0, jobs: 1, errors: 0, jobIds: ["mgposting01"] });
+    expect(await exists(join(mediaDir, "filmohne.mp4"))).toBe(false);   // herrenloser Film weg
+    expect(await exists(join(jobsDir, "mgposting01.json"))).toBe(false);
+    expect(await exists(join(mediaDir, "bens.png"))).toBe(true);        // Bens bleibt
+    expect(await exists(join(base, "server.js"))).toBe(true);           // kein Pfad außerhalb
+
+    // finishPoster schreibt danach (ohne Prompt) neu und legt das Poster ab.
+    await writeFile(join(mediaDir, "posterx.png"), "gesicht");
+    await writeFile(join(jobsDir, "mgposting01.json"), JSON.stringify({ status: "done", posterUrl: "/media/posterx.png" }));
+    expect(await own.sweepJobs(first.jobIds, { mediaDir, jobsDir })).toBe(1);
+    expect(await exists(join(mediaDir, "posterx.png"))).toBe(false);
+    expect(await exists(join(jobsDir, "mgposting01.json"))).toBe(false);
+
+    // Ein Auftrag, der jemandem gehört, wird vom Nachkehren nie angefasst.
+    await own.claimJob(BEN, "mgbenjob33");
+    await writeFile(join(jobsDir, "mgbenjob33.json"), JSON.stringify({ urls: ["/media/bens.png"] }));
+    expect(await own.sweepJobs(["mgbenjob33", "../x"], { mediaDir, jobsDir })).toBe(0);
+    expect(await exists(join(jobsDir, "mgbenjob33.json"))).toBe(true);
   } finally {
     await rm(base, { recursive: true, force: true });
   }

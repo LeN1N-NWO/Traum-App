@@ -18,8 +18,8 @@ gleich wie auf `main` (per Skript verglichen, mit Gegenprobe an
 `resolveMedia`, `readJob`. Keine Prompts, keine Modelle, keine
 Anfragekörper, keine Dateien in `src/lib/` deiner Kette.
 
-Alle 125 geänderten Zeilen in `server.js` sind einer Kategorie zugeordnet
-(davon 14 in `DELETE /api/account` für B8 — Hannis Route, nicht deine)
+Alle 141 geänderten Zeilen in `server.js` sind einer Kategorie zugeordnet
+(davon 30 in `DELETE /api/account` für B8 — Hannis Route, nicht deine)
 (Kommentare, Hilfsfunktionen, `serveMedia`, Vermerke, Prüfungen, neue Route);
 die Summe ergibt die Gesamtzahl aus `git diff --numstat`. `readJob` wird an
 einer Stelle zusätzlich **aufgerufen** (nur lesend, siehe Punkt 5).
@@ -89,8 +89,17 @@ Nach `server_delete_account()` ruft die Lösch-Route `owners.forgetAccount()`
 auf: Jede Datei und jeder Auftrag des Kontos verliert den Vermerk (der
 Zugriff endet sofort), die Datei selbst wird gelöscht, wenn niemand sonst sie
 besitzt, und `media/jobs/<id>.json` (trägt den Prompt, also Traumtext) geht
-mit. Dafür merkt sich `claimJob` jetzt auch die Rückrichtung
+mit — samt den Dateien, die in der Auftragsdatei stehen und niemandem
+gehören. Dafür merkt sich `claimJob` jetzt auch die Rückrichtung
 (`besitz/auftraege/<konto>/<jobId>`). In deiner Pipeline ändert sich nichts.
+
+⚠ **Berührt deinen `finishPoster`, ohne ihn zu ändern:** Während der
+Poster-Phase („posting") liegt der Film schon hier, ist aber noch nicht
+vermerkt, und `finishPoster` schreibt die Auftragsdatei danach neu (mit dem
+Poster). Darum kehrt die Lösch-Route nach 10 Minuten ein zweites Mal nach
+(`sweepJobs`). Wenn du die Poster-Phase änderst (Webhook!), denk daran:
+Alles, was nach einem Auftrag auf dem Server landet, muss entweder vermerkt
+werden oder in der Auftragsdatei stehen — sonst findet B8 es nicht.
 Die Texte bei „Delete account" und in der Datenschutzerklärung (en/de) sagen
 jetzt, dass Bilder und Filme mitgehen — der Satz „ist in Arbeit" ist raus.
 

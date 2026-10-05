@@ -236,10 +236,12 @@ Nach Wirkung je Aufwand, nicht nach Schwere.
 3. **TLS davor (S6, S5)** — Caddy holt das Zertifikat selbst.
 4. **Medien nur an den Besitzer (S2, S3, B8)** — ADR-0008 (03.10.): Medien
    bleiben auf dem Server als Sicherung. ✅ S2 und B8 erledigt am 05.10.
-   (siehe Befundtabelle). Restfall: Holt dasselbe Konto genau während des
-   Löschens noch einen Film ab, kann ein einzelner Vermerk neu entstehen —
-   die Datei gehört dann einem Konto, das es nicht mehr gibt (niemand kann
-   sie abrufen); im Log sichtbar machen, falls es je vorkommt. Wird die Platte knapp: Umzug in Object Storage hinter
+   (siehe Befundtabelle). Poster-Phase und zeitgleiche Abholungen fängt
+   ein zweiter Durchgang nach 10 Minuten (`sweepJobs`). Restfall: Startet
+   der Server in genau diesen 10 Minuten neu, entfällt der zweite
+   Durchgang; was dann übrig ist, gehört niemandem (nicht abrufbar), liegt
+   aber noch auf der Platte. Auch ein Konto, das an der App vorbei gelöscht
+   wird (Supabase-Dashboard), nimmt seine Medien nicht mit. Wird die Platte knapp: Umzug in Object Storage hinter
    `src/lib/media-store.js`.
 5. **Warteschlange für Film, ffmpeg und Analyse (S8, Performanz)** — der größte
    Umbau, aber er löst Baustelle 1 aus `STAND.md`.
