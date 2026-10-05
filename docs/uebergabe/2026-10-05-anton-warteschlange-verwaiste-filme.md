@@ -107,5 +107,10 @@ Filme greift.
   (`collectOnce`/`holdLease` in `journal-bridge.jsx`). Daten sind korrekt,
   nur die Meldungen sind vervielfacht. Als eigene Aufgabe angelegt.
 - `GEMINI_KEY` ist ungültig (401 „Expected OAuth 2 access token", lokal und
-  auf dem Server) — Abschrift/Sprachinterview/Stimmen fallen aus. Hanni legt
-  einen neuen Schlüssel an.
+  auf dem Server) — Abschrift/Sprachinterview/Stimmen fallen aus. **Liegt
+  bei dir:** neuen Schlüssel in Google AI Studio anlegen (beginnt mit
+  `AIza`), lokal eintragen; für den Server tauscht Hanni die eine Zeile in
+  `/etc/dreamrushes/dreamrushes.env` (Ablauf in `deploy/README.md`, „.env
+  des Servers"), danach `deploy.sh`. Der Ersatzweg über fal (Wizper) ist am
+  05.10. ebenfalls gescheitert — erst nach dem neuen Schlüssel ansehen,
+  weil sich beides gegenseitig verdeckt.
