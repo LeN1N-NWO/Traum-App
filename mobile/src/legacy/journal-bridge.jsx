@@ -685,7 +685,9 @@ function snapshot() {
       holdDays: REFERRAL_HOLD_DAYS, monthlyCap: REFERRAL_MONTHLY_CAP,
     };
   })();
-  return { language: s.language || "en", items, castImages, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent, onboard, reminders, invite };
+  // `onboarded`: the persistent "has been through the onboarding" mark — the
+  // native gate shows the onboarding only while it is missing (B4b, 05.10.2026).
+  return { language: s.language || "en", onboarded: !!s.onboarded, items, castImages, labels, home, sleep, profile, wizard: { ...wizard, ...dream }, journal, paywall, symbols, library, menagerie, consent, onboard, reminders, invite };
 }
 
 /* Befehle nativ → Web: Die Hülle kann den Web-Speicher nicht schreiben, also

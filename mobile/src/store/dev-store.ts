@@ -2,17 +2,12 @@ import { useSyncExternalStore } from "react";
 
 /* Was diese Sitzung schon gesehen hat.
  *
- * Antons Wunsch 13.09.2026: „Ich möchte den Onboarding-Screen jetzt erst
- * mal immer sehen, weil ich in der Entwicklung bin." Also zeigt die App es
- * bei JEDEM Start (nicht: einmalig nach `state.onboarded`) — genau die
- * Begründung, mit der im Web das StartMenu steht: Ein Ablauf, der hinter
- * einer Marke liegt, ist nach dem ersten Blick unerreichbar.
- * Seit dem 18.09. gilt das auch im Release-Bau (Anton testet auf dem
- * iPhone) — vor der Veröffentlichung braucht es hier die Einmal-Marke.
- *
- * Die Marke lebt nur im Speicher, nicht auf der Platte: Neustart heißt
- * wieder sehen; innerhalb einer Sitzung kommt es nach dem Durchgehen nicht
- * noch einmal. */
+ * Diese Marke lebt nur im Speicher und sagt nur: „in DIESER Sitzung ist das
+ * Onboarding erledigt" (durchlaufen oder gar nicht nötig) — die Erinnerungen
+ * warten darauf (use-reminders.ts). OB das Onboarding kommt, entscheidet seit
+ * dem 05.10.2026 die dauerhafte Marke `state.onboarded` der Brücke
+ * (onboarding-gate.tsx, B4b). Antons „bei jedem Start" (13./18.09.) gibt es
+ * nur noch mit EXPO_PUBLIC_ONBOARDING_ALWAYS=1. */
 let seen = false;
 export function onboardingSeen() { return seen; }
 export function setOnboardingSeen() { seen = true; }

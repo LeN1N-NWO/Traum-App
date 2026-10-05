@@ -75,12 +75,16 @@ check("B4a", "Test-Credits nur im Entwicklungsbau (journal-data.tsx)",
   testCredits ? "fail" : "ok",
   testCredits ? "devCredits gilt in ALLEN Bauarten — vor Release zurück auf `__DEV__ ? 100 : 0`." : null);
 const gate = read("mobile/src/components/onboarding-gate.tsx") ?? "";
-/* Nicht auf __DEV__ irgendwo prüfen (steht auch in Kommentaren), sondern
-   auf die zwei echten Sperren: Start-Zustand und Frührückkehr. */
-const onbAlways = !(/useState\([^)]*__DEV__/.test(gate) || /if \(!__DEV__\) return/.test(gate));
+/* Seit 05.10.2026: Das Tor öffnet nur, wenn die Brücke `onboarded` noch
+   nicht meldet — außer EXPO_PUBLIC_ONBOARDING_ALWAYS=1 (Antons Prüf-
+   Schalter). Der wird beim Bündeln eingebacken, also darf ihn die .env, aus
+   der gebaut wird, nicht tragen. Beides muss stimmen. */
+const onbOnce = /ALWAYS \|\| !snap\.onboarded/.test(gate);
+const onbForced = /^\s*EXPO_PUBLIC_ONBOARDING_ALWAYS\s*=\s*1\s*$/m.test(read("mobile/.env") ?? "");
 check("B4b", "Onboarding nur einmal (nicht bei jedem Start im Release)",
-  onbAlways ? "fail" : "ok",
-  onbAlways ? "onboarding-gate.tsx zeigt das Onboarding bei jedem Start — Testphasen-Schalter." : null);
+  onbOnce && !onbForced ? "ok" : "fail",
+  !onbOnce ? "onboarding-gate.tsx prüft `onboarded` nicht — das Onboarding käme bei jedem Start."
+    : onbForced ? "mobile/.env setzt EXPO_PUBLIC_ONBOARDING_ALWAYS=1 — dieser Bau zeigt das Onboarding bei jedem Start." : null);
 
 // ── B5: Lokalisierte Systemtexte ───────────────────────────────────────────
 const iosDir = existsSync(resolve(root, "mobile/ios/DreamRushes"));
