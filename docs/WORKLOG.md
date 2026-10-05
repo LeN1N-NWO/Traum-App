@@ -5,7 +5,7 @@
 
 ## 2026-10-05 22:20 — Hanni — Branch `session/2026-10-05-hanni-5` (PR #88) — eigener Bereich je Konto (ADR-0009), Einwilligungs-Tor als Ebene
 
-**Commits:** 2067233 (Reservierung), bb1eccb, 84c3ba1, a3432b5 (+ Wrap).
+**Commits:** 2067233 (Reservierung), bb1eccb, 84c3ba1, a3432b5, Aufräumen nach zweiter Durchsicht (+ Wrap).
 
 **Was:** Jedes Konto bekommt auf dem Gerät seinen eigenen localStorage-
 Eintrag; ein Verzeichnis ordnet zu, kopiert wird nie (`src/lib/storage.js`
@@ -39,7 +39,8 @@ erstes zurück. Verzeichnis per vorübergehendem Log im Speicher geprüft.
 - Metro mit `--clear` und offenem Browser-Tab → SIGABRT (Speicher). Mit
   `NODE_OPTIONS=--max-old-space-size=8192` und ohne `--clear` lief es.
 - zsh: `kill $pids` mit Zeilenumbrüchen schlägt fehl — `pkill -f` nehmen.
-- `security-report.test.js` scheitert auch auf main (Chrome-Zeitüberschreitung).
+- `security-report.test.js` scheiterte (auch auf main) an 42 hängenden
+  Headless-Chrome-Resten seit 12:39 — nach `pkill -f -- '--user-data-dir=/var/folders/.*/dr-security-'` grün.
 
 **Für den Nächsten:**
 - Neue `<JournalBridge>` oder alte Web-Ansicht → `account={useBridgeAccount()}`.

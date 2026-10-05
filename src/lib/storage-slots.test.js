@@ -79,7 +79,7 @@ test("wiederholtes Fragen: dieselbe Zuordnung, kein zweiter Bereich", () => {
 test("Konto gelöscht: seine Träume bleiben als Gast auf dem Gerät", () => {
   const b = fakeBackend({ [DB_KEY]: JSON.stringify({ journal: [dream("a")] }) });
   slotFor("X", b);
-  expect(releaseSlot("X", b)).toBe(DB_KEY);
+  releaseSlot("X", b);
   expect(viewAs(null, b).journal.map((e) => e.id)).toEqual(["a"]);
   expect(JSON.parse(b.getItem(SLOTS_KEY)).owners).toEqual({});
 });

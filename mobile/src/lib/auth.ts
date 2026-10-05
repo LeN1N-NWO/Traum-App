@@ -60,9 +60,8 @@ export function useAccount() {
  *  oder null für den Gast. Eine alte Sitzung ohne gespeicherte ID zählt als
  *  Gast — das Verhalten von vor ADR-0009. */
 export function useBridgeAccount(): string | null | undefined {
-  const who = useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; },
-    () => (known ? account?.id || "" : undefined), () => (known ? account?.id || "" : undefined));
-  return who === undefined ? undefined : who || null;
+  const who = () => (known ? account?.id || null : undefined);
+  return useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; }, who, who);
 }
 
 /** Die Konto-ID (Supabase-UUID) — oder null ohne Anmeldung. Für den Kauf:

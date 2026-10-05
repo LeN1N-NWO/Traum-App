@@ -42,7 +42,7 @@ export function ConsentGate() {
   const onJournal = useCallback(async (snap: JournalSnapshot) => { setJournal(snap); }, []);
   const C = data?.consent;
   const L = data?.profile?.settingsPage?.legal;
-  // Erst nach dem Onboarding-Modal — zwei Modals zugleich legen die App still (dev-store.ts).
+  // Erst nach dem Onboarding: Wer es gerade durchläuft, soll nicht schon das Tor dahinter haben.
   const onboardingGone = useOnboardingGone();
   const open = !!C?.needed && onboardingGone;
   const all = terms && processing && adult;

@@ -111,11 +111,11 @@ Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
   Kontowechsel während ein Film läuft — Hanni: ignorieren. Sicherungs-
   schlüssel gehört dem iCloud des Geräts (zweites Konto auf fremdem iPhone).
   Sprache beim Start alter Web-Ansichten liest kurz `dreamrushes_v1`.
-- ⚠ **Testreihe:** `scripts/security-report.test.js` („Durchlauf mit
-  Chrome“) scheitert mit 60-s-Zeitüberschreitung — auch auf unverändertem
-  main (3 Fehlschläge). Am 05.10. hingen 42 Headless-Chrome-Reste von
-  Testläufen seit 12:39 (`pkill -f -- '--user-data-dir=/var/folders/.*/dr-security-'`
-  räumt sie). Rest der Reihe grün (933).
+- **Testreihe:** 934 grün. ⚠ Scheitert `scripts/security-report.test.js`
+  („Durchlauf mit Chrome“) mit 60-s-Zeitüberschreitungen (auch auf main),
+  hängen alte Headless-Chrome-Reste: Am 05.10. waren es 42 seit 12:39.
+  `pkill -f -- '--user-data-dir=/var/folders/.*/dr-security-'` räumt sie,
+  danach lief der Test grün.
 
 **Mit PR #87 (05.10. spätabends, Hanni) — Meldungen, Warte-Kachel, Apple-Hinweis:**
 - **Doppelte Meldungen:** Jeder Bildschirm mit `useJournal()` hat eine eigene

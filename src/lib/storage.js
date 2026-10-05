@@ -115,21 +115,18 @@ export function slotFor(accountId, backend = defaultBackend()) {
  * Konto gelöscht: Sein Bereich wird wieder der Gast-Bereich — der
  * Löschdialog verspricht „Träume auf diesem Gerät bleiben". Der bisherige
  * Gast-Eintrag bleibt liegen (nicht löschen: er kann ungesicherte Texte
- * enthalten). Gibt den neuen Gast-Eintrag zurück.
+ * enthalten).
  */
 export function releaseSlot(accountId, backend = defaultBackend()) {
-  if (!backend || !accountId) return backend ? readSlots(backend).guest : DB_KEY;
-  const slots = readSlots(backend);
-  const key = slots.owners[accountId];
-  if (!key) return slots.guest;
-  const owners = { ...slots.owners };
-  delete owners[accountId];
+  if (!backend || !accountId) return;
+  const { owners } = readSlots(backend);
+  const key = owners[accountId];
+  if (!key) return;
+  const rest = { ...owners };
+  delete rest[accountId];
   try {
-    backend.setItem(SLOTS_KEY, JSON.stringify({ owners, guest: key }));
-  } catch {
-    return slots.guest;
-  }
-  return key;
+    backend.setItem(SLOTS_KEY, JSON.stringify({ owners: rest, guest: key }));
+  } catch { /* Kontingent voll: der Bereich bleibt unsichtbar, nichts geht verloren */ }
 }
 
 export function loadState(backend = defaultBackend()) {
