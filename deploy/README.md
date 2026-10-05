@@ -8,7 +8,7 @@ in `docs/plans/2026-09-24-medienablage.md`.
 |---|---|
 | `setup.sh` | Einmal: Pakete, Updates, Bun, Systemnutzer, Ordner, Caddy, systemd, Firewall |
 | `deploy.sh` | Jedes Mal: Stand holen, `.env` prüfen, Neustart, Gesundheitscheck, bei Fehler zurück |
-| `check-env.mjs` | Hält den Start an, wenn Supabase oder `DREAMRUSHES_MEDIA` fehlen/falsch sind oder ein altes `API_TOKEN` gesetzt ist |
+| `check-env.mjs` | Hält den Start an, wenn Supabase, `MEDIA_SECRET` oder `DREAMRUSHES_MEDIA` fehlen/falsch sind oder ein altes `API_TOKEN` gesetzt ist |
 | `dreamrushes.service` | systemd-Dienst, abgeschottet, schreibt nur unter `/var/lib/dreamrushes` |
 | `Caddyfile` | HTTPS, Sicherheits-Kopfzeilen, sperrt die Entwicklungs-Routen zusätzlich |
 
@@ -60,7 +60,14 @@ Pflicht auf dem Server (sonst startet der Dienst nicht):
 SUPABASE_URL="…"                    # Anmeldung — Bezahltes nur mit Konto (S1)
 SUPABASE_ANON_KEY="…"
 DREAMRUSHES_MEDIA=/var/lib/dreamrushes/media
+MEDIA_SECRET="…"                    # S2: Medien nur an den Besitzer — openssl rand -hex 32
 ```
+
+`MEDIA_SECRET` einmal erzeugen und nie wechseln, solange Nutzer da sind:
+Ein neues Geheimnis macht alle ausgegebenen Medienadressen sofort
+ungültig (die App holt sich zwar binnen 10 Minuten einen neuen Schlüssel,
+aber laufende Filme brechen ab). Nirgends sonst ablegen — nicht im Repo,
+nicht im Chat.
 
 **Kein `API_TOKEN`** — das alte gemeinsame Geheimnis sperrt die App aus;
 `check-env.mjs` hält den Start an, wenn es gesetzt ist.

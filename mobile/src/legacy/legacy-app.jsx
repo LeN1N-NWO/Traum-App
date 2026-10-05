@@ -8,7 +8,7 @@
  * localStorage — beim Fokus liest AppState neu ein (Ereignis unten), sonst
  * fehlt im Journal der Traum, der gerade im Traum-Tab entstand. */
 import "./vite-env.js";                       // ⚠ zuerst, siehe dort
-import { setTokenSource } from "../../../src/lib/api.js";   // S1: Token von der nativen Seite
+import { setTokenSource, setMediaKey } from "../../../src/lib/api.js";   // S1: Token von der nativen Seite
 import "../../../src/styles/tokens.css";
 import "../../../src/styles/base.css";
 import "../../../src/styles/sheets.css";
@@ -20,8 +20,9 @@ import App from "../../../src/App.jsx";
 const ROUTES = { home: "/", journal: "/journal", dream: "/dream", sleep: "/sleep", profile: "/profile" };
 
 // `dom` steuert den Webview (Expo) und wird hier nur für die Typen entgegengenommen.
-export default function LegacyApp({ screen = "home", view, focusTick = 0, safeTop = 0, safeBottom = 0, getToken, dom }) {
+export default function LegacyApp({ screen = "home", view, focusTick = 0, safeTop = 0, safeBottom = 0, getToken, mediaKey, dom }) {
   setTokenSource(getToken);   // S1 — fällt mit dem Umzug auf nativ weg (ADR-0006)
+  setMediaKey(mediaKey);       // S2 — signierte Medienadressen (mobile/src/lib/media-key.ts)
   if (typeof globalThis.__setSafeArea === "function") globalThis.__setSafeArea(safeTop, safeBottom);
   // HashRouter liest location.hash beim Aufbau — also vor dem ersten Render
   // setzen. `view` (Schlaf-Abschnitt, Atlas) reist wie im Web im

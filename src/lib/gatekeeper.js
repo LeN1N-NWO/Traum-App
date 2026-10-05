@@ -71,6 +71,9 @@ export function classOf(pathname) {
       || pathname === "/api/reflect" || pathname === "/api/sketch-prompts") return "text";
   if (pathname === "/api/transcribe" || pathname === "/api/panel"
       || pathname === "/api/voice-sample") return "cheap";
+  /* S2: den Medienschlüssel holt jedes Gerät alle 10 Minuten — kostet
+     nichts und darf sich den Topf nicht mit dem Filme-Bestellen teilen. */
+  if (pathname === "/api/media-key") return "cheap";
   /* Anmelden und Sitzung erneuern: eigene, strengere Klasse gegen das Raten
      von Passwörtern. Abmelden gehört NICHT dazu — wer abmelden will, soll das
      immer können, auch nach zehn Fehlversuchen. */

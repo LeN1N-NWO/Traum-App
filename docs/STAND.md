@@ -3,7 +3,13 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-05 mittags — Hanni, `session/2026-10-05-hanni` (PR #84):
+**Stand:** 2026-10-05 nachmittags — Hanni, `session/2026-10-05-hanni-2` (PR #85):
+**S2 und B8 sind fertig** — `/media/*` geht auf dem VPS nur noch gegen eine
+signierte Adresse an den Besitzer, Konto löschen löscht seine Medien. Im
+Simulator belegt. ⚠ Auf dem VPS braucht die `.env` jetzt zusätzlich
+`MEDIA_SECRET` (`openssl rand -hex 32`, nie wechseln). Notiz an Anton:
+`docs/uebergabe/2026-10-05-anton-s2-medien-besitzer.md`. Davor Hanni,
+`session/2026-10-05-hanni` (PR #84):
 **Onboarding kommt nur noch einmal** (B4b) — Antons „bei jedem Start" gibt es
 nur noch mit `EXPO_PUBLIC_ONBOARDING_ALWAYS=1` in seiner `mobile/.env`.
 TestFlight-Plan: interne Gruppe angelegt; offen ist vor allem der
@@ -54,7 +60,49 @@ Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Neu mit PR #84 (05.10., Hanni) — Onboarding nur einmal (B4b):**
+**Neu mit PR #85 (05.10. nachmittags, Hanni) — S2 Medien nur an den Besitzer, B8:**
+- **Server** (`src/lib/mediaAccess.js`, `server.js`): Mit `REQUIRE_AUTH=1`
+  liefert `serveMedia` nur gegen `?u=<konto>&e=<ablauf>&s=<sig>` und nur,
+  wenn die Datei dem Konto gehört — sonst 404. Signatur: HMAC-SHA256 je
+  Datei aus einem Medienschlüssel (`GET /api/media-key`, 20 Minuten,
+  Rate-Limit-Klasse „cheap"). Besitz als Markerdateien unter
+  `media/besitz/` (datei/, konto/, auftrag/, auftraege/), gesetzt in
+  `/api/job` (Film, Bilder, Poster bei „done"), `/api/panel`,
+  `/api/sketch-sound`, `/api/film-outro`; Aufträge in `/api/generate` und
+  `/api/character`. Keyframe, Kettenanker, Abspann nur aus eigenen Dateien.
+  `/api/job`: fremder Auftrag → 403 `reason: "foreign"` (NICHT „unknown" —
+  der Collector vergäße sonst die Nummer), nicht vorhandener → „unknown".
+  Lokal ohne `REQUIRE_AUTH` bleibt alles offen.
+- **B8:** `DELETE /api/account` ruft nach der Datenbank `forgetAccount()`:
+  Vermerke weg (Zugriff endet sofort), herrenlose Dateien und
+  `media/jobs/<id>.json` gelöscht, geteilte Dateien bleiben; zweiter
+  Durchgang nach 10 Minuten (`sweepJobs`) für die Poster-Phase. Texte
+  (Delete account, Datenschutz en/de) nennen Bilder, Filme, Aufnahmen.
+- **App:** `mobile/src/lib/media-key.ts` holt/erneuert den Schlüssel
+  (10 Minuten, bei 429/5xx alter Schlüssel + neuer Versuch in 30 s),
+  `src/lib/mediaSign.js` signiert synchron (SHA-256 in reinem JS, gegen
+  RFC 4231 und node:crypto getestet; Ablauf prüft nur der Server —
+  Geräteuhr egal). `mediaUrl()` und `localMedia()` signieren beim Anzeigen,
+  ins Tagebuch geht weiter der nackte Pfad. Web-Ansichten bekommen
+  `mediaKey` als Prop; `LegacyTab`/`LegacyPage` laden bei Kontowechsel neu
+  (`key={uid}`, wegen React Compiler), `LegacyOrder` bewusst nicht.
+- **Deploy:** `MEDIA_SECRET` Pflicht in `deploy/check-env.mjs` (≥ 32
+  Zeichen), Caddy ohne Zugriffs-Log (Signaturen).
+- **Belegt:** Unit-Tests mit Gegenproben; Test von außen gegen echten
+  `server.js` (25 Prüfungen, Ersatz-Anmeldung); Simulator: Gast → 404,
+  angemeldet → Dateien signiert geladen (byte-gleich), Gegenprobe ohne Besitz
+  → 404. Antons 18 Pipeline-Funktionen per Skript unverändert.
+- ⚠ **Nicht lokal prüfbar:** die Lösch-Route selbst (braucht Datenbank) —
+  am VPS einmal mit einem Testkonto: Film machen, Konto löschen, Datei weg?
+- ⚠ **Bekannte Grenzen:** alte Web-Ansicht >20 Minuten offen lädt dieselbe
+  Datei nicht erneut; Server-Neustart in den 10 Minuten nach einer Löschung
+  lässt Reste (nicht abrufbar); Löschung am Supabase-Dashboard vorbei nimmt
+  Medien nicht mit. Alte Medien ohne Vermerk sind auf dem VPS nicht
+  abrufbar (VPS startet leer).
+- Aufgefallen, nicht angefasst (Antons Bereich): `cast[].img` geht
+  ungeprüft als Adresse an fal (`server.js`, `/api/generate`, cast-Filter).
+
+**Mit PR #84 (05.10., Hanni) — Onboarding nur einmal (B4b):**
 - Das Tor (`mobile/src/components/onboarding-gate.tsx`) zeigt das
   Onboarding nur, solange die Brücke `onboarded` nicht meldet. Die Marke gab
   es schon (`state.onboarded`, Befehl `onboarded`), sie fehlte nur im
@@ -803,8 +851,8 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
    ist stumm (`mobile/src/app/profile/settings.tsx:40`). Am iPhone prüfen.
 2. **Anwalts-Hinweis in den Rechtstexten (N4)** (`src/i18n/de.js:1097`,
    `en.js:1171`) — muss vor der Einreichung erfüllt und weg sein.
-3. **Filme bleiben nach Konto-Löschung auf der Platte (B8)** — gehört zu
-   Phase 2 (Medien hinter Zugangsprüfung, S2).
+3. ~~**Filme bleiben nach Konto-Löschung auf der Platte (B8)**~~ —
+   erledigt 05.10. (PR #85), am VPS noch einmal mit Testkonto prüfen.
 4. Einwilligungs-Tor kam einmal nach Widerruf + Neustart nicht (nicht
    reproduziert). Mikrofon zeigt „Frag mich", obwohl erlaubt.
 5. Nicht einzeln belegt: dass die Träume-Sicherung ohne Einwilligung
@@ -813,8 +861,7 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
 
 **Nächste Schritte:**
 1. **Hanni:** PR #76 mergen. Mail-Vorlagen in Supabase gestalten (Punkt in
-   `APP-STORE-EINREICHUNG.md`). Mit Anton klären, wer S2 baut (Zuordnung Datei →
-   Nutzer an der Abholung, `/media/*` nur für den Besitzer, B8). Anfrage an
+   `APP-STORE-EINREICHUNG.md`). S2 und B8 sind gebaut (PR #85). Anfrage an
    den Anwalt abschicken. Ersten `/security-check` in neuer Sitzung.
 2. **Anton:** `INVITE_PREVIEW = false` (Einladungen laufen, siehe Nachtrag
    in `2026-09-14-hanni-codes-einladungen.md`). „Automatically delete head branches" einschalten, ggf. die
@@ -829,12 +876,11 @@ nötig (`expo-iap` kam als Plugin in app.json); `CI=1 expo prebuild` legt
    und Abbuchung (`settleCharge()`, Punkte 2–6 in
    `2026-09-11-anton-credits-abbuchung.md`) — die Anmeldung steht jetzt.
 3. **Erster Lauf auf dem VPS (Hanni + Anton zusammen):** `setup.sh`, `.env`
-   von Hand (KEIN `API_TOKEN`, dafür Supabase), `deploy.sh` (prüft S1 selbst),
+   von Hand (KEIN `API_TOKEN`, dafür Supabase und `MEDIA_SECRET`), `deploy.sh` (prüft S1 selbst),
    dann S5-Prüfbefehl aus `deploy/README.md`. Danach App-Bau mit
    `EXPO_PUBLIC_API_BASE=https://api.dreamrushes.app`.
-4. **S2 bauen** statt Schritt C (ADR-0008): Zuordnung Datei → Nutzer an der
-   Abholung, `/media/*` nur für den Besitzer, Konto löschen löscht Medien
-   (B8), fal-Adresse nie als Dauerlösung.
+4. ~~**S2 bauen**~~ erledigt 05.10. (PR #85) samt B8. Offen daraus:
+   fal-Adresse nie als Dauerlösung (Antons Teil), am VPS einmal prüfen.
 5. **Mit Anton:** Prüfer-Credits (N10), Store-Länder, Budget, `media/jobs`.
 6. **Anton:** Face ID am iPhone (N11), erster echter Turbo-Film mit Foto.
 7. **B1-Server:** Beleg-Prüfung über die App-Store-Server-API. Hanni in

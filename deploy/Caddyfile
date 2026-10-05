@@ -23,6 +23,11 @@ __DOMAIN__ {
 		-Server
 	}
 
+	# Bewusst KEIN `log`: Medienadressen tragen ihre Signatur in der Query
+	# (S2, src/lib/mediaAccess.js). Wer hier ein Zugriffs-Log einschaltet,
+	# filtert die Query für /media/* heraus — sonst liegen gültige Adressen
+	# zu Gesichtern im Log.
+
 	# Keine Kompression (encode): Filme werden mit Range-Anfragen gestreamt.
 	reverse_proxy 127.0.0.1:8100
 }

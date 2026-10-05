@@ -41,6 +41,12 @@ let account: AuthUser | null = null;
 let restored = false;
 const listeners = new Set<() => void>();
 function announce(next: AuthUser | null) { account = next; listeners.forEach((l) => l()); }
+/** Outside React: called after every sign-in, sign-out or account switch
+ *  (media-key.ts fetches the next account's media key). */
+export function onAccountChange(fn: () => void) {
+  listeners.add(fn);
+  return () => { listeners.delete(fn); };
+}
 export function useAccount() {
   return useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; }, () => account, () => account);
 }

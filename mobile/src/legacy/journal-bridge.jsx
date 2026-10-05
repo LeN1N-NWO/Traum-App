@@ -15,7 +15,7 @@ import { loadState, saveState } from "../../../src/lib/storage.js";
 import { dayKey, dreamCount, dreamDays, isFilmNight, isMoonFilm, MOON_FILM_KIND } from "../../../src/lib/nights.js";
 import { hasPendingJobs, collectTick } from "../../../src/lib/collector.js";
 import { failureTextKey } from "../../../src/lib/falError.js";
-import { jobStatus, setTokenSource } from "../../../src/lib/api.js";   // setTokenSource: S1, Token von der nativen Seite
+import { jobStatus, setTokenSource, setMediaKey } from "../../../src/lib/api.js";   // setTokenSource: S1, Token von der nativen Seite
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend, applyAllowanceGrant, giftLeft } from "../../../src/lib/credits.js";
@@ -1491,8 +1491,9 @@ function syncLanguage() {
   setLanguage(want);
 }
 
-export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, streakChores: chores = false, getToken, dom }) {
+export default function JournalBridge({ onJournal, onResult, refreshTick = 0, command, devCredits = 0, streakChores: chores = false, getToken, mediaKey, dom }) {
   setTokenSource(getToken);   // S1 — fällt mit dem Umzug auf nativ weg (ADR-0006)
+  setMediaKey(mediaKey);       // S2 — signierte Medienadressen (mobile/src/lib/media-key.ts)
   useEffect(() => {
     const push = () => { try { syncLanguage(); devTopUp(devCredits); if (chores) streakChores(onResult); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
     /* Nur Änderungen am Zustand wecken die Brücke — nicht die Pachten

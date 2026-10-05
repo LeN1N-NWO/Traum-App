@@ -3,6 +3,45 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-05 14:20 — Hanni — Branch `session/2026-10-05-hanni-2` (PR #85) — S2 Medien nur an den Besitzer, B8 Konto löschen löscht Medien
+
+**Commits:** cf80876, 962bd74, f83a5c3, e33c4c6, e393b8a (+ Wrap).
+
+**Was:** `/media/*` liefert mit `REQUIRE_AUTH=1` nur gegen eine signierte
+Adresse (HMAC-SHA256 je Datei, Schlüssel aus `GET /api/media-key`, 20 min)
+und nur an das Konto, dem die Datei gehört (Markerdateien `media/besitz/`).
+Aufträge gehören dem Besteller; Keyframe/Anker/Abspann nur aus eigenen
+Dateien. App signiert synchron beim Anzeigen (`src/lib/mediaSign.js`,
+`mobile/src/lib/media-key.ts`, `media-cache.ts`, Prop `mediaKey` für die
+Web-Ansichten). B8: Konto löschen entfernt danach Vermerke, Dateien und
+Auftragsdateien (`forgetAccount`, zweiter Durchgang `sweepJobs` nach 10 min).
+`MEDIA_SECRET` Pflicht auf dem VPS. Texte Delete account/Datenschutz en/de.
+
+**Warum:** TestFlight-Plan „Zusätzlich für extern" — Gesichter und Filme
+lagen dauerhaft per URL offen (DSGVO Art. 9, ADR-0008). Anton hat diese
+Woche keine Zeit; er hat zugestimmt, dass wir in seiner Pipeline bauen —
+nur Zusätze, Notiz an ihn.
+
+**Belege:** Unit-Tests (915 grün) mit Gegenproben für jede Schutzregel;
+Test von außen gegen echten `server.js` mit Ersatz-Anmeldung (25 Prüfungen);
+Simulator: Gast 404, angemeldet signiert geladen und byte-gleich,
+Gegenprobe ohne Besitz 404. Antons 18 Pipeline-Funktionen per Skript
+Zeichen für Zeichen gleich; alle 141 geänderten Zeilen in `server.js`
+kategorisiert, Summe = numstat. Zwei Nachprüfungen fanden und behoben:
+Film-Verlust beim Kontowechsel (unknown → 403), Geräteuhr, Rate-Limit-Topf,
+429/5xx-Verhalten, React-Compiler-Speicher, Poster-Phase bei B8.
+
+**Für den Nächsten:**
+- VPS-`.env`: `MEDIA_SECRET="$(openssl rand -hex 32)"` — nie wechseln.
+- Am VPS einmal prüfen: Film als Testkonto, Konto löschen, Datei weg?
+- Neue Route, die eine Datei erzeugt → `claimMedia(person, url)`; die einen
+  `/media/`-Pfad annimmt → `mayUseMedia(person, pfad)`. Neue Einbaustelle
+  einer Web-Ansicht → `mediaKey={useMediaKey()}`.
+- Anton (Webhook/Poster): Was nach einem Auftrag auf dem Server landet, muss
+  vermerkt sein oder in der Auftragsdatei stehen, sonst findet B8 es nicht.
+- Im Worktree liegt eine echte `mobile/node_modules` (`bun install`), Link
+  `node_modules` und `mobile/.env` (localhost) — alles ignoriert.
+
 ## 2026-10-05 12:10 — Hanni — Branch `session/2026-10-05-hanni` (PR #84) — Onboarding nur einmal (B4b)
 
 **Commits:** 07c350a (+ Wrap).
