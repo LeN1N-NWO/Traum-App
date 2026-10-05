@@ -3,7 +3,13 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-05 spätabends — Hanni, `session/2026-10-05-hanni-4` (PR #87):
+**Stand:** 2026-10-05 nachts — Anton, `session/2026-10-05b-anton` (PR #90):
+**Der Server holt fertige Filme selbst ab** (Antons Entscheidung, ADR-0010)
+und hat eine Andockstelle „Auftrag fertig" für den Push; die App kann ihr
+Push-Token anmelden (noch aus). **Übergabe an Hanni:** sofort antworten
+(nach S7/#89), Push-Versand, Gemini-Schlüssel auf dem Server
+(`docs/uebergabe/2026-10-05-hanni-server-holt-ab-push.md`). Davor Hanni,
+`session/2026-10-05-hanni-4` (PR #87):
 **„Dein Film ist fertig“ kommt nur noch einmal** (vorher 8×), **Kacheln mit
 laufendem Film tragen den Leuchtrand**, **Hinweis vor Apples Blatt beim Konto
 löschen**. Warte-Kachel am Simulator mit echtem Film belegt; die Mitteilung
@@ -75,7 +81,30 @@ Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Neu mit PR #87 (05.10. spätabends, Hanni) — Meldungen, Warte-Kachel, Apple-Hinweis:**
+**Neu mit PR #90 (05.10. nachts, Anton) — der Server holt selbst ab:**
+- **Entscheidung** (`docs/decisions/ADR-0010-server-holt-ab.md`): Bisher
+  fragte der Server erst bei fal nach, wenn die App `/api/job` rief — war
+  sie Tage zu, lag der bezahlte Film nur bei fal (ohne Haltbarkeitszusage),
+  und der Server konnte nie von selbst melden. Jetzt ist der Server
+  verantwortlich, die App ist Rückfall.
+- **Abholer** (`server.js` `collectOpenJobs`): 5 s nach dem Start, dann
+  alle 20 s, jeder offene Auftrag in `media/jobs` mit `model`, jünger als
+  drei Tage → `jobStatus()`. `SERVER_COLLECT=off` schaltet ab. Sperre je
+  Auftrag (`jobInFlight`): App und Server holen nie doppelt.
+- **Andockstelle** (`writeJob` → `jobSettled`): genau einmal je Übergang
+  auf `done`/`failed`, Besitzer aus `media/besitz/auftrag/<id>/`; heute nur
+  Protokoll, Push-Versand baut Hanni dort ein.
+- **App** (`mobile/src/lib/push.ts`, `usePushRegistration` im Wurzel-
+  Layout): Geräte-Token → `POST /api/push-token`; aus, bis der Bau
+  `EXPO_PUBLIC_PUSH=1` hat (braucht Hannis APNs-Schlüssel + Signatur).
+- **Diktat geprüft** (lokal, Antons `.env` im Hauptordner
+  `Traum-App/.env`): Gemini 1,4 s und Wizper 8,5 s, beide wortgenau auf
+  Deutsch. Auf dem Server liegt Hannis ungültiger Gemini-Schlüssel.
+- Lokal geprüft mit Probe-Aufträgen auf einen fertigen fal-Film: ohne App
+  nach 5 s abgeholt, `/api/job` danach sofort `done`, `jobSettled` einmal.
+  ⚠ Auf dem VPS erst nach Deploy.
+
+**Mit PR #87 (05.10. spätabends, Hanni) — Meldungen, Warte-Kachel, Apple-Hinweis:**
 - **Doppelte Meldungen:** Jeder Bildschirm mit `useJournal()` hat eine eigene
   Brücke (Webview) mit eigenem Abholer — im Simulator laufen 8 gleichzeitig.
   Die Pacht `holdLease` (`mobile/src/legacy/journal-bridge.jsx`) hält sie
@@ -698,6 +727,11 @@ ersetzt (siehe oben; das Sternbild `constellation.js` ist gelöscht):
   https://claude.ai/artifact/FYiRnRVnoAe2yzj5DxKTQ7
 
 **Nächste Schritte:**
+- **Hanni (Übergabe 05.10. nachts):** S7 (#89) mergen → sofort antworten
+  → Deploy (bringt den Abholer) → Gemini-Schlüssel tauschen (Anton gibt
+  seinen auf sicherem Weg oder Hanni legt neu an) → Push (APNs-Schlüssel,
+  `/api/push-token`, Senden in `jobSettled`, `aps-environment` über
+  `app.json`, Datenschutz „Mitteilungen" + `CONSENT_VERSION`).
 - **Offen für die App-Prüfung (Audit 04.10.):** „Käufe wiederherstellen"
   fehlt (Pflicht für Abos; braucht die Belegprüfung am Server, B1,
   Hanni); Konto löschen entfernt die Medien am Server nicht (S2, Hanni);

@@ -9,6 +9,7 @@ import { OnboardingGate } from "@/components/onboarding-gate";
 import { PrivacyGate } from "@/components/privacy-gate";
 import { SignInSheet } from "@/components/sign-in-sheet";
 import { Toasts } from "@/components/toasts";
+import { usePushRegistration } from "@/lib/push";
 import { useJournalStore } from "@/store/journal-store";
 
 /* Die native Tab-Leiste — auf iOS 26 Liquid Glass vom System, auf Android
@@ -23,6 +24,8 @@ export default function RootLayout() {
   /* Die Beschriftungen kommen aus der Brücke wie jeder andere Text, damit
      der Sprachwechsel sie erreicht; bis der erste Stand da ist, Englisch. */
   const L = useJournalStore()?.labels;
+  /* Push-Token beim Server anmelden — vorerst aus (lib/push.ts, ADR-0010). */
+  usePushRegistration();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />

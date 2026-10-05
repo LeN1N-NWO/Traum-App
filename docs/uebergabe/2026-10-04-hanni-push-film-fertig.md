@@ -66,3 +66,26 @@ da ist“).
 
 Webhook (1) zuerst — er hilft auch ohne Push (verwaiste Filme, S2). Dann
 Token-Tabelle und Senden (2, 3), dann der Bau mit Push-Capability (4).
+
+## Nachtrag 05.10. abends (Anton + Claude): der Server holt jetzt selbst ab
+
+Anstelle des fal-Webhooks (Punkt 1) gibt es seit `session/2026-10-05b-anton`
+einen **Abholer im Server** (`collectOpenJobs` in `server.js`): alle 20 s
+und 5 s nach jedem Start fragt er für jeden offenen Auftrag in `media/jobs`
+(jünger als drei Tage) dieselbe `jobStatus()`-Runde wie die App. Fertige
+Filme liegen danach bei uns, `done`/`failed` steht in der Auftragsdatei;
+eine Sperre (`jobInFlight`) verhindert doppeltes Abholen, wenn App und
+Server gleichzeitig fragen. Getestet am 05.10. lokal: Probe-Auftrag auf
+einen fertigen fal-Film, ohne App → nach 5 s `done`, Film im Speicher;
+`/api/job` danach sofort `done`.
+
+**Für den Push heißt das:** Er dockt genau dort an. Wenn
+`collectOpenJobs` (oder `jobStatus`) einen Auftrag von offen auf
+`done`/`failed` schreibt, an die Geräte des Besitzers schicken
+(`owners`-Vermerk aus S2 kennt ihn). Ein Webhook ist damit nicht mehr
+nötig — er würde nur die 20 s Verzögerung sparen.
+
+**Antons Wunsch (05.10.):** Push „Dein Film ist fertig“, auch wenn die App
+zu ist. Was dafür nur bei dir geht: APNs-Schlüssel (.p8) im Apple-Konto
+anlegen, `aps-environment` über `app.json`, ein Bau mit deiner Signatur —
+Antons Personal Team kann keine Push-Capability signieren.

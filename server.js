@@ -30,7 +30,7 @@
 // braucht es zusätzlich API_TOKEN und einen Proxy, der TLS beendet.
 
 import { resolve, sep, join } from "node:path";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { buildPosterPrompt, POSTER_ASPECT, POSTER_SIZE } from "./src/lib/poster.js";
 import { tmpdir } from "node:os";
 import { statSync, readFileSync } from "node:fs";
@@ -1769,7 +1769,24 @@ async function readJob(id) {
   const f = Bun.file(resolve(JOBS_DIR, `${id}.json`));
   return (await f.exists()) ? f.json() : null;
 }
-const writeJob = (id, job) => Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.stringify(job));
+/* Schreiben — und merken, wann ein Auftrag FERTIG wird (offen → done/failed):
+   Dann meldet jobSettled() das einmal. Jeder Weg dorthin läuft hier durch
+   (Abholer, App-Nachfrage, Poster fertig, Poster-Zeitüberschreitung). */
+const SETTLED = new Set(["done", "failed"]);
+const writeJob = async (id, job) => {
+  const before = SETTLED.has(job?.status) ? (await readJob(id).catch(() => null))?.status : null;
+  await Bun.write(resolve(JOBS_DIR, `${id}.json`), JSON.stringify(job));
+  if (SETTLED.has(job?.status) && !SETTLED.has(before)) jobSettled(id, job).catch((e) => console.error("[DreamRushes] jobSettled:", id, e?.message || e));
+};
+
+/* Ein Auftrag ist fertig oder gescheitert — die Andockstelle für den Push
+   „Dein Film ist fertig" (ADR-0010, Übergabe an Hanni 05.10.): Die
+   Besitzer stehen seit S2 in media/besitz/auftrag/<id>/<konto>. Heute nur
+   das Protokoll; das Senden an deren Geräte baut Hanni hier ein. */
+async function jobSettled(id, job) {
+  const uids = await readdir(resolve(MEDIA_DIR, "besitz", "auftrag", id)).catch(() => []);
+  console.log(`[DreamRushes] Auftrag ${id} → ${job.status} (Besitzer: ${uids.length}) — Push folgt (Übergabe Hanni)`);
+}
 
 /** Hand the work to fal's queue and return our own job id.
  *
@@ -1912,9 +1929,19 @@ function genJobId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+/* Ein Auftrag wird nie zweimal gleichzeitig abgeholt (05.10.): Seit der
+   Server selbst abholt (collectOpenJobs), können er und die App im selben
+   Moment fragen — ohne diese Sperre lüde der fertige Film zweimal herunter
+   und das Poster entstünde doppelt. Beide bekommen dieselbe Antwort. */
+const jobInFlight = new Map();
+function jobStatus(id) {
+  if (!jobInFlight.has(id)) jobInFlight.set(id, jobStatusFetch(id).finally(() => jobInFlight.delete(id)));
+  return jobInFlight.get(id);
+}
+
 /** Where a job stands. Finished media is copied locally before it is handed
  *  over, exactly like the synchronous path — the fal URL is never the record. */
-async function jobStatus(id) {
+async function jobStatusFetch(id) {
   const job = await readJob(id);
   if (!job) return { status: "unknown" };
   if (job.status === "done") return { status: "done", urls: job.urls, poster: job.posterUrl || null };
@@ -1984,6 +2011,44 @@ async function jobStatus(id) {
   }
   await writeJob(id, { ...job, status: "done", urls });
   return { status: "done", urls };
+}
+
+/* ── Der Server holt selbst ab (Antons Wunsch 05.10.2026) ────────────────
+ * Bisher holte nur die App ab: Erst wenn sie nach /api/job fragte, fragte
+ * der Server bei fal nach und lud den Film in den eigenen Speicher. War die
+ * App Tage zu, lag der fertige Film so lange nur bei fal — deren Adressen
+ * haben keine Haltbarkeitszusage (s. „local media copies").
+ * Jetzt fragt der Server selbst: alle 20 s für jeden offenen Auftrag in
+ * media/jobs dieselbe jobStatus()-Runde wie die App. Fertiges liegt danach
+ * bei uns, `done`/`failed` steht in der Auftragsdatei — fragt die App
+ * später, ist alles sofort da. Nach einem Neustart geht es mit den Dateien
+ * einfach weiter. Aufträge älter als drei Tage fasst er nicht mehr an (die
+ * App kann sie weiter selbst anstoßen); ein Aussetzer bleibt „offen".
+ * Aus mit SERVER_COLLECT=off. */
+const COLLECT_EVERY_MS = 20_000;
+const COLLECT_MAX_AGE_MS = 3 * 24 * 3600_000;
+let collectRunning = false;
+async function collectOpenJobs() {
+  if (collectRunning || !process.env.FAL_KEY) return;
+  collectRunning = true;
+  try {
+    const names = await readdir(JOBS_DIR).catch(() => []);
+    for (const name of names) {
+      const id = name.endsWith(".json") ? name.slice(0, -5) : "";
+      if (!JOB_ID.test(id)) continue;
+      const job = await readJob(id).catch(() => null);
+      if (!job || !job.model || job.status === "done" || job.status === "failed") continue;
+      if (!job.createdAt || Date.now() - job.createdAt > COLLECT_MAX_AGE_MS) continue;
+      try {
+        const r = await jobStatus(id);
+        if (r.status === "done" || r.status === "failed") console.log(`[DreamRushes] Server hat abgeholt: ${id} → ${r.status}`);
+      } catch (e) {
+        console.error("[DreamRushes] Abholen (Server) ausgesetzt:", id, e?.message || e);
+      }
+    }
+  } finally {
+    collectRunning = false;
+  }
 }
 
 /* ── Das Poster nach dem Film (Antons Ablauf 12.09.2026) ─────────────────
@@ -4014,6 +4079,13 @@ const serveOptions = {
 };
 
 Bun.serve(serveOptions);
+
+/* Der Abholer im Server (collectOpenJobs): kurz nach dem Start einmal —
+   alles, was während eines Neustarts fertig wurde —, dann alle 20 s. */
+if (process.env.SERVER_COLLECT !== "off") {
+  setTimeout(collectOpenJobs, 5_000);
+  setInterval(collectOpenJobs, COLLECT_EVERY_MS);
+}
 
 /* Eine Profilzeile, wie der Client sie bekommt. Eigene Funktion, weil zwei
    Endpunkte sie liefern (lesen und ändern) — und `survey` ist jsonb, kommt
