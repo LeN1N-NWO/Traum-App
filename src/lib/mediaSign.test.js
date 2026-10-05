@@ -50,7 +50,7 @@ test("hexToBytes refuses anything that is not lowercase hex pairs", () => {
 const KEY = { uid: "0b5e6a3c-1f2d-4e5f-8a9b-0c1d2e3f4a5b", exp: 2_000_000_000, key: "11".repeat(32) };
 
 test("a media path gets u, e and the per-file signature", () => {
-  const s = signMediaPath("/media/abc123.mp4", KEY, 1_999_999_000);
+  const s = signMediaPath("/media/abc123.mp4", KEY);
   expect(s).toBe(`/media/abc123.mp4?u=${KEY.uid}&e=${KEY.exp}&s=${mediaSignature(KEY.key, "abc123.mp4")}`);
   // Zwei Dateien, zwei Signaturen — eine Adresse öffnet genau eine Datei.
   expect(mediaSignature(KEY.key, "a.png")).not.toBe(mediaSignature(KEY.key, "b.png"));
@@ -58,9 +58,18 @@ test("a media path gets u, e and the per-file signature", () => {
 
 test("without a usable key, or for anything else, the path stays as it was", () => {
   expect(signMediaPath("/media/abc.mp4", null)).toBe("/media/abc.mp4");
-  expect(signMediaPath("/media/abc.mp4", KEY, KEY.exp)).toBe("/media/abc.mp4");        // abgelaufen
-  expect(signMediaPath("/clips/style-a.mp4", KEY, 0)).toBe("/clips/style-a.mp4");
-  expect(signMediaPath("https://fal.media/x.png", KEY, 0)).toBe("https://fal.media/x.png");
-  expect(signMediaPath("/media/../etc/passwd", KEY, 0)).toBe("/media/../etc/passwd");
-  expect(signMediaPath("/media/abc.mp4?u=x", KEY, 0)).toBe("/media/abc.mp4?u=x");      // nie doppelt
+  expect(signMediaPath("/media/abc.mp4", { ...KEY, exp: "2000000000" })).toBe("/media/abc.mp4"); // kaputter Schlüssel
+  expect(signMediaPath("/clips/style-a.mp4", KEY)).toBe("/clips/style-a.mp4");
+  expect(signMediaPath("https://fal.media/x.png", KEY)).toBe("https://fal.media/x.png");
+  expect(signMediaPath("/media/../etc/passwd", KEY)).toBe("/media/../etc/passwd");
+  expect(signMediaPath("/media/abc.mp4?u=x", KEY)).toBe("/media/abc.mp4?u=x");      // nie doppelt
+});
+
+/* Die Uhr des Geräts entscheidet nichts: Ein Schlüssel, der nach der
+   Geräteuhr schon „abgelaufen" ist, wird trotzdem benutzt — ob er gilt,
+   sagt allein der Server. Sonst legte ein iPhone mit vorgehender Uhr jede
+   Datei lahm. */
+test("signing ignores the device clock", () => {
+  const past = { ...KEY, exp: 1 };
+  expect(signMediaPath("/media/abc.mp4", past)).toBe(`/media/abc.mp4?u=${KEY.uid}&e=1&s=${mediaSignature(KEY.key, "abc.mp4")}`);
 });

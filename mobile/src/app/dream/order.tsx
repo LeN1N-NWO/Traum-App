@@ -141,6 +141,10 @@ export default function DreamOrderScreen() {
         </View>
       ) : null}
       <View style={showWeb ? styles.web : styles.hidden}>
+        {/* S2: Bewusst OHNE key={uid} wie bei LegacyTab — ein Neuladen
+            mitten in der Bestellung (Gast meldet sich am Bezahlschritt an)
+            verwürfe den Assistenten. Neue Bilder und Filme bekommen ihre
+            Adresse ohnehin erst, wenn sie fertig sind, also mit Schlüssel. */}
         {NATIVE_ORDER ? null : <LegacyOrder getToken={getAccessToken} mediaKey={mediaKey} safeTop={insets.top} safeBottom={insets.bottom} order={{ entryId: w.entryId, text: w.text, originalText: w.originalText, analysis: w.analysis, styleId: w.styleId, pace: w.pace, videoModel: w.videoModel, quality: w.quality, format: w.format, seconds: w.seconds, orderId: w.orderId, assignmentOverrides: w.assignmentOverrides, mode: w.mode }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
       </View>
       <View style={styles.bridge}>{bridge}</View>

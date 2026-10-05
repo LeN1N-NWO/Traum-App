@@ -18,9 +18,10 @@ gleich wie auf `main` (per Skript verglichen, mit Gegenprobe an
 `resolveMedia`, `readJob`. Keine Prompts, keine Modelle, keine
 Anfragekörper, keine Dateien in `src/lib/` deiner Kette.
 
-Alle 103 geänderten Zeilen in `server.js` sind einer Kategorie zugeordnet
+Alle 111 geänderten Zeilen in `server.js` sind einer Kategorie zugeordnet
 (Kommentare, Hilfsfunktionen, `serveMedia`, Vermerke, Prüfungen, neue Route);
-die Summe ergibt die Gesamtzahl aus `git diff --numstat`.
+die Summe ergibt die Gesamtzahl aus `git diff --numstat`. `readJob` wird an
+einer Stelle zusätzlich **aufgerufen** (nur lesend, siehe Punkt 5).
 
 ## Was in deinen Routen dazukam — und warum
 
@@ -30,9 +31,8 @@ damit die Datei vermerkt werden kann; die Antwort ist dieselbe):
 
 1. **`/api/generate` und `/api/character`:** Direkt vor den vier
    `return json({ ok: true, jobId })` steht `await claimJob(person, jobId)` —
-   der Auftrag gehört dem Besteller. **Warum:** Damit beantwortet `/api/job`
-   fremde Nummern mit `unknown`; die erratbare `genJobId()` schadet nicht
-   mehr.
+   der Auftrag gehört dem Besteller. **Warum:** Damit holt nur der Besteller
+   ab; die erratbare `genJobId()` schadet nicht mehr.
 2. **`/api/generate`, Film:** Direkt nach `const keyframe = …` — ein
    fremdes Bild als Keyframe wirft `GENERATION_FAILED`, also genau das, was
    `startVideo` bei einer fehlenden Datei tut. Steht **vor** Preis und
@@ -43,7 +43,13 @@ damit die Datei vermerkt werden kann; die Antwort ist dieselbe):
    es dein Block bei einer fehlenden Datei schon vorsieht. Gleicher Grund.
 4. **`/api/film-outro`:** Film und Karte müssen dem Fragenden gehören
    (gleiche Fehlermeldungen wie bisher), das Ergebnis wird vermerkt.
-5. **`/api/job`:** Fremder Auftrag → `{ status: "unknown" }`. Fertig →
+5. **`/api/job`:** Fremder Auftrag → **403** mit `reason: "foreign"`, ein
+   Auftrag, den es nicht gibt (`readJob` → null), weiter `unknown`. **Warum
+   nicht einfach `unknown`:** Dein Abholer (`src/lib/collector.js`) vergisst
+   bei `unknown` die Nummer endgültig. Nach einem Kontowechsel mitten im
+   Rendern wäre der Film dann auch beim Zurückwechseln weg. Eine
+   Fehlerantwort liest er über `ask(...).catch(() => null)` als Aussetzer und
+   fragt später wieder — am Collector selbst ist nichts geändert. Fertig →
    Film, Bilder und Poster gehören ab jetzt dem Besteller. `jobStatus` selbst
    ist unberührt.
 
@@ -61,6 +67,17 @@ läuft alles wie vorher, `/media` bleibt offen.
 - Die vier Web-Ansichten bekommen den Schlüssel als Prop `mediaKey`, wie
   `getToken`. Wer eine neue Einbaustelle von `JournalBridge`, `LegacyPage`,
   `LegacyOrder` oder `LegacyApp` anlegt: `mediaKey={useMediaKey()}` mitgeben.
+- ⚠ **React Compiler:** `mediaUrl()` liest den Schlüssel aus einer
+  Modulvariable — der Compiler sieht das nicht und merkt sich
+  `<img src={mediaUrl(x)}>` nur nach `x`. Deshalb laden `LegacyTab` und
+  `LegacyPage` bei Kontowechsel/erstem Schlüssel neu (`key={uid}`).
+  `LegacyOrder` bewusst nicht (würde die Bestellung verwerfen).
+  **Bekannte Grenze:** Steht eine alte Web-Ansicht länger als 20 Minuten
+  offen, sind ihre schon berechneten Adressen abgelaufen — schon geladene
+  Bilder bleiben sichtbar, ein *neues* Laden derselben Datei (Video erneut
+  abspielen, Bild erst dann ins Bild gescrollt) scheitert, bis man die
+  Ansicht neu öffnet. Fällt mit dem Umzug auf nativ weg (ADR-0006); die
+  nativen Ansichten signieren bei jedem Zeichnen neu.
 - Nativer Code, der eine Server-Datei selbst lädt (wie der Glimpse-Ton in
   `DreamSketch.addSound`), signiert direkt davor mit `signedMedia(url)` aus
   `mobile/src/lib/media-cache.ts`.

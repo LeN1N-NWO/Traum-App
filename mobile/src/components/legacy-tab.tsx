@@ -14,8 +14,15 @@ export function LegacyTab({ screen, view }: { screen: "home" | "journal" | "drea
   const [tick, setTick] = useState(0);
   const insets = useSafeAreaInsets();
   useFocusEffect(useCallback(() => { setTick((t) => t + 1); }, []));
+  /* S2: `key` lädt die Web-Ansicht neu, wenn das Konto wechselt oder der
+     erste Schlüssel ankommt. Der React Compiler merkt sich Darstellungen
+     nach Props und Zustand — mediaUrl() liest den Schlüssel aber aus einer
+     Modulvariable, die er nicht sieht. Ohne Neuladen blieben vorher
+     unsigniert berechnete Bildadressen stehen. Ein normales Erneuern
+     (gleiches Konto) lädt nicht neu. */
   return (
     <LegacyApp
+      key={mediaKey?.uid ?? "ohne"}
       getToken={getAccessToken} mediaKey={mediaKey}
       screen={screen}
       view={view}

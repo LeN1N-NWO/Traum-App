@@ -34,7 +34,9 @@ export default function ProfilePageScreen() {
            dasselbe Profil. Die Web-Umfrage (Sprache/Formular) wird nicht
            mehr geladen. */
         ? <SurveyRoom onClose={() => router.back()} />
-        : <LegacyPage getToken={getAccessToken} mediaKey={mediaKey} page={p} safeTop={insets.top} safeBottom={insets.bottom} category={category ? String(category) : undefined} tag={tag ? String(tag) : undefined} onClose={async () => { router.back(); }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
+        /* S2: `key` lädt neu bei Kontowechsel / erstem Schlüssel —
+           Begründung in components/legacy-tab.tsx. */
+        : <LegacyPage key={mediaKey?.uid ?? "ohne"} getToken={getAccessToken} mediaKey={mediaKey} page={p} safeTop={insets.top} safeBottom={insets.bottom} category={category ? String(category) : undefined} tag={tag ? String(tag) : undefined} onClose={async () => { router.back(); }} dom={{ style: { flex: 1, backgroundColor: "#0a0d16" }, contentInsetAdjustmentBehavior: "never" }} />}
     </>
   );
 }

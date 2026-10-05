@@ -121,14 +121,20 @@ export function mediaSignature(keyHex, name) {
 
 const MEDIA_PATH = /^\/media\/([a-z0-9]{1,20}\.(?:png|jpg|webp|mp4|m4a))$/;
 
-/** "/media/<name>" → "/media/<name>?u=…&e=…&s=…" under a still-valid key.
- *  Anything else — no key, expired key, not a media path — comes back
- *  unchanged: locally the server serves without a signature (no
- *  REQUIRE_AUTH), and an unsigned URL fails closed on the VPS. */
-export function signMediaPath(path, mediaKey, nowSec = Math.floor(Date.now() / 1000)) {
+/** "/media/<name>" → "/media/<name>?u=…&e=…&s=…" under the given key.
+ *  Anything else — no key, not a media path — comes back unchanged:
+ *  locally the server serves without a signature (no REQUIRE_AUTH), and an
+ *  unsigned URL fails closed on the VPS.
+ *
+ *  ⚠ Bewusst KEINE Ablaufprüfung hier: Ob ein Schlüssel abgelaufen ist,
+ *  entscheidet allein die Uhr des Servers. Ginge die Uhr des iPhones mehr
+ *  als 20 Minuten vor, hielte eine Prüfung hier jeden frischen Schlüssel für
+ *  abgelaufen, und keine einzige Datei käme mehr an. Ein wirklich
+ *  abgelaufener Schlüssel scheitert am Server genauso wie gar keiner. */
+export function signMediaPath(path, mediaKey) {
   if (!mediaKey || typeof path !== "string") return path;
   const hit = MEDIA_PATH.exec(path);
-  if (!hit || !(mediaKey.exp > nowSec)) return path;
+  if (!hit || !Number.isSafeInteger(mediaKey.exp) || typeof mediaKey.uid !== "string") return path;
   const s = mediaSignature(mediaKey.key, hit[1]);
   if (!s) return path;
   return `${path}?u=${encodeURIComponent(mediaKey.uid)}&e=${mediaKey.exp}&s=${s}`;

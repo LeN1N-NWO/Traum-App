@@ -17,6 +17,13 @@ test("paths outside the API are not rate limited at all", () => {
   expect(classOf("/")).toBe(null);
 });
 
+/* S2: Jedes Gerät holt alle 10 Minuten einen Medienschlüssel. In der
+   Voreinstellung „generate" teilte er sich den Topf mit dem Filme-Bestellen. */
+test("the media key is cheap, not counted against generating", () => {
+  expect(classOf("/api/media-key")).toBe("cheap");
+  expect(needsAccount("/api/media-key")).toBe(true);   // nur mit Konto
+});
+
 test("polling and the voice socket are exempt by name, with a reason", () => {
   expect(classOf("/api/job")).toBe(null);     // Warten, kein Ausgeben
   expect(classOf("/api/voice")).toBe(null);   // eine Sitzung ist EIN Aufruf

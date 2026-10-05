@@ -3366,11 +3366,19 @@ const serveOptions = {
     if (url.pathname === "/api/job" && req.method === "GET") {
       try {
         const jobId = url.searchParams.get("id") || "";
-        /* S2: Ein fremder Auftrag ist ein unbekannter — damit schadet auch
-           die erratbare Nummer (genJobId) nicht. Was fertig ist, gehört ab
-           jetzt dem Besteller; jobStatus selbst bleibt unberührt. */
+        /* S2: Nur der Besteller holt ab — damit schadet auch die erratbare
+           Nummer (genJobId) nicht. Was fertig ist, gehört ab jetzt dem
+           Besteller; jobStatus selbst bleibt unberührt.
+           ⚠ Ein FREMDER Auftrag ist bewusst nicht „unknown": Der Abholer
+           (src/lib/collector.js) vergisst bei „unknown" die Nummer für
+           immer. Nach einem Kontowechsel mitten im Rendern wäre der bezahlte
+           Film dann auch beim Zurückwechseln weg. Eine Fehlerantwort liest
+           er als Aussetzer und fragt später wieder. „unknown" bleibt dem
+           Auftrag, den es nicht gibt. Dass eine Nummer existiert, verrät
+           nichts — den Inhalt bekommt nur der Besteller. */
         if (MEDIA_ENFORCED && !(person && await owners.ownsJob(person.userId, jobId))) {
-          return json({ ok: true, status: "unknown" });
+          if (!(await readJob(jobId))) return json({ ok: true, status: "unknown" });
+          return json({ error: "This order belongs to another account.", reason: "foreign" }, 403);
         }
         const result = await jobStatus(jobId);
         if (result.status === "done") await claimMedia(person, result.urls || [], result.poster);

@@ -98,7 +98,7 @@ test("mediaUrl signs /media/ paths once a media key is set, and only those", () 
     expect(mediaUrl("/media/abc.png")).toBe(`/media/abc.png?u=${key.uid}&e=${key.exp}&s=${mediaSignature(key.key, "abc.png")}`);
     expect(mediaUrl("/clips/style-a.mp4")).toBe("/clips/style-a.mp4");
     expect(mediaUrl("data:image/png;base64,AAAA")).toBe("data:image/png;base64,AAAA");
-    setMediaKey({ ...key, exp: 1 });   // abgelaufen: lieber unsigniert als falsch signiert
+    setMediaKey({ ...key, key: 42 });   // kaputter Schlüssel: unsigniert statt Absturz
     expect(mediaUrl("/media/abc.png")).toBe("/media/abc.png");
   } finally {
     setMediaKey(null);

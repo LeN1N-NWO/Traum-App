@@ -44,7 +44,13 @@ async function load() {
   try {
     const res = await authFetch("/api/media-key");
     if (mine !== generation) return;            // ein Kontowechsel war schneller
-    if (!res.ok) { set(null); schedule(REFRESH_MS); return; }
+    /* 401: niemand angemeldet (authFetch antwortet ohne Sitzung selbst so)
+       → unsigniert. Alles andere (429, 5xx, Proxy) ist ein Aussetzer: den
+       bisherigen Schlüssel behalten und bald wieder fragen — sonst schaltete
+       EIN Fehler die App für zehn Minuten auf „unsigniert", und auf dem VPS
+       käme in der Zeit keine Datei an. */
+    if (res.status === 401) { set(null); schedule(REFRESH_MS); return; }
+    if (!res.ok) { schedule(RETRY_MS); return; }
     const body = await res.json();
     const k = body?.mediaKey;
     const valid = k && typeof k.uid === "string" && typeof k.key === "string" && Number.isFinite(k.exp);
