@@ -14,6 +14,20 @@ import { useMediaKey } from "@/lib/media-key";
    Brücken-Webview ist unsichtbar (matchContents, leerer Inhalt); bei jedem
    Fokus des Tabs liest er neu. `send` schickt einen Schreibbefehl hinüber,
    `ask` einen Befehl mit Antwort (Promise). */
+
+/* Meldungen der Abholer, schon gezeigt — für ALLE Brücken gemeinsam, denn
+   jede Brücke ist ein eigener Webview, die native Seite aber nur eine.
+   Zehn Minuten reichen weit über jede Abholrunde hinaus. */
+const shown = new Map<string, number>();
+const SHOWN_MS = 10 * 60_000;
+function firstShowing(key: string) {
+  const now = Date.now();
+  for (const [k, at] of shown) if (now - at > SHOWN_MS) shown.delete(k);
+  if (shown.has(key)) return false;
+  shown.set(key, now);
+  return true;
+}
+
 export function useJournal() {
   const mediaKey = useMediaKey();   // S2: signierte Medienadressen in der Web-Ansicht
   const data = useJournalStore();
@@ -28,6 +42,8 @@ export function useJournal() {
   const onResult = useCallback(async (r: BridgeResult) => {
     // n = -1: kein Befehl, sondern eine Meldung des Abholers (Film da, Erstattung, Fehler).
     if (r.n === -1) {
+      // Derselbe fertige Auftrag aus einer zweiten Brücke: schon gemeldet.
+      if (r.key && !firstShowing(r.key)) return;
       if (r.toast) showToast(r.toast);
       /* Film fertig, App im Hintergrund (z. B. Einschlafklänge halten sie
          wach): eine echte Mitteilung, Tipp öffnet das Journal. Vorn reicht

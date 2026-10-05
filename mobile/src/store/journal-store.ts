@@ -81,7 +81,7 @@ export type SettingsData = {
   signOutConfirmTitle: string; signOutConfirmText: string;
   voice: string; voices: { id: string; trait: string }[]; pickTitle: string; pickHint: string; pickGo: string; cancel: string; sampleBase: string;
   privacy: { title: string; hint: string; noBio: string; unlock: string; locked: string };
-  deleteAccount: { title: string; hint: string; confirmTitle: string; confirmText: string; go: string; done: string; failed: string };
+  deleteAccount: { title: string; hint: string; confirmTitle: string; confirmText: string; go: string; done: string; failed: string; appleTitle?: string; appleText?: string; appleGo?: string };
   manageSubs: string; manageSubsHint: string;
   languageSetting: string; languageSettingHint: string; languages: { id: string; label: string }[];
   legal: { close: string; updated: string; draftNote: string; terms: LegalDoc; privacy: LegalDoc };
@@ -170,7 +170,7 @@ export type SketchTexts = {
   card: { name: string; hint: string; badge: string; info?: string; model?: string } | null;
   price: string;   // was die NÄCHSTE Skizze kostet, fertig formuliert
 };
-export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null; entryId?: string; notify?: { title: string } };
+export type BridgeResult = { n: number; result?: any; error?: string; toast?: string; haptic?: "success" | "error" | null; entryId?: string; notify?: { title: string }; key?: string };
 
 let snapshot: JournalSnapshot | null = null;
 let raw: JournalSnapshot | null = null;

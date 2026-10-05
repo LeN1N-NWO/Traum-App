@@ -79,8 +79,18 @@ export default function SettingsScreen() {
           try {
             if (lock && !(await unlock(D.title))) return;
             /* Apple-Konten: deleteAccount öffnet bei Bedarf Apples Blatt
-               (Token-Widerruf, Weg A). Abgebrochen = nichts passiert, still. */
-            const result = await deleteAccount(appleReauthCode);
+               (Token-Widerruf, Weg A). Abgebrochen = nichts passiert, still.
+               Vorher ein Satz, warum (05.10.): ohne ihn wirkte das Blatt
+               wie eine neue Anmeldung. Nur Apple-Konten kommen hierher —
+               der Server verlangt den Code erst mit 409 reauth:"apple". */
+            const askApple = () => new Promise<string | null>((resolve) => {
+              if (!D.appleTitle || !D.appleText) { resolve(appleReauthCode()); return; }
+              Alert.alert(D.appleTitle, D.appleText, [
+                { text: S.cancel, style: "cancel", onPress: () => resolve(null) },
+                { text: D.appleGo || "Continue", onPress: () => resolve(appleReauthCode()) },
+              ], { cancelable: false });
+            });
+            const result = await deleteAccount(askApple);
             if (result !== "cancelled") Alert.alert(D.title, result === "done" ? D.done : D.failed);
           } finally { setDeleting(false); }
         },

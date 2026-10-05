@@ -414,7 +414,7 @@ function snapshot() {
          wer die Oberfläche nicht lesen kann, muss seine Sprache trotzdem
          erkennen. */
       privacy: { title: t.profile.privacyLock, hint: t.profile.privacyLockHint, noBio: t.profile.privacyLockNoBio, unlock: t.profile.privacyUnlock, locked: t.profile.privacyLocked },
-      deleteAccount: { title: t.profile.deleteAccount, hint: t.profile.deleteAccountHint, confirmTitle: t.profile.deleteAccountConfirmTitle, confirmText: t.profile.deleteAccountConfirmText, go: t.profile.deleteAccountGo, done: t.profile.deleteAccountDone, failed: t.profile.deleteAccountFailed },
+      deleteAccount: { title: t.profile.deleteAccount, hint: t.profile.deleteAccountHint, confirmTitle: t.profile.deleteAccountConfirmTitle, confirmText: t.profile.deleteAccountConfirmText, go: t.profile.deleteAccountGo, done: t.profile.deleteAccountDone, failed: t.profile.deleteAccountFailed, appleTitle: t.profile.deleteAccountAppleTitle, appleText: t.profile.deleteAccountAppleText, appleGo: t.profile.deleteAccountAppleGo },
       languageSetting: t.profile.languageSetting, languageSettingHint: t.profile.languageSettingHint,
       languages: LOCALES.map((l) => ({ id: l.id, label: l.label })),
       pickTitle: t.voice.pickTitle, pickHint: t.voice.pickHint, pickGo: t.voice.pickGo, cancel: t.voice.cancel,
@@ -1413,6 +1413,14 @@ async function collectOnce(onJournal, onResult) {
   const now = loadState();
   saveState({ ...now, journal: res.journal, ...(res.refund > 0 ? { credits: (now.credits ?? 0) + res.refund } : {}) });
   onJournal(snapshot());
+  /* Doppelte Meldungen (Release 05.10.: 8× „Dein Film ist fertig" für EINEN
+     Film): Die Pacht hält mehrere Brücken offenbar nicht zuverlässig
+     auseinander — dann holen zwei denselben Auftrag ab und melden beide.
+     Die Daten bleiben richtig (beide schreiben dasselbe), nur die Meldung
+     kommt mehrfach. Darum trägt jede Meldung die Aufträge, die in dieser
+     Runde fertig wurden, als Schlüssel; die native Seite (journal-data.tsx)
+     meldet jeden Schlüssel nur einmal, egal aus wie vielen Brücken. */
+  const finished = finishedJobs(s.journal, res.journal);
   for (const [kind, extra] of res.messages) {
     const text = kind === "dreamReady" ? t.journal.dreamReady(extra || "") : kind === "filmArrived" ? t.journal.filmArrived
       : kind === "sceneReady" ? t.journal.sceneReady(extra) : kind === "refunded" ? t.journal.imagesRefunded(extra)
@@ -1421,8 +1429,25 @@ async function collectOnce(onJournal, onResult) {
        dass ein neuer Traum erschienen ist"): Die native Seite macht daraus
        eine Mitteilung, wenn die App gerade nicht vorn ist. */
     const notify = kind === "filmArrived" || kind === "dreamReady" || kind === "renderFailed" ? { title: text } : undefined;
-    if (text) onResult({ n: -1, toast: text, haptic: kind === "filmArrived" || kind === "dreamReady" ? "success" : kind === "renderFailed" ? "error" : null, notify });
+    // Ohne fertigen Auftrag kein Schlüssel — der wäre zu grob und verschluckte echte Meldungen.
+    const key = finished ? `${kind}|${extra ?? ""}|${finished}` : undefined;
+    if (text) onResult({ n: -1, toast: text, haptic: kind === "filmArrived" || kind === "dreamReady" ? "success" : kind === "renderFailed" ? "error" : null, notify, key });
   }
+}
+
+/* Die Auftragsnummern (Film und Bilder), die vorher offen waren und nach der
+   Runde nicht mehr — sortiert, damit jede Brücke denselben Schlüssel bildet. */
+function openJobs(journal) {
+  const ids = [];
+  for (const e of journal || []) {
+    if (e.jobId) ids.push(e.jobId);
+    for (const j of e.imageJobs || []) if (j.id && !j.url && !j.failed) ids.push(j.id);
+  }
+  return ids;
+}
+function finishedJobs(before, after) {
+  const still = new Set(openJobs(after));
+  return openJobs(before).filter((id) => !still.has(id)).sort().join(",");
 }
 
 /* Serien-Pflichten (26.09., Antons Frage „wieso sind die Geschenke raus?"):
