@@ -18,7 +18,8 @@ gleich wie auf `main` (per Skript verglichen, mit Gegenprobe an
 `resolveMedia`, `readJob`. Keine Prompts, keine Modelle, keine
 Anfragekörper, keine Dateien in `src/lib/` deiner Kette.
 
-Alle 111 geänderten Zeilen in `server.js` sind einer Kategorie zugeordnet
+Alle 125 geänderten Zeilen in `server.js` sind einer Kategorie zugeordnet
+(davon 14 in `DELETE /api/account` für B8 — Hannis Route, nicht deine)
 (Kommentare, Hilfsfunktionen, `serveMedia`, Vermerke, Prüfungen, neue Route);
 die Summe ergibt die Gesamtzahl aus `git diff --numstat`. `readJob` wird an
 einer Stelle zusätzlich **aufgerufen** (nur lesend, siehe Punkt 5).
@@ -81,6 +82,17 @@ läuft alles wie vorher, `/media` bleibt offen.
 - Nativer Code, der eine Server-Datei selbst lädt (wie der Glimpse-Ton in
   `DreamSketch.addSound`), signiert direkt davor mit `signedMedia(url)` aus
   `mobile/src/lib/media-cache.ts`.
+
+## B8: Konto löschen löscht die Medien
+
+Nach `server_delete_account()` ruft die Lösch-Route `owners.forgetAccount()`
+auf: Jede Datei und jeder Auftrag des Kontos verliert den Vermerk (der
+Zugriff endet sofort), die Datei selbst wird gelöscht, wenn niemand sonst sie
+besitzt, und `media/jobs/<id>.json` (trägt den Prompt, also Traumtext) geht
+mit. Dafür merkt sich `claimJob` jetzt auch die Rückrichtung
+(`besitz/auftraege/<konto>/<jobId>`). In deiner Pipeline ändert sich nichts.
+Die Texte bei „Delete account" und in der Datenschutzerklärung (en/de) sagen
+jetzt, dass Bilder und Filme mitgehen — der Satz „ist in Arbeit" ist raus.
 
 ## Was das für deine nächsten Schritte heißt
 

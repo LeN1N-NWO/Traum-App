@@ -3816,6 +3816,20 @@ const serveOptions = {
             }
           }
           await withUser(database, person.userId, (tx) => tx`select public.server_delete_account()`);
+          /* B8 (05.10.2026): seine Medien und Aufträge mit — ERST nach der
+             Datenbank. Umgekehrt stünde bei einem Datenbankfehler ein noch
+             lebendes Konto ohne seine Filme da. Scheitert hier etwas, ist
+             das Konto trotzdem weg; die App bekommt ihr ok (ein zweiter
+             Versuch ginge ohne Konto ohnehin nicht), das Log bekommt den
+             Rest — die Rückwärts-Liste bleibt dann stehen, nichts ist
+             vergessen (src/lib/mediaAccess.js, forgetAccount). */
+          try {
+            const weg = await owners.forgetAccount(person.userId, { mediaDir: MEDIA_DIR, jobsDir: JOBS_DIR });
+            console.log(`[DreamRushes] Konto gelöscht, Medien: ${weg?.files ?? 0} Dateien gelöscht, ${weg?.shared ?? 0} geteilt behalten, ${weg?.jobs ?? 0} Aufträge gelöscht`
+              + (weg?.errors ? ` — ⚠ ${weg.errors} Fehler, Reste unter media/besitz/konto/${person.userId}` : ""));
+          } catch (e) {
+            console.error("[DreamRushes] ⚠ Medien des gelöschten Kontos nicht vollständig entfernt:", e?.message || e);
+          }
           return json({ ok: true });
         }
 

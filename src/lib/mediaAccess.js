@@ -11,6 +11,7 @@
  *      konto/<konto>/<name>     dieselbe Aussage rückwärts — für B8
  *                               (Konto löschen löscht seine Medien)
  *      auftrag/<jobId>/<konto>  „dieser Auftrag gehört diesem Konto"
+ *      auftraege/<konto>/<jobId> dasselbe rückwärts — für B8
  *    Leere Dateien statt einer JSON-Liste: Anlegen ist atomar, zwei
  *    gleichzeitige Vermerke können sich nicht gegenseitig überschreiben.
  *    Eine Datei kann mehreren Konten gehören (Namen sind Inhalts-Hashes —
@@ -24,9 +25,19 @@
  *    Ablauf stehen in der Adresse; wer sie ändert, ändert den Schlüssel und
  *    damit jede Signatur. Ohne MEDIA_SECRET gibt es keinen Schlüssel, und
  *    mit REQUIRE_AUTH=1 wird dann nichts ausgeliefert (fail closed).
+ *
+ * 3. KONTO LÖSCHEN (B8, 05.10.2026) — forgetAccount():
+ *    Jede Datei und jeder Auftrag des Kontos verliert zuerst den Vermerk
+ *    (ab da liefert der Server sie diesem Konto nicht mehr aus — auch eine
+ *    noch gültige signierte Adresse greift ins Leere). Danach wird die
+ *    Datei gelöscht, aber nur, wenn kein anderes Konto sie noch besitzt:
+ *    Namen sind Inhalts-Hashes, dieselben Bytes können zwei Leuten gehören,
+ *    und die Datei des anderen darf nicht mitverschwinden. Aufträge
+ *    (media/jobs/<id>.json) tragen den Prompt, also Traumtext — sie gehen
+ *    mit.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { mkdir, writeFile, access, readdir } from "node:fs/promises";
+import { mkdir, writeFile, access, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 
 /** 20 Minuten: die App erneuert alle 10, jede Adresse lebt also noch
@@ -80,7 +91,9 @@ export function createOwnership(root) {
     await mkdir(dir, { recursive: true });
     await writeFile(join(dir, leaf), "");
   };
-  return {
+  // Owns anyone this (file or job) any more? Only account-shaped entries count.
+  const ownerless = async (dir) => (await readdir(dir).catch(() => [])).filter(isAccountId).length === 0;
+  const api = {
     /** Note that `name` belongs to `uid`. Unknown shapes are ignored. */
     async claim(uid, name) {
       if (!isAccountId(uid) || !NAME.test(name || "")) return false;
@@ -95,6 +108,7 @@ export function createOwnership(root) {
     async claimJob(uid, jobId) {
       if (!isAccountId(uid) || !JOB.test(jobId || "")) return false;
       await mark(join(root, "auftrag", jobId), uid);
+      await mark(join(root, "auftraege", uid), jobId);
       return true;
     },
     async ownsJob(uid, jobId) {
@@ -106,5 +120,52 @@ export function createOwnership(root) {
       if (!isAccountId(uid)) return [];
       return readdir(join(root, "konto", uid)).then((xs) => xs.filter((x) => NAME.test(x)), () => []);
     },
+    /** Every job id noted for one account (for B8). */
+    async jobsOf(uid) {
+      if (!isAccountId(uid)) return [];
+      return readdir(join(root, "auftraege", uid)).then((xs) => xs.filter((x) => JOB.test(x)), () => []);
+    },
+    /** B8: take everything of one account off this server. `mediaDir` holds
+     *  the files, `jobsDir` the job records. Never throws for a single file
+     *  — the account is already gone when this runs, so the caller can only
+     *  log; the report says how far it got. */
+    async forgetAccount(uid, { mediaDir, jobsDir }) {
+      if (!isAccountId(uid) || !mediaDir || !jobsDir) return null;
+      const report = { files: 0, shared: 0, jobs: 0, errors: 0 };
+      for (const name of await api.filesOf(uid)) {
+        try {
+          await rm(join(root, "datei", name, uid), { force: true });   // ab hier kein Zugriff mehr
+          if (await ownerless(join(root, "datei", name))) {
+            await rm(join(mediaDir, name), { force: true });
+            await rm(join(root, "datei", name), { recursive: true, force: true });
+            report.files++;
+          } else {
+            report.shared++;
+          }
+        } catch {
+          report.errors++;
+        }
+      }
+      for (const jobId of await api.jobsOf(uid)) {
+        try {
+          await rm(join(root, "auftrag", jobId, uid), { force: true });
+          if (await ownerless(join(root, "auftrag", jobId))) {
+            await rm(join(jobsDir, `${jobId}.json`), { force: true });
+            await rm(join(root, "auftrag", jobId), { recursive: true, force: true });
+            report.jobs++;
+          }
+        } catch {
+          report.errors++;
+        }
+      }
+      // Die Rückwärts-Listen zuletzt: Bricht oben etwas ab, bleibt die Liste
+      // stehen, und nichts ist vergessen, was noch zu löschen wäre.
+      if (!report.errors) {
+        await rm(join(root, "konto", uid), { recursive: true, force: true });
+        await rm(join(root, "auftraege", uid), { recursive: true, force: true });
+      }
+      return report;
+    },
   };
+  return api;
 }

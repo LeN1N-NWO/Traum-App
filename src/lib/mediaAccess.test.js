@@ -82,3 +82,69 @@ test("ownership markers: per file and per account, nothing outside the root", as
     await rm(root, { recursive: true, force: true });
   }
 });
+
+/* B8: Konto löschen löscht seine Medien — aber nur, was niemand sonst
+   besitzt, und nichts außerhalb seiner eigenen Vermerke. */
+test("forgetAccount removes the account's files and jobs, keeps shared and foreign ones", async () => {
+  const base = await mkdtemp(join(tmpdir(), "dr-b8-"));
+  const root = join(base, "besitz"), mediaDir = base, jobsDir = join(base, "jobs");
+  const { mkdir, writeFile, access } = await import("node:fs/promises");
+  const exists = (p) => access(p).then(() => true, () => false);
+  try {
+    await mkdir(jobsDir, { recursive: true });
+    for (const f of ["allein.png", "geteilt.mp4", "fremd.png"]) await writeFile(join(mediaDir, f), f);
+    for (const j of ["mgannajob1", "mgbenjob22"]) await writeFile(join(jobsDir, `${j}.json`), "{\"prompt\":\"Traumtext\"}");
+    const own = createOwnership(root);
+    await own.claim(ANNA, "allein.png");
+    await own.claim(ANNA, "geteilt.mp4");
+    await own.claim(BEN, "geteilt.mp4");
+    await own.claim(BEN, "fremd.png");
+    await own.claimJob(ANNA, "mgannajob1");
+    await own.claimJob(BEN, "mgbenjob22");
+    expect(await own.jobsOf(ANNA)).toEqual(["mgannajob1"]);
+
+    const report = await own.forgetAccount(ANNA, { mediaDir, jobsDir });
+    expect(report).toEqual({ files: 1, shared: 1, jobs: 1, errors: 0 });
+
+    // Annas eigene Datei und ihr Auftrag (mit Traumtext) sind weg …
+    expect(await exists(join(mediaDir, "allein.png"))).toBe(false);
+    expect(await exists(join(jobsDir, "mgannajob1.json"))).toBe(false);
+    // … sie besitzt nichts mehr, auch nicht die geteilte Datei …
+    expect(await own.owns(ANNA, "geteilt.mp4")).toBe(false);
+    expect(await own.ownsJob(ANNA, "mgannajob1")).toBe(false);
+    expect(await own.filesOf(ANNA)).toEqual([]);
+    expect(await own.jobsOf(ANNA)).toEqual([]);
+    // … und Bens Dateien und Auftrag bleiben, auch die mit Anna geteilte.
+    expect(await exists(join(mediaDir, "geteilt.mp4"))).toBe(true);
+    expect(await own.owns(BEN, "geteilt.mp4")).toBe(true);
+    expect(await exists(join(mediaDir, "fremd.png"))).toBe(true);
+    expect(await exists(join(jobsDir, "mgbenjob22.json"))).toBe(true);
+    expect(await own.ownsJob(BEN, "mgbenjob22")).toBe(true);
+
+    // Zweimal löschen schadet nicht; ungültige Konten tun gar nichts.
+    expect(await own.forgetAccount(ANNA, { mediaDir, jobsDir })).toEqual({ files: 0, shared: 0, jobs: 0, errors: 0 });
+    expect(await own.forgetAccount("../x", { mediaDir, jobsDir })).toBe(null);
+    expect(await own.forgetAccount(BEN, { mediaDir })).toBe(null);   // ohne jobsDir: nichts anfassen
+  } finally {
+    await rm(base, { recursive: true, force: true });
+  }
+});
+
+test("forgetAccount only deletes names it recognises, never paths", async () => {
+  const base = await mkdtemp(join(tmpdir(), "dr-b8b-"));
+  const { mkdir, writeFile, access } = await import("node:fs/promises");
+  const exists = (p) => access(p).then(() => true, () => false);
+  try {
+    const root = join(base, "besitz");
+    // Ein fremder Eintrag in der Rückwärts-Liste (von Hand, nicht über claim):
+    // Er sieht nicht wie ein Medienname aus und darf nichts löschen.
+    await mkdir(join(root, "konto", ANNA), { recursive: true });
+    await writeFile(join(root, "konto", ANNA, "server.js"), "");
+    await writeFile(join(base, "server.js"), "wichtig");
+    const report = await createOwnership(root).forgetAccount(ANNA, { mediaDir: base, jobsDir: join(base, "jobs") });
+    expect(report).toEqual({ files: 0, shared: 0, jobs: 0, errors: 0 });
+    expect(await exists(join(base, "server.js"))).toBe(true);
+  } finally {
+    await rm(base, { recursive: true, force: true });
+  }
+});
