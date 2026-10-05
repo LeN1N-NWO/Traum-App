@@ -3,7 +3,12 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-05 vormittags — Anton, `session/2026-10-05-anton` (PR #83):
+**Stand:** 2026-10-05 mittags — Hanni, `session/2026-10-05-hanni` (PR #84):
+**Onboarding kommt nur noch einmal** (B4b) — Antons „bei jedem Start" gibt es
+nur noch mit `EXPO_PUBLIC_ONBOARDING_ALWAYS=1` in seiner `mobile/.env`.
+TestFlight-Plan: interne Gruppe angelegt; offen ist vor allem der
+SSH-Zugang zum VPS (Hannis Nutzer, Anton legt an). Davor
+Anton, `session/2026-10-05-anton` (PR #83):
 **Journal-Film: Vollbild hält den Film oben an** (vorher liefen beide, Ton
 versetzt), **Tab-Köpfe neu** — die Überschrift von Journal, Schlaf und
 Profil scrollt mit weg, Knöpfe bleiben fest oben, Journal mit eigenem
@@ -48,6 +53,31 @@ für den Besitzer — wer baut, klären Hanni + Anton). Am 03.10. Anton, PR #71:
 Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Neu mit PR #84 (05.10., Hanni) — Onboarding nur einmal (B4b):**
+- Das Tor (`mobile/src/components/onboarding-gate.tsx`) zeigt das
+  Onboarding nur, solange die Brücke `onboarded` nicht meldet. Die Marke gab
+  es schon (`state.onboarded`, Befehl `onboarded`), sie fehlte nur im
+  `snapshot()` der Brücke (jetzt drin, Typ in `journal-store.ts`). Vorher
+  lebte „gesehen" nur im Speicher (`dev-store.ts`) → jeder Start.
+- Die Marke gehört zum **Gerät**, nicht zum Konto: Anmelden/Abmelden/
+  Kontowechsel/Konto löschen ändern nichts; App neu installiert = Journal
+  leer = Onboarding wieder. Bewusst nicht der Schlüsselbund (überlebt die
+  Neuinstallation). Neues Gerät mit bestehendem Konto: Onboarding kommt
+  noch einmal und überschreibt Name/Umfrage im Konto — so gewollt (Hanni).
+  Abbruch mitten drin (App schließen): von vorn; Foto und Anmeldung bleiben.
+- Das Tor entscheidet erst beim ersten Stand der Brücke (vorher nichts zu
+  sehen); seine Brücke liegt jetzt **außerhalb** des Modals und bleibt nach
+  dem Abschluss, bis `onboarded` bestätigt ist.
+- **Antons Prüfweg:** `EXPO_PUBLIC_ONBOARDING_ALWAYS=1` in `mobile/.env`
+  (wird beim Bündeln eingebacken; danach Metro mit `--clear`). Preflight B4b
+  ist rot, wenn die `.env` ihn trägt oder das Tor `onboarded` nicht prüft
+  (beide Gegenproben belegt).
+- Im Simulator belegt: ohne Schalter direkt Startseite; mit Schalter
+  Onboarding; Abschluss → App bedienbar.
+- ⚠ **Metro stirbt mit „heap out of memory"**, wenn `preview_start` seinen
+  Browser-Tab auf Metro (Port 8081) offen lässt — der Tab lässt Metro immer
+  wieder die WEB-Fassung bauen. Tab sofort schließen.
 
 **Neu mit PR #83 (05.10., Anton):**
 - **Film auf der Traumseite** (`mobile/src/app/journal/[id].tsx`):
@@ -750,14 +780,12 @@ sobald Produkte in App Store Connect existieren).
 (Weg in 10 Schritten, Blocker B1–B8, Teil 2b StoreKit-Teststrategie,
 Teil 2c Geld/Abrechnung — Apple ist Merchant of Record, Small Business
 Program 15 %), Prüfwerkzeug **`bun run preflight`** (Exit 1 bei Blockern).
-Preflight meldet noch **3 Blocker** (seit PR #81; B3a grün, solange
-`REQUIRE_AUTH=1` gilt — `"null"` bleibt, siehe oben), vor der Einreichung
-zurückdrehen:
+Preflight meldet noch **2 Blocker** (seit PR #84; B3a grün, solange
+`REQUIRE_AUTH=1` gilt — `"null"` bleibt, siehe oben; B4b erledigt), vor der
+Einreichung zurückdrehen:
 - B3b: HTTPS-Deployment statt `http://192.168…` (= Baustelle S6)
 - B4a: `devTopUp` 500 Credits → zurück auf `__DEV__ ? 100 : 0`
   (journal-bridge.jsx)
-- B4b: Onboarding kommt bei JEDEM Start (Antons Testphasen-Wunsch) →
-  Einmal-Marke (onboarding-gate.tsx)
 
 ⚠ **Anton: B5/B7 stehen jetzt in `app.json`.** Sein von Hand gepflegtes
 Xcode-Projekt (`26c4efb`) nicht weiter von Hand ändern, sondern einmal neu
