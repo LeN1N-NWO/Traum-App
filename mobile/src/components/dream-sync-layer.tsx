@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import JournalBridge from "@/legacy/journal-bridge";
-import { restoreSession, useAccount, getAccessToken } from "@/lib/auth";
+import { restoreSession, useAccount, getAccessToken, useBridgeAccount } from "@/lib/auth";
 import { useMediaKey } from "@/lib/media-key";
 import { resetDreamSync, syncDreams } from "@/lib/dream-sync";
 import { setJournal, useJournalStore, type BridgeCommand, type BridgeResult, type JournalSnapshot } from "@/store/journal-store";
@@ -17,6 +17,7 @@ const DEBOUNCE_MS = 8000;
    sich anmeldet, und danach gebündelt nach jeder Änderung am Tagebuch. */
 export function DreamSyncLayer() {
   const mediaKey = useMediaKey();   // S2: signierte Medienadressen in der Web-Ansicht
+  const bridgeAccount = useBridgeAccount();   // ADR-0009: Bereich je Konto
   const account = useAccount();
   const data = useJournalStore();
   const [command, setCommand] = useState<BridgeCommand | null>(null);
@@ -68,7 +69,7 @@ export function DreamSyncLayer() {
      des Einwilligungs-Tors sitzt in einem Modal und hat das Problem nicht. */
   return (
     <View style={styles.hidden} pointerEvents="none">
-      <JournalBridge getToken={getAccessToken} mediaKey={mediaKey} onJournal={onJournal} onResult={onResult} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+      <JournalBridge getToken={getAccessToken} mediaKey={mediaKey} account={bridgeAccount} onJournal={onJournal} onResult={onResult} refreshTick={0} command={command} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
     </View>
   );
 }

@@ -39,8 +39,12 @@ export type LoginResult = { ok: true; user: AuthUser } | { ok: false; why: Login
    such a person back on the sign-in screen after every start. */
 let account: AuthUser | null = null;
 let restored = false;
+/* Erst nach der ersten Ansage (restoreSession oder eine Anmeldung) ist
+   bekannt, wer am Gerät ist — vorher wüsste keine Brücke, welcher Bereich
+   gilt (ADR-0009). */
+let known = false;
 const listeners = new Set<() => void>();
-function announce(next: AuthUser | null) { account = next; listeners.forEach((l) => l()); }
+function announce(next: AuthUser | null) { account = next; known = true; listeners.forEach((l) => l()); }
 /** Outside React: called after every sign-in, sign-out or account switch
  *  (media-key.ts fetches the next account's media key). */
 export function onAccountChange(fn: () => void) {
@@ -49,6 +53,16 @@ export function onAccountChange(fn: () => void) {
 }
 export function useAccount() {
   return useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; }, () => account, () => account);
+}
+
+/** Für `<JournalBridge account={…}>` (ADR-0009): undefined, solange die
+ *  Sitzung noch nicht geladen ist (die Brücke wartet), sonst die Konto-ID
+ *  oder null für den Gast. Eine alte Sitzung ohne gespeicherte ID zählt als
+ *  Gast — das Verhalten von vor ADR-0009. */
+export function useBridgeAccount(): string | null | undefined {
+  const who = useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; },
+    () => (known ? account?.id || "" : undefined), () => (known ? account?.id || "" : undefined));
+  return who === undefined ? undefined : who || null;
 }
 
 /** Die Konto-ID (Supabase-UUID) — oder null ohne Anmeldung. Für den Kauf:
@@ -61,7 +75,10 @@ export function accountId(): string | null {
 export async function restoreSession() {
   if (restored) return account;
   restored = true;
-  const [access, id, saved] = await Promise.all([KEY_ACCESS, KEY_USER, KEY_EMAIL].map((k) => SecureStore.getItemAsync(k)));
+  /* Scheitert der Schlüsselbund, trotzdem ansagen (als Gast): Ohne Ansage
+     blieben alle Brücken stumm und die App leer (ADR-0009). */
+  const [access, id, saved] = await Promise.all([KEY_ACCESS, KEY_USER, KEY_EMAIL].map((k) => SecureStore.getItemAsync(k)))
+    .catch(() => [null, null, null] as (string | null)[]);
   announce(access ? { id: id ?? "", email: saved } : null);
   return account;
 }

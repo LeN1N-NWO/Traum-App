@@ -9,7 +9,7 @@ import { closeGlimpse, finishGlimpse, noteGlimpse, openGlimpseEntries, restoreGl
 import { setJournal, useJournalStore, type BridgeCommand, type BridgeResult, type HomeData, type JournalSnapshot } from "@/store/journal-store";
 import { showToast } from "@/store/toast-store";
 import { DreamSketch, resolveSketchesDeep, resolveSketchUrl } from "../../modules/dream-sketch";
-import { fetchWithSession, getAccessToken } from "@/lib/auth";
+import { fetchWithSession, getAccessToken, useBridgeAccount } from "@/lib/auth";
 import { useMediaKey } from "@/lib/media-key";
 import { signedMedia } from "@/lib/media-cache";
 
@@ -60,6 +60,7 @@ async function soundFromFilm(job: GlimpseJob, filmUri: string): Promise<string |
 
 export function GlimpseLayer() {
   const mediaKey = useMediaKey();   // S2: signierte Medienadressen in der Web-Ansicht
+  const bridgeAccount = useBridgeAccount();   // ADR-0009: Bereich je Konto
   const busy = useGlimpseQueue();
   const [command, setCommand] = useState<BridgeCommand | null>(null);
   const n = useRef(0);
@@ -114,7 +115,7 @@ export function GlimpseLayer() {
 
   return (
     <View style={styles.hidden} pointerEvents="none">
-      <JournalBridge getToken={getAccessToken} mediaKey={mediaKey} onJournal={onJournal} onResult={onResult} refreshTick={0} command={command} devCredits={500} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+      <JournalBridge getToken={getAccessToken} mediaKey={mediaKey} account={bridgeAccount} onJournal={onJournal} onResult={onResult} refreshTick={0} command={command} devCredits={500} dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
     </View>
   );
 }

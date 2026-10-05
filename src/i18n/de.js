@@ -553,7 +553,7 @@ export default {
     signIn: "Anmelden",
     signOut: "Abmelden",
     signOutConfirmTitle: "Abmelden?",
-    signOutConfirmText: "Deine Träume bleiben auf diesem Gerät. Um neue zu erstellen, musst du dich wieder anmelden.",
+    signOutConfirmText: "Deine Träume bleiben auf diesem Gerät und sind wieder da, sobald du dich anmeldest. Bis dahin sieht sie niemand, der dieses Gerät benutzt.",
     done: "Fertig",
     credits: "Credits",
     creditsSoon: "Aufladen kommt bald",

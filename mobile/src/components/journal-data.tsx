@@ -7,7 +7,7 @@ import { showToast } from "@/store/toast-store";
 import JournalBridge from "@/legacy/journal-bridge";
 import { resolveSketchesDeep } from "../../modules/dream-sketch";
 import { setJournal, useJournalStore, type BridgeCommand, type BridgeResult, type JournalSnapshot } from "@/store/journal-store";
-import { getAccessToken } from "@/lib/auth";
+import { getAccessToken, useBridgeAccount } from "@/lib/auth";
 import { useMediaKey } from "@/lib/media-key";
 
 /* Bindet die Web-Brücke (journal-bridge.jsx) an den nativen Speicher. Der
@@ -30,6 +30,7 @@ function firstShowing(key: string) {
 
 export function useJournal() {
   const mediaKey = useMediaKey();   // S2: signierte Medienadressen in der Web-Ansicht
+  const bridgeAccount = useBridgeAccount();   // ADR-0009: Bereich je Konto
   const data = useJournalStore();
   const [tick, setTick] = useState(0);
   const [command, setCommand] = useState<BridgeCommand | null>(null);
@@ -66,7 +67,7 @@ export function useJournal() {
     // Test-Guthaben, solange kein Konto dahinter ist (Antons Ansage 12.09.;
     // seit 18.09. auch im Release-Bau mit 500 — er testet auf dem iPhone).
     // ⚠ Vor der Veröffentlichung zurück auf `__DEV__ ? 100 : 0`.
-    <JournalBridge getToken={getAccessToken} mediaKey={mediaKey} onJournal={onJournal} onResult={onResult} refreshTick={tick} command={command} devCredits={500} streakChores dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
+    <JournalBridge getToken={getAccessToken} mediaKey={mediaKey} account={bridgeAccount} onJournal={onJournal} onResult={onResult} refreshTick={tick} command={command} devCredits={500} streakChores dom={{ matchContents: true, style: { height: 0, opacity: 0 } }} />
   );
   return { data, bridge, send, ask };
 }

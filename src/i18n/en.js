@@ -609,7 +609,7 @@ export default {
     signOut: "Sign out",
     // Rückfrage vor dem Abmelden — ein versehentlicher Tipp passiert zu leicht (03.10.2026).
     signOutConfirmTitle: "Sign out?",
-    signOutConfirmText: "Your dreams stay on this phone. To create new ones, you'll need to sign in again.",
+    signOutConfirmText: "Your dreams stay safe on this phone and come back when you sign in again. Until then, nobody else using this phone can see them.",
     done: "Done",
     credits: "credits",
     creditsSoon: "Top-up coming soon",

@@ -90,7 +90,11 @@ export default function SettingsScreen() {
                 { text: D.appleGo || "Continue", onPress: () => resolve(appleReauthCode()) },
               ], { cancelable: false });
             });
+            const gone = account?.id || null;   // nach dem Löschen ist niemand mehr angemeldet
             const result = await deleteAccount(askApple);
+            /* ADR-0009: Der Bereich des gelöschten Kontos wird wieder der
+               Gast-Bereich — „Träume auf diesem Gerät bleiben" (Löschdialog). */
+            if (result === "done" && gone) send({ type: "releaseSlot", id: gone });
             if (result !== "cancelled") Alert.alert(D.title, result === "done" ? D.done : D.failed);
           } finally { setDeleting(false); }
         },
