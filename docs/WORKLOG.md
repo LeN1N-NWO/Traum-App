@@ -3,6 +3,47 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-05 20:10 — Hanni — Branch `session/2026-10-05-hanni-4` (PR #87) — Film-Meldung nur einmal, Warte-Kachel, Apple-Hinweis
+
+**Commits:** 8f13bd2 (Reservierung), 414ed1b (+ Wrap).
+
+**Was:** Abholer-Meldungen tragen einen Schlüssel aus Art und fertigen
+Auftragsnummern (`journal-bridge.jsx` `collectOnce`/`finishedJobs`); die
+native Seite zeigt jeden nur einmal (`journal-data.tsx` `firstShowing`).
+Kacheln mit laufendem Film tragen `OrbitGlow` (`dream-tile.tsx`). Konto
+löschen mit Apple: erst ein Dialog, warum Apple noch einmal fragt
+(`settings.tsx` `askDelete`, Texte en/de). Übergabenotiz an Anton. Dazu
+gelesen, nicht geändert: wofür Gemini noch gebraucht wird (Diktat,
+Hörproben außer en/de), Zustand des 10-GB-Volumes auf dem VPS (leer).
+
+**Warum:** Drei offene Punkte vor einem sinnvollen TestFlight-Test (STAND
+vom 05.10. abends). „Dein Film ist fertig“ kam im Release 8× für einen Film.
+
+**Belege:** `tsc` sauber, Lint 0 Fehler (Warnungen alle vorbestehend),
+924 Tests grün, i18n-Form grün. Simulator gegen den VPS mit echtem
+Testfilm (Hanni bestellt): Warte-Kachel sichtbar, Film kam an. Metro zeigte
+8 gestartete Brücken — passt zu den 8 Meldungen.
+
+**Nicht belegt:** genau EINE Mitteilung bei App im Hintergrund (beim
+Testfilm war die App vorn, das Mitteilungsprotokoll blieb leer — es gab also
+auch keine doppelte). Apple-Hinweis nicht bis zum Löschen durchgespielt.
+
+**Fehler unterwegs, die man nur einmal sieht:**
+- zsh: `echo ===X` ist eine `=`-Erweiterung („==X not found“) und bricht die
+  Zeile ab — Trenner mit `---` schreiben.
+- macOS hat kein `timeout`; für SSH `-o ConnectTimeout=8` reicht.
+- Mitteilungen im Simulator sieht man im Systemprotokoll:
+  `xcrun simctl spawn booted log stream --predicate 'subsystem == "com.apple.UserNotifications" AND eventMessage CONTAINS[c] "dreamrushes"'`
+  (Dienst heißt `usernotificationsd`, nicht `usernoted`).
+
+**Für den Nächsten:**
+- Bei Gelegenheit: Film bestellen, App mit ⇧⌘H in den Hintergrund, genau
+  eine Mitteilung? (Protokollbefehl oben.)
+- Warum `holdLease` nicht hält, ist offen — mehrere Brücken fragen
+  vermutlich parallel `/api/job` ab.
+- Nächste Session: Journal/Credits gehören dem Gerät, nicht dem Konto
+  (eigener Branch).
+
 ## 2026-10-05 19:20 — Hanni — Branch `session/2026-10-05-hanni-3` (PR #86) — VPS in Betrieb, erster Test im Mobilfunknetz
 
 **Commits:** bb07782, 91c6640, 0b720c4, 99f9b98, 0795c27 (+ Wrap).
