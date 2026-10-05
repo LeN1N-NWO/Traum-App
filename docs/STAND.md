@@ -3,7 +3,11 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-04 nachts — Hanni, `session/2026-10-04-hanni-2` (PR #81):
+**Stand:** 2026-10-05 vormittags — Anton, `session/2026-10-05-anton` (PR #83):
+**Journal-Film: Vollbild hält den Film oben an** (vorher liefen beide, Ton
+versetzt), **Tab-Köpfe neu** — die Überschrift von Journal, Schlaf und
+Profil scrollt mit weg, Knöpfe bleiben fest oben, Journal mit eigenem
+Suchfeld. Davor Hanni, `session/2026-10-04-hanni-2` (PR #81):
 **TestFlight-Generalprobe bestanden** — Release-Bau auf Hannis Mac und iPhone,
 Webviews erreichen den Server, Filme laufen Ende zu Ende. **TestFlight intern
 am Fr 16.10. ist entschieden** (Plan lokal bei Hanni,
@@ -45,7 +49,24 @@ Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
 
-**Neu mit PR #81 (04.10. nachts, Hanni) — TestFlight-Vorbereitung:**
+**Neu mit PR #83 (05.10., Anton):**
+- **Film auf der Traumseite** (`mobile/src/app/journal/[id].tsx`):
+  Vollbild pausiert den Film oben (`FilmHero` `paused`), setzt an seiner
+  Stelle fort (`startAt`), danach läuft der Film oben dort weiter. Bei
+  mehreren Fassungen läuft nur die sichtbare (vorher alle still mit).
+  `pause()` ist hier sicher, weil der Player weiterlebt — im Aufräumer
+  bleibt es verboten (Absturz 13.09.).
+- **Tab-Köpfe** (neu `mobile/src/components/tab-header.tsx`): Journal,
+  Schlaf, Profil blenden den Systemkopf aus (`headerShown: false`, `title`
+  bleibt für den Zurück-Text). `TabTitle` ist das erste Stück des Inhalts
+  und scrollt weg; `TabBar` liegt fest oben (Verlauf unter der Uhr, Knöpfe
+  rechts: Profil Guthaben + Zahnrad, Journal Karussell/Liste). Journal hat
+  ein eigenes Suchfeld unter der Überschrift statt `Stack.SearchBar`.
+  Vorher hüpfte die große iOS-Überschrift in die durchsichtige Leiste.
+- ⚠ Auf dem Gerät installiert und gestartet; Aussehen und Suche von Anton
+  noch nicht bestätigt.
+
+**Mit PR #81 (04.10. nachts, Hanni) — TestFlight-Vorbereitung:**
 - **CORS-`"null"` BLEIBT** (Neubewertung): Die vier Expo-DOM-Webviews
   schicken im Release-Bau `Origin: null` — ohne den Eintrag sähe jede
   TestFlight-App nur „Check your connection". Tragbar seit S1
@@ -512,6 +533,8 @@ ersetzt (siehe oben; das Sternbild `constellation.js` ist gelöscht):
   prüft" (`legal.tsx`) vor der Einreichung entfernen; `check-env.mjs`
   warnt nicht bei fehlenden `APPLE_*` (Apple-Konten ließen sich dann
   nicht löschen).
+- **Anton prüft am iPhone (PR #83):** Lautsprecher an → Vollbild: nur ein
+  Ton; Köpfe von Journal/Schlaf/Profil beim Scrollen; Suche im Journal.
 - **Anton prüft am iPhone (PR #82):** Startseite wieder da, Traumsymbole,
   Profilkopf, ob das kurze Blitzen der Steine gefällt; bei entsperrtem
   iPhone auf der Startseite die CPU-Messung nachholen.

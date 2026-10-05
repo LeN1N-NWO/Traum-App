@@ -7,7 +7,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { Directory, File, Paths } from "expo-file-system";
 import { useEventListener } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActionSheetIOS, Alert, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeOut, ZoomIn } from "react-native-reanimated";
@@ -132,6 +132,9 @@ function DreamBody({ item, labels, locale, onMore, onReflect, reflecting }: { it
   const [take, setTake] = useState(item.films.length ? item.films.length - 1 : 0);
   const [sound, setSound] = useState(false);
   const [full, setFull] = useState(false);
+  /* Wo der Film oben gerade steht — das Vollbild setzt dort fort. */
+  const heroTime = useRef<() => number>(() => 0);
+  const [startAt, setStartAt] = useState(0);
   const film = item.films[take]?.url ?? null;
   const still = item.images[0] ?? null;
   const date = new Date(item.createdAt).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
@@ -146,9 +149,14 @@ function DreamBody({ item, labels, locale, onMore, onReflect, reflecting }: { it
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={StyleSheet.absoluteFill}
             contentOffset={{ x: width * take, y: 0 }}
             onMomentumScrollEnd={(e) => { const i = Math.round(e.nativeEvent.contentOffset.x / width); if (i !== take) { Haptics.selectionAsync(); setTake(i); } }}>
-            {item.films.map((f, i) => <View key={f.url} style={{ width, height: heroH }}><FilmHero url={f.url} sound={sound && i === take} /></View>)}
+            {item.films.map((f, i) => (
+              <View key={f.url} style={{ width, height: heroH }}>
+                {/* nur die sichtbare Fassung läuft — die anderen warten still */}
+                <FilmHero url={f.url} sound={sound && i === take} paused={full || i !== take} timeRef={i === take ? heroTime : undefined} />
+              </View>
+            ))}
           </ScrollView>
-        ) : film ? <FilmHero url={film} sound={sound} /> : still ? <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="top" transition={300} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
+        ) : film ? <FilmHero url={film} sound={sound} paused={full} timeRef={heroTime} /> : still ? <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="top" transition={300} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
         {/* pointerEvents="none": der Verlauf lag ueber den Knoepfen und schluckte jeden Tipp. */}
         <LinearGradient colors={["rgba(5,10,20,0.55)", "rgba(5,10,20,0)", "rgba(5,10,20,0)", "rgba(5,10,20,0.75)", colors.bg]} locations={[0, 0.22, 0.5, 0.85, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
         {film ? (
@@ -156,7 +164,7 @@ function DreamBody({ item, labels, locale, onMore, onReflect, reflecting }: { it
             <Pressable onPress={() => { Haptics.selectionAsync(); setSound((v) => !v); }} hitSlop={10} accessibilityLabel={sound ? "Mute" : "Sound"} accessibilityState={{ selected: sound }}>
               <Glass style={styles.heroTool} interactive tint={sound ? "rgba(140,192,255,0.45)" : undefined}><SymbolView name={sound ? "speaker.wave.2.fill" : "speaker.slash.fill"} size={15} tintColor={colors.text} weight="semibold" /></Glass>
             </Pressable>
-            <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setFull(true); }} hitSlop={10} accessibilityLabel="Fullscreen">
+            <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setStartAt(heroTime.current()); setFull(true); }} hitSlop={10} accessibilityLabel="Fullscreen">
               <Glass style={styles.heroTool} interactive><SymbolView name="arrow.up.left.and.arrow.down.right" size={15} tintColor={colors.text} weight="semibold" /></Glass>
             </Pressable>
           </View>
@@ -174,7 +182,7 @@ function DreamBody({ item, labels, locale, onMore, onReflect, reflecting }: { it
       {/* Vollbild — eigenes Blatt statt System-Vollbild: das hatte ohne
           Bedienelemente keinen Weg zurueck (Antons Befund 12.09.). Sanfter
           Zoom, Ton an, Regler des Systems, X oben links. */}
-      {film ? <FullscreenFilm url={film} visible={full} onClose={() => setFull(false)} label={item.title || ""} /> : null}
+      {film ? <FullscreenFilm url={film} visible={full} startAt={startAt} onClose={() => setFull(false)} label={item.title || ""} /> : null}
 
       {item.pending && !film && (
         <View style={styles.pending}><View style={styles.dot} /><Text style={styles.pendingText}>{labels.rendering}</Text></View>
@@ -253,9 +261,20 @@ function splitPassages(text: string, n: number) {
 /* Der Film oben: leise in Schleife als Plakat. Der Vollbild-Knopf (Antons
    Wunsch 12.09.) öffnet den System-Player — iOS zoomt sanft auf, die
    Tonspur läuft, mit Regler und Fertig-Knopf; zurück wird er wieder leise. */
-function FilmHero({ url, sound }: { url: string; sound: boolean }) {
-  const player = useVideoPlayer(url, (p) => { p.loop = true; p.muted = true; p.play(); });
-  useEffect(() => { player.loop = true; player.play(); }, [player]);
+function FilmHero({ url, sound, paused, timeRef }: { url: string; sound: boolean; paused: boolean; timeRef?: { current: () => number } }) {
+  const player = useVideoPlayer(url, (p) => { p.loop = true; p.muted = true; if (!paused) p.play(); });
+  /* Angehalten, solange das Vollbild offen ist (Antons Befund 05.10.: mit
+     Ton liefen beide Filme, der Ton versetzt — und zwei Filme zugleich
+     kosten). Danach läuft er an derselben Stelle weiter. Der Player lebt
+     hier weiter, pause() ist also sicher (anders als im Aufräumer, s. u.). */
+  useEffect(() => {
+    if (paused) player.pause();
+    else { player.loop = true; player.play(); }
+  }, [player, paused]);
+  useEffect(() => {
+    if (!timeRef) return;
+    timeRef.current = () => { try { return player.currentTime || 0; } catch { return 0; } };
+  }, [player, timeRef]);
   /* Ton an/aus ohne Vollbild: laut heisst „nicht mischen", sonst kippt der
      Klangmischer die Session. */
   useEffect(() => { player.muted = !sound; player.audioMixingMode = sound ? "doNotMix" : "mixWithOthers"; }, [player, sound]);
@@ -268,19 +287,19 @@ function FilmHero({ url, sound }: { url: string; sound: boolean }) {
     try { player.replaceAsync(url).then(() => { player.loop = true; player.play(); }).catch(() => {}); } catch {}
   };
   useEventListener(player, "playToEnd", () => {
-    setTimeout(() => { try { if (!player.playing) revive(); } catch {} }, 1200);
+    setTimeout(() => { try { if (!paused && !player.playing) revive(); } catch {} }, 1200);
   });
-  useEventListener(player, "statusChange", ({ status }) => { if (status === "error") revive(); });
+  useEventListener(player, "statusChange", ({ status }) => { if (status === "error" && !paused) revive(); });
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 
-function FullscreenFilm({ url, visible, onClose, label }: { url: string; visible: boolean; onClose: () => void; label: string }) {
+function FullscreenFilm({ url, visible, startAt, onClose, label }: { url: string; visible: boolean; startAt: number; onClose: () => void; label: string }) {
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} animationType="fade" presentationStyle="fullScreen" onRequestClose={onClose}>
       <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(160)} style={styles.full}>
         <Animated.View entering={ZoomIn.duration(320)} style={StyleSheet.absoluteFill}>
-          {visible ? <FullPlayer url={url} /> : null}
+          {visible ? <FullPlayer url={url} startAt={startAt} /> : null}
         </Animated.View>
         <Pressable onPress={() => { Haptics.selectionAsync(); onClose(); }} style={[styles.fullClose, { top: insets.top + 8 }]} hitSlop={12} accessibilityLabel="Close">
           <Glass style={styles.heroTool} interactive><SymbolView name="xmark" size={15} tintColor={colors.text} weight="semibold" /></Glass>
@@ -290,14 +309,19 @@ function FullscreenFilm({ url, visible, onClose, label }: { url: string; visible
     </Modal>
   );
 }
-function FullPlayer({ url }: { url: string }) {
+function FullPlayer({ url, startAt }: { url: string; startAt: number }) {
   const player = useVideoPlayer(url, (p) => { p.loop = true; p.muted = false; p.audioMixingMode = "doNotMix"; p.play(); });
   /* ⚠ KEIN pause() im Aufräumer (Antons Absturz 13.09.: „Calling the
      'pause' function has failed … Unable to find the native shared
      object"): expo-video gibt den Player beim Abbau der Komponente selbst
      frei — ein Zugriff danach trifft ein Objekt, das nicht mehr existiert.
      Nur starten, nie beim Verschwinden anfassen. */
-  useEffect(() => { player.muted = false; player.play(); }, [player]);
+  useEffect(() => {
+    player.muted = false;
+    if (startAt > 0.3) player.currentTime = startAt;   // dort weiter, wo der Film oben stand
+    player.play();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player]);
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls allowsPictureInPicture={false} />;
 }
 

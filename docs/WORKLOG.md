@@ -3,6 +3,32 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-05 09:50 — Anton — Branch `session/2026-10-05-anton` (PR #83) — Journal-Film im Vollbild, Tab-Köpfe
+
+**Commits:** 7f81947, cacc8a7, 6cfea55 (+ Wrap).
+
+**Was:**
+- Journal-Traumseite: Vollbild pausiert den Film oben und beginnt an
+  dessen Stelle; zurück läuft der Film oben weiter. Nur die sichtbare
+  Fassung spielt.
+- Tab-Köpfe: erst feste Überschrift auf Profil/Schlaf, dann nach Antons
+  zweitem Befund für alle drei Tabs: Überschrift scrollt weg, Knöpfe fest
+  oben (`tab-header.tsx`), Journal mit eigenem Suchfeld.
+
+**Warum:** Antons Befunde 05.10.: Ton doppelt und versetzt mit Vollbild;
+Überschriften „hüpfen" beim Scrollen, dürfen aber hochfahren.
+
+**Belege:** tsc sauber, Lint ohne neue Warnungen; jeder Stand als
+Release auf Antons iPhone installiert und gestartet (einmal scheiterte
+der Start nur am gesperrten iPhone — `devicectl` meldet dann „Locked",
+kein Absturz).
+
+**Für den Nächsten:**
+- `pause()` auf einem expo-video-Player nur, solange die Komponente lebt;
+  nie im Aufräumer (Kommentar in `FullPlayer`).
+- Startet `devicectl … launch` ohne „Launched application", die Ausgabe
+  ganz lesen: „Locked" heißt gesperrtes iPhone.
+
 ## 2026-10-04 23:50 — Hanni — Branch `session/2026-10-04-hanni-2` (PR #81) — TestFlight-Vorbereitung: CORS, Preflight, Prebuild, Release-Probe
 
 **Commits:** a4ebbbb (CORS-Kommentar + Preflight B3a), b7cbefe (Preflight

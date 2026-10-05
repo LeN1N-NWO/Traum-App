@@ -4,7 +4,9 @@ import * as Haptics from "expo-haptics";
 import { SymbolView, type SFSymbol } from "expo-symbols";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
+import { Glass } from "@/components/glass";
 import { NightSky } from "@/components/night-sky";
+import { TabBar, TabTitle, useTabTop } from "@/components/tab-header";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 
 const GROUP_ICON: Record<string, SFSymbol> = { person: "person.fill", pet: "pawprint.fill", place: "house.fill", object: "cube.fill" };
@@ -19,12 +21,17 @@ export default function ProfileScreen() {
   const { data, bridge } = useJournal();
   const p = data?.profile;
   const lib = data?.library;
+  const headerTop = useTabTop();
   const open = (page: string) => { Haptics.selectionAsync(); router.push({ pathname: "/profile/page", params: { page } }); };
   return (
     <>
       {/* Derselbe Nachthimmel wie im Traum-Tab (Antons Wahl 26.09.). */}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]}><NightSky /></View>
-      <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
+      {/* feste Überschrift statt der großen iOS-Überschrift (Antons Befund 05.10.) */}
+      <Stack.Screen options={{ headerShown: false, title: p?.title ?? "Profile" }} />
+      <ScrollView style={styles.screen} contentInsetAdjustmentBehavior="never" contentContainerStyle={[styles.content, { paddingTop: headerTop }]} scrollIndicatorInsets={{ top: headerTop }}>
+        {/* die Überschrift scrollt mit weg; Guthaben und Zahnrad bleiben oben (Antons Wunsch 05.10.) */}
+        <TabTitle title={p?.title ?? "Profile"} room={170} />
         {p ? (
           <>
             {/* Porträt klein neben dem Namen (Antons Wunsch 04.10.: das große
@@ -109,16 +116,20 @@ export default function ProfileScreen() {
           </>
         ) : null}
       </ScrollView>
-      <Stack.Screen.Title large style={{ color: colors.text, fontFamily: fonts.serif }} largeStyle={{ color: colors.text, fontFamily: fonts.serif, fontSize: 36 }}>
-        {p?.title ?? "Profile"}
-      </Stack.Screen.Title>
-      <Stack.Toolbar placement="right">
-        {/* Zahnrad neben dem Guthaben (Antons Ansage 23.09.2026: die
-            Einstellungen waren als Karte unten „versteckt" — jetzt oben,
-            ein Tipp entfernt; die Karte ist dafür raus). */}
-        <Stack.Toolbar.Button icon="gearshape" onPress={() => { Haptics.selectionAsync(); router.push("/profile/settings"); }} />
-        <Stack.Toolbar.Button onPress={() => { Haptics.selectionAsync(); router.push({ pathname: "/profile/paywall", params: { reason: "browse" } }); }}>{p ? `✦ ${p.credits} ${p.creditsWord}` : ""}</Stack.Toolbar.Button>
-      </Stack.Toolbar>
+      <TabBar>
+        <>
+          {/* Guthaben und Zahnrad (Antons Ansage 23.09.2026: die Einstellungen
+              oben, ein Tipp entfernt) — jetzt in der festen Überschrift. */}
+          {p ? (
+            <Pressable onPress={() => { Haptics.selectionAsync(); router.push({ pathname: "/profile/paywall", params: { reason: "browse" } }); }} hitSlop={6} accessibilityRole="button">
+              <Glass style={styles.pill} interactive><Text style={styles.pillText}>✦ {p.credits} {p.creditsWord}</Text></Glass>
+            </Pressable>
+          ) : null}
+          <Pressable onPress={() => { Haptics.selectionAsync(); router.push("/profile/settings"); }} hitSlop={6} accessibilityRole="button" accessibilityLabel={p?.settings ?? "Settings"}>
+            <Glass style={styles.gear} interactive><SymbolView name="gearshape" size={18} tintColor={colors.text} /></Glass>
+          </Pressable>
+        </>
+      </TabBar>
       <View style={styles.bridge}>{bridge}</View>
     </>
   );
@@ -143,6 +154,9 @@ const styles = StyleSheet.create({
   invite: { borderColor: "rgba(246,198,91,0.35)" },
   inviteIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: colors.gold },
   bridge: { height: 0, overflow: "hidden" },
+  pill: { height: 36, paddingHorizontal: 14, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  pillText: { color: colors.text, fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] },
+  gear: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   world: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(140,192,255,0.28)", gap: 8 },
   worldHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   worldTitle: { fontFamily: fonts.serif, fontSize: 22, color: colors.text },
