@@ -144,7 +144,7 @@ export type RemindersData = {
   texts: { morningTitle: string; morningBody: string; eveningTitle: string; eveningBody: string; realityTitle: string; realityBodies: string[] };
 };
 export type ConsentData = { needed: boolean; title: string; intro: string; termsPre: string; termsLink: string; termsMid: string; privacyLink: string; termsPost: string; processing: string; adult: string; more: string; details: string[]; facts: { id: string; title: string; text: string }[]; cta: string };
-export type JournalSnapshot = { language: string; items: DreamItem[]; castImages?: Record<string, string>; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData; symbols: SymbolsData; library: LibraryData; menagerie: MenagerieData; consent: ConsentData; reminders: RemindersData; invite?: InviteTexts; onboard: Omit<OnboardData, "sleepYears" | "sleepDream"> & { sleepYearsTpl: string; sleepDreamTpl: string } };
+export type JournalSnapshot = { language: string; onboarded?: boolean; items: DreamItem[]; castImages?: Record<string, string>; labels: Labels; home: HomeData; sleep: SleepData; profile: ProfileData; wizard: WizardData & Record<string, any>; journal: JournalMeta; paywall: PaywallData; symbols: SymbolsData; library: LibraryData; menagerie: MenagerieData; consent: ConsentData; reminders: RemindersData; invite?: InviteTexts; onboard: Omit<OnboardData, "sleepYears" | "sleepDream"> & { sleepYearsTpl: string; sleepDreamTpl: string } };
 /* Der Film-Auftrag für den nativen Motor (Brücke `order`, Vorarbeit 13.09.). */
 export type OrderRequest = {
   entryId?: string | null; text: string; originalText?: string; analysis: any | null; title?: string; tagline?: string;

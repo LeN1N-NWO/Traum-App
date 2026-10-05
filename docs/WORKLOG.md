@@ -3,6 +3,36 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-05 12:10 — Hanni — Branch `session/2026-10-05-hanni` (PR #84) — Onboarding nur einmal (B4b)
+
+**Commits:** 07c350a (+ Wrap).
+
+**Was:** Das Onboarding kommt nur noch, solange die Brücke `onboarded` nicht
+meldet (`snapshot()` liefert die Marke jetzt mit; Tor in
+`onboarding-gate.tsx` entscheidet beim ersten Stand, seine Brücke liegt
+außerhalb des Modals). Schalter `EXPO_PUBLIC_ONBOARDING_ALWAYS=1` für
+Antons Prüfweg; Preflight B4b prüft Tor und `.env`. Kommentar in
+`dev-store.ts` angepasst.
+
+**Warum:** TestFlight-Plan Punkt 8 — ein Test-Build, der bei jedem Start
+das Onboarding zeigt, ist für Tester unbrauchbar.
+
+**Belege:** `tsc` sauber, Lint ohne Meldung; Preflight B4b grün, zwei
+Gegenproben rot (Schalter in `.env`; Tor ohne `onboarded`-Abfrage). Im
+Simulator: ohne Schalter Startseite, mit Schalter Onboarding, Abschluss →
+bedienbar (Journal geöffnet).
+
+**Für den Nächsten:**
+- Anton: Wer das Onboarding bei jedem Start sehen will, setzt
+  `EXPO_PUBLIC_ONBOARDING_ALWAYS=1` in `mobile/.env` und startet Metro mit
+  `--clear`. ⚠ Nie in der `.env`, aus der TestFlight gebaut wird
+  (Preflight warnt).
+- Die Marke hängt am Gerät, nicht am Konto (Details in STAND).
+- `preview_start` für Metro öffnet einen Browser-Tab auf 8081 → Metro baut
+  die Web-Fassung, bis der Speicher platzt. Tab sofort schließen.
+- Hannis SSH-Zugang zum VPS: Schlüssel liegt bei ihr bereit, Anton legt
+  den Nutzer an (Befehle im Chat vom 05.10. / Übergabe 2026-09-25).
+
 ## 2026-10-05 09:50 — Anton — Branch `session/2026-10-05-anton` (PR #83) — Journal-Film im Vollbild, Tab-Köpfe
 
 **Commits:** 7f81947, cacc8a7, 6cfea55 (+ Wrap).
