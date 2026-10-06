@@ -2019,9 +2019,18 @@ const PREPARING_MAX_MS = 10 * 60_000;
    Aber ein Auftrag, nach dem fal dauerhaft nicht mehr Auskunft gibt (404
    „unbekannt", falsche Adresse — wie der 405 vom 09.08. —, Schlüssel weg),
    hing bisher für immer auf „pending": nie gescheitert, nie erstattet. Ein
-   Film rendert höchstens Minuten; zwei Stunden ohne Antwort heißt, es kommt
-   keiner mehr → „failed" mit Grund, Erstattung über jobSettled (S7). */
-const STATUS_GIVEUP_MS = 2 * 3600_000;
+   Film rendert höchstens Minuten → nach der Frist „failed" mit Grund,
+   Erstattung über jobSettled (S7). Zwei Fristen (Hannis Entscheidung):
+     · fal sagt „gibt es nicht / darfst du nicht / falsche Adresse"
+       (404, 401, 403, 405) — dauerhaft kaputt, 10 min Puffer, falls fal
+       einen frischen Auftrag kurz noch nicht kennt (ungemessen);
+     · Störung (5xx, 429 = wir fragen zu oft, keine Verbindung) — der Film
+       rendert meist weiter und wird abgeholt, sobald fal wieder antwortet;
+       erst nach 1 h aufgeben. Zu früh aufgegeben hieße: fertig bezahlt,
+       nie abgeholt. */
+const STATUS_GONE = new Set([401, 403, 404, 405]);
+const STATUS_GONE_MS = 10 * 60_000;
+const STATUS_GIVEUP_MS = 60 * 60_000;
 
 /* Ein Auftrag wird nie zweimal gleichzeitig abgeholt (05.10.): Seit der
    Server selbst abholt (collectOpenJobs), können er und die App im selben
@@ -2069,8 +2078,9 @@ async function jobStatusFetch(id) {
   const s = await fetch(statusUrl, { signal: AbortSignal.timeout(T.falStatus), headers: { Authorization: `Key ${key}` } }).catch(() => null);
   const st = s?.ok ? await s.json().catch(() => null) : null;
   if (!st) {
-    if (Date.now() - (job.createdAt || 0) <= STATUS_GIVEUP_MS) return { status: "pending" };   // a hiccup is not a failure
-    console.warn(`[DreamRushes] Auftrag ${id}: fal gibt seit über ${STATUS_GIVEUP_MS / 3600_000} h keinen Status (${s ? s.status : "keine Verbindung"}) → gescheitert`);
+    const frist = s && STATUS_GONE.has(s.status) ? STATUS_GONE_MS : STATUS_GIVEUP_MS;
+    if (Date.now() - (job.createdAt || 0) <= frist) return { status: "pending" };   // a hiccup is not a failure
+    console.warn(`[DreamRushes] Auftrag ${id}: fal gibt seit über ${frist / 60_000} min keinen Status (${s ? s.status : "keine Verbindung"}) → gescheitert`);
     const reason = { kind: "unknown", where: null, msg: "status unavailable" };
     await writeJob(id, { ...job, status: "failed", reason });
     return { status: "failed", reason };
