@@ -3,7 +3,18 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-05 nachts — Hanni, `session/2026-10-05-hanni-5` (PR #88):
+**Stand:** 2026-10-06 vormittags — Hanni, `session/2026-10-06-hanni` (PR #91):
+**Filmaufträge antworten sofort** (36 ms statt 58–72 s) — der
+TestFlight-Blocker „verwaiste Filme" ist gebaut: Nummer zuerst
+(`preparing`), Regie und Bestellung unverändert im Hintergrund, nach 10 min
+ohne Fortschritt `failed` mit Erstattung. Lokal ohne bezahlten Lauf belegt.
+⚠ **Offen:** Deploy, dann Abbruchtest am iPhone im Mobilfunk (Flugmodus
+direkt nach dem Bestellen). ⚠ Scheitert die Vorbereitung, sinkt der
+Gerätezähler, das Konto wird erstattet — erledigt sich mit S7 Phase 2.
+Übergabe: `docs/uebergabe/2026-10-06-anton-sofort-antworten.md`.
+**Nächste Schritte bis TestFlight (16.10.):** Merge + Deploy +
+Abbruchtest → S7 Phase 2 (App zeigt Konto-Guthaben) → Archive/Upload
+am Mi 14.10. Davor Hanni, `session/2026-10-05-hanni-5` (PR #88):
 **Jedes Konto hat auf dem Gerät seinen eigenen Bereich** (ADR-0009) — ein
 zweites Konto sieht keine Träume und Gesichter des ersten mehr, der erste
 Abgleich mischt keine Tagebücher. **Einwilligungs-Tor ist eine Ebene statt
@@ -208,10 +219,11 @@ Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
   abbrechen (vier Fälle getestet). ⚠ **Ausrollen: nach dem Merge ZWEIMAL**
   `sudo bash /opt/dreamrushes/app/deploy/deploy.sh` — der erste Lauf läuft
   noch mit der alten Skriptfassung.
-- ⚠ **Verwaiste Filme (Blocker TestFlight):** Film 1 kam an (72 s bis zur
-  Antwort), Film 2 nicht (58 s, „Der Dienst hat nicht geantwortet“, Auftrag
-  `muvhjwz9zaoabc` trotzdem bei fal bestellt). Hanni will den sauberen Weg B
-  (sofort antworten, Regie + Bestellung im Hintergrund) — Übergabe an Anton.
+- **Verwaiste Filme (Blocker TestFlight): gebaut 06.10. (PR #91)** — Weg B,
+  sofort antworten (`server.js`, Film-Zweig in `/api/generate`,
+  `jobStatusFetch`, `collectOpenJobs`). ⚠ Abbruchtest am iPhone nach dem
+  Deploy steht aus. Befund war: Film 2 vom 05.10. (58 s, „Der Dienst hat
+  nicht geantwortet“, Auftrag `muvhjwz9zaoabc` trotzdem bei fal bestellt).
 - ⚠ **`GEMINI_KEY` ungültig** (kein `AIza…`-Schlüssel, 401 „Expected OAuth 2
   access token“, lokal wie am Server): Abschrift, Sprachinterview, Stimmen
   aus. Liegt bei Anton. Der Ersatzweg Wizper scheiterte ebenfalls — erst nach

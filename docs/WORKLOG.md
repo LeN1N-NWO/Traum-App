@@ -3,6 +3,45 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-06 11:35 — Hanni — Branch `session/2026-10-06-hanni` (PR #91) — Film-Auftrag antwortet sofort (gegen verwaiste Filme)
+
+**Commits:** 40a196c (Reservierung), fb6aabd (+ Wrap).
+
+**Was:** `/api/generate` (Film) antwortet nach Prüfungen, Preis (409) und
+Abbuchung (402/503) sofort mit der Auftragsnummer: Auftragsdatei
+`status: "preparing"`, `claimJob` (S2), Abbuchungsvermerk (S7), Antwort.
+`directFilm` → `startVideo` laufen unverändert im Hintergrund und schreiben
+in dieselbe Datei (`falSubmitVideo` nimmt die vorhandene Nummer).
+Scheitert die Vorbereitung → `failed` mit Grund, `jobSettled` erstattet.
+`stillWanted` vor Standbild und Submit: Auftrag weg (B8) oder abgeschrieben
+→ nichts bestellt. `jobStatusFetch`: `preparing` → `pending`, nach 10 min
+→ `failed` („preparation interrupted"); der Abholer sieht `preparing` mit an.
+`genJobId` jetzt `crypto.randomUUID()` (32 Hex). Übergabe an Anton.
+
+**Warum:** TestFlight-Blocker (Plan bis 16.10.): Im Mobilfunk gab die App
+nach ~60 s auf, der Film wurde trotzdem bestellt und bezahlt (Befund 05.10.).
+Antons Übergabe vom 05.10. legte den Teil zu Hanni.
+
+**Belege:** Lokal ohne Schlüssel (kein bezahlter Lauf): Antwort 36 ms,
+`preparing` → `failed` + `/api/job` meldet es; Preis-409 ohne Auftragsdatei;
+frisches `preparing` → `pending`, 11 min altes → `failed`; Abholer mit
+Platzhalter-Schlüssel schreibt altes `preparing` ab, frisches bleibt.
+940 Tests grün. Alle 91 geänderten Zeilen in `server.js` kategorisiert
+(91 = 91), Regie/Prompt/Anfragekörper 0 Diff-Zeilen. Öffentlicher Server
+ohne Token: `/api/job` und `/api/generate` → 401 (S1 greift).
+
+**Für den Nächsten:**
+- Nach Merge `deploy.sh` (zweimal, siehe STAND), dann am iPhone im
+  Mobilfunk: Film bestellen, sofort Flugmodus, wieder an → Film muss kommen.
+- ⚠ Geräte-Guthaben: Scheitert die Vorbereitung, gab es früher eine 502 und
+  das Gerät buchte nicht ab; jetzt kommt erst die Nummer (Gerät bucht ab),
+  dann `failed` — der Server erstattet das Konto, der Gerätezähler nicht
+  (Filme werden am Gerät auch bei fal-Fehlern nie erstattet,
+  `src/lib/collector.js:109`). Erledigt sich mit S7 Phase 2 (App zeigt
+  Konto-Guthaben).
+- `ORDER_CANCELLED` (Konto gelöscht mitten in der Vorbereitung) nicht live
+  geprüft.
+
 ## 2026-10-05 22:20 — Hanni — Branch `session/2026-10-05-hanni-5` (PR #88) — eigener Bereich je Konto (ADR-0009), Einwilligungs-Tor als Ebene
 
 **Commits:** 2067233 (Reservierung), bb1eccb, 84c3ba1, a3432b5, Aufräumen nach zweiter Durchsicht (+ Wrap).

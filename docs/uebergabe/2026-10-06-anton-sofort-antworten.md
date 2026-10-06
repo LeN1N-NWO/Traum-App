@@ -57,5 +57,12 @@ passt zu `JOB_ID`). Gilt auch für Bilder.
 - Restfall: Konto wird **während** der ~1 s des Submits gelöscht → die
   Datei entsteht neu; der zweite B8-Durchgang nach 10 min (`sweepJobs`)
   fängt sie.
+- **Geräte-Guthaben:** Scheitert die Vorbereitung (z. B. Standbild abgelehnt),
+  gab es früher eine 502 und das Gerät buchte nichts ab. Jetzt kommt erst die
+  Nummer (Gerät bucht ab, `journal-bridge.jsx` Schritt 5), dann `failed`. Der
+  Server erstattet das **Konto**, der Gerätezähler bleibt unten — wie schon
+  heute bei jedem Film, der bei fal scheitert (`src/lib/collector.js:109`
+  erstattet Filme nicht). Erledigt sich mit S7 Phase 2 (App zeigt das
+  Konto-Guthaben); bis dahin für TestFlight intern unkritisch.
 - App: Der Wartebildschirm steht jetzt länger in „pending" statt im Absenden
   — bitte beim nächsten Film darauf achten, ob das gut aussieht.
