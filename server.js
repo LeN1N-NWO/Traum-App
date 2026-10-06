@@ -2014,6 +2014,15 @@ function genJobId() {
    jobSettled (S7). */
 const PREPARING_MAX_MS = 10 * 60_000;
 
+/* Die Statusabfrage bei fal scheitert (06.10.2026, offener Punkt 5 der
+   S7-Übergabe): Ein Aussetzer ist kein Fehler — der Auftrag bleibt offen.
+   Aber ein Auftrag, nach dem fal dauerhaft nicht mehr Auskunft gibt (404
+   „unbekannt", falsche Adresse — wie der 405 vom 09.08. —, Schlüssel weg),
+   hing bisher für immer auf „pending": nie gescheitert, nie erstattet. Ein
+   Film rendert höchstens Minuten; zwei Stunden ohne Antwort heißt, es kommt
+   keiner mehr → „failed" mit Grund, Erstattung über jobSettled (S7). */
+const STATUS_GIVEUP_MS = 2 * 3600_000;
+
 /* Ein Auftrag wird nie zweimal gleichzeitig abgeholt (05.10.): Seit der
    Server selbst abholt (collectOpenJobs), können er und die App im selben
    Moment fragen — ohne diese Sperre lüde der fertige Film zweimal herunter
@@ -2056,9 +2065,16 @@ async function jobStatusFetch(id) {
   const family = job.model.split("/").slice(0, 2).join("/");
   const base = job.responseUrl || `https://queue.fal.run/${family}/requests/${job.requestId}`;
   const statusUrl = job.statusUrl || `${base}/status`;
-  const s = await fetch(statusUrl, { signal: AbortSignal.timeout(T.falStatus), headers: { Authorization: `Key ${key}` } });
-  if (!s.ok) return { status: "pending" };            // a hiccup is not a failure
-  const st = await s.json();
+  // Netzfehler und Zeitüberschreitung zählen wie eine Fehlantwort (vorher: Wurf → 500 an die App).
+  const s = await fetch(statusUrl, { signal: AbortSignal.timeout(T.falStatus), headers: { Authorization: `Key ${key}` } }).catch(() => null);
+  const st = s?.ok ? await s.json().catch(() => null) : null;
+  if (!st) {
+    if (Date.now() - (job.createdAt || 0) <= STATUS_GIVEUP_MS) return { status: "pending" };   // a hiccup is not a failure
+    console.warn(`[DreamRushes] Auftrag ${id}: fal gibt seit über ${STATUS_GIVEUP_MS / 3600_000} h keinen Status (${s ? s.status : "keine Verbindung"}) → gescheitert`);
+    const reason = { kind: "unknown", where: null, msg: "status unavailable" };
+    await writeJob(id, { ...job, status: "failed", reason });
+    return { status: "failed", reason };
+  }
 
   if (st.status === "FAILED") {
     /* ⚠ Auch hier die Antwort HOLEN, bevor der Auftrag als gescheitert
