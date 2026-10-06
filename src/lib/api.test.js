@@ -1,5 +1,5 @@
 import { test, expect, beforeEach, afterEach } from "bun:test";
-import { setTokenSource, accessToken, jobStatus, photoCheck, mediaUrl, setMediaKey } from "./api.js";
+import { setTokenSource, accessToken, jobStatus, photoCheck, mediaUrl, setMediaKey, accountCredits } from "./api.js";
 import { mediaSignature } from "./mediaSign.js";
 import { t } from "../i18n/index.js";
 
@@ -119,4 +119,39 @@ test("a 402 for missing credits shows the translated message", async () => {
   } finally {
     globalThis.fetch = realFetch;
   }
+});
+
+/* S7 Phase 2: Kontostand für die Anzeige — nie das Anmelde-Blatt, nie ein Wurf. */
+test("accountCredits: with a token, reads credits.total from /api/account", async () => {
+  setTokenSource(async () => "tok-1");
+  serve([200, { ok: true, credits: { purchased: 480, allowance: 13, total: 493 } }]);
+  expect(await accountCredits()).toBe(493);
+  expect(calls[0].url.endsWith("/api/account")).toBe(true);
+  expect(calls[0].auth).toBe("Bearer tok-1");
+});
+
+test("accountCredits: guest (no token) asks nobody and gives null", async () => {
+  setTokenSource(async () => null);
+  serve([200, { ok: true, credits: { total: 5 } }]);
+  expect(await accountCredits()).toBe(null);
+  expect(calls).toHaveLength(0);
+});
+
+test("accountCredits: 401 does NOT ask for a fresh session (no sign-in sheet)", async () => {
+  const asked = [];
+  setTokenSource(async (fresh) => { asked.push(!!fresh); return "tok-1"; });
+  serve([401, { error: "Please sign in to continue.", reason: "signin" }]);
+  expect(await accountCredits()).toBe(null);
+  expect(asked).toEqual([false]);
+  expect(calls).toHaveLength(1);
+});
+
+test("accountCredits: no database (credits null), server error or network error → null", async () => {
+  setTokenSource(async () => "tok-1");
+  serve([200, { ok: true, credits: null }]);
+  expect(await accountCredits()).toBe(null);
+  serve([500, { error: "Server error." }]);
+  expect(await accountCredits()).toBe(null);
+  globalThis.fetch = async () => { throw new TypeError("offline"); };
+  expect(await accountCredits()).toBe(null);
 });
