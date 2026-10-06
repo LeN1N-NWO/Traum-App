@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { FlatList, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, { Extrapolation, interpolate, type SharedValue, useAnimatedProps, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { DreamTile } from "@/components/dream-tile";
+import { OrbitGlow } from "@/components/orbit-glow";
 import type { DreamItem } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
@@ -51,7 +52,7 @@ export function DreamCarousel({ items, untitled, locale, onOpen }: { items: Drea
           if (i !== focus) { Haptics.selectionAsync(); setFocus(i); }
         }}
         renderItem={({ item, index }) => (
-          <Card index={index} x={x} step={STEP} gap={GAP} width={W}>
+          <Card index={index} x={x} step={STEP} gap={GAP} width={W} running={item.pending || item.rendering}>
             <DreamTile item={item} live={index === focus} untitled={untitled} width={W}
               onPress={() => {
                 if (index === focus) onOpen(item.id);
@@ -68,7 +69,7 @@ export function DreamCarousel({ items, untitled, locale, onOpen }: { items: Drea
   );
 }
 
-function Card({ index, x, step, gap, width, children }: { index: number; x: SharedValue<number>; step: number; gap: number; width: number; children: React.ReactNode }) {
+function Card({ index, x, step, gap, width, running, children }: { index: number; x: SharedValue<number>; step: number; gap: number; width: number; running: boolean; children: React.ReactNode }) {
   const range = [(index - 1) * step, index * step, (index + 1) * step];
   const card = useAnimatedStyle(() => {
     const d = interpolate(x.value, range, [-1, 0, 1], Extrapolation.CLAMP);
@@ -107,6 +108,12 @@ function Card({ index, x, step, gap, width, children }: { index: number; x: Shar
           {children}
           <AnimatedBlur tint="dark" animatedProps={blur} style={StyleSheet.absoluteFill} pointerEvents="none" />
         </View>
+        {/* Film entsteht noch (Auftrag offen): der Leuchtrand der Hauptknöpfe
+            läuft um die Kachel, bis der Film da ist oder scheitert. Bewusst
+            HIER, außerhalb von `clip` und über dem Blur: in der Kachel
+            schnitten Kachel und Karte Schein und Kopf ab — übrig blieb eine
+            Haarlinie unter dem goldenen Rahmen (06.10., im Simulator gesehen). */}
+        {running ? <OrbitGlow radius={16} /> : null}
       </Animated.View>
     </Animated.View>
   );

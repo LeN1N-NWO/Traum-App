@@ -3,6 +3,34 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-06 12:10 — Hanni — Branch `session/2026-10-06-hanni-2` (PR #92) — Leuchtrand der Film-Kachel sichtbar; iPhone-Beleg „sofort antworten"
+
+**Commits:** Reservierung, 6381ca8 (+ Wrap).
+
+**Was:**
+- **iPhone-Beleg für PR #91** (läuft `a7313e5`): Film im Mobilfunk bestellt,
+  sofort Flugmodus, wieder an → Film kam an. VPS-Log: Abgebucht 09:43:40 →
+  Regie +31 s → Submit +59 s → „Server hat abgeholt" +76 s, genau eine
+  Bestellung, Besitzer 1, Nummer schon 32 Hex. Keine Poster-Zeile (Titel
+  fehlte oder `POSTER=off` — nicht verfolgt, Kachel ohne Bild ist ok).
+- **Leuchtrand:** Hanni sah auf der Kachel mit laufendem Film nur den
+  goldenen Karussell-Rahmen. Im Simulator: Der Strahl lief, aber Kachel und
+  Karte (`overflow: "hidden"`) schnitten Schein und Kopf ab, übrig blieb
+  eine Haarlinie. `OrbitGlow` sitzt jetzt in `Card` (`dream-carousel.tsx`)
+  außerhalb von `clip` und über dem Blur; aus `dream-tile.tsx` entfernt
+  (die Kachel gibt es nur im Karussell).
+
+**Warum:** Puffer-Punkt aus dem TestFlight-Plan, von Hanni vorgezogen —
+ohne Notiz an Anton (Hannis Ansage, reine Darstellung).
+
+**Belege:** Simulator mit vorübergehend erzwungenem Leuchtrand (nicht im
+Commit): vorher Haarlinie in der Ecke, nachher heller Kopf mit Schweif,
+zwei Bilder im Abstand von 2 s zeigen ihn an verschiedenen Ecken. `tsc` 0
+Fehler; Lint: 1 Warnung (`TileFilm`, Z. 37) — identisch auf `main`.
+
+**Für den Nächsten:** Am echten Gerät mit einem laufenden Film ansehen
+(kommt beim nächsten bezahlten Film ohnehin).
+
 ## 2026-10-06 11:35 — Hanni — Branch `session/2026-10-06-hanni` (PR #91) — Film-Auftrag antwortet sofort (gegen verwaiste Filme)
 
 **Commits:** 40a196c (Reservierung), fb6aabd (+ Wrap).

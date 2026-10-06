@@ -4,7 +4,6 @@ import * as Haptics from "expo-haptics";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { OrbitGlow } from "@/components/orbit-glow";
 import type { DreamItem } from "@/store/journal-store";
 import { useRecording } from "@/store/recording-store";
 import { colors, fonts } from "@/theme";
@@ -23,8 +22,9 @@ export function DreamTile({ item, live = false, untitled, width, onPress }: { it
       {film ? <TileFilm url={film} /> : still ? <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
       <LinearGradient colors={["rgba(5,10,20,0)", "rgba(5,10,20,0.85)"]} locations={[0.45, 1]} style={StyleSheet.absoluteFill} />
       {item.pending ? <View style={styles.pending}><View style={styles.dot} /></View> : null}
-      {/* Film entsteht noch (Auftrag offen): der Leuchtrand der Hauptknöpfe läuft um die Kachel, bis der Film da ist oder scheitert. */}
-      {item.pending || item.rendering ? <OrbitGlow radius={16} /> : null}
+      {/* Der Leuchtrand für „Film entsteht noch" sitzt NICHT hier, sondern in der
+          Karussell-Karte (dream-carousel.tsx, Card): Die Kachel schneidet am Rand
+          ab, vom Strahl blieb nur eine Haarlinie (06.10.). */}
       {item.films.length ? <View style={styles.play}><Text style={styles.playText}>▶</Text></View> : null}
       <Text style={styles.title} numberOfLines={2}>{item.title || untitled}</Text>
     </Pressable>
