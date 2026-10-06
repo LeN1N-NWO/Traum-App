@@ -15,7 +15,7 @@ import { activeStateKey, loadState, saveState, releaseSlot, selectStateKey, slot
 import { dayKey, dreamCount, dreamDays, isFilmNight, isMoonFilm, MOON_FILM_KIND } from "../../../src/lib/nights.js";
 import { hasPendingJobs, collectTick } from "../../../src/lib/collector.js";
 import { failureTextKey } from "../../../src/lib/falError.js";
-import { jobStatus, setTokenSource, setMediaKey } from "../../../src/lib/api.js";   // setTokenSource: S1, Token von der nativen Seite
+import { jobStatus, setTokenSource, setMediaKey, accountCredits } from "../../../src/lib/api.js";   // setTokenSource: S1, Token von der nativen Seite; accountCredits: S7 Phase 2
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend, applyAllowanceGrant, giftLeft } from "../../../src/lib/credits.js";
@@ -394,7 +394,7 @@ function snapshot() {
   const profile = {
     title: t.profile.title, name: s.me?.tag || t.profile.you, img: s.me?.img || null,
     hint: s.me?.img ? t.profile.meSet : t.profile.meEmpty,
-    credits: totalCredits(s), creditsWord: t.profile.credits,
+    credits: shownCredits(s), creditsWord: t.profile.credits,
     dreams: (s.journal || []).length, streak: count, statDreams: t.profile.statDreams, statStreak: t.profile.statStreak,
     settings: t.profile.settings, surveyDone: !!s.surveyDone, paywallSeen: !!s.paywallSeen,
     surveyTitle: t.onboarding.profileCard, surveyHint: t.onboarding.profileCardHint,
@@ -550,7 +550,7 @@ function snapshot() {
     ledeFor: { browse: pw.lede, spent: pw.ledeFor.spent, first: pw.ledeFor.first },
     tabSub: pw.tabSub, tabPack: pw.tabPack, packNote: pw.packNote, yieldYearNote: pw.yieldYearNote,
     included: pw.included, chips: pw.chips, freeNote: pw.freeNote, cta: pw.cta, renewNote: pw.renewNote, termsLink: pw.termsLink, privacyLink: pw.privacyLink, notYet: pw.notYet, purchaseThanks: pw.purchaseThanks, purchaseFailed: pw.purchaseFailed, upTo: pw.upTo,
-    balance: pw.balance(totalCredits(s)), credits: totalCredits(s),
+    balance: pw.balance(shownCredits(s)), credits: shownCredits(s),
     subs: SUBSCRIPTIONS.map((p) => {
       const films = dreamsFor(p.credits * (p.period === "year" ? 12 : 1)).films;
       /* Startguthaben (14.09.2026): Das Jahresabo nennt, was am Kauftag
@@ -813,12 +813,12 @@ async function runAvatar(cmd, onResult) {
     /* Der Charakterbogen: erst rendern, DANN abbuchen — ein Fehlschlag
        kostet nichts (wie überall). Als data:-URI, weil fal einen
        /media/-Pfad dieses Rechners nicht laden kann (Befund 20.08.). */
-    if (!spend(s, PRICES.characterSheet)) { onResult({ n: cmd.n, error: "nocredits" }); return true; }
+    if (!deviceSpend(s, PRICES.characterSheet)) { onResult({ n: cmd.n, error: "nocredits" }); return true; }
     try {
       const url = await characterSheet({ desc: String(cmd.text || "").trim(), category: cmd.category || "person" });
       const img = await compactDataUrl(mediaUrl(url));
       const now = loadState();
-      const paid = spend(now, PRICES.characterSheet);
+      const paid = deviceSpend(now, PRICES.characterSheet);
       if (paid) saveState({ ...now, ...paid });
       onResult({ n: cmd.n, result: { img } });
     } catch (e) {
@@ -903,7 +903,7 @@ async function runSketchPrep(cmd, onResult) {
   onResult({ n: cmd.n, result: {
     prompt: prompts[0], prompts, strips, refs: refs.slice(0, references.length),
     particles: pickParticles(beats.join(" ")),
-    freeLeft: sketchFreeLeft(s0), cost: sketchCost(s0, strips), credits: totalCredits(s0),
+    freeLeft: sketchFreeLeft(s0), cost: sketchCost(s0, strips), credits: shownCredits(s0),
     // Was jede Wahl kostet und wie lang sie wird — für die Auswahl vorher.
     options: SKETCH_STRIPS.map((n) => ({ ...sketchTiming(n), cost: sketchCost(s0, n) })),
   } });
@@ -919,13 +919,13 @@ async function runSketchGrid(cmd, onResult) {
   const prompts = (Array.isArray(g.prompts) && g.prompts.length ? g.prompts : [g.prompt]).filter(Boolean).slice(0, SKETCH_STRIPS.length);
   const s0 = loadState();
   const cost = sketchCost(s0, prompts.length);
-  if (cost > 0 && !spend(s0, cost)) { onResult({ n: cmd.n, error: "nocredits", price: cost }); return true; }
+  if (cost > 0 && !deviceSpend(s0, cost)) { onResult({ n: cmd.n, error: "nocredits", price: cost }); return true; }
   // Ein Bild darf einmal wiederholt werden, bevor der ganze Glimpse scheitert.
   const once = (prompt) => sketchGrid({ prompt, refs: g.refs || [] }).catch(() => sketchGrid({ prompt, refs: g.refs || [] }));
   try {
     const urls = await Promise.all(prompts.map(once));
     const s1 = loadState();
-    saveState({ ...s1, ...countSketch(s1), ...(cost > 0 ? spend(s1, cost) || {} : {}) });
+    saveState({ ...s1, ...countSketch(s1), ...(cost > 0 ? deviceSpend(s1, cost) || {} : {}) });
     onJournalTick?.();
     onResult({ n: cmd.n, result: { url: urls[0], urls, cost } });
   } catch (e) {
@@ -956,7 +956,8 @@ async function runOrder(cmd, onResult) {
   const quality = filmQuality(modelId, o.quality).id;
   const pace = o.pace || DEFAULT_PACE;
   const price = quoteFor({ mode: "film", model: modelId, seconds, quality, keyframe: false });
-  if (!spend(s0, price)) { onResult({ n: cmd.n, error: "nocredits", price }); return true; }
+  /* S7 Phase 2: mit Konto gegen den Kontostand — abgebucht wird auf dem Server. */
+  if (!(kontoCredits() != null ? kontoCredits() >= price : spend(s0, price))) { onResult({ n: cmd.n, error: "nocredits", price }); return true; }
   const analysis = o.analysis || null;
   /* Das Format (26.09.): dieselbe Allowlist wie der Server — ein Wert, nie Text. */
   const format = ["9:16", "16:9", "1:1"].includes(o.format) ? o.format : "9:16";
@@ -1028,7 +1029,7 @@ async function runOrder(cmd, onResult) {
     });
     const s2 = loadState();
     saveState({
-      ...s2, ...(spend(s2, price) || {}),
+      ...s2, ...(deviceSpend(s2, price) || {}),
       journal: (s2.journal || []).map((e) => (e.id === entryId
         ? { ...e, jobId, pending: undefined, filmPlan: { model: modelId, quality, seconds, pace, scenes: order.length } }
         : e)),
@@ -1037,8 +1038,12 @@ async function runOrder(cmd, onResult) {
   } catch (e) {
     const s2 = loadState();
     saveState({ ...s2, journal: (s2.journal || []).map((x) => (x.id === entryId ? { ...x, pending: undefined, failReason: e?.message || String(e) } : x)) });
-    onResult({ n: cmd.n, error: e?.message || String(e), entryId });
+    /* S7: Der Server sagt „Guthaben reicht nicht" (402) — dieselbe Antwort
+       wie die Vorprüfung, damit die Auftragsseite zur Bezahlseite führt. */
+    onResult(e?.reason === "credits" ? { n: cmd.n, error: "nocredits", price, entryId } : { n: cmd.n, error: e?.message || String(e), entryId });
   }
+  // S7 Phase 2: abgebucht (oder abgewiesen) hat der Server — Anzeige gleich nachziehen.
+  await refreshKonto(true);
   return true;
 }
 let onJournalTick = null;
@@ -1534,6 +1539,47 @@ function devTopUp(min) {
    gerade geschrieben haben. */
 let bridgeAccount;
 function setBridgeAccount(account) { bridgeAccount = account; }
+
+/* S7 Phase 2 (06.10.2026): Der Server bucht den Film im Konto ab (PR #89) —
+   angezeigt wird deshalb der KONTOSTAND, nicht der Gerätezähler. Je Konto
+   gemerkt, höchstens alle 15 s neu gefragt (bei jedem Wecken der Brücke),
+   nach einer Bestellung sofort. Unbekannt (Gast, lokal ohne Datenbank,
+   Server nicht erreichbar und noch nie gefragt) → null, und alles läuft wie
+   vorher über den Gerätezähler. Ein Aussetzer behält die letzte Zahl. */
+const KONTO_MS = 15_000;
+let konto = { id: null, credits: null, at: 0 };
+let kontoBusy = false;
+function kontoCredits() {
+  return typeof bridgeAccount === "string" && konto.id === bridgeAccount ? konto.credits : null;
+}
+/** Was die App als Guthaben zeigt und wogegen der Film vorprüft. */
+function shownCredits(s) {
+  return kontoCredits() ?? totalCredits(s);
+}
+/* Abbuchen auf dem Gerät nur, solange kein Konto das Guthaben führt. Mit
+   Konto bucht der Server den Film; Charakterbogen und Skizze bucht er noch
+   nicht — sie sind für Angemeldete bis dahin gratis (Hannis Entscheidung
+   06.10., „Anzeige + Film"). Gibt wie spend() einen Patch oder null. */
+function deviceSpend(s, cost) {
+  return kontoCredits() != null ? {} : spend(s, cost);
+}
+/** Kontostand neu holen. true, wenn sich die Anzeige dadurch ändert. */
+async function refreshKonto(force = false) {
+  const id = bridgeAccount;
+  if (typeof id !== "string") { konto = { id: null, credits: null, at: 0 }; return false; }
+  if (kontoBusy || (!force && konto.id === id && Date.now() - konto.at < KONTO_MS)) return false;
+  kontoBusy = true;
+  try {
+    const n = await accountCredits();
+    if (bridgeAccount !== id) return false;   // Konto gewechselt, während gefragt wurde
+    const credits = n ?? (konto.id === id ? konto.credits : null);
+    const changed = konto.id !== id || konto.credits !== credits;
+    konto = { id, credits, at: Date.now() };
+    return changed;
+  } finally {
+    kontoBusy = false;
+  }
+}
 function inSlot() {
   if (bridgeAccount === undefined) return false;
   selectStateKey(slotFor(bridgeAccount));
@@ -1559,7 +1605,11 @@ export default function JournalBridge({ onJournal, onResult, refreshTick = 0, co
   setMediaKey(mediaKey);       // S2 — signierte Medienadressen (mobile/src/lib/media-key.ts)
   setBridgeAccount(account);   // ADR-0009 — welcher Bereich gilt
   useEffect(() => {
-    const push = () => { try { if (!inSlot()) return; syncLanguage(); devTopUp(devCredits); if (chores) streakChores(onResult); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); } };
+    const push = () => {
+      try { if (!inSlot()) return; syncLanguage(); devTopUp(devCredits); if (chores) streakChores(onResult); onJournal(snapshot()); } catch (e) { console.warn("[bridge]", e); }
+      // S7 Phase 2: Kontostand im Hintergrund nachziehen; nur bei Änderung ein zweites Abbild.
+      refreshKonto().then((changed) => { if (changed && inSlot()) onJournal(snapshot()); }).catch(() => {});
+    };
     /* Nur Änderungen am Zustand wecken die Brücke — nicht die Pachten
        (Abholer alle 3 s, Serie). Sonst schickte bei jedem Pachtschreiben
        jede Brücke ihren ganzen Schnappschuss (Speicherüberlauf 27.09.). */

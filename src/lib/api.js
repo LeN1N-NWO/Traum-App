@@ -462,3 +462,27 @@ export async function jobStatus(id) {
   if (!res.ok) throw new Error(serverMessage(data, res.status));
   return data;
 }
+
+/* S7 Phase 2 (06.10.2026): der Kontostand aus der Datenbank — seit PR #89
+ * bucht der Server den Film im Konto ab, also ist DAS die Zahl, die der
+ * Mensch sehen muss, nicht der Gerätezähler.
+ * Bewusst NICHT über sendWithSession: Ein 401 dort fragt die native Seite
+ * nach einer frischen Sitzung und öffnet beim Gast das Anmelde-Blatt — eine
+ * Anzeige darf das nie. Ohne Token, ohne Datenbank (lokal), bei jedem Fehler:
+ * null, und die App zeigt wie bisher den Gerätezähler. Wirft nie. */
+export async function accountCredits() {
+  try {
+    const token = await accessToken();
+    if (!token) return null;
+    const res = await fetch(`${API_BASE}/api/account`, {
+      headers: { authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => null);
+    const total = Number(data?.credits?.total);
+    return Number.isInteger(total) && total >= 0 ? total : null;
+  } catch {
+    return null;
+  }
+}
