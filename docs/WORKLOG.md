@@ -3,6 +3,38 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-06 12:45 — Hanni — Branch `session/2026-10-06-hanni-3` (PR #93) — S7 Phase 2: App zeigt den Kontostand, Film prüft gegen das Konto
+
+**Commits:** Reservierung, bb0f760 (+ Wrap).
+
+**Was:** `accountCredits()` in `src/lib/api.js` (liest `GET /api/account`,
+nur mit Token, nie über `sendWithSession` — kein Anmelde-Blatt für eine
+Anzeige). Die Brücke (`mobile/src/legacy/journal-bridge.jsx`) merkt sich
+den Kontostand je Konto (`refreshKonto`, ≤ alle 15 s, nach Bestellung
+sofort) und zeigt ihn in Profil, Bezahlblatt und Skizze (`shownCredits`).
+Film: Vorprüfung gegen das Konto, keine Geräte-Abbuchung mit Konto
+(`deviceSpend`), 402 → `nocredits` → Bezahlseite. Charakterbogen und Skizze
+bucht das Gerät mit Konto nicht mehr ab (Server noch nicht → gratis).
+Übergabe an Anton.
+
+**Warum:** TestFlight-Plan, letzter Pflichtpunkt vor dem Upload. Hanni
+hat „Anzeige + Film" gewählt (Komplett mit Server-Abbuchung für Bogen und
+Skizze erst nach TestFlight).
+
+**Belege:** 4 neue Tests (`accountCredits`), Gegenprobe über
+`sendWithSession` bricht den 401-Test; 945 Tests grün, `tsc` 0, Lint wie
+`main` (22 alte Warnungen in der Brücke). Simulator gegen den VPS: Profil
+zeigt 485 (500 − 7 − 8) statt ≥ 500 vom Gerät.
+
+**Für den Nächsten:**
+- 402 beim Film nicht live geprüft (bräuchte ein leeres Konto).
+- Erstattung erscheint in der Anzeige erst beim nächsten Wecken der
+  Brücke (≤ 15 s nach Fokus).
+- Käufe schreiben bis B1 nur dem Gerät gut — ein Sandbox-Kauf in
+  TestFlight ändert die Anzeige nicht.
+- Lokal ohne `REQUIRE_AUTH` sind Filme jetzt gratis (Server bucht nicht,
+  Gerät auch nicht mehr).
+
 ## 2026-10-06 12:10 — Hanni — Branch `session/2026-10-06-hanni-2` (PR #92) — Leuchtrand der Film-Kachel sichtbar; iPhone-Beleg „sofort antworten"
 
 **Commits:** Reservierung, 6381ca8 (+ Wrap).

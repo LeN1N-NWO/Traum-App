@@ -3,7 +3,17 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-06 mittags — Hanni, `session/2026-10-06-hanni-2` (PR #92):
+**Stand:** 2026-10-06 mittags — Hanni, `session/2026-10-06-hanni-3` (PR #93):
+**S7 Phase 2: Die App zeigt den Kontostand** (Profil, Bezahlblatt,
+Skizze) statt des Gerätezählers; der Film prüft gegen das Konto, das Gerät
+bucht mit Konto nicht mehr ab, 402 → Bezahlseite. Charakterbogen und Skizze
+sind für Angemeldete gratis, bis der Server sie abbucht. Im Simulator
+gegen den VPS belegt (485 statt ≥ 500). ⚠ Käufe schreiben bis B1 nur dem
+Gerät gut. Übergabe: `docs/uebergabe/2026-10-06-anton-s7-phase2-kontostand.md`.
+**Nächste Schritte bis TestFlight (16.10.):** Archive → Validate →
+Upload am Mi 14.10. (vorher „Clean Build Folder"), Durchlauf auf beiden
+iPhones am 15.10.; optional im Puffer B4a (Test-Guthaben auf dem Gerät
+zurück) und Produkte in App Store Connect. Davor Hanni, `session/2026-10-06-hanni-2` (PR #92):
 **Leuchtrand der Film-Kachel sichtbar** — saß in der Kachel und wurde vom
 Zuschnitt bis auf eine Haarlinie abgeschnitten; jetzt in der
 Karussell-Karte (`mobile/src/components/dream-carousel.tsx`, `Card`).
@@ -16,8 +26,7 @@ genau eine Bestellung, Server hat selbst abgeholt). ⚠ Scheitert die
 Vorbereitung, sinkt der Gerätezähler, das Konto wird erstattet — erledigt
 sich mit S7 Phase 2. Übergabe:
 `docs/uebergabe/2026-10-06-anton-sofort-antworten.md`.
-**Nächste Schritte bis TestFlight (16.10.):** S7 Phase 2 (App zeigt
-Konto-Guthaben) → Archive/Upload am Mi 14.10. → Durchlauf 15.10. Davor Hanni, `session/2026-10-05-hanni-5` (PR #88):
+Davor Hanni, `session/2026-10-05-hanni-5` (PR #88):
 **Jedes Konto hat auf dem Gerät seinen eigenen Bereich** (ADR-0009) — ein
 zweites Konto sieht keine Träume und Gesichter des ersten mehr, der erste
 Abgleich mischt keine Tagebücher. **Einwilligungs-Tor ist eine Ebene statt
@@ -33,7 +42,7 @@ Ledger-Zeile `-7 spend film-b2803d36…`. Migration
 im Editor nicht prüfbar), dabei `anon`/`authenticated` die Rechte an allen
 Geld-Funktionen entzogen. Testguthaben je 500 für Hanni und Anton.
 **Gemini-Schlüssel** auf dem VPS ersetzt — Abschrift läuft (1,2 s).
-⚠ Die App ZEIGT weiter das Geräte-Guthaben (Phase 2 — jetzt möglich, PR #88 ist da). Davor
+Die Anzeige des Kontostands (Phase 2) ist seit PR #93 gebaut. Davor
 Anton, `session/2026-10-05b-anton` (PR #90):
 **Der Server holt fertige Filme selbst ab** (Antons Entscheidung, ADR-0010)
 und hat eine Andockstelle „Auftrag fertig" für den Push; die App kann ihr
@@ -138,9 +147,8 @@ Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
   0 Besetzung), zweites Konto leer, erstes Konto bekommt 2 Träume +
   Besetzung zurück, Tor nach „Withdraw consent“ bedienbar.
   ⚠ **Nicht belegt:** Konto löschen → Bereich wird Gast (nur Unit-Test).
-- **Bewusst offen:** Credits liegen je Bereich, die App zeigt aber weiter das
-  Geräte-Guthaben — S7 Phase 2 (Kontostand vom Server anzeigen, PR #89 bucht
-  schon im Konto ab) ist der nächste Schritt. Kontowechsel während ein Film läuft — Hanni: ignorieren. Sicherungs-
+- **Bewusst offen:** Credits liegen je Bereich; angemeldet zeigt die App
+  seit PR #93 den Kontostand vom Server (S7 Phase 2). Kontowechsel während ein Film läuft — Hanni: ignorieren. Sicherungs-
   schlüssel gehört dem iCloud des Geräts (zweites Konto auf fremdem iPhone).
   Sprache beim Start alter Web-Ansichten liest kurz `dreamrushes_v1`.
 - **Testreihe:** 934 grün. ⚠ Scheitert `scripts/security-report.test.js`
