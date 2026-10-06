@@ -1866,7 +1866,7 @@ async function jobSettled(id, job) {
  *  (server-side) through that same table: the queue only validates duration
  *  at RENDER time (re-measured 09.08.2026), so a bad value burns the fee
  *  and comes back as a failed job minutes later. */
-async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, quality, poster = null, aspect }) {
+async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, quality, poster = null, aspect, jobId = null, stillWanted = null }) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("NO_FAL_KEY");
 
@@ -1881,6 +1881,11 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, q
   const refs = body[videoModel(modelId).refsField] || [];
   console.log(`[DreamRushes] video submit → ${slug}: ${(nutzlast.length / 1048576).toFixed(2)} MB, `
     + `${refs.length} Referenz(en), Prompt ${body.prompt?.length ?? 0} Zeichen, ${body.duration}s`);
+
+  /* Sofort antworten (06.10.2026): Der Auftrag existiert schon als
+     „preparing". Ist er inzwischen weg (Konto gelöscht, B8) oder schon
+     abgeschrieben (Neustart-Frist), wird nichts mehr bestellt. */
+  if (stillWanted && !(await stillWanted())) throw new Error("ORDER_CANCELLED");
 
   const res = await fetch(`https://queue.fal.run/${slug}`, {
     method: "POST",
@@ -1903,7 +1908,7 @@ async function falSubmitVideo({ modelId, imageUrl, imageUrls, prompt, seconds, q
    * hand-built path 405s, and jobStatus reads every failure as "pending",
    * so a finished film would never be collected. Found 09.08.2026 when a
    * COMPLETED render sat unclaimed behind exactly that 405. */
-  const id = genJobId();
+  const id = jobId || genJobId();
   await writeJob(id, {
     requestId: request_id, model: slug,
     statusUrl: status_url, responseUrl: response_url,
@@ -1995,9 +2000,19 @@ async function falSubmitImage({ prompt, namedRefs = [], aspectRatio = "9:16", se
   return id;
 }
 
+/* Kryptografisch statt Zeit + Math.random (06.10.2026, ARCHITEKTUR):
+   32 Hex-Zeichen, passt zu JOB_ID. Erraten bringt seit S2 ohnehin nichts. */
 function genJobId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  return crypto.randomUUID().replace(/-/g, "");
 }
+
+/* Sofort antworten (06.10.2026): Ein Filmauftrag liegt als „preparing" auf
+   der Platte, solange Regie und Bestellung im Hintergrund laufen (höchstens
+   DeepSeek 240 s + Standbild 180 s + Submit 30 s). Älter als diese Frist
+   heißt: Der Server wurde mittendrin neu gestartet, die Arbeit im Speicher
+   ist weg — dann ehrlich „gescheitert", die Erstattung folgt über
+   jobSettled (S7). */
+const PREPARING_MAX_MS = 10 * 60_000;
 
 /* Ein Auftrag wird nie zweimal gleichzeitig abgeholt (05.10.): Seit der
    Server selbst abholt (collectOpenJobs), können er und die App im selben
@@ -2016,6 +2031,12 @@ async function jobStatusFetch(id) {
   if (!job) return { status: "unknown" };
   if (job.status === "done") return { status: "done", urls: job.urls, poster: job.posterUrl || null };
   if (job.status === "failed") return { status: "failed", reason: job.reason || null };
+  if (job.status === "preparing") {
+    if (Date.now() - (job.createdAt || 0) <= PREPARING_MAX_MS) return { status: "pending" };
+    const reason = { kind: "unknown", where: null, msg: "preparation interrupted" };
+    await writeJob(id, { ...job, status: "failed", reason });
+    return { status: "failed", reason };
+  }
   /* „posting": der Film ist da, das Poster entsteht gerade (finishPoster im
      Hintergrund). Bis dahin bleibt der Auftrag offen; nach 150 s ohne
      Ergebnis kommt der Film ohne Poster — ein Poster darf keinen Film
@@ -2107,7 +2128,9 @@ async function collectOpenJobs() {
       const id = name.endsWith(".json") ? name.slice(0, -5) : "";
       if (!JOB_ID.test(id)) continue;
       const job = await readJob(id).catch(() => null);
-      if (!job || !job.model || job.status === "done" || job.status === "failed") continue;
+      // „preparing" hat noch kein model — der Abholer sieht es trotzdem an,
+      // damit die Neustart-Frist (PREPARING_MAX_MS) auch ohne App greift.
+      if (!job || (!job.model && job.status !== "preparing") || job.status === "done" || job.status === "failed") continue;
       if (!job.createdAt || Date.now() - job.createdAt > COLLECT_MAX_AGE_MS) continue;
       try {
         const r = await jobStatus(id);
@@ -2490,7 +2513,7 @@ function settleCharge({ kind, charge, quoted }) {
   return { charged: false, charge };
 }
 
-async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, quality, refImages = [], poster = null, format = "9:16" }) {
+async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, keyframe, modelId, quality, refImages = [], poster = null, format = "9:16", jobId = null, stillWanted = null }) {
   const filmPrompt = motionPrompt || prompt || dream;
   /* `refImages` kommt aus filmReferences() und steht in EXAKT der
    * Reihenfolge der Materialliste des Regisseurs — das Startbild davor
@@ -2508,12 +2531,13 @@ async function startVideo({ dream, namedRefs, prompt, motionPrompt, seconds, key
     if (!hit || !(await file.exists())) throw new Error("GENERATION_FAILED");
     const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
     const dataUri = `data:${MEDIA_MIME[hit.ext]};base64,${b64}`;
-    return falSubmitVideo({ modelId, quality, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds, poster, aspect: format });
+    return falSubmitVideo({ modelId, quality, imageUrl: dataUri, imageUrls: [dataUri, ...refImages], prompt: filmPrompt, seconds, poster, aspect: format, jobId, stillWanted });
   }
+  if (stillWanted && !(await stillWanted())) throw new Error("ORDER_CANCELLED");   // vor dem bezahlten Standbild
   const stills = await generateImages({ dream, namedRefs, prompt, aspectRatio: format });
   const first = stills[0];
   if (!first) throw new Error("GENERATION_FAILED");
-  return falSubmitVideo({ modelId, quality, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds, poster, aspect: format });
+  return falSubmitVideo({ modelId, quality, imageUrl: first, imageUrls: [first, ...refImages], prompt: filmPrompt, seconds, poster, aspect: format, jobId, stillWanted });
 }
 
 // ---- static file serving ----
@@ -3386,6 +3410,32 @@ const serveOptions = {
             ? [KEYFRAME_REF, ...kept.map((c) => ({ tag: c.tag, kind: c.category, desc: c.desc }))]
             : [];
 
+          /* Das Poster nach dem Film (Antons Ablauf 12.09.): Titel und
+             Tagline kommen vom Client (Analyse), Fremdtext wie alles andere.
+             Ohne Titel gibt es kein Poster — eine Kachel ohne Namen ist
+             keine. */
+          const posterTitle = sanitizeFragment(body.title, 80);
+          const poster = posterTitle ? { title: posterTitle, tagline: sanitizeFragment(body.tagline, 120) || "", styleId: typeof body.styleId === "string" ? body.styleId.slice(0, 40) : "ultrareal" } : null;
+
+          /* ── Sofort antworten (06.10.2026, gegen verwaiste Filme) ─────────
+             Bis hier lief alles, was schnell ist und eine Antwort braucht
+             (Prüfungen, Preis → 409, Abbuchung → 402/503). Regie und
+             Bestellung dauern 58–72 s — so lange hielt die App im Mobilfunk
+             nicht durch, der Film wurde trotzdem bestellt und bezahlt, und
+             niemand kannte seine Nummer (Befund 05.10., Übergabe
+             2026-10-05-anton-warteschlange-verwaiste-filme.md). Jetzt gibt es
+             die Nummer ZUERST: Auftrag „preparing" auf der Platte, Besitz
+             (S2) und Abbuchung (S7) vermerkt, Antwort — der Rest läuft im
+             Hintergrund in DIESELBE Auftragsdatei. Regie und Bestellung
+             selbst sind unverändert. */
+          const jobId = genJobId();
+          await writeJob(jobId, { status: "preparing", createdAt: Date.now() });
+          await claimJob(person, jobId);   // S2
+          // S7: welche Abbuchung diesen Film bezahlt hat — für die Erstattung,
+          // falls er später scheitert (jobSettled). Ab hier nie mehr sofort erstatten.
+          if (filmCharge) { await owners.noteCharge(jobId, filmCharge).catch((e) => console.error("[DreamRushes] ⚠ Abbuchung nicht vermerkt:", jobId, e?.message)); filmCharge = null; }
+
+          (async () => {
           /* Der Regisseur schreibt den Bewegungs-Prompt. Kür, nie Pflicht:
              Jeder Fehler hier — kein DeepSeek-Schlüssel, Zeitüberschreitung,
              rote @Tag-Prüfung — lässt den Film wie bisher laufen. Ein
@@ -3400,21 +3450,26 @@ const serveOptions = {
             console.error("[DreamRushes] film director skipped:", e.message);
           }
 
-          /* Das Poster nach dem Film (Antons Ablauf 12.09.): Titel und
-             Tagline kommen vom Client (Analyse), Fremdtext wie alles andere.
-             Ohne Titel gibt es kein Poster — eine Kachel ohne Namen ist
-             keine. */
-          const posterTitle = sanitizeFragment(body.title, 80);
-          const poster = posterTitle ? { title: posterTitle, tagline: sanitizeFragment(body.tagline, 120) || "", styleId: typeof body.styleId === "string" ? body.styleId.slice(0, 40) : "ultrareal" } : null;
-          const jobId = await startVideo({
+          try {
+          await startVideo({
             dream, namedRefs: cast, prompt, motionPrompt,
             seconds: body.seconds, keyframe, modelId, quality,
             refImages: kept.map((c) => c.img), poster, format: filmFormat,
+            /* Nur bestellen, solange der Auftrag noch „preparing" ist: Konto
+               gelöscht (B8 löscht die Datei) oder Neustart-Frist abgelaufen
+               → nichts bestellen, nichts zurückschreiben. */
+            jobId, stillWanted: async () => (await readJob(jobId).catch(() => null))?.status === "preparing",
           });
-          await claimJob(person, jobId);   // S2
-          // S7: welche Abbuchung diesen Film bezahlt hat — für die Erstattung,
-          // falls er später scheitert (/api/job). Ab hier nie mehr sofort erstatten.
-          if (filmCharge) { await owners.noteCharge(jobId, filmCharge).catch((e) => console.error("[DreamRushes] ⚠ Abbuchung nicht vermerkt:", jobId, e?.message)); filmCharge = null; }
+          } catch (e) {
+            if (e?.message === "ORDER_CANCELLED") return console.warn(`[DreamRushes] Auftrag ${jobId} nicht bestellt: nicht mehr offen (Konto gelöscht oder Frist abgelaufen)`);
+            console.error(`[DreamRushes] Film-Vorbereitung ${jobId} gescheitert:`, e?.message || e);
+            /* Wie früher die 502 — nur jetzt im Auftrag: Die App zeigt
+               „renderFailed" mit Grund, jobSettled erstattet (S7). */
+            const cur = await readJob(jobId).catch(() => null);
+            if (cur?.status === "preparing") await writeJob(jobId, { ...cur, status: "failed", reason: e?.reason || null });
+          }
+          })().catch((e) => console.error("[DreamRushes] ⚠ Film-Hintergrund:", jobId, e?.message || e));
+
           return json({ ok: true, jobId });
         }
         /* Der Prompt entsteht noch HIER (der Wizard schickt ihn meist
