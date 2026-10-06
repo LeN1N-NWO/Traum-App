@@ -10,7 +10,7 @@ import { PortalButton } from "@/components/portal-button";
 import { holdForRecording } from "@/lib/sound-engine";
 import { setRecording } from "@/store/recording-store";
 import { colors, fonts } from "@/theme";
-import { fetchWithSession } from "@/lib/auth";
+import { fetchWithSession, useBridgeAccount } from "@/lib/auth";
 
 /* Der Rekorder als ERSTE Ansicht des Traum-Tabs (Antons Ansage 13.09.2026):
  *
@@ -53,6 +53,16 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   const audioUrl = useRef<string | null>(null);
   const lastKey = useRef(0);
   const cancelled = useRef(false);
+  /* Gast hat gesprochen (06.10.): Aufschreiben verlangt ein Konto (es kostet,
+     S1) — fetchWithSession öffnet dafür das Anmelde-Blatt. Die Aufnahme bleibt
+     liegen; sobald ein Konto da ist, wird sie gesichert und aufgeschrieben,
+     ohne dass noch einmal getippt werden muss. */
+  const account = useBridgeAccount();
+  /* Das Konto im Moment des Scheiterns — nachgeholt wird nur, wenn sich das
+     Konto seitdem GEÄNDERT hat. Sonst liefe eine abgelaufene Sitzung (Konto
+     gesetzt, Server sagt trotzdem „signin") in eine Schleife. undefined =
+     nichts wartet. */
+  const waitingForSignIn = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     (async () => {
@@ -141,6 +151,10 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
       const res = await fetchWithSession(W!.transcribeUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ audio: `data:audio/mp4;base64,${b64}`, language }) });
       const out = await res.json().catch(() => null);
       if (cancelled.current) return;
+      if (res.status === 401 && out?.reason === "signin") {
+        waitingForSignIn.current = account ?? null;
+        setError(W?.recordSignIn ?? "Sign in to write it down."); setPhase("error"); return;
+      }
       const text = String(out?.text || "").trim();
       if (!res.ok || text.length < 8) { setError(text.length < 8 && res.ok ? (W?.recordTooShort ?? "Too short.") : (out?.error || W?.recordFailed || "Failed")); setPhase("error"); return; }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -153,7 +167,18 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     }
   }
 
-  function reset() { uri.current = null; audioUrl.current = null; setError(null); setPhase("idle"); }
+  // Angemeldet, während die Aufnahme wartet: nachsichern (der Gast-Upload
+  // scheiterte ebenfalls an S1) und aufschreiben.
+  useEffect(() => {
+    const before = waitingForSignIn.current;
+    if (before === undefined || typeof account !== "string" || account === before || phase !== "error" || !uri.current) return;
+    waitingForSignIn.current = undefined;
+    if (!audioUrl.current) upload(uri.current);
+    transcribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account, phase]);
+
+  function reset() { uri.current = null; audioUrl.current = null; waitingForSignIn.current = undefined; setError(null); setPhase("idle"); }
 
   async function discard() {
     cancelled.current = true;

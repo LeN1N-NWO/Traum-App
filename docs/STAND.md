@@ -3,7 +3,16 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-06 mittags — Hanni, `session/2026-10-06-hanni-3` (PR #93):
+**Stand:** 2026-10-06 nachmittags — Hanni, `session/2026-10-06-hanni-4` (PR #94):
+**Hängende Filme:** Scheitert die Statusabfrage bei fal, wird der Auftrag
+nach 10 min (404/401/403/405) bzw. 1 h (5xx, 429, keine Verbindung)
+`failed` und erstattet, statt ewig zu hängen (`server.js`,
+`jobStatusFetch`). **Gäste-Diktat:** übersetzter Hinweis „anmelden",
+danach automatisch aufgeschrieben (`dream-recorder.tsx`, am Gerät noch
+nicht belegt). ⚠ Server-Teil braucht `deploy.sh`. **Zielbild vor dem
+Store:** APNs, nur der Server spricht mit fal — Übergabe
+`docs/uebergabe/2026-10-06-anton-status-aufgeben.md`. Davor Hanni,
+`session/2026-10-06-hanni-3` (PR #93):
 **S7 Phase 2: Die App zeigt den Kontostand** (Profil, Bezahlblatt,
 Skizze) statt des Gerätezählers; der Film prüft gegen das Konto, das Gerät
 bucht mit Konto nicht mehr ab, 402 → Bezahlseite. Charakterbogen und Skizze

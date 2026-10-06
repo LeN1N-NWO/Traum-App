@@ -905,6 +905,7 @@ export default {
     record: "Erzähl ihn laut", recordHint: "Tipp auf den Mond und erzähl einfach. Ich schreibe mit.",
     recording: "Ich höre zu …", recordStop: "Fertig", recordDiscard: "Verwerfen", recordTranscribing: "Ich schreibe auf …",
     recordTooShort: "Das war zu kurz — noch mal.", recordFailed: "Konnte das nicht aufschreiben. Noch mal versuchen.",
+    recordSignIn: "Melde dich an, dann schreibe ich es auf — deine Aufnahme bleibt.",
     recordAgain: "Noch mal aufnehmen", yourRecording: "Deine Aufnahme",
     /* Rekorder zuerst (Antons Ansage 13.09.): aufnehmen → anhören → aufschreiben → ergänzen. */
     reviewTitle: "Hör noch mal rein", reviewHint: "Passt es? Dann schreibe ich es auf.",

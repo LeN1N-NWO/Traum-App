@@ -963,6 +963,8 @@ export default {
     record: "Tell it out loud", recordHint: "Tap the moon and just talk. I'll write along.",
     recording: "Listening…", recordStop: "Done", recordDiscard: "Discard", recordTranscribing: "Writing it down…",
     recordTooShort: "That was too short — try again.", recordFailed: "Couldn't write that down. Try again.",
+    // Gast hat gesprochen: Aufschreiben kostet, also erst anmelden — die Aufnahme bleibt.
+    recordSignIn: "Sign in and I'll write it down — your recording is kept.",
     recordAgain: "Record again", yourRecording: "Your recording",
     /* Recorder first (Anton, 13.09.): record → listen back → write it down → add to it. */
     reviewTitle: "Listen back", reviewHint: "Sounds right? Then I'll write it down.",
