@@ -3,6 +3,41 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-06 14:30 — Hanni — Branch `session/2026-10-06-hanni-4` (PR #94) — hängende Filme bei fal-Statusfehlern, Gäste-Diktat; Zielbild APNs
+
+**Commits:** 40c4133 (Reservierung), c98f23c, 78df22d, 7938392 (+ Wrap).
+
+**Was:**
+- **Hängende Filme** (`server.js`, nur `jobStatusFetch`; offener Punkt 5
+  der S7-Übergabe): Scheiterte die Statusabfrage bei fal, blieb der Auftrag
+  für immer `pending` (nie erstattet); ohne Verbindung warf sie 500 an die
+  App. Jetzt: 404/401/403/405 → nach 10 min `failed`, Störung (5xx, 429,
+  keine Verbindung) → nach 1 h `failed`, Grund „status unavailable",
+  Erstattung über `jobSettled`. `FAILED` von fal unverändert sofort.
+- **Gäste-Diktat** (`dream-recorder.tsx`): statt des englischen Servertexts
+  `recordSignIn` (en/de); nach der Anmeldung wird die Aufnahme ohne
+  erneutes Tippen nachgesichert und aufgeschrieben — nur bei Kontowechsel,
+  eine abgelaufene Sitzung läuft nicht in eine Schleife.
+- **Zielbild (Hannis Entscheidung):** Heute fragt der Server bei fal selbst
+  (Abholer) UND im Auftrag der App (`/api/job`, bis zu 8 Brücken alle 3 s)
+  — doppelt gefragt, nicht doppelt abgeholt. Vor dem Store mit APNs
+  ablösen: nur der Server spricht mit fal, Push an die App. Drossel in
+  `/api/job` bewusst nach dem 16.10. Festgehalten in der Übergabe an Anton
+  und in Hannis TestFlight-Plan.
+
+**Warum:** Kleine offene Punkte vor dem Upload (Hanni: Punkt 1 und 2).
+
+**Belege:** Nachgebauter fal-Server lokal (kein bezahlter Lauf), 10/10
+Grenzfälle; Gegenprobe mit `main` (alter Auftrag + 404 bleibt `pending`,
+ohne Verbindung 500). Regie/Prompt/Anfragekörper 0 Diff-Zeilen. 945 Tests
+grün, `tsc` 0, Lint Rekorder sauber, i18n-Form ok.
+
+**Für den Nächsten:**
+- Gäste-Diktat nicht live geprüft (Abmelden/Anmelden braucht Hannis
+  Passwort) — im Durchlauf 15.10.: abmelden, einsprechen, anmelden → Text
+  muss von selbst erscheinen.
+- Server-Teil wirkt erst nach Merge + `deploy.sh` auf dem VPS.
+
 ## 2026-10-06 12:45 — Hanni — Branch `session/2026-10-06-hanni-3` (PR #93) — S7 Phase 2: App zeigt den Kontostand, Film prüft gegen das Konto
 
 **Commits:** Reservierung, bb0f760 (+ Wrap).
