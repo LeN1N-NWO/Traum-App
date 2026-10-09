@@ -3,7 +3,18 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-06 nachmittags — Hanni, `session/2026-10-06-hanni-4` (PR #94):
+**Stand:** 2026-10-10 nachts — Anton, `session/2026-10-09-anton` (PR #96):
+**Die App im Bild der Website** — Traum-Tab mit der Galaxie, Atmen mit
+den Konturen, Mixer der Einschlafgeräusche (Ton jetzt lückenlos über
+expo-audio), **Moonweave** als Traumfänger auf der Startseite (Blätter
+statt Steine und Federn; Geschenke öffnen sich über das Siegel statt von
+selbst), Überschriften aus der Unschärfe, Journal-Lupe. **Die Startseite
+hat einen eigenen Stapel** (`mobile/src/app/(home)/`): ein Traum aus dem
+Fänger öffnet sich dort, „‹ Home" führt zurück. ⚠ **Startbild wirkt erst
+nach Hannis Prebuild** vor dem Upload am 14.10. — Übergabe
+`docs/uebergabe/2026-10-10-hanni-startbild-startseite.md`. ⚠ Am iPhone
+offen: Rauschen lückenlos im Hintergrund und nach einer Aufnahme. Davor
+2026-10-06 nachmittags Hanni, `session/2026-10-06-hanni-4` (PR #94):
 **Hängende Filme:** Scheitert die Statusabfrage bei fal, wird der Auftrag
 nach 10 min (404/401/403/405) bzw. 1 h (5xx, 429, keine Verbindung)
 `failed` und erstattet, statt ewig zu hängen (`server.js`,
@@ -129,6 +140,67 @@ für den Besitzer — wer baut, klären Hanni + Anton). Am 03.10. Anton, PR #71:
 Startseite „Der Ring mit Fäden", Geschenke nach der Zahl der Träume,
 Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
 `docs/plans/2026-09-23-app-store-pruefung.md`.**
+
+**Neu mit PR #96 (09./10.10., Anton) — die App im Bild der Website:**
+- **Vorlagen:** Antons Übergaben aus der Website
+  (`~/01_Projekte/DreamRushes-Landingpage/site/handoff/`: galaxy,
+  breathing, noise-mixer, moonweave). Das Landingpage-Briefing für GPT
+  Astra liegt im selben Ordner (außerhalb des Repos).
+- **Traumfänger = Moonweave** (`mobile/src/components/moonweave.tsx`,
+  Geometrie exakt `Moonweave.astro`, viewBox 600 × 568): zwölf Blätter,
+  ein Blatt je Traum mit Glimpse oder Film; Punkte mit Nummer (Ring 2 zählt
+  13–24), der nächste gestrichelt; 3/6/9 warm, 12 lavendel, ein Schimmer
+  wandert reihum (nur sichtbar, still bei „Bewegung reduzieren"). Siegel
+  in der Mitte: „Gift n unlocked" (ungeöffnet = `giftUnseen`) bzw. „Film
+  unlocked" (voller Ring). Darunter `n / 12`, Hinweiszeile, Geschenk-Feld
+  mit echtem Inhalt aus `giftKinds` und den vier Meilensteinen
+  (gesperrt / bereit / eingesammelt nach `giftedUpTo` / Film frei).
+  Texte `cycle.weave` (en/de), gelesen direkt aus `src/i18n` wie
+  `offline-labels.ts` (Platzhalter).
+- **Nur Neues bewegt sich:** Brücke liefert `seen` (Befehl `catcherSeen`),
+  `gifted`, `unseen`, `film` (`journal-bridge.jsx`, Typen in
+  `journal-store.ts`). Neues Blatt wächst in 1,1 s ein, Ring am Punkt,
+  Siegel taucht auf, voller Ring hellt die Mitte auf — einmal, nicht bei
+  jedem Wiederkommen.
+- **Geschenk öffnet nicht mehr von selbst** (`app/(home)/index.tsx`):
+  `GiftOpen` erst über Siegel oder „Open gift"; „Später"/Einlösen →
+  `giftSeen` wie bisher. Vergabe unverändert (`giftFor`).
+- **Voller Ring bleibt stehen** (`src/lib/dreamRing.js` `holdFull`, Test):
+  bei 12, 24 … sieht man den vollen Ring mit „Watch your film" (öffnet den
+  Ringfilm-Eintrag über `moonKey`), bis der nächste Traum Ring 2 beginnt.
+- **Geschenk-Karte** (`gift-sheet.tsx`): Siegel mit Funkeln statt
+  Edelstein, weicher Schein, auslaufende Strahlen. Serien-Seite und
+  Geschenk-Meldung: Stern statt 🎁 (Einladungen tragen noch 🎁).
+- **Startseite als Stapel** (`app/(home)/_layout.tsx`, Trigger `(home)` in
+  `app/_layout.tsx`): `(home)/night/[id]` und `(home)/night/edit` reichen
+  die Journal-Seiten durch; `journal/[id].tsx` erkennt `/night` und
+  zeigt „Home" als Zurück-Text.
+- **Vorschau** `app/profile/moonweave-preview.tsx` (Link
+  `dreamrushes://profile/moonweave-preview?n=3&gift=1`): nur Dev-Bau oder
+  `EXPO_PUBLIC_DEV_PREVIEW=1`, vergibt nichts. ⚠ Nie im TestFlight-Bau setzen.
+- **Galaxie** (`components/galaxy.tsx`): Traumportal im Traum-Tab und
+  kleines Wartebild (`mascot-loader.tsx`, statt Frosch). **Atmen**
+  (`breath.tsx`): Konturen, Drehung mit Parallaxe. **Mixer**
+  (`sound-mixer.tsx`) + **Ton** (`lib/sound-engine.ts`, expo-audio,
+  `shouldPlayInBackground`); der Rekorder setzt den Modus danach zurück.
+- **Blur-Titel** (`components/blur-in-text.tsx`, in `tab-header.tsx` und
+  `dream-recorder.tsx`): drei SVG-Ebenen je Buchstabe, keine Maske, Lage
+  aus `onTextLayout`; der normale Text liegt unsichtbar darunter, VoiceOver
+  liest die Fläche.
+- **Traum-Tab Schritt 1 ohne „Cancel"** (`wizard-header.tsx`).
+- **Startbild** (`app.json` splash `#050a14`, Breite 120,
+  `assets/images/splash-icon.png`) — ⚠ wirkt erst nach Prebuild (Hanni).
+- **Gelöscht:** `moon-ring.tsx`, `dream-stone.tsx`. **Ungenutzt:**
+  `FrogStage`, `FrogLoader` (in `mascot-loader.tsx`), Route `/profile/voice`.
+- **Anton prüft am iPhone (PR #96):** Rauschen eine Minute mehrere Farben
+  (lückenlos?), gesperrt im Hintergrund, nach einer Aufnahme; Timer;
+  Blur-Titel weich und ohne Sprung; Tipp auf gesammelten Punkt → richtiger
+  Traum, „‹ Home"; langer Druck = Film-Vorschau; Einwachsen beim nächsten
+  Traum; Schimmer zu stark/schwach? Startseite länger (Feld schiebt
+  „Record your dream" nach unten) — ggf. Feld unter den Knopf.
+- **Offen:** Wartebild statt Frosch (Ideen: Traumstein, Atem-Konturen,
+  Galaxie mit Statuszeilen); mehrere ungeöffnete Geschenke → nur das
+  jüngste gemerkt; es/fr/zh/hi/ar-Einführung spricht von Perlen/Federn.
 
 **Neu mit PR #88 (05.10. nachts, Hanni) — eigener Bereich je Konto (ADR-0009):**
 - **Speicher** (`src/lib/storage.js`): `loadState`/`saveState` arbeiten auf
@@ -419,7 +491,7 @@ Einladungen (App-Seite). **Weg durch die App-Store-Prüfung:
   (Verlagsseite, deren Datenschutz). Für Werbung: keine Wirkversprechen;
   Atemübung „the quickest way to calm" ggf. weicher.
 
-**Mit PR #79 (04.10. abends, Anton) — Traumfänger mit Edelsteinen:**
+**Mit PR #79 (04.10. abends, Anton) — Traumfänger mit Edelsteinen** — ⚠ mit PR #96 durch Moonweave ersetzt; `moon-ring.tsx` und `dream-stone.tsx` sind gelöscht, die Geschenk-Karte zeigt ein Siegel:
 - **Anlass:** Testpersonen störten die langen Federn über den Texten
   darunter; die Miniaturbilder im Netz waren nicht zu erkennen; Spule und
   Filmbild in der Mitte „sehen komisch aus". Alles in Varianten mit Anton
@@ -827,7 +899,7 @@ ersetzt (siehe oben; das Sternbild `constellation.js` ist gelöscht):
 - **Anton prüft am iPhone (PR #82):** Startseite wieder da, Traumsymbole,
   Profilkopf, ob das kurze Blitzen der Steine gefällt; bei entsperrtem
   iPhone auf der Startseite die CPU-Messung nachholen.
-- **Anton prüft am iPhone (PR #79):** Traumsteine in echter Größe und
+- **Anton prüft am iPhone (PR #79)** — überholt durch Moonweave (PR #96): Traumsteine in echter Größe und
   wie viel sie funkeln, Zahlen auf den Geschenksteinen, Herzstein, Bänder
   (liegt nichts über den Texten?), Geschenk-Vorschau als Stein; das
   Öffnen beim nächsten erreichten Geschenk. Entscheiden: 🎁 im Blatt
