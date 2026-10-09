@@ -33,7 +33,7 @@ export default function RootLayout() {
           den aktuellen Tab; ein Tipp auf die alte Stelle der anderen klappt
           die Leiste bloß wieder auf, statt zu wechseln. */}
       <NativeTabs tintColor="#8cc0ff" minimizeBehavior="never">
-        <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger name="(home)">
           <NativeTabs.Trigger.Icon sf={{ default: "moon.stars", selected: "moon.stars.fill" }} md="bedtime" />
           <NativeTabs.Trigger.Label>{L?.tabHome ?? "Home"}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>

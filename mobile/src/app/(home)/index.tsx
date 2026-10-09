@@ -77,7 +77,7 @@ export default function HomeScreen() {
     setGiftOpen(null);
     send({ type: "giftSeen" });
     if (!redeem) return;
-    if (gift.target === "journal" && gift.dreamId) router.push({ pathname: "/journal/[id]", params: { id: gift.dreamId } });
+    if (gift.target === "journal" && gift.dreamId) router.push({ pathname: "/night/[id]", params: { id: gift.dreamId } });
     else router.push("/dream");
   };
 
@@ -97,10 +97,10 @@ export default function HomeScreen() {
 
         {home ? (
           <Moonweave C={home.cycle} width={width - 32}
-            onOpen={(id) => router.push({ pathname: "/journal/[id]", params: { id } })}
+            onOpen={(id) => router.push({ pathname: "/night/[id]", params: { id } })}   // im Stapel der Startseite: „Zurück" führt hierher (10.10.)
             onGift={setPeek}
             onOpenGift={() => { if (gift) setGiftOpen(gift.nights); }}
-            onFilm={(id) => { if (id) router.push({ pathname: "/journal/[id]", params: { id } }); }}
+            onFilm={(id) => { if (id) router.push({ pathname: "/night/[id]", params: { id } }); }}
             onSeen={(n) => send({ type: "catcherSeen", value: String(n) })}
             onIntroDone={() => send({ type: "catcherIntro" })} />
         ) : <View style={{ height: (width - 32) * 568 / 600 + 300 }} />}

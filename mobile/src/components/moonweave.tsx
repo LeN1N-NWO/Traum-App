@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   Easing, FadeIn, FadeOut, ZoomIn, cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue,
-  withDelay, withRepeat, withSequence, withTiming,
+  withDelay, withRepeat, withTiming, type SharedValue,
 } from "react-native-reanimated";
 import Svg, { Circle, Defs, G, LinearGradient, Path, RadialGradient, Stop } from "react-native-svg";
 import de from "../../../src/i18n/de.js";
@@ -23,8 +23,11 @@ import { colors, fonts } from "@/theme";
  *     Traum 1 oben, Traum 12 auf elf Uhr. Die Nummern laufen über den Ring
  *     hinaus weiter (13–24 …), wie bisher (dreamRing.js).
  *   · Der nächste freie Punkt hat einen gestrichelten warmen Rand.
- *   · Geschenke bei 3, 6, 9 (ein Funkeln am Punkt), bei 12 der Sammelfilm
- *     (ein Abspielzeichen). Vergeben werden sie wie bisher — automatisch und
+ *   · Geschenke bei 3, 6, 9, bei 12 der Sammelfilm: Diese Punkte leuchten
+ *     selbst — warm, die 12 in Lavendel —, und ein leiser Schimmer wandert
+ *     reihum 3 → 6 → 9 → 12 (Antons Wunsch 10.10., statt kleiner Sterne
+ *     auf dunklen Plaketten: „sieht ein bisschen billig aus"; wie früher
+ *     die Geschenksteine besonders markiert). Vergeben werden sie wie bisher — automatisch und
  *     nie doppelt (streakBoard.js giftFor, `giftedUpTo`). „Bereit zum
  *     Öffnen" heißt hier: vergeben, aber noch nicht angesehen (`giftUnseen`);
  *     das Siegel in der Mitte öffnet die bestehende Geschenk-Karte
@@ -39,7 +42,9 @@ import { colors, fonts } from "@/theme";
  * `catcherSeen`): das neue Blatt wächst in 1,1 s ein, sein Punkt bekommt
  * einen Ring, der einmal ausläuft; ein neues Geschenk lässt das Siegel
  * auftauchen; ist der Ring voll, wird die Mitte hell. Wiederkommen spielt
- * nichts erneut ab. Bei „Bewegung reduzieren" sofort der Endstand. */
+ * nichts erneut ab. Dauerhaft bewegt sich nur der Schimmer der
+ * Geschenk-Punkte (Deckkraft nativer Ebenen, nur solange sichtbar). Bei
+ * „Bewegung reduzieren" sofort der Endstand, die Punkte leuchten still. */
 
 export const VB_W = 600, VB_H = 568;
 const CX = 300, CY = 284;
@@ -49,6 +54,7 @@ const ARC = "M292 71.2 A213 213 0 0 1 343 75.5";
 const NODE_R = 237;
 const DOT = 26;              // sichtbarer Punkt (Vorlage: 24 mobil, 28 Desktop)
 const HIT = 44;              // Tippfläche
+const GLOW = 66;             // Schein hinter den Geschenk-Punkten
 const GIFTS = [3, 6, 9, 12];
 
 const nodeXY = (i: number) => {
@@ -163,6 +169,15 @@ export function Moonweave({ C, width, ...h }: { C: HomeData["cycle"]; width: num
   const freshIdx = C.slots.map((s, i) => (s.dreamId && s.num > shownUpTo && revealed(s.num) ? i : -1)).filter((i) => i >= 0);
   const growStyle = useAnimatedStyle(() => ({ opacity: grow.value }));
 
+  /* Der Schimmer der Geschenk-Punkte: EIN Takt für alle, jeder Punkt etwas später — so wandert er reihum. */
+  const wave = useSharedValue(0);
+  useEffect(() => {
+    if (!active || reduce) { cancelAnimation(wave); return; }
+    wave.value = 0;
+    wave.value = withRepeat(withTiming(1, { duration: WAVE, easing: Easing.linear }), -1, false);
+    return () => cancelAnimation(wave);
+  }, [active, reduce, wave]);
+
   /* Ein Punkt ist ausgewählt (Tipp) — sein Blatt leuchtet leise. */
   const [selected, setSelected] = useState<number | null>(null);
   const [said, setSay] = useState<{ text: string; at: number } | null>(null);   // gilt nur für den Stand, zu dem getippt wurde
@@ -252,16 +267,12 @@ export function Moonweave({ C, width, ...h }: { C: HomeData["cycle"]; width: num
               onPressOut={() => setPeek(null)}
               style={[styles.hit, { left: x * k - HIT / 2, top: y * k - HIT / 2 }]}
               accessibilityRole="button" accessibilityLabel={T.node(s.num, state, kind)} accessibilityState={{ selected: selected === i }}>
+              {gift ? <GiftGlow wave={wave} order={(i + 1) / 3 - 1} film={i === 11} got={got} still={reduce} /> : null}
               {isFresh(s.num) && !reduce ? <Ripple /> : null}
               {selected === i ? <View style={styles.ring} /> : null}
-              <View style={[styles.dot, got && styles.dotGot, next && styles.dotNext]}>
-                <Text style={[styles.num, got && styles.numGot, next && styles.numNext, s.num > 99 && { fontSize: 9 }]} maxFontSizeMultiplier={1.2}>{s.num}</Text>
+              <View style={[styles.dot, got && styles.dotGot, gift && (i === 11 ? (got ? styles.dotFilmGot : styles.dotFilm) : (got ? styles.dotGiftGot : styles.dotGift)), next && styles.dotNext]}>
+                <Text style={[styles.num, got && styles.numGot, gift && (i === 11 ? styles.numFilm : styles.numGift), next && styles.numNext, s.num > 99 && { fontSize: 9 }]} maxFontSizeMultiplier={1.2}>{s.num}</Text>
               </View>
-              {gift ? (
-                <View style={styles.mark} pointerEvents="none">
-                  <Mark kind={i === 11 ? "play" : "spark"} size={12} width={1.1} color={got ? "#efd19e" : "#7c7182"} />
-                </View>
-              ) : null}
             </Pressable>
           );
         })}
@@ -340,6 +351,35 @@ function Seal({ W, H, label, kind, enter, delay, a11y, onPress, onLongPress }: {
         <Mark kind={kind} size={D * 0.32} width={1.5} color="#efd8ab" />
         <Text style={styles.sealText} numberOfLines={2} maxFontSizeMultiplier={1.15}>{label}</Text>
       </Pressable>
+    </Animated.View>
+  );
+}
+
+/* Das Leuchten eines Geschenk-Punkts: ein weicher Schein dahinter, der
+   aufglimmt, wenn der Schimmer vorbeikommt (3 → 6 → 9 → 12, alle 5,2 s).
+   Erreicht leuchtet er heller. Warm für Geschenke, Lavendel für den Film. */
+const WAVE = 5200, STEP = 420;
+function GiftGlow({ wave, order, film, got, still }: { wave: SharedValue<number>; order: number; film: boolean; got: boolean; still: boolean }) {
+  const base = got ? 0.55 : 0.3, peak = got ? 1 : 0.75;
+  const style = useAnimatedStyle(() => {
+    if (still) return { opacity: base, transform: [{ scale: 1 }] };
+    let ms = wave.value * WAVE - order * STEP;
+    if (ms < 0) ms += WAVE;
+    const g = ms < 900 ? Math.pow(Math.sin((Math.PI / 2) * (ms / 900)), 2) : ms < 2200 ? Math.pow(Math.cos((Math.PI / 2) * ((ms - 900) / 1300)), 2) : 0;
+    return { opacity: base + (peak - base) * g, transform: [{ scale: 1 + 0.14 * g }] };
+  });
+  const c = film ? "#d8caf6" : "#e1c99c";
+  return (
+    <Animated.View pointerEvents="none" style={[styles.glow, style]}>
+      <Svg width={GLOW} height={GLOW}>
+        <Defs>
+          <RadialGradient id={`mw-glow-${film ? "f" : "g"}`} cx="50%" cy="50%" r="50%">
+            <Stop offset="0.3" stopColor={c} stopOpacity={0.55} />
+            <Stop offset="1" stopColor={c} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Circle cx={GLOW / 2} cy={GLOW / 2} r={GLOW / 2} fill={`url(#mw-glow-${film ? "f" : "g"})`} />
+      </Svg>
     </Animated.View>
   );
 }
@@ -505,7 +545,13 @@ const styles = StyleSheet.create({
   numNext: { color: "#eed9b0" },
   ring: { position: "absolute", width: DOT + 10, height: DOT + 10, borderRadius: (DOT + 10) / 2, borderWidth: 2, borderColor: "#e1c99c" },
   ripple: { position: "absolute", width: DOT, height: DOT, borderRadius: DOT / 2, backgroundColor: "#c5b3ef" },
-  mark: { position: "absolute", right: 2, top: 2, width: 14, height: 14, borderRadius: 7, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center" },
+  glow: { position: "absolute", left: (HIT - GLOW) / 2, top: (HIT - GLOW) / 2, width: GLOW, height: GLOW },
+  dotGift: { backgroundColor: "#16131c", borderColor: "rgba(225,201,156,0.55)" },
+  dotGiftGot: { backgroundColor: "#2e2733", borderColor: "#e1c99c" },
+  dotFilm: { backgroundColor: "#15142a", borderColor: "rgba(216,202,246,0.5)" },
+  dotFilmGot: { backgroundColor: "#29263d", borderColor: "#d8caf6" },
+  numGift: { color: "#e1c99c" },
+  numFilm: { color: "#d8caf6" },
   center: { position: "absolute", width: 68, height: 68, borderRadius: 34 },
   sealHit: { alignItems: "center", justifyContent: "center", gap: 3, paddingHorizontal: 10 },
   sealText: { color: "#efd8ab", fontSize: 10.5, lineHeight: 13, textAlign: "center" },

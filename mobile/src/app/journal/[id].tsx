@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
@@ -28,6 +28,9 @@ import type { DreamItem } from "@/store/journal-store";
 export default function DreamScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  /* Von der Startseite geöffnet (/night/…, 10.10.): bleibt in deren Stapel,
+     „Zurück" heißt dann Home — sonst Journal. */
+  const fromHome = usePathname().startsWith("/night");
   const { data, bridge, send, ask } = useJournal();
   const item = data?.items.find((e) => e.id === id) ?? null;
   const [reflecting, setReflecting] = useState(false);
@@ -58,7 +61,7 @@ export default function DreamScreen() {
      einzige unumkehrbare Punkt ist. */
   function menu() {
     if (!item) return;
-    const go = (mode: string) => router.push({ pathname: "/journal/edit", params: { id: item.id, mode } });
+    const go = (mode: string) => router.push({ pathname: fromHome ? "/night/edit" : "/journal/edit", params: { id: item.id, mode } });
     const entries: [string, () => void][] = [
       // Die Teilen-Karte zuerst (13.09.2026): ein Traum als Bild, auch ohne Film.
       [labels.shareCard ?? "Share as a card", () => { Haptics.selectionAsync(); setCard(true); }],
@@ -89,7 +92,7 @@ export default function DreamScreen() {
     <>
       <Stack.Screen
         options={{
-          headerTransparent: true, headerLargeTitle: false, title: "", headerBackTitle: labels.dreams ?? "Journal",
+          headerTransparent: true, headerLargeTitle: false, title: "", headerBackTitle: fromHome ? (labels.tabHome ?? "Home") : (labels.dreams ?? "Journal"),
           headerTintColor: colors.text,
         }}
       />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { PixelRatio, Text, View, type TextStyle } from "react-native";
-import Animated, { Easing, runOnJS, useAnimatedProps, useReducedMotion, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
+import Animated, { Easing, cancelAnimation, useAnimatedProps, useReducedMotion, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
 import Svg, { Defs, FeGaussianBlur, Filter, G, Text as SvgText, TSpan } from "react-native-svg";
 import { useScreenActive } from "@/lib/use-screen-active";
 
@@ -17,12 +17,17 @@ import { useScreenActive } from "@/lib/use-screen-active";
  * ⚠ Keine Maske und kein Filterbereich, der am Wort hängt (Antons Befund
  * 10.10.: „harte Kanten, sieht billig aus"): Die erste Fassung schnitt die
  * Unschärfe mit einer Maske ab, deren Bereich an den Umrissen des Wortes
- * hing — der Schleier stieß an einen unsichtbaren Kasten. Jetzt gilt der
- * Filter für die ganze Zeichenfläche, und die ist rundum so viel größer
- * als die Schrift, dass die Unschärfe vorher ausläuft.
+ * hing. Jetzt gilt der Filter für die ganze Zeichenfläche, und die ist
+ * rundum so viel größer als die Schrift, dass die Unschärfe vorher ausläuft.
  *
- * Danach steht wieder ein normaler Text da — VoiceOver, Dynamic Type und
- * Kopieren wie immer. Bei „Bewegung reduzieren" gleich der normale Text. */
+ * ⚠ Kein Umschalten am Ende (Antons Befund 10.10.: „Tell it out loud"
+ * sprang nach dem Einblenden in die Position): SVG setzt Buchstaben-Stücke
+ * nicht exakt wie die normale Schrift — mittig verankert lag die Zeile
+ * daneben, und beim Wechsel auf den normalen Text sprang sie. Jetzt steht
+ * die SVG-Zeile genau dort, wo die normale Zeile liegt (Anfang und
+ * Grundlinie aus onTextLayout), und bleibt stehen. Der normale Text liegt
+ * unsichtbar darunter: Er hält den Platz und ist das, was VoiceOver liest.
+ * Bei „Bewegung reduzieren" nur der normale Text. */
 const AnimatedTSpan = Animated.createAnimatedComponent(TSpan);
 const WIN = 900;                                  // so lange braucht ein Buchstabe vom Schleier zur Schrift (ms)
 let seq = 0;
@@ -32,8 +37,8 @@ export function BlurInText({ text, style, align = "left", numberOfLines = 1, acc
 }) {
   const reduce = useReducedMotion();
   const active = useScreenActive();
-  const [w, setW] = useState(0);
-  const [playing, setPlaying] = useState(!reduce);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  const [line, setLine] = useState<{ x: number; base: number } | null>(null);   // wo die normale Zeile wirklich liegt
   const [id] = useState(() => `bi${++seq}`);
   const t = useSharedValue(0);                    // Zeit seit Beginn, in ms
   /* Leerzeichen als festes Leerzeichen: SVG schluckt sie sonst am Rand eines Stücks. */
@@ -41,41 +46,39 @@ export function BlurInText({ text, style, align = "left", numberOfLines = 1, acc
   const n = Math.max(1, chars.length);
   const stagger = Math.max(45, Math.min(90, 1100 / n));
   const total = WIN + stagger * (n - 1);
+  const ready = !reduce && !!box && !!line;
 
   /* Bei jedem Wiederkommen (und wenn sich der Text ändert) neu einblenden.
-     Schon beim Weggehen auf den Anfang stellen — sonst blitzt beim
-     Wiederkommen kurz die fertige Schrift auf. */
+     Beim Weggehen auf den Anfang (alles unsichtbar) — so blitzt beim
+     Wiederkommen nichts Fertiges auf. */
   useEffect(() => {
-    if (reduce) return;
-    if (!active) { setPlaying(true); t.value = 0; return; }
-    if (!w) return;
-    setPlaying(true);
+    if (!ready) return;
+    if (!active) { cancelAnimation(t); t.value = 0; return; }
     t.value = 0;
-    t.value = withTiming(total, { duration: total, easing: Easing.linear }, (done) => { if (done) runOnJS(setPlaying)(false); });
-  }, [active, text, w, reduce, total, t]);
+    t.value = withTiming(total, { duration: total, easing: Easing.linear });
+  }, [active, text, ready, total, t]);
 
   const size = (style.fontSize ?? 17) * PixelRatio.getFontScale();
-  const lineH = style.lineHeight ? style.lineHeight * PixelRatio.getFontScale() : size * 1.3;
   const PAD = Math.ceil(size * 0.75);             // Luft rundum: mehr als die Unschärfe weit reicht
-  const W = w + 2 * PAD, H = lineH + 2 * PAD;
+  const W = (box?.w ?? 0) + 2 * PAD, H = (box?.h ?? 0) + 2 * PAD;
   const heavy = size * 0.2, light = size * 0.07;
 
-  const plain = (
-    <Text style={[style, { textAlign: align }]} numberOfLines={numberOfLines} accessibilityRole={accessibilityRole}>{text}</Text>
-  );
-  const line = (layer: 0 | 1 | 2) => (
-    <SvgText x={PAD + (align === "center" ? w / 2 : 0)} y={PAD + lineH * 0.5 + size * 0.36} textAnchor={align === "center" ? "middle" : "start"}
+  const row = (layer: 0 | 1 | 2) => (
+    <SvgText x={PAD + (line?.x ?? 0)} y={PAD + (line?.base ?? 0)} textAnchor="start" letterSpacing={style.letterSpacing}
       fontFamily={style.fontFamily} fontSize={size} fontWeight={style.fontWeight as any} fill={String(style.color ?? "#fff")}>
       {chars.map((c, i) => <Glyph key={i} ch={c} at={i * stagger} layer={layer} t={t} />)}
     </SvgText>
   );
   return (
-    <View onLayout={(e) => setW(e.nativeEvent.layout.width)}>
-      {/* der normale Text hält den Platz und steht am Ende allein da */}
-      <View style={{ opacity: playing ? 0 : 1 }}>{plain}</View>
-      {playing && w > 0 ? (
-        <View pointerEvents="none" style={{ position: "absolute", left: -PAD, top: 0, width: W, bottom: 0, justifyContent: "center" }} accessible={false} importantForAccessibility="no-hide-descendants">
-          <Svg width={W} height={H} style={{ marginVertical: -PAD }}>
+    <View onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+      {...(!reduce ? { accessible: true, accessibilityRole, accessibilityLabel: text } : {})}>
+      {/* der normale Text: hält den Platz und liefert die Lage der Zeile (vorgelesen wird die Fläche darum) */}
+      <Text style={[style, { textAlign: align }, !reduce && { opacity: 0 }]} numberOfLines={numberOfLines} accessibilityRole={reduce ? accessibilityRole : undefined}
+        onTextLayout={(e) => { const l = e.nativeEvent.lines[0]; if (l) setLine({ x: l.x, base: l.y + l.ascender }); }}>{text}</Text>
+      {ready ? (
+        <View pointerEvents="none" style={{ position: "absolute", left: -PAD, top: -PAD, width: W, height: H }}
+          accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Svg width={W} height={H}>
             <Defs>
               {/* Filterbereich = die ganze Zeichenfläche, nicht das Wort */}
               <Filter id={`${id}-h`} filterUnits="userSpaceOnUse" x={0} y={0} width={W} height={H}>
@@ -85,9 +88,9 @@ export function BlurInText({ text, style, align = "left", numberOfLines = 1, acc
                 <FeGaussianBlur stdDeviation={light} />
               </Filter>
             </Defs>
-            <G filter={`url(#${id}-h)`}>{line(0)}</G>
-            <G filter={`url(#${id}-l)`}>{line(1)}</G>
-            {line(2)}
+            <G filter={`url(#${id}-h)`}>{row(0)}</G>
+            <G filter={`url(#${id}-l)`}>{row(1)}</G>
+            {row(2)}
           </Svg>
         </View>
       ) : null}
