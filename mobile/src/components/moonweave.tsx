@@ -127,7 +127,7 @@ export type WeaveHandlers = {
   onIntroDone?: () => void;
 };
 
-export function Moonweave({ C, width, ...h }: { C: HomeData["cycle"]; width: number } & WeaveHandlers) {
+export function Moonweave({ C, width, action, ...h }: { C: HomeData["cycle"]; width: number; action?: React.ReactNode } & WeaveHandlers) {
   const T = useWeaveText();
   const reduce = useReducedMotion();
   const active = useScreenActive();
@@ -289,6 +289,8 @@ export function Moonweave({ C, width, ...h }: { C: HomeData["cycle"]; width: num
         <Text style={styles.countText}>{T.collected}{C.ringNo > 1 ? `  ·  ${T.ring(C.ringNo)}` : ""}</Text>
       </View>
       <Text style={styles.hint}>{hint}</Text>
+      {/* der Platz für den Aufnahme-Knopf der Startseite — vor dem Geschenk-Feld */}
+      {action}
 
       <RewardPanel C={C} T={T} filled={filled} start={start} pending={pending} giftNo={giftNo}
         celebrate={from != null && !reduce && GIFTS.some((g) => start + g > from && start + g <= count)}

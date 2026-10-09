@@ -102,22 +102,25 @@ export default function HomeScreen() {
             onOpenGift={() => { if (gift) setGiftOpen(gift.nights); }}
             onFilm={(id) => { if (id) router.push({ pathname: "/night/[id]", params: { id } }); }}
             onSeen={(n) => send({ type: "catcherSeen", value: String(n) })}
-            onIntroDone={() => send({ type: "catcherIntro" })} />
+            onIntroDone={() => send({ type: "catcherIntro" })}
+            action={
+              /* Der Knopf gleich unter dem Fänger, vor dem Geschenk-Feld (Antons
+                 Wunsch 10.10.: er rutschte unter das Feld, aus dem ersten Bild).
+                 Die Überschrift „What did you dream?" entfällt dafür — der Satz
+                 über dem Knopf und der Knopf selbst sagen es. */
+              <View style={styles.action}>
+                {!evening && home.intention ? (
+                  <Text style={styles.intention}>{L.intentionHeading}: „{home.intention}“</Text>
+                ) : null}
+                <PrimaryButton label={L.homeCta ?? "Record your dream"} heavy onPress={() => router.push("/dream")} style={{ flex: 0, alignSelf: "stretch" }} />
+                {nightOpen ? (
+                  <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); send({ type: "blankNight" }); }} hitSlop={8} style={{ alignSelf: "center" }}>
+                    <Text style={styles.blankText}>{L.blankCta}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            } />
         ) : <View style={{ height: (width - 32) * 568 / 600 + 300 }} />}
-
-        <View style={{ alignItems: "center", gap: 6, marginTop: 6 }}>
-          <Text style={styles.title}>{L.homeTitle ?? "What did you dream?"}</Text>
-          {!evening && home?.intention ? (
-            <Text style={styles.intention}>{L.intentionHeading}: „{home.intention}“</Text>
-          ) : null}
-        </View>
-
-        <PrimaryButton label={L.homeCta ?? "Record your dream"} heavy onPress={() => router.push("/dream")} style={{ flex: 0 }} />
-        {nightOpen ? (
-          <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); send({ type: "blankNight" }); }} hitSlop={8} style={{ alignSelf: "center", marginTop: -4 }}>
-            <Text style={styles.blankText}>{L.blankCta}</Text>
-          </Pressable>
-        ) : null}
 
         {askReminder && R ? (
           <View style={styles.card}>
@@ -198,7 +201,7 @@ const styles = StyleSheet.create({
   pillRisk: { borderColor: colors.warm },
   pillText: { color: colors.gold, fontSize: 13, fontWeight: "600" },
   label: { color: colors.faint, fontSize: 11, letterSpacing: 1.6, fontWeight: "600", textTransform: "uppercase" },
-  title: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 39, color: colors.text, textAlign: "center" },
+  action: { alignSelf: "stretch", alignItems: "center", gap: 10, marginTop: 16 },
   intention: { fontFamily: fonts.serif, fontStyle: "italic", fontSize: 15, color: colors.muted, textAlign: "center", paddingHorizontal: 16 },
   line: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   lineText: { color: colors.text, fontSize: 15 },
