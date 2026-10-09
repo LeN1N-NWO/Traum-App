@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurInText } from "@/components/blur-in-text";
 import { colors, fonts } from "@/theme";
 
 /* Der Kopf der Tabs Journal, Schlaf, Profil (Antons Befunde 05.10.):
@@ -26,7 +27,8 @@ export function useTabTop() {
 export function TabTitle({ title, room = 0 }: { title: string; room?: number }) {
   return (
     <View style={[styles.titleRow, { paddingRight: room }]}>
-      <Text style={styles.title} numberOfLines={1} accessibilityRole="header">{title}</Text>
+      {/* taucht aus der Unschärfe auf, von links nach rechts (Antons Wunsch 10.10.) */}
+      <BlurInText text={title} style={styles.title} accessibilityRole="header" />
     </View>
   );
 }
