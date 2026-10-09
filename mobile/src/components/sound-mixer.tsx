@@ -1,9 +1,10 @@
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, View, type LayoutChangeEvent } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { type SharedValue, useAnimatedStyle, useFrameCallback, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { useAnimatedProps, useFrameCallback, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
 import { Glass } from "@/components/glass";
 import { getVolumes, IDS, setVolume, startTimer, subscribe, type SoundId } from "@/lib/sound-engine";
 import { useScreenActive } from "@/lib/use-screen-active";
@@ -34,10 +35,8 @@ const REGION = [1 / 6, 1 / 2, 5 / 6];                  // Mitte von Weiß, Rosa,
 const SPEED: [number, number][] = [[2.4, 3.9], [1.5, 2.3], [0.8, 1.25]];
 const WAVE_H = 150, MIN_H = 3;
 
-const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-const mix = (a: string, b: string, t: number) => { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(",")})`; };
-/* Farbe quer über die Welle: Cyan → Lavendel (.55) → warmes Braun. */
-const colorAt = (x: number) => (x < 0.55 ? mix("#9ac9f7", "#b5a3de", x / 0.55) : mix("#b5a3de", "#c6a293", (x - 0.55) / 0.45));
+const FPS = 30;                                         // langsame Bewegung — mehr Bilder braucht sie nicht
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 const TINT: Record<SoundId, string> = { white: "#9ac9f7", pink: "#b5a3de", brown: "#c6a293" };
 
 export function SoundMixer({ S, onSave }: { S: SoundsData; onSave: (mix: { volumes: Record<string, number>; timer: number; autoStart: boolean }) => void }) {
@@ -62,10 +61,17 @@ export function SoundMixer({ S, onSave }: { S: SoundsData; onSave: (mix: { volum
     lb.value = withTiming(vols.brown, { duration: 150 });
   }, [vols, lw, lp, lb]);
 
-  /* Eine Uhr für die Eigenbewegung — nur, solange etwas klingt und das Feld zu sehen ist. */
+  /* Eine Uhr für die Eigenbewegung — nur, solange etwas klingt und das
+     Feld zu sehen ist, und höchstens 30-mal je Sekunde weitergestellt
+     (10.10.: 23 Stäbe in jedem Bild belasteten den Hauptthread, auf dem
+     auch das Audio seine Schleifen weiterschaltet). */
   const t = useSharedValue(0);
+  const acc = useSharedValue(0);
   const clock = useFrameCallback((f) => {
-    t.value = (t.value + Math.min(0.05, (f.timeSincePreviousFrame ?? 16) / 1000)) % 3600;
+    acc.value += Math.min(0.1, (f.timeSincePreviousFrame ?? 16) / 1000);
+    if (acc.value < 1 / FPS) return;
+    t.value = (t.value + acc.value) % 3600;
+    acc.value = 0;
   }, false);
   const reduce = useReducedMotion();
   const visible = useScreenActive();
@@ -98,6 +104,38 @@ export function SoundMixer({ S, onSave }: { S: SoundsData; onSave: (mix: { volum
   const [w, setW] = useState(0);
   const inner = Math.max(0, w - 36);
   const step = inner / N, barW = Math.max(3, Math.min(5, step * 0.36));
+
+  /* Die ganze Welle ist EIN Pfad: je Stab ein Strich mit runden Enden.
+     Höhe aus den drei Quellen, gewichtet nach Nähe zu ihrer Region, mal
+     Grundform, mal leise Eigenbewegung (.65 … 1, feste Phasen je Stab). */
+  const geo = useMemo(() => SHAPE.map((sh, i) => {
+    const pos = (i + 0.5) / N;
+    return { x: (i + 0.5) * step, shape: 0.45 + 0.55 * (sh - 13) / 77, w: REGION.map((c) => Math.exp(-(((pos - c) / 0.13) ** 2))) };
+  }), [step]);
+  const wave = useAnimatedProps(() => {
+   /* Eine Zierwelle darf die App nie beenden (10.10.: ein Fehler in dieser
+      Funktion auf dem UI-Thread hat sie abstürzen lassen) — im Zweifel die
+      stille Grundlinie. */
+   try {
+    const lv = [lw.value, lp.value, lb.value];
+    const resp = lv.map((v) => 1 - (1 - v) * (1 - v));   // 0 → 0, 1 → 1, unten etwas großzügiger
+    const max = WAVE_H - 10, mid = WAVE_H / 2;
+    let d = "";
+    for (let i = 0; i < geo.length; i++) {
+      const g = geo[i];
+      let amp = 0;
+      for (let s = 0; s < 3; s++) {
+        // kein Array-Zerlegen im Worklet — Babel macht daraus eine Hilfsfunktion, die es auf dem UI-Thread nicht gibt (Absturz 10.10.)
+        const a = SPEED[s][0], b = SPEED[s][1];
+        const move = reduce ? 0.85 : 0.65 + 0.35 * (0.5 + 0.5 * (0.6 * Math.sin(a * t.value + i * 1.7 + s) + 0.4 * Math.sin(b * t.value + i * 0.9 + 2 * s)));
+        amp += g.w[s] * resp[s] * move;
+      }
+      const h = Math.max(0.01, (MIN_H + (max - MIN_H) * Math.min(1, amp) * g.shape) - barW);
+      d += `M${g.x.toFixed(1)} ${(mid - h / 2).toFixed(1)}L${g.x.toFixed(1)} ${(mid + h / 2).toFixed(1)}`;
+    }
+    return { d, strokeOpacity: 0.3 + 0.7 * Math.max(resp[0], resp[1], resp[2]) };
+   } catch { return { d: "", strokeOpacity: 0.3 }; }
+  }, [geo, barW, reduce]);
   const timerText = timer ? S.timerMin[timer] : S.timerOff;
   const short = S.short ?? { white: "White", pink: "Pink", brown: "Brown" };
 
@@ -108,10 +146,19 @@ export function SoundMixer({ S, onSave }: { S: SoundsData; onSave: (mix: { volum
         {/* die Welle */}
         <View style={[styles.wave, { width: inner }]} pointerEvents="none" accessible={false} importantForAccessibility="no-hide-descendants">
           <View style={styles.baseline} />
-          {inner > 0 && SHAPE.map((sh, i) => (
-            <Bar key={i} i={i} x={(i + 0.5) * step - barW / 2} width={barW} shape={0.45 + 0.55 * (sh - 13) / 77}
-              color={colorAt((i + 0.5) / N)} t={t} lv={[lw, lp, lb]} still={reduce} />
-          ))}
+          {inner > 0 ? (
+            <Svg width={inner} height={WAVE_H}>
+              <Defs>
+                {/* quer über die Welle: Cyan → Lavendel → warmes Braun */}
+                <LinearGradient id="mx-wave" x1="0" y1="0" x2={inner} y2="0" gradientUnits="userSpaceOnUse">
+                  <Stop offset="0" stopColor="#9ac9f7" />
+                  <Stop offset="0.55" stopColor="#b5a3de" />
+                  <Stop offset="1" stopColor="#c6a293" />
+                </LinearGradient>
+              </Defs>
+              <AnimatedPath animatedProps={wave} stroke="url(#mx-wave)" strokeWidth={barW} strokeLinecap="round" fill="none" />
+            </Svg>
+          ) : null}
         </View>
         {/* die drei Regler, je unter ihrer Region */}
         <View style={[styles.controls, { width: inner }]}>
@@ -136,28 +183,6 @@ export function SoundMixer({ S, onSave }: { S: SoundsData; onSave: (mix: { volum
       </Glass>
     </View>
   );
-}
-
-/* Ein Stab: Höhe aus den drei Quellen, gewichtet nach Nähe zu ihrer Region,
-   mal Grundform, mal leise Eigenbewegung (.65 … 1, feste Phasen je Stab). */
-function Bar({ i, x, width, shape, color, t, lv, still }: { i: number; x: number; width: number; shape: number; color: string; t: SharedValue<number>; lv: SharedValue<number>[]; still: boolean }) {
-  const pos = (i + 0.5) / N;
-  const weights = REGION.map((c) => Math.exp(-(((pos - c) / 0.13) ** 2)));
-  const max = WAVE_H - 10;
-  const style = useAnimatedStyle(() => {
-    let amp = 0, lit = 0;
-    for (let s = 0; s < 3; s++) {
-      const v = lv[s].value;
-      const resp = 1 - (1 - v) * (1 - v);              // 0 → 0, 1 → 1, unten etwas großzügiger
-      const [a, b] = SPEED[s];
-      const move = still ? 0.85 : 0.65 + 0.35 * (0.5 + 0.5 * (0.6 * Math.sin(a * t.value + i * 1.7 + s) + 0.4 * Math.sin(b * t.value + i * 0.9 + 2 * s)));
-      amp += weights[s] * resp * move;
-      lit += weights[s] * resp;
-    }
-    const h = MIN_H + (max - MIN_H) * Math.min(1, amp) * shape;
-    return { transform: [{ scaleY: h / max }], opacity: 0.25 + 0.75 * Math.min(1, lit) };
-  });
-  return <Animated.View style={[styles.bar, { left: x, width, height: max, top: (WAVE_H - max) / 2, borderRadius: width / 2, backgroundColor: color }, style]} />;
 }
 
 /* Ein Regler: schmale Spur, heller Knopf, Fläche in der Farbe der Quelle.
@@ -210,7 +235,6 @@ const styles = StyleSheet.create({
   panel: { marginTop: 14, borderRadius: 28, backgroundColor: "#131d2f", borderWidth: 1, borderColor: "rgba(101,121,153,0.2)", paddingTop: 30, paddingBottom: 12, alignItems: "center" },
   wave: { height: WAVE_H },
   baseline: { position: "absolute", left: 0, right: 0, top: WAVE_H / 2, height: 1, backgroundColor: "rgba(142,156,182,0.14)" },
-  bar: { position: "absolute" },
   controls: { flexDirection: "row", marginTop: 6 },
   level: { flex: 1, alignItems: "center", paddingHorizontal: 8 },
   label: { color: "#b5c3d9", fontSize: 13, fontWeight: "500" },

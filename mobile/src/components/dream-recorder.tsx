@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import { GlassButton, PrimaryButton } from "@/components/glass";
+import { BlurInText } from "@/components/blur-in-text";
 import { MascotLoader } from "@/components/mascot-loader";
 import { PortalButton } from "@/components/portal-button";
 import { holdForRecording } from "@/lib/sound-engine";
@@ -70,7 +71,8 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
       setAllowed(p.granted);
       if (!p.granted) { setError(W?.recordFailed ?? "No microphone."); setPhase("error"); }
     })();
-    return () => { setRecording(false); holdForRecording(false); setAudioModeAsync({ allowsRecording: false }).catch(() => {}); };
+    // shouldPlayInBackground bleibt an — sonst hält expo-audio die Einschlafgeräusche beim Sperren an (10.10.).
+    return () => { setRecording(false); holdForRecording(false); setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: "mixWithOthers" }).catch(() => {}); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -122,7 +124,7 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     uri.current = u;
     audioUrl.current = null;
     // Wiedergabe über den Lautsprecher: mit allowsRecording spielt iOS leise übers Ohr.
-    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => {});
+    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: "mixWithOthers" }).catch(() => {});
     upload(u);
     /* Seit 26.09. abends (Antons Ansage: „Stopp heißt: gleich weiter, die
        nächste Seite fällt weg"): kein Anhören-Zwischenschritt mehr — nach
@@ -219,7 +221,8 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
 
   return (
     <View style={styles.center}>
-      <Text style={styles.title}>{phase === "rec" ? (W?.recording ?? "Listening…") : (W?.record ?? "Tell it out loud")}</Text>
+      {/* taucht aus der Unschärfe auf, von links nach rechts (Antons Wunsch 10.10.) */}
+      <BlurInText text={phase === "rec" ? (W?.recording ?? "Listening…") : (W?.record ?? "Tell it out loud")} style={styles.title} align="center" />
       <Text style={styles.hint}>{phase === "rec" ? clock(secs) : (W?.recordHint ?? "")}</Text>
       {/* Das Traumportal ist der Knopf (Antons Wahl 04.10., vorher der Mond). */}
       <View style={[styles.stage, { width: portal, height: portal, marginVertical: -portal * 0.07 }]}>
