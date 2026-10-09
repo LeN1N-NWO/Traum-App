@@ -1,105 +1,110 @@
 import { useEffect, useState } from "react";
 import { PixelRatio, Text, View, type TextStyle } from "react-native";
-import Animated, { Easing, runOnJS, useAnimatedProps, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
-import Svg, { Defs, FeGaussianBlur, Filter, G, LinearGradient, Mask, Rect, Stop, Text as SvgText } from "react-native-svg";
+import Animated, { Easing, runOnJS, useAnimatedProps, useReducedMotion, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
+import Svg, { Defs, FeGaussianBlur, Filter, G, Text as SvgText, TSpan } from "react-native-svg";
 import { useScreenActive } from "@/lib/use-screen-active";
 
 /* Überschriften, die verträumt aus der Unschärfe auftauchen (Antons Wunsch
- * 10.10.): erst erscheint die Zeile verschwommen, dann zieht eine weiche
- * Schärfekante von links nach rechts darüber — die Schärfe folgt dem
- * Lesefluss. Jedes Mal, wenn der Bildschirm wieder nach vorn kommt.
+ * 10.10.): Buchstabe für Buchstabe, von links nach rechts — jeder kommt
+ * erst als weicher Schleier, wird dann scharf. Jedes Mal, wenn der
+ * Bildschirm wieder nach vorn kommt.
  *
- * Gebaut aus zwei SVG-Ebenen derselben Zeile: unscharf (Gauß-Filter) und
- * scharf, jede durch eine Maske, deren weiche Kante wandert. Danach steht
- * wieder ein normaler Text da — VoiceOver, Dynamic Type und Kopieren wie
- * immer. Bei „Bewegung reduzieren" gleich der normale Text. */
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
-const AnimatedG = Animated.createAnimatedComponent(G);
+ * Gebaut aus drei SVG-Ebenen derselben Zeile: stark unscharf, leicht
+ * unscharf, scharf. Jeder Buchstabe ist ein eigenes Stück (TSpan) und
+ * blendet seine drei Fassungen nacheinander über — so wird er vom Schleier
+ * zur Schrift.
+ *
+ * ⚠ Keine Maske und kein Filterbereich, der am Wort hängt (Antons Befund
+ * 10.10.: „harte Kanten, sieht billig aus"): Die erste Fassung schnitt die
+ * Unschärfe mit einer Maske ab, deren Bereich an den Umrissen des Wortes
+ * hing — der Schleier stieß an einen unsichtbaren Kasten. Jetzt gilt der
+ * Filter für die ganze Zeichenfläche, und die ist rundum so viel größer
+ * als die Schrift, dass die Unschärfe vorher ausläuft.
+ *
+ * Danach steht wieder ein normaler Text da — VoiceOver, Dynamic Type und
+ * Kopieren wie immer. Bei „Bewegung reduzieren" gleich der normale Text. */
+const AnimatedTSpan = Animated.createAnimatedComponent(TSpan);
+const WIN = 900;                                  // so lange braucht ein Buchstabe vom Schleier zur Schrift (ms)
 let seq = 0;
 
-export function BlurInText({ text, style, align = "left", duration = 1800, numberOfLines = 1, accessibilityRole }: {
-  text: string; style: TextStyle; align?: "left" | "center"; duration?: number; numberOfLines?: number; accessibilityRole?: "header";
+export function BlurInText({ text, style, align = "left", numberOfLines = 1, accessibilityRole }: {
+  text: string; style: TextStyle; align?: "left" | "center"; numberOfLines?: number; accessibilityRole?: "header";
 }) {
   const reduce = useReducedMotion();
   const active = useScreenActive();
   const [w, setW] = useState(0);
-  const [tw, setTw] = useState(0);               // Breite der Schrift selbst — die Kante läuft nur über das Wort
   const [playing, setPlaying] = useState(!reduce);
   const [id] = useState(() => `bi${++seq}`);
-  const p = useSharedValue(0);
+  const t = useSharedValue(0);                    // Zeit seit Beginn, in ms
+  /* Leerzeichen als festes Leerzeichen: SVG schluckt sie sonst am Rand eines Stücks. */
+  const chars = Array.from(text).map((c) => (c === " " ? " " : c));
+  const n = Math.max(1, chars.length);
+  const stagger = Math.max(45, Math.min(90, 1100 / n));
+  const total = WIN + stagger * (n - 1);
 
   /* Bei jedem Wiederkommen (und wenn sich der Text ändert) neu einblenden.
      Schon beim Weggehen auf den Anfang stellen — sonst blitzt beim
      Wiederkommen kurz die fertige Schrift auf. */
   useEffect(() => {
     if (reduce) return;
-    if (!active) { setPlaying(true); p.value = 0; return; }
-    if (!w || !tw) return;
+    if (!active) { setPlaying(true); t.value = 0; return; }
+    if (!w) return;
     setPlaying(true);
-    p.value = 0;
-    p.value = withTiming(1, { duration, easing: Easing.linear }, (done) => { if (done) runOnJS(setPlaying)(false); });
-  }, [active, text, w, tw, reduce, duration, p]);
+    t.value = 0;
+    t.value = withTiming(total, { duration: total, easing: Easing.linear }, (done) => { if (done) runOnJS(setPlaying)(false); });
+  }, [active, text, w, reduce, total, t]);
 
   const size = (style.fontSize ?? 17) * PixelRatio.getFontScale();
   const lineH = style.lineHeight ? style.lineHeight * PixelRatio.getFontScale() : size * 1.3;
-  const T = tw || w;
-  const PAD = Math.ceil(size * 0.9);             // Luft rundum, damit die Unschärfe nicht an der Zeichenfläche abreißt
-  const E = Math.max(30, T * 0.5);               // Breite der weichen Kante
-  const x0 = PAD + (align === "center" ? (w - T) / 2 : 0);
-  /* Erst ein Fünftel: die Zeile erscheint nur verschwommen. Dann zieht die
-     Schärfe von links nach rechts über das Wort (sanft auslaufend). */
-  const sweep = (v: number) => { "worklet"; const q = Math.max(0, Math.min(1, (v - 0.2) / 0.8)); return 1 - (1 - q) * (1 - q); };
-  const sharpX = useAnimatedProps(() => ({ x: x0 - (T + E) + sweep(p.value) * (T + E) }));
-  const softX = useAnimatedProps(() => ({ x: x0 - E + sweep(p.value) * (T + E) }));
-  const softIn = useAnimatedProps(() => ({ opacity: Math.min(1, p.value / 0.2) }));
+  const PAD = Math.ceil(size * 0.75);             // Luft rundum: mehr als die Unschärfe weit reicht
+  const W = w + 2 * PAD, H = lineH + 2 * PAD;
+  const heavy = size * 0.2, light = size * 0.07;
 
   const plain = (
-    <Text style={[style, { textAlign: align }]} numberOfLines={numberOfLines} accessibilityRole={accessibilityRole}
-      onTextLayout={(e) => setTw(Math.max(0, ...e.nativeEvent.lines.map((l) => l.width)))}>{text}</Text>
+    <Text style={[style, { textAlign: align }]} numberOfLines={numberOfLines} accessibilityRole={accessibilityRole}>{text}</Text>
+  );
+  const line = (layer: 0 | 1 | 2) => (
+    <SvgText x={PAD + (align === "center" ? w / 2 : 0)} y={PAD + lineH * 0.5 + size * 0.36} textAnchor={align === "center" ? "middle" : "start"}
+      fontFamily={style.fontFamily} fontSize={size} fontWeight={style.fontWeight as any} fill={String(style.color ?? "#fff")}>
+      {chars.map((c, i) => <Glyph key={i} ch={c} at={i * stagger} layer={layer} t={t} />)}
+    </SvgText>
   );
   return (
     <View onLayout={(e) => setW(e.nativeEvent.layout.width)}>
       {/* der normale Text hält den Platz und steht am Ende allein da */}
       <View style={{ opacity: playing ? 0 : 1 }}>{plain}</View>
       {playing && w > 0 ? (
-        <View pointerEvents="none" style={{ position: "absolute", left: -PAD, top: 0, width: w + 2 * PAD, bottom: 0, justifyContent: "center" }} accessible={false} importantForAccessibility="no-hide-descendants">
-          <Svg width={w + 2 * PAD} height={lineH + 2 * PAD} style={{ marginVertical: -PAD }}>
+        <View pointerEvents="none" style={{ position: "absolute", left: -PAD, top: 0, width: W, bottom: 0, justifyContent: "center" }} accessible={false} importantForAccessibility="no-hide-descendants">
+          <Svg width={W} height={H} style={{ marginVertical: -PAD }}>
             <Defs>
-              <LinearGradient id={`${id}-gs`} x1="0" y1="0" x2="1" y2="0">
-                <Stop offset="0" stopColor="#fff" />
-                <Stop offset={String(T / (T + E))} stopColor="#fff" />
-                <Stop offset="1" stopColor="#000" />
-              </LinearGradient>
-              <LinearGradient id={`${id}-gb`} x1="0" y1="0" x2="1" y2="0">
-                <Stop offset="0" stopColor="#000" />
-                <Stop offset={String(E / (T + E))} stopColor="#fff" />
-                <Stop offset="1" stopColor="#fff" />
-              </LinearGradient>
-              <Mask id={`${id}-ms`}>
-                <AnimatedRect animatedProps={sharpX} y={0} width={T + E} height={lineH + 2 * PAD} fill={`url(#${id}-gs)`} />
-              </Mask>
-              <Mask id={`${id}-mb`}>
-                <AnimatedRect animatedProps={softX} y={0} width={T + E} height={lineH + 2 * PAD} fill={`url(#${id}-gb)`} />
-              </Mask>
-              <Filter id={`${id}-f`} x="-50%" y="-150%" width="200%" height="400%">
-                <FeGaussianBlur stdDeviation={size * 0.14} />
+              {/* Filterbereich = die ganze Zeichenfläche, nicht das Wort */}
+              <Filter id={`${id}-h`} filterUnits="userSpaceOnUse" x={0} y={0} width={W} height={H}>
+                <FeGaussianBlur stdDeviation={heavy} />
+              </Filter>
+              <Filter id={`${id}-l`} filterUnits="userSpaceOnUse" x={0} y={0} width={W} height={H}>
+                <FeGaussianBlur stdDeviation={light} />
               </Filter>
             </Defs>
-            {/* unscharf, rechts der Kante */}
-            <AnimatedG animatedProps={softIn} mask={`url(#${id}-mb)`}>
-              <G filter={`url(#${id}-f)`}>
-                <SvgText x={PAD + (align === "center" ? w / 2 : 0)} y={PAD + lineH * 0.5 + size * 0.36} textAnchor={align === "center" ? "middle" : "start"}
-                  fontFamily={style.fontFamily} fontSize={size} fontWeight={style.fontWeight as any} fill={String(style.color ?? "#fff")}>{text}</SvgText>
-              </G>
-            </AnimatedG>
-            {/* scharf, links der Kante */}
-            <G mask={`url(#${id}-ms)`}>
-              <SvgText x={PAD + (align === "center" ? w / 2 : 0)} y={PAD + lineH * 0.5 + size * 0.36} textAnchor={align === "center" ? "middle" : "start"}
-                fontFamily={style.fontFamily} fontSize={size} fontWeight={style.fontWeight as any} fill={String(style.color ?? "#fff")}>{text}</SvgText>
-            </G>
+            <G filter={`url(#${id}-h)`}>{line(0)}</G>
+            <G filter={`url(#${id}-l)`}>{line(1)}</G>
+            {line(2)}
           </Svg>
         </View>
       ) : null}
     </View>
   );
+}
+
+/* Ein Buchstabe in einer der drei Fassungen. `u` läuft für ihn 0 → 1:
+   erst erscheint er (α), dann wird er scharf (f). Die drei Gewichte
+   ergeben zusammen immer α — stark unscharf → leicht unscharf → scharf. */
+function Glyph({ ch, at, layer, t }: { ch: string; at: number; layer: 0 | 1 | 2; t: SharedValue<number> }) {
+  const props = useAnimatedProps(() => {
+    const u = Math.max(0, Math.min(1, (t.value - at) / WIN));
+    const a0 = Math.min(1, u / 0.5), f0 = Math.max(0, (u - 0.15) / 0.85);
+    const a = a0 * a0 * (3 - 2 * a0), f = f0 * f0 * (3 - 2 * f0);
+    const wgt = layer === 0 ? a * (1 - f) * (1 - f) : layer === 1 ? a * 2 * f * (1 - f) : a * f * f;
+    return { fillOpacity: wgt };
+  });
+  return <AnimatedTSpan animatedProps={props}>{ch}</AnimatedTSpan>;
 }
