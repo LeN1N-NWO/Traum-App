@@ -32,6 +32,20 @@ test("dreams fill the clock in order; the numbers keep counting past 12", () => 
   expect(dreamRing(films(RING_SIZE)).ringNo).toBe(2);   // voll → der nächste Traum beginnt Ring 2
 });
 
+test("holdFull keeps a just-completed ring on screen until the next dream starts the new one", () => {
+  const full = dreamRing(films(RING_SIZE), { holdFull: true });
+  expect(full.ringNo).toBe(1);
+  expect(full.full).toBe(true);
+  expect(full.slots.every((s) => s.dreamId)).toBe(true);
+  expect(full.next).toBe(13);                             // die Zählung läuft trotzdem weiter
+  const after = dreamRing(films(RING_SIZE + 1), { holdFull: true });
+  expect(after.ringNo).toBe(2);
+  expect(after.full).toBe(false);
+  expect(after.slots.filter((s) => s.dreamId).map((s) => s.num)).toEqual([13]);
+  expect(dreamRing([], { holdFull: true }).ringNo).toBe(1);   // leer ist nicht voll
+  expect(dreamRing(films(2 * RING_SIZE), { holdFull: true }).ringNo).toBe(2);
+});
+
 test("threads join dreams with the same motif inside the ring", () => {
   const r = dreamRing([{ id: "a", img: null, motif: "water" }, { id: "b", img: null, motif: "fire" }, { id: "c", img: null, motif: "water" }]);
   expect(r.threads).toEqual([[1, 3, "water"]]);

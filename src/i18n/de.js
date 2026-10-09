@@ -70,9 +70,9 @@ export default {
     /* Der Traum-Ring (03.10. spätabends, dreamRing.js): Plätze wie eine Uhr. */
     /* Die Einführung im leeren Traumfänger (Antons Wunsch 04.10.). */
     intro: [
-      "Jeder Traum wird eine Perle in deinem Traumfänger.",
-      "Bei 3, 6 und 9 hängt an einer Feder ein Geschenk für dich.",
-      "Ist er voll, wird aus deinen 12 Träumen ein Film.",
+      "Jeder verfilmte Traum füllt ein Blatt deines Traumfängers.",
+      "Bei 3, 6 und 9 wartet ein Geschenk auf dich.",
+      "Sind alle 12 Blätter voll, werden deine Träume ein Film.",
     ],
     introCta: "Verstanden",
     ringCount: (n, ring) => `${n} ${n === 1 ? "Traum" : "Träume"} · Ring ${ring}`,
@@ -93,6 +93,35 @@ export default {
     filmTitle: (month, motif) => motif ? `Dein ${month} in Träumen · ${motif}` : `Dein ${month} in Träumen`,
     readyTitle: "Dein Monat als Film ist da",
     readyBody: (n) => `${n} Träume aus dem letzten Ring, als ein Film.`,
+    /* Moonweave (Antons Übergabe 10.10., mobile/src/components/moonweave.tsx). */
+    weave: {
+      title: (n) => `Traumfänger mit ${n} von 12 Träumen`,
+      collected: "/ 12 Träume gesammelt",
+      ring: (r) => `Ring ${r}`,
+      firstGift: "Dein erstes Geschenk",
+      nextGift: "Dein nächstes Geschenk",
+      film: "Dein Sammelfilm",
+      distance: (left) => `${left <= 1 ? "Noch ein Traum" : `Noch ${left} Träume`}, dann gehört es dir.`,
+      full: "Zwölf Träume. Ein Film, von uns.",
+      filmMaking: "Dein Film entsteht gerade …",
+      filmReady: "Dein Film ist fertig.",
+      watch: "Film ansehen",
+      milestone: (n) => `${n} Träume`,
+      states: { locked: "Noch zu", ready: "Bereit zum Öffnen", collected: "Eingesammelt", film: "Film frei" },
+      sealGift: (k) => `Geschenk ${k} ist da`,
+      sealFilm: "Dein Film ist frei",
+      open: (k) => `Geschenk ${k} öffnen`,
+      pending: "Ein Geschenk wartet darauf, geöffnet zu werden.",
+      node: (n, state, kind) => `Traum ${n}, ${state}${kind}`,
+      nodeStates: { collected: "gesammelt", next: "nächster Traum", empty: "noch offen" },
+      nodeKinds: { gift: ", Geschenk-Meilenstein", film: ", Sammelfilm" },
+      hint: "Jeder nummerierte Punkt hält einen Traum. Tipp, um ihn anzusehen.",
+      hintEmpty: "Dein erster verfilmter Traum füllt Blatt 1.",
+      hintFull: "Alle zwölf Träume gesammelt. Dein Film ist frei.",
+      tapNext: (leaf) => `Blatt ${leaf} ist als Nächstes dran. Mach aus deinem nächsten Traum einen Film oder Glimpse.`,
+      tapEmpty: (leaf, num) => `Blatt ${leaf} wartet auf Traum ${num}.`,
+      rewards: "Geschenke auf dem Weg durch deine Sammlung",
+    },
   },
   intention: {
     title: "Wovon willst du heute träumen?",
@@ -156,7 +185,7 @@ export default {
 
   streakBoard: {
     title: "Deine Träume",
-    gift: (n, label) => `🎁 Dein ${n}. Traum — dein Geschenk: ${label}`,
+    gift: (n, label) => `✦ Dein ${n}. Traum — dein Geschenk: ${label}`,
     giftBadge: (credits) => `+${credits} ${credits === 1 ? "Credit" : "Credits"}`,
     giftKinds: {
       glimpse: () => "Ein Glimpse geschenkt",
