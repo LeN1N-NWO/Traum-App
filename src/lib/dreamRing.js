@@ -32,13 +32,18 @@ export function nextGiftNum(count) {
 
 /**
  * Der Ring, in dem der NÄCHSTE Traum landet.
+ * `holdFull` (Moonweave, 10.10.): Ist der letzte Ring gerade voll (12, 24 …),
+ * bleibt ER zu sehen — voll, mit seinem Film —, bis der nächste Traum den
+ * neuen Ring beginnt. Die Nummern und `next` ändern sich dadurch nicht.
  * @param {Array<{id:string, img:string|null, motif:string|null}>} films  Träume mit Bild, älteste zuerst
- * @returns {{ringNo:number, start:number, next:number, slots:Array, threads:Array<[number,number,string]>, top:{motif:string,n:number}|null}}
+ * @param {{holdFull?: boolean}} [opts]
+ * @returns {{ringNo:number, start:number, next:number, full:boolean, slots:Array, threads:Array<[number,number,string]>, top:{motif:string,n:number}|null}}
  */
-export function dreamRing(films) {
+export function dreamRing(films, opts = {}) {
   const list = films || [];
   const count = list.length;
-  const ringNo = Math.floor(count / RING_SIZE) + 1;
+  const full = !!opts.holdFull && count > 0 && count % RING_SIZE === 0;
+  const ringNo = full ? count / RING_SIZE : Math.floor(count / RING_SIZE) + 1;
   const start = (ringNo - 1) * RING_SIZE;                 // Nummern start+1 … start+12
   const slots = [];
   for (let k = 1; k <= RING_SIZE; k++) {
@@ -58,7 +63,7 @@ export function dreamRing(films) {
     n.set(s.motif, (n.get(s.motif) || 0) + 1);
   }
   const [topMotif, topN] = [...n.entries()].sort((a, b) => b[1] - a[1])[0] || [];
-  return { ringNo, start, next: count + 1, slots, threads, top: topN ? { motif: topMotif, n: topN } : null };
+  return { ringNo, start, next: count + 1, full, slots, threads, top: topN ? { motif: topMotif, n: topN } : null };
 }
 
 /** Ein voller Ring, dessen Film noch fehlt — oder null.

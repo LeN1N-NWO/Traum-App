@@ -13,7 +13,6 @@ import { Clip } from "@/components/preset-tile";
 import { PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
-import { startTap } from "@/store/tap-store";
 import { type FilmFormat, patchWizard, useWizardStore } from "@/store/wizard-store";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 // Dieselbe Preisrechnung wie Wizard und Server (src/lib/quote.js, reine Logik).
@@ -75,9 +74,8 @@ export default function DreamLengthScreen() {
     return line;
   })();
 
-  /* Der Knopf wird im Moment des Drucks gemessen (Fensterkoordinaten) —
-     danach liegt der Auftragsbildschirm darüber, und der Frosch tippt auf
-     die Stelle, an der er war (components/mascot-tap.tsx). */
+  /* Der Knopf (für den Frosch-Tipp gemessen, components/mascot-tap.tsx —
+     vorerst raus, 09.10.). */
   const button = useRef<View>(null);
   /* Das Info-Blatt (26.09.): Tipp auf den Film oder Gedrückthalten einer Karte. */
   const [about, setAbout] = useState<{ title: string; model: string; info: string; clip: string } | null>(null);
@@ -98,12 +96,10 @@ export default function DreamLengthScreen() {
     if (sketching) { router.push("/dream/sketch"); return; }
     if (!affordable) { router.push({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
     patchWizard({ seconds, orderId: "o_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) });
-    const go = () => router.push("/dream/order");
-    if (!button.current) { go(); return; }
-    button.current.measureInWindow((x, y, width, height) => {
-      if (width > 0) startTap({ x, y, width, height }, label);
-      go();
-    });
+    /* Der Frosch-Tipp ist vorerst raus (Antons Ansage 09.10.: der Frosch
+       überall raus) — ohne Tipp beginnt die Feier im Auftrag sofort
+       (order.tsx). Zurückholen: Knopf messen und startTap(rect, label). */
+    router.push("/dream/order");
   }
 
   /* Die drei Karten, nach Preis (Antons Ansage 26.09.). */

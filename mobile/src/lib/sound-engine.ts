@@ -1,5 +1,5 @@
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import { File, Paths } from "expo-file-system";
-import { createVideoPlayer, type VideoPlayer } from "expo-video";
 // Dieselben Rausch-Generatoren wie im Web (reine Funktionen, src/lib/noise.js).
 import { NOISE_FILLS, SOUND_IDS } from "../../../src/lib/noise.js";
 
@@ -7,9 +7,14 @@ import { NOISE_FILLS, SOUND_IDS } from "../../../src/lib/noise.js";
  *
  * Im Web war es ein Web-Audio-Graph im Tab; in der Hülle würde der mit dem
  * Webview sterben, sobald man den Raum verlässt. Hier lebt es als Modul
- * außerhalb von React: drei Spieler (expo-video spielt auch reines Audio,
- * kein weiteres natives Paket nötig), jeder mit vier Sekunden erzeugtem
- * Rauschen in Schleife. Die WAV-Dateien entstehen einmal im Cache — kein
+ * außerhalb von React: drei Spieler, jeder mit vier Sekunden erzeugtem
+ * Rauschen in Schleife.
+ *
+ * Seit 10.10. mit expo-audio statt expo-video (Antons Befund: „man hört
+ * nur Unterbrechungen, die Töne starten neu"): expo-video wiederholt eine
+ * Schleife, indem es am Ende auf 0 zurückspringt — eine hörbare Lücke alle
+ * vier Sekunden je Farbe, länger, wenn der Hauptthread zu tun hat.
+ * expo-audio reiht die nächste Runde vorab ein (AVQueuePlayer) — lückenlos. Die WAV-Dateien entstehen einmal im Cache — kein
  * Download, keine Lizenz, wie im Web. Keine Autoplay-Regel: nativ darf
  * Klang ohne Geste anfangen, der Autostart funktioniert also wirklich.
  *
@@ -22,7 +27,7 @@ const FADE_SECONDS = 60;
 export type SoundId = "white" | "pink" | "brown";
 export const IDS = SOUND_IDS as SoundId[];
 
-const players: Partial<Record<SoundId, VideoPlayer>> = {};
+const players: Partial<Record<SoundId, AudioPlayer>> = {};
 const volumes: Record<SoundId, number> = { white: 0, pink: 0, brown: 0 };
 const listeners = new Set<() => void>();
 let ready = false;
@@ -45,15 +50,20 @@ function wavFor(id: SoundId): File {
   return file;
 }
 
+/* Spielt auch bei Stumm-Schalter und im Hintergrund, mischt sich mit
+   anderer Musik (wie vorher die expo-video-Einstellungen). Nach einer
+   Aufnahme erneut gesetzt — der Rekorder stellt die Sitzung um. */
+function audioMode() {
+  setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: "mixWithOthers" }).catch(() => {});
+}
+
 function ensure() {
   if (ready) return;
+  audioMode();
   for (const id of IDS) {
-    const p = createVideoPlayer({ uri: wavFor(id).uri });
+    const p = createAudioPlayer({ uri: wavFor(id).uri });
     p.loop = true;
     p.volume = 0;
-    p.audioMixingMode = "mixWithOthers";
-    p.staysActiveInBackground = true;
-    p.showNowPlayingNotification = false;
     players[id] = p;
   }
   ready = true;
@@ -68,6 +78,7 @@ let heldForRecording = false;
 export function holdForRecording(on: boolean) {
   if (!ready || on === heldForRecording) return;
   heldForRecording = on;
+  if (!on) audioMode();
   for (const id of IDS) { const p = players[id]; if (!p) continue; if (on) p.pause(); else if (volumes[id] > 0) p.play(); }
 }
 

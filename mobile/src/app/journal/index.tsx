@@ -25,6 +25,12 @@ export default function JournalScreen() {
   const J = data?.journal;
   const L = J?.labels ?? {};
   const [query, setQuery] = useState("");
+  /* Die Suche ist eine Lupe oben neben dem Ansicht-Knopf (Antons Befund
+     10.10.: die Leiste war „out of place"); das Feld erscheint erst beim
+     Antippen und bleibt, solange etwas drinsteht. */
+  const [searching, setSearching] = useState(false);
+  const showSearch = searching || query.length > 0;
+  const toggleSearch = () => { Haptics.selectionAsync(); if (showSearch) { setQuery(""); setSearching(false); } else setSearching(true); };
   const headerTop = useTabTop();
   const deck = (J?.view ?? "deck") !== "list";
   const items = useMemo(() => {
@@ -52,12 +58,15 @@ export default function JournalScreen() {
       <Stack.Screen options={{ headerShown: false, title: L.title ?? "Journal" }} />
       <ScrollView style={{ flex: 1, backgroundColor: "transparent" }} contentInsetAdjustmentBehavior="never" keyboardDismissMode="on-drag"
         contentContainerStyle={[styles.content, { paddingTop: headerTop }]} scrollIndicatorInsets={{ top: headerTop }}>
-        <TabTitle title={L.title ?? "Journal"} room={60} />
-        <Glass style={styles.search}>
-          <SymbolView name="magnifyingglass" size={15} tintColor={colors.faint} />
-          <TextInput value={query} onChangeText={setQuery} placeholder={L.search ?? "Search"} placeholderTextColor={colors.faint}
-            style={styles.searchInput} returnKeyType="search" clearButtonMode="while-editing" autoCorrect={false} />
-        </Glass>
+        <TabTitle title={L.title ?? "Journal"} room={104} />
+        {showSearch ? (
+          <Glass style={styles.search}>
+            <SymbolView name="magnifyingglass" size={15} tintColor={colors.faint} />
+            <TextInput value={query} onChangeText={setQuery} placeholder={L.search ?? "Search"} placeholderTextColor={colors.faint} autoFocus
+              onBlur={() => { if (!query) setSearching(false); }}
+              style={styles.searchInput} returnKeyType="search" clearButtonMode="while-editing" autoCorrect={false} />
+          </Glass>
+        ) : null}
         {J ? <Text style={styles.sub}>{count}</Text> : null}
         {items.length === 0 ? (
           <Text style={styles.empty}>{query ? L.emptySearch : L.empty}</Text>
@@ -82,6 +91,9 @@ export default function JournalScreen() {
         {J && (data?.items.length ?? 0) > 0 ? <DreamCalendar items={data!.items} blankKeys={J.blankKeys} sleep={J.sleep} sleepLevels={J.sleepLevels} labels={L} onOpen={open} /> : null}
       </ScrollView>
       <TabBar>
+        <Pressable onPress={toggleSearch} hitSlop={6} accessibilityRole="button" accessibilityLabel={L.search ?? "Search"}>
+          <Glass style={styles.viewBtn} interactive><SymbolView name={showSearch ? "xmark" : "magnifyingglass"} size={16} tintColor={colors.text} /></Glass>
+        </Pressable>
         <Pressable onPress={() => { Haptics.selectionAsync(); send({ type: "journalView", value: deck ? "list" : "deck" }); }} hitSlop={6} accessibilityRole="button">
           <Glass style={styles.viewBtn} interactive><SymbolView name={deck ? "list.bullet" : "rectangle.stack"} size={17} tintColor={colors.text} /></Glass>
         </Pressable>
@@ -106,7 +118,7 @@ function Room({ title, text, onPress, disabled }: { title: string; text: string;
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingBottom: TAB_INSET },
   sub: { color: colors.faint, fontSize: 13, marginLeft: 2, marginBottom: 4 },
-  search: { flexDirection: "row", alignItems: "center", gap: 8, height: 40, paddingHorizontal: 12, borderRadius: 12 },
+  search: { flexDirection: "row", alignItems: "center", gap: 8, height: 40, paddingHorizontal: 12, borderRadius: 12, marginBottom: 6 },
   searchInput: { flex: 1, color: colors.text, fontSize: 16, paddingVertical: 0 },
   viewBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   empty: { color: colors.muted, textAlign: "center", marginVertical: 40, fontSize: 15 },

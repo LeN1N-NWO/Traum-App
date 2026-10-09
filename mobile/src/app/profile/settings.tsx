@@ -144,7 +144,9 @@ export default function SettingsScreen() {
             {row(S.manageSubs, S.manageSubsHint, null, () => { Linking.openURL("https://apps.apple.com/account/subscriptions").catch(() => {}); })}
             {/* Erinnerungen (13.09.2026) — ganz oben unter dem Konto: der Grund, morgens zu öffnen. */}
             {data?.reminders ? row(data.reminders.labels.title, data.reminders.labels.settingsHint, null, () => router.push("/profile/reminders")) : null}
-            {row(S.voiceSetting, S.voiceSettingHint, S.voice, () => router.push("/profile/voice"))}
+            {/* „Assistant voice" ist raus (Antons Ansage 09.10.: das Feature wird
+                nicht mehr benutzt). Die Seite /profile/voice besteht noch, ist
+                aber nirgends mehr verlinkt. */}
             <Glass style={styles.row}>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={styles.label}>{S.privacy.title}</Text>

@@ -1,26 +1,25 @@
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Circle, Defs, Path, RadialGradient, Stop } from "react-native-svg";
 import Animated, {
   Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue,
   withDelay, withRepeat, withSequence, withSpring, withTiming,
 } from "react-native-reanimated";
-import { DreamStone, PrismStone, giftStoneOf } from "@/components/dream-stone";
 import { PrimaryButton } from "@/components/glass";
-import { useScreenActive } from "@/lib/use-screen-active";
+import { Mark } from "@/components/moonweave";
 import type { GiftCard, GiftReveal } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
 /* Die Geschenke der Serie (Antons Ansage 03.10.: „noch so ein Icon, wie so
  * ein Geschenk … sodass es mehr Wert diesem Credit bietet").
  *
- *   · GiftPreview — Tipp auf ein Geschenk (das nächste unter dem Ring oder
- *     ein Stein am Reif): der Geschenkstein in groß — roh, wenn noch nicht
- *     erreicht —, darunter NUR Titel, ein Satz und der Fortschritt (Antons
+ *   · GiftPreview — Tipp auf ein Geschenk (die Mitte des Traumfängers):
+ *     das Geschenk-Siegel — gedämpft, wenn noch nicht erreicht —, darunter NUR Titel, ein Satz und der Fortschritt (Antons
  *     Befund 03.10.: „muss kompakter und schneller verständlich sein").
- *   · GiftOpen — das frisch erreichte Geschenk (home.giftReveal): antippen,
- *     die rohe Schale springt, der Stein funkelt, das Guthaben zählt hoch, und gleich
+ *   · GiftOpen — das frisch erreichte Geschenk (home.giftReveal, seit
+ *     10.10. über das Siegel in der Mitte geöffnet): antippen, das Funkeln
+ *     dreht sich, Sterne fliegen, das Guthaben zählt hoch, und gleich
  *     darunter „Einlösen" — ein Geschenk, das man erst suchen muss, ist
  *     halb verschenkt.
  *
@@ -33,20 +32,20 @@ import { colors, fonts } from "@/theme";
  * Beide Karten sind Ebenen, die die Startseite als LETZTE Kinder über sich
  * legt (app/index.tsx). */
 
-/* ── Der Geschenkstein (Antons Wunsch 04.10. abends: „die jeweiligen Steine
- * in groß statt den Geschenken" — ersetzt die Traum-Schachtel). Die
- * Geschenke 3, 6, 9 sind die Steine vom Reif in groß, das Geschenk 12 ist
- * der Herzstein (components/dream-stone.tsx). Drei Phasen:
- *   idle   — noch nicht erreicht: roh und matt, wackelt alle paar Sekunden;
- *            erreicht: geschliffen und funkelnd. Der Herzstein zeigt in
- *            der Vorschau seine schon leuchtenden Keile.
- *   charge — 0,6 s: der rohe Stein zittert schneller, glüht auf, Haptik-Ticks
- *   open   — Blitz, die rohe Schale springt in Splitter, Lichtstrahlen
- *            fächern auf, der geschliffene Stein springt heraus und funkelt
- * Alles nur transform/opacity nativer Ebenen; die Steine selbst sind still. */
+/* ── Das Geschenk-Siegel (Moonweave, Antons Übergabe 10.10.: „keine
+ * Edelsteine, nur Licht" — ersetzt die Geschenksteine vom 04.10.). Eine
+ * dunkle runde Fläche mit warmem Rand, darin das Funkeln (3, 6, 9) oder
+ * das Abspielzeichen (12, der Sammelfilm) — dieselben Zeichen wie am Ring
+ * (components/moonweave.tsx). Drei Phasen:
+ *   idle   — noch nicht erreicht: kühl und gedämpft; erreicht: warm.
+ *   charge — 0,6 s: das Zeichen zittert, der Schein wird heller, Haptik-Ticks
+ *   open   — das Zeichen dreht sich einmal halb (in der Mitte 1,3-fach),
+ *            Lichtstrahlen fächern auf, kleine Sterne fliegen heraus
+ * Alles nur transform/opacity nativer Ebenen; das Siegel selbst ist still. */
 export type GiftPhase = "idle" | "charge" | "open";
 const STONE = 116;
 const STAGE_W = 200, STAGE_H = 216, CY = 92;
+const WARM = "#efd19e";
 
 function Twinkle({ x, y, s, delay }: { x: number; y: number; s: number; delay: number }) {
   const k = useSharedValue(0);
@@ -59,16 +58,13 @@ function Twinkle({ x, y, s, delay }: { x: number; y: number; s: number; delay: n
   );
 }
 
-/** Der Stein mit Bühne: Aura, Strahlen, roher und geschliffener Stein, Funkeln, Splitter.
+/** Das Siegel mit Bühne: Schein, Strahlen, Zeichen, Funkeln, Sterne.
  *  `mode` preview = Tipp auf ein Geschenk, reveal = das frisch erreichte öffnen. */
-function GiftArt({ phase, num, mode, reached = false, filled = 0 }: { phase: GiftPhase; num: number; mode: "preview" | "reveal"; reached?: boolean; filled?: number }) {
+function GiftArt({ phase, num, mode, reached = false }: { phase: GiftPhase; num: number; mode: "preview" | "reveal"; reached?: boolean; filled?: number }) {
   const reduce = useReducedMotion();
-  const live = useScreenActive();
-  const st = giftStoneOf(num);
-  // Was zu Beginn zu sehen ist: die rohe Schale oder schon der geschliffene Stein.
-  const roughFirst = mode === "reveal" || (!st.heart && !reached);
-  const rock = useSharedValue(0), glow = useSharedValue(0), rays = useSharedValue(0), spin = useSharedValue(0);
-  const rough = useSharedValue(roughFirst ? 1 : 0), cut = useSharedValue(roughFirst ? 0 : 1);
+  const film = num % 12 === 0;
+  const lit = mode === "reveal" || reached;
+  const rock = useSharedValue(0), glow = useSharedValue(0), rays = useSharedValue(0), spin = useSharedValue(0), turn = useSharedValue(0);
   useEffect(() => {
     if (reduce) return;
     glow.value = withRepeat(withTiming(1, { duration: 1700, easing: Easing.inOut(Easing.sin) }), -1, true);
@@ -77,57 +73,64 @@ function GiftArt({ phase, num, mode, reached = false, filled = 0 }: { phase: Gif
   useEffect(() => {
     if (phase === "open") {
       rock.value = withTiming(0, { duration: 60 });
-      if (reduce) { rough.value = 0; cut.value = 1; return; }
-      rough.value = withTiming(0, { duration: 200, easing: Easing.out(Easing.quad) });
-      cut.value = withDelay(90, withSpring(1, { damping: 8, stiffness: 140 }));
+      if (reduce) return;
+      turn.value = withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.quad) });
       rays.value = withSequence(withTiming(1, { duration: 380, easing: Easing.out(Easing.quad) }), withDelay(900, withTiming(0.55, { duration: 900 })));
       return;
     }
-    if (reduce || !roughFirst) return;
-    if (phase === "idle") {
-      rock.value = withRepeat(withSequence(
-        withDelay(1500, withTiming(-0.08, { duration: 90 })), withTiming(0.08, { duration: 110 }),
-        withTiming(-0.05, { duration: 100 }), withTiming(0.03, { duration: 90 }), withTiming(0, { duration: 80 }),
-      ), -1, false);
-    } else {
-      rock.value = withRepeat(withSequence(withTiming(-0.06, { duration: 45 }), withTiming(0.06, { duration: 45 })), -1, true);
-      glow.value = withTiming(1.6, { duration: 600 });
-    }
-  }, [phase, reduce, roughFirst, rock, glow, rays, rough, cut]);
+    if (reduce || phase !== "charge") return;
+    rock.value = withRepeat(withSequence(withTiming(-0.06, { duration: 45 }), withTiming(0.06, { duration: 45 })), -1, true);
+    glow.value = withTiming(1.6, { duration: 600 });
+  }, [phase, reduce, rock, glow, rays, turn]);
 
-  const shake = useAnimatedStyle(() => ({ transform: [{ rotate: `${rock.value}rad` }] }));
   const aura = useAnimatedStyle(() => ({ opacity: 0.25 + 0.3 * glow.value, transform: [{ scale: 0.95 + 0.12 * glow.value + 0.6 * rays.value }] }));
   const rayStyle = useAnimatedStyle(() => ({ opacity: rays.value, transform: [{ scale: 0.3 + 1.1 * rays.value }, { rotate: `${spin.value * 360}deg` }] }));
-  const roughStyle = useAnimatedStyle(() => ({ opacity: rough.value, transform: [{ scale: 1 + 0.35 * (1 - rough.value) }] }));
-  const cutStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, cut.value * 1.5), transform: [{ scale: 0.3 + 0.7 * cut.value }] }));
+  const emblem = useAnimatedStyle(() => ({ transform: [{ rotate: `${rock.value + turn.value * Math.PI}rad` }, { scale: 1 + 0.3 * Math.sin(turn.value * Math.PI) }] }));
   const cx = STAGE_W / 2;
-  const box = { position: "absolute" as const, left: cx - STONE / 2, top: CY - STONE / 2, width: STONE, height: STONE };
   const opened = phase === "open";
 
   return (
     <View style={{ width: STAGE_W, height: STAGE_H }} pointerEvents="none">
-      <Animated.View style={[styles.aura2, { left: cx - 80, top: CY - 80, backgroundColor: st.heart ? "rgba(246,198,91,0.22)" : `${st.pal[2]}38` }, aura]} />
+      {/* weich auslaufender Schein — keine Scheibe mit Kante */}
+      <Animated.View style={[{ position: "absolute", left: cx - 110, top: CY - 110, width: 220, height: 220 }, aura]}>
+        <Svg width={220} height={220}>
+          <Defs>
+            <RadialGradient id="gs-aura" cx="50%" cy="50%" r="50%">
+              <Stop offset="0.4" stopColor={lit ? "#e1c99c" : "#8f7bc9"} stopOpacity={0.32} />
+              <Stop offset="1" stopColor={lit ? "#e1c99c" : "#8f7bc9"} stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Circle cx={110} cy={110} r={110} fill="url(#gs-aura)" />
+        </Svg>
+      </Animated.View>
       <Animated.View style={[{ position: "absolute", left: cx - 120, top: CY - 120, width: 240, height: 240 }, rayStyle]}>
         <Svg width={240} height={240}>
+          {/* Lichtstrahlen, die nach außen auslaufen — keine Keile mit Kante */}
+          <Defs>
+            <RadialGradient id="gs-ray" gradientUnits="userSpaceOnUse" cx={120} cy={120} r={118} fx={120} fy={120}>
+              <Stop offset="0.3" stopColor={WARM} stopOpacity={0.55} />
+              <Stop offset="1" stopColor={WARM} stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
           {Array.from({ length: 14 }, (_, i) => {
-            const a = (i / 14) * Math.PI * 2, b = a + 0.09;
-            return <Path key={i} d={`M120 120 L${120 + Math.cos(a) * 118} ${120 + Math.sin(a) * 118} L${120 + Math.cos(b) * 118} ${120 + Math.sin(b) * 118}Z`} fill={i % 2 ? "#FFF3CF" : st.heart ? colors.gold : st.pal[3]} opacity={i % 2 ? 0.35 : 0.5} />;
+            const a = (i / 14) * Math.PI * 2, b = a + (i % 2 ? 0.05 : 0.09);
+            return <Path key={i} d={`M120 120 L${120 + Math.cos(a) * 118} ${120 + Math.sin(a) * 118} L${120 + Math.cos(b) * 118} ${120 + Math.sin(b) * 118}Z`} fill="url(#gs-ray)" opacity={i % 2 ? 0.6 : 1} />;
           })}
         </Svg>
       </Animated.View>
-      {/* der geschliffene Stein — erst nach dem Öffnen, oder sofort, wenn schon erreicht */}
-      <Animated.View style={[box, cutStyle]}>
-        {st.heart
-          ? <PrismStone size={STONE} filled={mode === "reveal" ? 12 : filled} live={live && (opened || !roughFirst)} />
-          : <DreamStone size={STONE} pal={st.pal} num={num} live={live && (opened || !roughFirst)} seed={st.i + 3} />}
-      </Animated.View>
-      {/* die rohe Schale — springt beim Öffnen auf */}
-      {roughFirst ? (
-        <Animated.View style={[box, shake, roughStyle]}>
-          <DreamStone size={STONE} pal={st.pal} num={st.heart ? undefined : num} rough live={false} />
+      {/* das Siegel */}
+      <View style={{ position: "absolute", left: cx - STONE / 2, top: CY - STONE / 2, width: STONE, height: STONE, alignItems: "center", justifyContent: "center" }}>
+        <Svg width={STONE} height={STONE} style={StyleSheet.absoluteFill}>
+          <Defs>
+            <RadialGradient id="gs-seal" cx="35%" cy="25%" r="80%"><Stop offset="0" stopColor={lit ? "#39313f" : "#1d2233"} /><Stop offset="1" stopColor="#131828" /></RadialGradient>
+          </Defs>
+          <Circle cx={STONE / 2} cy={STONE / 2} r={STONE / 2 - 1} fill="url(#gs-seal)" stroke={lit ? "#d7c19b" : "#5e6c85"} strokeOpacity={lit ? 0.54 : 0.4} strokeWidth={1.2} />
+        </Svg>
+        <Animated.View style={emblem}>
+          <Mark kind={film ? "play" : "spark"} size={52} width={1.8} color={lit ? WARM : "#7c7182"} />
         </Animated.View>
-      ) : null}
-      {!opened ? (
+      </View>
+      {!opened && lit ? (
         <>
           <Twinkle x={cx - 70} y={34} s={12} delay={0} />
           <Twinkle x={cx + 72} y={60} s={9} delay={500} />
@@ -135,52 +138,32 @@ function GiftArt({ phase, num, mode, reached = false, filled = 0 }: { phase: Gif
           <Twinkle x={cx - 66} y={136} s={8} delay={300} />
         </>
       ) : null}
-      {opened ? <Burst cx={cx} cy={CY} pal={st.pal} /> : null}
+      {opened && !reduce ? Array.from({ length: 16 }, (_, i) => <Flyer key={i} i={i} n={16} cx={cx} cy={CY} />) : null}
     </View>
   );
 }
 
-/* Was herausspringt: Splitter der rohen Schale und Sterne, rundum. */
-function Burst({ cx, cy, pal }: { cx: number; cy: number; pal: readonly string[] }) {
-  return (
-    <>
-      {Array.from({ length: 9 }, (_, i) => <Flyer key={`f${i}`} i={i} n={9} cx={cx} cy={cy} shard={i % 3 ? "#7A7F92" : pal[2]} />)}
-      {Array.from({ length: 16 }, (_, i) => <Flyer key={`s${i}`} i={i} n={16} cx={cx} cy={cy} />)}
-    </>
-  );
-}
-function Flyer({ i, n, cx, cy, shard }: { i: number; n: number; cx: number; cy: number; shard?: string }) {
+/* Was beim Öffnen herausfliegt: kleine Sterne, rundum. */
+function Flyer({ i, n, cx, cy }: { i: number; n: number; cx: number; cy: number }) {
   const k = useSharedValue(0);
-  const spread = shard ? 5.4 : 3.6;
-  const a = -Math.PI / 2 + (i / Math.max(1, n - 1) - 0.5) * spread + (shard ? 0 : (i % 2 ? 0.12 : -0.12));
-  const dist = shard ? 90 + (i % 3) * 24 : 80 + (i % 4) * 26;
+  const a = -Math.PI / 2 + (i / Math.max(1, n - 1) - 0.5) * 3.6 + (i % 2 ? 0.12 : -0.12);
+  const dist = 80 + (i % 4) * 26;
   useEffect(() => {
-    k.value = withDelay(shard ? 20 + i * 12 : 20 + (i % 5) * 30, withTiming(1, { duration: shard ? 1100 : 1000, easing: Easing.out(Easing.cubic) }));
-  }, [k, i, shard]);
+    k.value = withDelay(20 + (i % 5) * 30, withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) }));
+  }, [k, i]);
   const st = useAnimatedStyle(() => ({
     opacity: k.value === 0 ? 0 : k.value < 0.75 ? 1 : (1 - k.value) * 4,
     transform: [
       { translateX: Math.cos(a) * dist * k.value },
       { translateY: Math.sin(a) * dist * k.value + 60 * k.value * k.value },   // sinkt am Ende, wie geworfen
       { rotate: `${(i % 2 ? 1 : -1) * 260 * k.value}deg` },
-      { scale: shard ? 1 - 0.3 * k.value : 1.2 - 0.6 * k.value },
+      { scale: 1.2 - 0.6 * k.value },
     ],
   }));
-  if (shard) {
-    const w = 14 + (i % 3) * 4, h = 11 + (i % 2) * 4;
-    return (
-      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: cx - w / 2, top: cy - h / 2, width: w, height: h }, st]}>
-        <Svg width={w} height={h}>
-          <Path d={`M1 ${h * 0.45} L${w * 0.5} 0 L${w} ${h * 0.3} L${w * 0.82} ${h} L${w * 0.25} ${h * 0.9}Z`} fill={shard} />
-          <Path d={`M${w * 0.5} 0 L${w} ${h * 0.3} L${w * 0.55} ${h * 0.5}Z`} fill="#FFFFFF" opacity={0.25} />
-        </Svg>
-      </Animated.View>
-    );
-  }
   const s = i % 3 === 0 ? 12 : 7;
   return (
     <Animated.View pointerEvents="none" style={[{ position: "absolute", left: cx - s / 2, top: cy - s / 2, width: s, height: s }, st]}>
-      <Svg width={s} height={s}><Path d={`M${s / 2} 0 L${s * 0.6} ${s * 0.4} L${s} ${s / 2} L${s * 0.6} ${s * 0.6} L${s / 2} ${s} L${s * 0.4} ${s * 0.6} L0 ${s / 2} L${s * 0.4} ${s * 0.4}Z`} fill={i % 4 ? "#FFF3CF" : colors.gold} /></Svg>
+      <Svg width={s} height={s}><Path d={`M${s / 2} 0 L${s * 0.6} ${s * 0.4} L${s} ${s / 2} L${s * 0.6} ${s * 0.6} L${s / 2} ${s} L${s * 0.4} ${s * 0.6} L0 ${s / 2} L${s * 0.4} ${s * 0.4}Z`} fill={i % 4 ? "#FFF3CF" : WARM} /></Svg>
     </Animated.View>
   );
 }
@@ -295,7 +278,6 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(3,6,14,0.86)", alignItems: "center", justifyContent: "center", padding: 24 },
   card: { width: "100%", maxWidth: 380, alignItems: "center", gap: 8, paddingVertical: 26, paddingHorizontal: 22, borderRadius: 26, backgroundColor: "rgba(12,20,35,0.98)", borderWidth: 1, borderColor: "rgba(246,198,91,0.35)" },
   eyebrow: { color: GOLD, fontSize: 12, letterSpacing: 1.6, fontWeight: "700", textTransform: "uppercase", textAlign: "center" },
-  aura2: { position: "absolute", width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(246,198,91,0.22)" },
   burst: { position: "absolute", left: 0, right: 0, top: CY + STONE / 2 - 8, alignItems: "center" },
   burstN: { fontFamily: fonts.serif, fontSize: 44, lineHeight: 52, color: GOLD, fontVariant: ["tabular-nums"] },
   label: { color: colors.faint, fontSize: 11, letterSpacing: 1.8, fontWeight: "600", textTransform: "uppercase" },

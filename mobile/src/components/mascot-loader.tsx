@@ -1,6 +1,7 @@
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
+import { Galaxy } from "@/components/galaxy";
 
 /* Die Ladeanzeige: das Maskottchen, das sich hinlegt und schläft — in
    Schleife (MascotLoader.jsx, Antons Ansage 03.09.), nicht ein drehender
@@ -31,7 +32,22 @@ import { StyleSheet, View } from "react-native";
    HEVC-Alpha nicht (siehe mascot-tap.tsx) — dort bräuchte es VP9/WebM. */
 const idle = require("../../assets/mascots/frog-idle.mov");
 
+/* Vorerst OHNE Frosch (Antons Ansage 09.10.: „überall, wo der Frosch drin
+   ist, nehmen wir ihn erst mal raus"). An seiner Stelle dreht sich eine
+   kleine Galaxie — dieselbe wie hinter dem Aufnahmeknopf, nur zehnmal so
+   schnell (eine Umdrehung in 14 s), damit man sieht, dass etwas passiert.
+   Platzhalter, bis eine eigene Warte-Animation entschieden ist; der
+   Frosch steht unten als FrogLoader bereit. */
 export function MascotLoader({ size = 180 }: { size?: number }) {
+  return (
+    <View style={{ width: size, height: size }} pointerEvents="none">
+      {/* Scheibe etwa so breit wie der Kasten */}
+      <Galaxy size={size} scale={0.7} speed={10} />
+    </View>
+  );
+}
+
+export function FrogLoader({ size = 180 }: { size?: number }) {
   const player = useVideoPlayer(idle, (p) => { p.loop = true; p.muted = true; p.play(); });
   useEffect(() => { player.loop = true; player.muted = true; player.play(); }, [player]);
   return (

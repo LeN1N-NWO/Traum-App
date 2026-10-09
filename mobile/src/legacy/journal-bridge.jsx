@@ -238,7 +238,8 @@ function snapshot() {
     cycle: (() => {
       const C = t.cycle;
       const G = t.streakBoard.giftSheet;
-      const ring = dreamRing(filmDreams);
+      // Moonweave (10.10.): ein gerade voller Ring bleibt voll zu sehen, bis Traum 13, 25 … kommt.
+      const ring = dreamRing(filmDreams, { holdFull: true });
       const label = (id) => (id ? t.symbols.byId[id]?.label || id : null);
       const symbolGroup = new Map(SYMBOLS.map((x) => [x.id, x.category]));
       const ringCard = (num) => {
@@ -272,6 +273,16 @@ function snapshot() {
         /* Die Einführung, solange noch kein Traum im Fänger ist und sie nie
            bestätigt wurde (Befehl `catcherIntro`). */
         intro: { steps: C.intro, cta: C.introCta, auto: count === 0 && !s.catcherIntroSeen },
+        /* Moonweave (Antons Übergabe 10.10.): bis zu welchem Traum die
+           Startseite die Blätter schon gezeigt hat (neue wachsen einmal
+           sichtbar ein — Befehl `catcherSeen`), bis zu welchem Platz die
+           Geschenke vergeben sind (streakBoard.js giftFor, `giftedUpTo`),
+           welches noch ungeöffnet ist (`giftUnseen`) und — ist der Ring voll —
+           sein Film, sobald das iPhone ihn gemacht hat (runMoonFilm). */
+        seen: Number.isFinite(s.catcherSeen) ? s.catcherSeen : null,
+        gifted: Number.isFinite(s.giftedUpTo) ? s.giftedUpTo : Math.max(0, ...(Array.isArray(s.streakGifts) ? s.streakGifts : []).filter((n) => n % QUARTER === 0)),
+        unseen: s.giftUnseen?.nights ?? null,
+        film: ring.full ? { id: (s.journal || []).find((e) => isMoonFilm(e) && e.moonKey === `ring-${ring.ringNo}`)?.id ?? null } : null,
         countLine: C.ringCount(count, ring.ringNo),
         line: nextGift ? nextGift.say : C.nextSlot(ring.next),
         thread: ring.top && ring.top.n > 1 ? C.thread(label(ring.top.motif), ring.top.n) : "",
@@ -361,7 +372,7 @@ function snapshot() {
        gespeicherte Mischung. Der Browser-Hinweis zum Autostart entfällt —
        nativ startet der Klang ohne Geste. */
     sounds: {
-      lede: t.sleep.sounds.lede, names: t.sleep.sounds.names, descs: t.sleep.sounds.descs,
+      lede: t.sleep.sounds.lede, names: t.sleep.sounds.names, descs: t.sleep.sounds.descs, short: t.sleep.sounds.short,
       timer: t.sleep.sounds.timer, timerOff: t.sleep.sounds.timerOff,
       timerMin: Object.fromEntries([15, 30, 60].map((m) => [m, t.sleep.sounds.timerMin(m)])),
       autoStart: t.sleep.sounds.autoStart, background: t.sleep.sounds.background,
@@ -1331,6 +1342,7 @@ function run(cmd) {
   else if (cmd.type === "intention") patch = { intention: String(cmd.text || "").trim() ? { text: String(cmd.text).trim().slice(0, 140), at: new Date().toISOString() } : null };
   else if (cmd.type === "giftSeen") patch = { giftUnseen: null };
   else if (cmd.type === "catcherIntro") patch = { catcherIntroSeen: true };
+  else if (cmd.type === "catcherSeen") { const n = Number(cmd.value); if (Number.isFinite(n) && n >= 0) patch = { catcherSeen: n }; }
   else if (cmd.type === "refreshStreak") { /* seit 28.09. aus dem Journal gerechnet — nichts zu speichern */ }
   else if (cmd.type === "journalView") patch = { journalView: cmd.value === "list" ? "list" : "deck" };
   else if (cmd.type === "soundMix") patch = { soundMix: { ...(s.soundMix || {}), ...(cmd.mix || {}) } };

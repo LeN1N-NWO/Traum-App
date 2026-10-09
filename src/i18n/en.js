@@ -81,9 +81,9 @@ export default {
     /* Der Traum-Ring (03.10. spätabends, dreamRing.js): Plätze wie eine Uhr. */
     /* Die Einführung im leeren Traumfänger (Antons Wunsch 04.10.). */
     intro: [
-      "Every dream becomes a bead in your dreamcatcher.",
-      "At 3, 6 and 9 a feather holds a gift for you.",
-      "When it's full, your 12 dreams become one film.",
+      "Every filmed dream fills one leaf of your dreamcatcher.",
+      "At 3, 6 and 9 a gift waits for you.",
+      "When all 12 leaves are full, your dreams become one film.",
     ],
     introCta: "Got it",
     ringCount: (n, ring) => `${n} ${n === 1 ? "dream" : "dreams"} · ring ${ring}`,
@@ -104,6 +104,36 @@ export default {
     filmTitle: (month, motif) => motif ? `Your ${month} in dreams · ${motif}` : `Your ${month} in dreams`,
     readyTitle: "Your month as a film is here",
     readyBody: (n) => `${n} dreams from the last ring, as one film.`,
+    /* Moonweave (Antons Übergabe 10.10., mobile/src/components/moonweave.tsx):
+       ein Blatt je Traum, Geschenke bei 3, 6, 9, der Film bei 12. */
+    weave: {
+      title: (n) => `Dreamcatcher with ${n} of 12 dreams`,
+      collected: "/ 12 dreams collected",
+      ring: (r) => `Ring ${r}`,
+      firstGift: "Your first gift",
+      nextGift: "Your next gift",
+      film: "Your collection film",
+      distance: (left) => `${left <= 1 ? "One more dream" : `${left} more dreams`} to unlock it.`,
+      full: "Twelve dreams. One film, on us.",
+      filmMaking: "Your film is being made …",
+      filmReady: "Your film is ready.",
+      watch: "Watch your film",
+      milestone: (n) => `${n} dreams`,
+      states: { locked: "Locked", ready: "Ready to open", collected: "Collected", film: "Film unlocked" },
+      sealGift: (k) => `Gift ${k} unlocked`,
+      sealFilm: "Film unlocked",
+      open: (k) => `Open gift ${k}`,
+      pending: "You have a gift ready to open.",
+      node: (n, state, kind) => `Dream ${n}, ${state}${kind}`,
+      nodeStates: { collected: "collected", next: "next dream", empty: "not collected" },
+      nodeKinds: { gift: ", gift milestone", film: ", collection film" },
+      hint: "Each numbered point holds one dream. Tap to explore.",
+      hintEmpty: "Your first filmed dream will fill leaf 1.",
+      hintFull: "All twelve dreams collected. Your film is unlocked.",
+      tapNext: (leaf) => `Leaf ${leaf} is next. Turn your next dream into a film or Glimpse to fill it.`,
+      tapEmpty: (leaf, num) => `Leaf ${leaf} is waiting for dream ${num}.`,
+      rewards: "Rewards along your dream collection",
+    },
   },
   intention: {
     title: "What would you like to dream about?",
@@ -176,7 +206,7 @@ export default {
        ein Credit ist ein Bild, keine Konfetti-Kanone. */
     /* Seit 03.10. (Antons Ansage „ein Credit klingt nach gar nichts"):
        Geschenke heißen nach dem, was man damit macht. */
-    gift: (n, label) => `🎁 Dream no. ${n} — your gift: ${label}`,
+    gift: (n, label) => `✦ Dream no. ${n} — your gift: ${label}`,
     giftBadge: (credits) => `+${credits} ${credits === 1 ? "credit" : "credits"}`,
     giftKinds: {
       glimpse: () => "A free Glimpse",
@@ -1333,6 +1363,8 @@ export default {
             "until you stop them — and keep playing while you use the rest of the app.",
       names: { white: "White noise", pink: "Pink noise", brown: "Brown noise" },
       descs: { white: "bright static, masks everything", pink: "like steady rain", brown: "like a far-off ocean" },
+      /* Kurz, für die Regler unter der Welle (09.10.). */
+      short: { white: "White", pink: "Pink", brown: "Brown" },
       /* Der Einschlaf-Timer. „Fade out after" statt „Stop after": Er hört
          nicht auf, er wird leiser — und genau das ist der Unterschied
          zwischen Einschlafen und Aufwachen. */

@@ -1,94 +1,183 @@
 import * as Haptics from "expo-haptics";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { AccessibilityInfo, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useFrameCallback, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import Svg, { Circle, Defs, LinearGradient, RadialGradient, Rect, Stop } from "react-native-svg";
 import { PrimaryButton } from "@/components/glass";
-import { colors, fonts } from "@/theme";
+import { useScreenActive } from "@/lib/use-screen-active";
+import { colors } from "@/theme";
 
 /* Der Atem (13.09.2026, Gratis-Feature aus der Analyse „Warum die App
- * scheitern kann", §2): die 4-7-8-Übung, die als Text in der Checkliste
- * stand, als geführte Minute. Einatmen 4 s — der Kreis wächst; halten 7 s —
- * er leuchtet; ausatmen 8 s — er sinkt. Vier Runden, eine sanfte Haptik je
- * Wechsel, damit es mit geschlossenen Augen geht. */
+ * scheitern kann", §2): die 4-7-8-Übung als geführte Minute — vier
+ * Runden, eine sanfte Haptik je Wechsel, damit es mit geschlossenen Augen
+ * geht.
+ *
+ * Seit 09.10. im Bild der Website (Antons Wahl; Vorlage
+ * DreamRushes-Landingpage/site/handoff/breathing-for-claude): vier
+ * abgerundete Quadrate, gegeneinander verdreht, Cyan → Lavendel, um eine
+ * dunkle Scheibe. Einatmen 4 s — alles wächst gemeinsam (.78 → 1.10),
+ * halten 7 s — bleibt groß, ausatmen 8 s — sinkt zurück. Dabei drehen
+ * sich die Konturen leicht mit, vorn mehr als hinten (Parallaxe, siehe
+ * CONTOURS) — nie frei, immer im Takt des Atems.
+ *
+ * EINE Uhr: Größe, Phase, Text, Haptik und Rundenzahl kommen alle aus
+ * derselben verstrichenen Zeit (Bilduhr auf dem UI-Thread). Sie hält an,
+ * wenn der Tab oder die App nicht zu sehen ist, und läuft danach ohne
+ * Sprung weiter. Bei „Bewegung reduzieren" stehen die Konturen still,
+ * Text, Zeit und Haptik laufen weiter. */
 type Phase = "in" | "hold" | "out";
-const STEPS: { phase: Phase; seconds: number }[] = [
-  { phase: "in", seconds: 4 },
-  { phase: "hold", seconds: 7 },
-  { phase: "out", seconds: 8 },
-];
+const CYCLE = 19;                                  // 4 + 7 + 8 Sekunden
+const REST = 0.78, FULL = 1.1;
+const phaseAt = (u: number): Phase => (u < 4 ? "in" : u < 11 ? "hold" : "out");
+
+/* Vorlage: viewBox 0 0 340 310, gemeinsame Mitte (170, 154).
+   Dazu (Antons Wunsch 09.10.): Jede Kontur dreht sich mit dem Atem ein
+   wenig — beim Einatmen im Uhrzeigersinn, beim Ausatmen zurück. Die
+   großen hinten nur ein paar Grad, die kleinen vorn mehr (`turn`), und
+   jede folgt dem Atem ein bisschen anders (`lag`, Kurve statt Zeitversatz:
+   vorn eilt vor, hinten hängt nach) — so entsteht Tiefe, eine Parallaxe. */
+const CONTOURS = [116, 101, 86, 71].map((r, i) => ({ r, rot: i * 12 - 18, o: 0.2 + i * 0.2, turn: [4, 6.5, 9, 11.5][i], lag: [1.45, 1.2, 1, 0.82][i] }));
+const VB_W = 340, VB_H = 310, CX = 170, CY = 154;
+/* Der Kasten der wachsenden Gruppe: ein Quadrat um die Mitte. */
+const BOX = 300;
 
 export function Breath({ L, rounds = 4 }: { L: Record<string, any>; rounds?: number }) {
   const [running, setRunning] = useState(false);
-  const [round, setRound] = useState(0);
-  const [step, setStep] = useState(0);
-  const [left, setLeft] = useState(0);
   const [done, setDone] = useState(false);
-  const scale = useSharedValue(0.55);
-  const glow = useSharedValue(0);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [sec, setSec] = useState(0);              // volle Sekunden seit dem Start
+  const last = useRef("");                        // zuletzt gemeldete Runde:Phase — nie doppelt tippen
 
-  useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
+  const elapsed = useSharedValue(0);
+  const scale = useSharedValue(REST);
+  const reduce = useReducedMotion();
+  const active = useScreenActive();
+  const clock = useFrameCallback((f) => {
+    // höchstens 0,1 s je Bild — nach einer Pause wird nichts übersprungen
+    const dt = Math.min(0.1, (f.timeSincePreviousFrame ?? 16) / 1000);
+    elapsed.value += dt;
+    const u = elapsed.value % CYCLE;
+    const ease = (x: number) => (1 - Math.cos(Math.PI * x)) / 2;
+    scale.value = reduce ? REST
+      : u < 4 ? REST + (FULL - REST) * ease(u / 4)
+      : u < 11 ? FULL
+      : FULL - (FULL - REST) * ease((u - 11) / 8);
+  }, false);
+  useEffect(() => { clock.setActive(running && active); }, [running, active, clock]);
+  useAnimatedReaction(() => Math.floor(elapsed.value), (s, prev) => { if (s !== prev) runOnJS(setSec)(s); });
 
-  function run(r: number, s: number) {
-    const cur = STEPS[s];
-    setRound(r); setStep(s); setLeft(cur.seconds);
-    Haptics.impactAsync(cur.phase === "hold" ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Soft);
-    const ms = cur.seconds * 1000;
-    if (cur.phase === "in") { scale.value = withTiming(1, { duration: ms, easing: Easing.inOut(Easing.sin) }); glow.value = withTiming(0.4, { duration: ms }); }
-    if (cur.phase === "hold") { glow.value = withTiming(1, { duration: 900 }); }
-    if (cur.phase === "out") { scale.value = withTiming(0.55, { duration: ms, easing: Easing.inOut(Easing.sin) }); glow.value = withTiming(0, { duration: ms }); }
-    let n = cur.seconds;
-    if (timer.current) clearInterval(timer.current);
-    timer.current = setInterval(() => {
-      n -= 1;
-      if (n > 0) { setLeft(n); return; }
-      clearInterval(timer.current!);
-      const nextStep = (s + 1) % STEPS.length;
-      const nextRound = nextStep === 0 ? r + 1 : r;
-      if (nextRound >= rounds) { finish(true); return; }
-      run(nextRound, nextStep);
-    }, 1000);
+  const round = Math.floor(sec / CYCLE);
+  const within = sec % CYCLE;
+  const phase = phaseAt(within);
+  const left = (phase === "in" ? 4 : phase === "hold" ? 11 : CYCLE) - within;
+  const word = running ? L[phase] : done ? L.done : L.ready;
+
+  /* Haptik und VoiceOver genau an den Phasengrenzen — aus derselben Uhr. */
+  useEffect(() => {
+    if (!running) return;
+    if (round >= rounds) { finish(true); return; }
+    const key = `${round}:${phase}`;
+    if (key === last.current) return;
+    last.current = key;
+    Haptics.impactAsync(phase === "hold" ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Soft);
+    AccessibilityInfo.announceForAccessibility(L[phase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, round, phase]);
+
+  function start() {
+    elapsed.value = 0; scale.value = REST;
+    last.current = ""; setSec(0); setDone(false); setRunning(true);
   }
-
-  function start() { setDone(false); setRunning(true); run(0, 0); }
   function finish(complete: boolean) {
-    if (timer.current) clearInterval(timer.current);
-    cancelAnimation(scale); cancelAnimation(glow);
-    scale.value = withTiming(0.55, { duration: 600 }); glow.value = withTiming(0, { duration: 600 });
     setRunning(false); setDone(complete);
+    scale.value = withTiming(REST, { duration: 600 });
     if (complete) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 
-  const circle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const halo = useAnimatedStyle(() => ({ opacity: 0.25 + glow.value * 0.55, transform: [{ scale: scale.value * (1.15 + glow.value * 0.1) }] }));
-  const phase = STEPS[step].phase;
-  const word = running ? (phase === "in" ? L.in : phase === "hold" ? L.hold : L.out) : done ? L.done : L.ready;
+  /* Die Vorlage gleichmäßig auf die Breite skaliert — nie verzerrt. */
+  const { width: winW } = useWindowDimensions();
+  const W = Math.min(winW - 40, 380), k = W / VB_W, H = VB_H * k;
+  const form = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  /* Wie weit der Atem gerade ist (0 = ausgeatmet, 1 = voll) — aus der Größe
+     abgeleitet, so dreht beim Beenden alles mit zurück. */
+  const turnOf = (c: (typeof CONTOURS)[number]) => () => {
+    "worklet";
+    const p = Math.max(0, Math.min(1, (scale.value - REST) / (FULL - REST)));
+    return { transform: [{ rotate: `${c.turn * Math.pow(p, c.lag)}deg` }] };
+  };
+  const turn0 = useAnimatedStyle(turnOf(CONTOURS[0]));
+  const turn1 = useAnimatedStyle(turnOf(CONTOURS[1]));
+  const turn2 = useAnimatedStyle(turnOf(CONTOURS[2]));
+  const turn3 = useAnimatedStyle(turnOf(CONTOURS[3]));
+  const turns = [turn0, turn1, turn2, turn3];
+  const box = BOX * k;
 
   return (
     <View style={styles.wrap}>
-      <Pressable onPress={running ? () => finish(false) : start} style={styles.stage} accessibilityRole="button" accessibilityLabel={running ? L.stop : L.start}>
-        <Animated.View style={[styles.halo, halo]} />
-        <Animated.View style={[styles.circle, circle]} />
-        <View style={styles.center}>
-          <Text style={styles.word}>{word}</Text>
-          {running ? <Text style={styles.count}>{left}</Text> : null}
+      <Pressable onPress={running ? () => finish(false) : start} style={{ width: W, height: H }}
+        accessibilityRole="button" accessibilityLabel={running ? L.stop : L.start}>
+        {/* das stille Licht dahinter */}
+        <Svg width={W} height={H} viewBox={`0 0 ${VB_W} ${VB_H}`} style={StyleSheet.absoluteFill}>
+          <Defs>
+            <RadialGradient id="br-light" cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor="#a69ce2" stopOpacity={0.2} />
+              <Stop offset="1" stopColor="#656ab5" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Circle cx={CX} cy={CY} r={150} fill="url(#br-light)" />
+        </Svg>
+        {/* die Konturen und die Scheibe — wachsen gemeinsam um die Mitte */}
+        <Animated.View pointerEvents="none" style={[{ position: "absolute", width: box, height: box, left: (CX - BOX / 2) * k, top: (CY - BOX / 2) * k }, form]}>
+          {/* jede Kontur eine eigene Ebene, die sich um die Mitte dreht */}
+          {CONTOURS.map(({ r, rot, o }, i) => (
+            <Animated.View key={r} style={[StyleSheet.absoluteFill, turns[i]]}>
+              <Svg width={box} height={box} viewBox={`${CX - BOX / 2} ${CY - BOX / 2} ${BOX} ${BOX}`}>
+                <Defs>
+                  <LinearGradient id={`br-line-${i}`} x1="0" y1="0" x2="1" y2="1">
+                    <Stop offset="0" stopColor="#9ed4f9" />
+                    <Stop offset="0.52" stopColor="#bca7f0" />
+                    <Stop offset="1" stopColor="#a4b8ee" stopOpacity={0.2} />
+                  </LinearGradient>
+                </Defs>
+                <Rect x={CX - r} y={CY - r} width={r * 2} height={r * 2} rx={r * 0.77} ry={r * 0.77}
+                  fill="none" stroke={`url(#br-line-${i})`} strokeOpacity={o} strokeWidth={1} transform={`rotate(${rot} ${CX} ${CY})`} />
+              </Svg>
+            </Animated.View>
+          ))}
+          <Svg width={box} height={box} viewBox={`${CX - BOX / 2} ${CY - BOX / 2} ${BOX} ${BOX}`} style={StyleSheet.absoluteFill}>
+            <Circle cx={CX} cy={CY} r={48} fill="#20243e" stroke="#b8aaea" strokeOpacity={0.25} />
+          </Svg>
+        </Animated.View>
+        {/* Der Text wächst nicht mit — ruhig und lesbar in der Mitte. */}
+        <View pointerEvents="none" style={[styles.center, { top: (CY - 37) * k, height: 74 * k }]}>
+          <Text style={[styles.word, { fontSize: 15 * k }]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{word}</Text>
+          {running ? <Text style={[styles.left, { fontSize: 11 * k }]} maxFontSizeMultiplier={1.3}>{left}</Text> : null}
+        </View>
+        {/* 4 · 7 · 8 — die laufende Zahl hell */}
+        <View pointerEvents="none" style={[styles.steps, { top: 279 * k }]} accessible={false} importantForAccessibility="no-hide-descendants">
+          <Text style={[styles.step, { fontSize: 11 * k, letterSpacing: 3 * k }]} maxFontSizeMultiplier={1.3}>
+            {(["in", "hold", "out"] as const).map((p, i) => (
+              <Text key={p}>
+                {i ? " · " : ""}
+                <Text style={running && p === phase ? styles.stepOn : null}>{p === "in" ? 4 : p === "hold" ? 7 : 8}</Text>
+              </Text>
+            ))}
+          </Text>
         </View>
       </Pressable>
-      {running ? <Text style={styles.round}>{String(L.round ?? "{n}/{m}").replace("{n}", String(round + 1)).replace("{m}", String(rounds))}</Text> : <Text style={styles.how}>{L.how}</Text>}
+      {running ? <Text style={styles.round}>{String(L.round ?? "{n}/{m}").replace("{n}", String(Math.min(round, rounds - 1) + 1)).replace("{m}", String(rounds))}</Text> : <Text style={styles.how}>{L.how}</Text>}
       <PrimaryButton label={running ? L.stop : done ? L.again : L.start} onPress={running ? () => finish(false) : start} style={{ flex: 0, alignSelf: "stretch" }} />
     </View>
   );
 }
 
-const SIZE = 240;
 const styles = StyleSheet.create({
   wrap: { alignItems: "center", gap: 18 },
-  stage: { width: SIZE + 60, height: SIZE + 60, alignItems: "center", justifyContent: "center" },
-  halo: { position: "absolute", width: SIZE, height: SIZE, borderRadius: SIZE / 2, backgroundColor: "rgba(79,214,230,0.25)", shadowColor: colors.cyan, shadowOpacity: 0.8, shadowRadius: 40, shadowOffset: { width: 0, height: 0 } },
-  circle: { position: "absolute", width: SIZE, height: SIZE, borderRadius: SIZE / 2, backgroundColor: "rgba(79,214,230,0.16)", borderWidth: 1.5, borderColor: "rgba(79,214,230,0.6)" },
-  center: { alignItems: "center", gap: 2 },
-  word: { fontFamily: fonts.serif, fontSize: 30, color: colors.text, textAlign: "center" },
-  count: { color: colors.cyan, fontSize: 22, fontVariant: ["tabular-nums"], fontWeight: "600" },
+  center: { position: "absolute", left: 0, right: 0, alignItems: "center", justifyContent: "center", paddingHorizontal: "36%" },
+  word: { color: "#e1def6", fontWeight: "500", textAlign: "center" },
+  left: { color: "#a3b2ca", fontVariant: ["tabular-nums"], marginTop: 2 },
+  steps: { position: "absolute", left: 0, right: 0, flexDirection: "row", justifyContent: "center" },
+  step: { color: "#a3b2ca" },
+  stepOn: { color: "#e1def6", fontWeight: "600" },
   round: { color: colors.muted, fontSize: 14, fontVariant: ["tabular-nums"] },
   how: { color: colors.muted, fontSize: 14, lineHeight: 20, textAlign: "center", paddingHorizontal: 12 },
 });

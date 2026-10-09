@@ -5,7 +5,7 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useState, useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { MoonRing } from "@/components/moon-ring";
+import { Moonweave } from "@/components/moonweave";
 import { useJournal } from "@/components/journal-data";
 import { Moon } from "@/components/moon-strip";
 import { NightSky } from "@/components/night-sky";
@@ -21,7 +21,8 @@ import { colors, fonts, radius, TAB_INSET } from "@/theme";
    Nachmittag mit C3, das ihm zu voll war): oben die Serie (immer
    antippbar → Serien-Seite), in der Mitte seit 03.10. DER RING MIT FÄDEN:
    die Nächte dieses Mondes mit ihren Traumbildern, Fäden zwischen gleichen
-   Motiven, am Vollmond der Mondfilm (components/moon-ring.tsx) —, darunter
+   Motiven, am Vollmond der Mondfilm — seit 10.10. Moonweave,
+   components/moonweave.tsx —, darunter
    die eine Frage und der eine Knopf. Dann
    die Schlaf-Frage und ein Artikel aus dem Wissen — jeden Tag ein anderer.
    Die Träume selbst stehen im Journal, nicht hier.
@@ -62,18 +63,21 @@ export default function HomeScreen() {
   const evening = key === "Evening" || key === "Night";
   const nightOpen = !evening && home && !home.nightMarked;
   const [board, setBoard] = useState(false);
-  /* Ein frisch erreichtes Geschenk öffnet sich hier (03.10.) — einmal;
-     `giftSeen` räumt es danach weg, auch bei „Später". */
+  /* Ein frisch erreichtes Geschenk (03.10.) — seit Moonweave (10.10.)
+     wartet es als Siegel in der Mitte des Fängers und öffnet sich erst auf
+     Tipp („Geschenk öffnen"), statt von selbst aufzuspringen. `giftSeen`
+     räumt es danach weg, auch bei „Später". Vergeben ist es da längst
+     (streakBoard.js giftFor) — hier wird nur angesehen. */
   const gift = home?.giftReveal ?? null;
-  const [giftGone, setGiftGone] = useState<number | null>(null);
-  const [peek, setPeek] = useState<GiftCard | null>(null);   // Tipp auf ein Geschenk im/am Ring
-  const showGift = gift && giftGone !== gift.nights ? gift : null;
+  const [giftOpen, setGiftOpen] = useState<number | null>(null);
+  const [peek, setPeek] = useState<GiftCard | null>(null);   // Tipp auf die leere Mitte: was der volle Ring bringt
+  const showGift = gift && giftOpen === gift.nights ? gift : null;
   const closeGift = (redeem: boolean) => {
     if (!gift) return;
-    setGiftGone(gift.nights);
+    setGiftOpen(null);
     send({ type: "giftSeen" });
     if (!redeem) return;
-    if (gift.target === "journal" && gift.dreamId) router.push({ pathname: "/journal/[id]", params: { id: gift.dreamId } });
+    if (gift.target === "journal" && gift.dreamId) router.push({ pathname: "/night/[id]", params: { id: gift.dreamId } });
     else router.push("/dream");
   };
 
@@ -92,8 +96,14 @@ export default function HomeScreen() {
         </View>
 
         {home ? (
-          <MoonRing C={home.cycle} width={width - 32} onOpen={(id) => router.push({ pathname: "/journal/[id]", params: { id } })} onGift={setPeek} onIntroDone={() => send({ type: "catcherIntro" })} />
-        ) : <View style={{ height: width - 32 + 70 }} />}
+          <Moonweave C={home.cycle} width={width - 32}
+            onOpen={(id) => router.push({ pathname: "/night/[id]", params: { id } })}   // im Stapel der Startseite: „Zurück" führt hierher (10.10.)
+            onGift={setPeek}
+            onOpenGift={() => { if (gift) setGiftOpen(gift.nights); }}
+            onFilm={(id) => { if (id) router.push({ pathname: "/night/[id]", params: { id } }); }}
+            onSeen={(n) => send({ type: "catcherSeen", value: String(n) })}
+            onIntroDone={() => send({ type: "catcherIntro" })} />
+        ) : <View style={{ height: (width - 32) * 568 / 600 + 300 }} />}
 
         <View style={{ alignItems: "center", gap: 6, marginTop: 6 }}>
           <Text style={styles.title}>{L.homeTitle ?? "What did you dream?"}</Text>

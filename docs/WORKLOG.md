@@ -3,6 +3,85 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-10 01:16 — Anton — Branch `session/2026-10-09-anton` (PR #96) — die App im Bild der Website: Galaxie, Atmen, Mixer, Moonweave, Blur-Titel; Startseite mit eigenem Stapel
+
+**Commits:** db81bae (Reservierung), be14705, 8edb2b7, 1b525e5, d8ca42f,
+df85e7d, 26fa912, 1d3b62e, 0eb03df, 10e7340, 592c31b, c1ed5f1, cd791e5,
+e727f77 (+ Wrap).
+
+**Was:**
+- **Traum-Tab:** Galaxie der Website statt der Spirale
+  (`mobile/src/components/galaxy.tsx`, im `portal-button.tsx`), dreht und
+  leuchtet mit der Stimme; Teilchen fallen von außen hinein (`infall`).
+- **Atmen (Schlaf):** Konturen der Website statt Kreis (4 · 7 · 8, 19 s),
+  drehen mit dem Atem, hinten langsamer — Parallaxe (`breath.tsx`).
+- **Frosch vorerst raus:** Wartebild = kleine Galaxie (`mascot-loader.tsx`),
+  die Frosch-Tipp-Ebene ist raus (`app/_layout.tsx`, `dream/length.tsx`).
+- **Startbild** mit dem Augen-Zeichen auf `#050a14` (`app.json`,
+  `assets/images/splash-icon.png`) — wirkt erst nach einem Prebuild.
+- **Einstellungen:** „Assistant voice" raus (`/profile/voice` bleibt, unverlinkt).
+- **Einschlafgeräusche:** Mixer im Bild der Website (`sound-mixer.tsx`,
+  ziehbare Regler, Welle, Timer-Pille). Der Ton „sprang": expo-video
+  spulte jede 4-s-Schleife zurück → jetzt expo-audio mit lückenloser
+  Schleife (`lib/sound-engine.ts`); der Rekorder stellt danach den
+  Hintergrund-Modus wieder her (`dream-recorder.tsx`). Absturz beim
+  Öffnen behoben (Array-Zerlegen im Worklet der Welle).
+- **Überschriften aus der Unschärfe** (`blur-in-text.tsx`; Traum, Journal,
+  Schlaf, Profil): Buchstabe für Buchstabe in drei Ebenen (stark/leicht
+  unscharf/scharf). Zweimal nachgebessert: harte Kanten kamen von einer
+  Maske am Wortumriss (jetzt keine Maske, Filter über die ganze Fläche);
+  „Tell it out loud" sprang am Ende (jetzt Lage aus `onTextLayout`, kein
+  Umschalten auf den normalen Text).
+- **Journal:** Lupe neben dem Listen-Knopf statt Suchleiste.
+- **Moonweave** (`components/moonweave.tsx`, Antons Übergabe
+  `DreamRushes-Landingpage/site/handoff/moonweave-for-claude`) ersetzt den
+  Traumfänger mit Steinen und Federn: zwölf Blätter, nummerierte Punkte,
+  Geschenk-Punkte 3/6/9 (warm) und 12 (lavendel) leuchten mit wanderndem
+  Schimmer; Siegel in der Mitte; Geschenk-Feld darunter. Neu wächst
+  einmal sichtbar ein (Befehl `catcherSeen`). Geschenke wie bisher
+  automatisch und nie doppelt (`giftFor`, `giftedUpTo`) — das Geschenk
+  springt aber nicht mehr von selbst auf, sondern öffnet sich über Siegel
+  bzw. „Open gift". `dreamRing.js` `holdFull`: der volle Ring bleibt bis
+  Traum 13 zu sehen. Geschenk-Karte mit Siegel statt Edelstein; Sterne
+  statt 🎁 auf der Serien-Seite und in der Geschenk-Meldung.
+  `moon-ring.tsx` und `dream-stone.tsx` gelöscht. Vorschau aller
+  Zustände: `app/profile/moonweave-preview.tsx` (nur Dev-Bau oder
+  `EXPO_PUBLIC_DEV_PREVIEW=1`).
+- **Startseite als eigener Stapel** (`app/(home)/`): Ein Traum aus dem
+  Fänger öffnet sich dort (`(home)/night/[id]` reicht `journal/[id]`
+  durch), „‹ Home" führt zurück. NativeTabs-Trigger heißt jetzt `(home)`.
+- **Traum-Tab Schritt 1 ohne „Cancel"** (`wizard-header.tsx`): Der
+  Glas-Knopf blitzte bei jedem Tab-Wechsel auf (iOS setzt Kopfzeilen-Knöpfe
+  neu); auf der Tab-Wurzel führte er nur nach Hause.
+- **Außerhalb des Repos (07.10.):** Landingpage-Briefing für eine neue
+  Session mit GPT Astra in `~/01_Projekte/DreamRushes-Landingpage/`
+  (Features, Farben, Screenshots, Marketing-Trigger; Unterordner
+  `traumfaenger/` zum Nachbau im Web). Am 09.10. leere PRs geschlossen.
+
+**Warum:** Anton baut die Website (Astra) und holt ihre Bildsprache in
+die App — je Element eine Übergabe in `site/handoff/`.
+
+**Belege:** Simulator (Release) je Stand: Galaxie gegen Referenz, Atem
+alle Phasen, Mixer-Regler, Moonweave 0/3/5/6/12 + Ring 2 + Einwachsen +
+Siegel + Geschenk-Karte, Blur-Titel per Video Bild für Bild (Kante,
+Lage pixelgenau), Zurück-Weg Home. 926 Tests grün (neu: `holdFull`),
+`tsc` 0, i18n-Form ok, Lint nur Warnungen im Bestandsmuster. Jeder Stand
+als Release auf Antons iPhone installiert.
+
+**Für den Nächsten:**
+- **Am iPhone offen** (Simulator kann es nicht): Rauschen lückenlos, im
+  Hintergrund und nach einer Aufnahme; Timer-Ausblenden; Haptik; Galaxie
+  auf Stimme; Stärke des Schimmers an der Blume.
+- **Startbild braucht Prebuild** (nur bei Hanni) vor dem Upload 14.10. —
+  Übergabe `docs/uebergabe/2026-10-10-hanni-startbild-startseite.md`.
+- `EXPO_PUBLIC_DEV_PREVIEW` nie im TestFlight-Bau setzen.
+- Mehrere ungeöffnete Geschenke: die App merkt sich nur das jüngste
+  (`giftUnseen`) — vergeben werden alle.
+- Wartebild statt Frosch: Idee noch offen (Traumstein, Atem-Konturen,
+  Galaxie mit Statuszeilen).
+- es/fr/zh/hi/ar: Einführung des Fängers spricht bis zur Sammelübersetzung
+  noch von Perlen und Federn.
+
 ## 2026-10-06 14:30 — Hanni — Branch `session/2026-10-06-hanni-4` (PR #94) — hängende Filme bei fal-Statusfehlern, Gäste-Diktat; Zielbild APNs
 
 **Commits:** 40c4133 (Reservierung), c98f23c, 78df22d, 7938392 (+ Wrap).

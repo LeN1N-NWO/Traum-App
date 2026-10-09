@@ -2,6 +2,7 @@ import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
+import { Mark } from "@/components/moonweave";
 import type { HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
 
@@ -57,7 +58,13 @@ export function StreakSheet({ visible, onClose, home, weekdays }: { visible: boo
         <View style={styles.progressCard}>
           <View style={styles.progressHead}>
             <Text style={styles.progressTitle}>{next ? next.title : B.lede}</Text>
-            {next?.gift ? <Text style={styles.gift}>🎁 {next.gift}</Text> : null}
+            {/* Stern statt Geschenk-Emoji (Antons Wunsch 10.10.) — dasselbe Funkeln wie im Traumfänger, beim Film das Abspielzeichen */}
+            {next?.gift ? (
+              <View style={styles.gift}>
+                <Mark kind={next.nights % 12 === 0 ? "play" : "spark"} size={14} width={1.3} color={colors.bg} />
+                <Text style={styles.giftText}>{next.gift}</Text>
+              </View>
+            ) : null}
           </View>
           <View style={styles.track}><Animated.View style={[styles.fill, barStyle]} /></View>
           <Text style={styles.lede}>{B.lede}</Text>
@@ -68,7 +75,13 @@ export function StreakSheet({ visible, onClose, home, weekdays }: { visible: boo
             style={[styles.rung, r.state === "next" && styles.rungNext, r.state === "far" && { opacity: 0.55 }]}>
             <View style={[styles.check, r.state === "done" && styles.checkDone]}><Text style={[styles.checkText, r.state === "done" && { color: colors.bg }]}>{r.state === "done" ? "✓" : r.nights}</Text></View>
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.rungTitle}>{r.title}{r.gift ? <Text style={styles.giftInline}>  🎁 {r.gift}</Text> : null}</Text>
+              <Text style={styles.rungTitle}>{r.title}</Text>
+              {r.gift ? (
+                <View style={styles.giftRow}>
+                  <Mark kind={r.nights % 12 === 0 ? "play" : "spark"} size={13} width={1.2} color={colors.gold} />
+                  <Text style={styles.giftInline}>{r.gift}</Text>
+                </View>
+              ) : null}
               <Text style={styles.rungReward}>{r.reward}</Text>
             </View>
           </Animated.View>
@@ -94,7 +107,9 @@ const styles = StyleSheet.create({
   progressCard: { padding: 14, borderRadius: 18, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(246,198,91,0.3)", gap: 10 },
   progressHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   progressTitle: { color: colors.text, fontSize: 16, fontWeight: "600", flexShrink: 1 },
-  gift: { color: colors.bg, backgroundColor: colors.gold, fontSize: 12, fontWeight: "700", paddingVertical: 3, paddingHorizontal: 8, borderRadius: 8, overflow: "hidden" },
+  gift: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: colors.gold, paddingVertical: 3, paddingHorizontal: 8, borderRadius: 8, flexShrink: 1 },
+  giftText: { color: colors.bg, fontSize: 12, fontWeight: "700", flexShrink: 1 },
+  giftRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   track: { height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.08)", overflow: "hidden" },
   fill: { height: 8, borderRadius: 4, backgroundColor: colors.gold, shadowColor: colors.gold, shadowOpacity: 0.9, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
   lede: { color: colors.muted, fontSize: 13.5 },
