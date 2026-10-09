@@ -42,9 +42,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0a0d16",
+          "backgroundColor": "#050a14",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 120
         }
       ],
       "expo-quick-actions",
@@ -55,7 +55,7 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "backgroundColor": "#0a0d16",
+    "backgroundColor": "#050a14",
     "locales": {
       "en": "./locales/en.json",
       "de": "./locales/de.json"
