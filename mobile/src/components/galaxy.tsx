@@ -55,7 +55,7 @@ const TURN = 360 / 140; // Grad je Sekunde
 /* Phasen in Sekunden: 18 s Halo, 14 s Kern — 126 ist beider Vielfaches. */
 const CYCLE = 126;
 
-export const Galaxy = memo(function Galaxy({ size, scale = 1, intensity = 1, animated = true, level }: {
+export const Galaxy = memo(function Galaxy({ size, scale = 1, intensity = 1, animated = true, speed = 1, level }: {
   /** Kantenlänge des quadratischen Kastens, in dessen Mitte die Galaxie sitzt (sie darf seitlich überstehen). */
   size: number;
   /** Zusätzlicher Zoom; 1 = Scheibe etwa 1,5 × Kastenbreite. */
@@ -63,6 +63,8 @@ export const Galaxy = memo(function Galaxy({ size, scale = 1, intensity = 1, ani
   /** Gesamthelligkeit 0…1. */
   intensity?: number;
   animated?: boolean;
+  /** Drehtempo; 1 = eine Umdrehung in 140 s wie auf der Website. */
+  speed?: number;
   /** Stimme 0…1 (geglättet), optional. */
   level?: SharedValue<number>;
 }) {
@@ -78,7 +80,7 @@ export const Galaxy = memo(function Galaxy({ size, scale = 1, intensity = 1, ani
     const dt = Math.min(0.05, (f.timeSincePreviousFrame ?? 16) / 1000);
     sl.value += (voice.value - sl.value) * Math.min(1, dt * 3);
     t.value = (t.value + dt) % CYCLE;
-    rot.value = (rot.value + dt * TURN * (1 + 7 * sl.value)) % 360;
+    rot.value = (rot.value + dt * TURN * speed * (1 + 7 * sl.value)) % 360;
   }, false);
   const reduce = useReducedMotion();
   const active = useScreenActive() && animated && !reduce;

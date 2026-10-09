@@ -4,7 +4,6 @@ import { StatusBar } from "expo-status-bar";
 import { ConsentGate } from "@/components/consent-gate";
 import { DreamSyncLayer } from "@/components/dream-sync-layer";
 import { GlimpseLayer } from "@/components/glimpse-layer";
-import { MascotTapLayer } from "@/components/mascot-tap";
 import { OnboardingGate } from "@/components/onboarding-gate";
 import { PrivacyGate } from "@/components/privacy-gate";
 import { SignInSheet } from "@/components/sign-in-sheet";
@@ -55,8 +54,8 @@ export default function RootLayout() {
           <NativeTabs.Trigger.Label>{L?.tabProfile ?? "Profile"}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
       </NativeTabs>
-      {/* Der Frosch-Tipp über allem (13.09.2026), unter Tor und Toasts. */}
-      <MascotTapLayer />
+      {/* Der Frosch-Tipp (13.09.2026, components/mascot-tap.tsx) ist vorerst
+          raus — Antons Ansage 09.10.: der Frosch überall raus. */}
       <ConsentGate />
       {/* Konto-Sicherung der Träume (23.09.), unsichtbar. */}
       <DreamSyncLayer />
