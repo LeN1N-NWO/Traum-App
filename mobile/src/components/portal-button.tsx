@@ -36,7 +36,7 @@ export function PortalButton({ size = 150, stageSize, recording, level, onPress,
 
   return (
     <View style={{ width: stage, height: stage, alignItems: "center", justifyContent: "center" }}>
-      <Galaxy size={stage} level={level} />
+      <Galaxy size={stage} level={level} infall />
       {/* Der Knopf in der Mitte */}
       <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={label}
         style={({ pressed }) => [{ opacity: disabled ? 0.4 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] }]}>

@@ -47,6 +47,17 @@ const SKY_STARS = Array.from({ length: 48 }, (_, i) => ({
   x: rand(i + 710) * 1440, y: rand(i + 1100) * 850, r: i % 7 === 0 ? 1.5 : 0.8, o: 0.1 + rand(i + 931) * 0.35,
 }));
 
+/* Hineinfallende Teilchen (Antons Wunsch 09.10., wie früher im Portal):
+   drei Felder in der Ebene der Scheibe, jedes fällt in ~10 s spiralig vom
+   Rand in den Kern — versetzt, so fällt immer etwas. Nur hinter dem
+   Aufnahmeknopf (`infall`). */
+const INFALL = [0, 1, 2].map((k) => Array.from({ length: 34 }, (_, i) => {
+  const n = k * 100 + i;
+  const a = rand(n + 3001) * Math.PI * 2, r = 260 + rand(n + 3301) * 380;
+  return { x: Math.cos(a) * r, y: Math.sin(a) * r, r: 2 + rand(n + 3601) * 2.4, o: 0.65 + rand(n + 3901) * 0.35, warm: rand(n + 4201) < 0.25 };
+}));
+const FALL = 1 / 10;    // eine Reise vom Rand in die Mitte je 10 s
+
 /* Bühne der Website und Mitte der Scheibe darin. */
 const STAGE_W = 1440, STAGE_H = 850, GX = 720, GY = 430;
 const DISK = 1300;      // Kasten der drehenden Ebene (Fäden reichen bis r ≈ 619)
@@ -55,7 +66,7 @@ const TURN = 360 / 140; // Grad je Sekunde
 /* Phasen in Sekunden: 18 s Halo, 14 s Kern — 126 ist beider Vielfaches. */
 const CYCLE = 126;
 
-export const Galaxy = memo(function Galaxy({ size, scale = 1, intensity = 1, animated = true, speed = 1, level }: {
+export const Galaxy = memo(function Galaxy({ size, scale = 1, intensity = 1, animated = true, speed = 1, infall = false, level }: {
   /** Kantenlänge des quadratischen Kastens, in dessen Mitte die Galaxie sitzt (sie darf seitlich überstehen). */
   size: number;
   /** Zusätzlicher Zoom; 1 = Scheibe etwa 1,5 × Kastenbreite. */
@@ -65,6 +76,8 @@ export const Galaxy = memo(function Galaxy({ size, scale = 1, intensity = 1, ani
   animated?: boolean;
   /** Drehtempo; 1 = eine Umdrehung in 140 s wie auf der Website. */
   speed?: number;
+  /** Teilchen, die vom Rand in den Kern fallen (Traumportal). */
+  infall?: boolean;
   /** Stimme 0…1 (geglättet), optional. */
   level?: SharedValue<number>;
 }) {
@@ -76,11 +89,13 @@ export const Galaxy = memo(function Galaxy({ size, scale = 1, intensity = 1, ani
   const t = useSharedValue(0);
   const rot = useSharedValue(0);
   const sl = useSharedValue(0);
+  const fall = useSharedValue(0);
   const clock = useFrameCallback((f) => {
     const dt = Math.min(0.05, (f.timeSincePreviousFrame ?? 16) / 1000);
     sl.value += (voice.value - sl.value) * Math.min(1, dt * 3);
     t.value = (t.value + dt) % CYCLE;
     rot.value = (rot.value + dt * TURN * speed * (1 + 7 * sl.value)) % 360;
+    fall.value = (fall.value + dt * FALL * (1 + 2 * sl.value)) % 1;
   }, false);
   const reduce = useReducedMotion();
   const active = useScreenActive() && animated && !reduce;
@@ -96,6 +111,21 @@ export const Galaxy = memo(function Galaxy({ size, scale = 1, intensity = 1, ani
     const e = (1 - Math.cos(Math.PI * t.value / 7)) / 2;
     return { opacity: Math.min(1, 1 - 0.3 * e + 0.3 * sl.value), transform: [{ scale: (1 + 0.14 * e) * (1 + 0.12 * sl.value) }] };
   });
+
+  /* Ein Feld: außen groß und blass, wird kleiner, dreht sich hinein und
+     verlischt im Kern (z 0 → 1). */
+  const layerOf = (k: number) => () => {
+    "worklet";
+    const z = (fall.value + k / 3) % 1;
+    return {
+      opacity: Math.pow(Math.sin(Math.PI * z), 0.8) * (0.75 + 0.25 * sl.value),
+      transform: [{ rotate: `${rot.value + k * 120 + z * 110}deg` }, { scale: 1.25 - 1.15 * z }],
+    };
+  };
+  const fall0 = useAnimatedStyle(layerOf(0));
+  const fall1 = useAnimatedStyle(layerOf(1));
+  const fall2 = useAnimatedStyle(layerOf(2));
+  const falls = [fall0, fall1, fall2];
 
   const stage = { position: "absolute" as const, width: STAGE_W * s, height: STAGE_H * s, left: c - GX * s, top: c - GY * s };
   const disk = DISK * s, coreSize = CORE * s;
@@ -143,6 +173,11 @@ export const Galaxy = memo(function Galaxy({ size, scale = 1, intensity = 1, ani
         {ARM_STARS.map((st, i) => <Circle key={`s${i}`} cx={st.x} cy={st.y} r={st.r} fill="#d0d3ff" opacity={st.o} />)}
       </Svg>
     ),
+    infall: INFALL.map((field, k) => (
+      <Svg key={k} width={disk} height={disk} viewBox={`${-DISK / 2} ${-DISK / 2} ${DISK} ${DISK}`}>
+        {field.map((p, i) => <Circle key={i} cx={p.x} cy={p.y} r={p.r} fill={p.warm ? "#fff1d6" : "#e2e3ff"} opacity={p.o} />)}
+      </Svg>
+    )),
     core: (
       <Svg width={coreSize} height={coreSize} viewBox={`${-CORE / 2} ${-CORE / 2} ${CORE} ${CORE}`}>
         <Defs>
@@ -166,6 +201,7 @@ export const Galaxy = memo(function Galaxy({ size, scale = 1, intensity = 1, ani
       {/* Die Scheibe: schräg (−21°) und geplättet (.54) — darin dreht sich die Spirale. */}
       <View style={{ position: "absolute", width: disk, height: disk, left: c - disk / 2, top: c - disk / 2, transform: [{ rotate: "-21deg" }, { scaleY: 0.54 }] }}>
         <Animated.View style={[StyleSheet.absoluteFill, spin]}>{layers.spiral}</Animated.View>
+        {infall && !reduce ? layers.infall.map((field, k) => <Animated.View key={k} style={[StyleSheet.absoluteFill, falls[k]]}>{field}</Animated.View>) : null}
         <Animated.View style={[{ position: "absolute", width: coreSize, height: coreSize, left: (disk - coreSize) / 2, top: (disk - coreSize) / 2 }, core]}>{layers.core}</Animated.View>
       </View>
     </View>
