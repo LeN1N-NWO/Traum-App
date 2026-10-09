@@ -361,7 +361,7 @@ function snapshot() {
        gespeicherte Mischung. Der Browser-Hinweis zum Autostart entfällt —
        nativ startet der Klang ohne Geste. */
     sounds: {
-      lede: t.sleep.sounds.lede, names: t.sleep.sounds.names, descs: t.sleep.sounds.descs,
+      lede: t.sleep.sounds.lede, names: t.sleep.sounds.names, descs: t.sleep.sounds.descs, short: t.sleep.sounds.short,
       timer: t.sleep.sounds.timer, timerOff: t.sleep.sounds.timerOff,
       timerMin: Object.fromEntries([15, 30, 60].map((m) => [m, t.sleep.sounds.timerMin(m)])),
       autoStart: t.sleep.sounds.autoStart, background: t.sleep.sounds.background,

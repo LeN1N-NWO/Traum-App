@@ -56,7 +56,7 @@ export type HomeData = {
   board: { title: string; nights: string; lede: string; rungs: { nights: number; title: string; reward: string; gift: string | null; state: "done" | "next" | "far" }[]; note: string };
 };
 export type SoundMix = { volumes: Record<string, number>; timer: number; autoStart: boolean };
-export type SoundsData = { lede: string; names: Record<string, string>; descs: Record<string, string>; timer: string; timerOff: string; timerMin: Record<number, string>; autoStart: string; background: string; mix: SoundMix | null };
+export type SoundsData = { lede: string; names: Record<string, string>; descs: Record<string, string>; short?: Record<string, string>; timer: string; timerOff: string; timerMin: Record<number, string>; autoStart: string; background: string; mix: SoundMix | null };
 export type ChecklistData = { lede: string; hint: string; progressLabel: string; today: string; done: string[]; items: { id: string; title: string; text: string }[]; remaining: string[] };
 export type LucidMethod = { id: string; name: string; rate: string | null; summary: string; steps: string[]; note: string };
 export type LucidData = {

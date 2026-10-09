@@ -1263,6 +1263,7 @@ export default {
             "bis du sie stoppst — und weiter, während du den Rest der App nutzt.",
       names: { white: "Weißes Rauschen", pink: "Rosa Rauschen", brown: "Braunes Rauschen" },
       descs: { white: "helles Rauschen, überdeckt alles", pink: "wie stetiger Regen", brown: "wie ein fernes Meer" },
+      short: { white: "Weiß", pink: "Rosa", brown: "Braun" },
       timer: "Ausblenden nach",
       timerOff: "Aus",
       timerMin: (m) => `${m} Min`,

@@ -1333,6 +1333,8 @@ export default {
             "until you stop them — and keep playing while you use the rest of the app.",
       names: { white: "White noise", pink: "Pink noise", brown: "Brown noise" },
       descs: { white: "bright static, masks everything", pink: "like steady rain", brown: "like a far-off ocean" },
+      /* Kurz, für die Regler unter der Welle (09.10.). */
+      short: { white: "White", pink: "Pink", brown: "Brown" },
       /* Der Einschlaf-Timer. „Fade out after" statt „Stop after": Er hört
          nicht auf, er wird leiser — und genau das ist der Unterschied
          zwischen Einschlafen und Aufwachen. */
