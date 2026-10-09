@@ -16,8 +16,9 @@ import { colors } from "@/theme";
  * DreamRushes-Landingpage/site/handoff/breathing-for-claude): vier
  * abgerundete Quadrate, gegeneinander verdreht, Cyan → Lavendel, um eine
  * dunkle Scheibe. Einatmen 4 s — alles wächst gemeinsam (.78 → 1.10),
- * halten 7 s — bleibt groß, ausatmen 8 s — sinkt zurück. Nichts dreht
- * sich, nichts wabert.
+ * halten 7 s — bleibt groß, ausatmen 8 s — sinkt zurück. Dabei drehen
+ * sich die Konturen leicht mit, vorn mehr als hinten (Parallaxe, siehe
+ * CONTOURS) — nie frei, immer im Takt des Atems.
  *
  * EINE Uhr: Größe, Phase, Text, Haptik und Rundenzahl kommen alle aus
  * derselben verstrichenen Zeit (Bilduhr auf dem UI-Thread). Sie hält an,
@@ -29,9 +30,14 @@ const CYCLE = 19;                                  // 4 + 7 + 8 Sekunden
 const REST = 0.78, FULL = 1.1;
 const phaseAt = (u: number): Phase => (u < 4 ? "in" : u < 11 ? "hold" : "out");
 
-/* Vorlage: viewBox 0 0 340 310, gemeinsame Mitte (170, 154). */
+/* Vorlage: viewBox 0 0 340 310, gemeinsame Mitte (170, 154).
+   Dazu (Antons Wunsch 09.10.): Jede Kontur dreht sich mit dem Atem ein
+   wenig — beim Einatmen im Uhrzeigersinn, beim Ausatmen zurück. Die
+   großen hinten nur ein paar Grad, die kleinen vorn mehr (`turn`), und
+   jede folgt dem Atem ein bisschen anders (`lag`, Kurve statt Zeitversatz:
+   vorn eilt vor, hinten hängt nach) — so entsteht Tiefe, eine Parallaxe. */
+const CONTOURS = [116, 101, 86, 71].map((r, i) => ({ r, rot: i * 12 - 18, o: 0.2 + i * 0.2, turn: [4, 6.5, 9, 11.5][i], lag: [1.45, 1.2, 1, 0.82][i] }));
 const VB_W = 340, VB_H = 310, CX = 170, CY = 154;
-const CONTOURS = [116, 101, 86, 71].map((r, i) => ({ r, rot: i * 12 - 18, o: 0.2 + i * 0.2 }));
 /* Der Kasten der wachsenden Gruppe: ein Quadrat um die Mitte. */
 const BOX = 300;
 
@@ -91,6 +97,19 @@ export function Breath({ L, rounds = 4 }: { L: Record<string, any>; rounds?: num
   const { width: winW } = useWindowDimensions();
   const W = Math.min(winW - 40, 380), k = W / VB_W, H = VB_H * k;
   const form = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  /* Wie weit der Atem gerade ist (0 = ausgeatmet, 1 = voll) — aus der Größe
+     abgeleitet, so dreht beim Beenden alles mit zurück. */
+  const turnOf = (c: (typeof CONTOURS)[number]) => () => {
+    "worklet";
+    const p = Math.max(0, Math.min(1, (scale.value - REST) / (FULL - REST)));
+    return { transform: [{ rotate: `${c.turn * Math.pow(p, c.lag)}deg` }] };
+  };
+  const turn0 = useAnimatedStyle(turnOf(CONTOURS[0]));
+  const turn1 = useAnimatedStyle(turnOf(CONTOURS[1]));
+  const turn2 = useAnimatedStyle(turnOf(CONTOURS[2]));
+  const turn3 = useAnimatedStyle(turnOf(CONTOURS[3]));
+  const turns = [turn0, turn1, turn2, turn3];
+  const box = BOX * k;
 
   return (
     <View style={styles.wrap}>
@@ -107,19 +126,24 @@ export function Breath({ L, rounds = 4 }: { L: Record<string, any>; rounds?: num
           <Circle cx={CX} cy={CY} r={150} fill="url(#br-light)" />
         </Svg>
         {/* die Konturen und die Scheibe — wachsen gemeinsam um die Mitte */}
-        <Animated.View pointerEvents="none" style={[{ position: "absolute", width: BOX * k, height: BOX * k, left: (CX - BOX / 2) * k, top: (CY - BOX / 2) * k }, form]}>
-          <Svg width={BOX * k} height={BOX * k} viewBox={`${CX - BOX / 2} ${CY - BOX / 2} ${BOX} ${BOX}`}>
-            <Defs>
-              <LinearGradient id="br-line" x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0" stopColor="#9ed4f9" />
-                <Stop offset="0.52" stopColor="#bca7f0" />
-                <Stop offset="1" stopColor="#a4b8ee" stopOpacity={0.2} />
-              </LinearGradient>
-            </Defs>
-            {CONTOURS.map(({ r, rot, o }) => (
-              <Rect key={r} x={CX - r} y={CY - r} width={r * 2} height={r * 2} rx={r * 0.77} ry={r * 0.77}
-                fill="none" stroke="url(#br-line)" strokeOpacity={o} strokeWidth={1} transform={`rotate(${rot} ${CX} ${CY})`} />
-            ))}
+        <Animated.View pointerEvents="none" style={[{ position: "absolute", width: box, height: box, left: (CX - BOX / 2) * k, top: (CY - BOX / 2) * k }, form]}>
+          {/* jede Kontur eine eigene Ebene, die sich um die Mitte dreht */}
+          {CONTOURS.map(({ r, rot, o }, i) => (
+            <Animated.View key={r} style={[StyleSheet.absoluteFill, turns[i]]}>
+              <Svg width={box} height={box} viewBox={`${CX - BOX / 2} ${CY - BOX / 2} ${BOX} ${BOX}`}>
+                <Defs>
+                  <LinearGradient id={`br-line-${i}`} x1="0" y1="0" x2="1" y2="1">
+                    <Stop offset="0" stopColor="#9ed4f9" />
+                    <Stop offset="0.52" stopColor="#bca7f0" />
+                    <Stop offset="1" stopColor="#a4b8ee" stopOpacity={0.2} />
+                  </LinearGradient>
+                </Defs>
+                <Rect x={CX - r} y={CY - r} width={r * 2} height={r * 2} rx={r * 0.77} ry={r * 0.77}
+                  fill="none" stroke={`url(#br-line-${i})`} strokeOpacity={o} strokeWidth={1} transform={`rotate(${rot} ${CX} ${CY})`} />
+              </Svg>
+            </Animated.View>
+          ))}
+          <Svg width={box} height={box} viewBox={`${CX - BOX / 2} ${CY - BOX / 2} ${BOX} ${BOX}`} style={StyleSheet.absoluteFill}>
             <Circle cx={CX} cy={CY} r={48} fill="#20243e" stroke="#b8aaea" strokeOpacity={0.25} />
           </Svg>
         </Animated.View>
