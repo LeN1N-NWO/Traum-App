@@ -36,6 +36,20 @@ test("places are exempt — a place IS its surroundings", () => {
   expect(needsSheet({ tag: "bahnhof", category: "place", img: "data:image/png;base64,DD" })).toBe(false);
 });
 
+test("objects are exempt, and an old person-sheet on an object never goes out", () => {
+  const fahrrad = { tag: "fahrrad", category: "object", desc: "", img: "data:image/png;base64,FF" };
+  expect(needsSheet(fahrrad)).toBe(false);
+  // Bis 10.10. bekam ein Gegenstand im Film-Auftrag einen Personen-Bogen.
+  const verbogen = { ...fahrrad, sheet: "BOGEN", sheetOf: sheetFingerprint(fahrrad) };
+  expect(renderRef(verbogen)).toBe(fahrrad.img);
+  expect(renderRef({ ...verbogen, category: "place" })).toBe(fahrrad.img);
+});
+
+test("the film order keeps the object category instead of turning it into a person", () => {
+  const src = readFileSync(new URL("../wizard/Step5Style.jsx", import.meta.url), "utf8");
+  expect(src).toContain('["pet", "place", "object"].includes(a.kind) ? a.kind : "person"');
+});
+
 test("pets get sheets too", () => {
   expect(needsSheet({ tag: "luna", category: "pet", img: "data:image/png;base64,EE" })).toBe(true);
 });

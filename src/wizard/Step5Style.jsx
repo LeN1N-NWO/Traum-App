@@ -294,7 +294,11 @@ export default function Step5Style({ w, patch }) {
         avatar: a.avatar,
         member: {
           tag: a.avatar.tag,
-          category: a.kind === "pet" ? "pet" : a.kind === "place" ? "place" : "person",
+          /* ⚠ Gegenstände BLEIBEN Gegenstände (10.10.2026). Bis dahin wurde
+             aus "object" hier "person" — das Fahrrad bekam vor jedem Film
+             einen Personen-Bogen („Ganzkörper, Porträt, neutrale Kleidung")
+             und der ersetzte ab da das Foto in jedem Film. */
+          category: ["pet", "place", "object"].includes(a.kind) ? a.kind : "person",
           desc: a.avatar.desc || "",
           img: a.avatar.img,
           /* ⚠⚠ `img2` FEHLTE hier bis zum 25.08.2026 — und das kostete gleich

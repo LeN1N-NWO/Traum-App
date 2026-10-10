@@ -81,6 +81,11 @@ export function photosOf(member) {
  *  sonst das rohe Foto. NIE ein veralteter Bogen — der zeigte eine Fassung
  *  der Figur, die der Mensch bewusst geändert hat. */
 export function renderRef(member) {
+  /* Orte und Gegenstände nehmen IMMER das Foto. Bis 10.10.2026 bekamen
+     Gegenstände im Film-Auftrag fälschlich einen Personen-Bogen (Step5Style
+     machte aus "object" "person") — der liegt bei manchem Fahrrad noch im
+     Speicher und darf nie wieder als Referenz rausgehen. */
+  if (member?.category === "place" || member?.category === "object") return member?.img || "";
   return hasFreshSheet(member) ? member.sheet : member?.img || "";
 }
 
