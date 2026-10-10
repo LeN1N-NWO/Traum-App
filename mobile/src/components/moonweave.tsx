@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
-  Easing, FadeIn, FadeOut, ZoomIn, cancelAnimation, interpolate, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue,
+  Easing, FadeIn, FadeOut, ZoomIn, cancelAnimation, interpolate, useAnimatedStyle, useReducedMotion, useSharedValue,
   withDelay, withRepeat, withTiming, type SharedValue,
 } from "react-native-reanimated";
 import Svg, { Circle, Defs, G, LinearGradient, Path, RadialGradient, Stop } from "react-native-svg";
@@ -162,16 +162,33 @@ function Leaf({ i }: { i: number }) {
 }
 
 /* Ein Blatt des laufenden Rings, das beim Aufbau erscheint, sobald der
-   Lichtzeiger daran vorbeikommt. Nach dem Aufbau einfach sichtbar. */
-const AnimatedG = Animated.createAnimatedComponent(G);
+   Lichtzeiger daran vorbeikommt. Nach dem Aufbau einfach sichtbar.
+   Jedes Blatt ist eine eigene Ebene (10.10., Antons Befund „ruckelt sich
+   rein"): gezeichnet wird es EINMAL, eingeblendet nativ. Vorher hing die
+   Deckkraft als animatedProps am SVG-<G> — react-native-svg zeichnete die
+   ganze Fläche (zwölf Blätter, je sieben Verläufe) in jedem Bild neu, genau
+   in der Startphase. `LB` ist die Hülle eines Blatts (Faden, Bogen, Punkt)
+   im viewBox; gedreht wird um die Ringmitte. */
 const easeOut = (x: number) => { "worklet"; const c = Math.max(0, Math.min(1, x)); return 1 - (1 - c) * (1 - c) * (1 - c); };
-function SweepLeaf({ i, t, B, S, N }: { i: number; t: SharedValue<number>; B: SharedValue<number>; S: SharedValue<number>; N: SharedValue<number> }) {
-  const props = useAnimatedProps(() => {
+const LB = { x: 258, y: 64, w: 94, h: 228 };
+function SweepLeaf({ i, k, ring, t, B, S, N }: { i: number; k: number; ring: number; t: SharedValue<number>; B: SharedValue<number>; S: SharedValue<number>; N: SharedValue<number> }) {
+  const fade = useAnimatedStyle(() => {
     if (t.value >= B.value) return { opacity: 1 };
     const p = easeOut((t.value - S.value) / Math.max(1, B.value - S.value)) * N.value;
     return { opacity: Math.max(0, Math.min(1, p - i)) };
   });
-  return <AnimatedG animatedProps={props}><Leaf i={i} /></AnimatedG>;
+  const w = LB.w * k, h = LB.h * k;
+  return (
+    <Animated.View pointerEvents="none" style={[{
+      position: "absolute", left: LB.x * k, top: LB.y * k, width: w, height: h,
+      transformOrigin: [(CX - LB.x) * k, (CY - LB.y) * k, 0], transform: [{ rotate: `${i * 30}deg` }],
+    }, fade]}>
+      <Svg width={w} height={h} viewBox={`${LB.x} ${LB.y} ${LB.w} ${LB.h}`}>
+        <WeaveDefs ring={ring} />
+        <Leaf i={0} />
+      </Svg>
+    </Animated.View>
+  );
 }
 
 export type WeaveHandlers = {
@@ -210,15 +227,20 @@ export function Moonweave({ C, width, action, ...h }: { C: HomeData["cycle"]; wi
   const t = useSharedValue(reduce ? 1e9 : 0);
   const B = useSharedValue(1), S = useSharedValue(0), N = useSharedValue(0);
   const buildEnd = useRef(0);
+  const builds = useRef(0);
   useEffect(() => {
     if (reduce) { cancelAnimation(t); t.value = 1e9; buildEnd.current = 0; return; }
     if (!active) { cancelAnimation(t); t.value = 0; buildEnd.current = 0; return; }
     const sweepFrom = 150 + layers * 160;
     const total = sweepFrom + 1150 + 75 * settled;
     S.value = sweepFrom; N.value = settled; B.value = total;
+    /* Erst anlaufen, wenn die Startseite steht (10.10.): Beim ersten Aufbau
+       entsteht im selben Moment die ganze Startseite, und der Aufbau verlor
+       dort seine ersten Bilder. Beim Zurückkehren auf den Tab reicht ein Hauch. */
+    const wait = builds.current++ === 0 ? 450 : 60;
     t.value = 0;
-    t.value = withTiming(total, { duration: total, easing: Easing.linear });
-    buildEnd.current = Date.now() + total;
+    t.value = withDelay(wait, withTiming(total, { duration: total, easing: Easing.linear }));
+    buildEnd.current = Date.now() + wait + total;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, reduce]);
 
@@ -319,14 +341,16 @@ export function Moonweave({ C, width, action, ...h }: { C: HomeData["cycle"]; wi
           <Svg width={W} height={H} viewBox={`0 0 ${VB_W} ${VB_H}`}>
             <WeaveDefs ring={ringNo} />
             {C.slots.map((_, i) => <Path key={i} d={LEAF} transform={`rotate(${i * 30} ${CX} ${CY})`} fill="none" stroke={palette(ringNo).line} strokeOpacity={ringNo === 1 ? 0.075 : 0.13} />)}
-            {Array.from({ length: settled }, (_, i) => <SweepLeaf key={i} i={i} t={t} B={B} S={S} N={N} />)}
-            {selected != null && C.slots[selected]?.dreamId ? (
+          </Svg>
+          {Array.from({ length: settled }, (_, i) => <SweepLeaf key={i} i={i} k={k} ring={ringNo} t={t} B={B} S={S} N={N} />)}
+          {selected != null && C.slots[selected]?.dreamId ? (
+            <Svg width={W} height={H} viewBox={`0 0 ${VB_W} ${VB_H}`} style={StyleSheet.absoluteFill}>
               <G transform={`rotate(${selected * 30} ${CX} ${CY})`}>
                 <Path d={LEAF} fill="none" stroke="#b9a8ef" strokeOpacity={0.35} strokeWidth={7} strokeLinejoin="round" />
                 <Path d={LEAF} fill="#b9a8ef" fillOpacity={0.33} stroke="#f0e6ff" strokeWidth={1.5} />
               </G>
-            ) : null}
-          </Svg>
+            </Svg>
+          ) : null}
           <Hand t={t} B={B} S={S} N={N} W={W} H={H} ring={ringNo} />
         </RingTurn>
         {/* Neu dazugekommen: wächst einmal ein, dann zeichnet es der laufende Ring */}
