@@ -30,13 +30,13 @@ import { useScreenActive } from "@/lib/use-screen-active";
  * unsichtbar darunter: Er hält den Platz und ist das, was VoiceOver liest.
  * Bei „Bewegung reduzieren" nur der normale Text.
  *
- * ⚠ Im gemeinsamen 30er-Takt (10.10., Antons Befund „kleiner Lag beim
+ * ⚠ Im gemeinsamen Takt (10.10., Antons Befund „kleiner Lag beim
  * ersten Öffnen des Traum-Tabs"): Jede Änderung eines Buchstabens zeichnet
  * die ganze Zeichenfläche neu, samt beider Unschärfe-Filter (Core Image,
  * auf dem Hauptthread). Mit withTiming geschah das jedes Bild — auf
  * ProMotion 120 Mal je Sekunde, zwei Sekunden lang. Jetzt läuft die Zeit
- * im Takt der ruhigen Bewegungen (lib/ambient-clock.tsx), ein Viertel der
- * Arbeit; ein weiches Einblenden sieht man darin nicht stufig. */
+ * im Takt der ruhigen Bewegungen (lib/ambient-clock.tsx, 60 je Sekunde) —
+ * auf ProMotion die Hälfte der Arbeit. */
 const AnimatedTSpan = Animated.createAnimatedComponent(TSpan);
 const WIN = 900;                                  // so lange braucht ein Buchstabe vom Schleier zur Schrift (ms)
 let seq = 0;

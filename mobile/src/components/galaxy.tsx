@@ -76,10 +76,9 @@ export const Galaxy = memo(function Galaxy({ size, scale = 1, intensity = 1, ani
   const rot = useSharedValue(0);
   const sl = useSharedValue(0);
   const fall = useSharedValue(0);
-  /* Im gemeinsamen 30er-Takt (lib/ambient-clock.tsx, 10.10., Energie):
+  /* Im gemeinsamen Takt (lib/ambient-clock.tsx, 10.10., Energie):
      Vorher eigener Takt mit jedem Bild — auf ProMotion 120 Runden je
-     Sekunde durch Schattenbaum und Layout. Die Drehung ist so langsam, dass
-     30 Schritte je Sekunde nicht zu sehen sind. */
+     Sekunde durch Schattenbaum und Layout. Jetzt 60 je Sekunde für alle. */
   const reduce = useReducedMotion();
   const active = useScreenActive() && animated && !reduce;
   const clock = useAmbient(active);

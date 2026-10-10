@@ -1,11 +1,11 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { GlassButton, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
+import { Mark } from "@/components/moonweave";
 import { NightSky } from "@/components/night-sky";
 import { connectInvite, loadInvite, pendingCode, savePendingCode, type ConnectError, type InviteState, type Referral } from "@/lib/invites";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
@@ -72,7 +72,8 @@ export default function InviteScreen() {
         {I ? (
           <>
             <Animated.View entering={FadeInDown.duration(380)} style={styles.hero}>
-              <SymbolView name="gift.fill" size={30} tintColor={colors.gold} />
+              {/* der Stern statt eines Geschenkpakets (Antons Befund 10.10.: „das Geschenke-Icon finde ich komisch") */}
+              <Mark kind="spark" size={34} width={1.6} color={colors.gold} />
               <Text style={styles.heroTitle}>{I.hero}</Text>
               <Text style={styles.lede}>{I.lede}</Text>
             </Animated.View>
@@ -95,11 +96,11 @@ export default function InviteScreen() {
             {/* Was es bringt — in Träumen */}
             <View style={styles.card}>
               <Text style={styles.cardTitle}>{I.rewardsTitle}</Text>
-              <View style={styles.rowHead}><Text style={styles.label}>{I.friendBuys}</Text><SymbolView name="gift" size={13} tintColor={colors.faint} /></View>
+              <View style={styles.rowHead}><Text style={styles.label}>{I.friendBuys}</Text><Mark kind="spark" size={14} width={1.2} color={colors.faint} /></View>
               {I.rewards.map((r) => (
                 <View key={r.id} style={styles.row}>
                   <Text style={styles.rowL}>{r.label}</Text>
-                  <Text style={styles.rowR}>🎁 {r.filmsText}</Text>
+                  <Text style={styles.rowR}>✦ {r.filmsText}</Text>
                 </View>
               ))}
             </View>
@@ -160,7 +161,7 @@ const styles = StyleSheet.create({
   hero: { alignItems: "center", gap: 8, paddingVertical: 10, paddingHorizontal: 8 },
   heroTitle: { fontFamily: fonts.serif, fontSize: 26, lineHeight: 32, color: colors.text, textAlign: "center" },
   lede: { color: colors.muted, fontSize: 15, lineHeight: 22, textAlign: "center" },
-  card: { padding: 16, gap: 10, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  card: { padding: 16, gap: 10, borderRadius: radius.card, backgroundColor: colors.panelSolid, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   cardTitle: { fontFamily: fonts.serif, fontSize: 20, color: colors.text },
   label: { color: colors.faint, fontSize: 11, letterSpacing: 1.6, fontWeight: "600", textTransform: "uppercase" },
   preview: { alignSelf: "flex-start", color: colors.bg, backgroundColor: colors.gold, fontSize: 11.5, fontWeight: "700", paddingVertical: 3, paddingHorizontal: 8, borderRadius: 8, overflow: "hidden" },

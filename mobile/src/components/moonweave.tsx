@@ -257,7 +257,7 @@ export function Moonweave({ C, width, action, ...h }: { C: HomeData["cycle"]; wi
   const freshIdx = C.slots.map((s, i) => (s.dreamId && s.num > shownUpTo && revealed(s.num) ? i : -1)).filter((i) => i >= 0);
   const growStyle = useAnimatedStyle(() => ({ opacity: grow.value }));
 
-  /* Der Schimmer der Geschenk-Punkte: der gemeinsame 30er-Takt (lib/ambient-clock.tsx),
+  /* Der Schimmer der Geschenk-Punkte: der gemeinsame Takt (lib/ambient-clock.tsx),
      jeder Punkt etwas später — so wandert er reihum. */
   const wave = useAmbient(active && !reduce);
 
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
   countN: { color: "#e4e3fa", fontSize: 27, fontWeight: "400", fontVariant: ["tabular-nums"] },
   countText: { color: "#a9b4c9", fontSize: 12.5 },
   hint: { color: "#b7aed5", fontSize: 13.5, lineHeight: 20, textAlign: "center", marginTop: 6, paddingHorizontal: 18, minHeight: 40 },
-  panel: { alignSelf: "stretch", marginTop: 12, paddingVertical: 20, paddingHorizontal: 20, borderRadius: 22, borderWidth: 1, borderColor: "rgba(212,189,137,0.2)", backgroundColor: "rgba(20,24,38,0.55)" },
+  panel: { alignSelf: "stretch", marginTop: 12, paddingVertical: 20, paddingHorizontal: 20, borderRadius: 22, borderWidth: 1, borderColor: "rgba(212,189,137,0.2)", backgroundColor: "#0e1422" },   // deckend: keine Sterne in der Kachel (10.10.)
   panelTop: { flexDirection: "row", alignItems: "center", gap: 12 },
   panelHeading: { color: "#e1c99c", fontSize: 14.5, flexShrink: 1 },
   panelFraction: { marginLeft: "auto", color: "#b4aac7", fontSize: 12.5, fontVariant: ["tabular-nums"] },

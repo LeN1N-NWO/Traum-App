@@ -9,18 +9,22 @@ import { makeMutable, useFrameCallback, useSharedValue } from "react-native-rean
  * Auf ProMotion-iPhones sind das 120 Runden je Sekunde, und weil jede
  * Animation ihren eigenen Takt hatte, liefen sie nicht einmal gemeinsam.
  *
- * Jetzt zählt EIN Takt die Zeit, 30 Mal je Sekunde, für alle: Schein und
- * Lichtstrahl der Knöpfe, das Funkeln des Himmels, der Schimmer der
- * Geschenk-Punkte, die Galaxie, der Atem des Portals. Alles, was sich im
- * selben Takt ändert, geht in EINER Runde durch. Für langsame, ruhige
- * Bewegungen sieht man keinen Unterschied.
+ * Jetzt zählt EIN Takt die Zeit für alle: Schein und Lichtstrahl der
+ * Knöpfe, das Funkeln des Himmels, der Schimmer der Geschenk-Punkte, die
+ * Galaxie, der Atem des Portals, die einblendenden Überschriften. Alles,
+ * was sich im selben Takt ändert, geht in EINER Runde durch.
+ *
+ * Takt: 60 je Sekunde (Antons Befund 10.10. abends: „die 30 FPS wirken
+ * laggy, mindestens 60, damit alles flüssiger wirkt"). Zuerst waren es 30
+ * — bei der langsamen Drehung sah man das Rucken doch. Auf ProMotion
+ * (120 Hz) zählt der Takt jedes zweite Bild, auf 60-Hz-Geräten jedes.
  *
  * Er läuft nur, solange jemand zusieht: `useAmbient(active)` meldet sich an,
  * solange der eigene Bildschirm zu sehen ist (useScreenActive). Niemand da
  * → der Takt steht, nichts wird gerechnet. `AmbientClock` liegt einmal in
  * der Wurzel (app/_layout.tsx). */
-export const ambient = makeMutable(0);       // ms, wächst ~30× je Sekunde
-const FRAME = 33;
+export const ambient = makeMutable(0);       // ms, wächst ~60× je Sekunde
+const FRAME = 15;                            // < 16,7 ms: bei 60 Hz jedes Bild, bei 120 Hz jedes zweite
 
 let users = 0;
 const listeners = new Set<() => void>();

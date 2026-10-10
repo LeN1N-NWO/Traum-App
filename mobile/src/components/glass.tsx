@@ -44,7 +44,7 @@ const SHEEN = ["rgba(242,167,101,0.62)", "rgba(242,167,101,0.16)", "rgba(96,150,
    onLayout, weil Reanimated keine Prozente verschiebt. */
 export function Sheen() {
   const [w, setW] = useState(0);
-  /* Nur, solange der Knopf zu sehen ist, und im gemeinsamen 30er-Takt
+  /* Nur, solange der Knopf zu sehen ist, und im gemeinsamen Takt
      (10.10., Energie): Jeder Hauptknopf auf jedem montierten Tab trieb sonst
      jedes Bild eine Layout-Runde an — gemessen der größte Teil der
      Grundlast auf ruhigen Seiten. Ein Hin und Her dauert 8,4 s wie vorher. */

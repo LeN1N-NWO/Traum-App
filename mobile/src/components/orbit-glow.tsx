@@ -47,7 +47,7 @@ const LAYERS: [number, string, number, number][] = [
 
 export function OrbitGlow({ radius, lap = LAP, spend = false }: { radius?: number; lap?: number; spend?: boolean }) {
   const [box, setBox] = useState({ w: 0, h: 0 });
-  /* Der gemeinsame 30er-Takt (lib/ambient-clock.tsx, 10.10., Energie):
+  /* Der gemeinsame Takt (lib/ambient-clock.tsx, 10.10., Energie):
      Auf ProMotion-iPhones lief der Strahl mit 120 Bildern — sechs Striche,
      jedes Bild neu gezeichnet, auf jedem sichtbaren Hauptknopf; der goldene
      Atem lief sogar auf unsichtbaren Tabs weiter. */

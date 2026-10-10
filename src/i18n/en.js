@@ -175,7 +175,7 @@ export default {
     products: { "pack-s": "Pack S", monthly: "Monthly", "pack-m": "Pack M", "pack-l": "Pack L", "pack-xl": "Pack XL", yearly: "Yearly" },
     friendsTitle: "Your invitations",
     empty: "No one yet. Share your code with someone who dreams too.",
-    status: { joined: "joined", bought: "bought — your gift arrives on {date}", rewarded: "🎁 {films} for you", rejected: "doesn't count (refunded)" },
+    status: { joined: "joined", bought: "bought — your gift arrives on {date}", rewarded: "✦ {films} for you", rejected: "doesn't count (refunded)" },
     cap: "{n} of {cap} gifts this month",
     rules: [
       "Only your friend's first real purchase counts — no free codes.",

@@ -31,7 +31,7 @@ export function NightSky({ density = 1 }: { density?: number }) {
   /* Nur funkeln, solange der Tab zu sehen ist (04.10.): Der Himmel liegt
      inzwischen hinter vier Tabs, die alle montiert bleiben — vorher liefen
      alle vier Himmel ständig weiter, auch unsichtbar. Seit 10.10. im
-     gemeinsamen 30er-Takt (lib/ambient-clock.tsx): jede Gruppe schwingt
+     gemeinsamen Takt (lib/ambient-clock.tsx): jede Gruppe schwingt
      zwischen dunkel und hell, jede in ihrem eigenen Tempo, wie vorher. */
   const live = useScreenActive();
   const t = useAmbient(live);

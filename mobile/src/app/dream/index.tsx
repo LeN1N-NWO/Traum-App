@@ -196,9 +196,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 20, paddingBottom: TAB_INSET, gap: 14 },
   title: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 38, color: colors.text, marginTop: 8 },
-  input: { minHeight: 220, color: colors.text, fontSize: 17, lineHeight: 27, padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  input: { minHeight: 220, color: colors.text, fontSize: 17, lineHeight: 27, padding: 16, borderRadius: radius.card, backgroundColor: colors.panelSolid, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   tools: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  tool: { flexDirection: "row", alignItems: "center", gap: 7, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  tool: { flexDirection: "row", alignItems: "center", gap: 7, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, backgroundColor: colors.panelSolid, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   toolText: { color: colors.text, fontSize: 14, fontWeight: "600" },
   error: { color: colors.warm, fontSize: 14 },
   hint: { color: colors.faint, fontSize: 12.5, lineHeight: 18 },
@@ -206,8 +206,8 @@ const styles = StyleSheet.create({
   readingText: { color: colors.text, fontSize: 16 },
   h: { fontFamily: fonts.serif, fontSize: 26, color: colors.text },
   lede: { color: colors.muted, fontSize: 14, lineHeight: 20 },
-  card: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, gap: 6 },
-  cardNew: { borderColor: colors.accentSoft, borderWidth: 1.5, backgroundColor: "rgba(79,156,249,0.10)" },
+  card: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panelSolid, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, gap: 6 },
+  cardNew: { borderColor: colors.accentSoft, borderWidth: 1.5, backgroundColor: "#1a2840" },   // deckend wie panelSolid + 10 % Blau
   /* Das Leuchten: ein weicher farbiger Schatten um die Karte (iOS). */
   glow: { borderRadius: radius.card, shadowColor: colors.accentSoft, shadowOpacity: 0.55, shadowRadius: 18, shadowOffset: { width: 0, height: 0 } },
   newHead: { flexDirection: "row", alignItems: "center", gap: 6 },

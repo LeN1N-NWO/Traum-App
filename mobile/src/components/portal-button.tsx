@@ -24,7 +24,7 @@ export function PortalButton({ size = 150, stageSize, recording, level, onPress,
   // Die Bühne darf größer sein als der Knopf in ihrer Mitte (Antons Wunsch 04.10.: den Platz nutzen).
   const stage = stageSize ?? size * 2.3;
 
-  // der Atem im gemeinsamen 30er-Takt (lib/ambient-clock.tsx, 10.10.), nur solange sichtbar
+  // der Atem im gemeinsamen Takt (lib/ambient-clock.tsx, 10.10.), nur solange sichtbar
   const t = useAmbient(useScreenActive());
   const core = useAnimatedStyle(() => ({ transform: [{ scale: 1 + 0.03 * swing(t.value, 4800) + 0.1 * level.value }] }));
   const btn = size * 0.62;

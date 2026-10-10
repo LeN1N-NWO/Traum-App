@@ -159,7 +159,7 @@ export default {
     products: { "pack-s": "Paket S", monthly: "Monatsabo", "pack-m": "Paket M", "pack-l": "Paket L", "pack-xl": "Paket XL", yearly: "Jahresabo" },
     friendsTitle: "Deine Einladungen",
     empty: "Noch niemand. Teil deinen Code mit jemandem, der auch träumt.",
-    status: { joined: "ist dabei", bought: "hat gekauft — dein Geschenk kommt am {date}", rewarded: "🎁 {films} für dich", rejected: "zählt nicht (erstattet)" },
+    status: { joined: "ist dabei", bought: "hat gekauft — dein Geschenk kommt am {date}", rewarded: "✦ {films} für dich", rejected: "zählt nicht (erstattet)" },
     cap: "{n} von {cap} Geschenken diesen Monat",
     rules: [
       "Es zählt nur der erste echte Kauf deines Freundes — keine Gratis-Codes.",
