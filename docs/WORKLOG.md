@@ -3,6 +3,104 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-10 14:57 — Anton — Branch `session/2026-10-10-anton` (PR #97) — schnellerer Traum-Weg (Apple-Spracherkennung, Ladebalken), echter Sammelfilm, Geschenk-Staffel, Energie
+
+**Commits:** fb4cec9 (Reservierung), 93d34fc, d779549, 4d32069, 0b2c24b,
+a2ff5bf, 552ddd1, b7b9439, 07ea04e, 1bbd0dc, 1404437, 9fe53bf, 358fd63,
+7abdaf4, f708dd7, 06b6856 (+ Wrap).
+
+**Was:**
+- **Startseite:** „Record your dream" gleich unter dem Traumfänger.
+  - Der Fänger baut sich beim Öffnen wie eine Uhr auf und zeigt frühere
+    Ringe als Lagen (`moonweave.tsx`).
+  - Aufnahme-Hinweis: „Tipp auf das Licht".
+- **Aufnahmen ohne Müll** (`lib/recordings.ts`, `dream-recorder.tsx`):
+  - Die Datei wird gelöscht, sobald sie nicht mehr gebraucht wird.
+  - Hochgeladen wird erst nach dem Text.
+  - Eine liegengebliebene Aufnahme hängt nicht mehr am nächsten Traum.
+- **Energie:**
+  - Unsichtbare Filme pausieren.
+  - Alle ruhigen Bewegungen laufen in einem gemeinsamen Takt
+    (`lib/ambient-clock.tsx`), seit dem Abend mit 60 FPS (Antons Wunsch).
+  - Traum-Tab ohne Hänger beim ersten Öffnen: Galaxie als vorgerenderte
+    Bilder (`assets/galaxy/*.webp` aus `scripts/galaxy-art.mjs` und
+    `lib/galaxy-geometry.ts`; 1,1 s → 45 ms Hauptthread), ohne
+    SVG-Zwischenebenen.
+- **Besetzung als Abspann mit Casting-Vorschlägen** (`journal/cast.tsx`,
+  `castStats.js`).
+- **Neue Figur:** Erst die Frage Foto/Mediathek/ohne, dann der Dialog mit
+  dem Foto darin (`lib/cast-photo.ts`).
+- **Geschenk-Staffel** (`streakBoard.js`, `sketchQuota.js`):
+  - Große Geschenke gibt es nur nach einem Kauf: 24 → ein Film, 36 → zwei
+    Filme, 48 → 50 Credits.
+  - Ohne Kauf gibt es bei 48 zehn Glimpses.
+  - Glimpses sind jetzt eine eigene Kategorie (`glimpseGifts`, verfallen
+    nicht).
+  - Das Siegel heißt „Ring-Geschenk".
+- **Aussehen:**
+  - Kacheln auf dem Sternenhimmel sind deckend (`colors.panelSolid`).
+  - Der Schein des Karussells wird nicht mehr abgeschnitten.
+  - Stern statt Geschenk-Icon beim Einladen.
+  - App-Umschalter und Kaltstart zeigen das neue Auge statt des alten
+    Monds (`privacy-gate.tsx`).
+  - Der Web-Rückfall beim Bestellen zeigt die Galaxie statt des Froschs
+    (`src/components/MascotLoader.jsx`).
+  - Die Traumseite zeigt „GLIMPSE · STIL" unter dem Titel.
+- **Traum-Weg schneller:**
+  - Erst schreibt Apple auf dem iPhone mit (iOS 26, SpeechTranscriber,
+    `DreamSketchModule.swift`), dann als Rückfall der Server.
+  - Danach ein Ladebalken mit Galaxie und wechselnden Sätzen
+    (`dream-loader.tsx`).
+  - Die Vorschau-Seite „verbesserte Fassung" entfällt; es geht direkt zu
+    Film/Speichern.
+- **Sammelfilm aus den echten Clips** (Antons Wahl „Weg A",
+  `renderMontage` nativ):
+  - Pro Traum der echte Film, auf den Takt der Musik geschnitten,
+    überblendet, mit Titel und Abspann, HEVC.
+  - Alte Standbild-Ringfilme werden einmal neu gemacht (`moonFilmsV2`).
+  - Absturz-Schutz per Merker.
+- **Übergabe an Hanni:**
+  `docs/uebergabe/2026-10-10-hanni-server-aufnahmen-geschenke.md` (Server
+  räumt Aufnahmen auf, Geschenke ins Konto).
+
+**Warum:** Antons Befunde und Wünsche vom 10.10., unter anderem:
+- „Lag beim ersten Öffnen"
+- „Sterne wie Schmutz auf den Kacheln"
+- „Sammelfilm peinlich"
+- „Apple-SDK statt API"
+- „weniger Schritte"
+
+**Belege:**
+- Simulator (Release):
+  - Messungen Hauptthread/CPU vorher–nachher, Kacheln und Schein mit
+    verstärktem Kontrast.
+  - App-Umschalter mit Auge.
+  - Ladebalken und direkter Sprung zu „What should become of it?".
+  - Foto-Weg bis zum Dialog mit Foto.
+  - Testfilm aus 5 Clips mit Musik und Überblendungen.
+- Tests: 956 grün, 1 übersprungen. `tsc` 0, i18n-Form ok.
+- Jeder Stand als Release auf Antons iPhone installiert.
+- Am iPhone von Anton bestätigt: Apple-Spracherkennung läuft („in ganz
+  wenigen Sekunden").
+
+**Für den Nächsten:**
+- **Hanni:** Der Block „Für Hanni" oben in `docs/STAND.md`.
+  - Prebuild vor dem Upload am 14.10.
+  - Server-Übergabe.
+  - Drei Testseiten nie im TestFlight-Bau.
+- **Am iPhone offen:**
+  - Titel und Abspann im Sammelfilm. Im Simulator abgeschaltet, dessen
+    OpenGL-Renderer stürzt mit Ebenen über Video ab.
+  - Gefühl des Ladebalkens.
+  - Gesprochener Weg mit Apple bei längeren Träumen.
+- **Analyse dauert ~11 s** (DeepSeek), das ist die eigentliche Wartezeit.
+  Ein schnelleres Modell ist offen, Antons Entscheidung.
+- **Natives Startbild auf Antons lokalem Bau** ist noch das Expo-Logo. Es
+  ändert sich mit dem Prebuild, oder mit Antons Ausnahme für sein lokales
+  `mobile/ios`.
+- **KI-Übergänge im Sammelfilm** (Veo 3.1 Lite, ~$0,12 pro Übergang):
+  erst testen, wenn der Grundfilm gefällt.
+
 ## 2026-10-10 01:16 — Anton — Branch `session/2026-10-09-anton` (PR #96) — die App im Bild der Website: Galaxie, Atmen, Mixer, Moonweave, Blur-Titel; Startseite mit eigenem Stapel
 
 **Commits:** db81bae (Reservierung), be14705, 8edb2b7, 1b525e5, d8ca42f,

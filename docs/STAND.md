@@ -3,7 +3,114 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-10 nachts — Anton, `session/2026-10-09-anton` (PR #96):
+**Stand:** 2026-10-10 nachmittags — Anton, `session/2026-10-10-anton` (PR #97):
+schnellerer Traum-Weg (Apple-Spracherkennung auf dem iPhone, Ladebalken,
+keine Vorschau-Seite mehr), echter Sammelfilm aus den Clips,
+Geschenk-Staffel nach Kauf, deutlich weniger Dauerlast. Alles auf Antons
+iPhone installiert. Upload für TestFlight am **Mi 14.10.** (Hanni),
+Durchlauf am 15.10., TestFlight am 16.10.
+
+## Für Hanni — beim Start lesen (Stand 10.10.)
+
+1. **Prebuild vor dem Archive am 14.10.** Erst dann kommt das neue
+   Startbild mit dem Auge in den Bau (`app.json`, PR #96). Lokal zeigt
+   Antons Bau noch das Expo-Logo. Übergabe:
+   `docs/uebergabe/2026-10-10-hanni-startbild-startseite.md`.
+2. **Server-Arbeit für dich:**
+   `docs/uebergabe/2026-10-10-hanni-server-aufnahmen-geschenke.md`.
+   - Verworfene Aufnahmen aufräumen: Löschroute plus nächtlicher Sweep.
+   - Credit-Geschenke (24/36/48 nach einem Kauf) ins Konto buchen, mit
+     `POST /api/gifts/claim`. Mit Konto sind sie heute unsichtbar.
+   - Das muss stehen, bevor jemand 24 Träume hat.
+3. **`EXPO_PUBLIC_DEV_PREVIEW` nie im TestFlight-Bau.** Es schaltet drei
+   Testseiten frei: `profile/moonweave-preview`, `profile/stt-preview`
+   (Spracherkennung messen) und `profile/montage-preview` (Sammelfilm
+   testen). Dazu den Hinweis „✎ Apple · …" nach dem Einsprechen.
+4. **Neuer nativer Code nur in bestehenden Dateien**
+   (`mobile/modules/dream-sketch/ios/DreamSketchModule.swift`):
+   - `speechPrepare`/`transcribeFile` (Apple SpeechTranscriber, iOS 26)
+     und `renderMontage` (Sammelfilm).
+   - Kein `pod install` nötig.
+   - Die Spracherkennung brauchte auf Antons iPhone keine neue Erlaubnis.
+5. **Neue Assets:** `mobile/assets/galaxy/*.webp` (Galaxie als Bilder,
+   1,2 MB). Metro packt sie ein. Neu rendern mit
+   `node scripts/galaxy-art.mjs` (Chromium).
+6. **Wartezeit nach dem Einsprechen:** Die KI-Analyse (`analyzeDream`,
+   DeepSeek) dauert ~11 s, das Aufschreiben mit Apple nur ~1 s. Ein
+   schnelleres Analyse-Modell wäre der größte Hebel. Offen, Antons
+   Entscheidung, Server-Seite.
+7. **Optional, braucht deinen Mac:** Reanimated-Schalter
+   `IOS_SYNCHRONOUSLY_UPDATE_UI_PROPS` (`pod install`). Er macht jede
+   laufende Animation billiger.
+8. **Unverändert offen:**
+   - Test-Guthaben `devCredits={500}` vor der Veröffentlichung
+     zurückdrehen (B4a).
+   - Belegprüfung der Käufe (B1). Erst dann weiß auch der Server, wer
+     gekauft hat.
+
+## Neu in der App — gestern und heute
+
+**09.10. (PR #96, gemergt):**
+- Traum-Tab mit der Galaxie der Website.
+- Atmen mit Konturen.
+- Einschlafgeräusche als Mixer, Ton lückenlos.
+- Frosch vorerst raus.
+- Überschriften blenden aus der Unschärfe auf.
+- Journal-Lupe.
+- **Moonweave** als Traumfänger (Blätter statt Steine).
+- Startseite mit eigenem Stapel: „‹ Home" führt zurück.
+- Startbild mit dem Auge (nach Prebuild).
+
+**10.10. (PR #97):**
+- **Einsprechen:**
+  - Apple schreibt auf dem iPhone mit, der Server springt nur noch ein.
+  - Danach ein Ladebalken mit Galaxie, dann direkt „Film machen /
+    Speichern". Die Seite „verbesserte Fassung" ist weg.
+- **Sammelfilm** nach 12 Träumen aus den echten Clips: auf den Takt
+  geschnitten, mit Musik, Titel und Abspann. Alte Ringfilme werden einmal
+  neu gebaut.
+- **Geschenke:**
+  - 3/6/9 … je ein Glimpse, als eigene Kategorie.
+  - 24/36/48 große Geschenke nur nach einem Kauf.
+  - Ohne Kauf bei 48 zehn Glimpses.
+- **Besetzung:**
+  - Als „Abspann" mit Casting-Vorschlägen aus den Träumen.
+  - Neue Figur: erst das Foto, dann der Dialog.
+- **Startseite:** „Record your dream" unter dem Traumfänger. Der Fänger
+  baut sich wie eine Uhr auf und zeigt frühere Ringe als Lagen.
+- **Ruhiger und sparsamer:**
+  - Traum-Tab ohne Hänger beim ersten Öffnen.
+  - Filme pausieren unsichtbar.
+  - Ein gemeinsamer 60-FPS-Takt für alle ruhigen Bewegungen.
+  - Rund 100 MB weniger Speicher auf dem Traum-Tab.
+- **Aussehen:**
+  - Deckende Kacheln: keine Sterne mehr „wie Schmutz".
+  - Karussell-Schein ohne Kante.
+  - Stern statt Geschenk-Icon.
+  - Neues Auge im App-Umschalter.
+  - Stil unter dem Traumtitel („GLIMPSE · SURREAL").
+- **Aufnahmen hinterlassen keinen Müll mehr** auf dem Gerät.
+
+## Offen nach PR #97
+
+- **Am iPhone prüfen:**
+  - Titel und Abspann im Sammelfilm. Im Simulator abgeschaltet, dessen
+    OpenGL-Renderer stürzt ab. Es gibt einen Absturz-Schutz per Merker:
+    nach einem Absturz ohne Titel, nach dem zweiten der alte Weg
+    (`glimpse-layer.tsx` `attempts`).
+  - Ladebalken-Gefühl.
+  - Lange gesprochene Träume mit Apple.
+- **Sammelfilm:**
+  - Größe ~39 MB pro Ring (HEVC).
+  - KI-Übergänge (Veo 3.1 Lite, ~$0,12 pro Übergang) erst nach Antons
+    Urteil.
+- **„Weiter erzählen":** Nur die zweite Aufnahme hängt am Traum.
+- **Mehrere ungeöffnete Geschenke:** Die App merkt sich nur das jüngste
+  (`giftUnseen`).
+
+---
+
+Davor **2026-10-10 nachts** — Anton, `session/2026-10-09-anton` (PR #96):
 **Die App im Bild der Website** — Traum-Tab mit der Galaxie, Atmen mit
 den Konturen, Mixer der Einschlafgeräusche (Ton jetzt lückenlos über
 expo-audio), **Moonweave** als Traumfänger auf der Startseite (Blätter
