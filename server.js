@@ -4216,6 +4216,27 @@ const serveOptions = {
       }
     }
 
+    /* Eine verworfene Traum-Aufnahme löschen (Antons Übergabe 10.10.2026):
+       Die App ruft das, sobald eine hochgeladene Aufnahme sicher nicht mehr
+       gebraucht wird. Nur der Besitzer, nur .m4a (dropRecording in
+       mediaAccess.js). Ob ein Traum sie noch enthält, kann der Server nicht
+       prüfen — die Träume sind versiegelt; die Entscheidung liegt beim
+       Besitzer. 204 auch, wenn es nichts zu löschen gab: Die App wiederholt
+       nicht. Lokal ohne Konto gibt es keine Besitzer — dann nichts. */
+    if (url.pathname === "/api/panel" && req.method === "DELETE") {
+      const hit = resolveMedia(url.searchParams.get("url") || "");
+      if (!hit || hit.ext !== "m4a") return json({ error: "Not a recording." }, 400);
+      if (!person) return new Response(null, { status: 204 });
+      try {
+        const result = await owners.dropRecording(person.userId, hit.name, { mediaDir: MEDIA_DIR });
+        console.log(`[DreamRushes] Aufnahme verworfen: ${hit.name} → ${result}`);
+        return new Response(null, { status: 204 });
+      } catch (e) {
+        console.error("[DreamRushes] Aufnahme nicht gelöscht:", hit.name, e?.message || e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
     if (url.pathname.startsWith("/media/")) return serveMedia(url.pathname, url.searchParams);
 
     return serveStatic(url.pathname);

@@ -235,6 +235,23 @@ export function createOwnership(root) {
       }
       return files;
     },
+    /** Eine verworfene Traum-Aufnahme auf Zuruf ihres Besitzers löschen
+     *  (Antons Übergabe 10.10.2026, DELETE /api/panel). Nur .m4a — Bilder
+     *  und Filme nie. Wie bei forgetAccount erst der eigene Vermerk, dann
+     *  die Datei, und die nur, wenn niemand sonst sie besitzt: Der Name ist
+     *  der Hash des Inhalts, dieselben Bytes können zwei Leuten gehören.
+     *  Gibt "deleted", "shared" (nur der eigene Vermerk ist weg), "none"
+     *  (gehörte ihm nicht — nichts angefasst) oder null (ungültig) zurück. */
+    async dropRecording(uid, name, { mediaDir } = {}) {
+      if (!isAccountId(uid) || !NAME.test(name || "") || !name.endsWith(".m4a") || !mediaDir) return null;
+      if (!(await api.owns(uid, name))) return "none";
+      await rm(join(root, "datei", name, uid), { force: true });   // ab hier kein Zugriff mehr
+      await rm(join(root, "konto", uid, name), { force: true });
+      if (!(await ownerless(join(root, "datei", name)))) return "shared";
+      await rm(join(mediaDir, name), { force: true });
+      await rm(join(root, "datei", name), { recursive: true, force: true });
+      return "deleted";
+    },
   };
   return api;
 }
