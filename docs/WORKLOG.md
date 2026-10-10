@@ -3,6 +3,46 @@
 > Alte Einträge werden NIE geändert. Richtigstellungen kommen als neuer Eintrag dazu.
 > Pro Eintrag: Datum, Uhrzeit, Name, Branch, Commits, was, warum, was der Nächste wissen muss.
 
+## 2026-10-10 17:10 — Hanni — Branch `session/2026-10-10-hanni` (PR #99) — verwaiste Medien auf dem Server löschen
+
+**Commits:** efb4ccf (Reservierung), 461eebd, e8dc68b (+ Wrap).
+
+**Was:**
+- **`DELETE /api/panel?url=/media/<name>.m4a`:** Eine verworfene
+  Aufnahme wird auf Zuruf gelöscht. Nur der Besitzer, nur `.m4a`,
+  Antwort 204.
+- **`DELETE /api/media` `{ urls }`** (höchstens 50): Ein gelöschter Traum
+  nimmt Aufnahme, Bilder, Film und Poster mit. Rate-Limit-Klasse „cheap"
+  (`src/lib/gatekeeper.js`).
+- Beide über `dropFile` / `dropRecording` in `src/lib/mediaAccess.js`:
+  erst der eigene Besitz-Vermerk, dann die Datei, die aber nur, wenn
+  niemand sonst sie besitzt (Inhalts-Hash).
+- Übergabe an Anton: `docs/uebergabe/2026-10-10-anton-aufnahmen-loeschroute.md`.
+
+**Warum:**
+- Antons Übergabe Teil 1: Aufnahmen nie gespeicherter Träume blieben bis
+  zur Kontolöschung auf dem Server.
+- Beim Prüfen fiel der größere Fall auf: Auch ein gelöschter Traum ließ
+  alle seine Medien liegen. Das ist eine Lücke beim Löschrecht.
+
+**Was der Nächste wissen muss:**
+- **Den nächtlichen Sweep aus Antons Vorschlag gibt es bewusst nicht.**
+  Seit 24.09. sind die Träume versiegelt (`toSealedRow` speichert nur
+  `sealed`/`key_id`, der Abgleich setzt `media = '{}'`). Der Server
+  hätte jede Aufnahme für unbenutzt gehalten und alle gelöscht.
+- **Ob eine Datei noch gebraucht wird, weiß nur die App.** Sie darf nur
+  schicken, was kein anderer Eintrag und keine Figur mehr benutzt.
+- **Offene Frage an Anton:** Aufnahme erst beim Speichern hochladen.
+  Hanni ist dafür, mit Wiederholung, falls es scheitert. Die Datei bleibt
+  bis dahin auf dem iPhone.
+- **Belegt:**
+  - 3 neue Tests, Suite 959/0.
+  - Lokal per curl: 204/400, kaputter Rumpf und 51 Adressen → 400.
+  - **Nicht** mit echtem Konto über HTTP.
+  - `server.js` gegenüber `main`: +55/−0, nur die zwei Routen (20 + 33)
+    und 2 Leerzeilen. Prompt-Kette unberührt.
+- Wirkt auf dem VPS erst nach Merge + `deploy.sh`.
+
 ## 2026-10-10 14:57 — Anton — Branch `session/2026-10-10-anton` (PR #97) — schnellerer Traum-Weg (Apple-Spracherkennung, Ladebalken), echter Sammelfilm, Geschenk-Staffel, Energie
 
 **Commits:** fb4cec9 (Reservierung), 93d34fc, d779549, 4d32069, 0b2c24b,
