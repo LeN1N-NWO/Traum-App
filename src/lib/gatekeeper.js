@@ -74,6 +74,10 @@ export function classOf(pathname) {
   /* S2: den Medienschlüssel holt jedes Gerät alle 10 Minuten — kostet
      nichts und darf sich den Topf nicht mit dem Filme-Bestellen teilen. */
   if (pathname === "/api/media-key") return "cheap";
+  /* Die Medien eines gelöschten Traums mitlöschen (10.10.2026): wer zehn
+     Träume nacheinander löscht, darf nicht nach dem Topf der Filme gebremst
+     werden. Ein Konto braucht es weiter (needsAccount, Voreinstellung). */
+  if (pathname === "/api/media") return "cheap";
   /* Anmelden und Sitzung erneuern: eigene, strengere Klasse gegen das Raten
      von Passwörtern. Abmelden gehört NICHT dazu — wer abmelden will, soll das
      immer können, auch nach zehn Fehlversuchen. */

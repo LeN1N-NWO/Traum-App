@@ -4237,6 +4237,40 @@ const serveOptions = {
       }
     }
 
+    /* Ein gelöschter Traum nimmt seine Medien mit (10.10.2026): Aufnahme,
+       Bilder, Film, Poster. Vorher blieben sie bis zur Kontolöschung liegen.
+       Die App schickt nur, was kein anderer Eintrag mehr braucht — das kann
+       nur sie wissen, die Träume sind versiegelt. Der Server löscht davon
+       nur Eigenes und nichts, was noch jemand anderem gehört (dropFile).
+       Fremde Adressen (fal, signierte Anhänge) werden auf den Pfad gekürzt
+       oder übergangen. Lokal ohne Konto gibt es keine Besitzer — dann nichts. */
+    if (url.pathname === "/api/media" && req.method === "DELETE") {
+      if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+        return json({ error: "Request too large." }, 413);
+      }
+      const body = await req.json().catch(() => null);
+      const urls = Array.isArray(body?.urls) ? body.urls : null;
+      if (!urls || urls.length > 50) return json({ error: "Send up to 50 media URLs as { urls }." }, 400);
+      const report = { deleted: 0, shared: 0, skipped: 0 };
+      if (!person) return json({ ok: true, ...report, skipped: urls.length });
+      try {
+        for (const u of urls) {
+          let path = null;
+          try { path = typeof u === "string" ? new URL(u, "http://x").pathname : null; } catch {}
+          const hit = path ? resolveMedia(path) : null;
+          const result = hit ? await owners.dropFile(person.userId, hit.name, { mediaDir: MEDIA_DIR }) : null;
+          if (result === "deleted") report.deleted++;
+          else if (result === "shared") report.shared++;
+          else report.skipped++;
+        }
+        console.log(`[DreamRushes] Medien eines Traums gelöscht: ${report.deleted} weg, ${report.shared} geteilt, ${report.skipped} übergangen`);
+        return json({ ok: true, ...report });
+      } catch (e) {
+        console.error("[DreamRushes] Medien nicht vollständig gelöscht:", e?.message || e);
+        return json({ error: "Server error." }, 500);
+      }
+    }
+
     if (url.pathname.startsWith("/media/")) return serveMedia(url.pathname, url.searchParams);
 
     return serveStatic(url.pathname);

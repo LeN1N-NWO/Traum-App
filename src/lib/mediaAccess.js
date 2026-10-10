@@ -243,7 +243,15 @@ export function createOwnership(root) {
      *  Gibt "deleted", "shared" (nur der eigene Vermerk ist weg), "none"
      *  (gehörte ihm nicht — nichts angefasst) oder null (ungültig) zurück. */
     async dropRecording(uid, name, { mediaDir } = {}) {
-      if (!isAccountId(uid) || !NAME.test(name || "") || !name.endsWith(".m4a") || !mediaDir) return null;
+      if (typeof name !== "string" || !name.endsWith(".m4a")) return null;
+      return api.dropFile(uid, name, { mediaDir });
+    },
+    /** Dasselbe für jede Medienart — für einen gelöschten Traum (DELETE
+     *  /api/media): Aufnahme, Bilder, Film, Poster. Ob die Datei noch an
+     *  einem anderen Eintrag hängt, weiß nur die App; der Server prüft nur
+     *  Besitz und dass niemand sonst sie besitzt. */
+    async dropFile(uid, name, { mediaDir } = {}) {
+      if (!isAccountId(uid) || !NAME.test(name || "") || !mediaDir) return null;
       if (!(await api.owns(uid, name))) return "none";
       await rm(join(root, "datei", name, uid), { force: true });   // ab hier kein Zugriff mehr
       await rm(join(root, "konto", uid, name), { force: true });

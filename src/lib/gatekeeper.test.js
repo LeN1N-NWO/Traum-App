@@ -24,6 +24,11 @@ test("the media key is cheap, not counted against generating", () => {
   expect(needsAccount("/api/media-key")).toBe(true);   // nur mit Konto
 });
 
+test("deleting a dream's media is cheap and needs an account", () => {
+  expect(classOf("/api/media")).toBe("cheap");
+  expect(needsAccount("/api/media")).toBe(true);
+});
+
 test("polling and the voice socket are exempt by name, with a reason", () => {
   expect(classOf("/api/job")).toBe(null);     // Warten, kein Ausgeben
   expect(classOf("/api/voice")).toBe(null);   // eine Sitzung ist EIN Aufruf

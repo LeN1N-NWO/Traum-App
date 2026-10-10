@@ -276,3 +276,33 @@ test("dropRecording deletes the owner's own recording, keeps shared, foreign and
     await rm(base, { recursive: true, force: true });
   }
 });
+
+/* Ein gelöschter Traum nimmt seine Medien mit (A, 10.10.2026) — jede Art,
+   aber weiter nur Eigenes und nichts, was noch jemand anderem gehört. */
+test("dropFile deletes any kind of own media, keeps shared and foreign files", async () => {
+  const base = await mkdtemp(join(tmpdir(), "dr-drop-"));
+  const root = join(base, "besitz"), mediaDir = base;
+  const { writeFile, access } = await import("node:fs/promises");
+  const exists = (p) => access(p).then(() => true, () => false);
+  try {
+    for (const f of ["film.mp4", "bild.png", "poster.jpg", "geteilt.webp", "fremd.mp4"]) await writeFile(join(mediaDir, f), f);
+    const own = createOwnership(root);
+    for (const f of ["film.mp4", "bild.png", "poster.jpg", "geteilt.webp"]) await own.claim(ANNA, f);
+    await own.claim(BEN, "geteilt.webp");
+    await own.claim(BEN, "fremd.mp4");
+
+    for (const f of ["film.mp4", "bild.png", "poster.jpg"]) {
+      expect(await own.dropFile(ANNA, f, { mediaDir })).toBe("deleted");
+      expect(await exists(join(mediaDir, f))).toBe(false);
+    }
+    expect(await own.dropFile(ANNA, "geteilt.webp", { mediaDir })).toBe("shared");
+    expect(await exists(join(mediaDir, "geteilt.webp"))).toBe(true);
+    expect(await own.owns(BEN, "geteilt.webp")).toBe(true);
+    expect(await own.dropFile(ANNA, "fremd.mp4", { mediaDir })).toBe("none");
+    expect(await exists(join(mediaDir, "fremd.mp4"))).toBe(true);
+    expect(await own.filesOf(ANNA)).toEqual([]);
+    expect(await own.dropFile(ANNA, "besitz", { mediaDir })).toBe(null);   // kein Medienname: nichts
+  } finally {
+    await rm(base, { recursive: true, force: true });
+  }
+});
