@@ -16,6 +16,9 @@ export type RenderPlan = { opening: string[]; scenes: string[]; morphs: string[]
   effects?: boolean;
   /** Adresse der Tonspur (m4a) — wird unter den Film gelegt; ohne = stumm. */
   sound?: string };
+/** Der Sammelfilm: Clips (file://… oder sketch:…), Musik, Raster in Sekunden, Texte. */
+export type MontagePlan = { clips: string[]; music?: string | null; slot?: number; fade?: number; tail?: number;
+  title?: string; subtitle?: string; endTitle?: string; endSub?: string; font?: string; overlays?: boolean };
 type NativeSketch = {
   isSupported(): boolean;
   painters(): Painter[];
@@ -38,6 +41,11 @@ type NativeSketch = {
   addSound(film: string, sound: string): Promise<boolean>;
   unload(): void;
   removeModel(): void;
+  /** Der Sammelfilm aus den echten Clips (10.10., „Weg A") — fehlt in älteren Binaries. */
+  renderMontage?(plan: MontagePlan, name: string): Promise<{ film: string; poster: string; seconds: number }>;
+  /** Apples Spracherkennung auf dem Gerät (iOS 26, 10.10.) — fehlt in älteren Binaries. */
+  speechPrepare?(lang: string): Promise<"installed" | "downloading" | "unsupported">;
+  transcribeFile?(uri: string, lang: string): Promise<{ text: string; ms: number }>;
   addListener(event: "onDownloadProgress", cb: (e: { done: number; total: number }) => void): Subscription;
   addListener(event: "onGenerateProgress", cb: (e: { phase: "loading" | "step"; step?: number; steps?: number }) => void): Subscription;
 };
@@ -83,4 +91,21 @@ export function resolveSketchesDeep<T>(value: T): T {
     return (changed ? out : value) as T;
   }
   return value;
+}
+
+/* ── Sprache → Text auf dem iPhone (Antons Versuch 10.10.) ───────────────
+   Apples SpeechTranscriber (iOS 26) statt Upload + Gemini. Kein Netz, keine
+   Kosten, die Stimme bleibt auf dem Gerät. Wo es nicht geht (älteres iOS,
+   Sprachpaket noch nicht geladen, älteres Binary über OTA), wirft
+   `transcribeOnDevice` — der Aufrufer nimmt dann den Server. */
+
+/** Sprachpaket bereitlegen (lädt im Hintergrund, falls es fehlt). Wirft nie. */
+export async function prepareOnDeviceSpeech(lang: string): Promise<string> {
+  try { return (await Native?.speechPrepare?.(lang)) ?? "unsupported"; } catch { return "unsupported"; }
+}
+
+/** Eine Aufnahme (file://…) auf dem Gerät aufschreiben. */
+export async function transcribeOnDevice(uri: string, lang: string): Promise<{ text: string; ms: number }> {
+  if (!Native?.transcribeFile) throw new Error("unsupported");
+  return Native.transcribeFile(uri, lang);
 }

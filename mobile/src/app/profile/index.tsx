@@ -5,6 +5,7 @@ import { SymbolView, type SFSymbol } from "expo-symbols";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useJournal } from "@/components/journal-data";
 import { Glass } from "@/components/glass";
+import { Mark } from "@/components/moonweave";
 import { NightSky } from "@/components/night-sky";
 import { TabBar, TabTitle, useTabTop } from "@/components/tab-header";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
@@ -53,7 +54,7 @@ export default function ProfileScreen() {
             {/* Freunde einladen (03.10.): kauft ein Freund, gibt es Träume. */}
             {data?.invite ? (
               <Pressable style={[styles.card, styles.invite]} onPress={() => { Haptics.selectionAsync(); router.push("/profile/invite"); }} accessibilityRole="button">
-                <View style={styles.inviteIcon}><SymbolView name="gift.fill" size={18} tintColor="#1a1206" /></View>
+                <View style={styles.inviteIcon}><Mark kind="spark" size={20} width={1.6} color="#1a1206" /></View>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={styles.cardTitle}>{data.invite.cardTitle}</Text>
                   <Text style={[styles.cardHint, { color: colors.gold }]}>{data.invite.cardHint}</Text>
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
   stats: { flexDirection: "row", gap: 18, marginTop: 4 },
   statN: { color: colors.text, fontSize: 17, fontWeight: "600", letterSpacing: 0, fontVariant: ["tabular-nums"] },
   statL: { color: colors.faint, fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase" },
-  card: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  card: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: radius.card, backgroundColor: colors.panelSolid, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   cardTitle: { color: colors.text, fontSize: 16, fontWeight: "600" },
   cardHint: { color: colors.accentSoft, fontSize: 13 },
   invite: { borderColor: "rgba(246,198,91,0.35)" },
@@ -157,7 +158,7 @@ const styles = StyleSheet.create({
   pill: { height: 36, paddingHorizontal: 14, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   pillText: { color: colors.text, fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] },
   gear: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  world: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(140,192,255,0.28)", gap: 8 },
+  world: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panelSolid, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(140,192,255,0.28)", gap: 8 },
   worldHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   worldTitle: { fontFamily: fonts.serif, fontSize: 22, color: colors.text },
   worldWhy: { color: colors.muted, fontSize: 13.5, lineHeight: 19 },
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
   miniEmpty: { alignItems: "center", justifyContent: "center", backgroundColor: "transparent", borderColor: colors.panelLine, borderStyle: "dashed" },
   worldN: { color: colors.text, fontSize: 20, fontWeight: "600", fontVariant: ["tabular-nums"] },
   worldL: { color: colors.faint, fontSize: 10.5, letterSpacing: 1, textTransform: "uppercase" },
-  dreamer: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, gap: 10 },
+  dreamer: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panelSolid, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, gap: 10 },
   dreamerTitle: { fontFamily: fonts.serif, fontSize: 20, color: colors.text },
   retake: { color: colors.accentSoft, fontSize: 13, fontWeight: "600" },
   sign: { flexDirection: "row", alignItems: "center", gap: 8 },

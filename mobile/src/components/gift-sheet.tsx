@@ -107,14 +107,17 @@ function GiftArt({ phase, num, mode, reached = false }: { phase: GiftPhase; num:
         <Svg width={240} height={240}>
           {/* Lichtstrahlen, die nach außen auslaufen — keine Keile mit Kante */}
           <Defs>
-            <RadialGradient id="gs-ray" gradientUnits="userSpaceOnUse" cx={120} cy={120} r={118} fx={120} fy={120}>
-              <Stop offset="0.3" stopColor={WARM} stopOpacity={0.55} />
-              <Stop offset="1" stopColor={WARM} stopOpacity={0} />
-            </RadialGradient>
+            {/* zwei Verläufe statt `opacity` am Strahl — das legte je Strahl eine Zwischenebene an (10.10.) */}
+            {[10, 6].map((a) => (
+              <RadialGradient key={a} id={`gs-ray-${a}`} gradientUnits="userSpaceOnUse" cx={120} cy={120} r={118} fx={120} fy={120}>
+                <Stop offset="0.3" stopColor={WARM} stopOpacity={0.055 * a} />
+                <Stop offset="1" stopColor={WARM} stopOpacity={0} />
+              </RadialGradient>
+            ))}
           </Defs>
           {Array.from({ length: 14 }, (_, i) => {
             const a = (i / 14) * Math.PI * 2, b = a + (i % 2 ? 0.05 : 0.09);
-            return <Path key={i} d={`M120 120 L${120 + Math.cos(a) * 118} ${120 + Math.sin(a) * 118} L${120 + Math.cos(b) * 118} ${120 + Math.sin(b) * 118}Z`} fill="url(#gs-ray)" opacity={i % 2 ? 0.6 : 1} />;
+            return <Path key={i} d={`M120 120 L${120 + Math.cos(a) * 118} ${120 + Math.sin(a) * 118} L${120 + Math.cos(b) * 118} ${120 + Math.sin(b) * 118}Z`} fill={`url(#gs-ray-${i % 2 ? 6 : 10})`} />;
           })}
         </Svg>
       </Animated.View>

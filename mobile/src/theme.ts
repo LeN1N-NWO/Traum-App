@@ -5,6 +5,12 @@ export const colors = {
   bg2: "#0c1423",
   sky: "#17263f",
   panel: "rgba(255,255,255,0.055)",
+  /* Dieselbe Kachel, deckend — für alles, was direkt auf dem Sternenhimmel
+     liegt (Antons Befund 10.10.: „die Sterne liegen über den Kacheln, wirken
+     wie Schmutz auf dem Display"). Durch das durchscheinende `panel` sah
+     man die Sterne dahinter. Der Ton ist der, den `panel` auf dem Himmel
+     ergab (#141925, gemessen im Journal). */
+  panelSolid: "#141a27",
   panelLine: "rgba(255,255,255,0.11)",
   text: "#eaf0fb",
   muted: "#a3b6d2",

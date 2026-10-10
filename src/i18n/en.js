@@ -91,6 +91,8 @@ export default {
     nextSlot: (num) => `Your next dream fills spot ${num}`,
     ringFilmTitle: (ring, from, to, motif) => `Ring ${ring} · dreams ${from}–${to}${motif ? ` · ${motif}` : ""}`,
     ringReadyTitle: "Your ring is full — here's your film",
+    /* Titel und Abspann im Sammelfilm selbst (10.10., renderMontage). */
+    montage: { title: "Your dreams", sub: (ring, from, to) => `RING ${ring} · DREAMS ${from}–${to}`, end: "Twelve dreams. One film.", brand: "DREAM RUSHES" },
     ringReadyBody: (n) => `Your ${n} dreams as one film.`,
     /* Das große Geschenk oben im Ring (Antons Befund 03.10.: „da kommt
        nichts, wobei das doch das stärkste Geschenk ist"). */
@@ -122,7 +124,9 @@ export default {
       states: { locked: "Locked", ready: "Ready to open", collected: "Collected", film: "Film unlocked" },
       sealGift: (k) => `Gift ${k} unlocked`,
       sealFilm: "Film unlocked",
+      sealRing: "Ring gift unlocked",
       open: (k) => `Open gift ${k}`,
+      openRing: "Open your ring gift",
       pending: "You have a gift ready to open.",
       node: (n, state, kind) => `Dream ${n}, ${state}${kind}`,
       nodeStates: { collected: "collected", next: "next dream", empty: "not collected" },
@@ -173,7 +177,7 @@ export default {
     products: { "pack-s": "Pack S", monthly: "Monthly", "pack-m": "Pack M", "pack-l": "Pack L", "pack-xl": "Pack XL", yearly: "Yearly" },
     friendsTitle: "Your invitations",
     empty: "No one yet. Share your code with someone who dreams too.",
-    status: { joined: "joined", bought: "bought — your gift arrives on {date}", rewarded: "🎁 {films} for you", rejected: "doesn't count (refunded)" },
+    status: { joined: "joined", bought: "bought — your gift arrives on {date}", rewarded: "✦ {films} for you", rejected: "doesn't count (refunded)" },
     cap: "{n} of {cap} gifts this month",
     rules: [
       "Only your friend's first real purchase counts — no free codes.",
@@ -214,8 +218,14 @@ export default {
       credits: (n) => `${n} credits`,
       month: (n) => `${n} credits — a whole month`,
       ring: () => "A film of your 12 dreams",
+      /* Die großen Geschenke auf den vollen Ringen (10.10.) — nur nach einem Kauf; sonst bei 48 zehn Glimpses. */
+      ringFilm: () => "A dream film, on us",
+      ringFilms: () => "Two dream films, on us",
+      bloom: (n) => `${n} credits — your full bloom`,
+      bloomGlimpses: (n) => `${n} free Glimpses`,
     },
-    giftShort: { glimpse: "Glimpse", film: "Film", credits: (n) => `+${n}`, month: (n) => `+${n}` },
+    ringPlus: (film, bonus) => `${film} + ${bonus}`,
+    giftShort: { glimpse: "Glimpse", film: "Film", credits: (n) => `+${n}`, month: (n) => `+${n}`, ringFilm: "Film", ringFilms: "2 films", bloom: (n) => `+${n}`, bloomGlimpses: (n) => `${n} Glimpses` },
     giftWorth: (n) => `worth ${n} ${n === 1 ? "credit" : "credits"}`,
     /* Kurz und auf einen Blick (Antons Befund 03.10.: „ein bisschen
        kompliziert … muss kompakter und schneller verständlich sein"):
@@ -229,13 +239,18 @@ export default {
         credits: "For Glimpses or films, your choice.",
         month: "As much as a whole month of subscription.",
         ring: "When the ring is full, its 12 dreams become one film — free.",
+        ringFilm: "Credits for one 15-second film — any dream you like.",
+        ringFilms: "Credits for two 15-second films — any dreams you like.",
+        bloom: "Four rings, 48 dreams. For Glimpses or films, your choice.",
+        bloomGlimpses: "Ten Glimpses that stay until you use them.",
       },
       rule: "Every dream with a Glimpse or film counts.",
       valid: "Valid 30 days.",
+      keeps: "Yours until you use it.",
       tapToOpen: "Tap to open",
       openTitle: (n) => `Dream no. ${n}!`,
       expires: (date) => `Valid until ${date}.`,
-      redeem: { glimpse: "Make a Glimpse", film: "Make your film", credits: "Use it now", month: "Use it now" },
+      redeem: { glimpse: "Make a Glimpse", film: "Make your film", credits: "Use it now", month: "Use it now", ringFilm: "Make a film", ringFilms: "Make a film", bloom: "Use it now", bloomGlimpses: "Make a Glimpse" },
       later: "Later",
       close: "Close",
     },
@@ -336,6 +351,16 @@ export default {
     castDreamsN: (n) => (n === 1 ? "dream" : "dreams"),
     castNever: "not in a dream yet",
     castNew: "Add a figure",
+    /* Besetzung im Abspann-Stil mit Casting-Vorschlägen (Antons Wahl 10.10.). */
+    castStarring: "Starring",
+    castInAll: (n) => (n === 0 ? "in every dream to come" : n === 1 ? "in your first dream" : `in all ${n} dreams`),
+    castSuggestTitle: "Showed up in your dreams",
+    castSuggestHint: "No face yet — add one and they'll look like themselves.",
+    castSuggestAdd: "Add",
+    /* Neue Figur: erst das Foto, dann der Dialog mit dem Foto darin (Antons Wunsch 10.10.: „weniger Schritte"). */
+    castPhoto: { take: "Take a photo", library: "Choose from library", none: "Without a photo", cancel: "Cancel" },
+    castSuggestIn: (n) => `in ${n} ${n === 1 ? "dream" : "dreams"}`,
+    castEmptyCard: { person: "Someone from last night?", pet: "A pet of yours?", place: "A place you dream of", object: "A thing that keeps coming back" },
     libraryCount: (n) =>
       n === 0 ? "Nobody yet — add the faces your dreams should use"
               : `${n} ${n === 1 ? "entry" : "entries"} · people, pets, places`,
@@ -426,6 +451,8 @@ export default {
     makeFilmAgain: "Another take",
     takesLabel: "Takes of this dream",
     takeUnknown: "Take",
+    /* Unter dem Titel: was es ist und in welchem Stil (10.10.) — „Film · Claymation". */
+    madeFilm: "Film",
     makeFilmLede: "Now bring it to life.",
     filmPending: "Making your video — hang tight",
     imagesPending: "Making your images — hang tight",
@@ -688,6 +715,7 @@ export default {
     descLabelMe: "Describe yourself",
     descLabelMeOptional: "Describe yourself (optional)",
     descPlaceholder: "tall, dark curly hair, always in a green coat",
+    descPlaceholderFor: { person: "tall, dark curly hair, always in a green coat", pet: "small black dog, one white ear", place: "blue wooden house by a lake, red door", object: "old red car with a dented bonnet" },
     previewAlt: "Preview of the selected photo",
     privacy: "This photo is sent to fal.ai when a dream is rendered.",
     cancel: "Cancel",
@@ -990,7 +1018,7 @@ export default {
     tooShort: "⚠ Write a little more first.",
     caught: (name) => `✦ ${name} joined your menagerie`,
     /* Der Rekorder (ADR-0007): einsprechen, fertig — keine Rückfragen. */
-    record: "Tell it out loud", recordHint: "Tap the moon and just talk. I'll write along.",
+    record: "Tell it out loud", recordHint: "Tap the light and just talk. I'll write along.",
     recording: "Listening…", recordStop: "Done", recordDiscard: "Discard", recordTranscribing: "Writing it down…",
     recordTooShort: "That was too short — try again.", recordFailed: "Couldn't write that down. Try again.",
     // Gast hat gesprochen: Aufschreiben kostet, also erst anmelden — die Aufnahme bleibt.
@@ -1007,6 +1035,17 @@ export default {
     interviewHint: "I'll ask, you talk — eyes closed if you like",
     reading: "Working out your dream…",
     readingHint: "Naming it, and picking out who was there.",
+    /* Der Ladebalken nach dem Einsprechen (10.10.): wechselt über die
+       geschätzte Dauer, der erste nur, wenn gerade aufgeschrieben wird. */
+    readingSteps: [
+      "Writing down your words…",
+      "Reading your dream…",
+      "Finding the scenes…",
+      "Spotting who was there…",
+      "Feeling the mood…",
+      "Giving it a title…",
+      "Almost there…",
+    ],
     or: "or write it",
     loading: [
       "Developing your rushes…",
@@ -1250,11 +1289,13 @@ export default {
       createCredit: "Create Glimpse · {n} credit",
       freeLeft: "{n} free Glimpses left this month",
       noneLeft: "Your free Glimpses for this month are used up",
+      giftLeft: "Gifted Glimpses left: {n}",
       takeLabel: "Glimpse",
       photoTitle: "With the faces from your cast",
       photoHint: "{name} — as the model for the characters, painted in your look.",
       preparing: "Reading your dream…",
       priceFree: "Free · {n} left this month",
+      priceGift: "Gifted · {n} left",
       creditWord: "credit",
       working: [
         "Reading your dream…",

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { SKETCH_FREE, SKETCH_BASE, SKETCH_EXTRA, SKETCH_STRIPS, monthKey, sketchFreeLeft, sketchCost, countSketch, sketchTiming, recommendedStrips, clampStrips } from "./sketchQuota.js";
+import { SKETCH_FREE, SKETCH_BASE, SKETCH_EXTRA, SKETCH_STRIPS, monthKey, sketchFreeLeft, sketchGiftLeft, sketchCost, countSketch, sketchTiming, recommendedStrips, clampStrips } from "./sketchQuota.js";
 import { soundCostUsd } from "./sketchSound.js";
 import { imagePrice } from "./imageModel.js";
 import { CREDIT_COST_USD } from "./plans.js";
@@ -71,4 +71,29 @@ test("neuer Monat: Kontingent wieder voll, Zähler beginnt bei 1", () => {
 test("kaputter Zähler wird nicht negativ", () => {
   expect(sketchFreeLeft({ sketchQuota: { month: "2026-09", used: -5 } }, sept)).toBe(SKETCH_FREE);
   expect(sketchFreeLeft({ sketchQuota: { month: "2026-09", used: "x" } }, sept)).toBe(SKETCH_FREE);
+});
+
+/* Geschenkte Glimpses (10.10.): eigene Kategorie, nach dem Monat, vor Credits. */
+test("geschenkte Glimpses: erst der Monat, dann das Geschenk, dann Credits", () => {
+  const spent = { sketchQuota: { month: monthKey(sept), used: SKETCH_FREE } };
+  // im Monat gratis: das Geschenk bleibt unberührt
+  const fresh = { glimpseGifts: 2 };
+  expect(sketchCost(fresh, 1, sept)).toBe(0);
+  expect(countSketch(fresh, sept).glimpseGifts).toBeUndefined();
+  // Monat aufgebraucht: das Geschenk trägt das erste Bild, weitere Bilder kosten
+  let s = { ...spent, glimpseGifts: 2 };
+  expect(sketchCost(s, 1, sept)).toBe(0);
+  expect(sketchCost(s, 3, sept)).toBe(2 * SKETCH_EXTRA);
+  s = { ...s, ...countSketch(s, sept) };
+  expect(sketchGiftLeft(s)).toBe(1);
+  s = { ...s, ...countSketch(s, sept) };
+  expect(sketchGiftLeft(s)).toBe(0);
+  expect(sketchCost(s, 1, sept)).toBe(SKETCH_BASE);
+  expect(countSketch(s, sept).glimpseGifts).toBeUndefined();   // nichts mehr da, nichts wird negativ
+});
+
+test("kaputter Geschenkzähler zählt als keiner", () => {
+  expect(sketchGiftLeft({ glimpseGifts: -3 })).toBe(0);
+  expect(sketchGiftLeft({ glimpseGifts: "x" })).toBe(0);
+  expect(sketchGiftLeft({ glimpseGifts: 2.7 })).toBe(2);
 });

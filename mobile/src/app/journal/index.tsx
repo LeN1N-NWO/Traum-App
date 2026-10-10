@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   empty: { color: colors.muted, textAlign: "center", marginVertical: 40, fontSize: 15 },
   list: { marginTop: 4 },
   shortcuts: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 18 },
-  room: { flexGrow: 1, flexBasis: "45%", flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  room: { flexGrow: 1, flexBasis: "45%", flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: radius.card, backgroundColor: colors.panelSolid, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   roomTitle: { color: colors.text, fontSize: 15, fontWeight: "600" },
   roomText: { color: colors.muted, fontSize: 12 },
   bridge: { height: 0, overflow: "hidden" },

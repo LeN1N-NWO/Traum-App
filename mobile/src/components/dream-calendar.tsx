@@ -78,7 +78,7 @@ export function DreamCalendar({ items, blankKeys, sleep, sleepLevels, labels, on
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 12, borderRadius: radius.card, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, marginTop: 16 },
+  card: { padding: 12, borderRadius: radius.card, backgroundColor: colors.panelSolid, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, marginTop: 16 },
   head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
   nav: { width: 32, height: 32, alignItems: "center", justifyContent: "center", borderRadius: 8 },
   title: { color: colors.text, fontSize: 13, fontWeight: "600" },

@@ -49,7 +49,7 @@ export const MILESTONES = [
 import { addGift } from "./credits.js";
 import { giftAtNum, nextGiftNum, QUARTER } from "./dreamRing.js";
 import { FILM_UNIT } from "./plans.js";
-import { SKETCH_BASE } from "./sketchQuota.js";
+import { SKETCH_BASE, sketchGiftLeft } from "./sketchQuota.js";
 import { priceForFilm } from "./video.js";
 
 export const FILM_GIFT = priceForFilm(FILM_UNIT.model, FILM_UNIT.seconds, { quality: FILM_UNIT.quality });
@@ -77,35 +77,92 @@ export function giftInfo(nights) {
   return GIFTS.find((g) => g.nights === nights) || null;
 }
 
+/* ── Die großen Geschenke auf den vollen Ringen (Antons Entscheidung 10.10.) ─
+ *
+ * „Große Geschenke gibt es nur für Leute, die schon mal etwas gekauft
+ * haben." Gerechnet am schlimmsten Fall (48 Glimpses, nur Pakete, kein
+ * Abo): Wer kauft, bringt uns auch mit der ganzen Staffel nicht ins Minus;
+ * wer nie kauft, machte jedes große Geschenk zum reinen Verlust.
+ *
+ *   24 → ein Traumfilm (FILM_GIFT Credits)          nach einem Kauf
+ *   36 → zwei Traumfilme                            nach einem Kauf
+ *   48 → 50 Credits, die volle Blüte                nach einem Kauf
+ *   48 → 10 Glimpses (eigene Kategorie, sketchQuota) für alle anderen
+ * Dazu bleibt an jedem vollen Ring der Film aus seinen 12 Träumen (iPhone).
+ *
+ * „Gekauft" = `paidAt`, gesetzt beim ersten bestätigten Apple-Kauf (Paket
+ * oder Abo, Brücken-Befehl `purchase`). Entschieden wird, wenn der Platz
+ * erreicht ist: Wer bei 24 noch nie gekauft hat und vor Traum 27 kauft,
+ * bekommt den Film nachgereicht — danach ist der Platz vorbei.
+ * Einkauf für uns: 98 Credits ≈ $2,77 je Käufer, 10 Glimpses ≈ $0,39 sonst.
+ *
+ * ⚠ Mit Konto führt der SERVER das Guthaben (S7) — dort müssen die
+ * Credit-Geschenke gebucht werden, sonst sieht man sie nicht. Übergabe an
+ * Hanni: docs/uebergabe/2026-10-10-hanni-server-aufnahmen-geschenke.md. */
+export const BLOOM = 48;
+export const BLOOM_CREDITS = 50;
+export const BLOOM_GLIMPSES = 10;
+
+/** Hat dieser Mensch schon einmal gekauft? */
+export function isPaid(state) {
+  return !!state?.paidAt;
+}
+
+/** Das große Geschenk auf Platz `num`, oder null. */
+export function bigGiftAt(num, paid) {
+  if (num === 24) return paid ? { kind: "ringFilm", credits: FILM_GIFT, glimpses: 0 } : null;
+  if (num === 36) return paid ? { kind: "ringFilms", credits: 2 * FILM_GIFT, glimpses: 0 } : null;
+  if (num === BLOOM) return paid ? { kind: "bloom", credits: BLOOM_CREDITS, glimpses: 0 } : { kind: "bloomGlimpses", credits: 0, glimpses: BLOOM_GLIMPSES };
+  return null;
+}
+
+/** Was auf Platz `num` für diesen Menschen verschenkt wird, oder null.
+ *  Die Viertel (3, 6, 9 …) je ein Glimpse — seit 10.10. in der eigenen
+ *  Kategorie statt als 2 Credits im Geschenktopf; die vollen Ringe ihr
+ *  großes Geschenk (oder nichts — der Ring-Film kommt vom iPhone). */
+export function giftToGive(num, paid) {
+  const slot = giftAtNum(num);
+  if (!slot) return null;
+  if (slot.kind === "glimpse") return { kind: "glimpse", credits: 0, glimpses: 1 };
+  return bigGiftAt(num, paid);
+}
+
 /** Das fällige Geschenk, oder null.
  *
  *  ⚠ Seit 03.10. spätabends (Traum-Ring, dreamRing.js): Geschenke liegen
  *  auf den Vierteln jedes 12er-Rings — 3, 6, 9 je ein Glimpse, 12 der
- *  Film aus dem Ring (den macht das iPhone, hier gibt es dafür nichts).
- *  Die Leiter GIFTS oben bleibt nur für die alte Web-Ansicht stehen.
+ *  Film aus dem Ring (den macht das iPhone). Seit 10.10. dazu die großen
+ *  Geschenke bei 24, 36, 48 (bigGiftAt). Die Leiter GIFTS oben bleibt nur
+ *  für die alte Web-Ansicht stehen.
  *
  *  `giftedUpTo` merkt sich den letzten bezahlten Platz; Nummern laufen nur
  *  vorwärts, also zahlt nichts doppelt. Alte Stände ohne das Feld nehmen
  *  das höchste Viertel aus `streakGifts`. Genau ein Geschenk je Aufruf.
  *  `giftUnseen` hält es, bis die Startseite es geöffnet hat (`giftSeen`).
  *
- *  @returns {{nights:number, credits:number, kind:string, patch:object}|null} */
+ *  @returns {{nights:number, credits:number, glimpses:number, kind:string, patch:object}|null} */
 export function giftFor(state, now = Date.now()) {
   const count = state?.count || 0;
   const given = Array.isArray(state?.streakGifts) ? state.streakGifts : [];
   const upTo = Number.isFinite(state?.giftedUpTo) ? state.giftedUpTo : Math.max(0, ...given.filter((n) => n % QUARTER === 0));
+  const paid = isPaid(state);
   let num = nextGiftNum(upTo);
-  while (num <= count && giftAtNum(num)?.kind !== "glimpse") num = nextGiftNum(num);
-  if (num > count) return null;
-  const g = giftAtNum(num);
+  let g = null;
+  for (; num <= count; num = nextGiftNum(num)) {
+    g = giftToGive(num, paid);
+    if (g) break;
+  }
+  if (!g) return null;
   return {
     nights: num,
     credits: g.credits,
+    glimpses: g.glimpses,
     kind: g.kind,
     patch: {
-      ...addGift(state, g.credits, now),
+      ...(g.credits ? addGift(state, g.credits, now) : {}),
+      ...(g.glimpses ? { glimpseGifts: sketchGiftLeft(state) + g.glimpses } : {}),
       giftedUpTo: num,
-      giftUnseen: { nights: num, credits: g.credits, kind: g.kind, at: new Date(now).toISOString() },
+      giftUnseen: { nights: num, credits: g.credits, glimpses: g.glimpses, kind: g.kind, at: new Date(now).toISOString() },
     },
   };
 }
@@ -124,9 +181,15 @@ export function milestoneProgress(streak) {
   return Math.max(0, Math.min(1, ((streak || 0) - base) / (nxt.nights - base)));
 }
 
-/** Wie ein Geschenk heißt — „Dein erster Traumfilm", „20 Credits". */
+/** Wie ein Geschenk heißt — „Dein erster Traumfilm", „20 Credits", „10 Glimpses". */
 export function giftLabel(t, gift) {
   const kinds = t?.streakBoard?.giftKinds;
   const f = kinds?.[gift?.kind];
-  return f ? f(gift.credits) : `${gift?.credits ?? 0} credits`;
+  const n = gift?.glimpses > 1 ? gift.glimpses : gift?.credits ?? 0;
+  return f ? f(n) : `${n} credits`;
+}
+
+/** Geschenke, die Glimpses sind (eingelöst im Traum-Tab), statt Credits. */
+export function isGlimpseGift(kind) {
+  return kind === "glimpse" || kind === "bloomGlimpses";
 }

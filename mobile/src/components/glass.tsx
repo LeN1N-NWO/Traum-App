@@ -1,10 +1,12 @@
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { swing, useAmbient } from "@/lib/ambient-clock";
 import { OrbitGlow } from "@/components/orbit-glow";
+import { useScreenActive } from "@/lib/use-screen-active";
 import { colors } from "@/theme";
 
 /* Liquid Glass für Flächen und Knöpfe (Antons Wunsch 12.09.). Auf iOS 26
@@ -42,9 +44,12 @@ const SHEEN = ["rgba(242,167,101,0.62)", "rgba(242,167,101,0.16)", "rgba(96,150,
    onLayout, weil Reanimated keine Prozente verschiebt. */
 export function Sheen() {
   const [w, setW] = useState(0);
-  const k = useSharedValue(0);
-  useEffect(() => { k.value = withRepeat(withTiming(1, { duration: 4200, easing: Easing.inOut(Easing.sin) }), -1, true); }, [k]);
-  const drift = useAnimatedStyle(() => ({ transform: [{ translateX: (k.value - 0.5) * w * 0.5 }] }));
+  /* Nur, solange der Knopf zu sehen ist, und im gemeinsamen Takt
+     (10.10., Energie): Jeder Hauptknopf auf jedem montierten Tab trieb sonst
+     jedes Bild eine Layout-Runde an — gemessen der größte Teil der
+     Grundlast auf ruhigen Seiten. Ein Hin und Her dauert 8,4 s wie vorher. */
+  const t = useAmbient(useScreenActive());
+  const drift = useAnimatedStyle(() => ({ transform: [{ translateX: (swing(t.value, 8400) - 0.5) * w * 0.5 }] }));
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none" onLayout={(e) => setW(e.nativeEvent.layout.width)}>
       <Animated.View style={[{ position: "absolute", top: 0, bottom: 0, left: -w / 2, width: w * 2 }, drift]}>

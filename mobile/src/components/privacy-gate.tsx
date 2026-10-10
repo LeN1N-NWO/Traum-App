@@ -1,10 +1,10 @@
-import { SymbolView } from "expo-symbols";
+import { Image } from "expo-image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "@/components/glass";
 import { isLockEnabled, unlock } from "@/lib/privacy-lock";
 import { useJournalStore } from "@/store/journal-store";
-import { colors, fonts } from "@/theme";
+import { colors } from "@/theme";
 
 /* Das Sperr-Tor (Antons Ansage 22.09.2026): Liegt der Schalter in den
    Einstellungen auf An, deckt diese Schicht die App beim Start und bei
@@ -25,6 +25,14 @@ import { colors, fonts } from "@/theme";
    VOR ihr, deshalb tragen die Rückfälle hier englische Konstanten
    (Ausnahme von „alle Texte in en.js“, Begründung: en.js:449). */
 const FALLBACK = { locked: "Your dreams are locked.", unlock: "Unlock", prompt: "Unlock your dreams" };
+
+/* Das Zeichen: dasselbe Auge wie im Startbild (app.json, expo-splash-screen:
+   assets/images/splash-icon.png, 120 pt breit, auf #050a14). Bis 10.10. stand
+   hier der alte blaue Mond mit „Dream Rushes" (Antons Befund: „im
+   App-Umschalter ein Icon, das wir nicht mehr haben"). Gleiche Größe und
+   Mitte wie das Startbild — beim Kaltstart geht es ohne Sprung über. */
+const MARK = require("../../assets/images/splash-icon.png");
+const MARK_W = 120, MARK_H = Math.round((120 * 528) / 684);
 
 export function PrivacyGate() {
   const P = useJournalStore()?.profile?.settingsPage?.privacy;
@@ -79,8 +87,7 @@ export function PrivacyGate() {
 
   return (
     <View style={styles.cover} pointerEvents="auto">
-      <SymbolView name="moon.stars.fill" size={56} tintColor={colors.accentSoft} />
-      <Text style={styles.brand}>Dream Rushes</Text>
+      <Image source={MARK} style={{ width: MARK_W, height: MARK_H }} contentFit="contain" accessibilityLabel="Dream Rushes" />
       {locked && !covered ? (
         <View style={styles.body}>
           <Text style={styles.text}>{P?.locked ?? FALLBACK.locked}</Text>
@@ -93,7 +100,6 @@ export function PrivacyGate() {
 
 const styles = StyleSheet.create({
   cover: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 32 },
-  brand: { color: colors.text, fontSize: 22, fontFamily: fonts.serif, letterSpacing: 0.5 },
   body: { alignSelf: "stretch", alignItems: "center", gap: 18, marginTop: 22 },
   text: { color: colors.muted, fontSize: 15, textAlign: "center" },
 });

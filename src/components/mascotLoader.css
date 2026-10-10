@@ -1,24 +1,23 @@
-/* Das wartende Maskottchen. Begründung und Fallen: MascotLoader.jsx.
+/* Die wartende Galaxie. Begründung und Maße: MascotLoader.jsx.
 
-   `mix-blend-mode: screen` stellt die weiße Strichzeichnung auf ihrem
-   schwarzen Grund frei — ohne Alphakanal und ohne einen einzigen Byte
-   extra. Der Behälter darf deshalb KEINEN eigenen Stapelkontext aufmachen
-   (kein isolation, kein transform, kein opacity < 1): Das Blenden soll bis
-   auf den Seitenhintergrund durchgreifen. */
-.ml-wrap { display: grid; place-items: center; }
-.ml-film {
-  display: block;
-  mix-blend-mode: screen;
-  pointer-events: none;
-}
+   Der Behälter ist so groß wie die Anzeige; die Scheibe darf seitlich
+   überstehen (wie nativ). Alles liegt absolut, gedreht wird nur per
+   Transform — die Bilder werden einmal dekodiert und dann nur noch von der
+   Grafikkarte bewegt. */
+.ml-wrap { position: relative; display: block; margin: 0 auto; overflow: visible; pointer-events: none; }
+.ml-layer { position: absolute; display: block; }
+.ml-tilt { position: absolute; transform: rotate(-21deg) scaleY(0.54); }
+.ml-spin, .ml-spin > .ml-layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
 
-/* Der Wartebildschirm: der Frosch legt sich hin und schläft, in Ruhe. */
-.ml-page .ml-film { width: 180px; height: 180px; }
+/* Spirale: eine Umdrehung in 14 s. Halo atmet 1 → .65 in 9 s, Kern 1 → 1.14 in 7 s. */
+.ml-spin { animation: ml-spin 14s linear infinite; }
+.ml-halo { animation: ml-breathe 9s ease-in-out infinite alternate; }
+.ml-core { animation: ml-core 7s ease-in-out infinite alternate; }
 
-/* Neben einer Zeile Text — kleiner, aber nie so klein, dass die Zeichnung
-   zu Matsch wird. Darunter bleibt der Ring die ehrlichere Anzeige. */
-.ml-inline .ml-film { width: 56px; height: 56px; }
+@keyframes ml-spin { to { transform: rotate(360deg); } }
+@keyframes ml-breathe { from { opacity: 1; } to { opacity: 0.65; } }
+@keyframes ml-core { from { opacity: 1; transform: scale(1); } to { opacity: 0.7; transform: scale(1.14); } }
 
-@media (max-width: 380px) {
-  .ml-page .ml-film { width: 140px; height: 140px; }
+@media (prefers-reduced-motion: reduce) {
+  .ml-spin, .ml-halo, .ml-core { animation: none; }
 }

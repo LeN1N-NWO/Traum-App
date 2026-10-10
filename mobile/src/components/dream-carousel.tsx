@@ -17,6 +17,9 @@ import { colors, fonts } from "@/theme";
    der Mitte spielt ihren Film. Tipp auf die Mitte öffnet den Traum, Tipp
    auf einen Nachbarn holt ihn in die Mitte. */
 const AnimatedBlur = Animated.createAnimatedComponent(BlurView);
+/* Luft über und unter den Kacheln: ROOM im Layout wie bisher, ROOM_TOP und
+   ROOM_BOTTOM innen — so weit reicht der Schein (Radius 18, 6 nach unten). */
+const ROOM = 18, ROOM_TOP = 40, ROOM_BOTTOM = 50;
 const AnimatedList = Animated.createAnimatedComponent(FlatList<DreamItem>);
 
 export function DreamCarousel({ items, untitled, locale, onOpen }: { items: DreamItem[]; untitled?: string; locale: string; onOpen: (id: string) => void }) {
@@ -42,7 +45,12 @@ export function DreamCarousel({ items, untitled, locale, onOpen }: { items: Drea
         showsHorizontalScrollIndicator={false}
         snapToInterval={STEP}
         decelerationRate="fast"
-        contentContainerStyle={{ paddingHorizontal: side, paddingVertical: 18 }}
+        /* Platz für den goldenen Schein (Antons Befund 10.10.: „abgeschnitten,
+           harte Kante zwischen dem Glow und dem Himmel"): Die Liste schneidet
+           an ihrem Rand ab, der Schein reicht ~40 pt weit. Mehr Innenraum,
+           dieselben negativen Ränder — das Layout bleibt, wo es war. */
+        style={{ marginTop: ROOM - ROOM_TOP, marginBottom: ROOM - ROOM_BOTTOM }}
+        contentContainerStyle={{ paddingHorizontal: side, paddingTop: ROOM_TOP, paddingBottom: ROOM_BOTTOM }}
         onScroll={onScroll}
         scrollEventThrottle={16}
         initialNumToRender={4}

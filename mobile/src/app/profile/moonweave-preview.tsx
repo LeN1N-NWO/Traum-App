@@ -7,7 +7,7 @@ import { colors, TAB_INSET } from "@/theme";
 
 /* Vorschau des Traumfängers (Moonweave, 10.10.) mit allen wichtigen
  * Zuständen: 0–12 Träume, ein ungeöffnetes Geschenk, der Film fertig oder
- * noch in Arbeit, Ring 2, das Einwachsen eines neuen Blatts.
+ * noch in Arbeit, Ring 1–5 (Lagen), das Einwachsen eines neuen Blatts.
  *
  * ⚠ Nur zum Ansehen: keine echten Daten, keine Brücke — hier wird nichts
  * vergeben, gezählt oder gespeichert. Erreichbar nur im Entwicklungsbau
@@ -24,7 +24,8 @@ export default function MoonweavePreview() {
   const [ring, setRing] = useState(Number(q.ring ?? 1) || 1);
   const [seen, setSeen] = useState<number | null>(q.grow === "1" ? Math.max(0, (Number(q.ring ?? 1) - 1) * 12 + n - 1) : null);
   const start = (ring - 1) * 12, count = start + n;
-  const unseen = gift ? [3, 6, 9].map((g) => start + g).filter((g) => g <= count).pop() ?? null : null;
+  // ab Ring 2 trägt auch der volle Ring ein Geschenk (24, 36, 48 — 10.10.)
+  const unseen = gift ? [3, 6, 9, ...(ring >= 2 ? [12] : [])].map((g) => start + g).filter((g) => g <= count).pop() ?? null : null;
   const C = usePreviewCycle(n, { ring, unseen, gifted: count, film, seen: seen ?? count });
   const [reveal, setReveal] = useState(false);
   const [card, setCard] = useState(false);
@@ -41,7 +42,7 @@ export default function MoonweavePreview() {
         <View style={styles.row}>
           {chip("Geschenk wartet", gift, () => setGift((v) => !v))}
           {chip("Film fertig", film, () => setFilm((v) => !v))}
-          {chip(`Ring ${ring === 1 ? 2 : 1}`, ring === 2, () => { setRing((r) => (r === 1 ? 2 : 1)); setSeen(null); })}
+          {chip(`Ring ${ring} → ${ring >= 5 ? 1 : ring + 1}`, ring > 1, () => { setRing((r) => (r >= 5 ? 1 : r + 1)); setSeen(null); })}
           {chip("+1 einwachsen", false, () => { if (n < 12) { setSeen(count); setN(n + 1); } })}
         </View>
         <Moonweave C={C} width={width - 32}

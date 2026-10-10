@@ -4,10 +4,10 @@ import { localMedia, onMediaReady } from "@/lib/media-cache";
 /* Das Journal, nativ vorgehalten — gespeist von der Web-Brücke
    (legacy/journal-bridge.jsx). Ein Modul-Speicher statt Context, weil Liste
    und Traum-Seite in verschiedenen Stack-Screens leben und beide lesen. */
-export type Take = { url: string; at: string | null; label: string };
+export type Take = { url: string; at: string | null; label: string; glimpse?: boolean };
 export type DreamItem = {
   id: string; createdAt: string; title: string; tagline: string; text: string;
-  media: { kind: "film" | "image"; url: string } | null; pending: boolean; rendering: boolean; failReason: string | null; audio: string | null; poster: string | null; analysis: any | null; styleId: string | null; moon: MoonInfo;
+  media: { kind: "film" | "image"; url: string } | null; pending: boolean; rendering: boolean; failReason: string | null; audio: string | null; poster: string | null; analysis: any | null; styleId: string | null; styleLabel?: string | null; moon: MoonInfo;
   films: Take[]; images: string[]; reflection: string | null; originalText: string | null;
   cast: { tag: string; img: string | null }[];
 };
@@ -15,12 +15,12 @@ export type Labels = Record<string, string>;
 export type MoonInfo = { phase: string; illum: number; waxing: boolean; label: string; lit: string };
 export type MoonStripDay = { key: string; day: number; weekday: number; today: boolean; phase: string; illum: number; waxing: boolean; label: string; sleep: number | null };
 export type MoonData = { title: string; tonight: string; weekdays: string[]; strip: MoonStripDay[] };
-export type GiftKind = "glimpse" | "film" | "credits" | "month" | "ring";
+export type GiftKind = "glimpse" | "film" | "credits" | "month" | "ring" | "ringFilm" | "ringFilms" | "bloom" | "bloomGlimpses";
 /** Die Steinart eines Traums im Traumfänger = Gruppe seines Traumsymbols (src/lib/symbols.js). */
 export type StoneKind = "place" | "scenario" | "creature" | "person" | "emotion" | "none";
 /* Ein Geschenk als kurze Karte (gift-sheet.tsx): Titel, ein Satz, Fortschritt. */
 export type GiftCard = { kind: GiftKind | "monthFilm"; title: string; sub: string; eyebrow: string; progress: number; progressText: string; foot: string; close: string; num?: number; ringFilled?: number };
-export type GiftReveal = { nights: number; kind: GiftKind; credits: number; title: string; label: string; sub: string; expires: string | null; tapToOpen: string; redeem: string; later: string; target: "dream" | "journal"; dreamId: string | null };
+export type GiftReveal = { nights: number; kind: GiftKind; credits: number; glimpses?: number; title: string; label: string; sub: string; expires: string | null; tapToOpen: string; redeem: string; later: string; target: "dream" | "journal"; dreamId: string | null };
 
 /* Freunde einladen (03.10.) — Texte aus en.js/de.js, Platzhalter {…}. */
 export type InviteTexts = {
@@ -53,7 +53,8 @@ export type HomeData = {
   };
   /* Ein frisch erreichtes Meilenstein-Geschenk, bis es geöffnet ist (03.10.). */
   giftReveal: GiftReveal | null;
-  moonFilm: { key: string; title: string; dreams: { id: string; img: string }[]; readyTitle: string; readyBody: string } | null;
+  moonFilm: { key: string; title: string; dreams: { id: string; img: string; film?: string | null }[]; style?: string; mood?: string;
+    montage?: { title: string; subtitle: string; endTitle: string; endSub: string }; readyTitle: string; readyBody: string } | null;
   intention: string;
   board: { title: string; nights: string; lede: string; rungs: { nights: number; title: string; reward: string; gift: string | null; state: "done" | "next" | "far" }[]; note: string };
 };
@@ -111,7 +112,10 @@ export type PaywallData = {
 };
 export type SymbolEntry = { id: string; label: string; meaning: string; count: number; countLine: string; occurrences: { entryId: string; date: string; title: string }[] };
 export type SymbolsData = { title: string; subtitle: string; empty: string; close: string; disclaimer: string; groups: { key: string; label: string; symbols: SymbolEntry[] }[] };
-export type LibraryData = { title: string; lede: string; why: string; total: number; newLabel: string; empty: string; never: string; groups: { category: string; label: string; addLabel: string; rows: { id: string; tag: string; img: string | null; initial: string; count: number; countWord: string }[] }[] };
+export type LibraryData = { title: string; lede: string; why: string; total: number; newLabel: string; empty: string; never: string; photo?: { take: string; library: string; none: string; cancel: string };
+  me?: { name: string; line: string }; starring?: string; suggestTitle?: string; suggestHint?: string; suggestAdd?: string;
+  suggest?: { name: string; category: string; count: number; tag?: string; line: string }[];
+  groups: { category: string; label: string; addLabel: string; emptyCard?: string; rows: { id: string; tag: string; img: string | null; initial: string; count: number; countWord: string }[] }[] };
 export type MenagerieData = { title: string; lede: string; empty: string; creatures: { id: string; e: string; name: string; rare: string; rareClass: string; date: string }[] };
 export type OnboardValues = { order: string[]; labels: Record<string, string> };
 export type OnboardData = {
@@ -159,12 +163,12 @@ export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refre
 export type SketchPrepRequest = { beats: string[]; strips?: number; analysis: any; styleId: string; assignmentOverrides: Record<string, { avatarId?: string; free?: boolean }> };
 /* Seit 25.09. abends: Cloud-Raster — der fertige Prompt, die Fotos in Klausel-Reihenfolge, was es kostet. */
 export type SketchOption = { strips: number; scenes: number; hold: number; fade: number; seconds: number; cost: number };
-export type SketchPrep = { prompt: string; prompts: string[]; strips: number; particles: string; refs: { name: string; kind: string; img: string }[]; freeLeft: number; cost: number; credits: number; options: SketchOption[] };
+export type SketchPrep = { prompt: string; prompts: string[]; strips: number; particles: string; refs: { name: string; kind: string; img: string }[]; freeLeft: number; giftLeft?: number; cost: number; credits: number; options: SketchOption[] };
 export type SketchRequest = { entryId: string | null; text: string; originalText: string; analysis: any; styleId: string; film: string; stills: string[]; seconds: number };
 export type SketchTexts = {
   title: string; lede: string; needsModel: string; modelInfo: string; download: string; downloading: string; cancel: string;
   creating: string; rendering: string; saving: string; stayHint: string; failed: string; retry: string;
-  unsupported: string; create: string; createCredit: string; freeLeft: string; noneLeft: string; takeLabel: string;
+  unsupported: string; create: string; createCredit: string; freeLeft: string; noneLeft: string; giftLeft?: string; takeLabel: string;
   photoTitle: string; photoHint: string; preparing: string; priceFree: string; creditWord: string;
   working: string[]; filming: string[];
   queuedTitle?: string; queuedBody?: string; toJournal?: string; readyTitle?: string; readyBody?: string;

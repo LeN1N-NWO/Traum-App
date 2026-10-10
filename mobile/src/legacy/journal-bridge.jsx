@@ -21,7 +21,7 @@ import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js
 import { totalCredits, spend, applyAllowanceGrant, giftLeft } from "../../../src/lib/credits.js";
 import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchGrid, sketchSound } from "../../../src/lib/api.js";
 import { pickParticles, buildSketchGridPrompt } from "../../../src/lib/sketchPrompt.js";
-import { sketchFreeLeft, sketchCost, countSketch, sketchTiming, clampStrips, SKETCH_STRIPS, SCENES_PER_STRIP } from "../../../src/lib/sketchQuota.js";
+import { sketchFreeLeft, sketchGiftLeft, sketchCost, countSketch, sketchTiming, clampStrips, SKETCH_STRIPS, SCENES_PER_STRIP } from "../../../src/lib/sketchQuota.js";
 import { quoteFor } from "../../../src/lib/quote.js";
 import { buildReferences, buildImagePrompt } from "../../../src/lib/promptBuilder.js";
 import { renderRef, needsSheet, sheetFingerprint } from "../../../src/lib/sheets.js";
@@ -48,8 +48,8 @@ import { FORM_FIELDS, profileFromAnswers } from "../../../src/lib/onboardingForm
 import { MASCOTS, DEFAULT_MASCOT } from "../../../src/lib/mascots.js";
 import { zodiacOf } from "../../../src/lib/zodiac.js";
 import { SYMBOLS, SYMBOL_CATEGORIES, detectSymbols, symbolOccurrences } from "../../../src/lib/symbols.js";
-import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
-import { giftFor, giftLabel } from "../../../src/lib/streakBoard.js";
+import { castByCategory, castSuggestions, initialOf } from "../../../src/lib/castStats.js";
+import { bigGiftAt, giftFor, giftLabel, isGlimpseGift, isPaid } from "../../../src/lib/streakBoard.js";
 import { REFERRAL_FILMS, REFERRAL_HOLD_DAYS, REFERRAL_MONTHLY_CAP } from "../../../src/lib/invites.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
 import { genId } from "../../../src/lib/storage.js";
@@ -122,6 +122,9 @@ function snapshot() {
         poster: e.poster ? absolute(e.poster) : null,
         // Fuer „Nochmal, anders" (native Fassung): Analyse und Stil des Traums.
         analysis: e.analysis || null, styleId: e.style || null,
+        /* Mit welchem Stil der Traum gemacht wurde (Antons Wunsch 10.10.: „im
+           Journal vermerken, mit welchem Style der Traum generiert wurde"). */
+        styleLabel: e.style ? t.styles.byId[e.style]?.label || null : null,
         /* Die Mondphase der Nacht (moon.js). Alte Traeume haben keine
            gespeicherte — fuer die wird sie aus dem Datum nachgerechnet,
            dasselbe Ergebnis, nur nicht festgeschrieben. */
@@ -133,7 +136,7 @@ function snapshot() {
         // Die eigene Aufnahme (ADR-0007), wenn der Traum eingesprochen wurde.
         audio: e.audio?.url ? absolute(e.audio.url) : null,
         failReason: e.failReason ? (t.errors[failureTextKey(e.failReason)] || t.errors.unexpected) : null,
-        films: filmsOf(e).map((f) => ({ url: absolute(f.url), at: f.at || null, label: takeLabel(f) })),
+        films: filmsOf(e).map((f) => ({ url: absolute(f.url), at: f.at || null, label: takeLabel(f), glimpse: f.kind === "sketch" })),
         images,
         reflection: e.reflection?.text || null,
         originalText: e.originalText && e.originalText !== e.text ? e.originalText : null,
@@ -191,14 +194,17 @@ function snapshot() {
     if (!u || !u.kind) return null;
     const G = t.streakBoard.giftSheet;
     const latest = [...(s.journal || [])].filter(isFilmNight).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-    const until = s.giftCredits?.until && giftLeft(s) > 0
+    /* Nur Credit-Geschenke laufen ab (Geschenktopf, credits.js) — ein
+       geschenkter Glimpse bleibt, bis er genutzt wird (sketchQuota.js, 10.10.). */
+    const glimpses = isGlimpseGift(u.kind);
+    const until = !glimpses && s.giftCredits?.until && giftLeft(s) > 0
       ? new Date(s.giftCredits.until).toLocaleDateString(s.language === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long" }) : null;
     return {
-      nights: u.nights, kind: u.kind, credits: u.credits,
+      nights: u.nights, kind: u.kind, credits: u.credits || 0, glimpses: u.glimpses || 0,
       title: G.openTitle(u.nights), label: giftLabel(t, u), sub: G.subs[u.kind] || "",
-      expires: until ? G.expires(until) : null,
+      expires: until ? G.expires(until) : glimpses ? G.keeps : null,
       tapToOpen: G.tapToOpen, redeem: G.redeem[u.kind] || G.redeem.credits, later: G.later,
-      target: u.kind === "glimpse" || !latest ? "dream" : "journal", dreamId: latest ? latest.id : null,
+      target: glimpses || !latest ? "dream" : "journal", dreamId: latest ? latest.id : null,
     };
   })();
   const home = {
@@ -242,23 +248,29 @@ function snapshot() {
       const ring = dreamRing(filmDreams, { holdFull: true });
       const label = (id) => (id ? t.symbols.byId[id]?.label || id : null);
       const symbolGroup = new Map(SYMBOLS.map((x) => [x.id, x.category]));
+      /* Die vollen Ringe 24, 36, 48 tragen dazu ihr großes Geschenk — für
+         diesen Menschen: nach einem Kauf Filme und die volle Blüte, sonst
+         bei 48 zehn Glimpses (streakBoard.js bigGiftAt, 10.10.). */
+      const paid = isPaid(s);
       const ringCard = (num) => {
         const g = giftAtNum(num);
         if (!g) return null;
+        const big = g.kind === "ring" ? bigGiftAt(num, paid) : null;
         const from = num - QUARTER;
         return {
-          kind: g.kind, title: giftLabel(t, g), sub: G.subs[g.kind] || "",
+          kind: g.kind, title: big ? t.streakBoard.ringPlus(giftLabel(t, g), giftLabel(t, big)) : giftLabel(t, g), sub: G.subs[g.kind] || "",
           eyebrow: num <= count ? "✓" : G.left(num - count),
           progress: Math.max(0, Math.min(1, (count - from) / QUARTER)),
           progressText: G.progress(Math.min(count, num), num),
-          foot: g.kind === "glimpse" ? `${G.rule} ${G.valid}` : G.rule, close: G.close,
+          foot: g.kind === "glimpse" ? `${G.rule} ${G.keeps}` : G.rule, close: G.close,
           // welcher Stein die Karte trägt (04.10.): 3/6/9 der Geschenkstein, 12 der Herzstein mit seinen Keilen
           num, ringFilled: Math.max(0, Math.min(RING_SIZE, count - ring.start)),
         };
       };
       const nextNum = nextGiftNum(count);
       const nextG = giftAtNum(nextNum);
-      const nextGift = nextG ? { ...ringCard(nextNum), num: nextNum, say: C.milestoneSay(nextNum - count, giftLabel(t, nextG)) } : null;
+      const nextCard = nextG ? ringCard(nextNum) : null;
+      const nextGift = nextCard ? { ...nextCard, num: nextNum, say: C.milestoneSay(nextNum - count, nextCard.title) } : null;
       return {
         ringNo: ring.ringNo, next: ring.next, count, todayDone, streak: count,
         slots: ring.slots.map((sl) => {
@@ -295,13 +307,24 @@ function snapshot() {
        (glimpse-layer.tsx) macht ihn auf dem iPhone und meldet ihn mit
        `moonFilm` zurück (Name aus der Mondzeit, Inhalt jetzt der Ring). */
     moonFilm: (() => {
-      const f = pendingRingFilm(filmDreams, s.moonFilms || []);
+      /* Seit 10.10. („Weg A", Antons Wahl) entsteht der Film aus den ECHTEN
+         Clips (glimpse-layer.tsx makeMoonFilm, nativ renderMontage). Fertig
+         gilt nur, was in `moonFilmsV2` steht — so werden die alten
+         Standbild-Filme einmal neu gemacht und ersetzt (runMoonFilm). */
+      const f = pendingRingFilm(filmDreams, s.moonFilmsV2 || []);
       if (!f) return null;
       const motif = f.motif ? t.symbols.byId[f.motif]?.label || f.motif : null;
       const from = (f.ringNo - 1) * RING_SIZE + 1;
+      // Musik im Ton des Rings: der häufigste Stil und die häufigste Stimmung seiner Träume.
+      const byId = new Map((s.journal || []).map((e) => [e.id, e]));
+      const most = (xs) => [...xs.filter(Boolean).reduce((m, x) => m.set(x, (m.get(x) || 0) + 1), new Map())].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+      const M = t.cycle.montage;
       return {
         key: f.key, title: t.cycle.ringFilmTitle(f.ringNo, from, from + RING_SIZE - 1, motif),
-        dreams: f.dreams.map((d) => ({ id: d.id, img: d.img })),
+        dreams: f.dreams.map((d) => ({ id: d.id, img: d.img, film: d.film || null })),
+        style: most(f.dreams.map((d) => byId.get(d.id)?.style)) || "dreamlike",
+        mood: most(f.dreams.map((d) => byId.get(d.id)?.analysis?.mood)),
+        montage: { title: M.title, subtitle: M.sub(f.ringNo, from, from + RING_SIZE - 1), endTitle: M.end, endSub: M.brand },
         readyTitle: t.cycle.ringReadyTitle, readyBody: t.cycle.ringReadyBody(f.dreams.length),
       };
     })(),
@@ -326,9 +349,10 @@ function snapshot() {
         lede: t.streakBoard.next(nextNum - count),
         rungs: [QUARTER, 2 * QUARTER, 3 * QUARTER, RING_SIZE].map((k) => {
           const num = start + k, g = giftAtNum(num);
+          const big = g.kind === "ring" ? bigGiftAt(num, isPaid(s)) : null;   // 24, 36, 48 (10.10.)
           return {
             nights: num, title: t.streakBoard.rung(num), reward: t.streakBoard.giftSheet.subs[g.kind] || "",
-            gift: giftLabel(t, g),
+            gift: big ? t.streakBoard.ringPlus(giftLabel(t, g), giftLabel(t, big)) : giftLabel(t, g),
             state: count >= num ? "done" : num === nextNum ? "next" : "far",
           };
         }),
@@ -346,7 +370,7 @@ function snapshot() {
     intentionHeading: t.home.intentionHeading, articleHeading: t.home.articleHeading, articleMore: t.home.articleMore, renderingLine: t.home.renderingLine, quickRecord: t.home.quickRecord,
     lastHeading: t.home.lastHeading, blankCta: t.home.blankCta, blankHint: t.home.blankHint, blankDone: t.home.blankDone,
     soundsShortcut: t.home.soundsShortcut, checkinQuestion: t.checkin.question, checkinThanks: t.checkin.thanks,
-    untitled: t.journal.untitled, takes: t.journal.takesLabel, reflectTitle: t.journal.reflectTitle,
+    untitled: t.journal.untitled, takes: t.journal.takesLabel, madeFilm: t.journal.madeFilm, madeGlimpse: t.wizard.sketch?.takeLabel || "Glimpse", reflectTitle: t.journal.reflectTitle,
     reflectNote: t.journal.reflectNote, reflectCta: t.journal.reflectCta, original: t.journal.original, rendering: t.journal.filmRendering,
     share: t.journal.actShare, recordingTitle: t.journal.recordingTitle, recordingHint: t.journal.recordingHint, shareCard: t.journal.shareCard, shareCardCta: t.journal.shareCardCta, shareCardFooter: t.journal.shareCardFooter, more: t.journal.menu, makeFilm: t.journal.makeFilm, anotherTake: t.journal.makeFilmAgain,
     dreams: t.journal.title,
@@ -506,7 +530,9 @@ function snapshot() {
        Preis steht oben an der Karte). */
     sketch: t.wizard.sketch ? {
       ...t.wizard.sketch, card: w5.filmModels?.sketch || null,
-      price: sketchCost(s) > 0 ? `${sketchCost(s)} ${t.wizard.sketch.creditWord}` : t.wizard.sketch.priceFree.replace("{n}", String(sketchFreeLeft(s))),
+      price: sketchCost(s) > 0 ? `${sketchCost(s)} ${t.wizard.sketch.creditWord}`
+        : sketchFreeLeft(s) > 0 ? t.wizard.sketch.priceFree.replace("{n}", String(sketchFreeLeft(s)))
+        : (t.wizard.sketch.priceGift || t.wizard.sketch.priceFree).replace("{n}", String(sketchGiftLeft(s))),
     } : null,
   };
   const realDreams = items.filter((e) => !String(e.id).startsWith("e_seed")).length;
@@ -546,7 +572,7 @@ function snapshot() {
     recordAgain: t.dream.recordAgain, yourRecording: t.dream.yourRecording,
     reviewTitle: t.dream.reviewTitle, reviewHint: t.dream.reviewHint, mascotReview: t.dream.mascotReview || [], recordListen: t.dream.recordListen, recordPause: t.dream.recordPause, recordTranscribe: t.dream.recordTranscribe, recordRetake: t.dream.recordRetake,
     typeInstead: t.dream.typeInstead, textTitle: t.dream.textTitle, textLede: t.dream.textLede, tellMore: t.dream.tellMore, rewriteAll: t.dream.rewriteAll, editText: t.dream.editText, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
-    placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
+    placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, readingSteps: t.dream.readingSteps, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
   /* Das Kaufblatt (Paywall.jsx), vorgerechnet: Texte sind im Web zum Teil
      Funktionen, über die Brücke gehen nur Strings. NUR Filme — Bilder sind
      seit dem 12.09. aus dem Angebot (Antons Ansage: „mit den Bildern die
@@ -607,8 +633,16 @@ function snapshot() {
     total: (s.cast || []).length + (s.me?.img ? 1 : 0),
     /* Alle vier Gattungen, auch leere (13.09.2026): Die Liste zeigt, was
        hineingehört, statt nur, was schon da ist. */
+    /* Abspann + Casting (Antons Wahl 10.10.): du in der Hauptrolle (das Bild
+       liefert profile.img), und wer in den Träumen vorkam, aber noch kein
+       Gesicht hat — die häufigsten drei (castStats.js castSuggestions). */
+    me: { name: s.me?.tag || t.profile.you, line: t.journal.castInAll(realDreamsOf(s.journal).length) },
+    starring: t.journal.castStarring,
+    suggestTitle: t.journal.castSuggestTitle, suggestHint: t.journal.castSuggestHint, suggestAdd: t.journal.castSuggestAdd,
+    photo: t.journal.castPhoto,
+    suggest: castSuggestions(realDreamsOf(s.journal), s.cast, { limit: 3 }).map((x) => ({ ...x, line: t.journal.castSuggestIn(x.count) })),
     groups: [["person", t.profile.people], ["pet", t.profile.pets], ["place", t.profile.places], ["object", t.profile.objects]].map(([category, label]) => ({
-      category, label, addLabel: t.avatarDialog.titleFor[category],
+      category, label, addLabel: t.avatarDialog.titleFor[category], emptyCard: t.journal.castEmptyCard?.[category] || t.avatarDialog.titleFor[category],
       rows: castByCategory(s.cast, s.journal, category).map((e) => ({ id: e.id, tag: e.tag, img: e.img ? mediaUrl(e.img) : null, initial: initialOf(e.tag), count: e.count, countWord: t.journal.castDreamsN(e.count) })),
     })),
   };
@@ -724,7 +758,7 @@ function avatarLabels() {
     nameTpl: a.nameLabel("{tag}"), photoHint: a.photoHint, photoLabelClose: a.photoLabelClose, photoLabel: a.photoLabel,
     photoLabelBody: a.photoLabelBody, photoBodyAdd: a.photoBodyAdd, photoBodyWhy: a.photoBodyWhy, photoAdd: a.photoAdd,
     photoTake: a.photoTake, photoReplace: a.photoReplace, photoRemove: a.photoRemove, descLabel: a.descLabel,
-    descLabelOptional: a.descLabelOptional, descLabelMe: a.descLabelMe, descLabelMeOptional: a.descLabelMeOptional, descPlaceholder: a.descPlaceholder, privacy: a.privacy, cancel: a.cancel,
+    descLabelOptional: a.descLabelOptional, descLabelMe: a.descLabelMe, descLabelMeOptional: a.descLabelMeOptional, descPlaceholder: a.descPlaceholder, descPlaceholderFor: a.descPlaceholderFor, privacy: a.privacy, cancel: a.cancel,
     save: a.save, saveChanges: a.saveChanges, needPhotoOrDescHint: a.needPhotoOrDescHint, delete: a.delete,
     drawFromDesc: a.drawFromDesc, drawingNow: a.drawingNow, drawHint: a.drawHint,
     creditsWord: t.wizard.creditsN(PRICES.characterSheet),
@@ -914,7 +948,7 @@ async function runSketchPrep(cmd, onResult) {
   onResult({ n: cmd.n, result: {
     prompt: prompts[0], prompts, strips, refs: refs.slice(0, references.length),
     particles: pickParticles(beats.join(" ")),
-    freeLeft: sketchFreeLeft(s0), cost: sketchCost(s0, strips), credits: shownCredits(s0),
+    freeLeft: sketchFreeLeft(s0), giftLeft: sketchGiftLeft(s0), cost: sketchCost(s0, strips), credits: shownCredits(s0),
     // Was jede Wahl kostet und wie lang sie wird — für die Auswahl vorher.
     options: SKETCH_STRIPS.map((n) => ({ ...sketchTiming(n), cost: sketchCost(s0, n) })),
   } });
@@ -1179,7 +1213,7 @@ function runSketchFail(cmd, onResult) {
 function runMoonFilm(cmd, onResult) {
   const s = loadState();
   const o = cmd.moonFilm || {};
-  const done = s.moonFilms || [];
+  const done = s.moonFilmsV2 || [];
   if (!o.key || typeof o.film !== "string" || !o.film.startsWith("sketch:")) { onResult({ n: cmd.n, error: "invalid" }); return true; }
   if (done.includes(o.key)) { onResult({ n: cmd.n, result: { ok: true, already: true } }); return true; }
   const stills = (o.stills || []).filter((u) => typeof u === "string" && u.startsWith("sketch:"));
@@ -1190,7 +1224,9 @@ function runMoonFilm(cmd, onResult) {
     films: [{ url: o.film, at: new Date().toISOString(), kind: "sketch", ...(o.seconds ? { seconds: Math.round(o.seconds) } : {}) }],
     mode: "film", format: "9:16", imageCount: 0, references: [], moon: moonForNight(),
   };
-  saveState({ ...s, journal: [...(s.journal || []), entry], moonFilms: [...done, o.key] });
+  /* Der neue Film ersetzt einen alten Standbild-Film desselben Rings (10.10.). */
+  const journal = (s.journal || []).filter((e) => !(isMoonFilm(e) && e.moonKey === o.key));
+  saveState({ ...s, journal: [...journal, entry], moonFilms: [...new Set([...(s.moonFilms || []), o.key])], moonFilmsV2: [...done, o.key] });
   onJournalTick?.();
   onResult({ n: cmd.n, entryId: entry.id });
   return true;
@@ -1275,7 +1311,7 @@ async function runAsync(cmd, onResult) {
                 objects: t.wizard.cast.objectsTitle, objectsLede: t.wizard.cast.objectsLede, objectsEmpty: t.wizard.cast.objectsEmpty,
                 textTitle: t.wizard.cast.textTitle, markHint: t.wizard.cast.markHint, addTitle: t.wizard.cast.addTitle, addName: t.wizard.cast.addName,
                 addAs: t.wizard.cast.addAs, add: t.wizard.cast.add, removeFromCast: t.wizard.cast.removeFromCast, whoIs: t.wizard.cast.whoIs("{name}"), close: t.wizard.cast.close,
-                kindFor: t.avatarDialog.kindFor,
+                kindFor: t.avatarDialog.kindFor, photo: t.journal.castPhoto,
                 stepOf: t.wizard.cast.stepOf, whoYou: t.wizard.cast.whoYou, nextName: t.wizard.cast.nextName, missing: t.wizard.cast.missing,
                 tilePhoto: t.wizard.cast.tilePhoto, tileAi: t.wizard.cast.tileAi, tileNew: t.wizard.cast.tileNew, fromLibrary: t.wizard.cast.fromLibrary, libraryEmpty: t.wizard.cast.libraryEmpty,
                 placesTitle: t.wizard.cast.placesTitle, placesHint: t.wizard.cast.placesHint, noPeople: t.wizard.cast.noPeople },
@@ -1386,6 +1422,9 @@ function run(cmd) {
     const sub = SUBSCRIPTIONS.find((p) => p.id === cmd.value);
     if (pack) patch = { credits: (s.credits ?? 0) + pack.credits };
     else if (sub) patch = applyAllowanceGrant(s, allowanceGrant(sub, 0));
+    /* Der erste Kauf schaltet die großen Ring-Geschenke frei (streakBoard.js
+       isPaid, Antons Entscheidung 10.10.) — gemerkt wird nur, wann. */
+    if (patch && !s.paidAt) patch.paidAt = new Date().toISOString();
   }
   else if (cmd.type === "withdraw") patch = withdrawPatch();
   else if (cmd.type === "reminders") patch = { reminders: { ...(s.reminders || {}), ...reminderWish(!!cmd.wants, cmd.perDay || DEFAULT_PER_DAY) } };
@@ -1405,7 +1444,8 @@ function run(cmd) {
     };
     patch = { journal: [...(s.journal || []), entry], creatures: [...(s.creatures || []), creature], pendingAudioUrl: null };
   }
-  else if (cmd.type === "pendingAudio") patch = { pendingAudioUrl: cmd.audioUrl || null };
+  // nur schreiben, wenn sich etwas ändert — jede Schreibung weckt alle Brücken (27.09.)
+  else if (cmd.type === "pendingAudio") { if ((s.pendingAudioUrl || null) !== (cmd.audioUrl || null)) patch = { pendingAudioUrl: cmd.audioUrl || null }; }
   if (patch) saveState({ ...s, ...patch });
 }
 

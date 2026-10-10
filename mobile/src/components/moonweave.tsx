@@ -4,12 +4,13 @@ import * as Haptics from "expo-haptics";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
-  Easing, FadeIn, FadeOut, ZoomIn, cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue,
+  Easing, FadeIn, FadeOut, ZoomIn, cancelAnimation, interpolate, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue,
   withDelay, withRepeat, withTiming, type SharedValue,
 } from "react-native-reanimated";
 import Svg, { Circle, Defs, G, LinearGradient, Path, RadialGradient, Stop } from "react-native-svg";
 import de from "../../../src/i18n/de.js";
 import en from "../../../src/i18n/en.js";
+import { useAmbient } from "@/lib/ambient-clock";
 import { useScreenActive } from "@/lib/use-screen-active";
 import { useJournalStore, type GiftCard, type HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
@@ -38,7 +39,22 @@ import { colors, fonts } from "@/theme";
  * Geometrie exakt wie die Vorlage: viewBox 600 × 568, Mitte (300, 284),
  * gleichmäßig auf die Breite skaliert.
  *
- * Bewegung nur bei NEUEM Stand (`seen` aus der Brücke, Befehl
+ * Lagen (Antons Wahl 10.10., Entwurf „Moonweave nach Traum 12"): Ist ein
+ * Ring voll, legt er sich verkleinert und um ein halbes Blatt gedreht nach
+ * innen, der neue Ring wächst außen in seiner eigenen Farbe (Mondsilber,
+ * Meeresleuchten, Morgenrot, Goldstunde, Nordlicht, dann wieder von vorn).
+ * Höchstens drei innere Lagen sind zu sehen; ältere verschmelzen mit dem
+ * Licht in der Mitte, das dadurch heller wird.
+ *
+ * Aufbau beim Erscheinen (Antons Wunsch 10.10.: „wie eine Uhr, die sich
+ * dreht, aufbaut, zum Ende hin langsamer wird und am aktuellen Punkt stehen
+ * bleibt"): Jedes Mal, wenn die Startseite nach vorn kommt, drehen sich
+ * die inneren Lagen von innen nach außen ein, dann läuft ein Lichtzeiger
+ * über den aktuellen Ring und lässt Blatt für Blatt erscheinen — immer
+ * langsamer, bis er am letzten Traum stehen bleibt. Erst danach wächst ein
+ * neuer Traum ein.
+ *
+ * Bewegung sonst nur bei NEUEM Stand (`seen` aus der Brücke, Befehl
  * `catcherSeen`): das neue Blatt wächst in 1,1 s ein, sein Punkt bekommt
  * einen Ring, der einmal ausläuft; ein neues Geschenk lässt das Siegel
  * auftauchen; ist der Ring voll, wird die Mitte hell. Wiederkommen spielt
@@ -69,7 +85,7 @@ type WeaveText = {
   firstGift: string; nextGift: string; film: string; distance: (left: number) => string; full: string;
   filmMaking: string; filmReady: string; watch: string; milestone: (n: number) => string;
   states: Record<"locked" | "ready" | "collected" | "film", string>;
-  sealGift: (k: number) => string; sealFilm: string; open: (k: number) => string; pending: string;
+  sealGift: (k: number) => string; sealFilm: string; sealRing?: string; open: (k: number) => string; openRing?: string; pending: string;
   node: (n: number, state: string, kind: string) => string;
   nodeStates: Record<"collected" | "next" | "empty", string>; nodeKinds: Record<"gift" | "film", string>;
   hint: string; hintEmpty: string; hintFull: string; tapNext: (leaf: number) => string; tapEmpty: (leaf: number, num: number) => string;
@@ -91,16 +107,43 @@ export function Mark({ kind, size, color, width = 1.4 }: { kind: "spark" | "play
   return <Svg width={size} height={size}><Path d={d} fill="none" stroke={color} strokeWidth={width} strokeLinejoin="round" /></Svg>;
 }
 
-/* Die gemeinsamen Verläufe — einmal je Zeichenfläche. */
-function WeaveDefs() {
+/* Die Farben der Ringe (Lagen, 10.10.): Ring 1 Mondsilber wie die
+   Vorlage, dann Meeresleuchten, Morgenrot, Goldstunde, Nordlicht — danach
+   wieder von vorn. `line` färbt die Umrisse des laufenden Rings. */
+const RINGS = [
+  { silk: ["#a6dded", "#b9a8ef", "#d2c2f4"], thread: ["#b5deec", "#c3b1ee", "#8a89b0"], line: "#b7c2e0" },
+  { silk: ["#8fe3dc", "#7fb8e8", "#a8c8f0"], thread: ["#a4ece4", "#8cc3ef", "#6f8fb0"], line: "#8fd8e0" },
+  { silk: ["#f2b8c0", "#d9a6d8", "#f0c8d8"], thread: ["#f5c6cc", "#d8a9dc", "#9a7f9e"], line: "#ecb3c2" },
+  { silk: ["#f0d49c", "#e3b98a", "#f2dcb0"], thread: ["#f4dcaa", "#e6c08e", "#a08a6a"], line: "#e1c99c" },
+  { silk: ["#9fe8c2", "#8fd0e0", "#b8f0d8"], thread: ["#aef0cc", "#94d4e6", "#6f9f8f"], line: "#9fe0c4" },
+] as const;
+const palette = (ring: number) => RINGS[(Math.max(1, ring) - 1) % RINGS.length];
+/* Die inneren Lagen: je tiefer, desto kleiner, gedrehter, leiser (Tiefe 0 = der laufende Ring). */
+const DEPTH_SCALE = [1, 0.8, 0.63, 0.49, 0.38];
+const DEPTH_OPACITY = [1, 0.95, 0.85, 0.72, 0];
+const MAX_LAYERS = 3;
+
+/* Die Verläufe einer Zeichenfläche — in den Farben ihres Rings. */
+function WeaveDefs({ ring = 1 }: { ring?: number }) {
+  const P = palette(ring);
   return (
     <Defs>
       <RadialGradient id="mw-aura" cx="50%" cy="50%" r="50%"><Stop offset="0" stopColor="#8f7bc9" stopOpacity={0.2} /><Stop offset="1" stopColor="#8f7bc9" stopOpacity={0} /></RadialGradient>
       <LinearGradient id="mw-silk" x1="0" y1="0" x2="1" y2="1">
-        <Stop offset="0" stopColor="#a6dded" stopOpacity={0.35} /><Stop offset="0.55" stopColor="#b9a8ef" stopOpacity={0.12} /><Stop offset="1" stopColor="#d2c2f4" stopOpacity={0.02} />
+        <Stop offset="0" stopColor={P.silk[0]} stopOpacity={0.35} /><Stop offset="0.55" stopColor={P.silk[1]} stopOpacity={0.12} /><Stop offset="1" stopColor={P.silk[2]} stopOpacity={0.02} />
       </LinearGradient>
       <LinearGradient id="mw-thread" x1="0" y1="0" x2="1" y2="1">
-        <Stop offset="0" stopColor="#b5deec" /><Stop offset="0.5" stopColor="#c3b1ee" /><Stop offset="1" stopColor="#8a89b0" stopOpacity={0.25} />
+        <Stop offset="0" stopColor={P.thread[0]} /><Stop offset="0.5" stopColor={P.thread[1]} /><Stop offset="1" stopColor={P.thread[2]} stopOpacity={0.25} />
+      </LinearGradient>
+      {/* Die Innenlinien: Deckkraft im Verlauf statt am Pfad — `opacity` legt in
+          react-native-svg je Pfad eine Zwischenebene an (60 je Fänger, 10.10.). */}
+      {THREADS.map((t, k) => (
+        <LinearGradient key={k} id={`mw-thread-${k}`} x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={P.thread[0]} stopOpacity={t.o} /><Stop offset="0.5" stopColor={P.thread[1]} stopOpacity={t.o} /><Stop offset="1" stopColor={P.thread[2]} stopOpacity={0.25 * t.o} />
+        </LinearGradient>
+      ))}
+      <LinearGradient id="mw-hand" x1="0" y1="1" x2="0" y2="0">
+        <Stop offset="0" stopColor={P.thread[0]} stopOpacity={0} /><Stop offset="0.7" stopColor={P.thread[0]} stopOpacity={0.55} /><Stop offset="1" stopColor="#ffffff" stopOpacity={0.95} />
       </LinearGradient>
     </Defs>
   );
@@ -111,11 +154,24 @@ function Leaf({ i }: { i: number }) {
   return (
     <G transform={`rotate(${i * 30} ${CX} ${CY})`}>
       <Path d={LEAF} fill="url(#mw-silk)" stroke="url(#mw-thread)" strokeWidth={0.85} />
-      {THREADS.map((t, k) => <Path key={k} d={t.d} fill="none" stroke="url(#mw-thread)" strokeWidth={0.5} opacity={t.o} />)}
+      {THREADS.map((t, k) => <Path key={k} d={t.d} fill="none" stroke={`url(#mw-thread-${k})`} strokeWidth={0.5} />)}
       <Path d={ARC} fill="none" stroke="url(#mw-thread)" strokeWidth={2} strokeLinecap="round" />
       <Circle cx={300} cy={71} r={2.1} fill="#e4e3fa" />
     </G>
   );
+}
+
+/* Ein Blatt des laufenden Rings, das beim Aufbau erscheint, sobald der
+   Lichtzeiger daran vorbeikommt. Nach dem Aufbau einfach sichtbar. */
+const AnimatedG = Animated.createAnimatedComponent(G);
+const easeOut = (x: number) => { "worklet"; const c = Math.max(0, Math.min(1, x)); return 1 - (1 - c) * (1 - c) * (1 - c); };
+function SweepLeaf({ i, t, B, S, N }: { i: number; t: SharedValue<number>; B: SharedValue<number>; S: SharedValue<number>; N: SharedValue<number> }) {
+  const props = useAnimatedProps(() => {
+    if (t.value >= B.value) return { opacity: 1 };
+    const p = easeOut((t.value - S.value) / Math.max(1, B.value - S.value)) * N.value;
+    return { opacity: Math.max(0, Math.min(1, p - i)) };
+  });
+  return <AnimatedG animatedProps={props}><Leaf i={i} /></AnimatedG>;
 }
 
 export type WeaveHandlers = {
@@ -127,56 +183,83 @@ export type WeaveHandlers = {
   onIntroDone?: () => void;
 };
 
-export function Moonweave({ C, width, ...h }: { C: HomeData["cycle"]; width: number } & WeaveHandlers) {
+export function Moonweave({ C, width, action, ...h }: { C: HomeData["cycle"]; width: number; action?: React.ReactNode } & WeaveHandlers) {
   const T = useWeaveText();
   const reduce = useReducedMotion();
   const active = useScreenActive();
   const k = width / VB_W, W = width, H = VB_H * k;
   const start = (C.slots[0]?.num ?? 1) - 1;                  // Ring 2 zählt 13–24
   const count = C.count;
+  const ringNo = Math.floor(start / 12) + 1;
+  const pastRings = ringNo - 1;
+  const layers = Math.min(pastRings, MAX_LAYERS);            // sichtbare innere Lagen
+  const melted = pastRings - layers;                          // im Licht der Mitte aufgegangen
 
   /* Was neu ist: alles über `seen` wächst einmal sichtbar ein — erst, wenn
      die Startseite zu sehen ist. Ohne `seen` (alter Stand) gilt alles als gesehen. */
   const [from, setFrom] = useState<number | null>(null);      // ab welcher Traumzahl gerade eingewachsen wird
   const [ack, setAck] = useState(-1);                         // schon gezeigt, auch wenn die Brücke es noch nicht zurückgemeldet hat
   const seen = C.seen == null ? null : Math.max(C.seen, ack);
+  const shownUpTo = from ?? (seen != null && !reduce ? Math.min(seen, count) : count);   // still gezeichnet bis zu dieser Traumzahl
+  const settled = C.slots.filter((s) => s.dreamId && s.num <= shownUpTo).length;
+
+  /* Der Aufbau: `t` läuft in ms von 0 bis B. Die Lagen drehen sich von
+     innen nach außen ein, ab S läuft der Lichtzeiger über die N Blätter
+     des laufenden Rings — mit nachlassendem Tempo. Beim Weggehen zurück
+     auf 0, damit das nächste Erscheinen wieder von vorn aufbaut. */
+  const t = useSharedValue(reduce ? 1e9 : 0);
+  const B = useSharedValue(1), S = useSharedValue(0), N = useSharedValue(0);
+  const buildEnd = useRef(0);
+  useEffect(() => {
+    if (reduce) { cancelAnimation(t); t.value = 1e9; buildEnd.current = 0; return; }
+    if (!active) { cancelAnimation(t); t.value = 0; buildEnd.current = 0; return; }
+    const sweepFrom = 150 + layers * 160;
+    const total = sweepFrom + 1150 + 75 * settled;
+    S.value = sweepFrom; N.value = settled; B.value = total;
+    t.value = 0;
+    t.value = withTiming(total, { duration: total, easing: Easing.linear });
+    buildEnd.current = Date.now() + total;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, reduce]);
+
   const grow = useSharedValue(1);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  const startTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); if (startTimer.current) clearTimeout(startTimer.current); }, []);
   useEffect(() => {
-    if (!active) return;
+    if (!active) { if (startTimer.current) clearTimeout(startTimer.current); return; }
     // alter Stand, ein gelöschter Traum oder „Bewegung reduzieren": nur merken, nichts einwachsen lassen
     if (seen == null || count < seen || reduce) { if (ack > count) setAck(count); if (C.seen !== count) h.onSeen(count); return; }
     if (count === seen) return;
-    setFrom(seen);
-    setAck(count);
-    h.onSeen(count);
-    grow.value = 0;
-    grow.value = withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.quad) });
-    // nicht an die Abhängigkeiten gebunden: die Rückmeldung der Brücke darf das Aufräumen nicht abbrechen
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setFrom(null), 1900);
+    const was = seen;
+    const begin = () => {
+      setFrom(was);
+      setAck(count);
+      h.onSeen(count);
+      grow.value = 0;
+      grow.value = withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.quad) });
+      // nicht an die Abhängigkeiten gebunden: die Rückmeldung der Brücke darf das Aufräumen nicht abbrechen
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => setFrom(null), 1900);
+    };
+    // erst wenn der Aufbau steht, wächst das Neue ein
+    if (startTimer.current) clearTimeout(startTimer.current);
+    const wait = buildEnd.current - Date.now();
+    if (wait > 0) startTimer.current = setTimeout(begin, wait); else begin();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, count, seen, reduce]);
-  const shownUpTo = from ?? (seen != null && !reduce ? Math.min(seen, count) : count);   // still gezeichnet bis zu dieser Traumzahl
   const isFresh = (num: number) => from != null && num > from && num <= count;
   /* Sichtbar ist ein Traum, sobald sein Blatt steht oder gerade einwächst —
      erst dann zählen Punkt, Zahl, Siegel und Schein ihn mit. */
   const revealed = (num: number) => num <= (from != null ? count : shownUpTo);
   const filled = C.slots.filter((s) => s.dreamId && revealed(s.num)).length;   // die Plätze füllen sich der Reihe nach
   const full = filled === 12;
-  const settled = C.slots.filter((s) => s.dreamId && s.num <= shownUpTo).length;
   const freshIdx = C.slots.map((s, i) => (s.dreamId && s.num > shownUpTo && revealed(s.num) ? i : -1)).filter((i) => i >= 0);
   const growStyle = useAnimatedStyle(() => ({ opacity: grow.value }));
 
-  /* Der Schimmer der Geschenk-Punkte: EIN Takt für alle, jeder Punkt etwas später — so wandert er reihum. */
-  const wave = useSharedValue(0);
-  useEffect(() => {
-    if (!active || reduce) { cancelAnimation(wave); return; }
-    wave.value = 0;
-    wave.value = withRepeat(withTiming(1, { duration: WAVE, easing: Easing.linear }), -1, false);
-    return () => cancelAnimation(wave);
-  }, [active, reduce, wave]);
+  /* Der Schimmer der Geschenk-Punkte: der gemeinsame Takt (lib/ambient-clock.tsx),
+     jeder Punkt etwas später — so wandert er reihum. */
+  const wave = useAmbient(active && !reduce);
 
   /* Ein Punkt ist ausgewählt (Tipp) — sein Blatt leuchtet leise. */
   const [selected, setSelected] = useState<number | null>(null);
@@ -190,6 +273,10 @@ export function Moonweave({ C, width, ...h }: { C: HomeData["cycle"]; width: num
   /* Die Mitte: ein ungeöffnetes Geschenk, sonst — voller Ring — der Film. */
   const pending = C.unseen != null && revealed(C.unseen) ? C.unseen : null;
   const giftNo = pending ? (((pending - 1) % 12) + 1) / 3 : 0;
+  /* Ein Geschenk auf dem vollen Ring (24, 36, 48 — 10.10.) ist kein „Geschenk 4". */
+  const ringPending = !!pending && pending % 12 === 0;
+  const sealLabel = ringPending ? (T.sealRing ?? T.sealFilm) : T.sealGift(giftNo);
+  const openLabel = ringPending ? (T.openRing ?? T.open(giftNo)) : T.open(giftNo);
   const seal = pending ? "gift" : full ? "film" : null;
   const sealFresh = from != null && (pending ? pending > from : full);
   const ringGift = C.slots[11]?.gift ?? null;
@@ -213,32 +300,46 @@ export function Moonweave({ C, width, ...h }: { C: HomeData["cycle"]; width: num
   return (
     <View style={{ alignItems: "center", alignSelf: "stretch" }}>
       <View style={{ width: W, height: H }} accessibilityLabel={T.title(filled)}>
-        {/* Still: Schein, Ringe, die Umrisse aller zwölf Blätter, die gezeigten Blätter */}
+        {/* Still: Schein und die beiden Ringe */}
         <Svg width={W} height={H} viewBox={`0 0 ${VB_W} ${VB_H}`} style={StyleSheet.absoluteFill} pointerEvents="none">
           <WeaveDefs />
           <Circle cx={CX} cy={CY} r={278} fill="url(#mw-aura)" />
           <Circle cx={CX} cy={CY} r={221} fill="none" stroke="#b9c3df" strokeOpacity={0.11} />
           <Circle cx={CX} cy={CY} r={213} fill="none" stroke="#b9c3df" strokeOpacity={0.32} strokeWidth={0.8} />
-          {C.slots.map((_, i) => <Path key={i} d={LEAF} transform={`rotate(${i * 30} ${CX} ${CY})`} fill="none" stroke="#b7c2e0" strokeOpacity={0.075} />)}
-          {Array.from({ length: settled }, (_, i) => <Leaf key={i} i={i} />)}
-          {selected != null && C.slots[selected]?.dreamId ? (
-            <G transform={`rotate(${selected * 30} ${CX} ${CY})`}>
-              <Path d={LEAF} fill="none" stroke="#b9a8ef" strokeOpacity={0.35} strokeWidth={7} strokeLinejoin="round" />
-              <Path d={LEAF} fill="#b9a8ef" fillOpacity={0.33} stroke="#f0e6ff" strokeWidth={1.5} />
-            </G>
-          ) : null}
         </Svg>
-        {/* Neu dazugekommen: wächst einmal ein, dann zeichnet es die stille Ebene */}
+        {/* Die inneren Lagen: volle Ringe, die tiefste zuerst */}
+        {Array.from({ length: layers }, (_, d) => {
+          const depth = layers - d;                    // 3, 2, 1
+          const ring = ringNo - depth;
+          return <PastLayer key={ring} ring={ring} depth={depth} delay={(layers - depth) * 160} W={W} H={H} t={t} B={B}
+            rollIn={depth === 1 && from != null && from === start} />;
+        })}
+        {/* Der laufende Ring: Umrisse in seiner Farbe, die gezeigten Blätter; dreht sich beim Aufbau ein */}
+        <RingTurn t={t} B={B} W={W} H={H}>
+          <Svg width={W} height={H} viewBox={`0 0 ${VB_W} ${VB_H}`}>
+            <WeaveDefs ring={ringNo} />
+            {C.slots.map((_, i) => <Path key={i} d={LEAF} transform={`rotate(${i * 30} ${CX} ${CY})`} fill="none" stroke={palette(ringNo).line} strokeOpacity={ringNo === 1 ? 0.075 : 0.13} />)}
+            {Array.from({ length: settled }, (_, i) => <SweepLeaf key={i} i={i} t={t} B={B} S={S} N={N} />)}
+            {selected != null && C.slots[selected]?.dreamId ? (
+              <G transform={`rotate(${selected * 30} ${CX} ${CY})`}>
+                <Path d={LEAF} fill="none" stroke="#b9a8ef" strokeOpacity={0.35} strokeWidth={7} strokeLinejoin="round" />
+                <Path d={LEAF} fill="#b9a8ef" fillOpacity={0.33} stroke="#f0e6ff" strokeWidth={1.5} />
+              </G>
+            ) : null}
+          </Svg>
+          <Hand t={t} B={B} S={S} N={N} W={W} H={H} ring={ringNo} />
+        </RingTurn>
+        {/* Neu dazugekommen: wächst einmal ein, dann zeichnet es der laufende Ring */}
         {freshIdx.length ? (
           <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, growStyle]}>
             <Svg width={W} height={H} viewBox={`0 0 ${VB_W} ${VB_H}`}>
-              <WeaveDefs />
+              <WeaveDefs ring={ringNo} />
               {freshIdx.map((i) => <Leaf key={i} i={i} />)}
             </Svg>
           </Animated.View>
         ) : null}
 
-        <Heart k={k} W={W} H={H} full={full} />
+        <Heart k={k} W={W} H={H} full={full} boost={Math.min(1, pastRings * 0.12 + melted * 0.15)} />
 
         {/* Die Mitte antippen: der volle Ring bringt einen Film; lang drücken = die Einführung noch einmal */}
         {!seal ? (
@@ -247,9 +348,9 @@ export function Moonweave({ C, width, ...h }: { C: HomeData["cycle"]; width: num
             onLongPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setReplay(true); }}
             accessibilityRole="button" accessibilityLabel={ringGift?.title ?? T.film} />
         ) : (
-          <Seal key={`${seal}-${pending ?? 0}`} W={W} H={H} label={seal === "gift" ? T.sealGift(giftNo) : T.sealFilm} kind={seal === "gift" ? "spark" : "play"}
+          <Seal key={`${seal}-${pending ?? 0}`} W={W} H={H} label={seal === "gift" ? sealLabel : T.sealFilm} kind={seal === "gift" ? "spark" : "play"}
             enter={sealFresh && !reduce} delay={from != null ? 700 : 0}
-            a11y={seal === "gift" ? T.open(giftNo) : T.watch}
+            a11y={seal === "gift" ? openLabel : T.watch}
             onPress={() => { Haptics.selectionAsync(); if (seal === "gift") h.onOpenGift(); else h.onFilm(C.film?.id ?? null); }}
             onLongPress={() => setReplay(true)} />
         )}
@@ -289,8 +390,10 @@ export function Moonweave({ C, width, ...h }: { C: HomeData["cycle"]; width: num
         <Text style={styles.countText}>{T.collected}{C.ringNo > 1 ? `  ·  ${T.ring(C.ringNo)}` : ""}</Text>
       </View>
       <Text style={styles.hint}>{hint}</Text>
+      {/* der Platz für den Aufnahme-Knopf der Startseite — vor dem Geschenk-Feld */}
+      {action}
 
-      <RewardPanel C={C} T={T} filled={filled} start={start} pending={pending} giftNo={giftNo}
+      <RewardPanel C={C} T={T} filled={filled} start={start} pending={pending} openLabel={openLabel}
         celebrate={from != null && !reduce && GIFTS.some((g) => start + g > from && start + g <= count)}
         onOpenGift={h.onOpenGift} onFilm={() => h.onFilm(C.film?.id ?? null)} />
     </View>
@@ -299,7 +402,7 @@ export function Moonweave({ C, width, ...h }: { C: HomeData["cycle"]; width: num
 
 /* Die Mitte: ein stiller Schein. Wird der Ring voll: heller und größer
    (1,8 s) — nur beim Wechsel, beim Wiederkommen steht er schon so da. */
-function Heart({ k, W, H, full }: { k: number; W: number; H: number; full: boolean }) {
+function Heart({ k, W, H, full, boost = 0 }: { k: number; W: number; H: number; full: boolean; boost?: number }) {
   const reduce = useReducedMotion();
   const v = useSharedValue(full ? 1 : 0);
   const first = useRef(true);
@@ -307,7 +410,8 @@ function Heart({ k, W, H, full }: { k: number; W: number; H: number; full: boole
     if (first.current) { first.current = false; return; }
     v.value = reduce ? (full ? 1 : 0) : withTiming(full ? 1 : 0, { duration: 1800, easing: Easing.inOut(Easing.quad) });
   }, [full, reduce, v]);
-  const style = useAnimatedStyle(() => ({ opacity: 0.28 + 0.72 * v.value, transform: [{ scale: 1 + 0.35 * v.value }] }));
+  /* Jeder volle Ring macht das Licht in der Mitte etwas heller — die verschmolzenen Lagen leben darin weiter. */
+  const style = useAnimatedStyle(() => ({ opacity: Math.min(1, 0.28 + 0.4 * boost + 0.72 * v.value), transform: [{ scale: 1 + 0.2 * boost + 0.35 * v.value }] }));
   const r = 49 * k, s = r * 2;
   return (
     <>
@@ -324,6 +428,63 @@ function Heart({ k, W, H, full }: { k: number; W: number; H: number; full: boole
       {/* der Punkt in der Mitte bleibt stehen */}
       <View pointerEvents="none" style={{ position: "absolute", left: W / 2 - 4 * k, top: H / 2 - 4 * k, width: 8 * k, height: 8 * k, borderRadius: 4 * k, backgroundColor: "#ddd3f0" }} />
     </>
+  );
+}
+
+/* Eine innere Lage: ein voller Ring, verkleinert und gedreht. Beim Aufbau
+   dreht sie sich von innen ein (die tiefste zuerst). Wird sie tiefer (ein
+   neuer Ring ist voll), gleitet sie in 0,9 s an ihren neuen Platz; ein
+   gerade voll gewordener Ring sinkt aus der vollen Größe nach innen (`rollIn`). */
+function PastLayer({ ring, depth, delay, W, H, t, B, rollIn }: {
+  ring: number; depth: number; delay: number; W: number; H: number; t: SharedValue<number>; B: SharedValue<number>; rollIn: boolean;
+}) {
+  const reduce = useReducedMotion();
+  const d = useSharedValue(rollIn && !reduce ? 0 : depth);
+  useEffect(() => {
+    d.value = reduce ? depth : withTiming(depth, { duration: 900, easing: Easing.inOut(Easing.cubic) });
+  }, [depth, reduce, d]);
+  const style = useAnimatedStyle(() => {
+    const b = t.value >= B.value ? 1 : easeOut((t.value - delay) / 900);
+    const sc = interpolate(d.value, [0, 1, 2, 3, 4], DEPTH_SCALE as unknown as number[]);
+    const op = interpolate(d.value, [0, 1, 2, 3, 4], DEPTH_OPACITY as unknown as number[]);
+    return { opacity: op * b, transform: [{ rotate: `${d.value * 15 - 150 * (1 - b)}deg` }, { scale: sc * (0.55 + 0.45 * b) }] };
+  });
+  return (
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>
+      <Svg width={W} height={H} viewBox={`0 0 ${VB_W} ${VB_H}`}>
+        <WeaveDefs ring={ring} />
+        {Array.from({ length: 12 }, (_, i) => <Leaf key={i} i={i} />)}
+      </Svg>
+    </Animated.View>
+  );
+}
+
+/* Der laufende Ring dreht sich beim Aufbau ein und kommt langsam zur Ruhe. */
+function RingTurn({ t, B, W, H, children }: { t: SharedValue<number>; B: SharedValue<number>; W: number; H: number; children: React.ReactNode }) {
+  const style = useAnimatedStyle(() => {
+    const b = t.value >= B.value ? 1 : easeOut(t.value / Math.max(1, B.value));
+    return { transform: [{ rotate: `${-55 * (1 - b)}deg` }] };
+  });
+  return <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0, width: W, height: H }, style]}>{children}</Animated.View>;
+}
+
+/* Der Lichtzeiger: läuft wie ein Uhrzeiger über die Blätter, wird langsamer und verblasst am aktuellen Punkt. */
+function Hand({ t, B, S, N, W, H, ring }: { t: SharedValue<number>; B: SharedValue<number>; S: SharedValue<number>; N: SharedValue<number>; W: number; H: number; ring: number }) {
+  const style = useAnimatedStyle(() => {
+    if (t.value >= B.value || N.value <= 0) return { opacity: 0, transform: [{ rotate: "0deg" }] };
+    const p = easeOut((t.value - S.value) / Math.max(1, B.value - S.value)) * N.value;
+    const fadeIn = Math.max(0, Math.min(1, (t.value - S.value) / 220));
+    const fadeOut = Math.max(0, Math.min(1, (B.value - t.value) / 450));
+    return { opacity: fadeIn * fadeOut, transform: [{ rotate: `${p * 30 + 12}deg` }] };
+  });
+  return (
+    <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0, width: W, height: H }, style]}>
+      <Svg width={W} height={H} viewBox={`0 0 ${VB_W} ${VB_H}`}>
+        <WeaveDefs ring={ring} />
+        <Path d={`M${CX} ${CY} L${CX} ${CY - 213}`} stroke="url(#mw-hand)" strokeWidth={2.2} strokeLinecap="round" />
+        <Circle cx={CX} cy={CY - 213} r={4} fill="#ffffff" fillOpacity={0.9} />
+      </Svg>
+    </Animated.View>
   );
 }
 
@@ -363,7 +524,7 @@ function GiftGlow({ wave, order, film, got, still }: { wave: SharedValue<number>
   const base = got ? 0.55 : 0.3, peak = got ? 1 : 0.75;
   const style = useAnimatedStyle(() => {
     if (still) return { opacity: base, transform: [{ scale: 1 }] };
-    let ms = wave.value * WAVE - order * STEP;
+    let ms = (wave.value % WAVE) - order * STEP;
     if (ms < 0) ms += WAVE;
     const g = ms < 900 ? Math.pow(Math.sin((Math.PI / 2) * (ms / 900)), 2) : ms < 2200 ? Math.pow(Math.cos((Math.PI / 2) * ((ms - 900) / 1300)), 2) : 0;
     return { opacity: base + (peak - base) * g, transform: [{ scale: 1 + 0.14 * g }] };
@@ -394,8 +555,8 @@ function Ripple() {
 
 /* Das nächste Ziel, gleich unter dem Ring: Titel, Bruch, Abstand, zwölf
    Striche, die vier Meilensteine — und, wenn eines wartet, „Geschenk öffnen". */
-function RewardPanel({ C, T, filled, start, pending, giftNo, celebrate, onOpenGift, onFilm }: {
-  C: HomeData["cycle"]; T: WeaveText; filled: number; start: number; pending: number | null; giftNo: number; celebrate: boolean; onOpenGift: () => void; onFilm: () => void;
+function RewardPanel({ C, T, filled, start, pending, openLabel, celebrate, onOpenGift, onFilm }: {
+  C: HomeData["cycle"]; T: WeaveText; filled: number; start: number; pending: number | null; openLabel: string; celebrate: boolean; onOpenGift: () => void; onFilm: () => void;
 }) {
   const full = filled === 12;
   const target = GIFTS.find((g) => g > filled) ?? 12;
@@ -436,8 +597,8 @@ function RewardPanel({ C, T, filled, start, pending, giftNo, celebrate, onOpenGi
         : full ? <Text style={styles.event}>{C.film?.id ? T.filmReady : T.filmMaking}</Text>
         : what ? <Text style={styles.event}>{what}</Text> : null}
       {pending ? (
-        <Pressable onPress={() => { Haptics.selectionAsync(); onOpenGift(); }} style={styles.claim} accessibilityRole="button" accessibilityLabel={T.open(giftNo)}>
-          <Text style={styles.claimText}>{T.open(giftNo)}</Text>
+        <Pressable onPress={() => { Haptics.selectionAsync(); onOpenGift(); }} style={styles.claim} accessibilityRole="button" accessibilityLabel={openLabel}>
+          <Text style={styles.claimText}>{openLabel}</Text>
           <Mark kind="spark" size={14} width={1.2} color="#ebd5ae" />
         </Pressable>
       ) : full && C.film?.id ? (
@@ -559,7 +720,7 @@ const styles = StyleSheet.create({
   countN: { color: "#e4e3fa", fontSize: 27, fontWeight: "400", fontVariant: ["tabular-nums"] },
   countText: { color: "#a9b4c9", fontSize: 12.5 },
   hint: { color: "#b7aed5", fontSize: 13.5, lineHeight: 20, textAlign: "center", marginTop: 6, paddingHorizontal: 18, minHeight: 40 },
-  panel: { alignSelf: "stretch", marginTop: 12, paddingVertical: 20, paddingHorizontal: 20, borderRadius: 22, borderWidth: 1, borderColor: "rgba(212,189,137,0.2)", backgroundColor: "rgba(20,24,38,0.55)" },
+  panel: { alignSelf: "stretch", marginTop: 12, paddingVertical: 20, paddingHorizontal: 20, borderRadius: 22, borderWidth: 1, borderColor: "rgba(212,189,137,0.2)", backgroundColor: "#0e1422" },   // deckend: keine Sterne in der Kachel (10.10.)
   panelTop: { flexDirection: "row", alignItems: "center", gap: 12 },
   panelHeading: { color: "#e1c99c", fontSize: 14.5, flexShrink: 1 },
   panelFraction: { marginLeft: "auto", color: "#b4aac7", fontSize: 12.5, fontVariant: ["tabular-nums"] },

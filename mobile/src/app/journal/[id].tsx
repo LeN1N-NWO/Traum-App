@@ -16,6 +16,7 @@ import { ShareCard } from "@/components/share-card";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { deleteDreamRemote } from "@/lib/dream-sync";
+import { useScreenActive } from "@/lib/use-screen-active";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 import { patchWizard, resetWizard } from "@/store/wizard-store";
 import type { DreamItem } from "@/store/journal-store";
@@ -135,6 +136,8 @@ function DreamBody({ item, labels, locale, onMore, onReflect, reflecting }: { it
   const [take, setTake] = useState(item.films.length ? item.films.length - 1 : 0);
   const [sound, setSound] = useState(false);
   const [full, setFull] = useState(false);
+  // Anderer Tab vorn oder Seite verdeckt: der Film oben hält an (10.10., Energie — vorher lief er weiter)
+  const active = useScreenActive();
   /* Wo der Film oben gerade steht — das Vollbild setzt dort fort. */
   const heroTime = useRef<() => number>(() => 0);
   const [startAt, setStartAt] = useState(0);
@@ -155,11 +158,11 @@ function DreamBody({ item, labels, locale, onMore, onReflect, reflecting }: { it
             {item.films.map((f, i) => (
               <View key={f.url} style={{ width, height: heroH }}>
                 {/* nur die sichtbare Fassung läuft — die anderen warten still */}
-                <FilmHero url={f.url} sound={sound && i === take} paused={full || i !== take} timeRef={i === take ? heroTime : undefined} />
+                <FilmHero url={f.url} sound={sound && i === take} paused={full || i !== take || !active} timeRef={i === take ? heroTime : undefined} />
               </View>
             ))}
           </ScrollView>
-        ) : film ? <FilmHero url={film} sound={sound} paused={full} timeRef={heroTime} /> : still ? <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="top" transition={300} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
+        ) : film ? <FilmHero url={film} sound={sound} paused={full || !active} timeRef={heroTime} /> : still ? <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="top" transition={300} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
         {/* pointerEvents="none": der Verlauf lag ueber den Knoepfen und schluckte jeden Tipp. */}
         <LinearGradient colors={["rgba(5,10,20,0.55)", "rgba(5,10,20,0)", "rgba(5,10,20,0)", "rgba(5,10,20,0.75)", colors.bg]} locations={[0, 0.22, 0.5, 0.85, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
         {film ? (
@@ -179,6 +182,12 @@ function DreamBody({ item, labels, locale, onMore, onReflect, reflecting }: { it
           <Text style={styles.eyebrow}>{date.toUpperCase()}{item.moon ? `  ·  ${item.moon.label.toUpperCase()}` : ""}</Text>
           <Text style={styles.title}>{item.title || labels.untitled || "Untitled dream"}</Text>
           {item.tagline ? <Text style={styles.tagline}>{item.tagline}</Text> : null}
+          {/* Was es ist und in welchem Stil — zum gezeigten Take (10.10.) */}
+          {item.styleLabel || item.films[take] ? (
+            <Text style={styles.madeWith}>
+              {[item.films[take] ? (item.films[take].glimpse ? labels.madeGlimpse ?? "Glimpse" : labels.madeFilm ?? "Film") : null, item.styleLabel].filter(Boolean).join("  ·  ").toUpperCase()}
+            </Text>
+          ) : null}
         </View>
       </View>
 
@@ -355,6 +364,7 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.faint, fontSize: 11, letterSpacing: 2.2, fontWeight: "600" },
   title: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 39, color: colors.text, letterSpacing: -0.3 },
   tagline: { fontFamily: fonts.serif, fontStyle: "italic", fontSize: 16, color: colors.muted },
+  madeWith: { color: colors.gold, fontSize: 11, letterSpacing: 1.6, fontWeight: "600", marginTop: 6, opacity: 0.85 },
   takes: { paddingHorizontal: 20, paddingTop: 14, gap: 8 },
   take: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   takeOn: { backgroundColor: "rgba(79,156,249,0.16)", borderColor: colors.accentSoft },

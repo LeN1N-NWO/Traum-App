@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "transparent" },
   content: { paddingHorizontal: 16, paddingBottom: TAB_INSET, gap: 12 },
   sub: { color: colors.muted, fontSize: 15, marginBottom: 4, marginLeft: 2 },
-  row: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: radius.card, overflow: "hidden", borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
+  row: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: radius.card, overflow: "hidden", backgroundColor: colors.panelSolid, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   glow: { position: "absolute", right: -40, top: -40, width: 140, height: 140, borderRadius: 70, opacity: 0.14 },
   icon: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", borderWidth: 1, backgroundColor: "rgba(255,255,255,0.04)" },
   title: { fontFamily: fonts.serif, fontSize: 19, color: colors.text },

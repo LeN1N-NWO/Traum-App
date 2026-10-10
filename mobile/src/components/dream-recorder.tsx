@@ -8,6 +8,10 @@ import { GlassButton, PrimaryButton } from "@/components/glass";
 import { BlurInText } from "@/components/blur-in-text";
 import { MascotLoader } from "@/components/mascot-loader";
 import { PortalButton } from "@/components/portal-button";
+import { dropRecording, sweepRecordings } from "@/lib/recordings";
+import { noteSpeech } from "@/lib/speech-timing";
+import { showToast } from "@/store/toast-store";
+import { prepareOnDeviceSpeech, transcribeOnDevice } from "../../modules/dream-sketch";
 import { holdForRecording } from "@/lib/sound-engine";
 import { setRecording } from "@/store/recording-store";
 import { colors, fonts } from "@/theme";
@@ -33,9 +37,10 @@ import { fetchWithSession, useBridgeAccount } from "@/lib/auth";
  * Blob braucht ausdrücklich audio/mp4, die Dauer kommt aus dem Rekorder
  * selbst statt aus dem gepollten Zustand. */
 type Phase = "idle" | "rec" | "busy" | "error";
+const MEASURE = __DEV__ || process.env.EXPO_PUBLIC_DEV_PREVIEW === "1";
 type Labels = Record<string, any>;
 
-export function DreamRecorder({ W, language, autoStartKey, active, onText, onType, onPendingAudio }: {
+export function DreamRecorder({ W, language, autoStartKey, active, onText, onType, onPendingAudio, onBusy, cancelRef }: {
   W: Labels | undefined;
   language: string;
   autoStartKey: number;            // ändert sich → Aufnahme startet (wenn nichts läuft)
@@ -43,6 +48,11 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   onText: (text: string, audioUrl: string | null) => void;
   onType: () => void;
   onPendingAudio: (audioUrl: string) => void;
+  /** Aufschreiben läuft (true) / ist gescheitert oder abgebrochen (false) —
+      der Traum-Bildschirm zeigt dafür den Ladebalken (dream-loader.tsx, 10.10.). */
+  onBusy?: (busy: boolean) => void;
+  /** Hier legt der Rekorder sein „Verwerfen" ab, damit der Ladebalken abbrechen kann. */
+  cancelRef?: { current: (() => void) | null };
 }) {
   // Mit Pegel (26.09.): die Glühwürmchen am Mond-Knopf tanzen zur Stimme.
   const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
@@ -51,7 +61,6 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   const [error, setError] = useState<string | null>(null);
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const uri = useRef<string | null>(null);
-  const audioUrl = useRef<string | null>(null);
   const lastKey = useRef(0);
   const cancelled = useRef(false);
   /* Gast hat gesprochen (06.10.): Aufschreiben verlangt ein Konto (es kostet,
@@ -67,6 +76,8 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
 
   useEffect(() => {
     (async () => {
+      // Reste früherer Sitzungen (abgestürzt, beendet beim Hochladen) — älter als ein Tag (10.10.)
+      sweepRecordings();
       const p = await requestRecordingPermissionsAsync();
       setAllowed(p.granted);
       if (!p.granted) { setError(W?.recordFailed ?? "No microphone."); setPhase("error"); }
@@ -75,6 +86,10 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     return () => { setRecording(false); holdForRecording(false); setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: "mixWithOthers" }).catch(() => {}); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* Apples Sprachpaket bereitlegen (10.10.): Fehlt es, lädt iOS es jetzt im
+     Hintergrund — beim nächsten Traum schreibt dann das iPhone selbst mit. */
+  useEffect(() => { prepareOnDeviceSpeech(""); }, []);
 
   // Öffnen heißt aufnehmen — aber nur, wenn gerade nichts anderes läuft.
   useEffect(() => {
@@ -98,6 +113,8 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     cancelled.current = false;
     setError(null);
+    // eine liegengebliebene Aufnahme (Fehler, nicht verworfen) weicht der neuen
+    if (uri.current) { dropRecording(uri.current); uri.current = null; }
     try {
       setRecording(true); holdForRecording(true);
       await new Promise((r) => setTimeout(r, 250));
@@ -120,53 +137,85 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     try { await recorder.stop(); } catch {}
     setRecording(false); holdForRecording(false);
     const u = recorder.uri;
-    if (!u || before.durationMillis < 1500) { setError(W?.recordTooShort ?? "Too short."); setPhase("error"); return; }
+    if (!u || before.durationMillis < 1500) { dropRecording(u); setError(W?.recordTooShort ?? "Too short."); setPhase("error"); return; }
     uri.current = u;
-    audioUrl.current = null;
     // Wiedergabe über den Lautsprecher: mit allowsRecording spielt iOS leise übers Ohr.
     await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: "mixWithOthers" }).catch(() => {});
-    upload(u);
     /* Seit 26.09. abends (Antons Ansage: „Stopp heißt: gleich weiter, die
        nächste Seite fällt weg"): kein Anhören-Zwischenschritt mehr — nach
        dem Stopp wird sofort aufgeschrieben, und der Traum-Bildschirm lässt
-       ihn danach direkt von der KI lesen. Die Aufnahme hängt am Traum. */
+       ihn danach direkt von der KI lesen. Die Aufnahme hängt am Traum.
+       Hochgeladen wird sie erst, wenn das Aufschreiben geklappt hat (10.10.)
+       — verworfene oder gescheiterte Aufnahmen landen nie auf dem Server. */
     transcribe();
   }
 
+  /* Die Aufnahme zum Traum auf den Server (ADR-0007). Danach braucht das
+     Gerät sie nicht mehr: die lokale Datei wird gelöscht. Scheitert das
+     Hochladen (offline), bleibt sie liegen — der Aufräumer nimmt sie nach
+     einem Tag mit. */
   async function upload(u: string) {
     try {
       const raw = await (await fetch(u)).blob();
       const blob = new Blob([raw], { type: "audio/mp4" });
       const up = await fetchWithSession(W!.panelUrl, { method: "POST", headers: { "content-type": "audio/mp4" }, body: blob });
       const out = await up.json().catch(() => null);
-      if (up.ok && typeof out?.url === "string" && uri.current === u) { audioUrl.current = out.url; onPendingAudio(out.url); }
+      if (up.ok && typeof out?.url === "string") { onPendingAudio(out.url); dropRecording(u); }
     } catch (e) { console.warn("[recorder] upload", e); }
   }
 
+  /* Aufschreiben — seit 10.10. zuerst AUF dem iPhone (Antons Versuch:
+     „ein SDK direkt von Apple, ohne über die API zu gehen — vielleicht
+     schneller"): Apples SpeechTranscriber (iOS 26) liest die Datei, ohne
+     Upload und ohne Server. Geht das nicht (älteres iOS, Sprachpaket noch
+     nicht da, zu wenig erkannt), schreibt wie bisher der Server mit
+     (Gemini). Beide Zeiten landen in lib/speech-timing.ts. */
   async function transcribe() {
     if (!uri.current) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     cancelled.current = false;
     setPhase("busy");
+    onBusy?.(true);
+    const t0 = Date.now();
     try {
+      /* "" = die Sprache des iPhones: Apples Modell versteht nur EINE Sprache,
+         und gesprochen wird in der des Geräts — nicht unbedingt in der der App
+         (gemessen 10.10.: App auf Englisch, Traum auf Deutsch). Gemini auf
+         dem Server verzeiht das, Apple nicht. */
+      const local = await transcribeOnDevice(uri.current, "").catch((e) => { noteSpeech({ via: "device", ms: Date.now() - t0, chars: 0, error: String(e?.message ?? e) }); return null; });
+      if (cancelled.current) return;
+      const localText = local?.text.trim() ?? "";
+      if (local) noteSpeech({ via: "device", ms: Date.now() - t0, chars: localText.length });
+      if (localText.length >= 8) { finish(localText, `Apple · ${((Date.now() - t0) / 1000).toFixed(1)} s`); return; }
+
+      const t1 = Date.now();
       const b64 = await new File(uri.current).base64();
       const res = await fetchWithSession(W!.transcribeUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ audio: `data:audio/mp4;base64,${b64}`, language }) });
       const out = await res.json().catch(() => null);
       if (cancelled.current) return;
       if (res.status === 401 && out?.reason === "signin") {
         waitingForSignIn.current = account ?? null;
-        setError(W?.recordSignIn ?? "Sign in to write it down."); setPhase("error"); return;
+        setError(W?.recordSignIn ?? "Sign in to write it down."); setPhase("error"); onBusy?.(false); return;
       }
       const text = String(out?.text || "").trim();
-      if (!res.ok || text.length < 8) { setError(text.length < 8 && res.ok ? (W?.recordTooShort ?? "Too short.") : (out?.error || W?.recordFailed || "Failed")); setPhase("error"); return; }
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const url = audioUrl.current;
-      reset();
-      onText(text, url);
+      noteSpeech({ via: "server", ms: Date.now() - t1, chars: text.length });
+      if (!res.ok || text.length < 8) { setError(text.length < 8 && res.ok ? (W?.recordTooShort ?? "Too short.") : (out?.error || W?.recordFailed || "Failed")); setPhase("error"); onBusy?.(false); return; }
+      finish(text, `Server · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     } catch (e) {
       console.warn("[recorder] transcribe", e);
-      setError(W?.recordFailed ?? "Failed"); setPhase("error");
+      setError(W?.recordFailed ?? "Failed"); setPhase("error"); onBusy?.(false);
     }
+  }
+
+  function finish(text: string, via: string) {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // Nur in Test-Bauten: wer hat mitgeschrieben, wie schnell (Antons Versuch 10.10.)
+    if (MEASURE) showToast(`✎ ${via}`);
+    const done = uri.current;
+    reset();
+    onText(text, null);
+    // erst jetzt hochladen — die Datei gehört ab hier zum Text
+    if (done) upload(done);
   }
 
   // Angemeldet, während die Aufnahme wartet: nachsichern (der Gast-Upload
@@ -175,19 +224,24 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     const before = waitingForSignIn.current;
     if (before === undefined || typeof account !== "string" || account === before || phase !== "error" || !uri.current) return;
     waitingForSignIn.current = undefined;
-    if (!audioUrl.current) upload(uri.current);
     transcribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account, phase]);
 
-  function reset() { uri.current = null; audioUrl.current = null; waitingForSignIn.current = undefined; setError(null); setPhase("idle"); }
+  function reset() { uri.current = null; waitingForSignIn.current = undefined; setError(null); setPhase("idle"); }
 
+  /* Verwerfen: anhalten, die Datei löschen, nichts hochladen (10.10.). Auch
+     eine noch laufende Aufnahme hat schon eine Datei — recorder.uri. */
   async function discard() {
     cancelled.current = true;
-    try { if (recorder.getStatus().isRecording) await recorder.stop(); } catch {}
+    const live = recorder.getStatus().isRecording;
+    try { if (live) await recorder.stop(); } catch {}
     setRecording(false); holdForRecording(false);
+    dropRecording(uri.current ?? (live ? recorder.uri : null));
     reset();
+    onBusy?.(false);
   }
+  if (cancelRef) cancelRef.current = discard;
 
   async function typeInstead() {
     await discard();
