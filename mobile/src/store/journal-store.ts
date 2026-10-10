@@ -53,7 +53,8 @@ export type HomeData = {
   };
   /* Ein frisch erreichtes Meilenstein-Geschenk, bis es geöffnet ist (03.10.). */
   giftReveal: GiftReveal | null;
-  moonFilm: { key: string; title: string; dreams: { id: string; img: string }[]; readyTitle: string; readyBody: string } | null;
+  moonFilm: { key: string; title: string; dreams: { id: string; img: string; film?: string | null }[]; style?: string; mood?: string;
+    montage?: { title: string; subtitle: string; endTitle: string; endSub: string }; readyTitle: string; readyBody: string } | null;
   intention: string;
   board: { title: string; nights: string; lede: string; rungs: { nights: number; title: string; reward: string; gift: string | null; state: "done" | "next" | "far" }[]; note: string };
 };

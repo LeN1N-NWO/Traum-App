@@ -91,6 +91,8 @@ export default {
     nextSlot: (num) => `Your next dream fills spot ${num}`,
     ringFilmTitle: (ring, from, to, motif) => `Ring ${ring} · dreams ${from}–${to}${motif ? ` · ${motif}` : ""}`,
     ringReadyTitle: "Your ring is full — here's your film",
+    /* Titel und Abspann im Sammelfilm selbst (10.10., renderMontage). */
+    montage: { title: "Your dreams", sub: (ring, from, to) => `RING ${ring} · DREAMS ${from}–${to}`, end: "Twelve dreams. One film.", brand: "DREAM RUSHES" },
     ringReadyBody: (n) => `Your ${n} dreams as one film.`,
     /* Das große Geschenk oben im Ring (Antons Befund 03.10.: „da kommt
        nichts, wobei das doch das stärkste Geschenk ist"). */

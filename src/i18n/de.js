@@ -79,6 +79,7 @@ export default {
     stones: { place: "Aquamarin", scenario: "Bernstein", creature: "Smaragd", person: "Rosenquarz", emotion: "Amethyst", none: "Mondstein" },
     nextSlot: (num) => `Dein nächster Traum füllt Platz ${num}`,
     ringFilmTitle: (ring, from, to, motif) => `Ring ${ring} · Träume ${from}–${to}${motif ? ` · ${motif}` : ""}`,
+    montage: { title: "Deine Träume", sub: (ring, from, to) => `RING ${ring} · TRÄUME ${from}–${to}`, end: "Zwölf Träume. Ein Film.", brand: "DREAM RUSHES" },
     ringReadyTitle: "Dein Ring ist voll — hier ist dein Film",
     ringReadyBody: (n) => `Deine ${n} Träume als ein Film.`,
     /* Das große Geschenk oben im Ring (Antons Befund 03.10.: „da kommt

@@ -1,4 +1,4 @@
-import { File } from "expo-file-system";
+import { Directory, File, Paths } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
@@ -11,7 +11,8 @@ import { showToast } from "@/store/toast-store";
 import { DreamSketch, resolveSketchesDeep, resolveSketchUrl } from "../../modules/dream-sketch";
 import { fetchWithSession, getAccessToken, useBridgeAccount } from "@/lib/auth";
 import { useMediaKey } from "@/lib/media-key";
-import { signedMedia } from "@/lib/media-cache";
+import { localMedia, signedMedia } from "@/lib/media-cache";
+import { fonts } from "@/theme";
 
 /* Der Glimpse im Hintergrund (26.09.2026, Antons Ansage): Der Glimpse-
  * Bildschirm legt nur den Auftrag ab (store/glimpse-store.ts) und schickt
@@ -218,7 +219,109 @@ async function lateSound(job: GlimpseJob, film: string, sound: string, ask: (cmd
    übernommen (importReference), der Renderer fährt langsam darüber und
    blendet über. Ohne Partikel, Nebel, Ton. Höchstens 20 Bilder (≈ 1 min). */
 const triedFilms = new Set<string>();
-async function makeMoonFilm(f: NonNullable<HomeData["moonFilm"]>, ask: (cmd: Omit<BridgeCommand, "n">) => Promise<BridgeResult>) {
+/* Der Sammelfilm eines vollen Rings — seit 10.10. aus den ECHTEN Clips
+   (Antons Befund: „peinlich — Videos aus einem höheren Modell werden mit
+   diesem Modell verarbeitet, komplett Panne"; Wahl „Weg A", auf dem iPhone).
+   Bis dahin bekam jeder Traum ein Standbild mit gespielter Tiefe.
+
+     1. je Traum sein jüngster Film: Glimpse-Filme liegen auf dem Gerät,
+        Server-Filme meist schon im Medienspeicher (media-cache.ts), sonst
+        werden sie geholt; ein Traum nur mit Bildern bekommt wie früher
+        einen kurzen Standbild-Clip,
+     2. Musik im Stil des Rings (derselbe Dienst wie beim Glimpse, 45 s,
+        68 BPM) — fehlt sie, trägt der Ton der Clips,
+     3. nativ geschnitten (renderMontage): alle vier Schläge ein Schnitt,
+        weich überblendet, Titel am Anfang, Abspann am Ende. */
+const BPM = 68;
+type Ask = (cmd: Omit<BridgeCommand, "n">) => Promise<BridgeResult>;
+
+/* Absturz-Schutz: Vor dem Rendern steht ein Merker auf dem Gerät, danach
+   wird er gelöscht. Findet der nächste Start ihn noch, ist die App mitten
+   im Film abgestürzt — dann ohne Titel/Abspann (die Ebenen über dem Video
+   sind das Empfindlichste), beim zweiten Mal der alte Standbild-Weg. Sonst
+   liefe die App bei jedem Start erneut in denselben Absturz. */
+function attempts(key: string) {
+  const f = new File(Paths.document, `ringfilm-${key}.try`);
+  let n = 0;
+  try { n = f.exists ? Number(f.textSync()) || 0 : 0; } catch {}
+  return { n, mark: () => { try { f.write(String(n + 1)); } catch {} }, clear: () => { try { f.delete(); } catch {} } };
+}
+
+async function makeMoonFilm(f: NonNullable<HomeData["moonFilm"]>, ask: Ask) {
+  const tries = attempts(f.key);
+  if (!DreamSketch?.renderMontage || tries.n >= 2) return makeStillFilm(f, ask);      // älteres Binary / zweimal abgestürzt
+  try {
+    tries.mark();
+    const r = await buildMontage(f, ask, { overlays: tries.n === 0 });
+    tries.clear();
+    if (!r) return;
+    const res = await ask({ type: "moonFilm", moonFilm: { key: f.key, title: f.title, text: "", film: r.film, stills: [r.poster], seconds: r.seconds } });
+    if (res.error) throw new Error(res.error);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await Notifications.scheduleNotificationAsync({
+      content: { title: f.readyTitle, body: f.readyBody, data: { glimpse: "/journal" } },
+      trigger: null,
+    }).catch(() => {});
+  } catch (e: any) {
+    tries.clear();      // ein Fehler ist kein Absturz — beim nächsten Start normal neu versuchen
+    console.warn("[moonfilm]", e?.message || e);
+  }
+}
+
+/** Den Film bauen, ohne ihn zu speichern — auch für die Vorschau-Seite
+ *  (profile/moonweave-preview). null = zu wenige Clips. */
+export async function buildMontage(f: Pick<NonNullable<HomeData["moonFilm"]>, "key" | "dreams" | "style" | "mood" | "montage">, ask: Ask, opts: { overlays?: boolean } = {}) {
+  const sketch = DreamSketch!;
+  if (!sketch.renderMontage) throw new Error("unsupported");
+  const tmp = new Directory(Paths.cache, "ringfilm");
+  try {
+    tmp.create({ idempotent: true, intermediates: true });
+    const fetchTo = async (url: string, name: string) => {
+      const src = url.startsWith("file:") ? url : signedMedia(url);
+      if (src.startsWith("file:")) return src;
+      const out = await File.downloadFileAsync(src, new File(tmp, name), { idempotent: true });
+      return out.uri;
+    };
+    const clips: string[] = [];
+    for (let i = 0; i < f.dreams.length; i++) {
+      const d = f.dreams[i];
+      const film = d.film ? localMedia(d.film) : null;
+      if (film) {
+        try { clips.push(await fetchTo(film, `${f.key}-${i}.mp4`)); continue; }
+        catch (e: any) { console.warn("[moonfilm] Clip", e?.message || e); }
+      }
+      if (!d.img) continue;
+      try {
+        const scene = await sketch.importReference(resolveSketchUrl(d.img) ?? d.img, `moon-${f.key}-${i}.png`);
+        const still = await sketch.renderSketch({ opening: [], scenes: [scene], morphs: [], particles: "dust", vertigo: -1, seed: i * 7919 + 1, fog: 0, hold: 4, fade: 0.6, effects: false }, `moon-${f.key}-${i}.mp4`);
+        clips.push(resolveSketchUrl(still.film) ?? still.film);
+      } catch (e: any) { console.warn("[moonfilm] Bild", e?.message || e); }
+    }
+    if (clips.length < 3) return null;
+
+    const slot = (4 * 60) / BPM;               // vier Schläge je Traum
+    const seconds = Math.ceil(clips.length * slot + 2.4);
+    let music: string | null = null;
+    const snd = await ask({ type: "sketchSound", sketchSound: { styleId: f.style || "dreamlike", mood: f.mood || "", beats: [], seconds } });
+    const url = snd.result?.url as string | undefined;
+    if (url) {
+      const ext = /\.(m4a|mp3|wav|aac)(?:[?#]|$)/i.exec(url)?.[1] ?? "m4a";
+      try { music = await fetchTo(url, `${f.key}-music.${ext}`); } catch (e: any) { console.warn("[moonfilm] Musik", e?.message || e); }
+    }
+
+    const M = f.montage;
+    return await sketch.renderMontage({
+      clips, music, slot, fade: 0.5, tail: 2.4,
+      title: M?.title ?? "", subtitle: M?.subtitle ?? "", endTitle: M?.endTitle ?? "", endSub: M?.endSub ?? "", font: fonts.serif,
+      overlays: opts.overlays ?? true,
+    }, `ring-${f.key}.mp4`);
+  } finally {
+    try { tmp.delete(); } catch {}
+  }
+}
+
+/* Der alte Weg (bis 10.10.) — nur noch für ein Binary ohne renderMontage. */
+async function makeStillFilm(f: NonNullable<HomeData["moonFilm"]>, ask: Ask) {
   try {
     const sketch = DreamSketch!;
     const all = f.dreams.filter((d) => !!d.img);
@@ -236,11 +339,6 @@ async function makeMoonFilm(f: NonNullable<HomeData["moonFilm"]>, ask: (cmd: Omi
     );
     const r = await ask({ type: "moonFilm", moonFilm: { key: f.key, title: f.title, text: "", film: film.film, stills: scenes, seconds: film.seconds } });
     if (r.error) throw new Error(r.error);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await Notifications.scheduleNotificationAsync({
-      content: { title: f.readyTitle, body: f.readyBody, data: { glimpse: "/journal" } },
-      trigger: null,
-    }).catch(() => {});
   } catch (e: any) {
     console.warn("[moonfilm]", e?.message || e);
   }

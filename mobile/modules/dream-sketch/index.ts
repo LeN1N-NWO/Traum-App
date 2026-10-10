@@ -16,6 +16,9 @@ export type RenderPlan = { opening: string[]; scenes: string[]; morphs: string[]
   effects?: boolean;
   /** Adresse der Tonspur (m4a) — wird unter den Film gelegt; ohne = stumm. */
   sound?: string };
+/** Der Sammelfilm: Clips (file://… oder sketch:…), Musik, Raster in Sekunden, Texte. */
+export type MontagePlan = { clips: string[]; music?: string | null; slot?: number; fade?: number; tail?: number;
+  title?: string; subtitle?: string; endTitle?: string; endSub?: string; font?: string; overlays?: boolean };
 type NativeSketch = {
   isSupported(): boolean;
   painters(): Painter[];
@@ -38,6 +41,8 @@ type NativeSketch = {
   addSound(film: string, sound: string): Promise<boolean>;
   unload(): void;
   removeModel(): void;
+  /** Der Sammelfilm aus den echten Clips (10.10., „Weg A") — fehlt in älteren Binaries. */
+  renderMontage?(plan: MontagePlan, name: string): Promise<{ film: string; poster: string; seconds: number }>;
   /** Apples Spracherkennung auf dem Gerät (iOS 26, 10.10.) — fehlt in älteren Binaries. */
   speechPrepare?(lang: string): Promise<"installed" | "downloading" | "unsupported">;
   transcribeFile?(uri: string, lang: string): Promise<{ text: string; ms: number }>;

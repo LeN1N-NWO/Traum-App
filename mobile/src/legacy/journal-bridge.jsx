@@ -307,13 +307,24 @@ function snapshot() {
        (glimpse-layer.tsx) macht ihn auf dem iPhone und meldet ihn mit
        `moonFilm` zurück (Name aus der Mondzeit, Inhalt jetzt der Ring). */
     moonFilm: (() => {
-      const f = pendingRingFilm(filmDreams, s.moonFilms || []);
+      /* Seit 10.10. („Weg A", Antons Wahl) entsteht der Film aus den ECHTEN
+         Clips (glimpse-layer.tsx makeMoonFilm, nativ renderMontage). Fertig
+         gilt nur, was in `moonFilmsV2` steht — so werden die alten
+         Standbild-Filme einmal neu gemacht und ersetzt (runMoonFilm). */
+      const f = pendingRingFilm(filmDreams, s.moonFilmsV2 || []);
       if (!f) return null;
       const motif = f.motif ? t.symbols.byId[f.motif]?.label || f.motif : null;
       const from = (f.ringNo - 1) * RING_SIZE + 1;
+      // Musik im Ton des Rings: der häufigste Stil und die häufigste Stimmung seiner Träume.
+      const byId = new Map((s.journal || []).map((e) => [e.id, e]));
+      const most = (xs) => [...xs.filter(Boolean).reduce((m, x) => m.set(x, (m.get(x) || 0) + 1), new Map())].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+      const M = t.cycle.montage;
       return {
         key: f.key, title: t.cycle.ringFilmTitle(f.ringNo, from, from + RING_SIZE - 1, motif),
-        dreams: f.dreams.map((d) => ({ id: d.id, img: d.img })),
+        dreams: f.dreams.map((d) => ({ id: d.id, img: d.img, film: d.film || null })),
+        style: most(f.dreams.map((d) => byId.get(d.id)?.style)) || "dreamlike",
+        mood: most(f.dreams.map((d) => byId.get(d.id)?.analysis?.mood)),
+        montage: { title: M.title, subtitle: M.sub(f.ringNo, from, from + RING_SIZE - 1), endTitle: M.end, endSub: M.brand },
         readyTitle: t.cycle.ringReadyTitle, readyBody: t.cycle.ringReadyBody(f.dreams.length),
       };
     })(),
@@ -1202,7 +1213,7 @@ function runSketchFail(cmd, onResult) {
 function runMoonFilm(cmd, onResult) {
   const s = loadState();
   const o = cmd.moonFilm || {};
-  const done = s.moonFilms || [];
+  const done = s.moonFilmsV2 || [];
   if (!o.key || typeof o.film !== "string" || !o.film.startsWith("sketch:")) { onResult({ n: cmd.n, error: "invalid" }); return true; }
   if (done.includes(o.key)) { onResult({ n: cmd.n, result: { ok: true, already: true } }); return true; }
   const stills = (o.stills || []).filter((u) => typeof u === "string" && u.startsWith("sketch:"));
@@ -1213,7 +1224,9 @@ function runMoonFilm(cmd, onResult) {
     films: [{ url: o.film, at: new Date().toISOString(), kind: "sketch", ...(o.seconds ? { seconds: Math.round(o.seconds) } : {}) }],
     mode: "film", format: "9:16", imageCount: 0, references: [], moon: moonForNight(),
   };
-  saveState({ ...s, journal: [...(s.journal || []), entry], moonFilms: [...done, o.key] });
+  /* Der neue Film ersetzt einen alten Standbild-Film desselben Rings (10.10.). */
+  const journal = (s.journal || []).filter((e) => !(isMoonFilm(e) && e.moonKey === o.key));
+  saveState({ ...s, journal: [...journal, entry], moonFilms: [...new Set([...(s.moonFilms || []), o.key])], moonFilmsV2: [...done, o.key] });
   onJournalTick?.();
   onResult({ n: cmd.n, entryId: entry.id });
   return true;
