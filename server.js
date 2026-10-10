@@ -1427,12 +1427,18 @@ async function smallVideoUri(bytes, dir) {
   return "data:video/mp4;base64," + Buffer.from(await Bun.file(small).arrayBuffer()).toString("base64");
 }
 
-async function sketchSound({ styleId, mood, beats, seconds, video = null }) {
+/* `musicOnly` (10.10., Antons Befund beim Sammelfilm: „komische Geräusche,
+   irgendwas läuft doch unter der Musik"): nur die Musik, ohne die
+   Atmosphäre („soft wind, distant hum") — die gehört unter einen
+   einzelnen Traum, nicht unter den Film aus zwölf. */
+async function sketchSound({ styleId, mood, beats, seconds, video = null, musicOnly = false }) {
   const p = buildSoundPrompts({ styleId, mood, beats, seconds });
   const work = await mkdtemp(join(tmpdir(), "glimpse-film-"));
   let amb, mus;
   try {
-    const effects = video
+    const effects = musicOnly
+      ? Promise.reject(new Error("nicht gewünscht"))
+      : video
       ? smallVideoUri(video, work).then((uri) => falAudio(SOUND_VIDEO_MODEL, { video_url: uri, prompt: p.sfx, negative_prompt: p.sfxNegative, duration: p.seconds, num_steps: 25, cfg_strength: 4.5 }, SOUND_VIDEO_TIMEOUT_MS))
       : falAudio(SOUND_AMBIENCE_MODEL, { prompt: p.ambience, negative_prompt: p.negative, duration: p.seconds, num_steps: 25, cfg_strength: 4.5 });
     [amb, mus] = await Promise.allSettled([
@@ -1443,7 +1449,7 @@ async function sketchSound({ styleId, mood, beats, seconds, video = null }) {
     await rm(work, { recursive: true, force: true }).catch(() => {});
   }
   for (const [name, r] of [[video ? "Effekte (Film)" : "Atmo", amb], ["Musik", mus]]) {
-    if (r.status === "rejected") console.warn(`[DreamRushes] glimpse-sound ${name} ausgefallen:`, r.reason?.name === "TimeoutError" ? "Zeitlimit" : r.reason?.message);
+    if (r.status === "rejected" && !(musicOnly && r === amb)) console.warn(`[DreamRushes] glimpse-sound ${name} ausgefallen:`, r.reason?.name === "TimeoutError" ? "Zeitlimit" : r.reason?.message);
   }
   if (amb.status === "rejected" && mus.status === "rejected") throw new Error("SOUND_FAILED");
   const dir = await mkdtemp(join(tmpdir(), "glimpse-sound-"));
@@ -2980,10 +2986,12 @@ const serveOptions = {
         const styleId = String(body.styleId || "").replace(/[^a-z]/g, "").slice(0, 20);
         const mood = sanitizePromptText(body.mood).slice(0, 40);
         const seconds = Math.max(8, Math.min(45, Number(body.seconds) || 16));
+        const musicOnly = body.musicOnly === true || body.musicOnly === "true";   // Sammelfilm (10.10.)
         settleCharge({ kind: "sketch-sound", charge: 0 });
-        const soundUrl = await sketchSound({ styleId, mood, beats, seconds, video });
+        const soundUrl = await sketchSound({ styleId, mood, beats, seconds, video, musicOnly });
         await claimMedia(person, soundUrl);   // S2
-        return json({ ok: true, url: soundUrl });
+        // `musicOnly` bestätigen: Die App baut den Sammelfilm nur mit bestätigter reiner Musik.
+        return json({ ok: true, url: soundUrl, ...(musicOnly ? { musicOnly: true } : {}) });
       } catch (e) {
         if (e.message === "NO_FAL_KEY") return json({ error: "Backend has no fal key." }, 503);
         if (e.message === "SOUND_FAILED") return json({ error: "Could not make the sound." }, 502);

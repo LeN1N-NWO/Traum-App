@@ -19,7 +19,7 @@ import { jobStatus, setTokenSource, setMediaKey, accountCredits } from "../../..
 import { blankNight, nightMarked } from "../../../src/lib/blankNight.js";
 import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js";
 import { totalCredits, spend, applyAllowanceGrant, giftLeft } from "../../../src/lib/credits.js";
-import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchGrid, sketchSound } from "../../../src/lib/api.js";
+import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchGrid, sketchSound, sketchMusic } from "../../../src/lib/api.js";
 import { pickParticles, buildSketchGridPrompt } from "../../../src/lib/sketchPrompt.js";
 import { sketchFreeLeft, sketchGiftLeft, sketchCost, countSketch, sketchTiming, clampStrips, SKETCH_STRIPS, SCENES_PER_STRIP } from "../../../src/lib/sketchQuota.js";
 import { quoteFor } from "../../../src/lib/quote.js";
@@ -309,9 +309,10 @@ function snapshot() {
     moonFilm: (() => {
       /* Seit 10.10. („Weg A", Antons Wahl) entsteht der Film aus den ECHTEN
          Clips (glimpse-layer.tsx makeMoonFilm, nativ renderMontage). Fertig
-         gilt nur, was in `moonFilmsV2` steht — so werden die alten
-         Standbild-Filme einmal neu gemacht und ersetzt (runMoonFilm). */
-      const f = pendingRingFilm(filmDreams, s.moonFilmsV2 || []);
+         gilt nur, was in `moonFilmsV3` steht — so werden alte Filme einmal
+         neu gemacht und ersetzt (runMoonFilm): V2 = Standbilder → Clips,
+         V3 (10.10. abends) = Musik ohne Geräusch-Atmosphäre. */
+      const f = pendingRingFilm(filmDreams, s.moonFilmsV3 || []);   // V3 (10.10. abends): neu mit reiner Musik
       if (!f) return null;
       const motif = f.motif ? t.symbols.byId[f.motif]?.label || f.motif : null;
       const from = (f.ringNo - 1) * RING_SIZE + 1;
@@ -984,6 +985,11 @@ async function runSketchGrid(cmd, onResult) {
 async function runSketchSound(cmd, onResult) {
   const q = cmd.sketchSound || {};
   try {
+    if (q.musicOnly) {
+      const m = await sketchMusic({ styleId: q.styleId, mood: q.mood, seconds: q.seconds });
+      onResult({ n: cmd.n, result: { url: absolute(m.url), musicOnly: m.confirmed } });
+      return true;
+    }
     const url = await sketchSound({ styleId: q.styleId, mood: q.mood, beats: q.beats || [], seconds: q.seconds });
     onResult({ n: cmd.n, result: { url: absolute(url) } });
   } catch (e) {
@@ -1213,7 +1219,7 @@ function runSketchFail(cmd, onResult) {
 function runMoonFilm(cmd, onResult) {
   const s = loadState();
   const o = cmd.moonFilm || {};
-  const done = s.moonFilmsV2 || [];
+  const done = s.moonFilmsV3 || [];
   if (!o.key || typeof o.film !== "string" || !o.film.startsWith("sketch:")) { onResult({ n: cmd.n, error: "invalid" }); return true; }
   if (done.includes(o.key)) { onResult({ n: cmd.n, result: { ok: true, already: true } }); return true; }
   const stills = (o.stills || []).filter((u) => typeof u === "string" && u.startsWith("sketch:"));
@@ -1226,7 +1232,7 @@ function runMoonFilm(cmd, onResult) {
   };
   /* Der neue Film ersetzt einen alten Standbild-Film desselben Rings (10.10.). */
   const journal = (s.journal || []).filter((e) => !(isMoonFilm(e) && e.moonKey === o.key));
-  saveState({ ...s, journal: [...journal, entry], moonFilms: [...new Set([...(s.moonFilms || []), o.key])], moonFilmsV2: [...done, o.key] });
+  saveState({ ...s, journal: [...journal, entry], moonFilms: [...new Set([...(s.moonFilms || []), o.key])], moonFilmsV3: [...done, o.key] });
   onJournalTick?.();
   onResult({ n: cmd.n, entryId: entry.id });
   return true;

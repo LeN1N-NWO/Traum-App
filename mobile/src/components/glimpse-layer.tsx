@@ -302,8 +302,13 @@ export async function buildMontage(f: Pick<NonNullable<HomeData["moonFilm"]>, "k
     const slot = (4 * 60) / BPM;               // vier Schläge je Traum
     const seconds = Math.ceil(clips.length * slot + 2.4);
     let music: string | null = null;
-    const snd = await ask({ type: "sketchSound", sketchSound: { styleId: f.style || "dreamlike", mood: f.mood || "", beats: [], seconds } });
+    // nur Musik — ohne die Geräusch-Atmosphäre des Glimpse (Antons Befund 10.10.: „komische Geräusche darunter")
+    const snd = await ask({ type: "sketchSound", sketchSound: { styleId: f.style || "dreamlike", mood: f.mood || "", beats: [], seconds, musicOnly: true } });
     const url = snd.result?.url as string | undefined;
+    /* Ein älterer Server kennt `musicOnly` nicht und liefert Musik MIT
+       Atmosphäre. Dann jetzt keinen Film — beim nächsten Start neu, sobald
+       der Server sie bestätigt (die Reihenfolge Deploy/App ist so egal). */
+    if (url && !snd.result?.musicOnly) throw new Error("Server ohne reine Musik — später erneut");
     if (url) {
       const ext = /\.(m4a|mp3|wav|aac)(?:[?#]|$)/i.exec(url)?.[1] ?? "m4a";
       try { music = await fetchTo(url, `${f.key}-music.${ext}`); } catch (e: any) { console.warn("[moonfilm] Musik", e?.message || e); }

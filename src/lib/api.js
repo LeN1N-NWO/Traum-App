@@ -277,6 +277,16 @@ export async function sketchSound({ styleId, mood, beats, seconds }) {
   return data.url;
 }
 
+/** Nur Musik, ohne die Geräusch-Atmosphäre des Glimpse — für den
+ *  Sammelfilm (10.10., Antons Befund „komische Geräusche darunter").
+ *  `confirmed`: Der Server kennt den Schalter (ein älterer ignoriert ihn
+ *  und liefert Musik MIT Atmosphäre). */
+export async function sketchMusic({ styleId, mood, seconds }) {
+  const data = await post("/api/sketch-sound", { styleId, mood, beats: [], seconds, musicOnly: true }, { timeout: TIMEOUTS.film });
+  if (typeof data?.url !== "string") throw new Error(t.errors.unexpected);
+  return { url: data.url, confirmed: data.musicOnly === true };
+}
+
 /** Die Reflection zu einem Traum — Spiegel, nicht Orakel. `context` sind
  *  die Musterzeilen aus atlas.js (reflectionContext), gratis wie alle
  *  Textarbeit. `lang` ist die App-Sprache (state.language): Ohne sie rät
