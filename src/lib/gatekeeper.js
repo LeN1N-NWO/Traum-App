@@ -78,6 +78,10 @@ export function classOf(pathname) {
      Träume nacheinander löscht, darf nicht nach dem Topf der Filme gebremst
      werden. Ein Konto braucht es weiter (needsAccount, Voreinstellung). */
   if (pathname === "/api/media") return "cheap";
+  /* Kauf bestätigen und Ring-Geschenke abholen (B1, 10.10.2026): kosten bei
+     uns nichts und gehen an Apple bzw. unsere Datenbank. Wiederholbar gebaut —
+     die App fragt nach einem `retry` erneut, das darf sie nicht ausbremsen. */
+  if (pathname === "/api/purchases/verify" || pathname === "/api/gifts/claim") return "cheap";
   /* Anmelden und Sitzung erneuern: eigene, strengere Klasse gegen das Raten
      von Passwörtern. Abmelden gehört NICHT dazu — wer abmelden will, soll das
      immer können, auch nach zehn Fehlversuchen. */
