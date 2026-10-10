@@ -8,6 +8,7 @@ import { GlassButton, PrimaryButton } from "@/components/glass";
 import { BlurInText } from "@/components/blur-in-text";
 import { MascotLoader } from "@/components/mascot-loader";
 import { PortalButton } from "@/components/portal-button";
+import { dropRecording, sweepRecordings } from "@/lib/recordings";
 import { holdForRecording } from "@/lib/sound-engine";
 import { setRecording } from "@/store/recording-store";
 import { colors, fonts } from "@/theme";
@@ -51,7 +52,6 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   const [error, setError] = useState<string | null>(null);
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const uri = useRef<string | null>(null);
-  const audioUrl = useRef<string | null>(null);
   const lastKey = useRef(0);
   const cancelled = useRef(false);
   /* Gast hat gesprochen (06.10.): Aufschreiben verlangt ein Konto (es kostet,
@@ -67,6 +67,8 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
 
   useEffect(() => {
     (async () => {
+      // Reste früherer Sitzungen (abgestürzt, beendet beim Hochladen) — älter als ein Tag (10.10.)
+      sweepRecordings();
       const p = await requestRecordingPermissionsAsync();
       setAllowed(p.granted);
       if (!p.granted) { setError(W?.recordFailed ?? "No microphone."); setPhase("error"); }
@@ -98,6 +100,8 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     cancelled.current = false;
     setError(null);
+    // eine liegengebliebene Aufnahme (Fehler, nicht verworfen) weicht der neuen
+    if (uri.current) { dropRecording(uri.current); uri.current = null; }
     try {
       setRecording(true); holdForRecording(true);
       await new Promise((r) => setTimeout(r, 250));
@@ -120,26 +124,30 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     try { await recorder.stop(); } catch {}
     setRecording(false); holdForRecording(false);
     const u = recorder.uri;
-    if (!u || before.durationMillis < 1500) { setError(W?.recordTooShort ?? "Too short."); setPhase("error"); return; }
+    if (!u || before.durationMillis < 1500) { dropRecording(u); setError(W?.recordTooShort ?? "Too short."); setPhase("error"); return; }
     uri.current = u;
-    audioUrl.current = null;
     // Wiedergabe über den Lautsprecher: mit allowsRecording spielt iOS leise übers Ohr.
     await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: "mixWithOthers" }).catch(() => {});
-    upload(u);
     /* Seit 26.09. abends (Antons Ansage: „Stopp heißt: gleich weiter, die
        nächste Seite fällt weg"): kein Anhören-Zwischenschritt mehr — nach
        dem Stopp wird sofort aufgeschrieben, und der Traum-Bildschirm lässt
-       ihn danach direkt von der KI lesen. Die Aufnahme hängt am Traum. */
+       ihn danach direkt von der KI lesen. Die Aufnahme hängt am Traum.
+       Hochgeladen wird sie erst, wenn das Aufschreiben geklappt hat (10.10.)
+       — verworfene oder gescheiterte Aufnahmen landen nie auf dem Server. */
     transcribe();
   }
 
+  /* Die Aufnahme zum Traum auf den Server (ADR-0007). Danach braucht das
+     Gerät sie nicht mehr: die lokale Datei wird gelöscht. Scheitert das
+     Hochladen (offline), bleibt sie liegen — der Aufräumer nimmt sie nach
+     einem Tag mit. */
   async function upload(u: string) {
     try {
       const raw = await (await fetch(u)).blob();
       const blob = new Blob([raw], { type: "audio/mp4" });
       const up = await fetchWithSession(W!.panelUrl, { method: "POST", headers: { "content-type": "audio/mp4" }, body: blob });
       const out = await up.json().catch(() => null);
-      if (up.ok && typeof out?.url === "string" && uri.current === u) { audioUrl.current = out.url; onPendingAudio(out.url); }
+      if (up.ok && typeof out?.url === "string") { onPendingAudio(out.url); dropRecording(u); }
     } catch (e) { console.warn("[recorder] upload", e); }
   }
 
@@ -160,9 +168,11 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
       const text = String(out?.text || "").trim();
       if (!res.ok || text.length < 8) { setError(text.length < 8 && res.ok ? (W?.recordTooShort ?? "Too short.") : (out?.error || W?.recordFailed || "Failed")); setPhase("error"); return; }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const url = audioUrl.current;
+      const done = uri.current;
       reset();
-      onText(text, url);
+      onText(text, null);
+      // erst jetzt hochladen — die Datei gehört ab hier zum Text
+      if (done) upload(done);
     } catch (e) {
       console.warn("[recorder] transcribe", e);
       setError(W?.recordFailed ?? "Failed"); setPhase("error");
@@ -175,17 +185,20 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     const before = waitingForSignIn.current;
     if (before === undefined || typeof account !== "string" || account === before || phase !== "error" || !uri.current) return;
     waitingForSignIn.current = undefined;
-    if (!audioUrl.current) upload(uri.current);
     transcribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account, phase]);
 
-  function reset() { uri.current = null; audioUrl.current = null; waitingForSignIn.current = undefined; setError(null); setPhase("idle"); }
+  function reset() { uri.current = null; waitingForSignIn.current = undefined; setError(null); setPhase("idle"); }
 
+  /* Verwerfen: anhalten, die Datei löschen, nichts hochladen (10.10.). Auch
+     eine noch laufende Aufnahme hat schon eine Datei — recorder.uri. */
   async function discard() {
     cancelled.current = true;
-    try { if (recorder.getStatus().isRecording) await recorder.stop(); } catch {}
+    const live = recorder.getStatus().isRecording;
+    try { if (live) await recorder.stop(); } catch {}
     setRecording(false); holdForRecording(false);
+    dropRecording(uri.current ?? (live ? recorder.uri : null));
     reset();
   }
 

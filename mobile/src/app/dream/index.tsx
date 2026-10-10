@@ -53,6 +53,16 @@ export default function DreamTextScreen() {
     return () => setFocused(false);
   }, []));
 
+  /* Die Aufnahme, die am nächsten gespeicherten Traum hängt, ist immer die
+     des laufenden Traums (10.10.): Die Brücke merkte sich die letzte
+     hochgeladene Aufnahme und hängte sie an den NÄCHSTEN neuen Traum —
+     auch an einen später getippten, wenn die Aufnahme davor liegen blieb.
+     Hat der Traum keine eigene Aufnahme, wird die Merkung geleert (die
+     Brücke schreibt nur, wenn sich etwas ändert). */
+  useFocusEffect(useCallback(() => {
+    if (!w.audioUrl) send({ type: "pendingAudio", audioUrl: undefined });
+  }, [w.audioUrl, send]));
+
   // Ein Auftrag ist durch (resetWizard): von vorn, mit Aufnahme.
   const seenResets = useRef(w.resets);
   useEffect(() => {
