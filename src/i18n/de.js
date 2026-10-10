@@ -931,7 +931,7 @@ export default {
     tooShort: "⚠ Schreib erst noch etwas mehr.",
     caught: (name) => `✦ ${name} ist deiner Menagerie beigetreten`,
     /* Der Rekorder (ADR-0007): einsprechen, fertig — keine Rückfragen. */
-    record: "Erzähl ihn laut", recordHint: "Tipp auf den Mond und erzähl einfach. Ich schreibe mit.",
+    record: "Erzähl ihn laut", recordHint: "Tipp auf das Licht und erzähl einfach. Ich schreibe mit.",
     recording: "Ich höre zu …", recordStop: "Fertig", recordDiscard: "Verwerfen", recordTranscribing: "Ich schreibe auf …",
     recordTooShort: "Das war zu kurz — noch mal.", recordFailed: "Konnte das nicht aufschreiben. Noch mal versuchen.",
     recordSignIn: "Melde dich an, dann schreibe ich es auf — deine Aufnahme bleibt.",

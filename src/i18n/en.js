@@ -990,7 +990,7 @@ export default {
     tooShort: "⚠ Write a little more first.",
     caught: (name) => `✦ ${name} joined your menagerie`,
     /* Der Rekorder (ADR-0007): einsprechen, fertig — keine Rückfragen. */
-    record: "Tell it out loud", recordHint: "Tap the moon and just talk. I'll write along.",
+    record: "Tell it out loud", recordHint: "Tap the light and just talk. I'll write along.",
     recording: "Listening…", recordStop: "Done", recordDiscard: "Discard", recordTranscribing: "Writing it down…",
     recordTooShort: "That was too short — try again.", recordFailed: "Couldn't write that down. Try again.",
     // Gast hat gesprochen: Aufschreiben kostet, also erst anmelden — die Aufnahme bleibt.
