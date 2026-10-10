@@ -29,6 +29,13 @@ test("deleting a dream's media is cheap and needs an account", () => {
   expect(needsAccount("/api/media")).toBe(true);
 });
 
+test("confirming a purchase and claiming ring gifts are cheap and need an account", () => {
+  for (const p of ["/api/purchases/verify", "/api/gifts/claim"]) {
+    expect([p, classOf(p)]).toEqual([p, "cheap"]);
+    expect([p, needsAccount(p)]).toEqual([p, true]);
+  }
+});
+
 test("polling and the voice socket are exempt by name, with a reason", () => {
   expect(classOf("/api/job")).toBe(null);     // Warten, kein Ausgeben
   expect(classOf("/api/voice")).toBe(null);   // eine Sitzung ist EIN Aufruf

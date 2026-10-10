@@ -47,6 +47,8 @@ import { guard, senderOf, needsAccount } from "./src/lib/gatekeeper.js";
 import { createOwnership, issueMediaKey, verifyMediaSignature } from "./src/lib/mediaAccess.js";
 // S7: der Server bucht ab und erstattet — Kennungen und Fehlerdeutung.
 import { chargeRef, chargeFailure, refundFailure } from "./src/lib/charges.js";
+import { appleIapConfig, createReceiptChecker, evaluateTransaction } from "./src/lib/appleReceipt.js";
+import { claimableGifts } from "./src/lib/ringGifts.js";
 import { checkResult } from "./src/lib/photoCheck.js";
 import { buildCharacterPrompt, buildSheetFromPhotoPrompt, stripReferenceClauses } from "./src/lib/promptBuilder.js";
 // Stiltexte sind Konstanten aus dem Repo — der Client schickt nur eine ID,
@@ -134,6 +136,14 @@ const CAST_DIR = resolve(MEDIA_DIR, "besetzung");
 const MEDIA_ENFORCED = process.env.REQUIRE_AUTH === "1";
 const MEDIA_SECRET = process.env.MEDIA_SECRET || "";
 const owners = createOwnership(resolve(MEDIA_DIR, "besitz"));
+
+/* B1 (10.10.2026): Käufe fragt der Server bei Apple nach (src/lib/appleReceipt.js).
+ * Ohne APPLE_IAP_* antwortet /api/purchases/verify 503 und schreibt nichts gut.
+ * Sandbox (TestFlight) nur mit ALLOW_SANDBOX_PURCHASES=1 — vor dem Store-Start aus. */
+const IAP = appleIapConfig();
+const receipts = createReceiptChecker({ config: IAP, allowSandbox: process.env.ALLOW_SANDBOX_PURCHASES === "1" });
+console.log(`Apple-Käufe: ${IAP ? "Prüfung bei Apple ✓" : "nicht konfiguriert (APPLE_IAP_* fehlt) — keine Gutschrift"}`
+  + `${process.env.ALLOW_SANDBOX_PURCHASES === "1" ? " · ⚠ Sandbox-Käufe werden gutgeschrieben" : ""}`);
 
 /** Note every /media/ path in `paths` as belonging to `person`. Fal URLs
  *  and other shapes are skipped. Without an account (local) nothing to do. */
@@ -4268,6 +4278,87 @@ const serveOptions = {
       } catch (e) {
         console.error("[DreamRushes] Medien nicht vollständig gelöscht:", e?.message || e);
         return json({ error: "Server error." }, 500);
+      }
+    }
+
+    /* B1 (10.10.2026): Ein Kauf geht erst ins Konto, wenn Apple ihn bestätigt.
+       Die App schickt nur die Transaktions-ID; was sie bringt, entscheiden
+       Apples Antwort und plans.js (appleReceipt.js). Doppelt gebucht wird
+       nie — die Ledger-Kennung ist die Transaktions-ID, ein zweiter Aufruf
+       trifft den Unique-Index (23505) und bekommt „schon gebucht".
+       ⚠ Die App schließt die Transaktion bei Apple erst nach einem `ok`
+       ab (finishTransaction). Bei `retry` behält sie sie und fragt später
+       noch einmal — sonst wäre ein bezahlter Kauf ohne Gutschrift weg. */
+    if (url.pathname === "/api/purchases/verify" && req.method === "POST") {
+      if (!person) return json({ error: "Please sign in to continue.", reason: "signin" }, 401);
+      if (!database) return json({ error: "Purchases can't be confirmed right now.", reason: "unavailable", retry: true }, 503);
+      if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+        return json({ error: "Request too large." }, 413);
+      }
+      const body = await req.json().catch(() => null);
+      const found = await receipts.lookup(body?.transactionId);
+      if (!found.tx) {
+        if (found.retry) console.error(`[DreamRushes] ⚠ Kauf nicht prüfbar: ${found.reason} ${found.status ?? ""}`);
+        return json({ error: "This purchase could not be confirmed.", reason: found.reason, retry: !!found.retry },
+                    found.retry ? 503 : 400);
+      }
+      const verdict = evaluateTransaction(found.tx, person.userId, IAP?.bundleId);
+      if (!verdict.ok) {
+        console.error(`[DreamRushes] ⚠ Kauf abgewiesen: ${verdict.reason} (${found.tx.productId ?? "?"})`);
+        return json({ error: "This purchase could not be confirmed.", reason: verdict.reason, retry: false }, 400);
+      }
+      const reply = { ok: true, kind: verdict.kind, plan: verdict.plan, credited: verdict.amount, environment: verdict.environment };
+      try {
+        const [row] = await withUser(database, person.userId, (tx) => verdict.kind === "pack"
+          ? tx`select public.server_grant(${verdict.amount}, 'purchase', ${verdict.ref}) as total`
+          : tx`select public.server_set_allowance(${verdict.amount}, ${verdict.ref}) as total`);
+        console.log(`[DreamRushes] Kauf gutgeschrieben: ${verdict.plan} = ${verdict.amount} (${verdict.ref}, ${verdict.environment})`);
+        return json({ ...reply, total: row?.total ?? null });
+      } catch (e) {
+        if (e?.errno === "23505") return json({ ...reply, credited: 0, already: true });
+        console.error("[DreamRushes] ⚠ Kauf nicht gebucht:", verdict.ref, e?.errno || "", e?.message || e);
+        return json({ error: "Purchases can't be confirmed right now.", reason: "unavailable", retry: true }, 503);
+      }
+    }
+
+    /* Ring-Geschenke ins Konto (Antons Übergabe 10.10., Teil 2): bei 24, 36,
+       48 Träumen 16, 32, 50 Credits, nur nach einem Kauf (ringGifts.js).
+       Die Traumzahl sagt die App (`count`) — der Server glaubt ihr nur so
+       weit, wie er Traum-Zeilen dieses Kontos hat (Hannis Entscheidung 3a).
+       Jedes Geschenk ist per Ledger-Kennung nur einmal buchbar; schon
+       gebuchte werden vorher aussortiert, ein gleichzeitiger zweiter Aufruf
+       trifft den Unique-Index und ändert nichts. */
+    if (url.pathname === "/api/gifts/claim" && req.method === "POST") {
+      if (!person) return json({ error: "Please sign in to continue.", reason: "signin" }, 401);
+      if (!database) return json({ error: "Gifts can't be booked right now." }, 503);
+      if (Number(req.headers.get("content-length") || 0) > MAX_BODY) {
+        return json({ error: "Request too large." }, 413);
+      }
+      const body = await req.json().catch(() => null);
+      try {
+        const result = await withUser(database, person.userId, async (tx) => {
+          const [{ rows }] = await tx`select count(*)::int as rows from public.dreams where user_id = ${person.userId}`;
+          const [{ paid }] = await tx`select exists (select 1 from public.credits_ledger
+                                       where user_id = ${person.userId}
+                                         and reason in ('purchase', 'subscription_refill')) as paid`;
+          const { count, gifts } = claimableGifts({ claimed: body?.count, rows, paid });
+          const done = new Set((await tx`select ref from public.credits_ledger
+                                          where user_id = ${person.userId} and reason = 'gift'`).map((r) => r.ref));
+          const booked = [];
+          for (const g of gifts) {
+            if (done.has(g.ref)) continue;
+            await tx`select public.server_grant(${g.credits}, 'gift', ${g.ref})`;
+            booked.push({ place: g.place, credits: g.credits });
+          }
+          const [saldo] = await tx`select purchased + allowance as total from public.credits_balance where user_id = ${person.userId}`;
+          return { count, paid, booked, total: saldo?.total ?? null };
+        });
+        if (result.booked.length) console.log(`[DreamRushes] Ring-Geschenk gebucht: ${result.booked.map((g) => `${g.place}→${g.credits}`).join(", ")}`);
+        return json({ ok: true, ...result });
+      } catch (e) {
+        if (e?.errno === "23505") return json({ ok: true, booked: [], already: true });
+        console.error("[DreamRushes] ⚠ Ring-Geschenk nicht gebucht:", e?.errno || "", e?.message || e);
+        return json({ error: "Gifts can't be booked right now." }, 503);
       }
     }
 
