@@ -561,7 +561,7 @@ function snapshot() {
     recordAgain: t.dream.recordAgain, yourRecording: t.dream.yourRecording,
     reviewTitle: t.dream.reviewTitle, reviewHint: t.dream.reviewHint, mascotReview: t.dream.mascotReview || [], recordListen: t.dream.recordListen, recordPause: t.dream.recordPause, recordTranscribe: t.dream.recordTranscribe, recordRetake: t.dream.recordRetake,
     typeInstead: t.dream.typeInstead, textTitle: t.dream.textTitle, textLede: t.dream.textLede, tellMore: t.dream.tellMore, rewriteAll: t.dream.rewriteAll, editText: t.dream.editText, transcribeUrl: API_BASE + "/api/transcribe", panelUrl: API_BASE + "/api/panel",
-    placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
+    placeholder: t.dream.placeholder, reading: t.dream.reading, readingHint: t.dream.readingHint, readingSteps: t.dream.readingSteps, free: t.wizard.free, credit: t.wizard.credit, why: t.wizard.step1.why };
   /* Das Kaufblatt (Paywall.jsx), vorgerechnet: Texte sind im Web zum Teil
      Funktionen, über die Brücke gehen nur Strings. NUR Filme — Bilder sind
      seit dem 12.09. aus dem Angebot (Antons Ansage: „mit den Bildern die

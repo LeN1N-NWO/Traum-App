@@ -970,6 +970,15 @@ export default {
     interviewHint: "Ich frage, du erzählst — Augen zu, wenn du magst",
     reading: "Dein Traum wird ausgewertet…",
     readingHint: "Benennt ihn und findet heraus, wer dabei war.",
+    readingSteps: [
+      "Deine Worte werden aufgeschrieben …",
+      "Dein Traum wird gelesen …",
+      "Die Szenen werden gefunden …",
+      "Wer war dabei …",
+      "Die Stimmung wird gespürt …",
+      "Ein Titel wird gesucht …",
+      "Gleich geschafft …",
+    ],
     or: "oder schreib ihn",
     loading: [
       "Deine Aufnahmen werden entwickelt…",

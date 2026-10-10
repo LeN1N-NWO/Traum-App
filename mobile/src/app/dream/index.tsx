@@ -3,11 +3,11 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { DreamLoader } from "@/components/dream-loader";
 import { DreamRecorder } from "@/components/dream-recorder";
-import { GlassButton, PrimaryButton } from "@/components/glass";
-import { MascotLoader } from "@/components/mascot-loader";
+import { PrimaryButton } from "@/components/glass";
 import { NightSky } from "@/components/night-sky";
-import { noteRead } from "@/lib/speech-timing";
+import { estimateReadMs, noteRead } from "@/lib/speech-timing";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
@@ -20,7 +20,15 @@ import { colors, fonts, radius, TAB_INSET } from "@/theme";
  *   2. text     Der Text aus der Aufnahme — lesen, tippend ergänzen,
  *               „Weiter erzählen" hängt eine zweite Aufnahme an, „Neu
  *               schreiben" leert das Feld. Dann ✦ Lesen.
- *   3. preview  Deine Worte oder aufgeräumt (wie bisher).
+ *   3. preview  Deine Worte oder aufgeräumt — ENTFÄLLT seit 10.10. (Antons
+ *               Ansage: „den Screen mit der improved version nicht mehr
+ *               anzeigen, direkt zu Make a film oder Save it"). Es gilt die
+ *               aufgeräumte Fassung; die eigenen Worte bleiben als
+ *               `originalText` am Traum.
+ *
+ * Zwischen Einsprechen und „Film oder Speichern" steht seit 10.10. der
+ * Ladebalken (components/dream-loader.tsx): ab dem Aufschreiben bis die
+ * KI-Analyse da ist, ein Bildschirm, ein Balken.
  *
  * „Wenn jemand aus dem Schlaf kommt, die App anmachen und nicht noch einmal
  * klicken müssen." Wer lieber tippt, kommt mit „Lieber schreiben" direkt
@@ -35,12 +43,17 @@ export default function DreamTextScreen() {
   const [stage, setStage] = useState<Stage>(w.text ? "text" : "voice");
   const [text, setText] = useState(w.text);
   const [fromVoice, setFromVoice] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [preview, setPreview] = useState<any | null>(null);
+  /* Der Ladebalken (10.10.): läuft ab dem Aufschreiben (`speech`) bzw. ab
+     „Lesen" bis die Analyse da ist. `loadDone` = Antwort da → der Balken
+     beschleunigt, danach geht es mit `result` weiter (loaded). */
+  const [load, setLoad] = useState<{ id: number; estimate: number; speech: boolean } | null>(null);
+  const [loadDone, setLoadDone] = useState(false);
+  const result = useRef<{ analysis: any; text: string } | null>(null);
+  const readRun = useRef(0);                 // jeder Lauf eine Nummer — ein abgebrochener zählt nicht mehr
+  const recorderCancel = useRef<(() => void) | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
   const [autoKey, setAutoKey] = useState(0);
-  const [mineOpen, setMineOpen] = useState(false);
   const input = useRef<TextInput>(null);
   const credits = data?.profile.credits ?? 0;
   const clean = text.trim();
@@ -69,7 +82,7 @@ export default function DreamTextScreen() {
   useEffect(() => {
     if (w.resets === seenResets.current) return;
     seenResets.current = w.resets;
-    setText(""); setPreview(null); setError(null); setFromVoice(false); setStage("voice");
+    setText(""); setLoad(null); setError(null); setFromVoice(false); setStage("voice");
   }, [w.resets]);
 
   /* Aufgeschrieben → sofort lesen lassen (Antons Ansage 26.09. abends: die
@@ -90,77 +103,68 @@ export default function DreamTextScreen() {
     setTimeout(() => input.current?.focus(), 350);
   }
 
+  function startLoad(speech: boolean) {
+    setLoadDone(false);
+    result.current = null;
+    setLoad((l) => l ?? { id: Date.now(), estimate: estimateReadMs(speech), speech });
+  }
+
   async function read(t = clean) {
-    if (t.length < 8) { setError(W?.tooShort ?? "Tell a little more."); return; }
-    if (W && credits < W.readPrice) { router.push({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
+    if (t.length < 8) { setLoad(null); setError(W?.tooShort ?? "Tell a little more."); return; }
+    if (W && credits < W.readPrice) { setLoad(null); router.push({ pathname: "/dream/paywall", params: { reason: "spent" } }); return; }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     /* Die Tastatur ZUERST schließen (26.09., Befund im Simulator): Das
        Textfeld verschwindet gleich, und verschwand es mit offener Tastatur,
-       blieb der Bildschirm um die Tastaturhöhe verkürzt — die Knöpfe der
-       Vorschau waren zu sehen, aber nicht zu treffen („kann nicht klicken"). */
+       blieb der Bildschirm um die Tastaturhöhe verkürzt. */
     input.current?.blur();
     Keyboard.dismiss();
-    setBusy(true); setError(null);
+    setError(null);
+    startLoad(false);
+    const run = ++readRun.current;
     const t0 = Date.now();
     const r = await ask({ type: "analyze", text: t });
     noteRead({ ms: Date.now() - t0, ok: !r.error });   // Messseite profile/stt-preview (10.10.)
-    setBusy(false);
-    if (r.error) { setError(r.error === "nocredits" ? (W?.noCredits ?? "No credits") : r.error); return; }
-    setMineOpen(false);
-    setPreview(r.result);
+    if (run !== readRun.current) return;               // abgebrochen
+    if (r.error) { setLoad(null); setStage("text"); setError(r.error === "nocredits" ? (W?.noCredits ?? "No credits") : r.error); return; }
+    result.current = { analysis: r.result, text: t };
+    setLoadDone(true);                                 // Balken auf 100 %, dann weiter (loaded)
   }
-  function go(useImproved: boolean) {
-    const a = preview;
-    Haptics.selectionAsync();
-    patchWizard({ text: useImproved ? a.text : clean, originalText: clean, analysis: useImproved ? a : { ...a, text: clean }, styleId: "", assignmentOverrides: {} });   // kein Stil vorausgewählt (04.10.)
-    setPreview(null);
+
+  /* Der Balken ist voll: direkt zu „Film oder Speichern", mit der
+     aufgeräumten Fassung. Die eigenen Worte bleiben als originalText. */
+  function loaded() {
+    const res = result.current;
+    setLoad(null); setLoadDone(false);
+    if (!res) return;
+    const a = res.analysis;
+    patchWizard({ text: a?.text || res.text, originalText: res.text, analysis: a, styleId: "", assignmentOverrides: {} });   // kein Stil vorausgewählt (04.10.)
+    setText(res.text); setStage("text");
     router.push("/dream/output");
+  }
+
+  // Abbrechen während des Ladens: beim Aufschreiben verwirft der Rekorder, beim Lesen zählt die Antwort nicht mehr.
+  function cancelLoad() {
+    Haptics.selectionAsync();
+    readRun.current += 1;
+    if (stage === "voice") recorderCancel.current?.();
+    setLoad(null); setLoadDone(false);
   }
   const price = W ? (W.readPrice ? `${W.readPrice} ${W.credit}` : W.free) : "";
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined} enabled={stage === "text" && !preview && !busy}>
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined} enabled={stage === "text" && !load}>
       {/* Nachthimmel mit Sternschnuppen (Antons Wahl 26.09.), der Mond ist der Knopf. */}
       <NightSky />
       <WizardHeader step={1} cancel={W?.cancel} />
+      {/* Während des Ladens bleibt der Inhalt montiert (der Rekorder schreibt
+          gerade auf), nur unsichtbar — darüber liegt der Ladebalken. */}
+      <View style={[{ flex: 1 }, load ? styles.hidden : null]} pointerEvents={load ? "none" : "auto"}>
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {busy ? (
-          <View style={styles.reading}><MascotLoader /><Text style={styles.readingText}>{W?.reading}</Text><Text style={styles.hint}>{W?.readingHint}</Text></View>
-        ) : preview ? (
-          <>
-            <Text style={styles.h}>{W?.previewTitle}</Text>
-            <Text style={styles.lede}>{W?.previewLede}</Text>
-            {/* Antons Ansage 25.09.: „Verbessert" oben und leuchtend, die eigenen
-                Worte klein darunter — die ersten Zeilen, ein Tipp klappt auf. */}
-            <View style={styles.glow}>
-              <View style={[styles.card, styles.cardNew]}>
-                <View style={styles.newHead}>
-                  <SymbolView name="sparkles" size={13} tintColor={colors.accentSoft} />
-                  <Text style={[styles.cardLabel, { color: colors.accentSoft }]}>{W?.improved}</Text>
-                </View>
-                <Text style={styles.body}>{preview.text}</Text>
-              </View>
-            </View>
-            <Pressable onPress={() => { Haptics.selectionAsync(); setMineOpen((o) => !o); }} style={[styles.card, styles.cardMine]} accessibilityRole="button">
-              <View style={styles.newHead}>
-                <Text style={[styles.cardLabel, { flex: 1 }]}>{W?.yours}</Text>
-                <SymbolView name={mineOpen ? "chevron.up" : "chevron.down"} size={12} tintColor={colors.faint} />
-              </View>
-              <Text style={styles.bodySmall} numberOfLines={mineOpen ? undefined : 2}>{clean}</Text>
-            </Pressable>
-            {preview.title ? <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><SymbolView name="film" size={14} tintColor={colors.muted} /><Text style={styles.poster}><Text style={{ fontWeight: "700" }}>{preview.title}</Text>{preview.tagline ? ` — ${preview.tagline}` : ""}</Text></View> : null}
-            <View style={styles.actions}>
-              <GlassButton label={W?.keepMine ?? "Keep my words"} onPress={() => go(false)} />
-              <PrimaryButton label={W?.useImproved ?? "Use this version"} onPress={() => go(true)} />
-            </View>
-            <Pressable onPress={() => { Haptics.selectionAsync(); setPreview(null); setStage("text"); }} hitSlop={10} accessibilityRole="button">
-              <Text style={styles.editLink}>{W?.editText ?? "Edit the text"}</Text>
-            </Pressable>
-          </>
-        ) : stage === "voice" ? (
+        {stage === "voice" ? (
           <DreamRecorder
             W={W} language={data?.language ?? ""} autoStartKey={autoKey} active={focused}
-            onText={onText} onType={onType}
+            onText={onText} onType={onType} cancelRef={recorderCancel}
+            onBusy={(b) => { if (b) startLoad(true); else setLoad(null); }}
             onPendingAudio={(audioUrl) => { patchWizard({ audioUrl }); send({ type: "pendingAudio", audioUrl }); }}
           />
         ) : (
@@ -190,6 +194,14 @@ export default function DreamTextScreen() {
           </>
         )}
       </ScrollView>
+      </View>
+      {load ? (
+        <View style={styles.loader}>
+          <DreamLoader key={load.id} estimateMs={load.estimate} done={loadDone} onComplete={loaded}
+            steps={load.speech ? (W?.readingSteps ?? []) : (W?.readingSteps ?? []).slice(1)}
+            cancelLabel={W?.cancel} onCancel={cancelLoad} />
+        </View>
+      ) : null}
       <View style={styles.bridge}>{bridge}</View>
     </KeyboardAvoidingView>
   );
@@ -205,21 +217,8 @@ const styles = StyleSheet.create({
   toolText: { color: colors.text, fontSize: 14, fontWeight: "600" },
   error: { color: colors.warm, fontSize: 14 },
   hint: { color: colors.faint, fontSize: 12.5, lineHeight: 18 },
-  reading: { alignItems: "center", gap: 10, paddingVertical: 60 },
-  readingText: { color: colors.text, fontSize: 16 },
-  h: { fontFamily: fonts.serif, fontSize: 26, color: colors.text },
   lede: { color: colors.muted, fontSize: 14, lineHeight: 20 },
-  card: { padding: 16, borderRadius: radius.card, backgroundColor: colors.panelSolid, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine, gap: 6 },
-  cardNew: { borderColor: colors.accentSoft, borderWidth: 1.5, backgroundColor: "#1a2840" },   // deckend wie panelSolid + 10 % Blau
-  /* Das Leuchten: ein weicher farbiger Schatten um die Karte (iOS). */
-  glow: { borderRadius: radius.card, shadowColor: colors.accentSoft, shadowOpacity: 0.55, shadowRadius: 18, shadowOffset: { width: 0, height: 0 } },
-  newHead: { flexDirection: "row", alignItems: "center", gap: 6 },
-  cardMine: { paddingVertical: 12, opacity: 0.85 },
-  bodySmall: { color: colors.muted, fontSize: 14, lineHeight: 21 },
-  cardLabel: { color: colors.faint, fontSize: 11, letterSpacing: 1.8, fontWeight: "600", textTransform: "uppercase" },
-  body: { color: colors.text, fontSize: 16, lineHeight: 25 },
-  poster: { color: colors.muted, fontSize: 14 },
-  actions: { flexDirection: "row", gap: 10, alignItems: "stretch" },
-  editLink: { color: colors.accentSoft, fontSize: 14, textAlign: "center", marginTop: 2 },
+  hidden: { opacity: 0 },
+  loader: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "center", paddingBottom: 40 },
   bridge: { height: 0, overflow: "hidden" },
 });

@@ -1031,6 +1031,17 @@ export default {
     interviewHint: "I'll ask, you talk — eyes closed if you like",
     reading: "Working out your dream…",
     readingHint: "Naming it, and picking out who was there.",
+    /* Der Ladebalken nach dem Einsprechen (10.10.): wechselt über die
+       geschätzte Dauer, der erste nur, wenn gerade aufgeschrieben wird. */
+    readingSteps: [
+      "Writing down your words…",
+      "Reading your dream…",
+      "Finding the scenes…",
+      "Spotting who was there…",
+      "Feeling the mood…",
+      "Giving it a title…",
+      "Almost there…",
+    ],
     or: "or write it",
     loading: [
       "Developing your rushes…",

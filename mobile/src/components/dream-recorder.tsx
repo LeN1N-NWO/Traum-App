@@ -40,7 +40,7 @@ type Phase = "idle" | "rec" | "busy" | "error";
 const MEASURE = __DEV__ || process.env.EXPO_PUBLIC_DEV_PREVIEW === "1";
 type Labels = Record<string, any>;
 
-export function DreamRecorder({ W, language, autoStartKey, active, onText, onType, onPendingAudio }: {
+export function DreamRecorder({ W, language, autoStartKey, active, onText, onType, onPendingAudio, onBusy, cancelRef }: {
   W: Labels | undefined;
   language: string;
   autoStartKey: number;            // ändert sich → Aufnahme startet (wenn nichts läuft)
@@ -48,6 +48,11 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
   onText: (text: string, audioUrl: string | null) => void;
   onType: () => void;
   onPendingAudio: (audioUrl: string) => void;
+  /** Aufschreiben läuft (true) / ist gescheitert oder abgebrochen (false) —
+      der Traum-Bildschirm zeigt dafür den Ladebalken (dream-loader.tsx, 10.10.). */
+  onBusy?: (busy: boolean) => void;
+  /** Hier legt der Rekorder sein „Verwerfen" ab, damit der Ladebalken abbrechen kann. */
+  cancelRef?: { current: (() => void) | null };
 }) {
   // Mit Pegel (26.09.): die Glühwürmchen am Mond-Knopf tanzen zur Stimme.
   const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
@@ -170,6 +175,7 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     cancelled.current = false;
     setPhase("busy");
+    onBusy?.(true);
     const t0 = Date.now();
     try {
       /* "" = die Sprache des iPhones: Apples Modell versteht nur EINE Sprache,
@@ -189,15 +195,15 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
       if (cancelled.current) return;
       if (res.status === 401 && out?.reason === "signin") {
         waitingForSignIn.current = account ?? null;
-        setError(W?.recordSignIn ?? "Sign in to write it down."); setPhase("error"); return;
+        setError(W?.recordSignIn ?? "Sign in to write it down."); setPhase("error"); onBusy?.(false); return;
       }
       const text = String(out?.text || "").trim();
       noteSpeech({ via: "server", ms: Date.now() - t1, chars: text.length });
-      if (!res.ok || text.length < 8) { setError(text.length < 8 && res.ok ? (W?.recordTooShort ?? "Too short.") : (out?.error || W?.recordFailed || "Failed")); setPhase("error"); return; }
+      if (!res.ok || text.length < 8) { setError(text.length < 8 && res.ok ? (W?.recordTooShort ?? "Too short.") : (out?.error || W?.recordFailed || "Failed")); setPhase("error"); onBusy?.(false); return; }
       finish(text, `Server · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     } catch (e) {
       console.warn("[recorder] transcribe", e);
-      setError(W?.recordFailed ?? "Failed"); setPhase("error");
+      setError(W?.recordFailed ?? "Failed"); setPhase("error"); onBusy?.(false);
     }
   }
 
@@ -233,7 +239,9 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     setRecording(false); holdForRecording(false);
     dropRecording(uri.current ?? (live ? recorder.uri : null));
     reset();
+    onBusy?.(false);
   }
+  if (cancelRef) cancelRef.current = discard;
 
   async function typeInstead() {
     await discard();
