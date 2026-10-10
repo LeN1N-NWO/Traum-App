@@ -6,6 +6,7 @@ import { SymbolView, type SFSymbol } from "expo-symbols";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
+import { askPhotoThenOpen } from "@/lib/cast-photo";
 import { colors, fonts, TAB_INSET } from "@/theme";
 
 const GROUP_ICON: Record<string, SFSymbol> = { person: "person.fill", pet: "pawprint.fill", place: "house.fill", object: "cube.fill" };
@@ -29,7 +30,13 @@ export default function CastScreen() {
   const { data, bridge } = useJournal();
   const L = data?.library;
   const meImg = data?.profile?.img ?? null;
-  const open = (params: Record<string, string>) => { Haptics.selectionAsync(); router.push({ pathname: `${base}/avatar` as "/journal/avatar", params }); };
+  const go = (params: Record<string, string>) => router.push({ pathname: `${base}/avatar` as "/journal/avatar", params });
+  /* Bearbeiten: direkt in den Dialog. Neu anlegen: erst das Foto (Kamera,
+     Mediathek oder ohne), dann der Dialog mit dem Foto darin (10.10.). */
+  const open = (params: Record<string, string>) => {
+    if (params.edit) { Haptics.selectionAsync(); go(params); return; }
+    askPhotoThenOpen(L?.photo, params.category === "any" ? undefined : params.category, () => go(params));
+  };
   const openMe = () => { Haptics.selectionAsync(); router.push({ pathname: "/profile/page", params: { page: "avatar" } }); };
 
   return (

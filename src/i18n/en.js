@@ -355,6 +355,8 @@ export default {
     castSuggestTitle: "Showed up in your dreams",
     castSuggestHint: "No face yet — add one and they'll look like themselves.",
     castSuggestAdd: "Add",
+    /* Neue Figur: erst das Foto, dann der Dialog mit dem Foto darin (Antons Wunsch 10.10.: „weniger Schritte"). */
+    castPhoto: { take: "Take a photo", library: "Choose from library", none: "Without a photo", cancel: "Cancel" },
     castSuggestIn: (n) => `in ${n} ${n === 1 ? "dream" : "dreams"}`,
     castEmptyCard: { person: "Someone from last night?", pet: "A pet of yours?", place: "A place you dream of", object: "A thing that keeps coming back" },
     libraryCount: (n) =>

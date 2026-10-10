@@ -12,6 +12,7 @@ import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
+import { askPhotoThenOpen } from "@/lib/cast-photo";
 
 type CastData = { people: Entity[]; places: Entity[]; objects: Entity[]; library: LibItem[]; labels: Record<string, any> };
 
@@ -97,10 +98,11 @@ export default function DreamCastScreen() {
     Object.entries(v).reduce((acc, [k, x]) => acc.replace(`{${k}}`, String(x)), tpl || "");
 
   function newWithPhoto(row: Entity) {
-    Haptics.selectionAsync();
     setOpen(null);
     const category = row.kind === "pet" ? "pet" : row.kind;
-    router.push({ pathname: "/dream/avatar", params: { category, tag: row.name } });
+    /* Erst das Foto, dann der Dialog mit dem Foto darin (10.10., lib/cast-photo.ts).
+       Kurz warten: Das Blatt schließt sich noch — währenddessen zeigt iOS kein neues. */
+    setTimeout(() => askPhotoThenOpen(L.photo, category, () => router.push({ pathname: "/dream/avatar", params: { category, tag: row.name } })), 350);
   }
 
   /* Karte für Karte (Antons Wahl 26.09., Entwurf „C"): eine Figur je

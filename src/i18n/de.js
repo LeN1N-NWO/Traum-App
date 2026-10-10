@@ -321,6 +321,7 @@ export default {
     castSuggestTitle: "Kam in deinen Träumen vor",
     castSuggestHint: "Noch ohne Gesicht — gib ihnen eins, dann sehen sie aus wie sie selbst.",
     castSuggestAdd: "Hinzufügen",
+    castPhoto: { take: "Foto aufnehmen", library: "Aus der Mediathek", none: "Ohne Foto", cancel: "Abbrechen" },
     castSuggestIn: (n) => `in ${n} ${n === 1 ? "Traum" : "Träumen"}`,
     castEmptyCard: { person: "Jemand von letzter Nacht?", pet: "Ein Tier von dir?", place: "Ein Ort, von dem du träumst", object: "Ein Ding, das immer wiederkommt" },
     libraryCount: (n) =>

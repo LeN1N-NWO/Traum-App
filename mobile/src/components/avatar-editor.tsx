@@ -1,7 +1,5 @@
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import * as ImageManipulator from "expo-image-manipulator";
-import * as ImagePicker from "expo-image-picker";
 import { SymbolView, type SFSymbol } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
 import { ActionSheetIOS, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -10,6 +8,7 @@ import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import { OrbitGlow } from "@/components/orbit-glow";
 import { useJournal } from "@/components/journal-data";
 import { pushProfile } from "@/lib/auth";
+import { pickPhoto, takePendingPhoto } from "@/lib/cast-photo";
 import { useOfflineLabels } from "@/lib/offline-labels";
 import { showToast } from "@/store/toast-store";
 import { colors, fonts, TAB_INSET } from "@/theme";
@@ -36,19 +35,11 @@ type Labels = Record<string, any>;
 const KIND_ICON: Record<Kind, SFSymbol> = { person: "person.fill", pet: "pawprint.fill", place: "house.fill", object: "cube.fill" };
 const cleanTag = (raw: string) => String(raw || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
 
-async function pickPhoto(camera: boolean, square: boolean): Promise<string | null> {
-  const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ["images"], allowsEditing: square, aspect: square ? [1, 1] : undefined, quality: 0.9 };
-  const r = camera
-    ? await ImagePicker.launchCameraAsync({ ...opts, cameraType: ImagePicker.CameraType.back }).catch(() => null)
-    : await ImagePicker.launchImageLibraryAsync(opts).catch(() => null);
-  const asset = r && !r.canceled ? r.assets[0] : null;
-  if (!asset) return null;
-  const actions = asset.width > 1600 ? [{ resize: { width: 1600 } }] : [];
-  const small = await ImageManipulator.manipulateAsync(asset.uri, actions, { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG, base64: true });
-  return small.base64 ? `data:image/jpeg;base64,${small.base64}` : null;
-}
 
 export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { mode: Mode; id?: string; category?: string; tag?: string; onDone: (savedId?: string) => void }) {
+  /* Ein Foto, das schon VOR dem Dialog gewählt wurde (lib/cast-photo.ts,
+     Antons Wunsch 10.10.: „weniger Schritte") — einmal abgeholt, beim Öffnen. */
+  const [prePhoto] = useState(() => (mode === "new" ? takePendingPhoto() : null));
   const insets = useSafeAreaInsets();
   const { bridge, ask } = useJournal();
   const [L, setL] = useState<Labels | null>(null);
@@ -91,7 +82,7 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
       if (r.error || !r.result) { showToast("⚠ " + (r.error ?? "")); onDone(); return; }
       const e = r.result.entry;
       setL(r.result.labels); setPrice(r.result.price);
-      setTag(e.tag); setDesc(e.desc); setImg(e.img); setImg2(e.img2); setConsent(!!e.photoConsent);
+      setTag(e.tag); setDesc(e.desc); setImg(prePhoto ?? e.img); setImg2(e.img2); setConsent(!!e.photoConsent);
       setLoaded({ tag: e.tag, desc: e.desc, img: e.img, img2: e.img2, consent: !!e.photoConsent });
       if (e.category) setKind(e.category);
     });

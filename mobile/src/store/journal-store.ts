@@ -111,7 +111,7 @@ export type PaywallData = {
 };
 export type SymbolEntry = { id: string; label: string; meaning: string; count: number; countLine: string; occurrences: { entryId: string; date: string; title: string }[] };
 export type SymbolsData = { title: string; subtitle: string; empty: string; close: string; disclaimer: string; groups: { key: string; label: string; symbols: SymbolEntry[] }[] };
-export type LibraryData = { title: string; lede: string; why: string; total: number; newLabel: string; empty: string; never: string;
+export type LibraryData = { title: string; lede: string; why: string; total: number; newLabel: string; empty: string; never: string; photo?: { take: string; library: string; none: string; cancel: string };
   me?: { name: string; line: string }; starring?: string; suggestTitle?: string; suggestHint?: string; suggestAdd?: string;
   suggest?: { name: string; category: string; count: number; tag?: string; line: string }[];
   groups: { category: string; label: string; addLabel: string; emptyCard?: string; rows: { id: string; tag: string; img: string | null; initial: string; count: number; countWord: string }[] }[] };

@@ -628,6 +628,7 @@ function snapshot() {
     me: { name: s.me?.tag || t.profile.you, line: t.journal.castInAll(realDreamsOf(s.journal).length) },
     starring: t.journal.castStarring,
     suggestTitle: t.journal.castSuggestTitle, suggestHint: t.journal.castSuggestHint, suggestAdd: t.journal.castSuggestAdd,
+    photo: t.journal.castPhoto,
     suggest: castSuggestions(realDreamsOf(s.journal), s.cast, { limit: 3 }).map((x) => ({ ...x, line: t.journal.castSuggestIn(x.count) })),
     groups: [["person", t.profile.people], ["pet", t.profile.pets], ["place", t.profile.places], ["object", t.profile.objects]].map(([category, label]) => ({
       category, label, addLabel: t.avatarDialog.titleFor[category], emptyCard: t.journal.castEmptyCard?.[category] || t.avatarDialog.titleFor[category],
@@ -1297,7 +1298,7 @@ async function runAsync(cmd, onResult) {
                 objects: t.wizard.cast.objectsTitle, objectsLede: t.wizard.cast.objectsLede, objectsEmpty: t.wizard.cast.objectsEmpty,
                 textTitle: t.wizard.cast.textTitle, markHint: t.wizard.cast.markHint, addTitle: t.wizard.cast.addTitle, addName: t.wizard.cast.addName,
                 addAs: t.wizard.cast.addAs, add: t.wizard.cast.add, removeFromCast: t.wizard.cast.removeFromCast, whoIs: t.wizard.cast.whoIs("{name}"), close: t.wizard.cast.close,
-                kindFor: t.avatarDialog.kindFor,
+                kindFor: t.avatarDialog.kindFor, photo: t.journal.castPhoto,
                 stepOf: t.wizard.cast.stepOf, whoYou: t.wizard.cast.whoYou, nextName: t.wizard.cast.nextName, missing: t.wizard.cast.missing,
                 tilePhoto: t.wizard.cast.tilePhoto, tileAi: t.wizard.cast.tileAi, tileNew: t.wizard.cast.tileNew, fromLibrary: t.wizard.cast.fromLibrary, libraryEmpty: t.wizard.cast.libraryEmpty,
                 placesTitle: t.wizard.cast.placesTitle, placesHint: t.wizard.cast.placesHint, noPeople: t.wizard.cast.noPeople },
