@@ -135,6 +135,13 @@ function WeaveDefs({ ring = 1 }: { ring?: number }) {
       <LinearGradient id="mw-thread" x1="0" y1="0" x2="1" y2="1">
         <Stop offset="0" stopColor={P.thread[0]} /><Stop offset="0.5" stopColor={P.thread[1]} /><Stop offset="1" stopColor={P.thread[2]} stopOpacity={0.25} />
       </LinearGradient>
+      {/* Die Innenlinien: Deckkraft im Verlauf statt am Pfad — `opacity` legt in
+          react-native-svg je Pfad eine Zwischenebene an (60 je Fänger, 10.10.). */}
+      {THREADS.map((t, k) => (
+        <LinearGradient key={k} id={`mw-thread-${k}`} x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={P.thread[0]} stopOpacity={t.o} /><Stop offset="0.5" stopColor={P.thread[1]} stopOpacity={t.o} /><Stop offset="1" stopColor={P.thread[2]} stopOpacity={0.25 * t.o} />
+        </LinearGradient>
+      ))}
       <LinearGradient id="mw-hand" x1="0" y1="1" x2="0" y2="0">
         <Stop offset="0" stopColor={P.thread[0]} stopOpacity={0} /><Stop offset="0.7" stopColor={P.thread[0]} stopOpacity={0.55} /><Stop offset="1" stopColor="#ffffff" stopOpacity={0.95} />
       </LinearGradient>
@@ -147,7 +154,7 @@ function Leaf({ i }: { i: number }) {
   return (
     <G transform={`rotate(${i * 30} ${CX} ${CY})`}>
       <Path d={LEAF} fill="url(#mw-silk)" stroke="url(#mw-thread)" strokeWidth={0.85} />
-      {THREADS.map((t, k) => <Path key={k} d={t.d} fill="none" stroke="url(#mw-thread)" strokeWidth={0.5} opacity={t.o} />)}
+      {THREADS.map((t, k) => <Path key={k} d={t.d} fill="none" stroke={`url(#mw-thread-${k})`} strokeWidth={0.5} />)}
       <Path d={ARC} fill="none" stroke="url(#mw-thread)" strokeWidth={2} strokeLinecap="round" />
       <Circle cx={300} cy={71} r={2.1} fill="#e4e3fa" />
     </G>
@@ -471,7 +478,7 @@ function Hand({ t, B, S, N, W, H, ring }: { t: SharedValue<number>; B: SharedVal
       <Svg width={W} height={H} viewBox={`0 0 ${VB_W} ${VB_H}`}>
         <WeaveDefs ring={ring} />
         <Path d={`M${CX} ${CY} L${CX} ${CY - 213}`} stroke="url(#mw-hand)" strokeWidth={2.2} strokeLinecap="round" />
-        <Circle cx={CX} cy={CY - 213} r={4} fill="#ffffff" opacity={0.9} />
+        <Circle cx={CX} cy={CY - 213} r={4} fill="#ffffff" fillOpacity={0.9} />
       </Svg>
     </Animated.View>
   );

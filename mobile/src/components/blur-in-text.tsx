@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { PixelRatio, Text, View, type TextStyle } from "react-native";
-import Animated, { Easing, cancelAnimation, useAnimatedProps, useReducedMotion, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
+import Animated, { useAnimatedProps, useAnimatedReaction, useReducedMotion, useSharedValue, type SharedValue } from "react-native-reanimated";
 import Svg, { Defs, FeGaussianBlur, Filter, G, Text as SvgText, TSpan } from "react-native-svg";
+import { useAmbient } from "@/lib/ambient-clock";
 import { useScreenActive } from "@/lib/use-screen-active";
 
 /* Überschriften, die verträumt aus der Unschärfe auftauchen (Antons Wunsch
@@ -27,7 +28,15 @@ import { useScreenActive } from "@/lib/use-screen-active";
  * die SVG-Zeile genau dort, wo die normale Zeile liegt (Anfang und
  * Grundlinie aus onTextLayout), und bleibt stehen. Der normale Text liegt
  * unsichtbar darunter: Er hält den Platz und ist das, was VoiceOver liest.
- * Bei „Bewegung reduzieren" nur der normale Text. */
+ * Bei „Bewegung reduzieren" nur der normale Text.
+ *
+ * ⚠ Im gemeinsamen 30er-Takt (10.10., Antons Befund „kleiner Lag beim
+ * ersten Öffnen des Traum-Tabs"): Jede Änderung eines Buchstabens zeichnet
+ * die ganze Zeichenfläche neu, samt beider Unschärfe-Filter (Core Image,
+ * auf dem Hauptthread). Mit withTiming geschah das jedes Bild — auf
+ * ProMotion 120 Mal je Sekunde, zwei Sekunden lang. Jetzt läuft die Zeit
+ * im Takt der ruhigen Bewegungen (lib/ambient-clock.tsx), ein Viertel der
+ * Arbeit; ein weiches Einblenden sieht man darin nicht stufig. */
 const AnimatedTSpan = Animated.createAnimatedComponent(TSpan);
 const WIN = 900;                                  // so lange braucht ein Buchstabe vom Schleier zur Schrift (ms)
 let seq = 0;
@@ -41,6 +50,9 @@ export function BlurInText({ text, style, align = "left", numberOfLines = 1, acc
   const [line, setLine] = useState<{ x: number; base: number } | null>(null);   // wo die normale Zeile wirklich liegt
   const [id] = useState(() => `bi${++seq}`);
   const t = useSharedValue(0);                    // Zeit seit Beginn, in ms
+  const start = useSharedValue(-1);               // Takt-Stand beim Beginn (−1: der nächste Schlag)
+  const [playing, setPlaying] = useState(false);
+  const clock = useAmbient(playing);
   /* Leerzeichen als festes Leerzeichen: SVG schluckt sie sonst am Rand eines Stücks. */
   const chars = Array.from(text).map((c) => (c === " " ? " " : c));
   const n = Math.max(1, chars.length);
@@ -53,10 +65,18 @@ export function BlurInText({ text, style, align = "left", numberOfLines = 1, acc
      Wiederkommen nichts Fertiges auf. */
   useEffect(() => {
     if (!ready) return;
-    if (!active) { cancelAnimation(t); t.value = 0; return; }
+    if (!active) { setPlaying(false); t.value = 0; return; }
     t.value = 0;
-    t.value = withTiming(total, { duration: total, easing: Easing.linear });
-  }, [active, text, ready, total, t]);
+    start.value = -1;
+    setPlaying(true);
+    const done = setTimeout(() => { t.value = total; setPlaying(false); }, total + 120);
+    return () => clearTimeout(done);
+  }, [active, text, ready, total, t, start]);
+  useAnimatedReaction(() => clock.value, (now) => {
+    if (!playing) return;
+    if (start.value < 0) start.value = now;
+    t.value = Math.min(total, now - start.value);
+  }, [playing, total]);
 
   const size = (style.fontSize ?? 17) * PixelRatio.getFontScale();
   const PAD = Math.ceil(size * 0.75);             // Luft rundum: mehr als die Unschärfe weit reicht
