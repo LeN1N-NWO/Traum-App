@@ -19,7 +19,8 @@ export default function MontagePreview() {
   const [busy, setBusy] = useState(false);
   const [out, setOut] = useState<{ film: string; ms: number; seconds: number; clips: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const player = useVideoPlayer(out?.film ?? null, (p) => { p.loop = true; p.play(); });
+  // einmal abspielen, nicht endlos — sonst läuft der Ton weiter, wenn man die Seite vergisst (10.10.)
+  const player = useVideoPlayer(out?.film ?? null, (p) => { p.loop = false; p.play(); });
   if (!ENABLED) return <Redirect href="/profile" />;
 
   const items = (data?.items ?? []).filter((e) => e.films.length || e.images.length || e.poster).slice(0, 12);
