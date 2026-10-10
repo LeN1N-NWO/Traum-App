@@ -9,6 +9,9 @@ import { BlurInText } from "@/components/blur-in-text";
 import { MascotLoader } from "@/components/mascot-loader";
 import { PortalButton } from "@/components/portal-button";
 import { dropRecording, sweepRecordings } from "@/lib/recordings";
+import { noteSpeech } from "@/lib/speech-timing";
+import { showToast } from "@/store/toast-store";
+import { prepareOnDeviceSpeech, transcribeOnDevice } from "../../modules/dream-sketch";
 import { holdForRecording } from "@/lib/sound-engine";
 import { setRecording } from "@/store/recording-store";
 import { colors, fonts } from "@/theme";
@@ -34,6 +37,7 @@ import { fetchWithSession, useBridgeAccount } from "@/lib/auth";
  * Blob braucht ausdrücklich audio/mp4, die Dauer kommt aus dem Rekorder
  * selbst statt aus dem gepollten Zustand. */
 type Phase = "idle" | "rec" | "busy" | "error";
+const MEASURE = __DEV__ || process.env.EXPO_PUBLIC_DEV_PREVIEW === "1";
 type Labels = Record<string, any>;
 
 export function DreamRecorder({ W, language, autoStartKey, active, onText, onType, onPendingAudio }: {
@@ -77,6 +81,10 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     return () => { setRecording(false); holdForRecording(false); setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: "mixWithOthers" }).catch(() => {}); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* Apples Sprachpaket bereitlegen (10.10.): Fehlt es, lädt iOS es jetzt im
+     Hintergrund — beim nächsten Traum schreibt dann das iPhone selbst mit. */
+  useEffect(() => { prepareOnDeviceSpeech(""); }, []);
 
   // Öffnen heißt aufnehmen — aber nur, wenn gerade nichts anderes läuft.
   useEffect(() => {
@@ -151,12 +159,30 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
     } catch (e) { console.warn("[recorder] upload", e); }
   }
 
+  /* Aufschreiben — seit 10.10. zuerst AUF dem iPhone (Antons Versuch:
+     „ein SDK direkt von Apple, ohne über die API zu gehen — vielleicht
+     schneller"): Apples SpeechTranscriber (iOS 26) liest die Datei, ohne
+     Upload und ohne Server. Geht das nicht (älteres iOS, Sprachpaket noch
+     nicht da, zu wenig erkannt), schreibt wie bisher der Server mit
+     (Gemini). Beide Zeiten landen in lib/speech-timing.ts. */
   async function transcribe() {
     if (!uri.current) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     cancelled.current = false;
     setPhase("busy");
+    const t0 = Date.now();
     try {
+      /* "" = die Sprache des iPhones: Apples Modell versteht nur EINE Sprache,
+         und gesprochen wird in der des Geräts — nicht unbedingt in der der App
+         (gemessen 10.10.: App auf Englisch, Traum auf Deutsch). Gemini auf
+         dem Server verzeiht das, Apple nicht. */
+      const local = await transcribeOnDevice(uri.current, "").catch((e) => { noteSpeech({ via: "device", ms: Date.now() - t0, chars: 0, error: String(e?.message ?? e) }); return null; });
+      if (cancelled.current) return;
+      const localText = local?.text.trim() ?? "";
+      if (local) noteSpeech({ via: "device", ms: Date.now() - t0, chars: localText.length });
+      if (localText.length >= 8) { finish(localText, `Apple · ${((Date.now() - t0) / 1000).toFixed(1)} s`); return; }
+
+      const t1 = Date.now();
       const b64 = await new File(uri.current).base64();
       const res = await fetchWithSession(W!.transcribeUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ audio: `data:audio/mp4;base64,${b64}`, language }) });
       const out = await res.json().catch(() => null);
@@ -166,17 +192,24 @@ export function DreamRecorder({ W, language, autoStartKey, active, onText, onTyp
         setError(W?.recordSignIn ?? "Sign in to write it down."); setPhase("error"); return;
       }
       const text = String(out?.text || "").trim();
+      noteSpeech({ via: "server", ms: Date.now() - t1, chars: text.length });
       if (!res.ok || text.length < 8) { setError(text.length < 8 && res.ok ? (W?.recordTooShort ?? "Too short.") : (out?.error || W?.recordFailed || "Failed")); setPhase("error"); return; }
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const done = uri.current;
-      reset();
-      onText(text, null);
-      // erst jetzt hochladen — die Datei gehört ab hier zum Text
-      if (done) upload(done);
+      finish(text, `Server · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     } catch (e) {
       console.warn("[recorder] transcribe", e);
       setError(W?.recordFailed ?? "Failed"); setPhase("error");
     }
+  }
+
+  function finish(text: string, via: string) {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // Nur in Test-Bauten: wer hat mitgeschrieben, wie schnell (Antons Versuch 10.10.)
+    if (MEASURE) showToast(`✎ ${via}`);
+    const done = uri.current;
+    reset();
+    onText(text, null);
+    // erst jetzt hochladen — die Datei gehört ab hier zum Text
+    if (done) upload(done);
   }
 
   // Angemeldet, während die Aufnahme wartet: nachsichern (der Gast-Upload

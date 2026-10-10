@@ -1,5 +1,7 @@
+import AVFoundation
 import CoreML
 import ExpoModulesCore
+import Speech
 import UIKit
 
 /// Die Traum-Skizze (Antons Ansage 24.09.2026): eine Stufe ohne Credits,
@@ -294,6 +296,32 @@ public class DreamSketchModule: Module {
         try? SketchModel.remove()
       }
     }
+
+    /// Sprache → Text AUF dem iPhone (Antons Versuch 10.10.: „ein SDK
+    /// direkt von Apple, ohne über die API zu gehen — vielleicht schneller").
+    /// iOS 26: SpeechAnalyzer + SpeechTranscriber, dasselbe Modell wie
+    /// Diktat, Notizen und Sprachmemos. Kein Upload, kein Server.
+    ///
+    /// Bewusst in DIESER Datei statt einer eigenen: eine neue Swift-Datei
+    /// im Modul bräuchte `pod install` (Hannis Mac).
+    ///
+    /// `speechPrepare(lang)`: Ist das Sprachpaket da? Fehlt es, lädt iOS es
+    /// im Hintergrund — bis dahin schreibt der Server mit.
+    /// → "installed" | "downloading" | "unsupported"
+    AsyncFunction("speechPrepare") { (lang: String) async -> String in
+      guard #available(iOS 26.0, *) else { return "unsupported" }
+      return await OnDeviceSpeech.prepare(lang)
+    }
+
+    /// Eine fertige Aufnahme (file://…m4a) aufschreiben. Wirft, wenn es auf
+    /// diesem Gerät nicht geht — die App fällt dann auf den Server zurück.
+    AsyncFunction("transcribeFile") { (uri: String, lang: String) async throws -> [String: Any] in
+      guard #available(iOS 26.0, *) else { throw OnDeviceSpeechError("unsupported") }
+      guard let url = URL(string: uri), url.isFileURL else { throw OnDeviceSpeechError("badUri") }
+      let t0 = Date()
+      let text = try await OnDeviceSpeech.transcribe(url: url, lang: lang)
+      return ["text": text, "ms": Int(Date().timeIntervalSince(t0) * 1000)]
+    }
   }
 
   private func loadedPipeline() throws -> StableDiffusionPipeline {
@@ -322,5 +350,66 @@ public class DreamSketchModule: Module {
     let dir = docs.appendingPathComponent("sketches", isDirectory: true)
     try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     return dir
+  }
+}
+
+struct OnDeviceSpeechError: LocalizedError {
+  let code: String
+  init(_ code: String) { self.code = code }
+  var errorDescription: String? { code }
+}
+
+/// Apples Spracherkennung auf dem Gerät (iOS 26) — siehe `transcribeFile`.
+@available(iOS 26.0, *)
+enum OnDeviceSpeech {
+  /// Der Transkribierer für eine Sprache ("de", "en", leer = die erste
+  /// Sprache des iPhones — in der spricht man; die App-Sprache kann davon
+  /// abweichen, und Apples Modell versteht nur die eine Sprache), oder nil.
+  static func transcriber(_ lang: String) async -> SpeechTranscriber? {
+    guard SpeechTranscriber.isAvailable else { return nil }
+    let wanted = lang.isEmpty ? Locale(identifier: Locale.preferredLanguages.first ?? Locale.current.identifier) : Locale(identifier: lang)
+    guard let locale = await SpeechTranscriber.supportedLocale(equivalentTo: wanted) else { return nil }
+    return SpeechTranscriber(locale: locale, preset: .transcription)
+  }
+
+  static func prepare(_ lang: String) async -> String {
+    guard let t = await transcriber(lang) else { return "unsupported" }
+    switch await AssetInventory.status(forModules: [t]) {
+    case .installed: return "installed"
+    case .unsupported: return "unsupported"
+    default:
+      // Laden im Hintergrund; niemand wartet darauf.
+      if let request = try? await AssetInventory.assetInstallationRequest(supporting: [t]) {
+        Task.detached { try? await request.downloadAndInstall() }
+      }
+      return "downloading"
+    }
+  }
+
+  static func transcribe(url: URL, lang: String) async throws -> String {
+    guard let t = await transcriber(lang) else { throw OnDeviceSpeechError("unsupported") }
+    guard await AssetInventory.status(forModules: [t]) == .installed else {
+      _ = await prepare(lang)
+      throw OnDeviceSpeechError("notInstalled")
+    }
+    let file = try AVAudioFile(forReading: url)
+    // Die Ergebnisse einsammeln, BEVOR die Analyse läuft (so Apples Beispiel).
+    async let collected: [String] = try t.results.reduce(into: [String]()) { acc, r in
+      acc.append(String(r.text.characters))
+    }
+    let analyzer = SpeechAnalyzer(modules: [t])
+    if let last = try await analyzer.analyzeSequence(from: file) {
+      try await analyzer.finalizeAndFinish(through: last)
+    } else {
+      await analyzer.cancelAndFinishNow()
+    }
+    // Abschnitte zusammenfügen, ohne doppelte oder fehlende Leerzeichen.
+    var out = ""
+    for part in try await collected {
+      let piece = part.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !piece.isEmpty else { continue }
+      out += out.isEmpty ? piece : " " + piece
+    }
+    return out
   }
 }

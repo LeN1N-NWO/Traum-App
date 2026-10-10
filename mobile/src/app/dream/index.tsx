@@ -7,6 +7,7 @@ import { DreamRecorder } from "@/components/dream-recorder";
 import { GlassButton, PrimaryButton } from "@/components/glass";
 import { MascotLoader } from "@/components/mascot-loader";
 import { NightSky } from "@/components/night-sky";
+import { noteRead } from "@/lib/speech-timing";
 import { useJournal } from "@/components/journal-data";
 import { WizardHeader } from "@/components/wizard-header";
 import { patchWizard, useWizardStore } from "@/store/wizard-store";
@@ -100,7 +101,9 @@ export default function DreamTextScreen() {
     input.current?.blur();
     Keyboard.dismiss();
     setBusy(true); setError(null);
+    const t0 = Date.now();
     const r = await ask({ type: "analyze", text: t });
+    noteRead({ ms: Date.now() - t0, ok: !r.error });   // Messseite profile/stt-preview (10.10.)
     setBusy(false);
     if (r.error) { setError(r.error === "nocredits" ? (W?.noCredits ?? "No credits") : r.error); return; }
     setMineOpen(false);
