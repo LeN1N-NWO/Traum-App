@@ -15,12 +15,12 @@ export type Labels = Record<string, string>;
 export type MoonInfo = { phase: string; illum: number; waxing: boolean; label: string; lit: string };
 export type MoonStripDay = { key: string; day: number; weekday: number; today: boolean; phase: string; illum: number; waxing: boolean; label: string; sleep: number | null };
 export type MoonData = { title: string; tonight: string; weekdays: string[]; strip: MoonStripDay[] };
-export type GiftKind = "glimpse" | "film" | "credits" | "month" | "ring";
+export type GiftKind = "glimpse" | "film" | "credits" | "month" | "ring" | "ringFilm" | "ringFilms" | "bloom" | "bloomGlimpses";
 /** Die Steinart eines Traums im Traumfänger = Gruppe seines Traumsymbols (src/lib/symbols.js). */
 export type StoneKind = "place" | "scenario" | "creature" | "person" | "emotion" | "none";
 /* Ein Geschenk als kurze Karte (gift-sheet.tsx): Titel, ein Satz, Fortschritt. */
 export type GiftCard = { kind: GiftKind | "monthFilm"; title: string; sub: string; eyebrow: string; progress: number; progressText: string; foot: string; close: string; num?: number; ringFilled?: number };
-export type GiftReveal = { nights: number; kind: GiftKind; credits: number; title: string; label: string; sub: string; expires: string | null; tapToOpen: string; redeem: string; later: string; target: "dream" | "journal"; dreamId: string | null };
+export type GiftReveal = { nights: number; kind: GiftKind; credits: number; glimpses?: number; title: string; label: string; sub: string; expires: string | null; tapToOpen: string; redeem: string; later: string; target: "dream" | "journal"; dreamId: string | null };
 
 /* Freunde einladen (03.10.) — Texte aus en.js/de.js, Platzhalter {…}. */
 export type InviteTexts = {
@@ -162,12 +162,12 @@ export type BridgeCommand = { n: number; type: "blankNight" | "checkin" | "refre
 export type SketchPrepRequest = { beats: string[]; strips?: number; analysis: any; styleId: string; assignmentOverrides: Record<string, { avatarId?: string; free?: boolean }> };
 /* Seit 25.09. abends: Cloud-Raster — der fertige Prompt, die Fotos in Klausel-Reihenfolge, was es kostet. */
 export type SketchOption = { strips: number; scenes: number; hold: number; fade: number; seconds: number; cost: number };
-export type SketchPrep = { prompt: string; prompts: string[]; strips: number; particles: string; refs: { name: string; kind: string; img: string }[]; freeLeft: number; cost: number; credits: number; options: SketchOption[] };
+export type SketchPrep = { prompt: string; prompts: string[]; strips: number; particles: string; refs: { name: string; kind: string; img: string }[]; freeLeft: number; giftLeft?: number; cost: number; credits: number; options: SketchOption[] };
 export type SketchRequest = { entryId: string | null; text: string; originalText: string; analysis: any; styleId: string; film: string; stills: string[]; seconds: number };
 export type SketchTexts = {
   title: string; lede: string; needsModel: string; modelInfo: string; download: string; downloading: string; cancel: string;
   creating: string; rendering: string; saving: string; stayHint: string; failed: string; retry: string;
-  unsupported: string; create: string; createCredit: string; freeLeft: string; noneLeft: string; takeLabel: string;
+  unsupported: string; create: string; createCredit: string; freeLeft: string; noneLeft: string; giftLeft?: string; takeLabel: string;
   photoTitle: string; photoHint: string; preparing: string; priceFree: string; creditWord: string;
   working: string[]; filming: string[];
   queuedTitle?: string; queuedBody?: string; toJournal?: string; readyTitle?: string; readyBody?: string;

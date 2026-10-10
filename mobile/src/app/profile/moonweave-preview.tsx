@@ -24,7 +24,8 @@ export default function MoonweavePreview() {
   const [ring, setRing] = useState(Number(q.ring ?? 1) || 1);
   const [seen, setSeen] = useState<number | null>(q.grow === "1" ? Math.max(0, (Number(q.ring ?? 1) - 1) * 12 + n - 1) : null);
   const start = (ring - 1) * 12, count = start + n;
-  const unseen = gift ? [3, 6, 9].map((g) => start + g).filter((g) => g <= count).pop() ?? null : null;
+  // ab Ring 2 trägt auch der volle Ring ein Geschenk (24, 36, 48 — 10.10.)
+  const unseen = gift ? [3, 6, 9, ...(ring >= 2 ? [12] : [])].map((g) => start + g).filter((g) => g <= count).pop() ?? null : null;
   const C = usePreviewCycle(n, { ring, unseen, gifted: count, film, seen: seen ?? count });
   const [reveal, setReveal] = useState(false);
   const [card, setCard] = useState(false);

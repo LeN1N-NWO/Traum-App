@@ -85,7 +85,7 @@ type WeaveText = {
   firstGift: string; nextGift: string; film: string; distance: (left: number) => string; full: string;
   filmMaking: string; filmReady: string; watch: string; milestone: (n: number) => string;
   states: Record<"locked" | "ready" | "collected" | "film", string>;
-  sealGift: (k: number) => string; sealFilm: string; open: (k: number) => string; pending: string;
+  sealGift: (k: number) => string; sealFilm: string; sealRing?: string; open: (k: number) => string; openRing?: string; pending: string;
   node: (n: number, state: string, kind: string) => string;
   nodeStates: Record<"collected" | "next" | "empty", string>; nodeKinds: Record<"gift" | "film", string>;
   hint: string; hintEmpty: string; hintFull: string; tapNext: (leaf: number) => string; tapEmpty: (leaf: number, num: number) => string;
@@ -273,6 +273,10 @@ export function Moonweave({ C, width, action, ...h }: { C: HomeData["cycle"]; wi
   /* Die Mitte: ein ungeöffnetes Geschenk, sonst — voller Ring — der Film. */
   const pending = C.unseen != null && revealed(C.unseen) ? C.unseen : null;
   const giftNo = pending ? (((pending - 1) % 12) + 1) / 3 : 0;
+  /* Ein Geschenk auf dem vollen Ring (24, 36, 48 — 10.10.) ist kein „Geschenk 4". */
+  const ringPending = !!pending && pending % 12 === 0;
+  const sealLabel = ringPending ? (T.sealRing ?? T.sealFilm) : T.sealGift(giftNo);
+  const openLabel = ringPending ? (T.openRing ?? T.open(giftNo)) : T.open(giftNo);
   const seal = pending ? "gift" : full ? "film" : null;
   const sealFresh = from != null && (pending ? pending > from : full);
   const ringGift = C.slots[11]?.gift ?? null;
@@ -344,9 +348,9 @@ export function Moonweave({ C, width, action, ...h }: { C: HomeData["cycle"]; wi
             onLongPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setReplay(true); }}
             accessibilityRole="button" accessibilityLabel={ringGift?.title ?? T.film} />
         ) : (
-          <Seal key={`${seal}-${pending ?? 0}`} W={W} H={H} label={seal === "gift" ? T.sealGift(giftNo) : T.sealFilm} kind={seal === "gift" ? "spark" : "play"}
+          <Seal key={`${seal}-${pending ?? 0}`} W={W} H={H} label={seal === "gift" ? sealLabel : T.sealFilm} kind={seal === "gift" ? "spark" : "play"}
             enter={sealFresh && !reduce} delay={from != null ? 700 : 0}
-            a11y={seal === "gift" ? T.open(giftNo) : T.watch}
+            a11y={seal === "gift" ? openLabel : T.watch}
             onPress={() => { Haptics.selectionAsync(); if (seal === "gift") h.onOpenGift(); else h.onFilm(C.film?.id ?? null); }}
             onLongPress={() => setReplay(true)} />
         )}
@@ -389,7 +393,7 @@ export function Moonweave({ C, width, action, ...h }: { C: HomeData["cycle"]; wi
       {/* der Platz für den Aufnahme-Knopf der Startseite — vor dem Geschenk-Feld */}
       {action}
 
-      <RewardPanel C={C} T={T} filled={filled} start={start} pending={pending} giftNo={giftNo}
+      <RewardPanel C={C} T={T} filled={filled} start={start} pending={pending} openLabel={openLabel}
         celebrate={from != null && !reduce && GIFTS.some((g) => start + g > from && start + g <= count)}
         onOpenGift={h.onOpenGift} onFilm={() => h.onFilm(C.film?.id ?? null)} />
     </View>
@@ -551,8 +555,8 @@ function Ripple() {
 
 /* Das nächste Ziel, gleich unter dem Ring: Titel, Bruch, Abstand, zwölf
    Striche, die vier Meilensteine — und, wenn eines wartet, „Geschenk öffnen". */
-function RewardPanel({ C, T, filled, start, pending, giftNo, celebrate, onOpenGift, onFilm }: {
-  C: HomeData["cycle"]; T: WeaveText; filled: number; start: number; pending: number | null; giftNo: number; celebrate: boolean; onOpenGift: () => void; onFilm: () => void;
+function RewardPanel({ C, T, filled, start, pending, openLabel, celebrate, onOpenGift, onFilm }: {
+  C: HomeData["cycle"]; T: WeaveText; filled: number; start: number; pending: number | null; openLabel: string; celebrate: boolean; onOpenGift: () => void; onFilm: () => void;
 }) {
   const full = filled === 12;
   const target = GIFTS.find((g) => g > filled) ?? 12;
@@ -593,8 +597,8 @@ function RewardPanel({ C, T, filled, start, pending, giftNo, celebrate, onOpenGi
         : full ? <Text style={styles.event}>{C.film?.id ? T.filmReady : T.filmMaking}</Text>
         : what ? <Text style={styles.event}>{what}</Text> : null}
       {pending ? (
-        <Pressable onPress={() => { Haptics.selectionAsync(); onOpenGift(); }} style={styles.claim} accessibilityRole="button" accessibilityLabel={T.open(giftNo)}>
-          <Text style={styles.claimText}>{T.open(giftNo)}</Text>
+        <Pressable onPress={() => { Haptics.selectionAsync(); onOpenGift(); }} style={styles.claim} accessibilityRole="button" accessibilityLabel={openLabel}>
+          <Text style={styles.claimText}>{openLabel}</Text>
           <Mark kind="spark" size={14} width={1.2} color="#ebd5ae" />
         </Pressable>
       ) : full && C.film?.id ? (

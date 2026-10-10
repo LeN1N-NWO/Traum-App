@@ -61,16 +61,38 @@ export function sketchFreeLeft(state, date = new Date()) {
   return Math.max(0, SKETCH_FREE - used);
 }
 
+/* ── Geschenkte Glimpses — eine eigene Kategorie (10.10.2026) ────────────
+ *
+ * Antons Frage: „Ob Glimpses anders getrackt werden als Punkte … das
+ * braucht pro User noch eine andere Kategorie, speziell Glimpses." Ja:
+ * `glimpseGifts` zählt geschenkte Glimpses, getrennt vom Guthaben.
+ *   · Ein geschenkter Glimpse ist genau ein Glimpse (erstes Bild + Ton),
+ *     keine Credits — er lässt sich nicht zu einem Film zusammensparen.
+ *     Uns kostet er ≈ $0,04, egal wie viele jemand hat.
+ *   · Er verfällt nicht (anders als der Credit-Geschenktopf, credits.js).
+ *   · Reihenfolge: erst die Gratis-Glimpses des Monats (die verfallen am
+ *     Monatsende), dann die geschenkten, dann Credits.
+ * Woher sie kommen: die Viertel des Traum-Rings (3, 6, 9 …) und bei 48
+ * Träumen zehn auf einmal für alle, die nie gekauft haben (streakBoard.js). */
+
+/** Wie viele geschenkte Glimpses noch da sind. */
+export function sketchGiftLeft(state) {
+  return Math.max(0, Math.floor(Number(state?.glimpseGifts) || 0));
+}
+
 /** Was der nächste Glimpse mit `strips` Bildern kostet. */
 export function sketchCost(state, strips = 1, date = new Date()) {
   const extra = (clampStrips(strips) - 1) * SKETCH_EXTRA;
-  return (sketchFreeLeft(state, date) > 0 ? 0 : SKETCH_BASE) + extra;
+  const covered = sketchFreeLeft(state, date) > 0 || sketchGiftLeft(state) > 0;
+  return (covered ? 0 : SKETCH_BASE) + extra;
 }
 
-/** Der Zähler nach einem GELUNGENEN Glimpse (misslungene zählen nicht). */
+/** Der Zähler nach einem GELUNGENEN Glimpse (misslungene zählen nicht).
+ *  Ist der Monat schon aufgebraucht, geht ein geschenkter Glimpse weg. */
 export function countSketch(state, date = new Date()) {
   const month = monthKey(date);
   const q = state?.sketchQuota;
   const used = q && q.month === month ? Math.max(0, Number(q.used) || 0) : 0;
-  return { sketchQuota: { month, used: used + 1 } };
+  const fromGift = sketchFreeLeft(state, date) === 0 && sketchGiftLeft(state) > 0;
+  return { sketchQuota: { month, used: used + 1 }, ...(fromGift ? { glimpseGifts: sketchGiftLeft(state) - 1 } : {}) };
 }

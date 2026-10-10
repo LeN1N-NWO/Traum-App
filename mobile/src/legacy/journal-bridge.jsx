@@ -21,7 +21,7 @@ import { checkinOn, setCheckin, SLEEP_LEVELS } from "../../../src/lib/checkin.js
 import { totalCredits, spend, applyAllowanceGrant, giftLeft } from "../../../src/lib/credits.js";
 import { analyze, reflect, refine, characterSheet, generate, photoCheck, sketchGrid, sketchSound } from "../../../src/lib/api.js";
 import { pickParticles, buildSketchGridPrompt } from "../../../src/lib/sketchPrompt.js";
-import { sketchFreeLeft, sketchCost, countSketch, sketchTiming, clampStrips, SKETCH_STRIPS, SCENES_PER_STRIP } from "../../../src/lib/sketchQuota.js";
+import { sketchFreeLeft, sketchGiftLeft, sketchCost, countSketch, sketchTiming, clampStrips, SKETCH_STRIPS, SCENES_PER_STRIP } from "../../../src/lib/sketchQuota.js";
 import { quoteFor } from "../../../src/lib/quote.js";
 import { buildReferences, buildImagePrompt } from "../../../src/lib/promptBuilder.js";
 import { renderRef, needsSheet, sheetFingerprint } from "../../../src/lib/sheets.js";
@@ -49,7 +49,7 @@ import { MASCOTS, DEFAULT_MASCOT } from "../../../src/lib/mascots.js";
 import { zodiacOf } from "../../../src/lib/zodiac.js";
 import { SYMBOLS, SYMBOL_CATEGORIES, detectSymbols, symbolOccurrences } from "../../../src/lib/symbols.js";
 import { castByCategory, castSuggestions, initialOf } from "../../../src/lib/castStats.js";
-import { giftFor, giftLabel } from "../../../src/lib/streakBoard.js";
+import { bigGiftAt, giftFor, giftLabel, isGlimpseGift, isPaid } from "../../../src/lib/streakBoard.js";
 import { REFERRAL_FILMS, REFERRAL_HOLD_DAYS, REFERRAL_MONTHLY_CAP } from "../../../src/lib/invites.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
 import { genId } from "../../../src/lib/storage.js";
@@ -191,14 +191,17 @@ function snapshot() {
     if (!u || !u.kind) return null;
     const G = t.streakBoard.giftSheet;
     const latest = [...(s.journal || [])].filter(isFilmNight).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-    const until = s.giftCredits?.until && giftLeft(s) > 0
+    /* Nur Credit-Geschenke laufen ab (Geschenktopf, credits.js) — ein
+       geschenkter Glimpse bleibt, bis er genutzt wird (sketchQuota.js, 10.10.). */
+    const glimpses = isGlimpseGift(u.kind);
+    const until = !glimpses && s.giftCredits?.until && giftLeft(s) > 0
       ? new Date(s.giftCredits.until).toLocaleDateString(s.language === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long" }) : null;
     return {
-      nights: u.nights, kind: u.kind, credits: u.credits,
+      nights: u.nights, kind: u.kind, credits: u.credits || 0, glimpses: u.glimpses || 0,
       title: G.openTitle(u.nights), label: giftLabel(t, u), sub: G.subs[u.kind] || "",
-      expires: until ? G.expires(until) : null,
+      expires: until ? G.expires(until) : glimpses ? G.keeps : null,
       tapToOpen: G.tapToOpen, redeem: G.redeem[u.kind] || G.redeem.credits, later: G.later,
-      target: u.kind === "glimpse" || !latest ? "dream" : "journal", dreamId: latest ? latest.id : null,
+      target: glimpses || !latest ? "dream" : "journal", dreamId: latest ? latest.id : null,
     };
   })();
   const home = {
@@ -242,23 +245,29 @@ function snapshot() {
       const ring = dreamRing(filmDreams, { holdFull: true });
       const label = (id) => (id ? t.symbols.byId[id]?.label || id : null);
       const symbolGroup = new Map(SYMBOLS.map((x) => [x.id, x.category]));
+      /* Die vollen Ringe 24, 36, 48 tragen dazu ihr großes Geschenk — für
+         diesen Menschen: nach einem Kauf Filme und die volle Blüte, sonst
+         bei 48 zehn Glimpses (streakBoard.js bigGiftAt, 10.10.). */
+      const paid = isPaid(s);
       const ringCard = (num) => {
         const g = giftAtNum(num);
         if (!g) return null;
+        const big = g.kind === "ring" ? bigGiftAt(num, paid) : null;
         const from = num - QUARTER;
         return {
-          kind: g.kind, title: giftLabel(t, g), sub: G.subs[g.kind] || "",
+          kind: g.kind, title: big ? t.streakBoard.ringPlus(giftLabel(t, g), giftLabel(t, big)) : giftLabel(t, g), sub: G.subs[g.kind] || "",
           eyebrow: num <= count ? "✓" : G.left(num - count),
           progress: Math.max(0, Math.min(1, (count - from) / QUARTER)),
           progressText: G.progress(Math.min(count, num), num),
-          foot: g.kind === "glimpse" ? `${G.rule} ${G.valid}` : G.rule, close: G.close,
+          foot: g.kind === "glimpse" ? `${G.rule} ${G.keeps}` : G.rule, close: G.close,
           // welcher Stein die Karte trägt (04.10.): 3/6/9 der Geschenkstein, 12 der Herzstein mit seinen Keilen
           num, ringFilled: Math.max(0, Math.min(RING_SIZE, count - ring.start)),
         };
       };
       const nextNum = nextGiftNum(count);
       const nextG = giftAtNum(nextNum);
-      const nextGift = nextG ? { ...ringCard(nextNum), num: nextNum, say: C.milestoneSay(nextNum - count, giftLabel(t, nextG)) } : null;
+      const nextCard = nextG ? ringCard(nextNum) : null;
+      const nextGift = nextCard ? { ...nextCard, num: nextNum, say: C.milestoneSay(nextNum - count, nextCard.title) } : null;
       return {
         ringNo: ring.ringNo, next: ring.next, count, todayDone, streak: count,
         slots: ring.slots.map((sl) => {
@@ -326,9 +335,10 @@ function snapshot() {
         lede: t.streakBoard.next(nextNum - count),
         rungs: [QUARTER, 2 * QUARTER, 3 * QUARTER, RING_SIZE].map((k) => {
           const num = start + k, g = giftAtNum(num);
+          const big = g.kind === "ring" ? bigGiftAt(num, isPaid(s)) : null;   // 24, 36, 48 (10.10.)
           return {
             nights: num, title: t.streakBoard.rung(num), reward: t.streakBoard.giftSheet.subs[g.kind] || "",
-            gift: giftLabel(t, g),
+            gift: big ? t.streakBoard.ringPlus(giftLabel(t, g), giftLabel(t, big)) : giftLabel(t, g),
             state: count >= num ? "done" : num === nextNum ? "next" : "far",
           };
         }),
@@ -506,7 +516,9 @@ function snapshot() {
        Preis steht oben an der Karte). */
     sketch: t.wizard.sketch ? {
       ...t.wizard.sketch, card: w5.filmModels?.sketch || null,
-      price: sketchCost(s) > 0 ? `${sketchCost(s)} ${t.wizard.sketch.creditWord}` : t.wizard.sketch.priceFree.replace("{n}", String(sketchFreeLeft(s))),
+      price: sketchCost(s) > 0 ? `${sketchCost(s)} ${t.wizard.sketch.creditWord}`
+        : sketchFreeLeft(s) > 0 ? t.wizard.sketch.priceFree.replace("{n}", String(sketchFreeLeft(s)))
+        : (t.wizard.sketch.priceGift || t.wizard.sketch.priceFree).replace("{n}", String(sketchGiftLeft(s))),
     } : null,
   };
   const realDreams = items.filter((e) => !String(e.id).startsWith("e_seed")).length;
@@ -921,7 +933,7 @@ async function runSketchPrep(cmd, onResult) {
   onResult({ n: cmd.n, result: {
     prompt: prompts[0], prompts, strips, refs: refs.slice(0, references.length),
     particles: pickParticles(beats.join(" ")),
-    freeLeft: sketchFreeLeft(s0), cost: sketchCost(s0, strips), credits: shownCredits(s0),
+    freeLeft: sketchFreeLeft(s0), giftLeft: sketchGiftLeft(s0), cost: sketchCost(s0, strips), credits: shownCredits(s0),
     // Was jede Wahl kostet und wie lang sie wird — für die Auswahl vorher.
     options: SKETCH_STRIPS.map((n) => ({ ...sketchTiming(n), cost: sketchCost(s0, n) })),
   } });
@@ -1393,6 +1405,9 @@ function run(cmd) {
     const sub = SUBSCRIPTIONS.find((p) => p.id === cmd.value);
     if (pack) patch = { credits: (s.credits ?? 0) + pack.credits };
     else if (sub) patch = applyAllowanceGrant(s, allowanceGrant(sub, 0));
+    /* Der erste Kauf schaltet die großen Ring-Geschenke frei (streakBoard.js
+       isPaid, Antons Entscheidung 10.10.) — gemerkt wird nur, wann. */
+    if (patch && !s.paidAt) patch.paidAt = new Date().toISOString();
   }
   else if (cmd.type === "withdraw") patch = withdrawPatch();
   else if (cmd.type === "reminders") patch = { reminders: { ...(s.reminders || {}), ...reminderWish(!!cmd.wants, cmd.perDay || DEFAULT_PER_DAY) } };
