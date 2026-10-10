@@ -182,6 +182,12 @@ function DreamBody({ item, labels, locale, onMore, onReflect, reflecting }: { it
           <Text style={styles.eyebrow}>{date.toUpperCase()}{item.moon ? `  ·  ${item.moon.label.toUpperCase()}` : ""}</Text>
           <Text style={styles.title}>{item.title || labels.untitled || "Untitled dream"}</Text>
           {item.tagline ? <Text style={styles.tagline}>{item.tagline}</Text> : null}
+          {/* Was es ist und in welchem Stil — zum gezeigten Take (10.10.) */}
+          {item.styleLabel || item.films[take] ? (
+            <Text style={styles.madeWith}>
+              {[item.films[take] ? (item.films[take].glimpse ? labels.madeGlimpse ?? "Glimpse" : labels.madeFilm ?? "Film") : null, item.styleLabel].filter(Boolean).join("  ·  ").toUpperCase()}
+            </Text>
+          ) : null}
         </View>
       </View>
 
@@ -358,6 +364,7 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.faint, fontSize: 11, letterSpacing: 2.2, fontWeight: "600" },
   title: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 39, color: colors.text, letterSpacing: -0.3 },
   tagline: { fontFamily: fonts.serif, fontStyle: "italic", fontSize: 16, color: colors.muted },
+  madeWith: { color: colors.gold, fontSize: 11, letterSpacing: 1.6, fontWeight: "600", marginTop: 6, opacity: 0.85 },
   takes: { paddingHorizontal: 20, paddingTop: 14, gap: 8 },
   take: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.panelLine },
   takeOn: { backgroundColor: "rgba(79,156,249,0.16)", borderColor: colors.accentSoft },

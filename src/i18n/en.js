@@ -447,6 +447,8 @@ export default {
     makeFilmAgain: "Another take",
     takesLabel: "Takes of this dream",
     takeUnknown: "Take",
+    /* Unter dem Titel: was es ist und in welchem Stil (10.10.) — „Film · Claymation". */
+    madeFilm: "Film",
     makeFilmLede: "Now bring it to life.",
     filmPending: "Making your video — hang tight",
     imagesPending: "Making your images — hang tight",

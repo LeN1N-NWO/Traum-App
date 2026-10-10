@@ -398,6 +398,7 @@ export default {
     makeFilmAgain: "Nochmal, anders",
     takesLabel: "Fassungen dieses Traums",
     takeUnknown: "Fassung",
+    madeFilm: "Film",
     makeFilmLede: "Jetzt zum Leben erwecken.",
     filmPending: "Video wird erstellt — bitte warten",
     imagesPending: "Bilder werden erstellt — bitte warten",

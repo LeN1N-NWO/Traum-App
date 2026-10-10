@@ -4,10 +4,10 @@ import { localMedia, onMediaReady } from "@/lib/media-cache";
 /* Das Journal, nativ vorgehalten — gespeist von der Web-Brücke
    (legacy/journal-bridge.jsx). Ein Modul-Speicher statt Context, weil Liste
    und Traum-Seite in verschiedenen Stack-Screens leben und beide lesen. */
-export type Take = { url: string; at: string | null; label: string };
+export type Take = { url: string; at: string | null; label: string; glimpse?: boolean };
 export type DreamItem = {
   id: string; createdAt: string; title: string; tagline: string; text: string;
-  media: { kind: "film" | "image"; url: string } | null; pending: boolean; rendering: boolean; failReason: string | null; audio: string | null; poster: string | null; analysis: any | null; styleId: string | null; moon: MoonInfo;
+  media: { kind: "film" | "image"; url: string } | null; pending: boolean; rendering: boolean; failReason: string | null; audio: string | null; poster: string | null; analysis: any | null; styleId: string | null; styleLabel?: string | null; moon: MoonInfo;
   films: Take[]; images: string[]; reflection: string | null; originalText: string | null;
   cast: { tag: string; img: string | null }[];
 };

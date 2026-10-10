@@ -122,6 +122,9 @@ function snapshot() {
         poster: e.poster ? absolute(e.poster) : null,
         // Fuer „Nochmal, anders" (native Fassung): Analyse und Stil des Traums.
         analysis: e.analysis || null, styleId: e.style || null,
+        /* Mit welchem Stil der Traum gemacht wurde (Antons Wunsch 10.10.: „im
+           Journal vermerken, mit welchem Style der Traum generiert wurde"). */
+        styleLabel: e.style ? t.styles.byId[e.style]?.label || null : null,
         /* Die Mondphase der Nacht (moon.js). Alte Traeume haben keine
            gespeicherte — fuer die wird sie aus dem Datum nachgerechnet,
            dasselbe Ergebnis, nur nicht festgeschrieben. */
@@ -133,7 +136,7 @@ function snapshot() {
         // Die eigene Aufnahme (ADR-0007), wenn der Traum eingesprochen wurde.
         audio: e.audio?.url ? absolute(e.audio.url) : null,
         failReason: e.failReason ? (t.errors[failureTextKey(e.failReason)] || t.errors.unexpected) : null,
-        films: filmsOf(e).map((f) => ({ url: absolute(f.url), at: f.at || null, label: takeLabel(f) })),
+        films: filmsOf(e).map((f) => ({ url: absolute(f.url), at: f.at || null, label: takeLabel(f), glimpse: f.kind === "sketch" })),
         images,
         reflection: e.reflection?.text || null,
         originalText: e.originalText && e.originalText !== e.text ? e.originalText : null,
@@ -356,7 +359,7 @@ function snapshot() {
     intentionHeading: t.home.intentionHeading, articleHeading: t.home.articleHeading, articleMore: t.home.articleMore, renderingLine: t.home.renderingLine, quickRecord: t.home.quickRecord,
     lastHeading: t.home.lastHeading, blankCta: t.home.blankCta, blankHint: t.home.blankHint, blankDone: t.home.blankDone,
     soundsShortcut: t.home.soundsShortcut, checkinQuestion: t.checkin.question, checkinThanks: t.checkin.thanks,
-    untitled: t.journal.untitled, takes: t.journal.takesLabel, reflectTitle: t.journal.reflectTitle,
+    untitled: t.journal.untitled, takes: t.journal.takesLabel, madeFilm: t.journal.madeFilm, madeGlimpse: t.wizard.sketch?.takeLabel || "Glimpse", reflectTitle: t.journal.reflectTitle,
     reflectNote: t.journal.reflectNote, reflectCta: t.journal.reflectCta, original: t.journal.original, rendering: t.journal.filmRendering,
     share: t.journal.actShare, recordingTitle: t.journal.recordingTitle, recordingHint: t.journal.recordingHint, shareCard: t.journal.shareCard, shareCardCta: t.journal.shareCardCta, shareCardFooter: t.journal.shareCardFooter, more: t.journal.menu, makeFilm: t.journal.makeFilm, anotherTake: t.journal.makeFilmAgain,
     dreams: t.journal.title,

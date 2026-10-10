@@ -1,60 +1,50 @@
-import { useState } from "react";
-import { mascot } from "../lib/mascots.js";
-import { useAppState } from "../state/AppState.jsx";
+import halo from "../../mobile/assets/galaxy/halo.webp";
+import disk from "../../mobile/assets/galaxy/disk.webp";
+import spiral from "../../mobile/assets/galaxy/spiral.webp";
+import core from "../../mobile/assets/galaxy/core.webp";
 import "./mascotLoader.css";
 
-/* Die Ladeanzeige der App: das Maskottchen, nicht ein drehender Ring.
+/* Die Ladeanzeige der App — seit 10.10.2026 die Galaxie, nicht mehr der
+ * Frosch.
  *
- * Antons Ansage (03.09.2026): „Kannst du bei der Ladeanimation, also der
- * drehenden Kugel, wieder den Frosch nehmen — die Animation, wo er sich im
- * Loop hinlegt und schläft."
+ * Antons Befund 10.10.: „Mein Traum wird generiert, und der Traum-Tab hat
+ * noch ein Icon von dem Frosch, den wir ersetzt haben. Nehmen wir das neue
+ * Universum für diese Warteschleifen." In der nativen App wartet man
+ * schon seit 09.10. vor der Galaxie (mobile/src/components/mascot-loader.tsx);
+ * diese Web-Fassung erscheint dort noch, wenn der Bestell-Bildschirm auf
+ * die alte Oberfläche zurückfällt (mobile/src/app/dream/order.tsx, `showWeb`).
  *
- * Es ist dieselbe Idle-Datei wie im Onboarding (mascots.js, `idle`), nur an
- * jeder Stelle, an der die App warten lässt. Das passt auch inhaltlich: Wer
- * hier wartet, wartet auf einen Traum, und der Frosch schläft solange.
+ * Dieselbe Galaxie wie nativ, aus denselben Bildern (mobile/assets/galaxy,
+ * gerendert von scripts/galaxy-art.mjs): ein atmender Halo, die schräg
+ * liegende Scheibe (−21°, auf 0,54 geplättet), darin die Spirale, die sich
+ * in 14 s einmal dreht (zehnmal so schnell wie hinter dem Aufnahmeknopf —
+ * man soll sehen, dass etwas passiert), und der Kern. Bewegt wird nur per
+ * CSS-Transform, gezeichnet nichts. Bei „Bewegung reduzieren" steht sie.
  *
- * ── Warum eine eigene Datei und nicht Mascot.jsx wiederverwendet ─────────
- * Mascot.jsx wohnt im Onboarding und zieht dessen Stylesheet mit. Diese
- * Anzeige erscheint überall — Wizard, Journal, Wartebildschirme — und darf
- * nicht davon abhängen, dass ein Onboarding-Stylesheet geladen ist. Die
- * Bildquelle kommt bei beiden aus derselben Tabelle: Wer ein zweites
- * Maskottchen einträgt, ändert beide Stellen mit einer Zeile.
+ * Maße in Website-Einheiten wie in galaxy-geometry.ts: Bühne 1440 × 850,
+ * Mitte (720, 430), Scheibe 1300, Kern 390; `ZOOM` wie nativ (scale 0.7).
  *
- * ⚠ Der `screen`-Trick von Mascot.jsx gilt hier genauso: Die Quelle ist
- * weiße Strichzeichnung auf gemessenem Reinschwarz, `mix-blend-mode:
- * screen` rechnet das Schwarz auf Null. Kein `isolation: isolate` auf den
- * Behälter legen — dann wäre der schwarze Kasten zurück.
- *
- * ⚠ `autoPlay muted loop playsInline`, wie im Haus üblich. Kein eigenes
- * play() im Effekt: Genau daran stand der Frosch im Onboarding einmal
- * still, ohne eine einzige Fehlermeldung.
- *
- * @param {"page"|"inline"} size  "page" für Wartebildschirme (der Frosch in
- *   voller Größe), "inline" für eine Zeile neben Text. Unter etwa 40 Pixeln
- *   ist von der Zeichnung nichts mehr zu erkennen — dort bleibt der Ring.
- */
-export default function MascotLoader({ size = "page", className = "" }) {
-  const { state } = useAppState();
-  const m = mascot(state);
-  /* Wer Bewegung abgeschaltet hat, bekommt das Standbild — dieselbe Regel
-     wie beim wandernden Licht und beim Wisch-Hinweis. Das Video wird dann
-     gar nicht geladen. */
-  const [stillHalten] = useState(
-    () => window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false,
-  );
+ * @param {"page"|"inline"} size  "page" für Wartebildschirme, "inline" für
+ *   eine Zeile neben Text. */
+const BOX = { page: 180, inline: 56 };
+const ZOOM = 0.7;
 
+export default function MascotLoader({ size = "page", className = "" }) {
+  const box = BOX[size] ?? BOX.page;
+  const s = (box / 820) * ZOOM;
+  const c = box / 2;
+  const stage = { width: 1440 * s, height: 850 * s, left: c - 720 * s, top: c - 430 * s };
+  const d = 1300 * s, k = 390 * s;
   return (
-    <div className={`ml-wrap ml-${size} ${className}`.trim()} aria-hidden="true">
-      <video
-        className="ml-film"
-        src={stillHalten ? undefined : m.idle.src}
-        poster={m.idle.poster}
-        autoPlay={!stillHalten}
-        muted
-        loop
-        playsInline
-        preload={stillHalten ? "none" : "auto"}
-      />
+    <div className={`ml-wrap ml-${size} ${className}`.trim()} style={{ width: box, height: box }} aria-hidden="true">
+      <img className="ml-layer ml-halo" src={halo} alt="" style={stage} />
+      <div className="ml-tilt" style={{ width: d, height: d, left: c - d / 2, top: c - d / 2 }}>
+        <div className="ml-spin">
+          <img className="ml-layer" src={disk} alt="" />
+          <img className="ml-layer" src={spiral} alt="" />
+        </div>
+        <img className="ml-layer ml-core" src={core} alt="" style={{ width: k, height: k, left: (d - k) / 2, top: (d - k) / 2 }} />
+      </div>
     </div>
   );
 }
