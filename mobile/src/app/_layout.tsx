@@ -8,6 +8,7 @@ import { OnboardingGate } from "@/components/onboarding-gate";
 import { PrivacyGate } from "@/components/privacy-gate";
 import { SignInSheet } from "@/components/sign-in-sheet";
 import { Toasts } from "@/components/toasts";
+import { AmbientClock } from "@/lib/ambient-clock";
 import { usePushRegistration } from "@/lib/push";
 import { useJournalStore } from "@/store/journal-store";
 
@@ -28,6 +29,8 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
+      {/* Der gemeinsame 30-Bilder-Takt der ruhigen Bewegungen (lib/ambient-clock.tsx, 10.10.) */}
+      <AmbientClock />
       {/* Kein Schrumpfen beim Scrollen (Antons Befund 25.09.: „oft kann ich die
           Menü-Buttons nicht anklicken"). Zusammengeschrumpft zeigt iOS 26 nur
           den aktuellen Tab; ein Tipp auf die alte Stelle der anderen klappt

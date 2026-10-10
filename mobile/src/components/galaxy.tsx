@@ -1,6 +1,7 @@
-import { memo, useEffect, useMemo } from "react";
+import { memo, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
-import Animated, { type SharedValue, useAnimatedStyle, useFrameCallback, useReducedMotion, useSharedValue } from "react-native-reanimated";
+import Animated, { type SharedValue, useAnimatedReaction, useAnimatedStyle, useReducedMotion, useSharedValue } from "react-native-reanimated";
+import { useAmbient } from "@/lib/ambient-clock";
 import Svg, { Circle, Defs, Ellipse, Path, RadialGradient, Stop } from "react-native-svg";
 import { useScreenActive } from "@/lib/use-screen-active";
 
@@ -90,16 +91,21 @@ export const Galaxy = memo(function Galaxy({ size, scale = 1, intensity = 1, ani
   const rot = useSharedValue(0);
   const sl = useSharedValue(0);
   const fall = useSharedValue(0);
-  const clock = useFrameCallback((f) => {
-    const dt = Math.min(0.05, (f.timeSincePreviousFrame ?? 16) / 1000);
+  /* Im gemeinsamen 30er-Takt (lib/ambient-clock.tsx, 10.10., Energie):
+     Vorher eigener Takt mit jedem Bild — auf ProMotion 120 Runden je
+     Sekunde durch Schattenbaum und Layout. Die Drehung ist so langsam, dass
+     30 Schritte je Sekunde nicht zu sehen sind. */
+  const reduce = useReducedMotion();
+  const active = useScreenActive() && animated && !reduce;
+  const clock = useAmbient(active);
+  useAnimatedReaction(() => clock.value, (now, prev) => {
+    if (!active || prev == null) return;
+    const dt = Math.min(0.1, Math.max(0, (now - prev) / 1000));
     sl.value += (voice.value - sl.value) * Math.min(1, dt * 3);
     t.value = (t.value + dt) % CYCLE;
     rot.value = (rot.value + dt * TURN * speed * (1 + 7 * sl.value)) % 360;
     fall.value = (fall.value + dt * FALL * (1 + 2 * sl.value)) % 1;
-  }, false);
-  const reduce = useReducedMotion();
-  const active = useScreenActive() && animated && !reduce;
-  useEffect(() => { clock.setActive(active); }, [active, clock]);
+  }, [active, speed]);
 
   // sin-Kurve hin und zurück: (1 − cos(π·t/T)) / 2 läuft in T Sekunden 0 → 1 und wieder zurück.
   const halo = useAnimatedStyle(() => {

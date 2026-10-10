@@ -10,6 +10,7 @@ import Animated, {
 import Svg, { Circle, Defs, G, LinearGradient, Path, RadialGradient, Stop } from "react-native-svg";
 import de from "../../../src/i18n/de.js";
 import en from "../../../src/i18n/en.js";
+import { useAmbient } from "@/lib/ambient-clock";
 import { useScreenActive } from "@/lib/use-screen-active";
 import { useJournalStore, type GiftCard, type HomeData } from "@/store/journal-store";
 import { colors, fonts } from "@/theme";
@@ -249,14 +250,9 @@ export function Moonweave({ C, width, action, ...h }: { C: HomeData["cycle"]; wi
   const freshIdx = C.slots.map((s, i) => (s.dreamId && s.num > shownUpTo && revealed(s.num) ? i : -1)).filter((i) => i >= 0);
   const growStyle = useAnimatedStyle(() => ({ opacity: grow.value }));
 
-  /* Der Schimmer der Geschenk-Punkte: EIN Takt für alle, jeder Punkt etwas später — so wandert er reihum. */
-  const wave = useSharedValue(0);
-  useEffect(() => {
-    if (!active || reduce) { cancelAnimation(wave); return; }
-    wave.value = 0;
-    wave.value = withRepeat(withTiming(1, { duration: WAVE, easing: Easing.linear }), -1, false);
-    return () => cancelAnimation(wave);
-  }, [active, reduce, wave]);
+  /* Der Schimmer der Geschenk-Punkte: der gemeinsame 30er-Takt (lib/ambient-clock.tsx),
+     jeder Punkt etwas später — so wandert er reihum. */
+  const wave = useAmbient(active && !reduce);
 
   /* Ein Punkt ist ausgewählt (Tipp) — sein Blatt leuchtet leise. */
   const [selected, setSelected] = useState<number | null>(null);
@@ -517,7 +513,7 @@ function GiftGlow({ wave, order, film, got, still }: { wave: SharedValue<number>
   const base = got ? 0.55 : 0.3, peak = got ? 1 : 0.75;
   const style = useAnimatedStyle(() => {
     if (still) return { opacity: base, transform: [{ scale: 1 }] };
-    let ms = wave.value * WAVE - order * STEP;
+    let ms = (wave.value % WAVE) - order * STEP;
     if (ms < 0) ms += WAVE;
     const g = ms < 900 ? Math.pow(Math.sin((Math.PI / 2) * (ms / 900)), 2) : ms < 2200 ? Math.pow(Math.cos((Math.PI / 2) * ((ms - 900) / 1300)), 2) : 0;
     return { opacity: base + (peak - base) * g, transform: [{ scale: 1 + 0.14 * g }] };

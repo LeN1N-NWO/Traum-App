@@ -5,6 +5,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { DreamItem } from "@/store/journal-store";
+import { useScreenActive } from "@/lib/use-screen-active";
 import { useRecording } from "@/store/recording-store";
 import { colors, fonts } from "@/theme";
 
@@ -31,10 +32,14 @@ export function DreamTile({ item, live = false, untitled, width, onPress }: { it
   );
 }
 
+/* Läuft nur, solange das Journal zu sehen ist (10.10., Energie): Die Tabs
+   bleiben montiert — der Film der mittleren Kachel lief vorher auf jedem
+   anderen Tab weiter und hielt den Video-Decoder dauernd beschäftigt. */
 function TileFilm({ url }: { url: string }) {
   const player = useVideoPlayer(url, (p) => { p.loop = true; p.muted = true; p.play(); });
   const rec = useRecording();
-  useEffect(() => { player.loop = true; player.muted = true; if (rec) player.pause(); else player.play(); }, [player, rec]);
+  const active = useScreenActive();
+  useEffect(() => { player.loop = true; player.muted = true; if (rec || !active) player.pause(); else player.play(); }, [player, rec, active]);
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 

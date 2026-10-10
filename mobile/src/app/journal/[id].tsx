@@ -16,6 +16,7 @@ import { ShareCard } from "@/components/share-card";
 import { Glass, GlassButton, PrimaryButton } from "@/components/glass";
 import { useJournal } from "@/components/journal-data";
 import { deleteDreamRemote } from "@/lib/dream-sync";
+import { useScreenActive } from "@/lib/use-screen-active";
 import { colors, fonts, radius, TAB_INSET } from "@/theme";
 import { patchWizard, resetWizard } from "@/store/wizard-store";
 import type { DreamItem } from "@/store/journal-store";
@@ -135,6 +136,8 @@ function DreamBody({ item, labels, locale, onMore, onReflect, reflecting }: { it
   const [take, setTake] = useState(item.films.length ? item.films.length - 1 : 0);
   const [sound, setSound] = useState(false);
   const [full, setFull] = useState(false);
+  // Anderer Tab vorn oder Seite verdeckt: der Film oben hält an (10.10., Energie — vorher lief er weiter)
+  const active = useScreenActive();
   /* Wo der Film oben gerade steht — das Vollbild setzt dort fort. */
   const heroTime = useRef<() => number>(() => 0);
   const [startAt, setStartAt] = useState(0);
@@ -155,11 +158,11 @@ function DreamBody({ item, labels, locale, onMore, onReflect, reflecting }: { it
             {item.films.map((f, i) => (
               <View key={f.url} style={{ width, height: heroH }}>
                 {/* nur die sichtbare Fassung läuft — die anderen warten still */}
-                <FilmHero url={f.url} sound={sound && i === take} paused={full || i !== take} timeRef={i === take ? heroTime : undefined} />
+                <FilmHero url={f.url} sound={sound && i === take} paused={full || i !== take || !active} timeRef={i === take ? heroTime : undefined} />
               </View>
             ))}
           </ScrollView>
-        ) : film ? <FilmHero url={film} sound={sound} paused={full} timeRef={heroTime} /> : still ? <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="top" transition={300} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
+        ) : film ? <FilmHero url={film} sound={sound} paused={full || !active} timeRef={heroTime} /> : still ? <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="top" transition={300} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky }]} />}
         {/* pointerEvents="none": der Verlauf lag ueber den Knoepfen und schluckte jeden Tipp. */}
         <LinearGradient colors={["rgba(5,10,20,0.55)", "rgba(5,10,20,0)", "rgba(5,10,20,0)", "rgba(5,10,20,0.75)", colors.bg]} locations={[0, 0.22, 0.5, 0.85, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
         {film ? (

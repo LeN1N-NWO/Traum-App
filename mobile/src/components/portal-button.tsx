@@ -1,8 +1,8 @@
-import { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import Animated, { Easing, type SharedValue, cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import Animated, { type SharedValue, useAnimatedStyle } from "react-native-reanimated";
 import Svg, { Circle, Defs, Path, RadialGradient, Stop } from "react-native-svg";
 import { Galaxy } from "@/components/galaxy";
+import { swing, useAmbient } from "@/lib/ambient-clock";
 import { useScreenActive } from "@/lib/use-screen-active";
 import { colors } from "@/theme";
 
@@ -24,14 +24,9 @@ export function PortalButton({ size = 150, stageSize, recording, level, onPress,
   // Die Bühne darf größer sein als der Knopf in ihrer Mitte (Antons Wunsch 04.10.: den Platz nutzen).
   const stage = stageSize ?? size * 2.3;
 
-  const active = useScreenActive();
-  const breath = useSharedValue(0);
-  useEffect(() => {
-    if (active) breath.value = withRepeat(withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.sin) }), -1, true);
-    else cancelAnimation(breath);
-  }, [active, breath]);
-
-  const core = useAnimatedStyle(() => ({ transform: [{ scale: 1 + 0.03 * breath.value + 0.1 * level.value }] }));
+  // der Atem im gemeinsamen 30er-Takt (lib/ambient-clock.tsx, 10.10.), nur solange sichtbar
+  const t = useAmbient(useScreenActive());
+  const core = useAnimatedStyle(() => ({ transform: [{ scale: 1 + 0.03 * swing(t.value, 4800) + 0.1 * level.value }] }));
   const btn = size * 0.62;
 
   return (

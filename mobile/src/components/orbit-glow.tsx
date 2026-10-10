@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import Animated, { Easing, type SharedValue, useAnimatedProps, useFrameCallback, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import Animated, { type SharedValue, useAnimatedProps } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
+import { swing, useAmbient } from "@/lib/ambient-clock";
 import { useScreenActive } from "@/lib/use-screen-active";
 
 /* Der Leuchtrand, sechste Fassung (Antons Wahl 27.09. aus dem Variantenbuch):
@@ -46,14 +47,11 @@ const LAYERS: [number, string, number, number][] = [
 
 export function OrbitGlow({ radius, lap = LAP, spend = false }: { radius?: number; lap?: number; spend?: boolean }) {
   const [box, setBox] = useState({ w: 0, h: 0 });
-  const active = useScreenActive();
-  const t = useSharedValue(0);
-  const clock = useFrameCallback((f) => { t.value += f.timeSincePreviousFrame ?? 16; }, false);
-  useEffect(() => { clock.setActive(active); }, [active, clock]);
-  const breath = useSharedValue(0);
-  useEffect(() => {
-    if (spend) breath.value = withRepeat(withTiming(1, { duration: BREATH, easing: Easing.inOut(Easing.sin) }), -1, true);
-  }, [spend, breath]);
+  /* Der gemeinsame 30er-Takt (lib/ambient-clock.tsx, 10.10., Energie):
+     Auf ProMotion-iPhones lief der Strahl mit 120 Bildern — sechs Striche,
+     jedes Bild neu gezeichnet, auf jedem sichtbaren Hauptknopf; der goldene
+     Atem lief sogar auf unsichtbaren Tabs weiter. */
+  const t = useAmbient(useScreenActive());
 
   // Die Ebene ragt PAD über den Knopf hinaus, damit der breite Schein nicht abgeschnitten wird.
   const inset = PAD + 0.75;
@@ -65,8 +63,8 @@ export function OrbitGlow({ radius, lap = LAP, spend = false }: { radius?: numbe
      Inhalt sich jedes Bild ändert, rechnet Core Animation jedes Bild neu —
      das war die Dauerlast (cpu_resource 63 %). Der Schein ist jetzt eine
      breite, blasse Linie im selben SVG. */
-  const rim = useAnimatedProps(() => ({ strokeOpacity: spend ? 0.55 + 0.4 * breath.value : 1 }));
-  const aura = useAnimatedProps(() => ({ strokeOpacity: 0.1 + 0.22 * breath.value }));
+  const rim = useAnimatedProps(() => ({ strokeOpacity: spend ? 0.55 + 0.4 * swing(t.value, 2 * BREATH) : 1 }));
+  const aura = useAnimatedProps(() => ({ strokeOpacity: 0.1 + 0.22 * swing(t.value, 2 * BREATH) }));
 
   return (
     <View style={styles.over} pointerEvents="none" onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>

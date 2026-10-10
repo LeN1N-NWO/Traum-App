@@ -1,7 +1,8 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import Animated, { Easing, cancelAnimation, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
+import { swing, useAmbient } from "@/lib/ambient-clock";
 import Svg, { Circle } from "react-native-svg";
 import { useScreenActive } from "@/lib/use-screen-active";
 
@@ -27,27 +28,24 @@ export function NightSky({ density = 1 }: { density?: number }) {
     })));
   }, [density]);
 
-  const tw = [useSharedValue(0.5), useSharedValue(0.7), useSharedValue(0.9)];
   /* Nur funkeln, solange der Tab zu sehen ist (04.10.): Der Himmel liegt
      inzwischen hinter vier Tabs, die alle montiert bleiben — vorher liefen
-     alle vier Himmel ständig weiter, auch unsichtbar. */
+     alle vier Himmel ständig weiter, auch unsichtbar. Seit 10.10. im
+     gemeinsamen 30er-Takt (lib/ambient-clock.tsx): jede Gruppe schwingt
+     zwischen dunkel und hell, jede in ihrem eigenen Tempo, wie vorher. */
   const live = useScreenActive();
-  useEffect(() => {
-    tw.forEach((v, i) => {
-      if (!live) { cancelAnimation(v); return; }
-      v.value = withRepeat(withSequence(
-        withTiming(0.25 + i * 0.15, { duration: 2300 + i * 900, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0.75 + i * 0.08, { duration: 2600 + i * 700, easing: Easing.inOut(Easing.sin) }),
-      ), -1, true);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [live]);
+  const t = useAmbient(live);
+  const twinkle = (i: number) => {
+    "worklet";
+    const lo = 0.25 + i * 0.15, hi = 0.75 + i * 0.08;
+    return lo + (hi - lo) * swing(t.value, 2 * (4900 + i * 1600), i * 0.31);
+  };
   /* Das Funkeln als Deckkraft einer EBENE, nicht als SVG-Eigenschaft
      (28.09., Dauerlast): So blendet die Grafikkarte drei fertige Bilder
      ineinander, statt das SVG jedes Bild neu zu zeichnen. */
-  const g0 = useAnimatedStyle(() => ({ opacity: tw[0].value }));
-  const g1 = useAnimatedStyle(() => ({ opacity: tw[1].value }));
-  const g2 = useAnimatedStyle(() => ({ opacity: tw[2].value }));
+  const g0 = useAnimatedStyle(() => ({ opacity: twinkle(0) }));
+  const g1 = useAnimatedStyle(() => ({ opacity: twinkle(1) }));
+  const g2 = useAnimatedStyle(() => ({ opacity: twinkle(2) }));
   const groups = [g0, g1, g2];
 
   return (
