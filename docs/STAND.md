@@ -3,7 +3,42 @@
 > Diese Datei wird bei jedem Sitzungsende KOMPLETT überschrieben.
 > Sie zeigt immer nur die Gegenwart. Historie gehört ins WORKLOG.
 
-**Stand:** 2026-10-10 nachmittags — Anton, `session/2026-10-10-anton` (PR #97):
+**Stand:** 2026-10-10 abends — Hanni, `session/2026-10-10-hanni` (PR #99):
+**Verwaiste Medien auf dem Server löschen.** Zwei neue Routen,
+Gegenstück in der App fehlt noch (Anton).
+- `DELETE /api/panel?url=/media/<name>.m4a`: verworfene Aufnahme.
+- `DELETE /api/media` `{ urls }`: Medien eines gelöschten Traums
+  (Aufnahme, Bilder, Film, Poster). Vorher blieben sie bis zur
+  Kontolöschung liegen.
+
+Beide löschen nur Eigenes und nichts, was noch einem anderen Konto
+gehört (`dropFile` in `src/lib/mediaAccess.js`).
+⚠ **Kein nächtlicher Sweep:** Die Träume sind versiegelt, der Server
+sieht nicht, welche Datei in einem Traum steckt. Ein Sweep hätte alle
+Aufnahmen gelöscht.
+⚠ **Wirkt auf dem VPS erst nach Merge + `deploy.sh`.**
+
+## Offen aus dieser Session
+
+1. **Anton, App-Seite:**
+   `docs/uebergabe/2026-10-10-anton-aufnahmen-loeschroute.md`.
+   - Die Routen aufrufen. Beim Löschen eines Traums nur Adressen
+     schicken, die kein anderer Eintrag und keine Figur mehr benutzt.
+   - **Frage:** Aufnahme erst beim Speichern hochladen? Hannis Vorgaben:
+     Scheitert es, wird der Traum trotzdem gespeichert, die Datei bleibt
+     auf dem iPhone, und der 24-h-Aufräumer (`mobile/src/lib/recordings.ts`)
+     lässt sie liegen.
+2. **Auftragsdateien** `media/jobs/<id>.json` (mit Traumtext) bleiben beim
+   Löschen eines Traums liegen. Antons Entscheidung, hängt an seiner
+   Film-Abholung.
+3. **Nächste Session (Hanni, eigener Branch):** Ring-Geschenke ins Konto
+   (`POST /api/gifts/claim`, Teil 2 von
+   `docs/uebergabe/2026-10-10-hanni-server-aufnahmen-geschenke.md`) und
+   Belegprüfung der Käufe (B1).
+
+---
+
+Davor 2026-10-10 nachmittags — Anton, `session/2026-10-10-anton` (PR #97):
 schnellerer Traum-Weg (Apple-Spracherkennung auf dem iPhone, Ladebalken,
 keine Vorschau-Seite mehr), echter Sammelfilm aus den Clips,
 Geschenk-Staffel nach Kauf, deutlich weniger Dauerlast. Alles auf Antons
@@ -18,7 +53,8 @@ Durchlauf am 15.10., TestFlight am 16.10.
    `docs/uebergabe/2026-10-10-hanni-startbild-startseite.md`.
 2. **Server-Arbeit für dich:**
    `docs/uebergabe/2026-10-10-hanni-server-aufnahmen-geschenke.md`.
-   - Verworfene Aufnahmen aufräumen: Löschroute plus nächtlicher Sweep.
+   - Verworfene Aufnahmen aufräumen: **erledigt in PR #99** (Löschroute;
+     den Sweep gibt es bewusst nicht, siehe oben).
    - Credit-Geschenke (24/36/48 nach einem Kauf) ins Konto buchen, mit
      `POST /api/gifts/claim`. Mit Konto sind sie heute unsichtbar.
    - Das muss stehen, bevor jemand 24 Träume hat.
