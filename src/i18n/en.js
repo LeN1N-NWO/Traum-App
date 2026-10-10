@@ -336,6 +336,14 @@ export default {
     castDreamsN: (n) => (n === 1 ? "dream" : "dreams"),
     castNever: "not in a dream yet",
     castNew: "Add a figure",
+    /* Besetzung im Abspann-Stil mit Casting-Vorschlägen (Antons Wahl 10.10.). */
+    castStarring: "Starring",
+    castInAll: (n) => (n === 0 ? "in every dream to come" : n === 1 ? "in your first dream" : `in all ${n} dreams`),
+    castSuggestTitle: "Showed up in your dreams",
+    castSuggestHint: "No face yet — add one and they'll look like themselves.",
+    castSuggestAdd: "Add",
+    castSuggestIn: (n) => `in ${n} ${n === 1 ? "dream" : "dreams"}`,
+    castEmptyCard: { person: "Someone from last night?", pet: "A pet of yours?", place: "A place you dream of", object: "A thing that keeps coming back" },
     libraryCount: (n) =>
       n === 0 ? "Nobody yet — add the faces your dreams should use"
               : `${n} ${n === 1 ? "entry" : "entries"} · people, pets, places`,
@@ -688,6 +696,7 @@ export default {
     descLabelMe: "Describe yourself",
     descLabelMeOptional: "Describe yourself (optional)",
     descPlaceholder: "tall, dark curly hair, always in a green coat",
+    descPlaceholderFor: { person: "tall, dark curly hair, always in a green coat", pet: "small black dog, one white ear", place: "blue wooden house by a lake, red door", object: "old red car with a dented bonnet" },
     previewAlt: "Preview of the selected photo",
     privacy: "This photo is sent to fal.ai when a dream is rendered.",
     cancel: "Cancel",

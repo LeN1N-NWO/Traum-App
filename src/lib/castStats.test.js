@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { appearances, castByCategory, initialOf } from "./castStats.js";
+import { appearances, castByCategory, castSuggestions, initialOf, tagSuggestion } from "./castStats.js";
 
 const dream = (id, tags) => ({ id, references: tags.map((tag) => ({ tag })) });
 const figure = (tag, category = "person") => ({ id: "c_" + tag, tag, category });
@@ -78,4 +78,46 @@ test("the initial survives characters outside the basic plane", () => {
   expect(initialOf("Ätna")).toBe("Ä");
   expect(initialOf("🐾Rex")).toBe("🐾");
   expect(initialOf("")).toBe("?");
+});
+
+const told = (id, analysis, createdAt = "2026-10-01T07:00:00Z") => ({ id, createdAt, analysis });
+
+test("casting: suggests who keeps showing up and has no face yet, most frequent first", () => {
+  const journal = [
+    told("e_1", { people: [{ name: "Mama", kind: "person" }, { name: "Rex", kind: "pet" }], places: ["Omas Küche"], objects: [] }),
+    told("e_2", { people: [{ name: "Mama", kind: "person" }, { name: "mama", kind: "person" }], places: ["Omas Küche"], objects: ["roter Wagen"] }),
+    told("e_3", { people: [{ name: "Mama", kind: "person" }], places: [], objects: [] }),
+  ];
+  const s = castSuggestions(journal, [], { limit: 5 });
+  expect(s[0]).toEqual({ name: "Mama", category: "person", count: 3, tag: "mama" });   // zweimal im selben Traum zählt einmal
+  expect(s[1]).toEqual({ name: "Omas Küche", category: "place", count: 2, tag: "omas" });
+  expect(s.map((x) => x.category)).toContain("pet");
+  expect(s.map((x) => x.category)).toContain("object");
+});
+
+test("casting: skips figures already in the cast, the dreamer and strangers", () => {
+  const journal = [
+    told("e_1", { people: [{ name: "Lena" }, { name: "ich" }, { name: "eine fremde Frau" }, { name: "a stranger" }, { name: "Bruno", kind: "pet" }] }),
+  ];
+  const s = castSuggestions(journal, [figure("lena")], { limit: 5 });
+  expect(s.map((x) => x.name)).toEqual(["Bruno"]);
+  expect(castSuggestions([], [])).toEqual([]);
+  expect(castSuggestions([{ id: "e_x" }], [])).toEqual([]);   // ohne Auswertung nichts
+});
+
+test("casting: limit keeps the top ones, newer wins a tie", () => {
+  const journal = [
+    told("e_1", { people: [{ name: "Alt" }] }, "2026-09-01T07:00:00Z"),
+    told("e_2", { people: [{ name: "Neu" }] }, "2026-10-01T07:00:00Z"),
+  ];
+  expect(castSuggestions(journal, [], { limit: 1 }).map((x) => x.name)).toEqual(["Neu"]);
+});
+
+test("casting: a short, readable @-tag from the dream's wording", () => {
+  expect(tagSuggestion("Brücke aus Klaviertasten")).toBe("bruecke");
+  expect(tagSuggestion("leerer Strand im Morgengrauen")).toBe("strand");
+  expect(tagSuggestion("the old train full of sand")).toBe("train");
+  expect(tagSuggestion("mein Bruder")).toBe("bruder");
+  expect(tagSuggestion("Großmutterhausküche")).toBe("grossmutterh");
+  expect(tagSuggestion("")).toBe("");
 });

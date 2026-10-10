@@ -71,3 +71,64 @@ export function initialOf(tag) {
   const first = [...String(tag || "")][0] || "?";
   return first.toLocaleUpperCase();
 }
+
+/* ── Casting: wer in den Träumen vorkommt, aber noch kein Gesicht hat ──
+ * (Antons Wahl 10.10., „Abspann plus Casting"). Jede Traum-Auswertung kennt
+ * ihre Personen, Tiere, Orte und Dinge (server.js, Analyse: people[],
+ * places[], objects[]). Gezählt wird, in wie vielen Träumen ein Name
+ * vorkommt, der noch zu keiner Figur der Besetzung passt — die häufigsten
+ * zuerst. Fremde („eine Frau", „a stranger") und der Träumer selbst
+ * („ich", „me") sind keine Kandidaten. Rein, ohne DOM — castStats.test.js. */
+const SELF = new Set(["i", "me", "myself", "thedreamer", "ich", "mich", "mir", "ichselbst", "dertraumer", "dietraumerin", "dertraeumer", "dietraeumerin"]);
+const STRANGER = /^(ein|eine|einen|einem|einer|a|an|some|irgendein|irgendeine|jemand|someone)\s/i;
+
+function keyOf(name) {
+  return String(name || "")
+    .toLowerCase()
+    .replace(/ä/g, "a").replace(/ö/g, "o").replace(/ü/g, "u").replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/* Ein kurzer Vorschlag für das @-Kürzel (10.10.): „Brücke aus Klaviertasten"
+   wurde sonst zu „brckeausklav" (Umlaute fielen weg, abgeschnitten nach 12).
+   Umlaute werden umschrieben, Artikel fallen weg, und genommen wird das
+   erste großgeschriebene Wort (im Deutschen das Hauptwort: „leerer Strand"
+   → „strand"), sonst das erste Wort mit mindestens vier Buchstaben. */
+const ARTICLE = /^(der|die|das|den|dem|des|ein|eine|einen|mein|meine|meinen|the|a|an|my|our)$/i;
+export function tagSuggestion(name) {
+  const words = String(name || "").trim().split(/\s+/).filter((w) => w && !ARTICLE.test(w));
+  const pick = words.find((w) => /^[A-ZÄÖÜ]/.test(w)) || words.find((w) => w.replace(/[^\p{L}]/gu, "").length >= 4) || words[0] || "";
+  return pick.toLowerCase()
+    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]/g, "").slice(0, 12);
+}
+
+/** Die häufigsten Namen aus den Träumen, die noch keine Figur sind.
+ *  @returns {{name:string, category:"person"|"pet"|"place"|"object", count:number}[]} */
+export function castSuggestions(journal, cast, { limit = 3 } = {}) {
+  const have = new Set((cast || []).map((c) => keyOf(c?.tag)).filter(Boolean));
+  const tally = new Map();
+  for (const entry of journal || []) {
+    const a = entry?.analysis;
+    if (!a) continue;
+    const at = new Date(entry.createdAt || 0).getTime() || 0;
+    const seen = new Set();
+    const add = (raw, category) => {
+      const name = String(raw || "").trim();
+      const key = keyOf(name);
+      if (!key || SELF.has(key) || have.has(key) || seen.has(key) || STRANGER.test(name)) return;
+      seen.add(key);
+      const t = tally.get(key) || { name, category, count: 0, at: 0 };
+      t.count += 1;
+      if (at >= t.at) { t.at = at; t.name = name; }
+      tally.set(key, t);
+    };
+    for (const p of a.people || []) add(typeof p === "string" ? p : p?.name, typeof p === "object" && p?.kind === "pet" ? "pet" : "person");
+    for (const p of a.places || []) add(p, "place");
+    for (const o of a.objects || []) add(o, "object");
+  }
+  return [...tally.values()]
+    .sort((x, y) => y.count - x.count || y.at - x.at)
+    .slice(0, limit)
+    .map(({ name, category, count }) => ({ name, category, count, tag: tagSuggestion(name) }));
+}

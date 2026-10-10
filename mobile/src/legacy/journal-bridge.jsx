@@ -48,7 +48,7 @@ import { FORM_FIELDS, profileFromAnswers } from "../../../src/lib/onboardingForm
 import { MASCOTS, DEFAULT_MASCOT } from "../../../src/lib/mascots.js";
 import { zodiacOf } from "../../../src/lib/zodiac.js";
 import { SYMBOLS, SYMBOL_CATEGORIES, detectSymbols, symbolOccurrences } from "../../../src/lib/symbols.js";
-import { castByCategory, initialOf } from "../../../src/lib/castStats.js";
+import { castByCategory, castSuggestions, initialOf } from "../../../src/lib/castStats.js";
 import { giftFor, giftLabel } from "../../../src/lib/streakBoard.js";
 import { REFERRAL_FILMS, REFERRAL_HOLD_DAYS, REFERRAL_MONTHLY_CAP } from "../../../src/lib/invites.js";
 import { zodiacGlyph } from "../../../src/lib/zodiac.js";
@@ -607,8 +607,15 @@ function snapshot() {
     total: (s.cast || []).length + (s.me?.img ? 1 : 0),
     /* Alle vier Gattungen, auch leere (13.09.2026): Die Liste zeigt, was
        hineingehört, statt nur, was schon da ist. */
+    /* Abspann + Casting (Antons Wahl 10.10.): du in der Hauptrolle (das Bild
+       liefert profile.img), und wer in den Träumen vorkam, aber noch kein
+       Gesicht hat — die häufigsten drei (castStats.js castSuggestions). */
+    me: { name: s.me?.tag || t.profile.you, line: t.journal.castInAll(realDreamsOf(s.journal).length) },
+    starring: t.journal.castStarring,
+    suggestTitle: t.journal.castSuggestTitle, suggestHint: t.journal.castSuggestHint, suggestAdd: t.journal.castSuggestAdd,
+    suggest: castSuggestions(realDreamsOf(s.journal), s.cast, { limit: 3 }).map((x) => ({ ...x, line: t.journal.castSuggestIn(x.count) })),
     groups: [["person", t.profile.people], ["pet", t.profile.pets], ["place", t.profile.places], ["object", t.profile.objects]].map(([category, label]) => ({
-      category, label, addLabel: t.avatarDialog.titleFor[category],
+      category, label, addLabel: t.avatarDialog.titleFor[category], emptyCard: t.journal.castEmptyCard?.[category] || t.avatarDialog.titleFor[category],
       rows: castByCategory(s.cast, s.journal, category).map((e) => ({ id: e.id, tag: e.tag, img: e.img ? mediaUrl(e.img) : null, initial: initialOf(e.tag), count: e.count, countWord: t.journal.castDreamsN(e.count) })),
     })),
   };
@@ -724,7 +731,7 @@ function avatarLabels() {
     nameTpl: a.nameLabel("{tag}"), photoHint: a.photoHint, photoLabelClose: a.photoLabelClose, photoLabel: a.photoLabel,
     photoLabelBody: a.photoLabelBody, photoBodyAdd: a.photoBodyAdd, photoBodyWhy: a.photoBodyWhy, photoAdd: a.photoAdd,
     photoTake: a.photoTake, photoReplace: a.photoReplace, photoRemove: a.photoRemove, descLabel: a.descLabel,
-    descLabelOptional: a.descLabelOptional, descLabelMe: a.descLabelMe, descLabelMeOptional: a.descLabelMeOptional, descPlaceholder: a.descPlaceholder, privacy: a.privacy, cancel: a.cancel,
+    descLabelOptional: a.descLabelOptional, descLabelMe: a.descLabelMe, descLabelMeOptional: a.descLabelMeOptional, descPlaceholder: a.descPlaceholder, descPlaceholderFor: a.descPlaceholderFor, privacy: a.privacy, cancel: a.cancel,
     save: a.save, saveChanges: a.saveChanges, needPhotoOrDescHint: a.needPhotoOrDescHint, delete: a.delete,
     drawFromDesc: a.drawFromDesc, drawingNow: a.drawingNow, drawHint: a.drawHint,
     creditsWord: t.wizard.creditsN(PRICES.characterSheet),
@@ -1405,7 +1412,8 @@ function run(cmd) {
     };
     patch = { journal: [...(s.journal || []), entry], creatures: [...(s.creatures || []), creature], pendingAudioUrl: null };
   }
-  else if (cmd.type === "pendingAudio") patch = { pendingAudioUrl: cmd.audioUrl || null };
+  // nur schreiben, wenn sich etwas ändert — jede Schreibung weckt alle Brücken (27.09.)
+  else if (cmd.type === "pendingAudio") { if ((s.pendingAudioUrl || null) !== (cmd.audioUrl || null)) patch = { pendingAudioUrl: cmd.audioUrl || null }; }
   if (patch) saveState({ ...s, ...patch });
 }
 

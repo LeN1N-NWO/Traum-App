@@ -272,7 +272,7 @@ export function AvatarEditor({ mode, id, category, tag: suggested, onDone }: { m
 
         <View style={styles.field}>
           <Text style={styles.label}>{mode === "me" ? (img ? L.descLabelMeOptional : L.descLabelMe) ?? L.descLabel : img ? L.descLabelOptional : L.descLabel}</Text>
-          <TextInput style={[styles.input, styles.inputMulti]} value={desc} onChangeText={setDesc} maxLength={120} multiline placeholder={L.descPlaceholder} placeholderTextColor={colors.faint} keyboardAppearance="dark" />
+          <TextInput style={[styles.input, styles.inputMulti]} value={desc} onChangeText={setDesc} maxLength={120} multiline placeholder={L.descPlaceholderFor?.[kind] ?? L.descPlaceholder} placeholderTextColor={colors.faint} keyboardAppearance="dark" />
         </View>
 
         {/* Das Ganzkörperfoto erst, wenn das Gesicht steht — vorher wäre es

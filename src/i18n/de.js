@@ -302,6 +302,14 @@ export default {
     castDreamsN: (n) => (n === 1 ? "Traum" : "Träume"),
     castNever: "noch in keinem Traum",
     castNew: "Figur anlegen",
+    /* Besetzung im Abspann-Stil mit Casting-Vorschlägen (Antons Wahl 10.10.). */
+    castStarring: "In der Hauptrolle",
+    castInAll: (n) => (n === 0 ? "in jedem Traum, der kommt" : n === 1 ? "in deinem ersten Traum" : `in allen ${n} Träumen`),
+    castSuggestTitle: "Kam in deinen Träumen vor",
+    castSuggestHint: "Noch ohne Gesicht — gib ihnen eins, dann sehen sie aus wie sie selbst.",
+    castSuggestAdd: "Hinzufügen",
+    castSuggestIn: (n) => `in ${n} ${n === 1 ? "Traum" : "Träumen"}`,
+    castEmptyCard: { person: "Jemand von letzter Nacht?", pet: "Ein Tier von dir?", place: "Ein Ort, von dem du träumst", object: "Ein Ding, das immer wiederkommt" },
     libraryCount: (n) =>
       n === 0 ? "Noch niemand — füge die Gesichter hinzu, die deine Träume nutzen sollen"
               : `${n} ${n === 1 ? "Eintrag" : "Einträge"} · Personen, Tiere, Orte, Dinge`,
@@ -631,6 +639,7 @@ export default {
     descLabelMe: "Beschreibe dich",
     descLabelMeOptional: "Beschreibe dich (optional)",
     descPlaceholder: "groß, dunkle lockige Haare, immer im grünen Mantel",
+    descPlaceholderFor: { person: "groß, dunkle Locken, immer im grünen Mantel", pet: "kleiner schwarzer Hund, ein weißes Ohr", place: "blaues Holzhaus am See, rote Tür", object: "alter roter Wagen mit verbeulter Haube" },
     previewAlt: "Vorschau des ausgewählten Fotos",
     privacy: "Dieses Foto geht an fal.ai, wenn ein Traum gerendert wird.",
     cancel: "Abbrechen",
